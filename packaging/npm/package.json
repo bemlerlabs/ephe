@@ -1,0 +1,11 @@
+{
+  "name": "@ephemora/ephe",
+  "version": "0.1.0-beta.3",
+  "description": "Local-first AI assistant — one-command install wrapper (delegates to install.sh).",
+  "bin": { "ephe": "./ephe.js" },
+  "files": ["ephe.js", "LICENSE", "NOTICE"],
+  "keywords": ["ai", "local", "offline", "assistant", "ollama"],
+  "license": "BUSL-1.1",
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "https://github.com/bemlerlabs/ephe" }
+}

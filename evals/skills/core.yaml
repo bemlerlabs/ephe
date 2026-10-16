@@ -1,0 +1,385 @@
+cases:
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Create a report about local AI quality
+    expected_tool: create_pdf
+    required_terms: [PDF, Executive Summary]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Schreibe eine Projektanalyse als PDF
+    expected_tool: create_pdf
+    required_terms: [PDF, Ist-Zustand]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Create a checklist PDF for release readiness
+    expected_tool: create_pdf
+    required_terms: [PDF, checklist]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Build a source-backed brief
+    expected_tool: create_pdf
+    required_terms: [PDF, source]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Create an appendix-heavy technical report
+    expected_tool: create_pdf
+    required_terms: [PDF, appendix]
+
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project find ephe and analyse its current state
+    expected_tool: discover_projects
+    required_terms: [Ist-Zustand, tests]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project analyze /Users/test/project
+    expected_tool: analyze_project
+    required_terms: [stack, risks]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project find my Python repo
+    expected_tool: discover_projects
+    required_terms: [project, test]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project what is the start command here
+    expected_tool: analyze_project
+    required_terms: [start, command]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project list quick wins for this repo
+    expected_tool: analyze_project
+    required_terms: [quick, wins]
+
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan ~/Desktop/screenshot.png
+    expected_tool: analyze_image
+    required_terms: [image, text]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan read this invoice image
+    expected_tool: analyze_image
+    required_terms: [invoice, fields]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan what is broken in this UI screenshot
+    expected_tool: analyze_image
+    required_terms: [UI, issue]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan extract code from this screenshot
+    expected_tool: analyze_image
+    required_terms: [code]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan describe this uploaded image
+    expected_tool: analyze_image
+    required_terms: [image]
+
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review inspect this Python file
+    expected_tool: read_file
+    required_terms: [finding, severity]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review run tests and review failures
+    expected_tool: run_shell
+    required_terms: [test, finding]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review scan the workspace
+    expected_tool: load_workspace
+    required_terms: [risk, evidence]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review find imports for this module
+    expected_tool: file_search
+    required_terms: [import]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review list security concerns
+    expected_tool: read_file
+    required_terms: [security, impact]
+
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files list my Desktop
+    expected_tool: list_directory
+    required_terms: [Desktop]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files find report.pdf
+    expected_tool: file_search
+    required_terms: [report.pdf]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files read this local file
+    expected_tool: read_file
+    required_terms: [file]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files summarize README.md
+    expected_tool: read_file
+    required_terms: [summary]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files what is in Downloads
+    expected_tool: list_directory
+    required_terms: [Downloads]
+
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Draft a one-page marketing brief
+    expected_tool: create_pdf
+    required_terms: [PDF, brief]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Turn these notes into a polished report
+    expected_tool: create_pdf
+    required_terms: [PDF, report]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Create an offer with a cover sheet
+    expected_tool: create_pdf
+    required_terms: [PDF, Angebot]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Make an executive summary PDF from this data
+    expected_tool: create_pdf
+    required_terms: [PDF, Executive Summary]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Generate a PDF with charts and tables
+    expected_tool: create_pdf
+    required_terms: [PDF, charts]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Convert this markdown file into PDF
+    expected_tool: create_pdf
+    required_terms: [PDF, markdown]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Create a PDF invoice template
+    expected_tool: create_pdf
+    required_terms: [PDF, invoice]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Write a whitepaper PDF about vector search
+    expected_tool: create_pdf
+    required_terms: [PDF, whitepaper]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Produce a board deck PDF
+    expected_tool: create_pdf
+    required_terms: [PDF, board]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Assemble a research PDF with citations
+    expected_tool: create_pdf
+    required_terms: [PDF, citations]
+
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project which projects do I have
+    expected_tool: discover_projects
+    required_terms: [project]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project analyse this repo dependencies
+    expected_tool: analyze_project
+    required_terms: [dependencies]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project read the config file at project root
+    expected_tool: read_file
+    required_terms: [config]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project list the files in /Users/test/project
+    expected_tool: list_directory
+    required_terms: [files]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project where is the pyproject.toml
+    expected_tool: file_search
+    required_terms: [pyproject.toml]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project what projects are available to analyze
+    expected_tool: discover_projects
+    required_terms: [project]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project check the architecture of the current project
+    expected_tool: analyze_project
+    required_terms: [architecture]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project open the README of this project
+    expected_tool: read_file
+    required_terms: [README]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project search the project for TODO comments
+    expected_tool: file_search
+    required_terms: [TODO]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project show the directory structure of this repo
+    expected_tool: list_directory
+    required_terms: [directory]
+
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan describe the chart in this image
+    expected_tool: analyze_image
+    required_terms: [chart]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan read the handwritten note
+    expected_tool: analyze_image
+    required_terms: [handwriting]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan extract the table from this screenshot
+    expected_tool: analyze_image
+    required_terms: [table]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan what does this diagram show
+    expected_tool: analyze_image
+    required_terms: [diagram]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan transcribe text from this photo
+    expected_tool: analyze_image
+    required_terms: [text]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan detect objects in this image
+    expected_tool: analyze_image
+    required_terms: [objects]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan analyze this scanned receipt
+    expected_tool: analyze_image
+    required_terms: [receipt]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan what colors dominate this image
+    expected_tool: analyze_image
+    required_terms: [colors]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan identify the error in this terminal screenshot
+    expected_tool: analyze_image
+    required_terms: [error]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan summarize this slide image
+    expected_tool: analyze_image
+    required_terms: [slide]
+
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review open src/app.py and check for bugs
+    expected_tool: read_file
+    required_terms: [bug]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review grep the repo for hardcoded secrets
+    expected_tool: file_search
+    required_terms: [secret]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review run the linter on this branch
+    expected_tool: run_shell
+    required_terms: [lint]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review load the whole repo for a full audit
+    expected_tool: load_workspace
+    required_terms: [workspace]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review where is the auth middleware defined
+    expected_tool: file_search
+    required_terms: [auth]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review execute the test suite
+    expected_tool: run_shell
+    required_terms: [test]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review read main.py line by line
+    expected_tool: read_file
+    required_terms: [file]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review index the entire codebase before review
+    expected_tool: load_workspace
+    required_terms: [codebase]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review search for all usages of deprecated_api
+    expected_tool: file_search
+    required_terms: [deprecated_api]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review run mypy on the changed files
+    expected_tool: run_shell
+    required_terms: [mypy]
+
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files where is budget.xlsx
+    expected_tool: file_search
+    required_terms: [budget.xlsx]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files open notes.txt
+    expected_tool: read_file
+    required_terms: [notes]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files show contents of /Users/test/docs
+    expected_tool: list_directory
+    required_terms: [docs]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files extract the text from config.json
+    expected_tool: read_file
+    required_terms: [config]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files locate all log files
+    expected_tool: file_search
+    required_terms: [log]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files list files in the current directory
+    expected_tool: list_directory
+    required_terms: [files]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files print the first lines of app.log
+    expected_tool: read_file
+    required_terms: [app.log]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files search for any yaml config
+    expected_tool: file_search
+    required_terms: [yaml]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files what folders are on my Desktop
+    expected_tool: list_directory
+    required_terms: [folders]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files read the changelog
+    expected_tool: read_file
+    required_terms: [changelog]

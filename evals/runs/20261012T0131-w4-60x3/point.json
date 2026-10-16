@@ -1,0 +1,336 @@
+[
+  {
+    "schema_version": 4,
+    "ts": "2026-10-12T03:19:20",
+    "commit": "613a8945",
+    "code_address": {
+      "manifests": 180,
+      "unaddressed": 0,
+      "stands": 1,
+      "commits": 1,
+      "reps_per_stand": {
+        "aa7f3911ae49d7868f885ab0fff05dfe2424cf12": 180
+      },
+      "status": "single-stand"
+    },
+    "engine": "openai_compatible",
+    "model": "qwen3.8-flash-next",
+    "pass3_total": "57/60",
+    "pass3_display": "57/60 = 95.0% ± 6.0",
+    "pass3_rate": 0.95,
+    "pass3_wilson95": {
+      "lo": 0.863,
+      "hi": 0.9829,
+      "width": 0.1199,
+      "n": 60
+    },
+    "trials": 3,
+    "pass1_rate": 0.9722,
+    "pass1_display": "175/180 = 97.2% ± 2.6",
+    "pass1_wilson95": {
+      "lo": 0.9366,
+      "hi": 0.9881,
+      "width": 0.0514,
+      "n": 180
+    },
+    "n_tasks_effective": 60,
+    "matrix_tasks": 60,
+    "rep_agreement_rate": 0.9667,
+    "by_family": {
+      "tau": "16/17",
+      "gaia": "17/17",
+      "endstate": "24/26"
+    },
+    "by_family_display": {
+      "tau": "16/17 = 94.1% ± 13.0",
+      "gaia": "17/17 = 100.0% ± 9.2",
+      "endstate": "24/26 = 92.3% ± 11.0"
+    },
+    "by_family_wilson95": {
+      "tau": {
+        "lo": 0.7302,
+        "hi": 0.9895,
+        "width": 0.2594,
+        "n": 17
+      },
+      "gaia": {
+        "lo": 0.8157,
+        "hi": 1.0,
+        "width": 0.1843,
+        "n": 17
+      },
+      "endstate": {
+        "lo": 0.7586,
+        "hi": 0.9786,
+        "width": 0.2201,
+        "n": 26
+      }
+    },
+    "by_family_stats": {
+      "tau": {
+        "wall_s": {
+          "median": 19.34,
+          "p90": 37.34,
+          "p95": 83.36,
+          "max": 103.02,
+          "mean": 24.2,
+          "sd": 18.93,
+          "cv": 0.7819
+        },
+        "tool_calls": {
+          "median": 5.0,
+          "p90": 7.0,
+          "p95": 8.0,
+          "max": 9.0,
+          "mean": 4.71,
+          "sd": 2.01,
+          "cv": 0.4277
+        },
+        "ttft_ms": {
+          "median": 146.7,
+          "p90": 211.5,
+          "p95": 216.7,
+          "max": 242.9,
+          "mean": 154.35,
+          "sd": 49.34,
+          "cv": 0.3196
+        }
+      },
+      "gaia": {
+        "wall_s": {
+          "median": 25.04,
+          "p90": 41.82,
+          "p95": 92.87,
+          "max": 121.8,
+          "mean": 30.76,
+          "sd": 21.91,
+          "cv": 0.7122
+        },
+        "tool_calls": {
+          "median": 6.0,
+          "p90": 9.0,
+          "p95": 11.0,
+          "max": 12.0,
+          "mean": 6.02,
+          "sd": 2.46,
+          "cv": 0.4089
+        },
+        "ttft_ms": {
+          "median": 143.0,
+          "p90": 208.9,
+          "p95": 213.8,
+          "max": 220.2,
+          "mean": 148.14,
+          "sd": 47.29,
+          "cv": 0.3192
+        }
+      },
+      "endstate": {
+        "wall_s": {
+          "median": 31.04,
+          "p90": 89.55,
+          "p95": 107.42,
+          "max": 468.38,
+          "mean": 44.27,
+          "sd": 60.93,
+          "cv": 1.3764
+        },
+        "tool_calls": {
+          "median": 8.0,
+          "p90": 22.0,
+          "p95": 24.0,
+          "max": 80.0,
+          "mean": 11.29,
+          "sd": 12.48,
+          "cv": 1.1051
+        },
+        "ttft_ms": {
+          "median": 160.7,
+          "p90": 216.1,
+          "p95": 221.6,
+          "max": 235.3,
+          "mean": 157.36,
+          "sd": 46.66,
+          "cv": 0.2965
+        }
+      }
+    },
+    "wall_median_s": 24.6,
+    "wall_s": {
+      "median": 24.57,
+      "p90": 57.66,
+      "p95": 92.87,
+      "max": 468.38,
+      "mean": 34.75,
+      "sd": 43.67,
+      "cv": 1.2564
+    },
+    "ttft_ms": {
+      "median": 154.2,
+      "p90": 213.6,
+      "p95": 216.7,
+      "max": 242.9,
+      "mean": 153.89,
+      "sd": 47.49,
+      "cv": 0.3086
+    },
+    "tool_calls": {
+      "median": 6.0,
+      "p90": 11.0,
+      "p95": 16.0,
+      "max": 80.0,
+      "mean": 7.93,
+      "sd": 8.88,
+      "cv": 1.1188
+    },
+    "tool_calls_histogram": {
+      "file_search": 156,
+      "list_directory": 83,
+      "read_file": 808,
+      "tool_search": 52,
+      "tool_call": 83,
+      "write_file": 96,
+      "run_shell": 25,
+      "memory": 7,
+      "tool_describe": 4,
+      "create_pdf": 3,
+      "delete_file": 35,
+      "edit_file": 40,
+      "execute_code": 32,
+      "todo_list": 4
+    },
+    "tokens_out_proxy": {
+      "median": 137.75,
+      "p90": 211.2,
+      "p95": 248.5,
+      "max": 922.0,
+      "mean": 149.84,
+      "sd": 84.65,
+      "cv": 0.5649
+    },
+    "reps_total": 180,
+    "n_reps_blocked": 0,
+    "blocked_task_ids": [],
+    "task_verdicts": {
+      "G1": "pass",
+      "G10": "pass",
+      "G11": "pass",
+      "G12": "pass",
+      "G13": "pass",
+      "G14": "pass",
+      "G15": "pass",
+      "G16": "pass",
+      "G17": "pass",
+      "G2": "pass",
+      "G3": "pass",
+      "G4": "pass",
+      "G5": "pass",
+      "G6": "pass",
+      "G7": "pass",
+      "G8": "pass",
+      "G9": "pass",
+      "K1": "pass",
+      "K10": "pass",
+      "K2": "fail",
+      "K3": "pass",
+      "K4": "pass",
+      "K5": "fail",
+      "K6": "pass",
+      "K7": "pass",
+      "K8": "pass",
+      "K9": "pass",
+      "T1": "pass",
+      "T10": "pass",
+      "T11": "pass",
+      "T12": "pass",
+      "T13": "pass",
+      "T14": "pass",
+      "T15": "pass",
+      "T16": "pass",
+      "T17": "pass",
+      "T2": "pass",
+      "T3": "pass",
+      "T4": "pass",
+      "T5": "pass",
+      "T6": "pass",
+      "T7": "pass",
+      "T8": "pass",
+      "T9": "fail",
+      "W1": "pass",
+      "W10": "pass",
+      "W11": "pass",
+      "W12": "pass",
+      "W13": "pass",
+      "W14": "pass",
+      "W15": "pass",
+      "W16": "pass",
+      "W2": "pass",
+      "W3": "pass",
+      "W4": "pass",
+      "W5": "pass",
+      "W6": "pass",
+      "W7": "pass",
+      "W8": "pass",
+      "W9": "pass"
+    },
+    "trend_gate": {
+      "min_delta_significant": 0.1199,
+      "note": "movement is only significant when |delta pass_rate| >= CI width"
+    },
+    "error_histogram": {
+      "assertion": 5
+    },
+    "by_level": {
+      "L2": 10,
+      "L3": 26,
+      "L4": 14,
+      "L5": 10
+    },
+    "tokens": {
+      "prompt": {
+        "median": 36554.0,
+        "p90": 65966.0,
+        "p95": 71777.0,
+        "max": 224138.0,
+        "mean": 40818.89,
+        "sd": 22302.37,
+        "cv": 0.5464
+      },
+      "completion": {
+        "median": 1301.0,
+        "p90": 2704.0,
+        "p95": 3899.0,
+        "max": 30047.0,
+        "mean": 1809.07,
+        "sd": 2593.62,
+        "cv": 1.4337
+      },
+      "total": {
+        "median": 37740.0,
+        "p90": 67851.0,
+        "p95": 73631.0,
+        "max": 254185.0,
+        "mean": 42627.97,
+        "sd": 24286.06,
+        "cv": 0.5697
+      },
+      "sum_total": 7673034,
+      "usage_estimated_share": 0.0
+    },
+    "cost_usd": {
+      "per_run": {
+        "median": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "max": 0.02,
+        "mean": 0.0,
+        "sd": 0.0,
+        "cv": 0.7265
+      },
+      "sum_total": 0.497622,
+      "per_task_attempted": 0.008294,
+      "per_task_solved": 0.00873
+    },
+    "pricing_source": "default"
+  }
+]

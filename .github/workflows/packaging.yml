@@ -1,0 +1,63 @@
+name: Packaging freshness
+
+# The three shipped manifests -- the Homebrew cask, the Scoop manifest and the npm wrapper -- each
+# carry a version, and no gate compared any of them with the release they install. Both package
+# manifests once named a tag that answered 404 (beta.1 and beta.2) while the published release was
+# beta.3, and nothing noticed: the files parse, the version is a well-formed string, and the only
+# defect is a claim about a release nobody served.
+#
+# `scripts/packaging_freshness.py` asks the one question and names each surface in its verdict
+# ("cask 0.1.0-beta.3 vs release 0.1.0-beta.3"). It reads the latest published release from the
+# GitHub release API when it can, and falls back to the tree's own version carriers
+# (`pyproject.toml`, `app/package.json`, `app/src-tauri/tauri.conf.json`) when it cannot -- printing
+# which reference it judged against, so a green run never reads as a network check it did not make.
+# Stdlib only, no install, and no token: the endpoint is public and a rate-limited answer is
+# reported as the fallback, not hidden.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Weekly with the other ratchets: a release can be published without a push to this branch,
+    # and a manifest that named a fresh tag overnight should not stay green until the next commit.
+    - cron: '45 3 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packaging-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  freshness:
+    name: Manifests name the release that exists
+    # Fork pull requests are excluded for the reason written on the workflow-audit job in
+    # ci-gates.yml: the job checks out the PR's own code, so a fork would run foreign logic on a
+    # runner this project controls. Push, the weekly schedule and same-repo PRs keep running.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        # Pinned, like the working legs: without it the interpreter resolves to the self-hosted
+        # runner's /usr/local/bin/python3, which scripts/ci_preflight.sh refuses as ambient host
+        # state. This leg installs nothing, so this step is the whole environment.
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Every manifest names the release that exists
+        run: python3 scripts/packaging_freshness.py

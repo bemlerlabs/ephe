@@ -1,0 +1,55 @@
+{
+ "backend": {
+  "boot": 1791761543,
+  "boot_iso": "2026-10-12T01:32:23",
+  "command": "/work/ephe/.venv/bin/python /work/ephe/run_server.py --host 127.0.0.1 --port 8765",
+  "pid": 59583
+ },
+ "backend_last_commit": {
+  "epoch": 1791761063,
+  "short": "840ab987"
+ },
+ "base": "http://127.0.0.1:8765",
+ "bench_processes": {},
+ "blessed_address": {
+  "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+  "commit_short": "613a894",
+  "dirty": [],
+  "surface": {
+   "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+   "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+  },
+  "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12"
+ },
+ "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+ "commit_short": "613a894",
+ "dirty_measured": [],
+ "engine_expected": "openai_compatible/qwen3.8-flash-next",
+ "engine_turn": {
+  "detail": "5 chars, first 'READY'",
+  "ok": true
+ },
+ "existing_manifests": 0,
+ "health": {
+  "active_model": "qwen3.8-flash-next",
+  "active_provider": "openai_compatible",
+  "engine_state": "ok",
+  "status": "ok",
+  "version": "0.0.1"
+ },
+ "load1": 2.08,
+ "matrix_tasks": 60,
+ "refusals": [],
+ "requested": {
+  "baseline": false,
+  "only": null,
+  "reps": 3,
+  "skip_existing": false,
+  "trend": true
+ },
+ "runs_dir": "/work/.ephe/bench/20261012T0131-w4-60x3/runs",
+ "scope_tasks": 60,
+ "selected_tasks": 60,
+ "stamp": "/work/.ephe/bench/20261012T0131-w4-60x3/runs/preflight.json",
+ "ts": "2026-10-12T01:32:35"
+}

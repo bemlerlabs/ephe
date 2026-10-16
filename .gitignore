@@ -1,0 +1,162 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environment
+.venv/
+.venv
+venv/
+env/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Pytest
+.pytest_cache/
+.benchmarks/
+.coverage
+.coverage*
+coverage.xml
+htmlcov/
+
+# Other Python tool caches
+.mypy_cache/
+.ruff_cache/
+.pyre_cache/
+.hypothesis/
+.pip_cache/
+.cache/
+
+# Generated README media work files
+docs/media/frames/
+
+# JavaScript dependencies
+node_modules/
+.vite/
+
+# Local databases and SQLite sidecars
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment & secrets — NEVER commit real values
+# (.env.example / .env.example.* are intentionally tracked via negation)
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+!.env.example.*
+*.key
+*.pem
+# Signing material: an Android keystore or a provisioning profile dropped into the tree
+# would otherwise be committed, and the secret scan does not read those formats.
+*.jks
+*.keystore
+*.jceks
+*.mobileprovision
+latest.json
+app/src-tauri/target/
+*.p12
+*.pfx
+*_rsa
+*_rsa.pub
+
+# Hygiene: backups, stale configs, build artifacts, generated docs
+app-backup-vanilla/
+*.bak
+*.tsbuildinfo
+training/
+docs/*.png
+docs/*.pdf
+docs/*.html
+STATUS_REPORT.md
+CORE_STATUS_REPORT.md
+STATUS_REPORT_NeMo_RL.md
+app/STATUS-REPORT.md
+
+
+# Logs (root-level)
+*.log
+logs/
+
+# Local kanban worktrees, never committed
+.worktrees/
+
+# The root `tests/` tree is tracked and CI calls `python -m pytest tests/` directly
+# (tests.yml). `scripts/run-tests.sh` is the canonical local entry point and is tracked
+# too; only runner artifacts a run leaves behind stay outside.
+
+# Local E2E test server state (engine.json, audio and image directories)
+.e2e-runtime/
+
+# Playwright runner artifacts, generated locally
+test-results/
+
+# Local editor artifacts
+.zcode/
+
+# Hermes agent local state (plans, memory)
+.hermes/
+
+# W19 repo hygiene: local QA screenshot dumps + legacy/dead media stay on
+# disk, out of the tree (curated demo assets in docs/media stay tracked)
+docs/media/deep_dive_*
+docs/media/deploy_check_*
+docs/media/uipolish_*
+docs/media/capability_audit_*
+docs/media/j6_*
+docs/media/w1*
+docs/media/w3*
+docs/media/r24_*
+docs/media/r26_*
+docs/media/r32_*
+docs/media/r34_*
+docs/media/w5_*
+docs/media/.audit/
+docs/media/*_cinema.mp4
+docs/media/*_master.mp4
+docs/media/*_teaser.mp4
+docs/media/tui-black-forest.*
+docs/demo/
+docs/mockups/
+docs/screenshots/desktop.png
+docs/screenshots/mobile.png
+.zcodeignore
+
+# Mimosa security-scanner hook state (session/run artifacts, never code)
+.mimosa/
+app/.mimosa/
+
+# Local working dirs (brand asset drafts, video2code contract state)
+.brandwork/
+.v2c/
+
+# local video production (HyperFrames), not delivery material
+videos/
+
+# UI-audit evidence: the instrument travels, the raw capture does not. The .mjs
+# drivers under out/ are tracked, so a claim can be re-run; the captures they write
+# stay local, because a screenshot or a JSON dump of a live session carries the
+# operator's own conversation content and has no place in a checkout of this tree.
+out/**/*.png
+out/**/*.jpg
+out/**/*.webp
+out/**/*.webm
+out/**/*.json

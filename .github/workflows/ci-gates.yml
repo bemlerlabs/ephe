@@ -1,0 +1,274 @@
+name: CI Gates
+
+# The repo enforces its own invariants locally (a pre-commit hook, a set of gate
+# scripts) but CI never ran any of them — a push that skipped the hook, or a clone
+# where the hook was not installed, could break the architecture wall, the English
+# rule or the 400-line ceiling and still go green. This workflow closes that gap and
+# audits the workflows themselves while it is at it.
+#
+# Deliberately NOT here yet: `pip-audit` and `pnpm audit` as blocking gates. Measured
+# on 2026-10-09: Python has four packages with advisories (urllib3 → 2.8.0, multidict
+# → 6.9.1, oauthlib → 4.0.0 major, chromadb with NO fix version for PYSEC-2026-311 /
+# 3813-3815) and the JS tree reports 7 (2 moderate, 5 high, all reachable through
+# dev/test dependencies). Making those green means either ignoring IDs or moving
+# dependencies — both are owner decisions, so they are reported in task 62/64 rather
+# than configured away here.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Weekly even without a push: a rule can be broken by a dependency update, and
+    # pinned tool versions age. 03:20 UTC Tuesday, off the hour.
+    - cron: '20 3 * * 2'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  workflow-audit:
+    name: Workflow self-audit (zizmor)
+    # A fork pull request must not run these gates on a runner this project controls: the job
+    # checks out the PR's own code, so a fork would execute foreign logic on our machine. GitHub
+    # offers no fork-approval control here (both settings answered 422 on 2026-10-09, measured on a
+    # user-owned private repository — see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so the
+    # guard is here. Push, the weekly schedule and same-repo PRs keep running.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Move a pull request's install out of the shared interpreter
+        if: github.event_name == 'pull_request'
+        # `pip install zizmor==1.30.1` is one pinned name, but its dependency tree is resolved at
+        # PR time and lands in `_tool/Python/3.12/.../site-packages` -- the listener's tool cache,
+        # which outlives the job. The rule and the Dependabot receipt are written out on the step of
+        # this name in `tests.yml`.
+        env:
+          EPHE_LEG_VENV: ${{ runner.temp }}/ephe-leg
+        run: |
+          python -m venv "$EPHE_LEG_VENV"
+          echo "$EPHE_LEG_VENV/bin" >> "$GITHUB_PATH"
+          echo "EPHE_LEG_VENV=$EPHE_LEG_VENV" >> "$GITHUB_ENV"
+          "$EPHE_LEG_VENV/bin/python" -V
+          "$EPHE_LEG_VENV/bin/pip" -V
+
+      - name: Audit every workflow in this repository
+        # Pinned, like everything else here: an unpinned scanner is its own supply
+        # chain. zizmor is the static analyser the 2026 Actions-hardening guidance
+        # names for this job. `--persona=auditor` is its strictest reading.
+        #
+        # `--offline` is not laziness: with a token present zizmor switches to online
+        # mode and enables rules that depend on repository context, so the same commit
+        # could pass on one day and fail on the next because of something outside the
+        # diff. Offline keeps the verdict equal to what was verified locally; the
+        # online-only rules (bot actors, remote-repo audits) are a follow-up once this
+        # gate has proven itself, and this line is where they would be switched on.
+        run: |
+          pip install "zizmor==1.30.1"
+          # This job has no preflight step, so the leg reads its own routing back: on a pull request
+          # the scanner must be the venv's, not the listener's tool cache.
+          if [ -n "${EPHE_LEG_VENV:-}" ]; then
+            if ! pip -V | grep -q "$EPHE_LEG_VENV"; then
+              echo "::error::install resolves outside the job's venv: $(pip -V)"
+              exit 1
+            fi
+          fi
+          zizmor --color never --offline --persona=auditor --min-severity=medium .github/workflows/ | tee zizmor.log
+          # Medium and above fails the build: the pipeline that publishes a desktop app
+          # is not allowed to drift back into unpinned actions, leftover credentials or
+          # caches a release restores from. Informational and low stay visible in the log
+          # without blocking a push.
+          if grep -qE "^(warning|error)\[" zizmor.log; then
+            echo "::error::zizmor found at least one medium-or-worse issue in the workflows"
+            exit 1
+          fi
+
+  repo-gates:
+    name: Repository gates (architecture, language, prose)
+    # Fork PRs are excluded for the reason given on the workflow-audit job.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Architecture wall (400 lines, cycles, contracts)
+        # Ratchet against .architecture-baseline.json: it reports 48 findings and
+        # 0 errors today, and one NEW finding flips every hint into an error — which
+        # is the point. Nothing is installed for this; the script is plain node.
+        run: node scripts/architecture_check.mjs
+
+      - name: English-only rule for repository artifacts
+        # The pre-commit hook runs the same check; this is the copy that cannot be
+        # skipped by a machine without hooks installed. It only ever compares against
+        # scripts/language-baseline.json, so it lowers the ceiling over time and
+        # never drifts upward.
+        run: python3 scripts/language_gate.py
+
+      - name: Hand-written prose rule for developer comments
+        # AGENTS.md "Writing quality" forbids the shapes a generated-text scanner
+        # reads as machine-written: a docstring that only echoes its function name,
+        # a comment that repeats the next line, filler heads, repeated banners,
+        # decorative rules, stacked rhetorical turns, comment-per-line blocks and
+        # adjectives about our own code. scripts/prose_tells.py counts them against
+        # scripts/prose-tells-baseline.json, which only ever lowers, so a new file
+        # cannot bring such a tell along unnoticed.
+        run: python3 scripts/prose_tells.py --strict
+
+  coverage-floor:
+    name: Coverage floor (per-module ratchet)
+    # Cost, measured on the owner's idle box 2026-10-11
+    # (docs/COVERAGE_GAPS_2026-10-11.md): the process-start tracer runs the whole tracked
+    # suite in 308 s where the same suite untraced takes 61.7 s, about five times. On the
+    # Spark that puts this leg near four minutes on top of the suite's own 48 s of runner
+    # time. The leg therefore runs on a push and on the weekly schedule; a pull request
+    # skips it, because its branch push already ran it and the drop is caught there.
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install the package and the tracer
+        # The tracer is pinned to the release the baseline was measured against. It is
+        # not a runtime or dev dependency of the product, so its version is named here.
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev,tui]"
+          pip install "coverage==7.16.2"
+
+      - name: Produce the coverage report
+        id: trace
+        # The startup hook is written into a directory this job owns and is reached over
+        # PYTHONPATH, so nothing lands in the shared runner's tool cache. parallel=True
+        # gives the main process, every xdist worker and every subprocess its own data
+        # file and `coverage combine` merges them; the `pytest-cov --cov` form drops
+        # worker data and reads a false low (docs/COVERAGE_GAPS_2026-10-11.md). The
+        # timing files stand down under xdist via tests/conftest.py, so their wall clocks
+        # are never read on this leg.
+        run: |
+          hook="$RUNNER_TEMP/coverage-hook"
+          mkdir -p "$hook"
+          cat > "$hook/sitecustomize.py" <<'PY'
+          import os
+          if os.getenv("COVERAGE_PROCESS_START") or os.getenv("COVERAGE_PROCESS_CONFIG"):
+              try:
+                  import coverage
+              except ImportError:
+                  pass
+              else:
+                  coverage.process_startup(slug="sitecustomize")
+          PY
+          data="$RUNNER_TEMP/ephe-cov"
+          mkdir -p "$data"
+          rc="$RUNNER_TEMP/ephe-cov.rc"
+          printf '[run]\nsource =\n    core\n    server\n    ephe_cli\n    ephe\nparallel = True\n' > "$rc"
+          export COVERAGE_PROCESS_START="$rc"
+          export COVERAGE_FILE="$data/.covdata"
+          export PYTHONPATH="$hook"
+          set +e
+          python -m pytest tests/ -q -n auto -p no:cacheprovider
+          suite_rc=$?
+          set -e
+          python -m coverage combine --rcfile="$rc"
+          python -m coverage json -o .coverage.json --rcfile="$rc"
+          echo "EPHE_TRACED_SUITE_RC=$suite_rc" >> "$GITHUB_ENV"
+
+      - name: Check the per-module floor
+        # The gate. scripts/coverage_floor.py reads .coverage.json against
+        # scripts/coverage-floor-baseline.json and refuses a module under its floor.
+        run: python scripts/coverage_floor.py --report .coverage.json
+
+      - name: Publish the measured per-module numbers
+        # The floor moves to what the runner measured, so the runner has to say what it
+        # measured. The gate prints a verdict and a count, and a raise read off a laptop
+        # went red on this leg on 2026-10-12 because the runner's own total sat two points
+        # below the number sent up. `--update` writes the measured floors to a probe file
+        # beside the report and leaves the committed baseline where it is, so this step
+        # reports a reading. It runs after a failure as well, since a floor that just went
+        # red is the reading a raise needs most.
+        if: always()
+        run: |
+          probe="coverage-floor-measured.json"
+          rm -f "$probe"
+          if [ -f .coverage.json ]; then
+            python scripts/coverage_floor.py --baseline "$probe" --report .coverage.json --update || true
+          fi
+          echo "COVERAGE_FLOOR_MEASURED_BEGIN v1"
+          echo "run=${{ github.run_id }} attempt=${{ github.run_attempt }} commit=${{ github.sha }}"
+          if [ -f "$probe" ]; then
+            python - "$probe" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          print(f"total={data['total']}")
+          for name in sorted(data["modules"]):
+              print(f"{name}={data['modules'][name]}")
+          PY
+          else
+            echo "no measurement: the traced run produced no .coverage.json"
+          fi
+          echo "COVERAGE_FLOOR_MEASURED_END"
+
+      - name: Keep the measurement as an artifact
+        # The block above lives in the log. The artifact keeps the raw report, so a module
+        # the block leaves out can still be re-derived after the log rotates, without
+        # running the traced suite again. Artifacts expire, so the log block is what the
+        # coverage document names and this is the copy that survives a download.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-floor-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .coverage.json
+            coverage-floor-measured.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail when the traced suite was red
+        # A green floor over a red suite is not a pass. The traced run is five times
+        # slower, so a load-sensitive test can fall here that passes untraced; this step
+        # keeps that visible instead of hiding it behind the coverage verdict.
+        if: env.EPHE_TRACED_SUITE_RC != '0'
+        run: |
+          echo "::error::the traced suite exited $EPHE_TRACED_SUITE_RC; check the run above"
+          exit 1

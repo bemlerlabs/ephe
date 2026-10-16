@@ -1,0 +1,86 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "46968097fa842b31040a00162c0d17cef9e5ec14",
+    "commit_short": "4696809",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "T12",
+  "family": "tau",
+  "level": "L4",
+  "rep": 3,
+  "session_id": "ob-t12-r3-1791669161",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==OF-C (requirement-delta)",
+  "error_class": null,
+  "wall_ms": 23421.2,
+  "ttft_first_event_ms": 163.7,
+  "n_turns": 2,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 78.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.6
+    }
+  ],
+  "arg_audit": {
+    "calls": 3,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "5d50c0c237",
+        "target": "offers.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "42fc693989",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/offers."
+      },
+      {
+        "tool": "read_file",
+        "digest": "feaf3e7e08",
+        "target": "offers.json"
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 2
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: OF-C",
+  "tool_calls": [
+    "file_search",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 445,
+  "tokens_out_proxy": 111.2,
+  "prompt_tokens": 32573,
+  "completion_tokens": 932,
+  "total_tokens": 33505,
+  "usage_estimated": false,
+  "cost_usd": 0.002001,
+  "pricing_source": "default",
+  "fixture_hash": "c5a147daa318",
+  "fixture_files": 201,
+  "answer_tail": "**Check against the criteria (room = \"fir\", then cheapest price):**\n\n| Offer | Room | Night | Price | Verdict |\n|---|---|---|---|---|\n| OF-A | pine | 2026-11-05 | 210 | ✗ Wrong room (pine) |\n| OF-B | fir | 2026-11-05 | 180 | ✓ Eligible, but not the cheapest |\n| OF-C | fir | 2026-11-06 | 150 | ✓ Cheapest of the 'fir' rooms |\n\nOnly OF-B and OF-C have room \"fir\". No night constraint this time, so OF-C (150) beats OF-B (180).\n\nFINAL ANSWER: OF-C",
+  "ts": "2026-10-10T23:53:04"
+}

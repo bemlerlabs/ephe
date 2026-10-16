@@ -1,0 +1,398 @@
+/**
+ * Ephe — PWA chat UX plan, task C1: stream event → store action mapping
+ *
+ * Event contract (anchored in server/routes/chat.py + core/swarm_state.py):
+ *   - thinking_start       → open the thinking phase (startTurn)
+ *   - chunk                → append content (appendChunk)
+ *   - replace_text         → replace content (revision, replaceText)
+ *   - activity             → upsert the tool/phase activity (upsertActivity)
+ *   - tool_start/tool_done → upsert the tool call (upsertToolCall)
+ *   - phase                → upsert activity
+ *   - quality_check        → transient qualityCheck phase
+ *   - reflect              → transient reflecting phase
+ *   - revision             → transient revising phase (content stays)
+ *   - artifact / file_result → activity (label/path)
+ *   - plan                 → setPlan (the turn's steps and their state, #92)
+ *   - goal_start           → beginGoal (the goal loop's own state: goal, check, budget)
+ *   - goal_turn/goal_check → advanceGoal (the round it is in, that round's verdict)
+ *   - swarm_status / swarm_created / swarm_agent_started / swarm_agent_done
+ *                            → activity (agent feed)
+ *   - subagent_started / subagent_tool / subagent_done
+ *                            → activity (R36-S: spawn_agent helper feed)
+ *   - skill_created        → activity
+ *   - model_info / swarm_done / vision_learning / vision_learned_success
+ *                            → no-op (handled by the UI, no message mutation)
+ *   - sandbox_confirm      → resolveSandbox (token as tool.description)
+ *   - ask_user             → resolveAsk (G1: the run is paused on this question)
+ *   - ask_timeout          → markAskTimedOut (G1: nobody answered, the run went on)
+ *   - error                → markStreamError
+ *   - done                 → finishTurn
+ *
+ * Pure mapping (get/set injected) → unit-testable without zustand.
+ */
+import type { StreamEvent } from '@/types'
+import { planFromEvent } from '@/lib/planCardModel'
+import type { ChatStore } from '@/store/chatStore'
+
+type Store = Pick<
+  ChatStore,
+  | 'startTurn'
+  | 'appendChunk'
+  | 'appendThinking'
+  | 'replaceText'
+  | 'upsertToolCall'
+  | 'upsertActivity'
+  | 'setTurnId'
+  | 'attachArtifact'
+  | 'setPlan'
+  | 'beginGoal'
+  | 'advanceGoal'
+  | 'resolveSandbox'
+  | 'resolveAsk'
+  | 'markAskTimedOut'
+  | 'markStreamError'
+  | 'markLastUsage'
+  | 'setReflecting'
+  | 'setRevising'
+  | 'setQualityCheck'
+  | 'finishTurn'
+  | 'beginHelperChat'
+  | 'stepHelperChat'
+  | 'endHelperChat'
+>
+import { serverErrorText } from './serverError'
+
+export function applyStreamEvent(event: StreamEvent, store: Store): void {
+  switch (event.type) {
+    case 'thinking_start':
+      // thinking_start always arrives before the first chunk; we start the turn
+      // here so the message exists when the chunk arrives.
+      store.startTurn()
+      break
+
+    case 'thinking_chunk':
+      // AI-client parity: stream reasoning text → thinking block (collapsed)
+      store.appendThinking(event.data)
+      break
+
+    case 'chunk':
+      store.appendChunk(event.data)
+      break
+
+    case 'replace_text':
+      store.replaceText(event.text)
+      break
+
+    case 'activity':
+      store.upsertActivity({
+        label: event.cmd,
+        status: event.status === 'done' ? 'done' : event.status === 'failed' ? 'failed' : 'running',
+      })
+      break
+
+    case 'tool_start':
+      store.upsertToolCall({
+        name: event.tool,
+        args: event.args,
+        status: 'pending',
+      })
+      break
+
+    case 'tool_done':
+      store.upsertToolCall({
+        name: event.tool,
+        result: event.result,
+        // w10-12: a refusal is an outcome, not a success. The server marks the frame
+        // 'failed' when the call never ran (a coded result — the gate's `Denied`); that
+        // maps onto the store's existing `denied` status, which the card already paints
+        // destructive with the localized `chat.toolDenied` sentence. A frame without the
+        // field (older backends, replays) stays 'completed' as before.
+        status: event.status === 'failed' ? 'denied' : 'completed',
+        ...(event.duration_ms !== undefined ? { durationMs: event.duration_ms } : {}),
+        ...(event.reason_code !== undefined ? { reasonCode: event.reason_code } : {}),
+        ...(event.reason_params !== undefined ? { reasonParams: event.reason_params } : {}),
+      })
+      break
+
+    case 'stdout':
+      // K3 Z07: live tail — the store appends the chunks to the call
+      // (growing pre block inside the expanded detail).
+      store.upsertToolCall({
+        name: event.tool,
+        stdout: event.data,
+        status: 'pending',
+      })
+      break
+
+    case 'phase':
+      store.upsertActivity({
+        label: event.name,
+        status: event.status === 'done' ? 'done' : event.status === 'failed' ? 'failed' : 'running',
+      })
+      break
+
+    case 'gap':
+      // Wave 7: knowledge-gap feed — one activity per detected gap.
+      store.upsertActivity({
+        label: `Wissenslücke: ${event.topic} — ${event.sources.length > 0 ? `${event.sources.length} Quelle(n) gedeckt` : event.status}`,
+        status: event.status === 'failed' ? 'failed' : 'done',
+      })
+      break
+
+    case 'quality_check':
+      store.setQualityCheck(event.status === 'running')
+      break
+
+    case 'reflect':
+      store.setReflecting(event.status === 'running')
+      break
+
+    case 'revision':
+      store.setRevising(true)
+      break
+
+    case 'artifact': {
+      // F-01: attach the artifact content to the message (inline render as CodeBlock).
+      // The activity stays as a feed entry — the label uses the real file name.
+      const art = event.artifact as {
+        id?: string
+        artifact_type?: string
+        content?: string
+        language?: string
+        title?: string
+        filename?: string
+      }
+      store.attachArtifact({
+        id: art.id ?? crypto.randomUUID(),
+        artifact_type: art.artifact_type ?? 'code_other',
+        content: art.content ?? '',
+        language: art.language ?? 'text',
+        title: art.title ?? art.filename ?? 'Artifact',
+        filename: art.filename ?? 'artifact.txt',
+      })
+      store.upsertActivity({
+        label: `Artifact: ${art.filename ?? art.artifact_type ?? 'datei'}`,
+        status: 'done',
+      })
+      break
+    }
+
+    case 'plan': {
+      // #92: the steps arrive as their own frame, so the card is on screen while the
+      // answer is still streaming and each state change repaints it.
+      const spec = planFromEvent(event.steps ?? [])
+      if (spec) store.setPlan(spec)
+      break
+    }
+
+    case 'goal_start':
+      // The goal loop's own three values, before its first model call: the surface
+      // shows the goal the loop works toward instead of guessing it from a message.
+      store.beginGoal(event.goal, event.check, event.max_turns)
+      break
+
+    case 'goal_turn':
+      store.advanceGoal(event.turn)
+      break
+
+    case 'goal_check':
+      store.advanceGoal(event.turn, event.ok)
+      break
+
+    case 'artifact_check':
+      store.upsertActivity({
+        label: `Check: ${event.artifact_type}`,
+        status: event.status === 'ok' ? 'done' : event.status === 'failed' ? 'failed' : 'running',
+        detail: event.warnings.length > 0 ? event.warnings.join(', ') : event.path,
+      })
+      break
+
+    case 'turn':
+      // A3: the id belongs on the message, so the workbench can show back
+      // which request a file was born from.
+      store.setTurnId(event.turn_id)
+      break
+
+    case 'file_result':
+      store.upsertActivity({
+        label: event.label ?? `${event.file_type}: ${event.path}`,
+        status: 'done',
+        path: event.path,
+        fileType: event.file_type,
+        artifactId: event.id || undefined,
+      })
+      break
+
+    case 'swarm_status':
+      store.upsertActivity({
+        label: event.message,
+        status: 'running',
+      })
+      break
+
+    case 'swarm_created':
+      store.upsertActivity({
+        label: `Swarm: ${event.agents.length} Agents`,
+        status: 'done',
+        detail: event.agents.join(', '),
+      })
+      break
+
+    case 'swarm_agent_started':
+      store.upsertActivity({
+        label: `Agent ${event.agent_id}`,
+        status: 'running',
+        detail: event.subtask,
+      })
+      break
+
+    case 'swarm_agent_done':
+      store.upsertActivity({
+        label: `Agent ${event.agent_id}`,
+        status: 'done',
+        detail: event.summary,
+      })
+      break
+
+    case 'swarm_done':
+      // the final text arrives as a chunk; swarm_done itself = no-op
+      break
+
+    case 'subagent_started':
+      // R36-S: delegated helper — one activity per agent_id (label key);
+      // the tool/done events upsert the same activity (live progress).
+      store.upsertActivity({
+        label: `SubAgent ${event.agent_id} (${event.role})`,
+        status: 'running',
+        detail: event.task,
+      })
+      // Visibility wave: the same run gets its own chat. Without
+      // chat_session_id (older server) it stays at the activity line.
+      if (event.chat_session_id) {
+        store.beginHelperChat({
+          chatSessionId: event.chat_session_id,
+          agentId: event.agent_id,
+          parentSession: event.parent_session,
+          role: event.role,
+          description: event.description,
+          task: event.task,
+        })
+      }
+      break
+
+    case 'subagent_tool':
+      store.upsertActivity({
+        label: `SubAgent ${event.agent_id}`,
+        status: 'running',
+        detail: `${event.tool}: ${event.args_preview}`,
+      })
+      if (event.chat_session_id) {
+        store.stepHelperChat({
+          chatSessionId: event.chat_session_id,
+          agentId: event.agent_id,
+          tool: event.tool,
+          argsPreview: event.args_preview,
+        })
+      }
+      break
+
+    case 'subagent_done': {
+      const failed = event.status === 'timeout' || event.status === 'error'
+      store.upsertActivity({
+        label: `SubAgent ${event.agent_id}`,
+        status: failed ? 'failed' : 'done',
+        detail: event.summary,
+      })
+      if (event.chat_session_id) {
+        store.endHelperChat({
+          chatSessionId: event.chat_session_id,
+          agentId: event.agent_id,
+          status: event.status,
+          report: event.report,
+          summary: event.summary,
+          parentSession: event.parent_session,
+        })
+      }
+      break
+    }
+
+    case 'skill_created':
+      store.upsertActivity({
+        label: `Skill erstellt: ${event.skill.name}`,
+        status: 'done',
+        detail: event.skill.description,
+      })
+      break
+
+    case 'model_info':
+      // Tier info — handled by the UI (badge), no message mutation
+      break
+
+    case 'vision_learning':
+      store.upsertActivity({
+        label: `Lernt Bild-Erkennung: ${event.target}`,
+        status: 'running',
+      })
+      break
+
+    case 'vision_learned_success':
+      store.upsertActivity({
+        label: `Bild-Erkennung gelernt: ${event.target}`,
+        status: 'done',
+      })
+      break
+
+    case 'sandbox_confirm':
+      store.resolveSandbox(event.token, event.tool, event.args, event.rememberable, event.diff)
+      break
+
+    case 'ask_user':
+      // G1: the ask gate's frame. The run waits on the server until an answer lands
+      // through POST /api/ask/answer — nothing is sent from here on its own.
+      store.resolveAsk({
+        token: event.token,
+        question: event.question,
+        options: event.options ?? [],
+        recommendation: event.recommendation,
+        multiSelect: event.multiSelect,
+        timeoutS: event.timeout_s,
+        defaultAnswer: event.default,
+      })
+      break
+
+    case 'ask_timeout':
+      // Nobody answered: the same run continued on its stated default.
+      store.markAskTimedOut(event.token)
+      break
+
+    case 'error':
+      // A refusal that carries its reason is answered from the bundle, so the reader gets the
+      // sentence in the language they set; `msg` stays the fallback for every older server.
+      store.markStreamError(serverErrorText(event.reason_code, event.reason_params, event.msg))
+      break
+
+    case 'usage': {
+      // N7/N8a: the real ledger into the store — the StatusBar chip showed it
+      // while the session's server mirror was still empty.
+      // Wave 3: measured cache hits travel along (cost/cache chip).
+      const u = event.usage
+      store.markLastUsage({
+        in: u.prompt_tokens ?? 0,
+        out: u.completion_tokens ?? 0,
+        cached: u.prompt_tokens_details?.cached_tokens ?? 0,
+      })
+      break
+    }
+
+    case 'done':
+      store.finishTurn()
+      break
+
+    default: {
+      // Exhaustiveness proof: breaks tsc when a new event shows up in the
+      // union without being handled here.
+      const _exhaustive: never = event
+      void _exhaustive
+    }
+  }
+}

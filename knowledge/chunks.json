@@ -1,0 +1,938 @@
+[
+  {
+    "id": "medical/erste_hilfe_komplett.md/0",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Erste-Hilfe-Ratgeber für Krisensituationen — # Erste-Hilfe-Ratgeber für Krisensituationen",
+    "text": "# Erste-Hilfe-Ratgeber für Krisensituationen",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/1",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ## Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst",
+    "text": "## Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/2",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Grundregel: ABCDE-Schema",
+    "text": "### Grundregel: ABCDE-Schema\n\nBei jedem Notfall diese Reihenfolge prüfen:\n\n1. **A** — Atemwege freimachen (Kopf überstrecken, Mund prüfen)\n2. **B** — Beatmung prüfen (Sehen, Hören, Fühlen — 10 Sekunden)\n3. **C** — Circulation / Kreislauf (Puls fühlen, starke Blutungen stoppen)\n4. **D** — Disability / Bewusstsein (Ansprechbar? Pupillen? Bewegung?)\n5. **E** — Exposure / Entkleiden (Verletzungen suchen, Wärmeerhalt)",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/3",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Herz-Lungen-Wiederbelebung (HLW)",
+    "text": "### Herz-Lungen-Wiederbelebung (HLW)\n\n**Erwachsene:**\n- 30 Kompressionen : 2 Beatmungen\n- Druckpunkt: Mitte des Brustbeins\n- Tiefe: 5-6 cm, Frequenz: 100-120/min\n- Arme durchgestreckt, Schultern über dem Patienten\n- Nicht unterbrechen bis Rettungsdienst übernimmt\n\n**Kinder (1-8 Jahre):**\n- Zuerst 5 Beatmungen, dann 15:2\n- Drucktiefe: ca. 1/3 des Brustkorbs\n- Ein Handballen bei kleinen Kindern\n\n**Säuglinge (<1 Jahr):**\n- Mund-zu-Mund-und-Nase Beatmung\n- 2 Finger auf Brustbein\n- Drucktiefe: ca. 4 cm",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/4",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Starke Blutungen stoppen",
+    "text": "### Starke Blutungen stoppen\n\n1. **Direkter Druck** — Sauberes Tuch fest auf die Wunde pressen\n2. **Druckverband** — Tuch + Polster + feste Binde darüber\n3. **Hochlagern** — Verletzte Extremität über Herzniveau\n4. **Abbinden** — NUR bei lebensbedrohlicher Blutung! Tourniquet 5cm oberhalb der Wunde, Zeit notieren!\n\n**WARNUNG:** Tourniquets nur als letztes Mittel. Maximal 2 Stunden. Danach droht Gewebstod.",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/5",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Verbrennungen",
+    "text": "### Verbrennungen\n\n**Schweregrade:**\n- **Grad 1:** Rötung, Schmerz → Kühlen mit lauwarmem Wasser (20°C, 10-15 Min)\n- **Grad 2a:** Blasen, nässend → Steril abdecken, NICHT aufstechen\n- **Grad 2b:** Weiß, wenig Schmerz → Steril abdecken, Arzt nötig\n- **Grad 3:** Verkohlt, schmerzfrei → Notfall! Steril abdecken, Kreislauf überwachen\n\n**NIEMALS:**\n- Eis oder eiskaltes Wasser (Unterkühlung!)\n- Mehl, Zahnpasta, Butter auftragen\n- Kleidung von Brandwunden abreißen\n- Blasen aufstechen",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/6",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Knochenbrüche und Verstauchungen",
+    "text": "### Knochenbrüche und Verstauchungen\n\n**Geschlossener Bruch:**\n- Ruhigstellen in vorgefundener Position\n- Schiene aus improvisiertem Material (Stock, Karton, gerollte Zeitung)\n- Polsterung zwischen Schiene und Haut\n- Pulse unterhalb der Verletzung prüfen (Durchblutung)\n- Kühlen mit feuchtem Tuch\n\n**Offener Bruch (Knochen sichtbar):**\n- NICHT reponieren (zurückschieben)!\n- Steril abdecken\n- Ringpolster um den Knochen\n- Schockbekämpfung (Wärme, Beine hoch, beruhigen)",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/7",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Unterkühlung (Hypothermie)",
+    "text": "### Unterkühlung (Hypothermie)\n\n**Symptome:**\n- Stufe 1 (35-32°C): Zittern, kalte/blasse Haut, Unruhe\n- Stufe 2 (32-28°C): Kein Zittern mehr, Schläfrigkeit, Verwirrung\n- Stufe 3 (<28°C): Bewusstlosigkeit, Herzrhythmusstörungen\n\n**Maßnahmen:**\n- Aus der Kälte bringen (windgeschützt)\n- Nasse Kleidung VORSICHTIG entfernen (Bergungsschock vermeiden!)\n- In Rettungsdecke oder trockene Decken einwickeln\n- Warme, gezuckerte Getränke (nur bei Bewusstsein)\n- KEIN Alkohol! NICHT massieren!\n- Bei Stufe 2-3: flach lagern, sanft bewegen, Herzmassage nur wenn sicher kein Puls",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/8",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Hitzschlag vs. Sonnenstich",
+    "text": "### Hitzschlag vs. Sonnenstich\n\n**Sonnenstich (Kopf überhitzt):**\n- Kopfschmerzen, Übelkeit, steifer Nacken\n- Maßnahme: Schatten, Kopf kühlen, Flüssigkeit\n\n**Hitzschlag (Körperkerntemperatur >40°C):**\n- Heiße, TROCKENE Haut (kein Schweiß mehr!)\n- Verwirrtheit, Bewusstlosigkeit\n- LEBENSGEFAHR — sofort kühlen!\n- Nasse Tücher auf Hals, Achseln, Leisten\n- Notruf: 112",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/9",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Vergiftungen",
+    "text": "### Vergiftungen\n\n**Allgemein:**\n- Verpackung / Pflanze sicherstellen (zur Identifikation)\n- Giftnotruf: 030-19240 (Berlin, 24/7)\n- KEIN Erbrechen auslösen bei Säuren, Laugen, Schaumbildnern\n- Aktivkohle nur bei bestimmten Vergiftungen (nach Rücksprache)\n\n**Giftpflanzen (häufig in Deutschland):**\n- Tollkirsche (Atropa belladonna) — schwarze Beeren, erweiterte Pupillen\n- Eisenhut (Aconitum) — blaue Blüten, Kribbeln, Herzstillstand möglich\n- Herbstzeitlose — lila Blüten, Verwechslung mit Bärlauch\n- Eibe — rote Beeren, Kern giftig\n- Riesenbärenklau — Hautverbrennungen bei Sonnenkontakt!",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/10",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Insektenstiche und Tierbisse",
+    "text": "### Insektenstiche und Tierbisse\n\n**Zeckenbiss:**\n- Mit Zeckenzange oder Pinzette nah an der Haut greifen\n- Gerade herausziehen, NICHT drehen\n- Stelle desinfizieren und markieren\n- Wanderröte (roter Ring) → Arzt (Borreliose-Verdacht)\n\n**Schlangenbiss (Kreuzotter):**\n- Ruhig halten, NICHT aussaugen!\n- Extremität ruhigstellen, nicht abbinden\n- Kühl halten, Arzt aufsuchen\n- Kreuzotter-Biss selten lebensgefährlich für Erwachsene\n\n**Wespen-/Bienenstich im Mund-/Rachenraum:**\n- Eis lutschen, kalte Umschläge am Hals\n- Bei Schwellung der Atemwege: Notruf 112!\n- Allergiker: Adrenalin-Autoinjektor (EpiPen) sofort anwenden",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/erste_hilfe_komplett.md/11",
+    "domain": "medical",
+    "source": "erste_hilfe_komplett.md",
+    "title": "Basierend auf: DRK, BBK, Bundeswehr-Sanitätsdienst — ### Wundversorgung im Feld",
+    "text": "### Wundversorgung im Feld\n\n**Saubere Wunde:**\n1. Hände waschen / Handschuhe\n2. Wunde mit sauberem Wasser spülen\n3. Antiseptikum (Octenisept, Betaisodona)\n4. Sterile Kompresse + Pflaster oder Binde\n\n**Kontaminierte Wunde (Erde, Rost, Tierbiss):**\n1. Ausgiebig mit sauberem Wasser spülen\n2. Antiseptikum reichlich anwenden\n3. Tetanus-Impfschutz prüfen (alle 10 Jahre auffrischen)\n4. Tierbiss → IMMER zum Arzt (Tollwut-Risiko)\n\n**Nahtstreifen (Steri-Strips):**\n- Nur bei sauberen, glatten Schnittwunden\n- Wunde trocknen, Strips quer zur Wundrichtung\n- Abstände einhalten (Drainage)\n- Nicht bei Tierbissen oder kontaminierten Wunden",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/0",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Medikamenten-Referenz für Krisensituationen — # Medikamenten-Referenz für Krisensituationen",
+    "text": "# Medikamenten-Referenz für Krisensituationen",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/1",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — ## Quelle: PharmaWiki, BfArM, DRK — Stand 2025",
+    "text": "## Quelle: PharmaWiki, BfArM, DRK — Stand 2025\n\n---",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/2",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Ibuprofen (z.B. Ibu 400)",
+    "text": "#### Ibuprofen (z.B. Ibu 400)\n- **Wirkung:** Schmerzlindernd, entzündungshemmend, fiebersenkend\n- **Dosis Erwachsene:** 400mg alle 6-8h, max. 1200mg/Tag\n- **Dosis Kinder >6J:** 7-10mg/kg, max. 3x täglich\n- **Kontraindikation:** Magengeschwür, Niereninsuffizienz, 3. Trimester Schwangerschaft\n- **Vorsicht:** NICHT auf nüchternen Magen (Magenschleimhaut!)\n- **Wechselwirkungen:** ASS, Blutverdünner, ACE-Hemmer",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/3",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Paracetamol (z.B. Ben-u-ron)",
+    "text": "#### Paracetamol (z.B. Ben-u-ron)\n- **Wirkung:** Schmerzlindernd, fiebersenkend (NICHT entzündungshemmend)\n- **Dosis Erwachsene:** 500-1000mg alle 4-6h, max. 4000mg/Tag\n- **Dosis Kinder:** 10-15mg/kg, max. 4x täglich\n- **Kontraindikation:** Schwere Leberschäden\n- **WARNUNG:** Überdosis >10g → Leberversagen! Kein Alkohol!\n- **Vorteil:** Magenverträglich, für Schwangere geeignet",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/4",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### ASS / Aspirin",
+    "text": "#### ASS / Aspirin\n- **Wirkung:** Schmerzlindernd, blutverdünnend, fiebersenkend\n- **WICHTIG bei Herzinfarkt-Verdacht:** 300mg kauen lassen!\n- **Dosis normal:** 500mg alle 4-6h\n- **Kontraindikation:** Kinder <12J (Reye-Syndrom!), Magengeschwür, Blutungsneigung\n- **Wechselwirkung:** Verstärkt Blutverdünner",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/5",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Elektrolytlösung (ORS — Oral Rehydration Solution)",
+    "text": "#### Elektrolytlösung (ORS — Oral Rehydration Solution)\n- **Selbst herstellen:** 1L abgekochtes Wasser + 6 TL Zucker + 1/2 TL Salz + 1 Glas Orangensaft\n- **Fertig:** Elotrans, Oralpädon\n- **Dosis:** Schluckweise, 200-400ml nach jedem Durchfall\n- **Bei Kindern:** Löffelweise, 50-100ml/kg über 4h\n- **KRITISCH:** Dehydrierung ist die #1 Todesursache bei Durchfall in Krisensituationen!",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/6",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Loperamid (Imodium)",
+    "text": "#### Loperamid (Imodium)\n- **Wirkung:** Stoppt Durchfall (hemmt Darmbewegung)\n- **Dosis:** Erst 4mg, dann 2mg nach jedem Durchfall, max. 16mg/Tag\n- **NICHT bei:** Blutigen Durchfällen, Fieber >38.5°C (mögliche Infektion!)\n- **Kinder <12J:** NICHT empfohlen",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/7",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Octenisept (Antiseptikum)",
+    "text": "#### Octenisept (Antiseptikum)\n- **Einsatz:** Wunddesinfektion, Schleimhäute, OP-Vorbereitung\n- **Vorteil:** Brennt kaum, allergikerfreundlich\n- **Einwirkzeit:** 1-2 Minuten\n- **NICHT:** In tiefe Stichwunden sprühen (Gewebsschäden möglich)",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/8",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Betaisodona (PVP-Jod)",
+    "text": "#### Betaisodona (PVP-Jod)\n- **Einsatz:** Großflächige Wunddesinfektion\n- **Vorteil:** Breites Wirkspektrum (Bakterien, Pilze, Viren)\n- **Kontraindikation:** Schilddrüsenerkrankungen, Jod-Allergie\n- **Einwirkzeit:** Mindestens 30 Sekunden",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/9",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Wundschnellverband (Pflaster)",
+    "text": "#### Wundschnellverband (Pflaster)\n- **Anlegen:** Haut trocken, Pflaster ohne Spannung aufkleben\n- **Wechsel:** Alle 24h oder wenn durchfeuchtet\n- **Typ:** Wasserfest für feuchte Umgebung (Outdoor!)",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/10",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — ### Antibiotika (verschreibungspflichtig — Notfall-Info)",
+    "text": "### Antibiotika (verschreibungspflichtig — Notfall-Info)",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/11",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Amoxicillin",
+    "text": "#### Amoxicillin\n- **Breitband gegen:** Atemwegsinfekte, Harnwegsinfekte, Hautinfektionen\n- **Dosis:** 3x 500mg/Tag für 7-10 Tage\n- **Warnung:** Allergie-Risiko! Vorher fragen: \"Penicillin-Allergie?\"",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/12",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Ciprofloxacin (Cipro)",
+    "text": "#### Ciprofloxacin (Cipro)\n- **Gegen:** Harnwegsinfekte, Durchfall-Bakterien, Atemwege\n- **Notfall-Dosis:** 2x 500mg/Tag\n- **Warnung:** Sehnenrisse, Sonnenlichtempfindlichkeit",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/13",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Cetirizin (Antihistaminikum)",
+    "text": "#### Cetirizin (Antihistaminikum)\n- **Gegen:** Allergische Reaktionen, Juckreiz, Heuschnupfen\n- **Dosis:** 1x 10mg/Tag\n- **Bei Kindern 2-6J:** 2x 2.5mg",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/14",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Adrenalin-Autoinjektor (EpiPen)",
+    "text": "#### Adrenalin-Autoinjektor (EpiPen)\n- **Gegen:** Anaphylaktischer Schock (lebensbedrohlich!)\n- **Anwendung:** In Oberschenkel-Außenseite injizieren (durch Kleidung möglich)\n- **Dosis:** Erwachsene 0.3mg, Kinder 0.15mg\n- **Danach:** Sofort Notruf (Wirkung hält nur 15-20 Min)\n- **Lagerung:** 15-25°C, nicht einfrieren, vor Licht schützen",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/15",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — ### Malaria-Prophylaxe (für Krisengebiete)",
+    "text": "### Malaria-Prophylaxe (für Krisengebiete)",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/medikamente_referenz.md/16",
+    "domain": "medical",
+    "source": "medikamente_referenz.md",
+    "title": "Quelle: PharmaWiki, BfArM, DRK — Stand 2025 — #### Malarone (Atovaquon/Proguanil)",
+    "text": "#### Malarone (Atovaquon/Proguanil)\n- **Einsatz:** Prophylaxe + Notfall-Selbstbehandlung\n- **Prophylaxe:** 1 Tablette/Tag, 1-2 Tage vor bis 7 Tage nach Reise\n- **Therapie:** 4 Tabletten auf einmal, 3 Tage lang\n- **Nebenwirkung:** Magen-Darm, Kopfschmerzen",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/verbrennung.md/0",
+    "domain": "medical",
+    "source": "verbrennung.md",
+    "title": "Erste Hilfe bei Verbrennungen — # Erste Hilfe bei Verbrennungen",
+    "text": "# Erste Hilfe bei Verbrennungen\n\nVerbrennungen sind in Krisensituationen (Umgang mit offenem Feuer, Generatoren, Kochendem Wasser) häufig.",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/verbrennung.md/1",
+    "domain": "medical",
+    "source": "verbrennung.md",
+    "title": "Sofortmaßnahmen — ## Sofortmaßnahmen",
+    "text": "## Sofortmaßnahmen\n1. **Gefahrenzone verlassen**: Betroffene Person von der Hitzequelle entfernen.\n2. **Kühlen**: Die verbrannte Stelle sofort mit handwarmem (nicht eiskaltem!) Wasser kühlen. \n   - Dauer: ca. 10–15 Minuten.\n   - Zweck: Schmerzlinderung und Verhinderung des \"Nachbrennens\" ins Gewebe.\n3. **Kleidung**: Kleidung, die nicht mit der Haut verklebt ist, vorsichtig entfernen. Verklebte Kleidung niemals abreißen!",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/verbrennung.md/2",
+    "domain": "medical",
+    "source": "verbrennung.md",
+    "title": "Beurteilung der Schwere — ## Beurteilung der Schwere",
+    "text": "## Beurteilung der Schwere\n- **Grad 1**: Rötung, Schmerz, Schwellung (ähnlich Sonnenbrand).\n- **Grad 2**: Blasenbildung, starke Schmerzen. Blasen niemals aufstechen!\n- **Grad 3**: Weißlich-graue oder schwarz verkohlte Haut, oft schmerzarm (da Nerven zerstört). Lebensgefahr!",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "medical/verbrennung.md/3",
+    "domain": "medical",
+    "source": "verbrennung.md",
+    "title": "Weitere Versorgung — ## Weitere Versorgung",
+    "text": "## Weitere Versorgung\n- Wunde locker mit sterilem Verbandmaterial oder einem sauberen, fusselfreien Tuch abdecken.\n- Kein Puder, Öl, Salbe oder Hausmittel (Zahnpasta!) auf frische Verbrennungen geben.\n- Bei großflächigen Verbrennungen (> 10% Körperoberfläche): Schockgefahr! Betroffene Person warm halten und Beine hochlagern.",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/0",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Technik-Reparatur für Off-Grid Szenarien — # Technik-Reparatur für Off-Grid Szenarien",
+    "text": "# Technik-Reparatur für Off-Grid Szenarien",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/1",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — ## Quelle: THW Ausbildung, BSI, VDE",
+    "text": "## Quelle: THW Ausbildung, BSI, VDE\n\n---",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/2",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Problem: Panel liefert keinen Strom",
+    "text": "#### Problem: Panel liefert keinen Strom\n1. **Sicherheit:** Panels unter Last NICHT berühren (bis 48V DC!)\n2. **Steckverbindungen (MC4):** Prüfen ob fest und korrosionsfrei\n   - MC4 trennen → Kontakte mit Schleifpapier (P240) reinigen\n   - Feutcht? Trocknen lassen → Kontaktspray (WD40)\n3. **Oberfläche:** Verschmutzt? → Mit Wasser + weichem Tuch reinigen\n   - KEIN Scheuermittel (zerkratzt Anti-Reflex-Beschichtung)\n4. **Schatten-Test:** Auch kleine Teilschatten reduzieren Leistung drastisch\n   - Bypass-Dioden in Junction-Box prüfen\n5. **Multimeter-Test:**\n   - Offene Spannung (Voc): Sollte 80-90% des Datenblatts\n   - Kurzschlussstrom (Isc): bei Sonne ca. 1/3 weniger als Datenblatt = defekt",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/3",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Problem: Laderegler zeigt keine Spannung",
+    "text": "#### Problem: Laderegler zeigt keine Spannung\n- Sicherung prüfen (oft im Gehäuse)\n- Batterie-Spannung messen (>10.5V für 12V-System)\n- Polarität prüfen (Rot=+, Schwarz=-)\n- Erdung prüfen bei Metallgehäuse",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/4",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Blei-Säure (AGM/Gel)",
+    "text": "#### Blei-Säure (AGM/Gel)\n- **Vollladung:** 14.4V (12V-System)\n- **Tiefentladeschutz:** Nie unter 10.5V (50% SOC)\n  - Unter 10.5V = permanenter Kapazitätsverlust!\n- **Temperatur:** Kapazität sinkt bei Kälte (~1%/°C unter 25°C)\n- **Wartung:** AGM/Gel: wartungsfrei. Flüssig: Destilliertes Wasser nachfüllen",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/5",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Lithium (LiFePO4)",
+    "text": "#### Lithium (LiFePO4)\n- **Vollladung:** 14.6V (12V-System)\n- **Tiefentladeschutz:** BMS (Battery Management System) integriert\n- **Kälte-Limit:** NICHT laden unter 0°C! (Lithium-Plating = Kurzschluss!)\n- **Heizen:** Bei Kälte: Batterie erst in warme Umgebung (Auto, Zelt)\n- **Zyklen:** 2000-5000 Zyklen → deutlich langlebiger als Blei",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/6",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### DIY-Powerbank aus 18650-Zellen",
+    "text": "#### DIY-Powerbank aus 18650-Zellen\n- **Spannung:** 1 Zelle = 3.7V nominal, 4.2V voll\n- **Kapazität:** Typisch 2600-3500mAh pro Zelle\n- **USB-Bank:** 1S-Konfiguration + Step-Up auf 5V\n- **SICHERHEIT:** Nur geschützte Zellen! Ohne PCB → Explosionsgefahr\n- **Parallelschaltung:** Nur gleichwertige Zellen (Hersteller, Kapazität, Alter)",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/7",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### PMR446 (ohne Lizenz, jeder darf)",
+    "text": "#### PMR446 (ohne Lizenz, jeder darf)\n- **Frequenz:** 446.0-446.2 MHz, 8+8 Kanäle\n- **Leistung:** Max. 0.5W ERP (in DE)\n- **Reichweite:** 1-5km (Gelände), bis 10km (freie Sicht)\n- **Tipp:** Kanal 1-8 (analog), 9-16 (digital/CTCSS)\n- **Batterie:** AA-Akkus, ca. 20h Standby",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/8",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### CB-Funk (ohne Lizenz)",
+    "text": "#### CB-Funk (ohne Lizenz)\n- **Frequenz:** 26.965-27.405 MHz, 80 Kanäle (in DE)\n- **Leistung:** 4W AM, 12W SSB\n- **Reichweite:** 5-30km (Gelände), >100km (Atmosphäre/\"Skip\")\n- **Notkanal:** Kanal 9 (international)\n- **Antenne:** Länge wichtig! Lambda/4 = 2.75m (Autoantenne)",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/9",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Notsignale",
+    "text": "#### Notsignale\n- **SOS:** · · · — — — · · · (Morsezeichen: 3 kurz, 3 lang, 3 kurz)\n- **Pfeife:** 6× kurz, 1 Min Pause, wiederholen\n- **Spiegel-Signal:** Sonnenlicht reflektieren, fächerförmig schwenken\n- **Feuer:** 3 Feuer im Dreieck = internationales Notsignal\n- **Boden-Signale (Flugrettung):**\n  - V = Hilfe benötigt\n  - X = Medizinische Hilfe\n  - → = Folge dieser Richtung\n  - LL = Alles OK",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/10",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Sawyer Squeeze / Mini",
+    "text": "#### Sawyer Squeeze / Mini\n- **Porengröße:** 0.1 Mikron (Absolute)\n- **Entfernt:** Bakterien (99.99999%), Protozoen (99.9999%)\n- **Entfernt NICHT:** Viren, Chemikalien\n- **Durchfluss:** ~1.8L/Min (Squeeze), ~0.5L/Min (Mini)\n- **Reinigung:** Rückspülen mit sauberer Spritze\n- **Lebensdauer:** Bis zu 400.000 Liter (mit Rückspülung)\n- **Frostschutz:** NICHT einfrieren lassen! (Hohlfasern brechen)",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/11",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### LifeStraw",
+    "text": "#### LifeStraw\n- **Porengröße:** 0.2 Mikron\n- **Entfernt:** Bakterien, Parasiten\n- **Kapazität:** ~4000 Liter\n- **Trinken direkt** aus der Quelle oder Kanal: Filterteil eintauchen\n- **Nachteil:** Kann kein Wasser für die Gruppe filtern",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/12",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Improvisierten Filter bauen",
+    "text": "#### Improvisierten Filter bauen\n```\n┌─────────────────┐\n│  Auffanggefäß    │  ← Sauberes Wasser\n├─────────────────┤\n│  Sand (fein)     │  10cm\n├─────────────────┤\n│  Kies (mittel)   │  5cm\n├─────────────────┤\n│  Aktivkohle      │  10cm  ← aus Lagerfeuer (Holzkohle zerkleinern)\n├─────────────────┤\n│  Kies (grob)     │  5cm\n├─────────────────┤\n│  Sand (fein)     │  10cm\n├─────────────────┤\n│  Stoff/Gaze      │  ← Vorfilter (grobe Partikel)\n└─────────────────┘\nWICHTIG: Nach dem Filtern ABKOCHEN! (3 Minuten)\nFilter entfernt Trübstoffe aber nicht alle Keime.\n```",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/13",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Benzin-Generator (Inverter)",
+    "text": "#### Benzin-Generator (Inverter)\n- **LEBENSGEFAHR:** Kohlenmonoxid (CO) ist geruchlos und tödlich!\n  - NUR im Freien betreiben (min. 5m von Gebäuden)\n  - In Garage NICHT betreiben, auch nicht mit offener Tür!\n- **Erdung:** Erdungsspeer oder Wasserleitung\n- **Betankung:** Motor AUS, 5 Min abkühlen lassen\n- **Lastmanagement:** Nicht über 80% Nennleistung dauerhaft",
+    "priority": "SOFORT",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/offgrid_technik_komplett.md/14",
+    "domain": "engineering",
+    "source": "offgrid_technik_komplett.md",
+    "title": "Quelle: THW Ausbildung, BSI, VDE — #### Benzin lagern",
+    "text": "#### Benzin lagern\n- Max. 20L in zugelassenen Kanistern (Blech oder PE)\n- Kühl, trocken, belüftet, NICHT im Wohngebäude\n- Haltbarkeit: 6-12 Monate (mit Stabilisator: bis 24 Monate)\n- Benzin-Stabilisator: 30ml pro 10L",
+    "priority": "HINTERGRUND",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/solar.md/0",
+    "domain": "engineering",
+    "source": "solar.md",
+    "title": "Troubleshooting: Solaranlage (Off-Grid) — # Troubleshooting: Solaranlage (Off-Grid)",
+    "text": "# Troubleshooting: Solaranlage (Off-Grid)\n\nWenn die Solaranlage keinen Strom liefert oder die Batterien nicht lädt, folge diesen Schritten.",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/solar.md/1",
+    "domain": "engineering",
+    "source": "solar.md",
+    "title": "1. Sichtprüfung der Paneele — ## 1. Sichtprüfung der Paneele",
+    "text": "## 1. Sichtprüfung der Paneele\n- **Verschmutzung**: Laub, Staub oder Schnee können die Leistung massiv senken. Mit Wasser und weichem Tuch reinigen.\n- **Verschattung**: Prüfe, ob Bäume oder Gebäude Schatten werfen. Schon kleine Schatten auf einer Zelle können das ganze Paneel blockieren.\n- **Beschädigung**: Prüfe auf Risse im Glas oder \"Hotspots\" (verfärbte Stellen).",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/solar.md/2",
+    "domain": "engineering",
+    "source": "solar.md",
+    "title": "2. Kabel und Anschlüsse — ## 2. Kabel und Anschlüsse",
+    "text": "## 2. Kabel und Anschlüsse\n- Prüfe alle Steckverbindungen (oft MC4-Stecker). Sind sie fest eingerastet und trocken?\n- Achte auf Korrosion oder Marderbisse an den Kabeln.\n- **Multimeter-Test**: Miss die Spannung (Volt) direkt am Ausgang der Paneele. Bei voller Sonne sollten ca. 18-22V (bei 12V Systemen) anliegen.",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/solar.md/3",
+    "domain": "engineering",
+    "source": "solar.md",
+    "title": "3. Laderegler prüfen — ## 3. Laderegler prüfen",
+    "text": "## 3. Laderegler prüfen\n- Leuchten oder blinken die LEDs am Laderegler? Konsultiere das Handbuch für Blinkcodes.\n- **Sicherung**: Prüfe die Sicherung zwischen Laderegler und Batterie sowie zwischen Paneel und Regler.\n- **Reihenfolge**: Trenne bei Arbeiten immer erst die Paneele vom Regler, dann die Batterie. Beim Anschließen: erst Batterie, dann Paneele!",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "engineering/solar.md/4",
+    "domain": "engineering",
+    "source": "solar.md",
+    "title": "4. Batteriestatus — ## 4. Batteriestatus",
+    "text": "## 4. Batteriestatus\n- Wenn die Batteriespannung unter 10.5V sinkt, schaltet der Laderegler oft zum Schutz ab. \n- Versuche, die Belastung (Verbraucher) komplett zu trennen, bis die Sonne die Batterie wieder über 12.5V gehoben hat.",
+    "priority": "ANLEITUNG",
+    "agent": "engineer_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/0",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ## Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe)",
+    "text": "## Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe)\n*Stand: Oktober 2026.*",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/1",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Persönlicher Notvorrat (10-Tage-Regel) (1/2)",
+    "text": "### Persönlicher Notvorrat (10-Tage-Regel)\n\nJeder Haushalt sollte einen Vorrat für mindestens 10 Tage anlegen:\n\n**Wasser:**\n- 2 Liter pro Person und Tag (Trinken + Kochen)\n- 10-Tages-Vorrat = 20 Liter pro Person\n- Wasserkanister, geschlossene Flaschen\n- Ggf. Wasserentkeimungstabletten (z.B. Micropur)\n\n**Lebensmittel (Kalorienbasis: ~2200 kcal/Tag):**\n- Vollkornbrot, Knäckebrot, Zwieback\n- Nudeln, Reis, Haferflocken (trocken, lange haltbar)\n- Konserven: Gemüse, Obst, Fleisch, Fisch\n- Getrocknete Hülsenfrüchte (Linsen, Erbsen)\n- Zucker, Honig, Marmelade\n- Salz, Pfeffer, Gewürze\n- Speiseöl, Fette\n- Milchpulver, H-Milch\n- Nüsse, Trockenobst, Energieriegel",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/2",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Persönlicher Notvorrat (10-Tage-Regel) (2/2)",
+    "text": "**Checkliste Hausapotheke:**\n- Persönliche Medikamente (mind. 14-Tage-Vorrat)\n- Schmerzmittel (Ibuprofen, Paracetamol)\n- Fieberthermometer\n- Desinfektionsmittel\n- Verbandsmaterial (Pflaster, Mullbinden, Kompressen)\n- Elastische Binden\n- Schere, Pinzette\n- Einmalhandschuhe\n- Rettungsdecke\n- Dreieckstuch",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/3",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Stromausfall / Blackout (1/2)",
+    "text": "### Stromausfall / Blackout\n\n**Sofortmaßnahmen (erste 30 Minuten):**\n1. Kühlschrank und Gefriertruhe geschlossen halten (hält 24-48h kühl)\n2. Taschenlampe bereithalten (keine Kerzen in Panik)\n3. Batteriebetriebenes Radio oder Kurbelradio einschalten\n4. Handy-Akku schonen — nur für Notrufe nutzen\n5. Wasserhahn füllen (Solange noch Druck da ist)\n\n**Stromversorgung Alternativen:**\n- Powerbank (mind. 20.000 mAh)\n- Solarpanel (faltbar, 30-100W)\n- Batteriebetriebenes Radio mit Kurbel\n- Gaskocher mit Kartuschen (draußen oder gut belüftet!)\n- KEIN Generator in Innenräumen (CO-Vergiftungsgefahr!)",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/4",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Stromausfall / Blackout (2/2)",
+    "text": "**Kommunikation ohne Strom:**\n- UKW-Radio empfängt weiterhin\n- BBK-App NINA (nur solange Mobilfunk läuft)\n- Nachbarn informieren und organisieren\n- Notfalltreffpunkt der Familie festlegen\n- Lautsprecherdurchsagen der Feuerwehr beachten",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/5",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Warnsignale erkennen (1/2)",
+    "text": "### Warnsignale erkennen\n\n**Sirenen-Signale (Deutschland, bundesweit einheitlich):**\n- 1 Minute auf- und abschwellender Heulton = **Warnung** (Rundfunk einschalten, Warn-App prüfen, Anweisungen befolgen)\n- 1 Minute gleichbleibender Heulton (Dauerton) = **Entwarnung** (Ende der Gefahr)\n- 3 × 12 Sekunden Dauerton mit je 12 Sekunden Pause = Alarmierung der Feuerwehr (regional)\n\n**Offizielle Warn-Kanäle:**\n- NINA-App (bundesweites Warnsystem des BBK)\n- Katwarn-App (regional)\n- Cell Broadcast (Warnung direkt aufs Handy, ohne App und ohne Internet)\n- Radio und Fernsehen (Pflichtdurchsagen)\n- Lautsprecherwagen der Behörden",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/6",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Warnsignale erkennen (2/2)",
+    "text": "**Bundesweiter Warntag:**\n- Findet in der Regel jährlich am zweiten Donnerstag im September statt\n- Gegen 11:00 Uhr Probewarnung über Sirenen, Cell Broadcast, Warn-Apps und Rundfunk\n- Gegen 11:45 Uhr Entwarnung\n- Dient der Erprobung der Warnsysteme — keine echte Gefahr, aber ein guter Anlass, die eigenen Warnkanäle zu prüfen",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/7",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Evakuierung — Notgepäck",
+    "text": "### Evakuierung — Notgepäck\n\n**Dokumente (wasserdicht verpackt):**\n- Personalausweis / Reisepass\n- Geburtsurkunde, Heiratsurkunde\n- Impfpass, Blutgruppenausweis\n- Versicherungspolicen (Kopien)\n- Bargeld (kleine Scheine + Münzen)\n- Kontaktliste (handgeschrieben, nicht nur digital)\n- Grundbuchauszüge / Mietvertrag\n\n**Rucksack (Gewicht max. 15kg):**\n- Wechselkleidung (wetterfest)\n- Festes Schuhwerk\n- Schlafutensilien (Isomatte, Schlafsack)\n- Essbesteck, Trinkflasche, Becher\n- Taschenmesser / Multitool\n- Taschenlampe + Ersatzbatterien\n- Erste-Hilfe-Set\n- Hygieneartikel (Zahnbürste, Seife, Handtuch)\n- Müllbeutel (Mehrzweck: Regenschutz, Müll, Sitz)\n- Pfeife (Signalgabe)",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/bbk_notfallvorsorge.md/8",
+    "domain": "survival",
+    "source": "bbk_notfallvorsorge.md",
+    "title": "Quelle: BBK (Bundesamt für Bevölkerungsschutz und Katastrophenhilfe) — ### Kinder im Notfall",
+    "text": "### Kinder im Notfall\n\n- Kuscheltier / vertrauter Gegenstand beruhigt\n- Spiele, Malbuch für Wartezeiten\n- Kinderausweis mit Foto und Kontaktdaten der Eltern\n- Allergien und Medikamente notieren und am Kind befestigen\n- Feste Regeln: \"Wir bleiben zusammen\"",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/0",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "THW-Ratgeber: Technische Hilfe und Infrastruktur — # THW-Ratgeber: Technische Hilfe und Infrastruktur",
+    "text": "# THW-Ratgeber: Technische Hilfe und Infrastruktur",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/1",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ## Quelle: Technisches Hilfswerk (THW), BBK",
+    "text": "## Quelle: Technisches Hilfswerk (THW), BBK\n*Stand: Oktober 2026.*",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/2",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Trinkwasseraufbereitung im Feld (1/2)",
+    "text": "### Trinkwasseraufbereitung im Feld\n\n**Warum Wasseraufbereitung kritisch ist:**\nVerschmutztes Wasser verursacht Durchfall, Cholera, Typhus. In Krisensituationen ist sauberes Wasser die höchste Priorität nach Sicherheit.\n\n**Methode 1: Abkochen (sicherste Methode)**\n- Wasser auf rollenden Kochenstand bringen\n- Mindestens 3 Minuten kochen lassen (über 2000m: 5 Min)\n- Abkühlen lassen, in sauberen Behälter umfüllen\n- Tötet: Bakterien, Viren, Parasiten\n- Entfernt NICHT: Chemikalien, Schwermetalle\n\n**Methode 2: Chemische Entkeimung**\n- Micropur (Silberionen): 1 Tablette pro Liter, 2h warten\n- Chlortabletten: 1 Tablette pro Liter, 30 Min warten (trübes Wasser: doppelte Dosis)\n- Jod: 5 Tropfen 2%ige Lösung pro Liter, 30 Min warten\n- ACHTUNG: Schwangere und Schilddrüsen-Patienten kein Jod!",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/3",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Trinkwasseraufbereitung im Feld (2/2)",
+    "text": "**Methode 3: Filtern**\n- Aktivkohlefilter (Sawyer, Lifestraw): Entfernt Bakterien + Parasiten\n- Keramikfilter: Langlebig, reinigbar\n- Improvisierter Filter: Sand → Kies → Aktivkohle → Kies → Sand in Flasche\n- NACH dem Filtern zusätzlich ABKOCHEN wenn möglich!\n\n**Methode 4: UV-Desinfektion (SODIS)**\n- Klares Wasser in PET-Flasche füllen (max. 2 Liter)\n- 6 Stunden in volle Sonne legen (UV-A zerstört Keime)\n- Bei bewölktem Himmel: 2 Tage\n- Nur bei klarem Wasser effektiv!",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/4",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Notstromversorgung",
+    "text": "### Notstromversorgung\n\n**Solarpanels:**\n- Faltbare Panels: 30-100W (Handys + USB-Geräte)\n- Starre Panels: 150-400W (für Kühlschrank, Pumpen)\n- Ertrag Deutschland: ca. 3-5 kWh/m²/Tag (Sommer), 0.5-1.5 (Winter)\n- Ausrichtung: Süden, Neigung 30-35°\n- WICHTIG: Schatten auf einer Zelle reduziert Gesamtleistung drastisch\n\n**Powerstation:**\n- Lithium (LiFePO4): 500-2000Wh, 2000+ Zyklen\n- Eingangsleistung prüfen (wie schnell lädt Solar?)\n- Pass-Through möglich? (Gleichzeitig laden + verbrauchen)\n- Wichtig: Bei Kälte <0°C nimmt Kapazität ab (auf 60-80%)\n\n**Generator (Benzin/Diesel):**\n- NUR im Freien betreiben (CO-Vergiftung = Tod!)\n- Mindestabstand 5m zu Gebäuden\n- Erdung prüfen\n- Benzin-Lagerung: max. 20L in zugelassenen Kanistern\n- Verbrauch: ~0.5-1.5L/h je nach Last",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/5",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Notunterkünfte und Schutzbauten",
+    "text": "### Notunterkünfte und Schutzbauten\n\n**Tarp-Shelter (schnellste Variante):**\n- 3x3m Plane + 2 Abspannleinen + 4 Heringe\n- A-Frame: Leine zwischen 2 Bäume, Plane darüber\n- Lean-To: Plane schräg an Windseite, offen zur Lee-Seite\n- IMMER: Bodenplane oder Laub als Isolation zum Boden\n\n**Laubhütte (Debris Shelter):**\n- Tragstange (2-3m) zwischen 2 Gabeln\n- Rippen-Stangen (1-2m) schräg anlehnen\n- Laub, Moos, Nadeln aufschichten (mindestens 30cm dick)\n- Eingang möglichst klein, windabgewandt\n- Boden isolieren: 15cm Laub, dann Fichtenzweige\n\n**Schneehöhle:**\n- Nur in festem, gepressten Schnee möglich\n- Eingang tiefer als Schlafnische (Kaltluftsee)\n- Belüftungsloch von oben (CO2 + Feuchtigkeit)\n- Innenwände glätten (verhindert Tropfen)\n- Temperatur drinnen: ca. 0°C (auch bei -20° draußen)",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/6",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Feuer machen (1/2)",
+    "text": "### Feuer machen\n\n**Vorbereitung (Feuerdreieck: Zunder → Anmachholz → Brennholz):**\n- Zunder: Birkenrinde, trockenes Gras, Wattebausch mit Vaseline\n- Anmachholz: Bleistiftdicke trockene Zweige\n- Brennholz: Arm-dicke Äste, gespalten (trocknet schneller)\n\n**Methoden:**\n1. Feuerzeug/Streichholz (immer wasserdicht verpacken!)\n2. Feuerstahl + Zunder (funktioniert auch nass)\n3. Lupe / Brillenglas (nur bei Sonne)\n4. Batterie + Stahlwolle (Kurzschluss erzeugt Funken)\n\n**Feuerarten:**\n- Pyramidenfeuer: Zum Kochen (Hitze nach oben)\n- Sternenfeuer: Langbrenner (5 Stämme sternförmig)\n- Reflektorfeuer: Wärme reflektieren mit Steinwand/Baumstamm\n- Dakota-Loch: Versteckt, windgeschützt, wenig Rauch",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/7",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Feuer machen (2/2)",
+    "text": "**Sicherheit:**\n- Feuerstelle von Laub freiräumen (1m Radius)\n- Wind beachten (Funkenflug)\n- Wasser / Sand zum Löschen bereithalten\n- Feuer IMMER vollständig löschen vor dem Verlassen",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/8",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Orientierung ohne GPS (1/2)",
+    "text": "### Orientierung ohne GPS\n\n**Himmelsrichtung bestimmen:**\n- **Sonne:** Im Sommer geht sie im Nordosten auf, steht mittags im Süden, geht im Nordwesten unter\n- **Uhr-Methode:** Stundenzeiger auf Sonne richten → Halbierende zwischen 12 und Stundenzeiger zeigt nach Süden\n- **Sterne:** Nordstern (Polaris) finden: Großer Wagen → 5x die hintere Kastenlänge verlängern\n- **Moos:** Wächst oft (aber nicht immer!) an der Nordseite von Bäumen\n- **Ameisenhaufen:** Oft an der Südseite von Bäumen (wärmer)\n\n**Karte lesen:**\n- Höhenlinien: Eng = steil, weit = flach\n- Blau = Wasser, Grün = Wald, Braun = Gelände\n- 1:25.000 → 1cm auf Karte = 250m real\n- Kompass: Karte nach Norden ausrichten, dann Marschrichtung ablesen",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/thw_technische_hilfe.md/9",
+    "domain": "survival",
+    "source": "thw_technische_hilfe.md",
+    "title": "Quelle: Technisches Hilfswerk (THW), BBK — ### Orientierung ohne GPS (2/2)",
+    "text": "**Suchspirale:**\n- Wenn man sich verirrt hat: STOP (Stop, Think, Observe, Plan)\n- An Bächen entlang gehen (führen zu Siedlungen)\n- Auf Anhöhe steigen → Überblick gewinnen\n- Geräusche: Straßenlärm, Kirchenglocken, Züge",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/wasser.md/0",
+    "domain": "survival",
+    "source": "wasser.md",
+    "title": "Quelle: BBK, THW — ## Quelle: BBK, THW",
+    "text": "## Quelle: BBK, THW\n*Stand: Oktober 2026.*\n\nIn Krisensituationen sind Wärme und sauberes Trinkwasser überlebenswichtig. Ausführliche Anleitungen zu Filterung und Bevorratung stehen im THW-Ratgeber zur technischen Hilfe.",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/wasser.md/1",
+    "domain": "survival",
+    "source": "wasser.md",
+    "title": "1. Wasser finden und aufbereiten — ## 1. Wasser finden und aufbereiten",
+    "text": "## 1. Wasser finden und aufbereiten\n- **Quellen**: Fließendes Wasser (Bäche, Quellen) ist stehendem Wasser vorzuziehen. Regenwasser auffangen ist am sichersten.\n- **Abkochen**: Wasser mindestens 3–5 Minuten sprudelnd kochen, um Keime abzutöten (über 2000 m Höhe 5 Minuten).\n- **Filtern**: Notfilter aus einer umgedrehten Plastikflasche: Schicht aus Stoff, dann zerstoßene Holzkohle, dann Sand, dann Kies. Grobe Partikel werden entfernt, Holzkohle bindet einen Teil der Giftstoffe. Das gefilterte Wasser danach trotzdem abkochen.\n- **Wichtig**: Klares Wasser ist nicht automatisch sauber — Krankheitserreger und gelöste Stoffe sind unsichtbar.",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/wasser.md/2",
+    "domain": "survival",
+    "source": "wasser.md",
+    "title": "2. Wasser bevorraten — ## 2. Wasser bevorraten",
+    "text": "## 2. Wasser bevorraten\n- Mindestens 2 Liter pro Person und Tag in geschlossenen Behältern (Details siehe BBK-Notvorrat).\n- Kühl und dunkel lagern, Vorrat etwa alle 6 Monate erneuern.\n- Ein 10-Tage-Vorrat entspricht 20 Litern pro Person.",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "survival/wasser.md/3",
+    "domain": "survival",
+    "source": "wasser.md",
+    "title": "3. Feuer machen (ohne Feuerzeug) — ## 3. Feuer machen (ohne Feuerzeug)",
+    "text": "## 3. Feuer machen (ohne Feuerzeug)\n- **Vorbereitung**: Zunder (trockenes Gras, Birkenrinde, zerzupfte Tampons) ist entscheidend.\n- **Brennholz**: Erst kleinste Zweige, dann fingerdicke, dann große Scheite.\n- **Methoden**:\n  - **Feuerstahl**: Funken in den Zunder schlagen.\n  - **Brennglas**: Mit einer Lupe oder einer klaren, wassergefüllten PET-Flasche das Sonnenlicht bündeln.\n  - **Batterie-Trick**: Mit feiner Stahlwolle beide Pole einer 9-V-Batterie berühren. Die Wolle beginnt zu glühen und wird sofort in den Zunder gelegt.",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/0",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ## Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz)",
+    "text": "## Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz)\n\n---",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/1",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Nuklearer Notfall — Sofortmaßnahmen (1/2)",
+    "text": "### Nuklearer Notfall — Sofortmaßnahmen\n\n**Wenn ein Kernkraftwerk-Unfall gemeldet wird:**\n\n1. **SOFORT ins Gebäude** — Feste Gebäude bieten bereits 90% Schutzwirkung\n2. **Fenster und Türen schließen** — Dichtungen prüfen\n3. **Lüftung und Klimaanlage abschalten**\n4. **Radio einschalten** — Behördenanweisungen folgen\n5. **Jodtabletten NICHT eigenständig nehmen** — Nur auf Anweisung der Behörden!\n\n**In den ersten 48 Stunden:**\n- Nicht nach draußen gehen (wenn nicht evakuiert)\n- Regenwasser NICHT trinken oder nutzen\n- Frisches Obst/Gemüse aus dem Garten NICHT essen\n- Haustiere ins Haus bringen\n- Kleidung und Schuhe, die draußen waren, in Plastiktüte verpacken",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/2",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Nuklearer Notfall — Sofortmaßnahmen (2/2)",
+    "text": "**Kontaminations-Prüfung:**\n- Schuhe vor der Tür ausziehen\n- Kleidung wechseln (Plastiktüte, zuknoten)\n- Duschen: Seife, Haare waschen (Partikel auswaschen)\n- Haut NICHT schrubben (Verletzungen = Eintrittspforte)",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/3",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Jodblockade",
+    "text": "### Jodblockade\n\n**Funktion:** Kalium-Jodid sättigt die Schilddrüse → radioaktives Jod-131 wird nicht mehr aufgenommen\n\n**Dosis (NUR auf behördliche Anweisung):**\n- Erwachsene <45 Jahre: 130mg Kaliumjodid (2 Tabletten à 65mg)\n- Kinder 3-12 Jahre: 65mg (1 Tablette)\n- Kleinkinder 1-3 Jahre: 32.5mg (1/2 Tablette)\n- Säuglinge: 16.25mg (1/4 Tablette)\n- Erwachsene >45 Jahre: NICHT empfohlen (Risiko > Nutzen)\n\n**Zeitfenster:** Idealerweise 2-6 Stunden VOR Exposition, maximal 3h danach\n**WARNUNG:** Schilddrüsenerkrankungen → Arzt fragen!",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/4",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Chemie-Unfall (C-Gefahr)",
+    "text": "### Chemie-Unfall (C-Gefahr)\n\n**Anzeichen:**\n- Ungewöhnlicher Geruch (bitter Mandeln = Blausäure, Chlor-Geruch)\n- Tote Tiere, verwelkte Pflanzen\n- Nebel/Dampf ohne erkennbare Quelle\n- Reizung von Augen, Haut, Atemwegen\n\n**Sofortmaßnahmen:**\n1. **Fluchtrichtung:** QUER zum Wind (nicht mit dem Wind!)\n2. **Höhe suchen:** Viele Gase sind schwerer als Luft → nach oben!\n3. **Atemschutz:** Feuchtes Tuch vor Mund und Nase (Notbehelf)\n4. **Gebäude:** Fenster zu, obere Stockwerke aufsuchen\n5. **Kontaminierte Kleidung:** Sofort ausziehen, in Plastiktüte\n\n**Dekontamination:**\n- Mit reichlich Wasser abspülen (15 Minuten)\n- Seife nutzen, NICHT schrubben\n- Augen: 15 Minuten mit klarem Wasser spülen\n- Kontaminierte Kleidung in Doppelbeutel, beschriften",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/5",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Biologische Gefahr (B-Gefahr)",
+    "text": "### Biologische Gefahr (B-Gefahr)\n\n**Anzeichen:**\n- Ungewöhnliche Häufung gleicher Krankheitssymptome\n- Tote Tiere in größerer Zahl\n- Verdächtige Postsendungen (Pulver, unbekannter Absender)\n\n**Verdächtige Sendung gefunden:**\n1. NICHT schütteln, NICHT öffnen\n2. Sendung in Plastiktüte legen, zuknoten\n3. Raum verlassen, Tür schließen\n4. Hände waschen (20 Sekunden, Seife)\n5. Polizei/Feuerwehr rufen: 112\n6. Liste aller Personen erstellen, die Kontakt hatten\n\n**Hygiene-Maßnahmen:**\n- Händewaschen: 20 Sekunden mit Seife, Fingerspitzen, Daumen\n- Hustenettikette: In Armbeuge, nicht in Hand\n- Abstand halten: Mindestens 1.5m\n- Oberflächen desinfizieren: Ethanol 70% oder Isopropanol",
+    "priority": "SOFORT",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/6",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Strahlungsmesswerte verstehen",
+    "text": "### Strahlungsmesswerte verstehen\n\n| Dosis (mSv) | Bedeutung |\n|---|---|\n| 0.01 | Röntgenaufnahme Zahn |\n| 0.1 | Röntgen Lunge |\n| 2 | Natürliche Jahresdosis Deutschland |\n| 20 | Grenzwert Berufsstrahlung/Jahr |\n| 100 | Niedrigste Dosis mit nachgewiesenem Krebsrisiko |\n| 250 | Grenzwert Rettungskräfte (Lebensrettung) |\n| 1000 | Akute Strahlenkrankheit (Übelkeit) |\n| 4000 | Ohne Behandlung 50% tödlich (LD50) |",
+    "priority": "HINTERGRUND",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "life-skills/abc_gefahren_ratgeber.md/7",
+    "domain": "life-skills",
+    "source": "abc_gefahren_ratgeber.md",
+    "title": "Quelle: BBK (CBRN-Schutz), BfS (Bundesamt für Strahlenschutz) — ### Schutzräume und Abschirmung",
+    "text": "### Schutzräume und Abschirmung\n\n**Abschirmfaktoren (Reduktion der Strahlung):**\n- Im Freien: 1x (kein Schutz)\n- PKW: 2-3x Reduktion\n- Holzhaus: 2-3x\n- Steinhaus Erdgeschoss: 10x\n- Steinhaus Keller: 40-100x\n- Betonbunker: 200-1000x\n\n**Improvisierten Schutzraum einrichten:**\n- Keller oder innerer Raum ohne Fenster\n- Bauliche Masse zwischen sich und Außenwelt\n- Wasserdichte Vorräte für 48-72 Stunden\n- Radio (batteriebetrieben) für Behördenmeldungen\n- Toilette: Eimer mit Deckel, Müllbeutel, Katzenstreu",
+    "priority": "ANLEITUNG",
+    "agent": "medic_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/0",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — ## Quelle: Bundeswehr Geländekunde, THW, DAV",
+    "text": "## Quelle: Bundeswehr Geländekunde, THW, DAV\n\n---",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/1",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Kompass lesen",
+    "text": "#### Kompass lesen\n1. Kompass waagerecht halten, Nadel ausschwingen lassen\n2. Nadel zeigt nach **magnetisch Nord** (Abweichung Deutschland: +2° Ost)\n3. Gehäuse drehen bis N-Markierung mit Nadel übereinstimmt\n4. Marschrichtung am Visier ablesen",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/2",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Marschzahl halten",
+    "text": "#### Marschzahl halten\n- Marschzahl (Azimut) = Gradzahl von Nord im Uhrzeigersinn\n  - Nord = 0°/360°\n  - Ost = 90°\n  - Süd = 180°\n  - West = 270°\n- Tipp: Visuellen Zielpunkt (Baum, Felsen) auf Marschzahl anpeilen\n- Zum Zielpunkt laufen, nächsten anpeilen → Kurs halten",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/3",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Rückweg-Azimut",
+    "text": "#### Rückweg-Azimut\n- Rückweg = Hinweg + 180° (oder -180° wenn >180°)\n- Beispiel: Hinweg 60° → Rückweg 240°",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/4",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Maßstäbe",
+    "text": "#### Maßstäbe\n| Maßstab | 1cm auf Karte = | Nutzung |\n|---|---|---|\n| 1:25.000 | 250m | Wandern, Detail-Navigation |\n| 1:50.000 | 500m | Tagestouren, Bundeswehr Standard |\n| 1:100.000 | 1km | Fahrzeug-Navigation |\n| 1:200.000 | 2km | Übersicht |",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/5",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Höhenlinien lesen",
+    "text": "#### Höhenlinien lesen\n- **Äquidistanz** (typisch 1:25.000): 10m oder 20m Höhenunterschied\n- Eng beieinander = steil (Felswand, Hang)\n- Weit auseinander = flach (Hochebene, Tal)\n- Geschlossene Kreise = Gipfel oder Senke (Senke hat Zahnmarkierung nach innen)\n- V-Form zeigt gegen Fließrichtung eines Baches",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/6",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### UTM-Koordinaten",
+    "text": "#### UTM-Koordinaten\n- Rechtswert (Easting): X-Position, steigt nach Osten\n- Hochwert (Northing): Y-Position, steigt nach Norden\n- Beispiel: 32U 586234 5248712\n- 32U = Zonenfeld, 586234 = Rechtswert, 5248712 = Hochwert",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/7",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Sonnen-Methode (Uhr)",
+    "text": "#### Sonnen-Methode (Uhr)\n1. Analoge Uhr waagerecht halten\n2. Stundenzeiger auf die Sonne richten\n3. Winkel zwischen Stundenzeiger und 12-Uhr-Position halbieren\n4. Diese Richtung zeigt nach **Süden** (Winterzeit) / **Süden** (Sommerzeit: 1-Uhr statt 12)",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/8",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Schatten-Methode (Stock)",
+    "text": "#### Schatten-Methode (Stock)\n1. Stock senkrecht in den Boden stecken (mind. 50cm)\n2. Schattenspitze mit Stein markieren (Punkt A)\n3. 15-30 Minuten warten\n4. Neue Schattenspitze markieren (Punkt B)\n5. Linie A→B zeigt ungefähr nach **Osten**\n6. Senkrecht darauf: Norden (vom Stock weg)",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/9",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Sterne (Nordstern/Polaris)",
+    "text": "#### Sterne (Nordstern/Polaris)\n1. **Großer Wagen** finden (7 helle Sterne, wie Schöpfkelle)\n2. Die hinteren 2 Kastensterne (\"Zeiger\") verlängern\n3. 5x die Kastenlänge nach oben → **Polaris** (Nordstern)\n4. Polaris steht fast exakt über Norden\n5. Höhe über Horizont = eigener Breitengrad (DE: ca. 50°)",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/10",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Natur-Indikatoren (unzuverlässig, nur Tendenz!)",
+    "text": "#### Natur-Indikatoren (unzuverlässig, nur Tendenz!)\n- Moos: Wächst bevorzugt an Nordseite (feucht, schattig)\n- Jahresringe: Auf der Südseite oft breiter (mehr Sonne)\n- Ameisenhaufen: Tendenz zur Südseite (wärmer)\n- Kirchturmhahn: Schaut meist nach Süden (Tradition)\n- Friedhöfe: Gräber oft Ost-West ausgerichtet",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/11",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Dezimalgrad (Google Maps Format)",
+    "text": "#### Dezimalgrad (Google Maps Format)\n- Beispiel: 51.0504, 13.7373 (Dresden)\n- Nördliche Breite = positiv, Südliche = negativ\n- Östliche Länge = positiv, Westliche = negativ",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/12",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Grad-Minuten-Sekunden",
+    "text": "#### Grad-Minuten-Sekunden\n- Beispiel: 51°03'01\"N, 13°44'14\"E\n- 1 Grad = 60 Minuten, 1 Minute = 60 Sekunden\n- 1 Sekunde Breite ≈ 31 Meter",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/13",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Umrechnung",
+    "text": "#### Umrechnung\n- 51°03'01\" → 51 + 3/60 + 1/3600 = 51.0503°",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/14",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Daumensprung-Methode",
+    "text": "#### Daumensprung-Methode\n1. Arm ausstrecken, Daumen hochhalten\n2. Objekt mit rechtem Auge anpeilen (linkes zu)\n3. Auf linkes Auge wechseln (rechtes zu)\n4. Daumen \"springt\" — geschätzte Sprungweite × 10 = Entfernung",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/15",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Schritt-Zählung (Pace Count)",
+    "text": "#### Schritt-Zählung (Pace Count)\n- 100m gehen und Doppelschritte zählen\n- Durchschnitt: 62-68 Doppelschritte pro 100m (flach)\n- Bergauf: +10%, Unterholz: +15-20%\n- Mit Perlenband (Ranger Beads) oder Knoten zählen",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/16",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Schall-Methode (Gewitter)",
+    "text": "#### Schall-Methode (Gewitter)\n- Blitz sehen → Sekunden bis Donner zählen\n- Sekunden ÷ 3 ≈ Entfernung in km (Schall ≈ 340m/s)\n- Beispiel: 9 Sekunden → ca. 3 km entfernt",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/17",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Barometer-Ersatz",
+    "text": "#### Barometer-Ersatz\n- Vögel fliegen hoch → Hochdruck → gutes Wetter\n- Vögel fliegen niedrig → Tiefdruck → Regen kommt\n- Spinnennetze glänzen → Tau → Hochdruck → schönes Wetter",
+    "priority": "HINTERGRUND",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/18",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Wolkenarten",
+    "text": "#### Wolkenarten\n| Wolke | Höhe | Wetter |\n|---|---|---|\n| Cirrus (Federwolken) | >6km | Schön, aber Warmfront nähert sich |\n| Cumulus (Schäfchen) | 2-6km | Schönwetter, aber Vorsicht nachmittags |\n| Cumulonimbus (Amboss) | 2-12km | GEWITTER! Sofort Schutz suchen |\n| Nimbostratus (grau, tief) | <2km | Dauerregen |\n| Nebel | Boden | Morgennebel = schöner Tag |",
+    "priority": "SOFORT",
+    "agent": "navigator_agent"
+  },
+  {
+    "id": "navigation/orientierung_komplett.md/19",
+    "domain": "navigation",
+    "source": "orientierung_komplett.md",
+    "title": "Quelle: Bundeswehr Geländekunde, THW, DAV — #### Gewitter-Sicherheit",
+    "text": "#### Gewitter-Sicherheit\n1. **30/30 Regel:** Blitz→Donner <30s = Gefahr, nach letztem Donner 30 Min warten\n2. **NICHT:** Unter Bäumen, an Gewässern, auf Gipfeln\n3. **Ideal:** Gebäude, Auto (Faradayscher Käfig)\n4. **Im Freien:** Hocken, Füße zusammen, Kopf einziehen\n5. **NICHT flach auf den Boden legen** (Schrittspannung!)",
+    "priority": "ANLEITUNG",
+    "agent": "navigator_agent"
+  }
+]

@@ -1,0 +1,1842 @@
+@import "tailwindcss";
+
+@theme {
+  /* S1: UI type scale — 7 steps, coupled to the Appearance setting
+     (--ui-font-size is the only lever; rem geometry does not scale with it).
+     Line heights on the 0.25-px raster, 1.25–1.3x each step size. */
+  --ui-font-size: 14px;
+  --text-ui-xl: calc(var(--ui-font-size) + 4px);        /* 18 */
+  --text-ui-xl--line-height: 22.5px;
+  --text-ui-lg: calc(var(--ui-font-size) + 2px);        /* 16 */
+  --text-ui-lg--line-height: 20px;
+  --text-ui-base: var(--ui-font-size);                   /* 14 */
+  --text-ui-base--line-height: 17.5px;
+  --text-ui-caption: calc(var(--ui-font-size) - 1px);   /* 13 */
+  --text-ui-caption--line-height: 16.25px;
+  --text-ui-sm: calc(var(--ui-font-size) - 2px);        /* 12 */
+  --text-ui-sm--line-height: 15px;
+  --text-ui-xs: calc(var(--ui-font-size) - 3px);        /* 11px */
+  --text-ui-xs--line-height: 14px;
+  --text-ui-2xs: calc(var(--ui-font-size) - 4px);       /* 10px — axes / badges */
+  --text-ui-2xs--line-height: 13px;
+  /* S2: iOS compatibility token — fixed 16px/20px, it does NOT scale with
+     --ui-font-size (viewport focus-zoom threshold of the WebView inputs). */
+  --text-ui-input: 16px;
+  --text-ui-input--line-height: 20px;
+
+  /* WAVE-1 (redesign direction): the reading scale — THREE steps, nothing else
+     (17 title | 13 UI | 11 data). Added beside the S1 seven so no existing name
+     moves: every S1 step above keeps its name and its value, and the direction's
+     three are what the reading surfaces migrate onto.
+       --text-scale-title / --text-scale-ui / --text-scale-data replace, in the
+       direction's telling: S1 xl (18) -> title (17); S1 base (14) + caption (13)
+       -> ui (13); S1 xs (11) + sm (12) + 2xs (10) -> data (11).
+     Coupled to --ui-font-size exactly like S1, so the Appearance setting stays
+     the ONE type lever: at its 14px base these land on the sizes the direction
+     measures. Leading follows the mockups (1.22 / 1.42 / 1.45), rounded onto the
+     same 0.25px raster the S1 steps sit on. */
+  --text-scale-title: calc(var(--ui-font-size) + 3px);   /* 17 */
+  --text-scale-title--line-height: 20.75px;
+  --text-scale-ui: calc(var(--ui-font-size) - 1px);      /* 13 */
+  --text-scale-ui--line-height: 18.5px;
+  --text-scale-data: calc(var(--ui-font-size) - 3px);    /* 11 */
+  --text-scale-data--line-height: 16px;
+
+  /* WAVE-1: the one right edge every number shares — the direction's fixed
+     number columns (104 / 176 / 236px). The widths live here so no component
+     carries a raw length; a number column is what makes "every number in ONE
+     right-aligned tabular column" true across screens. */
+  --num-col-1: 104px;
+  --num-col-2: 176px;
+  --num-col-3: 236px;
+
+  /* S3: elevation — 3 levels instead of 5 divergent shadow families.
+     Level 1 = cards/panels, level 2 = menus/popovers, level 3 = dialogs/toasts. */
+  --shadow-elevation-1: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-elevation-2: 0 8px 32px rgb(0 0 0 / 0.45);
+  --shadow-elevation-3: 0 12px 40px rgb(0 0 0 / 0.55);
+
+  /* S6 (wave 10 P0-6): radius scale — ONE source (the Tailwind-v4 namespace
+     --radius-* feeds the rounded-*-utilities directly). 4px raster, 5 steps;
+     covers exactly the steps used in code (sm/md/lg/xl/2xl + full). */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* W10-23 (P2-F3): the motion budget as utilities. The seven values sat in
+     :root, where no Tailwind utility could reach them — 14 sites hardcoded
+     duration-200 instead and the budget had no React consumer. The v4 namespaces
+     are --transition-duration-* (feeding duration-*) and --ease-* (feeding
+     ease-*); :root keeps the --motion-* aliases the animation rules read.
+     AP-1: the organic overshoot curve recalls the springy stroke of a hand-drawn
+     arc — a slight overshoot (~4%) makes the end breathe instead of landing hard.
+     AP-2: the settle is asymmetric, the hand lifts off more slowly than it lands. */
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 180ms;
+  --transition-duration-slow: 280ms;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-organic: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-settle: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* S4: overlay z — 4 steps. Rule: menu (modal) above tooltip (overlay);
+     the toast sits above the menus within its step via document order. */
+  --z-index-base: 0;
+  --z-index-sticky: 10;
+  --z-index-overlay: 20;
+  --z-index-modal: 30;
+
+  /* S5: status aliases — double-coded (color + text), never color alone.
+     WP1 (redesign 2026-10-04): the values now live in the role layer
+     (signal-ok / signal-danger / signal-warn, further below); only var()
+     forwards meet here. Danger keeps its own axis (hue 8, higher
+     saturation, darker than brand) and no longer shares the brand-red axis
+     — a destructive button must not read as branding. */
+  --color-status-success: var(--color-signal-ok);
+  /* Hover step (no role tone, stays a literal): one step lighter on the same
+     axis — in the dark theme the button carries ink text and the contrast
+     must not fall below AA on hover; the light theme works the same way
+     (black on signal-ok-hover = 4.9:1, html.light). */
+  --color-status-success-hover: hsl(158 34% 58%);
+  --color-status-warning: var(--color-signal-warn);
+  --color-status-danger: var(--color-signal-danger);
+  /* P1-7 (WCAG AA): 88% instead of 63%. The token was dimmed repo-wide via
+     opacity (text-status-info/55../80, ~570 sites). On the 7% background the
+     darkest dim step /55 already holds >= 4.5:1: /55=4.96, /60=5.69, /70=7.36, /80=9.32.
+     R2-B: on the paper tone that does not hold — there the token is hsl(0 0% 16%)
+     and /50 measures 2.94:1, /60 3.81:1. The "muted text" role therefore belongs
+     on --color-ink-faint (paper 4.98:1, ink 5.31:1); status-info stays the info
+     role itself. /50../65 were removed, /70 and /80 follow in 3b/3c.
+     Neutral gray kept (maximum luminance for info text); at full opacity it is
+     still quieter than primary (ink 93%). */
+  --color-status-info: hsl(0 0% 88%);
+
+  /* R17 F-17: the font-mono utility now uses the bundled JetBrains Mono */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* FONT-01: one source for the sans scale (utility .font-sans + body). */
+  --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /*  EPHEMORA COLOR SYSTEM — paper & ink (WP1)     */
+
+  /* Role layer (the only source of the new values, dark = ink;
+     html.light bends it to paper further below). The old names
+     (moss-*, forest-*, firefly*, mist*, stone …) stay for
+     utility compatibility (~1,381 sites) and point at this layer via var()
+     — no alias gets deleted.
+     Guardian exception: test_sprint2_f2_pwa_hygiene.py computes WCAG from the
+     RAW hsl() literals of the @theme block and must not be rewritten; the
+     tokens paired there (background, foreground, card,
+     card-foreground, muted, muted-foreground, secondary, secondary-foreground,
+     stone, mist, firefly, firefly-glow) therefore stand in the dark block as
+     a literal with "=" + reference — they must stay in sync with the role literal. */
+  --color-brand: hsl(7.46 78.6% 57.8%);         /* #E8543F — Ephemora red, lifted in the dark
+     theme to sit at 5.1:1 on the ink ground (measured, not guessed);
+     paper original #D83828 = hsl(5 69% 50%) in html.light */
+  --color-brand-deep: var(--color-brand);/* text/link red: on ink the brand red itself
+     clears AA (5.1:1); only on paper does it go one step darker
+     (html.light: hsl(5 69% 42%)) so AA holds — firefly hangs off this */
+  --color-brand-glow: hsl(7 84% 66%);    /* hover/glow step of the brand red */
+  --color-brand-tint: hsl(5.45 69.3% 50.2% / 0.18); /* resting brand surface (18% Ephemora red, rgba(216,56,40,.18)) */
+  --color-canvas: hsl(30 16.7% 7.06%);        /* #15120F — ink ground (warm, not dead black) */
+  --color-surface: hsl(20 11.5% 10.2%);      /* #1D1917 — cards, rows (P6/A6: bg-surface) */
+  --color-ink: hsl(42 27.8% 92.9%);          /* #F2EFE8 — text */
+  --color-ink-soft: hsl(30 9% 66%);      /* secondary text (mist) */
+  --color-ink-faint: hsl(30 8% 53%);     /* muted text (mist-dim / muted-foreground) */
+  --color-hairline: hsl(22.5 9.5% 16.5%);     /* #2E2926 — 1-px rules instead of shadows */
+  /* Louder hairline = the control boundary. Raised from 24% (1.72:1 on this canvas,
+     1.29:1 on the interactive tint) to the WCAG 1.4.11 floor: 3:1 or better against
+     every background role the sheet declares, both themes, recomputed on every run. */
+  --color-hairline-strong: hsl(22.5 9% 46%);
+  --color-control: var(--color-hairline-strong);
+  /* W10-23: the raised/interactive surface pair. One theme-aware layer replaces
+     the bg-white/[0.03–0.12] veils that lifted chips, rows and hovers: white over
+     ink reads as a step, but over paper it is a ~1% luminance delta against
+     hsl(60 25% 92%) and disappears. html.light re-points the same two names at an
+     ink tint on the same ground, so one utility reads in both themes. */
+  --color-surface-raised: hsl(0 0% 100% / 0.04);
+  --color-surface-interactive: hsl(0 0% 100% / 0.08);
+  --color-signal-ok: hsl(158 34% 52%);   /* success — stepped back: desaturated (64→34),
+     never a brand color again; lightness stays because it needs AA on ink */
+  --color-signal-danger: hsl(8 92% 54%); /* danger — own axis: hue 8, S 92, darker
+     than brand (ΔE≈20, AA 4.9:1 ink / 4.7:1 card). The planned dark value (88% S, 58% L)
+     lay only ΔE 8 from the computed brand red — separation too weak, corrected here
+     by measurement; the brand is precisely what must never smell of danger. */
+  --color-signal-warn: hsl(36 92% 56%);  /* warning — amber axis unchanged */
+
+  /* Backgrounds — light, matte surfaces (alias of the role layer) */
+  --color-black-forest: var(--surface-base);   /* main background */
+  --color-black-midnight: var(--surface-card); /* second level */
+
+  /* Neutral steps (formerly moss) — section separators / cards */
+  --color-moss-deep: var(--surface-card);
+  --color-moss: var(--color-muted);
+  --color-moss-light: var(--color-hairline-strong);
+
+  /* Ephemora red — accents (formerly firefly). Literal = --color-brand /
+     --color-brand-glow (guardian pair "firefly on background", see above). */
+  --color-firefly: hsl(7.46 78.6% 57.8%);
+  --color-firefly-glow: hsl(7 84% 66%);
+
+  /* Figure material — the fire spirit's own palette (scripts/brand_palette.py,
+     roles figure_*). The palette answers "what IS a colour" one layer up; these
+     answer what the being is made of, so they stand once here and hold on paper
+     as well: the drawing reads the same on either ground, and only the glass wing
+     and the brand roles above bend with the theme. */
+  --color-figure-soot: #221A15;      /* body, fringe, brow cuts */
+  --color-figure-plate: #33221A;     /* comb plates, antenna balls */
+  --color-figure-fur: #563323;       /* brim, foot stubs */
+  --color-figure-mou: #9A5730;       /* flame-lit fur: antenna rods, tuft, mouth */
+  --color-figure-ember: #F2A274;     /* the ember stop of the eye gradient */
+  --color-figure-cream: #F7F0E0;     /* eyes, the plume's hot core */
+  --color-figure-shine: #FFFDF6;     /* catchlight on eye and ball */
+  --color-figure-wing-root: #452718; /* glass wing, root stop (paper: html.light) */
+  --color-figure-wing-mid: #8A5232;  /* glass wing, middle stop */
+  --color-figure-wing-tip: #D9A87C;  /* glass wing, tip stop — the lit edge */
+
+  /* Amber — warning accent (formerly lichen) */
+  --color-lichen: var(--color-signal-warn);
+
+  /* Mist — text brightness (secondary) */
+  --color-mist: hsl(30 9% 66%);          /* = --color-ink-soft (guardian pair) */
+
+  /* Stone — primary text */
+  --color-stone: hsl(42 27.8% 92.9%);        /* = --color-ink (guardian pair) */
+  --color-mist-dim: var(--text-role-muted);  /* faint text step (mist-dim) */
+
+  /* Semantic aliases. Literals stand only where test_sprint2_f2/test_r48
+     compute them raw (guardians, see above); everything else is a var()
+     alias of the role layer. */
+  --color-background: hsl(30 16.7% 7.06%);    /* = --color-canvas (guardian literal) */
+  --color-foreground: hsl(42 27.8% 92.9%);   /* = --color-ink (guardian literal) */
+  --color-card: hsl(20 11.5% 10.2%);         /* = --color-surface (guardian literal) */
+  --color-card-foreground: hsl(42 27.8% 92.9%); /* = --color-ink (guardian literal) */
+  --color-secondary: hsl(20 10% 14%);    /* intermediate step card→view */
+  --color-secondary-foreground: hsl(42 27.8% 92.9%); /* = --color-ink (guardian literal) */
+  --color-muted: hsl(20 10% 14%);        /* = secondary step (guardian literal) */
+  --color-muted-foreground: hsl(30 8% 53%); /* = --color-ink-faint (guardian literal) */
+  /* Destructive surface carries signal-danger — NEVER brand. */
+  --color-destructive: var(--color-signal-danger);
+  --color-border: var(--border-decorative);
+  --color-input: var(--color-muted);
+  /* The focus has to hold against the selection, not imitate it.
+     R1-9 set it to brand — on bg-brand and bg-brand/20 that made it
+     invisible. Ink on surface wins in both themes (the 2px offset puts it
+     on the ground, not on the brand). */
+  --color-ring: var(--color-ink);
+  /* forest-glow: the halo follows the surface, not success. The primary
+     surface is the brand — a green halo around a red button (Settings →
+     Save) was the contradiction the 2026-09 comment denied.
+     The name stays as an alias so the ten call sites do not move. */
+  --color-forest-glow: color-mix(in oklab, var(--color-brand) 55%, transparent);
+  --color-forest-dark: var(--color-muted);
+  --color-forest-deep: var(--color-surface);
+
+  /* P6/A1: trajectory role colors — 5 role tone steps
+     blue/teal/violet/amber/cyan, docked onto the moss system. */
+  --color-trajectory-user: hsl(221 83% 53%);        /* #2563eb equivalent */
+  --color-trajectory-assistant: hsl(174 72% 33%);   /* #0f766e equivalent */
+  --color-trajectory-reasoning: hsl(262 83% 58%);   /* #7c3aed equivalent */
+  --color-trajectory-tool-call: hsl(38 92% 50%);    /* #d97706 equivalent */
+  --color-trajectory-tool-result: hsl(199 89% 48%); /* #0284c7 equivalent */
+  /* P6/A1: wf label tracking (tiny-caps look for labels). */
+  --tracking-wf-label: 0.09em;
+  /* P6/A6: trajectory section tokens (Ephe norm) — aliases onto the existing
+     primitives so bg-surface / border-card-border / text-foreground-subtlest
+     exist as real utility classes. (bg-surface now serves the role layer
+     --color-surface directly.) */
+  --color-card-border: var(--color-border);
+  --color-foreground-subtlest: var(--color-mist-dim);
+
+  /* Layer 2: semantic roles.
+     The role layer above answers what a colour IS; this layer answers what it
+     MEANS. Surface, text and boundary are the three questions a component asks,
+     and every value here is a var() onto the role layer, so a theme bend in the
+     layer underneath carries through and no second literal can drift from it.
+     Names in this layer stay out of Tailwind's own namespaces: --text-* is the
+     font-size namespace in v4, so a role that must not emit a size utility
+     carries the -role- infix. */
+  --surface-base: var(--color-canvas);                 /* the page ground */
+  --surface-card: var(--color-surface);                /* cards, rows, panels */
+  --surface-lift: var(--color-surface-raised);         /* the in-card lift (W10-23 pair) */
+  --surface-active: var(--color-surface-interactive);  /* hover / selection tint */
+  --text-role-primary: var(--color-ink);
+  --text-role-secondary: var(--color-ink-soft);
+  --text-role-muted: var(--color-ink-faint);
+  --border-decorative: var(--color-hairline);          /* 1-px rules; not a boundary */
+  /* The one boundary a control needs when the border is its only edge. WCAG 2.2
+     SC 1.4.11 asks 3:1 of exactly that, and the decorative steps sit at
+     1.21-1.42:1 — the measured defect was six interactive elements carrying the
+     hairline as their only edge. globals.boundaryContrast.test.ts recomputes the
+     floor from these values on every run, so the rule lives in the token. */
+  --border-control: var(--color-control);
+
+  /* Layer 3: component roles.
+     What a panel and a chip are made of. A call site names one of these, never a
+     layer-2 role and never a layer-1 value. */
+  --panel-bg: var(--surface-card);
+  --panel-text: var(--text-role-primary);
+  --panel-border: var(--border-decorative);
+  --chip-bg: var(--surface-lift);
+  --chip-bg-active: var(--surface-active);
+  --chip-text: var(--text-role-secondary);
+  --chip-border: var(--border-decorative);
+
+  /* S3′: the elevation ladder, four named steps.
+     base is flat; the three above it are the S3 shadow family by depth. The
+     ladder names how high a surface sits instead of which shadow it borrows. */
+  --elevation-base: none;
+  --elevation-raised: var(--shadow-elevation-1);
+  --elevation-overlay: var(--shadow-elevation-2);
+  --elevation-elevated: var(--shadow-elevation-3);
+  
+ /* S6 (R48): radius nesting convention + spacing raster
+     Radius: 5 steps, 4px raster (sm 4 / md 8 / lg 12 / xl 16 / 2xl 20;
+     2xl for dialogs only).
+     Convention: child radius = parent radius − the parent's border width
+     (visual continuity of the curve; with a 1px border: lg 12 -> md 11 ~ md).
+     The 281 existing rounded-*-classes stay 1:1, no rewrite.
+     Spacing raster (4px base): {0,2,4,6,8,10,12,16,20,24} — the one spacing
+     source (Tailwind's numeric utilities); no --space-* token layer. */
+}
+
+/* P6/A1: trajectory roles — dark steps (class-based override step,
+   mirroring the token practice in @theme; values = #60a5fa/#2dd4bf/#a78bfa/
+   #f59e0b/#38bdf8 as HSL). */
+.dark {
+  --color-trajectory-user: hsl(213 94% 68%);
+  --color-trajectory-assistant: hsl(172 66% 50%);
+  --color-trajectory-reasoning: hsl(255 92% 76%);
+  --color-trajectory-tool-call: hsl(38 92% 50%);
+  --color-trajectory-tool-result: hsl(199 89% 48%);
+}
+
+/* LIGHT MODE (paper, WP1 redesign 2026-10-04)
+   Paper / ink / Ephemora red: warm paper ground (#F0F0E6), ink black
+   as text, ONE red accent (#D83828). Only the role layer bends
+   (literals below) — the semantic layer and the legacy aliases (var())
+   follow automatically. The only exceptions: the two tokens the guardian
+   test_r48 recomputes raw (background, status-info) stay literals here
+   too. That required the semantic sweep: text-white → text-foreground
+   repo-wide. bg-white stays deliberately unchanged (white proof surfaces
+   such as the primary save button are correct in both themes). */
+html.light {
+  /* Role layer — paper values */
+  --color-brand: hsl(5.45 69.3% 50.2%);         /* #D83828 — the top-coat red. As text on
+     paper only 4.1:1: the brand carries rules/activity dots/core action; for
+     red text use brand-deep below — never #D83828 as body text. */
+  --color-brand-deep: hsl(5 69% 42%);    /* #B42D21 — AA text/link red on paper (5.4:1) */
+  --color-brand-glow: hsl(5 69% 50%);    /* hover lift = the original red */
+  /* Figure material: the seven being tokens stand in the dark block and hold
+     here; only the glass wing bends, because a wing reads as glass against its
+     own ground and the figure keeps its own colours on paper. */
+  --color-figure-wing-root: #D5A183;
+  --color-figure-wing-mid: #E4BFA2;
+  --color-figure-wing-tip: #F6E0CB;
+  --color-brand-tint: hsl(4.29 64.4% 65.9%);    /* #E07870 — resting brand surface, marker */
+  --color-canvas: hsl(60 25% 92%);       /* #F0F0E6 — warm paper, not pure white */
+  --color-surface: hsl(60 33.3% 97.1%);      /* #FAFAF5 — cards, rows */
+  --color-ink: hsl(20 13% 9%);           /* #1A1614 — ink */
+  --color-ink-soft: hsl(25 8% 35%);
+  --color-ink-faint: hsl(25 7% 40%);
+  --color-hairline: hsl(45 17% 81.6%);     /* #D8D4C8 — the dossier line */
+  --color-hairline-strong: hsl(45 12% 44%);   /* the control boundary on paper */
+  /* W10-23: the paper counterpart of the raised/interactive pair — an ink tint
+     where ink carried a white veil (see the @theme comment). */
+  --color-surface-raised: hsl(20 13% 9% / 0.07);
+  --color-surface-interactive: hsl(20 13% 9% / 0.14);
+  --color-signal-ok: hsl(158 32% 34%);   /* success — desaturated, dark, quiet (AA 4.9:1) */
+  --color-signal-danger: hsl(8 88% 38%); /* danger — darker/hotter than brand (ΔE≈10, AA 5.7:1) */
+  --color-signal-warn: hsl(36 92% 34%);
+
+  /* Surfaces (aliases; background stays a guardian literal = --color-canvas) */
+  --color-black-forest: var(--surface-base);
+  --color-black-midnight: var(--surface-card);
+  --color-moss-deep: var(--surface-card);
+  --color-moss: var(--color-muted);
+  --color-moss-light: var(--color-hairline-strong);
+  --color-background: hsl(60 25% 92%);
+  --color-foreground: var(--color-ink);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-ink);
+  --color-secondary: var(--color-canvas);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-canvas);
+  --color-muted-foreground: var(--color-ink-faint);
+  --color-destructive: var(--color-signal-danger);
+  --color-border: var(--border-decorative);
+  --color-input: var(--color-muted);
+  --color-ring: var(--color-ink);
+  --color-forest-glow: color-mix(in oklab, var(--color-brand) 55%, transparent);
+  --color-forest-dark: var(--color-muted);
+  --color-forest-deep: var(--color-surface);
+
+  /* Accents (aliases) — brand-deep carries the red text; the 42% primitive of
+     2026-09 existed for exactly that; the name is now an honest var() link */
+  --color-firefly: var(--color-brand-deep);
+  --color-firefly-glow: var(--color-brand);
+  --color-lichen: var(--color-signal-warn);
+
+  /* Text — ink instead of white (aliases; stone/mist are not literal-mandated
+     here, only the dark @theme block is computed raw) */
+  --color-stone: var(--color-ink);
+  --color-mist: var(--color-ink-soft);
+  --color-mist-dim: var(--text-role-muted);
+
+  /* Status — still double-coded, values for paper (aliases of the role layer) */
+  --color-status-success: var(--color-signal-ok);
+  /* Lighter, not darker: the primary surface carries text-black and hover must
+     not push the black-on-green contrast below 4.5:1 (black on
+     hsl(158 32% 40%) = 4.9:1). */
+  --color-status-success-hover: hsl(158 32% 40%);
+  --color-status-warning: var(--color-signal-warn);
+  --color-status-danger: var(--color-signal-danger);
+  /* P1-7 (WCAG): 16% instead of 42% — on paper darkening RAISES the contrast.
+     Over the ~92% paper ground: /70=5.1, /80=7.0, /100=12.7 (AA normal);
+     /55=3.4 and /60=3.9 reach AA-large (>=3:1), measured against the new
+     canvas hsl(60 25% 92%). Still quieter than primary (ink 9%). Guardian
+     literal (test_r48): a change here moves a contrast-checked value. */
+  --color-status-info: hsl(0 0% 16%);
+
+  /* Elevation — soft shadows instead of deep-black glow */
+  --shadow-elevation-1: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-elevation-2: 0 8px 32px rgb(0 0 0 / 0.10);
+  --shadow-elevation-3: 0 12px 40px rgb(0 0 0 / 0.14);
+
+  /* Trajectory roles — saturated enough for paper */
+  --color-trajectory-user: hsl(221 83% 45%);
+  --color-trajectory-assistant: hsl(174 72% 28%);
+  --color-trajectory-reasoning: hsl(262 83% 48%);
+  --color-trajectory-tool-call: hsl(32 90% 36%);
+  --color-trajectory-tool-result: hsl(199 89% 35%);
+
+  /* Glass layers (paper). Reading and control carry the same veil here: on the 92%
+     ground every ink role clears 4.5:1 behind both, so the two separate by the text
+     they hold and by their edge, while the ink theme is where their fills diverge
+     (U3 rule and the measured table: docs/UI_4X_PROGRAM_2026-10-11.md section 8). */
+  --glass-reading-fill: hsla(0 0% 100% / 0.88);
+  --glass-reading-border: hsla(38 24% 40% / 0.24);
+  --glass-reading-inner: hsla(44 62% 100% / 0.70);
+  --glass-control-fill: hsla(0 0% 100% / 0.88);
+  --glass-control-border: hsla(38 24% 40% / 0.24);
+  --glass-control-inner: hsla(44 62% 100% / 0.70);
+  --glass-float-fill: hsla(0 0% 100% / 0.86);
+  --glass-float-border: hsla(38 24% 40% / 0.24);
+  --glass-float-inner: hsla(44 62% 100% / 0.70);
+  /* Rim light: one lighting model for all three layers, so it stays shared. Warm on
+     paper too, so a pane reads as the same material in both registers. */
+  --glass-grad-edge: hsla(38 22% 42% / 0.28);
+  --glass-grad-mid: hsla(38 22% 42% / 0.08);
+  --hero-a: #241d1c;
+  --hero-b: #7a2c27;
+  --hero-c: #b3403a;
+}
+
+/* Glass material (ink register): the pane, its four properties and the two rules that
+   decide where it may rest. */
+/* A glass layer is a translucent pane with four properties, and each one has a home
+   in the block below.
+
+     fill    the veil. Warm, because the ink canvas is warm: hue 32 holds the pane in
+             the forest family. The paper register carries its warmth in the ground
+             itself, so its veil settles for a near-white.
+     border  the 1px rim of the pane, in the same warm family as the fill.
+     inner   the inner highlight along the top edge, where the mark's light lands on
+             the pane.
+     blur    --glass-blur-*, the backdrop radius. The float takes the larger one: the
+             pane that hangs over the other two has to read as the front sheet.
+
+   Depth comes from the sheet's own ladder, so the material is never a second shadow
+   scale: the two layers that sit in the page take --elevation-raised, the floating
+   pane takes --elevation-overlay.
+
+   Two rules decide where a pane may rest. Both come from the arithmetic that
+   tests/test_r61_glass_contrast.py re-runs on every commit.
+
+   Rule 1 — a veil may rest on a ground, never on a lit step or on content.
+     A fill lighter than the page lifts the panel, and a lifted panel costs the muted
+     ink role contrast. The 11px muted step holds 4.5:1 only while the panel under it
+     stays below 13.5% lightness, so a veil lighter than the ground spends a budget
+     that the ground itself needs. --color-canvas (7.06%) and --color-surface (10.2%)
+     are the two grounds this sheet declares, and the veils are arithmetically tuned
+     for them: lightness 11% and 13% with the alpha raised to 0.48 and 0.42, so the
+     pane moves the canvas by 1.89 L (7.06% to 8.95%); the paper reading veil moves its own ground
+     by 7.04 L. Same material, different read per register: an edge here, a filled card there. Settles over the
+     raised steps. A veil placed on --color-surface-raised, --color-surface-interactive
+     or on content brighter than the surface is out of budget: the muted role is
+     already below 4.5:1 there with no glass at all (4.47, 3.97 and 4.08:1), and no
+     translucent pane repairs a ground that starts below the floor.
+
+   Rule 2 — the float may rest on anything, the two veils may rest on each other only
+     over the canvas.
+     --glass-float-fill is darker than every ground this sheet declares, so the float
+     can only lower a panel and may stack on the other two layers (worst column
+     5.19:1). Reading over control stays readable on --color-canvas (4.84:1) and on
+     --color-surface (4.72:1); two veils over a lit step settle the panel past the same
+     13.5% ceiling, and that column is where a glass layer is not allowed.
+
+   Where the reading ink lands, measured: over the canvas the muted role reads
+   5.06 / 5.00 / 5.42:1 for reading / control / float. */
+:root {
+  --glass-reading-fill: hsla(32 22% 11% / 0.48);
+  --glass-reading-border: hsla(34 24% 68% / 0.20);
+  --glass-reading-inner: hsla(28 58% 84% / 0.12);
+  --glass-control-fill: hsla(30 20% 13% / 0.42);
+  --glass-control-border: hsla(34 24% 70% / 0.26);
+  --glass-control-inner: hsla(28 58% 84% / 0.14);
+  --glass-float-fill: hsla(24 18% 6% / 0.86);
+  --glass-float-border: hsla(34 22% 68% / 0.18);
+  --glass-float-inner: hsla(28 58% 84% / 0.10);
+  --glass-grad-edge: hsla(34 26% 74% / 0.34);
+  --glass-grad-mid: hsla(30 20% 46% / 0.12);
+  --glass-blur-reading: 20px;
+  --glass-blur-control: 20px;
+  --glass-blur-float: 40px;
+  --hero-a: #f2eae8;
+  --hero-b: #eec9c5;
+  --hero-c: #e2a9a3;
+}
+
+/*  BASE STYLES */
+
+html {
+  background-color: var(--surface-base); /* layer 2 names the ground; same value as --color-background */
+  /* R36 A6: dark-only BY DESIGN (Black Forest Edition). The earlier
+     "dark light" + M7 light mapping was dead code: body/html hardcode the
+     dark colors and the components use primitive tokens, so the media query
+     only bent the (uncoupled) semantic layer — measured computed styles were
+     dark == light. Without this declaration the browser renders native
+     widgets (forms, scrollbars) in the light scheme inside the dark UI. A
+     real light theme would be a new sweep over every primitive consumer
+     (docs/audit/2026-09-18, C4/A6). */
+  color-scheme: dark;
+  /* M6 (WCAG 2.2 · 2.4.11 focus not obscured): the sticky header (h-9/h-11)
+     must not cover the focused target — reserve scroll padding. */
+  scroll-padding-top: 3.5rem;
+}
+
+/* (M7 removed 2026, R36 A6): the light-scheme media query bent only the
+   semantic layer — body/html hardcode dark and the components use primitive
+   tokens, so the mapping had NO visible effect (computed styles dark == light).
+   Dead code; a real light-theme sweep is documented in docs/audit/2026-09-18
+   (C4/A6). */
+
+body {
+  background-color: var(--surface-base);
+  color: var(--text-role-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/*  SCROLLBAR — moss green (N4′: ghost mark: 4 px, transparent track) */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsla(0 0% 55% / 0.4);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsla(0 0% 55% / 0.65);
+}
+
+/* Glass, three layers by role (U3, docs/UI_4X_PROGRAM_2026-10-11.md section 8, and the
+   material definition above `:root`): .glass-reading sits behind the text a person
+   reads, .glass-control behind the affordances, .glass-float is a surface lifted over
+   the other two. A translucent panel picks one of these three names. */
+
+/* Component classes live in the `components` layer (Tailwind 4 cascade):
+   Tailwind utilities (the later `utilities` layer) MUST be able to
+   override them — concretely: the mobile sidebar needs `position: fixed`
+   to survive the `position: relative` of the glass classes.
+   Unlayered CSS would beat the utilities and break the mobile layout
+   (regression-safe since the G7 mobile finding: the sidebar reserved 288px
+   in the flow). */
+@layer components {
+.glass-reading,
+.glass-control,
+.glass-float,
+.float-surface {
+  position: relative;
+  overflow: hidden;
+}
+
+/* The rim: one lighting model for all three layers, drawn inside the border. */
+.glass-reading::before,
+.glass-control::before,
+.glass-float::before,
+.float-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    var(--glass-grad-edge) 0%,
+    var(--glass-grad-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--glass-grad-mid) 80%,
+    var(--glass-grad-edge) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.glass-reading {
+  background: var(--glass-reading-fill);
+  backdrop-filter: blur(var(--glass-blur-reading));
+  border: 1px solid var(--glass-reading-border);
+  box-shadow:
+    var(--elevation-raised),
+    inset 0 1px 0 var(--glass-reading-inner);
+}
+
+.glass-control {
+  background: var(--glass-control-fill);
+  backdrop-filter: blur(var(--glass-blur-control));
+  border: 1px solid var(--glass-control-border);
+  box-shadow:
+    var(--elevation-raised),
+    inset 0 1px 0 var(--glass-control-inner);
+}
+
+.glass-float {
+  background: var(--glass-float-fill);
+  backdrop-filter: blur(var(--glass-blur-float));
+  border: 1px solid var(--glass-float-border);
+  box-shadow:
+    var(--elevation-overlay),
+    inset 0 1px 0 var(--glass-float-inner);
+}
+
+/* W10-23: the floating surface — ONE primitive. The role split had forked: a
+   `glass-float rounded-2xl shadow-elevation-3` recipe against a hand-rolled
+   `bg-background/95 backdrop-blur-md rounded-xl shadow-elevation-2` one. Material,
+   radius and elevation live here now, so a call site cannot drift them apart; an
+   inline radius there is the round action button's own shape. */
+.float-surface {
+  background: var(--glass-float-fill);
+  border: 1px solid var(--glass-float-border);
+  backdrop-filter: blur(var(--glass-blur-float));
+  border-radius: var(--radius-xl);
+  box-shadow:
+    var(--shadow-elevation-2),
+    inset 0 1px 0 var(--glass-float-inner);
+}
+
+/* The one axis the primitive leaves open: how far the surface floats. Level 3 is
+   the sheet's dialog/toast step (S3), level 2 the menu step; the call site names
+   the step, it never restates the shadow. */
+.float-surface[data-float="3"] {
+  box-shadow:
+    var(--shadow-elevation-3),
+    inset 0 1px 0 var(--glass-float-inner);
+}
+
+/*  TEXT GRADIENT — Ephemora red (brand axis) */
+
+.text-gradient {
+  /* WCAG 2.1 AA (sprint2-F2): every gradient stop >= 4.5:1 on
+     background (hsl(30 17% 7%)) — on the brand axis (hue 7, not the old
+     danger red hue 0): 5.1:1. Regression test:
+     tests/test_sprint2_f2_pwa_hygiene.py::test_no_low_contrast_gradient_text */
+  background: linear-gradient(135deg, hsl(7.46 78.6% 57.8%) 0%, hsl(7.46 72% 58%) 50%, hsl(7.46 64% 58%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/*  FOREST GLOW EFFECTS */
+
+/* forest-glow: defined as a top-level @utility (see below, DS-03) — gives the
+   base class + hover:/focus- variants from one source. */
+/* R36 A-4: one focus ring for inputs/buttons (replaces the divergent
+   focus:border-* / focus:ring-* combinations in the components). */
+.focus-ring {
+  outline: none;
+}
+/* S2: iOS focus zoom — WebKit zooms the viewport on focus when the input
+   font is below 16px. .ios-input holds the threshold fixed. */
+.ios-input {
+  font-size: 16px;
+}
+.focus-ring:focus-visible {
+  /* The focus follows the same tone as selection and activity (--color-ring =
+     brand). The old justification ("a focus is not branding") demanded green
+     while the selection had long been red — two answers to one question are
+     the real contradiction. Not the danger tone. */
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-color: var(--color-moss-light);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-ring) 20%, transparent), 0 0 16px var(--color-forest-glow);
+}
+
+.forest-glow-subtle {
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-brand) 12%, transparent);
+}
+
+.forest-glow-strong {
+  box-shadow: 0 0 60px color-mix(in oklab, var(--color-brand) 20%, transparent);
+}
+
+/*  GRADIENT BORDER */
+
+.gradient-border {
+  position: relative;
+  background: linear-gradient(135deg, var(--glass-grad-mid) 0%, transparent 100%);
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    var(--glass-grad-edge) 0%,
+    var(--glass-grad-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--glass-grad-mid) 80%,
+    var(--glass-grad-edge) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+} /* end @layer components (liquid glass/text gradient/forest glow/gradient border) */
+
+/* DS-03: @utility (top-level, not nested) provides the hover:/focus- variants
+   for forest-glow (Card.tsx uses hover:forest-glow). */
+@utility forest-glow {
+  box-shadow: 0 0 20px var(--color-forest-glow);
+}
+
+/*  NOISE/GRAIN OVERLAY (organic texture) */
+
+@layer utilities {
+  .noise-overlay {
+    position: relative;
+  }
+  
+  .noise-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+    background-repeat: repeat;
+  }
+}
+
+/*  NIGHT GLOW ANIMATION (breathing brand aura)   */
+
+@keyframes night-glow {
+  0%, 100% {
+    box-shadow: 0 0 30px color-mix(in oklab, var(--color-brand) 4%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 80px color-mix(in oklab, var(--color-brand) 10%, transparent);
+  }
+}
+
+@layer components {
+.animate-night-glow {
+  animation: night-glow 30s ease-in-out infinite;
+}
+
+/*  OBISIDIAN GLASS (premium card effect) */
+
+
+
+/*  TYPOGRAPHY — Instrument Serif (Brand) */
+
+.font-display {
+  font-family: "Space Grotesk", "Instrument Serif", serif;
+  letter-spacing: -0.02em;
+}
+
+.font-mono-code {
+  font-family: "JetBrains Mono", monospace;
+}
+} /* end @layer components (night glow/obsidian/typography) */
+
+/*  FOCUS STYLES (accessibility) */
+
+/* The program's only focus outline. It stood here on a hardcoded
+   hsl(0 72% 51%) — and, as a rule outside any @layer, it also beat every
+   .focus-ring definition in the component layer no matter how specific.
+   That is why the whole interface showed red where it should have been emerald.
+   border-radius on :focus also changed the element's own shape. */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/*  REDUCED MOTION (accessibility) */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*  SMOOTH SCROLL */
+
+html {
+  scroll-behavior: smooth;
+}
+/*  FROST PULSE (round 5) — cold ice shimmer on glass panels         */
+/*  2026/27 signature: border gradient + frost glow breathe          */
+/*  slowly so panels feel alive without distracting; motion          */
+/*  is already switched off globally for reduced-motion.             */
+
+@keyframes frost-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 hsla(0 0% 100% / 0.04),
+      0 0 0 color-mix(in oklab, var(--color-brand) 0%, transparent);
+    border-color: color-mix(in oklab, var(--color-brand) 10%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 hsla(0 0% 100% / 0.10),
+      0 0 24px color-mix(in oklab, var(--color-brand) 6%, transparent),
+      0 0 2px color-mix(in oklab, var(--color-brand) 14%, transparent);
+    border-color: color-mix(in oklab, var(--color-brand) 20%, transparent);
+  }
+}
+
+.frost-pulse {
+  animation: frost-pulse 7s ease-in-out infinite;
+}
+
+/* more intense variant for the active AgentPanel */
+.frost-pulse-strong {
+  animation: frost-pulse 4.5s ease-in-out infinite;
+}
+
+/* Micro-Interactions */
+
+/* Send button: inviting glow as soon as there is text (enabled) */
+button[aria-label="Senden"]:not(:disabled),
+button[aria-label="Send"]:not(:disabled) {
+  box-shadow: 0 0 14px color-mix(in oklab, var(--color-brand) 25%, transparent);
+  transition: box-shadow 0.25s ease, transform 0.15s ease;
+}
+button[aria-label="Senden"]:not(:disabled):hover,
+button[aria-label="Send"]:not(:disabled):hover {
+  box-shadow: 0 0 22px color-mix(in oklab, var(--color-brand) 45%, transparent);
+  transform: translateY(-1px);
+}
+
+/* Hero title: cold gradient shimmer */
+/* Round 14 (GPU measurement): the old background-position shimmer forced the
+   text to repaint on EVERY frame — measured: 56-60% GPU process load
+   (more than the whole forest background!). New: static gradient text, a
+   compositor-friendly ::after overlay travels across via TRANSFORM
+   (no repaint, GPU-composited). At rest after 2 cycles (like frost-pulse). */
+.hero-frost {
+  /* 2026 light sweep: was mint green/ice blue (the 142 legacy) — now warm
+     paper white with an Ephemora red edge, theme-dependent via tokens. */
+  background: linear-gradient(100deg, var(--hero-a) 20%, var(--hero-b) 40%, var(--hero-c) 55%, var(--hero-a) 75%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  position: relative;
+  isolation: isolate;
+  /* Clip the ::after shimmer sweep to the text box — unclipped it painted a
+     blue comet over the forest photo and the sidebar brand (deploy polish). */
+  overflow: hidden;
+  display: inline-block;
+  max-width: 100%;
+}
+.hero-frost::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 42%, color-mix(in oklab, var(--color-brand) 20%, transparent) 50%, transparent 58%);
+  transform: translateX(-120%) skewX(-12deg);
+  animation: hero-shimmer-sweep 8s ease-in-out 2;
+  mix-blend-mode: screen;
+}
+@keyframes hero-shimmer-sweep {
+  to { transform: translateX(120%) skewX(-12deg); }
+}
+
+/* Suggestion cards: frost border on hover */
+.group\\:hover .frost-hover,
+.frost-hover {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+.frost-hover:hover {
+  border-color: color-mix(in oklab, var(--color-brand) 28%, transparent);
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-brand) 8%, transparent);
+}
+
+/* Round 8: subtle frost on finished assistant bubbles (border only, cheap to paint) */
+@keyframes frost-subtle {
+  0%, 100% { border-color: color-mix(in oklab, var(--color-brand) 6%, transparent); }
+  50% { border-color: color-mix(in oklab, var(--color-brand) 14%, transparent); }
+}
+.frost-subtle {
+  animation: frost-subtle 9s ease-in-out infinite;
+}
+
+/* Round 14: prose typography (F7/P1 finding)
+   @tailwindcss/typography is NOT installed — the prose classes had no
+   effect until now (h2 == body text). These rules give Markdown answers
+   their visual hierarchy back. Scope: .prose-invert is used only in
+   MessageBubble (assistant/user content). */
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3,
+.prose-invert h4 {
+  color: var(--color-foreground);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+.prose-invert h1 { font-size: 1.35rem; }
+.prose-invert h2 { font-size: 1.15rem; }
+.prose-invert h3 { font-size: 1rem; }
+.prose-invert h4 { font-size: 0.925rem; color: var(--color-mist); }
+.prose-invert h1:first-child,
+.prose-invert h2:first-child,
+.prose-invert h3:first-child { margin-top: 0; }
+.prose-invert p { margin-bottom: 0.625em; }
+.prose-invert p:last-child { margin-bottom: 0; }
+.prose-invert ul,
+.prose-invert ol {
+  margin: 0.5em 0 0.75em;
+  padding-left: 1.375em;
+}
+.prose-invert ul { list-style: disc; }
+.prose-invert ol { list-style: decimal; }
+.prose-invert li { margin-bottom: 0.3em; padding-left: 0.25em; }
+.prose-invert li::marker { color: var(--color-firefly); opacity: 0.65; }
+.prose-invert blockquote {
+  border-left: 2px solid var(--color-firefly);
+  border-left-color: color-mix(in oklab, var(--color-firefly) 40%, transparent);
+  padding: 0.125em 0 0.125em 0.875em;
+  margin: 0.75em 0;
+  color: var(--color-mist);
+  font-style: italic;
+}
+.prose-invert hr {
+  border: none;
+  border-top: 1px solid var(--border-decorative);
+  margin: 1.25em 0;
+}
+.prose-invert a {
+  color: var(--color-firefly);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-invert a:hover { color: color-mix(in oklab, var(--color-firefly) 80%, var(--color-foreground)); }
+.prose-invert table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.8125rem;
+}
+.prose-invert th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-foreground);
+  border-bottom: 1px solid var(--border-decorative);
+  padding: 0.375em 0.625em;
+}
+.prose-invert td {
+  border-bottom: 1px solid color-mix(in oklab, var(--border-decorative) 55%, transparent);
+  padding: 0.375em 0.625em;
+  color: var(--color-mist);
+}
+
+/* Round 14: prefers-reduced-motion — every CSS animation off (P4-F2).
+   The status LED (animate-ping) may stand still as a functional signal —
+   pulsing motion is exactly what reduced-motion users switch off. */
+@media (prefers-reduced-motion: reduce) {
+  .frost-pulse,
+  .frost-pulse-strong,
+  .frost-subtle,
+  .hero-shimmer,
+  .hero-frost,
+  .animate-ping,
+  .animate-pulse,
+  .ap-rise,
+  .ap-sketch-in {
+    animation: none !important;
+  }
+  /* AP: the stagger is purely decorative — without a keyframe animation the
+     delay does nothing; the elements stand statically in their end state. */
+  .stagger-1, .stagger-2, .stagger-3, .stagger-4 {
+    animation-delay: 0ms !important;
+  }
+  /* animation:none on .hero-frost does not reach its ::after sweep — hide it
+     entirely, otherwise the frozen band parks visibly beside the title. */
+  .hero-frost::after {
+    display: none !important;
+  }
+}
+
+/* I3-4: appearance.animations_enabled — html.no-motion is the same hard
+   switch-off as prefers-reduced-motion, but chosen by the user in the expert
+   tab (not by the operating system). On the CSS side; JS-driven entrances are
+   queried separately by MessageBubble. */
+html.no-motion *,
+html.no-motion *::before,
+html.no-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+html.no-motion .frost-pulse,
+html.no-motion .frost-pulse-strong,
+html.no-motion .frost-subtle,
+html.no-motion .hero-shimmer,
+html.no-motion .hero-frost,
+html.no-motion .ap-rise,
+html.no-motion .ap-sketch-in,
+html.no-motion .animate-ping,
+html.no-motion .animate-pulse {
+  animation: none !important;
+}
+/* Parity with prefers-reduced-motion: without these two lines the user
+   switch stays behind the system default — stagger delays leave elements in
+   their start state for 300 ms and the frost sweep parks visibly next to
+   the title. */
+html.no-motion .stagger-1,
+html.no-motion .stagger-2,
+html.no-motion .stagger-3,
+html.no-motion .stagger-4 {
+  animation-delay: 0ms !important;
+}
+html.no-motion .hero-frost::after {
+  display: none !important;
+}
+
+/* Round 14: motion tokens (P2-F3) — from now on for new components.
+   Round 15 (anti-perfect UI): organic easing curves + stagger cadence.
+   W10-23: the durations and curves now live in the @theme block (the v4
+   namespaces emit the duration- and ease- utilities); the alias stays. */
+:root {
+  --motion-fast: var(--transition-duration-fast);
+  --motion-base: var(--transition-duration-base);
+  --motion-slow: var(--transition-duration-slow);
+  /* AP-3: stagger cadence — offset entrances imitate the natural rhythm of
+     a hand writing line by line. */
+  --stagger-step: 40ms;
+  /* Wave 10 P0-6: the radius scale now lives as ONE source in the @theme block
+     (S6, 4px raster) — the old :root duplicate block with 6/8/12/16 is gone. */
+}
+
+/*
+   ANTI-PERFECT-UI LAYER (round 15) — curated handwork
+   Rule: at most ONE hand-made element per view level.
+ */
+
+/* AP-4: paper grain as a data URI (feTurbulence). No image request,
+   no layout shift — purely decorative texture on card/panel surfaces.
+   Low opacity so the typography contrast values stay untouched. */
+.grain-paper {
+  position: relative;
+}
+.grain-paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' type='fractalNoise'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* AP-5: organic keyframes — springy landing (overshoot) instead of a
+   hard ease. Uses the --ease-organic / --ease-settle tokens. */
+@keyframes ap-rise {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ap-sketch-in {
+  from { opacity: 0; transform: translateY(4px) rotate(-0.6deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(0deg); }
+}
+.ap-rise {
+  animation: ap-rise var(--motion-slow) var(--ease-organic) both;
+}
+.ap-sketch-in {
+  animation: ap-sketch-in var(--motion-base) var(--ease-settle) both;
+}
+
+/* AP-3: stagger cadence — offset entrances imitate the hand's writing
+   rhythm. Only in combination with .ap-rise / .ap-sketch-in. */
+.stagger-1 { animation-delay: calc(var(--stagger-step) * 1); }
+.stagger-2 { animation-delay: calc(var(--stagger-step) * 2); }
+.stagger-3 { animation-delay: calc(var(--stagger-step) * 3); }
+.stagger-4 { animation-delay: calc(var(--stagger-step) * 4); }
+
+/* AP-6: hand-drawn wobble on hover — 1-2° rotation, as if the line were
+   retraced with a pen. Only on interactive surfaces. */
+.ap-wobble:hover {
+  transform: rotate(-0.5deg) translateY(-1px);
+  transition: transform var(--motion-fast) var(--ease-organic);
+}
+
+/* Brand: ephemeral dot trail (wordmark) — the dots breathe like the
+   settling half of the emblem. Reduced motion = static dots. */
+.ephemeral-dot {
+  animation: ephemeral-breathe 2.8s ease-in-out infinite;
+}
+@keyframes ephemeral-breathe {
+  0%, 100% { opacity: var(--dot-op, 0.8); }
+  50% { opacity: 0.15; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ephemeral-dot { animation: none; }
+}
+
+/* U-2: update signal — the header affordance says "there is something for you".
+   One 3.2 s period carries both halves, so they read as one slow breath: a
+   ring that fades outward behind the button and a soft glow on the glyph. The
+   tone is --color-brand-glow, the accent the primary CTA wears; status-warning
+   and status-danger stay out of it, which is what keeps the signal from
+   reading as an alarm. Under reduced motion both animations are off and the
+   still state keeps a lit glyph plus a ring at half opacity — the signal stays
+   visible, only its movement goes (the still-state rule of
+   .ephe-mark[data-state="work"]). */
+.update-signal { position: relative; }
+.update-signal::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--color-brand-glow) 70%, transparent);
+  pointer-events: none;
+  animation: update-signal-halo 3.2s var(--ease-settle) infinite;
+}
+.update-signal svg {
+  color: var(--color-brand-glow);
+  animation: update-signal-glow 3.2s var(--ease-settle) infinite;
+}
+@keyframes update-signal-halo {
+  0% { opacity: 0.55; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(1.34); }
+}
+@keyframes update-signal-glow {
+  0%, 100% { filter: drop-shadow(0 0 1px color-mix(in oklab, var(--color-brand-glow) 40%, transparent)); }
+  50% { filter: drop-shadow(0 0 5px color-mix(in oklab, var(--color-brand-glow) 75%, transparent)); }
+}
+
+/* U-2: update progress — the determinate fill is only ever the reported number.
+   A source that reports no total gets the sweeping band, and that state claims
+   no number at all (aria-valuenow stays off). The fill's end state is a full
+   track at low opacity, which is what a reduced-motion user sees standing
+   still. The confirmation of a finished installation runs once: 280 ms with
+   --ease-organic, no loop. */
+.update-progress-sweep {
+  width: 40%;
+  animation: update-progress-sweep 1.4s linear infinite;
+}
+@keyframes update-progress-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+.update-confirm {
+  animation: update-confirm var(--motion-slow) var(--ease-organic) both;
+}
+@keyframes update-confirm {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-signal::after {
+    animation: none !important;
+    opacity: 0.5;
+    transform: none;
+  }
+  .update-signal svg {
+    animation: none !important;
+    filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand-glow) 60%, transparent)) brightness(1.12) !important;
+  }
+  .update-progress-sweep {
+    animation: none !important;
+    width: 100%;
+    opacity: 0.35;
+  }
+  .update-confirm { animation: none !important; }
+}
+html.no-motion .update-signal::after {
+  animation: none !important;
+  opacity: 0.5;
+  transform: none;
+}
+html.no-motion .update-signal svg {
+  animation: none !important;
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand-glow) 60%, transparent)) brightness(1.12) !important;
+}
+html.no-motion .update-progress-sweep {
+  animation: none !important;
+  width: 100%;
+  opacity: 0.35;
+}
+html.no-motion .update-confirm { animation: none !important; }
+
+/* U-4: the update dialog in the reading direction. Structure comes from
+   rules and indents, one mono axis carries the numbers, and a single accent
+   marks what runs now. The panel drops the radius and the glow the floating
+   surface carries: this dialog reads as a sheet. */
+.update-dialog-panel {
+  border-radius: 0;
+  box-shadow: none;
+}
+.update-dialog-panel::before {
+  display: none;
+}
+
+/* U-4: the hover of the header affordance settles the breath instead of
+   opening a second movement. The ring stops expanding and holds its lit step,
+   the glyph keeps the glow the breath reaches at its peak, and the button
+   takes the brand tint. --motion-base with --ease-settle is the curve the
+   breath already reads at, so the hover and the breath speak one language. */
+.update-signal:hover::after,
+.update-signal:focus-visible::after {
+  animation: none;
+  opacity: 0.9;
+  transform: none;
+}
+.update-signal:hover svg,
+.update-signal:focus-visible svg {
+  animation: none;
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--color-brand-glow) 75%, transparent));
+}
+.update-signal:hover,
+.update-signal:focus-visible {
+  background-color: var(--color-brand-tint);
+}
+
+/* U-4: the Details disclosure. The caret is the summary's one moving part;
+   the opened body arrives in one step and rests at its end state. */
+.update-details-summary {
+  list-style: none;
+  cursor: pointer;
+}
+.update-details-summary::-webkit-details-marker {
+  display: none;
+}
+.update-caret {
+  transition: transform var(--motion-base) var(--ease-settle);
+}
+.update-details[open] .update-caret {
+  transform: rotate(90deg);
+}
+.update-details-body {
+  transform-origin: top;
+}
+.update-details[open] .update-details-body {
+  animation: update-details-reveal var(--motion-base) var(--ease-out-soft) both;
+}
+@keyframes update-details-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-caret { transition: none !important; }
+  .update-details[open] .update-details-body { animation: none !important; }
+  .update-signal:hover::after,
+  .update-signal:focus-visible::after { animation: none !important; }
+  .update-signal:hover svg,
+  .update-signal:focus-visible svg { animation: none !important; }
+}
+html.no-motion .update-caret { transition: none !important; }
+html.no-motion .update-details[open] .update-details-body { animation: none !important; }
+
+/*
+   EPH-PRIMITIVES — redesign 2026-10-04, plan §4.4 + §5
+   Condensation (entrance) — decay (exit) — rest (ongoing: stands still).
+   Boundary from §5: no element moves independently of a state.
+   That is why everything below is either one-shot (the class is set on
+   entrance or exit) or bound to the mark's [data-state].
+   No new color literals: every tone comes from the role layer
+   (--color-ink, --color-brand, --color-brand-glow, --color-brand-tint).
+   For masks only the alpha channel counts: var(--color-ink) is opaque,
+   color-mix(... transparent) supplies the particle steps.
+ */
+
+/* Driver of the decay: x position of the erosion front. Registered so that it
+   becomes interpolatable and the mask stops recompute every frame — decay is
+   a mask, not an opacity fade (§5 principle: "nothing goes by fade"). */
+@property --ephe-decay-edge {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 130%;
+}
+
+:root {
+  /* Cadence §5.1: list/stream in sequence, 20–30 ms offset. */
+  --ephe-stagger-step: 24ms;
+  --ephe-condense-duration: 220ms;   /* §5.1 Fenster 180–260 ms */
+  --ephe-decay-duration: 380ms;      /* §5.2 Fenster 320–420 ms */
+  --ephe-mark-condense-duration: 240ms;
+  --ephe-mark-work-period: 2.4s;
+  /* One beat of the first-run arc. The arc is ten beats long, so the scene clock is
+     `--ephe-scene-beat` x 10 and every layer's delay is a multiple of that one unit. */
+  --ephe-scene-beat: 600ms;
+  /* Entrance: the sheet's soft ease-out (--ease-out-soft = power3.out).
+     Exit: accelerated removal — the content is pulled away. */
+  --ephe-ease-decay: cubic-bezier(0.5, 0, 0.9, 0.4);
+
+  /* Two mask layers, one formula:
+     1) erosion front with a hand-set particle edge (scattered alpha steps
+        instead of a smooth ramp = the "breaking apart"); the front travels from
+        right to left: --ephe-decay-edge 130% -> -34% (full at start, empty at end).
+     2) static thinning to the right (intersect) — the remainder thins out. */
+  --ephe-decay-mask:
+    linear-gradient(
+      to right,
+      var(--color-ink) 0 calc(var(--ephe-decay-edge) - 30%),
+      color-mix(in oklab, var(--color-ink) 62%, transparent) calc(var(--ephe-decay-edge) - 23%),
+      transparent calc(var(--ephe-decay-edge) - 21%),
+      color-mix(in oklab, var(--color-ink) 38%, transparent) calc(var(--ephe-decay-edge) - 14%),
+      transparent calc(var(--ephe-decay-edge) - 12%),
+      color-mix(in oklab, var(--color-ink) 20%, transparent) calc(var(--ephe-decay-edge) - 6%),
+      transparent var(--ephe-decay-edge),
+      transparent 100%
+    ),
+    linear-gradient(to right, var(--color-ink) 0%, color-mix(in oklab, var(--color-ink) 72%, transparent) 100%);
+}
+
+/* §5.1 condensation: slight blur + scale 0.96 -> 1, 220 ms, ease-out.
+   The opacity is only a by-product of the edge (45% = opaque); the path is
+   blur + scale. */
+@keyframes ephe-condense {
+  from { opacity: 0; filter: blur(5px); transform: scale(0.96); }
+  45%  { opacity: 1; }
+  to   { opacity: 1; filter: blur(0); transform: scale(1); }
+}
+
+/* §5.2 decay: only the front moves. No opacity keyframe. */
+@keyframes ephe-decay {
+  from { --ephe-decay-edge: 130%; transform: translateX(0) scaleX(1); filter: blur(0); }
+  to   { --ephe-decay-edge: -34%; transform: translateX(6%) scaleX(0.985); filter: blur(1.2px); }
+}
+
+/* §4.4 condense: the crossbar stands, the strokes push out of it. */
+@keyframes ephe-mark-part {
+  from { transform: scaleX(0.3); filter: blur(2px); }
+  to   { transform: scaleX(1); filter: blur(0); }
+}
+
+/* §4.4 work: a restrained pulse wave on the actuant (2px halo, +14% light),
+   the remaining parts stay put. */
+@keyframes ephe-mark-work {
+  0%, 100% { filter: none; }
+  50% {
+    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent)) brightness(1.14);
+  }
+}
+/* work without the accent hook: then the halo carries the activity. */
+@keyframes ephe-mark-halo {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand) 40%, transparent)); }
+}
+
+@layer components {
+
+/* 1 + 4. Entrance: condensation, with a stagger cascade
+   The index comes EITHER from the container (.ephe-stagger -> position) OR per
+   --ephe-stagger-index from the caller. No per-item class, no per-item
+   keyframes. Items beyond 8 share the start — for longer lists the
+   row sets --ephe-stagger-index itself. */
+.ephe-condense {
+  animation: ephe-condense var(--ephe-condense-duration) var(--ease-out-soft) both;
+  animation-delay: calc(var(--ephe-stagger-index, 0) * var(--ephe-stagger-step));
+}
+
+.ephe-stagger { --ephe-stagger-step: 24ms; }
+.ephe-stagger > :nth-child(2) { --ephe-stagger-index: 1; }
+.ephe-stagger > :nth-child(3) { --ephe-stagger-index: 2; }
+.ephe-stagger > :nth-child(4) { --ephe-stagger-index: 3; }
+.ephe-stagger > :nth-child(5) { --ephe-stagger-index: 4; }
+.ephe-stagger > :nth-child(6) { --ephe-stagger-index: 5; }
+.ephe-stagger > :nth-child(7) { --ephe-stagger-index: 6; }
+.ephe-stagger > :nth-child(8) { --ephe-stagger-index: 7; }
+
+/* 2. Exit: decay (destructive / finished states)
+   Destruction and the mark use the same motion — the same keyframe, the same
+   mask (plan §5.2: "mark and product promise are the same image"). The exit
+   stays undelayed: a departure is a single event. */
+.ephe-decay,
+.ephe-mark[data-state="dissolve"] {
+  --ephe-decay-edge: 130%;
+  transform-origin: 100% 50%;   /* the edge sits at the right border */
+  -webkit-mask-image: var(--ephe-decay-mask);
+  mask-image: var(--ephe-decay-mask);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  animation: ephe-decay var(--ephe-decay-duration) var(--ephe-ease-decay) both;
+}
+
+/* 3. The mark: the creature that is ephemeral (§4.4)
+   Hooks for the TSX side (the container addresses everything, the SVG parts
+   need to know nothing):
+     .ephe-mark[data-state="condense|settle|work|dissolve"]
+     [data-ephe-part]                    — one part (ear, body) for the cascade
+     [data-ephe-part="accent"] | .ephe-mark-accent — the stroke the animation works on
+     [data-size="compact"]               — the creature at 33-47 px, without the light streak
+   Size via --ephe-mark-size. The host colour stays the ink role: the brand red
+   fills the body, and a red creature on it would be no creature at all. The eyes
+   are knockouts in the head path, so they need no role and no second colour. */
+.ephe-mark {
+  --ephe-mark-size: 1.5rem;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--ephe-mark-size);
+  block-size: var(--ephe-mark-size);
+  color: var(--color-ink);
+  isolation: isolate;
+}
+.ephe-mark > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+/* settle: one white light streak on the top edge — and nothing else. */
+.ephe-mark::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: 8%;
+  block-size: 1px;
+  background: linear-gradient(to right, transparent, var(--color-ink) 24% 76%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.ephe-mark:not([data-state])::before,
+.ephe-mark[data-state="settle"]::before,
+.ephe-mark[data-state="work"]::before { opacity: 1; }
+.ephe-mark[data-size="compact"]::before { display: none; }
+/* On paper there is no edge that could catch light: the streak in ink would
+   be a dark line over the mark. On a dark ground it is exactly what it was
+   built for. */
+html.light .ephe-mark::before { display: none; }
+
+.ephe-mark[data-state="condense"] {
+  animation: ephe-condense var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
+}
+.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]) {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: ephe-mark-part var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
+  animation-delay: calc(var(--ephe-stagger-index, 0) * var(--ephe-stagger-step));
+}
+.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(2) { --ephe-stagger-index: 1; }
+.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(3) { --ephe-stagger-index: 2; }
+.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(4) { --ephe-stagger-index: 3; }
+.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(5) { --ephe-stagger-index: 4; }
+
+/* work: ONLY the actuant pulses. */
+.ephe-mark[data-state="work"] :is(.ephe-mark-accent, [data-ephe-part="accent"]) {
+  animation: ephe-mark-work var(--ephe-mark-work-period) ease-in-out infinite;
+}
+.ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [data-ephe-part="accent"]))) {
+  animation: ephe-mark-halo var(--ephe-mark-work-period) ease-in-out infinite;
+}
+/* settle = stillness: no breath, no halo (§5.3 "rest"). */
+.ephe-mark[data-state="settle"] { animation: none; }
+
+/* 5. The fire spirit: the being the first-run arc acts with
+   Hooks for the TSX side:
+     .ephe-spirit[data-register="calm|fierce"] — which frame paints
+     [data-state]                              — what it is doing (rest/land/hold/lean/lead)
+     --ephe-spirit-size                        — its box
+   Both frames stand in the same grid cell, so the turn is one opacity crossfade
+   and no layout moves; the frame that is not painting costs nothing. */
+.ephe-spirit {
+  --ephe-spirit-size: 6rem;
+  --ephe-spirit-turn-duration: calc(var(--ephe-scene-beat) * 0.7);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  inline-size: var(--ephe-spirit-size);
+  block-size: var(--ephe-spirit-size);
+  isolation: isolate;
+}
+.ephe-spirit-frame {
+  grid-area: 1 / 1;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ephe-spirit-turn-duration) var(--ease-out-soft);
+}
+.ephe-spirit-frame > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.ephe-spirit[data-register="calm"] .ephe-spirit-frame[data-frame="calm"],
+.ephe-spirit[data-register="fierce"] .ephe-spirit-frame[data-frame="fierce"] {
+  opacity: 1;
+}
+
+/* 6. The first-run arc: eight beats on one 600 ms unit
+   Threat is scale and ground glow, never a face (the scene study's own reading):
+   the wall spreads across the ground over beats 1-3, lifts at the surge, and falls
+   as the being lands on beat 4. The being arrives in its fierce read, holds, turns
+   to the calm read on beat 7, leans in and leaves to the right on beat 9 — the same
+   direction the overlay's own decay wipe travels. One animation per layer, its beat
+   as the delay; only transform, opacity and filter move. */
+.ephe-scene-ground {
+  position: absolute;
+  z-index: -1;
+  inset-inline: -12%;
+  inset-block-end: 0;
+  block-size: 26%;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    color-mix(in oklab, var(--color-firefly-glow) 92%, transparent) 0%,
+    color-mix(in oklab, var(--color-firefly) 72%, transparent) 38%,
+    transparent 100%);
+  filter: blur(16px);
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: ephe-scene-wall calc(var(--ephe-scene-beat) * 4) var(--ease-out-soft) both;
+}
+@keyframes ephe-scene-wall {
+  0%   { opacity: 0;   transform: scaleX(0.1)  scaleY(0.3); }
+  25%  { opacity: 0.8; transform: scaleX(1)    scaleY(0.7); }
+  70%  { opacity: 1;   transform: scaleX(1.04) scaleY(1); }
+  92%  { opacity: 1;   transform: scaleX(1.06) scaleY(1.02); }
+  100% { opacity: 0;   transform: scaleX(1.1)  scaleY(0.06); }
+}
+
+/* The hot seam at the foot of the wall, and the coals it leaves once the wall falls:
+   one animation ten beats long, so the ground keeps a low glow under the being for the
+   rest of the arc instead of going black the moment the wall drops. */
+.ephe-scene-core {
+  position: absolute;
+  z-index: -1;
+  inset-inline: -6%;
+  inset-block-end: 0;
+  block-size: 5%;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    var(--color-figure-cream) 0%,
+    var(--color-firefly-glow) 45%,
+    transparent 100%);
+  filter: blur(7px);
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: ephe-scene-core calc(var(--ephe-scene-beat) * 10) linear both;
+}
+@keyframes ephe-scene-core {
+  0%   { opacity: 0;    transform: scaleX(0.2); }
+  22%  { opacity: 0.9;  transform: scaleX(1); }
+  70%  { opacity: 1;    transform: scaleX(1.02); }
+  78%  { opacity: 0.28; transform: scaleX(1); }
+  100% { opacity: 0.28; transform: scaleX(0.98); }
+}
+/* A cream-hot seam needs a dark ground under it: on paper that line would be the ground
+   it sits on. There the seam is the paper red, which is what clears the floor on paper. */
+html.light .ephe-scene-core {
+  background: linear-gradient(to top,
+    var(--color-firefly-glow) 0%,
+    var(--color-firefly) 50%,
+    transparent 100%);
+}
+
+/* Embers that come off the wall and rise while it surges. */
+.ephe-scene-embers {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    radial-gradient(color-mix(in oklab, var(--color-firefly-glow) 60%, transparent) 1.2px, transparent 1.8px),
+    radial-gradient(color-mix(in oklab, var(--color-firefly-glow) 38%, transparent) 1px, transparent 1.5px);
+  background-size: 34px 34px, 53px 53px;
+  background-position: 0 0, 17px 23px;
+  -webkit-mask-image: linear-gradient(to top, transparent 46%, var(--color-ink) 74%, transparent 96%);
+  mask-image: linear-gradient(to top, transparent 46%, var(--color-ink) 74%, transparent 96%);
+  animation: ephe-scene-embers calc(var(--ephe-scene-beat) * 6) linear both;
+}
+@keyframes ephe-scene-embers {
+  0%   { opacity: 0;    transform: translateY(8%); }
+  20%  { opacity: 0.55; }
+  55%  { opacity: 0.8;  transform: translateY(-10%); }
+  100% { opacity: 0;    transform: translateY(-26%); }
+}
+
+/* The surge: the brightest frame of the arc, one beat long, at beat 4's threshold. */
+.ephe-scene-flash {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(46% 40% at 50% 62%,
+    color-mix(in oklab, var(--color-firefly-glow) 55%, transparent) 0%,
+    transparent 70%);
+  opacity: 0;
+  animation: ephe-scene-flash var(--ephe-scene-beat) ease-out calc(var(--ephe-scene-beat) * 3) both;
+}
+@keyframes ephe-scene-flash {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+/* The being: lands on beat 4, holds through the turn, leans in on beat 9 and leaves
+   to the right. Two elements, because one animation per property per element is the
+   only way two phases cannot overwrite each other. */
+.ephe-scene-actor {
+  position: relative;
+  /* Half a beat before the wall finishes falling, so the being is already rising out of
+     it rather than appearing on an empty stage. */
+  animation: ephe-spirit-land calc(var(--ephe-scene-beat) * 3) var(--ease-out-soft) calc(var(--ephe-scene-beat) * 3.5) both;
+}
+@keyframes ephe-spirit-land {
+  0%   { opacity: 0; transform: translateY(-14%) scale(0.62); }
+  33%  { opacity: 1; transform: translateY(0) scale(1); }
+  45%  { transform: translateY(3%) scale(0.985); }
+  55%  { transform: translateY(1%) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ephe-scene-actor-leave {
+  animation: ephe-spirit-leave calc(var(--ephe-scene-beat) * 2) var(--ease-out-soft) calc(var(--ephe-scene-beat) * 8) both;
+}
+@keyframes ephe-spirit-leave {
+  0%   { opacity: 1; transform: translateX(0) scale(1); }
+  50%  { opacity: 1; transform: translateX(3%) scale(1.03); }
+  100% { opacity: 0; transform: translateX(38%) scale(0.98); }
+}
+
+} /* end @layer components (EPH primitives) */
+
+/* Reduced Motion / html.no-motion — hard cuts to the END STATE
+   (plan §4.4: "condense/dissolve become hard cuts, the mark stays, the motion
+   goes"). The global switch-off above (0.01 ms + animation-fill-mode: both)
+   already books the one-shot entrances/exits onto their last keyframe:
+   condensation stands finished, the decay is gone. Deliberately NO residual
+   opacity as in .orb-hero / .ephemeral-dot — a reduced-motion user sees the
+   finished image, not a ghost.
+   Only the delay and the ongoing-state rule need hand work. */
+@media (prefers-reduced-motion: reduce) {
+  .ephe-condense,
+  .ephe-decay,
+  .ephe-mark,
+  .ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]) {
+    animation-delay: 0ms !important;   /* no delay, no flicker */
+  }
+  .ephe-stagger { --ephe-stagger-step: 0ms; }
+  /* work is a state, not a path: without the pulse the actuant stands
+     statically lit — the state stays readable instead of vanishing. */
+  .ephe-mark[data-state="work"] :is(.ephe-mark-accent, [data-ephe-part="accent"]),
+  .ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [data-ephe-part="accent"]))) {
+    animation: none !important;
+    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent)) brightness(1.14) !important;
+  }
+  /* The arc is a path, not a state: without it the being stands in its trust read and
+     the wall never lights. `fill-mode: both` would leave the leaving actor on its last
+     keyframe — gone — so the layers are switched off rather than fast-forwarded. */
+  .ephe-scene-ground,
+  .ephe-scene-flash,
+  .ephe-scene-actor,
+  .ephe-scene-actor-leave,
+  .ephe-spirit-frame {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+html.no-motion .ephe-condense,
+html.no-motion .ephe-decay,
+html.no-motion .ephe-mark,
+html.no-motion .ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]) {
+  animation-delay: 0ms !important;
+}
+html.no-motion .ephe-stagger { --ephe-stagger-step: 0ms; }
+html.no-motion .ephe-mark[data-state="work"] :is(.ephe-mark-accent, [data-ephe-part="accent"]),
+html.no-motion .ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [data-ephe-part="accent"]))) {
+  animation: none !important;
+  filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent)) brightness(1.14) !important;
+}
+html.no-motion .ephe-scene-ground,
+html.no-motion .ephe-scene-flash,
+html.no-motion .ephe-scene-actor,
+html.no-motion .ephe-scene-actor-leave,
+html.no-motion .ephe-spirit-frame {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The run state — the agentic workbench's own vocabulary.
+   Four states, on the durations the first-open scene already moves at: entrance and
+   done are one-shot and rest on their end frame, working and waiting loop for as long
+   as their state holds. Only transform, opacity and filter move. The switches at the
+   foot of this block land every one of them on the still, its live tone kept. */
+:root {
+  --ephe-run-enter-duration: var(--ephe-condense-duration);  /* 220ms */
+  --ephe-run-done-duration: var(--ephe-decay-duration);      /* 380ms */
+  --ephe-run-work-period: var(--ephe-mark-work-period);      /* 2.4s */
+  --ephe-run-wait-period: 1.8s;
+}
+
+@keyframes ephe-run-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ephe-run-done {
+  0%   { transform: scale(0.62); }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes ephe-run-work {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@layer components {
+  /* The command/state bar: the chrome strip that frames the run. Its ground is the
+     card step, one hairline separates it from the work, and the accent is spent only
+     on the mark that is live. It arrives once, on mount. */
+  .workbench-bar {
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--border-decorative);
+  }
+  .ephe-run {
+    animation: ephe-run-enter var(--ephe-run-enter-duration) var(--ease-out-soft) both;
+  }
+  /* The mark carries the state by tone; a live state also breathes. */
+  .ephe-run-mark {
+    background: var(--text-role-muted);
+    transition: background-color var(--motion-base) var(--ease-settle);
+  }
+  .ephe-run[data-state="ready"] .ephe-run-mark { background: var(--color-signal-ok); }
+  .ephe-run[data-state="working"] .ephe-run-mark {
+    background: var(--color-brand);
+    animation: ephe-run-work var(--ephe-run-work-period) ease-in-out infinite;
+  }
+  .ephe-run[data-state="waiting"] .ephe-run-mark {
+    background: var(--color-signal-warn);
+    animation: ephe-run-work var(--ephe-run-wait-period) ease-in-out infinite;
+  }
+  .ephe-run[data-state="done"] .ephe-run-mark {
+    background: var(--color-signal-ok);
+    animation: ephe-run-done var(--ephe-run-done-duration) var(--ease-organic) both;
+  }
+  /* The run's progress rule: the accent at the bar's foot, its length the one ratio
+     the plan already carries, and the grow to the next step is the transition. */
+  .ephe-run-progress {
+    display: block;
+    block-size: 2px;
+    transform-origin: 0 50%;
+    background: var(--color-brand);
+    transition: transform var(--motion-slow) var(--ease-settle);
+  }
+  /* The task rail: the run's steps down the edge of the work column, one mark each,
+     toned by the step's own status. */
+  .ephe-rail-mark {
+    display: block;
+    background: var(--border-control);
+    border-radius: var(--radius-full);
+  }
+  .ephe-rail-mark[data-step="done"] { background: var(--color-signal-ok); }
+  .ephe-rail-mark[data-step="active"] {
+    background: var(--color-brand);
+    animation: ephe-run-work var(--ephe-run-work-period) ease-in-out infinite;
+  }
+  .ephe-rail-mark[data-step="failed"] { background: var(--color-signal-danger); }
+  .ephe-rail-mark[data-step="pending"],
+  .ephe-rail-mark[data-step="cancelled"] { background: var(--border-control); opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ephe-run,
+  .ephe-run[data-state="working"] .ephe-run-mark,
+  .ephe-run[data-state="waiting"] .ephe-run-mark,
+  .ephe-run[data-state="done"] .ephe-run-mark,
+  .ephe-rail-mark[data-step="active"] {
+    animation: none !important;
+  }
+  /* A live state keeps its lit tone when its motion goes. */
+  .ephe-run[data-state="working"] .ephe-run-mark,
+  .ephe-rail-mark[data-step="active"] {
+    opacity: 1 !important;
+  }
+}
+html.no-motion .ephe-run,
+html.no-motion .ephe-run[data-state="working"] .ephe-run-mark,
+html.no-motion .ephe-run[data-state="waiting"] .ephe-run-mark,
+html.no-motion .ephe-run[data-state="done"] .ephe-run-mark,
+html.no-motion .ephe-rail-mark[data-step="active"] {
+  animation: none !important;
+}
+html.no-motion .ephe-run[data-state="working"] .ephe-run-mark,
+html.no-motion .ephe-rail-mark[data-step="active"] {
+  opacity: 1 !important;
+}
+
+
+/* Component layer — what layer 2 and layer 3 feed. */
+
+@layer components {
+  /* A control whose border is its only edge takes this class in place of
+     border-hairline: the decorative steps sit at 1.21-1.42:1, and WCAG 1.4.11
+     asks 3:1 where a border carries the control. The value stays in the token;
+     a call site names the role. */
+  .control-boundary {
+    border: 1px solid var(--border-control);
+  }
+
+  /* Panel: card ground, primary ink, decorative edge. Depth is the one axis a
+     call site names; it picks a rung of the ladder and restates no shadow. */
+  .panel-surface {
+    background: var(--panel-bg);
+    color: var(--panel-text);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--elevation-raised);
+  }
+  .panel-surface[data-elevation="overlay"] { box-shadow: var(--elevation-overlay); }
+  .panel-surface[data-elevation="elevated"] { box-shadow: var(--elevation-elevated); }
+
+  /* Chip: a small label on a lifted ground, with its own active step. */
+  .chip-surface {
+    background: var(--chip-bg);
+    color: var(--chip-text);
+    border: 1px solid var(--chip-border);
+    box-shadow: var(--elevation-base);
+  }
+  .chip-surface[data-state="active"] {
+    background: var(--chip-bg-active);
+  }
+}

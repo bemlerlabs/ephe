@@ -1,0 +1,171 @@
+name: Python lint and types
+
+# Wave I of docs/CI_HYBRID_CAPACITY_2026-10-11.md. The first time either tool ran anywhere on this
+# repository: `.pre-commit-config.yaml` listed ruff, ruff-format, mypy and pytest, and
+# `core.hooksPath` points at `.husky`, so that file was never executed by anything and the
+# guarantee it read like was not held by any machine.
+#
+# The blocking/advisory split is a measurement, and both halves plus the one path the leg skips live
+# in `scripts/lint_policy.sh` -- `scripts/ci_local.sh` sources the same file, so the developer and
+# the CI leg cannot disagree about what a finding means.
+#
+#   blocking set: 0 findings tree-wide on 2026-10-11, so a red X can only come from a new entry
+#   advisory set: 1326 findings tree-wide (I001 425, BLE001 413, F401 263), so it is a number in
+#     the log; gating on it would put a 1300-line diff in front of the owner before one product
+#     defect surfaced
+#
+# Four codes in the first draft of the blocking set (F831, PIE700, PIE701, PIE702) turn out not to
+# exist in ruff, and one unknown code makes `--select` exit 2 on the whole invocation: a red leg
+# with no finding in it, the same shape as a leg-count of zero. F821 has exactly one finding in this
+# tree, in `evals/repo_verify/.../fixture/notifier/send.py`, a held-out task that is *supposed* to
+# fail to import, so the leg skips that fixture tree. A fifth code, PLW1514, is preview-gated and
+# cannot fire at all without `--preview`; scripts/lint_policy.sh carries that one with its number.
+#
+# `ruff --statistics` prints nothing for a clean run, which is indistinguishable from a broken
+# counter, so every count quoted here was taken with `--output-format concise | grep -c` and checked
+# against a rule known to be non-zero.
+#
+# Both tools are installed into a venv under RUNNER_TEMP, which the runner wipes. ruff is a dev
+# dependency of this project but bounded `>=0.15`, which floats, so the leg pins its own copy for
+# the reason written on the uv lock step in tests.yml: an unpinned tool makes the verdict depend on
+# which release happened to ship that day. mypy is in no extra at all. Writing either into the
+# listener's tool cache would be the persistence leak the pull-request legs just lost.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  python:
+    name: Ruff (blocking subset) and mypy (advisory)
+    # The scratch root is `runner.temp`, wiped between jobs. It sits here at job level and not in the
+    # workflow `env:` block because the `runner` context is not available at workflow scope: `${{
+    # runner.temp }}` there fails *validation* of the whole file, which arrives as a run with zero
+    # jobs, no log, and the file path where the `name:` should be. Measured on the push of `6e5fe969`
+    # (run 38098960856), and `tests/test_workflow_env_scopes.py` now refuses the shape.
+    # Fork pull requests are excluded for the reason written out on the pytest job in tests.yml.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Scratch root
+        # `runner` is not in scope in a job-level `env:`, so the root lives in a step.
+        run: echo "EPHE_LINT_VENV=${{ runner.temp }}/ephe-lint" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Read-only job: keep the token out of .git/config (zizmor: artipacked).
+          persist-credentials: false
+          # The diff of this event is taken through the API below rather than from history, so the
+          # checkout stays shallow and the job costs what the other legs on this runner cost.
+          fetch-depth: 1
+
+      - name: Resolve the lint tools
+        env:
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          . scripts/lint_policy.sh
+          python3 -m venv "$EPHE_LINT_VENV"
+          "$EPHE_LINT_VENV/bin/pip" install -q "ruff==${EPHE_RUFF_VERSION}" "mypy==${EPHE_MYPY_VERSION}"
+          echo "$EPHE_LINT_VENV/bin" >> "$GITHUB_PATH"
+          # Fails naming the tool that did not install: a lint leg without its linter is the
+          # silently-clean report this repo has spent a week refusing.
+          for tool in ruff mypy; do
+            if ! "$EPHE_LINT_VENV/bin/$tool" --version >/dev/null 2>&1; then
+              echo "::error::$tool did not resolve inside $EPHE_LINT_VENV"
+              exit 1
+            fi
+            printf '%-6s %s\n' "$tool" "$("$EPHE_LINT_VENV/bin/$tool" --version)"
+          done
+
+      - name: Changed files of this event
+        id: changed
+        env:
+          ACTIONS_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, re, sys, urllib.request
+
+          # Read from the same file the shell steps source. The assignments there are one
+          # NAME="value" per line with no spaces in the value, which is what this matches; tests/
+          # test_lint_policy_consistency.py holds that shape so the two readers cannot drift apart.
+          policy = dict(re.findall(r'^([A-Z_]+)="([^"]*)"', open("scripts/lint_policy.sh").read(), re.M))
+          skip = policy.get("EPHE_LINT_EXCLUDE", "")
+
+          base, head = os.environ["BASE_SHA"], os.environ["HEAD_SHA"]
+          url = f"{os.environ['API_URL']}/repos/{os.environ['REPOSITORY']}/compare/{base}...{head}"
+          try:
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  files = json.load(response).get("files", [])
+          except Exception as exc:  # a first push, a force-push, an unreachable base commit
+              print("python_files=" + json.dumps([]))
+              sys.stderr.write("::notice::cannot diff this event against " + base[:8] + f" ({exc});"
+                               " the advisory half reports nothing and the blocking half still gates\n")
+              raise SystemExit(0)
+          # A removed file has no content for either tool to read, and ruff exits 2 when handed a
+          # path that does not exist, so the advisory half would go red on a clean deletion.
+          names = [f["filename"] for f in files if f.get("status") != "removed"]
+          python = [n for n in names if n.endswith(".py") and not (n == skip or n.startswith(skip + "/"))]
+          print("python_files=" + json.dumps(python))
+          print("changed_files=" + str(len(names)))
+          PY
+
+      - name: Ruff, blocking subset over the whole tree
+        # Membership here requires proving the tree is already clean of the rule in the same commit
+        # that adds it. The set is in scripts/lint_policy.sh.
+        run: |
+          set -uo pipefail
+          . scripts/lint_policy.sh
+          ruff check . --exclude "$EPHE_LINT_EXCLUDE" \
+            --select "$EPHE_RUFF_BLOCKING" --output-format github
+
+      - name: Ruff, advisory over the files this change touched
+        continue-on-error: true
+        env:
+          PYTHON_FILES: ${{ steps.changed.outputs.python_files }}
+        run: |
+          set -uo pipefail
+          . scripts/lint_policy.sh
+          files=$(printf '%s' "${PYTHON_FILES:-[]}" | tr -d '[]"' | tr ',' ' ')
+          if [ -z "${files// /}" ]; then
+            echo "no python files in this change: the advisory half has nothing to say"
+            exit 0
+          fi
+          # shellcheck disable=SC2086  # the list is one path per word, from the step above
+          ruff check $files --force-exclude --exclude "$EPHE_LINT_EXCLUDE" \
+            --select "$EPHE_RUFF_ADVISORY" --statistics --output-format github
+
+      - name: Mypy, advisory over the files this change touched
+        continue-on-error: true
+        # --follow-imports=skip because the default is wrong by construction: following imports from
+        # the five files of the push that opened this lane printed 86 errors, 80 of them in core/ --
+        # another lane's files, inside this lane's report. Scoped to the changed files with imports
+        # skipped it printed 6, and the wall is 0.7 s against 22.7 s.
+        env:
+          PYTHON_FILES: ${{ steps.changed.outputs.python_files }}
+        run: |
+          set -uo pipefail
+          files=$(printf '%s' "${PYTHON_FILES:-[]}" | tr -d '[]"' | tr ',' ' ')
+          if [ -z "${files// /}" ]; then
+            echo "no python files in this change: nothing to type-check"
+            exit 0
+          fi
+          # shellcheck disable=SC2086  # the list is one path per word, from the step above
+          mypy --ignore-missing-imports --follow-imports=skip $files

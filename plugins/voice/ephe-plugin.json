@@ -1,0 +1,16 @@
+{
+  "manifest_version": 1,
+  "name": "voice",
+  "version": "1.0.0",
+  "description": "Text-to-speech for answers and read-aloud.",
+  "permissions": {
+    "tool_families": [],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": []
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

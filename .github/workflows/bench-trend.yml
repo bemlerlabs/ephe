@@ -1,0 +1,59 @@
+name: Bench Trend
+
+# N4 — the 12-task matrix with pass^3 as a trend line. Dispatch-only (this bounds the run
+# cost), so it does NOT run on every push/PR. Trigger it with: gh workflow run --workflow "Bench Trend".
+#
+# The deterministic core: the run manifests (one JSON per rep) are the result of a real
+# engine run and are tracked in the repo; the pass^3 aggregation is a pure function over
+# those manifests (evals/bench_trend.py), with no LLM judge.
+on:
+  workflow_dispatch:
+    inputs:
+      reps:
+        description: "Expected reps per task (pass^k semantics)"
+        required: false
+        default: "3"
+
+permissions:
+  contents: read
+
+jobs:
+  trend:
+    name: pass^3 trend (offline, tracked manifests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install package
+        run: |
+          pip install --upgrade pip
+          pip install -e "."
+
+      - name: Materialize tracked run manifests into the cache dir
+        run: |
+          mkdir -p /tmp/bench-option-b/runs
+          cp evals/runs/*.json /tmp/bench-option-b/runs/ 2>/dev/null || true
+          echo "manifests: $(ls /tmp/bench-option-b/runs | wc -l)"
+
+      - name: Compute pass^3 trend point
+        run: |
+          python evals/bench_trend.py --out bench-trend.json
+          cat bench-trend.json
+
+      - name: Upload trend manifest artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bench-trend
+          path: bench-trend.json
+          retention-days: 14
+          if-no-files-found: error

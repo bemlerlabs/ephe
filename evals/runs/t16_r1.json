@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "task_id": "T16",
+  "family": "tau",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-t16-r1-1790172592",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==42 (double-recovery)",
+  "error_class": null,
+  "wall_ms": 14522.5,
+  "ttft_first_event_ms": 309.2,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 34.4
+    },
+    {
+      "tool": "file_search",
+      "ms": 44.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.1
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 42",
+  "tool_calls": [
+    "file_search",
+    "file_search",
+    "read_file"
+  ],
+  "answer_chars": 253,
+  "tokens_out_proxy": 63.2,
+  "fixture_hash": "38cd549ed8ef",
+  "answer_tail": "\n\n**Berechnung aus der real gelesenen Datei** (`t16_mirror.json` — `t16.json` war nicht vorhanden, daher der Spiegel laut Anweisung):\n\n| `vals`-Eintrag | Wert |\n|---|---|\n| 1 | 8 |\n| 2 | 13 |\n| 3 | 21 |\n\n**Summe:** 8 + 13 + 21 = **42**\n\nFINAL ANSWER: 42",
+  "ts": "2026-09-23T16:10:06"
+}

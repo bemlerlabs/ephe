@@ -1,0 +1,124 @@
+cases:
+  # tool-calling - one direct request, one expected tool. Each case discriminates
+  # against the plausibly-confusable neighbour (file_search vs read_file, web_search
+  # vs fetch_url, list_directory vs read_file) using the skill's own declared tool set.
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files read ~/Desktop/report.md and show me what is in it
+    expected_tool: read_file
+    required_terms: [report]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files list what is inside ~/Projects
+    expected_tool: list_directory
+    required_terms: [Projects]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files where on this Mac is the budget spreadsheet
+    expected_tool: file_search
+    required_terms: [budget]
+  - skill: file-assistant
+    family: tool-calling
+    prompt: /files show me the first lines of notes.txt
+    expected_tool: read_file
+    required_terms: [notes]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review search the repo for where the login handler is defined
+    expected_tool: file_search
+    required_terms: [login]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review open src/auth.py and look for injection risks
+    expected_tool: read_file
+    required_terms: [auth]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review run the unit tests and report the failures
+    expected_tool: run_shell
+    required_terms: [test]
+  - skill: code-reviewer
+    family: tool-calling
+    prompt: /review load the current workspace so you can review it
+    expected_tool: load_workspace
+    required_terms: [workspace]
+  - skill: web-researcher
+    family: tool-calling
+    prompt: /research fetch https://example.com/spec and summarize it
+    expected_tool: fetch_url
+    required_terms: [spec]
+  - skill: web-researcher
+    family: tool-calling
+    prompt: /research search the web for the RRSI paper
+    expected_tool: web_search
+    required_terms: [RRSI]
+  - skill: web-researcher
+    family: tool-calling
+    prompt: /research open this URL and extract its tables
+    expected_tool: fetch_url
+    required_terms: [table]
+  - skill: web-researcher
+    family: tool-calling
+    prompt: /research what do people say about offline-first PWAs
+    expected_tool: web_search
+    required_terms: [PWA]
+  - skill: data-analyst
+    family: tool-calling
+    prompt: /data chart monthly revenue from sales.csv
+    expected_tool: generate_chart
+    required_terms: [chart]
+  - skill: data-analyst
+    family: tool-calling
+    prompt: /data read sales.csv and tell me the column names
+    expected_tool: read_file
+    required_terms: [column]
+  - skill: data-analyst
+    family: tool-calling
+    prompt: /data export the summary as an xlsx
+    expected_tool: create_xlsx
+    required_terms: [xlsx]
+  - skill: data-analyst
+    family: tool-calling
+    prompt: /data run the aggregation script
+    expected_tool: run_shell
+    required_terms: [aggregate]
+  - skill: shell-helper
+    family: tool-calling
+    prompt: /shell what is today's date on this machine
+    expected_tool: get_datetime
+    required_terms: [date]
+  - skill: shell-helper
+    family: tool-calling
+    prompt: /shell show me the running Ephe processes
+    expected_tool: process_manage
+    required_terms: [process]
+  - skill: shell-helper
+    family: tool-calling
+    prompt: /shell run the linter over the package
+    expected_tool: run_shell
+    required_terms: [lint]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project find my Python projects on this Mac
+    expected_tool: discover_projects
+    required_terms: [project]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project read the README of my ephe project
+    expected_tool: read_file
+    required_terms: [README]
+  - skill: project-assistant
+    family: tool-calling
+    prompt: /project what start command does this repo use
+    expected_tool: read_file
+    required_terms: [command]
+  - skill: pdf-creator
+    family: tool-calling
+    prompt: /pdf Create a one-page brief on offline-first AI
+    expected_tool: create_pdf
+    required_terms: [PDF]
+  - skill: vision-assistant
+    family: tool-calling
+    prompt: /scan read the error text in this screenshot
+    expected_tool: analyze_image
+    required_terms: [image]

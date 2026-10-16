@@ -1,0 +1,315 @@
+/* =========================================================
+   ◑ Ephe – ink ground palette
+   Textual CSS (TCSS)
+
+   Bemler Labs
+
+   The product's brand is red: app/src/styles/globals.css holds
+   --color-brand: hsl(7.46 78.6% 57.8%) = #E8543F. The ten tokens declared
+   below are the same ten names ui/palette.py hands the Python surface, so the
+   two surfaces of this product name one palette. Every rule under them
+   references a token, which means this file spells a colour once.
+
+   Ratios are measured against the ground (WCAG 2.1):
+
+     $ink-ground       #15120F   app and screen ground
+     $ink-panel        #1D1917   header, cards, status bar
+     $ink-text         #F2EFE8   primary text             16.25:1
+     $ink-dim          #91877E   secondary text            5.31:1
+     $ink-line         #2E2926   borders, scrollbar track
+     $ink-accent       #E8543F   brand red                 5.13:1
+     $ink-ok           #5BAE90   connected, finished       7.02:1
+     $ink-warn         #F6A328   context meter warning     9.05:1
+     $ink-error        #F63B1E   failure                   4.94:1
+     $ink-state-ground #42241E   accent 18% over panel — the one tinted ground
+
+   One tinted ground, and it is the command-mode ground, whose completion hint
+   names that state in words. State is a text colour plus a label, not a tint
+   alone. The status bar keeps $ink-panel because $ink-accent and $ink-error
+   fall to 3.84:1 and 3.70:1 on the tint, under the 4.5:1 text threshold.
+
+   Why every name carries ink-: Textual's own theme variables own the bare names
+   ($panel, $text, $accent, $error). A declaration under one of those names
+   overrides it inside Textual's built-in stylesheets too, which is how
+   `hatch: right $panel` came to expect a colour. The prefix keeps this palette
+   to this palette. $ink-warn is declared for the Python surface, which is the
+   one place that warns today (the context meter).
+   ========================================================= */
+
+$ink-ground: #15120F;
+$ink-panel: #1D1917;
+$ink-text: #F2EFE8;
+$ink-dim: #91877E;
+$ink-line: #2E2926;
+$ink-accent: #E8543F;
+$ink-ok: #5BAE90;
+$ink-warn: #F6A328;
+$ink-error: #F63B1E;
+$ink-state-ground: #42241E;
+
+/* ── Root ───────────────────────────────────────────────── */
+
+App {
+    background: $ink-ground;
+}
+
+Screen {
+    background: $ink-ground;
+    layout: vertical;
+}
+
+/* ── Brand-Header (replaces default Textual Header) ─────── */
+
+#brand-header {
+    background: $ink-panel;
+    border-bottom: heavy $ink-line;
+    padding: 0 1;
+    height: 2;
+    dock: top;
+    layout: horizontal;
+}
+
+#brand-mark {
+    color: $ink-accent;
+    text-style: bold;
+    width: auto;
+    content-align: left middle;
+}
+
+#brand-title {
+    color: $ink-text;
+    text-style: bold;
+    width: auto;
+    padding: 0 1;
+    content-align: left middle;
+}
+
+#brand-version {
+    color: $ink-dim;
+    width: auto;
+    padding: 0 1;
+    content-align: left middle;
+}
+
+#brand-tagline {
+    color: $ink-dim;
+    text-style: italic;
+    width: 1fr;
+    text-align: right;
+    content-align: right middle;
+}
+
+/* ── Chat View ──────────────────────────────────────────── */
+
+#chat-view {
+    background: $ink-ground;
+    border: tall $ink-line;
+    scrollbar-color: $ink-line;
+    scrollbar-color-hover: $ink-dim;
+    padding: 0 1;
+    height: 1fr;
+}
+
+/* ── Agent-Messages (Structured Agent Message, 2026-08-22) ── */
+
+#chat-container {
+    scrollbar-color: $ink-line;
+    scrollbar-color-hover: $ink-dim;
+}
+
+.static-block {
+    padding: 0 0 1 0;
+}
+
+.agent-message-card {
+    padding: 0 0 1 0;
+}
+
+.agent-message-card > .thinking-block {
+    border: round $ink-line;
+    background: $ink-panel;
+    margin-bottom: 1;
+}
+
+.agent-message-card > .thinking-block > #thinking-body {
+    padding: 0 1;
+    color: $ink-dim;
+    text-style: italic;
+}
+
+.tool-area {
+    padding: 0;
+}
+
+.tool-call-block {
+    border: round $ink-line;
+    background: $ink-panel;
+    margin-bottom: 1;
+}
+
+.tool-call-block > .tool-output {
+    padding: 0 1;
+}
+
+.phase-line {
+    padding: 0 1;
+}
+
+#answer-live {
+    padding: 0 1;
+}
+
+#answer-md {
+    padding: 0 1;
+}
+
+/* ── Input Area ─────────────────────────────────────────── */
+
+#input-area {
+    height: 3;
+    background: $ink-panel;
+    border: tall $ink-line;
+    padding: 0 1;
+}
+
+/* Command mode: the one tinted ground, named by the completion hint. */
+#input-area.command-mode {
+    border: tall $ink-accent;
+    background: $ink-state-ground;
+}
+
+#chat-input {
+    background: $ink-ground;
+    color: $ink-text;
+    border: none;
+    height: 1;
+    width: 1fr;
+}
+
+#chat-input:focus {
+    border: none;
+    background: $ink-ground;
+}
+
+/* ── Command Hint ───────────────────────────────────────── */
+
+#command-hint {
+    height: 1;
+    background: $ink-panel;
+    color: $ink-dim;
+    padding: 0 1;
+    display: none;
+}
+
+#command-hint.visible {
+    display: block;
+}
+
+/* ── Status Bar ─────────────────────────────────────────── */
+
+#status-bar {
+    height: 2;
+    background: $ink-panel;
+    color: $ink-dim;
+    padding: 0 1;
+    layout: horizontal;
+    border-top: heavy $ink-line;
+}
+
+/* The state words stay on the panel ground: $ink-accent and $ink-error hold 4.79:1 and
+   4.62:1 there, and fall to 3.84:1 and 3.70:1 on the tint. */
+#status-bar.streaming {
+    background: $ink-panel;
+    color: $ink-accent;
+}
+
+#status-bar.error {
+    background: $ink-panel;
+    color: $ink-error;
+}
+
+#status-indicator {
+    width: auto;
+    color: $ink-ok;
+}
+
+#status-indicator.offline {
+    color: $ink-error;
+}
+
+#status-indicator.streaming {
+    color: $ink-accent;
+}
+
+#status-model {
+    width: auto;
+    color: $ink-dim;
+    padding: 0 1;
+}
+
+#status-meter {
+    width: auto;
+    color: $ink-dim;
+    padding: 0 1;
+}
+
+#status-provider {
+    width: auto;
+    color: $ink-accent;
+    padding: 0 1;
+    text-style: bold;
+}
+
+#status-tagline {
+    width: 1fr;
+    color: $ink-dim;
+    text-align: right;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+
+ScrollableContainer > ScrollBar {
+    background: $ink-ground;
+    color: $ink-line;
+}
+
+/* ── Welcome / System Messages ──────────────────────────── */
+
+.welcome {
+    color: $ink-dim;
+    text-style: italic;
+}
+
+.system-msg {
+    color: $ink-dim;
+}
+
+.error-msg {
+    color: $ink-error;
+    text-style: bold;
+}
+
+/* ── Fallback / Tool hints ──────────────────────────────── */
+
+.fallback-hint {
+    color: $ink-dim;
+    text-style: italic;
+}
+
+.tool-call {
+    color: $ink-accent;
+    text-style: italic;
+}
+
+.tool-done {
+    color: $ink-ok;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+
+Footer {
+    background: $ink-ground;
+    color: $ink-dim;
+    border-top: heavy $ink-line;
+    height: 2;
+}

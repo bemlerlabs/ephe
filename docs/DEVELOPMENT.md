@@ -1,0 +1,77 @@
+# Development
+
+Set up the backend in a venv:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pip install openpyxl   # Xlsx support (missing in the Miniconda env otherwise)
+```
+
+Run the app locally:
+
+```bash
+python run_server.py
+```
+
+## Frontend (PWA, `app/`)
+
+The root PWA is the main product: React 19 + Vite 6 + TypeScript + Tailwind. The product server on
+`:8765` serves the static `app/dist/`, so a `src/` edit stays invisible until `pnpm build` runs in
+`app/` (hard-reload with Cmd+Shift+R afterwards); the dev server on `:5173` compiles from `src/`
+live and needs no rebuild.
+
+```bash
+cd app
+pnpm install --frozen-lockfile   # or: corepack enable && pnpm install
+pnpm dev     # Vite dev server
+pnpm build   # tsc -b && vite build (type-check + production build)
+pnpm preview # Vite preview
+```
+
+Frontend unit tests use Vitest (`pnpm test`); Playwright specs live in `app/tests/playwright/`.
+
+## Demo videos
+
+`scripts/create_demo_media.py` regenerates the clips in [`DEMOS.md`](DEMOS.md):
+
+```bash
+./.venv/bin/python scripts/create_demo_media.py   # requires ./dev.sh, ffmpeg, playwright
+```
+
+## Project Structure
+
+```text
+app/                React + Vite + TS PWA (main product), Tauri shell in app/src-tauri/
+app/tests/playwright/  Playwright specs (frontend, CI-validated)
+core/               Python core: chat, tools, vision, memory, skills, scheduler, profile
+server/             FastAPI server + routes (chat, memory, mobile, tasks, vision, ...)
+ui/                 Textual TUI / text UI
+docs/               design docs, mockups, screenshots, demo media
+scripts/            dev/demo/eval helpers
+skills/             built-in skill markdown (prompts, rubrics, examples)
+plugins/            first-party plugin bundles (ephe-plugin.json manifests, sha256-hashed)
+knowledge/          offline knowledge base (German survival/medical/engineering)
+.github/workflows/  CI: tests.yml (pytest subset + integration + docker) + frontend-build.yml + release.yml (tagged builds) + bench-trend.yml (dispatch-only pass³ trend)
+install.sh          one-command installer (macOS/Linux)
+install.ps1         one-command installer (Windows PowerShell)
+uninstall.sh        removes the checkout and ~/.ephe (--dry-run, --keep-data)
+```
+
+## Testing
+
+Quality gates run in CI on every push and pull request:
+
+| Workflow | What it runs |
+|---|---|
+| `tests.yml` — pytest | the tracked offline test subset (repo hygiene, security guards, routes, engine defaults) across Python 3.10–3.13 |
+| `tests.yml` — integration | package import integrity, installer syntax (bash + PowerShell), security-default audit (conservative server binding), Docker image build |
+| `frontend-build.yml` | TypeScript type check, Vite production build, ESLint |
+
+The full local test suite is maintainer-side and is run with `pytest tests/ -q` before release.
+Contributors validate their changes with the checks listed in [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Repository Hygiene
+
+Tracked files should not include generated dependency folders, local databases, WAL/SHM sidecars, secrets, caches, or generated media frames. Final README media files in `docs/media/` are intentionally tracked.
