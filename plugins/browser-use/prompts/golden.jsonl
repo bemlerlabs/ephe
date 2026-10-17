@@ -1,0 +1,7 @@
+{"id": "browser-use-1", "command": "browse", "input": "Öffne https://example.org und nenne den H1-Titel der Seite.", "expect": {"kind": "tool_use", "any": ["browser_go", "browser_click"]}}
+{"id": "browser-use-2", "command": "browse", "input": "Gehe zu example.org und mache einen Screenshot des Viewports.", "expect": {"kind": "tool_use", "any": ["browser_screenshot", "take_screenshot"]}}
+{"id": "browser-use-3", "command": null, "input": "Fülle auf einer Testseite das Suchfeld mit 'ephe' aus — ohne abzuschicken.", "expect": {"kind": "tool_use", "any": ["browser_type"]}}
+{"id": "browser-use-4", "command": null, "input": "Lies den ersten Absatz von https://example.org und fasse ihn zusammen.", "expect": {"kind": "contains", "any": ["Beispiel", "Domain", "Illustration"]}}
+{"id": "browser-use-5", "command": null, "input": "Prüfe, ob https://example.org erreichbar ist, und nenne den HTTP-Status.", "expect": {"kind": "tool_use", "any": ["browser_go", "browser_exec"]}}
+{"id": "browser-use-6", "command": null, "input": "Scrolle auf der aktuellen Seite ans Ende und zähle die Abschnitte.", "expect": {"kind": "tool_use", "any": ["browser_scroll"]}}
+{"id": "browser-use-7", "command": null, "input": "Öffne eine Seite und zitiere wörtlich, was dort steht — nichts erfinden.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}

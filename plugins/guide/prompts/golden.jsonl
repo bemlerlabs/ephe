@@ -1,0 +1,7 @@
+{"id": "guide-1", "command": "howto", "input": "Wie starte ich Ephe zum ersten Mal? Schritte bis zum ersten Chat.", "expect": {"kind": "contains", "any": ["Schritt", "ephe start"]}}
+{"id": "guide-2", "command": "diagnose", "input": "Die PWA lädt, aber der Chat antwortet nicht. Diagnose-Anleitung.", "expect": {"kind": "contains", "any": ["Engine", "health"]}}
+{"id": "guide-3", "command": "howto", "input": "Wie binde ich einen OpenAI-kompatiblen Endpunkt als Engine ein?", "expect": {"kind": "contains", "any": ["engine.json", "openai"]}}
+{"id": "guide-4", "command": "diagnose", "input": "Ollama läuft, aber das Modell lädt nicht. Schritt-für-Schritt.", "expect": {"kind": "contains", "any": ["ollama", "pull"]}}
+{"id": "guide-5", "command": null, "input": "Erzeuge eine Markdown-Checkliste 'Desktop-Build prüfen' mit 6 Punkten.", "expect": {"kind": "artifact", "suffix": ".md"}}
+{"id": "guide-6", "command": "howto", "input": "Wie exportiere ich einen Monat als Bernstein? Nenne den Befehl.", "expect": {"kind": "contains", "any": ["ephe amber"]}}
+{"id": "guide-7", "command": null, "input": "Schreibe die Kurzfassung 'Ephe in 5 Sätzen' — ausformuliert.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}

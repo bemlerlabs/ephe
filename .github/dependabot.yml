@@ -1,0 +1,88 @@
+version: 2
+# The routine, not the event. Alerts accumulate silently because nothing here makes them
+# arrive as work. `dependabot.yml` does not govern alerts at all — the
+# dependency graph raises those — it governs the pull requests that close them. So the
+# version-update schedules below are the triage cadence, and the security-update groups
+# split the two cases a reader has to tell apart: a production dependency Dependabot can
+# fix in one reviewable pull request, and a development-tooling one that ships nowhere.
+#
+# Groups apply to security updates through `applies-to: security-updates`; grouping by
+# `dependency-type` is what turns six brace-expansion alerts into one pull request instead
+# of six. The four `cargo`-less Tauri alerts cannot arrive as a pull request at all —
+# `app/src-tauri/Cargo.lock` was in no ecosystem here, which is why its glib advisory had
+# no home and no reviewer until this wave added the entry below.
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      python-security-prod:
+        applies-to: security-updates
+        dependency-type: "production"
+      python-security-dev:
+        applies-to: security-updates
+        dependency-type: "development"
+
+  - package-ecosystem: "npm"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      # katex is the one runtime-reachable JS finding measured on 2026-10-14 (`pnpm audit
+      # --prod` reports it with dev=false), so it needs its own reviewable pull request
+      # rather than riding along with a batch of dev bumps.
+      npm-security-prod:
+        applies-to: security-updates
+        dependency-type: "production"
+      npm-security-dev:
+        applies-to: security-updates
+        dependency-type: "development"
+
+  # The second npm manifest in the tree (`packaging/npm/package.json`, the `npx ephe`
+  # wrapper). It declares no dependencies today, so no alert and no pull request can come
+  # from it — the entry is here so the manifest is inside an ecosystem rather than outside
+  # every scanner, which is the state `app/src-tauri/Cargo.lock` was in until 2026-10-14:
+  # the day the first dependency lands is not the day to notice nothing was watching.
+  - package-ecosystem: "npm"
+    directory: "/packaging/npm"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "cargo"
+    directory: "/app/src-tauri"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "glib"
+        # GHSA-wrw7-89jp-8q8g: the 0.20.0 fix is refused by the resolver — gtk 0.18.2 pins
+        # glib ^0.18 and tauri 2.12.3 is the newest stable. pending-fix in .github/advisories-ignore.txt.
+    groups:
+      cargo-security:
+        applies-to: security-updates
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"

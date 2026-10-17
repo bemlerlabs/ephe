@@ -1,0 +1,6 @@
+{"id": "code-shell-1", "command": "fix", "input": "python app/tests_smoke.py wirft IndexError Zeile 42. Finde die Ursache und fixe sie.", "expect": {"kind": "contains", "any": ["Ursache", "IndexError"]}}
+{"id": "code-shell-2", "command": null, "input": "Zähle die Zeilen aller Python-Dateien unter core/ zusammen.", "expect": {"kind": "tool_use", "any": ["run_shell"]}}
+{"id": "code-shell-3", "command": "fix", "input": "Der Linter meckert über ungenutzte Imports in ephe_cli.py. Räume auf und zeige den diff.", "expect": {"kind": "tool_use", "any": ["run_linter", "edit_file", "format_code"]}}
+{"id": "code-shell-4", "command": null, "input": "Führe die Test-Suite tests/test_cli_desktop.py aus und fasse das Ergebnis in einem Satz zusammen.", "expect": {"kind": "tool_use", "any": ["run_tests", "run_shell"]}}
+{"id": "code-shell-5", "command": null, "input": "Lies die Datei core/ephemeris.py und erkläre die Funktion chart() in 3 Sätzen.", "expect": {"kind": "tool_use", "any": ["read_file"]}}
+{"id": "code-shell-6", "command": null, "input": "Erkläre, warum man shell-Befehle in Ephe freigeben muss, bevor sie laufen.", "expect": {"kind": "not_contains", "any": ["weiß ich nicht"]}}

@@ -1,0 +1,8 @@
+{"id": "documents-1", "command": "pdf", "input": "Erstelle ein einseitiges PDF 'Quartalsbericht Q3' mit Kennzahlen-Tabelle und einer Quellenangabe.", "expect": {"kind": "artifact", "suffix": ".pdf"}, "note": "deck-Kommando muss echte PDF-Datei liefern"}
+{"id": "documents-2", "command": "docx", "input": "Erstelle ein DOCX-Protokoll der Team-Besprechung mit Tagesordnung und Ergebnissen.", "expect": {"kind": "artifact", "suffix": ".docx"}}
+{"id": "documents-3", "command": "report", "input": "Erstelle einen Report im Briefing-Stil zur Marktlage von E-Bikes in Deutschland.", "expect": {"kind": "contains", "any": ["Quellen", "Kennzahlen"]}}
+{"id": "documents-4", "command": null, "input": "Erzeuge einen QR-Code zur URL https://example.org/ephe als PNG-Datei.", "expect": {"kind": "tool_use", "any": ["create_qrcode"]}}
+{"id": "documents-5", "command": null, "input": "Erstelle ein Quellen-Notizbuch zum Thema 'Heizungspumpen-Vergleich' mit 3 echten Quellen.", "expect": {"kind": "tool_use", "any": ["create_source_notebook", "export_source_brief"]}}
+{"id": "documents-6", "command": "pdf", "input": "Baue ein PDF mit einer Tabelle über 4 Mitarbeiter und ihren Urlaubstagen.", "expect": {"kind": "contains", "any": ["Tabelle", "Mitarbeiter"]}}
+{"id": "documents-7", "command": null, "input": "Erzeuge eine Markdown-Briefing-Datei über den Stand des Onboardings.", "expect": {"kind": "artifact", "suffix": ".md"}}
+{"id": "documents-8", "command": null, "input": "Schreibe den Einleitungstext für den Quartalsbericht — fertig formuliert, nichts offenes.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}

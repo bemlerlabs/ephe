@@ -1,0 +1,6 @@
+{"id": "plugin-creator-1", "command": "newplugin", "input": "Lege das Plugin 'tafelplan' an: 1 Command 'plan', permission read.", "expect": {"kind": "tool_use", "any": ["write_file", "scaffold_project"]}}
+{"id": "plugin-creator-2", "command": "validateplugin", "input": "Prüfe das Manifest plugins/documents/ephe-plugin.json gegen das Schema.", "expect": {"kind": "tool_use", "any": ["validate_json", "read_file"]}}
+{"id": "plugin-creator-3", "command": "newplugin", "input": "Erzeuge ein Plugin-Gerüst mit genau 2 Slash-Commands.", "expect": {"kind": "artifact", "suffix": ".json"}}
+{"id": "plugin-creator-4", "command": null, "input": "Was gehört in permissions.tool_families und was bedeutet 'origin': 'first-party'?", "expect": {"kind": "contains", "any": ["first-party", "families"]}}
+{"id": "plugin-creator-5", "command": null, "input": "Liste die Dateien, die ein minimales Ephe-Plugin braucht.", "expect": {"kind": "contains", "any": ["ephe-plugin.json", "icon.svg"]}}
+{"id": "plugin-creator-6", "command": null, "input": "Warum lehnt Ephe ein Manifest mit Stub-Tools beim Laden ab?", "expect": {"kind": "not_contains", "any": ["weiß nicht"]}}

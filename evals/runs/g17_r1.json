@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "G17",
+  "family": "gaia",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-g17-r1-1790172849",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==22 (mixed-operator chain)",
+  "error_class": null,
+  "wall_ms": 18032.4,
+  "ttft_first_event_ms": 358.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 46.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.6
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 22",
+  "tool_calls": [
+    "file_search",
+    "read_file"
+  ],
+  "answer_chars": 425,
+  "tokens_out_proxy": 106.2,
+  "fixture_hash": "38cd549ed8ef",
+  "answer_tail": "\n\n**Berechnung aus dem real gelesenen Datei-Inhalt** (`/private/tmp/bench-option-b/ws/g17_chain.txt`: `start=5`, `ops=+9,*3,-6,/3,*4,+10,/2,-7`):\n\n| Schritt | Op | Ergebnis |\n|---|---|---|\n| Start | — | 5 |\n| 1 | +9 | 14 |\n| 2 | ×3 | 42 |\n| 3 | −6 | 36 |\n| 4 | ÷3 | 12 |\n| 5 | ×4 | 48 |\n| 6 | +10 | 58 |\n| 7 | ÷2 | 29 |\n| 8 | −7 | **22** |\n\nBeide Divisionen gehen ganzzahlig auf (36 ÷ 3 = 12, 58 ÷ 2 = 29) ✅\n\nFINAL ANSWER: 22",
+  "ts": "2026-09-23T16:14:27"
+}

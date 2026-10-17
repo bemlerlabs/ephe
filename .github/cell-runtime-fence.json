@@ -1,0 +1,76 @@
+{
+ "_comment": [
+  "Cell-runtime fence register \u2014 INPUT to tests/test_dependency_license_fence.py, not prose.",
+  "",
+  "What this guards, stated without a licence story: Ephe binds a cell runtime that we build,",
+  "measure and audit ourselves. `core/cpython_cell.py` writes a WASIConfig from its own `DEFAULT_*`",
+  "caps and `core/cell_policy.policy_snapshot()` reports exactly those values (max_fuel,",
+  "max_memory_mb, timeout_seconds, network=none) to the settings card, `ephe doctor` and the status",
+  "page, under one rule: report == enforced. That identity only holds for the release we measured.",
+  "A pin that moves to an unmeasured release is not a licence problem \u2014 Ephemora Cell is our own",
+  "product, so BUSL-1.1 binds nobody here \u2014 it is the settings surface quoting caps from a runtime",
+  "whose enforcement we have not re-read. So the fence asks ONE question of every release a bound",
+  "admits: has this codebase measured its policy against it, and is that measurement still inside",
+  "its re-check window.",
+  "",
+  "Licences are still recorded per release, for two reasons: they are a fact about the artifact, and",
+  "`tests/test_dependency_license_fence.py` cross-checks the recorded value against the installed",
+  "dist-info, so a register that drifts from what is actually installed fails. Recording is not",
+  "fencing \u2014 nothing here blocks a version on its licence, and no version was ever chosen for one.",
+  "",
+  "Per-release evidence, the way the repo does evidence elsewhere (`proven`):",
+  "  \"artifact\"  \u2014 METADATA and the `licenses/LICENSE` file unpacked from that exact wheel, sha256",
+  "                checked against PyPI's digest.",
+  "  \"index\"     \u2014 a registry field only; never usable as fence evidence.",
+  "A version with no entry stops the run: read that wheel, measure the policy, add a line.",
+  "`policy_measured: null` is therefore an explicit statement \u2014 we have NOT measured it."
+ ],
+ "packages": {
+  "ephemora-cell": {
+   "policy_source": "core/cpython_cell.py DEFAULT_MAX_FUEL / DEFAULT_MAX_MEMORY_MB / DEFAULT_TIMEOUT_SECONDS and core/cell_policy.policy_snapshot()",
+   "reason": "The pin holds the one release whose cell policy this codebase measured; moving it is a re-measurement task, not an upgrade.",
+   "releases": {
+    "1.0.4.3": {
+     "license": "Apache-2.0",
+     "license_note": "METADATA declares Apache-2.0 plus the OSI Apache classifier; the wheel's licenses/LICENSE is the Apache text. Its sha256 equals the hash uv.lock already carries, so this register and the lock point at the same bytes.",
+     "policy_evidence": "Enforcement read from the installed runtime: ephemora_cell/__init__.py:103 run_isolated always dispatches to process_executor.run_isolated (a disposable worker subprocess), which is the path where disk_quota_bytes is enforced through RLIMIT_FSIZE and a guest panic costs the worker, not Ephe.",
+     "policy_measured": "2026-10-09",
+     "policy_recheck": "2027-01-09",
+     "policy_snapshot": {
+      "max_fuel": 20000000000,
+      "max_memory_mb": 256,
+      "network": "none",
+      "timeout_seconds": 30
+     },
+     "proven": "artifact",
+     "wheel_sha256": "556e9fca8c62c73587401a9c15e1082e99b32548e39f044762a46b5aa8139db8"
+    },
+    "1.0.5": {
+     "license": "BUSL-1.1",
+     "license_note": "METADATA `License: BUSL-1.1`, no OSI classifier, licenses/LICENSE is the BUSL text (Licensor: the dependency's own licensor, Additional Use Grant: None, Change License Apache-2.0 at the fourth anniversary). Our own product, so it constrains nothing; recorded because the register states what is installed.",
+     "policy_evidence": "Not measured. API read from the wheel: WASIConfig carries the same 13 fields as 1.0.4.3, so the call in core/cpython_cell.py:189 stays valid \u2014 but the fuel-per-second and I/O enforcement figures in core/cpython_cell.py:22-23 were measured on 1.0.4.3 and were not re-run.",
+     "policy_measured": null,
+     "policy_recheck": null,
+     "policy_snapshot": null,
+     "proven": "artifact",
+     "wheel_sha256": "f33658b06591c44dccba1c83b3eef26eee8a2360af10a9defcd88b30b51c556d"
+    },
+    "1.1.0": {
+     "license": "BUSL-1.1",
+     "license_note": "METADATA `License: BUSL-1.1`, no OSI classifier; the wheel's licenses/LICENSE is the BUSL text (Licensor: the dependency's own licensor, Additional Use Grant: None, Change License Apache-2.0). Our own product, so it constrains nothing; recorded because the register states what is installed.",
+     "policy_evidence": "Read from the 1.1.0 wheel and proved on it. ephemora_cell/__init__.py:124 run_isolated still dispatches to process_executor.run_isolated (a disposable worker subprocess); process_worker.py:69 _apply_rlimits sets RLIMIT_NOFILE at :81 and RLIMIT_FSIZE from config.disk_quota_bytes at :87, so the quota stays a hard per-file write cap (the release now says so itself, wasi_runtime.py:242), default 256 MiB at wasi_runtime.py:304; RLIMIT_AS/RSS back the memory cap at :99-108. Runtime proof on 2026-10-17 with scripts/ephemeral_demo.py: spawn, one live cell, deterministic result, runtime=cpython-cell/3.13.16 net=none, audit lines, reaped; receipt sha256 a1c5c77f07df7bd7aae6f1222b83a3335a263db5862ea1a6b0d90e0bd26b41fe.",
+     "policy_measured": "2026-10-17",
+     "policy_recheck": "2027-01-17",
+     "policy_snapshot": {
+      "max_fuel": 20000000000,
+      "max_memory_mb": 256,
+      "network": "none",
+      "timeout_seconds": 30
+     },
+     "proven": "artifact",
+     "wheel_sha256": "94cf392f8c984414dfe912d7f98b2aaf262758e49508ab9650748492ec989d58"
+    }
+   }
+  }
+ }
+}

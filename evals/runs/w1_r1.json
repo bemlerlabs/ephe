@@ -1,0 +1,19 @@
+{
+  "task_id": "W1",
+  "family": "endstate",
+  "rep": 1,
+  "session_id": "ob-w1-r1-1790159606",
+  "ok": true,
+  "note": "endstate=True remaining=1",
+  "wall_ms": 16213.1,
+  "ttft_first_event_ms": 202.0,
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "write_file",
+    "write_file",
+    "execute_code"
+  ],
+  "answer_chars": 525,
+  "answer_tail": "\n\nErledigt ✅ — alle Schritte durch echte Tool-Ausgaben belegt:\n\n| Schritt | Datei | Verifizierter Zustand |\n|---|---|---|\n| 1 | `/private/tmp/bench-option-b/ws/todos.json` | angelegt mit beiden Items (`draft item`, `keep me`) — 88 Zeichen |\n| 2 | `todos.json` | per `write_file` auf nur `keep me` reduziert — 48 Zeichen |\n| 3 | Rücklese-Verifikation | `RAW: {\"items\": [{\"title\": \"keep me\", \"done\": false}]}` |\n\n**Verifikation:** Genau 1 Item, Titel `keep me`, `done: false`. Das `draft item` ist entfernt.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T12:33:43"
+}

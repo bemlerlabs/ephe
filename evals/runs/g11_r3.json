@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "task_id": "G11",
+  "family": "gaia",
+  "level": "L3",
+  "rep": 3,
+  "session_id": "ob-g11-r3-1790173829",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==76 (weighted mean 3 files)",
+  "error_class": null,
+  "wall_ms": 15484.3,
+  "ttft_first_event_ms": 204.9,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 1.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 1.8
+    },
+    {
+      "tool": "file_search",
+      "ms": 46.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.6
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.6
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 76",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "file_search",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 340,
+  "tokens_out_proxy": 85.0,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung aus den real gelesenen Datei-Inhalten:**\n\n| Datei | Monatsumsätze | Total | Zeilen (ohne Header) |\n|---|---|---|---|\n| `g6_a.csv` | 10 + 20 + 30 | **60** | 3 |\n| `g6_b.csv` | 40 + 60 | **100** | 2 |\n\n**Zeilenanzahl-gewichteter Mittelwert:**\n\n(60 × 3 + 100 × 2) / (3 + 2) = (180 + 200) / 5 = 380 / 5 = **76**\n\nFINAL ANSWER: 76",
+  "ts": "2026-09-23T16:30:45"
+}

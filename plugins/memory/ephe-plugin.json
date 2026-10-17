@@ -1,0 +1,24 @@
+{
+  "manifest_version": 1,
+  "name": "memory",
+  "version": "1.0.0",
+  "description": "Short- and long-term memory across sessions.",
+  "permissions": {
+    "tool_families": [
+      "memory"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "memorize",
+        "description": "Store a durable fact",
+        "template": "Store the following as a durable memory and confirm what you kept: {input}"
+      }
+    ]
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "task_id": "W8",
+  "family": "endstate",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-w8-r1-1790172884",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "content='seed' old_gone=True",
+  "error_class": null,
+  "wall_ms": 39893.5,
+  "ttft_first_event_ms": 291.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "tool_search",
+      "ms": 0.7
+    },
+    {
+      "tool": "execute_code",
+      "ms": 1.3
+    },
+    {
+      "tool": "write_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "tool_call",
+      "ms": 3.9
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.9
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.5
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.6
+    },
+    {
+      "tool": "execute_code",
+      "ms": 2.3
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "tool_search",
+    "execute_code",
+    "write_file",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "execute_code"
+  ],
+  "answer_chars": 664,
+  "tokens_out_proxy": 166.0,
+  "fixture_hash": "b86567c73091",
+  "answer_tail": "Ausgaben belegt:\n\n| Schritt | Aktion | Verifiziertes Ergebnis |\n|---|---|---|\n| 1 | `write_file` → `b.txt` | `seed` angelegt (4 Zeichen) |\n| 2 | `delete_file` → `a.txt` | `deleted '.../a.txt'` |\n| 3 | `write_file` → `c.txt` | `seed` angelegt (4 Zeichen) |\n| 4 | `delete_file` → `b.txt` | `deleted '.../b.txt'` |\n| 5 | `write_file` → `d.txt` | `seed` angelegt (4 Zeichen) |\n| 6 | `delete_file` → `c.txt` | `deleted '.../c.txt'` |\n| 7 | Rücklese-Verifikation | `d.txt` → `'seed'` ✔ |\n\n**Endzustand:** Nur `d.txt` existiert, Inhalt `seed`. `a.txt`, `b.txt` und `c.txt` sind gelöscht.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:15:24"
+}

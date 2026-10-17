@@ -1,0 +1,7 @@
+{"id": "spreadsheets-1", "command": "xlsx", "input": "Erstelle eine Ausgaben-Tabelle (Miete, Essen, Transport) mit Summenformel als XLSX.", "expect": {"kind": "artifact", "suffix": ".xlsx"}}
+{"id": "spreadsheets-2", "command": "xlsx", "input": "Baue eine Mitarbeiterliste mit Gehältern und einer SUMME über 12 Monaten.", "expect": {"kind": "tool_use", "any": ["create_xlsx"]}}
+{"id": "spreadsheets-3", "command": "xlsx", "input": "Wandle diese CSV in eine formatierte Arbeitsmappe: name,rolle,stunde\\nada,dev,80\\ngrace,ops,70", "expect": {"kind": "artifact", "suffix": ".xlsx"}}
+{"id": "spreadsheets-4", "command": "xlsx", "input": "Erstelle ein Budget-Sheet mit Durchschnittsformel pro Kategorie.", "expect": {"kind": "contains", "any": ["Durchschnitt", "Formel"]}}
+{"id": "spreadsheets-5", "command": null, "input": "Erzeuge ein Diagramm zum Umsatzverlauf Jan–Mär (120k, 135k, 150k).", "expect": {"kind": "tool_use", "any": ["generate_chart"]}}
+{"id": "spreadsheets-6", "command": null, "input": "Beantworte ohne Tabellenblatt: Was ist der Unterschied zwischen SUMME und SUMMEWENN?", "expect": {"kind": "contains", "any": ["SUMMEWENN"]}}
+{"id": "spreadsheets-7", "command": "xlsx", "input": "Erstelle die Vorstands-Tabelle mit echten Werten — keine unbestimmten Zellen.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}

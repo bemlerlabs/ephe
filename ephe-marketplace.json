@@ -1,0 +1,278 @@
+{
+  "name": "ephe-plugins-official",
+  "version": 1,
+  "description": "Official Ephe plugins: built-in product plugins for Ephe Agent.",
+  "description_i18n": {
+    "en": "Official Ephe plugins: built-in product plugins for Ephe Agent.",
+    "de": "Offizielle Ephe-Plugins: eingebaute Produkt-Plugins für den Ephe Agent."
+  },
+  "owner": "Ephe",
+  "plugins": [
+    {
+      "name": "browser-use",
+      "source": "plugins/browser-use",
+      "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+      "description_i18n": {
+        "en": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+        "de": "Echte Browser-Automatisierung: navigieren, klicken, tippen, Screenshot — approval-gated."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/browser-use/icon.svg",
+      "category": "browser",
+      "keywords": [
+        "browser use",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "code-shell",
+      "source": "plugins/code-shell",
+      "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+      "description_i18n": {
+        "en": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+        "de": "Coding-Loop: lesen, editieren, patchen, Tests laufen lassen, formatieren, analysieren."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/code-shell/icon.svg",
+      "category": "code",
+      "keywords": [
+        "code shell",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "documents",
+      "source": "plugins/documents",
+      "description": "Real document production: PDF, DOCX, QR codes, notebooks, briefs.",
+      "description_i18n": {
+        "en": "Real document production: PDF, DOCX, QR codes, notebooks, briefs.",
+        "de": "Echte Dokument-Produktion: PDF, DOCX, QR-Codes, Notebooks, Briefe."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/documents/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "documents",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "guide",
+      "source": "plugins/guide",
+      "description": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, doctor flows.",
+      "description_i18n": {
+        "en": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, doctor flows.",
+        "de": "Ephe-Gebrauchs- und Diagnose-Guide: Engines, Plugins, Hooks, Doctor-Flows."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/guide/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "guide",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "image-studio",
+      "source": "plugins/image-studio",
+      "description": "Image generation for posters, illustrations and concepts.",
+      "description_i18n": {
+        "en": "Image generation for posters, illustrations and concepts.",
+        "de": "Bildgenerierung für Poster, Illustrationen und Konzepte."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/image-studio/icon.svg",
+      "category": "image",
+      "keywords": [
+        "image studio",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "mcp-connector",
+      "source": "plugins/mcp-connector",
+      "description": "External tools via Model Context Protocol servers.",
+      "description_i18n": {
+        "en": "External tools via Model Context Protocol servers.",
+        "de": "Externe Werkzeuge über Model-Context-Protocol-Server."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/mcp-connector/icon.svg",
+      "category": "mcp",
+      "keywords": [
+        "mcp connector",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "memory",
+      "source": "plugins/memory",
+      "description": "Short- and long-term memory across sessions.",
+      "description_i18n": {
+        "en": "Short- and long-term memory across sessions.",
+        "de": "Kurz- und Langzeitgedächtnis über Sitzungen hinweg."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/memory/icon.svg",
+      "category": "memory",
+      "keywords": [
+        "memory",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "plugin-creator",
+      "source": "plugins/plugin-creator",
+      "description": "Create and validate Ephe plugins: scaffolds, permissions, signing.",
+      "description_i18n": {
+        "en": "Create and validate Ephe plugins: scaffolds, permissions, signing.",
+        "de": "Ephe-Plugins erstellen und validieren: Gerüste, Permissions, Signierung."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/plugin-creator/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "plugin creator",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "presentations",
+      "source": "plugins/presentations",
+      "description": "Real deck production: PPTX presentations, pitch decks, diagrams.",
+      "description_i18n": {
+        "en": "Real deck production: PPTX presentations, pitch decks, diagrams.",
+        "de": "Echte Deck-Produktion: PPTX-Präsentationen, Pitch-Decks, Diagramme."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/presentations/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "presentations",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "skill-creator",
+      "source": "plugins/skill-creator",
+      "description": "Create and grade Ephe skill packs with rubric and golden gates.",
+      "description_i18n": {
+        "en": "Create and grade Ephe skill packs with rubric and golden gates.",
+        "de": "Ephe-Skill-Packs erstellen und benoten — mit Rubrik und Golden-Gates."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/skill-creator/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "skill creator",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "spreadsheets",
+      "source": "plugins/spreadsheets",
+      "description": "Real spreadsheet production: formatted XLSX workbooks and charts.",
+      "description_i18n": {
+        "en": "Real spreadsheet production: formatted XLSX workbooks and charts.",
+        "de": "Echte Tabellen-Produktion: formatierte XLSX-Arbeitsmappen und Charts."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/spreadsheets/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "spreadsheets",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "vision",
+      "source": "plugins/vision",
+      "description": "Vision-capable model reads screenshots and images.",
+      "description_i18n": {
+        "en": "Vision-capable model reads screenshots and images.",
+        "de": "Vision-fähiges Modell liest Screenshots und Bilder."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/vision/icon.svg",
+      "category": "vision",
+      "keywords": [
+        "vision",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "voice",
+      "source": "plugins/voice",
+      "description": "Text-to-speech for answers and read-aloud.",
+      "description_i18n": {
+        "en": "Text-to-speech for answers and read-aloud.",
+        "de": "Sprachausgabe für Antworten und Vorlesen."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/voice/icon.svg",
+      "category": "audio",
+      "keywords": [
+        "voice",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
+      "name": "web-research",
+      "source": "plugins/web-research",
+      "description": "Live web research for the agent (opt-in, needs an API key).",
+      "description_i18n": {
+        "en": "Live web research for the agent (opt-in, needs an API key).",
+        "de": "Live-Websuche für den Agenten (Opt-in, braucht einen API-Key)."
+      },
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/web-research/icon.svg",
+      "category": "research",
+      "keywords": [
+        "web research",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    }
+  ]
+}

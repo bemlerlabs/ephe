@@ -1,0 +1,143 @@
+name: Container and shell lint
+
+# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, row 12 of the residue: hadolint plus shellcheck over
+# the things a container runs, with both binaries resolved rather than assumed. Neither is a dependency
+# of this project, and `scripts/docker-lint-baseline.json` records counts per tool version, so the leg
+# must not depend on whatever a listener happens to carry: it downloads the pinned copies into
+# `RUNNER_TEMP` -- which the runner wipes -- verifies a digest, and refuses by name if any step fails.
+# That is the pattern the pull-request legs already use for their installs; a tool landing in the
+# listener's `_tool` cache would be the persistence leak closed in `dc6be266`.
+#
+# The two digests for hadolint are the publisher's own `checksums.sha256`. shellcheck publishes no
+# checksums for its release assets, so those two are digests computed from the downloaded tarballs on
+# 2026-10-11 (`shasum -a 256` over `shellcheck-v0.11.0.linux.aarch64.tar.gz` and its x86_64 sibling) -- a
+# known-good pin rather than a cross-check against the author, said here rather than implied.
+#
+# What the gate enforces is a ratchet against `scripts/docker-lint-baseline.json`, not a severity
+# threshold: measured 2026-10-11 with hadolint 2.15.1 and shellcheck 0.11.0, this tree reports 24
+# findings across 8 codes (SC2155 12, SC2034 5, DL3008 2, and DL3025, SC2012, SC2028, SC2164, SC2181 at
+# one each), and `--severity=error` alone would be a gate that can only ever go red on a parse failure.
+# A new rule code or a count above its ceiling is what turns this red; the lowered counts are printed
+# for the owner to bank with `--update`.
+#
+# Nightly on `vars.CI_LINUX_RUNNER`. The instrument itself costs 0.73 s on this tree (15 tracked shell
+# scripts plus one Dockerfile), so the leg's wall is the two downloads and the checkout, and 1.5 carries
+# that as the number the first run gives.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docklint-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  EPHE_HADOLINT_VERSION: "2.15.1"
+  EPHE_SHELLCHECK_VERSION: "0.11.0"
+
+jobs:
+  lint:
+    name: hadolint and shellcheck against the recorded ceilings
+    # The scratch root is at job level, kept out of the workflow `env:` block where `runner` is out of
+    # scope: a reference there fails validation for the entire file, and the run arrives with zero
+    # jobs, no log, and the file path in place of its name. Measured on the push of `6e5fe969` against
+    # `lint.yml`; `tests/test_workflow_env_scopes.py` refuses the shape now.
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Scratch root
+        # `runner` is not in scope in a job-level `env:`, so the root lives in a step.
+        run: echo "EPHE_DOCKTOOLS=${{ runner.temp }}/ephe-docktools" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        # Pinned, like the working legs: without it the interpreter resolves to the
+        # self-hosted runner's /usr/local/bin/python3 and scripts/ci_preflight.sh refuses the
+        # job as ambient host state (it passed none of these before).
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Hermetic preflight
+        run: bash scripts/ci_preflight.sh
+
+      - name: Resolve the lint tools
+        env:
+          HADOLINT_ARM64_SHA: f6198ef8090f404dbb771abfee086eb8c48ac177f30da7fd3510aca35b344b5d
+          HADOLINT_X86_64_SHA: c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
+          SHELLCHECK_ARM64_SHA: 68a8133197a50beb8803f8d42f9908d1af1c5540d4bb05fdfca8c1fa47decefc
+          SHELLCHECK_X86_64_SHA: b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6
+        run: |
+          set -uo pipefail
+          # Each prerequisite is checked and named, because a runner that cannot download is a red this
+          # leg would otherwise report as a linting failure. curl and bash are measured on the Linux CI runner
+          # (the two `Resolve the audit tools` steps in supply-chain.yml); sha256sum and tar are not, so
+          # they are answered here rather than assumed.
+          missing=()
+          for cmd in curl sha256sum tar; do
+            command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::this runner lacks ${missing[*]}, which the leg needs to fetch and verify its tools"
+            exit 1
+          fi
+          mkdir -p "$EPHE_DOCKTOOLS"
+          case "$(uname -m)" in
+            aarch64|arm64)
+              hadolint_asset="hadolint-linux-arm64"; hadolint_sha="$HADOLINT_ARM64_SHA"
+              sc_asset="shellcheck-v${EPHE_SHELLCHECK_VERSION}.linux.aarch64.tar.gz"
+              sc_sha="$SHELLCHECK_ARM64_SHA" ;;
+            x86_64|amd64)
+              hadolint_asset="hadolint-linux-x86_64"; hadolint_sha="$HADOLINT_X86_64_SHA"
+              sc_asset="shellcheck-v${EPHE_SHELLCHECK_VERSION}.linux.x86_64.tar.gz"
+              sc_sha="$SHELLCHECK_X86_64_SHA" ;;
+            *)
+              echo "::error::no pinned asset for $(uname -m); pin it in this step before enabling the leg"
+              exit 1 ;;
+          esac
+
+          curl --proto '=https' --tlsv1.2 -sSfL \
+            -o "$EPHE_DOCKTOOLS/hadolint" \
+            "https://github.com/hadolint/hadolint/releases/download/v${EPHE_HADOLINT_VERSION}/${hadolint_asset}"
+          printf '%s  %s\n' "$hadolint_sha" "$EPHE_DOCKTOOLS/hadolint" | sha256sum --check --status \
+            || { echo "::error::hadolint digest does not match the publisher's checksums.sha256"; exit 1; }
+          chmod +x "$EPHE_DOCKTOOLS/hadolint"
+
+          curl --proto '=https' --tlsv1.2 -sSfL \
+            -o "$EPHE_DOCKTOOLS/shellcheck.tar.gz" \
+            "https://github.com/koalaman/shellcheck/releases/download/v${EPHE_SHELLCHECK_VERSION}/${sc_asset}"
+          printf '%s  %s\n' "$sc_sha" "$EPHE_DOCKTOOLS/shellcheck.tar.gz" | sha256sum --check --status \
+            || { echo "::error::shellcheck digest does not match the value recorded in this file"; exit 1; }
+          # The `.tar.gz` asset rather than the `.tar.xz` one: gzip comes with the base image, `xz` has
+          # not been measured on this runner, and a step that dies on a missing decompressor reads like a
+          # lint failure.
+          tar -xzf "$EPHE_DOCKTOOLS/shellcheck.tar.gz" -C "$EPHE_DOCKTOOLS"
+          mv "$EPHE_DOCKTOOLS/shellcheck-v${EPHE_SHELLCHECK_VERSION}/shellcheck" "$EPHE_DOCKTOOLS/shellcheck"
+          chmod +x "$EPHE_DOCKTOOLS/shellcheck"
+
+          echo "EPHE_HADOLINT_BIN=$EPHE_DOCKTOOLS/hadolint" >> "$GITHUB_ENV"
+          echo "EPHE_SHELLCHECK_BIN=$EPHE_DOCKTOOLS/shellcheck" >> "$GITHUB_ENV"
+          "$EPHE_DOCKTOOLS/hadolint" --version
+          "$EPHE_DOCKTOOLS/shellcheck" --version | sed -n '1,4p'
+
+      - name: Lint the container and every tracked shell script
+        run: python3 scripts/docker_lint.py --json out/docklint/findings.json
+
+      - name: Upload the findings
+        # if: always() for the same reason the timing leg does it: the run worth reading is the red one.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docklint-findings
+          path: out/docklint/findings.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "public": [
+    {
+      "name": "browser-use",
+      "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "af307177d0be5d8373e171d17c8ea05bd9ad97aa5fa2407e4d93acae6de8676b",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "code-shell",
+      "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "b37027b5d881353dfe00ac87d721f55f919b975dfd9a7e9e3f32bf2a84eb51e2",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "documents",
+      "description": "Real document production: PDF, DOCX, QR codes, source notebooks and report-grade briefs.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "0ca79ce5076babb5a7d1589c5716b7016a114debd322d18ef8a7e9d1b91afcf0",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "guide",
+      "description": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, commands, doctor flows.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "01ea035c8e442bfa6d72c7abbea0fc3760d56b34feec2f7ff7e7759792a8f19e",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "image-studio",
+      "description": "Image endpoint (opt-in) generates pictures from prompts.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "4e7e28a43b0d33ad289c023e15d9d997492b9907d6e2708d39d6fdff5a74c9bf",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "mcp-connector",
+      "description": "External tools via Model Context Protocol servers.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "f0f86b4112ff5af0074781ec64a526cc834170d85e56f5c28f345d2053d2df5d",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "memory",
+      "description": "Short- and long-term memory across sessions.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "503924f5e8c5c93a0c7c9b49c683990f9525aa1da9df265e2ff4c4f42bb12fb4",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "plugin-creator",
+      "description": "Create and validate Ephe plugins: manifest scaffolds, permission reviews, signing guidance.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "973fc67bdd415f08df61469f6d7dbbe2aaf4ae60b0c71a7f577f8efee7eae318",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "presentations",
+      "description": "Real deck production: PPTX presentations, pitch decks, diagrams and SVG assets.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "7032d43b66094222d7595b3e3adb07086bec5bb27cf85a816da43981868557ed",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "skill-creator",
+      "description": "Create and grade Ephe skill packs: SKILL.md authoring, rubric and golden-case quality gates.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "6d661a7fa522c7583e2acf99eae3f12492f04468dffbfe11a59184819ea59439",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "spreadsheets",
+      "description": "Real spreadsheet production: formatted XLSX workbooks, charts and tabular evaluations.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "f1b5d9179813c819246c95c539b59a7c42c98eff618ad826afba30b1a7e7ee0a",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "vision",
+      "description": "Vision-capable model reads screenshots and images.",
+      "tags": [
+        "multimodal"
+      ],
+      "enabled": true,
+      "sha256": "1794952f3062c750b2ee16934f9546341d648f60355a6acd867894d2d8944350",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "voice",
+      "description": "Text-to-speech for answers and read-aloud.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "7d5778bb4d457f13a39848a6e2bbc74a01a164acad738e8e8da059c75657add2",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "web-research",
+      "description": "Live web research for the agent (opt-in, needs an API key).",
+      "tags": [],
+      "enabled": true,
+      "sha256": "9b146501b3aaea3d1215c8b6f1c613a62c0073d7a80861393342f853f041e69e",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    }
+  ],
+  "personal": []
+}

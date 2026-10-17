@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "task_id": "T8",
+  "family": "tau",
+  "level": "L3",
+  "rep": 3,
+  "session_id": "ob-t8-r3-1790173323",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==45 (mirror-recovery)",
+  "error_class": null,
+  "wall_ms": 13698.6,
+  "ttft_first_event_ms": 202.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 31.2
+    },
+    {
+      "tool": "file_search",
+      "ms": 44.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.0
+    }
+  ],
+  "final_answer_line": "",
+  "tool_calls": [
+    "file_search",
+    "file_search",
+    "read_file"
+  ],
+  "answer_chars": 307,
+  "tokens_out_proxy": 76.8,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung aus der real gelesenen Datei** (`t8_mirror.csv` — der `run_shell`-Rechner war durch die Whitelist blockiert; die Zahlen stammen direkt aus der `read_file`-Ausgabe):\n\n| Datei | Werte | Summe |\n|---|---|---|\n| `t8_mirror.csv` (Spiegel von `t8.csv`) | 10 + 15 + 20 | **45** |\n\n`FINAL ANSWER: 45`",
+  "ts": "2026-09-23T16:22:16"
+}

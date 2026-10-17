@@ -1,0 +1,179 @@
+"""Ephe — Update check (update-experience wave)
+core/update_check.py
+
+The app tells the user when a newer Ephe release exists. PWA and desktop
+share this source of truth; the desktop shell additionally offers an
+in-place update through the Tauri updater (see app/src-tauri).
+
+Contract (pinned in tests/test_r67_update_check.py):
+- semver comparison tolerates "v"-prefixed tags; equal versions are NOT an
+  update.
+- Fail-soft: an unreachable release source yields available=False with an
+  error field — the app never breaks because the check failed.
+- TTL cache (default 6 h) keeps the release source from being hammered;
+  force=True bypasses it.
+- The deep setting `appearance.update_check` (default ON) gates the check —
+  privacy-first: opt-out is one toggle, and nothing but an anonymous request
+  to the release source is involved (no telemetry, no identifiers).
+
+Ephe – Bad Liebenzell, Schwarzwald
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+import re
+import time
+import urllib.request
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+UPDATE_TTL_S = 6 * 3600
+# A failed check is not an answer worth keeping for six hours: the feed can go
+# live, and a button that keeps reporting a stale failure reads as broken. A
+# short failure TTL also makes an explicit refresh unnecessary in most cases.
+FAILURE_TTL_S = 300
+_cache: dict[str, Any] = {"at": None, "value": None}
+
+_SEMVER_RE = re.compile(r"^\D*(\d+)\.(\d+)\.(\d+)")
+# The full form keeps the prerelease, because a beta product's whole update
+# story lives there: a later beta is newer than an earlier one, and the short
+# numeric tuple above cannot tell the two apart.
+_SEMVER_FULL_RE = re.compile(
+    r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
+    r"(?:-(?P<pre>[0-9A-Za-z.-]+))?(?:\+(?P<build>[0-9A-Za-z.-]+))?$"
+)
+
+
+def release_repo() -> str:
+    """GitHub repo the release feed is read from (owner can override via env
+    before a repository move). Default derives from core.__github__ so the
+    release feed follows the canonical product URL."""
+    override = os.environ.get("EPHE_UPDATE_REPO")
+    if override:
+        return override
+    from core import __github__
+
+    return __github__.removeprefix("https://github.com/")
+
+
+def current_version() -> str:
+    from core._version import __version__
+
+    return __version__
+
+
+def _semver(tag: str) -> tuple[int, int, int]:
+    m = _SEMVER_RE.match((tag or "").strip())
+    if not m:
+        return (0, 0, 0)
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+
+
+def _parse(tag: str) -> tuple[int, int, int, list[str] | None] | None:
+    """The version with its prerelease kept: (major, minor, patch, pre).
+
+    `pre` is None for a release and a list of identifiers for a prerelease,
+    which is what makes a release outrank any of its prereleases."""
+    m = _SEMVER_FULL_RE.match((tag or "").strip())
+    if not m:
+        return None
+    pre = m.group("pre")
+    return (int(m.group("major")), int(m.group("minor")), int(m.group("patch")),
+            pre.split(".") if pre else None)
+
+
+def _compare(candidate: str, current: str) -> int:
+    """Semver order, prereleases included. 0 also means "cannot be ordered",
+    which never offers an update — the honest answer for an unparseable tag."""
+    a, b = _parse(candidate), _parse(current)
+    if a is None or b is None:
+        return 0
+    if a[:3] != b[:3]:
+        return 1 if a[:3] > b[:3] else -1
+    pa, pb = a[3], b[3]
+    if pa is None and pb is None:
+        return 0
+    if pa is None:
+        return 1
+    if pb is None:
+        return -1
+    for ia, ib in zip(pa, pb):
+        if ia == ib:
+            continue
+        na, nb = ia.isdigit(), ib.isdigit()
+        if na and nb:
+            return 1 if int(ia) > int(ib) else -1
+        if na != nb:
+            return -1 if na else 1
+        return 1 if ia > ib else -1
+    if len(pa) == len(pb):
+        return 0
+    return 1 if len(pa) > len(pb) else -1
+
+
+def _is_newer(candidate: str, current: str) -> bool:
+    return _compare(candidate, current) > 0
+
+
+def _fetch_latest() -> dict[str, Any]:
+    """Anonymous request against the GitHub release feed. Raises on network
+    failure (the caller turns that into an honest unavailable-result)."""
+    url = f"https://api.github.com/repos/{release_repo()}/releases/latest"
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310 — https, pinned host
+        data = json.loads(resp.read().decode("utf-8"))
+    return {
+        "tag": str(data.get("tag_name") or ""),
+        "url": str(data.get("html_url") or f"https://github.com/{release_repo()}/releases"),
+        "notes": str(data.get("body") or "")[:600],
+    }
+
+
+def update_check_enabled() -> bool:
+    """Deep setting `appearance.update_check` (default ON)."""
+    from core.settings_schema import deep_bool
+
+    return deep_bool("appearance.update_check")
+
+
+def check_for_update(force: bool = False) -> dict[str, Any]:
+    """Full contract result; cached within the TTL unless force=True."""
+    if not update_check_enabled():
+        return {"enabled": False, "available": False}
+    now = time.monotonic()
+    cached = _cache["value"]
+    if not force and cached is not None and _cache["at"] is not None:
+        ttl = FAILURE_TTL_S if "error" in cached else UPDATE_TTL_S
+        if now - _cache["at"] < ttl:
+            return dict(cached)
+
+    current = current_version()
+    try:
+        latest = _fetch_latest()
+        result = {
+            "enabled": True,
+            "available": _is_newer(latest["tag"], current),
+            "current": current,
+            "latest": latest["tag"].removeprefix("v").removeprefix("V"),
+            "url": latest["url"],
+            "notes": latest["notes"],
+        }
+    except Exception as exc:  # noqa: BLE001 — the check must never break the app
+        # The exception is for the log below. The client gets a fixed sentence.
+        logger.warning("update check failed: %s", exc, exc_info=True)
+        result = {
+            "enabled": True,
+            "available": False,
+            "current": current,
+            "error": "the release source could not be reached",
+        }
+    _cache["at"], _cache["value"] = now, result
+    return dict(result)
+
+
+def _reset_cache() -> None:
+    """Test seam: drop the TTL cache."""
+    _cache["at"], _cache["value"] = None, None
