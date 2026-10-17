@@ -1,0 +1,125 @@
+// I6-3: the Behaviour area — the chat section of the register finally has its
+// own place, and its select values show German text instead of identifiers.
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+
+import { BehaviourSection } from './sections-behaviour'
+import type { SettingsModel } from './types'
+import type { DeepSection } from '@/types'
+
+const sections = [
+  {
+    key: 'chat',
+    fields: [
+      {
+        key: 'chat.show_reasoning',
+        type: 'bool',
+        label: 'Denkprozess anzeigen',
+        labelEn: 'Show reasoning',
+        default: true,
+        value: true,
+        hint: 'Zeigt die Denkphase des Modells als eigene Zeile.',
+        hintEn: 'Shows the model reasoning as its own line.',
+      },
+      {
+        key: 'chat.details_mode',
+        type: 'select',
+        label: 'Antwortprozess',
+        labelEn: 'Response process',
+        default: 'expanded',
+        value: 'expanded',
+        options: ['expanded', 'collapsed'],
+        optionLabels: [
+          { value: 'expanded', label: 'Ausgeklappt', labelEn: 'Expanded' },
+          { value: 'collapsed', label: 'Eingeklappt', labelEn: 'Collapsed' },
+        ],
+      },
+      {
+        key: 'chat.stream_idle_seconds',
+        type: 'number',
+        label: 'Stream-Abbruch nach Stille (s)',
+        labelEn: 'Abort stream after silence (s)',
+        default: 60,
+        value: 60,
+        min: 10,
+        max: 600,
+        step: 1,
+      },
+    ],
+  },
+  {
+    key: 'appearance',
+    fields: [
+      {
+        key: 'appearance.font_scale',
+        type: 'number',
+        label: 'Schriftgröße (%)',
+        labelEn: 'Font scale (%)',
+        default: 100,
+        value: 100,
+        min: 80,
+        max: 150,
+      },
+    ],
+  },
+] as unknown as DeepSection[]
+
+function model(over: Record<string, unknown> = {}) {
+  return {
+    deepSections: sections,
+    deepDraft: {},
+    i18n: { language: 'de' },
+    t: (k: string) => k,
+    setDeepField: vi.fn(),
+    ...over,
+  } as unknown as SettingsModel
+}
+
+beforeEach(() => localStorage.clear())
+
+describe('BehaviourSection', () => {
+  it('zeigt Titel, Zweck und jede chat-Zeile — nichts aus appearance', () => {
+    render(<BehaviourSection model={model()} />)
+    expect(screen.getByTestId('page-title').textContent).toBe('settings.behaviourTitle')
+    expect(screen.getByTestId('page-subtitle').textContent).toBe('settings.behaviourHint')
+    expect(screen.getByTestId('deep-row-chat.show_reasoning')).toBeTruthy()
+    expect(screen.getByTestId('deep-row-chat.details_mode')).toBeTruthy()
+    expect(screen.getByTestId('deep-row-chat.stream_idle_seconds')).toBeTruthy()
+    expect(screen.queryByTestId('deep-row-appearance.font_scale')).toBeNull()
+  })
+
+  it('führt jede Zeile mit Beschreibungstext aus dem Register', () => {
+    render(<BehaviourSection model={model()} />)
+    expect(screen.getByTestId('deep-row-chat.show_reasoning-desc').textContent).toContain(
+      'Denkphase',
+    )
+  })
+
+  it('zeigt die Auswahl in der Sprache des Interfaces, der Wert bleibt der Identifier', () => {
+    render(<BehaviourSection model={model()} />)
+    const select = screen.getByTestId('setting-select-chat.details_mode') as HTMLSelectElement
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(['expanded', 'collapsed'])
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Ausgeklappt',
+      'Eingeklappt',
+    ])
+  })
+
+  it('schreibt eine Aenderung in den Draft', () => {
+    const setDeepField = vi.fn()
+    render(<BehaviourSection model={model({ setDeepField })} />)
+    const select = screen.getByTestId('setting-select-chat.details_mode')
+    fireEvent.change(select, { target: { value: 'collapsed' } })
+    expect(setDeepField).toHaveBeenCalledWith('chat', 'chat.details_mode', 'collapsed')
+    fireEvent.click(screen.getByTestId('setting-switch-chat.show_reasoning'))
+    expect(setDeepField).toHaveBeenCalledWith('chat', 'chat.show_reasoning', false)
+  })
+
+  it('klemmt die Zahl an die Schranke aus dem Payload', () => {
+    render(<BehaviourSection model={model()} />)
+    const input = screen.getByTestId('setting-number-chat.stream_idle_seconds') as HTMLInputElement
+    expect(input.min).toBe('10')
+    expect(input.max).toBe('600')
+    expect(input.step).toBe('1')
+  })
+})

@@ -1,0 +1,95 @@
+# ◑ Ephe – Docker Compose
+# Advanced option: docker compose up → http://localhost:8765
+#
+# Binding (I2-4, AGENTS.md: conservative server binding):
+# Both ports are published on the HOST LOOPBACK only, so nothing reaches this
+# container from the network unless you say so. Mobile or LAN access is a
+# deliberate opt-in — open it with:
+#   EPHE_PUBLISH_HOST=0.0.0.0 docker compose up
+# (EPHE_LAN stays 1 below, so /api/* keeps requiring the pairing token; scan
+# the in-app QR code from a device on the same Wi-Fi.)
+#
+# The engine is an explicit choice (no silent default, W18): this compose file
+# declares the bundled Ollama service via EPHE_MODEL_PROVIDER=local_ollama.
+# Point it at any OpenAI-compatible endpoint instead (DGX Spark / vLLM) with:
+#   EPHE_MODEL_PROVIDER=openai_compatible \
+#   EPHE_OPENAI_COMPAT_BASE_URL=http://your-engine-host:8000/v1 \
+#   EPHE_OPENAI_COMPAT_MODEL=your-model-id docker compose up
+# - Memory, sessions, skills, and profile are stored in named volumes
+# - Web search, public mobile access, and external APIs are optional opt-in paths
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "${EPHE_PUBLISH_HOST:-127.0.0.1}:11434:11434"
+    environment:
+      - OLLAMA_MODELS=/root/.ollama
+    entrypoint: >
+      /bin/sh -c "
+        ollama serve &
+        until ollama list >/dev/null 2>&1; do sleep 1; done &&
+        ollama pull gemma4:12b &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ollama list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  ephe:
+    build: .
+    ports:
+      - "${EPHE_PUBLISH_HOST:-127.0.0.1}:8765:8765"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      # W18: the engine is the user's declared choice, so compose refuses to start without
+      # one instead of choosing for them (`:?` aborts with the message below).
+      - EPHE_MODEL_PROVIDER=${EPHE_MODEL_PROVIDER:?set the engine you want (local_ollama, custom_ollama, openai_compatible)}
+      - EPHE_MODEL=${EPHE_MODEL:?set the model tag your engine serves}
+      # For an external engine, use instead:
+      #   EPHE_MODEL_PROVIDER=openai_compatible
+      #   EPHE_OPENAI_COMPAT_BASE_URL=http://your-engine-host:8000/v1
+      #   EPHE_OPENAI_COMPAT_MODEL=your-model-id
+      - EPHE_OPENAI_COMPAT_BASE_URL=${EPHE_OPENAI_COMPAT_BASE_URL:-}
+      - EPHE_OPENAI_COMPAT_MODEL=${EPHE_OPENAI_COMPAT_MODEL:-}
+      # In-network name of the bundled `ollama` service below, so `docker compose
+      # up` talks to the container it just started. To use a daemon running on the
+      # host instead, override with http://host.docker.internal:11434 (the mapping
+      # under extra_hosts makes that resolve on Linux too).
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - EPHE_LOCAL_OLLAMA_BASE_URL=${EPHE_LOCAL_OLLAMA_BASE_URL:-http://ollama:11434}
+      - EPHE_DOCKER=1
+      # Any non-loopback bind forces LAN auth (run_server.py: fail-closed).
+      - EPHE_LAN=${EPHE_LAN:-1}
+      - EPHE_MOBILE_HOST=${EPHE_MOBILE_HOST:-}
+    extra_hosts:
+      # Docker Desktop resolves host.docker.internal on its own; this gives the
+      # same name on Linux so the host-daemon override above is not Docker-Desktop-only.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ephe_data:/root/.ephe
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8765/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+    # Ollama model cache (gemma4:12b, downloaded once)
+    # Pinned so the cache and your data keep their name when the checkout
+    # directory is renamed; a compose-derived name would follow the project.
+    name: ephe_ollama_data
+  ephe_data:
+    # YOUR personal knowledge: memory, sessions, skills, profile
+    # This is local app data; optional online features must be enabled explicitly.
+    name: ephe_ephe_data

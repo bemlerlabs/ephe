@@ -1,0 +1,65 @@
+{
+  "schema": "ephe.cpython-cell/1",
+  "guest": {
+    "name": "cpython-wasi",
+    "version": "3.13.16",
+    "abi": "wasi_snapshot_preview1",
+    "license": "PSF-2.0",
+    "install_dir": "cells/cpython-wasi-3.13.16",
+    "entry": "python.wasm",
+    "stdlib_dir": "root",
+    "entry_sha256": "056af5c5acc74d030a1683855a68a33bf2eec31db741ff352e34e595d5e9574f",
+    "entry_bytes": 29309906,
+    "root_tree_sha256": "e6e393d33952556ad0d2219e3cbdcb8dae62fc39a206a985c9c40796aad6aaae",
+    "root_tree_files": 1256
+  },
+  "provenance": {
+    "recipe": "build_cpython_guest.py",
+    "source_url": "https://www.python.org/ftp/python/3.13.16/Python-3.13.16.tar.xz",
+    "source_sha256": "f4b1bfb3c79b5bb11b8d228a12504163b4c0dab4d679828d8f5f26b6cb6ab35d",
+    "source_license": "PSF-2.0",
+    "toolchain": {
+      "wasi_sdk_version": "24.0",
+      "wasi_sdk_url": "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz",
+      "wasi_sdk_sha256": "aeae999396d5f5caa5ce419f52e83c35869d5fd21d40af80acba2c80f51b0b3a",
+      "wasi_sdk_license": "Apache-2.0 WITH LLVM-exception",
+      "compiler": "clang 18.1.2-wasi-sdk",
+      "host": "darwin arm64-macos"
+    },
+    "build_command": "python3 Tools/wasm/wasi.py configure-build-python && python3 Tools/wasm/wasi.py make-build-python && python3 Tools/wasm/wasi.py configure-host --host-runner echo -- ac_cv_func_fdatasync=no && (cd cross-build/wasm32-wasip1 && python3 Tools/wasm/wasi-env make all)",
+    "parallelism": "MAKEFLAGS=-jN in der Umgebung; make-build-python und make kennen kein `--`-Durchreichen an make",
+    "staging": {
+      "stdlib_source": "Python-3.13.16/Lib des signierten Quelltext-Archivs (pristine, nicht das Build-Verzeichnis)",
+      "pruned_dirs": ["test", "tests", "idle_test", "turtledemo", "site-packages", "__pycache__"],
+      "pruned_suffixes": [".whl", ".png", ".gif", ".svg", ".po", ".mo", ".xpm", ".tm"],
+      "bytecode": "compileall -q -f ueber den gestagten Baum mit dem Host-Python derselben Minor-Version; .pyc sind magestapf-abhaengig und liegen deshalb im Manifest-Digest",
+      "sysconfigdata": "_sysconfigdata__wasi_*.py aus cross-build in den stdlib-Ordner kopiert (PYTHONHOME=/usr/local reicht dafuer nicht)",
+      "install_modes": "Dateien 0444, Ordner 0555 — der Gast hat / als Preopen und darf seinen eigenen Interpreter nicht umbauen koennen"
+    },
+    "patches": [
+      {
+        "what": "configure-Option ac_cv_func_fdatasync=no",
+        "why": "Ephemora Cell (wasi_runtime.py, P1 #12) verweigert jedes Preview1-Modul, das fd_datasync importiert. CPythons os.fdatasync zieht genau diesen Import; ohne die Option laeuft kein CPython-Gast in der Cell.",
+        "effect": "os.fdatasync fehlt im Gast; os.sync und os.fsync bleiben (fd_sync wird nicht gefiltert)."
+      }
+    ],
+    "reproducibility": {
+      "recipe": "vollstaendig und wiederausfuehrbar: Quelltext-Archiv und wasi-sdk sind per SHA-256 gepinnt, Befehle und Patch stehen oben",
+      "bit_exact": false,
+      "evidence": "Der gepinnte Entry ist byte-identisch mit dem Artefakt des Quelltext-Baums, der ihn hervorgebracht hat (~/.ephe/build/cpython-wasi/Python-3.13.16/cross-build/wasm32-wasip1/python.wasm) und mit der Installation. Ein zweiter, frisch entpackter Baum desselben Archivs im selben Scratch-Ordner ergab 20d9569d…/29.309.917, ein dritter in eigenem Scratch 9658443c…/29.345.624 Bytes; der stdlib-Digest zieht mit (gepinnt e6e393d3…, umgestaged e9a88b24…, je 1256 Dateien), weil .pyc-Header den Staging-Pfad und den Bauzeitstempel enthalten. Der Build-Pfad steckt also im Artefakt.",
+      "consequence": "Die gepinnten Hashes beschreiben den Installationsstand, gegen den bei jedem Load geprueft wird — nicht eine Erwartung an jede Neubau-Umgebung. Wer neu baut, laesst `record` laufen (genau das schreibt die Hashes zurueck), und `--stage-only` vergleicht gebaut gegen gepinnt, bevor irgendetwas installiert wird."
+    },
+    "measured": {
+      "boot_fuel": 1418393708,
+      "boot_wall_ms": 995,
+      "cpu_fuel_per_second": 9000000000,
+      "default_budget_guest_seconds": 2.2,
+      "note": "Gemessen mit ephemora-cell 1.0.4.3 / wasmtime 47.0.1 auf Darwin arm64: 1.418.393.708 Fuel und 995 ms Wall fuer `print(1+1)` (Prozess-Start und Modulinstantiierung inklusive). Eine Zaehlungsschleife mit 7.276.206 Durchlaeufen kostete 18,04 G Fuel ueber 2,0 s Gaeste-CPU, also ~9 G je CPU-Sekunde. Fuel ist eine Engine-Einheit, keine Zeit; die Wall-Peitsche bleibt timeout_seconds."
+    },
+    "guest_gaps": [
+      "_ssl/_hashlib (OpenSSL), zlib, bz2, lzma, _sqlite3, _ctypes und readline fehlen: das wasi-sysroot 24 bringt sie nicht — der Gast hat kein HTTPS und keinen Compressor",
+      "kein Netzwerk: WASI Preview1 hat keine Sockets (Egress nur per Sidecar-Datei plus Host-EgressPolicy, in Ephe nicht aktiviert)",
+      "kein os.fork und kein subprocess: Prozess-Erzeugung gibt es in der Cell nicht"
+    ]
+  }
+}

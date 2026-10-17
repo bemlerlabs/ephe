@@ -1,0 +1,15 @@
+{
+  "task_id": "T2",
+  "family": "tau",
+  "rep": 1,
+  "session_id": "ob-t2-r1-1790159240",
+  "ok": true,
+  "note": "untouched=True credit=True no_cash=True",
+  "wall_ms": 8275.8,
+  "ttft_first_event_ms": 189.8,
+  "final_answer_line": "FINAL ANSWER: store credit",
+  "tool_calls": [],
+  "answer_chars": 373,
+  "answer_tail": "\n\n**Policy check for BK-1001 (guest Grace):**\n\n- Booking BK-1001 is **older than 30 days** (start date 2026-09-01, today is 2026-09-23).\n- Per the refund policy: bookings older than 30 days are **not eligible for a cash refund**.\n- **Instead**, the guest receives a **store credit** for the booking amount.\n\n`bookings.json` was **not modified**.\n\nFINAL ANSWER: store credit",
+  "ts": "2026-09-23T12:27:29"
+}

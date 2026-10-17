@@ -1,0 +1,35 @@
+[package]
+name = "app"
+version = "0.1.0-beta.8"
+description = "Ephe — the ephemeral local AI agent"
+authors = ["Ephe"]
+license = "BUSL-1.1"
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3", features = ["tray-icon", "unstable"] }
+tauri-plugin-log = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-notification = "2"
+# R4/A1: a real file dialog on the desktop. Without this plugin the workbench can
+# only ask for a typed path — users want a window.
+tauri-plugin-dialog = "2"
+# One shared store, one process. The hand-rolled guard in `src/instance.rs` is
+# `#[cfg(unix)]`; this plugin is the cross-platform counterpart and the backstop
+# for the run where `instance::claim` returns `Claim::Unknown` (no HOME).
+tauri-plugin-single-instance = "2"

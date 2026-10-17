@@ -1,0 +1,21 @@
+{
+  "task_id": "G4",
+  "family": "gaia",
+  "rep": 2,
+  "session_id": "ob-g4-r2-1790159561",
+  "ok": true,
+  "note": "final=True brief=True",
+  "wall_ms": 22468.6,
+  "ttft_first_event_ms": 200.5,
+  "final_answer_line": "FINAL ANSWER: south",
+  "tool_calls": [
+    "file_search",
+    "read_file",
+    "read_file",
+    "read_file",
+    "edit_file"
+  ],
+  "answer_chars": 425,
+  "answer_tail": "\n\n**Auswertung** (aus den real gelesenen CSV-Inhalten):\n\n| Datei | Monatsumsätze | Gesamt |\n|---|---|---|\n| `north.csv` | 3 + 9 + 12 | 24 |\n| `south.csv` | 10 + 20 + 30 | **60** ✅ |\n| `west.csv` | 5 + 5 + 7 | 17 |\n\n**Sieger: `south.csv`** mit einem Gesamtumsatz von 60.\n\nDie Brief-Datei wurde tatsächlich angelegt: `/private/tmp/bench-option-b/ws/revenue-brief.md` (208 Zeichen, per edit_file bestätigt).\n\nFINAL ANSWER: south",
+  "ts": "2026-09-23T12:33:04"
+}

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 1,
+  "name": "web-research",
+  "version": "1.0.0",
+  "description": "Live web research for the agent (opt-in, needs an API key).",
+  "permissions": {
+    "tool_families": [
+      "read",
+      "network"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "research",
+        "description": "Run deep research on a topic",
+        "template": "Run thorough research on: {input}. Use web_search and fetch_url for real sources, then write a structured brief with citations."
+      }
+    ]
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

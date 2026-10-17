@@ -1,0 +1,54 @@
+Ephe
+Copyright (c) 2026 Bemler Labs
+
+Licensed under the Business Source License 1.1 (BUSL-1.1). See LICENSE.
+Licensor: Bemler Labs. Change License: Apache License, Version 2.0,
+four years after each version is published.
+
+This product includes software developed by:
+  Bemler Labs – https://github.com/bemlerlabs/ephe
+
+Third-party dependencies and their licenses:
+
+  Core Runtime
+  ─────────────
+  - ollama-python (MIT)       – https://github.com/ollama/ollama-python
+  - fastapi (MIT)             – https://github.com/tiangolo/fastapi
+  - uvicorn (BSD)             – https://github.com/encode/uvicorn
+  - apscheduler (MIT)         – https://github.com/agronholm/apscheduler
+  - ddgs (MIT)                – https://github.com/deedy5/duckduckgo_search
+  - qrcode[pil] (BSD)         – https://github.com/lincolnloop/python-qrcode
+
+  Browser Automation
+  ──────────────────
+  - playwright (Apache 2.0)   – https://github.com/microsoft/playwright-python
+
+  GUI Automation
+  ──────────────
+  - pyautogui (BSD)           – https://github.com/asweigart/pyautogui
+  - mss (MIT)                 – https://github.com/BoboTiG/python-mss
+  - pillow (HPND)             – https://github.com/python-pillow/Pillow
+  - pynput (LGPL-3.0, with the replacement and reverse-engineering permission)
+                              – https://github.com/moses-palmer/pynput
+
+  Sandbox guest (built on the user's machine, not redistributed here)
+  ─────────────────────────────────────────────────────────────────
+  - CPython (WASI build, PSF-2.0)      – https://github.com/python/cpython
+  - wasi-sdk (Apache-2.0 WITH LLVM-exception)
+                                       – https://github.com/WebAssembly/wasi-sdk
+
+  Voice
+  ─────
+  - faster-whisper (MIT)      – https://github.com/SYSTRAN/faster-whisper
+
+  TUI (optional)
+  ──────────────
+  - textual (MIT)             – https://github.com/Textualize/textual
+
+  Frontend (CDN, not bundled)
+  ───────────────────────────
+  - marked.js (MIT)           – https://github.com/markedjs/marked
+  - dompurify (Apache 2.0)    – https://github.com/cure53/DOMPurify
+  - highlight.js (BSD)        – https://github.com/highlightjs/highlight.js
+
+No cloud of ours. No tracking.

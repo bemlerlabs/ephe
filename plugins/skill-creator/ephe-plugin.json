@@ -1,0 +1,30 @@
+{
+  "manifest_version": 1,
+  "name": "skill-creator",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "Create and grade Ephe skill packs: SKILL.md authoring, rubric and golden-case quality gates.",
+  "permissions": {
+    "tool_families": [
+      "read",
+      "write"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "newskill",
+        "description": "Scaffold a new skill pack",
+        "template": "Erstelle ein SKILL.md-Pack zu: {input}. Struktur nach _TEMPLATE.md, 2+ Few-Shot-Beispiele, klare Werkzeug-Regeln."
+      },
+      {
+        "name": "grade",
+        "description": "Grade a skill against rubric and golden cases",
+        "template": "Benote das Skill-Pack {input} gegen seine Rubrik und Golden-Cases und liefere eine Verbesserungsliste."
+      }
+    ]
+  },
+  "icon": "icon.svg"
+}

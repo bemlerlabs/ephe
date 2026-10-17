@@ -1,0 +1,591 @@
+name: Supply-chain audit
+
+# Known dependency advisories were documented in the header of ci-gates.yml since
+# 2026-10-09 and enforced by nothing, which is the state where a "noted problem" quietly
+# becomes a permanent one. This workflow makes the audit a machine check on a schedule and
+# on every change to a lockfile, and it records the remaining risk in exactly one place:
+# `.github/advisories-ignore.txt`, which is read here and asserted by
+# tests/test_supply_chain_gate.py.
+#
+# Four kinds of signal, deliberately configured differently:
+#
+#   * the audits themselves are `continue-on-error: true`. They write their findings into
+#     the job summary and as workflow annotations, so they are impossible to miss in the
+#     Actions UI and in the scheduled e-mail. They stay soft for one reason only: a summary
+#     has to be written whether or not anything was found.
+#   * the same reports are then JUDGED against the register by a verdict step, and those
+#     steps are allowed to fail: "Python advisory verdict", "JS advisory verdict", "Cargo
+#     advisory verdict". The audit says what the databases report; the verdict says whether
+#     this repository has decided about it. Until 2026-10-14 the chain ended at the first
+#     half — an unaccepted finding annotated the run and then waited for a re-check date to
+#     pass instead of failing where it appeared — and `app/src-tauri/Cargo.lock` had no
+#     audit at all. Three manifests are read now: `uv.lock` (pip-audit), `app/pnpm-lock.yaml`
+#     (`pnpm audit`) and `app/src-tauri/Cargo.lock` (the crates.io database, batched).
+#   * an expired entry in the ignore list DOES fail. A decision is dated; when the date
+#     passes, somebody has to re-read the advisories and either upgrade or renew the entry
+#     in writing. That is the part that cannot go quiet again.
+#
+#   * a further signal, added 2026-10-09: every ID the registers accept a risk for is
+#     RESOLVED against the advisory databases, and an ID that names no advisory fails the
+#     run. `pip-audit --ignore-vuln <unknown>` exits 0 — the register can claim a decision
+#     that refers to nothing, and nothing notices. The resolver is also the route that
+#     reaches advisories pip-audit cannot see at all (engine flaws in the crates.io
+#     database, behind a pip wheel), which is what `.github/engine-advisories.txt` is for.
+#
+# The title used to read "(visible, not blocking)". Measured 2026-10-09: runs 2 and 3 of this
+# workflow went red with `steps: []`, no runner name and no log blob, because GitHub never
+# allocated the hosted job at all. Nothing in this job ran, let alone passed. A name that
+# promises "not blocking" teaches the reader to file this leg's red X as noise, and the
+# identical red X is what an expired acceptance makes.
+#
+# `runs-on` is `${{ vars.SUPPLY_CHAIN_RUNNER || 'ubuntu-latest' }}`: the gate stays hosted until
+# the owner points that variable at another runner, and the two `Resolve the audit tools` steps
+# below are what make the flip safe. Measured 2026-10-10 on a lab runner from inside real jobs:
+# `pnpm` 11.10.0 (Frontend Build installs and tests with it there), node v22.22.1, `uv`, `pip`,
+# `git`, `curl` and `bash` all resolve — the original "the Spark may not carry pip and pnpm" worry
+# is answered for the tools. Two routes had never been exercised from that box by any job:
+# `pip-audit` against the advisory databases, and `api.osv.dev` for the ID resolution. The guards
+# probe exactly those, and exit 1 naming the route, so a runner that cannot audit fails instead of
+# reporting the clean that this file's whole design is built to refuse.
+#
+# The flip is done: `SUPPLY_CHAIN_RUNNER` selecting the lab runner (owner instruction 2026-10-10, the same lever
+# `CI_LINUX_RUNNER` and `CI_MAC_RUNNER` already use), and the whole leg was green on `3dea66b7` —
+# advisory-ID resolution, both audits, the OSV route and the ignore-list expiry. The hosted fallback
+# is kept as the written default it is: a leg that names no runner may get no allocation at all,
+# which reads as `steps: []` and no log, not as a pass.
+#
+# Measured 2026-10-14 on `7730f3bd`: `Resolve the audit tools, JS side` went red with a bare
+# `missing  pnpm`, and that was the guard being right — `pnpm` was not on the job's PATH. It had been
+# left to a `corepack enable` whose own error was discarded (`>/dev/null 2>&1 || true`) and that was
+# never asked to activate the pin, so a `pnpm` the audit could trust was not merely missing, nothing
+# in the job was providing one. `packageManager` on the `Set up Node` step reads as its source and is
+# not one — that action provisions an interpreter, never a package manager — so it is gone, and the
+# guard now activates the pin from `app/package.json` into a shim directory under `$RUNNER_TEMP` and
+# puts that directory on `PATH` itself, the shape `scripts/clean_room_install.sh` uses. Nothing about
+# the refusal changed: a runner that cannot resolve the tools still fails, and it now names the host,
+# the interpreter, the corepack it found and the command that fixes it.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'app/package.json'
+      - 'app/pnpm-lock.yaml'
+      - '.github/advisories-ignore.txt'
+      - '.github/engine-advisories.txt'
+      - '.github/cell-runtime-fence.json'
+      - 'scripts/advisory_id_check.py'
+      - '.github/workflows/supply-chain.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'app/package.json'
+      - 'app/pnpm-lock.yaml'
+      - '.github/advisories-ignore.txt'
+      - '.github/engine-advisories.txt'
+      - '.github/cell-runtime-fence.json'
+      - 'scripts/advisory_id_check.py'
+      - '.github/workflows/supply-chain.yml'
+  schedule:
+    # Weekly, independent of any push: an advisory appears against a version that has not
+    # changed, so a lockfile-triggered audit alone would never notice. 03:40 UTC Monday.
+    - cron: '40 3 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supply-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  advisories:
+    name: Advisory audit and verdict (unaccounted findings, expiry and unknown IDs block)
+    runs-on: ${{ vars.SUPPLY_CHAIN_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Move a pull request's install out of the shared interpreter
+        if: github.event_name == 'pull_request'
+        # Same rule as the steps of this name in tests.yml and ci-gates.yml, same receipt (PR run
+        # 9910615d): this job installs two packages plus their resolved trees, and on a self-hosted
+        # runner that write would land in the listener's tool cache, where the next main-push job
+        # reads it as already satisfied.
+        env:
+          EPHE_LEG_VENV: ${{ runner.temp }}/ephe-leg
+        run: |
+          python -m venv "$EPHE_LEG_VENV"
+          echo "$EPHE_LEG_VENV/bin" >> "$GITHUB_PATH"
+          echo "EPHE_LEG_VENV=$EPHE_LEG_VENV" >> "$GITHUB_ENV"
+          "$EPHE_LEG_VENV/bin/python" -V
+          "$EPHE_LEG_VENV/bin/pip" -V
+
+      - name: Resolve the audit tools, Python side (blocking)
+        # The step that makes the runner switch above safe to flip. It installs what the audit
+        # needs, then refuses to continue if any of it does not resolve on this job's PATH, or if
+        # the advisory database the ID resolution depends on cannot be reached from here. Both
+        # halves matter: `pip-audit` with no reachable database reports nothing, and nothing is
+        # what a clean run looks like.
+        run: |
+          set -uo pipefail
+          # No -e here on purpose: a failed install must land in the resolution below, which names
+          # the tool that is missing, rather than aborting on a pip traceback.
+          pip install --quiet "uv==0.12.24" "pip-audit==2.10.1" \
+            || echo "::notice::the tool install did not complete; the resolution below names what is missing"
+          if [ -n "${EPHE_LEG_VENV:-}" ] && ! pip -V | grep -q "$EPHE_LEG_VENV"; then
+            echo "::error::install resolves outside the job's own venv: $(pip -V)"
+            exit 1
+          fi
+          missing=""
+          for tool in python python3 pip uv pip-audit git curl; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              printf '%-10s %s\n' "$tool" "$("$tool" --version 2>&1 | head -1)"
+            else
+              missing="$missing $tool"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::this runner lacks the audit tools:$missing — an audit that cannot run is not a clean audit"
+            exit 1
+          fi
+          # The probe ID comes out of the same resolver the ignore flags are derived from -- a
+          # second pattern in this file could disagree with it about which lines are entries, and
+          # tests/test_supply_chain_gate.py refuses that. A register with no entry has nothing
+          # accepted, so it needs no probe.
+          probe_id=$(python3 scripts/advisory_id_check.py --ignore-flags | tr ' ' '\n' | grep -v -- '--ignore-vuln' | grep -v '^$' | head -1 || true)
+          if [ -n "$probe_id" ]; then
+            # One line, no indented -c body: a block scalar keeps its relative indentation, and
+            # python refuses to start a -c program with leading whitespace.
+            probe_out=$(python3 -c "import sys,urllib.request;r=urllib.request.urlopen('https://api.osv.dev/v1/vulns/'+sys.argv[1],timeout=20);print('osv route: HTTP',r.status,'for',sys.argv[1])" "$probe_id") || {
+              echo "::error::api.osv.dev is not reachable from this runner — the ID resolution would have no verdict to check"
+              exit 1
+            }
+            echo "$probe_out"
+          fi
+
+      - name: Python advisory audit (pip-audit)
+        # The audited set is `uv.lock`, not the resolver's reading of pyproject.toml: the
+        # lock is what installs, and `uv export` is the path that keeps hashes out of the
+        # requirements file so pip-audit does not need `--require-hashes`.
+        #
+        # uv is pinned to the exact version tests.yml uses for `uv lock --check`, so the
+        # export and the freshness check cannot disagree about what the lock means.
+        #
+        # Ignore flags are DERIVED from .github/advisories-ignore.txt and never typed here:
+        # the register is the only place a risk is accepted, and tests/test_supply_chain_gate.py
+        # fails if this workflow ever hardcodes an ID.
+        #
+        # Marker-scoped packages that do not match this runner are skipped by pip's
+        # requirement parser: measured locally at 103 of 121 exported requirement lines,
+        # so the audit set is platform-dependent and a Windows-only dependency is not
+        # covered from here.
+        continue-on-error: true
+        run: |
+          # `set +e` is load-bearing: Actions starts every run: block with -e, and
+          # pip-audit exits 1 when it finds anything, which would abort the step before the
+          # summary below is written. The exit code is captured by hand instead.
+          set +e
+          set -uo pipefail
+          # uv and pip-audit are installed, and their presence on this PATH proven, by
+          # `Resolve the audit tools, Python side` above. One install line on purpose: a second one
+          # could drift and the guard would then vouch for a version that is not the one auditing.
+          uv export --frozen --all-groups --no-emit-project --no-hashes -q -o /tmp/requirements.lock.txt
+          # The flags are derived from the register and never typed here, and the derivation
+          # is the SAME parser the ID-resolution check uses: a second regex in this file
+          # could disagree with it about which lines are entries, which is how an ID can go
+          # unread (GHSA-style IDs are alphanumeric; a numeric-only pattern drops them in
+          # silence). Word splitting does the job instead of a bash-4-only `mapfile`, so the
+          # block is bash-only: under zsh the unquoted expansion stays one argument, which
+          # argparse reads as a positional and pip-audit rejects as `project_path` beside `-r`
+          # (measured 2026-10-09). `set -f` closes the one hole splitting opens: the flags are
+          # `--ignore-vuln <ID>` and nothing else.
+          set -f
+          IGNORE_FLAGS=$(python3 scripts/advisory_id_check.py --ignore-flags)
+          echo "Auditing $(grep -cE '^[A-Za-z0-9._-]+==' /tmp/requirements.lock.txt) locked requirements"
+          echo "Accepted (ignored): ${IGNORE_FLAGS:-<nothing>}"
+          pip-audit -r /tmp/requirements.lock.txt --no-deps --progress-spinner off --desc off $IGNORE_FLAGS | tee /tmp/pip-audit.log
+          status=${PIPESTATUS[0]:-0}
+          set +f
+          # The annotation is what makes a non-blocking finding hard to miss: it shows in
+          # the run list and in the weekly e-mail, not only for whoever opens the job.
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::pip-audit exited $status — unaccepted Python advisories exist, see the job summary"
+          fi
+          {
+            echo "## pip-audit"
+            if [ "$status" -eq 0 ]; then
+              echo "**No unaccepted Python advisories** in the locked set."
+            else
+              echo "Exit $status — findings above must be decided in the register by the"
+              echo "verdict step below, which fails this run when one of them is not."
+            fi
+            echo '```'
+            # pip-audit prints its "No known vulnerabilities found" line to stderr and keeps
+            # stdout for the findings table, so an empty log is the clean case — say so
+            # instead of rendering a blank block that looks like a step that did not run.
+            if [ -s /tmp/pip-audit.log ]; then
+              cat /tmp/pip-audit.log
+            else
+              echo "No findings on stdout: the locked set is clean apart from the accepted IDs above."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Python advisory verdict (unaccounted findings block)
+        # The chain this closes is find out -> flag -> fail. The audit above ends at "flag":
+        # it is soft so its summary is always written, and an unaccepted Python advisory
+        # therefore waited for a re-check date to pass instead of failing where it appeared.
+        # This step re-reads the same locked set as machine JSON and fails on any finding no
+        # register row decides, matched on the ID or on one of its aliases — pip-audit reports
+        # a PyPI record under one ID while the register may name another of them.
+        #
+        # The pass is repeated rather than shared because the step above writes the human
+        # table for the summary, and one command cannot print two formats: a second reading
+        # is honest, parsing that table with a regex would not be.
+        #
+        # `set +e` is load-bearing here for the same reason it is above: Actions starts a run
+        # block with -e, pip-audit exits 1 when it finds anything, and the verdict below is
+        # what has to decide the step's exit code.
+        run: |
+          set +e
+          set -uo pipefail
+          set -f
+          IGNORE_FLAGS=$(python3 scripts/advisory_id_check.py --ignore-flags)
+          pip-audit -r /tmp/requirements.lock.txt --no-deps --progress-spinner off --desc off \
+            --format json $IGNORE_FLAGS > /tmp/pip-audit.json 2>/tmp/pip-audit.err
+          set +f
+          # An audit that could not run leaves no report, and the verdict refuses that as
+          # well: an absence is not a clean result, only a smaller one.
+          python3 scripts/advisory_id_check.py --pip-verdict /tmp/pip-audit.json
+
+      - name: Cargo advisory verdict (unaccounted findings block)
+        # `app/src-tauri/Cargo.lock` was audited by no workflow at all: hygiene.yml reads it
+        # only to compare Tauri plugin major/minor against package.json. Dependabot's
+        # crates.io alerts were the only reader, and an alert has no exit code — measured
+        # 2026-10-14, 512 crates are pinned there, three carried an advisory record, and
+        # rustls 0.23.45 (runtime: tauri-plugin-updater -> reqwest -> rustls) carried eight
+        # records no gate in this repository could fail on.
+        #
+        # 512 crates are queried in one batched request rather than one per crate, and the
+        # crates that carry nothing are not printed: the job summary is for decisions.
+        run: |
+          set +e
+          set -uo pipefail
+          python3 scripts/advisory_id_check.py --audit-cargo | tee /tmp/cargo-verdict.log
+          status=${PIPESTATUS[0]:-0}
+          {
+            echo "## Cargo.lock advisories (crates.io)"
+            echo '```'
+            cat /tmp/cargo-verdict.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Engine advisory audit (visible, not blocking)
+        # The class pip-audit structurally cannot see. The cell's execution engine is a
+        # Rust crate compiled into the `wasmtime` wheel, and its advisories live in the
+        # crates.io database: measured 2026-10-09, `POST /v1/query` for
+        # `{wasmtime, PyPI, 47.0.1}` answers zero vulnerabilities while the same version
+        # as `wasmtime-wasi` answers five. So ask the engine directly and report anything
+        # the register has not decided — visible, because a new upstream advisory is not
+        # somebody else's broken push, and annotated because an unregistered reach is how
+        # a risk becomes permanent without anyone writing it down.
+        continue-on-error: true
+        run: |
+          set +e
+          python3 scripts/advisory_id_check.py --audit-engine | tee /tmp/engine-audit.log
+          status=${PIPESTATUS[0]:-0}
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::the engine advisory lookup did not complete (exit $status) — no verdict, see the job summary"
+          fi
+          {
+            echo "## engine advisories (crates.io behind the wheel)"
+            echo '```'
+            cat /tmp/engine-audit.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Advisory ID resolution (blocking)
+        # Every ID this repository accepts a risk for is resolved against the advisory
+        # databases, by both routes: the ID directly, and — when that misses — as a
+        # package/version query whose `id` AND `aliases` are matched. A well-formed ID
+        # that names no advisory then fails the run instead of being ignored quietly by
+        # pip-audit, and an ID about a different package than its line declares fails too.
+        # This is the step that would have caught the near-miss in the header of
+        # `.github/engine-advisories.txt`: a GHSA string that exists only as the alias of
+        # a RustSec record reads as a 404 to the naive lookup.
+        run: python3 scripts/advisory_id_check.py
+
+      - name: Set up Node
+        # The interpreter the guard below and the audit itself run on. `node-version: 22` is the
+        # version Frontend Build type-checks and tests on. It is the only thing this action is asked
+        # for: `actions/setup-node` provisions an interpreter and never a package manager. The step
+        # used to carry `packageManager: pnpm@11.10.0` as well, which read as the source of `pnpm`
+        # and was not one — no shim ever appeared — while writing the pin a second time where it
+        # could drift from the manifest `pnpm install` enforces. The guard below activates the pin
+        # from `app/package.json`, the single source the other pnpm legs here read
+        # (`frontend-build.yml`, `lockfile.yml`, `release.yml`, and `install.sh` on a user's box).
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Resolve the audit tools, JS side (blocking)
+        # The same refusal for the other ecosystem, and the one place this job stops being polite
+        # about the JS audit: the step below annotates an unparsable audit as an error but runs
+        # `continue-on-error`, because a finding is not a broken push. A tool that is missing or a
+        # registry that cannot be reached is a different class -- it is no verdict at all -- so it
+        # is proven here, where failing the run is the correct answer.
+        #
+        # This step RESOLVES node and pnpm itself, exactly as the Python guard above installs uv and
+        # pip-audit itself, and for the same measured reason: `actions/setup-node` provisions an
+        # interpreter, never a package manager. Left to a bare `corepack enable` whose failure was
+        # discarded, the first real run on `7730f3bd` (2026-10-14) went red with a bare
+        # `missing  pnpm`: the guard was right and could say nothing useful, because the enable had
+        # been asked to write its shims wherever it liked and its own error had gone to /dev/null.
+        #
+        # `--install-directory` is the fix, and it is not decoration. `corepack enable` with no
+        # target writes the shims next to the `corepack` it resolves -- "By default it will locate
+        # the install directory by running the equivalent of `which corepack`", corepack 0.34
+        # `enable --help` -- and this job has no reason to believe THAT directory is on its PATH:
+        # measured on this checkout, `command -v node` and `command -v corepack` already answer with
+        # two different directories. Naming the target removes the guess, keeps the shims where this
+        # job can find them, and loses both the shims and corepack's own download with the job --
+        # `scripts/clean_room_install.sh` writes its shims into `$WORK/bin` for the same reasons.
+        #
+        # The version is read from `app/package.json`, never typed here: it is the single source
+        # `frontend-build.yml`, `lockfile.yml` and `release.yml` activate from, and a second written
+        # pin could disagree with the one `pnpm install` enforces.
+        run: |
+          set -uo pipefail
+          # No -e, for the reason the Python guard gives: a failed resolution has to land in the loop
+          # below, which names the missing tool, instead of aborting on corepack's own words.
+          #
+          # Every refusal goes through `refuse`, so no reader gets a bare tool name again. It prints
+          # which host answered, what this job could resolve, where the shims were asked to go and
+          # the command that fixes it. Nothing is discarded from corepack either: its stderr stays
+          # in this step's log, and the fixed text below is what an operator acts on.
+          shim_dir="$RUNNER_TEMP/corepack-shims"
+          corepack_home="$RUNNER_TEMP/corepack-home"
+          refuse() {
+            echo "::error::$1"
+            echo "host:      ${RUNNER_NAME:-unnamed runner} (${RUNNER_ENVIRONMENT:-unknown environment}), ${RUNNER_OS:-unknown OS}/${RUNNER_ARCH:-unknown arch}"
+            echo "node:      $(command -v node || echo 'not on PATH')"
+            echo "corepack:  $(command -v corepack || echo 'not on PATH')"
+            echo "shims:     $shim_dir (corepack enable --install-directory)"
+            echo "pin:       ${pinned:-unread} (app/package.json packageManager)"
+            echo "PATH:      $PATH"
+            echo "fix: on this host, as the runner user, 'corepack enable --install-directory \"\$RUNNER_TEMP/corepack-shims\" && corepack prepare ${pinned:-<the app/package.json pin>} --activate' has to succeed, and \$RUNNER_TEMP has to be writable. A runner without node 22, without the corepack that node ships, or without registry.npmjs.org cannot answer this audit and must not report it clean."
+            exit 1
+          }
+          mkdir -p "$shim_dir" "$corepack_home"
+          # corepack's own cache stays in the job's scratch: the rule the clean-room leg states, so a
+          # download one job resolved cannot be read by the next as already resolved.
+          export COREPACK_HOME="$corepack_home"
+          echo "COREPACK_HOME=$corepack_home" >> "$GITHUB_ENV"
+          echo "$shim_dir" >> "$GITHUB_PATH"
+          export PATH="$shim_dir:$PATH"
+          # node first and on its own, so a missing interpreter is not reported as an unreadable
+          # manifest: the pin below is read with it.
+          if ! command -v node >/dev/null 2>&1; then
+            refuse "this runner lacks the JS audit tools: node — the production-graph claim in .github/advisories-ignore.txt would be unchecked"
+          fi
+          pinned=$(node -p "require('./app/package.json').packageManager" 2>/dev/null || echo "")
+          if [ -z "$pinned" ]; then
+            refuse "app/package.json does not answer with a packageManager, so this job cannot resolve the pnpm the lockfile was written by"
+          fi
+          corepack enable --install-directory "$shim_dir"
+          corepack prepare "$pinned" --activate
+          missing=""
+          for tool in node pnpm; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              printf '%-6s %s\n' "$tool" "$("$tool" --version 2>&1 | head -1)"
+            else
+              missing="$missing $tool"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            refuse "this runner lacks the JS audit tools:$missing — the production-graph claim in .github/advisories-ignore.txt would be unchecked"
+          fi
+          # The pin is proven, not just resolved: `pnpm audit` reads the advisory database for the
+          # resolver it runs under, so a `pnpm` other than the pinned one hashes a different tree.
+          # The shim picks the version up from `app/package.json` once we descend into it.
+          if [ "$(pnpm --version 2>&1 | head -1)" != "${pinned#pnpm@}" ]; then
+            refuse "pnpm $(pnpm --version 2>&1 | head -1) resolved where app/package.json pins $pinned — the audit below would be a verdict about another resolver"
+          fi
+          cd app
+          # `pnpm audit` exits non-zero when it FINDS something, and that is a verdict, not a missing
+          # route: measured on this checkout against the committed lock, `pnpm audit --prod --json`
+          # exited 1 and wrote a complete advisories object for a reachable advisory. Reading the exit
+          # code as "the audit did not run" would fail this leg for a finding, which is what the step
+          # below is `continue-on-error` to avoid -- and what tests/test_supply_chain_gate.py states:
+          # a runtime-reachable JS finding errors as an annotation, it does not turn the run red. What
+          # is refused here is the absence of a verdict; a finding travels to the step that reports it.
+          prod_status=0
+          prod_err=$(pnpm audit --prod --json 2>&1 > /tmp/pnpm-prod-probe.json) || prod_status=$?
+          if [ "$prod_status" -ne 0 ]; then
+            echo "pnpm audit --prod exited $prod_status — its output below decides whether that was a finding or no route"
+            [ -n "$prod_err" ] && printf '%s\n' "$prod_err"
+          fi
+          node -e '
+            const fs = require("fs");
+            let a;
+            try { a = JSON.parse(fs.readFileSync("/tmp/pnpm-prod-probe.json", "utf8")); } catch { a = null; }
+            if (!(a && a.advisories && a.metadata)) {
+              console.error("the prod audit answered without an advisories object — no verdict");
+              process.exit(1);
+            }
+            console.log(`registry route: prod audit answered with ${Object.keys(a.advisories).length} advisory records`);
+          ' || refuse "pnpm audit --prod did not answer with an advisories object on this runner — registry.npmjs.org unreachable, or the audit endpoint refused"
+
+      - name: JS advisory audit (pnpm)
+        # Two readings on purpose, because "7 advisories" alone is not a risk statement:
+        #   `--prod`  — the graph reachable from package.json `dependencies`, i.e. what
+        #              actually ships in the PWA and the Tauri bundle;
+        #   full      — dev/test tooling as well, reported for completeness.
+        # Measured 2026-10-09 from pnpm-lock.yaml v9 offline: walking the 35 production
+        # roots reaches 144 packages and contains neither brace-expansion nor source-map-js;
+        # they appear only under the 27 dev roots (eslint -> minimatch, jsdom -> css-tree,
+        # tailwind -> @tailwindcss/node). `--prod` is therefore expected clean, and if it
+        # ever reports anything it is a runtime-reachable advisory, not noise — which is why
+        # the count is echoed as an error annotation without failing the run.
+        #
+        # Read-only: no install, no `pnpm audit fix`. Both rewrite app/pnpm-lock.yaml, and a
+        # lockfile rewrite belongs in a reviewed commit, not inside an audit job.
+        continue-on-error: true
+        working-directory: app
+        run: |
+          set +e
+          set -uo pipefail
+          # No corepack call here. `Resolve the audit tools, JS side` above resolved the pinned pnpm
+          # onto this job's PATH and proved it answers, and it exported the shim directory to every
+          # later step -- including this one. The `corepack enable >/dev/null 2>&1 || true` that used
+          # to sit here was the same defect in a smaller place: it could fail without saying so, and
+          # the reading below would then have annotated a finding against an audit that never ran.
+          pnpm --version
+          # Asserted against the manifest rather than printed and trusted: `pnpm audit` reads the
+          # advisory database for the resolver it runs under, so a verdict from another pnpm than the
+          # one `app/package.json` pins is a verdict about a tree nobody wrote. `scripts/lockfile_check.py`
+          # holds the same rule for the lockfile leg, and this one is an annotation, not a red, because
+          # this step already is not allowed to turn the push red.
+          pinned=$(node -p "require('./package.json').packageManager")
+          got=$(pnpm --version)
+          if [ "${pinned#pnpm@}" != "$got" ]; then
+            echo "::error::pnpm $got audited app/ while app/package.json pins $pinned — the advisory verdict below belongs to a different resolver"
+          fi
+          echo "=== production-only graph ==="
+          pnpm audit --prod --json > /tmp/pnpm-prod.json || echo "pnpm audit --prod exited non-zero"
+          echo "=== full graph (dev/test included) ==="
+          pnpm audit --json > /tmp/pnpm-full.json || echo "pnpm audit exited non-zero (findings are not an error here)"
+          node -e '
+            const fs = require("fs");
+            const read = (p) => {
+              try {
+                const a = JSON.parse(fs.readFileSync(p, "utf8"));
+                // An audit that produced no advisories object is not a clean audit; it is
+                // a tool that did not run. Reporting 0 for it would be the silent green
+                // this workflow exists to stop.
+                return (a && a.metadata && a.advisories) ? a : null;
+              } catch { return null; }
+            };
+            const row = (label, file) => {
+              const a = read(file);
+              if (!a) {
+                console.log(`::error::${label} audit output missing or unparsable (${file}) — no verdict`);
+                return { count: null, note: "**audit unavailable**" };
+              }
+              const v = a.metadata.vulnerabilities || {};
+              const count = Object.keys(a.advisories).length;
+              const by = ["info","low","moderate","high","critical"].map(k => `${v[k]||0} ${k}`).join(" / ");
+              console.log(`${label}: ${count} advisory records (${by})`);
+              return { count, note: `**${count}** advisory records (${by})` };
+            };
+            const prod = row("prod", "/tmp/pnpm-prod.json");
+            const full = row("full", "/tmp/pnpm-full.json");
+            const out = ["## pnpm audit", "",
+              `- reachable from production dependencies: ${prod.note}`,
+              `- including dev/test tooling: ${full.note}`, "",
+              "Dev-only findings do not ship in the PWA or the desktop bundle; a production",
+              "finding is a different class of problem and is annotated as an error below.", ""];
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out.join("\n"));
+            if (prod.count === null) {
+              console.log("::error::cannot state JS runtime exposure because the prod audit did not run");
+            } else if (prod.count > 0) {
+              console.log("::error::at least one JS advisory is reachable from a RUNTIME dependency — the dev-only claim in .github/advisories-ignore.txt is no longer true");
+            }
+          '
+          echo "--- full advisory detail ---"
+          node -e '
+            const fs = require("fs");
+            let a; try { a = JSON.parse(fs.readFileSync("/tmp/pnpm-full.json","utf8")); } catch { console.log("(no parsable full audit)"); process.exit(0); }
+            for (const [id, adv] of Object.entries(a.advisories || {})) {
+              const patched = adv.patched_versions || adv.fixed_in || "none";
+              const found = (adv.findings || []).map(f => `${f.version} (dev=${f.dev})`).join(", ");
+              console.log(`${String(adv.severity).padEnd(8)} ${adv.module_name}@${found}  patched: ${patched}  ${adv.url || ""}`);
+            }
+          '
+
+      - name: JS advisory verdict (unaccounted findings block)
+        # Same chain as the Python verdict, one ecosystem over. The audit above already
+        # errors on an advisory reachable from a RUNTIME dependency, and that error is an
+        # annotation inside a soft step: the run stays green while katex 0.16.47 — the one
+        # runtime-reachable JS finding measured 2026-10-14, on the path that renders maths in
+        # a message — keeps shipping. This step fails on any npm advisory no register row
+        # carries, whatever its scope, and reads the same /tmp/pnpm-full.json the audit wrote
+        # on this runner.
+        run: |
+          set -uo pipefail
+          python3 scripts/advisory_id_check.py --pnpm-verdict /tmp/pnpm-full.json
+
+      - name: Ignore-list expiry (blocking)
+        # The step allowed to turn this workflow red besides the ID resolution. An accepted
+        # risk carries a re-check date in either register; past that date the decision is no
+        # longer evidence, so the job fails until the entry is upgraded away or renewed with
+        # a reason.
+        #
+        # The dates come from `scripts/advisory_id_check.py --recheck-pairs`, the same
+        # parser that derives the ignore flags. This step used to carry its own `sed` whose
+        # ID pattern demanded four digits after the publisher prefix, which meant a
+        # GHSA-shaped entry was invisible to the expiry check while looking registered
+        # everywhere else, and a register that failed to parse produced zero pairs and a
+        # silent pass. A second parser is what let the JS advisories go undated.
+        run: |
+          set -uo pipefail
+          today=$(date -u +%Y-%m-%d)
+          if ! pairs=$(python3 scripts/advisory_id_check.py --recheck-pairs); then
+            echo "::error::the registers do not parse — no expiry verdict can be given"
+            exit 1
+          fi
+          if [[ -z "$pairs" ]]; then
+            echo "::error::no entry parsed from either register — an empty result is not a clean result"
+            exit 1
+          fi
+          stale=0
+          total=0
+          while read -r id recheck; do
+            [[ -z "$id" || -z "$recheck" ]] && continue
+            total=$((total + 1))
+            if [[ "$recheck" < "$today" ]]; then
+              echo "::error::$id was accepted only until $recheck — re-audit and renew the entry or upgrade the package"
+              stale=1
+            fi
+            echo "$id: accepted, re-check by $recheck"
+          done <<< "$pairs"
+          echo "Register holds $total accepted advisories as of $today"
+          exit "$stale"
