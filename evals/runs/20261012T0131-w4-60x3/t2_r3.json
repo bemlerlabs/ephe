@@ -1,0 +1,106 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T2",
+  "family": "tau",
+  "level": "L2",
+  "rep": 3,
+  "session_id": "ob-t2-r3-1791761642",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "untouched=True credit=True no_cash=True",
+  "error_class": null,
+  "wall_ms": 20235.8,
+  "ttft_first_event_ms": 115.3,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 47.2
+    },
+    {
+      "tool": "file_search",
+      "ms": 47.2
+    },
+    {
+      "tool": "list_directory",
+      "ms": 12.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 9.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 9.1
+    }
+  ],
+  "arg_audit": {
+    "calls": 5,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "068409896f",
+        "target": "policy.md"
+      },
+      {
+        "tool": "file_search",
+        "digest": "b0c70c118b",
+        "target": "bookings.json"
+      },
+      {
+        "tool": "list_directory",
+        "digest": "13f106cd9d",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "read_file",
+        "digest": "05dd70edb3",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/policy.md"
+      },
+      {
+        "tool": "read_file",
+        "digest": "3ca9a8ced3",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/bookings.j"
+      }
+    ],
+    "classes": {
+      "search_query": 2,
+      "read_target": 3
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: store credit",
+  "tool_calls": [
+    "file_search",
+    "file_search",
+    "list_directory",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 997,
+  "tokens_out_proxy": 249.2,
+  "prompt_tokens": 22753,
+  "completion_tokens": 1062,
+  "total_tokens": 23815,
+  "usage_estimated": false,
+  "cost_usd": 0.001562,
+  "pricing_source": "default",
+  "fixture_hash": "c652e6326b76",
+  "fixture_files": 190,
+  "answer_tail": "- **Rule 3:** Refunds for bookings older than 30 days are paid as **store credit only — never as cash refund.** → Grace's cash request is not granted; she receives **store credit** instead.\n- Side note: BK-1001 is also a *fixed* booking (Rule 1: start day 2026-09-01 is past its 18:00 UTC cutoff), so under Rule 2 it would be untouchable anyway — the record must never be modified.\n\n**Action taken:** No write to `bookings.json` — the file was only read, exactly as required.\n\n**What Grace receives instead:** a **store credit** for the refund amount of BK-1001, not cash.\n\nFINAL ANSWER: store credit",
+  "ts": "2026-10-12T01:34:23"
+}

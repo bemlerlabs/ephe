@@ -1,0 +1,36 @@
+# Patterns are **-anchored so they match at any depth: a bare `node_modules` or
+# `dist` matches only the context root, which let app/node_modules (~1 GB) and
+# app/dist leak into every build.
+.venv/
+.git/
+.github/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+**/dist/
+**/build/
+**/.pytest_cache/
+**/.mypy_cache/
+tests/
+docs/
+*.md
+!README.md
+.env
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+**/node_modules/
+v2/
+
+# Not inputs to the Python package or the frontend build; keeping them out of
+# the build context keeps it small (app/src-tauri is the Rust desktop shell).
+app/src-tauri/
+app/e2e/
+app/playwright-report/
+app/test-results/
+out/
+.hermes/
+.audit/
+*.log

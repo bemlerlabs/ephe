@@ -1,0 +1,18 @@
+{
+  "manifest_version": 1,
+  "name": "vision",
+  "version": "1.0.0",
+  "description": "Vision-capable model reads screenshots and images.",
+  "permissions": {
+    "tool_families": [
+      "vision"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": []
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

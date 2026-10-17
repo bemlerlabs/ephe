@@ -1,0 +1,53 @@
+name: Catalog freshness
+
+# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, rows 40 and 41: the committed catalogs are what
+# their sources generate. `skills-lock.json` and `plugin-catalog.json` are both derived files, and both
+# can go stale in a merge that edits a pack or a plugin and forgets the lock -- the shape that made the
+# `uv.lock` guard necessary in the first place.
+#
+# Nothing here installs. `scripts/catalog_freshness.py` shells out to the two generators with `--check`,
+# which is the mode `scripts/generate_plugin_catalog.py` gained in this wave because a freshness job that
+# writes into a shared worktree is its own defect: the previous version of this leg could only "verify"
+# the catalog by rewriting it. `PYTHONPATH` carries the repository root because the plugin generator
+# imports `core.plugin_manifest` and the checkout is not pip-installed on this tier.
+#
+# `knowledge/index.json` is compared and reported, never gating, and the reason is on the first lines of
+# scripts/catalog_freshness.py: measured 2026-10-11 the index declares a `system` domain with no
+# directory, omits the `navigation/` directory that exists, and says `totalFiles: 6` against 10 `.md`
+# files on disk. That belongs to the knowledge lane to close; a nightly that has been red since its
+# first hour is not a gate.
+
+on:
+  schedule:
+    - cron: '1 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-freshness-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  freshness:
+    name: skills-lock.json and plugin-catalog.json against their sources
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Hermetic preflight
+        run: bash scripts/ci_preflight.sh
+
+      - name: Check the catalogs
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python3 scripts/catalog_freshness.py

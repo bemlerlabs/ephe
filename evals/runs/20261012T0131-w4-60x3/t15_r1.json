@@ -1,0 +1,105 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T15",
+  "family": "tau",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-t15-r1-1791763463",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==22.81",
+  "error_class": null,
+  "wall_ms": 17648.9,
+  "ttft_first_event_ms": 102.7,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 58.2
+    },
+    {
+      "tool": "tool_search",
+      "ms": 58.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.8
+    },
+    {
+      "tool": "tool_call",
+      "ms": 15.8
+    },
+    {
+      "tool": "tool_call",
+      "ms": 51.5
+    }
+  ],
+  "arg_audit": {
+    "calls": 5,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "58059606e8",
+        "target": "t15.csv"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "5cd7b5bbf3",
+        "target": "run_shell python execute script"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7a0bf72e46",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t15.csv"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "b3be943acd",
+        "target": ""
+      },
+      {
+        "tool": "tool_call",
+        "digest": "0406fc838e",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 1
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 22.81",
+  "tool_calls": [
+    "file_search",
+    "tool_search",
+    "read_file",
+    "tool_call",
+    "tool_call"
+  ],
+  "answer_chars": 363,
+  "tokens_out_proxy": 90.8,
+  "prompt_tokens": 29236,
+  "completion_tokens": 816,
+  "total_tokens": 30052,
+  "usage_estimated": false,
+  "cost_usd": 0.001788,
+  "pricing_source": "default",
+  "fixture_hash": "503e3969f15d",
+  "fixture_files": 201,
+  "ts": "2026-10-12T02:04:41"
+}

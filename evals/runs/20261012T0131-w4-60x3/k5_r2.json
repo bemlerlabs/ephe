@@ -1,0 +1,303 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "K5",
+  "family": "endstate",
+  "level": "L5",
+  "rep": 2,
+  "session_id": "ob-k5-r2-1791766953",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "sum=1210",
+  "error_class": null,
+  "wall_ms": 89549.7,
+  "ttft_first_event_ms": 221.6,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "list_directory",
+      "ms": 927.5
+    },
+    {
+      "tool": "execute_code",
+      "ms": 927.6
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 97.3
+    },
+    {
+      "tool": "execute_code",
+      "ms": 780.3
+    },
+    {
+      "tool": "write_file",
+      "ms": 14.2
+    }
+  ],
+  "arg_audit": {
+    "calls": 24,
+    "ledger": [
+      {
+        "tool": "list_directory",
+        "digest": "314de0ca45",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "execute_code",
+        "digest": "c03519afe8",
+        "target": ""
+      },
+      {
+        "tool": "read_file",
+        "digest": "45196e8d4b",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_001.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "8285aec238",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_014.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "07c2606942",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_027.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "517588729b",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_040.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "132989b709",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_053.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "5130e402f6",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_066.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "1725ee0d04",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_079.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "6700d807b0",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_092.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "ba9aef5d28",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_105.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7b1440379a",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_118.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "37e4b00805",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_003.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b3dbf6d48c",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_016.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "0ce4906545",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_029.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7a2dc218cc",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_042.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "ad5e2e8c1d",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_055.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "d487aeba0d",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_068.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "fdf5a129db",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_081.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7ba09cb15f",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_094.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b6f65765b4",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_107.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "77e35bfb7d",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_120.json"
+      },
+      {
+        "tool": "execute_code",
+        "digest": "3d9be86a70",
+        "target": ""
+      },
+      {
+        "tool": "write_file",
+        "digest": "70c4e29978",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/k5_out.json"
+      }
+    ],
+    "classes": {
+      "read_target": 21,
+      "write_path": 1
+    },
+    "violations": [
+      {
+        "code": "unknown_target_file",
+        "tool": "list_directory",
+        "arg": "~/.ephe/bench/20261012T0131-w4-60x3/ws"
+      }
+    ],
+    "violation_counts": {
+      "unknown_target_file": 1
+    },
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "list_directory",
+    "execute_code",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "execute_code",
+    "write_file"
+  ],
+  "answer_chars": 802,
+  "tokens_out_proxy": 200.5,
+  "prompt_tokens": 50467,
+  "completion_tokens": 5070,
+  "total_tokens": 55537,
+  "usage_estimated": false,
+  "cost_usd": 0.004551,
+  "pricing_source": "default",
+  "fixture_hash": "0661ab1121df",
+  "fixture_files": 212,
+  "ts": "2026-10-12T03:04:03"
+}

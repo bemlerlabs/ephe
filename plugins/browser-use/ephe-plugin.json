@@ -1,0 +1,25 @@
+{
+  "manifest_version": 1,
+  "name": "browser-use",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+  "permissions": {
+    "tool_families": [
+      "browser",
+      "read"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "browse",
+        "description": "Open a page and work with it in the browser",
+        "template": "Öffne {input} im Browser (browser_go), mache einen Screenshot und führe die Aufgabe mit browser_click/browser_type aus — approval-gated."
+      }
+    ]
+  },
+  "icon": "icon.svg"
+}

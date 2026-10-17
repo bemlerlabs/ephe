@@ -1,0 +1,96 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T9",
+  "family": "tau",
+  "level": "L4",
+  "rep": 3,
+  "session_id": "ob-t9-r3-1791763105",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==ORION-7|600",
+  "error_class": null,
+  "wall_ms": 83359.2,
+  "ttft_first_event_ms": 83.6,
+  "n_turns": 6,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 66.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 13.7
+    },
+    {
+      "tool": "memory",
+      "ms": 104.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 13.4
+    }
+  ],
+  "arg_audit": {
+    "calls": 4,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "65dbdedb5f",
+        "target": "t9_caps.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "87a72fe0a2",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t9_caps.js"
+      },
+      {
+        "tool": "memory",
+        "digest": "391f0217f2",
+        "target": ""
+      },
+      {
+        "tool": "read_file",
+        "digest": "87a72fe0a2",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t9_caps.js"
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 2
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: ORION-7|600",
+  "tool_calls": [
+    "file_search",
+    "read_file",
+    "memory",
+    "read_file"
+  ],
+  "answer_chars": 284,
+  "tokens_out_proxy": 71.0,
+  "prompt_tokens": 75251,
+  "completion_tokens": 3040,
+  "total_tokens": 78291,
+  "usage_estimated": false,
+  "cost_usd": 0.004979,
+  "pricing_source": "default",
+  "fixture_hash": "95f51a3757cb",
+  "fixture_files": 201,
+  "answer_tail": "The file confirms ORION-7 = 300. Double that = 600. The user wrote in English, so I'll respond in English. Wrap up with the FINAL ANSWER line: ORION-7|600.\n\nRe-verified `t9_caps.json` — ORION-7 is still listed as **300**.\n\n- ORION-7: 300 → doubled = **600**\n\nFINAL ANSWER: ORION-7|600",
+  "ts": "2026-10-12T01:59:48"
+}

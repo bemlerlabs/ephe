@@ -1,0 +1,121 @@
+name: Lockfile agreement
+
+# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, rows 6 and 36 of the residue: the two lockfiles
+# agree with the manifests that generated them, the package manager that ran is the one the pin names,
+# and the last merge's dependency movement prints as a table.
+#
+# What is already covered, said plainly so this leg does not claim it: `frontend-build.yml` runs
+# `pnpm install --frozen-lockfile` on every push and pull request, so a pnpm lock that stopped matching
+# its manifest already reddens a push. What nothing covered is the *diff* -- a 16-package group bump
+# like `c10b9a99` arrived as a YAML wall with no statement of which names moved, which is the record the
+# "majors one at a time, diff first" rule (owner, 2026-10-09) needs in order to be checkable -- and the
+# assertion that the pnpm which ran equals `packageManager`, which frontend-build prints but never
+# compares.
+#
+# `uv sync --frozen` is deliberately not part of the nightly. This project's runtime set is chromadb,
+# onnxruntime, fastapi and their transitive tree -- several hundred MB into a workspace on a disk the
+# capacity document measures at 81 % -- and no leg of this pipeline installs from uv.lock today
+# (`tests.yml` installs `.[dev,tui]` from the pyproject ranges). The nightly therefore asserts
+# resolution agreement with the pinned uv, and the install itself is behind the `install_python`
+# dispatch input, so the owner can fire the expensive assertion on purpose rather than have it appear
+# as a scheduled cost.
+
+on:
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+    inputs:
+      install_python:
+        description: "Also run `uv sync --frozen` into a throwaway venv (hundreds of MB)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lockfile-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  EPHE_UV_VERSION: "0.12.24"
+
+jobs:
+  agreement:
+    name: Manifest to lock, pnpm pin, and the movement of the last merge
+    # `runner` is not in scope in the workflow `env:` block; a `${{ runner.temp }}` there fails
+    # validation of the entire file and arrives as a job-less run with no log. Measured on the push of
+    # `6e5fe969`, and `tests/test_workflow_env_scopes.py` refuses the shape now.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 25
+    steps:
+      - name: Scratch root
+        # `runner` is not in scope in a job-level `env:`, so the root lives in a step.
+        run: echo "EPHE_LOCK_VENV=${{ runner.temp }}/ephe-lock" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The diff compares HEAD against its parent, so two revisions have to exist locally.
+          fetch-depth: 2
+
+      - name: Set up Python
+        # Pinned, like the working legs: without it the interpreter resolves to the
+        # self-hosted runner's /usr/local/bin/python3 and scripts/ci_preflight.sh refuses the
+        # job as ambient host state (it passed none of these before).
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Hermetic preflight
+        run: bash scripts/ci_preflight.sh
+
+      - name: Activate the pnpm this repo pins
+        # corepack before anything that shells out to pnpm, for the reason written on the same step in
+        # frontend-build.yml: setup-node's `cache: pnpm` calls `pnpm store path`.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Install the pinned uv
+        # Same pin as the freshness step in tests.yml, and for the same reason: a lock checked by another
+        # resolver is a verdict about that resolver. Into a venv under RUNNER_TEMP, wiped with the job.
+        run: |
+          set -uo pipefail
+          python3 -m venv "$EPHE_LOCK_VENV"
+          "$EPHE_LOCK_VENV/bin/pip" install -q "uv==${EPHE_UV_VERSION}"
+          echo "$EPHE_LOCK_VENV/bin" >> "$GITHUB_PATH"
+          "$EPHE_LOCK_VENV/bin/uv" --version
+
+      - name: PyYAML for the lock reader
+        # The job's own interpreter does not carry the reader's dependency (the previous
+        # host interpreter did, which is the ambient state the preflight refuses). Pinned to
+        # the version uv.lock resolves.
+        run: python -m pip install --disable-pip-version-check -q "pyyaml==6.0.3"
+
+      - name: Agreement
+        run: python3 scripts/lockfile_check.py --require-pnpm --require-uv --require-cargo
+
+      - name: The movement of the last merge
+        # A report on the nightly: the previous push's dependency delta, printed per entry with majors
+        # called out. It never fails the leg, because the freeze checks above are the verdict.
+        run: python3 scripts/lockfile_check.py --diff "HEAD^..HEAD"
+
+      - name: Frozen pnpm install
+        # The real thing, in the job's own workspace: pnpm refuses to resolve when the lock disagrees
+        # with package.json, which is ERR_PNPM_OUTDATED_LOCKFILE and exit 1.
+        run: cd app && pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Frozen uv install, on dispatch only
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.install_python == 'true'
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/ephe-lock-env
+        run: |
+          set -uo pipefail
+          # The environment goes under RUNNER_TEMP, not into the workspace: `.venv/` inside `_work` is a
+          # tracked-artifact shape that outlives the job on this box, and `hygiene.yml` refuses it.
+          start=$SECONDS
+          uv sync --frozen --directory "$GITHUB_WORKSPACE"
+          echo "uv sync --frozen took $((SECONDS - start)) s into $UV_PROJECT_ENVIRONMENT"

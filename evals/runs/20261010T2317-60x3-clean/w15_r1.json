@@ -1,0 +1,216 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "572dcb4f5579655fe0e6f15bd76e0576a9d81ab0",
+    "commit_short": "572dcb4",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "W15",
+  "family": "endstate",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-w15-r1-1791671202",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "gamma=True alpha_gone=True index_ok=True",
+  "error_class": null,
+  "wall_ms": 55807.2,
+  "ttft_first_event_ms": 229.2,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "todo_list",
+      "ms": 78.2
+    },
+    {
+      "tool": "file_search",
+      "ms": 78.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.3
+    },
+    {
+      "tool": "write_file",
+      "ms": 3.7
+    },
+    {
+      "tool": "delete_file",
+      "ms": 2.8
+    },
+    {
+      "tool": "write_file",
+      "ms": 3.3
+    },
+    {
+      "tool": "delete_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.7
+    },
+    {
+      "tool": "list_directory",
+      "ms": 6.2
+    },
+    {
+      "tool": "todo_list",
+      "ms": 6.6
+    },
+    {
+      "tool": "todo_list",
+      "ms": 14.0
+    },
+    {
+      "tool": "todo_list",
+      "ms": 14.1
+    },
+    {
+      "tool": "todo_list",
+      "ms": 14.2
+    },
+    {
+      "tool": "todo_list",
+      "ms": 14.2
+    },
+    {
+      "tool": "todo_list",
+      "ms": 14.3
+    },
+    {
+      "tool": "todo_list",
+      "ms": 14.4
+    }
+  ],
+  "arg_audit": {
+    "calls": 16,
+    "ledger": [
+      {
+        "tool": "todo_list",
+        "digest": "1be1cdd32d",
+        "target": ""
+      },
+      {
+        "tool": "file_search",
+        "digest": "ae3e33e3a0",
+        "target": "w15_alpha.txt"
+      },
+      {
+        "tool": "read_file",
+        "digest": "ad2b8c6aa6",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w15_alp"
+      },
+      {
+        "tool": "write_file",
+        "digest": "469f0cb3a3",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w15_bet"
+      },
+      {
+        "tool": "delete_file",
+        "digest": "ad2b8c6aa6",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w15_alp"
+      },
+      {
+        "tool": "write_file",
+        "digest": "60ac2cc83a",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w15_gam"
+      },
+      {
+        "tool": "delete_file",
+        "digest": "71bcd0bad6",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w15_bet"
+      },
+      {
+        "tool": "write_file",
+        "digest": "7c2010b311",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w15_ind"
+      },
+      {
+        "tool": "list_directory",
+        "digest": "e859eb7ebc",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws"
+      },
+      {
+        "tool": "todo_list",
+        "digest": "1be1cdd32d",
+        "target": ""
+      },
+      {
+        "tool": "todo_list",
+        "digest": "c11ca466b8",
+        "target": ""
+      },
+      {
+        "tool": "todo_list",
+        "digest": "27637fd141",
+        "target": ""
+      },
+      {
+        "tool": "todo_list",
+        "digest": "2cd44d1153",
+        "target": ""
+      },
+      {
+        "tool": "todo_list",
+        "digest": "3471040cdf",
+        "target": ""
+      },
+      {
+        "tool": "todo_list",
+        "digest": "e528150e55",
+        "target": ""
+      },
+      {
+        "tool": "todo_list",
+        "digest": "8005efca3b",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 4,
+      "write_path": 3
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "todo_list",
+    "file_search",
+    "read_file",
+    "write_file",
+    "delete_file",
+    "write_file",
+    "delete_file",
+    "write_file",
+    "list_directory",
+    "todo_list",
+    "todo_list",
+    "todo_list",
+    "todo_list",
+    "todo_list",
+    "todo_list",
+    "todo_list"
+  ],
+  "answer_chars": 1574,
+  "tokens_out_proxy": 393.5,
+  "prompt_tokens": 91358,
+  "completion_tokens": 3027,
+  "total_tokens": 94385,
+  "usage_estimated": false,
+  "cost_usd": 0.005779,
+  "pricing_source": "default",
+  "fixture_hash": "7940c9513f0a",
+  "fixture_files": 207,
+  "ts": "2026-10-11T00:27:38"
+}

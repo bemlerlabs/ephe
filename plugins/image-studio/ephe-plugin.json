@@ -1,0 +1,18 @@
+{
+  "manifest_version": 1,
+  "name": "image-studio",
+  "version": "1.0.0",
+  "description": "Image endpoint (opt-in) generates pictures from prompts.",
+  "permissions": {
+    "tool_families": [
+      "network"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": []
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

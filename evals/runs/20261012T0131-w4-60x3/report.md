@@ -1,0 +1,64 @@
+# Option-B bench — pass^3 scorecards
+
+- T1 (tau): pass^3=PASS (3/3 reps)  wall_median=13.0s  calls=14  violations=none  notes=ok
+- T2 (tau): pass^3=PASS (3/3 reps)  wall_median=16.6s  calls=13  violations=none  notes=ok
+- T3 (tau): pass^3=PASS (3/3 reps)  wall_median=12.1s  calls=6  violations=none  notes=ok
+- T4 (tau): pass^3=PASS (3/3 reps)  wall_median=39.7s  calls=21  violations=none  notes=ok
+- G1 (gaia): pass^3=PASS (3/3 reps)  wall_median=10.0s  calls=11  violations=none  provenance=closed-book  notes=ok
+- G2 (gaia): pass^3=PASS (3/3 reps)  wall_median=24.7s  calls=21  violations=none  provenance=closed-book  notes=ok
+- G3 (gaia): pass^3=PASS (3/3 reps)  wall_median=33.8s  calls=19  violations=none  provenance=closed-book  notes=ok
+- G4 (gaia): pass^3=PASS (3/3 reps)  wall_median=21.4s  calls=18  violations={"unknown_target_file": 3}  provenance=closed-book  notes=ok
+- W1 (endstate): pass^3=PASS (3/3 reps)  wall_median=16.0s  calls=13  violations=none  notes=ok
+- W2 (endstate): pass^3=PASS (3/3 reps)  wall_median=32.9s  calls=21  violations=none  notes=ok
+- T5 (tau): pass^3=PASS (3/3 reps)  wall_median=20.9s  calls=20  violations=none  notes=ok
+- T6 (tau): pass^3=PASS (3/3 reps)  wall_median=9.3s  calls=6  violations=none  notes=ok
+- T7 (tau): pass^3=PASS (3/3 reps)  wall_median=19.2s  calls=9  violations=none  notes=ok
+- G5 (gaia): pass^3=PASS (3/3 reps)  wall_median=25.2s  calls=19  violations=none  provenance=closed-book  notes=ok
+- G6 (gaia): pass^3=PASS (3/3 reps)  wall_median=31.8s  calls=20  violations=none  provenance=closed-book  notes=ok
+- G7 (gaia): pass^3=PASS (3/3 reps)  wall_median=31.7s  calls=29  violations=none  provenance=closed-book  notes=ok
+- W3 (endstate): pass^3=PASS (3/3 reps)  wall_median=11.1s  calls=16  violations=none  notes=ok
+- W4 (endstate): pass^3=PASS (3/3 reps)  wall_median=20.7s  calls=20  violations={"unknown_target_file": 1}  notes=ok
+- W5 (endstate): pass^3=PASS (3/3 reps)  wall_median=21.3s  calls=30  violations=none  notes=ok
+- W6 (endstate): pass^3=PASS (3/3 reps)  wall_median=13.6s  calls=10  violations=none  notes=ok
+- T8 (tau): pass^3=PASS (3/3 reps)  wall_median=17.5s  calls=15  violations={"unknown_target_file": 2}  notes=ok
+- T9 (tau): pass^3=FAIL (2/3 reps)  wall_median=89.5s  calls=12  violations={"path_outside_workspace": 1}  notes=['final-answer==ORION-7|600']
+- T10 (tau): pass^3=PASS (3/3 reps)  wall_median=16.7s  calls=14  violations={"unknown_target_file": 2}  notes=ok
+- T11 (tau): pass^3=PASS (3/3 reps)  wall_median=11.8s  calls=7  violations=none  notes=ok
+- T12 (tau): pass^3=PASS (3/3 reps)  wall_median=21.1s  calls=8  violations=none  notes=ok
+- T13 (tau): pass^3=PASS (3/3 reps)  wall_median=22.4s  calls=14  violations=none  notes=ok
+- T14 (tau): pass^3=PASS (3/3 reps)  wall_median=22.6s  calls=25  violations={"unknown_target_file": 3}  notes=ok
+- T15 (tau): pass^3=PASS (3/3 reps)  wall_median=18.4s  calls=13  violations=none  notes=ok
+- T16 (tau): pass^3=PASS (3/3 reps)  wall_median=31.1s  calls=22  violations={"tool_result_error": 1, "unknown_target_file": 3}  notes=ok
+- T17 (tau): pass^3=PASS (3/3 reps)  wall_median=28.5s  calls=21  violations=none  notes=ok
+- G8 (gaia): pass^3=PASS (3/3 reps)  wall_median=41.8s  calls=32  violations={"unknown_target_file": 3}  provenance=closed-book  notes=ok
+- G9 (gaia): pass^3=PASS (3/3 reps)  wall_median=40.1s  calls=9  violations=none  provenance=closed-book  notes=ok
+- G10 (gaia): pass^3=PASS (3/3 reps)  wall_median=15.5s  calls=17  violations=none  provenance=closed-book  notes=ok
+- G11 (gaia): pass^3=PASS (3/3 reps)  wall_median=16.6s  calls=15  violations=none  provenance=closed-book  notes=ok
+- G12 (gaia): pass^3=PASS (3/3 reps)  wall_median=39.2s  calls=25  violations={"unknown_target_file": 3}  provenance=closed-book  notes=ok
+- G13 (gaia): pass^3=PASS (3/3 reps)  wall_median=15.2s  calls=12  violations={"unknown_target_file": 3}  provenance=closed-book  notes=ok
+- G14 (gaia): pass^3=PASS (3/3 reps)  wall_median=24.9s  calls=27  violations=none  provenance=closed-book  notes=ok
+- G15 (gaia): pass^3=PASS (3/3 reps)  wall_median=99.7s  calls=8  violations={"unknown_target_file": 1}  provenance=closed-book  notes=ok
+- G16 (gaia): pass^3=PASS (3/3 reps)  wall_median=13.0s  calls=12  violations=none  provenance=closed-book  notes=ok
+- G17 (gaia): pass^3=PASS (3/3 reps)  wall_median=28.5s  calls=13  violations=none  provenance=closed-book  notes=ok
+- W7 (endstate): pass^3=PASS (3/3 reps)  wall_median=11.2s  calls=9  violations=none  notes=ok
+- W8 (endstate): pass^3=PASS (3/3 reps)  wall_median=46.5s  calls=34  violations={"unknown_target_file": 3}  notes=ok
+- W9 (endstate): pass^3=PASS (3/3 reps)  wall_median=15.7s  calls=11  violations=none  notes=ok
+- W10 (endstate): pass^3=PASS (3/3 reps)  wall_median=40.4s  calls=47  violations={"unknown_target_file": 2}  notes=ok
+- W11 (endstate): pass^3=PASS (3/3 reps)  wall_median=8.8s  calls=12  violations=none  notes=ok
+- W12 (endstate): pass^3=PASS (3/3 reps)  wall_median=36.7s  calls=24  violations=none  notes=ok
+- W13 (endstate): pass^3=PASS (3/3 reps)  wall_median=17.7s  calls=12  violations=none  notes=ok
+- W14 (endstate): pass^3=PASS (3/3 reps)  wall_median=18.1s  calls=21  violations={"unknown_target_file": 1}  notes=ok
+- W15 (endstate): pass^3=PASS (3/3 reps)  wall_median=29.1s  calls=24  violations=none  notes=ok
+- W16 (endstate): pass^3=PASS (3/3 reps)  wall_median=32.7s  calls=18  violations=none  notes=ok
+- K1 (endstate): pass^3=PASS (3/3 reps)  wall_median=25.7s  calls=32  violations=none  notes=ok
+- K2 (endstate): pass^3=FAIL (0/3 reps)  wall_median=263.5s  calls=200  violations={"path_outside_workspace": 8, "tool_result_error": 21, "unknown_target_file": 1}  notes=['final-answer==890 (anker+chain join)', 'final-answer==890 (anker+chain join)', 'final-answer==890 (anker+chain join)']
+- K3 (endstate): pass^3=PASS (3/3 reps)  wall_median=35.7s  calls=39  violations={"unknown_target_file": 1}  notes=ok
+- K4 (endstate): pass^3=PASS (3/3 reps)  wall_median=47.5s  calls=37  violations={"unknown_target_file": 1}  notes=ok
+- K5 (endstate): pass^3=FAIL (2/3 reps)  wall_median=89.5s  calls=70  violations={"unknown_target_file": 2}  notes=['k5_out.json missing']
+- K6 (endstate): pass^3=PASS (3/3 reps)  wall_median=44.5s  calls=29  violations={"unknown_target_file": 1}  notes=ok
+- K7 (endstate): pass^3=PASS (3/3 reps)  wall_median=30.7s  calls=33  violations={"unknown_target_file": 3}  notes=ok
+- K8 (endstate): pass^3=PASS (3/3 reps)  wall_median=41.7s  calls=18  violations={"unknown_target_file": 2}  notes=ok
+- K9 (endstate): pass^3=PASS (3/3 reps)  wall_median=32.1s  calls=33  violations={"unknown_target_file": 3}  notes=ok
+- K10 (endstate): pass^3=PASS (3/3 reps)  wall_median=63.2s  calls=68  violations={"unknown_target_file": 3}  notes=ok
+
+**pass^3 total**: 57/60 tasks fully reliable

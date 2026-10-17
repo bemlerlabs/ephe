@@ -1,0 +1,92 @@
+name: Shipped asset checks
+
+# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, rows 19 and 20. The icon parity suite is already in
+# the tracked tests (`tests/test_r68_brand_icons.py` checks the Tauri set, the PWA dimensions, the
+# manifest's own entries and the RGBA that `tauri::generate_context!` demands); this leg adds the three
+# things no assertion covered, over the surface a user actually receives: references resolving, headers
+# matching extensions, and the mark surviving a 16 px resample.
+#
+# Pillow is a runtime dependency of the product, so the leg installs nothing new: it reads the version
+# `uv.lock` records (`name = "pillow"` followed by `version = ...`, currently 12.3.0) and puts exactly
+# that into a venv under `RUNNER_TEMP`, which the runner wipes. Reading it from the lock instead of
+# writing a number here is the difference between a pin and a habit -- the same reason the tests legs
+# install `uv==0.12.24` rather than `pip install uv`.
+#
+# The floors in `scripts/asset_check.py` were measured on this tree, not chosen: the weakest of the 20
+# icons keeps a luminance spread of 180.9 at 16 px with all 256 pixels visible under both Pillow 12.2.0
+# and the locked 12.3.0, and the gate sits at 20.0 with a 64-pixel visibility minimum. That is the owner
+# rule from 2026-10-09 about a rendered 16-256 px proof, in the half that needs no browser.
+#
+# Nightly on `vars.CI_LINUX_RUNNER`. The instrument costs 0.10 s here, so the leg's wall is the venv and
+# one wheel, and 1.5 carries the first run's number.
+
+on:
+  schedule:
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asset-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  assets:
+    name: References, headers and the 16 px proof
+    # Job level rather than the workflow `env:` block: `${{ runner.temp }}` at workflow scope fails
+    # validation for the whole file, which shows up as a run with no jobs, no log and the path where
+    # the name belongs. Measured on the push of `6e5fe969`; two steps here need the root, so the job is
+    # the scope that holds it. `tests/test_workflow_env_scopes.py` refuses the shape.
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Scratch root
+        # `runner` is not in scope in a job-level `env:`, so the root lives in a step.
+        run: echo "EPHE_ASSET_VENV=${{ runner.temp }}/ephe-assets" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        # Pinned, like the working legs: without it the interpreter resolves to the
+        # self-hosted runner's /usr/local/bin/python3 and scripts/ci_preflight.sh refuses the
+        # job as ambient host state (it passed none of these before).
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Hermetic preflight
+        run: bash scripts/ci_preflight.sh
+
+      - name: Install the Pillow this lock records
+        run: |
+          set -uo pipefail
+          version="$(awk '/^name = "pillow"$/{getline; gsub(/[^0-9.]/, ""); print; exit}' uv.lock)"
+          if [ -z "$version" ]; then
+            echo "::error::no pillow entry in uv.lock; the leg cannot decide which version to install"
+            exit 1
+          fi
+          echo "installing pillow==$version, the version uv.lock records"
+          python3 -m venv "$EPHE_ASSET_VENV"
+          "$EPHE_ASSET_VENV/bin/pip" install -q "pillow==${version}"
+          "$EPHE_ASSET_VENV/bin/python" -c 'import PIL; print("Pillow", PIL.__version__)'
+
+      - name: Check the shipped surface
+        # `${EPHE_ASSET_VENV}` expands in the shell from the job env: this step has to run the venv's
+        # interpreter, which is the one holding Pillow.
+        run: ${EPHE_ASSET_VENV}/bin/python scripts/asset_check.py --json out/asset-check/report.json
+
+      - name: Upload the measurements
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: asset-check-report
+          path: out/asset-check/report.json
+          if-no-files-found: error
+          retention-days: 30

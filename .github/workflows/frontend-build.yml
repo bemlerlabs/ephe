@@ -1,0 +1,164 @@
+# Frontend CI/CD Pipeline
+name: Frontend Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Lint
+    # A fork pull request must not run on a runner this project controls: it would execute
+    # foreign code on our machine, and GitHub offers no fork-approval control here (both
+    # settings answer 422; see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md). Accepted
+    # consequence: fork PRs get no CI and are reviewed by hand. Push and same-repo PR runs
+    # continue unchanged; every pull request this repository has seen was a dependabot branch.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    # Not 20: the e2e step below downloads a Chromium (~150 MB) before it runs its 91
+    # specs, on top of the pnpm install, the 1400-test vitest suite and the build.
+    # tests.yml:50 gives its browser-downloading Python leg 25 minutes for the same reason.
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # corepack, not a third-party action: app/package.json already pins
+      # `packageManager: pnpm@11.10.0`, and setup.sh/install.sh activate it the same
+      # way. This must run BEFORE setup-node, whose `cache: pnpm` step shells out to
+      # `pnpm store path` — without a pnpm on PATH that step is the whole failure
+      # ("Unable to locate executable file: pnpm", every run since 2026-09-07).
+      - name: Activate the pnpm this repo pins
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd app && pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: cd app && pnpm exec tsc --noEmit
+
+      - name: Unit tests (vitest)
+        # The frontend suite is a product surface: ~1400 tests over the store, the
+        # composer, the workbench and the settings panels. CI built the app for a
+        # month without ever running them.
+        run: cd app && pnpm exec vitest run
+
+      - name: Build
+        run: cd app && pnpm run build
+
+      - name: Bundle budget gate (R33)
+        # Budgets as tests: initial gzip bundle < 500 KB (lazy route chunks
+        # excluded by design). Exit 1 on budget breach — the build goes red.
+        run: cd app && python3 scripts/bundle_audit.py dist
+
+      - name: Main-chunk budget gate (WE-35)
+        # Per-chunk gzip ceilings for the chunks index.html loads on first paint,
+        # so one main chunk ballooning fails even when the aggregate stays under.
+        run: cd app && python3 scripts/bundle_budget.py dist
+
+      - name: Dev store handle must not ship (register #68)
+        # `src/store/chatStore.ts` assigns window.__epheStore under
+        # `import.meta.env.DEV` for the fifteen specs that seed state through it,
+        # and each of those specs skips when the handle is missing — so a build
+        # that ships the handle hands any script in the page a writable store,
+        # sandbox-approval actions included. The gate reads the dist/ this job
+        # built; tests/test_dev_handle_gate.py pins its verdicts on fixtures and
+        # app/src/store/chatStore.devHandle.test.ts pins the dev half.
+        run: cd app && python3 scripts/dev_handle_check.py dist
+
+      - name: Install the Chromium the e2e specs drive
+        # The browser binary is not part of `pnpm install`. `--with-deps` looks for sudo
+        # before it looks for a missing library, so on a runner without passwordless sudo it
+        # exits 1 and installs no browser at all — the finding tests.yml:141 records for the
+        # Python leg. This keeps the apt pass where sudo exists and the plain download
+        # everywhere else.
+        run: |
+          cd app
+          if sudo -n true 2>/dev/null; then
+            pnpm exec playwright install --with-deps chromium
+          else
+            pnpm exec playwright install chromium
+          fi
+
+      - name: E2E (Playwright over the bundle this job built)
+        # R8: app/package.json defined test:e2e, test:e2e:real and test:dogfood over
+        # app/tests/playwright/*.spec.ts and no workflow ran any of them, so the suite was a
+        # local-only claim. This step runs the specs the shipped bundle alone can satisfy:
+        # the config's own `python3 -m http.server` serves app/dist on a port it picks at
+        # run time and owns (tests/test_playwright_port_hygiene.py), with no backend, no
+        # Vite dev server and no engine.
+        #
+        # All 21 of the chromium project's spec files are named here, one by one, so this
+        # leg's contents stay readable in the workflow and a spec added tomorrow does not
+        # join it by accident (the `chromium` project alone would collect it). Until
+        # W10-51 four of the 21 were left out and carried ten red assertions between them:
+        # r14 (two navigations to the Vite dev server — ERR_CONNECTION_REFUSED on this leg
+        # — plus a probe for the old "?" shortcut and one for a settings toggle the
+        # product has since dropped), q-quality (four tests that seed the DEV-only
+        # window.__epheStore), r12 and panel (two surfaces the bundle no longer names as
+        # the tests did). Each now carries the guard or the current label it needs; the
+        # measurements and the reasoning are in docs/E2E_CI_2026-10-11.md.
+        run: |
+          cd app
+          pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list \
+            tests/playwright/app-boot.spec.ts \
+            tests/playwright/composer-width.spec.ts \
+            tests/playwright/glass-layers.spec.ts \
+            tests/playwright/langsession.spec.ts \
+            tests/playwright/mobile-viewport.spec.ts \
+            tests/playwright/modals.spec.ts \
+            tests/playwright/panel.spec.ts \
+            tests/playwright/plan-live.spec.ts \
+            tests/playwright/plan-page-floors.spec.ts \
+            tests/playwright/q-quality.spec.ts \
+            tests/playwright/r12.spec.ts \
+            tests/playwright/r14.spec.ts \
+            tests/playwright/r33-a11y.spec.ts \
+            tests/playwright/r36-dd27.spec.ts \
+            tests/playwright/r36-fixes.spec.ts \
+            tests/playwright/r4-motion-paint.spec.ts \
+            tests/playwright/r41-toolcards.spec.ts \
+            tests/playwright/r42-livetakt.spec.ts \
+            tests/playwright/r5-perceived-latency.spec.ts \
+            tests/playwright/u6-keyboard.spec.ts \
+            tests/playwright/z16-plan.spec.ts
+
+      - name: Lint
+        run: cd app && pnpm run lint
+
+      - name: Upload dist
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: success()
+        with:
+          name: frontend-dist
+          path: app/dist/
+          retention-days: 14
+          # Every other upload in this repository names what an empty build means; this one
+          # uploaded whatever it found, so a build that produced nothing left a green step
+          # and an artifact nobody could tell was empty.
+          if-no-files-found: error

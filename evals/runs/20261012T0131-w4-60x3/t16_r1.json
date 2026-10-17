@@ -1,0 +1,153 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T16",
+  "family": "tau",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-t16-r1-1791763523",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==42 (double-recovery)",
+  "error_class": null,
+  "wall_ms": 37336.5,
+  "ttft_first_event_ms": 157.7,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 57.1
+    },
+    {
+      "tool": "file_search",
+      "ms": 57.1
+    },
+    {
+      "tool": "list_directory",
+      "ms": 17.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.3
+    },
+    {
+      "tool": "tool_search",
+      "ms": 20.7
+    },
+    {
+      "tool": "tool_call",
+      "ms": 1255.4
+    },
+    {
+      "tool": "tool_call",
+      "ms": 801.3
+    },
+    {
+      "tool": "tool_call",
+      "ms": 837.0
+    },
+    {
+      "tool": "tool_call",
+      "ms": 837.0
+    }
+  ],
+  "arg_audit": {
+    "calls": 9,
+    "ledger": [
+      {
+        "tool": "read_file",
+        "digest": "3f259826fe",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t16.json"
+      },
+      {
+        "tool": "file_search",
+        "digest": "57ea0e09e0",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "list_directory",
+        "digest": "13f106cd9d",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "read_file",
+        "digest": "056be38d89",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t16_mirror"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "32b45c0aa4",
+        "target": "run shell command execute script python"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "6ed2080434",
+        "target": ""
+      },
+      {
+        "tool": "tool_call",
+        "digest": "4e728c1e47",
+        "target": ""
+      },
+      {
+        "tool": "tool_call",
+        "digest": "b10bb48086",
+        "target": ""
+      },
+      {
+        "tool": "tool_call",
+        "digest": "3c4bd3533e",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "read_target": 3,
+      "search_query": 1
+    },
+    "violations": [
+      {
+        "code": "unknown_target_file",
+        "tool": "read_file",
+        "arg": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t16.json"
+      }
+    ],
+    "violation_counts": {
+      "unknown_target_file": 1
+    },
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 42",
+  "tool_calls": [
+    "read_file",
+    "file_search",
+    "list_directory",
+    "read_file",
+    "tool_search",
+    "tool_call",
+    "tool_call",
+    "tool_call",
+    "tool_call"
+  ],
+  "answer_chars": 524,
+  "tokens_out_proxy": 131.0,
+  "prompt_tokens": 69965,
+  "completion_tokens": 1601,
+  "total_tokens": 71566,
+  "usage_estimated": false,
+  "cost_usd": 0.004139,
+  "pricing_source": "default",
+  "fixture_hash": "95f51a3757cb",
+  "fixture_files": 201,
+  "ts": "2026-10-12T02:06:01"
+}

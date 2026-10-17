@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "task_id": "W9",
+  "family": "endstate",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-w9-r1-1790172924",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "n=7 m=35",
+  "error_class": null,
+  "wall_ms": 19932.5,
+  "ttft_first_event_ms": 340.1,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 35.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 1.2
+    },
+    {
+      "tool": "edit_file",
+      "ms": 1.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 1.4
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 42",
+  "tool_calls": [
+    "file_search",
+    "read_file",
+    "edit_file",
+    "read_file"
+  ],
+  "answer_chars": 301,
+  "tokens_out_proxy": 75.2,
+  "fixture_hash": "fa00a7709563",
+  "answer_tail": "\n\n**Reparatur:** Die Datei war ungültig, weil das Komma zwischen den beiden Key-Value-Paaren fehlte. In `/private/tmp/bench-option-b/ws/w9_broken.json` wurde es eingefügt — die Rücklese bestätigt jetzt gültiges JSON:\n\n```json\n{\"n\": 7, \"m\": 35}\n```\n\n**Summe:** n + m = 7 + 35 = **42**\n\nFINAL ANSWER: 42",
+  "ts": "2026-09-23T16:15:44"
+}

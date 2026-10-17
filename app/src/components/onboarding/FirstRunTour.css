@@ -1,0 +1,264 @@
+/* The first open — four questions with the bee as guide. The stage is the
+   scene's ground, quieter than the intro: a low ember light, the panel as a
+   sheet on it, and the being moving one place per answer. */
+.tour-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  align-items: center;
+  overflow-y: auto;
+  padding: clamp(1rem, 5vh, 4rem) clamp(1rem, 5vw, 5rem);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+.tour-ground {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 18% 88%, color-mix(in oklab, var(--color-brand) 20%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 78% 12%, color-mix(in oklab, var(--color-brand) 7%, transparent), transparent 70%),
+    linear-gradient(to bottom, transparent 60%, color-mix(in oklab, var(--color-brand) 6%, transparent));
+}
+.tour-bee {
+  position: absolute;
+  inset-inline-start: clamp(2rem, 10vw, 14rem);
+  inset-block-end: clamp(4rem, 12vh, 10rem);
+  transition: transform 700ms var(--ease-settle);
+  pointer-events: none;
+}
+.tour-bee[data-step="1"] { transform: translate(4vw, -2vh) rotate(-3deg); }
+.tour-bee[data-step="2"] { transform: translate(7vw, -4vh) rotate(2deg); }
+.tour-bee[data-step="3"] { transform: translate(3vw, -5vh); }
+.tour-bee[data-step="4"] { transform: translate(9vw, -3vh) rotate(-2deg); }
+.tour-bee[data-step="5"] { transform: translate(24vw, -7vh) scale(0.9); }
+.tour-panel {
+  position: relative;
+  justify-self: end;
+  width: min(36rem, 100%);
+  padding: clamp(1.4rem, 3.2vw, 2.5rem);
+  border: 1px solid var(--color-hairline);
+  background: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  animation: tour-arrive 420ms var(--ease-out-soft) both;
+}
+@keyframes tour-arrive {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tour-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.tour-eyebrow {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-scale-data, 12px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+.tour-skip,
+.tour-back,
+.tour-text-action {
+  font-size: var(--text-scale-ui, 14px);
+  color: var(--color-ink-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: start;
+}
+.tour-skip:hover,
+.tour-back:hover,
+.tour-text-action:hover { color: var(--color-ink); }
+.tour-title {
+  font-size: clamp(1.55rem, 2.4vw, 2.05rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  outline: none;
+}
+.tour-line {
+  margin-top: 0.85rem;
+  max-width: 42ch;
+  font-size: var(--text-ui-base, 15px);
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+.tour-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 1.25rem;
+}
+.tour-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-hairline);
+  background: var(--color-surface-raised);
+  color: var(--color-ink-soft);
+  font-size: var(--text-scale-ui, 14px);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 180ms var(--ease-settle),
+    background-color 180ms var(--ease-settle),
+    color 180ms var(--ease-settle);
+}
+.tour-card:hover { border-color: var(--color-hairline-strong); color: var(--color-ink); }
+.tour-card.is-selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-tint);
+  color: var(--color-ink);
+}
+.tour-card.is-selected svg { color: var(--color-brand-glow); }
+.tour-text-action { display: inline-block; margin-top: 0.9rem; }
+.tour-engine {
+  margin-top: 1.1rem;
+  padding: 12px 14px;
+  border-inline-start: 2px solid var(--color-brand);
+  background: var(--color-surface-raised);
+  display: grid;
+  gap: 0.35rem;
+}
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1.35rem;
+}
+.tour-primary,
+.tour-ghost {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: var(--text-scale-ui, 14px);
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color 180ms var(--ease-settle),
+    border-color 180ms var(--ease-settle),
+    color 180ms var(--ease-settle);
+}
+.tour-primary {
+  background: var(--color-brand);
+  color: #fff;
+}
+.tour-primary:hover:not(:disabled) { background: var(--color-brand-glow); }
+.tour-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.tour-ghost {
+  background: none;
+  border-color: var(--color-hairline);
+  color: var(--color-ink-soft);
+}
+.tour-ghost:hover { border-color: var(--color-hairline-strong); color: var(--color-ink); }
+.tour-switches { margin-top: 1rem; }
+.tour-switch-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-hairline);
+  background: none;
+  border-inline: 0;
+  text-align: start;
+  cursor: pointer;
+}
+.tour-switch-row:first-child { border-top: 0; }
+.tour-switch {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-hairline-strong);
+  transition: background-color 180ms var(--ease-settle);
+}
+.tour-switch.is-on { background: var(--color-brand); }
+.tour-switch-thumb {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 180ms var(--ease-settle);
+}
+.tour-switch.is-on .tour-switch-thumb { transform: translateX(18px); }
+.tour-imported {
+  margin-top: 1rem;
+  padding: 12px 14px;
+  border: 1px solid var(--color-hairline);
+  background: var(--color-surface-raised);
+  font-size: var(--text-scale-ui, 14px);
+  color: var(--color-ink-soft);
+}
+.tour-error {
+  margin-top: 1rem;
+  font-size: var(--text-scale-ui, 14px);
+  color: var(--color-status-warning, var(--color-brand-glow));
+}
+.tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--color-hairline);
+}
+.tour-body { animation: tour-content 260ms var(--ease-out-soft) both; }
+@keyframes tour-content {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 900px) {
+  .tour-stage {
+    display: block;
+    padding: 4.5rem 1rem 2rem;
+  }
+  .tour-bee {
+    position: relative;
+    inset: auto;
+    margin: 0 auto 1rem;
+    width: max-content;
+    transform: none !important;
+  }
+  .tour-panel { width: 100%; }
+  .tour-cards { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-panel,
+  .tour-body,
+  .tour-bee,
+  .tour-card,
+  .tour-switch,
+  .tour-switch-thumb,
+  .tour-primary,
+  .tour-ghost {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tour-bee { transform: none !important; }
+}
+html.no-motion .tour-panel,
+html.no-motion .tour-body,
+html.no-motion .tour-bee,
+html.no-motion .tour-card,
+html.no-motion .tour-switch,
+html.no-motion .tour-switch-thumb {
+  animation: none !important;
+  transition: none !important;
+}
+html.no-motion .tour-bee { transform: none !important; }
