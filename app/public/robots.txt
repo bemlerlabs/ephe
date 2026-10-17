@@ -1,0 +1,7 @@
+# Ephe — robots.txt
+# The production deployment is Tauri-bundled/offline; this file applies to
+# web deployments (e.g. landing/mirroring). LLM context: /llms.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /ws/

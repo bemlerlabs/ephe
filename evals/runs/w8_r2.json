@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "task_id": "W8",
+  "family": "endstate",
+  "level": "L4",
+  "rep": 2,
+  "session_id": "ob-w8-r2-1790174108",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "content='seed' old_gone=True",
+  "error_class": null,
+  "wall_ms": 40533.5,
+  "ttft_first_event_ms": 286.1,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "tool_search",
+      "ms": 1.3
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.8
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.3
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.6
+    },
+    {
+      "tool": "write_file",
+      "ms": 3.4
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.9
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.1
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.0
+    },
+    {
+      "tool": "tool_call",
+      "ms": 1.0
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "tool_search",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "tool_call"
+  ],
+  "answer_chars": 702,
+  "tokens_out_proxy": 175.5,
+  "fixture_hash": "3e0f4a8705fc",
+  "answer_tail": " Verifiziertes Ergebnis |\n|---|---|---|\n| 1 | `read_file` → `a.txt` | Inhalt: `seed` |\n| 2 | `write_file` → `b.txt` | `seed` angelegt (4 Zeichen) |\n| 3 | `delete_file` → `a.txt` | `deleted '.../a.txt'` |\n| 4 | `write_file` → `c.txt` | `seed` angelegt (4 Zeichen) |\n| 5 | `delete_file` → `b.txt` | `deleted '.../b.txt'` |\n| 6 | `write_file` → `d.txt` | `seed` angelegt (4 Zeichen) |\n| 7 | `delete_file` → `c.txt` | `deleted '.../c.txt'` |\n| 8 | Rücklese-Verifikation `d.txt` | `seed` ✔ |\n\n**Endzustand:** Nur `d.txt` existiert, Inhalt `seed` — identisch zum ursprünglichen `a.txt`.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:35:48"
+}

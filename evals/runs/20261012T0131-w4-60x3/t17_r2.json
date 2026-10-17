@@ -1,0 +1,126 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T17",
+  "family": "tau",
+  "level": "L3",
+  "rep": 2,
+  "session_id": "ob-t17-r2-1791763649",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==385 (repeat-consistency)",
+  "error_class": null,
+  "wall_ms": 26425.8,
+  "ttft_first_event_ms": 203.7,
+  "n_turns": 2,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 59.0
+    },
+    {
+      "tool": "tool_search",
+      "ms": 59.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 74.6
+    },
+    {
+      "tool": "tool_call",
+      "ms": 74.6
+    },
+    {
+      "tool": "tool_search",
+      "ms": 20.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 20.8
+    },
+    {
+      "tool": "tool_call",
+      "ms": 72.2
+    }
+  ],
+  "arg_audit": {
+    "calls": 7,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "2dd939b0b8",
+        "target": "t10.csv"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "5cd7b5bbf3",
+        "target": "run_shell python execute script"
+      },
+      {
+        "tool": "read_file",
+        "digest": "0be6883ae5",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t10.csv"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "40edfaccf2",
+        "target": ""
+      },
+      {
+        "tool": "tool_search",
+        "digest": "5cd7b5bbf3",
+        "target": "run_shell python execute script"
+      },
+      {
+        "tool": "read_file",
+        "digest": "0be6883ae5",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/t10.csv"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "cb42fb8942",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 2
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 385",
+  "tool_calls": [
+    "file_search",
+    "tool_search",
+    "read_file",
+    "tool_call",
+    "tool_search",
+    "read_file",
+    "tool_call"
+  ],
+  "answer_chars": 393,
+  "tokens_out_proxy": 98.2,
+  "prompt_tokens": 42415,
+  "completion_tokens": 1347,
+  "total_tokens": 43762,
+  "usage_estimated": false,
+  "cost_usd": 0.00266,
+  "pricing_source": "default",
+  "fixture_hash": "95f51a3757cb",
+  "fixture_files": 201,
+  "answer_tail": "\n**Erneut verifiziert per Skript — gleiches Ergebnis wie zuvor:**\n\n- Datei: `/work/.ephe/bench/20261012T0131-w4-60x3/ws/t10.csv`\n- Skript-Output: `values: [7.0, 14.0, 21.0, 28.0, 35.0, 42.0, 49.0, 56.0, 63.0, 70.0]` → `SUM: 385.0`\n\nDie 10 Werte (7, 14, 21, 28, 35, 42, 49, 56, 63, 70) ergeben erneut **385** — Bestätigung gegenüber der ersten Berechnung: identisch. ✅\n\nFINAL ANSWER: 385",
+  "ts": "2026-10-12T02:07:56"
+}

@@ -1,0 +1,6 @@
+{"id": "memory-1", "command": "memorize", "input": "Merke dir: Der Router steht im Arbeitszimmer, IP 192.168.1.1.", "expect": {"kind": "tool_use", "any": ["memory"]}}
+{"id": "memory-2", "command": null, "input": "Was habe ich dir über den Router gesagt?", "expect": {"kind": "contains", "any": ["Arbeitszimmer", "192.168"]}}
+{"id": "memory-3", "command": "memorize", "input": "Speichere, dass meine Lieblingsbibliothek für Diagramme Mermaid ist.", "expect": {"kind": "tool_use", "any": ["memory"]}}
+{"id": "memory-4", "command": null, "input": "Liste alle gespeicherten Fakten über meine Werkstatt auf.", "expect": {"kind": "tool_use", "any": ["memory"]}}
+{"id": "memory-5", "command": null, "input": "Vergiss den Eintrag über den Router wieder.", "expect": {"kind": "contains", "any": ["gelöscht", "entfernt", "vergessen"]}}
+{"id": "memory-6", "command": null, "input": "Erkläre in 2 Sätzen, wo Ephe sein Gedächtnis lokal ablegt.", "expect": {"kind": "not_contains", "any": ["Cloud"]}}

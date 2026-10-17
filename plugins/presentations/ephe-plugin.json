@@ -1,0 +1,25 @@
+{
+  "manifest_version": 1,
+  "name": "presentations",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "Real deck production: PPTX presentations, pitch decks, diagrams and SVG assets.",
+  "permissions": {
+    "tool_families": [
+      "docs",
+      "read"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "deck",
+        "description": "Produce a real PPTX deck",
+        "template": "Erstelle einen echten PPTX-Pitch-Deck zu: {input}. Nutze create_pptx_deck/create_pitch_deck und liefere Folien mit klarer Story-Arc."
+      }
+    ]
+  },
+  "icon": "icon.svg"
+}

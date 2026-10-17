@@ -1,0 +1,7 @@
+{"id": "presentations-1", "command": "deck", "input": "Baue ein 5-Folien-Deck über unser Q3: Umsatz 150k, NPS 62, 3 neue Kunden.", "expect": {"kind": "artifact", "suffix": ".pptx"}}
+{"id": "presentations-2", "command": "deck", "input": "Erstelle ein Pitch-Deck (Problem, Lösung, Markt) für eine lokale Fahrradwerkstatt.", "expect": {"kind": "tool_use", "any": ["create_pptx_deck", "create_pitch_deck"]}}
+{"id": "presentations-3", "command": null, "input": "Prüfe das Deck /tmp/deck.pptx auf Folienzahl und Sprechernotizen.", "expect": {"kind": "tool_use", "any": ["qa_pptx_deck", "inspect_pptx_template"]}}
+{"id": "presentations-4", "command": null, "input": "Gib mir die Agenda als Text für einen 10-Minuten-Vortrag über lokale Stromspeicher.", "expect": {"kind": "contains", "any": ["Agenda", "Vortrag"]}}
+{"id": "presentations-5", "command": "deck", "input": "Erstelle ein Deck mit Sprechernotizen zu jedem Slide über den Schwarzwald-Tourismus.", "expect": {"kind": "contains", "any": ["Notiz", "Sprecher"]}}
+{"id": "presentations-6", "command": null, "input": "Wie viele Folien braucht ein 15-Minuten-Vortrag laut Faustregel? Begründe kurz.", "expect": {"kind": "contains", "any": ["Faustregel", "Folie"]}}
+{"id": "presentations-7", "command": "deck", "input": "Vervollständige die Folientitel für das Q3-Deck — jeder Titel fertig formuliert.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}

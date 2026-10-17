@@ -1,0 +1,260 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "api-designer",
+      "source": "skills/api-designer",
+      "computedHash": "311e791b8a2a00ed030b8c7917417db9a381fbe48a5d67482db1c3c488b2c2d7"
+    },
+    {
+      "name": "api-tester",
+      "source": "skills/api-tester",
+      "computedHash": "a197e8b85940673bccaa18664b4654be7eb0e743aeb2a913481366abe56cdd8a"
+    },
+    {
+      "name": "business-plan",
+      "source": "skills/business-plan",
+      "computedHash": "95129eadd7e86aa4ab970812ce066a5c6db7d3e8e01e2f5a6213f9e4facde68f"
+    },
+    {
+      "name": "chart-creator",
+      "source": "skills/chart-creator",
+      "computedHash": "dd1bb50d4876826dbc07ac89cf5b570f3e6d528f341c53e07231caec1cd858b2"
+    },
+    {
+      "name": "checklist-maker",
+      "source": "skills/checklist-maker",
+      "computedHash": "645deddb67c6f50a033cb813f9835eea0601c9c767bbd1ebe357f88a715b02b9"
+    },
+    {
+      "name": "code-metrics",
+      "source": "skills/code-metrics",
+      "computedHash": "55fd16acee65474880825697481aedac1ec9c2003897cd6c9da64b25314309b9"
+    },
+    {
+      "name": "code-reviewer",
+      "source": "skills/code-reviewer",
+      "computedHash": "669b61e436e84ce8762cbc1f61a795c642c91bf6203637185a3f3a9b1d3da8de"
+    },
+    {
+      "name": "coding-agent",
+      "source": "skills/coding-agent",
+      "computedHash": "f9be914bf381bb346f02a7dff89dfcd5ba0cb1d5471f97ba5947954ff9d1a34b"
+    },
+    {
+      "name": "competitor-analysis",
+      "source": "skills/competitor-analysis",
+      "computedHash": "a287f712681ddbc918658fdf727ff970392e1dc26a08bc7ecd6dfbc67ae641e3"
+    },
+    {
+      "name": "config-setup",
+      "source": "skills/config-setup",
+      "computedHash": "9a85b776ab23efaa1519a7d87e6487d079d1c8137fc41df7ef75375408be99d9"
+    },
+    {
+      "name": "cover-letter",
+      "source": "skills/cover-letter",
+      "computedHash": "8b80a94d8af333aee917df6a74f19ab447382f4494d48e13083922c92b364a72"
+    },
+    {
+      "name": "cv-helper",
+      "source": "skills/cv-helper",
+      "computedHash": "d792d5b28478e522f178d4b86f0e96a20d7d7432deaaa32f8fd409f40c6d3663"
+    },
+    {
+      "name": "data-analyst",
+      "source": "skills/data-analyst",
+      "computedHash": "aa89363105be9e5f66665cf546ceef9c33543a97ea50c01d88b59a4b9305f321"
+    },
+    {
+      "name": "debugger",
+      "source": "skills/debugger",
+      "computedHash": "d0f242fa4da5c7aeabad6b916ab55766e3bb706fcc16052a8dfd3ece1e8ef5ab"
+    },
+    {
+      "name": "decision-matrix",
+      "source": "skills/decision-matrix",
+      "computedHash": "973bb7750f44ac275779950da913ebc22c99f3b70fe53e646e805d9b5cedc080"
+    },
+    {
+      "name": "deck-creator",
+      "source": "skills/deck-creator",
+      "computedHash": "1f2f374670e79b65c8268c649655545dcd0c6cc122d40438f00f11dbefece2ac"
+    },
+    {
+      "name": "diagram-creator",
+      "source": "skills/diagram-creator",
+      "computedHash": "853ee6ba65bf756bff58ca0f109c010089d4e325b4f7269fd771acd2e3e71531"
+    },
+    {
+      "name": "document-factory",
+      "source": "skills/document-factory",
+      "computedHash": "5f2eacf7d4e7308a31aba9488f78963f61cf4987305c835fd9be13e031db6cfc"
+    },
+    {
+      "name": "docx-creator",
+      "source": "skills/docx-creator",
+      "computedHash": "63d113152b89a79a34c5f0f1b5e1ea6a046d0457b505c5c41bfbdc3b5dbd9c1e"
+    },
+    {
+      "name": "email-writer",
+      "source": "skills/email-writer",
+      "computedHash": "7ea18af3d363bdbd94915c299f8a6ea9139453209fd8874e93eac2a3fc527e61"
+    },
+    {
+      "name": "ephe-agent",
+      "source": "skills/ephe-agent",
+      "computedHash": "f8f358d631407638c2d969eab31b67ed37041f1f76d33fad8f9ffd5a4879f18d"
+    },
+    {
+      "name": "explain-expert",
+      "source": "skills/explain-expert",
+      "computedHash": "f1158c6ecc1475092b37fdc91f44d235b9c9f75e8fba3d39741b3b5e9383e666"
+    },
+    {
+      "name": "file-assistant",
+      "source": "skills/file-assistant",
+      "computedHash": "29c8837068826627dc8f2e3639052f9f7b066bb698b6510d5a7e6627af3f92b0"
+    },
+    {
+      "name": "help",
+      "source": "skills/help",
+      "computedHash": "006fd23416bd7b80e26d1ed018b214030977409342d68976f4a846dcc441c500"
+    },
+    {
+      "name": "image-creator",
+      "source": "skills/image-creator",
+      "computedHash": "e5c61d292d905f56453ca5c50de4ab3d9028548c154cf4bbcb6ee1ed9de1f9ee"
+    },
+    {
+      "name": "json-helper",
+      "source": "skills/json-helper",
+      "computedHash": "044fe87253bd29e8f36ae249012e3d16cc88d203193021b7d9636bba9e4665a7"
+    },
+    {
+      "name": "meeting-notes",
+      "source": "skills/meeting-notes",
+      "computedHash": "17c3d8166420f2c5046d2d5ed2e61e4a5ade7aa9d56856325c4f1afff43f0293"
+    },
+    {
+      "name": "pdf-creator",
+      "source": "skills/pdf-creator",
+      "computedHash": "e94bdfe795406adc550d422f96efadfe23a0fd0f2d785245c044eeeb108b7ce9"
+    },
+    {
+      "name": "plan",
+      "source": "skills/plan",
+      "computedHash": "d32581722dd8f6b706aa46777d11012c00cc73ee30e25c1e1ebac2a9061730d5"
+    },
+    {
+      "name": "project-assistant",
+      "source": "skills/project-assistant",
+      "computedHash": "ee6c98377e162494eeff64bc1bd38912c3cb9250b772e6b9b21c3ae694d1e33c"
+    },
+    {
+      "name": "project-factory",
+      "source": "skills/project-factory",
+      "computedHash": "5ac8040c9628dc266c7fb8172b951a298f62138d3e9b22d2c71218d20e8911c3"
+    },
+    {
+      "name": "qrcode-creator",
+      "source": "skills/qrcode-creator",
+      "computedHash": "3e143c3b455855d0f6a3444e738f805ec4228846692dd6eb74a41dc6b77167fb"
+    },
+    {
+      "name": "quiz-maker",
+      "source": "skills/quiz-maker",
+      "computedHash": "8d2fcb9c6efe6b98ba9e60f87c8abab6b2d57e0d03e17236cdb03ebdff2cfdac"
+    },
+    {
+      "name": "refactor-helper",
+      "source": "skills/refactor-helper",
+      "computedHash": "b730d50c30d0bdd29edc4124c7d57ca7d878b1c2f1dd769df5dda1e2c1e94d8f"
+    },
+    {
+      "name": "regex-helper",
+      "source": "skills/regex-helper",
+      "computedHash": "ced7405f7dcd2415194e3972c347cc59a06faeacb5a9dc95b6b51e39f61febb1"
+    },
+    {
+      "name": "roadmap-planner",
+      "source": "skills/roadmap-planner",
+      "computedHash": "5290dcaf211b9d3a6dc245b5367b5cfe451635e4a95e108932692d4caefdc5a3"
+    },
+    {
+      "name": "security-review",
+      "source": "skills/security-review",
+      "computedHash": "5abbfbf74fbd520fb16036c6191d85b846289ab069cd75d2c8b09ab4ea8ef905"
+    },
+    {
+      "name": "shell-helper",
+      "source": "skills/shell-helper",
+      "computedHash": "15d1d7882abd77d29196eb1c8ebf0be0bc6e99cf08e2530dda8fb2a0e0afcce0"
+    },
+    {
+      "name": "social-media",
+      "source": "skills/social-media",
+      "computedHash": "c8937e0f58bb7d55440c32152e3faec5e62f90a62558f739665bca732a3f2afd"
+    },
+    {
+      "name": "source-notebook",
+      "source": "skills/source-notebook",
+      "computedHash": "3a085ab000def5493cda44ed403f9970fbe5b50d958f2c3000f0c55f58bb067f"
+    },
+    {
+      "name": "sql-helper",
+      "source": "skills/sql-helper",
+      "computedHash": "5c3bd85867436002a618bc306838b20dc14eef9ba6f346599a806f12f7ac2f42"
+    },
+    {
+      "name": "summarizer",
+      "source": "skills/summarizer",
+      "computedHash": "7d5536163799367ba9cd368deaa40c3f90b1ce2153a11caba2f3c95619775c1e"
+    },
+    {
+      "name": "svg-creator",
+      "source": "skills/svg-creator",
+      "computedHash": "51da673a58b478a5d9dccd5fd5462ec21b1591c80e4aa62b04c085b5d58bf2ad"
+    },
+    {
+      "name": "swot-analyzer",
+      "source": "skills/swot-analyzer",
+      "computedHash": "05d675b8867cea28b371d7f81e22d345ccb2f71b6f900eef4b62c5d7fea91ab5"
+    },
+    {
+      "name": "test-writer",
+      "source": "skills/test-writer",
+      "computedHash": "1e5cecc82f090cfe4193dfc7c85e46c5f2a9c86f1d424181ddb7f21fa8c067aa"
+    },
+    {
+      "name": "translator",
+      "source": "skills/translator",
+      "computedHash": "4cef5ec31263675b5b70296e61bf9ee8c1eb8d8ed0aa032720dbce63876734c2"
+    },
+    {
+      "name": "video-creator",
+      "source": "skills/video-creator",
+      "computedHash": "78df70e2f0b0d56dafba664b8c5d0d250b613c6800eafa6d3d2c23f8609fe361"
+    },
+    {
+      "name": "vision-assistant",
+      "source": "skills/vision-assistant",
+      "computedHash": "a1ccc316b1de73ec1059560e32aa7884b3511d2dfb9fcf396a8422041165598f"
+    },
+    {
+      "name": "web-researcher",
+      "source": "skills/web-researcher",
+      "computedHash": "16549c692e65b1b1bc822e36a8cfc00622d1a44c61b3b6cee6940bd00649e686"
+    },
+    {
+      "name": "writer",
+      "source": "skills/writer",
+      "computedHash": "59b04d0427cb12f43633938ffb052b3d71e23979d2f66dfcdeb58d638151c83b"
+    },
+    {
+      "name": "xlsx-creator",
+      "source": "skills/xlsx-creator",
+      "computedHash": "b7097426e92c98ac2bf0d5236c198ec32e95e32896bb57fdfe390c982f6f562c"
+    }
+  ]
+}

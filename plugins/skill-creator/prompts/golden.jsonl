@@ -1,0 +1,6 @@
+{"id": "skill-creator-1", "command": "newskill", "input": "Lege das Skill-Pack 'botecho' an: SKILL.md mit 2 Few-Shot-Beispielen.", "expect": {"kind": "tool_use", "any": ["write_file", "skill_manage"]}}
+{"id": "skill-creator-2", "command": "grade", "input": "Bewerte das Skill-Pack 'regex-helper' gegen seine Rubric.", "expect": {"kind": "contains", "any": ["Rubric", "Punkte", "pass"]}}
+{"id": "skill-creator-3", "command": "newskill", "input": "Erzeuge die Dateien references/rubric.md und examples/golden.md für ein neues Pack.", "expect": {"kind": "artifact", "suffix": ".md"}}
+{"id": "skill-creator-4", "command": null, "input": "Was prüft scripts/audit_skills.py an einem Skill-Pack?", "expect": {"kind": "contains", "any": ["rubric", "golden"]}}
+{"id": "skill-creator-5", "command": null, "input": "Nenne die 3 Pflichtdateien eines Skill-Packs und ihren Zweck.", "expect": {"kind": "contains", "any": ["SKILL.md", "rubric", "golden"]}}
+{"id": "skill-creator-6", "command": null, "input": "Warum braucht jedes Skill-Pack ein Golden-Beispiel?", "expect": {"kind": "not_contains", "any": ["weiß nicht"]}}
