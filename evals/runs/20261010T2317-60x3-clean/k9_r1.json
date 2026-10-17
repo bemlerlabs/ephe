@@ -1,0 +1,154 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "d7016181fd0a6ce855175458e8bf2b8196dff81b",
+    "commit_short": "d701618",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "K9",
+  "family": "endstate",
+  "level": "L5",
+  "rep": 1,
+  "session_id": "ob-k9-r1-1791672762",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==1098 (table join ab 9)",
+  "error_class": null,
+  "wall_ms": 34017.9,
+  "ttft_first_event_ms": 172.7,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 6.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 14.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 15.5
+    }
+  ],
+  "arg_audit": {
+    "calls": 10,
+    "ledger": [
+      {
+        "tool": "read_file",
+        "digest": "6e41a25ca3",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_009.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "a84e2b988b",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/ktab_scores.csv"
+      },
+      {
+        "tool": "read_file",
+        "digest": "343c44e8bc",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_022.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "365df8d994",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_035.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b9a7967128",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_048.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "f57e15d475",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_061.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b02f9242e0",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_074.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "312a58ca8a",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_087.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "3ad186eb37",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_100.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "8a23f541b7",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_113.json"
+      }
+    ],
+    "classes": {
+      "read_target": 10
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 1098",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 755,
+  "tokens_out_proxy": 188.8,
+  "prompt_tokens": 25438,
+  "completion_tokens": 2035,
+  "total_tokens": 27473,
+  "usage_estimated": false,
+  "cost_usd": 0.002086,
+  "pricing_source": "default",
+  "fixture_hash": "594ddec0347c",
+  "fixture_files": 210,
+  "ts": "2026-10-11T00:53:16"
+}

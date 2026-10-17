@@ -1,0 +1,182 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "K3",
+  "family": "endstate",
+  "level": "L5",
+  "rep": 3,
+  "session_id": "ob-k3-r3-1791766670",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==1190 (table join)",
+  "error_class": null,
+  "wall_ms": 30083.6,
+  "ttft_first_event_ms": 112.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "list_directory",
+      "ms": 19.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 19.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 57.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 12.9
+    }
+  ],
+  "arg_audit": {
+    "calls": 12,
+    "ledger": [
+      {
+        "tool": "list_directory",
+        "digest": "314de0ca45",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "read_file",
+        "digest": "45196e8d4b",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_001.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "8285aec238",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_014.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "07c2606942",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_027.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "517588729b",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_040.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "132989b709",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_053.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "5130e402f6",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_066.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "1725ee0d04",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_079.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "6700d807b0",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_092.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "ba9aef5d28",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_105.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7b1440379a",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/kdoc_118.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "569bb55656",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/ktab_scores.csv"
+      }
+    ],
+    "classes": {
+      "read_target": 12
+    },
+    "violations": [
+      {
+        "code": "unknown_target_file",
+        "tool": "list_directory",
+        "arg": "~/.ephe/bench/20261012T0131-w4-60x3/ws"
+      }
+    ],
+    "violation_counts": {
+      "unknown_target_file": 1
+    },
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 1190",
+  "tool_calls": [
+    "list_directory",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 695,
+  "tokens_out_proxy": 173.8,
+  "prompt_tokens": 32682,
+  "completion_tokens": 1931,
+  "total_tokens": 34613,
+  "usage_estimated": false,
+  "cost_usd": 0.002407,
+  "pricing_source": "default",
+  "fixture_hash": "f6f241e09f9a",
+  "fixture_files": 212,
+  "ts": "2026-10-12T02:58:20"
+}

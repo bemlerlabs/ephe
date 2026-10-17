@@ -1,0 +1,263 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "d7016181fd0a6ce855175458e8bf2b8196dff81b",
+    "commit_short": "d701618",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "K8",
+  "family": "endstate",
+  "level": "L5",
+  "rep": 3,
+  "session_id": "ob-k8-r3-1791672708",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==1053 (two-chain join)",
+  "error_class": null,
+  "wall_ms": 54127.1,
+  "ttft_first_event_ms": 199.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 67.5
+    },
+    {
+      "tool": "list_directory",
+      "ms": 67.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 5.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 5.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 13.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 13.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.6
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.6
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.4
+    }
+  ],
+  "arg_audit": {
+    "calls": 20,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "a2c211b986",
+        "target": "kdoc_006.json"
+      },
+      {
+        "tool": "list_directory",
+        "digest": "4da047eece",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws"
+      },
+      {
+        "tool": "read_file",
+        "digest": "89a8a96fe0",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_006.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b108347d90",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_007.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "3e7a9e426f",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_019.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "5f458160c0",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_020.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7f1789c87b",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_032.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "f70195504d",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_033.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b9480cced1",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_045.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "0a279eb75f",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_046.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "293c40510b",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_058.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b329ea3e9f",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_059.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "7ad390f055",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_071.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "1c34fc3887",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_072.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "71f2be2a9b",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_084.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "9a551ffd0c",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_085.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "204ecd862d",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_097.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "995ac28651",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_098.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "8fa26bc448",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_110.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "1f4df76966",
+        "target": "~/.ephe/bench/20261010T2317-60x3-clean/ws/kdoc_111.json"
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 19
+    },
+    "violations": [
+      {
+        "code": "unknown_target_file",
+        "tool": "list_directory",
+        "arg": "~/.ephe/bench/20261010T2317-60x3-clean/ws"
+      }
+    ],
+    "violation_counts": {
+      "unknown_target_file": 1
+    },
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 1053",
+  "tool_calls": [
+    "file_search",
+    "list_directory",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 705,
+  "tokens_out_proxy": 176.2,
+  "prompt_tokens": 126339,
+  "completion_tokens": 3385,
+  "total_tokens": 129724,
+  "usage_estimated": false,
+  "cost_usd": 0.007671,
+  "pricing_source": "default",
+  "fixture_hash": "594ddec0347c",
+  "fixture_files": 210,
+  "ts": "2026-10-11T00:52:42"
+}

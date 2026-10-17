@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Attribution register — INPUT to scripts/attribution_check.py, not prose.",
+    "",
+    "What this guards. GitHub resolves a commit's author email against the accounts that have",
+    "verified that address, and the Contributors graph caches the result. An address therefore",
+    "carries reputation: whoever can verify it can appear as the author of the commits written",
+    "under it. Addresses in this repository's history sit on domains the project no longer",
+    "controls. A",
+    "bare address on such a domain is a claim waiting for whoever registers the domain next.",
+    "",
+    "The rule that follows: a new commit is accepted only from a noreply address, which GitHub",
+    "issues per account and cannot be taken by anyone else. The numeric prefix is the account id,",
+    "so the register names GitHub identities rather than mailboxes — no personal address is",
+    "transcribed here, by owner rule 2026-10-11.",
+    "",
+    "History is out of scope. The commits already written keep their addresses; the standing",
+    "decision keeps this history as the lab notebook and publishes a clean-room snapshot later,",
+    "so this file gates new commits only."
+  ],
+  "humans": {
+    "309897154+bemlerlabs@users.noreply.github.com": "repository owner",
+    "308445031+michaels1011@users.noreply.github.com": "co-author"
+  },
+  "bots": {
+    "49699333+dependabot[bot]@users.noreply.github.com": "dependabot PR author",
+    "noreply@github.com": "github.com merge and squash commits"
+  }
+}

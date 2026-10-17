@@ -1,0 +1,106 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "46968097fa842b31040a00162c0d17cef9e5ec14",
+    "commit_short": "4696809",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "T8",
+  "family": "tau",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-t8-r1-1791668523",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==45 (mirror-recovery)",
+  "error_class": null,
+  "wall_ms": 20916.3,
+  "ttft_first_event_ms": 80.5,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "list_directory",
+      "ms": 82.5
+    },
+    {
+      "tool": "file_search",
+      "ms": 82.6
+    },
+    {
+      "tool": "read_file",
+      "ms": 5.0
+    },
+    {
+      "tool": "tool_search",
+      "ms": 3.8
+    },
+    {
+      "tool": "tool_call",
+      "ms": 83.3
+    }
+  ],
+  "arg_audit": {
+    "calls": 5,
+    "ledger": [
+      {
+        "tool": "list_directory",
+        "digest": "e859eb7ebc",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws"
+      },
+      {
+        "tool": "file_search",
+        "digest": "9bfbbf2e38",
+        "target": "t8.csv"
+      },
+      {
+        "tool": "read_file",
+        "digest": "81c8538f62",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/t8_mirr"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "e649d6c3af",
+        "target": "run_shell shell python execute command"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "169bb5f7c6",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "read_target": 2,
+      "search_query": 1
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 45",
+  "tool_calls": [
+    "list_directory",
+    "file_search",
+    "read_file",
+    "tool_search",
+    "tool_call"
+  ],
+  "answer_chars": 432,
+  "tokens_out_proxy": 108.0,
+  "prompt_tokens": 40763,
+  "completion_tokens": 858,
+  "total_tokens": 41621,
+  "usage_estimated": false,
+  "cost_usd": 0.002381,
+  "pricing_source": "default",
+  "fixture_hash": "c5a147daa318",
+  "fixture_files": 201,
+  "answer_tail": "\n**Check:** `t8.csv` doesn't exist in the workspace (verified via directory listing + file search) — I used the mirror file `t8_mirror.csv` instead.\n\n**Verified by real computation** (python3/csv over the file — not mental math):\n\n| Source | Values | Total |\n|---|---|---:|\n| `t8_mirror.csv` (header `value` skipped) | 10 + 15 + 20 | **45** |\n\nShell output: `rows: [['value'], ['10'], ['15'], ['20']]` → `SUM 45.0`\n\nFINAL ANSWER: 45",
+  "ts": "2026-10-10T23:42:24"
+}

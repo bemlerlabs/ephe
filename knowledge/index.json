@@ -1,0 +1,99 @@
+{
+  "version": "2.1",
+  "description": "Ephe Offline-Wissensbasis — Offizielle deutsche Informationsquellen (BBK, DRK, BfS, THW)",
+  "domains": [
+    {
+      "id": "medical",
+      "name": "Gesundheit & Erste Hilfe",
+      "sources": ["DRK", "BBK", "DGUV"]
+    },
+    {
+      "id": "engineering",
+      "name": "Technik & Reparatur",
+      "sources": ["THW", "BSI", "VDE"]
+    },
+    {
+      "id": "survival",
+      "name": "Alltag & Vorsorge",
+      "sources": ["BBK", "THW"]
+    },
+    {
+      "id": "system",
+      "name": "Energie & Infrastruktur",
+      "sources": ["BNetzA", "BSI"]
+    },
+    {
+      "id": "life-skills",
+      "name": "Life Skills & Sicherheitswissen",
+      "sources": ["BBK", "BfS"]
+    }
+  ],
+  "official_sources": [
+    {
+      "id": "bbk_ratgeber",
+      "name": "BBK Ratgeber für Notfallvorsorge und richtiges Handeln in Notsituationen",
+      "url": "https://www.bbk.bund.de/SharedDocs/Downloads/DE/Mediathek/Publikationen/Buergerinformationen/ratgeber-notfallvorsorge.pdf",
+      "domain": "survival",
+      "license": "Amtliches Werk (§ 5 UrhG) — frei verwendbar",
+      "pages": 68,
+      "language": "de"
+    },
+    {
+      "id": "bbk_kochen_ohne_strom",
+      "name": "BBK Kochen ohne Strom",
+      "url": "https://www.bbk.bund.de/SharedDocs/Downloads/DE/Mediathek/Publikationen/Buergerinformationen/kochen-ohne-strom.pdf",
+      "domain": "survival",
+      "license": "Amtliches Werk (§ 5 UrhG)",
+      "language": "de"
+    },
+    {
+      "id": "bbk_checkliste",
+      "name": "BBK Checkliste Notfallvorsorge",
+      "url": "https://www.bbk.bund.de/SharedDocs/Downloads/DE/Mediathek/Publikationen/Buergerinformationen/checkliste-notfallvorsorge.pdf",
+      "domain": "survival",
+      "license": "Amtliches Werk (§ 5 UrhG)",
+      "language": "de"
+    },
+    {
+      "id": "bbk_hochwasser",
+      "name": "BBK Hochwasser-Ratgeber",
+      "url": "https://www.bbk.bund.de/SharedDocs/Downloads/DE/Mediathek/Publikationen/Buergerinformationen/ratgeber-hochwasser.pdf",
+      "domain": "survival",
+      "license": "Amtliches Werk (§ 5 UrhG)",
+      "language": "de"
+    },
+    {
+      "id": "bfs_nuklear",
+      "name": "BfS Ratgeber Strahlenschutz",
+      "url": "https://www.bfs.de/SharedDocs/Downloads/BfS/DE/broschueren/str-notfallvorsorge.pdf",
+      "domain": "life-skills",
+      "license": "Amtliches Werk (§ 5 UrhG)",
+      "language": "de"
+    },
+    {
+      "id": "bsi_it_grundschutz",
+      "name": "BSI IT-Notfallvorsorge für KMU",
+      "url": "https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/Leitfaden/leitfaden-basis-absicherung.pdf",
+      "domain": "system",
+      "license": "Amtliches Werk (§ 5 UrhG)",
+      "language": "de"
+    }
+  ],
+  "community_sources": [
+    {
+      "id": "who_erste_hilfe",
+      "name": "WHO Erste Hilfe Empfehlungen (IFRC/WHO 2016)",
+      "url": "https://www.ifrc.org/sites/default/files/2021-06/First-Aid-2016-Guidelines_EN.pdf",
+      "domain": "medical",
+      "license": "CC-BY-NC",
+      "language": "en",
+      "note": "Englisch — wird beim Indexieren auf Deutsch übersetzt"
+    }
+  ],
+  "lastIndexed": "2026-04-15T17:00:57Z",
+  "stats": {
+    "totalFiles": 6,
+    "totalChunks": 0,
+    "totalPDFs": 0
+  }
+}

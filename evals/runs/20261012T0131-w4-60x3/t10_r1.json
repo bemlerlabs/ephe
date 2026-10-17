@@ -1,0 +1,114 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T10",
+  "family": "tau",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-t10-r1-1791763188",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==385",
+  "error_class": null,
+  "wall_ms": 19342.5,
+  "ttft_first_event_ms": 88.8,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 61.1
+    },
+    {
+      "tool": "list_directory",
+      "ms": 61.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 28.6
+    },
+    {
+      "tool": "tool_search",
+      "ms": 28.6
+    },
+    {
+      "tool": "tool_call",
+      "ms": 78.9
+    }
+  ],
+  "arg_audit": {
+    "calls": 5,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "2dd939b0b8",
+        "target": "t10.csv"
+      },
+      {
+        "tool": "list_directory",
+        "digest": "314de0ca45",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "read_file",
+        "digest": "38de44194f",
+        "target": "~/.ephe/bench/20261012T0131-w4-60x3/ws/t10.csv"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "5cd7b5bbf3",
+        "target": "run_shell python execute script"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "cb42fb8942",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 2
+    },
+    "violations": [
+      {
+        "code": "unknown_target_file",
+        "tool": "list_directory",
+        "arg": "~/.ephe/bench/20261012T0131-w4-60x3/ws"
+      }
+    ],
+    "violation_counts": {
+      "unknown_target_file": 1
+    },
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 385",
+  "tool_calls": [
+    "file_search",
+    "list_directory",
+    "read_file",
+    "tool_search",
+    "tool_call"
+  ],
+  "answer_chars": 405,
+  "tokens_out_proxy": 101.2,
+  "prompt_tokens": 31953,
+  "completion_tokens": 883,
+  "total_tokens": 32836,
+  "usage_estimated": false,
+  "cost_usd": 0.001951,
+  "pricing_source": "default",
+  "fixture_hash": "95f51a3757cb",
+  "fixture_files": 201,
+  "answer_tail": "\n\n**Sum verified by script (no mental arithmetic):**\n\n- File read (read-only): `/work/.ephe/bench/20261012T0131-w4-60x3/ws/t10.csv`\n- Contents: header `value`, then 10 numeric rows: 7, 14, 21, 28, 35, 42, 49, 56, 63, 70\n- Script output: `values: [7.0, 14.0, 21.0, 28.0, 35.0, 42.0, 49.0, 56.0, 63.0, 70.0]` → `SUM: 385.0`\n\n7 + 14 + 21 + 28 + 35 + 42 + 49 + 56 + 63 + 70 = **385**\n\nFINAL ANSWER: 385",
+  "ts": "2026-10-12T02:00:07"
+}

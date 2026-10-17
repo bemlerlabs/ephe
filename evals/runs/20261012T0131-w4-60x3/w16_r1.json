@@ -1,0 +1,116 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "W16",
+  "family": "endstate",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-w16-r1-1791765449",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "sum=385",
+  "error_class": null,
+  "wall_ms": 27273.7,
+  "ttft_first_event_ms": 77.6,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 67.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 12.0
+    },
+    {
+      "tool": "execute_code",
+      "ms": 994.4
+    },
+    {
+      "tool": "execute_code",
+      "ms": 808.3
+    },
+    {
+      "tool": "write_file",
+      "ms": 12.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 13.5
+    }
+  ],
+  "arg_audit": {
+    "calls": 6,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "48a571d36a",
+        "target": "w16_in.csv"
+      },
+      {
+        "tool": "read_file",
+        "digest": "28f612da1e",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/w16_in.csv"
+      },
+      {
+        "tool": "execute_code",
+        "digest": "f8c428558b",
+        "target": ""
+      },
+      {
+        "tool": "execute_code",
+        "digest": "0659e188af",
+        "target": ""
+      },
+      {
+        "tool": "write_file",
+        "digest": "a9d898d823",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/w16_out.js"
+      },
+      {
+        "tool": "read_file",
+        "digest": "e353a91b7e",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/w16_out.js"
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 2,
+      "write_path": 1
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "file_search",
+    "read_file",
+    "execute_code",
+    "execute_code",
+    "write_file",
+    "read_file"
+  ],
+  "answer_chars": 638,
+  "tokens_out_proxy": 159.5,
+  "prompt_tokens": 56747,
+  "completion_tokens": 1309,
+  "total_tokens": 58056,
+  "usage_estimated": false,
+  "cost_usd": 0.003361,
+  "pricing_source": "default",
+  "fixture_hash": "6ed98a5425b5",
+  "fixture_files": 211,
+  "ts": "2026-10-12T02:37:56"
+}

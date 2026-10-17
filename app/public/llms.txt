@@ -1,0 +1,51 @@
+# Ephe
+
+> Ephe is an ephemeral SI agent (Super Intelligence) — offline-first, private, local.
+> Built by Bemler Labs. BUSL-1.1.
+
+## What is Ephe?
+Ephe runs entirely locally on your device: CLI (TUI), desktop app
+(Tauri) and PWA. The agent runs on the engine you chose — local Ollama
+is a first-class offline option and any OpenAI-compatible endpoint is
+equally first-class; which model tag runs inside is your choice and
+Ephe names none for you (`ephe configure`, or `EPHE_MODEL`), has no cloud backend and
+never leaves your data — no telemetry endpoint, no tracking.
+
+## Core capabilities
+- **Chat & agent loop:** local LLM requests via Ollama (or an
+  OpenAI-compatible endpoint), SSE streaming, tool calling.
+- **Computer use / tools:** the `ephe tool` subcommand with an approval gate,
+  diff preview, `--dry-run` (threat model E1); whitelisted commands
+  (ls/cat/python/git/docker/…), block patterns (rm -rf, sudo, …).
+- **Skills:** /chart, /deck, /pdf, i18n prompts; skills are extensible.
+- **Memory:** an on-device store plus a session store;
+  the PWA persists chat via IndexedDB (client-side).
+- **Vision & audio:** screenshots/vision via Ollama vision models;
+  speech via local Piper TTS when it is installed, otherwise the opt-in cloud service.
+
+## Documentation & sources
+- [GitHub repository](https://github.com/bemlerlabs/ephe)
+- [Security threat model](https://github.com/bemlerlabs/ephe/blob/main/docs/SECURITY_THREAT_MODEL.md)
+- [PWA](https://github.com/bemlerlabs/ephe) (production: Tauri-bundled/offline; dev: localhost:5173)
+
+## For LLM agents (usage notes)
+- API/CLI configuration: `EPHE_MODEL`, `EPHE_MODEL_PROVIDER`,
+  `EPHE_OPENAI_COMPAT_BASE_URL`, `EPHE_OFFLINE`.
+- Backend port: 127.0.0.1:8765 (LAN only opt-in via `--lan`); web UI on
+  port 5173 (Vite dev) or bundled into the desktop app.
+- This PWA is an SPA (React 19, hash router: Landing / Onboarding /
+  Chat); dynamic content runs client-side against the local
+  backend API. Crawler rules: see robots.txt.
+
+## License & contact
+- BUSL-1.1 — free for non-production use (read, run, modify, evaluate, contribute);
+  production use requires a commercial licence, the Additional Use Grant being None.
+  Each version falls to Apache-2.0 four years after its first public
+  release. © Bemler Labs — https://github.com/bemlerlabs/ephe
+
+## Skill & Automation references
+- Skill pack format + install API: docs/SKILL_PACKS.md (offline curated pack index: skills/pack-index.json)
+- Automation presets & run history: GET /api/schedule/presets, /api/schedule/results (R19)
+- Memory API: /api/memory/list|search|export|import (R19; auto-memory is toggle-gated via memory_enabled)
+- CLI reference: docs/CLI.md
+- Voice setup (local Piper TTS, faster-whisper STT): docs/VOICE.md

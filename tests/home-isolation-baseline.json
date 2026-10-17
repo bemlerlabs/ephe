@@ -1,0 +1,17 @@
+{
+ "instrument": "tests/test_home_isolation.py",
+ "offenders": {
+  "tests/test_cli_desktop.py::test_desktop_backend_start_failure_warns_but_opens": 2,
+  "tests/test_cli_desktop.py::test_desktop_default_build_is_app_bundle_only": 4,
+  "tests/test_cli_desktop.py::test_desktop_installiert_per_default_und_oeffnet_dort": 2,
+  "tests/test_cli_desktop.py::test_desktop_no_install_oeffnet_im_zielordner": 2,
+  "tests/test_cli_desktop.py::test_desktop_reuses_running_backend": 2,
+  "tests/test_cli_desktop.py::test_desktop_starts_backend_before_opening_app": 2,
+  "tests/test_parity_tools.py::test_skill_manage_create_and_delete": 6,
+  "tests/test_parity_tools.py::test_skill_manage_create_with_test_block": 6,
+  "tests/test_r40_mcp_hooks.py::test_settings_mcp_route_roundtrip": 4
+ },
+ "policy": "home-isolation-ratchet",
+ "total": 30,
+ "version": 1
+}

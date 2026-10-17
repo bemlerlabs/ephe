@@ -1,0 +1,116 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "572dcb4f5579655fe0e6f15bd76e0576a9d81ab0",
+    "commit_short": "572dcb4",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "W7",
+  "family": "endstate",
+  "level": "L3",
+  "rep": 2,
+  "session_id": "ob-w7-r2-1791670654",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "three_writes=True",
+  "error_class": null,
+  "wall_ms": 12774.3,
+  "ttft_first_event_ms": 206.2,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "write_file",
+      "ms": 5.9
+    },
+    {
+      "tool": "write_file",
+      "ms": 6.1
+    },
+    {
+      "tool": "write_file",
+      "ms": 6.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.3
+    }
+  ],
+  "arg_audit": {
+    "calls": 6,
+    "ledger": [
+      {
+        "tool": "write_file",
+        "digest": "d9c35493c5",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w7_1.tx"
+      },
+      {
+        "tool": "write_file",
+        "digest": "4795e4b464",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w7_2.tx"
+      },
+      {
+        "tool": "write_file",
+        "digest": "502b9cb5f9",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w7_3.tx"
+      },
+      {
+        "tool": "read_file",
+        "digest": "909d819244",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w7_1.tx"
+      },
+      {
+        "tool": "read_file",
+        "digest": "2aab15575c",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w7_2.tx"
+      },
+      {
+        "tool": "read_file",
+        "digest": "5df70bac65",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/w7_3.tx"
+      }
+    ],
+    "classes": {
+      "write_path": 3,
+      "read_target": 3
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "write_file",
+    "write_file",
+    "write_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 266,
+  "tokens_out_proxy": 66.5,
+  "prompt_tokens": 21309,
+  "completion_tokens": 926,
+  "total_tokens": 22235,
+  "usage_estimated": false,
+  "cost_usd": 0.001436,
+  "pricing_source": "default",
+  "fixture_hash": "c5a147daa318",
+  "fixture_files": 201,
+  "answer_tail": "\n\n\n\nAll three files created and verified by read-back:\n\n| File | Content |\n|---|---|\n| `w7_1.txt` | 42 |\n| `w7_2.txt` | 42 |\n| `w7_3.txt` | 42 |\n\nEach write returned \"2 characters written\" and each read-back confirmed the content `42` (7 + 35 ✓).\n\nFINAL ANSWER: done",
+  "ts": "2026-10-11T00:17:47"
+}

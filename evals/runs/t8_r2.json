@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "task_id": "T8",
+  "family": "tau",
+  "level": "L3",
+  "rep": 2,
+  "session_id": "ob-t8-r2-1790173297",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==45 (mirror-recovery)",
+  "error_class": null,
+  "wall_ms": 26042.1,
+  "ttft_first_event_ms": 96.7,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 53.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.1
+    },
+    {
+      "tool": "file_search",
+      "ms": 27.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 1.6
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 45",
+  "tool_calls": [
+    "file_search",
+    "read_file",
+    "file_search",
+    "read_file"
+  ],
+  "answer_chars": 224,
+  "tokens_out_proxy": 56.0,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung aus der real gelesenen Datei** (`t8_mirror.csv` — `t8.csv` war nicht vorhanden, daher der Spiegel):\n\n| # | value |\n|---|---|\n| 1 | 10 |\n| 2 | 15 |\n| 3 | 20 |\n\n**Summe:** 10 + 15 + 20 = **45**\n\nFINAL ANSWER: 45",
+  "ts": "2026-09-23T16:22:03"
+}

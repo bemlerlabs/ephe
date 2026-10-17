@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "task_id": "W16",
+  "family": "endstate",
+  "level": "L4",
+  "rep": 3,
+  "session_id": "ob-w16-r3-1790174563",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "sum=385",
+  "error_class": null,
+  "wall_ms": 16636.9,
+  "ttft_first_event_ms": 289.6,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "execute_code",
+      "ms": 2.3
+    },
+    {
+      "tool": "execute_code",
+      "ms": 1.4
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.0
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "execute_code",
+    "execute_code",
+    "write_file"
+  ],
+  "answer_chars": 469,
+  "tokens_out_proxy": 117.2,
+  "fixture_hash": "6d4279074095",
+  "answer_tail": "\n\nErledigt ✅\n\n**Berechnung aus dem real gelesenen Datei-Inhalt** (`w16_in.csv`, 10 Werte unter Header `value`):\n\n| # | value |\n|---|---|\n| 1 | 7 |\n| 2 | 14 |\n| 3 | 21 |\n| 4 | 28 |\n| 5 | 35 |\n| 6 | 42 |\n| 7 | 49 |\n| 8 | 56 |\n| 9 | 63 |\n| 10 | 70 |\n\n**Summe** (per `execute_code` verifiziert): 7+14+21+28+35+42+49+56+63+70 = **385**\n\n**Artefakt:** `w16_out.json` wurde per `write_file` angelegt mit `{\"sum\": 385}` (12 Zeichen, Schreib-Diff bestätigt).\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:43:00"
+}

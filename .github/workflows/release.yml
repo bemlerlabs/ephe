@@ -1,0 +1,377 @@
+name: Release
+
+# R20/W8: a tag push (v*) builds the Tauri bundles as a DRAFT release.
+#
+# The updater plumbing is wired here, gated on the signing key:
+#   - with TAURI_SIGNING_PRIVATE_KEY set, the guard step below passes
+#     createUpdaterArtifacts=true to `tauri build`, so the bundler writes the .tar.gz/.AppImage
+#     signatures and tauri-action assembles latest.json from them and uploads both to the draft;
+#   - without the key the build stays unsigned, no signature and no manifest are produced, and the
+#     endpoint keeps answering 404. An unsigned manifest is worse than a 404, so that is the honest
+#     outcome rather than a degraded one.
+# createUpdaterArtifacts deliberately lives in this workflow and not in tauri.conf.json: a committed
+# `true` is honoured by every `npm run tauri build` (the desktop check in AGENTS.md), and the bundler
+# then refuses that build outright when the key is absent. The guard has to sit where the key is.
+#
+# Still owner-gated, none of it reachable from this file:
+#   1. the repository is public, so an unauthenticated client CAN read
+#      releases/latest/download/latest.json - the feed is live the moment a release is published;
+#   2. releaseDraft: true means the owner's publish click is what makes `latest` resolve at all,
+#      and the updater skips pre-releases, so a beta tag has to publish as a normal release;
+#   3. the `release` environment carries no required reviewer (GitHub refuses the rule on this plan,
+#      HTTP 422), so the signing key is protected by scope alone — see
+#      docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+# E2E acceptance (R20) holds only once a signed release is published and an older app pulls it.
+
+on:
+  push:
+    tags: ['v*']
+  # The publish click is what makes the bundle assets the package job hashes exist, so the package
+  # job below hangs off this event. `released` and `prereleased` are left out: the owner publishes a
+  # beta as a normal release, and `published` is the event every published release fires.
+  release:
+    types: [published]
+
+# One release at a time, and never abort one that is running: `cancel-in-progress`
+# would kill a half-published draft, and the tests/PR workflows own their own groups.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Least privilege: the gate job only reads the repo; the bundle job is the single
+# place that writes (it creates the draft release). zizmor flagged the workflow-wide
+# `contents: write` as excessive-permissions.
+permissions:
+  contents: read
+
+jobs:
+  # R45: a hard test gate before the bundle build — a broken tree produces no
+  # draft release. The needs block stalls build-bundles until pytest is green.
+  test-gate:
+    name: Test gate (release bar)
+    # Only the tag push builds and tests. The release event (the publish click) carries no build
+    # work; guarding this gate on the push keeps that event from rebuilding the bundles it is meant
+    # to consume.
+    if: github.event_name == 'push'
+    # R1: this gate stood on a hosted runner the account cannot allocate, so no run was ever
+    # started and `build-bundles` (`needs: test-gate`) never ran either. It takes the same
+    # Linux label the rest of CI runs on, `vars.CI_LINUX_RUNNER` - whichever runner the
+    # repository points that variable at. An unset variable matches no runner and the job waits,
+    # which is the fail-closed routing
+    # `tests.yml:49` documents.
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        # No pip cache here either: this job stands between a tag and a published
+        # bundle, so its environment is installed cold and rebuilt from the lockfile.
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install package (with dev tools)
+        # Same extras as the Tests workflow: this gate blocks a release, so it has to
+        # run the same suite under the same conditions, or it can pass where CI fails.
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev,tui]"
+      - name: Run tracked pytest suite
+        run: python -m pytest tests/ -q
+      - name: pass^3 release gate
+        # R7: a cohort whose three repetitions disagree does not release. This runner is neither
+        # the idle measurement box a fresh cohort needs nor the holder of ~/.ephe/engine.json, so
+        # the step re-checks the committed cohort's flake check and the engine arm runs instead on
+        # the release box, through scripts/release_checklist.py. Exit 1 is a task that flipped
+        # between its reps, exit 2 a cohort the gate cannot read.
+        run: python evals/pass3_release_gate.py --runs evals/runs --no-engine-check
+
+  build-bundles:
+    name: Tauri bundles (${{ matrix.os }})
+    needs: test-gate
+    # R1: the runner comes from the matrix `runner` key; `os` is the job title only. Every
+    # leg carries a `runner`, because an empty `runs-on` leaves the job queued forever.
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    # The signing key is scoped to the `release` environment, and this is the only
+    # `environment: release` declaration in the repo, so this job is the only one that can
+    # read it (zizmor: secrets-outside-env). A repository-scope copy defeats that scope, so
+    # keep the repository-scope count at 0 (checked 2026-10-15). Environment scope is the
+    # protection; it carries no required reviewer because GitHub refuses that rule on this
+    # plan (HTTP 422) — see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+    environment: release
+    # The only job that writes: it creates the draft release.
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `runner` is the routing label; `os` stays the job title. macOS goes to the runner
+          # behind `vars.CI_MAC_RUNNER`, Linux to the one behind `vars.CI_LINUX_RUNNER` - each copy
+          # of this repository points those at a runner it can use. No Windows leg exists, so
+          # that leg is dropped and the Windows bundle stays a hand build; §5.1 of
+          # docs/RELEASE_SIGNING_DRY_RUN_2026-10-11.md carries the labels and the price.
+          - os: macos
+            runner: ${{ vars.CI_MAC_RUNNER }}
+            args: --target aarch64-apple-darwin
+          - os: linux
+            runner: ${{ vars.CI_LINUX_RUNNER }}
+            args: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate the pnpm this repo pins
+        # Same defect as Frontend Build: `cache: pnpm` needs a pnpm binary, and nothing
+        # provisioned one. If this is left unfixed, a tag push fails at the node setup
+        # and the release bundles are never built.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Setup Node
+        # Node 22, the version Frontend Build type-checks and tests on. It used to be
+        # 20 here, so the shipped bundle was built by a runtime no test ever ran
+        # against. No `cache:` either — see the Rust note below for why a publishing
+        # workflow restores nothing.
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          # Explicitly off: leaving it unset enables the package-manager cache, which is
+          # exactly what a publishing workflow must not restore (zizmor: cache-poisoning).
+          package-manager-cache: false
+
+      - name: Rust toolchain
+        # Pinned by commit, not by the mutable `@stable` ref (zizmor: unpinned-uses).
+        # The compiler version itself stays stable; `app/src-tauri/Cargo.toml` records
+        # the MSRV (rust-version = 1.77.2) that the code must satisfy.
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+
+      # No build cache in this workflow, on purpose: a published bundle must not be
+      # assembled from state restored by an earlier run (zizmor: cache-poisoning).
+      # Cost, stated honestly: the release build gets slower — a cold Rust compile per
+      # OS. Tests and PR builds keep their caches.
+
+      - name: Linux system deps (webkit2gtk)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Build PWA (vite dist)
+        working-directory: app
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Decide whether this run can produce a feed
+        id: updater
+        # The one input that separates a signed release from an unsigned one. `createUpdaterArtifacts`
+        # makes the bundler emit the platform signatures, and tauri-action assembles latest.json from
+        # them; without the key the bundler refuses that build ("a public key has been found, but no
+        # private key"), which is why the flag is passed as a --config override here and not committed
+        # into tauri.conf.json. `shell: bash` keeps the step off the runner's default shell.
+        shell: bash
+        env:
+          # Read, never printed: the step only asks whether the environment secret is empty. The build
+          # step below receives the same secret through its own env block.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          # The JSON is single-quoted on purpose. tauri-action splits its `args` input with
+          # string-argv, which treats both quote characters as delimiters: unquoted, the double
+          # quotes around the keys are stripped and `tauri build --config` receives
+          # `{bundle:{createUpdaterArtifacts:true}}`, which is not JSON. The single quotes are what
+          # survive the split intact. Verified against string-argv: the plain form throws
+          # "Expected property name", the quoted form parses.
+          updater_json='{"bundle":{"createUpdaterArtifacts":true}}'
+          if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo 'signed=true' >> "$GITHUB_OUTPUT"
+            echo "config=--config '${updater_json}'" >> "$GITHUB_OUTPUT"
+            echo "Signing key present: bundles carry .sig files and latest.json is assembled." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'signed=false' >> "$GITHUB_OUTPUT"
+            echo 'config=' >> "$GITHUB_OUTPUT"
+            echo "No signing key: bundles upload unsigned, with no .sig and no latest.json, and the feed stays a 404." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Set up Python
+        # The release body is cut from CHANGELOG.md by a stdlib script, and this job provisions no
+        # Python otherwise; a self-hosted runner's ambient `python3` is the host state
+        # scripts/ci_preflight.sh refuses in the test legs. Pinned, like every leg in this tree.
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Release body from the changelog
+        id: notes
+        # tauri-action writes the updater manifest's `notes` field from its `releaseBody` input, and
+        # with that input unset the published feed carried `"notes": ""` -- the update window could
+        # then only say the release held no notes. The block is the `## [version]` section
+        # scripts/release_checklist.py already requires to be present and non-empty, so a missing
+        # one stops the draft instead of shipping a blank body.
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo 'body<<EPHE_RELEASE_BODY'
+            python3 scripts/release_notes.py "$version"
+            echo 'EPHE_RELEASE_BODY'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build Tauri bundles (draft release)
+        uses: tauri-apps/tauri-action@2d3036b306d86c3198f05a460dcd23cf55ef41b9 # v0.5.23
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Ephe ${{ github.ref_name }}'
+          # The release body the step above cut from CHANGELOG.md. tauri-action copies this input into
+          # both the draft's description and the `notes` field of the updater manifest it assembles.
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: true
+          prerelease: false
+          # Stated rather than inherited: a manifest is only valid over signed artifacts, so the
+          # generator is held off whenever the guard above found no key. tauri-action already skips
+          # the upload when it finds no .sig, and this makes the invariant the workflow's own.
+          # `includeUpdaterJson`: tauri-action renamed this input. With the old spelling the line
+          # did nothing and the manifest was uploaded by the action's own default - the
+          # v0.1.0-beta.3 run reported the wrong input name. The guard emits `true`/`false`, which
+          # is what the action parses.
+          includeUpdaterJson: ${{ steps.updater.outputs.signed }}
+          # matrix.args carries the mac target; the second half is the createUpdaterArtifacts switch,
+          # empty on an unsigned run.
+          args: ${{ matrix.args }} ${{ steps.updater.outputs.config }}
+
+  # The publish click, never the tag push: the assets the hashes are measured from exist only once
+  # a human publishes the draft, and a manifest must name a published release. The signing key this
+  # workflow carries is scoped to the `release` environment, which this job does not declare, so it
+  # never receives it (zizmor: secrets-outside-env).
+  publish-packages:
+    name: Publish the package manifests and the npm wrapper
+    if: github.event_name == 'release'
+    # Same routing label as the rest of the tree. No `environment:` on purpose: NPM_TOKEN and
+    # PACKAGES_TOKEN are repository secrets and the `release` environment holds only the signing
+    # key this job has no use for.
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          # A publishing job restores no package-manager cache: the registry is written, never read
+          # from a store an earlier run could have poisoned (zizmor: cache-poisoning).
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Measure the released asset hashes
+        id: assets
+        # The DMG feeds the cask and the source archive feeds the Scoop manifest. Both are read from
+        # the release this event published, so a number cannot be copied from an older asset.
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          dmg="Ephe_${version}_aarch64.dmg"
+          curl -fsSL -o "$dmg" "https://github.com/bemlerlabs/ephe/releases/download/${TAG}/${dmg}"
+          curl -fsSL -o ephe-source.zip "https://github.com/bemlerlabs/ephe/archive/refs/tags/${TAG}.zip"
+          dmg_sha="$(sha256sum "$dmg" | awk '{print $1}')"
+          source_sha="$(sha256sum ephe-source.zip | awk '{print $1}')"
+          {
+            echo "version=${version}"
+            echo "dmg_sha=${dmg_sha}"
+            echo "source_sha=${source_sha}"
+          } >> "$GITHUB_OUTPUT"
+          echo "measured ${TAG}: dmg sha256=${dmg_sha} source sha256=${source_sha}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Render the tap and bucket manifests
+        # One step renders both files from the in-tree templates, so the two package surfaces cannot
+        # drift from each other or from the release that was just published.
+        env:
+          VERSION: ${{ steps.assets.outputs.version }}
+          DMG_SHA: ${{ steps.assets.outputs.dmg_sha }}
+          SOURCE_SHA: ${{ steps.assets.outputs.source_sha }}
+        run: |
+          python3 scripts/render_packaging.py \
+            --version "$VERSION" \
+            --dmg-sha256 "$DMG_SHA" \
+            --source-sha256 "$SOURCE_SHA" \
+            --outdir dist/packaging
+
+      - name: Push the manifests to the tap and the bucket
+        # An absent secret is a loud skip, never a silent one and never a push to the wrong place:
+        # with no token, the two repositories are named and left untouched. PACKAGES_TOKEN is a
+        # repository secret this job reads directly; the `release` environment alone holds the
+        # signing key and is deliberately not declared here, so the environment advice below does
+        # not apply -- see the fence in tests/test_release_environment_fence.py.
+        env:
+          # zizmor: ignore[secrets-outside-env]
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          VERSION: ${{ steps.assets.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PACKAGES_TOKEN:-}" ]; then
+            echo "::warning::PACKAGES_TOKEN is not set: bemlerlabs/homebrew-tap and bemlerlabs/scoop-bucket were NOT updated. Create the secret (a fine-grained PAT with contents:write on both) to publish them."
+            echo "PACKAGES_TOKEN absent: tap and bucket skipped." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          publish() {
+            repo="$1" source="$2" target="$3"
+            dir="$(mktemp -d)"
+            git clone "https://x-access-token:${PACKAGES_TOKEN}@github.com/${repo}.git" "$dir"
+            mkdir -p "$dir/$(dirname "$target")"
+            cp "$source" "$dir/$target"
+            git -C "$dir" add "$target"
+            if git -C "$dir" diff --cached --quiet; then
+              echo "${repo}:${target} unchanged at ${VERSION}"
+              return 0
+            fi
+            git -C "$dir" -c user.name='ephe release' -c user.email='ephe-release-bot@users.noreply.github.com' \
+              commit -m "ephe ${VERSION}"
+            git -C "$dir" push
+            echo "${repo}:${target} updated to ${VERSION}"
+          }
+          publish bemlerlabs/homebrew-tap dist/packaging/ephe.rb Casks/ephe.rb
+          publish bemlerlabs/scoop-bucket dist/packaging/ephe.json bucket/ephe.json
+
+      - name: Publish the npm wrapper
+        # The version comes from the release tag, never from the committed package.json: the wrapper
+        # must publish the number the release carries. `--allow-same-version` permits re-running on
+        # the same tag; the registry then refuses the duplicate, which is the honest outcome.
+        # NPM_TOKEN is a repository secret this job reads directly, with the same reason as
+        # PACKAGES_TOKEN above; no second environment exists on purpose.
+        env:
+          # zizmor: ignore[secrets-outside-env]
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.assets.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "::warning::NPM_TOKEN is not set: the @ephemora/ephe wrapper was NOT published. Create the secret (an npm automation token with publish rights on the scope) to ship it."
+            echo "NPM_TOKEN absent: npm publish skipped." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          cd packaging/npm
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          NODE_AUTH_TOKEN="${NPM_TOKEN}" npm publish --access public
+

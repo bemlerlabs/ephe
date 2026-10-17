@@ -1,0 +1,109 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "1b1b17a6ed7e8d1bb690cf1f77f068a66a432ec0",
+    "commit_short": "1b1b17a",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "G1",
+  "family": "gaia",
+  "level": "L2",
+  "rep": 1,
+  "session_id": "ob-g1-r1-1791667432",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==72",
+  "error_class": null,
+  "wall_ms": 8797.3,
+  "ttft_first_event_ms": 185.5,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 84.5
+    },
+    {
+      "tool": "file_search",
+      "ms": 84.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 5.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 5.4
+    }
+  ],
+  "arg_audit": {
+    "calls": 4,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "8aa4546ee2",
+        "target": "g1_a.txt"
+      },
+      {
+        "tool": "file_search",
+        "digest": "945164e441",
+        "target": "g1_b.txt"
+      },
+      {
+        "tool": "read_file",
+        "digest": "2d5d1361da",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/g1_a.tx"
+      },
+      {
+        "tool": "read_file",
+        "digest": "e7ea29499c",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/g1_b.tx"
+      }
+    ],
+    "classes": {
+      "search_query": 2,
+      "read_target": 2
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 72",
+  "tool_calls": [
+    "file_search",
+    "file_search",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 229,
+  "tokens_out_proxy": 57.2,
+  "prompt_tokens": 15757,
+  "completion_tokens": 371,
+  "total_tokens": 16128,
+  "usage_estimated": false,
+  "cost_usd": 0.000936,
+  "pricing_source": "default",
+  "fixture_hash": "85781254b2d9",
+  "fixture_files": 191,
+  "answer_tail": "\n\n**Check against the files:**\n\n| File | Content | Value |\n|---|---|---|\n| `g1_a.txt` | total_capacity = 84 seats | 84 |\n| `g1_b.txt` | reserved = 12 seats | 12 |\n\n**Calculation:** 84 − 12 = **72** seats remain.\n\nFINAL ANSWER: 72",
+  "ts": "2026-10-10T23:24:01",
+  "retrieval": {
+    "web_calls": 0,
+    "tools": {},
+    "queries": [],
+    "hosts": [],
+    "benchmark_host_hits": [],
+    "answer_leak": false,
+    "question_leak": [],
+    "source_dates": [],
+    "prompt_dates": [],
+    "answer_dates": [],
+    "provenance": "closed-book"
+  }
+}

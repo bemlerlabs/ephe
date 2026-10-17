@@ -1,0 +1,116 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "T5",
+  "family": "tau",
+  "level": "L3",
+  "rep": 2,
+  "session_id": "ob-t5-r2-1791762239",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final=done moved=True",
+  "error_class": null,
+  "wall_ms": 14268.6,
+  "ttft_first_event_ms": 195.3,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 68.3
+    },
+    {
+      "tool": "file_search",
+      "ms": 68.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 23.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 23.4
+    },
+    {
+      "tool": "edit_file",
+      "ms": 13.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 13.5
+    }
+  ],
+  "arg_audit": {
+    "calls": 6,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "068409896f",
+        "target": "policy.md"
+      },
+      {
+        "tool": "file_search",
+        "digest": "2f8c772a55",
+        "target": "bookings_t5.json"
+      },
+      {
+        "tool": "read_file",
+        "digest": "05dd70edb3",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/policy.md"
+      },
+      {
+        "tool": "read_file",
+        "digest": "67c94c2dc9",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/bookings_t"
+      },
+      {
+        "tool": "edit_file",
+        "digest": "9c58dbd6ca",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/bookings_t"
+      },
+      {
+        "tool": "read_file",
+        "digest": "67c94c2dc9",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/bookings_t"
+      }
+    ],
+    "classes": {
+      "search_query": 2,
+      "read_target": 3,
+      "edit_pattern": 1
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "file_search",
+    "file_search",
+    "read_file",
+    "read_file",
+    "edit_file",
+    "read_file"
+  ],
+  "answer_chars": 970,
+  "tokens_out_proxy": 242.5,
+  "prompt_tokens": 35456,
+  "completion_tokens": 969,
+  "total_tokens": 36425,
+  "usage_estimated": false,
+  "cost_usd": 0.00216,
+  "pricing_source": "default",
+  "fixture_hash": "35668e2ec629",
+  "fixture_files": 195,
+  "ts": "2026-10-12T01:44:14"
+}

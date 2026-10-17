@@ -1,0 +1,127 @@
+name: Repository hygiene
+
+# Wave I of docs/CI_HYBRID_CAPACITY_2026-10-11.md, plus the new-commit half of the attribution rule the
+# owner landed in `f15190aa`. Three rules, all measured clean on the tree they were written against
+# (2032 tracked files at landing, 0 case-collision groups, 0 tracked artifacts, and every author
+# address in the range the register accepts), so a red X here can only come from a new entry. The first
+# two run from `.husky/pre-commit` through `scripts/ci_local.sh` as well: local and CI decide with one
+# implementation. The third is CI-only, because a hook cannot know what a push is about to land.
+#
+# Why authorship is a hygiene rule and not a comment: GitHub resolves a commit's author email against
+# whichever account can verify it and caches the answer in its Contributors graph. Measured 2026-10-11,
+# one of our own commits (`4e6e1781`, +5260/-2) displays under a GitHub account nobody in this project
+# knows while the REST API maps that address to no account at all, and two of the four addresses in our
+# history sit on domains that answer no DNS (22 commits) or expire 2026-12-20 (21) -- the two literals
+# are deliberately not written here, because the file would then be the thing that keeps naming a brand
+# this repository retired; `python3 scripts/attribution_check.py --report` prints both domains with
+# their counts. Whoever registers either domain can verify the address and become the displayed author --
+# in this repository and in other people's. The register in
+# `.github/identities.json` is therefore the asset list, and this leg is what keeps it true from now
+# on: `--report` says 1215 of 1236 commits across all refs of the private lab are already
+# unregistered, and history stays
+# as written by the clean-room decision.
+#
+# `fetch-depth` is a constant rather than 0 for a measured reason: that repository's pack is
+# 484.86 MiB over 1225 commits, so a full history in every hygiene job would be the most expensive line in the
+# pipeline to read eight hex digits. There is no valid expression for "this push's commit count"
+# (`github.event.len` is not a property, and referencing it invalidates the whole file), so a bound
+# covers the common push and the step below says out loud when the range it wanted is not there.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hygiene-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: Case collisions, tracked artifacts, and who authored the new commits
+    # Fork pull requests are excluded for the reason written out on the pytest job in tests.yml.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Read-only job: keep the token out of .git/config (zizmor: artipacked).
+          persist-credentials: false
+          # `+ 1` because a range `before..head` needs the `before` commit itself present.
+          # A push depth is a constant: there is no valid expression for "this push's
+          # commit count" (`github.event.len` is not a property, and referencing it
+          # invalidates the whole file, which arrives as a run with zero jobs), so a
+          # bound covers the common push and the step below names when a longer one
+          # left the range unheld.
+          fetch-depth: 50
+
+      - name: Run the hygiene gate
+        # Exits non-zero naming every group and every path it found; --all is the same flag the
+        # local hook passes.
+        run: python3 scripts/hygiene_check.py --all
+
+      - name: Tauri plugin parity
+        # The JS plugin packages in app/package.json and the locked Rust crates in
+        # app/src-tauri/Cargo.lock have to agree on major and minor, or `npm run tauri build`
+        # refuses before compiling a single crate. Measured 2026-10-11: three pairs apart, the
+        # error printed, no crate built, and the npm PR that created the drift had merged with no
+        # Rust change beside it. The pre-commit hook runs the same script on the commits that can
+        # move one side; this is the whole-tree backstop, because a merge can land the drift
+        # without any lane committing either file.
+        run: python3 scripts/tauri_parity.py
+
+      - name: New commits carry a registered author address
+        # Refuses, it does not report: an author address is the one input to this repository's
+        # attribution that GitHub turns into a public identity, and the register exists so a stranger
+        # cannot acquire it by waiting for a domain to expire.
+        #
+        # Three ranges are tried in order, and the step never exits 0 on a range that named nothing:
+        #   1. the range the event declares (push: before..head, pull request: base..head);
+        #   2. the head commit alone, when `before` is empty, all zeros, or an object the shallow
+        #      fetch does not hold -- a first push, a force-push, or a rebase-and-merge;
+        #   3. the head commit by itself, which is also what a repository's first commit is.
+        # Falling to 2 or 3 means earlier commits in that push went unjudged *by this run*, and the
+        # line saying so is the point: a guard that quietly decides nothing is the defect class this
+        # repository has spent two weeks refusing. Dependabot and GitHub's own merge and squash
+        # addresses are in the register's `bots` block, so a dependency PR passes on its own author.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.event.after }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+
+          case "$EVENT_NAME" in
+            push) declared="$EVENT_BEFORE..$HEAD_SHA"; head="$HEAD_SHA" ;;
+            pull_request) declared="$PR_BASE..$PR_HEAD"; head="$PR_HEAD" ;;
+            *) declared="$HEAD_SHA^..$HEAD_SHA"; head="$HEAD_SHA" ;;
+          esac
+
+          for range in "$declared" "$head^..$head" "$head"; do
+            count="$(git rev-list --count "$range" 2>/dev/null || true)"
+            if [ -z "$count" ] || [ "$count" = 0 ]; then
+              echo "attribution: range $range names ${count:-no} commit(s) in this checkout, trying the next fallback"
+              continue
+            fi
+            echo "attribution: judging $count commit(s) in $range"
+            if [ "$range" != "$declared" ]; then
+              echo "::warning::attribution fell back from the declared range $declared to $range; any other commit in that push is unjudged by this run"
+            fi
+            python3 scripts/attribution_check.py --range "$range"
+            status=$?
+            case "$status" in
+              0|1) exit "$status" ;;
+              *) echo "attribution: the script could not read $range, trying the next fallback" ;;
+            esac
+          done
+
+          echo "::error::attribution judged nothing: no candidate range resolved to a commit in this checkout ($declared plus the two head fallbacks). Refusing rather than reporting a pass it did not earn."
+          exit 1

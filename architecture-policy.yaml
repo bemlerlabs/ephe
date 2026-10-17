@@ -1,0 +1,53 @@
+# Ephe architecture policy (plan ephe-plan-architektur.md, step 1).
+# Consumer: scripts/architecture_check.mjs (parser for this regular subset).
+# Initially managed:false — the baseline freeze (step 11) switches it over.
+version: 1
+global:
+  maxFileLines: 400
+  maxContractLines: 300
+  maxPublicMethods: 12
+  forbidCycles: true
+  forbidDeepImports: true
+  managedOnly: true
+modules:
+  - id: app-frontend
+    roots:
+      - "app/src/components"
+      - "app/src/hooks"
+      - "app/src/lib"
+      - "app/src/store"
+      - "app/src/pages"
+    requires: []
+    publicEntrypoints:
+      - "app/src/components/index.ts"
+      - "app/src/hooks/index.ts"
+      - "app/src/lib/index.ts"
+      - "app/src/store/index.ts"
+      - "app/src/pages/index.ts"
+    owner: frontend
+    managed: false
+  - id: core
+    roots:
+      - "core"
+    requires: []
+    publicEntrypoints:
+      - "core/__init__.py"
+    owner: core
+    managed: false
+  - id: server
+    roots:
+      - "server"
+    requires:
+      - "core"
+    publicEntrypoints:
+      - "server/main.py"
+    owner: backend
+    managed: false
+  - id: scripts
+    roots:
+      - "scripts"
+    requires: []
+    publicEntrypoints: []
+    owner: platform
+    managed: false
+exceptions: []

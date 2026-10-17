@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "name": "web-search",
+      "version": "1.0.0",
+      "sha256": "",
+      "url": "",
+      "description": "Live web research for the agent (opt-in, needs an API key).",
+      "tags": ["recherche", "netz"]
+    },
+    {
+      "name": "document-factory",
+      "version": "1.0.0",
+      "sha256": "",
+      "url": "",
+      "description": "Office and document tools: PDF, DOCX, XLSX, decks, diagrams, source notebooks.",
+      "tags": ["docs", "artefakte"]
+    },
+    {
+      "name": "coding-suite",
+      "version": "1.0.0",
+      "sha256": "",
+      "url": "",
+      "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+      "tags": ["coding", "werkzeuge"]
+    }
+  ]
+}

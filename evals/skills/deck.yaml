@@ -1,0 +1,76 @@
+cases:
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck gamma style board deck about local AI
+    expected_tool: create_pptx_deck
+    required_terms: [DECK_STUDIO_FILE, scorecard]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck mckinsey style strategy slides
+    expected_tool: create_pitch_deck
+    required_terms: [Slide Studio, PDF Slides]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck use existing company pptx template
+    expected_tool: inspect_pptx_template
+    required_terms: [template, QA]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck create a pitchdeck with images
+    expected_tool: create_pptx_deck
+    required_terms: [visual, brand, assets]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck do not directly give pptx, let user choose download
+    expected_tool: create_pitch_deck
+    required_terms: [DECK_STUDIO_FILE, auswählbaren Downloads]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck inspect the uploaded company template
+    expected_tool: inspect_pptx_template
+    required_terms: [template, layout]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck edit the existing template to add our brand slide
+    expected_tool: edit_pptx_template
+    required_terms: [template, edit]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck verify the generated deck before download
+    expected_tool: qa_pptx_deck
+    required_terms: [QA, slides]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck review the pptx for overflow and broken layout
+    expected_tool: qa_pptx_deck
+    required_terms: [QA, overflow]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck update the master slide in the company template
+    expected_tool: edit_pptx_template
+    required_terms: [template, master]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck build a clean minimal deck about our roadmap
+    expected_tool: create_pptx_deck
+    required_terms: [slides, DECK_STUDIO_FILE]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck make me a persuasive sales pitch deck
+    expected_tool: create_pitch_deck
+    required_terms: [Slide Studio, pitch]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck check the deck quality with the scorecard
+    expected_tool: qa_pptx_deck
+    required_terms: [scorecard, QA]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck inspect which placeholders the template exposes
+    expected_tool: inspect_pptx_template
+    required_terms: [template, placeholders]
+  - skill: deck-creator
+    family: tool-calling
+    prompt: /deck rework the template colors for our brand
+    expected_tool: edit_pptx_template
+    required_terms: [template, brand]
