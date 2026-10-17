@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "description": "Curated offline skill-pack index (R16). Packs reference built-in skills; export a pack as zip via GET /api/skills/export-pack/{id} and install it anywhere with the existing POST /api/skills/install. Fully offline — no registry, no network.",
+  "packs": [
+    {
+      "id": "office-pack",
+      "title": "Office & Documents",
+      "description": "Real local artifacts: PDFs, Excel sheets, Word documents, pitch decks, QR codes.",
+      "skills": [
+        "pdf-creator",
+        "xlsx-creator",
+        "docx-creator",
+        "deck-creator",
+        "qrcode-creator",
+        "chart-creator",
+        "diagram-creator",
+        "image-creator",
+        "svg-creator",
+        "video-creator",
+        "document-factory",
+        "file-assistant"
+      ]
+    },
+    {
+      "id": "dev-pack",
+      "title": "Development",
+      "description": "Test writing, refactoring, debugging, API design, SQL, regex, code and security review.",
+      "skills": [
+        "test-writer",
+        "refactor-helper",
+        "debugger",
+        "api-designer",
+        "sql-helper",
+        "regex-helper",
+        "code-reviewer",
+        "security-review",
+        "shell-helper",
+        "coding-agent",
+        "ephe-agent",
+        "plan",
+        "json-helper",
+        "api-tester",
+        "code-metrics",
+        "config-setup"
+      ]
+    },
+    {
+      "id": "business-pack",
+      "title": "Business",
+      "description": "Business plans, competitor analysis, SWOT, decision matrices, roadmaps, meetings.",
+      "skills": [
+        "business-plan",
+        "competitor-analysis",
+        "swot-analyzer",
+        "decision-matrix",
+        "roadmap-planner",
+        "meeting-notes",
+        "email-writer",
+        "social-media",
+        "project-assistant",
+        "project-factory"
+      ]
+    },
+    {
+      "id": "writing-pack",
+      "title": "Writing",
+      "description": "Writing, summaries, translation, explanations, CVs and cover letters.",
+      "skills": [
+        "writer",
+        "summarizer",
+        "translator",
+        "explain-expert",
+        "cv-helper",
+        "cover-letter",
+        "email-writer",
+        "meeting-notes"
+      ]
+    },
+    {
+      "id": "research-pack",
+      "title": "Research & Learning",
+      "description": "Web research, source notebooks, data analysis, explanations, quizzes, checklists.",
+      "skills": [
+        "web-researcher",
+        "source-notebook",
+        "data-analyst",
+        "explain-expert",
+        "quiz-maker",
+        "checklist-maker",
+        "help",
+        "vision-assistant"
+      ]
+    }
+  ]
+}

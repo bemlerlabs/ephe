@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "G15",
+  "family": "gaia",
+  "level": "L4",
+  "rep": 3,
+  "session_id": "ob-g15-r3-1790173967",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==96 (long-history recall)",
+  "error_class": null,
+  "wall_ms": 59028.5,
+  "ttft_first_event_ms": 187.9,
+  "n_turns": 5,
+  "tool_timings": [
+    {
+      "tool": "tool_search",
+      "ms": 1.1
+    },
+    {
+      "tool": "tool_search",
+      "ms": 1.2
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 96",
+  "tool_calls": [
+    "tool_search",
+    "tool_search"
+  ],
+  "answer_chars": 139,
+  "tokens_out_proxy": 34.8,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung:**\n\n- x aus Turn 1 = **48**\n- Verdoppelt: 48 × 2 = 96\n- Minus 48: 96 − 48 = 48\n- Plus 48: 48 + 48 = **96**\n\nFINAL ANSWER: 96",
+  "ts": "2026-09-23T16:33:46"
+}

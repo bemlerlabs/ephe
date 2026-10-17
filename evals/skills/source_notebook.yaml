@@ -1,0 +1,76 @@
+cases:
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook build a source notebook from ~/Documents/report.pdf
+    expected_tool: create_source_notebook
+    required_terms: [SOURCE_NOTEBOOK_FILE, Evidence, Source]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook answer only from these sources
+    expected_tool: query_source_notebook
+    required_terms: [citation, source]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook export a source brief
+    expected_tool: export_source_brief
+    required_terms: [SOURCE_BRIEF_FILE, Evidence Register]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: erstelle mir ein notebook lm slides für ki architektur mit bilder
+    expected_tool: create_pptx_deck
+    required_terms: [DECK_STUDIO_FILE, PDF Slides, Studio PPTX]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: NotebookLM slides aus lokalen Quellen mit fehlenden Bildern
+    expected_tool: create_source_notebook
+    required_terms: [not found, sources, Studio]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook read the full text of ~/Documents/report.pdf
+    expected_tool: read_file
+    required_terms: [read, report]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook find files named paper.pdf under ~/research
+    expected_tool: file_search
+    required_terms: [find, pdf]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook list what is in ~/Documents/sources
+    expected_tool: list_directory
+    required_terms: [directory, sources]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook turn the source notebook into a pitch deck
+    expected_tool: create_pitch_deck
+    required_terms: [pitch, DECK_STUDIO_FILE]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook which source supports this claim
+    expected_tool: query_source_notebook
+    required_terms: [citation, claim]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook export the evidence register as a brief
+    expected_tool: export_source_brief
+    required_terms: [SOURCE_BRIEF_FILE, Evidence Register]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook search my folder for the q3 report files
+    expected_tool: file_search
+    required_terms: [search, files]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook which files are in the sources directory
+    expected_tool: list_directory
+    required_terms: [directory, files]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook read the contract.pdf contents
+    expected_tool: read_file
+    required_terms: [read, contract]
+  - skill: source-notebook
+    family: tool-calling
+    prompt: /notebook create notebook lm slides from these local sources
+    expected_tool: create_pptx_deck
+    required_terms: [DECK_STUDIO_FILE, sources]

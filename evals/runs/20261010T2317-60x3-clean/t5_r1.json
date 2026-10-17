@@ -1,0 +1,95 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "46968097fa842b31040a00162c0d17cef9e5ec14",
+    "commit_short": "4696809",
+    "surface": {
+      "core": "3f9f4b5c48dd79196cc6b8ed72fcce380495ac0c",
+      "server": "7bd4ec96d82f3132ecee9597cb1bae688e69c28d"
+    },
+    "surface_sha": "3d4d24058a8c4505e18962844d5f081dbc6d1059",
+    "dirty": []
+  },
+  "task_id": "T5",
+  "family": "tau",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-t5-r1-1791667814",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final=done moved=True",
+  "error_class": null,
+  "wall_ms": 27094.5,
+  "ttft_first_event_ms": 75.7,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 6.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 6.8
+    },
+    {
+      "tool": "edit_file",
+      "ms": 4.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.4
+    }
+  ],
+  "arg_audit": {
+    "calls": 4,
+    "ledger": [
+      {
+        "tool": "read_file",
+        "digest": "3c6b84b0fd",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/policy."
+      },
+      {
+        "tool": "read_file",
+        "digest": "a36ffa62e2",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/booking"
+      },
+      {
+        "tool": "edit_file",
+        "digest": "d0ba75a0a8",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/booking"
+      },
+      {
+        "tool": "read_file",
+        "digest": "a36ffa62e2",
+        "target": "/work/.ephe/bench/20261010T2317-60x3-clean/ws/booking"
+      }
+    ],
+    "classes": {
+      "read_target": 3,
+      "edit_pattern": 1
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "edit_file",
+    "read_file"
+  ],
+  "answer_chars": 539,
+  "tokens_out_proxy": 134.8,
+  "prompt_tokens": 28221,
+  "completion_tokens": 1319,
+  "total_tokens": 29540,
+  "usage_estimated": false,
+  "cost_usd": 0.001939,
+  "pricing_source": "default",
+  "fixture_hash": "daceb3787e58",
+  "fixture_files": 195,
+  "ts": "2026-10-10T23:30:41"
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "task_id": "T9",
+  "family": "tau",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-t9-r1-1790172412",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==ORION-7|600",
+  "error_class": null,
+  "wall_ms": 79957.0,
+  "ttft_first_event_ms": 314.0,
+  "n_turns": 6,
+  "tool_timings": [
+    {
+      "tool": "tool_search",
+      "ms": 1.1
+    },
+    {
+      "tool": "tool_search",
+      "ms": 1.9
+    },
+    {
+      "tool": "tool_search",
+      "ms": 1.1
+    },
+    {
+      "tool": "tool_search",
+      "ms": 1.1
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.2
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: ORION-7|600",
+  "tool_calls": [
+    "tool_search",
+    "tool_search",
+    "tool_search",
+    "tool_search",
+    "tool_call"
+  ],
+  "answer_chars": 72,
+  "tokens_out_proxy": 18.0,
+  "fixture_hash": "38cd549ed8ef",
+  "answer_tail": "\n\nORION-7 Kapazität = 300 → verdoppelt = 600.\n\nFINAL ANSWER: ORION-7|600",
+  "ts": "2026-09-23T16:08:12"
+}

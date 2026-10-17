@@ -1,0 +1,102 @@
+name: Runner timing report
+
+# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, and the first scheduled workflow in this
+# repository. Section 1.5 lists five numbers that only a run can give, and four of them have always
+# been sitting in the Actions API unread: the serial timing segment's p90 while three listeners work
+# at once, a cold install inside a leg, the wall of each leg, and whether a leg exists at all.
+# `scripts/ci_timing_report.py` reads `runs/{id}/jobs` -- one call per run -- and reduces the step
+# stamps to median/p90/p95/max per leg and step.
+#
+# Nightly, on `vars.CI_LINUX_RUNNER`, because the report reads the queue and must not add to it while
+# the queue is being measured: section 1.3 has the Spark at load 27.9 peak under one push with three
+# legs in the air at once, and a leg that samples its own contention reports a number about nothing.
+#
+# The budgets it enforces are in `scripts/timing-budgets.json`, written from the measurements taken on
+# 2026-10-11 over 12 completed push runs of Tests (132 job records, 126 that ran):
+# `Run timing gates (serial)` median 7 s and p90 8 s on all four Linux legs, the macOS serial segment
+# p90 9 s, `Run tracked pytest suite` median 47-49 s and p90 51-60 s, `pytest-macos` install median
+# 19 s and p90 22 s, the lab runner max overlap 3 with a median 459 runner-seconds per push and
+# the macOS runner 117 s. A budget moves by measuring again, and the rule that a serial gate gets its own
+# segment rather than a wider budget (owner, 2026-10-09) is why the serial entries are tight.
+#
+# What is reported and not gated: the four non-Tests workflows. Their absence in one night is not a
+# defect -- a workflow only runs when its trigger fires -- so `--check` applies to `Tests`, where the
+# required legs and the p90 budgets are the thing this document claims.
+
+on:
+  schedule:
+    # 02:30 UTC. The first scheduled workflow in this repository, and the hour is chosen so its own
+    # API reads cannot race a push: a nightly that samples the queue at 15:00 would be sampling the
+    # push it is trying to describe.
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "Completed runs to read per workflow"
+        required: false
+        default: "20"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: timing-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  timing:
+    name: Distributions, budgets and the legs that stopped existing
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The report reads the API, never history.
+          fetch-depth: 1
+
+      - name: Set up Python
+        # Pinned, like the working legs: without it the interpreter resolves to the
+        # self-hosted runner's /usr/local/bin/python3 and scripts/ci_preflight.sh refuses the
+        # job as ambient host state (it passed none of these before).
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Hermetic preflight
+        # The same guard the push legs run: this one has no install step, so the only way it can be
+        # broken by host state is an interpreter that resolves outside the job.
+        run: bash scripts/ci_preflight.sh
+
+      - name: Timing report, budgets enforced
+        env:
+          REPOSITORY: ${{ github.repository }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          EPHE_TIMING_RUNS: ${{ github.event.inputs.runs || '20' }}
+        run: |
+          set -uo pipefail
+          mkdir -p out/timing
+          # Tests is the workflow whose legs and step budgets this leg guards.
+          python3 scripts/ci_timing_report.py --workflow Tests --runs "$EPHE_TIMING_RUNS" \
+            --check --json out/timing/tests.json
+          for workflow in "CI Gates" "Frontend Build" "Supply-chain audit" \
+                          "Repository hygiene" "Python lint and types"; do
+            file="out/timing/$(echo "$workflow" | tr '[:upper:] ' '[:lower:]-').json"
+            python3 scripts/ci_timing_report.py --workflow "$workflow" \
+              --runs "$EPHE_TIMING_RUNS" --json "$file"
+          done
+
+      - name: Upload the report
+        # `if: always()` because the run worth reading is the one that went red: an artifact that only
+        # exists on success would have to be reconstructed from the log.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runner-timing-report
+          path: out/timing/*.json
+          if-no-files-found: error
+          retention-days: 30

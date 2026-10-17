@@ -1,0 +1,302 @@
+'use client'
+
+/**
+ * I7-1: the engine area in row form — before it was a stack of cards.
+ *
+ * The engine is the product's most important surface (here the agent is run)
+ * and the only one that still spoke in the old handwriting: a grey card, then
+ * a model-list stack, then inputs without one sentence about what they change.
+ * Now the same pattern as everywhere: a group with subhead and icon, every
+ * control its own row with its own explanation, the value on the right.
+ *
+ * The principle stays: there is no silent default. Without a chosen engine
+ * `engineNotConfigured` remains, and the endpoint is what the user stored —
+ * the surface does not guess.
+ */
+import { FolderOpen, KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
+import PageHeader from '@/components/shell/PageHeader'
+import {
+  FIELD_COL,
+  SettingValue,
+  SettingVerb,
+  SettingsGroup,
+  SettingsRow,
+  VERB_BUTTON,
+} from '@/components/shell/SettingsRow'
+import EnvironmentTools from '@/components/shell/EnvironmentTools'
+import FolderPickerDialog from '../../FolderPickerDialog'
+import { engineStateOf, providerLabel } from './constants'
+import { DeepFields } from './deepFields'
+import { EngineImageGroup } from './sections-engine-image'
+import type { SettingsModel } from './types'
+
+/** A path or an address the row edits: the value column of the register, the data
+ *  step in the mono face, flush right on the same axis as the words beside it. */
+const FIELD = `${FIELD_COL} max-md:w-32 border border-hairline-strong bg-canvas px-2 py-1 text-right font-mono text-scale-data text-ink placeholder:text-ink-faint focus-ring`
+
+export function EngineSection({ model }: { model: SettingsModel }) {
+  const {
+    checkHealth,
+    customApiKey,
+    customEndpoint,
+    displayModels,
+    engineHealth,
+    engineTesting,
+    outputDraft,
+    setCustomApiKey,
+    setCustomEndpoint,
+    setOutputDraft,
+    setSettings,
+    setWorkspaceDraft,
+    setWsPickerOpen,
+    settings,
+    t,
+    workspaceDraft,
+    wsPickerOpen,
+  } = model
+
+  const active = settings?.provider
+  // The row states a condition, so it reads what the backend says about itself: the
+  // three engine states, plus the fourth fact they cannot carry — an engine that
+  // answered and refused this start's credential.
+  const engineState = engineHealth ? engineStateOf(engineHealth) : null
+  const keyRefused = Boolean(engineHealth?.engine_key_challenge)
+  const keyHeld = Boolean(engineHealth?.engine_key_configured)
+
+  return (
+    <div className="space-y-4">
+      <PageHeader title={t('settings.engineTitle')} subtitle={t('settings.engineSubtitle')} />
+
+      <SettingsGroup icon={Zap} title={t('settings.activeEngine')} testid="settings-active-engine">
+        <SettingsRow
+          icon={Cpu}
+          title={active ? providerLabel(active.type, t) : t('settings.engineNotConfigured')}
+          description={
+            active
+              ? t('settings.activeEndpoint', { url: active.endpoint || '—' })
+              : t('settings.activeProviderMissing')
+          }
+          testid="engine-row-active"
+        >
+          {engineState && (
+            <SettingValue
+              data-testid="settings-engine-state"
+              data-engine-state={engineState}
+              data-engine-key={keyRefused ? 'refused' : undefined}
+              now={engineTesting}
+            >
+              {keyRefused
+                ? t('settings.engineKeyChallenge')
+                : t(`settings.engineState.${engineState}`)}
+            </SettingValue>
+          )}
+          <SettingVerb>
+            <button
+              type="button"
+              data-testid="settings-engine-test"
+              onClick={() => void checkHealth()}
+              disabled={engineTesting}
+              className={VERB_BUTTON}
+            >
+              {engineTesting ? '…' : t('settings.engineTest')}
+            </button>
+          </SettingVerb>
+        </SettingsRow>
+      </SettingsGroup>
+
+      <SettingsGroup
+        icon={Cpu}
+        title={t('settings.chooseModel')}
+        description={t('settings.modelListHint')}
+        testid="engine-group-model"
+      >
+        {displayModels.map((opt) => {
+          const isCustom = opt.id === 'custom'
+          const chosen =
+            settings?.provider.model === opt.id ||
+            (isCustom && settings?.provider.type === 'custom_ollama')
+          return (
+            <SettingsRow
+              key={opt.id}
+              icon={Cpu}
+              title={opt.label}
+              description={'descKey' in opt && opt.descKey ? t(opt.descKey) : opt.desc}
+              testid={`engine-row-model-${opt.id}`}
+            >
+              {/* The chosen model is a stored state, so it wears the data column
+                  and no accent: the accent marks what is running at this moment. */}
+              <SettingValue>{chosen ? t('settings.modelInUse') : ''}</SettingValue>
+              <SettingVerb>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={chosen}
+                  onClick={() => {
+                    if (isCustom) {
+                      setSettings((prev) =>
+                        prev
+                          ? { ...prev, provider: { ...prev.provider, type: 'custom_ollama' } }
+                          : {
+                              provider: { type: 'custom_ollama', model: '' },
+                              memory_enabled: true,
+                              language: 'de',
+                              theme: 'dark',
+                            },
+                      )
+                    } else {
+                      setSettings((prev) =>
+                        prev ? { ...prev, provider: { ...prev.provider, model: opt.id } } : prev!,
+                      )
+                    }
+                  }}
+                  data-testid={`engine-model-${opt.id}`}
+                  className={VERB_BUTTON}
+                >
+                  {t('settings.modelUse')}
+                </button>
+              </SettingVerb>
+            </SettingsRow>
+          )
+        })}
+      </SettingsGroup>
+
+      {customEndpoint && (
+        <SettingsGroup
+          icon={KeyRound}
+          title={t('settings.engineAccess')}
+          testid="engine-group-access"
+        >
+          <SettingsRow
+            icon={Zap}
+            title={t('settings.endpointLabel')}
+            description={t('settings.endpointHint')}
+            testid="engine-row-endpoint"
+          >
+            <input
+              id="settings-endpoint"
+              value={customEndpoint}
+              onChange={(e) => setCustomEndpoint(e.target.value)}
+              placeholder="http://localhost:11434"
+              aria-label={t('settings.endpointLabel')}
+              spellCheck={false}
+              className={FIELD}
+            />
+            <SettingVerb />
+          </SettingsRow>
+          <SettingsRow
+            icon={KeyRound}
+            title={t('settings.apiKeyLabel')}
+            description={
+              keyRefused
+                ? t(keyHeld ? 'settings.engineKeyRejected' : 'settings.engineKeyMissing')
+                : t('settings.apiKeyHint')
+            }
+            testid="engine-row-apikey"
+          >
+            <input
+              id="settings-api-key"
+              type="password"
+              value={customApiKey}
+              onChange={(e) => setCustomApiKey(e.target.value)}
+              placeholder="sk-..."
+              aria-label={t('settings.apiKeyLabel')}
+              className={FIELD}
+            />
+            <SettingVerb />
+          </SettingsRow>
+        </SettingsGroup>
+      )}
+
+      <SettingsGroup
+        icon={FolderInput}
+        title={t('settings.engineFolders')}
+        testid="engine-group-folders"
+      >
+        <SettingsRow
+          icon={FolderInput}
+          title={t('settings.workspaceTitle')}
+          description={t('settings.workspaceRowHint')}
+          testid="engine-row-workspace"
+        >
+          <input
+            id="settings-workspace"
+            value={workspaceDraft}
+            onChange={(e) => setWorkspaceDraft(e.target.value)}
+            placeholder="/Users/du/Projekte/mein-projekt"
+            aria-label={t('settings.workspaceTitle')}
+            data-testid="settings-workspace"
+            spellCheck={false}
+            className={FIELD}
+          />
+          <SettingVerb>
+            <button
+              type="button"
+              onClick={() => setWsPickerOpen(true)}
+              data-testid="settings-workspace-pick"
+              className={VERB_BUTTON}
+            >
+              <FolderOpen className="h-3 w-3" />
+              {t('workspacePicker.open')}
+            </button>
+          </SettingVerb>
+        </SettingsRow>
+        <FolderPickerDialog
+          open={wsPickerOpen}
+          onClose={() => setWsPickerOpen(false)}
+          onPick={(p) => setWorkspaceDraft(p)}
+        />
+        <SettingsRow
+          icon={FileOutput}
+          title={t('settings.outputDirTitle')}
+          description={t('settings.outputDirRowHint')}
+          testid="engine-row-output"
+        >
+          <input
+            data-testid="settings-output-dir"
+            value={outputDraft}
+            onChange={(e) => setOutputDraft(e.target.value)}
+            placeholder="~/Downloads"
+            aria-label={t('settings.outputDirTitle')}
+            spellCheck={false}
+            className={FIELD}
+          />
+          <SettingVerb />
+        </SettingsRow>
+      </SettingsGroup>
+
+      <EngineImageGroup model={model} />
+
+      <SettingsGroup icon={Cpu} title={t('environment.title')} testid="settings-environment">
+        <SettingsRow
+          icon={Zap}
+          title={t('environment.title')}
+          description={t('environment.settingsHint')}
+          testid="engine-row-environment"
+        />
+        <div className="pb-3 pl-6">
+          <EnvironmentTools
+            onPick={(pick) => {
+              setSettings((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      provider: {
+                        ...prev.provider,
+                        type: pick.providerKind,
+                        model: pick.model,
+                        endpoint: pick.endpoint ?? prev.provider.endpoint,
+                      },
+                    }
+                  : prev,
+              )
+              if (pick.endpoint) setCustomEndpoint(pick.endpoint)
+            }}
+          />
+        </div>
+      </SettingsGroup>
+
+      {/* I3-V5: the engine gate lives here, not in an expert box. */}
+      <DeepFields model={model} prefixes={['advanced.']} />
+    </div>
+  )
+}

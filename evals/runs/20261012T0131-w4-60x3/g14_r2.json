@@ -1,0 +1,159 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "G14",
+  "family": "gaia",
+  "level": "L4",
+  "rep": 2,
+  "session_id": "ob-g14-r2-1791764256",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==110 (4 parallel reads)",
+  "error_class": null,
+  "wall_ms": 25025.6,
+  "ttft_first_event_ms": 198.1,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 64.9
+    },
+    {
+      "tool": "list_directory",
+      "ms": 14.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 30.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 30.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 30.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 31.0
+    },
+    {
+      "tool": "tool_search",
+      "ms": 19.0
+    },
+    {
+      "tool": "tool_call",
+      "ms": 21.9
+    },
+    {
+      "tool": "tool_call",
+      "ms": 71.5
+    }
+  ],
+  "arg_audit": {
+    "calls": 9,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "df86c59c71",
+        "target": "g14_p*.txt"
+      },
+      {
+        "tool": "list_directory",
+        "digest": "13f106cd9d",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws"
+      },
+      {
+        "tool": "read_file",
+        "digest": "b20912fc27",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/g14_p1.txt"
+      },
+      {
+        "tool": "read_file",
+        "digest": "350b9f9aeb",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/g14_p2.txt"
+      },
+      {
+        "tool": "read_file",
+        "digest": "4bd16832a6",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/g14_p3.txt"
+      },
+      {
+        "tool": "read_file",
+        "digest": "5fca1f66ac",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/g14_p4.txt"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "a2d2b35d01",
+        "target": "shell python run command execute"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "a511de12ce",
+        "target": ""
+      },
+      {
+        "tool": "tool_call",
+        "digest": "98b09315e0",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 5
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 110",
+  "tool_calls": [
+    "file_search",
+    "list_directory",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "tool_search",
+    "tool_call",
+    "tool_call"
+  ],
+  "answer_chars": 508,
+  "tokens_out_proxy": 127.0,
+  "prompt_tokens": 57961,
+  "completion_tokens": 1291,
+  "total_tokens": 59252,
+  "usage_estimated": false,
+  "cost_usd": 0.003414,
+  "pricing_source": "default",
+  "fixture_hash": "0efde070758b",
+  "fixture_files": 205,
+  "answer_tail": "\n\n\nAll four files have been read. In accordance with the calculation guard, I'll verify the total with an actual script rather than mental arithmetic — first, let me check the shell tool.\n\n**Sum verified by script (no mental arithmetic):**\n\n- Files read (read-only): `g14_p1.txt` (25), `g14_p2.txt` (35), `g14_p3.txt` (15), `g14_p4.txt` (35) — all in `/work/.ephe/bench/20261012T0131-w4-60x3/ws/`\n- Script output: `values: [25, 35, 15, 35]` → `SUM: 110`\n\n25 + 35 + 15 + 35 = **110**\n\nFINAL ANSWER: 110",
+  "ts": "2026-10-12T02:18:02",
+  "retrieval": {
+    "web_calls": 0,
+    "tools": {},
+    "queries": [],
+    "hosts": [],
+    "benchmark_host_hits": [],
+    "answer_leak": false,
+    "question_leak": [],
+    "source_dates": [],
+    "prompt_dates": [],
+    "answer_dates": [],
+    "provenance": "closed-book"
+  }
+}

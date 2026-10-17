@@ -1,0 +1,64 @@
+name: New-file check
+
+# `scripts/prose_tells.py --strict` and `scripts/language_gate.py` build their corpus from
+# `git ls-files`. A file that is written but never staged is missing from that answer and,
+# having no entry in either committed baseline, missing from the union walk in `evaluate`
+# too: no measured count, nothing to compare. Wave 3 landed 87 prose tells and 27 German
+# developer lines across 28 such files, and both whole-tree passes stayed green until the
+# files were staged.
+#
+# `scripts/new_file_check.py` asks the question those passes cannot: does a path that
+# neither committed baseline covers carry a prose tell or a German line? On a clean
+# checkout this re-states the two ratchets' verdict as one named invariant; its reach past
+# them is the set git does not track, and that set is where the wave-3 files lived.
+#
+# A separate workflow because it is a separate concern: the repository gates ratchet
+# coverage against a baseline, and this one judges a path no baseline has ever scored.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Weekly with the other gates: the tracked set and the committed baselines move on
+    # their own, and a rule can be broken by a checkout that never pushed.
+    - cron: '35 3 * * 2'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: new-file-check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  new-file-check:
+    name: New-file rule (tells and German on unscored paths)
+    # Fork pull requests are excluded for the reason written on the workflow-audit job in
+    # ci-gates.yml: the job checks out the PR's own code, so a fork would run foreign logic
+    # on a self-hosted runner. Push, the weekly schedule and same-repo PRs satisfy the
+    # condition and keep running.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Paths no baseline covers carry no tell and no German
+        # Stdlib only, no install: the script imports the two ratchets' own inventories and
+        # scans the worktree, so it also judges a path that a checkout or an earlier step
+        # left untracked. Exit 1 names every offending path with both counts; exit 2 means a
+        # baseline could not be read and nothing was judged.
+        run: python3 scripts/new_file_check.py

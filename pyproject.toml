@@ -1,0 +1,160 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ephe"
+version = "0.1.0-beta.4"
+description = "◑ Ephe – Offline-first local SI agent, ephemeral by design. Private. Local. Yours."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BUSL-1.1"
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+    { name = "Bemler Labs", url = "https://github.com/bemlerlabs/ephe" },
+]
+keywords = ["ai", "agent", "ollama", "local", "privacy", "llm", "pwa", "artifacts", "computer-use", "vision", "scheduler", "ephe", "schwarzwald"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Terminals",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "ollama>=0.3.0",
+    "ddgs>=2.0.0",
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+    "pillow>=10.0.0",
+    "qrcode[pil]>=7.4.2",
+    "openpyxl>=3.1.5",
+    "python-docx>=1.1.0",
+    "playwright>=1.40.0",
+    "apscheduler>=3.10.0",
+    "pdfplumber>=0.11.0",
+    "reportlab>=4.0.0",
+    "psutil>=5.9.0",
+    # requires-python says >=3.10 and CI tests 3.10, but tomllib is stdlib only from
+    # 3.11 — so on 3.10 core/environment_mirror silently answered None for every TOML
+    # tool config and "the mirror reads your coding agents' configs" was untrue there.
+    # Marker-scoped: nothing installs on 3.11+, and tomli is the pure-Python MIT
+    # backport with the stdlib API.
+    "tomli>=1.2; python_version < '3.11'",
+    # The embedding model (core/memory_embed_onnx.py) reads its ONNX file directly and
+    # owns its runtime, so the session, the vocabulary and the pooling arithmetic each
+    # have a name here. Floors stay low on purpose — onnxruntime 1.29 and numpy 2.5 want
+    # a newer Python than this package supports (>=3.10, CI runs 3.10-3.13) and a higher
+    # floor would drop a leg. The versions the frozen vectors were measured against are in
+    # tests/fixtures/memory_embed_golden.json.
+    "numpy>=1.22.5",
+    "onnxruntime>=1.14.1",
+    "tokenizers>=0.13.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-benchmark>=4.0",
+    # Parallel legs for the tracked suite. The bound is narrow on purpose: an xdist major
+    # changes worker scheduling and per-worker fixture semantics, which is behaviour this
+    # suite depends on, and CI installs from these ranges (`pip install -e ".[dev,tui]"`),
+    # not from uv.lock. Floor 3.8.0 is the release whose pytest-9 compatibility was
+    # measured here (owner approval 2026-10-09).
+    "pytest-xdist>=3.8,<4",
+    "httpx>=0.27.0",
+    # Test-only: the harness (evals/, scripts/stress_1000_messages.py) imports
+    # requests, and the JSON-schema leg of validate_json (test_welle3_tools.py)
+    # needs jsonschema. The product itself falls back gracefully when jsonschema
+    # is absent, so these stay out of the runtime dependencies.
+    "requests>=2.28.0",
+    "jsonschema>=4.18.0",
+    # The shipped format/lint tools (core/tools/utility_tools.py) shell out to the ruff
+    # binary and CI never had one, so tests/test_welle3_tools.py failed on every matrix   # language-gate: ignore (Welle 3 is that wave's own name, kept verbatim — it is part of the test path quoted here)
+    # leg with the tool's own "install ruff" error string. Dev-only: the product's
+    # runtime deps are unchanged, and a user without ruff still gets that actionable hint.
+    "ruff>=0.15",
+]
+bench = [
+    "pytest-benchmark>=4.0",
+    "httpx>=0.27.0",
+]
+gui = [
+    "pyautogui>=0.9.54",
+    "mss>=9.0.1",
+    "pynput>=1.7.6",
+]
+voice = [
+    "edge-tts>=7.0.0",  # R18: the cloud fallback is the last resort: it answers only when no local voice is installed
+    "faster-whisper>=1.0.0",
+]
+sandbox = [
+    # Ephemora Cell (WASI sandbox) — opt-in execution layer for LLM-generated
+    # code (core/tools/sandbox_tools.py). The upper bound holds the release whose
+    # cell policy this codebase measured: core/cpython_cell.py writes the caps and
+    # core/cell_policy.policy_snapshot() reports the same numbers to the settings
+    # card, `ephe doctor` and the status page, so a runtime nobody re-read would be
+    # quoted with someone else's numbers. Owner decision 2026-10-09 removed the
+    # licence framing — Ephemora Cell is our own product, its BUSL-1.1 rungs bind
+    # nothing here; licences are recorded per release in
+    # .github/cell-runtime-fence.json, which tests/test_dependency_license_fence.py
+    # checks. Moving this bound means measuring the new runtime and writing the date
+    # into that register.
+    "ephemora-cell>=1.1.0,<1.2",
+]
+tui = [
+    "textual>=0.70.0",
+]
+
+[project.scripts]
+ephe = "ephe_cli:main"
+ephe-app = "ephe:main"
+
+[project.urls]
+Homepage   = "https://github.com/bemlerlabs/ephe"
+Repository = "https://github.com/bemlerlabs/ephe"
+Issues     = "https://github.com/bemlerlabs/ephe/issues"
+
+[tool.uv]
+# multidict is not imported by us directly. A direct dependency would add packages that
+# are already resolved, so a constraint is the only mechanism that can hold a transitive
+# version: without a floor, `uv lock --upgrade` is free to walk back into the advisory and
+# nothing notices (the supply-chain gate only reports).
+# multidict: CVE-2026-104874 = GHSA-54p9-h82j-f925 (fixed 6.9.1).
+# urllib3 (PYSEC-2026-4175/4176/4177) and oauthlib (PYSEC-2026-4114) held floors here until
+# 2026-10-14. Both reached the product only through the retired vector store and its
+# kubernetes client, so they left the lock together with it, and their rows left
+# .github/advisories-ignore.txt in the same change — the gate reads each `fixed` row back
+# against uv.lock. The long oauthlib rationale went with them: requests-oauthlib 2.0.0 is no
+# longer resolved, so nothing constrains oauthlib's floor here any more.
+constraint-dependencies = [
+    "multidict>=6.9.1",
+]
+
+[tool.hatch.build.targets.wheel]
+# Note: in Hatchling `packages` displaces the `include` patterns (measured:
+# root files were missing from the wheel). So declare every source explicitly as include.
+include = [
+    "core/**",
+    "ui/**",
+    "server/**",
+    "ephe.py",
+    "ephe_cli.py",
+    ".env.example",
+    "engine.example.json",
+    "app/src/**",
+]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"skills" = "share/ephe/skills"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

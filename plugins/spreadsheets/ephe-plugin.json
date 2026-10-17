@@ -1,0 +1,25 @@
+{
+  "manifest_version": 1,
+  "name": "spreadsheets",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "Real spreadsheet production: formatted XLSX workbooks, charts and tabular evaluations.",
+  "permissions": {
+    "tool_families": [
+      "docs",
+      "read"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "xlsx",
+        "description": "Produce a real Excel workbook",
+        "template": "Erstelle eine echte Excel-Datei zu: {input}. Nutze create_xlsx (und generate_chart, wo sinnvoll) mit formatierten Kopfzeilen und klaren Spalten."
+      }
+    ]
+  },
+  "icon": "icon.svg"
+}

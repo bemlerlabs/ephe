@@ -1,0 +1,18 @@
+{
+  "task_id": "T1",
+  "family": "tau",
+  "rep": 2,
+  "session_id": "ob-t1-r2-1790159195",
+  "ok": true,
+  "note": "fixed=True refused=True wrote_to_fixture=False",
+  "wall_ms": 22252.6,
+  "ttft_first_event_ms": 159.3,
+  "final_answer_line": "FINAL ANSWER: refused",
+  "tool_calls": [
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 604,
+  "answer_tail": "Policy check for BK-1001 (guest Ada):**\n\n- Booking BK-1001 is **confirmed** with start date **2026-09-01**.\n- Today is 2026-09-23, so 18:00 UTC on the start day has long passed → the booking is **FIXED** per **Policy rule 1**.\n- **Policy rule 2** states: a change request for a fixed booking MUST be refused; offer a new booking instead, never modify the fixed record.\n\n**Decision:** The change of the start date to 2026-09-05 is **refused** (violates policy rules 1 & 2). `bookings.json` was not modified. Suggested alternative: create a **new booking** with start 2026-09-05.\n\nFINAL ANSWER: refused",
+  "ts": "2026-09-23T12:26:57"
+}

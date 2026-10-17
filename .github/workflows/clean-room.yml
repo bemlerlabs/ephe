@@ -1,0 +1,73 @@
+name: Clean-room install
+
+# Every shipped leg installs into an interpreter on a machine that may already have the product:
+# `Requirement already satisfied` is a valid answer there and an invalid one anywhere else, so no
+# leg has ever proved that `uv.lock` and `app/pnpm-lock.yaml` can be installed cold. The receipt for
+# the hazard is in tests.yml's own venv step -- PR run `9910615d` logged 110 of those lines out of
+# the listener's `_tool` cache, and `_tool` survives the job, so the next main-push leg read the
+# proposed range's leftovers as satisfied.
+#
+# This leg is the cold shape: `scripts/clean_room_install.sh` clones the checked-out tree into a
+# scratch root under `runner.temp`, fetches its own CPython, installs the lock and the pnpm lockfile
+# there, and compares what landed against the lock by name and by version. `0 MISSING, 0 UNEXPECTED`
+# is the claim; a crash is treated as a failure of this file, not of the product, which is why the
+# script prints a verdict line for every refusal instead of letting a tool die bare.
+#
+# `ubuntu-latest` and no `actions/setup-python` / `setup-node`, on purpose. Those two actions are how
+# an interpreter reaches the shared tool cache, which is the one thing this leg must not write to;
+# the script downloads its interpreters into the scratch root instead, so the leg's only cache is the
+# directory the runner wipes. Measured 2026-10-11 on the macOS host and in a Debian 13 aarch64
+# container on `lab-box`: four shapes, `0 MISSING / 0 UNEXPECTED` each, 561-595 MB fetched per
+# cold wheel cache, and all three listeners' `_tool/Python` directories still dated 2026-10-09.
+#
+# The price of that choice is known and stated: hosted minutes. A leg that cannot be allocated
+# reads as `steps: []` and no log blob, so this leg can fail for a reason that has nothing to do
+# with the lock. It is scheduled on nothing for a related reason -- a weekly cron would spend
+# hosted minutes to re-ask a question a lockfile change already answers, and `pull_request` plus
+# `workflow_dispatch` are the only triggers this file carries.
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clean-room-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  clean-room:
+    name: Cold install from a fresh clone (py${{ matrix.python-version }})
+    # The four interpreters of tests.yml's literal matrix, so a lock that only installs on the
+    # versions CI already tests cannot pass here. tests/test_clean_room_workflow.py compares the two
+    # lists: a leg that silently drops 3.10 would be a green answer to an unasked question.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Cold install into the scratch root this job loses
+        # The clone source is the checkout, which for a pull request is GitHub's merge ref: the tree
+        # that would land, not the branch as pushed. The root is `runner.temp`, wiped between jobs,
+        # and the script refuses any root that is not (it names the tool cache in that refusal
+        # because the tool cache is what the incident was). Both installs are read-only against the
+        # repository: nothing here rewrites a lockfile.
+        env:
+          EPHE_CLEAN_ROOM_ROOT: ${{ runner.temp }}/clean-room
+          EPHE_CLEAN_ROOM_SOURCE: ${{ github.workspace }}
+          EPHE_CLEAN_ROOM_PYTHONS: ${{ matrix.python-version }}
+          EPHE_CLEAN_ROOM_TARGETS: py,js
+        run: bash scripts/clean_room_install.sh

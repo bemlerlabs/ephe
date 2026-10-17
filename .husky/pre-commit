@@ -1,0 +1,115 @@
+set -e
+
+# --- what this commit takes, and what it must not take ---------------------
+# `git commit -- <paths>` is invisible from inside a hook, so a commit that knows its
+# own pathset declares it through EPHE_COMMIT_PATHS (space-separated, the same list and
+# the same no-spaces-in-paths contract scripts/ci_local.sh already narrows itself to).
+# A declared commit then refuses while the index holds any path outside its own list.
+#
+# The refusal is the guard because the crossing itself has no known actor. Three commits
+# shipped a path they never named, and each was read afterwards as the other worker's
+# mistake: 2026-10-08, lint-staged's hide-and-restore rewrote files five workers held
+# open; 2026-10-09, a prose-only commit carried another worker's app/public/llms.txt;
+# 2026-10-11, a docs commit carried core/model_config.py mid-flight, and HEAD grew a
+# docstring denying the model defaults that same file still shipped. A pathspec commit
+# cannot do this to itself — measured in a throwaway repo in five shapes (named path
+# staged and unstaged, directory pathspec, newly added paths, with and without
+# lint-staged actually running) and every one left the foreign staged path in the index.
+# So the defence does not depend on finding the actor: a commit whose index is wider
+# than its declaration does not ship.
+#
+# It has to ask the real index. Measured: during `git commit -- <paths>` git runs the
+# hook with GIT_INDEX_FILE pointing at a temporary `next-index-*.lock` holding only HEAD
+# plus the named paths, so `git diff --cached` there reports exactly the paths the commit
+# already intends to take and the foreign one is invisible. That narrowed view is also why
+# a pathspec commit cannot absorb a path by itself. `env -u GIT_INDEX_FILE` is the whole
+# shared index, which is the thing being guarded.
+#
+# Which invocations are guarded, because a lane will otherwise trust a guarantee that only
+# exists in one of the two shapes: a commit that sets EPHE_COMMIT_PATHS is checked, and a plain
+# `git commit -- <paths>` with no declaration is NOT — it takes the pathspec route git proved
+# sound above, and nothing looks at the index for it. `213611df` landed this very file that
+# way, undeclared and therefore unchecked. Declaration is the opt-in, and the habit below is
+# what makes it free.
+if [ -n "${EPHE_COMMIT_PATHS:-}" ]; then
+  declared=$(mktemp)
+  held=$(mktemp)
+  trap 'rm -f "$declared" "$held"' EXIT
+  printf '%s\n' ${EPHE_COMMIT_PATHS} | sort > "$declared"
+  env -u GIT_INDEX_FILE git diff --cached --name-only | sort > "$held"
+  outside=$(comm -13 "$declared" "$held")
+  if [ -n "$outside" ]; then
+    printf 'pre-commit: refusing — this commit declares its paths, and the index holds %s more.\n' \
+      "$(printf '%s\n' "$outside" | wc -l | tr -d ' ')" >&2
+    # Grouped by the last commit that touched each path: "blocked" and "blocked, and here is
+    # whose work you are looking at" are two different things to receive in a shared tree, and
+    # the second one is the only kind a lane can act on. A path no commit has ever touched is
+    # staged by someone and never landed anywhere, which is worth saying out loud.
+    for path in $outside; do
+      label=$(git log -1 --format='%h %s' -- "$path" 2>/dev/null)
+      printf '%s\t%s\n' "${label:-(no commit has ever touched it: staged, never landed)}" "$path"
+    done | sort | awk -F'\t' '
+      $1 != prev { if (NR > 1) printf "\n"; printf "  %s\n", $1; prev = $1 }
+                 { printf "      %s\n", $2 }' >&2
+    printf '\n' >&2
+    printf 'pre-commit: the habit that avoids this: stage and commit in ONE shell invocation,\n' >&2
+    printf 'pre-commit: so nothing sits staged across a thinking step —\n' >&2
+    printf 'pre-commit:   git add <paths> && EPHE_COMMIT_PATHS="<the same list>" git commit -m "..." -- <paths>\n' >&2
+    printf 'pre-commit: three ways to get past this refusal are wrong, so none is offered:\n' >&2
+    printf 'pre-commit:   widening the declaration over a path that is not yours;\n' >&2
+    printf 'pre-commit:   --no-verify, which skips every gate here including the working ones;\n' >&2
+    printf 'pre-commit:   unstaging another lane'"'"'s work to make the count agree.\n' >&2
+    printf 'pre-commit: if a path above is another lane'"'"'s, say who and wait, or ask the chief\n' >&2
+    printf 'pre-commit: to clear the index. This check exists because on 2026-10-11 a docs commit\n' >&2
+    printf 'pre-commit: carried core/model_config.py out of an index shaped exactly like this one.\n' >&2
+    exit 1
+  fi
+fi
+
+# The frontend toolchain runs only when the commit actually carries frontend code.
+# This is not an optimisation: lint-staged hides and restores every UNSTAGED change
+# in the worktree, not just the staged ones, so on a shared tree it rewrites files
+# other workers hold open and can absorb their unfinished work into this commit.
+# Observed twice (2026-10-08: five workers died on it; 2026-10-09: a prose-only
+# commit carried another worker's app/public/llms.txt).
+if [ -n "${EPHE_COMMIT_PATHS:-}" ]; then
+  # A declared commit does not call lint-staged at all: it takes no file arguments
+  # (`Usage: lint-staged [options]`, 17.6), so it cannot be pointed at a subset, and the
+  # whole point of declaring is that nothing outside the declaration is touched. The same
+  # two formatters run over exactly the declared app paths instead. What gives up the
+  # convenience of lint-staged's staged-content view is the guarantee that the worktree
+  # outside this commit's own paths is never read or written — and a pathspec commit
+  # ships the working-tree content of its named paths, which is precisely what gets
+  # formatted here.
+  targets=$(printf '%s\n' ${EPHE_COMMIT_PATHS} | sed -n 's|^app/||p' | grep -E '\.(ts|tsx)$' || true)
+  # A moved or deleted path has no file left to format. prettier refuses the whole run when
+  # one of its arguments does not exist, so an unfiltered list would block every rename and
+  # every deletion of a frontend file. The branch below is spelled `if` rather than
+  # `[ -f … ] && …`: a false test in the last loop turn would make the substitution exit 1 and
+  # `set -e` would then end the hook with no message, which is how a deletion used to block.
+  live=$(for t in $targets; do if [ -f "app/$t" ]; then printf '%s ' "$t"; fi; done)
+  # a hook runs with no terminal attached, and pnpm aborts on a prompt it cannot
+  # show without a TTY; CI=true is the switch that keeps every pnpm call here
+  # non-interactive, so it travels with each one inside its own subshell.
+  if [ -n "$live" ]; then
+    ( export CI=true; cd app && pnpm exec prettier --write $live && pnpm exec eslint --fix $live )
+  fi
+else
+  staged=$(git diff --cached --name-only)
+  if printf '%s\n' "$staged" | grep -qE '^app/.*\.(ts|tsx)$'; then
+    ( export CI=true; cd app && pnpm exec lint-staged )
+  fi
+fi
+
+# the language rule needs its own hook: prettier and eslint cannot see German prose.
+# Staged scope: a whole-tree pass here refuses one commit over another worker's unfinished line.
+python3 scripts/language_gate.py --staged
+
+# The static layer that `.pre-commit-config.yaml` promised and no machine ever ran: ruff's
+# blocking subset and the prose ratchet over the STAGED BLOBS, the hygiene rules over the index.
+# It deliberately scans no whole tree: the two whole-tree ratchets stay in `ci-gates.yml`, where a
+# clean checkout of the commit is what gets judged, and a refusal naming an unstaged line on this
+# shared tree would be the hook's own version of the defect the scoping above exists to avoid.
+# Measured on this tree, 2026-10-11: 0.8 s for the staged set; the whole-tree prose pass alone was
+# 5.4 s of the 5.7 s it used to cost, and it bought no information the commit carried.
+bash scripts/ci_local.sh

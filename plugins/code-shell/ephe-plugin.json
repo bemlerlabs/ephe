@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "name": "code-shell",
+  "version": "1.0.0",
+  "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+  "permissions": {
+    "tool_families": [
+      "read",
+      "write",
+      "shell"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "fix",
+        "description": "Reproduce and fix a defect in the workspace",
+        "template": "Reproduziere und behebe den folgenden Defekt im Workspace und fuehre die Tests aus: {input}"
+      }
+    ]
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

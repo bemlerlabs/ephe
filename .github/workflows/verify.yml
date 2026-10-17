@@ -1,0 +1,79 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: python (canonical repository only)
+    if: github.repository == 'bemlerlabs/ephe'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Install the uv this lockfile was generated with
+        run: |
+          python3 -m venv .uv
+          .uv/bin/pip install --quiet uv==0.12.24
+          echo "$PWD/.uv/bin" >> "$GITHUB_PATH"
+
+      - name: The locks agree with the manifests
+        run: uv lock --check
+
+      - name: Install
+        run: uv sync --extra dev --extra tui
+
+      - name: Tests
+        run: uv run python -m pytest tests/ -q -p no:cacheprovider
+
+  web:
+    if: github.repository == 'bemlerlabs/ephe'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate the pnpm this repository pins
+        # Before setup-node, whose `cache: pnpm` step shells out to `pnpm store path`:
+        # without a pnpm on PATH that step is the whole failure. frontend-build.yml
+        # carries the same order for the same reason.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install
+        run: cd app && pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: cd app && pnpm exec tsc --noEmit
+
+      - name: Tests
+        run: cd app && pnpm exec vitest run
+
+      - name: Build
+        run: cd app && pnpm run build

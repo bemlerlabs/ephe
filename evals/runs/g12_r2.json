@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "task_id": "G12",
+  "family": "gaia",
+  "level": "L4",
+  "rep": 2,
+  "session_id": "ob-g12-r2-1790173845",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==84 (4-hop chain)",
+  "error_class": null,
+  "wall_ms": 12547.0,
+  "ttft_first_event_ms": 209.6,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 4.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.2
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 84",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 476,
+  "tokens_out_proxy": 119.0,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung aus den real gelesenen Datei-Inhalten:**\n\n| Schritt | Quelle | Wert | Operation | Laufender Stand |\n|---|---|---|---|---|\n| 1 | `g12_a.md` | base = 7 | Start | 7 |\n| 2 | `g12_b.json` | factor = 12 | add → 7 + 12 | 19 |\n| 3 | `g12_c.csv` | add-op value = 5 | multiply → 19 × 5 | 95 |\n| 4 | `g12_d.txt` | sub value = 11 | subtract → 95 − 11 | **84** |\n\nAlle vier Dateien wurden mit `read_file` ausgelesen; die Kette ist ganzzahlig und eindeutig.\n\nFINAL ANSWER: 84",
+  "ts": "2026-09-23T16:30:57"
+}

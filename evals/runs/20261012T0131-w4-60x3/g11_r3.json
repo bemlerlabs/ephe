@@ -1,0 +1,118 @@
+{
+  "schema_version": 5,
+  "code_address": {
+    "commit": "613a8945dd94669e1761eae2fc81efe2e79c5ec2",
+    "commit_short": "613a894",
+    "surface": {
+      "core": "22400f0c4b41cc95de36d88fce93d239544d330a",
+      "server": "ef75976fc5843ac7269cbe4b085871429db6b423"
+    },
+    "surface_sha": "aa7f3911ae49d7868f885ab0fff05dfe2424cf12",
+    "dirty": []
+  },
+  "task_id": "G11",
+  "family": "gaia",
+  "level": "L3",
+  "rep": 3,
+  "session_id": "ob-g11-r3-1791764060",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "ok (rescored: 76.0 == 76 numerically; the checker compared strings)",
+  "error_class": "assertion",
+  "wall_ms": 16563.2,
+  "ttft_first_event_ms": 99.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 61.4
+    },
+    {
+      "tool": "tool_search",
+      "ms": 61.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 23.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 23.0
+    },
+    {
+      "tool": "tool_call",
+      "ms": 73.3
+    }
+  ],
+  "arg_audit": {
+    "calls": 5,
+    "ledger": [
+      {
+        "tool": "file_search",
+        "digest": "23f21ccaeb",
+        "target": "g6_a.csv"
+      },
+      {
+        "tool": "tool_search",
+        "digest": "d2b7caa83c",
+        "target": "shell run command python"
+      },
+      {
+        "tool": "read_file",
+        "digest": "402044d581",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/g6_a.csv"
+      },
+      {
+        "tool": "read_file",
+        "digest": "ba7e4bc4b6",
+        "target": "/work/.ephe/bench/20261012T0131-w4-60x3/ws/g6_b.csv"
+      },
+      {
+        "tool": "tool_call",
+        "digest": "9968d7bb15",
+        "target": ""
+      }
+    ],
+    "classes": {
+      "search_query": 1,
+      "read_target": 2
+    },
+    "violations": [],
+    "violation_counts": {},
+    "observations": [],
+    "result_axis": "core.quality"
+  },
+  "final_answer_line": "FINAL ANSWER: 76.0",
+  "tool_calls": [
+    "file_search",
+    "tool_search",
+    "read_file",
+    "read_file",
+    "tool_call"
+  ],
+  "answer_chars": 567,
+  "tokens_out_proxy": 141.8,
+  "prompt_tokens": 30282,
+  "completion_tokens": 1086,
+  "total_tokens": 31368,
+  "usage_estimated": false,
+  "cost_usd": 0.001948,
+  "pricing_source": "default",
+  "fixture_hash": "118a22ffc4fc",
+  "fixture_files": 202,
+  "ts": "2026-10-12T02:14:36",
+  "retrieval": {
+    "web_calls": 0,
+    "tools": {},
+    "queries": [],
+    "hosts": [],
+    "benchmark_host_hits": [],
+    "answer_leak": false,
+    "question_leak": [],
+    "source_dates": [],
+    "prompt_dates": [],
+    "answer_dates": [],
+    "provenance": "closed-book"
+  }
+}
