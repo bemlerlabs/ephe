@@ -105,6 +105,21 @@ jobs:
             pnpm exec playwright install chromium
           fi
 
+      - name: E2E timing budgets (one worker, no co-tenant)
+        # A budget that only fails under load is measured alone. The r4 spec already
+        # states that rule for its own windows; r33's frame budget is the same class of
+        # assertion and until now shared an invocation with every other spec. There the
+        # default project runs ten workers, and a 1.5 s idle window on /chat can overlap
+        # another browser loading the bundle: on 2026-10-18 the same tree reported
+        # chat=10 with co-tenants and 0 in isolation on a developer machine. The budgets
+        # are not widened; the contention is removed.
+        run: |
+          cd app
+          pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list --workers=1 \
+            tests/playwright/composer-width.spec.ts \
+            tests/playwright/r33-a11y.spec.ts \
+            tests/playwright/r4-motion-paint.spec.ts
+
       - name: E2E (Playwright over the bundle this job built)
         # R8: app/package.json defined test:e2e, test:e2e:real and test:dogfood over
         # app/tests/playwright/*.spec.ts and no workflow ran any of them, so the suite was a
@@ -113,13 +128,14 @@ jobs:
         # run time and owns (tests/test_playwright_port_hygiene.py), with no backend, no
         # Vite dev server and no engine.
         #
-        # All 21 of the chromium project's spec files are named here, one by one, so this
-        # leg's contents stay readable in the workflow and a spec added tomorrow does not
-        # join it by accident (the `chromium` project alone would collect it). Until
-        # W10-51 four of the 21 were left out and carried ten red assertions between them:
-        # r14 (two navigations to the Vite dev server — ERR_CONNECTION_REFUSED on this leg
-        # — plus a probe for the old "?" shortcut and one for a settings toggle the
-        # product has since dropped), q-quality (four tests that seed the DEV-only
+        # The eighteen spec files that the default project collects are named here, one by
+        # one, so this leg's contents stay readable in the workflow and a spec added
+        # tomorrow does not join it by accident (the `chromium` project alone would collect
+        # it). The three timing files run in the step above, alone. Until W10-51 four of
+        # the then-21 were left out and carried ten red assertions between them: r14 (two
+        # navigations to the Vite dev server — ERR_CONNECTION_REFUSED on this leg — plus a
+        # probe for the old "?" shortcut and one for a settings toggle the product has
+        # since dropped), q-quality (four tests that seed the DEV-only
         # window.__epheStore), r12 and panel (two surfaces the bundle no longer names as
         # the tests did). Each now carries the guard or the current label it needs; the
         # measurements and the reasoning are in docs/E2E_CI_2026-10-11.md.
@@ -127,7 +143,6 @@ jobs:
           cd app
           pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list \
             tests/playwright/app-boot.spec.ts \
-            tests/playwright/composer-width.spec.ts \
             tests/playwright/glass-layers.spec.ts \
             tests/playwright/langsession.spec.ts \
             tests/playwright/mobile-viewport.spec.ts \
@@ -138,10 +153,8 @@ jobs:
             tests/playwright/q-quality.spec.ts \
             tests/playwright/r12.spec.ts \
             tests/playwright/r14.spec.ts \
-            tests/playwright/r33-a11y.spec.ts \
             tests/playwright/r36-dd27.spec.ts \
             tests/playwright/r36-fixes.spec.ts \
-            tests/playwright/r4-motion-paint.spec.ts \
             tests/playwright/r41-toolcards.spec.ts \
             tests/playwright/r42-livetakt.spec.ts \
             tests/playwright/r5-perceived-latency.spec.ts \
