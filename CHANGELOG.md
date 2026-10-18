@@ -12,7 +12,111 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+- `create_xlsx` writes real Excel formulas through a safe `=` allowlist, infers
+  percent/currency/ISO-date/number formats, and adds auto-filter, zebra rows and a
+  styled total row; `create_diagram` and `generate_chart` take `theme="light"|"dark"`
+  with exact palettes and grouped-bar/line series, and charts embed into PDFs as
+  vectors instead of raster captures (#20, #23).
+- Deck composition is fully dynamic: `default_storyline(title, audience, thesis,
+  source_status, source_notes)` derives eleven topic-specific slides and `parse_slides`
+  carries source notes through to the deck spec, with no canned narrative (#21).
+- `evaluate_quality(question=...)` verifies multi-file arithmetic against tool output:
+  a compute question without a successful evidence tool is a hard issue, and claimed
+  totals must match the computed stdout (#17).
+- A routing gate asserts every skill pack declares at least two `when_to_use` and two
+  `when_not_to_use` terms, and three packs gained the missing veto terms (#22).
+- `README.zh-CN.md` and `README.es.md` reach full section parity with the English
+  README, with commands, paths and product names unchanged (#18).
+- The desktop window carries a real macOS `NSVisualEffectView`
+  (`macos-private-api`, `transparent` + `windowEffects.underWindowBackground`,
+  `trafficLightPosition {16,18}`), and the WebView carrier turns translucent only
+  under `html.tauri-vibrancy`, so the browser keeps its opaque forest ground
+  (`00431f81`).
+- The dashboard reads as three zones — a 44px studio topbar with a draggable centre
+  and a traffic-light clearance over the sidebar rail, a centred 48rem reading stage,
+  and a floating composer dock with a bottom veil; tool calls collapse to a one-line
+  pill with a leading status mark and a run-time read, and the assistant answer drops
+  its outer card for the full reading width (`00431f81`).
+- The first open cuts five camera setups — wide establishing, low stream track, the
+  close-up with two heartbeats and the firefly spiral, the shrinking vortex frame and
+  the macro portrait — and the rendered film carries a deterministic 48 kHz stereo
+  score as AAC and Opus (`c53f7a63`).
+- The companion outlives the onboarding: the live actor `c53f7a63` sits in the welcome hero
+  and above the composer, with five settings (enabled, form, behaviour, sound, size),
+  a click-flight wing flutter, a D-pentatonic spark burst and blinking eyes.
+- The sprite extraction uses real alpha matting: `binary_fill_holes` on the Vision mask,
+  `distance_transform_edt` background estimation and foreground colour decontamination
+  write 2120 × 1504 Retina layers with premultiplied Lanczos-4 upscale (`d0feafe3`).
+
+- The onboarding carries the live guide: a 60 fps spring-flown bee that follows the
+  pointer with its pupils, flies to a click or a control, flaps in 3-D and performs the
+  finale into the header (`72118913`).
+- The first open is a live 60 fps choreography on the clearing keyframe: a spark falls
+  into the moss, runs a spline over the stream, spins into a fire tornado and becomes the
+  bee while her wings open and a honeycomb shockwave leaves the vortex; the same
+  component renders the 12.8 s MP4/WebM through a frame-exact seek (`81566049`).
+- The guide and the intro carry the actor cut again from the awakening frame: both eyes
+  sharp, no seam across the belly, wing layers with no cheek or belly pixels, and the
+  forehead flame back in the actor, the large icons and its own animated layer
+  (`81566049`).
+- The tour keeps the keyframe stage, shows the engine-core frame in step 2 and the finale
+  frame before the workspace; the guard step previews a real approval card; the first
+  answer recommends the matching starter card (`b2a404bd`).
+- The runtime trust layer: protected roots are refused before any dialog, a
+  credential-shaped file needs approval even for a read tool, redaction runs before the
+  model context, the SSE stream, the run ledger and the audit log, and every tool result
+  carries the call id it answers (`614645c9`).
+- Every run writes an append-only JSONL ledger with the five-phase projection
+  (`Now`, `Waiting`, `Changed`, `Result`, `Next`); `/api/health` names the instance, pid,
+  root, version, contract and owner, and the desktop shell adopts only a backend it
+  started (`614645c9`).
+- Settings → Session store offers **Delete all chats**: one confirmed gesture clears the
+  backend store and the browser's copy (`f52fa12d`).
+
+### Changed
+- The app adopts the npm minor/patch group: Radix primitives, TanStack Virtual, the
+  Tauri plugins and CLI, i18next, PostCSS, Prettier and typescript-eslint move within
+  their major lines, and the lockfile is refreshed.
+- The fire-spirit bee is a 3D volume rig: a sphere head with rim light and warm bounce,
+  a fur collar, a lantern belly with honey cells and three chitin bands, four independent
+  wing groups, an amber iris with pupil tracking and the v2 crown on the small cut; every
+  icon and Tauri bundle is regenerated from it (`72118913`, `2ab2a4fc`).
+- The live guide is the cut-out 3D actor from the hero keyframe, with two wing layers
+  turning on their shoulder origins; it perches left of the panel, holds a clicked
+  control for 1.35 s, hovers at its anchor and leaves a continuous trail, and the large
+  icons render from the same sprite (`d009f25d`).
+- The task dock sits at the bottom-right of the chat column, where there is room; on a
+  failed turn the header reads "Stopped with an error" instead of a worked-for time, and
+  the restore notice is one toast that updates in place and auto-dismisses (`f52fa12d`).
+- A first start without a stored language follows the browser's language (`f52fa12d`).
+- The tour's primary button, selected card and switch use the bee's honey gold instead of
+  the coral brand pair, with dark ink on the button (`81566049`).
+
 ### Fixed
+- `tests/test_tui_context_meter.py` pins `EPHE_TOKEN_COUNTER=calibrated` and resets the
+  tokenizer cache per test, so an installed tiktoken no longer changes the fixture
+  counts; `skills-lock.json` follows the three metadata edits.
+- The intro and tour resolve only defined tokens, with 44 px coarse-pointer floors, and a
+  failed language chunk keeps the boot catalog readable instead of painting key paths
+  (`8c434261`).
+- The welcome sentence stays beside the new recommendation, and the small bee cut carries
+  the v2 crown so the 32 px icon paints the brand red (`9033eb21`, `2ab2a4fc`).
+- Leaving the tour without an engine records the setup skip, and the carry step's footer
+  advances without an import (`b2a404bd`).
+- A first start with an empty local store follows the browser's language *and* bundles
+  that catalog as the fallback, so a German webview no longer paints key paths
+  (`dfe6e883`).
+- The header and overflow E2E specs follow the compact header, and the port-hygiene
+  register names the shifted line (`f9281f89`).
+- Redaction preserves a gate denial's code, the stricter tool wire accepts every fixture
+  id, and the SEC-1 credential corpus is an allowlisted synthetic fixture (`757a685a`).
+- The engine error box offers "Set up engine" beside Retry and renders known connection
+  failures in the UI language; the error stays on the turn through a reload (`f52fa12d`).
+- Audit round: the setup offer starts in capitals, the replay frame localizes its step
+  count, the empty workbench says its sentence once, the output-directory hint reads
+  "where the file is created first", and Custom Ollama follows the app's vocabulary
+  (`f52fa12d`).
 - The import route accepts no filesystem path: the native picker records the chosen
   folder behind a one-time token, the route imports only that selection, and a missing,
   expired or reused token is refused (`d72e0d43`). Closes CodeQL alert #12
@@ -155,6 +259,252 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - security: The three path-injection sites say why they are safe, in the line (`891f197d`)
 - security: CORS grants the product's own origins, and a shell command needs an approval (`3bec7792`)
 - security: This server's own origin stays allowed, under both loopback spellings (`4016f7d8`)
+## [0.1.0-beta.9] – 2026-10-17
+
+### Added
+- The first open cuts five camera setups — wide establishing, low stream track, the
+  close-up with two heartbeats and the firefly spiral, the shrinking vortex frame and
+  the macro portrait — and the rendered film carries a deterministic 48 kHz stereo
+  score as AAC and Opus (`c53f7a63`).
+- The companion outlives the onboarding: the live actor `c53f7a63` sits in the welcome hero
+  and above the composer, with five settings (enabled, form, behaviour, sound, size),
+  a click-flight wing flutter, a D-pentatonic spark burst and blinking eyes.
+- The sprite extraction uses real alpha matting: `binary_fill_holes` on the Vision mask,
+  `distance_transform_edt` background estimation and foreground colour decontamination
+  write 2120 × 1504 Retina layers with premultiplied Lanczos-4 upscale (`d0feafe3`).
+
+- The onboarding carries the live guide: a 60 fps spring-flown bee that follows the
+  pointer with its pupils, flies to a click or a control, flaps in 3-D and performs the
+  finale into the header (`72118913`).
+- The first open is a live 60 fps choreography on the clearing keyframe: a spark falls
+  into the moss, runs a spline over the stream, spins into a fire tornado and becomes the
+  bee while her wings open and a honeycomb shockwave leaves the vortex; the same
+  component renders the 12.8 s MP4/WebM through a frame-exact seek (`81566049`).
+- The guide and the intro carry the actor cut again from the awakening frame: both eyes
+  sharp, no seam across the belly, wing layers with no cheek or belly pixels, and the
+  forehead flame back in the actor, the large icons and its own animated layer
+  (`81566049`).
+- The tour keeps the keyframe stage, shows the engine-core frame in step 2 and the finale
+  frame before the workspace; the guard step previews a real approval card; the first
+  answer recommends the matching starter card (`b2a404bd`).
+- The runtime trust layer: protected roots are refused before any dialog, a
+  credential-shaped file needs approval even for a read tool, redaction runs before the
+  model context, the SSE stream, the run ledger and the audit log, and every tool result
+  carries the call id it answers (`614645c9`).
+- Every run writes an append-only JSONL ledger with the five-phase projection
+  (`Now`, `Waiting`, `Changed`, `Result`, `Next`); `/api/health` names the instance, pid,
+  root, version, contract and owner, and the desktop shell adopts only a backend it
+  started (`614645c9`).
+- Settings → Session store offers **Delete all chats**: one confirmed gesture clears the
+  backend store and the browser's copy (`f52fa12d`).
+
+### Changed
+- The fire-spirit bee is a 3D volume rig: a sphere head with rim light and warm bounce,
+  a fur collar, a lantern belly with honey cells and three chitin bands, four independent
+  wing groups, an amber iris with pupil tracking and the v2 crown on the small cut; every
+  icon and Tauri bundle is regenerated from it (`72118913`, `2ab2a4fc`).
+- The live guide is the cut-out 3D actor from the hero keyframe, with two wing layers
+  turning on their shoulder origins; it perches left of the panel, holds a clicked
+  control for 1.35 s, hovers at its anchor and leaves a continuous trail, and the large
+  icons render from the same sprite (`d009f25d`).
+- The task dock sits at the bottom-right of the chat column, where there is room; on a
+  failed turn the header reads "Stopped with an error" instead of a worked-for time, and
+  the restore notice is one toast that updates in place and auto-dismisses (`f52fa12d`).
+- A first start without a stored language follows the browser's language (`f52fa12d`).
+- The tour's primary button, selected card and switch use the bee's honey gold instead of
+  the coral brand pair, with dark ink on the button (`81566049`).
+
+### Fixed
+- The intro and tour resolve only defined tokens, with 44 px coarse-pointer floors, and a
+  failed language chunk keeps the boot catalog readable instead of painting key paths
+  (`8c434261`).
+- The welcome sentence stays beside the new recommendation, and the small bee cut carries
+  the v2 crown so the 32 px icon paints the brand red (`9033eb21`, `2ab2a4fc`).
+- Leaving the tour without an engine records the setup skip, and the carry step's footer
+  advances without an import (`b2a404bd`).
+- A first start with an empty local store follows the browser's language *and* bundles
+  that catalog as the fallback, so a German webview no longer paints key paths
+  (`dfe6e883`).
+- The header and overflow E2E specs follow the compact header, and the port-hygiene
+  register names the shifted line (`f9281f89`).
+- Redaction preserves a gate denial's code, the stricter tool wire accepts every fixture
+  id, and the SEC-1 credential corpus is an allowlisted synthetic fixture (`757a685a`).
+- The engine error box offers "Set up engine" beside Retry and renders known connection
+  failures in the UI language; the error stays on the turn through a reload (`f52fa12d`).
+- Audit round: the setup offer starts in capitals, the replay frame localizes its step
+  count, the empty workbench says its sentence once, the output-directory hint reads
+  "where the file is created first", and Custom Ollama follows the app's vocabulary
+  (`f52fa12d`).
+- The import route accepts no filesystem path: the native picker records the chosen
+  folder behind a one-time token, the route imports only that selection, and a missing,
+  expired or reused token is refused (`d72e0d43`). Closes CodeQL alert #12
+  (`py/path-injection`).
+- The mobile sweep's twelve target and input defects are fixed: every measured control
+  reaches 44 px on a coarse pointer and every input 16 px, with the desktop probe
+  unchanged (`d9f13df7`).
+- The first-open locale keys fit their weight budget, the German surface allows the
+  loanword Skills, the tour stylesheet reads only defined tokens, and the frozen API
+  contract names the tour and import routes (`f80273b4`).
+- The shell stops its backend before an in-app update relaunches it, so the new
+  version does not inherit the old Python process (`57b6ed14`).
+- The published tree carries the bee generator the in-app mark imports, and the
+  compact band is the bee's flat cut (`a983f037`).
+- The in-app mark is the bee: the chat welcome, the setup screen and the sidebar
+  inline the same figure as the app icon and the first-open scene (`2de03359`).
+- The desktop update compares the running bundle's version with the release, so a backend
+  from another checkout cannot answer for the shell; the dialog shows the release notes
+  without a fold and a small ember while the bundle transfers (`afc28891`).
+- `uvicorn[standard]` is declared, so a fresh install ships a WebSocket server: the terminal
+  pane and the HMR tunnel connect instead of being refused (`pyproject.toml`, commit `eb48c7e0`).
+- The desktop publish names its author, so a runner with no git config can publish a change
+  set (`core/atomic_publish.py`).
+- The task store resolves through the config root, so an isolated run stops reading the
+  owner's task ledger (`core/tasks.py`).
+- `install.sh`'s error trap uses `${#BASH_LINENO[@]}`, which bash 4 and 5 accept
+  (`install.sh`).
+- hygiene: Prune verb, ALLOWED_ROOTS, provenance, workspaces cap, db import, trajectory window (`2d1bb8ca`)
+- embedder: Fetch the fp16 weights and feed empty modality slots (text-only) (`2b252d54`)
+- ci: The advisory probe survives an empty ignore-flag set (`29c65d85`)
+- ci: The tests leg activates the pinned pnpm; the arch baseline follows the tree (`e6b13f46`)
+- arch: Keep verify_tools.py under the 400-line wall (`b5011732`)
+- ci: Restore the arch baseline freeze and cover the prune decline branch (`536e6cbd`)
+- ci: The installer trap, the managed root, the guard's argv read and the hint query hold on linux too (`03b3a3a8`)
+- publish: Commit-tree names its author, so a runner without a git config can publish (`b9effebb`)
+- hooks: A declared deletion no longer ends the pre-commit hook in silence (`d9dca03b`)
+- ui: The terminal wears the product's palette, and the claims say what the product does (`975de3e1`)
+- ci: The release pipeline pinned an action commit that does not exist (`81e441a8`)
+- update: A beta can be offered an update, and a click asks the feed live (`8c7a7d14`)
+- desktop: The updater flag belongs to the release build, not to every build (`98d678cd`)
+- brand: The mark reaches its colour by role, and the gate can reach the mark (`54e06417`)
+- brand: The ears are leaves, and the geometry test reads them instead of naming them (`2ca741dd`)
+- i18n: The engine and key hints state the behaviour instead of promising an absence (`65ba8e0d`)
+- cn: A type step survives the merge, by rule rather than by a list of names (`d0a72872`)
+- theme: Open on the forest, because the paper register was rejected as the product's face (`ad4d4694`)
+- ci: The two legs that were red on the public mirror (`ff6ce8e7`)
+- licence: The claims match the licence, and the copies that ship follow it (`baf7af5e`)
+- licence: The notice is accurate, the installer says what it installed, the grant is signed (`53520bab`)
+- licence: The Additional Use Grant is None, and every sentence that promised production use now tells the truth (`e748c600`)
+- engine: A tool block is never cut in half, so a long run stops being refused (`e17ba89d`)
+- licence: The licensor is Bemler Labs, with no legal form and the mailbox the owner gave (`9d2cf1bc`)
+- ci: A token lands with its consumer, and these ten had not (`6bd166b2`)
+- ci: The verify job activates pnpm before it asks setup-node to cache pnpm (`798049ca`)
+- engine: The key file's rename is observable on every Python (`7a9db58f`)
+- e2e: The onboarding helper clears the first-run flag too (`a5660ffa`)
+- ci: The export sheds only what the target's own index carried (`b3fca7c8`)
+- e2e: The frame budget carries the host's own noise (`8af1f3d3`)
+- docs,cli: The project says what it is (`921d26d7`)
+- docs,ci: Comments that describe a repository the reader is not in (`407409a0`)
+- test: The symlink-loop case pins the invariant, not macOS's answer to it (`1acf857c`)
+- ci: The export takes its file list from HEAD, like its contents (`8f72db94`)
+- release: The updater-manifest switch uses the input the action still has (`e85fc8a8`)
+- setup: The engine screen chooses nothing for the user (`a19dc77b`)
+- dist: The package surfaces point at the release that exists (`a0604f59`)
+- dist: The npm scope is the org that exists (`2ff5722e`)
+- docs: The two gates the audit found red (`928b49c8`)
+- public-surface: The private material the shipped pages carried (`7aa11022`)
+- docs: The README token the command parser read as a subcommand (`e529d807`)
+- public-surface: A sibling tool's name out of two shipped dashboard tests (`d8ecc33a`)
+- publish: The exclusion list is enforced, and a reference is judged where it acts (`9b14ef58`)
+- publish: The ignore traps, and the guard that names them (`ab466305`)
+- publish: The registers the published gates read stay in the publication (`8ebbb0e9`)
+- publish: The published suite passes on the tree it is published with (`545cc19c`)
+- publish: The lint exclude holds where the tree carries its own policy (`e45d5c1b`)
+- publish: The marker the lint guard asks for is named on purpose (`dc9d4786`)
+- tests: The two suites the publication made red (`917aa82d`)
+- engine: A tool result answers the call the engine issued (`faf987f8`)
+
+### Changed
+- The permanent toolbar row is now a task dock at the bottom-left: it appears once a
+  session has messages and there are several tasks, a plan or a git project, and shows
+  the tasks, the plan steps, the branch and the four panel destinations; it collapses to
+  a pill and can be dismissed for the session (`86b2abf9`). Below 1024px it starts as the
+  pill, and a collapsed or opened choice survives a task switch (`c3f94ed4`). The dock
+  floats over the transcript instead of across the composer (`d9727166`).
+- The chat header keeps identity, the panel toggle and one named overflow; New Session,
+  navigation, update, theme, shortcuts, the library and the window controls live in the
+  menu, and the header identity draws the bee (`18e0acd6`).
+- The welcome screen names one engine condition — ready, unreachable, key-refused or
+  no-model — and offers the matching next step, with a retry for an unreachable engine
+  (`84957d58`).
+- Workspace rows read state, task, the why drawn from the payload's own waiting and
+  last-event fields, one next action, the change summary and labelled clocks; change sets
+  lead with outcome and approval condition before files and digests (`a16074fd`).
+- README.md is a 255-line front page; the reference material moved into `docs/` with the
+  34 anchors repointed (`a649b5f8`, `1dce8ad9`).
+- The six demo clips and the hero were re-recorded against the current UI in English, from an
+  isolated data root (`docs/media`, `docs/screenshots/hero-banner.png`).
+
+### Tests
+- The clock gates stand down on a GitHub-hosted runner, which is not a characterised machine
+  (`tests/timing_segment.py`, `772ddd66`).
+
+### Added
+
+- The first open runs from the six-second scene into a greeting and four stops — usage,
+  engine, activation, carry-over — with the bee as guide, then the desk; progress lives in
+  `~/.ephe/tour.json` and `?tour=1` replays it (`d6cd8d42`, `263e91a7`).
+- embedder: EmbeddingGemma 2 with a consent-gated downloader (`abe0f85d`)
+- plan: The guard states the shortest step and its example honours the floor (`a3fde9e0`)
+- plan: The card is readable while the answer streams, and its gate opens when it ends (`a368b992`)
+- The wave-a batch — gate hygiene, the change-set revert, doc truth, and the plan-card lane (`443bbdd5`)
+- tui+cli: The bars paint, one version, one preview convention, and the pipe works (`2479d37e`)
+- brand: The mark is a forest spirit, and the creature ships in every cut (`8e3df053`)
+- update: A live question, a signal that breathes, and a progress that reports what happened (`7664b8fb`)
+- tokens: The reading scale exists, and the primitives that can express it (`38a7e7d2`)
+- sidebar: The task rows are a list, and only the running one carries the accent (`f84ec459`)
+- settings: The register gets its section rule and the rows move onto the reading scale (`09db34aa`)
+- update,first-run,glass: A restart the user decides, an intro built from code, and a glass forest (`55efa4b8`)
+- public: A contributor's gate, the user's own build script, the public check — and the sweep this commit carries (`dfbcd20d`)
+- ci: The publication is built and guarded, not hand-cut (`3d53a689`)
+- shell: The agentic workbench bar and the run rail (`d2398c5e`)
+- brand: The fire-spirit bee figure and its first-run scene (`56386946`)
+- brand: The bee icon set across every shipped surface (`ceae3a55`)
+- dist: The package pipeline renders, publishes and ratchets (`d56eee24`)
+- publish: The exclusion list, the report and the gate run (`607e908a`)
+- cell: The runtime moves to 1.1.0, re-measured the way the fence asks (`803b48e5`)
+- ui: The shell ships one type step larger, and the floor is 12 px (`a174e9a4`)
+
+### Security
+
+- security: The channel test fixture carries a placeholder, not a live token (`e826a40c`)
+- security: The CodeQL alerts — containment where reachable, by-design notes, ReDoS rewrites (`287a696b`)
+- security: The alert sweep, the lockfile guard and the harness read hold on linux; the reader and relpath tests keep their contracts (`2c35309b`)
+- security,privacy: The policy says how to report, not which gates we run (`56390c61`)
+- security,privacy: The hardening pass, the sweep, and the prose both trees carry (`7746e52c`)
+- security: The secret scan reads a CSS custom property name as a name (`26c5a948`)
+- security: The key is write-only, and every bind that leaves the machine is authenticated (`a3cd537d`)
+- security: One confinement primitive, and a refusal list for the user's own folders (`c6f2ca8e`)
+- security: The three path-injection sites say why they are safe, in the line (`891f197d`)
+- security: CORS grants the product's own origins, and a shell command needs an approval (`3bec7792`)
+- security: This server's own origin stays allowed, under both loopback spellings (`4016f7d8`)
+
+### Quality wave
+
+- The desktop vibrancy and three-zone studio work recorded under Unreleased ships in
+  this tag (`00431f81`), and `a55545b2` names it in the changelog.
+- `create_xlsx` writes real Excel formulas through a safe `=` allowlist, infers
+  percent/currency/ISO-date/number formats, and adds auto-filter, zebra rows and a
+  styled total row (#20).
+- Deck composition is fully dynamic: `default_storyline(title, audience, thesis,
+  source_status, source_notes)` derives eleven topic-specific slides and `parse_slides`
+  carries source notes through to the deck spec, with no canned narrative (#21).
+- `create_diagram` and `generate_chart` take `theme="light"|"dark"` with exact
+  palettes and grouped-bar/line series, and charts embed into PDFs as vectors instead
+  of raster captures (#23).
+- `evaluate_quality(question=...)` verifies multi-file arithmetic against tool output:
+  a compute question without a successful evidence tool is a hard issue, and claimed
+  totals must match the computed stdout (#17).
+- A routing gate asserts every skill pack declares at least two `when_to_use` and two
+  `when_not_to_use` terms, and three packs gained the missing veto terms (#22).
+- `README.zh-CN.md` and `README.es.md` reach full section parity with the English
+  README, with commands, paths and product names unchanged (#18).
+- The app adopts the npm minor/patch group: Radix primitives, TanStack Virtual, the
+  Tauri plugins and CLI, i18next, PostCSS, Prettier and typescript-eslint move within
+  their major lines, and the lockfile is refreshed.
+- `tests/test_tui_context_meter.py` pins `EPHE_TOKEN_COUNTER=calibrated` and resets the
+  tokenizer cache per test, so an installed tiktoken no longer changes the fixture
+  counts; `skills-lock.json` follows the three metadata edits.
+
 ## [0.1.0-beta.8] – 2026-10-17
 
 ### Added

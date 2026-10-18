@@ -41,6 +41,79 @@ def test_given_arithmetic_over_files_when_wired_then_compute_guard_in_system():
     assert "never compute totals in your head" in COMPUTE_GUARD.lower()
 
 
+ARITHMETIC_QUESTION = (
+    "Read north.csv, south.csv and west.csv and compute the total revenue across all three files."
+)
+
+
+class TestArithmeticVerification:
+    def test_given_file_arithmetic_without_a_tool_when_scored_then_it_is_a_hard_issue(self):
+        from core.quality import evaluate_quality
+
+        report = evaluate_quality(
+            answer="The total revenue across all three files is 101.",
+            skill=None,
+            tool_results=[],
+            question=ARITHMETIC_QUESTION,
+        )
+        assert report.status == "failed"
+        assert report.needs_revision is True
+        assert any("file arithmetic requires tool execution" in issue for issue in report.issues)
+
+    def test_given_shell_printed_101_when_answer_claims_51_then_it_is_a_hard_issue(self):
+        from core.quality import ToolResult, evaluate_quality
+
+        results = [ToolResult(
+            tool="run_shell",
+            status="success",
+            summary="total 101",
+            raw="north 40\nsouth 31\nwest 30\ntotal 101",
+        )]
+        report = evaluate_quality(
+            answer="FINAL ANSWER: Total: 51",
+            skill=None,
+            tool_results=results,
+            question=ARITHMETIC_QUESTION,
+        )
+        assert report.status == "failed"
+        assert any("claimed result does not match computed tool output" in issue for issue in report.issues)
+
+    def test_given_shell_printed_101_when_answer_claims_101_then_it_passes(self):
+        from core.quality import ToolResult, evaluate_quality
+
+        results = [ToolResult(
+            tool="run_shell",
+            status="success",
+            summary="total 101",
+            raw="north 40\nsouth 31\nwest 30\ntotal 101",
+        )]
+        report = evaluate_quality(
+            answer="FINAL ANSWER: Total: 101",
+            skill=None,
+            tool_results=results,
+            question=ARITHMETIC_QUESTION,
+        )
+        assert report.issues == []
+        assert report.status == "passed"
+
+    def test_given_grouped_number_forms_when_compared_then_they_match(self):
+        from core.quality import ToolResult, evaluate_quality
+
+        results = [ToolResult(
+            tool="run_shell",
+            status="success",
+            summary="total 1250.00",
+            raw="revenue_total 1250.00",
+        )]
+        report = evaluate_quality(
+            answer="FINAL ANSWER: Total revenue: 1.250,00 EUR",
+            skill=None,
+            tool_results=results,
+            question=ARITHMETIC_QUESTION,
+        )
+        assert report.issues == []
+
+
 def test_given_compute_guard_in_stream_then_extra_system_contains_it(monkeypatch):
     """End-to-end wiring: the stream handler carries the guard as a module attribute
     and mixes it into the extra system block when the request wants file arithmetic

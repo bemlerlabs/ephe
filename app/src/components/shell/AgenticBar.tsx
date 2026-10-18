@@ -10,6 +10,7 @@
 import { useTranslation } from 'react-i18next'
 import { Command } from 'lucide-react'
 import type { PlanCardSpec } from '@/types'
+import './AgenticBar.css'
 
 export type RunState = 'ready' | 'working' | 'waiting' | 'done'
 

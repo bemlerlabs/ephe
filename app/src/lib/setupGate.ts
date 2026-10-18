@@ -9,7 +9,7 @@
  * so the intent needs a sign of its own; without it a surviving
  * hash leads back into the chat.
  */
-import { getSetupStatus, type SetupStatus } from './api'
+import { getSetupStatus, skipSetup as skipSetupRequest, type SetupStatus } from './api'
 
 export const SETUP_INTENT_KEY = 'ephe.setup_intent'
 
@@ -143,6 +143,24 @@ export function loadSetupGate(): Promise<void> {
  * wrong screen at the exact moment the user asked to choose an engine again. A test that
  * renders two "app loads" inside one module lifetime needs the same reset.
  */
+/**
+ * The tour's way past the engine question: the backend records the skip and the
+ * local hint records it before the paint. Without the hint, `GateRoute` reads the
+ * old "unconfigured" answer on the next render and throws the user back to /setup
+ * right after the tour.
+ */
+export async function skipSetupGate(): Promise<void> {
+  try {
+    await skipSetupRequest()
+  } catch {
+    /* offline: the local answer keeps the tour's promise; the next load re-reads */
+  }
+  const next: SetupGate = { ready: true, configured: false, skipped: true }
+  writeSetupGateHint(next)
+  publish(next)
+  inflight = Promise.resolve()
+}
+
 export function forgetSetupGate(): void {
   try {
     localStorage.removeItem(SETUP_GATE_HINT_KEY)

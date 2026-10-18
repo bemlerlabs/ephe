@@ -199,7 +199,7 @@ async def test_openai_client_converts_tool_result_messages(monkeypatch):
     history = [
         {"role": "user", "content": "count it"},
         assistant_msg,  # Ollama-shape: no role field
-        {"role": "tool", "content": "3 Dateien"},  # Ollama-shape: no tool_call_id
+        {"role": "tool", "tool_call_id": "call_0", "content": "3 Dateien"},  # the loop's id for this call
     ]
     await client.chat(
         model="qwen3.8-27b",

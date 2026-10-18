@@ -290,6 +290,9 @@ def run_shell_pty(command: str, stdin_text: str = "") -> str:
             cwd=workspace,
             **_new_group_kwargs(),
         )
+        from core.tools.cancel_scope import register_group, unregister_group
+
+        register_group(proc.pid)
         # The secondary stays open in the parent until the master is drained
         # (closing it earlier cost the last data block in measurements).
         if stdin_text:
@@ -322,6 +325,13 @@ def run_shell_pty(command: str, stdin_text: str = "") -> str:
         body = b"".join(chunks).decode("utf-8", "replace").strip()
         return body if body else "(no output)"
     finally:
+        if proc is not None:
+            try:
+                from core.tools.cancel_scope import unregister_group
+
+                unregister_group(proc.pid)
+            except Exception:
+                pass
         for fd in (primary, secondary):
             if fd is None:
                 continue

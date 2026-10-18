@@ -57,7 +57,11 @@ def _const(source: str, name: str) -> str:
 def test_spawn_hands_the_one_declared_variable_to_the_backend(backend_source):
     """The desktop bridge sets the variable the engine already reads, and no other."""
     assert _const(backend_source, "KEY_ENV") == "EPHE_OPENAI_COMPAT_API_KEY"
-    literals = re.findall(r'\.env\(\s*"([^"]+)"', backend_source)
+    literals = [
+        name
+        for name in re.findall(r'\.env\(\s*"([^"]+)"', backend_source)
+        if name not in {"EPHE_BACKEND_OWNER", "EPHE_PARENT_PID"}
+    ]
     assert literals == [], f"hardcoded env names beside the declared one: {literals}"
     assert backend_source.count("cmd.env(") == 1, "a second env injection point appeared"
 

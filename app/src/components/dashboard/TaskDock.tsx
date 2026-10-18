@@ -6,9 +6,10 @@
  * The permanent toolbar row made the shell read as a cockpit before a word was
  * typed. This dock appears only after a session has messages and there is more
  * than one task, a plan with steps, or a connected git project; the welcome
- * stays clean. It lives at the bottom-left of the chat column, floats over the
- * transcript, and can be collapsed or dismissed for the session. Below 1024px it
- * starts as a pill: an open 19rem dock would cover most of a phone transcript.
+ * stays clean. It lives at the bottom-right of the chat column — the side with
+ * the room — floats over the transcript, and can be collapsed or dismissed for
+ * the session. Below 1024px it starts as a pill: an open 19rem dock would cover
+ * most of a phone transcript.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, FolderClosed, GitBranch, MonitorPlay, TerminalSquare, X } from 'lucide-react'
@@ -71,7 +72,7 @@ export function TaskDock({ messages, plan, headerMeta }: TaskDockProps) {
         onClick={() => setCollapsed(false)}
         aria-label={t('taskDock.expand')}
         aria-expanded={false}
-        className="absolute bottom-4 start-3 z-sticky inline-flex items-center gap-2 glass-control rounded-full px-3 py-1.5 text-ui-xs text-ink-soft pointer-coarse:min-h-11 transition-colors hover:text-foreground motion-safe:animate-in motion-safe:fade-in-0"
+        className="absolute bottom-16 end-3 z-sticky inline-flex items-center gap-2 glass-control rounded-full px-3 py-1.5 text-ui-xs text-ink-soft pointer-coarse:min-h-11 transition-colors hover:text-foreground motion-safe:animate-in motion-safe:fade-in-0"
       >
         <EpheMark size="1.1rem" />
         {t('taskDock.title')}
@@ -84,7 +85,7 @@ export function TaskDock({ messages, plan, headerMeta }: TaskDockProps) {
     <aside
       data-testid="task-dock"
       aria-label={t('taskDock.title')}
-      className="absolute bottom-4 start-3 z-sticky w-[19rem] max-w-[calc(100%-1.5rem)] float-surface motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2"
+      className="absolute bottom-16 end-3 z-sticky w-[19rem] max-w-[calc(100%-1.5rem)] float-surface motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2"
     >
       <header className="flex items-center gap-2 border-b border-hairline px-3 py-2">
         <EpheMark size="1.2rem" />

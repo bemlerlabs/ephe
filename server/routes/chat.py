@@ -594,6 +594,12 @@ def get_sandbox() -> dict:
 # (approve_sandbox runs in its own request context, hence no ContextVar)
 _active_sandbox_events: dict[str, dict] = {}
 
+#: How long a question is held open. A late click must not approve a call that has
+#: already continued on its stated default; the endpoint answers 410 for a token that
+#: was open and timed out, which is a different fact from an invented token (404).
+APPROVAL_TTL_SECONDS = 300.0
+_expired_sandbox_tokens: dict[str, float] = {}
+
 
 def pending_approvals() -> list[dict]:
     """The approval waits nobody has answered yet, longest wait first.
@@ -1515,16 +1521,27 @@ async def _sandbox_confirm(
 
     _ka_task = asyncio.create_task(_keepalive())
     res: dict = {"approved": False}
+    expired = False
     try:
-        await event.wait()
+        await asyncio.wait_for(event.wait(), timeout=APPROVAL_TTL_SECONDS)
         # Fetch the value BEFORE the finally removes the entry — the entry is
         # only registered during the waiting time.
         res = _active_sandbox_events.get(token, res)
+    except asyncio.TimeoutError:
+        # The run continues on the gate default after the approval window.
+        expired = True
+        res = {"approved": False}
+        audit_event("approval", tool=name, args=args, decision="denied", status="expired")
     finally:
         _ka_task.cancel()
         # W15-P1: even on CancelledError (stop button) remove the entry without residue —
         # no lease in the app-wide registry dict.
         _active_sandbox_events.pop(token, None)
+        if expired:
+            _expired_sandbox_tokens[token] = time.time()
+            cutoff = time.time() - APPROVAL_TTL_SECONDS
+            for stale in [key for key, at in _expired_sandbox_tokens.items() if at < cutoff]:
+                _expired_sandbox_tokens.pop(stale, None)
     decided = "approved" if res["approved"] else "denied"
     audit_event("approval", tool=name, args=args, decision=decided,
                 status="remembered" if res.get("remember") else "user")
@@ -1656,6 +1673,17 @@ async def chat_stream(
         # A3: one id for the whole assignment. It is born here, because here
         # is the beginning — trajectory, artifact index and audit read the same one.
         turn_id = new_turn_id()
+        # TL-2: child process groups are registered per run so a cancel can kill them.
+        from core.tools.cancel_scope import enter_run, kill_run
+
+        enter_run(turn_id)
+        # RL-1: open the run ledger and emit its first snapshot.
+        from core.run import ledger as run_ledger
+
+        run_ledger.start(turn_id, request_id)
+        queue.put_nowait(
+            ("event", {"type": "run_snapshot", **run_ledger.snapshot(turn_id)})
+        )
         trajectory.begin_turn(request.session_id, request.model, turn_id)
         # P6 (ref-12): the user prompt is the first step of the turn — with
         # the full text as its `text` body, so the trajectory view can show the
@@ -1692,7 +1720,18 @@ async def chat_stream(
 
         def emit(event: dict) -> None:
             _announce_failover()
+            # SEC-1: redact the event before it leaves the process.
+            from core.redact import redact_deep
+
+            event = redact_deep(event)  # type: ignore[assignment]
             etype = event.get("type")
+            # RL-1: write the ledger line before the frame leaves the process.
+            try:
+                from core.run import ledger as run_ledger
+
+                line = run_ledger.record_event(event)
+            except Exception:
+                line = None
             if etype == "error":
                 # WH-50: one id across all three legs — the same request id goes
                 # into the SSE error envelope and the correlated log line.
@@ -1704,6 +1743,20 @@ async def chat_stream(
                     message=event.get("msg"),
                 )
             queue.put_nowait(("event", event))
+            if line is not None and etype != "done":
+                # A compact phase frame; done closes the stream, so no phase follows it.
+                queue.put_nowait(
+                    (
+                        "event",
+                        {
+                            "type": "run_phase",
+                            "run_id": line["run_id"],
+                            "phase": line["phase"],
+                            "seq": line["seq"],
+                            "kind": line["kind"],
+                        },
+                    )
+                )
             try:
                 if etype not in ("chunk", "thinking_chunk", "model_info"):
                     trajectory.record(request.session_id, event)
@@ -2250,6 +2303,7 @@ async def chat_stream(
 
         task = asyncio.create_task(run())
 
+        cancelled = False
         try:
             while True:
                 # Idle heartbeat: long thinking/tool-generation phases without
@@ -2273,10 +2327,16 @@ async def chat_stream(
                     yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
         except asyncio.CancelledError:
             # the client dropped the connection (send button, label "Stopp")  # language-gate: ignore (quoted product label, app/src/locales/de.json:17 stop)
+            cancelled = True
             task.cancel()
             raise
         finally:
             # The turn is over; a steer arriving now would change nothing.
+            kill_run(turn_id)
+            try:
+                run_ledger.finish("cancelled" if cancelled else "complete")
+            except Exception:
+                pass
             steer_channel.close()
             unregister_turn(steer_channel)
             try:
@@ -2342,10 +2402,22 @@ async def approve_sandbox(req: ApproveRequest):
     rememberable — the decision is made by _sandbox_cb when it wakes up).
     """
     if req.token in _active_sandbox_events:
-        _active_sandbox_events[req.token]["approved"] = req.approved
-        _active_sandbox_events[req.token]["remember"] = bool(getattr(req, "remember", False))
-        _active_sandbox_events[req.token]["event"].set()
+        entry = _active_sandbox_events[req.token]
+        asked = entry.get("requested_at") if isinstance(entry, dict) else None
+        if isinstance(asked, (int, float)) and time.time() - asked > APPROVAL_TTL_SECONDS:
+            _active_sandbox_events.pop(req.token, None)
+            _expired_sandbox_tokens[req.token] = time.time()
+            raise HTTPException(
+                410, "the approval window expired; the run continued on its default"
+            )
+        entry["approved"] = req.approved
+        entry["remember"] = bool(getattr(req, "remember", False))
+        entry["event"].set()
         return {"status": "ok"}
+    if req.token in _expired_sandbox_tokens:
+        raise HTTPException(
+            410, "the approval window expired; the run continued on its default"
+        )
     raise HTTPException(404, "sandbox token not found or expired")
 
 

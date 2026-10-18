@@ -334,16 +334,16 @@ async def _detect_tool_calls(
     return response, model, detection_streamed
 
 
-def _call_id(turn_id: str, idx: int) -> str:
-    """Ephe's own identifier for a tool call.
+def _call_id(turn_id: str, idx: int, round_no: int = 0) -> str:
+    """Ephe's own identifier for a tool call: turn, round, position.
 
     The plain loop index ("0") was no identifier: twenty turns have a
-    call number zero, and a workbench card pointing at "0" says nothing
-    about who gave birth to the file. With a turn prefix it is unique and
-    can be read in a screenshot.
+    call number zero. With only the turn prefix, two tool rounds of one turn
+    still produced the same id for their first call — the round belongs in the
+    identity because that is the scope a result answers.
     """
     if turn_id:
-        return f"{turn_id[:8]}-{idx}"
+        return f"{turn_id[:8]}-r{round_no}-{idx}"
     return f"c{idx}-{uuid.uuid4().hex[:6]}"
 
 
@@ -351,12 +351,14 @@ def _parse_tool_calls(
     response: object,
     turn_id: str,
     on_tool_start: Callable | None,
+    round_no: int = 0,
 ) -> tuple[list[tuple[int, str, dict]], dict[int, str]]:
     """Parse ``response.message.tool_calls`` index-stable into (idx, name, args).
 
-    The identifier is created once per call: with a random fallback when
-    ``turn_id`` is empty, so start and done stamps for the same call always
-    carry the same id (W15-P3 spans).
+    The identifier is created once per call: turn, round and position, with a
+    random fallback when ``turn_id`` is empty, so start and done stamps for the
+    same call always carry the same id (W15-P3 spans) and two rounds cannot
+    collide.
     """
     parsed: list[tuple[int, str, dict]] = []
     call_ids: dict[int, str] = {}
@@ -370,7 +372,7 @@ def _parse_tool_calls(
             name = str(tool_call.function.name)
             args = tool_call.function.arguments or {}
         parsed.append((idx, name, args))
-        call_ids[idx] = _call_id(turn_id, idx)
+        call_ids[idx] = _call_id(turn_id, idx, round_no)
         if on_tool_start is not None:
             on_tool_start(name, args, call_ids[idx])
     return parsed, call_ids

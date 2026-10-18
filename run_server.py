@@ -159,9 +159,37 @@ def _bootstrap_engine_choice():
     return choice
 
 
+def _watch_parent() -> None:
+    """LC-1: exit when the desktop shell that started this backend is gone.
+
+    A shell killed with SIGKILL cannot run its exit hook, and the Python child then
+    survives as an orphan that keeps the port. The shell passes its pid; a change in
+    our parent means the shell is gone (we were reparented), so the backend follows.
+    Only set by the desktop shell — a CLI start has no such owner and is unaffected.
+    """
+    raw = os.environ.get("EPHE_PARENT_PID", "")
+    if not raw.isdigit():
+        return
+    parent = int(raw)
+    if os.getppid() != parent:
+        return
+
+    import threading
+    import time
+
+    def _watch() -> None:
+        while True:
+            if os.getppid() != parent:
+                os._exit(0)
+            time.sleep(1.5)
+
+    threading.Thread(target=_watch, name="ephe-parent-watch", daemon=True).start()
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    _watch_parent()
     # Fail-closed: every bind that may answer on all interfaces forces auth. Named by
     # value because `--host 0.0.0.0` is what the CLI spawn sends (`ephe start --lan`
     # passes it without --lan), and `::` and an empty host are the same wildcard under

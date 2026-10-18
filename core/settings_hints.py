@@ -112,6 +112,45 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "Sets the interface text size: all seven steps hang off one variable "
         "(14 px at 100 percent) while rem spacing stays. Applies right after saving.",
     ),
+    "appearance.companion_enabled": (
+        "Zeigt den gewählten Begleiter im Startbildschirm und im aktiven Chat. "  # language-gate: ignore
+        "Aus blendet ihn überall aus; Gestalt, Größe und Klangwahl bleiben "  # language-gate: ignore
+        "gespeichert und wirken wieder beim nächsten Einschalten.",  # language-gate: ignore
+        "Shows the chosen companion on the welcome screen and in the active chat. "
+        "Off hides it everywhere while form, size and sound choices stay stored "
+        "and return the next time it is switched on.",
+    ),
+    "appearance.companion_species": (
+        "Wählt die Gestalt im Arbeitsbereich: die volle Feuergeist-Biene, den "  # language-gate: ignore
+        "goldenen Funken mit Geist-Augen aus dem Film oder ein ruhiges Symbol. "  # language-gate: ignore
+        "Die Biene trägt Flügel, Stirnflamme und Blick; der Funke bleibt eine Kugel.",  # language-gate: ignore
+        "Chooses the form in the workspace: the full fire-spirit bee, the golden "
+        "spark with ghost eyes from the film, or a calm emblem. The bee carries "
+        "wings, the forehead flame and the gaze; the spark stays a single glow.",
+    ),
+    "appearance.companion_behavior": (
+        "Bestimmt Ort und Bewegung: mitfliegend und klickbar am Composer, ruhig "  # language-gate: ignore
+        "oben am Eingabefeld sitzend, oder nur auf dem Startbildschirm sichtbar, "  # language-gate: ignore
+        "sobald der erste Chat begonnen hat.",  # language-gate: ignore
+        "Sets place and motion: flying and clickable at the composer, sitting "
+        "calmly above the input, or visible only on the welcome screen once the "
+        "first chat has begun.",
+    ),
+    "appearance.companion_sound": (
+        "Schaltet Flügelschwirren und den Kristallton der Funken an oder aus. "  # language-gate: ignore
+        "Bewegungsreduktion des Systems und die Animations-Einstellung halten "  # language-gate: ignore
+        "den Synthesizer zusätzlich still, unabhängig von diesem Schalter.",  # language-gate: ignore
+        "Turns the wing flutter and the spark's crystal note on or off. The "
+        "system's reduced-motion setting and the animations switch keep the "
+        "synthesizer silent as well, whatever this switch says.",
+    ),
+    "appearance.companion_scale": (
+        "Skaliert nur den Begleiter zwischen 70 und 140 Prozent; Typografie, "  # language-gate: ignore
+        "Abstände und die Touch-Flächen der übrigen Bedienelemente bleiben "  # language-gate: ignore
+        "unverändert.",  # language-gate: ignore
+        "Scales the companion alone between 70 and 140 percent; type, spacing "
+        "and the touch targets of every other control stay unchanged.",
+    ),
     "appearance.animations_enabled": (
         "Übergänge und CSS-Animationen ein oder aus; aus legt auch den "
         "Feder-Einstieg der Nachrichten still. Die reduced-motion-Einstellung des "

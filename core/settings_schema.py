@@ -94,6 +94,32 @@ SCHEMA: dict[str, dict[str, Any]] = {
                               "label": "Schriftgröße (%)", "labelEn": "Font scale (%)"},
     "appearance.animations_enabled": {"type": "bool", "default": True,
                                       "label": "Animationen aktiv", "labelEn": "Animations enabled"},
+    # The companion (owner order 2026-10-17): the bee outlives the onboarding.
+    # Every field is read by WorkspaceCompanion / WelcomeEmptyState / spiritAudio.
+    "appearance.companion_enabled": {"type": "bool", "default": True,
+                                     "label": "Begleiter (Pet) im Arbeitsbereich",
+                                     "labelEn": "Workspace companion (pet)"},
+    "appearance.companion_species": {"type": "select", "default": "fire_bee",
+                                     "options": ["fire_bee", "ember_spark", "minimal"],
+                                     "optionLabels": {
+                                         "fire_bee": ["Ephe Feuergeist-Biene (3D)", "Ephe Fire-Spirit Bee (3D)"],
+                                         "ember_spark": ["Goldener Feuerfunke", "Golden fire spark"],
+                                         "minimal": ["Dezentes Symbol", "Minimal emblem"],
+                                     },
+                                     "label": "Begleiter-Gestalt", "labelEn": "Companion form"},
+    "appearance.companion_behavior": {"type": "select", "default": "interactive",
+                                      "options": ["interactive", "perch", "welcome_only"],
+                                      "optionLabels": {
+                                          "interactive": ["Lebendig mitfliegend & interaktiv", "Interactive & flying"],
+                                          "perch": ["Ruhig am Eingabefeld sitzend", "Calm perch on composer"],
+                                          "welcome_only": ["Nur auf dem Startbildschirm", "Welcome screen only"],
+                                      },
+                                      "label": "Begleiter-Verhalten", "labelEn": "Companion behaviour"},
+    "appearance.companion_sound": {"type": "bool", "default": True,
+                                   "label": "Begleiter- & Funken-Klänge",
+                                   "labelEn": "Companion & spark sounds"},
+    "appearance.companion_scale": {"type": "number", "default": 100, "min": 70, "max": 140,
+                                   "label": "Begleiter-Größe (%)", "labelEn": "Companion size (%)"},
     # I3-4: default True — the time always stood under the message. A
     # switch whose default invents the shipped behaviour would be a
     # regressive button (off = something disappears that nobody ever ordered).

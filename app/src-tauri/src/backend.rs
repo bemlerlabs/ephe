@@ -19,9 +19,31 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const PORT: u16 = 8765;
+
+//: The wire contract this shell can read. Mirrors `core._version.API_CONTRACT`; a
+//: backend that speaks another one is refused with both numbers, not reused.
+pub const API_CONTRACT: u32 = 1;
+
+//: This shell process's claim on the backend it starts. A backend reports it in
+//: `/api/health`, so a process this shell did not spawn is never taken for its own.
+static OWNER: Mutex<Option<String>> = Mutex::new(None);
+
+fn owner_token() -> String {
+    let mut guard = OWNER.lock().expect("owner token");
+    if let Some(token) = guard.as_ref() {
+        return token.clone();
+    }
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let token = format!("{stamp:x}{:x}", std::process::id());
+    *guard = Some(token.clone());
+    token
+}
 
 /// The backend this shell spawned. A reused backend (a dev server, another
 /// checkout) is never stored here and is therefore never killed on exit; a child
@@ -71,6 +93,9 @@ pub enum Ergebnis {
     /// reused as ours and never handed a token: a completed handshake proves a
     /// listener, not an owner.
     FremderPort,
+    /// an Ephe backend, but not one this shell can own: another contract or owner.
+    /// The sentence names both versions, so the surface can say what it found.
+    Inkompatibel(String),
     Gestartet,
     StartFehler(String),
 }
@@ -205,6 +230,12 @@ pub fn braucht_start(port_offen: bool, befehl: Option<&Startbefehl>) -> bool {
 pub struct PeerStatement {
     pub key_challenge: bool,
     pub detail: String,
+    pub version: String,
+    pub api_contract: u32,
+    pub owner: String,
+    pub instance_id: String,
+    pub pid: u64,
+    pub root: String,
 }
 
 /// Ask the running backend instead of guessing from the socket.
@@ -240,6 +271,28 @@ pub fn statement(port: u16) -> Option<PeerStatement> {
             .and_then(|v| v.as_str())
             .unwrap_or_default()
             .to_string(),
+        version: value
+            .get("version")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        api_contract: value.get("api_contract").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+        owner: value
+            .get("owner")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        instance_id: value
+            .get("instance_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        pid: value.get("pid").and_then(|v| v.as_u64()).unwrap_or(0),
+        root: value
+            .get("root")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
     })
 }
 
@@ -267,6 +320,30 @@ fn ergebnis_fur_besetzten_port(home: &Path, port: u16) -> Ergebnis {
             );
             Ergebnis::FremderPort
         }
+        Some(s) if s.api_contract != API_CONTRACT => {
+            let found = format!(
+                "backend {} speaks contract {}; this shell {} expects contract {}",
+                if s.version.is_empty() { "unknown" } else { &s.version },
+                s.api_contract,
+                env!("CARGO_PKG_VERSION"),
+                API_CONTRACT
+            );
+            log::warn!("incompatible backend on port {port}: {found}");
+            notiz(home, &format!("port {port}: {found}; not reused"));
+            Ergebnis::Inkompatibel(found)
+        }
+        Some(s) if s.owner != owner_token() => {
+            log::warn!("port {port} holds an Ephe backend this shell did not start — not reused");
+            notiz(
+                home,
+                &format!(
+                    "port {port} holds backend {} (pid {}), not started by this shell; not reused",
+                    if s.version.is_empty() { "unknown" } else { &s.version },
+                    s.pid
+                ),
+            );
+            Ergebnis::FremderPort
+        }
         Some(s) if s.key_challenge => {
             // The window still opens on that backend: it is the one the user has.
             // What changes is that the reason is recorded where it can be found.
@@ -289,6 +366,8 @@ fn starten(befehl: &Startbefehl, key: Option<&str>) -> std::io::Result<()> {
         .arg("--port")
         .arg(befehl.port.to_string())
         .current_dir(&befehl.projekt)
+        .env("EPHE_BACKEND_OWNER", owner_token())
+        .env("EPHE_PARENT_PID", std::process::id().to_string())
         .stdin(Stdio::null())
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_fehler));
@@ -482,14 +561,33 @@ mod tests {
             .filter(|text| !text.trim().is_empty())
     }
 
+    fn health_body(extra: &str) -> &'static str {
+        Box::leak(
+            format!(
+                r#"{{"status":"ok","version":"{}","api_contract":{},"owner":"{}","instance_id":"i","pid":42,"root":"/x",{}}}"#,
+                env!("CARGO_PKG_VERSION"),
+                API_CONTRACT,
+                owner_token(),
+                extra
+            )
+            .into_boxed_str(),
+        )
+    }
+
     #[test]
     fn a_backend_that_reports_a_clean_engine_is_reused() {
-        let port = responder(r#"{"status":"ok","engine_key_challenge":false,"detail":"engine reachable"}"#);
+        let port = responder(health_body(r#""engine_key_challenge":false,"detail":"engine reachable""#));
         assert_eq!(
             statement(port),
             Some(PeerStatement {
                 key_challenge: false,
-                detail: "engine reachable".into()
+                detail: "engine reachable".into(),
+                version: env!("CARGO_PKG_VERSION").into(),
+                api_contract: API_CONTRACT,
+                owner: owner_token(),
+                instance_id: "i".into(),
+                pid: 42,
+                root: "/x".into(),
             })
         );
         let home = temp_home("reuse-ok");
@@ -504,9 +602,9 @@ mod tests {
 
     #[test]
     fn a_backend_refused_by_its_engine_is_still_the_backend_the_user_has() {
-        let port = responder(
-            r#"{"status":"ok","engine_key_challenge":true,"detail":"http://h:1/v1 answers HTTP 401 to an unauthenticated request."}"#,
-        );
+        let port = responder(health_body(
+            r#""engine_key_challenge":true,"detail":"http://h:1/v1 answers HTTP 401 to an unauthenticated request.""#,
+        ));
         let said = statement(port).expect("the peer answers");
         assert!(said.key_challenge);
         assert!(said.detail.contains("HTTP 401"));
@@ -515,6 +613,47 @@ mod tests {
         assert_eq!(sicherstellen(&home, port), Ergebnis::SchonDa);
         let note = note_text(&home).expect("the reuse branch records what it saw");
         assert!(note.contains("HTTP 401"), "{note}");
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_backend_from_another_shell_is_not_reused() {
+        // Same contract, different owner: only the shell that started it may adopt it.
+        let body = Box::leak(
+            format!(
+                r#"{{"status":"ok","version":"{}","api_contract":{},"owner":"someone-else","pid":7,"engine_key_challenge":false}}"#,
+                env!("CARGO_PKG_VERSION"),
+                API_CONTRACT
+            )
+            .into_boxed_str(),
+        );
+        let port = responder(body);
+        let home = temp_home("foreign-owner");
+        fs::write(konfig_pfad(&home), held_port_config(port)).expect("config");
+        assert_eq!(sicherstellen(&home, port), Ergebnis::FremderPort);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_backend_on_another_contract_names_both_versions() {
+        let body = Box::leak(
+            format!(
+                r#"{{"status":"ok","version":"0.1.0-beta.1","api_contract":{},"owner":"{}","pid":7,"engine_key_challenge":false}}"#,
+                API_CONTRACT + 99,
+                owner_token()
+            )
+            .into_boxed_str(),
+        );
+        let port = responder(body);
+        let home = temp_home("incompatible");
+        fs::write(konfig_pfad(&home), held_port_config(port)).expect("config");
+        match sicherstellen(&home, port) {
+            Ergebnis::Inkompatibel(text) => {
+                assert!(text.contains("0.1.0-beta.1"), "{text}");
+                assert!(text.contains(&(API_CONTRACT + 99).to_string()), "{text}");
+            }
+            other => panic!("expected an incompatibility, got {other:?}"),
+        }
         let _ = fs::remove_dir_all(home);
     }
 

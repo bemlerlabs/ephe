@@ -208,6 +208,10 @@ describe('W3-56 — no orphan layers', () => {
       '--color-status-success-hover',
       '--text-ui-xl',
       '--text-ui-caption',
+      '--color-figure-plate',
+      '--color-figure-wing-root',
+      '--color-figure-wing-mid',
+      '--color-figure-wing-tip',
     ])
     const bare = (n: string) =>
       n.endsWith('--line-height') ? n.slice(0, -'--line-height'.length) : n
@@ -231,10 +235,14 @@ describe('W3-56 — no orphan layers', () => {
       '--color-status-success-hover',
       '--text-ui-xl',
       '--text-ui-caption',
+      '--color-figure-plate',
+      '--color-figure-wing-root',
+      '--color-figure-wing-mid',
+      '--color-figure-wing-tip',
     ]
     const missing = ALLOW.filter((n) => !theme.has(n))
     expect(missing).toEqual([])
     // the allowlist cannot grow silently past the documented set
-    expect(ALLOW.length).toBe(14)
+    expect(ALLOW.length).toBe(18)
   })
 })

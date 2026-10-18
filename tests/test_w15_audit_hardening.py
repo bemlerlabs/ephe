@@ -103,6 +103,12 @@ class TestApprovalRegistryCleanup:
         assert token_seen is not None, "sandbox_confirm-Event mit token erwartet"
         assert token_seen in chat_route._active_sandbox_events
 
+        # The run ledger queues one run_phase frame behind the consent frame; read
+        # it so the next read is the idle wait (a timeout here would cancel the
+        # generator, which is the stop this test simulates below).
+        phase_line = await asyncio.wait_for(gen.__anext__(), 0.2)
+        assert "run_phase" in phase_line, phase_line[:120]
+
         # Stop simulation: anext task with a short timeout → CancelledError in the
         # generator frame → task.cancel() inside the generator → _sandbox_cb finally.
         with pytest.raises(asyncio.TimeoutError):

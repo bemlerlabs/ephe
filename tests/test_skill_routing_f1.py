@@ -1,6 +1,8 @@
 """F1 regression: a general call to action must not be routed onto a skill fast path
 (previously: a shell prompt -> project-assistant -> its German "no matching code
 projects found" reply)."""
+from pathlib import Path
+
 from core.skills import SkillLoader
 
 
@@ -54,3 +56,19 @@ def test_given_fetch_and_pdf_prompt_when_resolved_then_document_skill_wins():
            "listing the URLs.")
     skill = loader.resolve_for_message(msg)
     assert skill is not None and skill.name == "pdf-creator"
+
+
+def test_all_skill_packs_declare_when_to_use_and_when_not_to_use(tmp_path):
+    """Issue #22: every built-in pack carries at least two positive routing
+    terms and two veto terms — a pack with one entry routes too eagerly and
+    cannot be kept out of the wrong turn."""
+    builtin = Path(__file__).resolve().parents[1] / "skills"
+    loader = SkillLoader(skills_dir=tmp_path, builtin_dir=builtin, plugin_root=tmp_path)
+    skills = loader.load_all()
+    assert len(skills) >= 40, "the built-in pack directory did not load"
+    short = {
+        skill.name: (len(skill.when_to_use), len(skill.when_not_to_use))
+        for skill in skills
+        if len(skill.when_to_use) < 2 or len(skill.when_not_to_use) < 2
+    }
+    assert short == {}

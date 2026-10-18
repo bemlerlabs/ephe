@@ -33,6 +33,7 @@ import { useComposerSendPipeline } from './chat/useComposerSendPipeline'
 import { useComposerSlash } from './chat/useComposerSlash'
 import { useComposerVoiceInput } from './chat/useComposerVoiceInput'
 import { useThinkingChipKey } from './chat/useThinkingChipKey'
+import './ChatInput.css'
 
 export type { ChatAttachment }
 // P3 wave 2026-10-05: the model entries live in chat/composerModelEntries
@@ -93,7 +94,6 @@ export default function ChatInput({
   // During a turn the placeholder already carries the reason, and a composer
   // blocked for another reason must not invite typing.
   const showEmptySendHint = !disabled && !streaming && !message.trim()
-  const [isFocused, setIsFocused] = useState(false)
   // M3 (reference pattern): amber permission badge driven by the security profile.
   const [perm, setPerm] = useState('strict')
   // G-A (reference parity): interactive mode selector — Ask / Edit auto / Plan / Full access.
@@ -415,7 +415,7 @@ export default function ChatInput({
           document.body,
         )}
       <div
-        className={`glass-control rounded-2xl p-3 transition-all duration-base ${isFocused ? 'forest-glow-subtle' : ''} ${dragOver ? 'ring-2 ring-brand/60' : ''}`}
+        className={`glass-control composer-dock rounded-2xl p-3 transition-all duration-base ${dragOver ? 'ring-2 ring-brand/60' : ''}`}
       >
         {/* F15 → P3-3: @ mentions (listbox, keyboard ring from row 1) */}
         {mentionOpen && (
@@ -440,8 +440,6 @@ export default function ChatInput({
             setMessage(e.target.value)
             detectMention(e.target.value, e.target.selectionStart ?? e.target.value.length)
           }}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={composerPlaceholder}

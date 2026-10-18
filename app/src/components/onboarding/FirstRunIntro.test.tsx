@@ -1,19 +1,17 @@
 /**
- * FirstRunIntro — the scene runs once, holds three breaths of the mark, and hands the
- * surface behind it over to the viewer.
+ * FirstRunIntro — the four-act Black Forest film.
  *
  * GIVEN a browser that has never stored the install flag
- * WHEN  the scene mounts
- * THEN  every block stands in the DOM at once with the sheet's own delays on them, the
- *       skip control holds the focus, and a key, a pointer or the clock ends the scene
- *       with the flag written.
- * GIVEN a viewer who asked for less motion, or a browser that carries the flag
- * WHEN  the scene mounts
- * THEN  it draws one still, and a browser with the flag sees nothing at all.
+ * WHEN  the film mounts
+ * THEN  the stage stands in the DOM, the spark runs its four acts on the clock, the
+ *       copy waits for the awakening, and only the skip control, the CTA, Escape,
+ *       Enter or Space end it — a click on the stage throws sparks instead.
+ * GIVEN a viewer who asked for less motion
+ * WHEN  the film mounts
+ * THEN  it draws the awakened still and closes after one short hold.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { readFileSync } from 'node:fs'
 import type { DeepSection } from '@/types'
 import { seedDeepSettings } from '@/lib/deepSettings'
 import { INTRO_SEEN_KEY as BOOT_SEEN_KEY } from '@/lib/firstRun'
@@ -33,26 +31,13 @@ vi.mock('react-i18next', () => ({
 
 import FirstRunIntro, {
   INTRO_SEEN_KEY,
-  CONDENSE_MS,
-  WORK_PERIOD_MS,
   DECAY_MS,
-  BEAT_MS,
   TITLE_AT_MS,
   LINE_AT_MS,
   CTA_AT_MS,
   SCENE_MS,
   STILL_MS,
 } from './FirstRunIntro'
-
-const SHEET = readFileSync('src/styles/globals.css', 'utf8')
-
-/** One motion token from the sheet, in ms. */
-function token(name: string): number {
-  const match = new RegExp(`--${name}:\\s*(\\d+(?:\\.\\d+)?)(ms|s)\\b`).exec(SHEET)
-  if (!match) throw new Error(`--${name} is not declared in globals.css`)
-  const value = Number(match[1])
-  return match[2] === 's' ? value * 1000 : value
-}
 
 function delayOf(el: HTMLElement): number {
   return Number.parseFloat(el.style.animationDelay)
@@ -71,17 +56,17 @@ afterEach(() => {
 })
 
 describe('FirstRunIntro', () => {
-  it('deals the whole scene into the DOM on a browser that has never seen it', () => {
+  it('deals the whole film into the DOM on a browser that has never seen it', () => {
     render(<FirstRunIntro />)
     expect(screen.getByRole('dialog')).toBeTruthy()
-    expect(screen.getByTestId('intro-spirit')).toBeTruthy()
+    expect(screen.getByTestId('intro-film')).toBeTruthy()
     expect(screen.getByTestId('intro-skip')).toBeTruthy()
     expect(screen.getByTestId('intro-cta')).toBeTruthy()
     expect(screen.getByText('welcome.introTitle')).toBeTruthy()
     expect(screen.getByText('welcome.introLine')).toBeTruthy()
   })
 
-  it('hangs the sheet delays on the blocks and leaves the skip control undelayed', () => {
+  it('hangs the act delays on the copy and leaves the skip control undelayed', () => {
     render(<FirstRunIntro />)
     expect(delayOf(screen.getByText('welcome.introTitle'))).toBe(TITLE_AT_MS)
     expect(delayOf(screen.getByText('welcome.introLine'))).toBe(LINE_AT_MS)
@@ -103,11 +88,10 @@ describe('FirstRunIntro', () => {
   it('takes the focus itself, so the first Tab lands on the way out', () => {
     render(<FirstRunIntro />)
     expect(document.activeElement).toBe(screen.getByRole('dialog'))
-    // The dialog holds the focus and paints no ring; the skip control is the first stop.
     expect(document.activeElement).not.toBe(screen.getByTestId('intro-skip'))
   })
 
-  it('keeps Tab inside the scene', () => {
+  it('keeps Tab inside the film', () => {
     render(<FirstRunIntro />)
     fireEvent.keyDown(window, { key: 'Tab' })
     expect(document.activeElement).toBe(screen.getByTestId('intro-skip'))
@@ -117,19 +101,11 @@ describe('FirstRunIntro', () => {
     expect(document.activeElement).toBe(screen.getByTestId('intro-skip'))
   })
 
-  it('shows nothing on a browser that has been through the scene', () => {
+  it('shows nothing on a browser that has been through the film', () => {
     window.localStorage.setItem(INTRO_SEEN_KEY, '1')
     render(<FirstRunIntro />)
     expect(screen.queryByTestId('first-run-intro')).toBeNull()
-  })
-
-  it('gates on the one key the boot gate in main.tsx reads', () => {
-    // Two spellings of the flag would let a returning browser fetch a chunk it then
-    // declines to render, which is the cost the lazy import exists to avoid.
     expect(INTRO_SEEN_KEY).toBe(BOOT_SEEN_KEY)
-    window.localStorage.setItem(BOOT_SEEN_KEY, '1')
-    render(<FirstRunIntro />)
-    expect(screen.queryByTestId('first-run-intro')).toBeNull()
   })
 
   it('shows nothing when the store refuses to be read', () => {
@@ -153,7 +129,6 @@ describe('FirstRunIntro', () => {
     })
     expect(onDone).toHaveBeenCalledTimes(1)
     expect(window.localStorage.getItem(INTRO_SEEN_KEY)).not.toBeNull()
-    // The overlay stays for its own exit motion, then leaves the tree.
     expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('leaving')
     act(() => {
       vi.advanceTimersByTime(DECAY_MS)
@@ -161,29 +136,36 @@ describe('FirstRunIntro', () => {
     expect(screen.queryByTestId('first-run-intro')).toBeNull()
   })
 
-  it('ends on any key', () => {
+  it.each(['Escape', 'Enter', ' '])('ends on %s', (key) => {
+    render(<FirstRunIntro />)
+    act(() => {
+      fireEvent.keyDown(window, { key })
+    })
+    expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('leaving')
+    act(() => {
+      vi.advanceTimersByTime(DECAY_MS)
+    })
+    expect(screen.queryByTestId('first-run-intro')).toBeNull()
+  })
+
+  it('does not end on a stray key', () => {
     render(<FirstRunIntro />)
     act(() => {
       fireEvent.keyDown(window, { key: 'a' })
     })
-    expect(window.localStorage.getItem(INTRO_SEEN_KEY)).not.toBeNull()
-    expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('leaving')
-    act(() => {
-      vi.advanceTimersByTime(DECAY_MS)
-    })
-    expect(screen.queryByTestId('first-run-intro')).toBeNull()
+    expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('running')
   })
 
-  it('ends on a pointer anywhere', () => {
+  it('turns a click on the stage into sparks, never into an exit', () => {
     render(<FirstRunIntro />)
     act(() => {
-      window.dispatchEvent(new Event('pointerdown'))
+      fireEvent.pointerDown(screen.getByTestId('first-run-intro'), { clientX: 120, clientY: 200 })
     })
-    expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('leaving')
+    expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('running')
     act(() => {
-      vi.advanceTimersByTime(DECAY_MS)
+      vi.advanceTimersByTime(SCENE_MS - 1)
     })
-    expect(screen.queryByTestId('first-run-intro')).toBeNull()
+    expect(screen.getByTestId('first-run-intro').dataset.phase).toBe('running')
   })
 
   it('closes by itself at the end of the clock', () => {
@@ -214,21 +196,14 @@ describe('FirstRunIntro', () => {
     expect(screen.getByText('welcome.introLineReady')).toBeTruthy()
   })
 
-  it('draws one still for a viewer who asked the system for less motion', () => {
+  it('draws the awakened still for a viewer who asked for less motion', () => {
     motion.reduced = true
     render(<FirstRunIntro />)
     const overlay = screen.getByTestId('first-run-intro')
     expect(overlay.dataset.reduced).toBe('true')
-    const spirit = screen.getByTestId('intro-spirit')
-    expect(spirit.dataset.register).toBe('calm')
-    expect(spirit.dataset.state).toBe('rest')
-    for (const el of [
-      screen.getByText('welcome.introTitle'),
-      screen.getByText('welcome.introLine'),
-      screen.getByTestId('intro-cta'),
-    ]) {
-      expect(delayOf(el)).toBe(0)
-    }
+    expect(overlay.dataset.act).toBe('awakening')
+    expect(screen.getByTestId('first-run-intro').querySelector('img.intro-media')).toBeTruthy()
+    expect(screen.getByText('welcome.introTitle').style.animationDelay).toBe('0ms')
     act(() => {
       vi.advanceTimersByTime(STILL_MS - 1)
     })
@@ -247,70 +222,68 @@ describe('FirstRunIntro', () => {
     expect(screen.getByTestId('first-run-intro').dataset.reduced).toBe('true')
   })
 
-  it('keeps the clock on the sheet motion tokens', () => {
-    expect(CONDENSE_MS).toBe(token('ephe-mark-condense-duration'))
-    expect(WORK_PERIOD_MS).toBe(token('ephe-mark-work-period'))
-    expect(DECAY_MS).toBe(token('ephe-decay-duration'))
-    expect(BEAT_MS).toBe(token('ephe-scene-beat'))
-    // Ten beats carry the arc — two and a half work periods — then the decay closes it.
-    expect(SCENE_MS).toBe(BEAT_MS * 10)
-    expect(SCENE_MS).toBe(WORK_PERIOD_MS * 2.5)
-    expect(SCENE_MS + DECAY_MS).toBeLessThanOrEqual(10_000)
-    expect(STILL_MS).toBeLessThan(SCENE_MS)
-  })
-
-  it('walks the arc beat by beat and turns the being at the turn', () => {
+  it('keeps the four acts on their clock and turns the being at the vortex', () => {
     render(<FirstRunIntro />)
     const overlay = screen.getByTestId('first-run-intro')
-    expect(overlay.dataset.beat).toBe('light')
-    expect(screen.getByTestId('intro-spirit').dataset.register).toBe('fierce')
+    expect(overlay.dataset.act).toBe('ignition')
     act(() => {
-      vi.advanceTimersByTime(BEAT_MS)
+      vi.advanceTimersByTime(2200)
     })
-    expect(overlay.dataset.beat).toBe('wall')
+    expect(overlay.dataset.act).toBe('chase')
     act(() => {
-      vi.advanceTimersByTime(BEAT_MS * 3)
+      vi.advanceTimersByTime(4400)
     })
-    expect(overlay.dataset.beat).toBe('land')
+    expect(overlay.dataset.act).toBe('vortex')
     act(() => {
-      vi.advanceTimersByTime(BEAT_MS * 3)
+      vi.advanceTimersByTime(2800)
     })
-    expect(overlay.dataset.beat).toBe('turn')
-    expect(screen.getByTestId('intro-spirit').dataset.register).toBe('calm')
-    act(() => {
-      vi.advanceTimersByTime(BEAT_MS * 2)
-    })
-    expect(overlay.dataset.beat).toBe('lead')
+    expect(overlay.dataset.act).toBe('awakening')
   })
 
-  it('stands the ground light on the stage, out of the reading order', () => {
+  it('keeps the copy waiting until the awakening', () => {
     render(<FirstRunIntro />)
-    for (const layer of [
-      'ephe-scene-ground',
-      'ephe-scene-embers',
-      'ephe-scene-core',
-      'ephe-scene-flash',
-    ]) {
+    const copy = screen.getByTestId('first-run-intro').querySelector('.intro-copy')
+    expect(copy?.className).not.toContain('is-in')
+    act(() => {
+      vi.advanceTimersByTime(9400)
+    })
+    expect(screen.getByTestId('first-run-intro').querySelector('.intro-copy')?.className).toContain(
+      'is-in',
+    )
+  })
+
+  it('mounts the live actor with its wing layers and the separate forehead flame', () => {
+    render(<FirstRunIntro />)
+    const stage = screen.getByTestId('intro-film')
+    expect(stage.querySelector('img[src*="bee-3d-actor"]')).toBeTruthy()
+    expect(stage.querySelectorAll('img[src*="bee-3d-wing-"]')).toHaveLength(2)
+    expect(stage.querySelector('img[src*="bee-3d-flame"]')).toBeTruthy()
+    expect(stage.querySelector('.intro-live-spark')).toBeTruthy()
+  })
+
+  it('stands the forest stage out of the reading order', () => {
+    render(<FirstRunIntro />)
+    for (const layer of ['intro-media', 'intro-vignette', 'intro-sparks']) {
       const node = screen.getByTestId('first-run-intro').querySelector(`.${layer}`)
-      expect(node).toBeTruthy()
+      expect(node, layer).toBeTruthy()
       expect(node?.getAttribute('aria-hidden')).toBe('true')
     }
   })
 
-  it('keeps the still out of the arc', () => {
+  it('keeps the still out of the acts', () => {
     motion.reduced = true
     render(<FirstRunIntro />)
-    expect(screen.getByTestId('first-run-intro').dataset.beat).toBe('still')
+    expect(screen.getByTestId('first-run-intro').dataset.act).toBe('awakening')
     act(() => {
       vi.advanceTimersByTime(STILL_MS - 1)
     })
-    expect(screen.getByTestId('first-run-intro').dataset.beat).toBe('still')
+    expect(screen.getByTestId('first-run-intro').dataset.act).toBe('awakening')
   })
 
-  it('has the way out on screen inside the opening second', () => {
-    // The bounds in the research sit on the wait for interaction, and this is that number:
-    // a viewer who wants to act never waits the light out.
-    expect(CTA_AT_MS).toBeLessThanOrEqual(1_200)
-    expect(CTA_AT_MS).toBeGreaterThan(LINE_AT_MS)
+  it('places the way in at the awakening, not in the opening second', () => {
+    expect(CTA_AT_MS).toBeGreaterThanOrEqual(9000)
+    expect(CTA_AT_MS).toBeLessThan(SCENE_MS)
+    expect(TITLE_AT_MS).toBeLessThan(LINE_AT_MS)
+    expect(LINE_AT_MS).toBeLessThan(CTA_AT_MS)
   })
 })

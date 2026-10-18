@@ -1,0 +1,259 @@
+/* The live first-open choreography. The stage is the clearing keyframe, the camera
+   and the light are moved by IntroFilm.tsx every frame, and every particle is drawn
+   on one additive canvas. */
+.intro-live-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #020504;
+  pointer-events: none;
+  isolation: isolate;
+}
+.intro-live-camera {
+  position: absolute;
+  inset: -6%;
+  transform-origin: 50% 55%;
+  will-change: transform;
+}
+.intro-live-forest {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 56%;
+  pointer-events: none;
+  user-select: none;
+}
+.intro-live-rays {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(103deg, transparent 30%, rgb(170 205 255 / 0.12) 40%, transparent 51%),
+    linear-gradient(96deg, transparent 44%, rgb(255 238 200 / 0.1) 53%, transparent 62%),
+    linear-gradient(112deg, transparent 52%, rgb(180 215 255 / 0.08) 60%, transparent 70%);
+  mix-blend-mode: screen;
+  filter: blur(6px);
+}
+.intro-live-fog {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.intro-live-fog-a {
+  background:
+    radial-gradient(58% 22% at 46% 76%, rgb(205 226 232 / 0.2) 0%, transparent 72%),
+    radial-gradient(40% 15% at 22% 83%, rgb(190 214 224 / 0.16) 0%, transparent 70%);
+  filter: blur(9px);
+}
+.intro-live-fog-b {
+  background:
+    radial-gradient(52% 18% at 74% 88%, rgb(214 232 236 / 0.15) 0%, transparent 72%),
+    radial-gradient(36% 13% at 40% 70%, rgb(180 205 215 / 0.12) 0%, transparent 70%);
+  filter: blur(13px);
+}
+.intro-live-ground-light {
+  position: absolute;
+  left: 50%;
+  top: 80%;
+  width: 34vw;
+  height: 22vh;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 178 62 / 0.55) 0%, rgb(255 140 40 / 0.22) 42%, transparent 72%);
+  filter: blur(12px);
+  mix-blend-mode: screen;
+  will-change: left, opacity;
+}
+.intro-live-impact {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 34vw;
+  height: 15vh;
+  transform: translate(-50%, -50%) scale(0.25);
+  border-radius: 50%;
+  border: 2px solid rgb(255 206 120 / 0.9);
+  box-shadow:
+    0 0 34px rgb(255 178 62 / 0.55),
+    inset 0 0 28px rgb(255 150 40 / 0.45);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.intro-live-spark {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 1.5rem;
+  height: 1.5rem;
+  transform: translate(-50%, -50%);
+  will-change: left, top, transform, opacity;
+}
+.intro-live-spark-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5.6rem;
+  height: 5.6rem;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 236 190 / 0.95) 0%, rgb(255 191 71 / 0.55) 34%, transparent 70%);
+  filter: blur(2px);
+  mix-blend-mode: screen;
+}
+.intro-live-spark-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.95rem;
+  height: 1.32rem;
+  transform: translate(-50%, -55%);
+  border-radius: 52% 48% 46% 54% / 62% 60% 40% 38%;
+  background: linear-gradient(to top, #fffdf3 0%, #ffd77e 55%, #ff9f2e 100%);
+  box-shadow:
+    0 0 14px rgb(255 226 160 / 0.95),
+    0 0 40px rgb(255 170 50 / 0.65);
+}
+.intro-live-spark-eyes {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  display: flex;
+  gap: 0.34rem;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+.intro-live-spark-eyes i {
+  width: 0.32rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: #fffdf2;
+  border: 1px solid rgb(94 38 2 / 0.45);
+  box-shadow:
+    0 0 8px rgb(255 250 220 / 0.95),
+    0 0 16px rgb(255 200 100 / 0.7);
+}
+.intro-live-bee {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(18rem, 36vw, 34rem);
+  aspect-ratio: 1060 / 752;
+  transform: translate(-50%, -50%) scale(0.25);
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  perspective: 900px;
+  opacity: 0;
+  will-change: transform, filter, opacity;
+}
+.intro-live-bee-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+.intro-live-wing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  transform-style: preserve-3d;
+  will-change: transform;
+  z-index: 1;
+}
+.intro-live-wing-l {
+  transform-origin: 37.74% 39.89%;
+}
+.intro-live-wing-r {
+  transform-origin: 62.74% 39.89%;
+}
+.intro-live-flame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50.19% 19.28%;
+  animation: flame-dance 600ms ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 4;
+  user-select: none;
+}
+@keyframes flame-dance {
+  from {
+    transform: scale(1, 1) rotate(-1.5deg) skewX(0deg);
+  }
+  to {
+    transform: scale(1.07, 0.94) rotate(2.4deg) skewX(3deg);
+  }
+}
+.intro-live-bokeh {
+  position: absolute;
+  inset: -4%;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 30%, rgb(255 198 96 / 0.35) 0 1.2%, transparent 2.6%),
+    radial-gradient(circle at 82% 24%, rgb(255 224 160 / 0.28) 0 1%, transparent 2.4%),
+    radial-gradient(circle at 70% 78%, rgb(140 220 190 / 0.22) 0 1.4%, transparent 3%),
+    radial-gradient(circle at 30% 82%, rgb(255 180 80 / 0.24) 0 1.1%, transparent 2.8%),
+    radial-gradient(circle at 48% 12%, rgb(255 235 180 / 0.2) 0 0.8%, transparent 2%),
+    radial-gradient(circle at 92% 58%, rgb(255 200 110 / 0.18) 0 1%, transparent 2.6%);
+  filter: blur(7px);
+  mix-blend-mode: screen;
+}
+.intro-live-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.intro-live-vignette {
+  background:
+    linear-gradient(to top, rgb(2 5 4 / 0.82) 0%, rgb(2 5 4 / 0.22) 38%, transparent 66%),
+    radial-gradient(82% 74% at 50% 48%, transparent 44%, rgb(0 0 0 / 0.58) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-live-flame {
+    animation: none;
+  }
+}
+html.no-motion .intro-live-flame {
+  animation: none;
+}
+
+
+.intro-live-lids {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.intro-live-lids i {
+  position: absolute;
+  top: 35%;
+  width: 6.4%;
+  height: 7.6%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #303a52 0%, #1a2131 70%, #111624 100%);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.5);
+  transform-origin: 50% 0;
+  transform: translate(-50%, 0) scaleY(0);
+  transition: none;
+}
+.intro-live-lids i:first-child {
+  left: 38.68%;
+}
+.intro-live-lids i:last-child {
+  left: 52.83%;
+}

@@ -192,6 +192,39 @@ local state only. No new infrastructure, no Docker, fully offline.
 
 Total: ~3–5 engineering days; runs stay local and reproducible.
 
+### 6.1 Multi-File Arithmetic Verification (Issue #17 Resolution)
+
+Issue #17: an arithmetic task over several files was answered from mental math
+(51 instead of 101, in 3 of 3 reps). `COMPUTE_GUARD` told the model to use a
+tool, but nothing checked the result. `evaluate_quality` now verifies the
+claim deterministically against what the tools actually printed. Three stages:
+
+1. **Trigger.** `needs_compute_guard(question)` recognizes arithmetic over
+   file or data contents (sum/total/average/… within reach of
+   csv/files/columns/rows/data). A question without such a pattern is not
+   scored, so prose answers keep their existing quality behavior.
+2. **Evidence.** At least one successful tool run from
+   `ARITHMETIC_EVIDENCE_TOOLS` (`run_shell`, `execute_code`, `run_tests`,
+   `read_file`, `extract_pdf_text`, `query_source_notebook`,
+   `analyze_project`) must exist. Without one the report carries the hard
+   issue `Numbers not derived from tool output: file arithmetic requires tool
+   execution.` — an answer from mental math fails even when its number is
+   correct, because nothing proves where it came from.
+3. **Claim comparison.** The claimed result numbers are extracted from the
+   `FINAL ANSWER:` / `EPHE_FINAL_ANSWER:` tail and from individual lines that
+   name a result (`total`, `sum`, `highest`, `gesamt`, `summe`). Every number
+   is normalized to one canonical decimal form (thousands separators, decimal
+   comma, trailing zeros, grouping: `1.250,00` ≡ `1250.00` ≡ `1250`). A
+   claimed group must intersect the normalized numbers of the successful tool
+   output; if no number of the group appears there, the report carries
+   `Numbers not derived from tool output: claimed result does not match
+   computed tool output.` Comparing the group as a whole keeps an incidental
+   number beside the result from masking an invented total.
+
+Both checks are hard issues (`needs_revision=True`), not warnings. The
+comparison is exact after normalization — no tolerance band — because the
+failure mode is a wrong total, not rounding.
+
 ## 7. Sources
 
 - τ-bench — <https://github.com/sierra-research/tau-bench> · paper: <https://arxiv.org/abs/2406.12045>

@@ -171,7 +171,7 @@ def test_the_spawn_hands_one_variable_and_no_credential_on_the_command_line():
     choice and `apply_env()` never sets a token). One name is the whole budget, and argv
     carries no secret.
     """
-    assert spawn_env_names() == {KEY_ENV}
+    assert spawn_env_names() == {KEY_ENV, "EPHE_BACKEND_OWNER", "EPHE_PARENT_PID"}
     assert spawn_argv() == ["run_server.py", "--port"]
 
 

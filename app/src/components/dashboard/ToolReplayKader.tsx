@@ -60,7 +60,7 @@ export function ToolReplayKader({ message }: { message: ChatMessage }) {
         <History className="h-3 w-3 shrink-0 text-brand/70" aria-hidden="true" />
         <span className="font-medium">{t('chat.replayTitle')}</span>
         <span className="ml-auto font-mono tabular-nums">
-          {turn.steps.length} steps · {fmtMs(total)}
+          {t('chat.replaySteps', { count: turn.steps.length })} · {fmtMs(total)}
         </span>
         <ChevronRight
           className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}

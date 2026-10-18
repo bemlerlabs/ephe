@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Ephe",
-  "version": "0.1.0-beta.8",
+  "version": "0.1.0-beta.9",
   "identifier": "com.ephe.ephe",
   "build": {
     "frontendDist": "../dist",
@@ -10,6 +10,7 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Ephe",
@@ -19,8 +20,14 @@
         "minHeight": 640,
         "resizable": true,
         "fullscreen": false,
+        "transparent": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
+        "trafficLightPosition": { "x": 16.0, "y": 18.0 },
+        "windowEffects": {
+          "effects": ["underWindowBackground"],
+          "state": "followsWindowActiveState"
+        },
         "url": "/#/chat"
       }
     ],

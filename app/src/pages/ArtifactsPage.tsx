@@ -368,9 +368,17 @@ export default function ArtifactsPage() {
             <div className="min-w-0 lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)]">
               {selected ? (
                 <ArtifactDetailPane key={selected.id} id={selected.id} onChanged={refresh} />
+              ) : filtered ? (
+                <p className="flex h-full min-h-[18rem] items-center justify-center rounded-lg border border-dashed border-hairline p-6 text-center text-ui-xs text-ink-faint">
+                  {t('artifacts.page.noMatch')}
+                </p>
+              ) : shown.length > 0 ? (
+                <p className="flex h-full min-h-[18rem] items-center justify-center rounded-lg border border-dashed border-hairline p-6 text-center text-ui-xs text-ink-faint">
+                  {t('artifacts.page.detailHint')}
+                </p>
               ) : (
                 <p className="flex h-full min-h-[18rem] items-center justify-center rounded-lg border border-dashed border-hairline p-6 text-center text-ui-xs text-ink-faint">
-                  {filtered ? t('artifacts.page.noMatch') : emptySentence}
+                  {t('artifacts.page.detailEmpty')}
                 </p>
               )}
             </div>

@@ -24,9 +24,10 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, Loader2 } from 'lucide-react'
+import { Database, Loader2, Trash2 } from 'lucide-react'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
-import { getSessionStore, pruneSessions, type SessionStoreView } from '@/lib/api'
+import { clearSessions, getSessionStore, pruneSessions, type SessionStoreView } from '@/lib/api'
+import { useChatStore } from '@/store/chatStore'
 import { formatBytes, formatNumber } from '@/lib/dateLocale'
 
 /**
@@ -53,6 +54,9 @@ export function SessionStoreSection() {
   const [busy, setBusy] = useState(false)
   const [outcome, setOutcome] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [confirmClearAll, setConfirmClearAll] = useState(false)
+  const [clearingAll, setClearingAll] = useState(false)
+  const [clearAllNote, setClearAllNote] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -118,6 +122,28 @@ export function SessionStoreSection() {
       setError(t('settings.sessionStoreFailed'))
     } finally {
       setBusy(false)
+    }
+  }
+
+  /** The one-action clear: backend store first, then the browser's own copy. */
+  async function clearEverything() {
+    setClearingAll(true)
+    setError(null)
+    setClearAllNote(null)
+    try {
+      const r = await clearSessions()
+      useChatStore.getState().clearAllSessions()
+      setClearAllNote(
+        t('settings.clearAllChatsDone', {
+          files: formatNumber(r.deleted.length, i18n.language),
+        }),
+      )
+      setConfirmClearAll(false)
+      await refresh()
+    } catch {
+      setError(t('settings.clearAllChatsFailed'))
+    } finally {
+      setClearingAll(false)
     }
   }
 
@@ -245,6 +271,57 @@ export function SessionStoreSection() {
           {outcome}
         </p>
       ) : null}
+      <SettingsRow
+        icon={Trash2}
+        title={t('settings.clearAllChats')}
+        description={t('settings.clearAllChatsHint')}
+        testid="clear-all-chats-row"
+      >
+        <div className="flex flex-col items-end gap-1.5">
+          {!confirmClearAll ? (
+            <button
+              type="button"
+              data-testid="clear-all-chats"
+              disabled={clearingAll}
+              onClick={() => setConfirmClearAll(true)}
+              className="rounded-lg border border-status-danger/30 bg-status-danger/15 px-3 py-1.5 text-ui-xs font-medium text-status-danger transition-colors hover:bg-status-danger/25 disabled:opacity-50 max-lg:min-h-11"
+            >
+              {t('settings.clearAllChats')}
+            </button>
+          ) : (
+            <div className="flex flex-col items-end gap-1.5">
+              <p className="text-ui-xs text-ink-soft text-right">
+                {t('settings.clearAllChatsConfirm')}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="clear-all-chats-confirm"
+                  disabled={clearingAll}
+                  onClick={() => void clearEverything()}
+                  className="rounded-lg border border-status-danger/30 bg-status-danger/20 px-3 py-1.5 text-ui-xs font-medium text-status-danger transition-colors hover:bg-status-danger/30 disabled:opacity-50 max-lg:min-h-11"
+                >
+                  {clearingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {t('settings.sessionStoreApply')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="clear-all-chats-cancel"
+                  onClick={() => setConfirmClearAll(false)}
+                  className="rounded-lg px-3 py-1.5 text-ui-xs font-medium text-foreground/60 transition-colors glass-control hover:text-foreground max-lg:min-h-11"
+                >
+                  {t('settings.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+          {clearAllNote ? (
+            <p data-testid="clear-all-chats-note" className="text-ui-xs text-ink-soft text-right">
+              {clearAllNote}
+            </p>
+          ) : null}
+        </div>
+      </SettingsRow>
       {error ? (
         <p
           data-testid="session-store-error"

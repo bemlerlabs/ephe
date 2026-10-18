@@ -114,11 +114,11 @@
 }
 .tour-card:hover { border-color: var(--color-hairline-strong); color: var(--color-ink); }
 .tour-card.is-selected {
-  border-color: var(--color-brand);
-  background: var(--color-brand-tint);
+  border-color: #ffbf47;
+  background: rgb(255 191 71 / 0.12);
   color: var(--color-ink);
 }
-.tour-card.is-selected svg { color: var(--color-brand-glow); }
+.tour-card.is-selected svg { color: #ffbf47; }
 .tour-text-action { display: inline-block; margin-top: 0.9rem; }
 .tour-engine {
   margin-top: 1.1rem;
@@ -149,10 +149,10 @@
     color 180ms var(--ease-settle);
 }
 .tour-primary {
-  background: var(--color-brand);
-  color: #fff;
+  background: #f0a830;
+  color: #1a0d05;
 }
-.tour-primary:hover:not(:disabled) { background: var(--color-brand-glow); }
+.tour-primary:hover:not(:disabled) { background: #ffbf47; }
 .tour-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .tour-ghost {
   background: none;
@@ -184,7 +184,7 @@
   background: var(--color-hairline-strong);
   transition: background-color 180ms var(--ease-settle);
 }
-.tour-switch.is-on { background: var(--color-brand); }
+.tour-switch.is-on { background: #f0a830; }
 .tour-switch-thumb {
   position: absolute;
   inset-block-start: 3px;
@@ -262,3 +262,374 @@ html.no-motion .tour-switch-thumb {
   transition: none !important;
 }
 html.no-motion .tour-bee { transform: none !important; }
+
+/* Scene 5-7: the forest stays behind the cards, the bee carries the step change,
+   and the finale flies the bee into the header mark. */
+.tour-forest {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(55% 46% at 50% 8%, rgb(40 66 88 / 0.35) 0%, transparent 70%),
+    linear-gradient(to bottom, #04080a 0%, #050a08 58%, #020504 100%);
+}
+.tour-forest span {
+  position: absolute;
+  inset-inline: -5%;
+  bottom: 0;
+  display: block;
+}
+.tour-forest-far {
+  height: 72%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 54px, rgb(4 8 6 / 0.95) 54px 74px);
+  clip-path: polygon(0 100%, 0 46%, 6% 52%, 9% 30%, 14% 48%, 20% 22%, 26% 46%, 33% 28%, 40% 50%, 47% 26%, 54% 48%, 61% 30%, 68% 50%, 75% 24%, 82% 48%, 89% 30%, 95% 50%, 100% 40%, 100% 100%);
+  opacity: 0.85;
+  filter: blur(1px);
+}
+.tour-forest-mid {
+  height: 56%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 78px, #08110d 78px 108px);
+  clip-path: polygon(0 100%, 0 40%, 8% 52%, 12% 24%, 18% 50%, 25% 18%, 32% 48%, 40% 22%, 48% 52%, 56% 26%, 64% 50%, 72% 20%, 80% 48%, 88% 28%, 95% 52%, 100% 44%, 100% 100%);
+}
+.tour-forest-near {
+  height: 33%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 120px, #0d1a14 120px 158px);
+  clip-path: polygon(0 100%, 0 46%, 10% 58%, 16% 26%, 24% 56%, 34% 22%, 43% 54%, 53% 26%, 63% 58%, 73% 20%, 83% 52%, 92% 30%, 100% 52%, 100% 100%);
+  opacity: 0.9;
+}
+.tour-forest-fog {
+  height: 42%;
+  background: radial-gradient(60% 60% at 40% 70%, rgb(170 205 210 / 0.1), transparent 72%);
+  filter: blur(30px);
+  animation: tour-fog 20s ease-in-out infinite alternate;
+}
+@keyframes tour-fog {
+  from { transform: translateX(-4%); }
+  to { transform: translateX(4%); }
+}
+.tour-stage {
+  background: transparent;
+}
+
+.tour-spark {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+.tour-spark path {
+  fill: none;
+  stroke: #ffbf47;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 6 10;
+  filter: drop-shadow(0 0 6px rgb(255 191 71 / 0.8));
+}
+.tour-spark.is-live {
+  opacity: 1;
+  animation: tour-spark-fade 620ms ease-out both;
+}
+.tour-spark.is-live path {
+  animation: tour-spark-flow 620ms linear both;
+}
+@keyframes tour-spark-fade {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes tour-spark-flow {
+  from { stroke-dashoffset: 120; }
+  to { stroke-dashoffset: 0; }
+}
+
+.tour-panel {
+  border-color: rgb(255 253 245 / 0.14);
+  background: rgb(10 12 11 / 0.72);
+  color: #f7f0e0;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.45);
+}
+.tour-panel.is-sparked {
+  animation: tour-card-glow 620ms ease-out;
+}
+@keyframes tour-card-glow {
+  0% { box-shadow: 0 0 0 0 rgb(255 191 71 / 0); }
+  30% { box-shadow: 0 0 0 1px rgb(255 191 71 / 0.9), 0 0 42px 4px rgb(255 191 71 / 0.35); }
+  100% { box-shadow: 0 24px 80px rgb(0 0 0 / 0.45); }
+}
+.tour-title,
+.tour-line,
+.tour-desk-actions {
+  color: #f7f0e0;
+}
+.tour-line,
+.tour-desk-actions {
+  color: rgb(247 240 224 / 0.7);
+}
+.tour-bee.is-guard .ephe-spirit {
+  filter: drop-shadow(0 0 26px rgb(255 191 71 / 0.75));
+}
+
+.tour-engine-core {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin: 0.35rem auto 0.9rem;
+  display: grid;
+  place-items: center;
+}
+.tour-core-gem {
+  width: 2.2rem;
+  height: 3.1rem;
+  clip-path: polygon(50% 0%, 92% 28%, 78% 86%, 50% 100%, 22% 86%, 8% 28%);
+  background: linear-gradient(to bottom, #eafff5, #4fffc6 46%, #0b8f6d);
+  box-shadow: 0 0 24px rgb(79 255 198 / 0.35);
+  transition: filter 300ms ease, box-shadow 300ms ease;
+}
+.tour-core-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(255 191 71 / 0.28), transparent 68%);
+  opacity: 0.4;
+}
+.tour-core-heart {
+  position: absolute;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: #fffdf5;
+  opacity: 0;
+}
+.tour-engine-core[data-state="testing"] .tour-core-halo {
+  animation: tour-core-breathe 1.2s ease-in-out infinite;
+}
+.tour-engine-core[data-state="ok"] .tour-core-gem {
+  filter: brightness(1.25);
+  box-shadow: 0 0 34px rgb(79 255 198 / 0.7);
+}
+.tour-engine-core[data-state="ok"] .tour-core-heart {
+  opacity: 1;
+  animation: tour-core-pulse 1.8s ease-in-out infinite;
+}
+@keyframes tour-core-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(0.94); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+@keyframes tour-core-pulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.6; }
+  50% { transform: scale(1.5); opacity: 1; }
+}
+
+.tour-guard {
+  margin-top: 1rem;
+}
+.tour-guard-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tour-approval {
+  margin-top: 0.6rem;
+  border: 1px solid rgb(255 191 71 / 0.28);
+  border-radius: 0.6rem;
+  background: rgb(255 191 71 / 0.07);
+  padding: 0.75rem 0.85rem;
+  animation: tour-arrive 220ms var(--ease-out-soft) both;
+}
+.tour-approval-question {
+  color: #f7f0e0;
+  font-size: var(--text-scale-ui, 14px);
+  font-weight: 600;
+}
+.tour-approval-detail {
+  margin-top: 0.3rem;
+  color: rgb(247 240 224 / 0.65);
+  font-size: var(--text-scale-ui);
+}
+.tour-approval-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.tour-approval-allow,
+.tour-approval-deny {
+  min-height: 2.2rem;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  font-size: var(--text-scale-ui);
+  font-weight: 600;
+}
+.tour-approval-allow {
+  background: #ffbf47;
+  color: #1a0d05;
+}
+.tour-approval-deny {
+  border: 1px solid rgb(247 240 224 / 0.2);
+  color: rgb(247 240 224 / 0.75);
+}
+
+.tour-finale {
+  position: fixed;
+  z-index: 2;
+  left: 58%;
+  top: 62%;
+  pointer-events: none;
+  animation: tour-comet 1.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.tour-finale::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 70%;
+  top: 60%;
+  width: 18rem;
+  height: 0.5rem;
+  background: radial-gradient(60% 50% at 100% 50%, rgb(255 191 71 / 0.7), transparent 70%);
+  filter: blur(4px);
+  animation: tour-comet-trail 1.2s ease-out both;
+}
+@keyframes tour-comet {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0; }
+  16% { opacity: 1; }
+  100% { transform: translate(-46vw, -54vh) rotate(-28deg) scale(0.35); opacity: 0.9; }
+}
+@keyframes tour-comet-trail {
+  from { opacity: 0.9; transform: scaleX(1); }
+  to { opacity: 0; transform: scaleX(0.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spark,
+  .tour-finale,
+  .tour-forest-fog,
+  .tour-core-halo,
+  .tour-core-heart {
+    animation: none !important;
+  }
+}
+
+/* The keyframe stage: scene 5 is the backdrop, the panel sits over its glass card,
+   and the step change pans the scene. */
+.tour-stage-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  opacity: 0.62;
+  filter: brightness(0.72) saturate(0.95);
+  transform: scale(1.04);
+  transition: transform 900ms var(--ease-out-soft);
+  pointer-events: none;
+}
+.tour-stage[data-step="1"] .tour-stage-frame { transform: scale(1.05) translateX(-1%); }
+.tour-stage[data-step="2"] .tour-stage-frame { transform: scale(1.06) translateX(1%); }
+.tour-stage[data-step="3"] .tour-stage-frame { transform: scale(1.05) translateY(-1%); }
+.tour-stage[data-step="4"] .tour-stage-frame { transform: scale(1.06) translateX(-0.5%); }
+.tour-stage[data-step="5"] .tour-stage-frame { transform: scale(1.07) translateY(-1.5%); }
+.tour-stage-shade {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgb(4 8 6 / 0.25) 0%, rgb(4 8 6 / 0.72) 58%, rgb(4 8 6 / 0.82) 100%),
+    radial-gradient(70% 60% at 50% 40%, transparent 40%, rgb(0 0 0 / 0.35) 100%);
+}
+.tour-panel {
+  z-index: 2;
+}
+
+.tour-engine-core {
+  width: 100%;
+  height: 6.5rem;
+  margin: 0.4rem 0 0.9rem;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  position: relative;
+}
+.tour-engine-core img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 44%;
+}
+.tour-engine-core .tour-core-halo {
+  inset: 0;
+  background: radial-gradient(34% 46% at 55% 52%, rgb(79 255 198 / 0.35), transparent 70%);
+  opacity: 0;
+}
+.tour-engine-core[data-state="ok"] .tour-core-halo {
+  opacity: 1;
+  animation: tour-core-breathe 2s ease-in-out infinite;
+}
+
+.tour-finale {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  animation: tour-finale-in 1.2s var(--ease-out-soft) both;
+}
+.tour-finale img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@keyframes tour-finale-in {
+  from { opacity: 0; transform: scale(1.06); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.tour-finale::after { content: none; }
+
+/* The tour stage is opaque: the app behind it must not read through the scene. */
+.tour-stage { background: #040806; }
+.tour-stage-frame { opacity: 0.82; }
+
+.tour-engine-core { height: 8.5rem; }
+.tour-engine-core img { object-position: 50% 58%; }
+
+@media (pointer: coarse) {
+  .tour-approval-allow,
+  .tour-approval-deny,
+  .tour-guard-toggle {
+    min-height: 44px;
+  }
+}
+
+.tour-fireflies {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgb(78 255 208 / 0.55) 1px, transparent 2px),
+    radial-gradient(circle, rgb(255 191 71 / 0.5) 0.9px, transparent 1.8px);
+  background-size: 170px 130px, 230px 190px;
+  background-position: 20px 30px, 90px 70px;
+  mask-image: linear-gradient(to top, transparent 30%, rgb(0 0 0 / 0.9) 75%, transparent 100%);
+  animation: tour-fireflies-drift 16s linear infinite alternate;
+  opacity: 0.55;
+}
+@keyframes tour-fireflies-drift {
+  from { transform: translateY(4px); opacity: 0.35; }
+  to { transform: translateY(-14px); opacity: 0.7; }
+}
+.tour-stage.is-finale::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(24% 20% at 4% 3%, rgb(255 191 71 / 0.55), transparent 70%);
+  animation: tour-finale-flash 1.2s ease-out both;
+}
+@keyframes tour-finale-flash {
+  0% { opacity: 0; }
+  35% { opacity: 1; }
+  100% { opacity: 0.35; }
+}

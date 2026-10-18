@@ -18,6 +18,7 @@ import {
   Check,
   Circle,
   Network,
+  AlertCircle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui'
 import { useTranslation } from 'react-i18next'
@@ -32,6 +33,7 @@ import {
 } from '@/lib/toolCardModel'
 import { useTasks } from '@/hooks/useTasks'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import './ToolCallDisplay.css'
 /**
  * Ephe — tool activities in the chat stream (reference-B parity Z01–Z06, round E).
  *
@@ -104,15 +106,22 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
     model.family === 'write' &&
     typeof tool.args?.['content'] === 'string' &&
     (tool.args['content'] as string).trim() !== ''
-  const [open, setOpen] = useState(
+  // A failed run: a non-zero shell exit, or a call the guard refused outright.
+  const isError =
+    tool.status === 'denied' ||
     (tool.status === 'completed' &&
-      ((model.family === 'edit' && isDiffResult) ||
-        (model.family === 'write' && writeHasContent))) ||
+      model.family === 'shell' &&
+      model.exit !== null &&
+      model.exit.code !== 0)
+  // Compact pill default; the body opens on click, on a running call, on a
+  // finished document, on a failed run, and on an approval the user must answer.
+  const [open, setOpen] = useState(
+    tool.status === 'waiting' ||
+      tool.status === 'pending' ||
+      isError ||
       (tool.status === 'completed' &&
-        model.family === 'shell' &&
-        model.exit !== null &&
-        model.exit.code !== 0) ||
-      tool.status === 'pending',
+        ((model.family === 'edit' && isDiffResult) ||
+          (model.family === 'write' && writeHasContent))),
   )
 
   // I6 P2c: the status is NEVER rendered raw from the enum — 'approved'/
@@ -153,6 +162,15 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
   }
   const tipKey = familyTipKey[model.family] ?? 'chat.toolTipGeneric'
 
+  // The leading status mark: an amber spinner while it runs or waits on an
+  // approval, a red alert on a failed or denied call, a settled green check once done.
+  const statusKind =
+    tool.status === 'pending' || tool.status === 'waiting'
+      ? 'is-running'
+      : isError
+        ? 'is-error'
+        : 'is-done'
+
   return (
     <SmartTip
       testId="tool-card-tip"
@@ -160,11 +178,20 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
       tip={{ title: t(`${tipKey}.title`), body: t(`${tipKey}.body`) }}
     >
       <div
-        className="glass-reading rounded-lg p-2"
+        className="tool-pill rounded-lg px-2.5 py-1"
         data-testid="tool-card"
         data-family={model.family}
       >
         <div className="flex items-center gap-2 min-w-0">
+          <span className={`tool-status ${statusKind}`} aria-hidden="true">
+            {statusKind === 'is-running' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : statusKind === 'is-error' ? (
+              <AlertCircle className="h-3.5 w-3.5" />
+            ) : (
+              <Check className="h-3.5 w-3.5" />
+            )}
+          </span>
           {hasContent && (
             <button
               type="button"
@@ -257,19 +284,17 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
                 <Eye className="h-3 w-3" aria-hidden="true" />
               </button>
             )}
-            {tool.status === 'pending' ? (
-              <Loader2
-                className="h-[0.875em] w-[0.875em] animate-spin shrink-0 text-brand/70"
-                aria-hidden="true"
-              />
-            ) : (
-              <Badge
-                variant={statusVariant(tool.status)}
-                className="shrink-0 hidden xl:inline-flex"
+            {tool.duration_ms != null && (
+              <span
+                data-testid="tool-duration"
+                className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
               >
-                {tool.name}
-              </Badge>
+                {(tool.duration_ms / 1000).toFixed(1)}s
+              </span>
             )}
+            <Badge variant={statusVariant(tool.status)} className="shrink-0 hidden xl:inline-flex">
+              {tool.name}
+            </Badge>
             <span className="text-ui-xs text-ink-faint truncate max-w-32" title={statusLabel}>
               {statusLabel}
             </span>
@@ -277,7 +302,7 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
         </div>
 
         {open && hasContent && (
-          <div className="ml-5 mt-2 space-y-2" id={`tool-body-${tool.id ?? tool.name}`}>
+          <div className="tool-body mt-1.5 space-y-2" id={`tool-body-${tool.id ?? tool.name}`}>
             {model.family === 'shell' && <ShellBody model={model} result={result} />}
             {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
             {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}

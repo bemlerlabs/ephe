@@ -54,7 +54,7 @@ MARK_FIELD_TOKEN = "--color-canvas"
 MIN_MARK_CONTRAST = 4.5
 
 #: The silhouette of every cut sits on one vertical axis. The bee's full cut
-#: measures x=251.25 (its blade and plume are asymmetric by design) and its
+#: measures x=256.00 (its crown is symmetric by design) and its
 #: template cut x=256.00, so the band is five emblem units — one percent of the
 #: canvas — which still catches a cut that leans in the title bar.
 OPTICAL_AXIS_X = 256.0

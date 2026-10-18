@@ -188,6 +188,21 @@ export function makeSessionActions(
       // Delete from IndexedDB
       dbDeleteSession(id)
     },
+    clearAllSessions: () => {
+      const ids = get().sessions.map((s) => s.id)
+      set({
+        sessions: [],
+        activeSessionId: null,
+        currentSession: null,
+        checkpoints: {},
+      })
+      for (const id of ids) dbDeleteSession(id)
+      try {
+        localStorage.removeItem('ephe.lastSession')
+      } catch {
+        /* Private Mode */
+      }
+    },
     renameSession: (id, title) => {
       const clean = title.trim()
       if (!clean) return

@@ -74,87 +74,175 @@ def _support(*items: str) -> list[str]:
     return [clean_enterprise_text(item) for item in items if clean_enterprise_text(item)]
 
 
-def default_storyline(title: str, audience: str, thesis: str, source_status: str) -> list[dict]:
-    subject = clean_enterprise_text(title) or "Ephe"
+def _sentences_from_notes(source_notes: str) -> list[str]:
+    """Real sentences and bullets from the supplied notes, cleaned and deduplicated."""
+    facts: list[str] = []
+    for raw_line in re.split(r"\n+", source_notes or ""):
+        line = raw_line.strip()
+        line = re.sub(r"^#{1,6}\s*", "", line)
+        line = re.sub(r"^[-*•]\s*", "", line)
+        line = re.sub(r"^\d+[.)]\s*", "", line)
+        if not line:
+            continue
+        for sentence in re.split(r"(?<=[.!?])\s+", line):
+            cleaned = clean_enterprise_text(sentence).strip(" .;,-")
+            if len(cleaned) >= 3 and cleaned not in facts:
+                facts.append(cleaned[:180])
+    return facts
+
+
+def _storyline_points(facts: list[str], start: int, fallback: list[str], limit: int = 3) -> list[str]:
+    rotated = (facts[start:] + facts[:start]) if facts else []
+    chosen = rotated[:limit]
+    return _support(*(chosen + [line for line in fallback if line not in chosen]))[:limit]
+
+
+def default_storyline(
+    title: str,
+    audience: str,
+    thesis: str,
+    source_status: str,
+    source_notes: str = "",
+) -> list[dict]:
+    """Topic-specific 11-slide storyline built from the request's own material.
+
+    The deck engine has no model call here: it states what the title, thesis and
+    notes actually contain, marks what is missing as an assumption, and never
+    reuses a product narrative from another subject.
+    """
+    subject = clean_enterprise_text(title) or "This initiative"
     audience_text = clean_enterprise_text(audience) or "executive decision makers"
-    thesis_text = clean_enterprise_text(thesis) or f"{subject} needs a decision-ready operating model for local AI execution."
-    evidence_suffix = "Source-backed" if source_status == "source_grounded" else "Assumption-led"
+    thesis_text = clean_enterprise_text(thesis) or (
+        f"{subject} needs a decision-ready plan for the {audience_text}."
+    )
+    status_label = {
+        "source_grounded": "source-grounded",
+        "user_provided": "user-provided",
+        "mixed": "mixed evidence",
+    }.get(source_status, "assumption-led")
+    facts = _sentences_from_notes(f"{thesis}. {source_notes}".strip())
+    kpi_facts = [fact for fact in facts if re.search(r"\d", fact)]
+    ordered_facts = kpi_facts + [fact for fact in facts if fact not in kpi_facts]
     return [
         {
             "role": "cover",
             "headline": subject,
             "takeaway": thesis_text,
-            "supporting_points": _support(f"Audience: {audience_text}", f"{evidence_suffix} board narrative", "Local, private, export-ready workflow"),
-            "speaker_note": "Open with the strategic decision and why it matters now.",
+            "supporting_points": _storyline_points(ordered_facts, 0, [
+                f"Audience: {audience_text}",
+                f"Evidence status: {status_label}",
+                f"Subject: {subject}",
+            ]),
+            "speaker_note": f"Open on the decision {subject} asks of the {audience_text}.",
         },
         {
             "role": "executive_summary",
-            "headline": "Executive Summary",
-            "takeaway": "Local AI quality now depends on orchestrated skills, evidence, tools, and artifact QA.",
-            "supporting_points": _support("Finished artifacts beat rough drafts", "Evidence must be visible", "Every output needs a deterministic quality gate"),
-            "speaker_note": "Summarize the three decisions leadership needs to make.",
+            "headline": f"{subject}: Executive Summary",
+            "takeaway": f"{subject} is judged on the decisions its evidence can support.",
+            "supporting_points": _storyline_points(ordered_facts, 1, [
+                thesis_text,
+                f"Evidence status: {status_label}",
+                f"The next step for {subject} is stated as a decision, not a status report",
+            ]),
+            "speaker_note": f"Name the decisions the {audience_text} has to take on {subject}.",
         },
         {
             "role": "problem",
-            "headline": "Decision Problem",
-            "takeaway": "Most local assistants break down when the work becomes multi-step, visual, or evidence-heavy.",
-            "supporting_points": _support("Context weakens over long work", "Tool results are often over-claimed", "Generated files require manual inspection"),
-            "speaker_note": "Show why the current state is operationally risky.",
+            "headline": f"The {subject} Problem",
+            "takeaway": f"{subject} cannot be decided while the baseline and the evidence remain implicit.",
+            "supporting_points": _storyline_points(ordered_facts, 2, [
+                f"The decision baseline for {subject} is not stated in the source input",
+                f"The cost of delay for {subject} is not quantified yet",
+                f"Ownership for the next step on {subject} is unnamed",
+            ]),
+            "speaker_note": f"Show what breaks for the {audience_text} if {subject} stays undecided.",
         },
         {
             "role": "market_map",
-            "headline": "Market Context",
-            "takeaway": "Privacy-sensitive teams need local execution without accepting amateur output quality.",
-            "supporting_points": _support("Developers need project analysis", "Operators need polished documents", "Executives need verifiable decks"),
-            "speaker_note": "Frame the opportunity through user segments and quality expectations.",
+            "headline": f"{subject} Market Map",
+            "takeaway": f"{subject} sits with the {audience_text}, where the case has to be explicit and comparable.",
+            "supporting_points": _storyline_points(ordered_facts, 3, [
+                f"Audience for this deck: {audience_text}",
+                f"The comparison set for {subject} is not yet fixed",
+                f"Criteria for {subject} must be explicit before options are judged",
+            ]),
+            "speaker_note": f"Frame who decides on {subject} and on which criteria.",
         },
         {
             "role": "architecture",
-            "headline": "Architecture Options",
-            "takeaway": "The winning architecture combines local models, deterministic tools, memory, and artifact validators.",
-            "supporting_points": _support("Local model for reasoning", "Tool contracts for execution", "Quality gates for final artifacts"),
-            "speaker_note": "Explain why a single prompt layer is insufficient.",
+            "headline": f"{subject} Architecture Options",
+            "takeaway": f"The {subject} approach has to name its components and what each one is responsible for.",
+            "supporting_points": _storyline_points(ordered_facts, 4, [
+                f"Name the components that carry {subject}",
+                f"State what each component owns and what it does not",
+                f"Show the interface where responsibility changes hands",
+            ]),
+            "speaker_note": f"Walk through how {subject} is put together, not how it is marketed.",
         },
         {
             "role": "workflow",
-            "headline": "Recommended Operating Model",
-            "takeaway": "Ephe should route each request through skill selection, tool execution, evidence capture, QA, and Studio delivery.",
-            "supporting_points": _support("Plan the artifact", "Execute real local tools", "Validate before answering", "Expose downloads in Studio"),
-            "speaker_note": "Walk through the end-to-end workflow.",
+            "headline": f"{subject} Operating Model",
+            "takeaway": f"Operating {subject} means moving from the stated goal to a checked result.",
+            "supporting_points": _storyline_points(ordered_facts, 5, [
+                f"Start from the stated goal of {subject}",
+                f"Run the work in explicit steps with named owners",
+                f"Check the result against the evidence before the decision",
+            ]),
+            "speaker_note": f"Walk through the end-to-end workflow for {subject}.",
         },
         {
             "role": "comparison_matrix",
-            "headline": "Build-vs-Delegate Decision",
-            "takeaway": "A hybrid local engine gives control now while preserving adapter paths for richer presentation runtimes.",
-            "supporting_points": _support("Own the quality contract", "Avoid hard runtime lock-in", "Keep Presenton/PptxGenJS optional"),
-            "speaker_note": "Make the architecture tradeoff explicit.",
+            "headline": f"{subject} Options",
+            "takeaway": f"Options for {subject} are comparable only against the same criteria.",
+            "supporting_points": _storyline_points(ordered_facts, 6, [
+                f"Compare options for {subject} on one shared criteria set",
+                f"State the tradeoff each option makes",
+                f"Keep the chosen option and its rationale in one place",
+            ]),
+            "speaker_note": f"Make the tradeoff behind the recommended path for {subject} explicit.",
         },
         {
             "role": "roadmap",
-            "headline": "Execution Roadmap",
-            "takeaway": "Upgrade decks first, then apply the same artifact-grade system across PDF, charts, scan, project, and code outputs.",
-            "supporting_points": _support("Deck Engine v2", "Source Notebook integration", "Visual QA expansion", "Skill eval suite"),
-            "speaker_note": "Show sequencing and dependency logic.",
+            "headline": f"{subject} Roadmap",
+            "takeaway": f"{subject} moves in phases, each with a result that can be reviewed.",
+            "supporting_points": _storyline_points(ordered_facts, 7, [
+                f"Phase 1: fix the baseline for {subject}",
+                f"Phase 2: deliver a reviewable result",
+                f"Phase 3: decide with evidence in hand",
+            ]),
+            "speaker_note": f"Show the sequencing and dependencies for {subject}.",
         },
         {
             "role": "risk_controls",
-            "headline": "Risks And Controls",
-            "takeaway": "Trust improves when missing inputs, weak evidence, and failed exports become visible instead of hidden.",
-            "supporting_points": _support("No fake metrics", "No fake image claims", "Failed QA blocks enterprise pass", "Warnings remain visible in Studio"),
-            "speaker_note": "Turn weaknesses into governance controls.",
+            "headline": f"{subject} Risks And Controls",
+            "takeaway": f"The main risks around {subject} are visible assumptions, not hidden gaps.",
+            "supporting_points": _storyline_points(ordered_facts, 8, [
+                f"Hidden assumptions about {subject} are the first risk",
+                f"Missing evidence stays visible as missing evidence",
+                f"Failed checks block the decision instead of being averaged away",
+            ]),
+            "speaker_note": f"Turn the open points of {subject} into named controls.",
         },
         {
             "role": "ask",
-            "headline": "Decision Ask",
-            "takeaway": "Approve Deck Engine v2 as the default presentation workflow for local, high-quality Ephe artifacts.",
-            "supporting_points": _support("Adopt role-based layouts", "Require evidence-aware scoring", "Ship Studio as the primary delivery surface"),
-            "speaker_note": "End with the concrete decision.",
+            "headline": f"Decision Ask: {subject}",
+            "takeaway": f"Approve the next step for {subject} and name the owner.",
+            "supporting_points": _storyline_points(ordered_facts, 9, [
+                f"Approve the next step for {subject}",
+                f"Name the owner for {subject}",
+                f"Set the review date and the evidence it needs",
+            ]),
+            "speaker_note": f"End with the concrete decision the {audience_text} has to make.",
         },
         {
             "role": "appendix_sources",
-            "headline": "Source And Assumption Notes",
-            "takeaway": "The deck separates verified evidence from assumptions so the user can improve it with sources, images, and brand assets.",
-            "supporting_points": _support("Evidence status is explicit", "Source brief links are preserved", "Brand/template gaps stay visible"),
+            "headline": f"{subject}: Sources And Assumptions",
+            "takeaway": f"Every claim about {subject} stays traceable to evidence or marked as an assumption.",
+            "supporting_points": _storyline_points(ordered_facts, 10, [
+                f"Evidence status: {status_label}",
+                f"Source notes supplied: {'yes' if source_notes.strip() else 'none'}",
+                f"Open assumptions about {subject} stay marked as assumptions",
+            ]),
             "speaker_note": "Use this slide as the audit trail.",
         },
     ]
@@ -188,7 +276,14 @@ def normalize_slide(raw: dict, index: int, source_status: str) -> dict:
     }
 
 
-def parse_slides(slides: list[dict] | str | None, title: str, audience: str, thesis: str, source_status: str) -> list[dict]:
+def parse_slides(
+    slides: list[dict] | str | None,
+    title: str,
+    audience: str,
+    thesis: str,
+    source_status: str,
+    source_notes: str = "",
+) -> list[dict]:
     if isinstance(slides, str) and slides.strip():
         parsed = []
         blocks = [block.strip() for block in re.split(r"\n\s*\n", slides) if block.strip()]
@@ -202,7 +297,7 @@ def parse_slides(slides: list[dict] | str | None, title: str, audience: str, the
         normalized = [deepcopy(slide) for slide in slides if isinstance(slide, dict)]
         if normalized:
             return normalized
-    return default_storyline(title, audience, thesis, source_status)
+    return default_storyline(title, audience, thesis, source_status, source_notes=source_notes)
 
 
 def build_deck_spec(
@@ -223,7 +318,7 @@ def build_deck_spec(
     deck_quality_profile: str = "enterprise",
 ) -> dict:
     source_status = source_status_from_evidence(evidence_level)
-    raw_slides = parse_slides(slides, title, audience, thesis, source_status)
+    raw_slides = parse_slides(slides, title, audience, thesis, source_status, source_notes=source_notes)
     normalized = [normalize_slide(slide, index, source_status) for index, slide in enumerate(raw_slides, 1)]
     objective = "Create a board-ready, local, evidence-aware presentation artifact."
     asset_paths = asset_paths or []

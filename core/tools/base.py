@@ -246,6 +246,10 @@ def allowed_root_of(real: str) -> str | None:
 
 def _is_path_allowed(path: Path) -> bool:
     resolved = path.resolve()
+    from core.path_guard import denied
+
+    if denied(resolved):
+        return False
     for root in _get_allowed_roots():
         try:
             resolved.relative_to(root.resolve())

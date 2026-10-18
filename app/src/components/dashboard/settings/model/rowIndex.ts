@@ -61,6 +61,7 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   // Wave 4: the store row beside the browser-cache row — the one that deletes
   // files on the server's machine, not in the browser.
   { tab: 'privacy', key: 'settings.sessionStoreRow' },
+  { tab: 'privacy', key: 'settings.clearAllChats' },
   // Knowledge
   { tab: 'memory', key: 'settings.memoryVectors' },
   { tab: 'memory', key: 'settings.memoryProvider' },

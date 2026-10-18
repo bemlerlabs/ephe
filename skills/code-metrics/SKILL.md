@@ -4,7 +4,7 @@ version: "1.0.0"
 trigger: /metrics
 description: "Erhebt LOC, McCabe-Komplexitaet und Import-Dichte fuer ein Projekt."
 when_to_use: [metriken, loc zahlen, komplexitaet, projekt groesse, import analyse]
-when_not_to_use: [einzelne function erklaeren]
+when_not_to_use: [einzelne function erklaeren, code refactoring]
 tools: [list_directory, file_search, read_file, execute_code, memory, skill_manage]
 quality_profile: source_grounded
 allowed_tools: [list_directory, file_search, read_file, execute_code, memory, skill_manage]

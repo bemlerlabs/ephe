@@ -11,6 +11,7 @@ export function TurnHeadRow({
   streaming,
   startTs,
   durationMs,
+  failed,
   hasTimeline,
   collapsed,
   onToggle,
@@ -18,6 +19,7 @@ export function TurnHeadRow({
   streaming: boolean
   startTs: number
   durationMs?: number
+  failed?: boolean
   hasTimeline: boolean
   collapsed: boolean
   onToggle: () => void
@@ -26,9 +28,11 @@ export function TurnHeadRow({
   const live = Math.max(0, Date.now() - startTs)
   const label = streaming
     ? t('chat.turnWorking', { time: fmtDurationUnits(live) })
-    : durationMs != null
-      ? t('chat.turnWorked', { time: fmtDurationUnits(durationMs) })
-      : null
+    : failed
+      ? t('chat.turnFailed')
+      : durationMs != null
+        ? t('chat.turnWorked', { time: fmtDurationUnits(durationMs) })
+        : null
   if (!label) return null
   return (
     <button

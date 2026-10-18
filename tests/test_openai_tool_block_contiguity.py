@@ -96,7 +96,7 @@ def _round(
         ]
         messages.append(mp.ProviderMessage(content="", tool_calls=calls))
         for j in range(n):
-            messages.append({"role": "tool", "content": f"result {r}-{j}"})
+            messages.append({"role": "tool", "tool_call_id": f"call_{r}_{j}", "content": f"result {r}-{j}"})
             for k in range(evidence_per_result):
                 messages.append(
                     {"role": evidence_role, "content": f"Tool evidence summary: tool_{r}_{j} #{k}"}
@@ -293,17 +293,13 @@ def test_the_guard_actually_catches_the_interruption():
     assert _tool_block_violations(fixed) == []
 
 
-def test_an_orphan_tool_result_travels_as_a_user_message():
-    """A result whose block is gone used to get a fabricated id and reach the engine as a
-    `role: "tool"` message with no `tool_calls` before it — measured 2026-10-17, an
-    OpenAI-compatible engine answered "tools must be a response to a preceding message with
-    tool_calls". The content still belongs to the conversation, so it travels as a user
-    message and the request stays legal."""
-    converted = _client()._convert_messages([{"role": "tool", "content": "result of a lost block"}])
+def test_an_orphan_tool_result_is_refused():
+    """A result whose block is gone used to get a fabricated id, then a user-message
+    remap. Both hid which call it answered; TL-1 refuses the history and names the id."""
+    import pytest
 
-    assert [m["role"] for m in converted] == ["user"]
-    assert converted[0]["content"] == "[tool result] result of a lost block"
-    assert _tool_block_violations(converted) == []
+    with pytest.raises(mp.ToolWireViolation):
+        _client()._convert_messages([{"role": "tool", "content": "result of a lost block"}])
 
 
 def test_the_tool_message_answers_the_engine_id_it_was_given():

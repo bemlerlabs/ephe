@@ -31,11 +31,12 @@ def test_p1_2_classify_returns_none_for_unclassified():
 
 def test_p1_2_missing_param_repair_fills_defaults():
     from core.tools.registry import _typed_repair
-    err = "[TOOL-ERROR] generate_chart: fehlende Pflicht-Parameter: chart_type, title, labels, values"
+    err = "[TOOL-ERROR] generate_chart: fehlende Pflicht-Parameter: chart_type, title, labels"
     repaired = _typed_repair("generate_chart", {}, err)
     assert repaired is not None
-    for key in ("chart_type", "title", "labels", "values"):
-        assert key in repaired
+    # values is optional since the multi-series contract: a repair must not invent an
+    # empty series for a chart that draws its numbers from `series`.
+    assert set(repaired) == {"chart_type", "title", "labels"}
 
 
 def test_p1_2_enum_mismatch_repair_uses_first_enum_value():

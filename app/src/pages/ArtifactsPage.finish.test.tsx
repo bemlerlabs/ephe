@@ -152,8 +152,11 @@ describe('WS3-17 — the frame around the states', () => {
     api.listArtifacts.mockResolvedValue({ artifacts: [], total: 0 })
     renderPage()
     await screen.findByTestId('artifacts-shelf-empty')
+    // The explanation is said once (in the shelf); the detail column carries a
+    // different, useful line about what appears there.
+    expect(screen.getAllByText('artifacts.page.empty')).toHaveLength(1)
     const placeholder = screen
-      .getAllByText('artifacts.page.empty')
+      .getAllByText('artifacts.page.detailEmpty')
       .find((el) => el.className.includes('border-dashed'))
     expect(placeholder).toBeTruthy()
     expect(placeholder!.className).toContain('h-full')

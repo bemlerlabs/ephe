@@ -121,8 +121,22 @@ function Boot() {
   )
 }
 
-root.render(
-  <Suspense fallback={null}>
-    <Boot />
-  </Suspense>,
-)
+// `?film=capture` mounts the first-open choreography alone; the render script seeks it
+// frame by frame at 60 fps. Development only, so the production entry keeps one branch.
+const captureFilm =
+  import.meta.env.DEV && new URLSearchParams(window.location.search).get('film') === 'capture'
+
+if (captureFilm) {
+  const IntroFilm = lazy(() => import('./components/onboarding/IntroFilm'))
+  root.render(
+    <Suspense fallback={null}>
+      <IntroFilm capture />
+    </Suspense>,
+  )
+} else {
+  root.render(
+    <Suspense fallback={null}>
+      <Boot />
+    </Suspense>,
+  )
+}

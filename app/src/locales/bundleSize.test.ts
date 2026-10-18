@@ -87,8 +87,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // on 2026-10-17 at +2,504 B in en.json (112,004 B) and +2,895 B in de.json
 // (121,395 B). The ceilings also hold the workspaces clarity lane's keys when it
 // lands (+1,134 / +1,261), so they move to 114,000 / 124,000 once.
-const EN_CEILING = 114_000
-const DE_CEILING = 124_000
+// Raised again on 2026-10-17 (the four-audit round): the replay step count, the
+// artifact detail hint, the engine-error sentence and its setup action, the
+// turn-failed label, and the six clear-all/dialog keys added 219 B in en.json
+// (114,219 B) and 194 B in de.json. Both halves move by the same 1,000 B, which
+// leaves room for the German side of the next copy fix without reaching the band.
+const EN_CEILING = 115_000
+const DE_CEILING = 125_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

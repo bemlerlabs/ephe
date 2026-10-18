@@ -33,18 +33,20 @@ function broadcast(
   title: string,
   description?: string,
   action?: ToastAction,
+  id?: string,
 ): void {
-  const item: ToastItem = { id: crypto.randomUUID(), kind, title, description, action }
+  const item: ToastItem = { id: id ?? crypto.randomUUID(), kind, title, description, action }
   listeners.forEach((l) => l(item))
 }
 
 export const toastBus = {
-  info: (title: string, description?: string, action?: ToastAction) =>
-    broadcast('info', title, description, action),
-  success: (title: string, description?: string, action?: ToastAction) =>
-    broadcast('success', title, description, action),
-  error: (title: string, description?: string, action?: ToastAction) =>
-    broadcast('error', title, description, action),
+  /** A toast, or — with an `id` already on screen — the same toast with new text. */
+  info: (title: string, description?: string, action?: ToastAction, id?: string) =>
+    broadcast('info', title, description, action, id),
+  success: (title: string, description?: string, action?: ToastAction, id?: string) =>
+    broadcast('success', title, description, action, id),
+  error: (title: string, description?: string, action?: ToastAction, id?: string) =>
+    broadcast('error', title, description, action, id),
   subscribe: (l: Listener): (() => void) => {
     listeners.add(l)
     return () => {

@@ -138,6 +138,7 @@ export function AssistantBubble({
         streaming={Boolean(m.streaming)}
         startTs={m.timestamp}
         durationMs={m.durationMs}
+        failed={Boolean(m.error)}
         hasTimeline={Boolean(m.blocks?.length || m.tool_calls?.length || m.thinkingPhases?.length)}
         collapsed={timelineCollapsed}
         onToggle={() => setTimelineCollapsed((v) => !v)}

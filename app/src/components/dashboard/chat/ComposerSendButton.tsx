@@ -77,8 +77,8 @@ export default function ComposerSendButton({
         data-testid={streaming ? 'stop-btn' : 'send-btn'}
         className={
           streaming
-            ? 'bg-status-danger/80 hover:bg-status-danger text-foreground rounded-xl p-2 max-lg:p-3 transition-all duration-base shrink-0 min-h-9 min-w-9 max-lg:min-h-11 max-lg:min-w-11'
-            : 'bg-brand hover:bg-brand-glow disabled:opacity-30 disabled:cursor-not-allowed text-black rounded-xl p-2 max-lg:p-3 transition-all duration-base forest-glow shrink-0 min-h-9 min-w-9 max-lg:min-h-11 max-lg:min-w-11'
+            ? 'bg-status-danger/80 hover:bg-status-danger text-foreground rounded-full p-2 max-lg:p-3 transition-all duration-base shrink-0 min-h-9 min-w-9 max-lg:min-h-11 max-lg:min-w-11'
+            : 'bg-brand hover:bg-brand-glow disabled:opacity-30 disabled:cursor-not-allowed text-black rounded-full p-2 max-lg:p-3 transition-all duration-base forest-glow shrink-0 min-h-9 min-w-9 max-lg:min-h-11 max-lg:min-w-11'
         }
       >
         {streaming ? <Square className="h-4 w-4" /> : <Send className="h-4 w-4" />}

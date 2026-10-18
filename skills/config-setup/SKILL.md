@@ -4,7 +4,7 @@ version: "1.0.0"
 trigger: /setup
 description: "Gefuehrter Setup-Dialog: Engine, API-Keys und Optionen."
 when_to_use: [setup, konfiguration, engine waehlen, api key hinterlegen]
-when_not_to_use: [schnelle abfrage]
+when_not_to_use: [schnelle abfrage, benchmark vergleich]
 tools: [read_file, write_file, get_datetime, memory, skill_manage]
 quality_profile: standard
 allowed_tools: [read_file, write_file, get_datetime, memory, skill_manage]

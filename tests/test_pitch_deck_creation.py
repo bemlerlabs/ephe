@@ -437,3 +437,44 @@ class TestPitchDeckContractsPerspective:
         assert report.artifact_type == "pptx"
         assert report.status == "passed"
         assert report.warnings == []
+
+
+class TestDefaultStoryline:
+    def test_given_topic_and_notes_when_storyline_built_then_every_slide_holds_the_subject(self):
+        """GIVEN an unrelated subject with source notes
+        WHEN the default storyline composes 11 slides
+        THEN each slide stays on the subject and carries no canned product pitch."""
+        from core.deck_model import default_storyline
+
+        slides = default_storyline(
+            " Alpine Solar Grid 2027 ",
+            "Municipal Utilities",
+            "Battery storage cuts peak curtailment by 38%",
+            "source_grounded",
+            source_notes=(
+                "# Field notes\n"
+                "- Two substations are already grid-constrained.\n"
+                "- The battery pilot reduced curtailment by 38% in the first quarter.\n"
+            ),
+        )
+
+        assert len(slides) == 11
+        assert [slide["role"] for slide in slides] == [
+            "cover", "executive_summary", "problem", "market_map", "architecture",
+            "workflow", "comparison_matrix", "roadmap", "risk_controls", "ask",
+            "appendix_sources",
+        ]
+        blob = " ".join(
+            " ".join([slide["headline"], slide["takeaway"], *slide["supporting_points"]])
+            for slide in slides
+        )
+        assert "Deck Engine v2" not in blob
+        assert "Most local assistants" not in blob
+        assert "Local AI" not in blob
+        assert "Presenton" not in blob and "PptxGenJS" not in blob
+        assert "38%" in blob
+        for slide in slides:
+            slide_text = " ".join(
+                [slide["headline"], slide["takeaway"], *slide["supporting_points"]]
+            ).lower()
+            assert "alpine solar grid 2027" in slide_text, slide["role"]

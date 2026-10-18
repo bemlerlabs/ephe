@@ -89,9 +89,11 @@ describe('Tool-Replay-Kader (N2)', () => {
       </>,
     )
     const k0 = await screen.findByTestId('tool-replay-kader-0')
-    expect(k0.textContent).toContain('2 steps') // 2 Steps · 0.6s
+    expect(k0.textContent).toContain('chat.replaySteps')
+    expect(k0.textContent).toContain('"count":2')
     const k1 = await screen.findByTestId('tool-replay-kader-1')
-    expect(k1.textContent).toContain('1 steps')
+    expect(k1.textContent).toContain('chat.replaySteps')
+    expect(k1.textContent).toContain('"count":1')
   })
 
   it('zugeklappt eine Zeile; Klick oeffnet nummerierte Steps mit Dauer', async () => {

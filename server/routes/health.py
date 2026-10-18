@@ -8,12 +8,16 @@ Extended with hybrid-architecture information:
 from __future__ import annotations
 
 import asyncio
+import os
+import uuid
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from core import __version__
+from core._version import API_CONTRACT
 from core.connectivity_probe import ConnectivityProbe
 from core.model_provider import (
     KEY_CHALLENGE_STATUSES,
@@ -23,6 +27,10 @@ from core.model_provider import (
 from core.model_router import get_router
 
 router = APIRouter(tags=["Health"])
+
+#: Stable for this process; a restart gets a new id.
+_INSTANCE_ID = uuid.uuid4().hex
+_ROOT = str(Path(__file__).resolve().parents[2])
 
 # Browser-typical user agent for engine probes: WAFs/Cloudflare block
 # python default UAs with 403 (finding 2026-10-01: opencode.ai/zen answered the
@@ -40,6 +48,12 @@ _PROBE_HEADERS = {
 class HealthResponse(BaseModel):
     status: str
     version: str
+    # LC-1: identity and wire contract for the desktop shell's ownership check.
+    instance_id: str = ""
+    pid: int = 0
+    root: str = ""
+    api_contract: int = 0
+    owner: str = ""
     ollama: bool
     models: list[str]
     # Hybrid-architecture fields
@@ -232,6 +246,11 @@ async def health_check() -> HealthResponse:
     return HealthResponse(
         status="ok",
         version=__version__,
+        instance_id=_INSTANCE_ID,
+        pid=os.getpid(),
+        root=_ROOT,
+        api_contract=API_CONTRACT,
+        owner=os.environ.get("EPHE_BACKEND_OWNER", ""),
         ollama=connected,
         models=ephe_models if ephe_models else ([active_model] if connected else []),
         active_tier=active_tier,

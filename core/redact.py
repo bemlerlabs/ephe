@@ -15,7 +15,19 @@ import re
 # r = refresh. The installation form is the one that grows to ~520 characters, and it
 # reaches logs as readily as the others.
 _KEY_LITERALS = re.compile(
-    r"\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{20,}|hf_[A-Za-z0-9]{20,}|xox[bp]-[A-Za-z0-9-]{10,})\b"
+    r"\b(sk-[A-Za-z0-9_-]{8,}"
+    r"|gh[pousr]_[A-Za-z0-9]{20,}"
+    r"|github_pat_[A-Za-z0-9_]{20,}"
+    r"|hf_[A-Za-z0-9]{20,}"
+    r"|xox[baprs]-[A-Za-z0-9-]{10,}"
+    r"|AKIA[0-9A-Z]{16}"
+    r"|AIza[0-9A-Za-z_-]{35,}"
+    r"|glpat-[A-Za-z0-9_-]{20,})\b"
+)
+# Private key blocks: the header and footer are the shape; the body is arbitrary.
+_PEM_BLOCK = re.compile(
+    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----",
+    re.DOTALL,
 )
 # Bearer/Basic headers
 _BEARER = re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._-]{8,}")
@@ -48,6 +60,7 @@ def redact(text: str) -> str:
     if not text:
         return text
     out = text
+    out = _PEM_BLOCK.sub(_MASK, out)
     out = _KEY_LITERALS.sub(lambda m: m.group(0)[:4] + _MASK, out)
     out = _BEARER.sub(lambda m: m.group(1) + _MASK, out)
     out = _QUERY_SECRET.sub(lambda m: m.group(1) + _MASK, out)
@@ -99,3 +112,20 @@ def args_summary(args: dict | None, limit: int = 160) -> str:
     except Exception:
         summary = "<unserialisierbar>"
     return _kurz(redact(summary), limit)
+
+
+def redact_deep(value: object) -> object:
+    """Redacts every string inside a JSON-shaped value, keys and nesting preserved.
+
+    The four sinks (model context, SSE, run ledger, audit log) carry structures, not
+    one string; masking only the top level leaves a token inside an artifact payload
+    or an event's nested result. Dict keys are left alone: they are field names from
+    our own protocol, and renaming one would break the reader.
+    """
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, dict):
+        return {key: redact_deep(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [redact_deep(item) for item in value]
+    return value

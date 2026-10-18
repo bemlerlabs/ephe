@@ -14,10 +14,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const getSessionStore = vi.fn()
 const pruneSessions = vi.fn()
+const clearSessions = vi.fn()
 
 vi.mock('@/lib/api', () => ({
   getSessionStore: () => getSessionStore(),
   pruneSessions: (body: unknown) => pruneSessions(body),
+  clearSessions: () => clearSessions(),
 }))
 
 vi.mock('react-i18next', () => ({
@@ -29,6 +31,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 import { SessionStoreSection } from './sections-sessions'
+import { useChatStore } from '@/store/chatStore'
 
 /** The store as the route answers it: 8,631 files, of which lists reach 2,381. */
 const STORE = {
@@ -48,6 +51,7 @@ const STORE = {
 beforeEach(() => {
   getSessionStore.mockReset()
   pruneSessions.mockReset()
+  clearSessions.mockReset()
   getSessionStore.mockResolvedValue(STORE)
 })
 
@@ -148,5 +152,31 @@ describe('SessionStoreSection (Wave 4)', () => {
     expect(outcome.textContent).toContain('settings.sessionStoreDone')
     expect(outcome.textContent).toContain('"files":"1"')
     expect(outcome.textContent).toContain('"remaining":"4"')
+  })
+
+  it('clears every chat only after a second, confirmed click', async () => {
+    const clearAll = vi.fn()
+    useChatStore.setState({ clearAllSessions: clearAll })
+    clearSessions.mockResolvedValue({
+      deleted: ['a', 'b'],
+      kept: 0,
+      bytes_freed: 10,
+      remaining: { 'rest-': 0, 'pwa-': 0, '': 0 },
+      namespaces: ['rest-', 'pwa-'],
+      dry_run: false,
+    })
+    render(<SessionStoreSection />)
+    await screen.findByTestId('session-store-row')
+
+    fireEvent.click(screen.getByTestId('clear-all-chats'))
+    expect(clearSessions).not.toHaveBeenCalled()
+    expect(clearAll).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByTestId('clear-all-chats-confirm'))
+    await waitFor(() => expect(clearSessions).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(clearAll).toHaveBeenCalledTimes(1))
+    expect((await screen.findByTestId('clear-all-chats-note')).textContent).toContain(
+      'settings.clearAllChatsDone',
+    )
   })
 })

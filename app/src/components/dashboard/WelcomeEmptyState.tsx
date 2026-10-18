@@ -9,14 +9,18 @@
  * Offline-first: every fetch fails silently into an honest static
  * fallback text — the cards never render fabricated numbers.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { m, useReducedMotion } from 'framer-motion'
 import { Sparkles, Mail, Image as ImageIcon, Globe, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { markSetupIntent } from '@/lib/setupGate'
+import { loadTourMarker } from '@/lib/firstRunTour'
+import './WelcomeEmptyState.css'
+import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
 import { engineStateOf, type EngineState } from '@/lib/engineState'
 import EphemeralWordmark from './EphemeralWordmark'
 import { EpheMark } from '@/components/shell/EpheMark'
+import { CompanionActor, type CompanionHandle } from '@/components/shell/CompanionActor'
 import {
   listProjects,
   listArtifacts,
@@ -42,7 +46,40 @@ const CARD_ICONS = [Sparkles, Mail, ImageIcon, Globe] as const
 export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateProps) {
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
+  const companionEnabled = useDeepBool('appearance.companion_enabled', true)
+  const companionSpecies = useDeepSelect('appearance.companion_species', 'fire_bee')
+  const companionScale = useDeepNumber('appearance.companion_scale', 100)
+  const animationsEnabled = useDeepBool('appearance.animations_enabled', true)
+  const still = Boolean(reduceMotion) || !animationsEnabled
+  const companionRef = useRef<CompanionHandle>(null)
   const [live, setLive] = useState<LiveData>({ projects: null, artifacts: null, health: null })
+  // The tour's first answer decides which starter fits: code → the project card,
+  // documents → the email card, research → the web card. A mix recommends nothing.
+  const [recommended, setRecommended] = useState<number | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    void loadTourMarker().then((marker) => {
+      if (!alive) return
+      const usage = marker.answers.usage
+      const map: Record<string, number> = { code: 0, documents: 1, research: 3 }
+      setRecommended(usage && usage !== 'mix' ? (map[usage] ?? null) : null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // A click on a card (or on the companion) turns the bee toward the card,
+  // leaves a spark burst and fills the draft. It still never sends.
+  const activateCard = useCallback(
+    (index: number, degrees = 0) => {
+      companionRef.current?.turnTo(degrees)
+      companionRef.current?.burst()
+      onFillComposer(t(`welcome.cards.${index}.prompt`))
+    },
+    [onFillComposer, t],
+  )
 
   const loadHealth = useCallback(() => {
     healthCheck()
@@ -170,7 +207,20 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
       <div className="my-auto flex w-full flex-col items-center">
         {/* The wordmark condenses in the empty state — inline, so the movement
             has SVG children, which an <img> does not own. */}
-        <EpheMark state="condense" size="4rem" testId="ephe-mark-hero" className="mb-3" />
+        {companionEnabled && companionSpecies !== 'minimal' ? (
+          <CompanionActor
+            ref={companionRef}
+            species={companionSpecies === 'ember_spark' ? 'ember_spark' : 'fire_bee'}
+            scale={companionScale}
+            still={still}
+            size="hero"
+            testId="ephe-mark-hero"
+            className="mb-1"
+            onActivate={() => activateCard(recommended ?? 0)}
+          />
+        ) : (
+          <EpheMark state="condense" size="4rem" testId="ephe-mark-hero" className="mb-3" />
+        )}
         {/* I2 clean empty state (reference look): a time-of-day greeting, a
           subdued brand name, no tile/version line — the first impression stays
           calm, the composer carries the composition. */}
@@ -196,12 +246,25 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
         {/* Natural-width pills, centered, wrapping as one flexible row: fixed grid
           columns truncated every title with an ellipsis at common widths. */}
         <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl w-full mb-4 sm:mb-5 shrink-0">
-          {[0, 1, 2, 3].map((i) => {
+          {recommended !== null && (
+            <p
+              data-testid="welcome-recommended"
+              className="welcome-recommended-label w-full text-ui-xs"
+            >
+              {t('welcome.recommended')}
+            </p>
+          )}
+          {(recommended === null
+            ? [0, 1, 2, 3]
+            : [recommended, ...[0, 1, 2, 3].filter((i) => i !== recommended)]
+          ).map((i) => {
             const Icon = CARD_ICONS[i]!
+            const isRecommended = i === recommended
             return (
               <m.button
                 key={i}
                 data-testid={`welcome-card-${i}`}
+                data-recommended={isRecommended ? 'true' : undefined}
                 initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14, filter: 'blur(6px)' }}
                 animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
                 transition={
@@ -219,15 +282,20 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
                       }
                 }
                 whileTap={reduceMotion ? undefined : { scale: 0.99 }}
-                className="glass-control rounded-full px-3.5 py-1.5 hover:bg-brand/10 group flex items-center gap-2 transition-colors shrink-0 max-lg:min-h-11"
-                onClick={() => {
+                className={`glass-control rounded-full px-3.5 py-1.5 welcome-card group flex items-center gap-2 shrink-0 max-lg:min-h-11${isRecommended ? ' welcome-card-recommended' : ''}`}
+                onClick={(event) => {
                   // Deploy-check P2-1: a card FILLS the composer draft instead of
                   // firing an engine call on a stray click — the user stays in
                   // control and can edit before sending.
-                  onFillComposer(t(`welcome.cards.${i}.prompt`))
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  const degrees = Math.max(
+                    -38,
+                    Math.min(38, (rect.left + rect.width / 2 - window.innerWidth / 2) / 20),
+                  )
+                  activateCard(i, degrees)
                 }}
               >
-                <Icon className="h-3.5 w-3.5 text-brand/80 shrink-0" aria-hidden="true" />
+                <Icon className="welcome-card-icon h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span className="text-ui-xs text-ink-faint group-hover:text-foreground/90 transition-colors truncate">
                   {t(`welcome.cards.${i}.title`)}
                 </span>

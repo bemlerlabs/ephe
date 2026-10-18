@@ -47,6 +47,18 @@ const isLanguage = (value: string): value is Language =>
  * storage that refuses to be read, as in a locked-down webview — falls back to English
  * exactly as the detector would.
  */
+export function languageFrom(stored: string | null, browser: string): Language {
+  const base = baseLanguage(stored)
+  if (isLanguage(base)) return base
+  // A first start has no stored choice yet. The browser's own language is the
+  // person's answer then; an unsupported stored value still falls back to English.
+  if (!stored) {
+    const browserBase = baseLanguage(browser)
+    if (isLanguage(browserBase)) return browserBase
+  }
+  return FALLBACK_LANGUAGE
+}
+
 function storedLanguage(): Language {
   let stored: string | null = null
   try {
@@ -54,8 +66,7 @@ function storedLanguage(): Language {
   } catch {
     stored = null
   }
-  const base = baseLanguage(stored)
-  return isLanguage(base) ? base : FALLBACK_LANGUAGE
+  return languageFrom(stored, typeof navigator !== 'undefined' ? navigator.language : '')
 }
 
 /** One chunk per language: this call is what keeps a catalog out of the entry chunk. */
@@ -126,11 +137,11 @@ await i18n
     // sends every other language through `catalogBackend` instead of answering from this
     // object alone.
     resources: activeCatalog ? { [activeLanguage]: { translation: activeCatalog } } : {},
-    // English is the default language (the broad majority); German stays
-    // fully available (settings/switcher, persisted in localStorage).
-    // Without an explicit user choice the navigator language is NEVER guessed —
-    // otherwise the first impression was half-English/half-German for some users.
-    fallbackLng: FALLBACK_LANGUAGE,
+    // The boot language is the fallback too: with no stored choice it is the
+    // browser's language, and the only catalog bundled at init is its own — a
+    // fallback of `en` beside a bundled `de` left every key path raw (measured on
+    // the fresh first open, 2026-10-17).
+    fallbackLng: activeLanguage,
     supportedLngs: [...SUPPORTED_LANGUAGES],
     load: 'languageOnly',
     partialBundledLanguages: true,
@@ -138,7 +149,7 @@ await i18n
       escapeValue: false,
     },
     detection: {
-      // No navigator lookup: without a stored choice → 'en' (fallbackLng)
+      // A stored choice wins; without one the boot language above is the answer.
       order: ['localStorage'],
       caches: ['localStorage'],
     },

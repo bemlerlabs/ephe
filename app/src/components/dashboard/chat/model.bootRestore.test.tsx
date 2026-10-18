@@ -128,7 +128,8 @@ const info: MockInstance = vi.fn()
 
 /** Every info toast as `title` (plus the options the caller passed, if any). */
 function infoCalls(): string[] {
-  return info.mock.calls.map((call) => call.filter(Boolean).join(' | '))
+  // title | description; the optional toast id is not part of what the user reads.
+  return info.mock.calls.map((call) => [call[0], call[1]].filter(Boolean).join(' | '))
 }
 
 beforeEach(() => {

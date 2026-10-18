@@ -329,6 +329,52 @@ class TestChartEmbedding:
         assert _manifest_for(pdf_path)["images"]["missing_count"] == 1
 
 
+class TestSvgChartEmbedding:
+
+    async def test_given_light_chart_and_diagram_svgs_when_referenced_then_both_embed_as_vectors(
+        self, tmp_path, monkeypatch
+    ):
+        import core.engine_config as engine_config
+        from core.tools.chart_tools import generate_chart
+        from core.tools.diagram_tools import create_diagram
+
+        artifacts = tmp_path / "artifacts"
+        artifacts.mkdir()
+        monkeypatch.setattr(engine_config, "artifact_output_dir", lambda: artifacts)
+        chart_answer = await generate_chart("bar", "Embedded Revenue", ["Q1", "Q2"], [3, 5])
+        diagram_answer = await create_diagram(
+            "flowchart", "Embedded Flow", ["Start", "Finish"], theme="light",
+        )
+        chart_path = Path(chart_answer.split("CHART_FILE:", 1)[1].splitlines()[0])
+        diagram_path = Path(diagram_answer.split("SVG_FILE:", 1)[1].splitlines()[0])
+        content = (
+            "# Executive Summary\n"
+            f"![chart]({chart_path})\n"
+            "# Findings\n"
+            f"![diagram]({diagram_path})\n"
+        )
+        pdf_path = await _create_pdf(tmp_path, monkeypatch, content, filename="svg-embed.pdf")
+        pages, text = _pages_and_text(pdf_path)
+
+        # Vector text survives into the page stream: the titles are real PDF text,
+        # and no raster images were created for either SVG.
+        assert "Embedded Revenue" in text
+        assert "Embedded Flow" in text
+        assert "![" not in text
+        assert [image for page in pages for image in page.images] == []
+        assert _manifest_for(pdf_path)["images"] == {"count": 2, "missing_count": 0}
+
+    async def test_given_broken_svg_when_referenced_then_the_placeholder_renders(self, tmp_path, monkeypatch):
+        broken = tmp_path / "broken.svg"
+        broken.write_text("<svg><rect></svg>", encoding="utf-8")
+        content = f"# Executive Summary\n![chart]({broken})\n"
+        pdf_path = await _create_pdf(tmp_path, monkeypatch, content, filename="broken-svg.pdf")
+        _, text = _pages_and_text(pdf_path)
+
+        assert "[chart missing:" in text
+        assert _manifest_for(pdf_path)["images"] == {"count": 0, "missing_count": 1}
+
+
 # Font strategy pin: honest evaluation, documented decision
 
 

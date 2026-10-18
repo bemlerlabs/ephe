@@ -84,8 +84,13 @@ def _list(body: str, text: str) -> list[str]:
 def resolution_config() -> dict:
     """The resolution the shipped i18n source declares, as plain values."""
     text = _text(I18N_TS)
+    fallback_raw = _first(r"fallbackLng:\s*([^,\n}]+)", text)
     return {
-        "fallbackLng": _value(_first(r"fallbackLng:\s*([^,\n}]+)", text), text),
+        # `activeLanguage` is the boot language (the browser on a first start), not a
+        # literal; the detector tests pass its value per case.
+        "fallbackLng": (
+            "activeLanguage" if fallback_raw == "activeLanguage" else _value(fallback_raw, text)
+        ),
         "supportedLngs": _list(_first(r"supportedLngs:\s*\[([^\]]*)\]", text), text),
         "load": _value(_first(r"load:\s*([^,\n}]+)", text), text),
         "detectionOrder": _list(
@@ -101,9 +106,10 @@ class TestDetectionConfig:
     def test_only_english_and_german_are_supported(self):
         assert resolution_config()["supportedLngs"] == ["en", "de"]
 
-    def test_the_browser_language_is_never_the_detector(self):
-        # Only 'localStorage' in the lookup order. A navigator or htmlTag entry would let
-        # the machine's locale decide the first impression for a user who never chose one.
+    def test_the_detector_reads_only_the_stored_choice(self):
+        # The detector itself must not read the navigator: the boot language is decided
+        # by `storedLanguage()` (browser on a fresh start) and handed to i18next as
+        # `activeLanguage`, so a second navigator lookup would be a second truth.
         assert resolution_config()["detectionOrder"] == ["localStorage"]
 
     def test_a_region_code_narrows_to_its_language(self):
@@ -111,8 +117,12 @@ class TestDetectionConfig:
 
 
 class TestFallback:
-    def test_the_fallback_language_is_english(self):
-        assert resolution_config()["fallbackLng"] == "en"
+    def test_the_fallback_is_the_boot_language(self):
+        text = _text(I18N_TS)
+        assert resolution_config()["fallbackLng"] == "activeLanguage"
+        assert "const activeLanguage = storedLanguage()" in text
+        assert "navigator.language" in text, "a first start no longer follows the browser"
+        assert "if (!stored)" in text, "a stored choice must win over the browser"
 
     def test_dates_and_numbers_default_to_english(self):
         text = _text(DATE_LOCALE_TS)
@@ -152,7 +162,7 @@ function installStorage(entries) {
   return map
 }
 
-async function resolve(entries, navigatorLanguage) {
+async function resolve(entries, navigatorLanguage, fallback) {
   const cache = installStorage(entries)
   globalThis.window = globalThis
   globalThis.document = { cookie: '' }
@@ -164,7 +174,7 @@ async function resolve(entries, navigatorLanguage) {
   instance.use(LanguageDetector)
   await instance.init({
     resources: { en: { translation: {} }, de: { translation: {} } },
-    fallbackLng: config.fallbackLng,
+    fallbackLng: config.fallbackLng === 'activeLanguage' ? fallback : config.fallbackLng,
     supportedLngs: config.supportedLngs,
     load: config.load,
     interpolation: { escapeValue: false },
@@ -175,7 +185,7 @@ async function resolve(entries, navigatorLanguage) {
 
 const results = []
 for (const item of cases) {
-  const resolved = await resolve(item.store, item.navigator)
+  const resolved = await resolve(item.store, item.navigator, item.fallback)
   results.push({ id: item.id, language: resolved.language, cache: resolved.cache })
 }
 process.stdout.write(JSON.stringify(results))
@@ -201,19 +211,27 @@ def _run_node(cases: list[dict]) -> list[dict]:
     reason="node or app/node_modules is absent, so the detector cannot be executed",
 )
 class TestResolvedByTheRealDetector:
-    def test_a_stored_choice_wins_and_the_browser_language_never_does(self):
+    def test_a_stored_choice_wins_and_a_first_start_follows_the_browser(self):
         cases = [
-            {"id": "fresh, browser German", "store": {}, "navigator": "de-DE", "expect": "en"},
+            {
+                "id": "fresh, browser German",
+                "store": {},
+                "navigator": "de-DE",
+                "fallback": "de",
+                "expect": "de",
+            },
             {
                 "id": "stored German",
                 "store": {"i18nextLng": "de"},
                 "navigator": "en-US",
+                "fallback": "de",
                 "expect": "de",
             },
             {
                 "id": "stored unsupported code",
                 "store": {"i18nextLng": "fr"},
                 "navigator": "de-DE",
+                "fallback": "en",
                 "expect": "en",
             },
         ]
@@ -222,5 +240,7 @@ class TestResolvedByTheRealDetector:
             assert resolved[case["id"]]["language"] == case["expect"]
 
     def test_the_resolved_language_is_written_back_to_storage(self):
-        resolved = _run_node([{"id": "fresh", "store": {}, "navigator": "de-DE"}])
-        assert dict(resolved[0]["cache"]).get("i18nextLng") == "en"
+        resolved = _run_node(
+            [{"id": "fresh", "store": {}, "navigator": "de-DE", "fallback": "de"}]
+        )
+        assert dict(resolved[0]["cache"]).get("i18nextLng") == "de"

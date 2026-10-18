@@ -1,6 +1,8 @@
 import { AlertTriangle, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { fileUrl } from '@/lib/api'
+import { friendlyError } from '@/lib/errorText'
+import { markSetupIntent } from '@/lib/setupGate'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import type { ChatMessage as LegacyChatMessage } from '@/store/chatStore'
 import CodeBlock from '../CodeBlock'
@@ -156,18 +158,31 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
         <div className="mt-2 rounded-md border border-status-danger/20 bg-status-danger/10 p-2 text-ui-xs text-status-danger">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            {m.error}
+            {friendlyError(m.error, t)}
           </div>
-          {onRetry && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {onRetry && (
+              <button
+                onClick={() => onRetry(m.id)}
+                className="flex items-center gap-1.5 min-h-6 max-lg:min-h-11 rounded-md border border-status-danger/30 px-2 py-1 text-ui-xs text-red-200 hover:bg-status-danger/20 transition-colors"
+                aria-label={t('chat.retry')}
+              >
+                <RotateCcw className="h-3 w-3" />
+                {t('chat.retry')}
+              </button>
+            )}
             <button
-              onClick={() => onRetry(m.id)}
-              className="mt-2 flex items-center gap-1.5 min-h-6 max-lg:min-h-11 rounded-md border border-status-danger/30 px-2 py-1 text-ui-xs text-red-200 hover:bg-status-danger/20 transition-colors"
-              aria-label={t('chat.retry')}
+              type="button"
+              data-testid="error-setup-engine"
+              onClick={() => {
+                markSetupIntent()
+                window.location.hash = '#/setup'
+              }}
+              className="flex items-center gap-1 min-h-6 max-lg:min-h-11 rounded-md border border-status-danger/30 px-2 py-1 text-ui-xs text-red-200 hover:bg-status-danger/20 transition-colors"
             >
-              <RotateCcw className="h-3 w-3" />
-              {t('chat.retry')}
+              {t('chat.setupEngine')}
             </button>
-          )}
+          </div>
         </div>
       )}
     </>

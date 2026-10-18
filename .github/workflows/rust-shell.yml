@@ -1,0 +1,54 @@
+name: Rust shell
+
+# The desktop shell is a shipped surface, and nothing in CI compiled it: a broken
+# `app/src-tauri` reached a tag and only failed in the release bundle, after the
+# signal that should have caught it. This job is the missing gate — `cargo check`
+# proves the shell compiles against its lock, `cargo test` runs the ownership and
+# lifecycle tests that live in the Rust modules themselves.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-shell-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  cargo:
+    name: cargo check and test (app/src-tauri)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+
+      - name: Linux system deps (webkit2gtk)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Frontend dist placeholder
+        # tauri-build validates frontendDist; the check compiles no bundle, so an
+        # empty directory is the honest input.
+        run: mkdir -p app/dist
+
+      - name: cargo check --locked
+        run: cargo check --locked --manifest-path app/src-tauri/Cargo.toml
+
+      - name: cargo test --locked
+        run: cargo test --locked --manifest-path app/src-tauri/Cargo.toml

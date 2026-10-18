@@ -40,7 +40,18 @@ export function Toaster() {
 
   useEffect(() => {
     const unsub = subscribeToast((item) => {
-      setItems((prev) => [...prev, item].slice(-MAX_VISIBLE))
+      setItems((prev) => {
+        const at = prev.findIndex((x) => x.id === item.id)
+        if (at >= 0) {
+          const next = [...prev]
+          next[at] = item
+          return next
+        }
+        return [...prev, item].slice(-MAX_VISIBLE)
+      })
+      // A re-used id replaces the toast and restarts its clock: one restore, one row.
+      const previous = timersRef.current.get(item.id)
+      if (previous !== undefined) clearTimeout(previous)
       const tm = setTimeout(
         () => removeItem(item.id),
         item.kind === 'error' ? ERROR_DISMISS_MS : AUTO_DISMISS_MS,
@@ -57,7 +68,7 @@ export function Toaster() {
   if (items.length === 0) return null
 
   return (
-    <div className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] left-4 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:bottom-20">
+    <div className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] left-1/2 -translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:bottom-20">
       {items.map((item) => {
         const Icon =
           item.kind === 'error' ? AlertTriangle : item.kind === 'success' ? CheckCircle : Info

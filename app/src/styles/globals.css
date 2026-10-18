@@ -194,6 +194,12 @@
   --color-figure-mou: #9A5730;       /* flame-lit fur: antenna rods, tuft, mouth */
   --color-figure-ember: #F2A274;     /* the ember stop of the eye gradient */
   --color-figure-cream: #F7F0E0;     /* eyes, the plume's hot core */
+  --color-figure-head-hi: #2C2523;   /* the head sphere's upper-left highlight */
+  --color-figure-head-core: #191311; /* the head sphere's velvet core */
+  --color-figure-head-shadow: #120F0E; /* the head sphere's lower shadow */
+  --color-figure-honey-mid: #FFD166; /* the honey lantern's middle gold */
+  --color-figure-honey-deep: #FF9F1C; /* the honey lantern's deep amber */
+  --color-figure-iris: #F5A623;      /* the amber iris */
   --color-figure-shine: #FFFDF6;     /* catchlight on eye and ball */
   --color-figure-wing-root: #452718; /* glass wing, root stop (paper: html.light) */
   --color-figure-wing-mid: #8A5232;  /* glass wing, middle stop */
@@ -1600,6 +1606,49 @@ html.light .ephe-mark::before { display: none; }
 .ephe-spirit[data-register="calm"] .ephe-spirit-frame[data-frame="calm"],
 .ephe-spirit[data-register="fierce"] .ephe-spirit-frame[data-frame="fierce"] {
   opacity: 1;
+}
+
+/* The four sheet poses that are a transform rather than a redraw: the calm head
+   tilt, the forward lean, the flight arc and the curled ember lantern. The figure
+   itself stays one drawing; only its frame moves. */
+.ephe-spirit[data-state="lean"] .ephe-spirit-frame {
+  transform: rotate(-4deg) translateY(1.5%);
+}
+.ephe-spirit[data-state="lead"] .ephe-spirit-frame {
+  transform: rotate(5deg) translateX(4%);
+}
+.ephe-spirit[data-state="flight"] .ephe-spirit-frame {
+  animation: ephe-spirit-flight 1.25s var(--ease-out-soft) infinite;
+}
+.ephe-spirit[data-state="flight"]::after {
+  content: '';
+  position: absolute;
+  inset-inline: -18% -6%;
+  inset-block: 58% 12%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(60% 40% at 20% 60%,
+    color-mix(in oklab, var(--color-firefly-glow) 70%, transparent) 0%,
+    transparent 72%);
+  filter: blur(6px);
+  animation: ephe-spirit-trail 0.9s linear infinite;
+}
+.ephe-spirit[data-state="ember"] .ephe-spirit-frame {
+  transform: rotate(8deg) scale(0.92);
+  filter: brightness(0.9) saturate(0.85);
+}
+.ephe-spirit[data-state="ember"] .ephe-spirit-frame [data-part="face"] {
+  opacity: 0.35;
+}
+@keyframes ephe-spirit-flight {
+  0%,
+  100% { transform: rotate(-7deg) translateY(0); }
+  50% { transform: rotate(-3deg) translateY(-5%); }
+}
+@keyframes ephe-spirit-trail {
+  0% { opacity: 0.25; transform: translateX(-6%) scaleX(0.8); }
+  60% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateX(8%) scaleX(1.1); }
 }
 
 /* 6. The first-run arc: eight beats on one 600 ms unit

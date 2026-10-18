@@ -29,7 +29,7 @@
     {
       "name": "code-metrics",
       "source": "skills/code-metrics",
-      "computedHash": "55fd16acee65474880825697481aedac1ec9c2003897cd6c9da64b25314309b9"
+      "computedHash": "83f54dfede36c14beb84bae877ebfc8762a079ed9a1c06b5147e7eb5ef6b5a35"
     },
     {
       "name": "code-reviewer",
@@ -49,7 +49,7 @@
     {
       "name": "config-setup",
       "source": "skills/config-setup",
-      "computedHash": "9a85b776ab23efaa1519a7d87e6487d079d1c8137fc41df7ef75375408be99d9"
+      "computedHash": "6a91b970f37bbffddddb106d63dcf7786960a7b10066eb8f8fa6a129ad1a1ff2"
     },
     {
       "name": "cover-letter",
@@ -119,7 +119,7 @@
     {
       "name": "help",
       "source": "skills/help",
-      "computedHash": "006fd23416bd7b80e26d1ed018b214030977409342d68976f4a846dcc441c500"
+      "computedHash": "ee499517626bf95f8573885436e2184cc8a1141a096be4815373ad296c3d3d9e"
     },
     {
       "name": "image-creator",

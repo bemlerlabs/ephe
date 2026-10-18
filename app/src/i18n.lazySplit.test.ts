@@ -92,7 +92,7 @@ describe('the locale catalogs stay split per language', () => {
     expect(readyWhenAnnounced).toEqual([true])
   })
 
-  it('lands in the new language with no catalog behind it when its chunk never arrives', async () => {
+  it('keeps the boot catalog as the backdrop when the new chunk never arrives', async () => {
     // The shape, measured — not a promise. i18next announces the language it was asked for
     // even when the backend reported an error for it (`changeLanguage`'s `done(err, l)`
     // passes `l` regardless of the error), and nothing here keeps the language the user was
@@ -113,7 +113,7 @@ describe('the locale catalogs stay split per language', () => {
       expect(announced).toEqual(['en'])
       expect(instance.language).toBe('en')
       expect(instance.hasResourceBundle('en', 'translation')).toBe(false)
-      expect(instance.t('workspaces.title')).toBe('workspaces.title')
+      expect(instance.t('workspaces.title')).toBe('Arbeitsbereiche')
     } finally {
       vi.doUnmock('./locales/en.json')
       vi.resetModules()

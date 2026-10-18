@@ -142,17 +142,20 @@ function MessageBubbleInner({
       texts"); the reference runs at ~88% of the column. P6 (ref-01):
       the user prompt sits as a quiet card on the right, its text left-aligned
       (no text-right) — Ephe never renders prompts right-aligned. */}
-      <div className="flex-1 max-w-[88%]">
+      {/* Content — the user prompt sits as a quiet capsule on the right; the
+      assistant answer runs the full reading width straight on the studio stage,
+      with no outer card, the way a modern workspace reads an answer. */}
+      <div className={isAssistant ? 'flex-1 min-w-0' : 'flex-1 max-w-[88%]'}>
         {/* The approval prompt renders at the BOTTOM of the bubble (see below), so the
             user does not have to scroll up to reach the approve button. */}
         <div
-          className={`rounded-2xl p-4 ${
+          className={
             isUser
-              ? 'bg-canvas border border-hairline rounded-tr-sm'
+              ? 'rounded-2xl p-4 rounded-tr-sm bg-canvas border border-hairline'
               : isAssistant
-                ? `glass-reading rounded-tl-sm ${!msg.streaming ? 'frost-subtle' : ''}`
-                : 'bg-yellow-500/10 border border-yellow-500/20 rounded-2xl'
-          }`}
+                ? 'text-foreground'
+                : 'rounded-2xl p-4 bg-yellow-500/10 border border-yellow-500/20'
+          }
         >
           {isAssistant ? (
             <AssistantBubble

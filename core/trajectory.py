@@ -209,6 +209,18 @@ def end_turn(session_id: str) -> None:
     _persist()
 
 
+def _with_ledger(turn: dict[str, Any]) -> dict[str, Any]:
+    """The turn plus the run ledger's five-phase projection (None when no lines)."""
+    out = dict(turn)
+    try:
+        from core.run.ledger import snapshot_if_present
+
+        out["ledger"] = snapshot_if_present(str(turn.get("turn_id") or ""))
+    except Exception:
+        out["ledger"] = None
+    return out
+
+
 def get_turns(session_id: str) -> list[dict[str, Any]]:
     """The last turns of a session (newest first)."""
     _ensure_loaded()
@@ -216,7 +228,7 @@ def get_turns(session_id: str) -> list[dict[str, Any]]:
     history = _turns.get(sid, [])
     live = _open.get(sid)
     if live and live.get("steps"):
-        return [{
+        return [_with_ledger({
             "sid": sid,
             "turn_id": live.get("turn_id", ""),
             "model": live.get("model", ""),
@@ -224,8 +236,8 @@ def get_turns(session_id: str) -> list[dict[str, Any]]:
             "duration_ms": int((time.perf_counter() - live["t0"]) * 1000) if "t0" in live else None,
             "steps": live["steps"],
             "memories": live.get("memories", []),
-        }] + history
-    return history
+        })] + history
+    return [_with_ledger(turn) for turn in history]
 
 
 def reset_for_test() -> None:

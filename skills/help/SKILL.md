@@ -4,7 +4,7 @@ version: "1.0.0"
 trigger: /help
 description: "Shows an overview of all features and capabilities of Ephe."
 when_to_use: [hilfe, help, uebersicht, befehlsliste, was kannst du]
-when_not_to_use: [konkrete aufgabe]
+when_not_to_use: [konkrete aufgabe, fehlermeldung analysieren]
 tools: [memory, skill_manage]
 quality_profile: standard
 allowed_tools: [memory, skill_manage]

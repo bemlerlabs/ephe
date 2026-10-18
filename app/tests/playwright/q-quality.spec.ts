@@ -146,7 +146,10 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     }
     // The ceiling counts the boot set; the first-open tour added one named request
     // (GET /api/tour, the device marker) to the 24 measured before it.
-    expect(apiCalls.length, `API-Anzahl ${apiCalls.length}: ${apiCalls.join(' ')}`).toBeLessThanOrEqual(25)
+    expect(
+      apiCalls.length,
+      `API-Anzahl ${apiCalls.length}: ${apiCalls.join(' ')}`,
+    ).toBeLessThanOrEqual(25)
     expect(requests.length, `Total-Anzahl ${requests.length}`).toBeLessThanOrEqual(400)
     // UI errors: favicon/connection are expected offline paths; the rest must be 0
     const uiErrors = errors.filter(

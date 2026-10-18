@@ -337,13 +337,18 @@ export function useChatLayoutModel() {
     // of the moment — the restore that is running, and the restore that happened.
     const before = useChatStore.getState().sessions.length
     if (before === 0 && !useChatStore.getState().hydrated) {
-      toastBus.info(tRef.current('chat.restoringHistory'))
+      toastBus.info(tRef.current('chat.restoringHistory'), undefined, undefined, 'history-restore')
     }
     void initFromDb().then(() => {
       const restored = useChatStore.getState().sessions
       if (before === 0 && restored.length > 0) {
         const messages = restored.reduce((sum, s) => sum + s.messages.length, 0)
-        toastBus.info(tRef.current('chat.historyRestored', { count: messages }))
+        toastBus.info(
+          tRef.current('chat.historyRestored', { count: messages }),
+          undefined,
+          undefined,
+          'history-restore',
+        )
       }
     })
   }, [initFromDb])

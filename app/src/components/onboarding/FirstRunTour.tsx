@@ -13,11 +13,16 @@ import './FirstRunTour.css'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { Code2, FileText, Layers, Loader2, Search } from 'lucide-react'
-import { FireSpirit } from '@/components/shell/FireSpirit'
-import type { SpiritState } from '@/components/shell/FireSpirit'
+import { Code2, FileText, Layers, Loader2, Search, ShieldCheck } from 'lucide-react'
 import { useDeepBool } from '@/lib/deepSettings'
-import { gateSnapshot, loadSetupGate, markSetupIntent, subscribeGate } from '@/lib/setupGate'
+import { InteractiveBeeGuide, type BeeGuideHandle } from './InteractiveBeeGuide'
+import {
+  gateSnapshot,
+  loadSetupGate,
+  markSetupIntent,
+  skipSetupGate,
+  subscribeGate,
+} from '@/lib/setupGate'
 import {
   disableSkill,
   enableSkill,
@@ -136,9 +141,13 @@ export default function FirstRunTour() {
   const [activateReady, setActivateReady] = useState(false)
   const [imported, setImported] = useState<ImportSummary | null>(null)
   const [carry, setCarry] = useState<TourCarry | null>(null)
+  const [sparked, setSparked] = useState(false)
+  const [finale, setFinale] = useState(false)
+  const [guardPreview, setGuardPreview] = useState(false)
 
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
+  const beeRef = useRef<BeeGuideHandle>(null)
   const booted = useRef(false)
 
   useEffect(() => {
@@ -183,9 +192,14 @@ export default function FirstRunTour() {
       setAnswers(nextAnswers)
       setStep(next)
       setError('')
+      // Scene 5: the card edge lights up at every step change.
+      if (!still) {
+        setSparked(true)
+        window.setTimeout(() => setSparked(false), 620)
+      }
       void persist(nextMarker)
     },
-    [answers, marker, persist],
+    [answers, marker, persist, still],
   )
 
   const closeTour = useCallback(
@@ -208,6 +222,27 @@ export default function FirstRunTour() {
     [answers, marker],
   )
 
+  /** The tour's exits: without an engine, record the skip so the gate does not bounce. */
+  const leaveTour = useCallback(
+    async (walked: boolean, skipped: boolean) => {
+      if (!(gate.configured || engine?.model)) await skipSetupGate()
+      await closeTour(walked, skipped)
+    },
+    [closeTour, engine?.model, gate.configured],
+  )
+
+  const finishTour = useCallback(async () => {
+    if (!(gate.configured || engine?.model)) await skipSetupGate()
+    if (still) {
+      await closeTour(true, false)
+      return
+    }
+    // Scene 7: the live bee flies from where it is into the header corner.
+    setFinale(true)
+    beeRef.current?.finale()
+    window.setTimeout(() => void closeTour(true, false), 1300)
+  }, [closeTour, engine?.model, gate.configured, still])
+
   useEffect(() => {
     if (!open) return
     dialogRef.current?.focus()
@@ -215,7 +250,7 @@ export default function FirstRunTour() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        void closeTour(true, true)
+        void leaveTour(true, true)
         return
       }
       if (event.key !== 'Tab' || !node) return
@@ -387,12 +422,41 @@ export default function FirstRunTour() {
     }
   }, [t])
 
+  // Scene 5/6: the guide flies to the new card on every step, and to the engine core
+  // once the connection is green.
+  useEffect(() => {
+    if (!open || still) return
+    const id = window.setTimeout(() => {
+      const panel = dialogRef.current?.querySelector('[data-testid="tour-panel"]')
+      beeRef.current?.flyToPanelPerch(panel ?? null)
+    }, 60)
+    return () => window.clearTimeout(id)
+  }, [open, still, step])
+
+  useEffect(() => {
+    if (!open || still || step !== 2 || !(gate.configured || engine?.model)) return
+    const core = dialogRef.current?.querySelector('[data-testid="tour-engine-core"]')
+    beeRef.current?.flyToControl(core ?? null)
+  }, [engine?.model, gate.configured, open, still, step])
+
+  const clickStage = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (still) return
+      const control = (event.target as HTMLElement).closest('[data-testid]')
+      const id = control?.getAttribute('data-testid') ?? ''
+      if (control && /^tour-(usage-|toggle-|guard-|continue|start|next|engine-)/.test(id)) {
+        beeRef.current?.flyToControl(control)
+      } else {
+        beeRef.current?.flyTo(event.clientX, event.clientY)
+      }
+    },
+    [still],
+  )
+
   if (!open) return null
 
   const configured = gate.configured || Boolean(engine?.model)
   const question = step >= 1 && step <= TOUR_QUESTION_COUNT
-  const beeState: SpiritState =
-    step === TOUR_DESK_STEP ? 'lead' : step >= 3 ? 'lean' : step === 1 ? 'hold' : 'rest'
   const eyebrow = question
     ? t('tour.step', { current: step, total: TOUR_QUESTION_COUNT })
     : step === TOUR_DESK_STEP
@@ -456,11 +520,14 @@ export default function FirstRunTour() {
         <button
           type="button"
           className="tour-primary focus-ring"
-          disabled={carry !== 'imported'}
-          onClick={() => goTo(TOUR_DESK_STEP, carry ? { carry } : {})}
-          data-testid="tour-continue"
+          onClick={() => {
+            const choice = carry ?? 'fresh'
+            setCarry(choice)
+            goTo(TOUR_DESK_STEP, { carry: choice })
+          }}
+          data-testid="tour-next"
         >
-          {t('tour.continue')}
+          {carry === 'imported' ? t('tour.next') : t('tour.carry.fresh')}
         </button>
       )
     }
@@ -468,7 +535,7 @@ export default function FirstRunTour() {
       <button
         type="button"
         className="tour-primary focus-ring"
-        onClick={() => void closeTour(true, false)}
+        onClick={() => void finishTour()}
         data-testid="tour-finish"
       >
         {t('tour.desk.cta')}
@@ -486,25 +553,34 @@ export default function FirstRunTour() {
       data-testid="first-run-tour"
       data-step={step}
       data-reduced={still ? 'true' : undefined}
-      className={`tour-stage${still ? ' is-still' : ''}`}
+      className={`tour-stage${still ? ' is-still' : ''}${finale ? ' is-finale' : ''}`}
+      onPointerDown={clickStage}
     >
+      {/* Scene 5 is the stage: the keyframe's forest behind the glass card. The bee is
+          the live guide over it, never a bee baked into the backdrop. */}
+      <img
+        className="tour-stage-frame"
+        src="/onboarding/scene-1-ignition.jpg"
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+      />
+      <div className="tour-stage-shade" aria-hidden="true" />
+      <div className="tour-fireflies" aria-hidden="true" />
       <div className="tour-ground" aria-hidden="true" />
-      <div className="tour-bee" data-step={step} aria-hidden="true">
-        <FireSpirit
-          register="calm"
-          state={still ? 'rest' : beeState}
-          size="clamp(7rem, 19vw, 13rem)"
-          testId="tour-bee"
-        />
-      </div>
+      <InteractiveBeeGuide ref={beeRef} still={still} size="clamp(13rem, 24vw, 20rem)" />
 
-      <section className="tour-panel" data-testid="tour-panel">
+      <section
+        className={`tour-panel${sparked ? ' is-sparked' : ''}`}
+        data-testid="tour-panel"
+        data-step={step}
+      >
         <header className="tour-head">
           <span className="tour-eyebrow font-mono">{eyebrow}</span>
           <button
             type="button"
             className="tour-skip focus-ring"
-            onClick={() => void closeTour(true, true)}
+            onClick={() => void leaveTour(true, true)}
             data-testid="tour-skip"
           >
             {t('tour.skip')}
@@ -562,6 +638,15 @@ export default function FirstRunTour() {
               <h2 id="tour-title" ref={titleRef} tabIndex={-1} className="tour-title font-display">
                 {t('tour.engine.title')}
               </h2>
+              <div
+                className="tour-engine-core"
+                data-testid="tour-engine-core"
+                data-state={engineLoading ? 'testing' : configured ? 'ok' : 'idle'}
+                aria-hidden="true"
+              >
+                <img src="/onboarding/scene-6-engine.jpg" alt="" draggable={false} />
+                <span className="tour-core-halo" />
+              </div>
               {engineLoading ? (
                 <p className="tour-line inline-flex items-center gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -594,7 +679,10 @@ export default function FirstRunTour() {
                     <button
                       type="button"
                       className="tour-ghost focus-ring"
-                      onClick={() => goTo(3)}
+                      onClick={() => {
+                        void skipSetupGate()
+                        goTo(3)
+                      }}
                       data-testid="tour-engine-skip"
                     >
                       {t('tour.engine.skip')}
@@ -633,6 +721,49 @@ export default function FirstRunTour() {
                   hint={t('tour.activate.webHint')}
                   testId="tour-toggle-web"
                 />
+              </div>
+              <div className="tour-guard">
+                <button
+                  type="button"
+                  className="tour-text-action tour-guard-toggle focus-ring"
+                  aria-expanded={guardPreview}
+                  aria-controls="tour-approval-preview"
+                  onClick={() => setGuardPreview((value) => !value)}
+                  data-testid="tour-guard-toggle"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t('tour.guard.preview')}
+                </button>
+                {guardPreview && (
+                  <div
+                    id="tour-approval-preview"
+                    className="tour-approval"
+                    data-testid="tour-approval-card"
+                    role="group"
+                    aria-label={t('tour.guard.title')}
+                  >
+                    <p className="tour-approval-question">{t('tour.guard.question')}</p>
+                    <p className="tour-approval-detail">{t('tour.guard.detail')}</p>
+                    <div className="tour-approval-actions">
+                      <button
+                        type="button"
+                        data-testid="tour-guard-allow"
+                        onClick={() => setGuardPreview(false)}
+                        className="tour-approval-allow"
+                      >
+                        {t('tour.guard.allow')}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="tour-guard-deny"
+                        onClick={() => setGuardPreview(false)}
+                        className="tour-approval-deny"
+                      >
+                        {t('tour.guard.deny')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

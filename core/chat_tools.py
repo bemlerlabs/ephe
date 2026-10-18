@@ -43,6 +43,22 @@ from core.loop_observability import (
     note_tool_round,
 )
 from core.quality import normalize_tool_result
+from core.redact import redact
+
+
+def _redact_result(result: object) -> str:
+    """Redacts a tool result while keeping a gate denial's code and params.
+
+    `Denied` is a str subclass; a plain `redact()` returns a new str and would drop
+    `code`, which the card reads to paint a refusal as a refusal.
+    """
+    masked = redact(str(result))
+    code = getattr(result, "code", "")
+    if not code:
+        return masked
+    from core.tools.chat_gate import Denied
+
+    return Denied(masked, code, getattr(result, "params", None))
 from core.steering import (
     MAX_REOPEN_PER_TURN,
     current_channel,
@@ -211,7 +227,7 @@ async def _run_tool_loop(
 
             # 1) Parse all tool calls (index-stable); _parse_tool_calls creates the
             # call-IDs once per call, so start and done carry the same id (W15-P3).
-            parsed, call_ids = _parse_tool_calls(response, turn_id, on_tool_start)
+            parsed, call_ids = _parse_tool_calls(response, turn_id, on_tool_start, iteration)
             engine_ids = engine_tool_call_ids(response)
 
             # 2) SAFE tools (read-only) in parallel, the rest sequentially with an approval gate.
@@ -286,13 +302,16 @@ async def _run_tool_loop(
             for idx, name, args in parsed:
                 # P1-9: cap before it enters the message array.
                 result = _cap_tool_result(results.get(idx, "[TOOL-NO-RESULT]"))
+                # SEC-1: the one result that feeds the model, the tool card and the
+                # audit row is redacted here, before any of the three sees it.
+                result = _redact_result(result)
                 # E2: web/MCP output is third-party content — it enters the context
                 # fenced as untrusted data (fence_tool_output).
                 external = untrusted_origin_tool(name, args) is not None
                 engine_result = fence_tool_output(name, args, result)
                 # W15-P3: done with the same call-ID as the start stamp.
                 if on_tool_done is not None:
-                    on_tool_done(name, result, call_ids.setdefault(idx, _call_id(turn_id, idx)))
+                    on_tool_done(name, result, call_ids.setdefault(idx, _call_id(turn_id, idx, iteration)))
                 normalized_result = normalize_tool_result(name, result)
                 if external and normalized_result.status != "error":
                     # The evidence block is a system message; external content must
@@ -312,12 +331,14 @@ async def _run_tool_loop(
                 if trip is not None and round_stall is None:
                     round_stall = trip
                 answer = {"role": "tool", "content": engine_result}
-                if engine_ids.get(idx):
-                    answer["tool_call_id"] = engine_ids[idx]
+                # TL-1: every result names the call it answers. The engine's id is
+                # the wire identity; our own deterministic id is the fallback, so a
+                # provider can never correlate positionally again.
+                answer["tool_call_id"] = engine_ids.get(idx) or call_ids[idx]
                 messages.append(answer)
                 messages.append({
                     "role": "system",
-                    "content": (
+                    "content": redact(
                         "Tool evidence summary:\n"
                         f"- tool: {normalized_result.tool}\n"
                         f"- status: {normalized_result.status}\n"
@@ -430,7 +451,7 @@ async def _run_tool_loop(
                 if on_phase:
                     on_phase(f"Tool round {iteration}… (nudge {nudge_used})")
                 messages.append(response.message)
-                parsed_n, call_ids_n = _parse_tool_calls(response, turn_id, on_tool_start)
+                parsed_n, call_ids_n = _parse_tool_calls(response, turn_id, on_tool_start, iteration)
                 engine_ids_n = engine_tool_call_ids(response)
                 safe_names_n: set[str] = set()
                 try:
@@ -468,11 +489,14 @@ async def _run_tool_loop(
                                 results_n[idx] = f"[TOOL-ERROR] {type(tool_exc).__name__}: {tool_exc}"
                 for idx, name, args in parsed_n:
                     result = _cap_tool_result(results_n.get(idx, "[TOOL-NO-RESULT]"))
+                    result = _redact_result(result)
                     # E2: fence external content in the nudge path too.
                     external_n = untrusted_origin_tool(name, args) is not None
                     engine_result_n = fence_tool_output(name, args, result)
                     if on_tool_done is not None:
-                        on_tool_done(name, result, call_ids_n.setdefault(idx, _call_id(turn_id, idx)))
+                        on_tool_done(
+                            name, result, call_ids_n.setdefault(idx, _call_id(turn_id, idx, iteration))
+                        )
                     normalized_result = normalize_tool_result(name, result)
                     if external_n and normalized_result.status != "error":
                         normalized_result = replace(
@@ -490,12 +514,11 @@ async def _run_tool_loop(
                     if trip_n is not None and round_stall_n is None:
                         round_stall_n = trip_n
                     answer_n = {"role": "tool", "content": engine_result_n}
-                    if engine_ids_n.get(idx):
-                        answer_n["tool_call_id"] = engine_ids_n[idx]
+                    answer_n["tool_call_id"] = engine_ids_n.get(idx) or call_ids_n[idx]
                     messages.append(answer_n)
                     messages.append({
                         "role": "system",
-                        "content": (
+                        "content": redact(
                             "Tool evidence summary:\n"
                             f"- tool: {normalized_result.tool}\n"
                             f"- status: {normalized_result.status}\n"

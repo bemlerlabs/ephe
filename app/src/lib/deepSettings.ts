@@ -122,3 +122,11 @@ export function useDeepSelect(key: string, fallback = ''): string {
     () => fallback,
   )
 }
+
+export function useDeepNumber(key: string, fallback = 0): number {
+  return useSyncExternalStore(
+    subscribeDeepSettings,
+    () => deepNumber(key, fallback),
+    () => fallback,
+  )
+}

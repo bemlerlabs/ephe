@@ -92,7 +92,7 @@ _TOOL_HINTS: dict[str, str] = {
     "create_qrcode": "QR-Code als PNG.",
     "create_diagram": "Fluss-/Saeulendiagramm als SVG.",
     "create_svg": "Freies SVG aus Code.",
-    "generate_chart": "Datenvisualisierung (Balken/Linie/Kreis) als PNG.",
+    "generate_chart": "Datenvisualisierung (Balken/Linie/Kreis) als SVG, hell oder dunkel.",
     "generate_image": "Bildgenerierung aus Prompt.",
     "create_video": "Video aus Bildern/Audio.",
     "scaffold_project": "Lauffaehiges Projekt-Geruest erzeugen.",

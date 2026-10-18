@@ -284,3 +284,23 @@ def test_prune_route_dry_run_changes_nothing(client, store):
 def test_prune_route_refuses_a_negative_keep(client, store):
     _write(store, "rest-a", [], mtime=time.time())
     assert client.post("/api/sessions/prune", json={"keep_rest": -1}).status_code == 422
+
+
+def test_clear_route_removes_every_namespace(client, store):
+    now = time.time()
+    _write(store, "rest-one", [], mtime=now)
+    _write(store, "pwa-one", [], mtime=now - 1)
+    _write(store, "0123abcd", [{"role": "user", "content": "hello"}], mtime=now - 2)
+    (store / "registry.json").write_text(
+        json.dumps({"sessions": [{"id": "0123abcd"}]}), encoding="utf-8"
+    )
+
+    body = client.post("/api/sessions/clear").json()
+
+    assert len(body["deleted"]) == 3
+    assert body["remaining"] == {"rest-": 0, "pwa-": 0, "": 0}
+    assert not list(store.glob("rest-*.json"))
+    assert not list(store.glob("pwa-*.json"))
+    assert not list(store.glob("[0-9a-f]*.json"))
+    registry = json.loads((store / "registry.json").read_text(encoding="utf-8"))
+    assert registry.get("sessions", []) == []

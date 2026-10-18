@@ -263,6 +263,16 @@ def thinking_request_fields(
     return fields
 
 
+class ToolWireViolation(ValueError):
+    """A conversation that cannot be put on the wire without guessing.
+
+    A tool message without its id, an id nobody opened, or an open call without a
+    result: the previous code answered these positionally or rewrote the result as
+    a user message, and a result then reached an engine as the wrong call — or no
+    call at all. Guessing is the defect; refusing is the contract.
+    """
+
+
 class OpenAICompatibleAsyncClient:
     """Small adapter exposing the subset of Ollama's AsyncClient used here."""
 
@@ -329,6 +339,11 @@ class OpenAICompatibleAsyncClient:
             to a preceding message with "tool_calls"'.
             """
             out: list[dict] = []
+            if pending_tool_call_ids:
+                raise ToolWireViolation(
+                    "a second tool_calls block opened while these ids were unanswered: "
+                    + ", ".join(pending_tool_call_ids)
+                )
             for i, call in enumerate(calls or []):
                 if isinstance(call, dict):
                     function = call.get("function") or {}
@@ -377,29 +392,24 @@ class OpenAICompatibleAsyncClient:
                 converted.append(out)
                 continue
             if role == "tool" and isinstance(msg, dict):
-                # A replayed result names the id it answers; when that id is one
-                # of the open ones, it wins over the positional order.
+                # TL-1: the result names the call it answers. There is no positional
+                # join and no rewritten user message: both were the defect that sent
+                # a result under the wrong call (measured 2026-10-17).
                 explicit = str(msg.get("tool_call_id") or "")
-                if explicit and explicit in pending_tool_call_ids:
-                    pending_tool_call_ids.remove(explicit)
-                    tool_call_id = explicit
-                elif pending_tool_call_ids:
-                    tool_call_id = pending_tool_call_ids.pop(0)
-                else:
-                    # A result with no open block: a resumed history whose assistant
-                    # tool_calls did not survive, or a loop that appended the result
-                    # after the block closed. Fabricating an id put a `role: "tool"`
-                    # message on the wire with no `tool_calls` before it, which an
-                    # OpenAI-compatible engine refuses with "tools must be a response
-                    # to a preceding message with tool_calls" (measured 2026-10-17).
-                    # The content still belongs to the conversation, so it travels as
-                    # a user message instead of being dropped.
-                    converted.append({"role": "user", "content": f"[tool result] {content}"})
-                    continue
+                if not explicit:
+                    raise ToolWireViolation(
+                        "a tool result carries no tool_call_id; the call it answers is unknown"
+                    )
+                if explicit not in pending_tool_call_ids:
+                    raise ToolWireViolation(
+                        f"a tool result names {explicit}, which no open tool_calls block holds "
+                        f"(open: {', '.join(pending_tool_call_ids) or 'none'})"
+                    )
+                pending_tool_call_ids.remove(explicit)
                 converted.append(
                     {
                         "role": "tool",
-                        "tool_call_id": tool_call_id,
+                        "tool_call_id": explicit,
                         "content": str(content),
                     }
                 )
@@ -433,6 +443,11 @@ class OpenAICompatibleAsyncClient:
                 deferred.append(entry)
             else:
                 converted.append(entry)
+        if pending_tool_call_ids:
+            raise ToolWireViolation(
+                "the conversation ends with unanswered tool calls: "
+                + ", ".join(pending_tool_call_ids)
+            )
         _flush_deferred()
         return converted
 

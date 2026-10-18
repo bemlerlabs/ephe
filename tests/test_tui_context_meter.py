@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
+from core.usage import reset_tokenizer_cache
 from ui.context_meter import (
     WARN_THRESHOLD,
     ContextUsage,
@@ -15,6 +18,20 @@ from ui.context_meter import (
     meter_text,
     resolve_window,
 )
+
+
+@pytest.fixture(autouse=True)
+def calibrated_token_counter(monkeypatch):
+    """Pin the heuristic counter the meter fixtures were measured against.
+
+    With tiktoken installed, the module-level backend resolves once to BPE and
+    ``"a" * 420`` no longer reads 100 tokens; the env pin and the cache reset
+    make the fixtures independent of what the machine happens to have.
+    """
+    monkeypatch.setenv("EPHE_TOKEN_COUNTER", "calibrated")
+    reset_tokenizer_cache()
+    yield
+    reset_tokenizer_cache()
 
 
 def test_latin_ratio_matches_the_usage_ssot():

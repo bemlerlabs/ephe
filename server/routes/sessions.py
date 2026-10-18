@@ -194,6 +194,21 @@ async def delete_session(session_id: str) -> dict:
     return result
 
 
+@router.post("/sessions/clear")
+async def clear_sessions() -> dict:
+    """Delete the whole session store: every namespace, zero kept.
+
+    The one-action counterpart to the per-session delete. It runs the same store
+    function as the prune row with a keep count of zero, so the registry rows go
+    with the files and the report says what was freed.
+    """
+    from core import session_lifecycle as life
+
+    result = life.prune_store({"rest-": 0, "pwa-": 0, "": 0}, dry_run=False)
+    logger.info("session clear: deleted=%s freed=%s", len(result["deleted"]), result["bytes_freed"])
+    return result
+
+
 @router.post("/sessions/prune")
 async def prune_sessions(request: PruneRequest) -> dict:
     """Apply the retention counts and report what went, how much that freed, what stays."""

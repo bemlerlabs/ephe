@@ -49,6 +49,7 @@ import {
 } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { IS_DESKTOP_SHELL } from '@/lib/desktopBaseUrl'
 import { openExternally } from '@/lib/nativeBrowser'
 import type { TabKey } from '@/components/dashboard/settings/types'
 import { SESSION_MENU_GROUPS, type SessionMenuEntryId } from './sessionMenuEntries'
@@ -810,7 +811,16 @@ export default function Sidebar({
             inset is carried by `pt-` (0 on desktop, where the drawer is a
             normal column). */}
         <div
-          className={`border-b border-hairline ${rail ? 'px-2 py-3' : 'px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))]'}`}
+          data-tauri-drag-region
+          className={`border-b border-hairline ${
+            rail
+              ? IS_DESKTOP_SHELL
+                ? 'px-2 pt-10 pb-3'
+                : 'px-2 py-3'
+              : IS_DESKTOP_SHELL
+                ? 'px-4 pb-4 pt-[calc(1.75rem+env(safe-area-inset-top))]'
+                : 'px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))]'
+          }`}
         >
           {rail ? (
             <div className="flex flex-col items-center gap-2 mb-3">

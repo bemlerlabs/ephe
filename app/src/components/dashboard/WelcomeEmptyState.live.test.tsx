@@ -79,6 +79,8 @@ describe('WelcomeEmptyState (R26)', () => {
 
     expect(screen.getByTestId('welcome-card-0')).toBeTruthy()
     expect(screen.getByTestId('welcome-card-3')).toBeTruthy()
+    // The hero is the living actor, not the flat mark, while the companion is on.
+    expect(screen.getByTestId('ephe-mark-hero').getAttribute('data-species')).toBe('fire_bee')
     await waitFor(() => {
       expect(screen.getByTestId('model-status-toast').textContent).toContain('ephe-v5')
       // DD-06: honest label — online state, never a hard-coded "Optimized".

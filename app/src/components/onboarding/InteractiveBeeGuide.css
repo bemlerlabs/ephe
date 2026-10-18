@@ -1,0 +1,156 @@
+/* The live guide: the keyframe bee as a cut-out sprite, flown in 3D. */
+.bee-guide {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  width: var(--bee-size, clamp(7rem, 13vw, 11rem));
+  pointer-events: none;
+  transform: translate3d(var(--bee-x, 60vw), var(--bee-y, 34vh), 0) translate(-50%, -50%)
+    perspective(700px) rotateX(var(--bee-pitch, 0deg)) rotateY(var(--bee-yaw, 0deg))
+    rotateZ(var(--bee-bank, 0deg)) scale(var(--bee-z, 1));
+  transform-origin: 50% 50%;
+  will-change: transform;
+  filter: drop-shadow(0 10px 28px rgb(255 191 71 / calc(0.12 + var(--bee-speed, 0) * 0.3)));
+}
+.bee-actor {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1060 / 752;
+  transform-style: preserve-3d;
+  perspective: 800px;
+  transform: rotate(calc(var(--look-x, 0) * 3deg));
+  transition: transform 180ms var(--ease-out-soft);
+}
+.bee-actor-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 0 26px rgb(255 191 71 / 0.35));
+  z-index: 2;
+}
+.bee-actor-wing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  transform-style: preserve-3d;
+  will-change: transform;
+  z-index: 1;
+}
+.bee-wing-l {
+  transform-origin: 37.74% 39.89%;
+}
+.bee-wing-r {
+  transform-origin: 62.74% 39.89%;
+}
+.bee-actor-flame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  z-index: 4;
+  transform-origin: 50.19% 19.28%;
+  animation: bee-flame-dance 600ms ease-in-out infinite alternate;
+}
+@keyframes bee-flame-dance {
+  from { transform: scale(1, 1) rotate(-1.5deg) skewX(0deg); }
+  to { transform: scale(1.07, 0.94) rotate(2.4deg) skewX(3deg); }
+}
+
+.bee-guide.is-flying .bee-wing-l {
+  animation: bee-flap-left 110ms ease-in-out infinite alternate;
+}
+.bee-guide.is-flying .bee-wing-r {
+  animation: bee-flap-right 110ms ease-in-out infinite alternate;
+}
+.bee-guide:not(.is-flying) .bee-wing-l {
+  animation: bee-hover-wing 2.6s ease-in-out infinite alternate;
+}
+.bee-guide:not(.is-flying) .bee-wing-r {
+  animation: bee-hover-wing-right 2.6s ease-in-out infinite alternate;
+}
+@keyframes bee-flap-left {
+  from { transform: rotateZ(0deg) rotateY(0deg); }
+  to { transform: rotateZ(14deg) rotateY(42deg); }
+}
+@keyframes bee-flap-right {
+  from { transform: rotateZ(0deg) rotateY(0deg); }
+  to { transform: rotateZ(-14deg) rotateY(-42deg); }
+}
+@keyframes bee-hover-wing {
+  from { transform: rotateZ(0deg) rotateY(0deg); }
+  to { transform: rotateZ(3deg) rotateY(9deg); }
+}
+@keyframes bee-hover-wing-right {
+  from { transform: rotateZ(0deg) rotateY(0deg); }
+  to { transform: rotateZ(-3deg) rotateY(-9deg); }
+}
+
+.bee-guide-light {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 13rem;
+  height: 13rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(255 191 71 / 0.3) 0%, transparent 68%);
+  opacity: calc(0.25 + var(--bee-speed, 0) * 0.75);
+  filter: blur(4px);
+  z-index: -1;
+}
+.bee-guide-sparks {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 29;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bee-guide,
+  .bee-guide * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+html.no-motion .bee-guide,
+html.no-motion .bee-guide * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The body breathes and sways around its own lower centre; the wings, hands,
+   flame and lids ride the wrapper so the figure never comes apart. */
+.bee-actor-motion {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  animation: bee-actor-breathe 4.6s ease-in-out infinite alternate;
+  transform-origin: 50% 68%;
+  will-change: transform;
+}
+.bee-guide.is-flying .bee-actor-motion {
+  animation-duration: 1.9s;
+}
+@keyframes bee-actor-breathe {
+  from {
+    transform: translateY(0) rotate(-0.7deg) scale(1);
+  }
+  to {
+    transform: translateY(-3px) rotate(0.8deg) scale(1.008);
+  }
+}

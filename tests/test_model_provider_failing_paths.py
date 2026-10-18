@@ -296,15 +296,12 @@ def test_has_explicit_provider_reads_env_and_override(monkeypatch):
 # _convert_messages edge branches
 
 
-def test_convert_tool_message_without_pending_id_travels_as_user():
-    """A fabricated id put a `role: "tool"` message on the wire with no `tool_calls` before
-    it, and an OpenAI-compatible engine refused the request (measured 2026-10-17). The
-    content stays in the conversation as a user message."""
+def test_convert_tool_message_without_a_id_is_refused():
+    """TL-1: a result that names no call is a wire violation, not a guess. The old
+    path rewrote it as a user message; that hid which call it answered."""
     client = _client()
-    out = client._convert_messages([{"role": "tool", "content": "x"}])
-    assert out[0]["role"] == "user"
-    assert out[0]["content"] == "[tool result] x"
-    assert "tool_call_id" not in out[0]
+    with pytest.raises(mp.ToolWireViolation):
+        client._convert_messages([{"role": "tool", "content": "x"}])
 
 
 def test_convert_provider_message_round_trip_uses_tool_call_id():
@@ -314,9 +311,19 @@ def test_convert_provider_message_round_trip_uses_tool_call_id():
             mp.ProviderToolCall(function=mp.ProviderFunctionCall(name="f", arguments={"a": 1}))
         ]
     )
-    out = client._convert_messages([assistant, {"role": "tool", "content": "res"}])
+    out = client._convert_messages(
+        [assistant, {"role": "tool", "tool_call_id": "call_0", "content": "res"}]
+    )
     assert out[0]["tool_calls"][0]["id"] == "call_0"
     assert out[1]["tool_call_id"] == "call_0"
+
+
+def test_a_result_for_an_unopened_call_is_refused():
+    client = _client()
+    with pytest.raises(mp.ToolWireViolation):
+        client._convert_messages(
+            [{"role": "tool", "tool_call_id": "call_9", "content": "res"}]
+        )
 
 
 def test_convert_system_after_start_becomes_user_and_images_become_parts():

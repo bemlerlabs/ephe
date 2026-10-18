@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 import re
 from datetime import datetime
 from pathlib import Path
@@ -56,9 +57,9 @@ COVER_BRAND_LABEL = "Ephe"
 TOC_HEADING_TEXT = "Inhaltsverzeichnis"
 
 # P2 chart embedding: a WHOLE-LINE ``![alt](/absolute/path.png)`` marker
-# embeds an existing local PNG (any alt text is accepted, only the path is
-# significant). Image syntax inline in a sentence or with a relative path is
-# not the convention and keeps rendering as plain text.
+# embeds an existing local PNG or SVG (any alt text is accepted, only the
+# path is significant). Image syntax inline in a sentence or with a relative
+# path is not the convention and keeps rendering as plain text.
 IMAGE_MARKER_RE = re.compile(r"^!\[[^\]]*\]\(([^)]+)\)$")
 
 
@@ -155,6 +156,260 @@ def _column_alignments(separator_cells: list[str]) -> list[str]:
     return out or ["LEFT"]
 
 
+_SVG_PATH_TOKEN_RE = re.compile(r"[A-Za-z]|[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?")
+_SVG_NAMED_COLORS = {"white": "#ffffff", "black": "#000000", "red": "#ff0000"}
+
+
+def _svg_local_name(tag: str) -> str:
+    return str(tag).rsplit("}", 1)[-1]
+
+
+def _svg_number(value, default: float = 0.0) -> float:
+    match = re.match(r"\s*([-+]?(?:\d+\.\d*|\.\d+|\d+))", str(value or ""))
+    return float(match.group(1)) if match else default
+
+
+def _svg_drawing_box(root) -> tuple[float, float]:
+    view_box = re.split(r"[,\s]+", (root.get("viewBox") or "").strip())
+    if len(view_box) == 4:
+        width, height = _svg_number(view_box[2]), _svg_number(view_box[3])
+    else:
+        width, height = _svg_number(root.get("width")), _svg_number(root.get("height"))
+    if width <= 0 or height <= 0:
+        raise ValueError("SVG has no usable width/height")
+    return width, height
+
+
+def _svg_gradient_colors(root) -> dict[str, str | None]:
+    """id → solid fallback colour; radial gradients resolve to None (skip)."""
+    colors: dict[str, str | None] = {}
+    for element in root.iter():
+        name = _svg_local_name(element.tag)
+        if name not in ("linearGradient", "radialGradient"):
+            continue
+        stops = [child for child in element if _svg_local_name(child.tag) == "stop"]
+        color = stops[0].get("stop-color") if stops else None
+        colors[str(element.get("id") or "")] = color if name == "linearGradient" else None
+    return colors
+
+
+def _svg_color(value, gradients: dict[str, str | None]):
+    from reportlab.lib.colors import HexColor
+
+    if not value:
+        return None
+    text = str(value).strip()
+    if text.startswith("url(#") and text.endswith(")"):
+        return _svg_color(gradients.get(text[5:-1]), gradients)
+    lowered = text.lower()
+    if lowered in ("none", "transparent"):
+        return None
+    text = _SVG_NAMED_COLORS.get(lowered, text)
+    if text.startswith("#"):
+        digits = text[1:]
+        if len(digits) == 3:
+            digits = "".join(char * 2 for char in digits)
+        if len(digits) == 6:
+            return HexColor("#" + digits)
+    return None
+
+
+def _svg_style(element) -> dict:
+    stroke = element.get("stroke")
+    width = _svg_number(element.get("stroke-width"), 1.0)
+    opacity = element.get("opacity")
+    return {
+        "fill": element.get("fill"),
+        "stroke": stroke,
+        "stroke_width": width,
+        "fill_opacity": _svg_number(element.get("fill-opacity"), 1.0),
+        "stroke_opacity": _svg_number(element.get("stroke-opacity"), _svg_number(opacity, 1.0)),
+        "fill_opacity_all": _svg_number(opacity, 1.0),
+    }
+
+
+def _svg_apply_opacities(shape, style: dict) -> None:
+    attributes = getattr(shape, "_attrMap", {})
+    if "fillOpacity" in attributes:
+        shape.fillOpacity = (
+            style["fill_opacity"] if style["fill_opacity"] < 1 else style["fill_opacity_all"]
+        )
+    if "strokeOpacity" in attributes:
+        shape.strokeOpacity = style["stroke_opacity"]
+
+
+def _svg_add_path(drawing, data: str, gradients: dict, style: dict, scale: float, svg_height: float) -> None:
+    from reportlab.graphics.shapes import PolyLine, Wedge
+
+    tokens = _SVG_PATH_TOKEN_RE.findall(data or "")
+    command = ""
+    points: list[tuple[float, float]] = []
+    arc: tuple | None = None
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token.isalpha():
+            command = token.upper()
+            index += 1
+            continue
+        if command in ("M", "L") and index + 1 < len(tokens):
+            points.append((float(tokens[index]), float(tokens[index + 1])))
+            index += 2
+            command = "L"
+        elif command == "A" and index + 6 < len(tokens):
+            arc = (float(tokens[index]), float(tokens[index + 1]),
+                   int(float(tokens[index + 3])), int(float(tokens[index + 4])),
+                   float(tokens[index + 5]), float(tokens[index + 6]))
+            index += 7
+        elif command in ("Z", "A"):
+            index += 1
+        else:
+            index += 1
+
+    fill = _svg_color(style["fill"], gradients)
+    stroke = _svg_color(style["stroke"], gradients)
+    if arc is not None and len(points) >= 2:
+        # Pie slices are the one arc shape the chart renderer emits:
+        # M centre → L arc start → A … → Z.
+        radius, _ry, _large, sweep, end_x, end_y = arc
+        center_x, center_y = points[0]
+        start_x, start_y = points[1]
+        start_deg = math.degrees(math.atan2(start_y - center_y, start_x - center_x))
+        end_deg = math.degrees(math.atan2(end_y - center_y, end_x - center_x))
+        angles = (start_deg, end_deg) if sweep else (end_deg, start_deg)
+        wedge = Wedge(
+            center_x * scale,
+            (svg_height - center_y) * scale,
+            radius * scale,
+            -angles[1],
+            -angles[0],
+            fillColor=fill,
+            strokeColor=stroke,
+            strokeWidth=style["stroke_width"] * scale,
+        )
+        _svg_apply_opacities(wedge, style)
+        drawing.add(wedge)
+        return
+    if len(points) >= 2:
+        polyline = PolyLine(
+            [(x * scale, (svg_height - y) * scale) for x, y in points],
+            strokeColor=stroke,
+            strokeWidth=style["stroke_width"] * scale,
+            fillColor=fill,
+        )
+        _svg_apply_opacities(polyline, style)
+        drawing.add(polyline)
+
+
+def _svg_walk(drawing, parent, gradients: dict, scale: float, svg_height: float) -> None:
+    from reportlab.graphics.shapes import Circle, Line, PolyLine, Rect, String
+
+    for element in parent:
+        name = _svg_local_name(element.tag)
+        if name in ("defs", "linearGradient", "radialGradient", "stop", "title", "desc"):
+            continue
+        if name == "g":
+            _svg_walk(drawing, element, gradients, scale, svg_height)
+            continue
+        style = _svg_style(element)
+        fill = _svg_color(style["fill"], gradients)
+        stroke = _svg_color(style["stroke"], gradients)
+        if name == "rect":
+            width = _svg_number(element.get("width"))
+            height = _svg_number(element.get("height"))
+            if width <= 0 or height <= 0 or (fill is None and stroke is None):
+                continue
+            radius = _svg_number(element.get("rx")) * scale
+            shape = Rect(
+                _svg_number(element.get("x")) * scale,
+                (svg_height - _svg_number(element.get("y")) - height) * scale,
+                width * scale,
+                height * scale,
+                rx=radius,
+                ry=radius,
+                fillColor=fill,
+                strokeColor=stroke,
+                strokeWidth=style["stroke_width"] * scale,
+            )
+        elif name == "line":
+            if stroke is None:
+                continue
+            shape = Line(
+                _svg_number(element.get("x1")) * scale,
+                (svg_height - _svg_number(element.get("y1"))) * scale,
+                _svg_number(element.get("x2")) * scale,
+                (svg_height - _svg_number(element.get("y2"))) * scale,
+                strokeColor=stroke,
+                strokeWidth=style["stroke_width"] * scale,
+            )
+        elif name == "circle":
+            radius = _svg_number(element.get("r"))
+            if radius <= 0 or (fill is None and stroke is None):
+                continue
+            shape = Circle(
+                _svg_number(element.get("cx")) * scale,
+                (svg_height - _svg_number(element.get("cy"))) * scale,
+                radius * scale,
+                fillColor=fill,
+                strokeColor=stroke,
+                strokeWidth=style["stroke_width"] * scale,
+            )
+        elif name == "polyline":
+            raw_points = re.findall(r"[-+]?(?:\d+\.\d*|\.\d+|\d+)", element.get("points") or "")
+            pairs = [(float(raw_points[i]), float(raw_points[i + 1])) for i in range(0, len(raw_points) - 1, 2)]
+            if len(pairs) < 2 or stroke is None:
+                continue
+            shape = PolyLine(
+                [(x * scale, (svg_height - y) * scale) for x, y in pairs],
+                strokeColor=stroke,
+                strokeWidth=style["stroke_width"] * scale,
+                fillColor=fill,
+            )
+        elif name == "path":
+            _svg_add_path(drawing, element.get("d") or "", gradients, style, scale, svg_height)
+            continue
+        elif name == "text":
+            text = "".join(element.itertext()).strip()
+            if not text:
+                continue
+            weight = str(element.get("font-weight") or "")
+            bold = weight.lower() == "bold" or _svg_number(weight) >= 600
+            anchor = str(element.get("text-anchor") or "start")
+            shape = String(
+                _svg_number(element.get("x")) * scale,
+                (svg_height - _svg_number(element.get("y"))) * scale,
+                text,
+                fontName="Helvetica-Bold" if bold else "Helvetica",
+                fontSize=max(_svg_number(element.get("font-size"), 12.0) * scale, 2.0),
+                fillColor=fill,
+                textAnchor=anchor if anchor in ("start", "middle", "end") else "start",
+            )
+        else:
+            continue
+        _svg_apply_opacities(shape, style)
+        drawing.add(shape)
+
+
+def _svg_to_reportlab_drawing(svg_path, target_width: float, max_height: float):
+    """Renders a local SVG as a vector ReportLab Drawing, scaled to fit.
+
+    Covers the subset ``generate_chart`` and ``create_diagram`` emit:
+    rect, line, circle, polyline, pie-arc path, polyline path and text.
+    Linear gradients collapse to their first stop; radial gradients
+    (decorative glows) are skipped. Never upscales.
+    """
+    import xml.etree.ElementTree as ET
+
+    from reportlab.graphics.shapes import Drawing
+
+    root = ET.fromstring(Path(svg_path).read_text(encoding="utf-8"))
+    svg_width, svg_height = _svg_drawing_box(root)
+    scale = min(float(target_width) / svg_width, float(max_height) / svg_height, 1.0)
+    drawing = Drawing(svg_width * scale, svg_height * scale)
+    _svg_walk(drawing, root, _svg_gradient_colors(root), scale, svg_height)
+    return drawing
+
+
 def _build_image_flowables(
     path_text: str,
     stats: dict,
@@ -164,18 +419,24 @@ def _build_image_flowables(
 ):
     """P2 chart embedding flowables for one ``![chart](path)`` marker line.
 
-    An existing, readable local image is embedded scaled to the content
-    width with the aspect ratio preserved - downscaled only (never upscaled,
-    documented strategy) and capped to the usable page height. A missing or
-    unreadable file renders an honest placeholder paragraph instead - the
-    document build never crashes on a broken chart reference.
+    An existing, readable local PNG/JPEG/SVG is embedded scaled to the
+    content width with the aspect ratio preserved - downscaled only (never
+    upscaled, documented strategy) and capped to the usable page height.
+    SVGs from generate_chart/create_diagram are converted to vector
+    drawings, not rasterised. A missing or unreadable file renders an
+    honest placeholder paragraph instead - the document build never
+    crashes on a broken chart reference.
     """
     from reportlab.lib.utils import ImageReader
-    from reportlab.platypus import Image, Paragraph
+    from reportlab.platypus import Image, Paragraph, Spacer
 
     path = Path(path_text.strip()).expanduser()
     try:
         if path.is_absolute() and path.is_file():
+            if path.suffix.lower() == ".svg":
+                drawing = _svg_to_reportlab_drawing(path, content_width, usable_height)
+                stats["count"] += 1
+                return [Spacer(1, SPACING_UNIT_PT), drawing, Spacer(1, SPACING_UNIT_PT)]
             image_width, image_height = ImageReader(str(path)).getSize()
             if image_width > 0 and image_height > 0:
                 width = min(float(image_width), content_width)

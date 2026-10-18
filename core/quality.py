@@ -144,6 +144,113 @@ def budget_note_is_unfinished(text: str) -> bool:
     return "budget exhausted" in (text or "")
 
 
+#: Tools whose output can ground arithmetic over file contents. `read_file`
+#: counts because a quoted total may already sit in the data; the comparison
+#: below then checks it against that real output instead of trusting the answer.
+ARITHMETIC_EVIDENCE_TOOLS: frozenset[str] = frozenset({
+    "run_shell",
+    "execute_code",
+    "run_tests",
+    "read_file",
+    "extract_pdf_text",
+    "query_source_notebook",
+    "analyze_project",
+})
+
+_NUMBER_TOKEN_RE = re.compile(
+    r"(?<![A-Za-z\d])-?(?:\d{1,3}(?:[.,\s\u00a0]\d{3})+|\d+)(?:[.,]\d+)?(?![A-Za-z])"
+)
+_FINAL_ANSWER_RE = re.compile(r"(?:EPHE_FINAL_ANSWER|FINAL ANSWER)\s*:", re.IGNORECASE)
+_RESULT_LINE_RE = re.compile(r"\b(?:total|sum|highest|gesamt|summe)\b", re.IGNORECASE)
+
+
+def _canonical_number(token: str) -> str:
+    """One canonical decimal form for 101, 101.0, 1,250.00 and 1.250,00."""
+    text = token.replace("\u00a0", "").replace(" ", "").replace("'", "")
+    sign = "-" if text.startswith("-") else ""
+    text = text.lstrip("+-")
+    if "," in text and "." in text:
+        decimal = "," if text.rfind(",") > text.rfind(".") else "."
+        thousands = "." if decimal == "," else ","
+        text = text.replace(thousands, "").replace(decimal, ".")
+    elif "," in text:
+        head, _, tail = text.rpartition(",")
+        text = head + tail if len(tail) == 3 and 0 < len(head) <= 3 else head + "." + tail
+    elif "." in text:
+        head, _, tail = text.rpartition(".")
+        text = head + tail if len(tail) == 3 and 0 < len(head) <= 3 and head != "0" else head + "." + tail
+    if text.startswith("0") and not text.startswith("0."):
+        text = text.lstrip("0") or "0"
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    if not text or text == "-":
+        return "0"
+    return ("-" + text) if sign and text != "0" else text
+
+
+def _numbers_in_text(text: str) -> set[str]:
+    return {_canonical_number(match.group(0)) for match in _NUMBER_TOKEN_RE.finditer(text or "")}
+
+
+def _ordered_numbers(text: str) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for match in _NUMBER_TOKEN_RE.finditer(text or ""):
+        number = _canonical_number(match.group(0))
+        if number not in seen:
+            seen.add(number)
+            ordered.append(number)
+    return ordered
+
+
+def _claimed_result_segments(answer: str) -> list[list[str]]:
+    """Number groups that present themselves as the computed result.
+
+    After an explicit ``FINAL ANSWER:`` marker the whole tail counts; outside
+    one, only lines that name a result (total/sum/highest/gesamt/summe). A
+    group is compared as a whole, so an incidental number beside the result
+    cannot make an invented result look grounded.
+    """
+    segments: list[list[str]] = []
+    marker = None
+    for marker in _FINAL_ANSWER_RE.finditer(answer or ""):
+        pass
+    if marker is not None:
+        numbers = _ordered_numbers((answer or "")[marker.end():])
+        if numbers:
+            segments.append(numbers)
+    for line in (answer or "").splitlines():
+        if _RESULT_LINE_RE.search(line):
+            numbers = _ordered_numbers(line)
+            if numbers:
+                segments.append(numbers)
+    return segments
+
+
+def _arithmetic_verdict(question: str | None, answer: str, tool_results: list[ToolResult]) -> str:
+    """'' when the arithmetic is grounded, otherwise the hard issue text."""
+    if not question:
+        return ""
+    from core.persona import needs_compute_guard
+
+    if not needs_compute_guard(question):
+        return ""
+    evidence = [
+        result
+        for result in tool_results
+        if result.status != "error" and result.tool in ARITHMETIC_EVIDENCE_TOOLS
+    ]
+    if not evidence:
+        return "Numbers not derived from tool output: file arithmetic requires tool execution."
+    available: set[str] = set()
+    for result in evidence:
+        available |= _numbers_in_text(result.raw)
+    for segment in _claimed_result_segments(answer):
+        if not set(segment) & available:
+            return "Numbers not derived from tool output: claimed result does not match computed tool output."
+    return ""
+
+
 def evaluate_quality(*, answer: str, skill, tool_results: list[ToolResult], question: str | None = None) -> QualityReport:
     issues: list[str] = []
     warnings: list[str] = []
@@ -160,6 +267,10 @@ def evaluate_quality(*, answer: str, skill, tool_results: list[ToolResult], ques
             artifact.get("type") == artifact_type for artifact in successful_artifacts
         ):
             issues.append(f"Missing real {artifact_type} artifact evidence for final answer.")
+
+    arithmetic_issue = _arithmetic_verdict(question, answer_text, tool_results)
+    if arithmetic_issue:
+        issues.append(arithmetic_issue)
 
     # R38: expectation-based gate — declared skill test expectations are hard,
     # deterministic checks (no LLM) — but only for their own input case

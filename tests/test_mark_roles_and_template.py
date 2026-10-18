@@ -310,7 +310,7 @@ class TestTheGateOnTheRepository:
         assert "6 svg(s), 1 template asset(s)" in done.stdout, done.stdout
         assert "ink mark red" in done.stdout and "= 5.13:1" in done.stdout, done.stdout
         assert "= 5.42:1" in done.stdout, done.stdout
-        assert "mark: silhouette mass centre x=251.25" in done.stdout, done.stdout
+        assert "mark: silhouette mass centre x=256.00" in done.stdout, done.stdout
         assert "mark-micro: silhouette mass centre x=256.00" in done.stdout, done.stdout
 
 

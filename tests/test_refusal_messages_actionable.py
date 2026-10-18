@@ -83,6 +83,7 @@ DENIAL_PARAMS = {
     "not_approved": {},
     "mode_read_only": {},
     "mode_no_tools": {},
+    "secret_path_denied": {"path": "~/.ssh/id_rsa"},
 }
 
 #: per bundle: the directive set and the surface name to look for

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,6 +22,35 @@ from fastapi.testclient import TestClient
 from server.openai import create_openai_app
 
 CHUNKS = ["Hello", " from", " the", " Black", " Forest"]
+
+
+class _ScopeLines(logging.Handler):
+    """Capture one scope's ERROR lines on that logger.
+
+    caplog reads at the root, and ``run_server`` sets ``ephe.propagate = False``
+    in-process, so a test that started the server earlier leaves caplog's root
+    handler blind while the product handler still writes. A handler on the scope
+    logger sees the record under either wiring; the level is restored afterwards.
+    """
+
+    def __init__(self, logger_name: str):
+        super().__init__(level=logging.ERROR)
+        self.lines: list[str] = []
+        self._logger = logging.getLogger(logger_name)
+        self._previous = self._logger.level
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+    def __enter__(self):
+        self._logger.setLevel(logging.ERROR)
+        self._logger.addHandler(self)
+        return self
+
+    def __exit__(self, *exc):
+        self._logger.removeHandler(self)
+        self._logger.setLevel(self._previous)
+        return False
 
 
 class FakeClient:
@@ -122,29 +152,27 @@ def test_stream_error_emits_stable_code(breaking_provider):
     assert "upstream kaputt" in err_payload["error"]["message"]
 
 
-def test_serve_stream_error_id_matches_header_and_log(breaking_provider, caplog):
+def test_serve_stream_error_id_matches_header_and_log(breaking_provider):
     """WH-50: the serve SSE error envelope, its header and its log line share one id."""
-    import logging
-
-    caplog.set_level(logging.ERROR, logger="ephe.net")
-    with TestClient(create_openai_app()) as client:
-        with client.stream(
-            "POST",
-            "/v1/chat/completions",
-            json={
-                "model": "gemma4:12b",
-                "messages": [{"role": "user", "content": "hi"}],
-                "stream": True,
-            },
-        ) as resp:
-            rid = resp.headers.get("x-request-id")
-            body = resp.read().decode()
+    with _ScopeLines("ephe.net") as capture:
+        with TestClient(create_openai_app()) as client:
+            with client.stream(
+                "POST",
+                "/v1/chat/completions",
+                json={
+                    "model": "gemma4:12b",
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "stream": True,
+                },
+            ) as resp:
+                rid = resp.headers.get("x-request-id")
+                body = resp.read().decode()
     assert rid and rid.startswith("chatcmpl-")
     data_lines = [e for e in body.split("\n\n") if e.startswith("data:")]
     err_payload = json.loads(data_lines[-1][len("data: ") :])
     assert err_payload["error"]["request_id"] == rid
 
-    lines = [json.loads(r.getMessage()) for r in caplog.records if r.name == "ephe.net"]
+    lines = [json.loads(line) for line in capture.lines]
     stream_errors = [ln for ln in lines if ln.get("event") == "stream_error"]
     assert stream_errors, "no stream_error log line"
     assert stream_errors[0]["request_id"] == rid
@@ -252,23 +280,19 @@ def test_pwa_chat_stream_generated_request_id_is_consistent(monkeypatch):
     assert errors[0]["request_id"] == rid
 
 
-def test_pwa_chat_stream_error_log_line_carries_request_id(monkeypatch, caplog):
+def test_pwa_chat_stream_error_log_line_carries_request_id(monkeypatch):
     """The correlated log line carries the same id as the header and the envelope."""
-    import logging
-
-    caplog.set_level(logging.ERROR, logger="ephe.chat")
-    status, headers, body = _drive_chat_stream_error(
-        monkeypatch, headers={"X-Request-ID": "corr-wh50-log"}
-    )
+    with _ScopeLines("ephe.chat") as capture:
+        status, headers, body = _drive_chat_stream_error(
+            monkeypatch, headers={"X-Request-ID": "corr-wh50-log"}
+        )
     assert status == 200
     assert headers.get("x-request-id") == "corr-wh50-log"
     assert _error_events(body)[0]["request_id"] == "corr-wh50-log"
 
-    lines = [
-        json.loads(r.getMessage()) for r in caplog.records if r.name == "ephe.chat"
-    ]
+    lines = [json.loads(line) for line in capture.lines]
     stream_errors = [ln for ln in lines if ln.get("event") == "stream_error"]
-    assert stream_errors, f"no stream_error log line: {[r.getMessage() for r in caplog.records]}"
+    assert stream_errors, f"no stream_error log line: {capture.lines}"
     assert stream_errors[0]["request_id"] == "corr-wh50-log"
 
 

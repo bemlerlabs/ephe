@@ -140,6 +140,34 @@ class TestSilentShortcutsNowNamed:
         assert "bar, line, pie" in answer
 
 
+class TestThemesAndMultiSeries:
+    @pytest.mark.asyncio
+    async def test_dark_grouped_bars_carry_two_series_and_a_legend(self):
+        answer = await chart(
+            title="Regions",
+            labels=["Q1", "Q2"],
+            values=[],
+            theme="dark",
+            series=[{"name": "North", "values": [1, 2]}, {"name": "South", "values": [3, 4]}],
+        )
+        assert answer.startswith("CHART_FILE:")
+        svg = path_of(answer).read_text(encoding="utf-8")
+        assert "#0b1512" in svg  # dark paper
+        assert "#e7f0ea" in svg  # dark ink
+        assert "#1e293b" in svg  # dark gridline
+        assert "North" in svg and "South" in svg
+        assert svg.count("<rect") >= 8  # paper + band + four bars + two legend swatches
+        assert "#22c55e" in svg and "#0891b2" in svg  # accent + a clearly different second hue
+        assert "note:" not in answer
+
+    @pytest.mark.asyncio
+    async def test_light_theme_is_the_default_on_paper(self):
+        answer = await chart()
+        svg = path_of(answer).read_text(encoding="utf-8")
+        assert "#fbfcfb" in svg
+        assert "#0b1512" not in svg
+
+
 class TestFileIdentity:
     @pytest.mark.asyncio
     async def test_two_charts_with_the_same_title_write_two_files(self):

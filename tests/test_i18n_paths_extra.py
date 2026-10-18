@@ -125,9 +125,12 @@ def supported() -> list[str]:
 
 def test_every_offered_language_ships_a_readable_bundle(supported):
     """A language in ``supportedLngs`` with no bundle resolves to raw keys."""
-    fallback = _string_field(_config(), "fallbackLng")
+    text = _config()
+    # The fallback is the boot language, decided before init (browser on a first
+    # start); its catalog is the one preloaded, so no offered language may miss one.
+    assert "fallbackLng: activeLanguage" in text
+    assert "function languageFrom" in text and "navigator.language" in text
     assert supported, "supportedLngs is empty"
-    assert fallback in supported, f"fallbackLng {fallback!r} is not an offered language"
     for locale in supported:
         assert (LOCALES / f"{locale}.json").is_file(), f"no bundle shipped for {locale}"
         assert _bundle(locale), f"the {locale} bundle has no entries"
@@ -146,12 +149,15 @@ def test_region_tags_collapse_to_the_base_bundle(supported):
 
 
 def test_an_unknown_detected_language_resolves_to_the_fallback(supported):
-    """A visitor whose stored choice points at an unshipped language still has to get
-    strings, so the fallback has to be one of the shipped bundles."""
-    fallback = _string_field(_config(), "fallbackLng")
+    """A stored choice pointing at an unshipped language still has to get strings."""
+    text = _config()
+    fallback = re.search(r"^const FALLBACK_LANGUAGE[^=]*=\s*'([^']+)'", text, re.M)
+    assert fallback is not None, "i18n.ts declares no FALLBACK_LANGUAGE literal"
     unknown = "fr"
     assert unknown not in supported
-    assert _bundle(fallback), "the fallback language ships no bundle"
+    assert fallback.group(1) in supported
+    assert _bundle(fallback.group(1)), "the fallback language ships no bundle"
+    assert "return FALLBACK_LANGUAGE" in text, "languageFrom no longer ends on the fallback"
 
 
 def test_detection_reads_the_stored_choice_only():

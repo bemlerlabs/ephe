@@ -403,6 +403,21 @@ pub fn run() {
                 });
             }
 
+            // Programmatic fallback for the native macOS depth blur
+            // (NSVisualEffectView). tauri.conf.json already asks for
+            // `windowEffects.underWindowBackground`; re-applying it here guarantees
+            // the effect survives the config path being ignored on a given runtime.
+            #[cfg(target_os = "macos")]
+            if let Some(win) = app.get_webview_window("main") {
+                use tauri::window::{Effect, EffectState, EffectsBuilder};
+                let _ = win.set_effects(
+                    EffectsBuilder::new()
+                        .effect(Effect::UnderWindowBackground)
+                        .state(EffectState::FollowsWindowActiveState)
+                        .build(),
+                );
+            }
+
             // R2-U: "Check for Updates…" belongs in the menu next to the Apple
             // logo — that is where macOS looks for exactly such an entry. The
             // item fires the same event as the surface's header button, so both

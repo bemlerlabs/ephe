@@ -282,6 +282,11 @@ export function pruneSessions(body: SessionPruneRequest): Promise<SessionPruneRe
   })
 }
 
+/** Delete the whole session store (all namespaces, nothing kept). */
+export function clearSessions(): Promise<SessionPruneResult> {
+  return request<SessionPruneResult>('/api/sessions/clear', { method: 'POST' })
+}
+
 // ── R31: learning loop proposals ─────────────────────────────────────────────
 
 export function getLearningProposals(): Promise<{ proposals: LearningProposal[] }> {

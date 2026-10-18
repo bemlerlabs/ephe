@@ -517,7 +517,7 @@ BASE_TOOL_SCHEMAS = [
         "function": {
             "name": "generate_chart",
             "description": (
-                "Creates a data chart (bar/line/pie) as a PNG image in Ephe design. Use this when the user wants to visualize data. The image appears in the chat automatically."
+                "Creates a data chart (bar/line/pie) as an SVG image in Ephe design. Use this when the user wants to visualize data. The image appears in the chat automatically. theme='light' (default) matches a PDF page; theme='dark' for the studio surface. For bar/line pass series=[{name, values}, …] to draw several groups or lines with a legend, and embed the result in a PDF with a whole line ![chart](/absolute/path.svg)."
             ),
             "parameters": {
                 "type": "object",
@@ -525,11 +525,14 @@ BASE_TOOL_SCHEMAS = [
                     "chart_type": {"type": "string", "enum": ["bar", "line", "pie"], "description": "Chart kind: one of bar, line, pie."},
                     "title": {"type": "string", "description": "Chart title shown above the plot."},
                     "labels": {"type": "array", "items": {"type": "string"}, "description": "Category labels, one per value."},
-                    "values": {"type": "array", "items": {"type": "number"}, "description": "Numeric values, same length as labels."},
+                    "values": {"type": "array", "items": {"type": "number"}, "description": "Numeric values, same length as labels. Required unless series is given."},
                     "xlabel": {"type": "string", "description": "Optional x-axis label."},
                     "ylabel": {"type": "string", "description": "Optional y-axis label."},
+                    "color": {"type": "string", "description": "Optional #rrggbb accent colour for a single series."},
+                    "theme": {"type": "string", "enum": ["light", "dark"], "description": "light (paper/PDF) or dark (studio). Default light."},
+                    "series": {"type": ["array", "null"], "items": {"type": "object"}, "description": "Optional multi-series data for bar/line: a list of {name, values}; labels and every series must have equal length."},
                 },
-                "required": ["chart_type", "title", "labels", "values"]
+                "required": ["chart_type", "title", "labels"]
             }
         }
     },
@@ -544,7 +547,7 @@ BASE_TOOL_SCHEMAS = [
                 "type": "object",
                 "properties": {
                     "title": {"type": "string", "description": "Document title (also the file-name base)."},
-                    "content": {"type": "string", "description": "Body content as markdown-like text (# headings, bullets, paragraphs)."},
+                    "content": {"type": "string", "description": "Body content as markdown-like text (# headings, bullets, paragraphs). A whole line ![chart](/absolute/path.svg) embeds a local chart or diagram; create it with generate_chart or create_diagram using theme='light' so it matches the page."},
                     "filename": {"type": "string", "description": "Optional output file name (a bare name, not a path); the result line names the finished file."},
                     "template": {"type": "string", "enum": ["report", "brief", "analysis", "checklist"], "description": "Layout preset: one of report, brief, analysis, checklist."},
                 },
@@ -743,7 +746,7 @@ BASE_TOOL_SCHEMAS = [
         "function": {
             "name": "create_xlsx",
             "description": (
-                "Creates a real Excel file (.xlsx): formatted header, column widths, numeric cells. Pass the data as rows (JSON array of arrays or CSV text). Use this for tables, evaluations, lists."
+                "Creates a real Excel file (.xlsx): styled header, typed cells, safe formulas, number formats, auto filter, frozen header and a bold total row. Cell values starting with = are written as live formulas when they are regular spreadsheet formulas (=SUM(B2:B10), =B2*C2, =IF(...)); unsafe payloads stay inert text. Percentages, currencies (EUR, USD, CHF, GBP) and ISO dates are recognised automatically. Pass the data as rows (JSON array of arrays or CSV text). Use this for tables, evaluations, lists."
             ),
             "parameters": {
                 "type": "object",
@@ -754,6 +757,10 @@ BASE_TOOL_SCHEMAS = [
                         "description": "Rows as JSON array of arrays or CSV text (first row = header)",
                     },
                     "filename": {"type": "string", "description": "Optional output file name (a bare name, not a path); the result line names the finished file."},
+                    "formats": {
+                        "type": ["object", "array", "null"],
+                        "description": "Optional column formats: an object keyed by header name or 1-based column index, or a list by column position. Each value is a format code or one of currency, percent, integer, decimal, date.",
+                    },
                 },
                 "required": ["title", "data"]
             }
@@ -799,7 +806,7 @@ BASE_TOOL_SCHEMAS = [
         "function": {
             "name": "create_diagram",
             "description": (
-                "Creates a professional SVG diagram in Ephe design. kind: 'mindmap' | 'timeline' | 'flowchart'. items: list of points, optionally 'Label | Description' per point. Use this for mind maps, timelines/roadmaps and process/flow diagrams."
+                "Creates a professional SVG diagram in Ephe design. kind: 'mindmap' | 'timeline' | 'flowchart'. items: list of points, optionally 'Label | Description' per point. Use this for mind maps, timelines/roadmaps and process/flow diagrams. theme='dark' (default) is the studio surface; theme='light' is the print palette for embedding in a PDF with a whole line ![diagram](/absolute/path.svg)."
             ),
             "parameters": {
                 "type": "object",
@@ -811,6 +818,7 @@ BASE_TOOL_SCHEMAS = [
                         "description": "Points as JSON array or rows in the format 'Label | Description'",
                     },
                     "filename": {"type": "string", "description": "Optional output file name (a bare name, not a path); the result line names the finished file."},
+                    "theme": {"type": "string", "enum": ["dark", "light"], "description": "dark (studio, default) or light (paper/PDF)."},
                 },
                 "required": ["kind", "title", "items"]
             }

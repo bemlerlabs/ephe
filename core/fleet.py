@@ -152,6 +152,16 @@ def register_owners(register_file_path: str | os.PathLike[str] | None = None) ->
     return out
 
 
+def _ledger_of(run_id: str) -> dict | None:
+    """The run ledger as a fleet view; None for a run whose ledger has no lines."""
+    try:
+        from core.run.ledger import snapshot_if_present
+
+        return snapshot_if_present(run_id)
+    except Exception:
+        return None
+
+
 def _row(
     *,
     run_id: str,
@@ -176,6 +186,7 @@ def _row(
         "needs_you": needs_you(state),
         "running_for_seconds": running_for_seconds,
         "last_event": last_event or {"kind": "none", "text": "", "op": "", "age_seconds": None},
+        "ledger": _ledger_of(run_id),
     }
 
 

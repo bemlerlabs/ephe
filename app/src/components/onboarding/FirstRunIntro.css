@@ -1,0 +1,173 @@
+/* The first-open film. The scene is the owner's keyframe art: a 1280×720 film on a
+   dark stage, with the copy waiting for the awakening. */
+.intro-stage {
+  --intro-gold: #ffbf47;
+  --intro-cream: #fffdf5;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  background: #020504;
+  color: var(--intro-cream);
+  outline: none;
+  isolation: isolate;
+}
+.intro-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 55%;
+  pointer-events: none;
+}
+.intro-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgb(2 5 4 / 0.88) 0%, rgb(2 5 4 / 0.25) 34%, transparent 62%),
+    radial-gradient(80% 70% at 50% 46%, transparent 46%, rgb(0 0 0 / 0.55) 100%);
+}
+.intro-sparks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.intro-copy {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 8%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding-inline: 1.5rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 800ms var(--ease-out-soft),
+    transform 800ms var(--ease-out-soft);
+}
+.intro-copy.is-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+.intro-title {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-shadow:
+    0 2px 18px rgb(0 0 0 / 0.7),
+    0 0 46px rgb(255 191 71 / 0.3);
+  animation: intro-rise 700ms var(--ease-out-soft) both;
+}
+.intro-line {
+  max-width: 36rem;
+  color: rgb(255 253 245 / 0.8);
+  font-size: var(--text-scale-ui);
+  line-height: 1.6;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.8);
+  animation: intro-rise 700ms var(--ease-out-soft) both;
+}
+.intro-cta {
+  margin-top: 0.4rem;
+  min-height: 2.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgb(255 191 71 / 0.55);
+  background: linear-gradient(to bottom, #ffcf6d, #f29a3d);
+  padding: 0.6rem 1.35rem;
+  color: #1a0d05;
+  font-size: var(--text-scale-ui);
+  font-weight: 650;
+  box-shadow: 0 10px 34px rgb(255 191 71 / 0.22);
+  transition:
+    transform 160ms var(--ease-out-soft),
+    filter 160ms var(--ease-out-soft);
+  animation: intro-rise 700ms var(--ease-out-soft) both;
+}
+.intro-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.intro-hint {
+  color: rgb(255 253 245 / 0.5);
+  font-size: var(--text-scale-ui);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.8);
+  animation: intro-rise 700ms var(--ease-out-soft) both;
+}
+
+.intro-skip {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  inset-inline-end: 1rem;
+  z-index: 3;
+  min-height: 2.4rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(255 253 245 / 0.18);
+  background: rgb(4 8 6 / 0.4);
+  padding: 0.45rem 0.9rem;
+  color: rgb(255 253 245 / 0.75);
+  font-size: var(--text-scale-ui);
+  backdrop-filter: blur(8px);
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.intro-skip:hover {
+  color: var(--intro-cream);
+  border-color: rgb(255 191 71 / 0.45);
+}
+
+.intro-decay {
+  animation: intro-decay 380ms var(--ease-out-soft) both;
+  pointer-events: none;
+}
+
+.intro-stage.is-still .intro-copy {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes intro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes intro-decay {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+    filter: blur(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-stage * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+html.no-motion .intro-stage * {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (pointer: coarse) {
+  .intro-cta,
+  .intro-skip {
+    min-height: 44px;
+  }
+}

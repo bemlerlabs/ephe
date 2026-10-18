@@ -45,6 +45,10 @@ ENGINE_SENTENCES = {
         "[TOOL-DENIED] write_file was not executed: this mode (Ask) runs without tools. "
         "Ask, or choose a read-only path."
     ),
+    "secret_path_denied": (
+        "[TOOL-DENIED] write_file was not executed: the path is inside a protected root "
+        "(~/.ssh/id_rsa). Ask, or choose a read-only path."
+    ),
 }
 
 PARAMS = {
@@ -54,6 +58,7 @@ PARAMS = {
     "not_approved": {},
     "mode_read_only": {},
     "mode_no_tools": {},
+    "secret_path_denied": {"path": "~/.ssh/id_rsa"},
 }
 
 

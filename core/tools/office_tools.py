@@ -18,6 +18,26 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+_PERCENT_RE = re.compile(r"^([-+]?\d+(?:[.,]\d+)?)\s*%$")
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_CURRENCY_RE = re.compile(
+    r"^(?:(€|\$|CHF|£)\s*)?([-+]?\d[\d\s.,\u00a0]*)(?:\s*(€|\$|CHF|£))?$",
+    re.IGNORECASE,
+)
+_CURRENCY_FORMATS = {
+    "€": '#,##0.00 "€"',
+    "$": '"$"#,##0.00',
+    "CHF": '#,##0.00 "CHF"',
+    "£": '"£"#,##0.00',
+}
+_FORMULA_FUNC_RE = re.compile(r"^=[A-Za-z_][A-Za-z0-9_.]*\([^;\n]*\)$")
+_FORMULA_ARITH_RE = re.compile(r"^=[A-Za-z0-9_.$+\-*/:<>=(),&% ]+$")
+_FORMULA_DENY_RE = re.compile(
+    r"^=(?:HYPERLINK|CMD|WEBSERVICE|IMPORTXML|IMPORTDATA|IMPORTRANGE|RTD|DDE)\s*\(",
+    re.IGNORECASE,
+)
+_INJECTION_PREFIXES = ("=", "+", "-", "@")
+
 
 def _parse_numeric_cell(text: str) -> float | int | None:
     """Audit 2026-09-13: recognize cell numbers UNAMBIGUOUSLY.
@@ -37,6 +57,157 @@ def _parse_numeric_cell(text: str) -> float | int | None:
     if re.fullmatch(r"-?\d+(\.\d+)?", t):
         return float(t) if "." in t else int(t)
     return None
+
+
+def _parse_localized_number(text: str) -> float | int | None:
+    """Currency amounts carry both separator conventions; the later one is decimal."""
+    t = (text or "").strip().replace(" ", "").replace("\u00a0", "")
+    if not t:
+        return None
+    if "," in t and "." in t:
+        if t.rfind(",") > t.rfind("."):
+            t = t.replace(".", "").replace(",", ".")
+        else:
+            t = t.replace(",", "")
+    elif "," in t:
+        t = t.replace(",", "") if re.fullmatch(r"-?\d{1,3}(,\d{3})+", t) else t.replace(",", ".")
+    elif "." in t and re.fullmatch(r"-?\d{1,3}(\.\d{3})+", t):
+        t = t.replace(".", "")
+    try:
+        number = float(t)
+    except ValueError:
+        return None
+    return int(number) if re.fullmatch(r"-?\d+", t) else number
+
+
+def _parse_percent_cell(text: str) -> float | None:
+    match = _PERCENT_RE.fullmatch((text or "").strip())
+    if not match:
+        return None
+    try:
+        return float(match.group(1).replace(",", ".")) / 100.0
+    except ValueError:
+        return None
+
+
+def _parse_currency_cell(text: str) -> tuple[float | int, str] | None:
+    match = _CURRENCY_RE.fullmatch((text or "").strip())
+    if not match:
+        return None
+    symbol = (match.group(1) or match.group(3) or "").upper()
+    if not symbol or symbol not in _CURRENCY_FORMATS:
+        return None
+    number = _parse_localized_number(match.group(2))
+    if number is None:
+        return None
+    return number, _CURRENCY_FORMATS[symbol]
+
+
+def _parse_iso_date(text: str):
+    raw = (text or "").strip()
+    if not _ISO_DATE_RE.fullmatch(raw):
+        return None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _is_safe_formula(text: str) -> bool:
+    """A real spreadsheet formula, not a CSV-injection payload."""
+    if not text.startswith("=") or len(text) > 512:
+        return False
+    if _FORMULA_DENY_RE.match(text):
+        return False
+    return bool(_FORMULA_FUNC_RE.fullmatch(text) or _FORMULA_ARITH_RE.fullmatch(text))
+
+
+def _neutralize_text(text: str) -> str:
+    return "'" + text if text[:1] in _INJECTION_PREFIXES else text
+
+
+_FORMAT_TYPES = {
+    "currency": "#,##0.00",
+    "percent": "0.0%",
+    "integer": "#,##0",
+    "decimal": "#,##0.00",
+    "date": "yyyy-mm-dd",
+}
+
+
+def _resolve_column_formats(formats: object, header: list[str], column_count: int) -> dict[int, object]:
+    """formats maps a header name or 1-based column index (dict) or position (list) to a spec."""
+    resolved: dict[int, object] = {}
+    if isinstance(formats, dict):
+        header_index = {str(name).strip().lower(): index for index, name in enumerate(header, 1)}
+        for key, spec in formats.items():
+            if not spec:
+                continue
+            index = key if isinstance(key, int) else header_index.get(str(key).strip().lower())
+            if isinstance(index, int) and 1 <= index <= column_count:
+                resolved[index] = spec
+    elif isinstance(formats, (list, tuple)):
+        for index, spec in enumerate(formats, 1):
+            if spec and index <= column_count:
+                resolved[index] = spec
+    return resolved
+
+
+def _cell_payload(raw: str, row_index: int, column_format: object) -> tuple[object, str | None, str | None]:
+    """(value, number_format, horizontal_alignment) for one cell.
+
+    Row 1 stays a header. From row 2 a safe formula is written as a formula;
+    percentages, currencies and ISO dates become typed values with their own
+    number format; unsupported leading characters stay inert text.
+    """
+    text = (raw or "").strip()
+    if row_index >= 2 and _is_safe_formula(text):
+        return text, None, None
+
+    explicit = None
+    align = None
+    value: object = None
+    number_format: str | None = None
+
+    if row_index >= 2:
+        percent = _parse_percent_cell(text)
+        currency = _parse_currency_cell(text)
+        iso_date = _parse_iso_date(text)
+        numeric = _parse_numeric_cell(text)
+        if percent is not None:
+            value, number_format, align = percent, "0.0%", "right"
+        elif currency is not None:
+            value, number_format, align = currency[0], currency[1], "right"
+        elif iso_date is not None:
+            value, number_format, align = iso_date, "yyyy-mm-dd", "center"
+        elif numeric is not None:
+            value, align = numeric, "right"
+            number_format = "#,##0" if isinstance(numeric, int) and abs(numeric) >= 1000 else (
+                "#,##0.00" if isinstance(numeric, float) else None
+            )
+
+    if isinstance(column_format, str):
+        explicit = _FORMAT_TYPES.get(column_format.strip().lower(), column_format.strip() or None)
+    if explicit and value is not None:
+        number_format = explicit
+        if explicit == "yyyy-mm-dd":
+            align = "center"
+        elif align is None:
+            align = "right"
+
+    if value is None:
+        value = _neutralize_text(text)
+    return value, number_format, align
+
+
+def _is_total_row(row: list[str]) -> bool:
+    first = (row[0] if row else "").strip().lower()
+    if first.startswith(("total", "gesamt", "summe", "durchschnitt", "average")):
+        return True
+    return any(
+        isinstance(cell, str) and re.match(r"^=(?:SUM|AVERAGE)\s*\(", cell.strip(), re.IGNORECASE)
+        for cell in row
+    )
 
 
 def _downloads() -> Path:
@@ -92,12 +263,15 @@ async def create_xlsx(
     data: object,
     filename: str = "ephe_tabelle.xlsx",
     path: str | None = None,
+    formats: dict | list | None = None,
 ) -> str:
-    """Creates a real Excel file (openpyxl): formatted header,
-    column widths, number cells where parseable.
+    """Creates a real Excel file (openpyxl): formatted header, column widths,
+    typed cells, safe formulas, auto filter and a styled total row.
 
-    R38: `path` = output path named by the user in the prompt (directory or
-    file); it overrides the downloads default only if it exists."""
+    `formats` maps a header name or 1-based column index (dict) or a column
+    position (list) to a format code or one of currency, percent, integer,
+    decimal, date. R38: `path` = output path named by the user in the prompt
+    (directory or file); it overrides the downloads default only if it exists."""
     rows = _parse_rows(data)
     if not rows:
         return "[xlsx error: no tabular data detected — pass rows as JSON array or CSV]"
@@ -123,27 +297,64 @@ async def create_xlsx(
 
         header_fill = PatternFill("solid", fgColor="1F3D2B")
         header_font = Font(color="FFFFFF", bold=True, size=11)
+        zebra_fill = PatternFill("solid", fgColor="F5F8F6")
         thin = Side(style="thin", color="D9D9D9")
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
+        total_side = Side(style="thin", color="1F3D2B")
+        total_border = Border(
+            left=thin,
+            right=thin,
+            top=total_side,
+            bottom=Side(style="double", color="1F3D2B"),
+        )
+
+        column_count = max(len(row) for row in rows)
+        column_formats = _resolve_column_formats(formats, rows[0], column_count)
+        total_row_index = len(rows) if len(rows) > 1 and _is_total_row(rows[-1]) else 0
 
         for r_idx, row in enumerate(rows, start=1):
             for c_idx, cell_value in enumerate(row, start=1):
-                text = str(cell_value).strip()
-                numeric = _parse_numeric_cell(text)
-                cell = ws.cell(row=r_idx, column=c_idx, value=numeric if numeric is not None else text)
+                value, number_format, horizontal = _cell_payload(
+                    str(cell_value), r_idx, column_formats.get(c_idx)
+                )
+                cell = ws.cell(row=r_idx, column=c_idx, value=value)
                 cell.border = border
+                if number_format:
+                    cell.number_format = number_format
                 if r_idx == 1:
                     cell.fill = header_fill
                     cell.font = header_font
                     cell.alignment = Alignment(vertical="center")
                 else:
-                    cell.alignment = Alignment(vertical="top", wrap_text=False)
+                    if horizontal:
+                        cell.alignment = Alignment(horizontal=horizontal, vertical="top")
+                    else:
+                        cell.alignment = Alignment(vertical="top", wrap_text=False)
+                    if r_idx % 2 == 0:
+                        cell.fill = zebra_fill
+                if r_idx == total_row_index:
+                    cell.font = Font(bold=True)
+                    cell.border = total_border
+                    if horizontal:
+                        cell.alignment = Alignment(horizontal=horizontal, vertical="top")
 
-        # column widths from the largest cell content
-        for c_idx in range(1, len(rows[0]) + 1):
-            width = max(len(str(rows[r][c_idx - 1])) for r in range(len(rows))) + 3
-            ws.column_dimensions[get_column_letter(c_idx)].width = min(max(width, 10), 60)
+        # Display widths: a formula must not stretch the column to its source text.
+        for c_idx in range(1, column_count + 1):
+            longest = 0
+            for row in rows:
+                text = str(row[c_idx - 1]).strip() if c_idx - 1 < len(row) else ""
+                if text.startswith("="):
+                    display_length = 12
+                elif _ISO_DATE_RE.fullmatch(text):
+                    display_length = 10
+                else:
+                    display_length = len(text)
+                longest = max(longest, display_length)
+            width = min(max(longest + 4, 12), 55)
+            ws.column_dimensions[get_column_letter(c_idx)].width = width
         ws.freeze_panes = "A2"
+        if len(rows) > 1:
+            ws.auto_filter.ref = ws.dimensions
 
         wb.save(str(out))
         return f"XLSX_FILE:{out}"

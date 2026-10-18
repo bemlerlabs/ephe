@@ -23,7 +23,7 @@ import fierceSource from '@/assets/fire-spirit-bee-fierce.svg?raw'
 export type SpiritRegister = 'calm' | 'fierce'
 
 /** What the figure is doing. The sheet turns each state into motion. */
-export type SpiritState = 'rest' | 'land' | 'hold' | 'lean' | 'lead'
+export type SpiritState = 'rest' | 'land' | 'hold' | 'lean' | 'lead' | 'flight' | 'ember'
 
 const FRAMES: { register: SpiritRegister; source: string; prefix: string }[] = [
   { register: 'calm', source: calmSource, prefix: 'bspc' },

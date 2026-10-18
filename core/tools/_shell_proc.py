@@ -212,6 +212,8 @@ def _docker_exec(command: str, workspace: Path) -> "subprocess.CompletedProcess[
 
 def _exec_sync(command, cwd: "str | None", use_shell: bool):
     """P0-1: Popen instead of run — on timeout the process group is reaped."""
+    from core.tools.cancel_scope import register_group, unregister_group
+
     proc = subprocess.Popen(
         command,
         shell=use_shell,
@@ -221,12 +223,15 @@ def _exec_sync(command, cwd: "str | None", use_shell: bool):
         cwd=cwd,
         **_new_group_kwargs(),
     )
+    register_group(proc.pid)
     try:
         out, err = proc.communicate(timeout=SHELL_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         _kill_group(proc.pid)
         _reap(proc)
         raise
+    finally:
+        unregister_group(proc.pid)
     return subprocess.CompletedProcess(
         args=command, returncode=proc.returncode, stdout=out, stderr=err
     )

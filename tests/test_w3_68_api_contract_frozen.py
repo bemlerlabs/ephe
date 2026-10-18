@@ -19,9 +19,11 @@ same commit that touches ``server/routes/*`` or ``server/main.py``.
 
 Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
 
-  172 operations (method + path) over 151 paths, on from 169 over 149. The three
+  173 operations (method + path) over 152 paths, on from 169 over 149. The three
   sessions additions (list, delete, prune) landed with ``core/session_lifecycle.py``:
-  the store had no reachable hold on the files it wrote. The ten isolation additions
+  the store had no reachable hold on the files it wrote. ``POST /api/sessions/clear``
+  is the one-action counterpart (every namespace, nothing kept). The ten isolation
+  additions
   (trees, change sets, review, publish) landed with ``server/routes/workspaces.py``,
   where four modules that had tests and no caller — ``core/workspace_lifecycle``,
   ``core.change_set``, ``core.review_gate``, ``core.atomic_publish`` — became reachable.
@@ -192,6 +194,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/sandbox/approve",
     "POST /api/schedule",
     "POST /api/schedule/{job_id}/run",
+    "POST /api/sessions/clear",
     "POST /api/sessions/import",
     "POST /api/sessions/prune",
     "POST /api/sessions/sync",

@@ -81,6 +81,8 @@ export interface ChatState {
   setSessionMode: (id: string, mode: string) => void
   createSession: (title?: string) => void
   deleteSession: (id: string) => void
+  /** Delete every task at once — the browser copy and the last-opened pointer. */
+  clearAllSessions: () => void
   /** Rename a session (persisted). */
   renameSession: (id: string, title: string) => void
   /** R26: pin/unpin a session (persisted) — pinned sessions sort to the top. */

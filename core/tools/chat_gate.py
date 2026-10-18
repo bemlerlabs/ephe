@@ -49,6 +49,9 @@ DENIAL_REASONS = {
     # W10: the mode's own promise, refused where the call would run.
     "mode_read_only": "this mode is read-only (Plan) and that tool writes — leave Plan mode to run it",
     "mode_no_tools": "this mode (Ask) runs without tools",
+    # SEC-1: a path under a protected root is refused before a dialog; a
+    # credential-shaped file needs the dialog even when the tool only reads.
+    "secret_path_denied": "the path is inside a protected root ({path})",
 }
 
 #: The move a denied run leaves open. Every denial carries it — a bare "was not executed"
@@ -138,8 +141,19 @@ async def confirm_for_chat(
     exception name reaches the engine instead of dying in this function.
     """
     from core.tools.approval import chat_tool_requires_confirm
+    from core.path_guard import deny_paths, secret_paths
 
-    if not chat_tool_requires_confirm(name):
+    denied_hits = deny_paths(args)
+    if denied_hits:
+        if audit:
+            from core.audit_log import audit_event
+
+            audit_event("security", tool=name, args=args, decision="denied", status="protected-root")
+        return False, denial_message(name, "secret_path_denied", path=denied_hits[0])
+
+    # A read-only tool stays read-only; a credential-shaped file is the one exception,
+    # because its content is the secret whatever the tool intends to do with it.
+    if not chat_tool_requires_confirm(name) and not secret_paths(args):
         return True, ""
 
     cb = _approval_callback(on_confirm)
@@ -206,8 +220,9 @@ async def gate_delegated_tool(name: str, args: dict, *, who: str = "delegate") -
     lands wherever the run is read back.
     """
     from core.tools.approval import chat_tool_requires_confirm
+    from core.path_guard import secret_paths
 
-    if not chat_tool_requires_confirm(name):
+    if not chat_tool_requires_confirm(name) and not secret_paths(args):
         record = f"[gate] {who}: {name} ran exempt from the approval gate (read-only tool)."
         _delegate_row(name, args, DELEGATE_EXEMPT, who)
         return True, "", record

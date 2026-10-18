@@ -81,10 +81,10 @@
     {
       "file": "app/src/components/dashboard/chat/index.tsx",
       "marker": "isTauri",
-      "count": 2,
-      "surface": "window controls in the chat header",
-      "web": "no controls; the browser draws the window chrome",
-      "desktop": "minimize and maximize buttons at the header's right edge"
+      "count": 3,
+      "surface": "chat header: window controls and the traffic-light clearance",
+      "web": "no controls and no left inset; the browser draws the window chrome",
+      "desktop": "minimize and maximize at the header's right edge, and an extra left inset when the sidebar is a rail so the first header control clears the overlaid traffic lights"
     },
     {
       "file": "app/src/components/dashboard/chat/model.ts",

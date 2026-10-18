@@ -79,7 +79,7 @@ def test_the_committed_pair_agrees():
     """The tree as landed: three shared plugins, all on the same major and minor."""
     result = run_guard()
     assert result.returncode == 0, result.stdout + result.stderr
-    for name in ("notification 2.5.1", "process 2.4.0", "updater 2.13.2"):
+    for name in ("notification 2.7.0", "process 2.4.0", "updater 2.14.0"):
         assert name in result.stdout
     assert "dialog" in result.stdout, "the rust-only plugins have to be named, not silently skipped"
 

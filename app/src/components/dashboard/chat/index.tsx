@@ -33,6 +33,7 @@ import Sidebar from '../Sidebar'
 import WorkspaceBar from '../WorkspaceBar'
 import { UpdateDialog } from '../UpdateDialog'
 import ChatInput from '../ChatInput'
+import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
 import { TaskDock } from '../TaskDock'
 import { CellLifeLine } from '../CellLifeLine'
 import { estimateContextUsage } from '@/lib/contextMeter'
@@ -289,13 +290,21 @@ export default function ChatLayout() {
               status bar (app/index.html: viewport-fit=cover), so the header has
               to clear the clock itself — `pt-` carries the inset, which is 0 in
               every desktop browser. */}
-            <header className="relative z-sticky border-b border-hairline px-4 min-h-12 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-[calc(0.25rem+env(safe-area-inset-top))] pb-1 flex-shrink-0">
+            <header
+              data-tauri-drag-region
+              className={`relative z-sticky border-b border-hairline px-4 h-11 flex items-center justify-between gap-x-2 pt-[calc(0.25rem+env(safe-area-inset-top))] flex-shrink-0${
+                isTauri && sidebarCollapsed ? ' md:pl-8' : ''
+              }`}
+            >
               {/* DD-27: the left group is the interactive column (nav arrows, title).
-              R2-I: the row has a wrap line (flex-wrap) and the title
-              truncates at the column, not at the window (min-w-0 chain instead of a
-              vw cap) — with the pane open the chat column is narrower than the
-              viewport, and the right-hand island must not reach into its graphics. */}
-              <div className="flex items-center gap-1.5 min-w-0 shrink">
+              R2-I: the title truncates at the column, not at the window (min-w-0
+              chain instead of a vw cap) — with the pane open the chat column is
+              narrower than the viewport, and the right-hand island must not reach
+              into its graphics. */}
+              <div
+                data-tauri-drag-region="false"
+                className="flex items-center gap-1.5 min-w-0 shrink"
+              >
                 {/* KI-client parity: sidebar toggle in the topbar (desktop) */}
                 <button
                   onClick={toggleSidebarCollapsed}
@@ -318,7 +327,10 @@ export default function ChatLayout() {
                     overflow menu: the header keeps identity and the run, the
                     tools live one named step away. */}
                 <div data-tauri-drag-region className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 shrink-0 rounded-md glass-control flex items-center justify-center">
+                  <div
+                    data-testid="app-logo"
+                    className="w-6 h-6 shrink-0 rounded-md glass-control flex items-center justify-center"
+                  >
                     <EpheMark size="1.25rem" testId="header-mark" />
                   </div>
                   {/* WP5: under the title sits the life of the cell — not the
@@ -641,6 +653,9 @@ export default function ChatLayout() {
             ) : (
               <>
                 <div data-testid="chat-scroll-region" className="flex flex-1 min-h-0 relative">
+                  {/* Zone 3 veil: the transcript fades into the composer dock so a
+                      message glides under the input instead of stopping at its edge. */}
+                  <div aria-hidden="true" className="composer-veil" />
                   {/* G1.4: floating scroll-to-bottom (only when not pinned) */}
                   {!isPinned && (
                     <button
@@ -669,7 +684,7 @@ export default function ChatLayout() {
                     style={{ overflowAnchor: 'auto' }}
                   >
                     <div
-                      className="max-w-5xl mx-auto py-6 relative"
+                      className="max-w-3xl mx-auto py-6 relative"
                       style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
                     >
                       {rowVirtualizer.getVirtualItems().map((virtualItem) => {
@@ -731,29 +746,35 @@ export default function ChatLayout() {
             {/* Input — G1.3: NOT disabled while streaming (typing/queueing stay
             possible); only the send button turns into stop. Backstop guard in the
             parent's handleSend. */}
-            <WorkspaceBar
-              branch={headerMeta?.branch}
-              dirty={headerMeta?.dirty}
-              git={headerMeta?.git}
-            />
-            <ChatInput
-              onSend={(msg, att) => void handleSend(msg, att)}
-              streaming={isTyping}
-              onStop={handleStop}
-              onSlashCommand={handleSlashCommand}
-              draftSeed={composerSeed}
-              contextPercent={
-                (currentSession?.messages.length ?? 0) > 0
-                  ? Math.min(
-                      100,
-                      (estimateContextUsage(currentSession?.messages ?? [], contextWindow).tokens
-                        .total /
-                        Math.max(1, contextWindow ?? 32768)) *
+            {/* Zone 3 — the workspace bar sits above the composer, and only when a
+                real git repo is open: an empty default chat keeps a clean stage. */}
+            {headerMeta?.git && (
+              <WorkspaceBar branch={headerMeta.branch} dirty={headerMeta.dirty} git />
+            )}
+            <div className="relative">
+              <WorkspaceCompanion
+                isStreaming={isTyping}
+                hasMessages={(currentSession?.messages.length ?? 0) > 0}
+              />
+              <ChatInput
+                onSend={(msg, att) => void handleSend(msg, att)}
+                streaming={isTyping}
+                onStop={handleStop}
+                onSlashCommand={handleSlashCommand}
+                draftSeed={composerSeed}
+                contextPercent={
+                  (currentSession?.messages.length ?? 0) > 0
+                    ? Math.min(
                         100,
-                    )
-                  : null
-              }
-            />
+                        (estimateContextUsage(currentSession?.messages ?? [], contextWindow).tokens
+                          .total /
+                          Math.max(1, contextWindow ?? 32768)) *
+                          100,
+                      )
+                    : null
+                }
+              />
+            </div>
             {/* Minimal footer (E-UX): agent status + live tok/s + context meter.
             CPU/RAM/Disk + uptime live in the expandable agent status. */}
             <StatusBar

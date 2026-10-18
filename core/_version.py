@@ -15,7 +15,11 @@ try:
 except ModuleNotFoundError:  # 3.10: tomli is the marker-scoped main dependency
     import tomli as tomllib  # type: ignore[no-redef]
 
-__all__ = ["__version__", "source_tree_version", "version_string"]
+__all__ = ["__version__", "source_tree_version", "version_string", "API_CONTRACT"]
+
+#: The wire contract the desktop shell checks before it reuses a backend. Bump when a
+#: route shape or a health field changes in a way an older shell cannot read.
+API_CONTRACT = 1
 
 _PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
 

@@ -820,6 +820,26 @@ async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None
     except Exception:
         pass
 
+    # SEC-1 backstop: the chat gate runs one frame above for the model's own calls,
+    # but a delegated agent, a channel or a plugin can reach this dispatch directly.
+    # A protected root is refused here as well, and the refusal is a line.
+    from core.path_guard import deny_paths
+
+    blocked = deny_paths(effective_args)
+    if blocked:
+        try:
+            from core.audit_log import audit_event
+
+            audit_event(
+                "security", tool=name, args=effective_args, decision="denied", status="protected-root"
+            )
+        except Exception:
+            pass
+        return (
+            f"[Tool '{name}' refused: {blocked[0]} is inside a protected root "
+            "(~/.ephe, ~/.ssh, ~/.aws, ~/.gnupg or a peer); no approval can open it.]"
+        )
+
     result = await _execute_tool_core(name, effective_args, policy)
 
     # Sky 3: one track point per tool call — the ephemeris only sees THAT a tool
