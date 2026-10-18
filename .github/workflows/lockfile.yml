@@ -48,7 +48,7 @@ jobs:
     # validation of the entire file and arrives as a job-less run with no log. Measured on the push of
     # `6e5fe969`, and `tests/test_workflow_env_scopes.py` refuses the shape now.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - name: Scratch root

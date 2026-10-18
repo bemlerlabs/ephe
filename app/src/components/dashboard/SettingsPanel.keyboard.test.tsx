@@ -186,8 +186,11 @@ describe('settings keyboard-only walkthrough (no pointer)', () => {
 
     const done = await screen.findByTestId('settings-saved')
     expect(done.getAttribute('role')).toBe('status')
+    // jsdom hands the focus move its own tick, and under load that tick stretches.
+    // The invariant is that focus lands on the confirmation, so wait for it rather
+    // than sampling the instant the node appears.
+    await waitFor(() => expect(document.activeElement).toBe(done), { timeout: 3000 })
     expect(page.contains(document.activeElement)).toBe(true)
-    expect(document.activeElement).toBe(done)
 
     // When the confirmation gives way to the button again, focus stays inside too.
     await waitFor(() => expect(screen.queryByTestId('settings-save')).toBeTruthy(), {

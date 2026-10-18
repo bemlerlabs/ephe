@@ -17,7 +17,7 @@ name: Shipped asset checks
 # and the locked 12.3.0, and the gate sits at 20.0 with a 64-pixel visibility minimum. That is the owner
 # rule from 2026-10-09 about a rendered 16-256 px proof, in the half that needs no browser.
 #
-# Nightly on `vars.CI_LINUX_RUNNER`. The instrument costs 0.10 s here, so the leg's wall is the venv and
+# Nightly on `ubuntu-latest`. The instrument costs 0.10 s here, so the leg's wall is the venv and
 # one wheel, and 1.5 carries the first run's number.
 
 on:
@@ -42,7 +42,7 @@ jobs:
     # validation for the whole file, which shows up as a run with no jobs, no log and the path where
     # the name belongs. Measured on the push of `6e5fe969`; two steps here need the root, so the job is
     # the scope that holds it. `tests/test_workflow_env_scopes.py` refuses the shape.
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Scratch root

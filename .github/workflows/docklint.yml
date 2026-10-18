@@ -20,7 +20,7 @@ name: Container and shell lint
 # A new rule code or a count above its ceiling is what turns this red; the lowered counts are printed
 # for the owner to bank with `--update`.
 #
-# Nightly on `vars.CI_LINUX_RUNNER`. The instrument itself costs 0.73 s on this tree (15 tracked shell
+# Nightly on `ubuntu-latest`. The instrument itself costs 0.73 s on this tree (15 tracked shell
 # scripts plus one Dockerfile), so the leg's wall is the two downloads and the checkout, and 1.5 carries
 # that as the number the first run gives.
 
@@ -48,7 +48,7 @@ jobs:
     # scope: a reference there fails validation for the entire file, and the run arrives with zero
     # jobs, no log, and the file path in place of its name. Measured on the push of `6e5fe969` against
     # `lint.yml`; `tests/test_workflow_env_scopes.py` refuses the shape now.
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Scratch root

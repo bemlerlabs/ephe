@@ -35,7 +35,7 @@ env:
 jobs:
   freshness:
     name: skills-lock.json and plugin-catalog.json against their sources
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout

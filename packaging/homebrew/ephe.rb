@@ -10,7 +10,7 @@
 cask "ephe" do
   version "0.1.0-beta.9"
   license "BUSL-1.1"
-  sha256 "0f23d1314183695512bcb6b588fc53bb9d7184561753b54052e0b85cf3dcc667" # measured from the published DMG
+  sha256 "1a1b9845daed3ec5ae97e44ea9e3d36032f8fbac0f96e1f9739e11e6a79e26de" # measured from the published DMG
 
   url "https://github.com/bemlerlabs/ephe/releases/download/v#{version}/Ephe_#{version}_aarch64.dmg"
   name "Ephe"
@@ -18,6 +18,15 @@ cask "ephe" do
   homepage "https://github.com/bemlerlabs/ephe"
 
   app "Ephe.app"
+
+  # The DMG is not notarized, so Gatekeeper would block the first launch of a copy that
+  # carries the quarantine attribute Homebrew sets on downloads. Removing it here is the
+  # install step's job: the hash above is what ties this install to the published DMG.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Ephe.app"],
+                   sudo: false
+  end
 
   zap trash: [
     "~/.ephe",

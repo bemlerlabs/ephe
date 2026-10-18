@@ -45,7 +45,7 @@ jobs:
     name: Case collisions, tracked artifacts, and who authored the new commits
     # Fork pull requests are excluded for the reason written out on the pytest job in tests.yml.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout

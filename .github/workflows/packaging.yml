@@ -38,11 +38,10 @@ env:
 jobs:
   freshness:
     name: Manifests name the release that exists
-    # Fork pull requests are excluded for the reason written on the workflow-audit job in
-    # ci-gates.yml: the job checks out the PR's own code, so a fork would run foreign logic on a
-    # runner this project controls. Push, the weekly schedule and same-repo PRs keep running.
+    # Same fork exclusion as the workflow-audit job in ci-gates.yml.
+    # Push, the weekly schedule and same-repo PRs keep running.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout
