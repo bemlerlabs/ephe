@@ -172,19 +172,18 @@ RUSTSEC-2026-0371  # package=zbus_names ecosystem=crates.io scope=runtime state=
 RUSTSEC-2026-0370  # package=zvariant ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
 RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
 
-# zip 4.6.1 came in as tauri-plugin-updater 2.14.0's own dependency. The six records are
-# three findings under their RustSec and GHSA names: SUID/SGID preservation during
+# zip 4.6.1 came in as tauri-plugin-updater 2.14.0's own dependency. The three
+# findings carry a RustSec ID and a GHSA alias each: SUID/SGID preservation during
 # extraction, symlink targets outside the destination, and permissions applied through
-# those symlinks. Every one of them closes with zip 9.0.0.
+# those symlinks. Every one of them closes with zip 9.0.0. The rows below name the
+# RustSec IDs: GitHub serves no advisory page for the GHSA aliases (HTTP 404 on
+# 2026-10-18), while OSV resolves each alias to the RustSec record it shares.
 # Why it is not fixed yet: the updater's manifest pins the 4.x line, so the lock cannot
 # move to 9.0.0 without the plugin moving first; that is upstream's open work.
 # Exposure as measured: `cargo tree -i zip` on the host target prints nothing, so the
 # macOS build does not carry it; the Linux updater does, and it extracts the release
 # archive it has just verified against the signature in latest.json. The attack needs a
 # crafted archive that passes that signature; a hostile network response alone does not.
-GHSA-4684-h2q9-2vcp  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
-GHSA-4v9h-p7m9-rh26  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
-GHSA-vv5m-jxxh-4627  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
