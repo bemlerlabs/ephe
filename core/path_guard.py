@@ -132,7 +132,8 @@ def denied(candidate: Path | str) -> bool:
     try:
         # The resolve is the check itself: `real` is compared against the deny roots
         # below and never opened, so there is no path here for the query's sink to reach.
-        real = Path(candidate).expanduser().resolve()  # codeql[py/path-injection]
+        # codeql[py/path-injection]
+        real = Path(candidate).expanduser().resolve()
         roots = [Path(root).expanduser().resolve() for root in DENY_ROOTS]
     except (OSError, RuntimeError, ValueError):
         return False
