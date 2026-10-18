@@ -189,14 +189,25 @@ jobs:
           # `{bundle:{createUpdaterArtifacts:true}}`, which is not JSON. The single quotes are what
           # survive the split intact. Verified against string-argv: the plain form throws
           # "Expected property name", the quoted form parses.
-          updater_json='{"bundle":{"createUpdaterArtifacts":true}}'
+          #
+          # Linux stops at deb and AppImage here because tauri-bundler 2.10.3 (CLI 2.12.3)
+          # rejects a semver prerelease in the RPM version field; the RPM is bundled in its own
+          # step below, from the binary this job already compiled.
+          targets=''
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            targets=',"targets":["deb","appimage"]'
+          fi
           if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
             echo 'signed=true' >> "$GITHUB_OUTPUT"
-            echo "config=--config '${updater_json}'" >> "$GITHUB_OUTPUT"
+            echo "config=--config '{\"bundle\":{\"createUpdaterArtifacts\":true${targets}}}'" >> "$GITHUB_OUTPUT"
             echo "Signing key present: bundles carry .sig files and latest.json is assembled." >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'signed=false' >> "$GITHUB_OUTPUT"
-            echo 'config=' >> "$GITHUB_OUTPUT"
+            if [ -n "$targets" ]; then
+              echo "config=--config '{\"bundle\":{\"targets\":[\"deb\",\"appimage\"]}}'" >> "$GITHUB_OUTPUT"
+            else
+              echo 'config=' >> "$GITHUB_OUTPUT"
+            fi
             echo "No signing key: bundles upload unsigned, with no .sig and no latest.json, and the feed stays a 404." >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -249,6 +260,24 @@ jobs:
           # matrix.args carries the mac target; the second half is the createUpdaterArtifacts switch,
           # empty on an unsigned run.
           args: ${{ matrix.args }} ${{ steps.updater.outputs.config }}
+
+      - name: Bundle the RPM with an RPM-valid version
+        # rpm-rs 0.30, pulled in by tauri-bundler 2.10.3 with CLI 2.12.3, rejects the hyphen a
+        # semver prerelease needs in the RPM version field ("contains invalid character"). The
+        # action above therefore builds deb and AppImage only, and this step bundles the binary
+        # it already compiled as an RPM whose version carries the prerelease as build metadata
+        # (`0.1.0+beta.9`): semver-valid, accepted by rpm-rs, and newer than beta.8's
+        # `0.1.0-beta.8` under rpmvercmp. The binary, the deb, the AppImage and the updater feed
+        # keep `0.1.0-beta.9` — this override reaches only the RPM metadata.
+        if: runner.os == 'Linux'
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          rpm_version="${version/-/+}"
+          pnpm exec tauri bundle --bundles rpm --config "{\"version\":\"${rpm_version}\"}"
+          gh release upload "${GITHUB_REF_NAME}" src-tauri/target/release/bundle/rpm/*.rpm --clobber
 
   # The publish click, never the tag push: the assets the hashes are measured from exist only once
   # a human publishes the draft, and a manifest must name a published release. The signing key this
