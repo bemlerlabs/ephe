@@ -25,10 +25,12 @@ _KEY_LITERALS = re.compile(
     r"|glpat-[A-Za-z0-9_-]{20,})\b"
 )
 # Private key blocks: the header and footer are the shape; the body is arbitrary.
-_PEM_BLOCK = re.compile(
-    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----",
-    re.DOTALL,
-)
+# Two anchored patterns instead of one header-to-footer regex: a lazy body re-scans
+# to the end of the input at every BEGIN it cannot close, so a model-written log line
+# could stall the redactor (CodeQL py/polynomial-redos, 2026-10-18). The bounded label
+# keeps each scan linear; _mask_pem pairs the spans in one forward walk.
+_PEM_HEADER = re.compile(r"-----BEGIN [A-Z0-9 ]{0,64}PRIVATE KEY-----")
+_PEM_FOOTER = re.compile(r"-----END [A-Z0-9 ]{0,64}PRIVATE KEY-----")
 # Bearer/Basic headers
 _BEARER = re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._-]{8,}")
 # Query parameters (token= / key= / api_key=) in URLs
@@ -55,12 +57,33 @@ def _mask_env_assignment(match: "re.Match[str]") -> str:
     return match.group(0)
 
 
+def _mask_pem(text: str) -> str:
+    """Masks each complete BEGIN/END private-key block, unmatched headers untouched."""
+    out: list[str] = []
+    pos = 0
+    footers = list(_PEM_FOOTER.finditer(text))
+    footer_at = 0
+    for header in _PEM_HEADER.finditer(text):
+        if header.start() < pos:
+            continue
+        while footer_at < len(footers) and footers[footer_at].start() < header.end():
+            footer_at += 1
+        if footer_at >= len(footers):
+            break
+        out.append(text[pos:header.start()])
+        out.append(_MASK)
+        pos = footers[footer_at].end()
+        footer_at += 1
+    out.append(text[pos:])
+    return "".join(out)
+
+
 def redact(text: str) -> str:
     """Masks secrets in free text (logs, errors, audit details)."""
     if not text:
         return text
     out = text
-    out = _PEM_BLOCK.sub(_MASK, out)
+    out = _mask_pem(out)
     out = _KEY_LITERALS.sub(lambda m: m.group(0)[:4] + _MASK, out)
     out = _BEARER.sub(lambda m: m.group(1) + _MASK, out)
     out = _QUERY_SECRET.sub(lambda m: m.group(1) + _MASK, out)

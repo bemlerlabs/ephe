@@ -7,7 +7,7 @@
  *       the vortex or the macro portrait, cut at the film's own boundaries.
  */
 import { describe, it, expect } from 'vitest'
-import { shotAt } from './IntroFilm'
+import { shotAt } from './introFilmTimeline'
 
 describe('IntroFilm shots', () => {
   it.each([

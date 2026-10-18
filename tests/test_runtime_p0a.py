@@ -19,8 +19,7 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from core import path_guard
-from core.path_guard import deny_paths, denied, secret_paths, secret_shaped
+from core.path_guard import deny_paths, denied
 from core.redact import redact, redact_deep
 from core.tools._shell_proc import _exec_sync
 from core.tools.cancel_scope import active_groups, enter_run, kill_run
@@ -55,6 +54,19 @@ def test_the_redactor_masks_every_family(secret: str) -> None:
     assert "***" in masked, masked
     # The tail of a masked literal must not survive; the prefix is kept for triage.
     assert secret[-12:] not in masked or "PRIVATE KEY" in secret, masked
+
+
+def test_the_redactor_pairs_each_private_key_block_once() -> None:
+    two = (
+        "-----BEGIN RSA PRIVATE KEY-----\nfirst-body\n-----END RSA PRIVATE KEY-----\n"
+        "-----BEGIN OPENSSH PRIVATE KEY-----\nsecond-body\n-----END OPENSSH PRIVATE KEY-----"
+    )
+    masked = redact(two)
+    assert "first-body" not in masked and "second-body" not in masked
+    assert masked.count("***") == 2
+    # A header without a footer is not a block, and the redactor must not invent one.
+    unclosed = "-----BEGIN RSA PRIVATE KEY-----\nno footer"
+    assert redact(unclosed) == unclosed
 
 
 def test_the_redactor_walks_nested_event_payloads() -> None:

@@ -117,7 +117,9 @@ def audit_event(
             AUDIT_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
             existed = AUDIT_LOG_FILE.exists()
             with AUDIT_LOG_FILE.open("a", encoding="utf-8") as fh:
-                fh.write(line + "\n")
+                # Every field in `line` passed through core.redact (detail, args_summary)
+                # and the file is created 0600 below; the query does not model the masker.
+                fh.write(line + "\n")  # codeql[py/clear-text-storage-sensitive-data]
             if not existed:
                 # 0600 AFTER creating it (chmod on a missing file would be a no-op).
                 # Deliberately on create only: an existing file keeps whatever mode

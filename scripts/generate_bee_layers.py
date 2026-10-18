@@ -34,7 +34,7 @@ from scipy.ndimage import (
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "app/public/onboarding/scene-4-awakening.jpg"
 OUT = ROOT / "app/public/onboarding"
-SWIFT = ROOT / "scripts/vision_cutout.swift"
+SWIFT = ROOT / "scripts" / "vision-cutout" / "Sources" / "vision_cutout" / "main.swift"
 
 HERO_BOX = (160, 0, 1220, 752)
 FLAME_BOX = (640, 20, 744, 172)
@@ -125,9 +125,9 @@ def _extend_wing_root(c_rgb: np.ndarray, w_alpha: np.ndarray, direction: str, px
 
 
 def _upscale_2x_rgba(c_rgb: np.ndarray, a_mask: np.ndarray) -> Image.Image:
-    l, t, r, b = HERO_BOX
-    c_crop = c_rgb[t:b, l:r]
-    a_crop = a_mask[t:b, l:r]
+    left, t, r, b = HERO_BOX
+    c_crop = c_rgb[t:b, left:r]
+    a_crop = a_mask[t:b, left:r]
     ch, cw = a_crop.shape
     up_w, up_h = cw * 2, ch * 2
     premult = c_crop * a_crop[:, :, None]

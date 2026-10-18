@@ -36,6 +36,9 @@ htmlcov/
 # Generated README media work files
 docs/media/frames/
 
+# Swift package build products (the root Package.swift serves CodeQL)
+.build/
+
 # JavaScript dependencies
 node_modules/
 .vite/

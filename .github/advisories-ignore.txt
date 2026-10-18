@@ -156,6 +156,39 @@ GHSA-54p9-h82j-f925  # package=multidict ecosystem=PyPI scope=runtime state=fixe
 # `cargo tree --target all` was not run against all targets.
 RUSTSEC-2024-0370  # package=proc-macro-error ecosystem=crates.io scope=development state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
 
+# zbus_names, zvariant and zvariant_derive reached the lock with tauri-plugin-notification
+# 2.7.0 on 2026-10-18 (zbus 5.19 <- notify-rust 4.18; the other two are its support
+# crates and its derive). None is in the aarch64-apple-darwin build: `cargo tree -i` on
+# the host answers "nothing to print" for all three, and `--target all` shows only the
+# Linux D-Bus paths (notifications, single-instance activation). The Linux bundle carries
+# them; the macOS and Windows surfaces do not.
+# Why there is no fix: all three are RustSec "unmaintained" records with no fixed event
+# and no successor crate to move to, so no release exists to pin.
+# Exposure as measured: D-Bus names and serialized values on Linux, in the notification
+# and single-instance plugins. They do not parse the product's own payloads; the records
+# describe missing maintenance with no reachable defect. Re-read with the next notification
+# plugin bump, which is when the zbus family moves.
+RUSTSEC-2026-0371  # package=zbus_names ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
+RUSTSEC-2026-0370  # package=zvariant ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
+RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
+
+# zip 4.6.1 came in as tauri-plugin-updater 2.14.0's own dependency. The six records are
+# three findings under their RustSec and GHSA names: SUID/SGID preservation during
+# extraction, symlink targets outside the destination, and permissions applied through
+# those symlinks. Every one of them closes with zip 9.0.0.
+# Why it is not fixed yet: the updater's manifest pins the 4.x line, so the lock cannot
+# move to 9.0.0 without the plugin moving first; that is upstream's open work.
+# Exposure as measured: `cargo tree -i zip` on the host target prints nothing, so the
+# macOS build does not carry it; the Linux updater does, and it extracts the release
+# archive it has just verified against the signature in latest.json. The attack needs a
+# crafted archive that passes that signature; a hostile network response alone does not.
+GHSA-4684-h2q9-2vcp  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+GHSA-4v9h-p7m9-rh26  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+GHSA-vv5m-jxxh-4627  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+
 # Re-check protocol for the npm and crates.io rows:
 #   1. Re-run the gate's own commands in app/ (`pnpm audit --prod --json`, `pnpm audit
 #      --json`) after any lockfile change, and the three resolver modes for the IDs and the

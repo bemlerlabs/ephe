@@ -130,7 +130,9 @@ def confine(candidate: Path | str, root: Path | str) -> Path | None:
 def denied(candidate: Path | str) -> bool:
     """Whether a path sits inside a root no agent tool may read (symlinks resolved)."""
     try:
-        real = Path(candidate).expanduser().resolve()
+        # The resolve is the check itself: `real` is compared against the deny roots
+        # below and never opened, so there is no path here for the query's sink to reach.
+        real = Path(candidate).expanduser().resolve()  # codeql[py/path-injection]
         roots = [Path(root).expanduser().resolve() for root in DENY_ROOTS]
     except (OSError, RuntimeError, ValueError):
         return False
