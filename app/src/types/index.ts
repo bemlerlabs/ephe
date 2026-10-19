@@ -352,6 +352,10 @@ export interface DeepField {
   hint?: string
   hintEn?: string
   options?: string[]
+  /** Wave 2 (B1): the cap a text field is edited under, and whether it renders as a
+   *  full-width editor rather than the one-line control of the register. */
+  maxChars?: number
+  multiline?: boolean
   /** I6-3: display text per option in both languages. The value stays the
    *  identifier (validation, persistence); the text comes from the register, so
    *  the German interface shows no English word — and the reverse holds too. */

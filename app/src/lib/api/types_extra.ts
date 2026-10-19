@@ -90,6 +90,9 @@ export interface SecuritySettings {
   /** The four values the server accepts (core/security_config.py::VALID_APPROVAL_PROFILES). */
   approval_profile: 'strict' | 'session' | 'plan' | 'full'
   sandbox_enabled: boolean
+  /** Wave 2/B3: categories that always ask. Only SAFE and NETWORK are accepted; the
+   *  server drops anything else, because the other two already prompt. */
+  ask_categories?: Array<'SAFE' | 'NETWORK'>
 }
 
 /**

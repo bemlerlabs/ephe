@@ -46,6 +46,10 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
     voiceCfg,
     voiceMsg,
   } = model
+  // D0-4: the installed-voices list is what this endpoint grew last; a server without it
+  // answers with the engine and no inventory. The row then points at the install hint,
+  // which is the true next step, instead of the tab falling over.
+  const piperVoices = voiceCfg?.installed_piper_voices ?? []
 
   return (
     <div className="space-y-4">
@@ -101,7 +105,7 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
                 placeholder="en_US-amy-medium"
                 aria-label={t('settings.piperVoice')}
                 spellCheck={false}
-                className="w-[200px] max-md:w-[140px] rounded-lg border border-hairline bg-background/60 px-2.5 py-1.5 font-mono text-ui-xs text-foreground/85 placeholder:text-ink-faint focus-ring"
+                className="w-[200px] max-md:w-[140px] rounded-lg border border-control bg-background/60 px-2.5 py-1.5 font-mono text-ui-xs text-foreground/85 placeholder:text-ink-faint focus-ring"
               />
             </SettingsRow>
 
@@ -109,14 +113,14 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
               icon={Check}
               title={t('settings.audioInstalledVoices')}
               description={
-                voiceCfg.installed_piper_voices.length
+                piperVoices.length
                   ? t('settings.audioInstalledVoicesHint')
                   : t('settings.piperInstallHint')
               }
               testid="voice-row-installed"
             >
               <span className="flex flex-wrap justify-end gap-1">
-                {voiceCfg.installed_piper_voices.map((v) => (
+                {piperVoices.map((v) => (
                   <button
                     key={v}
                     type="button"
@@ -145,7 +149,7 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
                 data-testid="voice-edge-select"
                 value={voiceCfg.edge_voice}
                 onChange={(e) => void handleVoiceSave({ edge_voice: e.target.value })}
-                className="min-w-[168px] rounded-lg border border-hairline bg-background/60 px-2.5 py-1.5 text-ui-xs text-foreground/85 focus-ring max-lg:min-h-11"
+                className="min-w-[168px] rounded-lg border border-control bg-background/60 px-2.5 py-1.5 text-ui-xs text-foreground/85 focus-ring max-lg:min-h-11"
               >
                 {VOICES.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -204,7 +208,7 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
                 onChange={(e) =>
                   void handleVoiceSave({ stt_model: e.target.value as VoiceSettings['stt_model'] })
                 }
-                className="min-w-[132px] rounded-lg border border-hairline bg-background/60 px-2.5 py-1.5 text-ui-xs text-foreground/85 focus-ring max-lg:min-h-11"
+                className="min-w-[132px] rounded-lg border border-control bg-background/60 px-2.5 py-1.5 text-ui-xs text-foreground/85 focus-ring max-lg:min-h-11"
               >
                 {STT_MODELS.map((m) => (
                   <option key={m} value={m}>
@@ -228,7 +232,7 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
                     stt_language: e.target.value as VoiceSettings['stt_language'],
                   })
                 }
-                className="min-w-[132px] rounded-lg border border-hairline bg-background/60 px-2.5 py-1.5 text-ui-xs text-foreground/85 focus-ring max-lg:min-h-11"
+                className="min-w-[132px] rounded-lg border border-control bg-background/60 px-2.5 py-1.5 text-ui-xs text-foreground/85 focus-ring max-lg:min-h-11"
               >
                 <option value="auto">{t('settings.sttAuto')}</option>
                 <option value="de">Deutsch</option>

@@ -20,6 +20,7 @@ import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
 import { engineStateOf, type EngineState } from '@/lib/engineState'
 import EphemeralWordmark from './EphemeralWordmark'
 import { EpheMark } from '@/components/shell/EpheMark'
+import { HeroMark } from '@/components/shell/HeroMark'
 import { CompanionActor, type CompanionHandle } from '@/components/shell/CompanionActor'
 import {
   listProjects,
@@ -161,10 +162,13 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
           >
             {pillText[engineState]}
           </p>
-          <p className="text-ui-xs text-ink-soft">
+          <p className="text-ui-xs text-ink-soft" data-testid="model-status-line">
             {t('welcome.modelLabel')}:{' '}
-            <span className="text-foreground/80">{live.health.active_model}</span> (
-            {live.health.active_tier})
+            {/* An engine that named nothing has no model to print and no tier to put in
+                parentheses; the em dash is the house mark for a fact the engine did
+                not state, and the empty pair read as a malformed value. */}
+            <span className="text-foreground/80">{live.health.active_model || '—'}</span>
+            {live.health.active_tier ? ` (${live.health.active_tier})` : ''}
           </p>
           {/* First-run path: the state names its next step right here, so the
               welcome screen is never a dead end. One primary action per state. */}
@@ -218,8 +222,12 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
             className="mb-1"
             onActivate={() => activateCard(recommended ?? 0)}
           />
-        ) : (
+        ) : companionSpecies === 'minimal' && companionEnabled ? (
+          /* hero-size-exception: minimal — S3. 4rem would be the render, and `minimal`
+             is the user's own choice of the quiet vector form; its shape lands in Wave 5. */
           <EpheMark state="condense" size="4rem" testId="ephe-mark-hero" className="mb-3" />
+        ) : (
+          <HeroMark size="4rem" testId="ephe-mark-hero" className="mb-3" />
         )}
         {/* I2 clean empty state (reference look): a time-of-day greeting, a
           subdued brand name, no tile/version line — the first impression stays

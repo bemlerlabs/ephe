@@ -83,6 +83,10 @@ const SAME_BY_DESIGN = new Set<string>([
   'commandPalette.items.preview', // Browser
   'header.branches', // Branches
   'memory.storeIndex', // Index
+  'modelPicker.free', // Free — the plan name the service itself prints
+  'modelPicker.sortName', // Name — the same word in both languages
+  'modelPicker.tools', // Tools — the German surface's own word for the tool list
+  'modelPicker.vision', // Vision — the same term the capability rows already use
   'settings.aboutProvider', // Provider
   'settings.aboutVersion', // Version
   'settings.audioTitle', // Audio

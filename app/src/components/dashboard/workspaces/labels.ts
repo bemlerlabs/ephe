@@ -164,7 +164,10 @@ export function ageLabel(
 }
 
 /** `sha256:9f2c…` as the short form a reviewer can compare by eye. */
-export function diffPrefix(sha: string, keep = 8): string {
+export function diffPrefix(sha: string | undefined, keep = 8): string {
+  // An older backend or a route that has not hashed this file answers without the field.
+  // The row still reads — the path is the fact, the hash is a second one.
+  if (!sha) return ''
   const cut = sha.indexOf(':')
   if (cut < 0) return sha.slice(0, keep)
   const hex = sha.slice(cut + 1)

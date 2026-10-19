@@ -28,6 +28,7 @@ from core.tools.approval_rules import (
     ToolClassification,
     _confidence_value,
     _runs_uncontained,  # noqa: F401  (core.cpython_guest cites this path in prose)
+    category_forces_confirm,
     chat_tool_requires_confirm,
     classify_tool,
     low_confidence_escalation,
@@ -205,7 +206,12 @@ async def request_approval(
         policy, effective_confidence, mutating=cls.is_mutating
     )
 
-    if cls.auto_approve_by_default:
+    # Wave 2/B3: a category the user asked to be prompted about keeps its voice
+    # even where the class would have run by itself — and `--yes` does not
+    # override it, the same way the confidence floor does not.
+    forced = category_forces_confirm(tool_name)
+
+    if cls.auto_approve_by_default and not forced:
         return ApprovalDecision(
             approved=True, dry_run=False,
             report=f"[auto] {tool_name} is read-only — no approval needed.",
@@ -239,7 +245,7 @@ async def request_approval(
             tool_name, arguments, policy, diff, effective_confidence
         )
 
-    if policy.auto_approve:
+    if policy.auto_approve and not forced:
         return ApprovalDecision(
             approved=True, dry_run=False,
             report=f"[--yes] {tool_name} explicitly approved.",

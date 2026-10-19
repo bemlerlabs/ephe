@@ -45,7 +45,7 @@ export default function Switch({
       onKeyDown={handleKeys}
       data-testid={testid}
       className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-base focus-ring disabled:cursor-not-allowed disabled:opacity-40 ${
-        checked ? 'border-brand/40 bg-brand/70' : 'border-hairline bg-surface'
+        checked ? 'border-brand/40 bg-brand/70' : 'border-control bg-surface'
       }`}
     >
       <span

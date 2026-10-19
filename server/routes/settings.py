@@ -115,10 +115,18 @@ def _output_dir_dict() -> str | None:
 
 
 def _generation_dict() -> dict:
-    """Active generation parameters (env precedence > engine.json > default)."""
-    from core.engine_config import read_generation_values
+    """Active generation parameters (env precedence > engine.json > default).
 
-    return read_generation_values()
+    Wave 2/B4: the non-numeric options join the payload when they are set, so the
+    settings surface can show what the request will actually carry.
+    """
+    from core.engine_config import read_generation_options, read_generation_values
+
+    values: dict = dict(read_generation_values())
+    for key, value in read_generation_options().items():
+        if value:
+            values[key] = value
+    return values
 
 
 def _generation_meta_dict() -> dict:
@@ -532,12 +540,20 @@ async def _probe_openai_auto(url: str, allow_siblings: bool = True) -> dict[str,
     themselves the port list — the fallback would have merged all seven onto the one
     responding port, and a hit on :8000 would have carried 'typisch für SGLang'.  # language-gate: ignore (quotes a shipped port-hint string, see settings.py:393)
     """
-    from server.routes.model_provider import _probe_openai_compatible
+    from core.model_probe import probe_openai_compatible, resolve_probe_key
 
-    ok, models, detail, state = await _probe_openai_compatible(url, None)
+    ok, models, detail, state = await probe_openai_compatible(url, None)
+    source = resolve_probe_key(url)[1]
     if ok and models:
         _remember_endpoint(url)
-        return {"url": url, "reachable": True, "models": models, "detail": detail, "state": "ok"}
+        return {
+            "url": url,
+            "reachable": True,
+            "models": models,
+            "detail": detail,
+            "state": "ok",
+            "key_source": source,
+        }
     try:
         parsed = urlparse(url)
         host = parsed.hostname or ""
@@ -550,7 +566,7 @@ async def _probe_openai_auto(url: str, allow_siblings: bool = True) -> dict[str,
             if cand_port == port:
                 continue
             alt = f"{scheme}://{host}:{cand_port}/v1"
-            ok2, models2, detail2, state2 = await _probe_openai_compatible(alt, None)
+            ok2, models2, detail2, state2 = await probe_openai_compatible(alt, None)
             if ok2 and models2:
                 _remember_endpoint(alt)
                 alt_code, alt_hint = _port_hint(cand_port)
@@ -562,6 +578,7 @@ async def _probe_openai_auto(url: str, allow_siblings: bool = True) -> dict[str,
                     "state": "ok",
                     "hint": alt_hint,
                     "hint_code": alt_code,
+                    "key_source": resolve_probe_key(alt)[1],
                 }
     near_code, near_hint = _port_hint(urlparse(str(url)).port)
     return {
@@ -572,6 +589,7 @@ async def _probe_openai_auto(url: str, allow_siblings: bool = True) -> dict[str,
         "state": state,
         "hint": near_hint,
         "hint_code": near_code,
+        "key_source": source,
     }
 
 
@@ -708,7 +726,7 @@ async def detect_setup_engines() -> dict:
     reachable candidate with at least one model. No persist, no
     pull — pure discovery. Drives the re-scan button of the setup page.
     """
-    from server.routes.model_provider import _probe_ollama
+    from core.model_probe import probe_ollama
 
     candidates = _setup_candidates()
 
@@ -720,7 +738,7 @@ async def detect_setup_engines() -> dict:
         hint = str(cand.get("hint") or "")
         code = str(cand.get("hint_code") or "")
         if provider in ("local_ollama", "custom_ollama"):
-            ok, models, detail, state = await _probe_ollama(url)
+            ok, models, detail, state = await probe_ollama(url)
             return {
                 "provider": provider,
                 "url": url,
@@ -742,6 +760,7 @@ async def detect_setup_engines() -> dict:
                 "state": res["state"],
                 "hint": hint or str(res.get("hint") or ""),
                 "hint_code": code or str(res.get("hint_code") or ""),
+                "key_source": res.get("key_source"),
             }
         return {
             "provider": provider,
@@ -918,6 +937,9 @@ async def update_voice_settings(request: VoiceSettingsRequest) -> dict:
 class SecuritySettingsRequest(BaseModel):
     approval_profile: str | None = None
     sandbox_enabled: bool | None = None
+    # Wave 2/B3: categories the user wants a prompt for every time. Only the two
+    # that auto-run are accepted, and an absent list leaves the stored one alone.
+    ask_categories: list[str] | None = None
 
 
 def _security_settings_payload() -> dict:
@@ -927,6 +949,7 @@ def _security_settings_payload() -> dict:
     return {
         "approval_profile": cfg.approval_profile,
         "sandbox_enabled": cfg.sandbox_enabled,
+        "ask_categories": list(cfg.ask_categories),
     }
 
 
@@ -943,6 +966,7 @@ async def update_security_settings(request: SecuritySettingsRequest) -> dict:
         save_security_config(
             approval_profile=request.approval_profile,
             sandbox_enabled=request.sandbox_enabled,
+            ask_categories=request.ask_categories,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))

@@ -437,8 +437,7 @@
     "modelGroupSetup": "Set up the engine",
     "modelGroupChat": "Chat models",
     "modelGroupOther": "Other types (speech, image)",
-    "modelGroupUnconfigured": "No endpoint — not configurable",
-    "modelNoHits": "No model matches what you typed."
+    "modelGroupUnconfigured": "No endpoint — not configurable"
   },
   "sidebar": {
     "navWorkspaces": "Workspaces",
@@ -708,6 +707,9 @@
     "behaviour": "Behaviour",
     "behaviourTitle": "Behaviour",
     "behaviourHint": "What Ephe does: answers, tools, streams. Not how it looks.",
+    "customInstructionsTitle": "Custom instructions",
+    "customInstructionsHint": "Standing words that enter every prompt as their own marked block, ahead of the project rules. The cap is 4,000 characters.",
+    "customInstructionsPlaceholder": "e.g. Answer in short sentences. Never use a table for fewer than four rows.",
     "shortcuts": "Keyboard shortcuts",
     "network": "Network",
     "code-exec": "Code execution",
@@ -808,6 +810,10 @@
     "generationHint": "Fine-tuning of the model. Empty field = system default.",
     "generationGroup": "Inference parameters",
     "genTemperature": "Temperature",
+    "genReasoningGroup": "Reasoning",
+    "genReasoning": "Reasoning effort",
+    "genReasoningHint": "What the engine may spend on thinking before it answers. Engine default sends no field at all.",
+    "genReasoningUnset": "Engine default",
     "genTopP": "Top-P",
     "genMaxTokens": "Max tokens",
     "genToolBudget": "Tool budget",
@@ -915,6 +921,9 @@
     "profileSessionHint": "Session profile shows a 'remember for this session' checkbox in approval dialogs (never for shell).",
     "profileModeNote": "This profile is the ceiling above the composer mode: with Strict, every tool asks, whatever the mode says. With Session, Plan or Full, the mode decides — Ask runs no tools, Plan reads only, Edit auto writes without asking, Full access runs everything.",
     "sandboxTitle": "Shell sandbox",
+    "askMoreSafe": "Read-only tools",
+    "askMoreNetwork": "Web and network access",
+    "askMoreHint": "Ask more often: this only adds a confirmation, never removes one.",
     "sandboxHint": "Runs confirmed shell commands inside macOS sandbox-exec: writes only to workspace/temp/home, network denied. Opt-in. On other platforms the toggle has no effect; EPHE_SHELL_BACKEND=docker isolates the command instead.",
     "codeExecTitle": "Code execution (CPython cell)",
     "codeExecHint": "Ceilings the runtime actually enforces on model-authored Python — fuel, memory, files, network. Read-only.",
@@ -922,6 +931,7 @@
     "codeExecRuntimeKernel": "UNSANDBOXED kernel — full host access",
     "codeExecIntegrityOk": "Guest verified against the pinned sha256 manifest (interpreter and stdlib tree).",
     "codeExecIntegrityBad": "Guest does not match the pinned sha256 manifest — execution refuses until rebuilt (never a silent fallback).",
+    "codeExecIntegrityUnknown": "The engine reported none, so Ephe cannot check them.",
     "codeExecOptOut": "Opt-out: EPHE_CODE_EXEC=kernel runs the code in the Ephe process, with host access — every result names its runtime.",
     "codeExecLoading": "Loading policy…",
     "codeExecGuest": "Interpreter",
@@ -1222,7 +1232,8 @@
       "lm_studio": "typical of LM Studio",
       "llama_cpp": "typical of a llama.cpp server",
       "litellm": "typical of a LiteLLM proxy"
-    }
+    },
+    "probeBorrowedKey": "A key from a tool beside Ephe answered this; nothing was stored. A conversation needs your own key — set it here."
   },
   "environment": {
     "hint": "Ephe can look for agent tools already installed on this device (opencode, claude, cursor, …) and mirror their models — nothing is sent anywhere.",
@@ -1791,6 +1802,8 @@
   },
   "statusBar": {
     "contextWindowTitle": "Context windows",
+    "promptStages": "Prompt stages",
+    "ruleStatus": {"included": "included", "truncated": "truncated", "skipped": "no room", "denied": "refused", "unreadable": "unreadable", "empty": "empty"},
     "contextFree": "free",
     "contextFreeOf": "{{free}} free of {{window}}",
     "tokPerSecHint": "tokens/sec (estimated)",
@@ -2229,5 +2242,29 @@
     "canSignCount_other": "{{count}} agents can sign this record",
     "checkAgain": "Check the record again",
     "checking": "Checking…"
+  },
+  "modelPicker": {
+    "search": "Search models",
+    "choose": "Choose a model",
+    "close": "Close",
+    "sort": "Sort",
+    "sortName": "Name",
+    "sortFree": "Free first",
+    "sortContext": "Context",
+    "sortPrice": "Price",
+    "free": "Free",
+    "tools": "Tools",
+    "vision": "Vision",
+    "longContext": "Long context",
+    "favorites": "Favorites",
+    "recent": "Recently used",
+    "favor": "Add to favorites",
+    "unfavor": "Remove from favorites",
+    "loading": "Reading the engine…",
+    "noResults": "No model matches this search and these filters.",
+    "clearFilters": "Clear search and filters",
+    "pricePair": "{{in}} in / {{out}} out",
+    "answerOnly": "answers only, no tools",
+    "perMillion": "{{pair}} per 1M"
   }
 }

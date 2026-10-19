@@ -19,7 +19,7 @@
  */
 import { AppSettings, updateSettings } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
-import { countDeepChanges, generationValues } from './bounds'
+import { countDeepChanges, generationWithOptions } from './bounds'
 import type { useSettingsCore } from './useSettingsCore'
 import type { useSettingsLists } from './useSettingsLists'
 import type { useSettingsState } from './useSettingsState'
@@ -63,18 +63,7 @@ export function useSettingsSave(
       // Wave 5: generation block — send only set values (null fields mean
       // "keep the server default"). I3-3: the number clamps to the bound taken
       // out of the payload instead of waiting for the 422 toast.
-      generation: generationValues(
-        genDraft,
-        [
-          'temperature',
-          'top_p',
-          'max_tokens',
-          'tool_budget',
-          'context_window',
-          'memory_max_entries',
-        ],
-        settings?.generation_meta,
-      ),
+      generation: generationWithOptions(genDraft, settings?.generation_meta),
     }
 
     // An engine without a tag is not a choice this panel may persist, and filling one in

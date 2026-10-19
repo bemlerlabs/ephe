@@ -318,12 +318,16 @@ export function useSettingsFeatures(state: ReturnType<typeof useSettingsState>) 
   }
 
   // R28: load the persona on first activation of its tab (lazy, like memory)
+  //
+  // D0-4: the two reads resolve an absent field to the empty persona, because the editor
+  // below counts characters in it. A server that answers without `text` is a store with
+  // nothing to show, which is a state of the area and leaves the tab standing.
   useEffect(() => {
     if (activeTab !== 'persona' || personaSource) return
     setPersonaLoading(true)
     getPersona()
       .then((res) => {
-        setPersonaText(res.text)
+        setPersonaText(res.text ?? '')
         setPersonaSource(res.source)
       })
       .catch(() => toastBus.error(t('settings.personaLoadFailed')))
@@ -334,7 +338,7 @@ export function useSettingsFeatures(state: ReturnType<typeof useSettingsState>) 
     setPersonaSaving(true)
     updatePersona(personaText)
       .then((res) => {
-        setPersonaText(res.text)
+        setPersonaText(res.text ?? '')
         setPersonaSource(res.source)
         toastBus.success(t('settings.personaSaved'))
       })

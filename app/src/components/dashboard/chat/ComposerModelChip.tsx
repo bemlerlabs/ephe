@@ -50,7 +50,7 @@ export default function ComposerModelChip({
         className={`inline-flex items-center gap-1.5 min-w-6 min-h-6 rounded-md border px-1.5 py-0.5 text-ui-xs transition-colors max-lg:min-h-11 max-lg:min-w-11 ${
           needsSetup
             ? 'border-amber-400/40 bg-status-warning/10 text-status-warning hover:text-status-warning hover:border-amber-400/60'
-            : 'border-hairline bg-surface text-ink-faint hover:text-foreground hover:border-brand/30'
+            : 'border-control bg-surface text-ink-faint hover:text-foreground hover:border-brand/30'
         }`}
       >
         <span className="truncate max-w-36 min-w-0 max-lg:max-w-28">

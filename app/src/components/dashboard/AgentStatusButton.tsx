@@ -198,7 +198,7 @@ export default function AgentStatusButton({
         data-testid="agent-status-expand"
         onClick={openPopover}
         title={t('agentStatus.title')}
-        className="rounded-full border border-hairline bg-canvas px-2 py-1 text-ui-xs font-medium text-ink-soft hover:text-foreground/80 transition-colors whitespace-nowrap shrink-0"
+        className="rounded-full border border-control bg-canvas px-2 py-1 text-ui-xs font-medium text-ink-soft hover:text-foreground/80 transition-colors whitespace-nowrap shrink-0"
       >
         {t('agentStatus.expandStatus')}
       </button>
@@ -209,7 +209,7 @@ export default function AgentStatusButton({
         aria-expanded={open}
         onClick={openPopover}
         title={t('agentStatus.title')}
-        className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full text-ui-sm font-medium transition-colors border min-h-9 max-lg:min-h-11 ${working ? 'border-brand/30 bg-brand/10 text-brand' : 'border-hairline bg-canvas text-ink-soft hover:text-foreground/80'}`}
+        className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full text-ui-sm font-medium transition-colors border min-h-9 max-lg:min-h-11 ${working ? 'border-brand/30 bg-brand/10 text-brand-deep' : 'border-control bg-canvas text-ink-soft hover:text-foreground/80'}`}
       >
         {working ? (
           <Loader2 className="h-3 w-3 animate-spin shrink-0" />

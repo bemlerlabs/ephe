@@ -62,6 +62,35 @@ describe('the approval profile row', () => {
     expect(handleSecuritySave).toHaveBeenCalledWith({ approval_profile: 'full' })
   })
 
+  it('offers the two ask-more categories and adds one without dropping the other', () => {
+    // Wave 2/B3: the override may only raise. The two categories that auto-run are
+    // the two offered; the other two already prompt.
+    const { model, handleSecuritySave } = privacyModel('strict')
+    model.securityCfg = {
+      approval_profile: 'strict',
+      sandbox_enabled: false,
+      ask_categories: ['SAFE'],
+    }
+    render(<>{renderPrivacy(model)}</>)
+    expect(screen.getByTestId('privacy-ask-safe')).toBeTruthy()
+    expect(screen.getByTestId('privacy-ask-network')).toBeTruthy()
+    expect(screen.queryByTestId('privacy-ask-mutating')).toBeNull()
+    fireEvent.click(screen.getByTestId('ask-network-toggle'))
+    expect(handleSecuritySave).toHaveBeenCalledWith({ ask_categories: ['SAFE', 'NETWORK'] })
+  })
+
+  it('removes a category again without touching the other', () => {
+    const { model, handleSecuritySave } = privacyModel('strict')
+    model.securityCfg = {
+      approval_profile: 'strict',
+      sandbox_enabled: false,
+      ask_categories: ['SAFE', 'NETWORK'],
+    }
+    render(<>{renderPrivacy(model)}</>)
+    fireEvent.click(screen.getByTestId('ask-safe-toggle'))
+    expect(handleSecuritySave).toHaveBeenCalledWith({ ask_categories: ['NETWORK'] })
+  })
+
   it('marks the stored profile as the checked one', () => {
     const { model } = privacyModel('plan')
     render(<>{renderPrivacy(model)}</>)

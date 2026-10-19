@@ -122,15 +122,19 @@ export default function SchedulerPanel({ jobs, onCreate, onDelete }: SchedulerPa
   const lastSeenRef = useRef<string | null>(null)
 
   // Load presets + run history (panel visible); poll history every 30 s
+  //
+  // D0-4: both lists are read out of the answer, and an engine that has no scheduler
+  // answers without them. A missing list is an empty one here — the panel has its own
+  // no-jobs state — rather than a tab that falls over.
   useEffect(() => {
     if (collapsed) return
     getSchedulePresets()
-      .then((r) => setPresets(r.presets))
+      .then((r) => setPresets(r.presets ?? []))
       .catch(() => setPresets([]))
     const load = () => {
       getScheduleResults()
         .then((r) => {
-          const newest = r.results[0]
+          const newest = (r.results ?? [])[0]
           if (newest && lastSeenRef.current && newest.executed_at !== lastSeenRef.current) {
             toastBus.info(
               newest.error ? t('scheduler.runFailed') : t('scheduler.runFinished'),
@@ -248,7 +252,7 @@ export default function SchedulerPanel({ jobs, onCreate, onDelete }: SchedulerPa
                   type="button"
                   data-testid={`automation-template-${i}`}
                   onClick={() => applyTemplate(tpl)}
-                  className="text-left rounded-xl border border-hairline bg-surface hover:bg-brand/10 hover:border-brand/30 px-3 py-2 transition-colors group"
+                  className="text-left rounded-xl border border-control bg-surface hover:bg-brand/10 hover:border-brand/30 px-3 py-2 transition-colors group"
                 >
                   <span className="flex items-center gap-1.5 text-ui-sm font-medium text-foreground/80 group-hover:text-brand">
                     <tpl.Icon className="h-3.5 w-3.5 shrink-0" />

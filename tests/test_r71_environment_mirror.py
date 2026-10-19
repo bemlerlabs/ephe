@@ -309,7 +309,7 @@ class TestDetection:
         )
 
     def test_mirror_api_key_resolves_from_auth_json(self, home: Path):
-        from server.routes.model_provider import _mirror_api_key
+        from core.model_probe import mirror_api_key
 
         (home / ".cache" / "opencode").mkdir(parents=True, exist_ok=True)
         (home / ".cache" / "opencode" / "models.json").write_text(
@@ -321,5 +321,204 @@ class TestDetection:
         (share / "auth.json").write_text(
             '{"opencode":{"type":"api","key":"oc_key_123"}}', encoding="utf-8"
         )
-        assert _mirror_api_key("https://opencode.ai/zen/v1", home=home) == "oc_key_123"
-        assert _mirror_api_key("https://unknown.example/v1", home=home) is None
+        assert mirror_api_key("https://opencode.ai/zen/v1", home=home) == "oc_key_123"
+        assert mirror_api_key("https://unknown.example/v1", home=home) is None
+
+
+class TestProbeKeySource:
+    """S4, owner decision 2026-10-18: the mirror stays, its source gets named.
+
+    Pins the one order ``resolve_probe_key`` implements (given > own > foreign > none),
+    that both discovery routes report ``foreign``, that the borrowed token goes to the
+    endpoint it belongs to and to no other sink, and that exactly one production call
+    site may read that store at all.
+    """
+
+    KEY = "oc-borrowed-4f9c21"
+    URL = "https://opencode.ai/zen/v1"
+
+    def _mirror(self, home: Path, key: str = KEY) -> None:
+        """The other tool's two files: a catalog that pairs a provider id with an
+        endpoint, and an auth store that holds that provider's key."""
+        (home / ".cache" / "opencode").mkdir(parents=True, exist_ok=True)
+        (home / ".cache" / "opencode" / "models.json").write_text(
+            json.dumps({"opencode": {"api": self.URL, "models": {"m": {}}}}), encoding="utf-8"
+        )
+        share = home / ".local" / "share" / "opencode"
+        share.mkdir(parents=True, exist_ok=True)
+        (share / "auth.json").write_text(
+            json.dumps({"opencode": {"type": "api", "key": key}}), encoding="utf-8"
+        )
+
+    def _own_store_empty(self, monkeypatch) -> None:
+        """Nothing of Ephe's own resolves, so any token that comes back is borrowed."""
+        import core.engine_config as ec
+
+        monkeypatch.delenv("EPHE_OPENAI_COMPAT_API_KEY", raising=False)
+        monkeypatch.setattr(ec, "_load_engine_keyring", lambda: "")
+
+    def test_the_four_sources_resolve_in_one_order(self, home: Path, monkeypatch):
+        from core.model_probe import resolve_probe_key
+
+        self._own_store_empty(monkeypatch)
+        self._mirror(home)
+        key_file = home / ".ephe" / "engine.key"
+        key_file.parent.mkdir(parents=True, exist_ok=True)
+        key_file.write_text("own-file-key\n", encoding="utf-8")
+        key_file.chmod(0o600)
+
+        assert resolve_probe_key(self.URL, "typed-into-this-request", home=home) == (
+            "typed-into-this-request",
+            "given",
+        )
+        assert resolve_probe_key(self.URL, None, home=home) == ("own-file-key", "own")
+
+        key_file.unlink()
+        assert resolve_probe_key(self.URL, None, home=home) == (self.KEY, "foreign")
+
+        (home / ".local" / "share" / "opencode" / "auth.json").unlink()
+        assert resolve_probe_key(self.URL, None, home=home) == (None, "none")
+
+    def test_ephes_own_env_key_beats_the_mirror(self, home: Path, monkeypatch):
+        from core.model_probe import resolve_probe_key
+
+        self._own_store_empty(monkeypatch)
+        self._mirror(home)
+        monkeypatch.setenv("EPHE_OPENAI_COMPAT_API_KEY", "env-key")
+        assert resolve_probe_key(self.URL, None, home=home) == ("env-key", "own")
+
+    def _probe_app(self):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from server.routes import model_provider, settings
+
+        app = FastAPI()
+        app.include_router(model_provider.router, prefix="/api")
+        app.include_router(settings.router, prefix="/api")
+        return TestClient(app)
+
+    def _fake_answer(self, seen: dict):
+        """Every endpoint answers with one model, and the Authorization header of the
+        engine check is recorded so the test can say where the token actually went."""
+        import httpx
+
+        async def fake_get(self, url, *a, **kw):
+            seen["authorization"] = (kw.get("headers") or {}).get("Authorization", "")
+            seen["url"] = str(url)
+            return httpx.Response(
+                200, json={"data": [{"id": "m-1"}]}, request=httpx.Request("GET", url)
+            )
+
+        return fake_get
+
+    def _isolate_home(self, monkeypatch, home: Path, tmp_path: Path) -> Path:
+        monkeypatch.setenv("HOME", str(home))
+        config = tmp_path / "ephe-config"
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(config))
+        return config
+
+    def test_probe_route_reports_foreign_and_sends_the_key_only_to_its_endpoint(
+        self, home: Path, monkeypatch, tmp_path: Path
+    ):
+        from unittest.mock import patch
+
+        self._own_store_empty(monkeypatch)
+        self._mirror(home)
+        self._isolate_home(monkeypatch, home, tmp_path)
+        seen: dict = {}
+        client = self._probe_app()
+        with patch("httpx.AsyncClient.get", new=self._fake_answer(seen)):
+            body = client.post(
+                "/api/model/providers/probe",
+                json={"provider": "openai_compatible", "base_url": self.URL},
+            ).json()
+        assert body["reachable"] is True, body
+        assert body["key_source"] == "foreign"
+        assert seen["authorization"] == f"Bearer {self.KEY}"
+        assert self.KEY not in json.dumps(body), "the token left the server in a response"
+
+    def test_ollama_probe_carries_no_key_source(self, home: Path, monkeypatch, tmp_path: Path):
+        """The field exists only where a token was in play; an Ollama probe must not
+        answer with a source it never consulted."""
+        from unittest.mock import patch
+
+        self._own_store_empty(monkeypatch)
+        self._isolate_home(monkeypatch, home, tmp_path)
+        with patch("httpx.AsyncClient.get", new=self._fake_answer({})):
+            body = self._probe_app().post(
+                "/api/model/providers/probe",
+                json={"provider": "local_ollama", "base_url": "http://127.0.0.1:11434"},
+            ).json()
+        assert "key_source" not in body
+
+    def test_detect_route_reports_foreign_for_what_it_offers(
+        self, home: Path, monkeypatch, tmp_path: Path
+    ):
+        """The scan is the surface that speaks first on a fresh install: the offer
+        sentence has to be able to say that a borrowed key produced it."""
+        from unittest.mock import patch
+
+        self._own_store_empty(monkeypatch)
+        self._mirror(home)
+        config = self._isolate_home(monkeypatch, home, tmp_path)
+        monkeypatch.setenv("EPHE_OPENAI_COMPAT_BASE_URL", self.URL)
+        with patch("httpx.AsyncClient.get", new=self._fake_answer({})):
+            body = self._probe_app().get("/api/setup/detect").json()
+        hit = next(d for d in body["detected"] if d["url"] == self.URL)
+        assert hit["reachable"] is True and hit["models"] == ["m-1"], hit
+        assert hit["key_source"] == "foreign"
+        # Control: the scan wrote state (the endpoint history), so the absence below
+        # is measured against a run that had something to write.
+        history = sorted(config.rglob("*.json"))
+        assert history, "the scan wrote no state, so this check proved nothing"
+        for f in history:
+            assert self.KEY not in f.read_text(encoding="utf-8"), f
+        assert not (home / ".ephe").exists(), "a probe must not create Ephe's own key file"
+
+    def test_a_borrowed_key_never_reaches_a_log(self, home: Path, monkeypatch, tmp_path: Path):
+        import logging
+        from unittest.mock import patch
+
+        self._own_store_empty(monkeypatch)
+        self._mirror(home)
+        self._isolate_home(monkeypatch, home, tmp_path)
+
+        records: list[str] = []
+
+        class _Capture(logging.Handler):
+            def emit(self, record):
+                records.append(self.format(record))
+
+        handler = _Capture()
+        handler.setFormatter(logging.Formatter("%(name)s %(message)s"))
+        root = logging.getLogger()
+        previous = root.level
+        root.addHandler(handler)
+        root.setLevel(logging.DEBUG)
+        try:
+            with patch("httpx.AsyncClient.get", new=self._fake_answer({})):
+                client = self._probe_app()
+                client.post(
+                    "/api/model/providers/probe",
+                    json={"provider": "openai_compatible", "base_url": self.URL},
+                )
+                client.get("/api/setup/detect")
+            logging.getLogger("test.r71.control").warning("marker-control")
+        finally:
+            root.removeHandler(handler)
+            root.setLevel(previous)
+
+        blob = "\n".join(records)
+        assert "marker-control" in blob, "the sink captured nothing, so this proved nothing"
+        assert self.KEY not in blob, "a borrowed token was logged"
+
+    def test_the_mirror_has_exactly_one_production_caller(self):
+        callers = []
+        for root in ("server", "core", "scripts"):
+            for path in (ROOT / root).rglob("*.py"):
+                for n, line in enumerate(
+                    path.read_text(encoding="utf-8").splitlines(), start=1
+                ):
+                    if "mirror_api_key(" in line and "def mirror_api_key" not in line:
+                        callers.append(path.relative_to(ROOT).as_posix())
+        assert callers == ["core/model_probe.py"], callers

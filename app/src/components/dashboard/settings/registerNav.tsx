@@ -157,7 +157,7 @@ export function RegisterNav({
                   onClick={() => onSelect(key)}
                   aria-current={selected ? 'true' : undefined}
                   className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
-                    onboard ? 'border-y border-r border-dashed border-hairline' : ''
+                    onboard ? 'border-y border-r border-dashed border-control' : ''
                   } ${
                     selected
                       ? 'border-l-hairline-strong text-ink'

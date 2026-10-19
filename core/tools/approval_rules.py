@@ -163,6 +163,30 @@ def _runs_uncontained(name: str) -> bool:
         return True
 
 
+def forced_categories() -> frozenset[str]:
+    """Categories the user asked to be prompted about every time (Wave 2/B3).
+
+    Read from the security store; an unreadable store forces nothing, the same
+    direction as every other default here (a missing answer never widens access).
+    """
+    try:
+        from core.security_config import load_security_config
+
+        return frozenset(load_security_config().ask_categories)
+    except Exception:  # noqa: BLE001 — an unreadable store is not a policy
+        return frozenset()
+
+
+def category_forces_confirm(name: str) -> bool:
+    """True when this tool's category sits in the user's ask-more list.
+
+    Only SAFE and NETWORK can be listed: the other two already prompt, and no
+    override lowers a category. A tool whose class depends on the runtime
+    (`execute_code`) is judged by the class it has in this process.
+    """
+    return classify_tool(name).category in forced_categories()
+
+
 def chat_tool_requires_confirm(
     name: str,
     *,
@@ -182,6 +206,8 @@ def chat_tool_requires_confirm(
     policy the result is exactly the old one.
     """
     if _runs_uncontained(name):
+        return True
+    if category_forces_confirm(name):
         return True
     if name not in _CHAT_NO_CONFIRM:
         return True

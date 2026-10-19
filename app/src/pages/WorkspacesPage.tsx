@@ -294,7 +294,7 @@ export default function WorkspacesPage() {
               type="button"
               onClick={refresh}
               data-testid="workspaces-retry"
-              className="inline-flex min-h-7 items-center rounded-lg border border-hairline px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-ring"
+              className="inline-flex min-h-7 items-center rounded-lg border border-control px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-ring"
             >
               {t('agentPanel.retry')}
             </button>
@@ -331,7 +331,7 @@ export default function WorkspacesPage() {
                     placeholder={t('workspaces.filterPlaceholder')}
                     aria-label={t('workspaces.filterPlaceholder')}
                     data-testid="workspaces-filter"
-                    className="w-full rounded-lg border border-hairline bg-surface py-2 pl-8 pr-8 text-ui-sm text-foreground/80 placeholder:text-ink-faint focus-ring max-lg:min-h-11 max-lg:pr-11 max-lg:text-ui-input"
+                    className="w-full rounded-lg border border-control bg-surface py-2 pl-8 pr-8 text-ui-sm text-foreground/80 placeholder:text-ink-faint focus-ring max-lg:min-h-11 max-lg:pr-11 max-lg:text-ui-input"
                   />
                   {filter && (
                     <button

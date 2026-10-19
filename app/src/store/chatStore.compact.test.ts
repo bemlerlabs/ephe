@@ -67,6 +67,12 @@ describe('chatStore compactSession/renameSession (Phase F)', () => {
     expect(cs.messages[1]!.content).toContain('Working Memory Ledger')
     expect(cs.messages[12]!.role).toBe('system') // the compact indicator message
     expect(cs.messages[12]!.content).toContain('Kompakt')
+
+    // Wave 2/B4: one action, one compaction — a second ledger or a second indicator
+    // would mean the trigger fired twice for the same click.
+    const contents = cs.messages.map((m) => String(m.content ?? ''))
+    expect(contents.filter((c) => c.includes('Working Memory Ledger'))).toHaveLength(1)
+    expect(contents.filter((c) => c.includes('Kompakt'))).toHaveLength(1)
   })
 
   it('GIVEN 10 Messages WHEN compactSession THEN unchanged (changed=false)', () => {

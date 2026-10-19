@@ -34,15 +34,18 @@ describe('filter chips and view tabs carry an edge in both states', () => {
     }
   })
 
-  it('gives every unselected control the hairline', () => {
+  it('gives every unselected control the edge a control takes', () => {
+    // D0-1 (2026-10-18) moved this from the decorative hairline to the control token:
+    // F8's rule is that the edge paints something, and the contract in DESIGN.md §8 says
+    // which token a control's only edge is allowed to be.
     const unselected =
-      /: '(?:border border-hairline )?text-ink-(?:faint|soft)(?: border border-hairline)?/
+      /: '(?:border border-control )?text-ink-(?:faint|soft)(?: border border-control)?/
     let seen = 0
     for (const [file, src] of SOURCES) {
       const rows = linesOf(src, unselected)
       expect(rows.length, file).toBeGreaterThan(0)
       for (const line of rows) {
-        expect(line, `${file}: ${line.trim()}`).toContain('border border-hairline')
+        expect(line, `${file}: ${line.trim()}`).toContain('border border-control')
         seen += 1
       }
     }

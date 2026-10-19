@@ -123,7 +123,7 @@ export function renderLanguage(model: SettingsModel) {
                 onClick={() => void selectLanguage(opt.code)}
                 className={`rounded-md px-3 py-1 text-ui-xs font-medium transition-colors ${
                   settings?.language === opt.code
-                    ? 'bg-brand/25 text-brand'
+                    ? 'bg-brand/25 text-brand-deep'
                     : 'text-ink-faint hover:text-foreground/80'
                 }`}
               >
@@ -166,7 +166,7 @@ export function renderPrivacy(model: SettingsModel) {
                 data-testid={`security-profile-${profile.key}`}
                 className={`rounded-lg px-3 py-1.5 text-ui-xs font-medium transition-colors ${
                   securityCfg?.approval_profile === profile.key
-                    ? 'bg-brand/25 text-brand'
+                    ? 'bg-brand/25 text-brand-deep'
                     : 'text-ink-faint hover:text-foreground/80'
                 }`}
               >
@@ -196,6 +196,30 @@ export function renderPrivacy(model: SettingsModel) {
             onChange={(next) => void handleSecuritySave({ sandbox_enabled: next })}
           />
         </SettingsRow>
+        {/* Wave 2/B3: the one direction an override may go. Asking more is allowed
+            per category; nothing here can release a category that asks today. */}
+        {(['SAFE', 'NETWORK'] as const).map((category) => {
+          const active = securityCfg?.ask_categories?.includes(category) ?? false
+          const next = active
+            ? (securityCfg?.ask_categories ?? []).filter((entry) => entry !== category)
+            : [...(securityCfg?.ask_categories ?? []), category]
+          return (
+            <SettingsRow
+              key={category}
+              icon={Box}
+              title={t(category === 'SAFE' ? 'settings.askMoreSafe' : 'settings.askMoreNetwork')}
+              description={t('settings.askMoreHint')}
+              testid={`privacy-ask-${category.toLowerCase()}`}
+            >
+              <Switch
+                checked={active}
+                label={t(category === 'SAFE' ? 'settings.askMoreSafe' : 'settings.askMoreNetwork')}
+                testid={`ask-${category.toLowerCase()}-toggle`}
+                onChange={() => void handleSecuritySave({ ask_categories: next })}
+              />
+            </SettingsRow>
+          )
+        })}
       </SettingsGroup>
 
       <SettingsGroup icon={Eraser} title={t('settings.privacyGroupDevice')}>

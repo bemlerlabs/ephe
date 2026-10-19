@@ -72,7 +72,7 @@ export default function ArtifactTags({
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={t('artifacts.page.tagAdd')}
                 aria-label={t('artifacts.page.tagAdd')}
-                className="w-32 rounded-md border border-hairline bg-canvas px-1.5 py-1 text-ui-2xs text-foreground/80 placeholder:text-ink-faint focus-ring"
+                className="w-32 rounded-md border border-control bg-canvas px-1.5 py-1 text-ui-2xs text-foreground/80 placeholder:text-ink-faint focus-ring"
               />
               {/* An input field without a visible confirmation is a hidden
                   gesture — you have to guess that Enter does anything. */}
@@ -81,7 +81,7 @@ export default function ArtifactTags({
                 aria-label={t('artifacts.page.tagAddSubmit')}
                 data-testid="artifact-tag-add"
                 disabled={busy}
-                className="rounded-md border border-hairline px-1.5 py-1 text-ui-2xs text-ink-soft hover:bg-surface hover:text-foreground/80"
+                className="rounded-md border border-control px-1.5 py-1 text-ui-2xs text-ink-soft hover:bg-surface hover:text-foreground/80"
               >
                 +
               </button>

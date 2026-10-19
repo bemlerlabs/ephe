@@ -1,6 +1,7 @@
 // Facade of the API module (split of lib/api.ts, 1:1 body in submodules).
 export * from './http'
 export * from './types'
+export * from './providers'
 export * from './types_extra'
 export * from './types_sessions'
 export * from './endpoints'

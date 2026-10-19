@@ -93,6 +93,18 @@ describe('WelcomeEmptyState (R26)', () => {
     })
   })
 
+  it('prints an em dash where the engine named no model and no tier', async () => {
+    // Found in the Wave 1 desktop capture: an unreachable engine answered with an
+    // empty model and an empty tier, and the line read "Model: ()".
+    api.listProjects.mockResolvedValue({ workspace: '', projects: [], generated_at: '' })
+    api.listArtifacts.mockResolvedValue({ artifacts: [], total: 0 })
+    api.healthCheck.mockResolvedValue({ active_model: '', active_tier: '', status: 'ok' })
+    render(<WelcomeEmptyState onFillComposer={vi.fn()} />)
+    const line = await screen.findByTestId('model-status-line')
+    expect(line.textContent).toBe('welcome.modelLabel: —')
+    expect(line.textContent).not.toContain('()')
+  })
+
   it('falls back to the static descriptions when the backend is offline', async () => {
     api.listProjects.mockRejectedValue(new Error('offline'))
     api.listArtifacts.mockRejectedValue(new Error('offline'))

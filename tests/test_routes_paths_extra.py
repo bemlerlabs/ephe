@@ -18,6 +18,8 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from core.model_probe import mirror_api_key, probe_ollama, probe_openai_compatible
+
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
@@ -700,70 +702,60 @@ class _FakeClient:
 
 
 def _patch_http(monkeypatch, resp=None, exc=None):
-    import server.routes.model_provider as mp
-    monkeypatch.setattr(mp.httpx, "AsyncClient", lambda **k: _FakeClient(resp=resp, exc=exc))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **k: _FakeClient(resp=resp, exc=exc))
 
 
 class TestModelProviderProbes:
     async def test_probe_ollama_adds_scheme_for_bare_host(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, resp=_FakeResp({"models": [{"name": "llama3"}]}))
-        ok, models, detail, state = await mp._probe_ollama("127.0.0.1:11434")
+        ok, models, detail, state = await probe_ollama("127.0.0.1:11434")
         assert ok is True and state == "ok"
         assert "http://127.0.0.1:11434" in detail
         assert models == ["llama3"]
 
     async def test_probe_ollama_timeout_is_busy(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, exc=httpx.TimeoutException("slow"))
-        ok, models, detail, state = await mp._probe_ollama("http://h:1")
+        ok, models, detail, state = await probe_ollama("http://h:1")
         assert ok is False and state == "busy" and models == []
 
     async def test_probe_ollama_status_error_is_unreachable(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, resp=_FakeResp(status=500))
-        ok, _, detail, state = await mp._probe_ollama("http://h:1")
+        ok, _, detail, state = await probe_ollama("http://h:1")
         assert ok is False and state == "unreachable" and "500" in detail
 
     async def test_probe_openai_without_url(self, monkeypatch):
-        import server.routes.model_provider as mp
-        ok, _, detail, state = await mp._probe_openai_compatible("", None)
+        ok, _, detail, state = await probe_openai_compatible("", None)
         assert ok is False and state == "unreachable" and detail == "no engine URL given"
 
     async def test_probe_openai_adds_scheme_and_strips_v1(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, resp=_FakeResp({"data": [{"id": "gemma"}]}))
-        ok, ids, detail, state = await mp._probe_openai_compatible("host:8000/v1", None)
+        ok, ids, detail, state = await probe_openai_compatible("host:8000/v1", None)
         assert ok is True and state == "ok"
         assert ids == ["gemma"]
         assert "http://host:8000 reachable" in detail
 
     async def test_probe_openai_timeout_is_busy(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, exc=httpx.TimeoutException("slow"))
-        ok, _, _, state = await mp._probe_openai_compatible("http://h:1", None)
+        ok, _, _, state = await probe_openai_compatible("http://h:1", None)
         assert ok is False and state == "busy"
 
     async def test_probe_openai_status_error(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, resp=_FakeResp(status=503))
-        ok, _, detail, state = await mp._probe_openai_compatible("http://h:1", None)
+        ok, _, detail, state = await probe_openai_compatible("http://h:1", None)
         assert ok is False and state == "unreachable" and "503" in detail
 
     async def test_probe_openai_generic_error(self, monkeypatch):
-        import server.routes.model_provider as mp
         _patch_http(monkeypatch, exc=RuntimeError("kaboom"))
-        ok, _, detail, state = await mp._probe_openai_compatible("http://h:1", None)
+        ok, _, detail, state = await probe_openai_compatible("http://h:1", None)
         assert ok is False and state == "unreachable" and "not reachable" in detail
 
     def test_mirror_api_key_swallows_broken_json(self, tmp_path):
-        import server.routes.model_provider as mp
         home = tmp_path / "h"
         (home / ".cache" / "opencode").mkdir(parents=True)
         (home / ".local" / "share" / "opencode").mkdir(parents=True)
         (home / ".cache" / "opencode" / "models.json").write_text("{ broken", encoding="utf-8")
         (home / ".local" / "share" / "opencode" / "auth.json").write_text("{}", encoding="utf-8")
-        assert mp._mirror_api_key("http://x", home=home) is None
+        assert mirror_api_key("http://x", home=home) is None
 
 
 class TestModelProviderContextWindow:

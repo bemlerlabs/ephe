@@ -164,9 +164,9 @@ function dynamicDemands(): Array<{ key: string; from: string }> {
     'GROUPS (sections-shortcuts.tsx)',
   )
 
-  const engine = unionMembers('lib/api/types.ts', 'EngineState')
-  add('settings.engineState', engine, 'EngineState (lib/api/types.ts)')
-  add('setup.engineState', engine, 'EngineState (lib/api/types.ts)')
+  const engine = unionMembers('lib/api/providers.ts', 'EngineState')
+  add('settings.engineState', engine, 'EngineState (lib/api/providers.ts)')
+  add('setup.engineState', engine, 'EngineState (lib/api/providers.ts)')
 
   add(
     'setup.option',

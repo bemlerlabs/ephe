@@ -62,6 +62,12 @@ describe('diffPrefix', () => {
     expect(diffPrefix('deadbeefdeadbeef')).toBe('deadbeef')
     expect(diffPrefix('')).toBe('')
   })
+
+  it('answers a file the server never hashed with nothing, not a crash', () => {
+    // D0-4: /workspaces fell over on a change set whose files carried no diff_sha,
+    // because the projection read the field as if every answer had it.
+    expect(diffPrefix(undefined)).toBe('')
+  })
 })
 
 describe('vocabLabel', () => {

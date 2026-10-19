@@ -22,6 +22,11 @@ import type { SettingsModel } from './types'
 
 export function NetworkSection({ model }: { model: SettingsModel }) {
   const { networkStatus, t } = model
+  // D0-4: the shared roots and the extra proxy ports are the two fields a server may
+  // answer without — an older build, or a route that refused. Both rows then read "none",
+  // which is what such an answer holds, and the tab stays on the page.
+  const roots = networkStatus?.file_roots ?? []
+  const extraPorts = networkStatus?.proxy_extra_ports ?? []
 
   return (
     <div className="space-y-4">
@@ -79,23 +84,23 @@ export function NetworkSection({ model }: { model: SettingsModel }) {
             <SettingsRow
               icon={FileKey2}
               title={t('settings.networkRoots')}
-              description={networkStatus.file_roots.join(' · ')}
+              description={roots.join(' · ') || '—'}
               testid="network-roots"
             />
             <SettingsRow
               icon={Globe}
               title={t('settings.networkProxy')}
               description={
-                networkStatus.proxy_extra_ports.length
+                extraPorts.length
                   ? t('settings.networkProxyOn', {
-                      ports: networkStatus.proxy_extra_ports.join(', '),
+                      ports: extraPorts.join(', '),
                     })
                   : t('settings.networkProxyOff')
               }
               testid="network-proxy"
             >
               <span className="font-mono text-ui-xs text-foreground/80">
-                {networkStatus.proxy_extra_ports.join(', ') || '—'}
+                {extraPorts.join(', ') || '—'}
               </span>
             </SettingsRow>
             <SettingsRow

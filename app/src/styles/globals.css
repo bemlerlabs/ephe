@@ -351,14 +351,14 @@ html.light {
   --color-ink-soft: hsl(25 8% 35%);
   --color-ink-faint: hsl(25 7% 40%);
   --color-hairline: hsl(45 17% 81.6%);     /* #D8D4C8 — the dossier line */
-  --color-hairline-strong: hsl(45 12% 44%);   /* the control boundary on paper */
+  --color-hairline-strong: hsl(45 12% 42%);   /* the control boundary on paper */
   /* W10-23: the paper counterpart of the raised/interactive pair — an ink tint
      where ink carried a white veil (see the @theme comment). */
   --color-surface-raised: hsl(20 13% 9% / 0.07);
   --color-surface-interactive: hsl(20 13% 9% / 0.14);
   --color-signal-ok: hsl(158 32% 34%);   /* success — desaturated, dark, quiet (AA 4.9:1) */
   --color-signal-danger: hsl(8 88% 38%); /* danger — darker/hotter than brand (ΔE≈10, AA 5.7:1) */
-  --color-signal-warn: hsl(36 92% 34%);
+  --color-signal-warn: hsl(36 92% 30%);   /* warning — AA text on paper (4.9:1 canvas, 5.4:1 raised) */
 
   /* Surfaces (aliases; background stays a guardian literal = --color-canvas) */
   --color-black-forest: var(--surface-base);
@@ -429,10 +429,10 @@ html.light {
   --glass-reading-border: hsla(38 24% 40% / 0.24);
   --glass-reading-inner: hsla(44 62% 100% / 0.70);
   --glass-control-fill: hsla(0 0% 100% / 0.88);
-  --glass-control-border: hsla(38 24% 40% / 0.24);
+  --glass-control-border: hsla(45 12% 44% / 0.86);
   --glass-control-inner: hsla(44 62% 100% / 0.70);
   --glass-float-fill: hsla(0 0% 100% / 0.86);
-  --glass-float-border: hsla(38 24% 40% / 0.24);
+  --glass-float-border: hsla(45 12% 44% / 0.86);
   --glass-float-inner: hsla(44 62% 100% / 0.70);
   /* Rim light: one lighting model for all three layers, so it stays shared. Warm on
      paper too, so a pane reads as the same material in both registers. */
@@ -493,10 +493,10 @@ html.light {
   --glass-reading-border: hsla(34 24% 68% / 0.20);
   --glass-reading-inner: hsla(28 58% 84% / 0.12);
   --glass-control-fill: hsla(30 20% 13% / 0.42);
-  --glass-control-border: hsla(34 24% 70% / 0.26);
+  --glass-control-border: hsla(34 24% 70% / 0.48);
   --glass-control-inner: hsla(28 58% 84% / 0.14);
   --glass-float-fill: hsla(24 18% 6% / 0.86);
-  --glass-float-border: hsla(34 22% 68% / 0.18);
+  --glass-float-border: hsla(34 22% 68% / 0.5);
   --glass-float-inner: hsla(28 58% 84% / 0.10);
   --glass-grad-edge: hsla(34 26% 74% / 0.34);
   --glass-grad-mid: hsla(30 20% 46% / 0.12);

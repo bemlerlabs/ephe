@@ -24,7 +24,7 @@ import { artifactProvenance, type ArtifactProvenance, type ArtifactProvenanceCal
 const CHAIN_LIMIT = 6
 
 const CHIP =
-  'inline-flex items-center gap-1 rounded-md border border-hairline px-1.5 py-0.5 text-ui-2xs text-ink-soft transition-colors hover:border-brand/40 hover:text-foreground'
+  'inline-flex items-center gap-1 rounded-md border border-control px-1.5 py-0.5 text-ui-2xs text-ink-soft transition-colors hover:border-brand/40 hover:text-foreground'
 
 /** One link of the chain: a node on the spine, a line of its own content. */
 function ChainNode({ last = false, children }: { last?: boolean; children: ReactNode }) {

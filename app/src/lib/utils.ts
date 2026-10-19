@@ -41,8 +41,13 @@ export function cn(...inputs: ClassValue[]) {
  * time convention. `timeStyle: 'short'` rather than `hour: '2-digit'`: the
  * latter forces en-US into the zero-padded „02:35 PM", while the short style
  * keeps the German reading exactly as it was, including „09:05". */
-export function formatTime(date: Date | string, language?: string): string {
+export function formatTime(date: Date | string | undefined, language?: string): string {
+  // D0-4: a row the server sent without a stamp — or with one this build cannot parse —
+  // has no time to show. It says nothing; it does not take the surface down, and "Invalid
+  // Date" is not a reading a reader gets either way.
+  if (!date) return ''
   const d = typeof date === 'string' ? new Date(date) : date
+  if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleTimeString(intlLocale(language), { timeStyle: 'short' })
 }
 

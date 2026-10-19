@@ -44,7 +44,7 @@ export default function ComposerModeChip({
         aria-expanded={open}
         title={String(t(activeMode.hintKey))}
         onClick={onToggle}
-        className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-ui-xs text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors shrink-0 min-h-6 max-lg:min-h-11"
+        className="inline-flex items-center gap-1 rounded-md border border-control bg-surface px-1.5 py-0.5 text-ui-xs text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors shrink-0 min-h-6 max-lg:min-h-11"
       >
         <span className="truncate">{modeLabel}</span>
         <ChevronDown

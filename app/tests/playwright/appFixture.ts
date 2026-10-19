@@ -63,6 +63,12 @@ export type FixtureOptions = {
   /** Answered before the generic `/api/` stub; return false to fall through. */
   routes?: Route[]
   /**
+   * Answered before this file's own `/api/setup/status`, `/api/health` and `/api/chat/stream`,
+   * so a lane can paint an engine that is there but refusing: an unreachable engine is a
+   * product state (`lib/engineState.ts`) and the built-in health answer would hide it.
+   */
+  preRoutes?: Route[]
+  /**
    * Frames of the streamed answer. A string is a text chunk; an object is emitted as it
    * stands, so a lane can stream a tool card (`{type:'tool_start', ...}`) and walk the tab
    * order over the rows it inserts.
@@ -81,7 +87,15 @@ function sse(event: unknown): string {
 }
 
 export function startAppFixture(options: FixtureOptions): Promise<AppFixture> {
-  const { kind, engineMs, gaps = [], marks = [], requests = [], routes = [] } = options
+  const {
+    kind,
+    engineMs,
+    gaps = [],
+    marks = [],
+    requests = [],
+    routes = [],
+    preRoutes = [],
+  } = options
   const chunks = options.chunks ?? ['first ', 'second ', 'third.']
   const chunkGap = options.chunkGapMs ?? 30
 
@@ -89,6 +103,10 @@ export function startAppFixture(options: FixtureOptions): Promise<AppFixture> {
     const server = createServer(async (req, res) => {
       const path = new URL(req.url ?? '/', 'http://127.0.0.1').pathname
       requests.push({ method: req.method ?? 'GET', path, atMs: Math.round(performance.now()) })
+
+      for (const route of preRoutes) {
+        if (route(req, res)) return
+      }
 
       if (path === '/api/setup/status') {
         // App.tsx:33 reads this and only opens the chat when the engine is configured.

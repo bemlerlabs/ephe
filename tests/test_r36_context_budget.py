@@ -208,14 +208,17 @@ def test_compaction_flag_uses_counted_history(sessions_root, monkeypatch):
 # knows nothing, and the surface must not print 8.192 as the machine's
 # window. So: every field name servers use, and nothing else.
 
-def test_fenster_aus_modell_kennt_die_namen_der_Server():
-    from server.routes.model_provider import fenster_aus_modell
+def test_window_from_model_entry_knows_the_names_servers_write():
+    from core.engine_config import window_from_model_entry
 
-    assert fenster_aus_modell({"id": "m", "max_model_len": 262144}) == 262144
-    assert fenster_aus_modell({"context_length": 131072}) == 131072
-    assert fenster_aus_modell({"max_context_length": 32768}) == 32768
+    assert window_from_model_entry({"id": "m", "max_model_len": 262144}) == 262144
+    assert window_from_model_entry({"context_length": 131072}) == 131072
+    assert window_from_model_entry({"max_context_length": 32768}) == 32768
+    # DeepSeek writes this one (docs/receipts/context-window-probe-W7-6.json).
+    assert window_from_model_entry({"id": "m", "context_window": 1048576}) == 1048576
     # No field, nonsense, null: the probe stays silent, it does not guess.
-    assert fenster_aus_modell({"id": "m", "object": "model"}) is None
-    assert fenster_aus_modell({"max_model_len": 0}) is None
-    assert fenster_aus_modell({"max_model_len": "262144"}) is None
-    assert fenster_aus_modell(None) is None
+    assert window_from_model_entry({"id": "m", "object": "model"}) is None
+    assert window_from_model_entry({"max_model_len": 0}) is None
+    assert window_from_model_entry({"max_model_len": "262144"}) is None
+    assert window_from_model_entry({"context_window": True}) is None
+    assert window_from_model_entry(None) is None

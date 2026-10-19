@@ -35,7 +35,15 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
     "motion.js": 30.8,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion)
     "ui-vendor.js": 40.0,    # lucide-react, i18next
-    "index.css": 23.0,       # tailwind output (2026-10-15: 42.0 before the font subsets were named)
+    # tailwind output (2026-10-15: 42.0 before the font subsets were named).
+    # Raised on 2026-10-18 for the model picker: its panel, filter chips, capability
+    # chips and phone sheet are one new surface in the entry stylesheet, and the row
+    # had been read against a catalog that predated it. Measured 23.05 kB gzip after
+    # the trim that was owed anyway — `max-h-[26rem]` onto the `max-h-96` step, and
+    # `max-h-full` in place of the `h-[100dvh]`/`max-h-[100dvh]` pair, where only the
+    # second of the three was actually doing work against the dialog's own 90dvh.
+    # 20.94 -> 23.05 is the picker; the row is the number, not the measurement.
+    "index.css": 23.5,
     "app-vendor.js": 28.0,   # react-router, zustand, tanstack, clsx, cva
     "radix.js": 39.0,        # P1-8: 33 @radix-ui packages + @floating-ui + the tail
     "ui.js": 17.0,           # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette)
@@ -135,7 +143,7 @@ MEASURED_GZIP_KB: dict[str, float] = {
     # 2026-10-15, same wave: the font imports name their subsets, so the entry CSS
     # no longer declares cyrillic/cyrillic-ext/greek/greek-ext/vietnamese faces for
     # eleven faces that only en/de can use: 34.28 -> 20.94 kB gzip.
-    "index.css": 20.94,
+    "index.css": 23.03,
     "app-vendor.js": 23.17,
     "radix.js": 34.6,
     "ui.js": 15.09,

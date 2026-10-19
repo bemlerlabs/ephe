@@ -14,6 +14,7 @@
  */
 import {
   CircleCheck,
+  CircleHelp,
   CircleX,
   Cpu,
   Database,
@@ -45,6 +46,12 @@ function Value({ text }: { text: string }) {
 
 export function CodeExecSection({ model }: { model: SettingsModel }) {
   const { codeExecCfg, i18n, t } = model
+  // D0-4: the guest and licence blocks are the newest half of this answer, and an
+  // engine that predates them answers without them. Read them as what may be absent
+  // so the area still lists the caps it was given instead of taking the tab down.
+  const guest = codeExecCfg?.guest
+  const license = codeExecCfg?.license
+  const preopens = codeExecCfg?.preopens ?? []
 
   return (
     <div className="space-y-4">
@@ -67,15 +74,19 @@ export function CodeExecSection({ model }: { model: SettingsModel }) {
             />
             <SettingsRow
               icon={
-                codeExecCfg.guest.entry_hash_ok && codeExecCfg.guest.stdlib_hash_ok
-                  ? CircleCheck
-                  : CircleX
+                !guest
+                  ? CircleHelp
+                  : guest.entry_hash_ok && guest.stdlib_hash_ok
+                    ? CircleCheck
+                    : CircleX
               }
               title={t('settings.codeExecIntegrityTitle')}
               description={t(
-                codeExecCfg.guest.entry_hash_ok && codeExecCfg.guest.stdlib_hash_ok
-                  ? 'settings.codeExecIntegrityOk'
-                  : 'settings.codeExecIntegrityBad',
+                !guest
+                  ? 'settings.codeExecIntegrityUnknown'
+                  : guest.entry_hash_ok && guest.stdlib_hash_ok
+                    ? 'settings.codeExecIntegrityOk'
+                    : 'settings.codeExecIntegrityBad',
               )}
               testid="code-exec-integrity"
             />
@@ -83,11 +94,11 @@ export function CodeExecSection({ model }: { model: SettingsModel }) {
               icon={Cpu}
               title={t('settings.codeExecGuest')}
               description={t('settings.codeExecGuestHint', {
-                license: codeExecCfg.license.guest || '—',
+                license: license?.guest || '—',
               })}
               testid="code-exec-guest"
             >
-              <Value text={`CPython ${codeExecCfg.guest.version}`} />
+              <Value text={guest ? `CPython ${guest.version}` : '—'} />
             </SettingsRow>
             <SettingsRow
               icon={FileText}
@@ -95,13 +106,13 @@ export function CodeExecSection({ model }: { model: SettingsModel }) {
               description={t('settings.codeExecCellLicenseHint')}
               testid="code-exec-license"
             >
-              <Value text={codeExecCfg.license.cell_runtime || '—'} />
+              <Value text={license?.cell_runtime || '—'} />
             </SettingsRow>
-            {codeExecCfg.guest.reason && (
+            {guest?.reason && (
               <SettingsRow
                 icon={CircleX}
                 title={t('settings.codeExecReasonTitle')}
-                description={codeExecCfg.guest.reason}
+                description={guest.reason}
                 testid="code-exec-reason"
               />
             )}
@@ -132,7 +143,7 @@ export function CodeExecSection({ model }: { model: SettingsModel }) {
               description={t('settings.codeExecPreopensHint')}
               testid="code-exec-preopens"
             >
-              <Value text={codeExecCfg.preopens.join(' · ')} />
+              <Value text={preopens.join(' · ') || '—'} />
             </SettingsRow>
           </SettingsGroup>
 

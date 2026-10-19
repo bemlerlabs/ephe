@@ -96,3 +96,32 @@ export function countDeepChanges(
   }
   return changed
 }
+
+/** The numbers the generation card edits, in the order the panel lists them. */
+export const GENERATION_NUMBER_KEYS = [
+  'temperature',
+  'top_p',
+  'max_tokens',
+  'tool_budget',
+  'context_window',
+  'memory_max_entries',
+] as const
+
+/**
+ * Wave 2/B4: the generation block as the request will carry it — the six numbers
+ * plus the engine's reasoning-effort option. An unset option is omitted, which is
+ * exactly the request shape every installation sent before the setting existed.
+ */
+export function generationWithOptions(
+  draft: Record<string, string>,
+  bounds: Record<string, NumBound> | undefined,
+): Record<string, number | string> {
+  const out: Record<string, number | string> = generationValues(
+    draft,
+    GENERATION_NUMBER_KEYS,
+    bounds,
+  )
+  const reasoning = (draft.reasoning_effort ?? '').trim()
+  if (reasoning) out.reasoning_effort = reasoning
+  return out
+}

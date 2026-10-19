@@ -160,8 +160,8 @@ export default function ArtifactsPage() {
                 title={key === 'ablage' ? t('artifacts.page.ablageHint') : undefined}
                 className={`inline-flex min-h-7 items-center rounded-lg px-3 py-2 text-ui-xs font-medium transition-colors max-lg:min-h-11 focus-ring ${
                   active
-                    ? 'bg-brand/20 text-brand border border-brand/20'
-                    : 'border border-hairline text-ink-faint hover:bg-surface hover:text-foreground'
+                    ? 'bg-brand/20 text-brand-deep border border-brand/20'
+                    : 'border border-control text-ink-faint hover:bg-surface hover:text-foreground'
                 }`}
               >
                 {t(`artifacts.page.view.${key}`)}
@@ -196,7 +196,7 @@ export default function ArtifactsPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('artifacts.searchPlaceholder')}
               aria-label={t('artifacts.searchPlaceholder')}
-              className="w-full rounded-lg border border-hairline bg-surface py-2 pl-8 pr-8 text-ui-sm text-foreground/80 placeholder:text-ink-faint focus-ring pointer-coarse:min-h-11 pointer-coarse:text-ui-input"
+              className="w-full rounded-lg border border-control bg-surface py-2 pl-8 pr-8 text-ui-sm text-foreground/80 placeholder:text-ink-faint focus-ring pointer-coarse:min-h-11 pointer-coarse:text-ui-input"
             />
             {/* The field sends a request per keystroke, so a mistyped word needs a
                 way out shorter than backspace. The button fills the field height:
@@ -234,7 +234,7 @@ export default function ArtifactsPage() {
           <a
             href={artifactExportUrl({ q: query, kind })}
             download
-            className="inline-flex min-h-7 items-center rounded-lg border border-hairline px-3 py-2 text-ui-xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-11 focus-ring"
+            className="inline-flex min-h-7 items-center rounded-lg border border-control px-3 py-2 text-ui-xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-11 focus-ring"
           >
             {t('artifacts.exportAll')}
           </a>
@@ -252,8 +252,8 @@ export default function ArtifactsPage() {
               aria-pressed={kind === ''}
               className={`inline-flex min-h-7 items-center rounded-md px-2 py-1 text-ui-xs font-medium transition-colors max-lg:min-h-11 focus-ring ${
                 kind === ''
-                  ? 'bg-brand/20 text-brand border border-brand/20'
-                  : 'text-ink-soft border border-hairline hover:bg-surface hover:text-foreground/80'
+                  ? 'bg-brand/20 text-brand-deep border border-brand/20'
+                  : 'text-ink-soft border border-control hover:bg-surface hover:text-foreground/80'
               }`}
             >
               {t('artifacts.filterAll')}
@@ -268,8 +268,8 @@ export default function ArtifactsPage() {
                 aria-pressed={kind === k}
                 className={`inline-flex min-h-7 items-center rounded-md px-2 py-1 text-ui-xs font-medium transition-colors max-lg:min-h-11 focus-ring ${
                   kind === k
-                    ? 'bg-brand/20 text-brand border border-brand/20'
-                    : 'text-ink-soft border border-hairline hover:bg-surface hover:text-foreground/80'
+                    ? 'bg-brand/20 text-brand-deep border border-brand/20'
+                    : 'text-ink-soft border border-control hover:bg-surface hover:text-foreground/80'
                 }`}
               >
                 {kindLabel(k, t)}
@@ -281,7 +281,7 @@ export default function ArtifactsPage() {
         {(turnFilter || sessionFilter) && (
           <div className="mb-3 flex flex-wrap items-center gap-2 text-ui-xs">
             <span
-              className="rounded-md border border-brand/20 bg-brand/20 px-2 py-1 text-brand"
+              className="rounded-md border border-brand/20 bg-brand/20 px-2 py-1 text-brand-deep"
               data-testid="artifacts-scope"
             >
               {turnFilter
@@ -335,7 +335,7 @@ export default function ArtifactsPage() {
               type="button"
               onClick={refresh}
               data-testid="artifacts-retry"
-              className="inline-flex min-h-7 items-center rounded-lg border border-hairline px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-ring"
+              className="inline-flex min-h-7 items-center rounded-lg border border-control px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-ring"
             >
               {t('agentPanel.retry')}
             </button>
@@ -350,7 +350,7 @@ export default function ArtifactsPage() {
                     type="button"
                     onClick={clearFilters}
                     data-testid="artifacts-clear-filters"
-                    className="mt-3 min-h-7 max-lg:min-h-11 rounded-lg border border-hairline px-3 text-ui-xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground focus-ring"
+                    className="mt-3 min-h-7 max-lg:min-h-11 rounded-lg border border-control px-3 text-ui-xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground focus-ring"
                   >
                     {t('artifacts.page.scopeClear')}
                   </button>

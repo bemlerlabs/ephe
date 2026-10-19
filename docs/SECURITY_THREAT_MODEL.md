@@ -58,9 +58,18 @@ and that test fails if the resolver gains a further source this
 section does not name.
 
 One foreign-store read remains, deliberately: the onboarding "test connection" probe
-(`server/routes/model_provider.py::_mirror_api_key`) still resolves a key from the opencode configs so
+(`core/model_probe.py::mirror_api_key`) still resolves a key from the opencode configs so
 a user can try an endpoint before configuring Ephe. It authenticates a metadata request and nothing
-else — no chat turn, no tool call, no engine traffic ever reads that store.
+else — no chat turn, no tool call, no engine traffic ever reads that store. Owner decision 2026-10-18
+kept it for that reason and added the condition: the source is named. `resolve_probe_key()` is the
+single order the probe and the surface share (`given` → `own` → `foreign` → `none`), both discovery
+routes return it as `key_source`, and a setup screen that answered with `foreign` says so — because
+"your key worked" and "a key we found beside Ephe worked" are different answers, and only the second
+one is a token the user must supply before their first message. The token itself goes to the endpoint
+it was read for and to no other sink: not a response body, not a log line, not a file under the
+config root. `tests/test_r71_environment_mirror.py::TestProbeKeySource` pins the order, both route
+answers, the absence of the token from every sink, and that exactly one production call site reads
+that store at all.
 
 ## 2. STRIDE matrix
 
@@ -219,3 +228,26 @@ planned as the next step. Ephemora does not guarantee that code is
 **Regression:** `tests/test_sandboxed_code_tool.py` (fail-closed without the
 package, mutating classification → approval gate, hello=SUCCESS,
 exploit=BLOCKED, fuel exhaustion, observability fields).
+
+## Wave 2 (B3) — per-category approval overrides, review delta
+
+The wave asked for per-category overrides and gated them on a review before any code.
+This is the delta; it covers **one direction only**: a category can be made to *ask
+more often*, never to run without asking when it asks today.
+
+| Bound the wave requires | What the override does | Evidence |
+|---|---|---|
+| Defaults unchanged | The stored list is empty by default; `chat_tool_requires_confirm` returns exactly the value it returned before for every tool while the list is empty | `tests/test_wave2_approval_overrides.py::test_defaults_are_unchanged_for_every_category` |
+| Workspace boundary for writes | Untouched: write confinement lives in the file tools (`workspace_dir`) and the deny-root backstop in `core/tools/registry.py`, neither reads this setting | matrix below; `tests/test_path_guard.py` unchanged |
+| Shell restrictions | Untouched: `run_shell` never enters the chat auto-run set, is never in `ASKABLE_CATEGORIES`, and its command whitelist, blocked patterns and per-command confirmation are not gated by this list | matrix below (`run_shell` asks in every profile and every override) |
+| Denial semantics | Unchanged: a refused prompt still returns the existing `not_approved` denial; the override adds prompts, it does not add refusal reasons | `tests/test_wave2_approval_overrides.py::test_a_declined_forced_prompt_keeps_the_denial_code` |
+
+Only `SAFE` and `NETWORK` are accepted, because they are the two classes that auto-run
+on the chat path. `MUTATING` and `DANGEROUS` already prompt in every profile, so there
+is nothing to raise, and `save_security_config` drops them from the list rather than
+storing a value that would do nothing. `--yes` on the CLI does not override a forced
+category, the same way the confidence floor does not.
+
+What would unblock the other direction (a category running *without* its prompt): a
+capability-scoped exception list (per tool, per workspace, with an expiry) and its own
+review — a per-category switch is too coarse to bound what `DANGEROUS` covers.

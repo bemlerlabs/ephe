@@ -262,16 +262,49 @@ async def chat_with_tools(
         )
 
         # Step 1: tool detection (stream=False – mandatory!)
-        response, model, detection_streamed = await _detect_tool_calls(
-            client=client,
-            provider=provider,
-            model=model,
-            messages=messages,
-            tools=tools,
-            on_chunk=on_chunk,
-            on_thinking=on_thinking,
-            on_phase=on_phase,
+        from core.model_capability import (
+            ANSWER_ONLY_PHASE,
+            is_answer_only,
+            looks_like_tool_rejection,
+            note_rejection,
         )
+
+        # S3 capability guard: an array this (endpoint, model) already refused is not
+        # offered again in this process. Unknown is not false — a model nobody refused
+        # keeps exactly today's array.
+        if tools and is_answer_only(provider.base_url, model):
+            tools = []
+        try:
+            response, model, detection_streamed = await _detect_tool_calls(
+                client=client,
+                provider=provider,
+                model=model,
+                messages=messages,
+                tools=tools,
+                on_chunk=on_chunk,
+                on_thinking=on_thinking,
+                on_phase=on_phase,
+            )
+        except Exception as exc:
+            # The refusal of an array is a fact about the model, not about the request:
+            # remember it and ask the same messages without one, so the first turn a
+            # tool-less engine is given does not end in its 400.
+            if not tools or not looks_like_tool_rejection(str(exc)):
+                raise
+            note_rejection(provider.base_url, model)
+            tools = []
+            if on_phase:
+                on_phase(ANSWER_ONLY_PHASE)
+            response, model, detection_streamed = await _detect_tool_calls(
+                client=client,
+                provider=provider,
+                model=model,
+                messages=messages,
+                tools=tools,
+                on_chunk=on_chunk,
+                on_thinking=on_thinking,
+                on_phase=on_phase,
+            )
         if response is None:
             raise OllamaNotReachableError()
 

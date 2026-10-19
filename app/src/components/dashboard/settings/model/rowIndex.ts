@@ -39,6 +39,8 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   { tab: 'generation', key: 'settings.genToolBudget' },
   { tab: 'generation', key: 'settings.genContextWindow' },
   { tab: 'generation', key: 'settings.genMemoryMax' },
+  // Wave 2/B4: the engine's reasoning-effort option.
+  { tab: 'generation', key: 'settings.genReasoning' },
   // Audio
   { tab: 'voice', key: 'settings.audioEngineRow' },
   { tab: 'voice', key: 'settings.piperVoice' },
@@ -57,6 +59,9 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   // Privacy
   { tab: 'privacy', key: 'settings.privacyProfileRow' },
   { tab: 'privacy', key: 'settings.sandboxTitle' },
+  // Wave 2/B3: the two categories that may be made to ask more often.
+  { tab: 'privacy', key: 'settings.askMoreSafe' },
+  { tab: 'privacy', key: 'settings.askMoreNetwork' },
   { tab: 'privacy', key: 'settings.clearLocalData' },
   // Wave 4: the store row beside the browser-cache row — the one that deletes
   // files on the server's machine, not in the browser.

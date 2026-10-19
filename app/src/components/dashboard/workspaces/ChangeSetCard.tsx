@@ -319,7 +319,7 @@ export default function ChangeSetCard({
         <Link
           to={`/workspaces/change/${encodeURIComponent(changeSet.id)}`}
           data-testid={`changeset-custody-${changeSet.id}`}
-          className="inline-flex min-h-7 items-center gap-1 rounded-md border border-hairline px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-11 focus-ring"
+          className="inline-flex min-h-7 items-center gap-1 rounded-md border border-control px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-11 focus-ring"
         >
           <ShieldCheck className="h-3 w-3" aria-hidden="true" />
           {t('workspaces.custodyAction')}
@@ -330,7 +330,7 @@ export default function ChangeSetCard({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           data-testid={`changeset-review-open-${changeSet.id}`}
-          className="inline-flex min-h-7 items-center gap-1 rounded-md border border-hairline px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-11 focus-ring"
+          className="inline-flex min-h-7 items-center gap-1 rounded-md border border-control px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-11 focus-ring"
         >
           {open ? (
             <ChevronDown className="h-3 w-3" aria-hidden="true" />

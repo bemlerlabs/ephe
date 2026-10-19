@@ -49,9 +49,13 @@ function HookRow({ hook, event, t }: { hook: HookSpec; event: HookEvent; t: Sett
 export function HooksSection({ model }: { model: SettingsModel }) {
   const { hooksLoading, hooksView, i18n, t } = model
 
-  const events = [...(hooksView?.events ?? [])].sort(
-    (a, b) => EVENT_ORDER.indexOf(a.key) - EVENT_ORDER.indexOf(b.key),
-  )
+  // D0-4: an event the server reports without any hook beside it, and a recent-run list
+  // it omits, are both answers with nothing in them. Resolved here, once, so every row
+  // below renders the empty state the area already has instead of the tab falling over.
+  const events = [...(hooksView?.events ?? [])]
+    .map((event) => ({ ...event, hooks: event.hooks ?? [] }))
+    .sort((a, b) => EVENT_ORDER.indexOf(a.key) - EVENT_ORDER.indexOf(b.key))
+  const recent = hooksView?.recent ?? []
   const live = events.filter((e) => e.live)
   const idle = events.filter((e) => !e.live)
 
@@ -83,9 +87,9 @@ export function HooksSection({ model }: { model: SettingsModel }) {
             />
           </SettingsGroup>
 
-          {live.map((event) => (
+          {live.map((event, i) => (
             <SettingsGroup
-              key={event.key}
+              key={event.key ?? `unnamed-${i}`}
               icon={Terminal}
               title={eventLabel(event.key, t)}
               testid={`hooks-group-${event.key}`}
@@ -109,9 +113,9 @@ export function HooksSection({ model }: { model: SettingsModel }) {
 
           {idle.length > 0 && (
             <SettingsGroup icon={CircleSlash} title={t('settings.hooksGroupIdle')}>
-              {idle.map((event) => (
+              {idle.map((event, i) => (
                 <SettingsRow
-                  key={event.key}
+                  key={event.key ?? `unnamed-${i}`}
                   icon={CircleSlash}
                   title={eventLabel(event.key, t)}
                   description={t('settings.hooksIdleHint', { count: event.hooks.length })}
@@ -122,7 +126,7 @@ export function HooksSection({ model }: { model: SettingsModel }) {
           )}
 
           <SettingsGroup icon={Terminal} title={t('settings.hooksGroupRecent')}>
-            {hooksView.recent.length === 0 ? (
+            {recent.length === 0 ? (
               <SettingsRow
                 icon={CircleSlash}
                 title={t('settings.hooksRecentEmpty')}
@@ -130,16 +134,19 @@ export function HooksSection({ model }: { model: SettingsModel }) {
                 testid="hooks-recent-empty"
               />
             ) : (
-              hooksView.recent.map((run, i) => (
+              recent.map((run, i) => (
                 <SettingsRow
                   key={`${run.ts}-${i}`}
                   icon={run.status === 'blocked' ? CircleSlash : Terminal}
                   title={t(`settings.hookStatus.${run.status}`, { defaultValue: run.status })}
-                  description={`${formatTime(run.ts, i18n?.language)} · ${
+                  description={[
+                    formatTime(run.ts, i18n?.language),
                     run.detail
                       ? `${run.tool} · ${run.detail}`
-                      : t('settings.hooksRunTool', { tool: run.tool })
-                  }`}
+                      : t('settings.hooksRunTool', { tool: run.tool }),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                   testid={`hooks-recent-${i}`}
                 />
               ))

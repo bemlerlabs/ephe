@@ -53,7 +53,7 @@ export function MemoryStoreUnavailable({
       <button
         type="button"
         onClick={onRetry}
-        className="rounded-lg border border-hairline px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="rounded-lg border border-control px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
       >
         {t('agentPanel.retry')}
       </button>

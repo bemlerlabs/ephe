@@ -13,7 +13,10 @@
  * `engineNotConfigured` remains, and the endpoint is what the user stored —
  * the surface does not guess.
  */
+import { useMemo, useState } from 'react'
 import { FolderOpen, KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
+import { ModelPicker } from '@/components/model/ModelPicker'
+import { rowsFromOptions } from '@/components/model/modelPickerTypes'
 import PageHeader from '@/components/shell/PageHeader'
 import {
   FIELD_COL,
@@ -38,10 +41,13 @@ export function EngineSection({ model }: { model: SettingsModel }) {
   const {
     checkHealth,
     customApiKey,
+    customOption,
+    isOllamaFamily,
     customEndpoint,
     displayModels,
     engineHealth,
     engineTesting,
+    liveModels,
     outputDraft,
     setCustomApiKey,
     setCustomEndpoint,
@@ -56,6 +62,16 @@ export function EngineSection({ model }: { model: SettingsModel }) {
   } = model
 
   const active = settings?.provider
+  // S2: the picker's choice is pending until "Use" writes it, so the row that carries
+  // `engine-row-model-*` always names a model the user actually picked — never one the
+  // list happened to start with.
+  const [pending, setPending] = useState('')
+  const modelRows = useMemo(
+    () => rowsFromOptions(liveModels, active ? providerLabel(active.type, t) : ''),
+    [liveModels, active, t],
+  )
+  const activeModel = settings?.provider.model ?? ''
+  const shownModel = pending || activeModel
   // The row states a condition, so it reads what the backend says about itself: the
   // three engine states, plus the fourth fact they cannot carry — an engine that
   // answered and refused this start's credential.
@@ -110,54 +126,94 @@ export function EngineSection({ model }: { model: SettingsModel }) {
         description={t('settings.modelListHint')}
         testid="engine-group-model"
       >
-        {displayModels.map((opt) => {
-          const isCustom = opt.id === 'custom'
-          const chosen =
-            settings?.provider.model === opt.id ||
-            (isCustom && settings?.provider.type === 'custom_ollama')
-          return (
-            <SettingsRow
-              key={opt.id}
-              icon={Cpu}
-              title={opt.label}
-              description={'descKey' in opt && opt.descKey ? t(opt.descKey) : opt.desc}
-              testid={`engine-row-model-${opt.id}`}
-            >
-              {/* The chosen model is a stored state, so it wears the data column
-                  and no accent: the accent marks what is running at this moment. */}
-              <SettingValue>{chosen ? t('settings.modelInUse') : ''}</SettingValue>
-              <SettingVerb>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={chosen}
-                  onClick={() => {
-                    if (isCustom) {
+        <div className="px-3 pb-1.5">
+          <ModelPicker
+            id="engine-model-picker"
+            testId="engine-model-picker"
+            label={t('settings.chooseModel')}
+            placeholder={t('modelPicker.choose')}
+            rows={modelRows}
+            value={pending || activeModel}
+            onChange={setPending}
+          />
+        </div>
+        {shownModel &&
+          (() => {
+            const chip = displayModels.find((opt) => opt.id === shownModel)
+            const stated = liveModels.find((opt) => opt.name === shownModel)
+            return (
+              <SettingsRow
+                icon={Cpu}
+                title={chip?.label ?? shownModel}
+                description={
+                  stated?.supports_tools === false
+                    ? t('modelPicker.answerOnly')
+                    : chip && 'descKey' in chip && chip.descKey
+                      ? t(chip.descKey)
+                      : chip?.desc
+                }
+                testid={`engine-row-model-${shownModel}`}
+              >
+                {/* The stored model is a state, so it wears the data column and no
+                    accent: the accent marks what is running at this moment. */}
+                <SettingValue>
+                  {shownModel === activeModel ? t('settings.modelInUse') : ''}
+                </SettingValue>
+                <SettingVerb>
+                  <button
+                    type="button"
+                    onClick={() => {
                       setSettings((prev) =>
                         prev
-                          ? { ...prev, provider: { ...prev.provider, type: 'custom_ollama' } }
-                          : {
-                              provider: { type: 'custom_ollama', model: '' },
-                              memory_enabled: true,
-                              language: 'de',
-                              theme: 'dark',
-                            },
+                          ? { ...prev, provider: { ...prev.provider, model: shownModel } }
+                          : prev!,
                       )
-                    } else {
-                      setSettings((prev) =>
-                        prev ? { ...prev, provider: { ...prev.provider, model: opt.id } } : prev!,
-                      )
-                    }
-                  }}
-                  data-testid={`engine-model-${opt.id}`}
-                  className={VERB_BUTTON}
-                >
-                  {t('settings.modelUse')}
-                </button>
-              </SettingVerb>
-            </SettingsRow>
-          )
-        })}
+                      setPending('')
+                    }}
+                    data-testid={`engine-model-${shownModel}`}
+                    className={VERB_BUTTON}
+                  >
+                    {t('settings.modelUse')}
+                  </button>
+                </SettingVerb>
+              </SettingsRow>
+            )
+          })()}
+        {isOllamaFamily && (
+          <SettingsRow
+            icon={Cpu}
+            title={customOption.label}
+            description={t(customOption.descKey)}
+            testid="engine-row-model-custom"
+          >
+            <SettingValue>
+              {settings?.provider.type === 'custom_ollama' ? t('settings.modelInUse') : ''}
+            </SettingValue>
+            <SettingVerb>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={settings?.provider.type === 'custom_ollama'}
+                onClick={() =>
+                  setSettings((prev) =>
+                    prev
+                      ? { ...prev, provider: { ...prev.provider, type: 'custom_ollama' } }
+                      : {
+                          provider: { type: 'custom_ollama', model: '' },
+                          memory_enabled: true,
+                          language: 'de',
+                          theme: 'dark',
+                        },
+                  )
+                }
+                data-testid="engine-model-custom"
+                className={VERB_BUTTON}
+              >
+                {t('settings.modelUse')}
+              </button>
+            </SettingVerb>
+          </SettingsRow>
+        )}
       </SettingsGroup>
 
       {customEndpoint && (

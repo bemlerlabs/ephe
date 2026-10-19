@@ -297,7 +297,7 @@ export default function CustodyPage() {
           onClick={() => void signAsAuthor()}
           disabled={trying || !custody.author}
           data-testid="custody-try-sign"
-          className="mt-2 inline-flex min-h-7 items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50 max-lg:min-h-11 focus-ring"
+          className="mt-2 inline-flex min-h-7 items-center gap-1.5 rounded-md border border-control px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50 max-lg:min-h-11 focus-ring"
         >
           {trying ? t('custody.trying') : t('custody.tryAs', { name: custody.author })}
         </button>
@@ -340,7 +340,7 @@ export default function CustodyPage() {
           onClick={() => void read()}
           disabled={reading}
           data-testid="custody-check-again"
-          className="mt-3 inline-flex min-h-7 items-center rounded-md border border-hairline px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50 max-lg:min-h-11 focus-ring"
+          className="mt-3 inline-flex min-h-7 items-center rounded-md border border-control px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50 max-lg:min-h-11 focus-ring"
         >
           {reading ? t('custody.checking') : t('custody.checkAgain')}
         </button>

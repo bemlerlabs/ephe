@@ -115,6 +115,52 @@ describe('BehaviourSection', () => {
     expect(setDeepField).toHaveBeenCalledWith('chat', 'chat.show_reasoning', false)
   })
 
+  it('edits the custom instructions in a full-width card, not as a row', () => {
+    const instructions = {
+      key: 'chat.custom_instructions',
+      type: 'text',
+      label: 'Eigene Anweisungen',
+      labelEn: 'Custom instructions',
+      default: '',
+      value: 'Be brief.',
+      maxChars: 4000,
+      multiline: true,
+      hint: 'Stehende Vorgaben.',
+      hintEn: 'Standing instructions.',
+    }
+    const withInstructions = [
+      { key: 'chat', fields: [...sections[0]!.fields, instructions] },
+    ] as unknown as DeepSection[]
+    render(<BehaviourSection model={model({ deepSections: withInstructions })} />)
+    const box = screen.getByTestId('custom-instructions-input') as HTMLTextAreaElement
+    expect(box.value).toBe('Be brief.')
+    expect(screen.getByTestId('custom-instructions-count').textContent).toBe('9 / 4000')
+    // The register renders it once, in the card.
+    expect(screen.queryByTestId('setting-text-chat.custom_instructions')).toBeNull()
+  })
+
+  it('stops typing at the cap from the register', () => {
+    const setDeepField = vi.fn()
+    const instructions = {
+      key: 'chat.custom_instructions',
+      type: 'text',
+      label: 'Eigene Anweisungen',
+      labelEn: 'Custom instructions',
+      default: '',
+      value: '',
+      maxChars: 8,
+      multiline: true,
+    }
+    const withInstructions = [
+      { key: 'chat', fields: [...sections[0]!.fields, instructions] },
+    ] as unknown as DeepSection[]
+    render(<BehaviourSection model={model({ deepSections: withInstructions, setDeepField })} />)
+    fireEvent.change(screen.getByTestId('custom-instructions-input'), {
+      target: { value: '1234567890' },
+    })
+    expect(setDeepField).toHaveBeenCalledWith('chat', 'chat.custom_instructions', '12345678')
+  })
+
   it('klemmt die Zahl an die Schranke aus dem Payload', () => {
     render(<BehaviourSection model={model()} />)
     const input = screen.getByTestId('setting-number-chat.stream_idle_seconds') as HTMLInputElement

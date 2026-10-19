@@ -135,7 +135,7 @@ export function MemoryBrainsPanel({
                 type="button"
                 disabled={switching || next === provider}
                 onClick={() => void chooseProvider(next)}
-                className="rounded-lg border border-hairline px-3 py-1.5 text-ui-xs font-medium text-ink-faint transition-colors hover:text-foreground disabled:opacity-40 max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
+                className="rounded-lg border border-control px-3 py-1.5 text-ui-xs font-medium text-ink-faint transition-colors hover:text-foreground disabled:opacity-40 max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
               >
                 {storeName(next)}
               </button>

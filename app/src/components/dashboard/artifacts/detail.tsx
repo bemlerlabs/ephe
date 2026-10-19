@@ -181,7 +181,7 @@ export default function ArtifactDetailPane({
           download
           className={`${BUTTON} ${
             adoptedState === 'current'
-              ? 'bg-brand/20 text-brand'
+              ? 'bg-brand/20 text-brand-deep'
               : 'border border-hairline text-ink-soft hover:bg-surface hover:text-foreground/80'
           }`}
           data-testid="artifact-detail-download"
@@ -195,7 +195,7 @@ export default function ArtifactDetailPane({
           className={`${BUTTON} ${
             adoptedState === 'current'
               ? 'border border-hairline text-ink-soft hover:bg-surface hover:text-foreground/80'
-              : 'bg-brand/20 text-brand'
+              : 'bg-brand/20 text-brand-deep'
           }`}
           data-testid="artifact-detail-adopt"
         >
@@ -312,7 +312,7 @@ export default function ArtifactDetailPane({
                 <span className="text-ink-faint">
                   {formatDateTime(v.created_at, i18n.language)}
                 </span>
-                {v.id === art.id && <Check className="h-3.5 w-3.5 text-brand" aria-hidden />}
+                {v.id === art.id && <Check className="h-3.5 w-3.5 text-brand-deep" aria-hidden />}
               </li>
             ))}
           </ul>

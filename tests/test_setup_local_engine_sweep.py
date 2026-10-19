@@ -108,7 +108,7 @@ async def test_detect_findet_antwortenden_port(monkeypatch, client: TestClient) 
         return False, [], "abgelehnt", "unreachable"
 
     monkeypatch.setattr(
-        "server.routes.model_provider._probe_openai_compatible", fake_probe, raising=True
+        "core.model_probe.probe_openai_compatible", fake_probe, raising=True
     )
     body = client.get("/api/setup/detect").json()
     hits = {d["url"]: d for d in body["detected"]}
@@ -129,7 +129,7 @@ async def test_sweep_kandidaten_verschmelzen_nicht(monkeypatch, client: TestClie
         return False, [], "abgelehnt", "unreachable"
 
     monkeypatch.setattr(
-        "server.routes.model_provider._probe_openai_compatible", fake_probe, raising=True
+        "core.model_probe.probe_openai_compatible", fake_probe, raising=True
     )
     body = client.get("/api/setup/detect").json()
     sweep = [d for d in body["detected"] if (d.get("url") or "").startswith("http://127.0.0.1:")]
@@ -149,7 +149,7 @@ async def test_scan_schreibt_nichts_nach_persist(monkeypatch, client: TestClient
         return True, ["demo-model"], "", "ok"
 
     monkeypatch.setattr(
-        "server.routes.model_provider._probe_openai_compatible", fake_probe, raising=True
+        "core.model_probe.probe_openai_compatible", fake_probe, raising=True
     )
     client.get("/api/setup/detect")
     assert not (tmp_path / "engine.json").exists()
@@ -177,7 +177,7 @@ async def test_falscher_port_an_bekanntem_host_wird_gefunden(
         return False, [], "abgelehnt", "unreachable"
 
     monkeypatch.setattr(
-        "server.routes.model_provider._probe_openai_compatible", fake_probe, raising=True
+        "core.model_probe.probe_openai_compatible", fake_probe, raising=True
     )
     body = client.get("/api/setup/detect").json()
     hit = next(
@@ -237,7 +237,7 @@ async def test_dgx_host_ohne_port_findet_qwen_auf_8888(
         return False, [], "abgelehnt", "unreachable"
 
     monkeypatch.setattr(
-        "server.routes.model_provider._probe_openai_compatible", fake_probe, raising=True
+        "core.model_probe.probe_openai_compatible", fake_probe, raising=True
     )
     body = client.get("/api/setup/detect").json()
     hit = next(

@@ -25,15 +25,30 @@ VALID_APPROVAL_PROFILES = ("strict", "session", "plan", "full")
 NEVER_REMEMBER = frozenset({"run_shell"})
 
 
-class SecurityConfig:
-    __slots__ = ("approval_profile", "sandbox_enabled")
+#: The categories a user may ask MORE often about (Wave 2/B3). Only the two that
+#: auto-run on the chat path are offered: MUTATING and DANGEROUS already prompt, so
+#: there is nothing to raise there, and no override may lower a category.
+ASKABLE_CATEGORIES = ("SAFE", "NETWORK")
 
-    def __init__(self, approval_profile: str = "strict", sandbox_enabled: bool = False) -> None:
+
+class SecurityConfig:
+    __slots__ = ("approval_profile", "sandbox_enabled", "ask_categories")
+
+    def __init__(
+        self,
+        approval_profile: str = "strict",
+        sandbox_enabled: bool = False,
+        ask_categories: tuple[str, ...] = (),
+    ) -> None:
         self.approval_profile = approval_profile
         self.sandbox_enabled = sandbox_enabled
+        self.ask_categories = ask_categories
 
     def __repr__(self) -> str:  # no trouble with secrets — there are none here
-        return f"SecurityConfig(approval_profile={self.approval_profile!r}, sandbox_enabled={self.sandbox_enabled!r})"
+        return (
+            f"SecurityConfig(approval_profile={self.approval_profile!r}, "
+            f"sandbox_enabled={self.sandbox_enabled!r}, ask_categories={self.ask_categories!r})"
+        )
 
 
 def security_config_path():
@@ -46,6 +61,11 @@ def load_security_config() -> SecurityConfig:
         return SecurityConfig(
             approval_profile=str(raw.get("approval_profile", "strict") or "strict"),
             sandbox_enabled=bool(raw.get("sandbox_enabled", False)),
+            ask_categories=tuple(
+                category
+                for category in raw.get("ask_categories", ())
+                if category in ASKABLE_CATEGORIES
+            ),
         )
     except Exception:
         return SecurityConfig()
@@ -54,12 +74,18 @@ def load_security_config() -> SecurityConfig:
 def save_security_config(
     approval_profile: str | None = None,
     sandbox_enabled: bool | None = None,
+    ask_categories: list[str] | tuple[str, ...] | None = None,
     path=None,
 ) -> SecurityConfig:
     existing = load_security_config()
     cfg = SecurityConfig(
         approval_profile=(approval_profile if approval_profile is not None else existing.approval_profile),
         sandbox_enabled=(sandbox_enabled if sandbox_enabled is not None else existing.sandbox_enabled),
+        ask_categories=(
+            tuple(c for c in ask_categories if c in ASKABLE_CATEGORIES)
+            if ask_categories is not None
+            else existing.ask_categories
+        ),
     )
     if cfg.approval_profile not in VALID_APPROVAL_PROFILES:
         raise ValueError(
@@ -73,8 +99,15 @@ def save_security_config(
         pass
     tmp = target.with_suffix(".tmp")
     tmp.write_text(
-        json.dumps({"approval_profile": cfg.approval_profile, "sandbox_enabled": cfg.sandbox_enabled},
-                   ensure_ascii=False, indent=2),
+        json.dumps(
+            {
+                "approval_profile": cfg.approval_profile,
+                "sandbox_enabled": cfg.sandbox_enabled,
+                "ask_categories": list(cfg.ask_categories),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
         encoding="utf-8",
     )
     tmp.replace(target)

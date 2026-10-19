@@ -60,7 +60,7 @@ export default function WorkspaceList({
               data-testid={`workspace-row-${ws.id}`}
               className={`w-full rounded-md px-2.5 py-2 text-left text-ui-xs transition-colors min-h-9 max-lg:min-h-11 focus-ring ${
                 selected
-                  ? 'bg-brand/10 text-brand'
+                  ? 'bg-brand/10 text-brand-deep'
                   : 'text-ink-faint hover:bg-surface hover:text-foreground/80'
               }`}
             >

@@ -108,6 +108,7 @@ def context_budget(session_id: str = "") -> dict:
                 messages = mirrored
                 counted_via = "rest_mirror"
 
+    stages_payload = context_stages()
     char_count = sum(len(str(m.get("content", "") or "")) for m in messages)
     # W16: the same counting path as core.usage — exact BPE with tiktoken, otherwise
     # the calibrated 4.2 heuristic; the per-message count is the SSOT (sum).
@@ -129,11 +130,12 @@ def context_budget(session_id: str = "") -> dict:
         "percent": percent,
         "compaction_threshold": DEFAULT_MAX_MESSAGES,
         "compaction_active": len(messages) > DEFAULT_MAX_MESSAGES,
-        "breakdown": _breakdown(),
+        "breakdown": _breakdown(stages_payload),
+        "stages": stages_payload["stages"],
     }
 
 
-def _breakdown() -> list[dict]:
+def _breakdown(stages_payload: dict | None = None) -> list[dict]:
     """Category shares of the context window (reference parity, 1:1 pattern).
 
     Each category carries its share of the estimated tokens; the sum stays
@@ -147,7 +149,7 @@ def _breakdown() -> list[dict]:
     except Exception:
         hist = 0
     try:
-        stages = context_stages()
+        stages = stages_payload if stages_payload is not None else context_stages()
         prompt_chars = int(stages.get("total_chars", 0) or 0)
     except Exception:
         prompt_chars = 0
@@ -230,9 +232,29 @@ def context_stages() -> dict:
         pass
 
     try:
-        from core.workspace_rules import load_workspace_rules
+        from core.chat_prompt import custom_instructions_block
 
-        add("workspace_rules", load_workspace_rules())
+        add("custom_instructions", custom_instructions_block())
+    except Exception:
+        pass
+
+    try:
+        from dataclasses import asdict
+
+        from core.workspace_rules import DENIED, UNREADABLE, read_workspace_rules
+
+        rules = read_workspace_rules()
+        if rules.text:
+            add("workspace_rules", rules.text)
+        # A refused or unreadable file did not speak, but the surface has to say it
+        # was seen and why it stayed out; a stage with 0 chars carries that report.
+        noteworthy = any(entry.status in (DENIED, UNREADABLE) for entry in rules.files)
+        if noteworthy and not any(s["name"] == "workspace_rules" for s in stages):
+            stages.append({"name": "workspace_rules", "chars": 0, "preview": ""})
+        if rules.files and any(s["name"] == "workspace_rules" for s in stages):
+            for stage in stages:
+                if stage["name"] == "workspace_rules":
+                    stage["files"] = [asdict(entry) for entry in rules.files]
     except Exception:
         pass
 

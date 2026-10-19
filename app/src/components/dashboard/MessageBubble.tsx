@@ -130,11 +130,11 @@ function MessageBubbleInner({
         }`}
       >
         {isUser ? (
-          <span className="text-ui-sm font-medium text-brand">U</span>
+          <span className="text-ui-sm font-medium text-brand-deep">U</span>
         ) : isSystem ? (
           <Layers className="h-4 w-4 text-ink-soft" />
         ) : (
-          <Sparkles className="h-4 w-4 text-brand" />
+          <Sparkles className="h-4 w-4 text-brand-deep" />
         )}
       </div>
 

@@ -220,7 +220,7 @@ export default function LifecyclePanel({
                 )
               }
               data-testid={`changeset-withdraw-${state}-${changeSetId}`}
-              className="inline-flex min-h-7 items-center rounded-md border border-hairline px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50 max-lg:min-h-11 focus-ring"
+              className="inline-flex min-h-7 items-center rounded-md border border-control px-2.5 py-1 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50 max-lg:min-h-11 focus-ring"
             >
               {t(key)}
             </button>

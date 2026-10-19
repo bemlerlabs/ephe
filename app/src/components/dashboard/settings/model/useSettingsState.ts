@@ -55,6 +55,21 @@ export function useSettingsState(props: SettingsPanelProps) {
   // Wave 5: draft of the deep generation parameters (the fine-tuning levers).
   // null = "not set" (the server default applies); an empty input string = unset.
   const [genDraft, setGenDraft] = useState<Record<string, string>>({})
+  // Wave 2/B4: the levers show what is stored. The section used to open empty and
+  // send only the touched keys, so a save replaced the whole block with those.
+  // A key the user already edited is never overwritten by a later fetch.
+  useEffect(() => {
+    const stored = settings?.generation as Record<string, unknown> | undefined
+    if (!stored) return
+    setGenDraft((prev) => {
+      const next = { ...prev }
+      for (const [key, value] of Object.entries(stored)) {
+        if (value === null || value === undefined || key in next) continue
+        next[key] = String(value)
+      }
+      return next
+    })
+  }, [settings?.generation])
   // Wave 6: plugin-store view + the deep section register
   const [pluginView, setPluginView] = useState<PluginView | null>(null)
   // S-wave: client-side plugin filter (the app-shell search field)

@@ -59,6 +59,38 @@ THINK_OPEN  = "<|think|>"
 
 # Wave 7: the knowledge-gap protocol — always active, so the model marks gaps
 # in the answer text with [[GAP: topic]] (parser: core.knowledge_gap).
+#: Wave 2 (B1): the cap the custom-instruction layer is read under. The editor in
+#: the behaviour settings stops here; the prompt marks a truncation if a stored
+#: value ever arrives longer (a hand-edited settings.json, a lowered cap).
+CUSTOM_INSTRUCTIONS_MAX = 4000
+
+
+def custom_instructions_block() -> str | None:
+    """The user's own instruction layer, provenance-marked, capped; None when empty.
+
+    Read through the settings accessor so the register proof finds a real consumer.
+    The marker names the source: the model has to be able to tell the user's words
+    from the system's own voice.
+    """
+    from core.settings_schema import deep_value
+
+    try:
+        raw = str(deep_value("chat.custom_instructions") or "").strip()
+    except Exception:
+        return None
+    if not raw:
+        return None
+    if len(raw) > CUSTOM_INSTRUCTIONS_MAX:
+        raw = (
+            raw[:CUSTOM_INSTRUCTIONS_MAX].rstrip()
+            + f"\n… truncated ({CUSTOM_INSTRUCTIONS_MAX} of {len(raw)} chars shown)."
+        )
+    return (
+        "## Custom instructions (from this device's settings — the user's own words, "
+        "standing for every turn)\n\n" + raw
+    )
+
+
 # W3-38: a module constant (never built inline) so its bytes are provably the
 # same every turn — it is part of the cacheable prefix.
 KNOWLEDGE_GAP_PROTOCOL = (
@@ -74,6 +106,7 @@ def assemble_system_prompt(
     model: str,
     incoming_system: str | None = None,
     extra_system_prompt: str | None = None,
+    custom_instructions_ctx: str | None = None,
     workspace_rules_ctx: str | None = None,
     profile_ctx: str | None = None,
     memory_ctx: str | None = None,
@@ -96,9 +129,13 @@ def assemble_system_prompt(
     4. skill system prompt arriving as messages[0] (skill packs inject here)
     5. extra directive (e.g. the R22 coding-agent brief)
     6. constant knowledge-gap protocol (KNOWLEDGE_GAP_PROTOCOL)
-    7. workspace project rules (AGENTS.md from the workspace, provenance-marked)
-    8. user profile → 9. corrections → 10. feedback   (rarely change)
-    11. memory (per-turn volatile) → 12. current date block (per-day, last)
+    7. custom instructions (this device's standing words, provenance-marked)
+    8. workspace project rules (AGENTS.md and .ephe/rules/*, provenance-marked)
+    9. user profile → 10. corrections → 11. feedback   (rarely change)
+    12. memory (per-turn volatile) → 13. current date block (per-day, last)
+
+    The user's global instructions sit ahead of the project's own files because
+    the more specific voice speaks last.
     """
     from core.persona import (
         build_date_block,
@@ -123,7 +160,13 @@ def assemble_system_prompt(
     # The constant protocol sits at the end of the static core — in front of
     # every block that can change, so it always lies inside the cached prefix.
     parts.append(KNOWLEDGE_GAP_PROTOCOL)
-    for ctx in (workspace_rules_ctx, profile_ctx, corrections_ctx, feedback_ctx):
+    for ctx in (
+        custom_instructions_ctx,
+        workspace_rules_ctx,
+        profile_ctx,
+        corrections_ctx,
+        feedback_ctx,
+    ):
         if ctx:
             parts.append(ctx)
     # Per-turn volatile last (before the daily date): a memory change breaks the
@@ -277,6 +320,7 @@ def _assemble_system_prompt_into(
         model=model,
         incoming_system=incoming_system,
         extra_system_prompt=extra_system_prompt,
+        custom_instructions_ctx=custom_instructions_block(),
         workspace_rules_ctx=workspace_rules_ctx,
         profile_ctx=profile_ctx,
         memory_ctx=memory_ctx,

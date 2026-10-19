@@ -205,7 +205,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
                 onClick={() => void selectLanguage(nextLangCode)}
                 aria-label={t('settings.languagePillAria')}
                 title={t('settings.languagePillAria')}
-                className="rounded-full border border-hairline bg-surface px-2.5 py-0.5 min-h-6 text-ui-xs text-ink-soft transition-colors hover:text-foreground hover:border-brand/40 pointer-coarse:min-h-11"
+                className="rounded-full border border-control bg-surface px-2.5 py-0.5 min-h-6 text-ui-xs text-ink-soft transition-colors hover:text-foreground hover:border-brand/40 pointer-coarse:min-h-11"
               >
                 {langLabel}
               </button>

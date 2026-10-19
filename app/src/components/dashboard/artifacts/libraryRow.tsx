@@ -116,7 +116,7 @@ export default function ArtifactLibraryRow({
     <div
       className={`w-full rounded-md text-ui-xs transition-colors ${
         selected
-          ? 'bg-brand/10 text-brand'
+          ? 'bg-brand/10 text-brand-deep'
           : 'text-ink-faint hover:bg-surface hover:text-foreground/80'
       }`}
       data-testid={`artifact-row-${art.id}`}
@@ -242,7 +242,7 @@ export default function ArtifactLibraryRow({
           />
           <button
             type="submit"
-            className="rounded bg-brand/20 px-2 py-1 text-ui-xs font-medium text-brand"
+            className="rounded bg-brand/20 px-2 py-1 text-ui-xs font-medium text-brand-deep"
             data-testid={`artifact-adopt-go-${art.id}`}
           >
             {t('artifacts.adoptGo')}

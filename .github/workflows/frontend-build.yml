@@ -120,6 +120,17 @@ jobs:
             tests/playwright/r33-a11y.spec.ts \
             tests/playwright/r4-motion-paint.spec.ts
 
+      - name: E2E theme parity (every surface, both themes, both widths)
+        # D0's instrument. It measures contrast off the painted DOM, so it needs the routes to
+        # settle rather than a quiet frame; it still runs alone because it reads eight-second
+        # route timeouts, and a browser pool of ten can make a slow route look like a dead one.
+        # The counts it reports are held by app/tests/playwright/theme-parity.baseline.json,
+        # and the defect list they describe is docs/THEME_SWEEP_2026-10-18.md.
+        run: |
+          cd app
+          pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list --workers=1 \
+            tests/playwright/theme-parity.spec.ts
+
       - name: E2E (Playwright over the bundle this job built)
         # R8: app/package.json defined test:e2e, test:e2e:real and test:dogfood over
         # app/tests/playwright/*.spec.ts and no workflow ran any of them, so the suite was a

@@ -437,8 +437,7 @@
     "modelGroupSetup": "Engine einrichten",
     "modelGroupChat": "Chat-Modelle",
     "modelGroupOther": "Andere Typen (Sprache, Bild)",
-    "modelGroupUnconfigured": "Ohne Endpunkt — nicht konfigurierbar",
-    "modelNoHits": "Kein Modell passt zur Eingabe."
+    "modelGroupUnconfigured": "Ohne Endpunkt — nicht konfigurierbar"
   },
   "sidebar": {
     "navWorkspaces": "Arbeitsbereiche",
@@ -708,6 +707,9 @@
     "behaviour": "Verhalten",
     "behaviourTitle": "Verhalten",
     "behaviourHint": "Was Ephe tut: Antworten, Werkzeuge, Streams. Nicht, wie es aussieht.",
+    "customInstructionsTitle": "Eigene Anweisungen",
+    "customInstructionsHint": "Stehende Vorgaben, die als eigener gekennzeichneter Block vor den Projektregeln in jeden Prompt gehen. Grenze: 4.000 Zeichen.",
+    "customInstructionsPlaceholder": "z. B. Antworte in kurzen Sätzen. Keine Tabelle bei weniger als vier Zeilen.",
     "shortcuts": "Tastatur-Kürzel",
     "network": "Netzwerk",
     "code-exec": "Code-Ausführung",
@@ -808,6 +810,10 @@
     "generationHint": "Feineinstellung des Modells. Leeres Feld = System-Standard.",
     "generationGroup": "Inferenz-Parameter",
     "genTemperature": "Temperatur",
+    "genReasoningGroup": "Denken",
+    "genReasoning": "Denkaufwand",
+    "genReasoningHint": "Wie viel die Engine vor der Antwort nachdenken darf. „Engine-Standard“ sendet gar kein Feld.",
+    "genReasoningUnset": "Engine-Standard",
     "genTopP": "Top-P",
     "genMaxTokens": "Max-Tokens",
     "genToolBudget": "Tool-Budget",
@@ -915,6 +921,9 @@
     "profileSessionHint": "Sitzungsprofil zeigt in Approval-Dialogen eine Checkbox „Für diese Sitzung merken“ (nie für die Shell).",
     "profileModeNote": "Dieses Profil ist die Obergrenze über dem Antwort-Modus: bei Streng fragt jedes Werkzeug nach, unabhängig vom Modus. Bei Sitzung, Planen oder Voller Zugriff entscheidet der Modus — Fragen läuft ohne Werkzeuge, Planen liest nur, Bearbeiten schreibt ohne Rückfrage, Voller Zugriff lässt alles laufen.",
     "sandboxTitle": "Shell-Sandbox",
+    "askMoreSafe": "Nur lesende Werkzeuge",
+    "askMoreNetwork": "Web- und Netzzugriff",
+    "askMoreHint": "Häufiger fragen: das fügt eine Bestätigung hinzu und entfernt nie eine.",
     "sandboxHint": "Führt bestätigte Shell-Befehle in macOS sandbox-exec aus: Schreiben nur Workspace/Temp/Home, Netzwerk aus. Opt-in. Auf anderen Plattformen bleibt der Schalter wirkungslos; EPHE_SHELL_BACKEND=docker isoliert den Befehl stattdessen.",
     "codeExecTitle": "Code-Ausführung (CPython-Cell)",
     "codeExecHint": "Die Deckel, die die Runtime gegen Modell-Python wirklich durchsetzt — Fuel, Memory, Dateien, Netzwerk. Nur gelesen.",
@@ -922,6 +931,7 @@
     "codeExecRuntimeKernel": "UNSANDBOXED Kernel — voller Host-Zugriff",
     "codeExecIntegrityOk": "Gast gegen das pinned sha256-Manifest verifiziert (Interpreter und stdlib-Baum).",
     "codeExecIntegrityBad": "Gast weicht vom pinned sha256-Manifest ab — die Ausführung sagt ab, bis neu gebaut ist (kein stiller Rückfall).",
+    "codeExecIntegrityUnknown": "Die Engine hat keine gemeldet; Ephe kann sie nicht prüfen.",
     "codeExecOptOut": "Opt-out: EPHE_CODE_EXEC=kernel führt den Code im Ephe-Prozess aus, mit Host-Zugriff — jedes Ergebnis nennt seine Laufzeit.",
     "codeExecLoading": "Policy wird geladen…",
     "codeExecGuest": "Interpreter",
@@ -1222,7 +1232,8 @@
       "lm_studio": "typisch für LM Studio",
       "llama_cpp": "typisch für llama.cpp-Server",
       "litellm": "typisch für LiteLLM-Proxy"
-    }
+    },
+    "probeBorrowedKey": "Ein Key aus einem Tool neben Ephe hat geantwortet; gespeichert wurde nichts. Eine Unterhaltung braucht deinen eigenen Key — setze ihn hier."
   },
   "environment": {
     "hint": "Ephe kann auf diesem Gerät nach bereits installierten Agent-Tools suchen (opencode, claude, cursor, …) und deren Modelle spiegeln — nichts wird gesendet.",
@@ -1791,6 +1802,8 @@
   },
   "statusBar": {
     "contextWindowTitle": "Kontext-Fenster",
+    "promptStages": "Prompt-Bausteine",
+    "ruleStatus": {"included": "aufgenommen", "truncated": "gekürzt", "skipped": "kein Platz", "denied": "abgelehnt", "unreadable": "unlesbar", "empty": "leer"},
     "contextFree": "frei",
     "contextFreeOf": "{{free}} von {{window}} frei",
     "tokPerSecHint": "Token pro Sekunde (geschätzt)",
@@ -2229,5 +2242,29 @@
     "canSignCount_other": "{{count}} Agenten können diesen Eintrag bestätigen",
     "checkAgain": "Den Eintrag erneut prüfen",
     "checking": "Wird geprüft…"
+  },
+  "modelPicker": {
+    "search": "Modelle durchsuchen",
+    "choose": "Modell wählen",
+    "close": "Schließen",
+    "sort": "Sortieren",
+    "sortName": "Name",
+    "sortFree": "Zuerst kostenlos",
+    "sortContext": "Kontext",
+    "sortPrice": "Preis",
+    "free": "Free",
+    "tools": "Tools",
+    "vision": "Vision",
+    "longContext": "Großer Kontext",
+    "favorites": "Favoriten",
+    "recent": "Zuletzt verwendet",
+    "favor": "Zu den Favoriten",
+    "unfavor": "Aus den Favoriten entfernen",
+    "loading": "Die Engine wird gelesen…",
+    "noResults": "Kein Modell passt zu dieser Suche und diesen Filtern.",
+    "clearFilters": "Suche und Filter löschen",
+    "pricePair": "{{in}} rein / {{out}} raus",
+    "answerOnly": "antwortet nur, ohne Werkzeuge",
+    "perMillion": "{{pair}} pro 1M"
   }
 }

@@ -62,6 +62,36 @@ export function renderGeneration(model: SettingsModel) {
           )
         })}
       </SettingsGroup>
+
+      {/* Wave 2/B4: the engine's own reasoning-effort vocabulary. Unset is the
+          first choice and is exactly the request shape of every earlier version. */}
+      <SettingsGroup icon={generationIcon('temperature')} title={t('settings.genReasoningGroup')}>
+        <SettingsRow
+          icon={generationIcon('temperature')}
+          title={t('settings.genReasoning')}
+          description={t('settings.genReasoningHint')}
+          testid="generation-row-reasoning_effort"
+        >
+          <select
+            aria-label={t('settings.genReasoning')}
+            value={genDraft.reasoning_effort ?? ''}
+            data-testid="generation-reasoning-effort"
+            onChange={(event) => {
+              // Read before the updater: the event is not part of the state update.
+              const value = event.target.value
+              setGenDraft((prev) => ({ ...prev, reasoning_effort: value }))
+            }}
+            className="border border-hairline-strong bg-canvas px-2 py-1 text-right font-mono text-scale-ui text-ink outline-none focus-ring transition-colors min-w-32 max-lg:min-h-11"
+          >
+            <option value="">{t('settings.genReasoningUnset')}</option>
+            {['none', 'low', 'medium', 'high'].map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </SettingsRow>
+      </SettingsGroup>
     </div>
   )
 }

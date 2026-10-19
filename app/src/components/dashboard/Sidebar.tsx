@@ -825,7 +825,7 @@ export default function Sidebar({
           {rail ? (
             <div className="flex flex-col items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg glass-control flex items-center justify-center shrink-0">
-                <Sparkles className="h-3.5 w-3.5 text-brand" />
+                <Sparkles className="h-3.5 w-3.5 text-brand-deep" />
               </div>
               {isDesktop && (
                 <button
@@ -999,7 +999,7 @@ export default function Sidebar({
                   onClick={() => switchView('group')}
                   data-testid={viewMode === 'group' ? 'sidebar-view-group-active' : undefined}
                   aria-pressed={viewMode === 'group'}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-ui-xs font-medium transition-colors lg:min-h-6 max-lg:min-h-11 ${viewMode === 'group' ? 'bg-brand/20 text-brand' : 'text-ink-soft hover:text-foreground'}`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-ui-xs font-medium transition-colors lg:min-h-6 max-lg:min-h-11 ${viewMode === 'group' ? 'bg-brand/20 text-brand-deep' : 'text-ink-soft hover:text-foreground'}`}
                 >
                   <LayoutGrid className="h-3 w-3" />
                   {t('sidebar.viewGroup')}
@@ -1008,7 +1008,7 @@ export default function Sidebar({
                   onClick={() => switchView('project')}
                   data-testid={viewMode === 'project' ? 'sidebar-view-project-active' : undefined}
                   aria-pressed={viewMode === 'project'}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-ui-xs font-medium transition-colors lg:min-h-6 max-lg:min-h-11 ${viewMode === 'project' ? 'bg-brand/20 text-brand' : 'text-ink-soft hover:text-foreground'}`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-ui-xs font-medium transition-colors lg:min-h-6 max-lg:min-h-11 ${viewMode === 'project' ? 'bg-brand/20 text-brand-deep' : 'text-ink-soft hover:text-foreground'}`}
                 >
                   <Folder className="h-3 w-3" />
                   {t('sidebar.viewProject')}
@@ -1040,7 +1040,7 @@ export default function Sidebar({
                       onClick={() => applyOrdering('updated')}
                       aria-pressed={ordering === 'updated'}
                       data-testid="sidebar-filter-order-updated"
-                      className={`px-1.5 py-0.5 lg:min-h-6 rounded text-ui-xs max-lg:min-h-11 ${ordering === 'updated' ? 'bg-brand/20 text-brand' : 'text-ink-soft hover:text-foreground'}`}
+                      className={`px-1.5 py-0.5 lg:min-h-6 rounded text-ui-xs max-lg:min-h-11 ${ordering === 'updated' ? 'bg-brand/20 text-brand-deep' : 'text-ink-soft hover:text-foreground'}`}
                     >
                       {t('sidebar.orderingUpdated')}
                     </button>
@@ -1048,7 +1048,7 @@ export default function Sidebar({
                       onClick={() => applyOrdering('created')}
                       aria-pressed={ordering === 'created'}
                       data-testid="sidebar-filter-order-created"
-                      className={`px-1.5 py-0.5 lg:min-h-6 rounded text-ui-xs max-lg:min-h-11 ${ordering === 'created' ? 'bg-brand/20 text-brand' : 'text-ink-soft hover:text-foreground'}`}
+                      className={`px-1.5 py-0.5 lg:min-h-6 rounded text-ui-xs max-lg:min-h-11 ${ordering === 'created' ? 'bg-brand/20 text-brand-deep' : 'text-ink-soft hover:text-foreground'}`}
                     >
                       {t('sidebar.orderingCreated')}
                     </button>
@@ -1071,7 +1071,7 @@ export default function Sidebar({
                   >
                     <span className="text-ink-soft">{t(labelKey)}</span>
                     <span
-                      className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${on ? 'bg-brand/20 border-brand/40 text-brand' : 'border-hairline text-transparent'}`}
+                      className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${on ? 'bg-brand/20 border-brand/40 text-brand-deep' : 'border-hairline text-transparent'}`}
                     >
                       ✓
                     </span>
@@ -1316,7 +1316,7 @@ export default function Sidebar({
               className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0"
               aria-hidden="true"
             >
-              <Sparkles className="h-3.5 w-3.5 text-brand" />
+              <Sparkles className="h-3.5 w-3.5 text-brand-deep" />
             </span>
             {!rail && (
               <>

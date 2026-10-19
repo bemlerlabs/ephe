@@ -127,7 +127,7 @@ function ErrorFallback({ error, onReset, onReload }: ErrorFallbackProps) {
           type="button"
           onClick={onReload}
           data-testid="crash-reload"
-          className="rounded-xl border border-hairline px-6 py-2 text-ui-sm font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground focus-ring"
+          className="rounded-xl border border-control px-6 py-2 text-ui-sm font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground focus-ring"
         >
           {t('error.crashReload')}
         </button>

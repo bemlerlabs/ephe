@@ -107,7 +107,7 @@ function sessionOf(run: FleetRun): string {
 }
 
 const ACTION_CLASS =
-  'inline-flex min-h-6 items-center gap-1 rounded-md border border-hairline px-2 py-0.5 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-9 focus-ring'
+  'inline-flex min-h-6 items-center gap-1 rounded-md border border-control px-2 py-0.5 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground max-lg:min-h-9 focus-ring'
 
 /** The one thing the row asks of the reader. A wait opens its task at the existing deep
  * link; a stuck run opens the checkout it holds, or the task surface when it holds none. */

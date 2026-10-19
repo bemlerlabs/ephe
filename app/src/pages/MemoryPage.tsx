@@ -112,7 +112,7 @@ export default function MemoryPage() {
                 className={`rounded-lg px-3 py-2 text-ui-xs font-medium transition-colors min-h-7 inline-flex items-center max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 ${
                   active
                     ? 'bg-brand/20 text-brand-deep border border-brand/20'
-                    : 'border border-hairline text-ink-faint hover:bg-surface hover:text-foreground'
+                    : 'border border-control text-ink-faint hover:bg-surface hover:text-foreground'
                 }`}
               >
                 {t(`memory.view.${key}`)}
@@ -150,7 +150,7 @@ export default function MemoryPage() {
                       className={`rounded-md px-2 py-1 text-ui-xs font-medium transition-colors max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 ${
                         typeFilter === kind
                           ? 'bg-brand/20 text-brand-deep border border-brand/20'
-                          : 'border border-hairline text-ink-faint hover:bg-surface hover:text-foreground'
+                          : 'border border-control text-ink-faint hover:bg-surface hover:text-foreground'
                       }`}
                     >
                       {kind}

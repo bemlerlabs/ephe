@@ -2,7 +2,7 @@
 // model on the user's behalf. A read that failed, an engine that did not answer, and a save
 // with nothing chosen each used to end in a shipped tag reaching the wire.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent, within } from '@testing-library/react'
 
 const { api, toastError, toastSuccess } = vi.hoisted(() => {
   const api = {
@@ -22,7 +22,7 @@ const { api, toastError, toastSuccess } = vi.hoisted(() => {
       active_provider: 'local_ollama',
       engine_state: 'ok',
     })),
-    getModelProviders: vi.fn(async () => ({
+    getModelProviders: vi.fn<() => Promise<unknown>>(async () => ({
       active: {},
       providers: [],
       local_models: [],
@@ -87,6 +87,74 @@ beforeEach(() => {
   toastSuccess.mockClear()
   api.getSettings.mockClear()
   api.updateSettings.mockClear()
+})
+
+/** S2 host 2: the engine area's list became the shared picker, so a row with a
+ *  `engine-row-model-*` anchor exists only for a model the user chose by hand. */
+describe('the engine area chooses through the picker', () => {
+  async function withThreeModels() {
+    api.getModelProviders.mockResolvedValueOnce({
+      active: {},
+      providers: [],
+      local_models: ['m1', 'm2', 'm3'],
+      local_model_options: [
+        { name: 'm1', label: 'm1', context_window: 131072, supports_tools: true, is_free: false },
+        { name: 'm2', label: 'm2', context_window: null, supports_tools: null, is_free: null },
+        { name: 'm3', label: 'm3', context_window: 8192, supports_tools: false, is_free: true },
+      ],
+    })
+    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
+    await screen.findByTestId('engine-group-model')
+  }
+
+  it('lists nothing as chosen while the engine has no model', async () => {
+    await withThreeModels()
+    for (const tag of ['m1', 'm2', 'm3']) {
+      expect(screen.queryByTestId(`engine-row-model-${tag}`), tag).toBeNull()
+    }
+    fireEvent.click(screen.getByTestId('engine-model-picker'))
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-model-id]'))
+    expect(rows.map((row) => row.getAttribute('data-model-id'))).toEqual(['m1', 'm2', 'm3'])
+    fireEvent.keyDown(screen.getByTestId('engine-model-picker-search'), { key: 'Escape' })
+  })
+
+  it('writes only the model the user clicked, and only once Use was pressed', async () => {
+    await withThreeModels()
+    fireEvent.click(await screen.findByTestId('engine-model-picker'))
+    const search = await screen.findByTestId('engine-model-picker-search')
+    fireEvent.change(search, { target: { value: 'm2' } })
+    const row = screen.getByTestId('engine-model-picker-row-m2')
+    // Choosing closes the panel, so the row is the last gesture this test needs.
+    fireEvent.click(within(row).getByTitle(/m2/))
+    const shown = await screen.findByTestId('engine-row-model-m2')
+    expect(shown.textContent).toContain('m2')
+    // Picking a row is not choosing an engine: nothing reaches the wire until Use,
+    // and the write itself is the save at the bottom of the panel.
+    expect(api.updateSettings).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByTestId('engine-model-m2'))
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('settings-save'))
+    })
+    expect(saved().provider).toMatchObject({ model: 'm2' })
+  })
+
+  it('says what a stated no from the engine means on the row', async () => {
+    // S3 capability messaging: m3 answers and refuses the tool array, and the row
+    // the model is shown on is where the surface has to say that.
+    await withThreeModels()
+    fireEvent.click(await screen.findByTestId('engine-model-picker'))
+    fireEvent.click(within(screen.getByTestId('engine-model-picker-row-m3')).getByTitle(/m3/))
+    const shown = await screen.findByTestId('engine-row-model-m3')
+    expect(shown.textContent).toContain('modelPicker.answerOnly')
+  })
+
+  it('keeps the row silent about tools for a model the engine described as able', async () => {
+    await withThreeModels()
+    fireEvent.click(await screen.findByTestId('engine-model-picker'))
+    fireEvent.click(within(screen.getByTestId('engine-model-picker-row-m1')).getByTitle(/m1/))
+    const shown = await screen.findByTestId('engine-row-model-m1')
+    expect(shown.textContent).not.toContain('modelPicker.answerOnly')
+  })
 })
 
 describe('the register names no model the user did not choose', () => {

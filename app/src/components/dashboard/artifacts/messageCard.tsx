@@ -113,7 +113,7 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
             type="button"
             onClick={() => void adopt()}
             data-testid={`message-file-adopt-retry-${file.key}`}
-            className="shrink-0 rounded px-1 py-0.5 text-ui-2xs font-medium text-brand transition-colors hover:bg-brand/10"
+            className="shrink-0 rounded px-1 py-0.5 text-ui-2xs font-medium text-brand-deep transition-colors hover:bg-brand/10"
           >
             {t('agentPanel.retry')}
           </button>
@@ -130,7 +130,7 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
               new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'preview', url: view } }),
             )
           }
-          className="rounded-md px-1.5 py-1 text-ui-2xs font-medium text-brand hover:bg-brand/10 transition-colors"
+          className="rounded-md px-1.5 py-1 text-ui-2xs font-medium text-brand-deep hover:bg-brand/10 transition-colors"
         >
           {t('chat.openInPanel')}
         </button>

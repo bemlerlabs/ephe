@@ -58,6 +58,15 @@ export interface ModelChipEntry {
   endpointKind?: EndpointKind
   /** Free model (no subscription needed) — derived from free_models. */
   free?: boolean
+  /** S2: what the provider table said about this model, when it names it. Null is
+   *  "not stated" and reads as unknown in the picker; the mirror's `free` is a fact
+   *  of its own and stays the fallback only where no metadata exists. */
+  context_window?: number | null
+  price_in_per_m?: number | null
+  price_out_per_m?: number | null
+  is_free?: boolean | null
+  supports_tools?: boolean | null
+  supports_vision?: boolean | null
   /** P3: the endpoint is an unfilled template → the row shows "not configured"
    *  and is not selectable. */
   unconfigured?: boolean
@@ -100,10 +109,9 @@ export function buildScanEntries(tools: MirrorTool[]): ModelChipEntry[] {
       const dedupe = `${pick.providerKind}|${ep}|${pick.model}`
       if (seen.has(dedupe)) continue
       seen.add(dedupe)
-      const isFree =
-        (tool.free_models ?? []).includes(model) ||
-        model.toLowerCase().endsWith('-free') ||
-        model.toLowerCase().endsWith(':free')
+      // Only the mirror's own free list says a model is free. A `-free` / `:free`
+      // suffix is another service's naming convention, not a fact about this endpoint.
+      const isFree = (tool.free_models ?? []).includes(model)
       out.push({
         id: `${tool.tool}:${model}`,
         kind: pick.providerKind,

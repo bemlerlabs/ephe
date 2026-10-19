@@ -46,7 +46,7 @@ export function renderMcp(model: SettingsModel) {
         actions={
           <span
             data-testid="mcp-count-pill"
-            className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand"
+            className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand-deep"
           >
             {mcpServers.filter((s) => s.trim()).length}
           </span>
@@ -66,7 +66,7 @@ export function renderMcp(model: SettingsModel) {
             onClick={handleMcpHealthCheck}
             disabled={mcpHealthLoading || mcpServers.length === 0}
             data-testid="mcp-health-button"
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-white/[0.04] px-2.5 py-1.5 text-ui-xs text-foreground/80 transition-colors hover:bg-white/[0.08] disabled:opacity-40 focus-ring"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-control bg-white/[0.04] px-2.5 py-1.5 text-ui-xs text-foreground/80 transition-colors hover:bg-white/[0.08] disabled:opacity-40 focus-ring"
           >
             {mcpHealthLoading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -148,7 +148,7 @@ export function renderMcp(model: SettingsModel) {
           type="button"
           onClick={() => setMcpServers((prev) => [...prev, ''])}
           data-testid="mcp-add"
-          className="rounded-lg bg-brand/20 text-brand hover:bg-brand/20 px-3 py-2 text-ui-xs font-medium transition-colors max-lg:min-h-11"
+          className="rounded-lg bg-brand/20 text-brand-deep hover:bg-brand/20 px-3 py-2 text-ui-xs font-medium transition-colors max-lg:min-h-11"
         >
           {t('settings.mcpAdd')}
         </button>
@@ -168,7 +168,7 @@ export function renderMcp(model: SettingsModel) {
               .finally(() => setMcpSaving(false))
           }}
           data-testid="mcp-save"
-          className="flex items-center gap-1.5 rounded-lg bg-brand/20 text-brand hover:bg-brand/20 px-3 py-2 text-ui-xs font-medium transition-colors disabled:opacity-50 max-lg:min-h-11"
+          className="flex items-center gap-1.5 rounded-lg bg-brand/20 text-brand-deep hover:bg-brand/20 px-3 py-2 text-ui-xs font-medium transition-colors disabled:opacity-50 max-lg:min-h-11"
         >
           {mcpSaving ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

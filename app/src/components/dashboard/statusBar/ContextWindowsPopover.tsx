@@ -37,6 +37,7 @@ export function ContextWindowsPopover({
 }) {
   const { t, i18n } = useTranslation()
   const rows = budget?.breakdown ?? []
+  const stages = budget?.stages ?? []
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -109,6 +110,41 @@ export function ContextWindowsPopover({
               TTFT {formatRate(ttftMs / 1000, i18n.language)}s
             </span>
           )}
+        </div>
+      )}
+      {/* Wave 2/B2: the assembled prompt, stage by stage, and under the workspace
+          rules the files the resolver actually read — the same bytes the model gets. */}
+      {stages.length > 0 && (
+        <div className="mt-2 border-t border-hairline pt-1.5" data-testid="context-stages">
+          <p className="text-ui-2xs uppercase tracking-wide text-ink-faint">
+            {t('statusBar.promptStages')}
+          </p>
+          <ul className="mt-0.5 flex flex-col gap-0.5">
+            {stages.map((stage) => (
+              <li key={stage.name} data-testid={`context-stage-${stage.name}`}>
+                <div className="flex items-center justify-between text-ui-xs font-mono text-ink-soft">
+                  <span>{stage.name}</span>
+                  <span className="tabular-nums">{formatNumber(stage.chars, i18n.language)}</span>
+                </div>
+                {stage.files?.map((file) => (
+                  <div
+                    key={file.name}
+                    data-testid={`rule-file-${file.status}`}
+                    data-status={file.status}
+                    data-reason={file.reason || undefined}
+                    className="ml-2 flex items-center justify-between gap-2 text-ui-2xs font-mono text-ink-faint"
+                  >
+                    <span className="truncate" title={file.name}>
+                      {file.name}
+                    </span>
+                    <span className="shrink-0" title={file.reason || undefined}>
+                      {t(`statusBar.ruleStatus.${file.status}`)}
+                    </span>
+                  </div>
+                ))}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {rows.length > 0 && (

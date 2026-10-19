@@ -87,7 +87,7 @@ export default function WorkspaceDetail({
             type="button"
             onClick={onRetry}
             data-testid="changesets-retry"
-            className="inline-flex min-h-7 items-center rounded-lg border border-hairline px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-ring"
+            className="inline-flex min-h-7 items-center rounded-lg border border-control px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-surface max-lg:min-h-11 focus-ring"
           >
             {t('agentPanel.retry')}
           </button>

@@ -57,7 +57,24 @@ def test_jedes_feld_wird_gelesen() -> None:
 
 
 def test_jedes_feld_ist_beschrieben() -> None:
-    fehlt = sorted(k for k in SCHEMA if k not in HINTS)
+    # Wave 2/B1: a multiline field is not a register row. Its card carries the copy
+    # from the locale files (both languages), because the German half of a HINTS pair
+    # may not grow any more. The keys below are that card's contract.
+    cards = {"chat.custom_instructions": ("settings.customInstructionsTitle",
+                                          "settings.customInstructionsHint")}
+    for key, keys in cards.items():
+        import json
+        from pathlib import Path as _P
+
+        root = _P(__file__).resolve().parents[1] / "app" / "src" / "locales"
+        for lang in ("en", "de"):
+            data = json.loads((root / f"{lang}.json").read_text(encoding="utf-8"))
+            for dotted in keys:
+                node = data
+                for part in dotted.split("."):
+                    node = node[part]
+                assert isinstance(node, str) and node.strip(), (key, lang, dotted)
+    fehlt = sorted(k for k in SCHEMA if k not in HINTS and k not in cards)
     assert not fehlt, f"gelesene Felder ohne Beschreibungstext: {fehlt}"
 
 
@@ -129,7 +146,13 @@ def test_deep_view_reicht_grenzen_texte_und_werte(tmp_path, monkeypatch):
     for key, meta in SCHEMA.items():
         entry = entries[key]
         assert entry["value"] == meta["default"], key
-        assert entry["hint"] == HINTS[key][0] and entry["hintEn"] == HINTS[key][1], key
+        if key in HINTS:
+            assert entry["hint"] == HINTS[key][0] and entry["hintEn"] == HINTS[key][1], key
+        else:
+            # A multiline field's copy lives in the locale files; its register entry
+            # still carries the bound the editor uses.
+            assert meta["type"] == "text" and meta.get("multiline") is True, key
+            assert entry["maxChars"] == meta["max_chars"], key
         if meta["type"] == "number":
             assert (entry["min"], entry["max"]) == (meta["min"], meta["max"]), key
             assert entry["step"] > 0, key

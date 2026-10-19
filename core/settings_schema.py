@@ -89,6 +89,13 @@ SCHEMA: dict[str, dict[str, Any]] = {
     "chat.continue_attempts": {"type": "number", "default": 2, "min": 0, "max": 5,
                                "label": "Abgebrochene Pläne weiterführen (Versuche)",
                                "labelEn": "Continue aborted plans (attempts)"},
+    # Wave 2 (B1): the user's own instruction layer. `core/chat_prompt.py` reads it as
+    # a provenance-marked stage of its own; the editor stops at `max_chars`, and the
+    # prompt marks a truncation if a stored value ever exceeds it.
+    "chat.custom_instructions": {"type": "text", "default": "", "max_chars": 4000,
+                                 "multiline": True,
+                                 "label": "Eigene Anweisungen",
+                                 "labelEn": "Custom instructions"},
     # Appearance
     "appearance.font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
                               "label": "Schriftgröße (%)", "labelEn": "Font scale (%)"},
@@ -242,6 +249,9 @@ def normalize_field(field_key: str, value: Any) -> Any:
         return _coerce_number(value, meta)
     if kind == "select":
         return value if value in meta["options"] else meta["default"]
+    # Text is not clamped here: the editor stops at `max_chars`, and a value that
+    # arrived another way is truncated by its reader WITH a marker. A silent cut at
+    # this layer would be the one loss nobody could see.
     return str(value)
 
 
@@ -403,6 +413,9 @@ def deep_view() -> list[dict[str, Any]]:
                 # whole numbers jump by 1, decimals with a fine hand. A fourth
                 # bound in the schema would be another source to keep in sync.
                 entry["step"] = 1 if isinstance(meta["default"], int) else 0.01
+            if meta["type"] == "text" and "max_chars" in meta:
+                entry["maxChars"] = meta["max_chars"]
+                entry["multiline"] = bool(meta.get("multiline"))
             if meta["type"] == "select":
                 entry["options"] = list(meta["options"])
                 # I6-3: how the selection values are displayed. The value itself stays

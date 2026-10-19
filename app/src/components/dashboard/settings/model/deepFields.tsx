@@ -36,6 +36,9 @@ export function DeepFields({ model, prefixes }: { model: SettingsModel; prefixes
           testid={`deep-section-${sec.key}`}
         >
           {sec.fields.map((f) => {
+            // A multiline field is not a row: it is edited in the section's own
+            // card, where a textarea and a character counter have room.
+            if (f.multiline) return null
             const value = deepDraft[sec.key]?.[f.key] ?? f.value ?? f.default ?? ''
             const label = isDe ? f.label : f.labelEn || f.label
             const hint = isDe ? f.hint : f.hintEn || f.hint

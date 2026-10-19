@@ -4,9 +4,11 @@ from __future__ import annotations
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from pathlib import Path
 
 from core.chat import list_local_model_options, list_local_models
+from core.model_probe import probe_ollama, probe_openai_models, resolve_probe_key
+from core.engine_config import window_from_model_entry
+from core.model_metadata import bare_metadata, metadata_by_id, model_details, names_of
 from core.model_provider import (
     ProviderSetupError,
     get_active_provider,
@@ -39,114 +41,21 @@ class ProviderProbeRequest(BaseModel):
     api_key: str | None = None
 
 
-async def _probe_ollama(base_url: str | None) -> tuple[bool, list[str], str, str]:
-    """Ollama protocol check: GET {base}/api/tags (lightweight metadata call).
-
-    Returns ``(reachable, models, detail, state)`` with ``state`` ∈
-    ok | busy | unreachable — a timeout is "busy", not "offline" (same semantics
-    as ``core.chat._engine_reachable``).
-    """
-    base = (base_url or "").strip().rstrip("/")
-    if not base:
-        base = "http://127.0.0.1:11434"
-    if "://" not in base:
-        base = f"http://{base}"
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{base}/api/tags")
-            resp.raise_for_status()
-            data = resp.json()
-        names = [str(m.get("name") or "") for m in data.get("models", []) if m.get("name")]
-        return True, names, f"{base} reachable · {len(names)} model(s)", "ok"
-    except httpx.TimeoutException:
-        return False, [], f"{base} did not answer in time (busy)", "busy"
-    except httpx.HTTPStatusError as exc:
-        return False, [], f"{base} responds with HTTP {exc.response.status_code}", "unreachable"
-    except Exception:
-        return False, [], f"{base} not reachable", "unreachable"
-
-
-def _mirror_api_key(base_url: str, home: Path | None = None) -> str | None:
-    """Key fallback from the configs of the detected tools (read-only, local).
-
-    Root cause: the probe only had EPHE_OPENAI_COMPAT_API_KEY — a user whose key
-    lived in another tool's auth file (subscription/free plan) still got HTTP 401.
-    The models.dev-shaped cache maps provider-id → api-URL, and that tool's
-    auth.json holds the key per provider-id.
-
-    Scope, owner decision 2026-10-10: this is the only remaining read of that store
-    and it authenticates a `/models` probe, nothing else. The engine itself stopped
-    falling back to it the same day (`core/engine_config.py::engine_api_key_for`);
-    a chat turn is keyed by the env variable or `~/.ephe/engine.key` or not at all.
-    """
-    import json
-
-    h = Path(home) if home is not None else Path.home()
-    base_clean = (base_url or "").strip().rstrip("/")
-    try:
-        cache = h / ".cache" / "opencode" / "models.json"
-        auth = h / ".local" / "share" / "opencode" / "auth.json"
-        if base_clean and cache.is_file() and auth.is_file():
-            catalog = json.loads(cache.read_text(encoding="utf-8"))
-            authd = json.loads(auth.read_text(encoding="utf-8"))
-            for pid, pv in catalog.items() if isinstance(catalog, dict) else ():
-                api = pv.get("api") if isinstance(pv, dict) else None
-                if isinstance(api, str) and api.rstrip("/") == base_clean:
-                    key = (authd.get(pid) or {}).get("key") if isinstance(authd, dict) else None
-                    if isinstance(key, str) and key:
-                        return key
-    except (OSError, ValueError):
-        pass
-    return None
-
-
-async def _probe_openai_compatible(base_url: str, api_key: str | None) -> tuple[bool, list[str], str, str]:
-    """OpenAI-compatible engine check: GET {base}/v1/models.
-
-    Root cause (same as check_engine_connection): a metadata endpoint instead of
-    a chat request — a reasoning model needs seconds for its first inference,
-    /v1/models answers in ~100ms.
-    """
-    base = (base_url or "").strip().rstrip("/")
-    if not base:
-        return False, [], "no engine URL given", "unreachable"
-    if "://" not in base:
-        base = f"http://{base}"
-    if base.endswith("/v1"):
-        base = base[:-3]
-    if not api_key:
-        from core.engine_config import engine_api_key_for
-
-        api_key = engine_api_key_for(base_url) or _mirror_api_key(base_url) or None
-    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{base}/v1/models", headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-        ids = [str(m.get("id") or "") for m in data.get("data", []) if m.get("id")]
-        return True, ids, f"{base} reachable · {len(ids)} model(s)", "ok"
-    except httpx.TimeoutException:
-        return False, [], f"{base} did not answer in time (busy)", "busy"
-    except httpx.HTTPStatusError as exc:
-        return False, [], f"{base} responds with HTTP {exc.response.status_code}", "unreachable"
-    except Exception:
-        return False, [], f"{base} not reachable", "unreachable"
-
-
 @router.post("/model/providers/probe")
 async def probe_model_provider(req: ProviderProbeRequest) -> dict:
     """Detects an engine and lists its models — without installing anything.
 
     GIVEN the user enters an Ollama or OpenAI-compatible endpoint
     WHEN  POST /api/model/providers/probe
-    THEN  200 + { reachable, models, detail, state } (empty list = not
+    THEN  200 + { reachable, models, detail, state, model_details } (empty list = not
           reachable or no models) — the PWA builds the selection from it.
           ``state`` is the three-valued ok | busy | unreachable, so the UI can
           tell "the engine is not answering in time" from "the engine is
-          down".
+          down". ``model_details`` is aligned with ``models`` and holds only what the
+          endpoint sent; an Ollama name alone is all-null metadata, never a guess.
     """
     provider = req.provider.strip()
+    details: list[dict] = []
     if provider in ("local_ollama", "custom_ollama"):
         url = (req.base_url or "").strip()
         if not url:
@@ -164,40 +73,47 @@ async def probe_model_provider(req: ProviderProbeRequest) -> dict:
                     "models": [],
                     "detail": "no engine URL given",
                     "state": "unreachable",
+                    "model_details": [],
                 }
-        ok, models, detail, state = await _probe_ollama(url)
+        ok, models, detail, state = await probe_ollama(url)
+        probed = url
+        # /api/tags supplies names. /api/show per model would be one request per model
+        # on the setup path, so the metadata of an Ollama list stays unknown.
+        details = [{"id": name, **bare_metadata()} for name in models]
     elif provider == "openai_compatible":
-        ok, models, detail, state = await _probe_openai_compatible(req.base_url or "", req.api_key)
+        ok, entries, detail, state = await probe_openai_models(req.base_url or "", req.api_key)
+        models = names_of(entries)
+        details = model_details(entries)
+        probed = req.base_url or ""
     else:
         raise HTTPException(
             status_code=422,
             detail=f"Unknown provider '{provider}'. Allowed: local_ollama, custom_ollama, openai_compatible.",
         )
-    return {"reachable": ok, "models": models, "detail": detail, "state": state}
+    answer: dict = {
+        "reachable": ok,
+        "models": models,
+        "detail": detail,
+        "state": state,
+        "model_details": details,
+    }
+    # S3: an endpoint that states `supports_tools: false` is remembered for this
+    # process, so the next turn is built without the array instead of asking again
+    # and taking the refusal (core/model_capability.py).
+    if ok:
+        from core.model_capability import note_metadata
+
+        note_metadata(probed, details)
+    if provider == "openai_compatible":
+        # Which token the probe above authenticated with. `foreign` is the one case the
+        # setup line has to say out loud — see resolve_probe_key.
+        answer["key_source"] = resolve_probe_key(req.base_url, req.api_key)[1]
+    return answer
 
 
 # Context window per (base_url, model) — an engine restart with a different
 # max_model_len is practically a backend restart; a TTL would be YAGNI.
 _CONTEXT_WINDOW_CACHE: dict[tuple[str, str], int] = {}
-
-
-#: Field names with which OpenAI-compatible servers name their window. vLLM
-#: writes `max_model_len`; SGLang and several routers call it
-#: `context_length` / `max_context_length`. Measured on the active engine on
-#: 2026-10-08: /v1/models answered without any of these fields — then the window
-#: stays unknown and the surface says so, instead of guessing.
-_WINDOW_FELDER = ("max_model_len", "context_length", "max_context_length")
-
-
-def fenster_aus_modell(modell: object) -> int | None:
-    """The window of one model entry from /v1/models, or None."""
-    if not isinstance(modell, dict):
-        return None
-    for feld in _WINDOW_FELDER:
-        wert = modell.get(feld)
-        if isinstance(wert, int) and wert > 0:
-            return wert
-    return None
 
 
 async def _active_context_window(active) -> int | None:
@@ -225,13 +141,13 @@ async def _active_context_window(active) -> int | None:
             resp = await client.get(f"{base}/models", headers=headers)
             resp.raise_for_status()
             data = resp.json()
-        for m in data.get("data", []):
-            if not isinstance(m, dict) or m.get("id") != active.model:
+        for entry in data.get("data", []):
+            if not isinstance(entry, dict) or entry.get("id") != active.model:
                 continue
-            fenster = fenster_aus_modell(m)
-            if fenster:
-                _CONTEXT_WINDOW_CACHE[key] = fenster
-                return fenster
+            window = window_from_model_entry(entry)
+            if window:
+                _CONTEXT_WINDOW_CACHE[key] = window
+                return window
     except Exception:
         return None
     return None
@@ -245,9 +161,25 @@ async def get_model_providers() -> dict:
         # OpenAI-compatible engines have no Ollama list(); /v1/models returns the
         # model ids. Root cause: the engine tab fell back to the Ollama fallback
         # list and never showed the active vLLM engine.
-        ok, ids, _, _ = await _probe_openai_compatible(active.base_url, None)
+        ok, entries, _, _ = await probe_openai_models(active.base_url, None)
         if ok:
-            local_model_options = [{"name": i, "label": i} for i in ids]
+            known = metadata_by_id(entries)
+            from core.model_capability import note_metadata
+
+            note_metadata(active.base_url, list(known.values()))
+            local_model_options = []
+            for identifier in names_of(entries):
+                record = dict(known.get(identifier, bare_metadata()))
+                # An option's `name` is the tag a request sends; the entry's own display
+                # name belongs to `label`, which is what the list already renders.
+                display = record.pop("name", None)
+                local_model_options.append(
+                    {"name": identifier, "label": display or identifier, **record}
+                )
+    if local_model_options:
+        # One shape for every host: an Ollama list carries sizes and families, not a
+        # window or a price, and those fields read as unknown rather than missing.
+        local_model_options = [{**bare_metadata(), **item} for item in local_model_options]
     return {
         "active": active.to_dict(),
         "providers": list_provider_options(),

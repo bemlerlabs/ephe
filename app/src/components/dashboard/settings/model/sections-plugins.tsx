@@ -34,7 +34,7 @@ export function renderPlugins(model: SettingsModel) {
           pluginView ? (
             <span
               data-testid="plugin-count-pill"
-              className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand"
+              className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand-deep"
             >
               {(pluginView.public ?? []).filter((p) => p.enabled).length +
                 (pluginView.personal ?? []).filter((p) => p.enabled).length}
@@ -121,7 +121,7 @@ export function renderPlugins(model: SettingsModel) {
                             )}
                             <span
                               data-testid={`plugin-origin-${p.id}`}
-                              className={`ml-1.5 rounded-md px-1.5 py-0.5 text-ui-2xs align-middle ${p.origin === 'external' ? 'bg-surface text-ink-faint' : 'bg-brand/10 text-brand'}`}
+                              className={`ml-1.5 rounded-md px-1.5 py-0.5 text-ui-2xs align-middle ${p.origin === 'external' ? 'bg-surface text-ink-faint' : 'bg-brand/10 text-brand-deep'}`}
                             >
                               {p.origin === 'external'
                                 ? t('settings.pluginOriginExternal')
@@ -137,7 +137,7 @@ export function renderPlugins(model: SettingsModel) {
                           disabled={pluginView.master_enabled === false}
                           onClick={() => void handlePluginToggle(p.id, !p.enabled)}
                           data-testid={`plugin-toggle-${p.id}`}
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-ui-xs font-medium transition-colors max-lg:min-h-9 disabled:opacity-40 disabled:cursor-not-allowed ${p.enabled ? 'bg-brand/20 text-brand' : 'bg-surface text-ink-faint'}`}
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-ui-xs font-medium transition-colors max-lg:min-h-9 disabled:opacity-40 disabled:cursor-not-allowed ${p.enabled ? 'bg-brand/20 text-brand-deep' : 'bg-surface text-ink-faint'}`}
                         >
                           {p.enabled ? t('settings.pluginOn') : t('settings.pluginOff')}
                         </button>

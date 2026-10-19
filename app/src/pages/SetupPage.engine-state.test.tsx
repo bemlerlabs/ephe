@@ -128,6 +128,31 @@ describe('SetupPage Engine-Zustand (W18/A5)', () => {
     expect(input.placeholder).not.toContain('ts.net')
     expect(input.placeholder).toContain('/v1')
   })
+  // SCREEN_SPEC §2 (S3): the status plate arrives after the probe, when the eye has
+  // already moved on to the form — `role="status"` is what carries it to a reader,
+  // and `role="alert"` is what makes a refused engine the blocker it reads as.
+  it('announces the two setup plates by their roles', async () => {
+    probeProvider.mockRejectedValueOnce(new Error('the engine answered nothing'))
+    render(<SetupPage onDone={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('setup-option-openai'))
+    fireEvent.change(screen.getByTestId('setup-endpoint'), {
+      target: { value: 'http://10.1.2.3:8000/v1' },
+    })
+    fireEvent.click(screen.getByTestId('setup-probe'))
+    const error = await screen.findByTestId('setup-error')
+    expect(error).toHaveAttribute('role', 'alert')
+
+    probeProvider.mockResolvedValueOnce({
+      reachable: true,
+      models: ['m1'],
+      url: 'http://10.1.2.3:8000/v1',
+      detail: 'http://10.1.2.3:8000 reachable · 1 model(s)',
+      state: 'ok',
+    })
+    fireEvent.click(screen.getByTestId('setup-probe'))
+    const status = await screen.findByTestId('setup-status')
+    expect(status).toHaveAttribute('role', 'status')
+  })
 })
 
 describe('SetupPage Skip + API-Key (W19)', () => {
@@ -218,4 +243,6 @@ describe('SetupPage Skip + API-Key (W19)', () => {
       expect(calls.some((c) => c[0] === 'local_ollama' && !c[1])).toBe(true)
     })
   })
+
+  // SCREEN_SPEC §2 / S3: the two plates a reader needs announced. The status plate
 })

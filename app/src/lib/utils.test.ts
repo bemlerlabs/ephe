@@ -32,6 +32,15 @@ describe('formatTime — the surface language decides the clock', () => {
   it('with no stored choice the interface is English, so the clock is too', () => {
     expect(formatTime(afternoon)).toBe('2:35 PM')
   })
+
+  it('a row without a stamp, or with one this build cannot read, says nothing', () => {
+    // D0-4: the hooks area builds its recent-run sentence out of this, and an answer
+    // from an older backend carries the stamp under another name. No time is the
+    // honest answer; a thrown TypeError is the tab's crash screen.
+    expect(formatTime(undefined, 'en')).toBe('')
+    expect(formatTime('', 'en')).toBe('')
+    expect(formatTime('not a timestamp', 'en')).toBe('')
+  })
 })
 
 /** The size steps and the ink names meet in `cn`, and for a long while they met

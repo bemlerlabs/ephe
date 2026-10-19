@@ -92,8 +92,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // turn-failed label, and the six clear-all/dialog keys added 219 B in en.json
 // (114,219 B) and 194 B in de.json. Both halves move by the same 1,000 B, which
 // leaves room for the German side of the next copy fix without reaching the band.
-const EN_CEILING = 115_000
-const DE_CEILING = 125_000
+// Raised on 2026-10-19 for Wave 2, measured as committed: B1's custom-instruction card
+// (3 keys), B2's stage and rule-file status rows (7 keys), B3's ask-more toggles
+// (3 keys) and B4's reasoning-effort row (4 keys) put en.json at 116,584 B and de.json
+// at 126,400 B — +584 B / +400 B over the ceilings this wave inherited. Both halves
+// move by the same 1,000 B so a later slice is not forced to raise the band mid-cut.
+const EN_CEILING = 117_000
+const DE_CEILING = 127_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on
@@ -102,7 +107,10 @@ const DE_CEILING = 125_000
 // no reader fetches both files. It stands as the census of the pair, and the per-language
 // numbers above are what a user pays. Raised again on 2026-10-14 (n1-publish): the change
 // set's life adds 14 workspaces keys and three coded refusals — measured +1,427 B in
-// en.json and +1,793 B in de.json, both halves moved on purpose with the ceilings.
+// en.json and +1,793 B in de.json, both halves moved on purpose with the ceilings. A
+// third time on 2026-10-18 for the model picker's `modelPicker` namespace (22 keys,
+// measured +710 B in en.json and +760 B in de.json): a new surface pays its own words,
+// and the halves stay the ratchet.
 const TOTAL_CEILING = EN_CEILING + DE_CEILING
 // German runs 1.07x English here (96,075 / 89,756). A pair far outside that range
 // is a defect rather than a translation: a duplicated block, or English pasted into

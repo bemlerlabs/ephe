@@ -105,7 +105,7 @@ export default function EnvironmentTools({
         data-testid="environment-scan-button"
         onClick={() => void runScan()}
         disabled={scanning}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-hairline bg-surface-raised px-4 py-2.5 text-ui-xs text-foreground/80 transition-colors hover:bg-surface-interactive disabled:opacity-40 focus-ring pointer-coarse:min-h-11"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-control bg-surface-raised px-4 py-2.5 text-ui-xs text-foreground/80 transition-colors hover:bg-surface-interactive disabled:opacity-40 focus-ring pointer-coarse:min-h-11"
       >
         {scanning ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" />

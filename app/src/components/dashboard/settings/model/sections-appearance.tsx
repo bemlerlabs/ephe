@@ -50,7 +50,7 @@ export function AppearanceSection({ model }: { model: SettingsModel }) {
                 onClick={() => pick(mode)}
                 className={`rounded-md px-3 py-1 text-ui-xs font-medium transition-colors ${
                   theme === mode
-                    ? 'bg-brand/25 text-brand'
+                    ? 'bg-brand/25 text-brand-deep'
                     : 'text-ink-faint hover:text-foreground/80'
                 }`}
               >

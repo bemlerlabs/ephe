@@ -102,7 +102,7 @@ export default function ArtifactExpiryNotice({
         <button
           onClick={() => void answer('keep')}
           disabled={busy || chosenIds.length === 0}
-          className={`${ACTION_BUTTON} bg-brand/20 text-brand hover:bg-brand/20`}
+          className={`${ACTION_BUTTON} bg-brand/20 text-brand-deep hover:bg-brand/20`}
           data-testid="expiry-keep"
         >
           {t('artifacts.expiry.keep')}

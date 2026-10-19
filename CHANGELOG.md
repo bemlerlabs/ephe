@@ -73,6 +73,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   started (`614645c9`).
 - Settings → Session store offers **Delete all chats**: one confirmed gesture clears the
   backend store and the browser's copy (`f52fa12d`).
+- setup: Say which key answered an engine probe (`315e94c2`)
+- engine: Carry what an endpoint said about each of its models (`7896500f`)
+- engine: One searchable model picker, and setup is its first host (`42c57562`)
+- engine: The picker takes its two remaining hosts, and setup keeps its own choice (`1f05377f`)
+- engine: The hero where the contract puts it, the setup plates where a reader needs them, and an engine that answers without tools (`215bda6f`)
+- composer: The chip menu is the shared picker's third host (`48f1bfd8`)
+- instructions: The words that steer Ephe are visible, bounded and reviewable (`aef59944`)
 
 ### Changed
 - The app adopts the npm minor/patch group: Radix primitives, TanStack Virtual, the
@@ -194,6 +201,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - publish: The marker the lint guard asks for is named on purpose (`dc9d4786`)
 - tests: The two suites the publication made red (`917aa82d`)
 - engine: A tool result answers the call the engine issued (`faf987f8`)
+- packaging: Point the templates at the published beta.9 assets (`1734b9d8`)
+- design: Put a control's edge on the control token (`f57fcd10`)
+- setup: Read the given probe key off one stripped value (`0ba0f2be`)
+- settings: A partial answer is a state, and the tab keeps its state (`44e9b698`)
+- design: Put the boundary token on every edge the sweep still measured (`26f47056`)
+- design: Set accent text in the step the sheet already calls AA on paper (`1cd1c3fb`)
+- design: Put the status badge and the setup hints on an ink paper supports (`8460b467`)
+- design: Bend the paper warning tone to the floor the contract already asks for (`ccc02129`)
+- design: The two memory buttons the sweep measured last (`2b470919`)
+- build: The entry stylesheet carries the picker now, and the row says so (`c785d2ca`)
+- evidence: The capture driver reads the Playwright this tree installs (`e890c1cb`)
+- engine: The refusal OpenRouter sends is a refusal of the tool array (`5a865bba`)
+- chat: The model line stops printing an empty pair (`ce503c14`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a
@@ -259,6 +279,83 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - security: The three path-injection sites say why they are safe, in the line (`891f197d`)
 - security: CORS grants the product's own origins, and a shell command needs an approval (`3bec7792`)
 - security: This server's own origin stays allowed, under both loopback spellings (`4016f7d8`)
+## [0.1.0-beta.10] – 2026-10-19
+
+### Added
+- A provider's per-model facts are carried only when the endpoint states them: context
+  window, input/output price per 1M, free, tools and vision, each nullable, with no
+  inference from a name and no `-free`/`:free` suffix logic anywhere; the probe answer,
+  the provider list and the settings option payload carry the same record (`7896500f`).
+- One searchable model picker serves all three hosts: search over id, name and provider,
+  four filters and four sorts, Favorites → Recently used → provider sections, metadata
+  rows that print an em-dash where the engine said nothing, a local star and recent list,
+  and a combobox keyboard path that becomes a full-screen sheet with a close control on a
+  phone. A remembered model is restored, more than one model preselects nothing, and the
+  composer chip menu mounts the same body with its `kind`/model/endpoint contract intact
+  (`42c57562`, `1f05377f`, `48f1bfd8`).
+- The setup page says which token answered a probe — `given`, Ephe's own store, a key
+  found beside Ephe (`foreign`) or none — so "reachable" can no longer stand in for the
+  user's own key (`315e94c2`).
+- The brand contract is applied where it starts: the setup card mark (48 px) and the
+  welcome hero fallback (64 px) show the shipped 3D hero render on its own dark ground in
+  both themes, the `minimal` form keeps the vector, and a test walks every mark placement
+  so a vector cannot return above 47 px (`215bda6f`).
+- An engine that answers without tools no longer fails mid-loop: a stated
+  `supports_tools: false`, or the first refused tool array for an `(endpoint, model)`, is
+  remembered for the process and the turn answers without it, with "answers only, no
+  tools" on the model row. Unknown keeps today's array (`215bda6f`).
+- Custom instructions: a bounded user layer (4,000 characters) enters the prompt as its
+  own provenance-marked stage ahead of the project rules, absent when empty and truncated
+  with a marker beyond the cap, editable in Settings → Behaviour with a live counter
+  (`aef59944`).
+- Workspace rules read `.ephe/rules/*.md` in addition to `AGENTS.md`, sorted by name,
+  provenance-marked per file and capped per file and in combination. Files under a deny
+  root, symlinks leaving the directory, unreadable and empty files are skipped and named.
+  The context popover now shows the prompt stage by stage and every rule file with its
+  status, from the same resolver the prompt reads (`aef59944`).
+- Approval overrides in the one direction the threat-model review allows: read-only and
+  network categories can be made to ask every time; nothing can release a category that
+  already asks, and `--yes` does not override a forced prompt (`aef59944`).
+- Generation settings expose the engine's reasoning effort (unset stays the request
+  shape every earlier version sent), and the dials now show the stored generation block
+  (`aef59944`).
+- The context popover reads a gradient as the ground it paints, so glass and gradient
+  surfaces are measured against what is really beneath them (`24ea7edf`).
+
+### Changed
+- The engine probe and the provider/probe model types moved into files of their own
+  (`core/model_probe.py`, `app/src/lib/api/providers.ts`), bringing the whole-tree
+  architecture count back from 55 to the baseline of 49 errors (`cb43552a`).
+- Settings keeps a partially answered read as a state of its area instead of treating it
+  as a failure, and a tab keeps its state when the panel re-opens (`44e9b698`).
+
+### Fixed
+- OpenRouter's routing refusal ("No endpoints found that support tool use") is
+  recognised as a refusal of the tool array, so the turn is rebuilt without it instead of
+  ending in a 500 (`5a865bba`).
+- The welcome model line prints an em dash instead of a malformed `Model: ()` when the
+  engine named neither a model nor a tier (`ce503c14`).
+- Six light-theme findings of the theme sweep: control edges sit on the control token,
+  accent text stays at the AA step paper supports, the status badge and setup hints use an
+  ink paper supports, and the paper warning tone meets the floor the contract asks
+  (`f57fcd10`, `26f47056`, `1cd1c3fb`, `8460b467`, `ccc02129`, `2b470919`).
+- Packaging templates point at the published beta.9 assets, so a snapshot renders the
+  current release instead of a stale one (`1734b9d8`).
+- The given probe key is read off one stripped value, so a pasted key with surrounding
+  whitespace answers the probe (`0ba0f2be`).
+
+### Tests
+- The theme-parity sweep measures every surface in both themes at 1280 and 390 and its
+  register ratchets to text 16, boundary 8, no render error; the edge comparison reads
+  what lies outside the element (`15d73e2d`, `f34ce3b1`, `3972cbf4`, `bff7ef1b`).
+- The desktop bundle test accepts the RPM face of the version, so a Linux build reports
+  the same number as the app (`a80a0e2d`).
+- The light gates run on GitHub-hosted runners and the secret scan is pinned to its
+  hosted runner (`35b7303e`, `75160367`).
+
+### Security
+- The Swift extraction helpers are withheld from the public snapshot (`85e35188`).
+
 ## [0.1.0-beta.9] – 2026-10-17
 
 ### Added

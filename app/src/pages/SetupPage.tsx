@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Cpu,
@@ -15,7 +15,9 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import { storeEngineKey } from '@/lib/engineKey'
 import ForestBackground from '@/components/dashboard/ForestBackground'
 import EnvironmentTools from '@/components/shell/EnvironmentTools'
-import { EpheMark } from '@/components/shell/EpheMark'
+import { HeroMark } from '@/components/shell/HeroMark'
+import { ModelPicker } from '@/components/model/ModelPicker'
+import { rowsFromProbe } from '@/components/model/modelPickerTypes'
 import {
   probeProvider,
   updateSettings,
@@ -26,11 +28,19 @@ import {
   type DetectResponse,
   type EngineCandidate,
   type EngineState,
+  type ProbeKeySource,
   type ProviderProbeResponse,
 } from '@/lib/api'
 import { forgetSetupGate } from '@/lib/setupGate'
 
 type ProviderKind = 'local_ollama' | 'custom_ollama' | 'openai_compatible'
+
+/** The engine label as the surface names it — the picker's group heading is the same. */
+const ENGINE_LABEL_KEY: Record<ProviderKind, string> = {
+  local_ollama: 'setup.detectEngineLocal',
+  custom_ollama: 'setup.detectEngineRemote',
+  openai_compatible: 'setup.detectEngineCompatible',
+}
 
 /**
  * SetupPage — first-run engine choice (end-user onboarding).
@@ -82,13 +92,6 @@ const QUICK_PICKS: { label: string; kind: ProviderKind; endpoint?: string; testI
   { label: 'DGX Spark / vLLM', kind: 'openai_compatible', testId: 'setup-quick-dgx' },
 ]
 
-/** Free-plan models, labelled by the services themselves (opencode '-free'/':free',
- *  OpenRouter ':free') — badge in the dropdown. Kept verbatim: the suffix is the
- *  service's own label and the detector matches it literally. */
-function isFreeModel(m: string): boolean {
-  return m.endsWith('-free') || m.endsWith(':free')
-}
-
 /** Where a scan suggestion came from: this machine's loopback scan ('scan') or
  *  an address already known to Ephe ('saved' — engine.json, history, env).
  *  R9: the screen names its source instead of labelling both of them "detected". */
@@ -117,6 +120,18 @@ interface DetectionOffer {
   source: 'saved' | 'scan'
   hint?: string
   hintCode?: string
+  keySource?: ProbeKeySource
+}
+
+/** S4 (owner decision 2026-10-18): the probe may authenticate with a key found in a
+ *  tool beside Ephe, but the screen has to say so — a chat turn reads only Ephe's own
+ *  store, so a borrowed answer is one the user cannot keep by clicking through. */
+function BorrowedKeyNote({ testId, label }: { testId: string; label: string }) {
+  return (
+    <p data-testid={testId} className="mt-1.5 text-ui-xs leading-relaxed text-ink-soft">
+      {label}
+    </p>
+  )
 }
 
 interface SetupPageProps {
@@ -179,14 +194,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
    *  defaultValue, so a code this bundle has no entry for still says something. */
   const portHint = (hint?: string, code?: string) =>
     code ? t(`setup.portHint.${code}`, { defaultValue: hint ?? '' }) : (hint ?? '')
-  /** Short engine name inside the offer sentence. Literal keys so the dead-key
-   *  ratchet in lib/i18n-keys.test.ts can see them. */
-  const offerEngine = (k: ProviderKind): string =>
-    k === 'local_ollama'
-      ? t('setup.detectEngineLocal')
-      : k === 'custom_ollama'
-        ? t('setup.detectEngineRemote')
-        : t('setup.detectEngineCompatible')
+  /** Short engine name inside the offer sentence and over the model list. Literal keys
+   *  so the dead-key ratchet in lib/i18n-keys.test.ts can see them. */
+  const offerEngine = (k: ProviderKind): string => t(ENGINE_LABEL_KEY[k])
   const [noSuggestionFor, setNoSuggestionFor] = useState<ProviderKind | null>(null)
 
   async function runProbe(
@@ -226,7 +236,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
         const pref = preferredModel.current
           ? res.models.find((m) => m === preferredModel.current)
           : undefined
-        setModel(pref ?? res.models[0] ?? '')
+        // The engine belongs to the user: with more than one model nothing is
+        // picked, and the finish button stays where it is until they choose.
+        setModel(pref ?? (res.models.length === 1 ? (res.models[0] ?? '') : ''))
       } else {
         setModel('')
       }
@@ -266,6 +278,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             source: suggestionSource(hit.url ?? '', res.candidates),
             hint: hit.hint,
             hintCode: hit.hint_code,
+            keySource: hit.key_source,
           })
           setProbeState(null)
           setModel('')
@@ -294,7 +307,14 @@ export default function SetupPage({ onDone }: SetupPageProps) {
           detail: `${st.url ?? ''} · ${t('setup.modelsFound', { count: st.available_models.length })}`,
           state: 'ok',
         })
-        setModel(st.available_models[0] ?? '')
+        // The probe rule, applied to the remembered state too: what this device
+        // already chose comes back, and only a one-model engine may be filled in.
+        const remembered = preferredModel.current
+          ? st.available_models.find((m) => m === preferredModel.current)
+          : undefined
+        setModel(
+          remembered ?? (st.available_models.length === 1 ? (st.available_models[0] ?? '') : ''),
+        )
       }
     } catch (err) {
       if (epoch !== probeEpoch.current) return
@@ -488,6 +508,16 @@ export default function SetupPage({ onDone }: SetupPageProps) {
   // W18/A5: the probe's three-valued result (ok | busy | unreachable). Without a
   // backend state (older server) the display falls back to reachable/unreachable.
   const engineState: EngineState = probeState?.state ?? (reachable ? 'ok' : 'unreachable')
+  /** The picker's rows: the probe's ids with the metadata beside them, grouped under
+   *  the engine the user is looking at. An Ollama answer has no metadata and reads as
+   *  unknown in every column. */
+  const modelRows = useMemo(
+    () =>
+      probeState
+        ? rowsFromProbe(probeState.models, probeState.model_details, t(ENGINE_LABEL_KEY[kind]))
+        : [],
+    [probeState, kind, t],
+  )
   const stateTone: Record<EngineState, string> = {
     ok: 'bg-status-success/10 text-status-success',
     busy: 'bg-status-warning/10 text-status-warning',
@@ -519,9 +549,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
           tabIndex={-1}
         >
           <div className="mb-8 text-center">
-            {/* Package C: a mark above the kicker — the setup screen showed no mark
-                at all until now, so nothing here is being replaced. */}
-            <EpheMark size="3rem" testId="setup-mark" className="mx-auto mb-4" />
+            {/* S3: 48 px is where the brand contract stops drawing the figure and
+                starts showing the shipped render (docs/ONBOARDING_FILM.md). */}
+            <HeroMark size="3rem" testId="setup-mark" className="mx-auto mb-4" />
             <div className="mb-3 text-ui-xs uppercase tracking-[0.25em] text-brand/70">
               {t('setup.kicker')}
             </div>
@@ -547,6 +577,12 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              {offer.keySource === 'foreign' && (
+                <BorrowedKeyNote
+                  testId="setup-offer-borrowed-key"
+                  label={t('setup.probeBorrowedKey')}
+                />
+              )}
               <p className="mt-1 text-ui-xs text-ink-soft">{t('setup.detectConsent')}</p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <button
@@ -561,7 +597,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                   type="button"
                   data-testid="setup-offer-dismiss"
                   onClick={() => setOffer(null)}
-                  className="rounded-lg border border-hairline px-3 py-1.5 text-ui-xs text-ink-soft transition-colors hover:bg-surface-interactive"
+                  className="rounded-lg border border-control px-3 py-1.5 text-ui-xs text-ink-soft transition-colors hover:bg-surface-interactive"
                 >
                   {t('setup.detectDismiss')}
                 </button>
@@ -618,8 +654,8 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                   }}
                   className={`rounded-full border px-3.5 py-1.5 text-ui-xs transition-colors focus-ring ${
                     active
-                      ? 'border-brand/50 bg-brand/15 text-brand'
-                      : 'border-hairline bg-surface-raised text-foreground/60 hover:bg-surface-interactive'
+                      ? 'border-brand/50 bg-brand/15 text-brand-deep'
+                      : 'border-control bg-surface-raised text-foreground/60 hover:bg-surface-interactive'
                   }`}
                 >
                   {q.label}
@@ -653,7 +689,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                 className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-ui-sm transition-colors ${
                   kind === k
                     ? 'border-brand/50 bg-brand/10 text-foreground'
-                    : 'border-hairline bg-surface-raised text-foreground/60 hover:bg-surface-interactive'
+                    : 'border-control bg-surface-raised text-foreground/60 hover:bg-surface-interactive'
                 }`}
               >
                 <Icon className="h-4 w-4 flex-shrink-0 text-brand" />
@@ -705,7 +741,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                     ? 'http://192.168.1.50:8000/v1'
                     : 'http://192.168.1.50:11434'
                 }
-                className="w-full rounded-xl border border-hairline bg-input px-4 py-3 font-mono text-ui-sm text-foreground focus-ring placeholder:text-ink-faint"
+                className="w-full rounded-xl border border-control bg-input px-4 py-3 font-mono text-ui-sm text-foreground focus-ring placeholder:text-ink-faint"
               />
               {/* R9: this line says WHERE the value in the field comes from, and
                   when there is nothing to check it says why — instead of staying quiet. */}
@@ -713,7 +749,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                 <p
                   data-testid="setup-suggestion"
                   data-suggestion-source={suggestion.source}
-                  className="mt-1.5 text-ui-xs text-ink-faint"
+                  className="mt-1.5 text-ui-xs text-ink-soft"
                 >
                   {suggestion.source === 'scan'
                     ? t('setup.suggestionScan')
@@ -739,7 +775,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             data-testid="setup-probe"
             onClick={() => void runProbe()}
             disabled={probing || (needsUrl && !endpoint.trim())}
-            className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl border border-hairline bg-surface-raised px-4 py-3 text-ui-sm text-foreground/80 transition-colors hover:bg-surface-interactive disabled:opacity-40"
+            className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl border border-control bg-surface-raised px-4 py-3 text-ui-sm text-foreground/80 transition-colors hover:bg-surface-interactive disabled:opacity-40"
           >
             {probing ? (
               <Loader2 className="h-4 w-4 animate-spin text-brand" />
@@ -771,6 +807,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             {probeState && (
               <div
                 data-testid="setup-status"
+                role="status"
                 data-engine-state={engineState}
                 className={`mb-5 flex items-start gap-2 rounded-xl px-4 py-3 text-ui-sm ${stateTone[engineState]}`}
               >
@@ -820,19 +857,21 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                 <label className="mb-1.5 block text-ui-xs text-ink-soft" htmlFor="setup-model">
                   {t('setup.modelLabel')}
                 </label>
-                <select
+                <ModelPicker
                   id="setup-model"
-                  data-testid="setup-model"
+                  testId="setup-model"
+                  label={t('setup.modelLabel')}
+                  placeholder={t('modelPicker.choose')}
+                  rows={modelRows}
                   value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  className="w-full rounded-xl border border-hairline bg-input px-4 py-3 text-ui-sm text-foreground focus-ring"
-                >
-                  {probeState.models.map((m) => (
-                    <option key={m} value={m}>
-                      {isFreeModel(m) ? `${m} · free` : m}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setModel}
+                />
+                {probeState.key_source === 'foreign' && (
+                  <BorrowedKeyNote
+                    testId="setup-borrowed-key"
+                    label={t('setup.probeBorrowedKey')}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -857,10 +896,10 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={t('setup.apiKeyPlaceholder')}
-                  className="w-full rounded-xl border border-hairline bg-input pl-11 pr-4 py-3 font-mono text-ui-sm text-foreground focus-ring placeholder:text-ink-faint placeholder:font-sans"
+                  className="w-full rounded-xl border border-control bg-input pl-11 pr-4 py-3 font-mono text-ui-sm text-foreground focus-ring placeholder:text-ink-faint placeholder:font-sans"
                 />
               </div>
-              <p className="mt-1.5 text-ui-xs text-ink-faint">{t('setup.apiKeyHint')}</p>
+              <p className="mt-1.5 text-ui-xs text-ink-soft">{t('setup.apiKeyHint')}</p>
               {/* The key has to come from the provider; without this line a
                   stranger is left to guess where. */}
               <p
@@ -893,6 +932,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
           {error && (
             <div
               data-testid="setup-error"
+              role="alert"
               className="mb-5 rounded-xl bg-status-danger/10 px-4 py-3 text-ui-sm text-status-danger"
             >
               {error}
@@ -917,19 +957,19 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             type="button"
             data-testid="setup-skip"
             onClick={() => void handleSkip()}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline bg-surface-raised px-4 py-2.5 text-ui-xs text-ink-soft transition-colors hover:bg-surface-interactive hover:text-ink-soft"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-control bg-surface-raised px-4 py-2.5 text-ui-xs text-ink-soft transition-colors hover:bg-surface-interactive hover:text-ink-soft"
           >
             {t('setup.skip')}
             <ArrowRight className="h-3 w-3" aria-hidden="true" />
           </button>
-          <p className="mt-1.5 text-center text-ui-sm leading-relaxed text-ink-faint">
+          <p className="mt-1.5 text-center text-ui-sm leading-relaxed text-ink-soft">
             {t('setup.skipHint')}
           </p>
 
           <button
             type="button"
             onClick={() => void handleReset()}
-            className="mt-4 w-full text-center text-ui-xs text-ink-faint transition-colors hover:text-ink-faint"
+            className="mt-4 w-full text-center text-ui-xs text-ink-soft transition-colors hover:text-ink"
           >
             {t('setup.reset')}
           </button>

@@ -64,9 +64,27 @@ export function useComposerModelSelection() {
         // Optional chaining: test store mocks do not know getState — the .then
         // chain must not die on that (otherwise providers stays empty).
         useChatStore.getState?.().setEnginePricing?.(r.pricing ?? null)
+        // S2: the provider table names the facts of each model it lists; the chip
+        // entries carry them so the menu's filters and rows say something.
+        const facts = new Map(
+          (r.local_model_options ?? []).map((option) => [option.model ?? option.name, option]),
+        )
+        const withFacts = (entry: ModelChipEntry): ModelChipEntry => {
+          const fact = facts.get(entry.model ?? entry.id ?? entry.label)
+          if (!fact) return entry
+          return {
+            ...entry,
+            context_window: fact.context_window ?? null,
+            price_in_per_m: fact.price_in_per_m ?? null,
+            price_out_per_m: fact.price_out_per_m ?? null,
+            is_free: fact.is_free ?? null,
+            supports_tools: fact.supports_tools ?? null,
+            supports_vision: fact.supports_vision ?? null,
+          }
+        }
         const list = (r.providers ?? []) as ModelChipEntry[]
         // F-J (t5 audit): keep "test"/embedding models out of the history.
-        const clean = list.filter((p) => !isJunkModel(p.model ?? p.id))
+        const clean = list.filter((p) => !isJunkModel(p.model ?? p.id)).map(withFacts)
         setProviders(clean)
         // B8 (generic): the environment scan is ALWAYS merged — presets first,
         // deduplicated across them (provider id, model); that is how the models of
@@ -75,7 +93,10 @@ export function useComposerModelSelection() {
         scanEnvironment()
           .then((env) => {
             if (cancelled) return
-            const merged = mergeScanEntries(clean, buildScanEntries(env?.tools ?? []))
+            const merged = mergeScanEntries(
+              clean,
+              buildScanEntries(env?.tools ?? []).map(withFacts),
+            )
             setProviders(merged)
           })
           .catch(() => {})

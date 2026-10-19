@@ -32,8 +32,19 @@ def _normal(text: str) -> str:
 
 # Both directions of the duty
 
+def _row_keys() -> list[str]:
+    """Wired fields that render as a register row.
+
+    A multiline field has no row: it is edited in a full-width card whose title and
+    explanation come from the locale files (the de/en pair HINTS carries would be a
+    second copy of the same sentence). The duty below is about rows, so those fields
+    are the one shape it does not cover.
+    """
+    return [k for k in _read_keys() if not SCHEMA.get(k, {}).get("multiline")]
+
+
 def test_jeder_regler_hat_einen_text() -> None:
-    fehlt = sorted(k for k in _read_keys() if k not in HINTS)
+    fehlt = sorted(k for k in _row_keys() if k not in HINTS)
     assert not fehlt, f"verdrahtete Felder ohne Erklaerung: {fehlt}"
 
 

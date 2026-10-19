@@ -9,10 +9,21 @@ export interface PersonaResponse {
   source: string
   text: string
 }
+/** One workspace rule file as the resolver saw it (Wave 2/B2). */
+export interface RuleFileInfo {
+  name: string
+  chars: number
+  /** included | truncated | empty | unreadable | denied | skipped */
+  status: string
+  /** Stable code for a skip or refusal, e.g. protected-root, outside-root, no-budget. */
+  reason?: string
+}
 export interface ContextStage {
   name: string
   chars: number
   preview: string
+  /** Only on the workspace_rules stage: every candidate file and what happened to it. */
+  files?: RuleFileInfo[]
 }
 export interface LearningProposal {
   id: string
@@ -51,6 +62,15 @@ export interface ModelOption {
   label?: string
   family?: string
   parameter_size?: string
+  /** S1: the same nullable record the probe answer carries. An Ollama option has
+   *  sizes and a family but no window, no price and no capability claim. */
+  model?: string
+  context_window?: number | null
+  price_in_per_m?: number | null
+  price_out_per_m?: number | null
+  is_free?: boolean | null
+  supports_tools?: boolean | null
+  supports_vision?: boolean | null
 }
 
 export interface ModelProvidersResponse {
@@ -163,8 +183,11 @@ export interface HealthInfo {
   engine_key_configured?: boolean
 }
 
-/** Three-valued engine states from the health and probe routes. */
-export type EngineState = 'ok' | 'busy' | 'unreachable'
+import type { EngineCandidate, EngineState } from './providers'
+// The engine-answer shapes live next door and stay reachable through this file, so
+// every existing `from './types'` import keeps working.
+export * from './providers'
+
 /**
  * Setup status: is an engine already persisted (engine.json)?
  * configured=false → the PWA shows the engine selection (SetupPage).
@@ -182,52 +205,6 @@ export interface SetupStatus {
   candidates?: EngineCandidate[]
 }
 
-/** An engine candidate for the parallel auto-scan (URL null => local default). */
-export interface EngineCandidate {
-  provider: string
-  url: string | null
-  /** Port hint of the loopback scan: it names what a port commonly serves, so it is
-   *  never a recognition. `hint_code` is the machine half, `hint` the sentence an old
-   *  client and the log read. Both come from `_ENGINE_PORTS` in
-   *  server/routes/settings.py. */
-  hint?: string
-  hint_code?: string
-  /** From this machine's loopback scan (not from engine.json/history/env).
-   *  R9: the surface uses it to say WHERE a suggestion comes from, instead of
-   *  calling both "recognised". */
-  sweep?: boolean
-}
-
-/** Result of a single candidate probe from /api/setup/detect. */
-export interface DetectedEngine {
-  provider: string
-  url: string | null
-  reachable: boolean
-  models: string[]
-  detail: string
-  state?: EngineState
-  /** Port hint, same pair as on the candidate. */
-  hint?: string
-  hint_code?: string
-}
-
-/** Response from GET /api/setup/detect — parallel multi-engine scan. */
-export interface DetectResponse {
-  candidates: EngineCandidate[]
-  detected: DetectedEngine[]
-  /** Index of the first reachable candidate with >= 1 model, otherwise -1. */
-  first_reachable: number
-}
-
-export interface ProviderProbeResponse {
-  reachable: boolean
-  models: string[]
-  detail: string
-  /** Probed endpoint (echoed by the server; used for structured UI rendering). */
-  url?: string
-  /** W18/A5: ok | busy | unreachable (busy = timeout, NOT offline). */
-  state?: EngineState
-}
 export interface ScheduleJob {
   id: string
   task: string
@@ -322,6 +299,8 @@ export interface ContextBudget {
   compaction_active: boolean
   /** Share per category in % (Messages, MCP tools, System tools, System prompt, Skills, Meta context) */
   breakdown?: { name: string; percent: number }[]
+  /** The assembled prompt, stage by stage (Wave 2/B2) — the same call the prompt builds. */
+  stages?: ContextStage[]
 }
 /** S4 workbench parity: the sky as read-only JSON (d/h/k/n — WHEN, never WHAT). */
 export interface SkyDayRow {

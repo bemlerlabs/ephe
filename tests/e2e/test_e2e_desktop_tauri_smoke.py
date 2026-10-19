@@ -94,11 +94,26 @@ def _gui_session_available() -> bool:
     return done.stdout.strip() == "Aqua"
 
 
+def _rpm_spelling(version: str) -> str:
+    """The same release in the one spelling an RPM version field allows.
+
+    tauri-bundler 2.10.3 rejects a hyphen there, so the release job bundles the RPM
+    with the prerelease separator moved to `+` (`.github/workflows/release.yml`,
+    owner decision 2026-10-18: keep the CLI version, work around the validator). The
+    bundle that step leaves in the same target dir carries it, and it is the same
+    release — so the smoke test accepts either face of it and nothing else.
+    """
+    return version.replace("-", "+", 1)
+
+
 def test_desktop_bundle_exists_and_matches_tauri_conf():
     app, executable, meta, cfg = _bundle_or_skip()
 
     assert meta["CFBundleIdentifier"] == cfg["identifier"]
-    assert meta["CFBundleShortVersionString"] == cfg["version"]
+    assert meta["CFBundleShortVersionString"] in (
+        str(cfg["version"]),
+        _rpm_spelling(str(cfg["version"])),
+    ), f"{meta['CFBundleShortVersionString']} is neither the config version nor its RPM face"
     assert os.access(executable, os.X_OK), f"{executable} is not executable"
 
     # A stub or a text file would pass `is_file`; the shipped shell is Mach-O.

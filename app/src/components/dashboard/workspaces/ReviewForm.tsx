@@ -126,7 +126,7 @@ export default function ReviewForm({
           onChange={(e) => setReviewer(e.target.value)}
           placeholder={t('workspaces.review.reviewerPlaceholder')}
           data-testid={`review-reviewer-${changeSetId}`}
-          className="mt-1 w-full rounded-md border border-hairline bg-surface px-2 py-1.5 text-ui-xs text-foreground/80 placeholder:text-ink-faint focus-ring max-lg:min-h-11 max-lg:text-ui-input"
+          className="mt-1 w-full rounded-md border border-control bg-surface px-2 py-1.5 text-ui-xs text-foreground/80 placeholder:text-ink-faint focus-ring max-lg:min-h-11 max-lg:text-ui-input"
         />
       </label>
       {authoredByReviewer && (
@@ -150,7 +150,7 @@ export default function ReviewForm({
               onChange={(e) => patch(r.key, { path: e.target.value })}
               data-testid={`review-path-${changeSetId}-${r.key}`}
               title={t('workspaces.review.path')}
-              className="min-w-40 flex-1 rounded-md border border-hairline bg-surface px-2 py-1.5 font-mono text-ui-2xs text-foreground/80 focus-ring max-lg:min-h-11 max-lg:text-ui-input"
+              className="min-w-40 flex-1 rounded-md border border-control bg-surface px-2 py-1.5 font-mono text-ui-2xs text-foreground/80 focus-ring max-lg:min-h-11 max-lg:text-ui-input"
             >
               {files.length === 0 && <option value="">{t('workspaces.review.noFiles')}</option>}
               {files.map((f) => (
@@ -170,7 +170,7 @@ export default function ReviewForm({
               onChange={(e) => patch(r.key, { line: Number(e.target.value) })}
               title={t('workspaces.review.line')}
               data-testid={`review-line-${changeSetId}-${r.key}`}
-              className="w-16 rounded-md border border-hairline bg-surface px-2 py-1.5 text-ui-2xs tabular-nums text-foreground/80 focus-ring max-lg:min-h-11 max-lg:text-ui-input"
+              className="w-16 rounded-md border border-control bg-surface px-2 py-1.5 text-ui-2xs tabular-nums text-foreground/80 focus-ring max-lg:min-h-11 max-lg:text-ui-input"
             />
             <label className="sr-only" htmlFor={`review-why-${changeSetId}-${r.key}`}>
               {t('workspaces.review.why')}
@@ -181,7 +181,7 @@ export default function ReviewForm({
               onChange={(e) => patch(r.key, { why: e.target.value })}
               placeholder={t('workspaces.review.whyPlaceholder')}
               data-testid={`review-why-${changeSetId}-${r.key}`}
-              className="min-w-44 flex-[3] rounded-md border border-hairline bg-surface px-2 py-1.5 text-ui-xs text-foreground/80 placeholder:text-ink-faint focus-ring max-lg:min-h-11 max-lg:text-ui-input"
+              className="min-w-44 flex-[3] rounded-md border border-control bg-surface px-2 py-1.5 text-ui-xs text-foreground/80 placeholder:text-ink-faint focus-ring max-lg:min-h-11 max-lg:text-ui-input"
             />
             <button
               type="button"
