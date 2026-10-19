@@ -214,6 +214,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - evidence: The capture driver reads the Playwright this tree installs (`e890c1cb`)
 - engine: The refusal OpenRouter sends is a refusal of the tool array (`5a865bba`)
 - chat: The model line stops printing an empty pair (`ce503c14`)
+- packaging: The scoop notes name the release their hash belongs to (`de1c4728`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a
