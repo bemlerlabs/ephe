@@ -63,23 +63,48 @@ function normalize(raw: unknown): TourMarker {
 let cachedMarker: TourMarker | null = null
 let inflightMarker: Promise<TourMarker> | null = null
 let writeGeneration = 0
+let publishedMarker: TourMarker | null = null
+const markerListeners = new Set<() => void>()
 
 /** A read either carries the server's marker or failed; only the first may fill the cache. */
 type TourRead = { ok: true; marker: TourMarker } | { ok: false }
 
+/** The last successful read, for surfaces that display the tour's answers. */
+export function tourMarkerSnapshot(): TourMarker | null {
+  return publishedMarker
+}
+
+export function subscribeTourMarker(listener: () => void): () => void {
+  markerListeners.add(listener)
+  return () => {
+    markerListeners.delete(listener)
+  }
+}
+
+function publish(marker: TourMarker): void {
+  publishedMarker = marker
+  for (const listener of markerListeners) listener()
+}
+
+function clearPublished(): void {
+  publishedMarker = null
+  for (const listener of markerListeners) listener()
+}
+
 /** The marker, or the defaults when the file is absent or the backend is down. */
 export function loadTourMarker(): Promise<TourMarker> {
-  // Two surfaces read the marker at boot (the tour gate and the empty state); they
-  // share the one answer. A write replaces the cache, and a load that was already in
-  // flight when that write happened must not put its older answer back. A failed read
-  // returns the defaults without caching them, so a backend that comes up later is read.
+  // FirstRunTour is the one loader; the welcome state subscribes to its answer. A failed
+  // read returns the defaults without caching them, so a backend that comes up later is read.
   if (cachedMarker) return Promise.resolve(cachedMarker)
   if (!inflightMarker) {
     const generation = writeGeneration
     inflightMarker = fetchTourMarker()
       .then((read) => {
         if (!read.ok) return EMPTY
-        if (generation === writeGeneration) cachedMarker = read.marker
+        if (generation === writeGeneration) {
+          cachedMarker = read.marker
+          publish(read.marker)
+        }
         return read.marker
       })
       .finally(() => {
@@ -118,6 +143,7 @@ export async function writeTourMarker(marker: TourMarker): Promise<TourMarker> {
   writeGeneration += 1
   cachedMarker = next
   inflightMarker = null
+  publish(next)
   return next
 }
 
@@ -138,6 +164,7 @@ export async function resetTourMarker(): Promise<void> {
   writeGeneration += 1
   cachedMarker = null
   inflightMarker = null
+  clearPublished()
 }
 
 /**

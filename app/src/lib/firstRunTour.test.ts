@@ -155,4 +155,26 @@ describe('loadTourMarker', () => {
     expect(recovered.step).toBe(3)
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('publishes a successful marker and leaves a failed read unpublished', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ step: 2, walked: false, exists: true, answers: {} }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const { loadTourMarker, subscribeTourMarker, tourMarkerSnapshot } = await freshModule()
+    const seen: boolean[] = []
+    const off = subscribeTourMarker(() => seen.push(Boolean(tourMarkerSnapshot()?.exists)))
+    expect(tourMarkerSnapshot()).toBeNull()
+    await loadTourMarker()
+    expect(tourMarkerSnapshot()).toBeNull()
+    expect(seen).toEqual([])
+    await loadTourMarker()
+    expect(tourMarkerSnapshot()?.exists).toBe(true)
+    expect(seen).toEqual([true])
+    off()
+  })
 })

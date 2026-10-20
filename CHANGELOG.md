@@ -278,6 +278,7 @@ the settings register, the companion studio, one session store and the terminal.
 - app: Coalesce the first-open marker reads (`3f48003d`)
 - app: Retry the tour marker after a failed read (`ce968465`)
 - ci: Report the parallel suite and separate the picker lane (`8c450fae`)
+- app: Let the tour own the only marker request (`1da16e93`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a

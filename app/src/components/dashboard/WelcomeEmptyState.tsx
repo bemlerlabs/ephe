@@ -9,12 +9,12 @@
  * Offline-first: every fetch fails silently into an honest static
  * fallback text — the cards never render fabricated numbers.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { m, useReducedMotion } from 'framer-motion'
 import { Sparkles, Mail, Image as ImageIcon, Globe, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { markSetupIntent } from '@/lib/setupGate'
-import { loadTourMarker } from '@/lib/firstRunTour'
+import { subscribeTourMarker, tourMarkerSnapshot } from '@/lib/firstRunTour'
 import './WelcomeEmptyState.css'
 import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
 import { engineStateOf, type EngineState } from '@/lib/engineState'
@@ -43,6 +43,7 @@ interface LiveData {
 }
 
 const CARD_ICONS = [Sparkles, Mail, ImageIcon, Globe] as const
+const STARTER_CARD_BY_USAGE: Record<string, number> = { code: 0, documents: 1, research: 3 }
 
 export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateProps) {
   const { t } = useTranslation()
@@ -56,20 +57,10 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
   const [live, setLive] = useState<LiveData>({ projects: null, artifacts: null, health: null })
   // The tour's first answer decides which starter fits: code → the project card,
   // documents → the email card, research → the web card. A mix recommends nothing.
-  const [recommended, setRecommended] = useState<number | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    void loadTourMarker().then((marker) => {
-      if (!alive) return
-      const usage = marker.answers.usage
-      const map: Record<string, number> = { code: 0, documents: 1, research: 3 }
-      setRecommended(usage && usage !== 'mix' ? (map[usage] ?? null) : null)
-    })
-    return () => {
-      alive = false
-    }
-  }, [])
+  // FirstRunTour owns the request; this surface only reads the answer it publishes.
+  const tourMarker = useSyncExternalStore(subscribeTourMarker, tourMarkerSnapshot, () => null)
+  const usage = tourMarker?.answers.usage
+  const recommended = usage && usage !== 'mix' ? (STARTER_CARD_BY_USAGE[usage] ?? null) : null
 
   // A click on a card (or on the companion) turns the bee toward the card,
   // leaves a spark burst and fills the draft. It still never sends.
