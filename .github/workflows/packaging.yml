@@ -15,8 +15,12 @@ name: Packaging freshness
 # reported as the fallback, not hidden.
 
 on:
-  push:
-    branches: [ main, develop ]
+  # The publish click is the first moment the tag's release exists. A branch push that
+  # carries the next candidate is not: on 2026-10-20 the main push with v0.1.1 named
+  # 0.1.1 while releases/latest still answered 0.1.0, and the release was published
+  # minutes later. The check was right and the moment was wrong.
+  release:
+    types: [published]
   pull_request:
     branches: [ main ]
   schedule:
@@ -59,4 +63,13 @@ jobs:
           python-version: '3.12'
 
       - name: Every manifest names the release that exists
+        if: github.event_name != 'release'
         run: python3 scripts/packaging_freshness.py
+
+      - name: Every manifest names the release that was just published
+        # `release.published` is the event that makes the tag installable; judging against
+        # the feed on the same click would compare the new version with the previous latest.
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: python3 scripts/packaging_freshness.py --release "${RELEASE_TAG#v}"

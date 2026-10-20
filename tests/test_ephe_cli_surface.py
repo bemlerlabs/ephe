@@ -836,6 +836,39 @@ def test_cmd_start_engine_not_configured(monkeypatch, tmp_path, capsys):
     assert "No engine configured" in capsys.readouterr().out
 
 
+def test_cmd_start_incomplete_engine_falls_back_to_setup(monkeypatch, tmp_path, capsys):
+    """A persisted openai_compatible choice without api_url reaches setup.
+
+    The choice is real, so `apply_env` raises the same EngineNotConfigured the start path
+    sees on a half-written engine.json. The CLI has to name the missing field and keep
+    going; the server then resolves the same incomplete choice and enters setup mode.
+    """
+    from core.engine_config import EngineChoice
+
+    _patch_start_common(monkeypatch, tmp_path)
+    choice = EngineChoice(provider=ephe_cli.OPENAI_COMPAT, model="m", api_url=None)
+    monkeypatch.setattr(ephe_cli, "resolve_engine_choice", lambda **_k: choice)
+    probed: list[tuple] = []
+    monkeypatch.setattr(
+        ephe_cli, "_probe_active_remote_engine",
+        lambda *args, **kwargs: probed.append((args, kwargs)),
+    )
+    seen: dict = {}
+    monkeypatch.setattr(
+        ephe_cli, "_run",
+        lambda cmd, env=None, **_k: (seen.update(env=env), types.SimpleNamespace(returncode=0))[1],
+    )
+
+    assert ephe_cli.cmd_start(_parser().parse_args(["start"])) == 0
+    out = capsys.readouterr().out
+    assert "✗" in out
+    assert "api_url" in out
+    assert "Fix:" in out
+    # The readiness probe belongs to a complete choice; the fallback must not reach it.
+    assert probed == []
+    assert seen["env"].get("EPHE_OPENAI_COMPAT_BASE_URL") is None
+
+
 def test_cmd_start_remote_probe(monkeypatch, tmp_path, capsys):
     _patch_start_common(monkeypatch, tmp_path)
     monkeypatch.setattr(

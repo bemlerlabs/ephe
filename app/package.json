@@ -15,6 +15,7 @@
     "verify:pre-push": "pnpm run lint && node ../scripts/architecture_check.mjs check --changed",
     "format": "prettier --write src/",
     "test": "vitest run",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
     "test:e2e": "playwright test -c tests/playwright/playwright.config.ts",
     "test:e2e:real": "playwright test -c tests/playwright/playwright.real.config.ts",
     "test:dogfood": "playwright test -c tests/playwright/dogfood.config.ts",

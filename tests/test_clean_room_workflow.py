@@ -145,3 +145,25 @@ def test_the_script_carries_the_guards_the_workflow_relies_on():
     assert ci_pin, "tests.yml no longer names a uv version to compare against"
     assert pinned.group(1) == ci_pin.group(1), \
         f"the clean-room leg resolves with uv {pinned.group(1)} while tests.yml locks with {ci_pin.group(1)}"
+
+
+def test_the_script_provisions_a_pinned_node_inside_the_scratch_root():
+    """GIVEN the leg must not use `actions/setup-node` THEN it fetches its own Node into
+    the directory the runner wipes. A host `pnpm` is not enough: the ubuntu image that
+    ran 39388942734 had no corepack, so the JS half reported `pnpm none` on all four
+    Python legs. The download is version- and digest-pinned per platform, and corepack's
+    home and shims live under the same scratch root so no cache survives the job.
+    """
+    script = SCRIPT.read_text(encoding="utf-8")
+    version = re.search(r'EPHE_NODE_VERSION:-([0-9.]+)\}', script)
+    assert version, "the clean-room Node version is not pinned in the script"
+    assert "nodejs.org/dist" in script, "the script does not fetch Node from the official dist"
+    assert "sha256" in script.lower(), "the Node download is not checksum-verified"
+    for platform in ("linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"):
+        assert platform in script, f"the Node provisioner does not name {platform}"
+    assert 'NODE_DIR="$WORK/node"' in script, "Node does not land in the scratch root"
+    assert 'COREPACK_HOME="$WORK/corepack"' in script, (
+        "corepack's download home is not inside the scratch root"
+    )
+    assert "corepack prepare" in script, "the pinned pnpm is not activated from app/package.json"
+    assert "--store-dir" in script, "the pnpm store is not confined to the scratch root"

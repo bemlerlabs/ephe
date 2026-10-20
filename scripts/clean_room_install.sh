@@ -23,6 +23,9 @@
 set -uo pipefail
 
 readonly UV_VERSION="${EPHE_UV_VERSION:-0.12.24}"
+#: Node 22 LTS, fetched into the scratch root because the leg must not use setup-node.
+#: The digests are from nodejs.org/dist/v22.23.3/SHASUMS256.txt (read 2026-10-20).
+readonly NODE_VERSION="${EPHE_NODE_VERSION:-22.23.3}"
 readonly EXTRAS=(--extra dev --extra tui)
 readonly TARGETS="${EPHE_CLEAN_ROOM_TARGETS:-py,js}"
 readonly WANT_REF="${EPHE_CLEAN_ROOM_REF:-HEAD}"
@@ -79,6 +82,7 @@ mkdir -p "$WORK" || bail "cannot create the install root $WORK"
 readonly CLONE="$WORK/clone"
 readonly BOOT="$WORK/uv-boot"
 readonly PYTHONS="$WORK/pythons"
+readonly NODE_DIR="$WORK/node"
 # `UV_PYTHON_INSTALL_DIR` in the scratch root so an interpreter fetch cannot land in
 # `~/.local/share/uv`, and one `UV_CACHE_DIR` per interpreter shape so every sync figure below is a
 # cold one. Measured on this host: a single cache shared by four shapes reads 4s, 5s, 3s, 2s, one
@@ -89,7 +93,7 @@ say "install root = $WORK (wiped with the job)"
 
 # Named here because a missing tool should read as a verdict, not as `git: command not found` two
 # steps later: python:3.12-slim on aarch64 carries bash and python3 but neither git nor xz (measured).
-for tool in git python3; do
+for tool in git python3 tar; do
     command -v "$tool" >/dev/null 2>&1 || bail "$tool is not on PATH: this image cannot run a clean-room clone"
 done
 
@@ -266,6 +270,110 @@ else
     say "py: not requested (EPHE_CLEAN_ROOM_TARGETS=$TARGETS)"
 fi
 
+# --- Node and the pinned pnpm, both inside the scratch root ---
+# `actions/setup-node` is deliberately absent (see clean-room.yml): it writes the runner's tool
+# cache, which outlives the job. The ubuntu image that ran 39388942734 carried no corepack at all,
+# so the JS half reported `pnpm none` on every Python leg. This fetch keeps the hermetic property
+# and provisions the tool instead of assuming it.
+node_platform() {
+    case "$(uname -s):$(uname -m)" in
+        Linux:x86_64) echo linux-x64 ;;
+        Linux:aarch64|Linux:arm64) echo linux-arm64 ;;
+        Darwin:x86_64) echo darwin-x64 ;;
+        Darwin:arm64) echo darwin-arm64 ;;
+        *) return 1 ;;
+    esac
+}
+
+node_sha256() {
+    case "$1" in
+        linux-x64) echo "1084aa36196bba4c3a5e69a1ee388a6e4ff729dad09445fbcd434b28fe3c24af" ;;
+        linux-arm64) echo "5ced2d48d1d7198739b7f86804de0171aefb6823b684b12341d3321afc3cb0b2" ;;
+        darwin-x64) echo "8a677b0219178efd6eb0e475457c4afb452b521a92f6e67845a73bd85727f2a8" ;;
+        darwin-arm64) echo "23b25245dcfb9af7262f8ff142e9e2e0af025368117329e7a7458a51e5922f53" ;;
+        *) return 1 ;;
+    esac
+}
+
+provision_node() {
+    local platform="$1"
+    local expected tarball url download
+    expected="$(node_sha256 "$platform")" || {
+        say "FAIL no pinned Node digest for platform $platform"
+        return 1
+    }
+    tarball="node-v${NODE_VERSION}-${platform}.tar.gz"
+    url="https://nodejs.org/dist/v${NODE_VERSION}/${tarball}"
+    download="$WORK/downloads/$tarball"
+    rm -rf "$NODE_DIR"
+    mkdir -p "$NODE_DIR" "$WORK/downloads" || {
+        say "FAIL cannot create the Node directory $NODE_DIR"
+        return 1
+    }
+    say "node: fetching $url"
+    if ! python3 - "$url" "$download" "$expected" <<'PY'
+import hashlib
+import sys
+import urllib.request
+
+url, dest, expected = sys.argv[1:4]
+try:
+    with urllib.request.urlopen(url, timeout=120) as response, open(dest, "wb") as out:
+        digest = hashlib.sha256()
+        while chunk := response.read(1024 * 1024):
+            digest.update(chunk)
+            out.write(chunk)
+except OSError as exc:
+    print(f"clean-room: FAIL Node download failed: {exc}")
+    raise SystemExit(1)
+actual = digest.hexdigest()
+if actual != expected:
+    print(f"clean-room: FAIL Node tarball sha256 {actual} != pinned {expected}")
+    raise SystemExit(1)
+print(f"clean-room: node: sha256 {actual[:16]}... verified")
+PY
+    then
+        return 1
+    fi
+    if ! tar -xzf "$download" -C "$NODE_DIR" --strip-components=1; then
+        say "FAIL the Node archive could not be extracted with tar"
+        return 1
+    fi
+    if ! "$NODE_DIR/bin/node" --version >/dev/null 2>&1; then
+        say "FAIL the provisioned Node does not run"
+        return 1
+    fi
+    say "node: $("$NODE_DIR/bin/node" --version) at $NODE_DIR ($platform)"
+}
+
+setup_corepack() {
+    local pinned="$1"
+    local corepack_bin="$NODE_DIR/bin/corepack"
+    export COREPACK_HOME="$WORK/corepack"
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+    export PNPM_HOME="$WORK/pnpm-home"
+    mkdir -p "$COREPACK_HOME" "$PNPM_HOME" "$WORK/bin" || {
+        say "FAIL cannot create the scratch-rooted pnpm directories"
+        return 1
+    }
+    if [ ! -x "$corepack_bin" ]; then
+        say "FAIL the provisioned Node carries no corepack binary"
+        return 1
+    fi
+    export PATH="$NODE_DIR/bin:$WORK/bin:$PATH"
+    if ! "$corepack_bin" enable --install-directory "$WORK/bin" >/dev/null 2>&1; then
+        say "FAIL corepack could not install its shims into $WORK/bin"
+        return 1
+    fi
+    if ! ( cd "$CLONE/app" && corepack prepare "pnpm@$pinned" --activate ) \
+            >"$WORK/corepack-prepare.log" 2>&1; then
+        say "FAIL corepack could not prepare pnpm@$pinned; tail of its output:"
+        tail -5 "$WORK/corepack-prepare.log" | sed 's/^/clean-room:   /'
+        return 1
+    fi
+    say "js: corepack brought pnpm@$pinned into $WORK/bin (COREPACK_HOME=$COREPACK_HOME)"
+}
+
 # --- the JS half, against the same fresh clone and a store inside the scratch root ---
 if want_target js; then
     pinned="$(sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' "$CLONE/app/package.json" | head -1)"
@@ -274,20 +382,21 @@ if want_target js; then
     fi
     # Resolved inside app/: corepack's shim picks the version from the nearest package.json, so a
     # `pnpm --version` from anywhere else reports a different number than the install will use.
-    got="$(cd "$CLONE/app" && pnpm --version 2>/dev/null || echo none)"
-    if [ "$got" != "$pinned" ] && command -v corepack >/dev/null 2>&1; then
-        export COREPACK_HOME="$WORK/corepack"
-        corepack enable --install-directory "$WORK/bin" >/dev/null 2>&1
-        PATH="$WORK/bin:$PATH"
-        got="$(cd "$CLONE/app" && pnpm --version 2>/dev/null || echo none)"
-        [ "$got" = "$pinned" ] && say "js: corepack brought pnpm $got into $WORK/bin"
+    platform="$(node_platform)" || bail "no Node build mapping for $(uname -s)/$(uname -m)"
+    js_ready=0
+    if provision_node "$platform"; then
+        setup_corepack "$pinned" && js_ready=1
     fi
-    if [ "$got" != "$pinned" ]; then
+    if [ "$js_ready" -ne 1 ]; then
+        fail "the JS half has no scratch-rooted Node/pnpm; the lockfile was not installed"
+    fi
+    got="$(cd "$CLONE/app" && pnpm --version 2>/dev/null || echo none)"
+    if [ "$js_ready" -eq 1 ] && [ "$got" != "$pinned" ]; then
         fail "pnpm $got does not match the packageManager pin $pinned: a different pnpm resolves a different graph"
-    else
+    elif [ "$js_ready" -eq 1 ]; then
         say "js: pnpm $got matches packageManager"
     fi
-    if [ "$got" = "$pinned" ]; then
+    if [ "$js_ready" -eq 1 ] && [ "$got" = "$pinned" ]; then
         t0=$SECONDS
         ( cd "$CLONE/app" && pnpm install --frozen-lockfile --store-dir "$WORK/pnpm-store" ) \
             > "$WORK/pnpm-install.log" 2>&1

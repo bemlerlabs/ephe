@@ -26,6 +26,10 @@ name: Release
 on:
   push:
     tags: ['v*']
+  # The dry run: both gates execute, `build-bundles` stays off. A gate that is only ever reached
+  # by pushing a tag is first exercised on the release itself, which is how an unresolvable action
+  # pin sat in this file unnoticed. The dispatch proves the checks without creating a draft.
+  workflow_dispatch: {}
   # The publish click is what makes the bundle assets the package job hashes exist, so the package
   # job below hangs off this event. `released` and `prereleased` are left out: the owner publishes a
   # beta as a normal release, and `published` is the event every published release fires.
@@ -45,14 +49,14 @@ permissions:
   contents: read
 
 jobs:
-  # R45: a hard test gate before the bundle build — a broken tree produces no
-  # draft release. The needs block stalls build-bundles until pytest is green.
+  # R45: a hard gate before the bundle build — a broken tree produces no draft release.
+  # `build-bundles` needs this job and `frontend-gate`; either one red stops the release.
   test-gate:
     name: Test gate (release bar)
-    # Only the tag push builds and tests. The release event (the publish click) carries no build
-    # work; guarding this gate on the push keeps that event from rebuilding the bundles it is meant
-    # to consume.
-    if: github.event_name == 'push'
+    # The tag push and the dry-run dispatch run the gate. The release event (the publish click)
+    # carries no build work; guarding this gate keeps that event from rebuilding the bundles it is
+    # meant to consume.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     # R1: this gate stood on a hosted runner the account cannot allocate, so no run was ever
     # started and `build-bundles` (`needs: test-gate`) never ran either. It takes the same
     # Linux label the rest of CI runs on, `vars.CI_LINUX_RUNNER` - whichever runner the
@@ -88,9 +92,58 @@ jobs:
         # between its reps, exit 2 a cohort the gate cannot read.
         run: python evals/pass3_release_gate.py --runs evals/runs --no-engine-check
 
+  # The frontend half of the release bar. v0.1.1 shipped while this file's test gate ran only
+  # pytest and pass^3, and two other workflows were red on the same commit over the ModelPicker's
+  # wall-clock assertion. `build-bundles` needs this job, so a red frontend now stops a tag before
+  # any bundle is assembled. The four commands are the ones frontend-build.yml runs on every push;
+  # tests/test_release_frontend_gate.py holds the copy to that source.
+  frontend-gate:
+    name: Frontend gate (release bar)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate the pnpm this repo pins
+        # Before setup-node for the same reason as frontend-build.yml: a `cache: pnpm` setup step
+        # shells out to `pnpm store path`, and nothing has provisioned pnpm at that point.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          # No cache: a publishing workflow restores nothing from an earlier run (zizmor:
+          # cache-poisoning). The install below is cold, like the bundle build.
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: cd app && pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: cd app && pnpm exec tsc --noEmit
+
+      - name: Unit tests (vitest)
+        # The functional suite only. The ModelPicker's 500 ms ceiling runs in the serial perf lane
+        # (vitest.perf.config.ts), because a wall clock read under parallel load measures the host.
+        run: cd app && pnpm exec vitest run
+
+      - name: Lint
+        run: cd app && pnpm run lint
+
   build-bundles:
     name: Tauri bundles (${{ matrix.os }})
-    needs: test-gate
+    needs: [test-gate, frontend-gate]
+    # A tag push is the only event that builds. The release event consumes the assets already
+    # created, and the dispatch is the gate's dry run.
+    if: github.event_name == 'push'
     # R1: the runner comes from the matrix `runner` key; `os` is the job title only. Every
     # leg carries a `runner`, because an empty `runs-on` leaves the job queued forever.
     runs-on: ${{ matrix.runner }}

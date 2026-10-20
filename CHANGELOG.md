@@ -272,6 +272,9 @@ the settings register, the companion studio, one session store and the terminal.
 - settings: The selected profile is neutral (`66b130ba`)
 - deps: Aiohttp 3.14.5 closes the three open advisories (`3c901c3a`)
 - release: Cut 0.1.1 for the two published security findings (`b0439eec`)
+- release: Gate the bundles on the frontend and add a dry run (`eae5a1ec`)
+- ci: Judge packaging freshness when the release exists (`91a2cba8`)
+- ci: Provision Node and pnpm inside the clean room (`249cc27b`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a
