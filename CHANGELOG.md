@@ -275,6 +275,7 @@ the settings register, the companion studio, one session store and the terminal.
 - release: Gate the bundles on the frontend and add a dry run (`eae5a1ec`)
 - ci: Judge packaging freshness when the release exists (`91a2cba8`)
 - ci: Provision Node and pnpm inside the clean room (`249cc27b`)
+- app: Coalesce the first-open marker reads (`3f48003d`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a
