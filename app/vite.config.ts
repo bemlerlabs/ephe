@@ -32,6 +32,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // The picker's wall-clock ceiling runs in `vitest.perf.config.ts`, one worker and a
+    // median. Collecting it here put a host measurement back into the parallel suite.
+    exclude: ['**/*.perf.test.{ts,tsx}'],
     // Pin the fork-worker startup under parallel load: removes the transient
     // 'Failed to start forks worker' failure in the CI.
     pool: 'forks',

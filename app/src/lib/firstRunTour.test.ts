@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadTourMarker, shouldOpenTour, type TourMarker } from './firstRunTour'
+import { shouldOpenTour, type TourMarker } from './firstRunTour'
 
 const marker = (overrides: Partial<TourMarker> = {}): TourMarker => ({
   version: 1,
@@ -61,6 +61,11 @@ describe('loadTourMarker', () => {
     vi.unstubAllGlobals()
   })
 
+  async function freshModule() {
+    vi.resetModules()
+    return import('./firstRunTour')
+  }
+
   it('answers the defaults when the backend is down', async () => {
     vi.stubGlobal(
       'fetch',
@@ -68,6 +73,7 @@ describe('loadTourMarker', () => {
         throw new Error('offline')
       }),
     )
+    const { loadTourMarker } = await freshModule()
     await expect(loadTourMarker()).resolves.toEqual(marker())
   })
 
@@ -79,8 +85,39 @@ describe('loadTourMarker', () => {
         json: async () => ({ step: 99, walked: false, exists: true, answers: {} }),
       })),
     )
+    const { loadTourMarker } = await freshModule()
     const loaded = await loadTourMarker()
     expect(loaded.step).toBe(5)
     expect(loaded.exists).toBe(true)
+  })
+
+  it('coalesces two concurrent callers into one request', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ step: 1, walked: false, exists: true, answers: {} }),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { loadTourMarker } = await freshModule()
+    const [first, second] = await Promise.all([loadTourMarker(), loadTourMarker()])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(second).toEqual(first)
+  })
+
+  it('serves the marker a write returned without another GET', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => ({
+      ok: true,
+      json: async () =>
+        init?.method === 'POST'
+          ? { version: 1, step: 5, walked: true, skipped: false, answers: {}, exists: true }
+          : { version: 1, step: 0, walked: false, skipped: false, answers: {}, exists: true },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { loadTourMarker, writeTourMarker } = await freshModule()
+    const loaded = await loadTourMarker()
+    const written = await writeTourMarker({ ...loaded, walked: true, step: 5 })
+    const again = await loadTourMarker()
+    expect(again.walked).toBe(true)
+    expect(again).toEqual(written)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })

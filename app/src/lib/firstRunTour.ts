@@ -60,8 +60,31 @@ function normalize(raw: unknown): TourMarker {
   }
 }
 
+let cachedMarker: TourMarker | null = null
+let inflightMarker: Promise<TourMarker> | null = null
+let writeGeneration = 0
+
 /** The marker, or the defaults when the file is absent or the backend is down. */
-export async function loadTourMarker(): Promise<TourMarker> {
+export function loadTourMarker(): Promise<TourMarker> {
+  // Two surfaces read the marker at boot (the tour gate and the empty state); they
+  // share the one answer. A write replaces the cache, and a load that was already in
+  // flight when that write happened must not put its older answer back.
+  if (cachedMarker) return Promise.resolve(cachedMarker)
+  if (!inflightMarker) {
+    const generation = writeGeneration
+    inflightMarker = fetchTourMarker()
+      .then((marker) => {
+        if (generation === writeGeneration) cachedMarker = marker
+        return marker
+      })
+      .finally(() => {
+        inflightMarker = null
+      })
+  }
+  return inflightMarker
+}
+
+async function fetchTourMarker(): Promise<TourMarker> {
   try {
     const response = await fetch(apiUrl('/api/tour'))
     if (!response.ok) return EMPTY
@@ -86,7 +109,11 @@ export async function writeTourMarker(marker: TourMarker): Promise<TourMarker> {
     body: JSON.stringify(body),
   })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return { ...marker, ...normalize(await response.json()), exists: true }
+  const next = { ...marker, ...normalize(await response.json()), exists: true }
+  writeGeneration += 1
+  cachedMarker = next
+  inflightMarker = null
+  return next
 }
 
 /** Clears the walked marker so the next load opens the tour again. */
@@ -103,6 +130,9 @@ export async function resetTourMarker(): Promise<void> {
     }),
   })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  writeGeneration += 1
+  cachedMarker = null
+  inflightMarker = null
 }
 
 /**

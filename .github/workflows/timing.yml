@@ -100,3 +100,36 @@ jobs:
           path: out/timing/*.json
           if-no-files-found: error
           retention-days: 30
+
+  # The only home of the ModelPicker's 500 ms ceiling. The parallel unit suite reads no wall
+  # clock: on v0.1.1 the same assertion read 553.7 ms and 811.2 ms on loaded runners while the
+  # component was unchanged. Nightly and alone, with one vitest worker, a warm-up and a median;
+  # the plain-DOM control marks an overloaded host instead of widening the budget.
+  picker-perf:
+    name: Model picker wall clock (serial)
+    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate the pnpm this repo pins
+        # Before setup-node, whose cache step would shell out to a pnpm that does not exist.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: cd app && pnpm install --frozen-lockfile
+
+      - name: Picker open+filter, one worker and a median
+        run: cd app && pnpm run test:perf
