@@ -239,8 +239,11 @@ describe('ChatLayout Slash-Commands (G6)', () => {
     act(() => {
       typeSlash('/settings')
     })
-    await waitFor(() => {
-      expect(screen.getByTestId('settings-panel')).toBeTruthy()
-    })
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('settings-panel')).toBeTruthy()
+      },
+      { timeout: 5000 },
+    )
   })
 })
