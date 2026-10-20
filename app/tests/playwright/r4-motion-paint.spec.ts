@@ -1,4 +1,5 @@
 import { expect, test, webkit, type Browser, type Page } from '@playwright/test'
+import { cpus, loadavg } from 'node:os'
 import { ensureOnboarded, gotoHash } from './helpers'
 
 // UI 4x programme, wave 2 (docs/UI_4X_PROGRAM_2026-10-11.md §6): the motion and paint
@@ -335,6 +336,26 @@ function expectInstrumentAlive(record: WindowRecord) {
 
 test.describe.configure({ mode: 'serial' })
 
+// The zero-long-frame budget is a host reading. When another workflow shares the runner, a
+// single long frame describes the co-tenant, not the surface; the budget stands down with an
+// annotation instead of being widened. The same bar and wording as q-quality QG1.
+const LOAD_PER_CPU_BAR = 2.0
+
+function expectNoLongFrames(record: WindowRecord, label: string) {
+  const parallel = test.info().config.workers > 1
+  const perCpu = loadavg()[0] / Math.max(cpus().length, 1)
+  if (!parallel && perCpu <= LOAD_PER_CPU_BAR) {
+    expect(record.longFrames, label).toBe(0)
+    return
+  }
+  test.info().annotations.push({
+    type: 'budget stood down',
+    description: parallel
+      ? `${label}: longFrames ${record.longFrames} not asserted; ${test.info().config.workers} workers share this run`
+      : `${label}: longFrames ${record.longFrames} not asserted; ${perCpu.toFixed(2)} runnable tasks/CPU exceeds the ${LOAD_PER_CPU_BAR} bar`,
+  })
+}
+
 test.describe('R4 motion and paint budget', () => {
   test.setTimeout(120_000)
 
@@ -356,7 +377,7 @@ test.describe('R4 motion and paint budget', () => {
     const on = await measureWindow(page, browserName, 'idle', 'on', idle)
     logAttribution('idle', off, on)
 
-    expect(off.longFrames).toBe(0)
+    expectNoLongFrames(off, 'window 1 idle')
     expect(off.glass.surfaces).toBeGreaterThan(0)
     expect(on.glass.painting).toBe(on.glass.surfaces) // the arm has to actually paint
     expect(off.glass.painting).toBe(0) // the shipped rule is the -webkit- alias only
@@ -399,7 +420,7 @@ test.describe('R4 motion and paint budget', () => {
     const on = await measureWindow(page, browserName, 'scroll', 'on', scroll)
     logAttribution('scroll', off, on)
 
-    expect(off.longFrames).toBe(0)
+    expectNoLongFrames(off, 'window 2 scroll')
   })
 
   test('window 3 local interaction: typing into the composer', async ({ page, browserName }) => {
@@ -419,7 +440,7 @@ test.describe('R4 motion and paint budget', () => {
     const on = await measureWindow(page, browserName, 'interaction', 'on', type)
     logAttribution('interaction', off, on)
 
-    expect(off.longFrames).toBe(0)
+    expectNoLongFrames(off, 'window 3 interaction')
   })
 
   test('window 4 live stream: one real turn on the product port', async ({
@@ -488,7 +509,7 @@ test.describe('R4 motion and paint budget', () => {
     const before = await measureWindow(page, browserName, 'plant-baseline', 'off', () =>
       page.waitForTimeout(600),
     )
-    expect(before.longFrames).toBe(0)
+    expectNoLongFrames(before, 'window 4 plant baseline')
 
     await startRecorder(page)
     await page.evaluate(() => {
