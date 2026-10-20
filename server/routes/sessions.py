@@ -299,12 +299,9 @@ async def read_session(session_id: str) -> dict:
     meta = ms.get_session(session_id)
     if meta is None:
         raise HTTPException(status_code=404, detail=f"session {session_id!r} not in the store")
-    path = ms.SESSIONS_DIR / f"{session_id}.json"
-    try:
-        if path.exists() and path.stat().st_size > MAX_TRANSCRIPT_BYTES:
-            raise HTTPException(status_code=413, detail="session transcript too large")
-    except OSError:
-        pass
+    size = ms.transcript_size(session_id)
+    if size is not None and size > MAX_TRANSCRIPT_BYTES:
+        raise HTTPException(status_code=413, detail="session transcript too large")
     messages = ms.load_messages(session_id)
     if len(messages) > MAX_TRANSCRIPT_MESSAGES:
         raise HTTPException(status_code=413, detail="session transcript has too many messages")

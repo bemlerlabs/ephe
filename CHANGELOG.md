@@ -10,6 +10,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
+## [0.1.1] - 2026-10-20
+
+A security patch for the 0.1.0 line. No new capability.
+
+### Security
+- The session transcript size read now resolves the id through the store's
+  validated file helper instead of composing a path in the route. The CodeQL
+  `py/path-injection` finding on `server/routes/sessions.py` is closed.
+- aiohttp moves from 3.14.3 to 3.14.5, closing GHSA-2g87-pp6c-29x5 (unbounded
+  memory/CPU), the shared-cookie Secure advisory, and the missing initial
+  request/header timeout advisory.
+
 ## [0.1.0] - 2026-10-20
 
 The first stable release of the 0.1 line. It finishes the forest-only surface,
@@ -258,6 +270,8 @@ the settings register, the companion studio, one session store and the terminal.
 - engine: An incomplete engine names its missing field (`321e1740`)
 - shell: A stale backend does not blank the next launch (`ba076039`)
 - settings: The selected profile is neutral (`66b130ba`)
+- deps: Aiohttp 3.14.5 closes the three open advisories (`3c901c3a`)
+- release: Cut 0.1.1 for the two published security findings (`b0439eec`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a
@@ -323,6 +337,7 @@ the settings register, the companion studio, one session store and the terminal.
 - security: The three path-injection sites say why they are safe, in the line (`891f197d`)
 - security: CORS grants the product's own origins, and a shell command needs an approval (`3bec7792`)
 - security: This server's own origin stays allowed, under both loopback spellings (`4016f7d8`)
+- security: The session size read stays in the validated store path (`472a61d9`)
 ## [0.1.0-beta.10] – 2026-10-19
 
 ### Added

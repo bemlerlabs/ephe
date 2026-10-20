@@ -54,6 +54,25 @@ class TestSessionStoreRoutes:
         assert activated.status_code == 200, activated.text
         assert activated.json()["active_id"] == sid
 
+    def test_the_size_cap_reads_the_validated_store_file(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """GIVEN a transcript over the route's byte cap
+        WHEN the transcript is read
+        THEN the cap answers 413 from the store's validated file, and an id that
+        would leave the store has no size at all."""
+        from core import multi_session as ms
+        from server.routes import sessions as sessions_route
+
+        sid = _create(client, "Size proof")["id"]
+        ms.save_messages(sid, [{"role": "user", "content": "x" * 100}])
+        assert ms.transcript_size(sid) and ms.transcript_size(sid) > 10
+        assert ms.transcript_size("../escape") is None
+
+        monkeypatch.setattr(sessions_route, "MAX_TRANSCRIPT_BYTES", 10)
+        response = client.get(f"/api/sessions/{sid}")
+        assert response.status_code == 413
+
     def test_invalid_and_unknown_ids_are_refused(self, client: TestClient) -> None:
         assert client.get("/api/sessions/bad.id").status_code == 400
         assert client.get("/api/sessions/does-not-exist").status_code == 404

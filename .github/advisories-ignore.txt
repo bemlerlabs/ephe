@@ -44,6 +44,19 @@
 # tests/test_supply_chain_gate.py holds both readings, including the empty `--ignore-flags`
 # set this leaves behind: a row returning without its flag fails that job.
 
+# aiohttp 3.14.3 carried three advisories: GHSA-2g87-pp6c-29x5 (unbounded
+# memory/CPU), a shared-cookie Secure attribute, and the missing initial
+# request/header timeout. The lock now holds 3.14.5; 3.14.4 is the first patched
+# release for all three. aiohttp reaches Ephe through edge-tts, the optional
+# voice path, as a client; the FastAPI server is uvicorn.
+# Why it is fixed: uv.lock moved to 3.14.5 and the frozen resolver has no path
+# back below it; pip-audit reports no aiohttp finding against the export.
+# Exposure as measured: aiohttp reaches Ephe only through edge-tts, the
+# optional voice path, as a client. The FastAPI server is uvicorn; the
+# server-side vectors in the three advisories did not apply to that use, and
+# the bump removes the finding for every install that carries the extra.
+GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed affected=<=3.14.3 fixed_in=3.14.5 recheck=2026-11-06
+
 # Re-check protocol for the entries below:
 #   1. `/work/.local/bin/uv pip compile` is not used here; the authoritative
 #      command is the one the gate runs — `uv export --frozen --all-groups --no-emit-project

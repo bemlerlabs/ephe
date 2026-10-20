@@ -382,6 +382,17 @@ def load_messages(sid: str) -> list[Message]:
         return []
 
 
+def transcript_size(sid: str) -> int | None:
+    """Bytes on disk for one validated session id; None when the id would leave the store."""
+    path = _session_file(sid)
+    if path is None:
+        return None
+    try:
+        return path.stat().st_size
+    except OSError:
+        return None
+
+
 def session_info(sid: str) -> dict[str, Any] | None:
     """Meta info + message count for a session. None when unknown."""
     meta = get_session(sid)
