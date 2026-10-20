@@ -30,6 +30,15 @@ pnpm run dev      # Vite dev server
 | **CSS** | Tailwind v4 (via `@tailwindcss/vite`) plus design tokens in `app/src/styles/globals.css`; no SCSS |
 | **Commits** | [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `test:`) |
 
+### Commit attribution
+
+Commits carry a registered GitHub noreply address
+(`<account-id>+<login>@users.noreply.github.com`), checked against `.github/identities.json`.
+A bare address is refused: it can later be claimed by whoever registers that domain. The
+GitHub web UI's squash merge writes the account's primary email, so maintainers merge with
+**Rebase and merge** or with a local `git merge` under the noreply identity. A commit that
+lands with a refused address is fixed forward; this history is not rewritten.
+
 ## Validation
 
 This repository runs the **CI quality gates** on every push to `main`/`develop` and every pull
