@@ -83,8 +83,8 @@ export const NAV_KEYS = [
 // I7-6: and audio + mobile — every slider there persists on change or on losing
 // focus, the cards do it when the token is saved.
 export const READONLY_TABS: ReadonlySet<TabKey> = new Set([
-  // I6-5/6: shortcuts and network are read-only surfaces — nothing here is saved.
-  'shortcuts',
+  // I6-5/6: network is a read-only surface. Shortcuts stays a read board except
+  // the desktop's global opt-in, which the register owns (Wave 6).
   'network',
   // I6-4: the lids are measured, not set — the footer button saved the engine
   // while the user was looking at a read-only board.

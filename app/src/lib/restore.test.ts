@@ -5,6 +5,28 @@
 import { describe, it, expect, vi } from 'vitest'
 
 const apiMock = vi.hoisted(() => ({
+  getSessionStore: vi.fn(async () => ({
+    sessions: [
+      {
+        id: 'srv1',
+        title: 'CLI task',
+        namespace: 'user',
+        created_at: '2026-10-20T01:00:00+00:00',
+        last_active: '2026-10-20T01:05:00+00:00',
+        message_count: 1,
+      },
+      { id: 'pwa-1', title: 'Mirror row', namespace: 'pwa-' },
+    ],
+  })),
+  getServerSession: vi.fn(async (id: string) => ({
+    id,
+    title: 'CLI task',
+    created_at: '2026-10-20T01:00:00+00:00',
+    last_active: '2026-10-20T01:05:00+00:00',
+    message_count: 1,
+    namespace: 'user',
+    messages: [{ role: 'user', content: 'from cli' }],
+  })),
   restoreSessions: vi.fn(async () => ({
     sessions: [
       {
@@ -53,8 +75,18 @@ const apiMock = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/api', () => apiMock)
 
-import { restoreFromServer } from './restore'
+import { restoreFromServer, restoreServerStore } from './restore'
 import type { ChatMessage } from '@/types'
+
+describe('restoreServerStore — the CLI/TUI tasks, not the mirror', () => {
+  it('lists a user task and skips the pwa mirror rows', async () => {
+    const out = await restoreServerStore()
+    expect(out.map((s) => s.id)).toEqual(['srv1'])
+    expect(out[0]?.title).toBe('CLI task')
+    expect((out[0]?.messages[0] as ChatMessage | undefined)?.content).toBe('from cli')
+    expect(apiMock.getServerSession).toHaveBeenCalledWith('srv1')
+  })
+})
 
 describe('restoreFromServer — modus-durchlassig', () => {
   it('uebernimmt mode aus dem Mirror-Eintrag', async () => {

@@ -24,7 +24,7 @@ import re
 from pathlib import Path
 
 from brand_geometry import silhouette_centre
-from theme_contrast import THEMES, contrast, resolved, rgb_of, theme_tables
+from theme_contrast import contrast, forest_table, resolved, rgb_of
 
 #: The in-app vector family and the template raster, all written by
 #: `scripts/generate_brand_assets.py`. The names are the contract the generator and
@@ -45,10 +45,11 @@ GRADIENT = re.compile(r"<(?:linear|radial)Gradient[^>]*>(.*?)</(?:linear|radial)
 FLAT_FILL = re.compile(r'fill="(var\(--[a-zA-Z0-9-]+\)|#[0-9a-fA-F]{3,8})"')
 VAR_LINK = re.compile(r"var\(\s*(--[a-zA-Z0-9-]+)\s*\)")
 
-#: The mark red against the field of its theme. Measured on this tree 2026-10-15:
-#: #E8543F on the ink ground #15120F is 5.13:1 and #B52E21 on paper #F0F0E6 is
-#: 5.42:1, while the frozen literal #d83828 measured 4.01:1 on the ink ground —
-#: under the floor, which is why the shipped icons stopped reading as the brand.
+#: The mark red against the field of the one ground. Measured on this tree
+#: 2026-10-15: #E8543F on the forest canvas #15120F is 5.13:1, while the frozen
+#: literal #d83828 measured 4.01:1 on the same ground — under the floor, which is
+#: why the shipped icons stopped reading as the brand. The paper ground this also
+#: measured against (#B52E21 at 5.42:1) left the product on 2026-10-19.
 MARK_RED_TOKEN = "--color-firefly"
 MARK_FIELD_TOKEN = "--color-canvas"
 MIN_MARK_CONTRAST = 4.5
@@ -139,11 +140,11 @@ def check_mark_provenance(root: Path, paths: list[Path]) -> list[str]:
 
 
 def check_mark_contrast(root: Path, paths: list[Path]) -> tuple[list[str], list[str]]:
-    """The mark red against the field of each theme, floor 4.5:1."""
+    """The mark red against the field of the one ground, floor 4.5:1."""
     sheet = css_of(root)
     if not sheet:
         return [], []
-    tables = theme_tables(sheet)
+    table = forest_table(sheet)
     problems: list[str] = []
     notes: list[str] = []
     for path in paths:
@@ -153,21 +154,19 @@ def check_mark_contrast(root: Path, paths: list[Path]) -> tuple[list[str], list[
                          f"of its own is measured")
             continue
         link = VAR_LINK.fullmatch(reference)
-        for theme in THEMES:
-            table = tables[theme]
-            value = resolved(table, link.group(1)) if link else reference
-            field = resolved(table, MARK_FIELD_TOKEN)
-            red, ground = rgb_of(value or ""), rgb_of(field or "")
-            if red is None or ground is None:
-                problems.append(f"{rel(root, path)}: the mark red {reference} does not resolve "
-                                f"in the {theme} theme")
-                continue
-            ratio = contrast(red, ground)
-            notes.append(f"{rel(root, path)}: {theme} mark red {value} on {field} "
-                         f"= {ratio:.2f}:1")
-            if ratio < MIN_MARK_CONTRAST:
-                problems.append(f"{rel(root, path)}: {theme} mark red {value} measures "
-                                f"{ratio:.2f}:1 on {field}, floor is {MIN_MARK_CONTRAST}:1")
+        value = resolved(table, link.group(1)) if link else reference
+        field = resolved(table, MARK_FIELD_TOKEN)
+        red, ground = rgb_of(value or ""), rgb_of(field or "")
+        if red is None or ground is None:
+            problems.append(f"{rel(root, path)}: the mark red {reference} does not resolve "
+                            f"on the forest ground")
+            continue
+        ratio = contrast(red, ground)
+        notes.append(f"{rel(root, path)}: forest mark red {value} on {field} "
+                     f"= {ratio:.2f}:1")
+        if ratio < MIN_MARK_CONTRAST:
+            problems.append(f"{rel(root, path)}: forest mark red {value} measures "
+                            f"{ratio:.2f}:1 on {field}, floor is {MIN_MARK_CONTRAST}:1")
     return problems, notes
 
 

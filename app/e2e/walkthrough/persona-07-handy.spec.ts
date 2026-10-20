@@ -269,12 +269,11 @@ const MOBILE_ONLY = ['header-menu-toggle', 'statusbar-tok-chip']
 
 const CHAT_PATH = '/#/chat'
 
-/** Forces the English shell + dark theme before the app boots. */
+/** Forces the English shell before the app boots. The look has no stored mode to set. */
 async function primeStorage(page: Page): Promise<void> {
   await page.addInitScript(() => {
     try {
       localStorage.setItem('i18nextLng', 'en') // deterministic shell language
-      localStorage.setItem('ephe.theme', 'dark')
     } catch {
       /* storage can be blocked; the default look is used then */
     }

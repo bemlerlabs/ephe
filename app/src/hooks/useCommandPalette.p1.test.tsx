@@ -152,7 +152,7 @@ describe('useCommandPalette: a control is reachable by name', () => {
     const hits = Object.values(result.current.grouped)
       .flat()
       .map((c) => c.id)
-    expect(hits).toContain('settings-row-privacy-settings.privacyProfileRow')
+    expect(hits).toContain('settings-row-behaviour-settings.privacyProfileRow')
   })
 
   it('a control entry opens the row tab AND hands the row name to the panel search', () => {
@@ -163,7 +163,7 @@ describe('useCommandPalette: a control is reachable by name', () => {
     act(() => result.current.setQuery('privacyProfileRow'))
     const entry = Object.values(result.current.grouped)
       .flat()
-      .find((c) => c.id === 'settings-row-privacy-settings.privacyProfileRow')
+      .find((c) => c.id === 'settings-row-behaviour-settings.privacyProfileRow')
     expect(entry).toBeTruthy()
 
     const seen: Array<{ type: string; detail?: unknown }> = []

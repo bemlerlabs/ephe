@@ -314,7 +314,6 @@ export interface AppSettings {
   provider: ProviderSettings
   memory_enabled: boolean
   language: string
-  theme: string
   /** F: workspace/project folder — the shell and file tools work inside it. */
   workspace_dir?: string | null
   /** R44 (P4): output path for document/image tools; empty = the Downloads default. */

@@ -19,7 +19,7 @@ import { ensureOnboarded } from './helpers'
  * the theme canvas. The compositing is what the browser paints, so a probe panel goes into
  * `document.body`, whose background is the canvas token, and two computed colours are asked for:
  * the panel's `background-color` with its alpha, and the ink resolved through a `var()` span the
- * way `app/src/lib/theme.ts:25-32` resolves one.
+ * way the sheet's own var() links resolve one.
  *
  * The canvas assumption bounds every figure here as it bounds the Python gate. Over a bright
  * content area the same veils read 2.50:1 to 3.21:1 for the muted role, which is wave 5's pixel
@@ -37,7 +37,7 @@ const LAYERS = ['glass-reading', 'glass-control', 'glass-float'] as const
 const ROLES = ['color-ink', 'color-ink-soft', 'color-ink-faint'] as const
 
 type Cell = {
-  theme: string
+  theme: 'forest'
   layer: string
   role: string
   ratio: number
@@ -74,10 +74,9 @@ function composite(fill: number[], ground: number[], alpha: number): number[] {
   return fill.map((c, i) => c * alpha + ground[i] * (1 - alpha))
 }
 
-async function grid(page: Page, theme: 'dark' | 'light'): Promise<Cell[]> {
+async function grid(page: Page): Promise<Cell[]> {
   const raw = await page.evaluate(
-    ([isLight, layers, roles]: [boolean, string[], string[]]) => {
-      document.documentElement.classList.toggle('light', isLight)
+    ([layers, roles]: [string[], string[]]) => {
       const canvas = getComputedStyle(document.body).backgroundColor
       const rows: { layer: string; role: string; panel: string; ink: string; canvas: string }[] = []
       for (const layer of layers) {
@@ -96,13 +95,13 @@ async function grid(page: Page, theme: 'dark' | 'light'): Promise<Cell[]> {
       }
       return rows
     },
-    [theme === 'light', [...LAYERS], [...ROLES]] as [boolean, string[], string[]],
+    [[...LAYERS], [...ROLES]] as [string[], string[]],
   )
   return raw.map((row) => {
     const fill = parseColor(row.panel)
     const ground = composite(fill.rgb, parseColor(row.canvas).rgb, fill.alpha)
     return {
-      theme,
+      theme: 'forest',
       layer: `.${row.layer}`,
       role: `--${row.role}`,
       panel: row.panel,
@@ -127,19 +126,17 @@ test.describe('glass layers in the built bundle', () => {
     await page.goto('/', { waitUntil: 'load' })
   })
 
-  for (const theme of ['dark', 'light'] as const) {
-    test(`every ink role holds AA behind every ${theme} layer`, async ({ page }) => {
-      const rows = await grid(page, theme)
-      expect(rows, '3 layers x 3 ink roles').toHaveLength(9)
-      console.log(`U3 glass grid, ${theme} theme, rendered from app/dist\n${table(rows)}`)
-      for (const row of rows) {
-        expect(
-          row.ratio,
-          `${row.theme} ${row.role} behind ${row.layer} (fill ${row.panel} on ${row.ink})`,
-        ).toBeGreaterThanOrEqual(AA_NORMAL)
-      }
-    })
-  }
+  test('every ink role holds AA behind every forest layer', async ({ page }) => {
+    const rows = await grid(page)
+    expect(rows, '3 layers x 3 ink roles on the one ground').toHaveLength(9)
+    console.log(`U3 glass grid, forest ground, rendered from app/dist\n${table(rows)}`)
+    for (const row of rows) {
+      expect(
+        row.ratio,
+        `${row.theme} ${row.role} behind ${row.layer} (fill ${row.panel} on ${row.ink})`,
+      ).toBeGreaterThanOrEqual(AA_NORMAL)
+    }
+  })
 
   test('the three layers are three veils, and every surface that names one paints it', async ({
     page,

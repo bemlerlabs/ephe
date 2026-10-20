@@ -5,23 +5,21 @@ import { test, expect, type Page, type Browser } from '@playwright/test'
 import { startAppFixture, type AppFixture } from './appFixture'
 
 /**
- * Wave D0 — the light/dark parity gate.
+ * Wave D0 — the parity gate, now on one ground.
  *
- * The product ships one visual language in two themes (`html.light` bends the same role
- * tokens, `docs/DESIGN.md` §3), and until now the theme question was answered per screen by
- * hand: `visual.spec.ts` baselines twelve states in one theme, `r33-a11y.spec.ts` measures
- * three named pairs, and every other surface was assumed. An assumption is what lets a token
- * that only exists in the dark block reach a paper canvas.
+ * The product ships one visual language and one theme: the forest (owner decision 2026-10-19
+ * removed the paper ground, `docs/DESIGN.md` §3). What this spec exists for has not changed —
+ * until it ran, the contrast question was answered per screen by hand, and an assumption is
+ * what lets a token reach a canvas it was never measured on.
  *
- * This spec measures instead of assuming. For every surface the app can be navigated to — the
- * run states, the four registers, the onboarding and all 23 settings tabs — in both themes and
- * at both the phone and the desktop width, it walks the painted DOM and computes the WCAG
- * contrast of every visible text run against the background it is actually composited onto
- * (the ancestor stack, so a glass veil counts as the blend it paints, not as its own alpha),
- * every control boundary against the ground behind it, and every surface whose composited
- * background stays dark while the paper theme is on. Those three are the classes the sweep
- * found by hand on 2026-10-18; a fourth — a glow that only reads on dark — shows up as one of
- * them, because a warm glow on paper is a contrast failure before it is a taste question.
+ * For every surface the app can be navigated to — the run states, the four registers, the
+ * onboarding and all 23 settings tabs — at both the phone and the desktop width, it walks the
+ * painted DOM and computes the WCAG contrast of every visible text run against the background
+ * it is actually composited onto (the ancestor stack, so a glass veil counts as the blend it
+ * paints, not as its own alpha) and every control boundary against the ground behind it. The
+ * third class this wave carried, an unbent dark surface on paper, left with the paper ground:
+ * its subject no longer exists, and a metric that can never fire is not coverage.
+ *
  *
  * No axe-core: the wave rule is no new npm package, and the audit needs only
  * `getComputedStyle`, which the r33 lane already trusts.
@@ -31,8 +29,8 @@ import { startAppFixture, type AppFixture } from './appFixture'
  * exceeds its entry, or appears without one, is red. A baseline moves in its own commit with
  * the before/after count, exactly like `.design-tokens-baseline.json` (DESIGN.md §12).
  *
- * `EPHE_THEME_SWEEP=1` additionally writes one PNG per surface/theme/width into
- * `out/theme-sweep-2026-10-18/` named `<surface>-<theme>-<width>.png` and the full finding list
+ * `EPHE_THEME_SWEEP=1` additionally writes one PNG per surface/ground/width into
+ * `out/forest-sweep-2026-10-19/` named `<surface>-<ground>-<width>.png` and the full list
  * beside it. That is the evidence pass; the committed lane only measures.
  *
  * Runner: `pnpm exec playwright test -c tests/playwright/playwright.config.ts theme-parity --workers=1`
@@ -41,17 +39,14 @@ import { startAppFixture, type AppFixture } from './appFixture'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const SWEEP = process.env.EPHE_THEME_SWEEP === '1'
-const OUT_DIR = resolve(HERE, '../../../out/theme-sweep-2026-10-18')
+const OUT_DIR = resolve(HERE, '../../../out/forest-sweep-2026-10-19')
 const BASELINE_PATH = resolve(HERE, 'theme-parity.baseline.json')
 
 const TEXT_FLOOR = 4.5
 const LARGE_TEXT_FLOOR = 3
 const BOUNDARY_FLOOR = 3
-/** A composited background darker than this on paper is an unbent dark token (DESIGN.md §6:
- *  a veil rests on a ground, and the paper ground is not near-black). */
-const DARK_ON_PAPER_LUMINANCE = 0.18
 
-type Metric = 'text' | 'boundary' | 'dark-surface' | 'render-error'
+type Metric = 'text' | 'boundary' | 'render-error'
 
 type Finding = {
   metric: Metric
@@ -104,7 +99,7 @@ const READS: Array<[RegExp, () => unknown]> = [
         },
         {
           id: 'd0-2',
-          content: 'A token that exists only in the dark block is a defect on paper.',
+          content: 'A token that exists only in the dark block is a defect on the shipped ground.',
           type: 'preference',
           source: 'session:d0',
           tags: [],
@@ -273,7 +268,7 @@ const READS: Array<[RegExp, () => unknown]> = [
           last_event: 'run_shell is waiting for approval',
           running_for_seconds: 42,
           agent: 'ephe-agent',
-          task: 'Sweep the themes',
+          task: 'Sweep the ground',
           change_summary: '3 files changed',
         },
         {
@@ -355,7 +350,7 @@ const READS: Array<[RegExp, () => unknown]> = [
   [
     /^\/api\/tasks$/,
     () => [
-      { id: 't1', title: 'Sweep both themes', status: 'open', project: 'd0' },
+      { id: 't1', title: 'Sweep the shipped ground', status: 'open', project: 'd0' },
       { id: 't2', title: 'Fix the token roots', status: 'done', project: 'd0' },
     ],
   ],
@@ -367,7 +362,7 @@ const READS: Array<[RegExp, () => unknown]> = [
         {
           name: 'theme-parity',
           trigger: 'parity',
-          description: 'Measures every surface in both themes.',
+          description: 'Measures every surface on the shipped ground.',
           is_builtin: true,
           version: '1.0.0',
         },
@@ -403,7 +398,7 @@ const READS: Array<[RegExp, () => unknown]> = [
       ],
     }),
   ],
-  [/^\/api\/settings$/, () => ({ language: 'en', theme: 'dark', memory_enabled: true })],
+  [/^\/api\/settings$/, () => ({ language: 'en', memory_enabled: true })],
   [
     /^\/api\/model\/providers$/,
     () => ({ active: {}, providers: [], local_models: [], local_model_options: [] }),
@@ -436,10 +431,10 @@ const READS: Array<[RegExp, () => unknown]> = [
  */
 async function auditPage(page: Page): Promise<Finding[]> {
   return page.evaluate(
-    ({ textFloor, largeFloor, boundaryFloor, darkLuminance }) => {
+    ({ textFloor, largeFloor, boundaryFloor }) => {
       type Rgb = { r: number; g: number; b: number; a: number }
       type Row = {
-        metric: 'text' | 'boundary' | 'dark-surface'
+        metric: 'text' | 'boundary'
         path: string
         detail: string
         ratio: number
@@ -558,29 +553,6 @@ async function auditPage(page: Page): Promise<Finding[]> {
         const onScreen = box.bottom > 0 && box.right > 0 && box.top < innerHeight + 4000
 
         if (!srOnly && onScreen) {
-          const lit = document.documentElement.classList.contains('light')
-          // Only an achromatic near-black is an unbent dark rule: the brand fill of a primary
-          // action sits at 0.15 luminance and is perfectly visible on paper. A control's own
-          // fill is its design, not a surface that forgot the theme.
-          const spread =
-            Math.max(paintedGround.r, paintedGround.g, paintedGround.b) -
-            Math.min(paintedGround.r, paintedGround.g, paintedGround.b)
-          if (
-            lit &&
-            spread <= 40 &&
-            luminance(paintedGround) < darkLuminance &&
-            !isControl(el) &&
-            box.width >= 40 &&
-            box.height >= 24
-          ) {
-            rows.push({
-              metric: 'dark-surface',
-              path: pathOf(el),
-              detail: `composited ground ${describe(paintedGround)} on paper`,
-              ratio: Number((1 / Math.max(luminance(paintedGround), 0.001)).toFixed(2)),
-            })
-          }
-
           const text = Array.from(el.childNodes).some(
             (node) => node.nodeType === 3 && (node.textContent ?? '').trim().length > 0,
           )
@@ -634,12 +606,11 @@ async function auditPage(page: Page): Promise<Finding[]> {
       textFloor: TEXT_FLOOR,
       largeFloor: LARGE_TEXT_FLOOR,
       boundaryFloor: BOUNDARY_FLOOR,
-      darkLuminance: DARK_ON_PAPER_LUMINANCE,
     },
   )
 }
 
-const METRICS: Metric[] = ['text', 'boundary', 'dark-surface', 'render-error']
+const METRICS: Metric[] = ['text', 'boundary', 'render-error']
 
 const countOf = (findings: Finding[]): Counts =>
   METRICS.reduce(
@@ -647,7 +618,7 @@ const countOf = (findings: Finding[]): Counts =>
       ...totals,
       [metric]: findings.filter((f) => f.metric === metric).length,
     }),
-    { text: 0, boundary: 0, 'dark-surface': 0, 'render-error': 0 },
+    { text: 0, boundary: 0, 'render-error': 0 },
   ) as Counts
 
 /**
@@ -703,7 +674,7 @@ const resetToChat = async (page: Page, origin: string) => {
 async function capture(
   page: Page,
   surface: string,
-  theme: 'dark' | 'light',
+  theme: string,
   width: number,
   findings: Record<string, Finding[]>,
   failure: Finding | null = null,
@@ -716,7 +687,7 @@ async function capture(
   const counts = countOf(rows)
   console.log(
     `theme-parity ${key} text=${counts.text} boundary=${counts.boundary} ` +
-      `dark-surface=${counts['dark-surface']} render=${counts['render-error']}` +
+      `render=${counts['render-error']}` +
       (rows.length ? ` worst=${JSON.stringify(rows.slice(0, 2))}` : ''),
   )
   if (SWEEP) {
@@ -724,25 +695,29 @@ async function capture(
   }
 }
 
-const boot = async (page: Page, theme: 'dark' | 'light', origin: string, label = 'page') => {
+const boot = async (page: Page, theme: string, origin: string, label = 'page') => {
   watchErrors(page, label)
   page.setDefaultNavigationTimeout(20_000)
   page.setDefaultTimeout(10_000)
-  await page.addInitScript((mode) => {
+  await page.addInitScript(() => {
     localStorage.setItem('i18nextLng', 'en')
     localStorage.setItem('ephe_onboarded', '1')
     localStorage.setItem('ephe.intro.seen.v1', '1')
-    localStorage.setItem('ephe.theme', mode)
-  }, theme)
+  })
   await page.goto(`${origin}/#/chat`, { waitUntil: 'load' })
   await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 20_000 })
-  // The walk must know which theme it is in: two walks in one class would print identical
-  // figures and read as both themes passing (`u6-focus.spec.ts:523` learned this the hard way).
+  // One ground, so the walk has nothing to select and nothing to verify it selected: a
+  // stored mode or a bent class would mean a second ground came back, and the guard in
+  // `tests/test_forest_only.py` refuses that at the source instead of here.
   const applied = await page.evaluate(() => document.documentElement.className || '(none)')
-  expect(applied.includes('light'), `asked ${theme}, html class "${applied}"`).toBe(
-    theme === 'light',
+  expect(applied.includes('light'), `the document carries a second ground: "${applied}"`).toBe(
+    false,
   )
 }
+
+/// The grounds the product ships. A second entry here doubles the matrix and the baseline;
+/// the sweep is written so adding one is a deliberate edit, not a default.
+const GROUNDS = ['forest'] as const
 
 /**
  * Open the settings register and say whether it opened. At phone width the sidebar is a drawer
@@ -796,7 +771,7 @@ const REGISTERS: Array<[string, string, string]> = [
   ['tools', '#/tools', '[data-testid="tools-vision"]'],
 ]
 
-test.describe('D0 light/dark parity', () => {
+test.describe('D0 contrast parity on the one ground', () => {
   test.describe.configure({ mode: 'serial' })
   test.setTimeout(600_000)
 
@@ -814,7 +789,7 @@ test.describe('D0 light/dark parity', () => {
       chunks: [
         { type: 'tool_start', tool: 'read_file', args: { path: 'globals.css' } },
         'reading ',
-        { type: 'stdout', tool: 'read_file', data: 'html.light {' },
+        { type: 'stdout', tool: 'read_file', data: '--color-canvas: hsl(30 16.7% 7.06%);' },
         { type: 'tool_done', tool: 'read_file', result: 'ok', duration_ms: 34 },
         'the studio ',
         {
@@ -828,7 +803,7 @@ test.describe('D0 light/dark parity', () => {
           type: 'sandbox_confirm',
           token: 'd0-token',
           tool: 'run_shell',
-          args: { command: 'rg html.light globals.css' },
+          args: { command: 'rg --color-canvas globals.css' },
           rememberable: true,
           diff: '@@ -1 +1 @@',
         },
@@ -887,7 +862,7 @@ test.describe('D0 light/dark parity', () => {
     ).catch(() => undefined)
   })
 
-  test('every surface in both themes at both widths, measured', async ({
+  test('every surface on the one ground at both widths, measured', async ({
     browser,
   }: {
     browser: Browser
@@ -897,7 +872,7 @@ test.describe('D0 light/dark parity', () => {
     const offline = offlineFixture?.origin
     if (!origin || !fresh || !offline) throw new Error('fixtures did not start')
 
-    for (const theme of ['dark', 'light'] as const) {
+    for (const theme of GROUNDS) {
       for (const width of [1280, 390] as const) {
         const context = await browser.newContext({
           viewport: { width, height: width === 390 ? 844 : 800 },
@@ -922,7 +897,7 @@ test.describe('D0 light/dark parity', () => {
         await offlinePage.close()
 
         await page.getByTestId('chat-input').focus()
-        await page.keyboard.type('sweep both themes')
+        await page.keyboard.type('sweep the ground')
         await page.keyboard.press('Enter')
         await page.waitForSelector('[data-testid="message-row"]', { timeout: 20_000 })
         await capture(page, 'chat-turn', theme, width, findings)
@@ -1033,10 +1008,9 @@ test.describe('D0 light/dark parity', () => {
         // The setup chooser and the first open, from a profile that has seen neither.
         console.log(`theme-parity BLOCK first-open ${theme}/${width}`)
         const freshPage = await context.newPage()
-        await freshPage.addInitScript((mode) => {
+        await freshPage.addInitScript(() => {
           localStorage.setItem('i18nextLng', 'en')
-          localStorage.setItem('ephe.theme', mode)
-        }, theme)
+        })
         await freshPage.goto(`${fresh}/#/setup`, { waitUntil: 'load' })
         await freshPage.waitForSelector('[data-testid="setup-page"]', { timeout: 20_000 })
         await capture(freshPage, 'setup', theme, width, findings)

@@ -238,7 +238,7 @@ describe('W3-57 — Tastaturpfad durch die Hauptflächen (ChatLayout)', () => {
     const more = await screen.findByTestId('header-more')
     more.focus()
     fireEvent.keyDown(more, { key: 'Enter' })
-    for (const id of ['header-new-session', 'header-update', 'header-theme', 'header-help']) {
+    for (const id of ['header-new-session', 'header-update', 'header-help']) {
       const el = await screen.findByTestId(id)
       expect(el.getAttribute('role'), id).toBe('menuitem')
       expect(el.textContent?.trim(), id).toBeTruthy()

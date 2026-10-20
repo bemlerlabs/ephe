@@ -13,10 +13,23 @@
  * a full-width card because it holds sentences where the register rows hold a value;
  * the section's one save footer writes it like every other field here.
  */
+import { FolderInput, FolderOpen } from 'lucide-react'
 import PageHeader from '@/components/shell/PageHeader'
-import { SettingsGroup } from '@/components/shell/SettingsRow'
+import {
+  FIELD_COL,
+  SettingsGroup,
+  SettingsRow,
+  SettingVerb,
+  VERB_BUTTON,
+} from '@/components/shell/SettingsRow'
+import { CONTROL_CLASS } from '@/components/shell/SettingControl'
+import FolderPickerDialog from '../../FolderPickerDialog'
+import { ApprovalRegister } from './approvalRegister'
 import { DeepFields } from './deepFields'
 import type { SettingsModel } from './types'
+
+/** The register's native field, right-aligned for values. */
+const FIELD = `${FIELD_COL} max-md:w-32 ${CONTROL_CLASS} text-right placeholder:text-ink-faint pointer-coarse:min-h-11 pointer-coarse:text-ui-input`
 
 function CustomInstructionsCard({ model }: { model: SettingsModel }) {
   const { deepDraft, deepSections, i18n, setDeepField, t } = model
@@ -59,12 +72,52 @@ function CustomInstructionsCard({ model }: { model: SettingsModel }) {
 }
 
 export function BehaviourSection({ model }: { model: SettingsModel }) {
-  const { t } = model
+  const { t, setWorkspaceDraft, setWsPickerOpen, workspaceDraft, wsPickerOpen } = model
 
   return (
     <div className="space-y-4">
       <PageHeader title={t('settings.behaviourTitle')} subtitle={t('settings.behaviourHint')} />
+      <SettingsGroup
+        icon={FolderInput}
+        title={t('settings.engineFolders')}
+        testid="behaviour-group-workspace"
+      >
+        <SettingsRow
+          icon={FolderInput}
+          title={t('settings.workspaceTitle')}
+          description={t('settings.workspaceRowHint')}
+          testid="engine-row-workspace"
+        >
+          <input
+            id="settings-workspace"
+            value={workspaceDraft}
+            onChange={(e) => setWorkspaceDraft(e.target.value)}
+            placeholder="/Users/you/projects/my-project"
+            aria-label={t('settings.workspaceTitle')}
+            data-testid="settings-workspace"
+            spellCheck={false}
+            className={FIELD}
+          />
+          <SettingVerb>
+            <button
+              type="button"
+              onClick={() => setWsPickerOpen(true)}
+              data-testid="settings-workspace-pick"
+              className={VERB_BUTTON}
+            >
+              <FolderOpen className="h-3 w-3" />
+              {t('workspacePicker.open')}
+            </button>
+          </SettingVerb>
+        </SettingsRow>
+        <FolderPickerDialog
+          open={wsPickerOpen}
+          onClose={() => setWsPickerOpen(false)}
+          onPick={(p) => setWorkspaceDraft(p)}
+        />
+      </SettingsGroup>
       <CustomInstructionsCard model={model} />
+      <ApprovalRegister model={model} />
       <DeepFields model={model} prefixes={['chat.']} />
     </div>
   )

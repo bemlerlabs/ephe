@@ -35,7 +35,7 @@ interface CompanionActorProps {
   scale?: number
   still?: boolean
   flying?: boolean
-  size?: 'hero' | 'workspace'
+  size?: 'hero' | 'workspace' | 'header' | 'studio'
   testId?: string
   className?: string
   onActivate?: () => void

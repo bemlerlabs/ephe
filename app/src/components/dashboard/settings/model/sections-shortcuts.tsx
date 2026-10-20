@@ -16,6 +16,8 @@ import { Keyboard, LayoutGrid, SquareTerminal } from 'lucide-react'
 import PageHeader from '@/components/shell/PageHeader'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
 import { SHORTCUTS, isMacPlatform, renderKeys } from '@/lib/shortcuts'
+import { isDesktopShell } from '@/lib/tauriBridge'
+import { DeepFields } from './deepFields'
 import type { SettingsModel } from './types'
 
 const GROUPS = [
@@ -31,6 +33,24 @@ export function ShortcutsSection({ model }: { model: SettingsModel }) {
   return (
     <div className="space-y-4">
       <PageHeader title={t('shortcuts.title')} subtitle={t('settings.shortcutsHint')} />
+      {isDesktopShell() ? (
+        <DeepFields model={model} prefixes={['shortcuts.']} title={null} />
+      ) : (
+        <SettingsGroup
+          icon={Keyboard}
+          title={t('settings.shortcutsGroup.global')}
+          testid="shortcuts-group-desktop"
+        >
+          <SettingsRow
+            icon={Keyboard}
+            title={t('settings.globalShortcutLabel')}
+            description={t('settings.globalShortcutDesktopOnly')}
+            testid="shortcuts-global-desktop"
+          >
+            <span className="text-ui-xs text-ink-faint">{t('settings.desktopOnly')}</span>
+          </SettingsRow>
+        </SettingsGroup>
+      )}
       {GROUPS.map((group) => {
         const rows = SHORTCUTS.filter((s) => s.group === group.key)
         if (rows.length === 0) return null

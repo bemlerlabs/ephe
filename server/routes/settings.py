@@ -35,6 +35,7 @@ from core.model_provider import (
     validate_provider_type,
 )
 from core.engine_config import (
+    OPENAI_COMPAT,
     EngineChoice,
     clear_engine_config,
     load_engine_config,
@@ -60,7 +61,6 @@ class SettingsRequest(BaseModel):
     provider: ProviderSettings | None = None
     memory_enabled: bool | None = None
     language: str | None = None
-    theme: str | None = None
     # F: workspace/project folder — the shell/file tools work inside it (like an
     # editor workspace). None/empty = the previous behaviour (server cwd).
     workspace_dir: str | None = None
@@ -156,7 +156,6 @@ async def get_settings() -> dict:
         "provider": _active_provider_dict(),
         "memory_enabled": os.environ.get("EPHE_MEMORY_ENABLED", "1") != "0",
         "language": os.environ.get("EPHE_LANGUAGE", "de"),
-        "theme": os.environ.get("EPHE_THEME", "dark"),
         "workspace_dir": _workspace_dir_dict(),
         "output_dir": _output_dir_dict(),
         # M2: approval profile for the composer badge (strict|session|autonomous).
@@ -219,8 +218,6 @@ async def update_settings(req: SettingsRequest) -> dict:
         os.environ["EPHE_MEMORY_ENABLED"] = "1" if req.memory_enabled else "0"
     if req.language:
         os.environ["EPHE_LANGUAGE"] = req.language
-    if req.theme:
-        os.environ["EPHE_THEME"] = req.theme
     if req.workspace_dir is not None or req.output_dir is not None:
         # F: set or clear the workspace — validated (must be an existing dir).
         # R44 (P4): output_dir as the second folder entry of the same file —
@@ -319,7 +316,6 @@ async def update_settings(req: SettingsRequest) -> dict:
         "provider": _active_provider_dict(),
         "memory_enabled": os.environ.get("EPHE_MEMORY_ENABLED", "1") != "0",
         "language": os.environ.get("EPHE_LANGUAGE", "de"),
-        "theme": os.environ.get("EPHE_THEME", "dark"),
         "workspace_dir": _workspace_dir_dict(),
         "output_dir": _output_dir_dict(),
         # M2: approval profile for the composer badge (strict|session|autonomous).
@@ -593,6 +589,20 @@ async def _probe_openai_auto(url: str, allow_siblings: bool = True) -> dict[str,
     }
 
 
+def _engine_choice_is_complete(choice: EngineChoice | None) -> bool:
+    """A persisted choice counts as configured only when it can produce a provider.
+
+    openai_compatible without an endpoint is a half-written choice: the provider
+    resolver cannot build it, so the gate must show the setup page instead of a
+    chat that can only report Disconnected.
+    """
+    if choice is None or not str(choice.model or "").strip():
+        return False
+    if choice.provider == OPENAI_COMPAT and not str(choice.api_url or "").strip():
+        return False
+    return True
+
+
 def _setup_provider_dict() -> dict:
     """Active engine + reachability status for the setup UI.
 
@@ -615,9 +625,14 @@ def _setup_provider_dict() -> dict:
     model = persisted.model if (persisted and persisted.model) else active.model
     url = persisted.api_url if persisted else (active.base_url if active.provider == "openai_compatible" else None)
     reachable, available_models = _probe_memoised(provider, url)
+    complete = _engine_choice_is_complete(persisted)
+    incomplete = persisted is not None and not complete
     return {
-        "configured": persisted is not None,
-        "skipped": _setup_skipped(),
+        "configured": complete,
+        # A deliberate skip with no engine at all still opens the chat (which
+        # stays fail-closed). A half-written persisted engine is different: it
+        # leaves nothing usable to skip to, so the setup page stays reachable.
+        "skipped": _setup_skipped() and not incomplete,
         "provider": provider,
         "model": model,
         "url": url,

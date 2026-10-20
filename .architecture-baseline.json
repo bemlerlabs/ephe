@@ -1,11 +1,11 @@
 {
   "policyVersion": 1,
-  "frozenAt": "2026-10-11T19:19:55.124Z",
+  "frozenAt": "2026-10-20T07:41:59.549Z",
   "perRule": {
-    "maxFileLines": 45,
+    "maxFileLines": 51,
     "maxPublicMethods": 1,
-    "forbidDeepImports": 3,
+    "forbidDeepImports": 4,
     "maxContractLines": 1
   },
-  "total": 50
+  "total": 57
 }

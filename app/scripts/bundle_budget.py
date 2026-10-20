@@ -32,6 +32,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     "index.js": 160.0,       # React 19 runtime + App shell, the entry chunk
     "ChatPage.js": 112.0,    # chat shell only — wave-3 split moved the panes out
     "AgentPanel.js": 118.0,  # W3-1: agent panel + xterm, its own lazy chunk
+    # 2026-10-20: the settings register left ChatPage (112.1 kB, 0.1 over) and
+    # became its own lazy chunk, opened rather than painted. Measured 29.48 kB
+    # gzip; the row carries ~10% headroom. ChatPage now measures 83.82 kB.
+    "SettingsPanel.js": 32.5,
     "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
     "motion.js": 30.8,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion)
     "ui-vendor.js": 40.0,    # lucide-react, i18next

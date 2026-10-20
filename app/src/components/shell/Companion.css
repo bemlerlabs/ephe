@@ -14,6 +14,12 @@
 .companion-actor.is-workspace {
   --companion-base: clamp(9rem, 13vw, 12rem);
 }
+.companion-actor.is-header {
+  --companion-base: 1.5rem;
+}
+.companion-actor.is-studio {
+  --companion-base: 6rem;
+}
 .companion-turn {
   position: absolute;
   inset: 0;
@@ -204,13 +210,17 @@
 @media (prefers-reduced-motion: reduce) {
   .companion-actor .companion-wing,
   .companion-actor .companion-flame,
-  .companion-actor .companion-spark-halo {
+  .companion-actor .companion-spark-halo,
+  .workspace-companion .companion-turn,
+  .header-companion .companion-turn {
     animation: none !important;
   }
 }
 html.no-motion .companion-actor .companion-wing,
 html.no-motion .companion-actor .companion-flame,
-html.no-motion .companion-actor .companion-spark-halo {
+html.no-motion .companion-actor .companion-spark-halo,
+html.no-motion .workspace-companion .companion-turn,
+html.no-motion .header-companion .companion-turn {
   animation: none !important;
 }
 
@@ -233,23 +243,72 @@ html.no-motion .companion-actor .companion-spark-halo {
 .workspace-companion.is-interactive.is-streaming {
   transform: translate(-4.5rem, -2.4rem) scale(1.07);
 }
-.workspace-companion.is-looping .companion-turn {
-  animation: companion-loop 950ms var(--ease-out-soft);
+.workspace-companion.is-quiet,
+.header-companion.is-quiet {
+  opacity: 0.55;
+}
+.workspace-companion.is-settle .companion-turn,
+.header-companion.is-settle .companion-turn {
+  animation: companion-settle 380ms var(--ease-organic) once;
+}
+@keyframes companion-settle {
+  0% {
+    transform: scale(0.62);
+  }
+  55% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.header-companion-slot {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2rem;
+  flex: none;
+  overflow: visible;
+}
+.header-companion {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.header-companion .companion-glow,
+.header-companion .companion-sparks {
+  display: none;
+}
+.companion-trigger {
+  display: block;
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.companion-popover {
+  position: absolute;
+  z-index: 60;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  width: min(18rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+}
+.companion-popover.is-header {
+  top: calc(100% + 0.5rem);
+  right: auto;
+  bottom: auto;
+  left: 0;
+}
+body.ephe-tour-open .workspace-companion,
+body.ephe-tour-open .header-companion-slot,
+body.ephe-tour-open [data-testid='ephe-mark-hero'] {
+  visibility: hidden;
 }
 .workspace-companion .companion-actor {
   cursor: pointer;
-}
-
-@keyframes companion-loop {
-  0% {
-    transform: rotateY(0deg) translateY(0);
-  }
-  45% {
-    transform: rotateY(360deg) translateY(-14px) scale(1.06);
-  }
-  100% {
-    transform: rotateY(360deg) translateY(0);
-  }
 }
 
 @media (max-width: 1100px) {
@@ -259,11 +318,26 @@ html.no-motion .companion-actor .companion-spark-halo {
   }
 }
 @media (max-width: 640px) {
-  .workspace-companion {
-    right: 0.7rem;
+  /* The task dock keeps the bottom-right corner at phone width; the figure
+     rests on the other side so neither label sits under the other. */
+  .workspace-companion,
+  .workspace-companion.is-perch {
+    left: 0.7rem;
+    right: auto;
   }
   .workspace-companion.is-interactive.is-streaming {
-    transform: translate(-2rem, -1.6rem) scale(1.02);
+    transform: translate(0, -1.6rem) scale(1.02);
+  }
+  .companion-popover {
+    left: 0;
+    right: auto;
+  }
+  .companion-popover.is-header {
+    position: fixed;
+    top: calc(3rem + env(safe-area-inset-top));
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
   }
 }
 

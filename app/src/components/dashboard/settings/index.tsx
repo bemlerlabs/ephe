@@ -19,6 +19,7 @@ import { RegisterNav } from './registerNav'
 import { matchFields, matchRows, matchTabs } from './model/settingsSearch'
 import type { SettingsPanelProps, TabKey } from './types'
 import { READONLY_TABS } from './types'
+import { isDesktopShell } from '@/lib/tauriBridge'
 
 /** Make everything outside the dialog unreachable (P4 finding 5): the siblings
  *  along the ancestor chain get `inert` (keyboard/mouse/AT) and `aria-hidden`
@@ -34,6 +35,9 @@ function makeBackgroundInert(dialog: HTMLElement): () => void {
     for (const sib of Array.from(node.parentElement?.children ?? [])) {
       const el = sib as HTMLElement
       if (el === node || el.contains(dialog)) continue
+      // A global live region (the Toaster) must stay announceable over the modal;
+      // it carries no focusable content that could escape the trap.
+      if (el.hasAttribute('data-inert-exempt')) continue
       if (el.hasAttribute('inert') || el.getAttribute('aria-hidden') === 'true') continue
       el.setAttribute('inert', '')
       el.setAttribute('aria-hidden', 'true')
@@ -55,6 +59,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
     i18n,
     activeTab,
     deepChanged,
+    otherDeepChanged,
     deepSections,
     loading,
     saving,
@@ -235,11 +240,12 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
           <div className="flex flex-1 min-h-0 max-md:flex-col">
             <nav
               aria-label={t('settings.title')}
-              className="w-52 shrink-0 border-r border-hairline p-2 overflow-y-auto max-md:w-full max-md:flex max-md:gap-1 max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:border-r-0 max-md:border-b max-md:border-hairline max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden max-md:[mask-image:linear-gradient(to_right,transparent_0,black_12px,black_calc(100%-28px),transparent_100%)]"
+              className="w-52 shrink-0 border-r border-hairline p-2 overflow-y-auto max-md:w-full max-md:flex max-md:flex-col max-md:border-r-0 max-md:border-b max-md:border-hairline"
             >
               {/* I3-V5: search in the navigation — it finds areas and the single
-                  setting, and jumps there. That made the expert box redundant. */}
-              <div className="mb-3 max-md:hidden">
+                  setting, and jumps there. That made the expert box redundant.
+                  It stays above the chip strip at every width. */}
+              <div className="mb-3">
                 <SearchInput
                   value={settingsQuery}
                   onChange={setSettingsQuery}
@@ -294,59 +300,61 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
               the drafts of the main block — workspace path, output path, generation —
               are not counted into it, so the button also stands without a counted
               change. Hiding it would make those drafts unreachable. */}
-          {!READONLY_TABS.has(activeTab) && (
-            /* Static flex sibling: measured 0 px overlap with the scroll column at 390x844 and
+          {!READONLY_TABS.has(activeTab) &&
+            !(activeTab === 'shortcuts' && !isDesktopShell()) &&
+            !(activeTab === 'appearance' && otherDeepChanged === 0) && (
+              /* Static flex sibling: measured 0 px overlap with the scroll column at 390x844 and
                1280x800. The inset it was missing is the home-indicator band of a notched phone
                running the installed PWA. */
-            <div className="px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-hairline bg-canvas">
-              {saved ? (
-                <div
-                  ref={savedRef}
-                  tabIndex={-1}
-                  role="status"
-                  data-testid="settings-saved"
-                  className="flex h-10 items-center gap-2 text-scale-ui text-ink outline-none"
-                >
-                  <Check className="h-4 w-4" />
-                  {t('settings.saved')}
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  {/* The direction's filled verb: ink on the canvas, square corners,
-                      the UI step. The accent stays for what is running now. */}
-                  <button
-                    ref={saveBtnRef}
-                    data-testid="settings-save"
-                    onClick={saveSettings}
-                    disabled={saving}
-                    className="focus-ring inline-flex h-9 items-center gap-2 border border-ink bg-ink px-4 text-scale-ui text-canvas transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-11"
+              <div className="px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-hairline bg-canvas">
+                {saved ? (
+                  <div
+                    ref={savedRef}
+                    tabIndex={-1}
+                    role="status"
+                    data-testid="settings-saved"
+                    className="flex h-10 items-center gap-2 text-scale-ui text-ink outline-none"
                   >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-                    {t('settings.save')}
-                  </button>
-                  {/* The count of open changes on the right data axis, where every
+                    <Check className="h-4 w-4" />
+                    {t('settings.saved')}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    {/* The direction's filled verb: ink on the canvas, square corners,
+                      the UI step. The accent stays for what is running now. */}
+                    <button
+                      ref={saveBtnRef}
+                      data-testid="settings-save"
+                      onClick={saveSettings}
+                      disabled={saving}
+                      className="focus-ring inline-flex h-9 items-center gap-2 border border-ink bg-ink px-4 text-scale-ui text-canvas transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-11"
+                    >
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                      {t('settings.save')}
+                    </button>
+                    {/* The count of open changes on the right data axis, where every
                       number of this surface sits. */}
-                  {deepChanged > 0 && (
-                    <span className="ml-auto flex items-baseline gap-2">
-                      <span
-                        data-testid="settings-save-changed"
-                        className="font-mono text-scale-data tabular-nums text-ink-soft"
-                      >
-                        {deepChanged}
+                    {deepChanged > 0 && (
+                      <span className="ml-auto flex items-baseline gap-2">
+                        <span
+                          data-testid="settings-save-changed"
+                          className="font-mono text-scale-data tabular-nums text-ink-soft"
+                        >
+                          {deepChanged}
+                        </span>
+                        <span className="text-scale-data text-ink-faint">
+                          {t('settings.unsavedWord')}
+                        </span>
                       </span>
-                      <span className="text-scale-data text-ink-faint">
-                        {t('settings.unsavedWord')}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       )}
     </AnimatePresence>

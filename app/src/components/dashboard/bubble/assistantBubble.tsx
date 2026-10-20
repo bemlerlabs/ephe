@@ -178,7 +178,7 @@ export function AssistantBubble({
           {/* 3. Content (+ streaming cursor) */}
           {(m.content || m.streaming) && (
             <div
-              className="text-ui-sm text-foreground/90 prose prose-invert max-w-none break-words prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground prose-em:text-foreground/90"
+              className="chat-reading-type text-foreground/90 prose prose-invert max-w-none break-words prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground prose-em:text-foreground/90"
               aria-live={m.streaming ? 'polite' : undefined}
               aria-atomic={false}
             >

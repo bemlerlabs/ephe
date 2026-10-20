@@ -1,25 +1,27 @@
 /**
  * The companion in the active chat: the bee (or the spark) that outlives the
  * onboarding. It sits above the composer, moves toward the answer while the
- * engine works, and loops once when it is clicked.
+ * engine works, and opens its quick panel on click.
  *
- * All five companion settings are read here. `welcome_only` retires it as soon
- * as the chat has messages; the welcome screen owns the empty state, so this
- * surface never doubles the figure there.
+ * The run state is the one `runStateOf` hands the run bar — no second health
+ * read and no private interval. `header` is the header perch's place; this
+ * surface stays out of it.
  */
 import './Companion.css'
-import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
-import { CompanionActor, type CompanionHandle, type CompanionSpecies } from './CompanionActor'
+import type { RunState } from './AgenticBar'
+import { CompanionQuickPanel } from './CompanionQuickPanel'
+import type { CompanionSpecies } from './CompanionActor'
+import { companionMood } from './companionState'
 
 const SPECIES: CompanionSpecies[] = ['fire_bee', 'ember_spark', 'minimal']
 
 export default function WorkspaceCompanion({
-  isStreaming,
+  runState,
   hasMessages,
 }: {
-  isStreaming: boolean
+  runState: RunState
   hasMessages: boolean
 }) {
   const enabled = useDeepBool('appearance.companion_enabled', true)
@@ -28,14 +30,10 @@ export default function WorkspaceCompanion({
   const scale = useDeepNumber('appearance.companion_scale', 100)
   const animationsEnabled = useDeepBool('appearance.animations_enabled', true)
   const reduced = useReducedMotion()
-  const still = Boolean(reduced) || !animationsEnabled
-  const actor = useRef<CompanionHandle>(null)
-  const loopTimer = useRef(0)
-  const [looping, setLooping] = useState(false)
+  const mood = companionMood(runState)
+  const still = Boolean(reduced) || !animationsEnabled || mood === 'still' || mood === 'settle'
 
-  useEffect(() => () => window.clearTimeout(loopTimer.current), [])
-
-  if (!enabled || !hasMessages || behavior === 'welcome_only') return null
+  if (!enabled || !hasMessages || behavior === 'welcome_only' || behavior === 'header') return null
 
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)
@@ -47,24 +45,18 @@ export default function WorkspaceCompanion({
       data-testid="workspace-companion"
       data-behavior={behavior}
       data-species={form}
+      data-state={runState}
+      data-mood={mood}
       className={`workspace-companion is-${interact ? 'interactive' : 'perch'}${
-        isStreaming ? ' is-streaming' : ''
-      }${looping ? ' is-looping' : ''}`}
+        mood === 'moving' ? ' is-streaming' : ''
+      }${mood === 'still' ? ' is-quiet' : ''}${mood === 'settle' ? ' is-settle' : ''}`}
     >
-      <CompanionActor
-        ref={actor}
+      <CompanionQuickPanel
+        runState={runState}
         species={form}
         scale={scale}
         still={still}
-        flying={isStreaming}
-        size="workspace"
-        onActivate={() => {
-          actor.current?.turnTo(14)
-          actor.current?.burst()
-          setLooping(true)
-          window.clearTimeout(loopTimer.current)
-          loopTimer.current = window.setTimeout(() => setLooping(false), 1050)
-        }}
+        placement="composer"
       />
     </div>
   )

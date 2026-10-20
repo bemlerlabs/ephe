@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -23,7 +24,9 @@ from textual.widgets import Footer, Static
 if TYPE_CHECKING:
     from core.model_provider import ModelProviderConfig
 
-from core import __edition__, __tagline__, __version__
+
+from core import __tagline__, __version__
+from core import multi_session as ms
 from core.chat import (
     EngineNotReachableError,
     OllamaModelBusyError,
@@ -31,17 +34,11 @@ from core.chat import (
     OllamaNotReachableError,
     check_engine_connection,
     check_ollama_connection,
-    chat_with_tools,
 )
 from core.react import react_loop, ReActStep
 from core.tools import ShellConfirmationRequired
 from core.tools.approval import ApprovalPolicy
-from core.engine_config import (
-    EngineChoice,
-    OPENAI_COMPAT,
-    load_engine_config,
-    save_engine_config,
-)
+from core.engine_config import OPENAI_COMPAT
 from core.swarm import run_swarm
 from core.commands import (
     extract_learn_topic,
@@ -54,21 +51,38 @@ from core.commands import (
     render_info_command,
     resolve_command,
 )
-from core.session import (
-    delete_session,
-    load_last_session,
-    save_session,
-    session_info,
-    was_session_corrupt,
-)
 from core.types import Message
 from core.memory import Memory
 from core.profile import UserProfile, load_profile
 from core.corrections import CorrectionJournal
 from core.skills import SkillLoader
-from ui.widgets import ChatView, ConfirmPrompt, HistoryInput, StatusBar
+from ui.composer import Composer
+from ui.widgets import ChatView, ConfirmPrompt, StatusBar
 from ui.context_meter import estimate_context_usage, resolve_window
-from ui.palette import ACCENT
+from ui.overlays import CommandPalette, HelpOverlay, ModelPicker, PaletteEntry
+from ui.session_switcher import SessionChoice, SessionSwitcher
+from ui import editor as editor_mod
+from ui import file_context
+from ui.palette import ACCENT, DIM, ERROR, OK, WARN
+
+
+def _relative_when(iso: object) -> str:
+    """A short age for the session greeting; the store writes ISO-8601."""
+    try:
+        stamp = datetime.fromisoformat(str(iso))
+        if stamp.tzinfo is None:
+            stamp = stamp.replace(tzinfo=timezone.utc)
+        delta = datetime.now(tz=timezone.utc) - stamp
+        if delta.days == 0:
+            hours = delta.seconds // 3600
+            if hours == 0:
+                return "just now"
+            return "1 hour ago" if hours == 1 else f"{hours} hours ago"
+        if delta.days == 1:
+            return "yesterday"
+        return f"{delta.days} days ago"
+    except (TypeError, ValueError):
+        return ""
 
 
 def _chosen_engine():
@@ -95,7 +109,7 @@ def _key_label(key: str) -> str:
     """A key as the greeting spells it: 'ctrl+r' reads as 'Ctrl+R', a bare 'q' as 'q'."""
     parts = key.split("+")
     if len(parts) == 1:
-        return key
+        return key.upper() if key.startswith("f") and key[1:].isdigit() else key
     return "+".join(part.upper() if len(part) == 1 else part.capitalize() for part in parts)
 
 
@@ -158,7 +172,7 @@ class EpheApp(App):
     def _key_hints(self) -> str:
         """The key lines of the greeting, built from the widgets that own the keys.
 
-        The input row comes from ``HistoryInput.KEYS`` and the app row from
+        The input row comes from ``Composer.KEYS`` and the app row from
         ``BINDINGS``, so a new binding reaches the greeting without a second edit.
         """
         app_row = "  ·  ".join(
@@ -166,12 +180,19 @@ class EpheApp(App):
             for binding in self.BINDINGS
             if binding.show
         )
-        return "\n   ".join(row for row in (HistoryInput.key_hints(), app_row) if row)
+        return "\n   ".join(row for row in (Composer.key_hints(), app_row) if row)
 
     BINDINGS = [
-        Binding("ctrl+r", "reset_session", "Reset session", show=True),
-        Binding("ctrl+l", "clear_chat", "Clear display", show=True),
-        Binding("q", "quit", "Quit", show=True, priority=False),
+        Binding("ctrl+p", "palette", "Actions", show=True, priority=True),
+        Binding("ctrl+o", "sessions", "Sessions", show=True),
+        Binding("f2", "model_picker", "Model", show=True),
+        Binding("f1", "help", "Help", show=True),
+        Binding("f8", "undo_turn", "Undo", show=False),
+        Binding("f9", "redo_turn", "Redo", show=False),
+        Binding("f4", "editor", "Editor", show=False),
+        Binding("ctrl+r", "new_session", "New", show=True),
+        Binding("ctrl+l", "clear_chat", "Clear", show=True),
+        Binding("q", "quit", "Quit", show=False, priority=False),
     ]
 
     # ── Init ─────────────────────────────────────────────────────────────────
@@ -205,6 +226,7 @@ class EpheApp(App):
         self._declined = declined
         self._dry_run = dry_run
         self._session: list[Message] = []
+        self._session_id = ""
         # Phase 2: Memory + Skills + Profile (lazy init)
         self._memory: Memory | None = None
         self._profile: UserProfile | None = None
@@ -215,6 +237,15 @@ class EpheApp(App):
         self._pending_history: list[Message] = []
         # In-TUI tool approval: session allowlist ('a' = always)
         self._confirm_allowed: set[str] = set()
+        # One running turn: a steer channel while the model works, and the
+        # queued submissions that could not be steered into it.
+        self._streaming = False
+        self._steer_channel = None
+        self._queued: list[str] = []
+        self._redo: list[list[Message]] = []
+        self._turn_user_index: int | None = None
+        self._engine_missing = not self.model.strip()
+        self._run_state = "rest"
 
     # ── P0-1 E1: Tool-Approval ───────────────────────────────────────────────
 
@@ -244,22 +275,27 @@ class EpheApp(App):
         if tool_name in self._confirm_allowed:
             return True
         chat = self.query_one(ChatView)
-        if tool_name == "run_shell":
-            command = str(args.get("command", ""))
-            question = f"Run shell command?  {command}"
-        else:
-            preview = ", ".join(f"{k}={str(v)[:40]}" for k, v in list((args or {}).items())[:3])
-            question = f"Run tool '{tool_name}'?  ({preview})"
-        prompt = await chat.show_confirm_prompt(question, tool_name)
+        self._set_run_state("waiting")
         try:
-            await asyncio.wait_for(prompt.answered.wait(), timeout=300.0)
-        except asyncio.TimeoutError:
-            # No input within 300s → decline conservatively (no silent approval)
-            return False
-        # Read the result straight from the widget (set synchronously in on_key) —
-        # no race through the app handler (which runs asynchronously AFTER event.set()).
-        approved, _always = prompt.result
-        return bool(approved)
+            if tool_name == "run_shell":
+                command = str(args.get("command", ""))
+                question = f"Run shell command?  {command}"
+            else:
+                preview = ", ".join(f"{k}={str(v)[:40]}" for k, v in list((args or {}).items())[:3])
+                question = f"Run tool '{tool_name}'?  ({preview})"
+            prompt = await chat.show_confirm_prompt(question, tool_name)
+            try:
+                await asyncio.wait_for(prompt.answered.wait(), timeout=300.0)
+            except asyncio.TimeoutError:
+                # No input within 300s → decline conservatively (no silent approval)
+                return False
+            # Read the result straight from the widget (set synchronously in on_key) —
+            # no race through the app handler (which runs asynchronously AFTER event.set()).
+            approved, _always = prompt.result
+            return bool(approved)
+        finally:
+            if self._streaming:
+                self._set_run_state("working")
 
     def on_confirm_prompt_answered(self, event: "ConfirmPrompt.Answered") -> None:
         """App handler: maintain the session allowlist + show the result in the chat.
@@ -288,15 +324,16 @@ class EpheApp(App):
     # ── Layout ───────────────────────────────────────────────────────────────
 
     def compose(self) -> ComposeResult:
-        # Ink-ground brand header (unique instead of the generic Textual header):
-        # [◑] Ephe  v<version>  ........  Runs locally. Everything else is a decision.
+        # Ink-ground brand header: mark, name, the session in front of you, and
+        # one state word — the terminal's answer to "what is running here".
         with Horizontal(id="brand-header"):
             yield Static(f"[{ACCENT}]◑[/{ACCENT}]", id="brand-mark")
             yield Static("Ephe", id="brand-title")
             yield Static(f"v{__version__}", id="brand-version")
-            yield Static(__tagline__, id="brand-tagline")
+            yield Static("", id="brand-session")
+            yield Static(f"[{DIM}]rest[/{DIM}]", id="brand-state")
         yield ChatView(id="chat-view")
-        yield HistoryInput(id="input-area")
+        yield Composer(id="input-area")
         yield StatusBar(id="status-bar")
         yield Footer()
 
@@ -305,7 +342,8 @@ class EpheApp(App):
     def on_mount(self) -> None:
         """Called when the app is ready. Load session, init memory, connect to Ollama."""
         if self._reset_on_start:
-            delete_session()
+            entry = ms.create_session("New Session")
+            ms.switch_to(str(entry["id"]))
 
         # Lazy init Phase 2 modules (silently – no crash if unavailable)
         try:
@@ -317,10 +355,27 @@ class EpheApp(App):
             pass  # Memory unavailable – app still works
 
         self._load_session_and_greet()
-        self.query_one(HistoryInput).focus_input()
+        self.query_one(Composer).focus_input()
 
-        # Check Ollama connection asynchronously (non-blocking)
-        self.run_worker(self._async_check_connection(), exclusive=False)
+        if self._engine_missing:
+            # Fail closed, and name the one command that resolves it. No probe
+            # against a local engine the user never chose.
+            self._set_run_state("offline")
+            self.query_one(StatusBar).post_message(
+                StatusBar.SetError("No engine configured — ephe configure")
+            )
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(
+                    "⚠  No engine configured.\n"
+                    "   Run:  ephe configure\n"
+                    "   Nothing is sent until an engine is chosen.",
+                    style="error-msg",
+                )
+            )
+        else:
+            self._set_run_state("rest")
+            # Check the chosen engine asynchronously (non-blocking)
+            self.run_worker(self._async_check_connection(), exclusive=False)
         # Attach the MCP servers from mcp.json / EPHE_MCP_SERVERS (non-blocking)
         self.run_worker(self._async_init_mcp(), exclusive=False)
 
@@ -356,40 +411,50 @@ class EpheApp(App):
         except Exception:
             pass
 
+    def _save_session(self) -> None:
+        """Persist the transcript into its one server-authoritative file."""
+        if self._session_id:
+            ms.save_messages(self._session_id, self._session)
+
     def _load_session_and_greet(self) -> None:
         chat = self.query_one(ChatView)
 
-        if was_session_corrupt():
+        if ms.legacy_was_corrupt():
             chat.post_message(
                 ChatView.AddSystemMessage(
-                    "[Session was corrupt – starting fresh]",
+                    "[Legacy session was corrupt – left in place, starting fresh]",
                     style="error-msg",
                 )
             )
 
-        session = load_last_session()
-        self._session = session
-        count, when = session_info()
+        sid = ms.active_session_id()
+        self._session_id = sid
+        self._session = ms.load_messages(sid)
+        meta = ms.get_session(sid) or {}
+        title = str(meta.get("title") or "default")
+        count = len(self._session)
+        when = _relative_when(meta.get("last_active"))
 
         # Multi-session hint (Phase 2 item 7): shows when further sessions
         # exist in parallel. Fail-safe (no exception inside the greeting).
         multi_hint = ""
         try:
-            from core.multi_session import list_sessions as _ms_list
-            n_sessions = len(_ms_list())
+            n_sessions = len(ms.list_sessions())
             if n_sessions > 1:
                 multi_hint = (
-                    f"\n   {n_sessions} sessions stored — "
-                    f"`ephe session list` to switch."
+                    f"\n   {n_sessions} sessions stored — /sessions opens the list, "
+                    f"`ephe session list` names them."
                 )
         except Exception:
             multi_hint = ""
+        self._set_session_labels(title, count)
+        self.query_one(StatusBar).post_message(StatusBar.SetSession(title, count))
 
         if count > 0:
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"◑ Ephe – Welcome back.\n"
-                    f"   Last session: {count} messages, {when}\n"
+                    f"   Session “{title}”: {count} messages, {when}\n"
                     f"   {self._key_hints()}{multi_hint}",
                     style="welcome",
                 )
@@ -398,13 +463,81 @@ class EpheApp(App):
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"◑ Ephe – Ready. Runs locally. Everything else is a decision.\n"
-                    f"   /help  /post  /debug  /idea  /explain  /commit  /swarm\n"
+                    f"   Session “{title}”. /sessions switches, /new starts one.\n"
+                    f"   /help lists every key; Ctrl+P lists every action.\n"
                     f"   {self._key_hints()}{multi_hint}",
                     style="welcome",
                 )
             )
-
         self._post_context_meter()
+
+    def _switch_session(self, sid: str) -> bool:
+        """Load another stored session; the active cursor moves with it."""
+        if ms.get_session(sid) is None:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(f"Unknown session: {sid}", style="error-msg")
+            )
+            return False
+        self._save_session()
+        ms.switch_to(sid)
+        self._session_id = sid
+        self._redo.clear()
+        self.query_one(ChatView).clear_display()
+        self._load_session_and_greet()
+        self._post_context_meter()
+        return True
+
+    def _set_session_labels(self, title: str, count: int) -> None:
+        try:
+            self.query_one("#brand-session", Static).update(
+                f"[{DIM}]{title}[/{DIM}]"
+            )
+        except Exception:
+            return
+
+    def _set_run_state(self, state: str) -> None:
+        self._run_state = state
+        colours = {
+            "rest": DIM,
+            "working": ACCENT,
+            "waiting": WARN,
+            "done": OK,
+            "error": ERROR,
+            "offline": ERROR,
+        }
+        try:
+            self.query_one("#brand-state", Static).update(
+                f"[{colours.get(state, DIM)}]{state}[/{colours.get(state, DIM)}]"
+            )
+        except Exception:
+            return
+
+    def _set_queue(self) -> None:
+        try:
+            self.query_one(Composer).set_queue(len(self._queued))
+            self.query_one(StatusBar).post_message(StatusBar.SetQueue(len(self._queued)))
+        except Exception:
+            return
+
+    def _settle(self) -> None:
+        """One short flourish after a finished turn, never under reduced motion."""
+        if not self._animations_enabled():
+            return
+        try:
+            status = self.query_one(StatusBar)
+        except Exception:
+            return
+        status.add_class("settle")
+        self.set_timer(0.6, lambda: status.remove_class("settle"))
+
+    @staticmethod
+    def _animations_enabled() -> bool:
+        try:
+            from core.settings_schema import deep_bool
+
+            return bool(deep_bool("appearance.animations_enabled"))
+        except Exception:
+            return True
 
     def _post_context_meter(self) -> None:
         """Hand the session's context fill to the status bar (P2-9).
@@ -432,6 +565,7 @@ class EpheApp(App):
         """
         if not new_model:
             return
+        written = self._persist_model(new_model)
         self.model = new_model
         chat = self.query_one(ChatView)
         chat.post_message(ChatView.AddUserMessage(f"/model {new_model}"))
@@ -442,13 +576,31 @@ class EpheApp(App):
             )
         )
         self._post_context_meter()
+        persisted = "engine.json updated" if written else "engine.json not written"
         chat.post_message(
             ChatView.AddSystemMessage(
                 f"◑ Model switched → {self.model}  ({self._provider_label()})\n"
-                "   History and session kept.",
+                f"   {persisted}; history and session kept.",
                 style="system-msg",
             )
         )
+
+    def _persist_model(self, model: str) -> bool:
+        """Write the model into the same engine config the PWA writes."""
+        try:
+            from core.engine_config import load_engine_config, persist_engine_choice
+
+            existing = load_engine_config()
+            provider = existing.provider if existing is not None else (
+                OPENAI_COMPAT if self.api_url else "local_ollama"
+            )
+            written = persist_engine_choice(provider, model, self.api_url)
+            updated = load_engine_config()
+            if updated is not None:
+                updated.apply_env()
+            return bool(written)
+        except Exception:
+            return False
 
     def _heal_model_drift(self, available: list[str]) -> str | None:
         """Pick the auto-healable model when the configured one is missing.
@@ -480,6 +632,7 @@ class EpheApp(App):
         self.query_one(StatusBar).post_message(
             StatusBar.SetStatus(connected=connected, model=self.model, provider=self._provider_label())
         )
+        self._set_run_state("rest" if connected else "offline")
 
         chat = self.query_one(ChatView)
 
@@ -519,22 +672,7 @@ class EpheApp(App):
                 if healed:
                     old_model = self.model
                     self.model = healed
-                    import os
-                    os.environ["EPHE_MODEL"] = os.environ["EPHE_MODEL"] = healed
-                    if os.environ.get("EPHE_MODEL_PROVIDER") == OPENAI_COMPAT:
-                        os.environ["EPHE_OPENAI_COMPAT_MODEL"] = healed
-                    try:
-                        cfg = load_engine_config()
-                        if cfg is not None:
-                            save_engine_config(
-                                EngineChoice(
-                                    provider=cfg.provider,
-                                    model=healed,
-                                    api_url=cfg.api_url,
-                                )
-                            )
-                    except Exception:
-                        pass  # a persistence error must not block the healing run
+                    self._persist_model(healed)
                     self.query_one(StatusBar).post_message(
                         StatusBar.SetStatus(
                             connected=True, model=self.model,
@@ -581,10 +719,113 @@ class EpheApp(App):
 
     # ── Message Handling ──────────────────────────────────────────────────────
 
-    def on_history_input_submitted(self, event: HistoryInput.Submitted) -> None:
-        """User pressed Enter in the HistoryInput widget."""
-        user_input = event.value.strip()
-        if not user_input:
+    def on_composer_submitted(self, event: Composer.Submitted) -> None:
+        self._accept_input(event.value)
+
+    def _accept_input(self, value: str) -> None:
+        """Route a line to the running turn or to a new one."""
+        text = value.strip()
+        if not text:
+            return
+        if self._streaming:
+            self._during_turn(text)
+            return
+        self._submit_turn(text)
+
+    def _during_turn(self, text: str) -> None:
+        """Steer the running turn where the setting allows, else queue in order."""
+        chat = self.query_one(ChatView)
+        channel = self._steer_channel
+        steer_allowed = True
+        try:
+            from core.settings_schema import deep_bool
+
+            steer_allowed = bool(deep_bool("chat.allow_input_while_streaming"))
+        except Exception:
+            steer_allowed = True
+        steer = None
+        if steer_allowed and channel is not None and not channel.closed:
+            try:
+                steer = channel.request(text)
+            except Exception:
+                steer = None
+        if steer is not None:
+            chat.post_message(ChatView.AddUserMessage(f"↪ steer: {text}"))
+            self._session.append(Message(role="user", content=f"[steer] {text}"))
+            self._save_session()
+            chat.post_message(
+                ChatView.AddSystemMessage(
+                    "↪ Direction queued for the running turn — it lands at the next round boundary.",
+                    style="system-msg",
+                )
+            )
+            return
+        self._queued.append(text)
+        self._set_queue()
+        chat.post_message(
+            ChatView.AddSystemMessage(
+                f"⏳ Queued #{len(self._queued)} — it runs when this turn ends.",
+                style="system-msg",
+            )
+        )
+
+    def _run_next_queued(self) -> None:
+        if self._streaming or not self._queued:
+            return
+        text = self._queued.pop(0)
+        self._set_queue()
+        self._submit_turn(text)
+
+    def _finish_simple_turn(self, chat: ChatView, status: StatusBar) -> None:
+        chat.post_message(ChatView.FinalizeAssistantMessage())
+        status.post_message(StatusBar.SetStreaming(False))
+        self._streaming = False
+        self._post_context_meter()
+        if self._run_state not in ("error", "offline"):
+            self._set_run_state("done")
+        self._settle()
+        self.call_after_refresh(self._run_next_queued)
+
+    def _rollback_turn(self) -> None:
+        """Drop the optimistic messages of a failed turn (question and steers)."""
+        if self._turn_user_index is None:
+            if self._session and self._session[-1]["role"] == "user":
+                self._session.pop()
+            return
+        del self._session[self._turn_user_index :]
+        self._turn_user_index = None
+        self._save_session()
+
+    def _submit_turn(self, user_input: str) -> None:
+        # ! → shell through the existing approval path (never bypassed)
+        if user_input.startswith("!"):
+            command = user_input[1:].strip()
+            if not command:
+                self.query_one(ChatView).post_message(
+                    ChatView.AddSystemMessage(
+                        "Usage: !<command>  — runs through the approval prompt.",
+                        style="system-msg",
+                    )
+                )
+                return
+            self._shell_mode(command)
+            return
+
+        # App commands run in the terminal itself.
+        verb = user_input.split(maxsplit=1)[0].lower()
+        app_actions = {
+            "/new": self.action_new_session,
+            "/sessions": self.action_sessions,
+            "/undo": self.action_undo_turn,
+            "/redo": self.action_redo_turn,
+            "/editor": self.action_editor,
+            "/help": self.action_help,
+        }
+        if verb in app_actions:
+            app_actions[verb]()
+            return
+        if verb == "/model" and len(user_input.split()) == 1:
+            self.action_model_picker()
             return
 
         # /swarm → multi-agent pipeline (bypass normal chat)
@@ -635,6 +876,11 @@ class EpheApp(App):
             self._run_goal(spec)
             return
 
+        # /switch <id> → another stored session; the active cursor moves too.
+        if user_input.lower().startswith("/switch "):
+            self._switch_session(user_input.split(maxsplit=1)[1].strip())
+            return
+
         # /model <name> → runtime engine switch (no restart).
         # A bare "/model" (no argument) stays the info command
         # (raised further down) — the switch explicitly requires "<name>".
@@ -656,6 +902,25 @@ class EpheApp(App):
 
         # ── Evaluate skill triggers (/research, /files, /review, /write, /shell)
         resolved = resolve_command(user_input)
+
+        # @file tokens become a provenance block in the prompt. A missing
+        # workspace is named; the message still goes out without the attachment.
+        context = file_context.build_context(resolved)
+        if context.attached:
+            labels = ", ".join(item.label() for item in context.attached)
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(f"◑ Context attached: {labels}", style="system-msg")
+            )
+        for note in context.notes:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(note, style="error-msg")
+            )
+        if context.error:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(context.error, style="error-msg")
+            )
+        resolved = context.prompt
+
         skill_system_prompt: str | None = None
         if user_input.startswith("/") and self._skill_loader is not None:
             skill = self._skill_loader.resolve_trigger(user_input.split()[0])
@@ -700,7 +965,10 @@ class EpheApp(App):
         # Layer 4: conversation history
         pending.extend(self._session)
 
-        # Append the user message
+        # Append the user message. The index is where an error rolls the turn
+        # back to — steers append after it and belong to the same turn.
+        self._redo.clear()
+        self._turn_user_index = len(self._session)
         self._session.append(Message(role="user", content=resolved))
         pending.append(Message(role="user", content=resolved))
 
@@ -728,11 +996,19 @@ class EpheApp(App):
         """
         chat = self.query_one(ChatView)
         status = self.query_one(StatusBar)
-        hist_input = self.query_one(HistoryInput)
 
-        hist_input.disable()
         status.post_message(StatusBar.SetStreaming(True))
         chat.post_message(ChatView.BeginAssistantMessage())
+
+        from core.steering import SteeringChannel, bind_channel, reset_channel
+
+        channel = SteeringChannel(
+            turn_id=f"tui-{self._session_id}", session_id=self._session_id
+        )
+        token = bind_channel(channel)
+        self._steer_channel = channel
+        self._streaming = True
+        self._set_run_state("working")
 
         full_response = ""
 
@@ -840,8 +1116,8 @@ class EpheApp(App):
             # The OpenAI-compatible engine (DGX-Spark) does not answer —
             # a CLEAR diagnosis instead of the old, wrong "Ollama" message.
             status.post_message(StatusBar.SetError("Engine not reachable"))
-            if self._session and self._session[-1]["role"] == "user":
-                self._session.pop()
+            self._set_run_state("offline")
+            self._rollback_turn()
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"⚠  Engine not reachable: {exc.base_url}\n"
@@ -853,9 +1129,9 @@ class EpheApp(App):
         except OllamaNotReachableError:
             status_text, body_text = self._engine_down_text()
             status.post_message(StatusBar.SetError(status_text))
-            # Remove the user message we added optimistically
-            if self._session and self._session[-1]["role"] == "user":
-                self._session.pop()
+            # Remove the turn's optimistic messages (the question and any steer)
+            self._set_run_state("offline")
+            self._rollback_turn()
             chat.post_message(
                 ChatView.AddSystemMessage(body_text, style="error-msg")
             )
@@ -863,8 +1139,8 @@ class EpheApp(App):
             # The engine is alive but the model does not answer within the budget →
             # an honest "please try again" message instead of silence.
             status.post_message(StatusBar.SetError("Model busy"))
-            if self._session and self._session[-1]["role"] == "user":
-                self._session.pop()
+            self._set_run_state("error")
+            self._rollback_turn()
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"⚠  Model '{exc.model}' is busy or loading "
@@ -876,6 +1152,7 @@ class EpheApp(App):
             )
         except OllamaModelNotFoundError as exc:
             status.post_message(StatusBar.SetError(f"Model not found: {exc.model}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"⚠  Model '{exc.model}' is not there.\n"
@@ -888,10 +1165,11 @@ class EpheApp(App):
             pass
         except Exception as exc:
             # Unknown error – show in UI, never crash
-            status.post_message(StatusBar.SetError(f"Fehler: {exc}"))
+            status.post_message(StatusBar.SetError(f"Error: {exc}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
-                    f"⚠  Unerwarteter Fehler: {exc}",
+                    f"⚠  Unexpected error: {exc}",
                     style="error-msg",
                 )
             )
@@ -901,7 +1179,7 @@ class EpheApp(App):
                 self._session.append(
                     Message(role="assistant", content=full_response)
                 )
-                save_session(self._session)
+                self._save_session()
                 # Phase 2: store important answers persistently in memory
                 if self._memory is not None:
                     try:
@@ -919,8 +1197,16 @@ class EpheApp(App):
         finally:
             chat.post_message(ChatView.FinalizeAssistantMessage())
             status.post_message(StatusBar.SetStreaming(False))
+            channel.close()
+            reset_channel(token)
+            self._steer_channel = None
+            self._streaming = False
+            self._turn_user_index = None
             self._post_context_meter()
-            hist_input.enable()
+            if self._run_state != "error" and self._run_state != "offline":
+                self._set_run_state("done")
+            self._settle()
+            self.call_after_refresh(self._run_next_queued)
 
     @staticmethod
     async def _loading_hint_after_delay(
@@ -942,9 +1228,8 @@ class EpheApp(App):
         """
         chat = self.query_one(ChatView)
         status = self.query_one(StatusBar)
-        hist_input = self.query_one(HistoryInput)
-
-        hist_input.disable()
+        self._streaming = True
+        self._set_run_state("working")
         status.post_message(StatusBar.SetStreaming(True))
         chat.post_message(ChatView.BeginAssistantMessage())
 
@@ -977,16 +1262,18 @@ class EpheApp(App):
             self._session.append(
                 Message(role="assistant", content=accumulated + final_text)
             )
-            save_session(self._session)
+            self._save_session()
 
         except OllamaNotReachableError:
             status_text, body_text = self._engine_down_text(swarm=True)
             status.post_message(StatusBar.SetError(status_text))
+            self._set_run_state("offline")
             chat.post_message(
                 ChatView.AddSystemMessage(body_text, style="error-msg")
             )
         except OllamaModelNotFoundError as exc:
             status.post_message(StatusBar.SetError(f"Model missing: {exc.model}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"⚠  Model '{exc.model}' is not there.\n"
@@ -997,18 +1284,16 @@ class EpheApp(App):
         except asyncio.CancelledError:
             pass
         except Exception as exc:
-            status.post_message(StatusBar.SetError(f"Swarm-Fehler: {exc}"))
+            status.post_message(StatusBar.SetError(f"Swarm error: {exc}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
-                    f"⚠  Swarm-Fehler: {exc}",
+                    f"⚠  Swarm error: {exc}",
                     style="error-msg",
                 )
             )
         finally:
-            chat.post_message(ChatView.FinalizeAssistantMessage())
-            status.post_message(StatusBar.SetStreaming(False))
-            self._post_context_meter()
-            hist_input.enable()
+            self._finish_simple_turn(chat, status)
 
     # ── Learn / Goal Workers ──────────────────────────────────────────────────
 
@@ -1017,9 +1302,8 @@ class EpheApp(App):
         """The /learn pipeline: scan this workspace, build the skill, install it."""
         chat = self.query_one(ChatView)
         status = self.query_one(StatusBar)
-        hist_input = self.query_one(HistoryInput)
-
-        hist_input.disable()
+        self._streaming = True
+        self._set_run_state("working")
         status.post_message(StatusBar.SetStreaming(True))
         chat.post_message(ChatView.BeginAssistantMessage())
 
@@ -1054,14 +1338,16 @@ class EpheApp(App):
             chat.post_message(ChatView.AppendChunk(done))
             self._session.append(Message(role="user", content=f"/learn {topic}"))
             self._session.append(Message(role="assistant", content=done))
-            save_session(self._session)
+            self._save_session()
 
         except OllamaNotReachableError:
             status_text, body_text = self._engine_down_text()
             status.post_message(StatusBar.SetError(status_text))
+            self._set_run_state("offline")
             chat.post_message(ChatView.AddSystemMessage(body_text, style="error-msg"))
         except OllamaModelNotFoundError as exc:
             status.post_message(StatusBar.SetError(f"Model missing: {exc.model}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"Model '{exc.model}' is not present.\n   ollama pull {exc.model}",
@@ -1072,6 +1358,7 @@ class EpheApp(App):
             pass
         except Exception as exc:
             status.post_message(StatusBar.SetError(f"Skill builder failed: {exc}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"Skill builder failed: {exc}",
@@ -1079,19 +1366,15 @@ class EpheApp(App):
                 )
             )
         finally:
-            chat.post_message(ChatView.FinalizeAssistantMessage())
-            status.post_message(StatusBar.SetStreaming(False))
-            self._post_context_meter()
-            hist_input.enable()
+            self._finish_simple_turn(chat, status)
 
     @work(exclusive=True, thread=False)
     async def _run_goal(self, spec) -> None:
         """The /goal loop: the check command decides, a failure buys another turn."""
         chat = self.query_one(ChatView)
         status = self.query_one(StatusBar)
-        hist_input = self.query_one(HistoryInput)
-
-        hist_input.disable()
+        self._streaming = True
+        self._set_run_state("working")
         status.post_message(StatusBar.SetStreaming(True))
         chat.post_message(ChatView.BeginAssistantMessage())
 
@@ -1118,14 +1401,16 @@ class EpheApp(App):
             self._session.append(
                 Message(role="assistant", content=f"{result.answer}\n{body}")
             )
-            save_session(self._session)
+            self._save_session()
 
         except OllamaNotReachableError:
             status_text, body_text = self._engine_down_text()
             status.post_message(StatusBar.SetError(status_text))
+            self._set_run_state("offline")
             chat.post_message(ChatView.AddSystemMessage(body_text, style="error-msg"))
         except OllamaModelNotFoundError as exc:
             status.post_message(StatusBar.SetError(f"Model missing: {exc.model}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"Model '{exc.model}' is not present.\n   ollama pull {exc.model}",
@@ -1136,6 +1421,7 @@ class EpheApp(App):
             pass
         except Exception as exc:
             status.post_message(StatusBar.SetError(f"Goal loop failed: {exc}"))
+            self._set_run_state("error")
             chat.post_message(
                 ChatView.AddSystemMessage(
                     f"Goal loop failed: {exc}",
@@ -1143,27 +1429,329 @@ class EpheApp(App):
                 )
             )
         finally:
-            chat.post_message(ChatView.FinalizeAssistantMessage())
-            status.post_message(StatusBar.SetStreaming(False))
-            self._post_context_meter()
-            hist_input.enable()
+            self._finish_simple_turn(chat, status)
 
-    # ── Actions ───────────────────────────────────────────────────────────────
+    # ── Actions ──────────────────────────────────────────────────────────────
 
-
-    def action_reset_session(self) -> None:
-        """Ctrl+R – delete session and clear display."""
-        delete_session()
-        self._session = []
-        self._post_context_meter()
-        chat = self.query_one(ChatView)
-        chat.clear_display()
-        chat.post_message(
+    def _refuse_while_running(self) -> bool:
+        if not self._streaming:
+            return False
+        self.query_one(ChatView).post_message(
             ChatView.AddSystemMessage(
-                "◑ Session reset. Fresh start.",
+                "A turn is running. Queue the command or wait for it to end.",
                 style="system-msg",
             )
         )
+        return True
+
+    def action_new_session(self) -> None:
+        """Ctrl+R / /new – start a session; the old transcript stays on disk."""
+        if self._refuse_while_running():
+            return
+        self._save_session()
+        entry = ms.create_session("New Session")
+        ms.switch_to(str(entry["id"]))
+        self._session_id = str(entry["id"])
+        self._session = []
+        self._queued.clear()
+        self._redo.clear()
+        self._set_queue()
+        self._post_context_meter()
+        self.query_one(ChatView).clear_display()
+        self._load_session_and_greet()
+        self._set_run_state("rest")
+
+    def action_reset_session(self) -> None:
+        self.action_new_session()
+
+    def action_sessions(self) -> None:
+        if self._refuse_while_running():
+            return
+        self.push_screen(
+            SessionSwitcher(self._session_id), self._on_session_choice
+        )
+
+    def _on_session_choice(self, choice: SessionChoice | None) -> None:
+        self.query_one(Composer).focus_input()
+        if choice is None or choice.action != "open" or not choice.sid:
+            self._set_session_labels(*self._session_label_values())
+            return
+        if choice.sid == self._session_id:
+            meta = ms.get_session(choice.sid) or {}
+            self._set_session_labels(
+                str(meta.get("title") or "default"), len(self._session)
+            )
+            return
+        self._switch_session(choice.sid)
+        self._set_run_state("rest")
+
+    def action_palette(self) -> None:
+        self.push_screen(
+            CommandPalette(self._palette_entries()), self._run_palette_action
+        )
+
+    def _palette_entries(self) -> list[PaletteEntry]:
+        from core.commands import get_command_help
+
+        entries = [
+            PaletteEntry("new_session", "New session", "Ctrl+R"),
+            PaletteEntry("sessions", "Sessions", "Ctrl+O"),
+            PaletteEntry("model_picker", "Model picker", "F2"),
+            PaletteEntry("undo_turn", "Undo the last turn", "F8"),
+            PaletteEntry("redo_turn", "Redo the last turn", "F9"),
+            PaletteEntry("editor", "Edit the draft", "F4"),
+            PaletteEntry("help", "Keys and commands", "F1"),
+            PaletteEntry("clear_chat", "Clear the display", "Ctrl+L"),
+            PaletteEntry("quit", "Quit", "q"),
+        ]
+        entries.extend(
+            PaletteEntry(
+                action=f"insert:{command} ",
+                label=f"Insert {command}",
+                detail=description,
+            )
+            for command, description in get_command_help()
+        )
+        return entries
+
+    def _run_palette_action(self, action: str | None) -> None:
+        if not action:
+            self.query_one(Composer).focus_input()
+            return
+        if action.startswith("insert:"):
+            self.query_one(Composer).set_text(action[len("insert:") :])
+            self.query_one(Composer).focus_input()
+            return
+        self.run_action(action)
+
+    def action_help(self) -> None:
+        self.push_screen(
+            HelpOverlay(self._help_text()),
+            lambda _result: self.query_one(Composer).focus_input(),
+        )
+
+    def _help_text(self) -> str:
+        from core.commands import get_command_help
+
+        rows = [
+            "◑ Ephe — keys",
+            "",
+            "  Enter              send the draft",
+            "  Ctrl+J             new line (Shift+Enter where reported)",
+            "  Tab                complete a command or an @file",
+            "  ↑ / ↓              history on one line, cursor movement in a draft",
+            "  Ctrl+↑ / Ctrl+↓    history at any draft length",
+            "  Ctrl+P             every action",
+            "  Ctrl+O, /sessions  session switcher (Ctrl+N new, F2 rename, F3 delete)",
+            "  Ctrl+R, /new       new session",
+            "  F2, /model         model picker (writes engine.json)",
+            "  F8, /undo          undo the last turn",
+            "  F9, /redo          restore the last undone turn",
+            "  F4, /editor        edit the draft in $VISUAL/$EDITOR",
+            "  F1, /help          this page",
+            "  Ctrl+L             clear the display",
+            "  q                  quit",
+            "",
+            "Draft tokens",
+            "  @path              attach a workspace file to the prompt",
+            "  @path#L10-L20      attach a line range",
+            "  !command           run a shell command through the approval prompt",
+            "",
+            "Undo rewrites the transcript only. File edits a tool made are not",
+            "reverted: the tool cards name the change set, and `git status` /",
+            "`git restore <path>` are the file-level revert.",
+            "",
+            "Commands",
+        ]
+        rows.extend(f"  {command:<12} {description}" for command, description in get_command_help())
+        return "\n".join(rows)
+
+    def action_model_picker(self) -> None:
+        self._open_model_picker()
+
+    @work(exclusive=False, thread=False)
+    async def _open_model_picker(self) -> None:
+        if self._engine_missing:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(
+                    "No engine configured — run: ephe configure",
+                    style="error-msg",
+                )
+            )
+            return
+        if self.api_url:
+            connected, _status, available = await check_engine_connection(
+                self.api_url, self.model
+            )
+        else:
+            connected, _status, available = await check_ollama_connection(self.model)
+        if not connected:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(
+                    "Engine not reachable — start it, check the endpoint, then retry /model.",
+                    style="error-msg",
+                )
+            )
+            return
+        if not available:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(
+                    "The engine lists no models — load one there, then retry /model.",
+                    style="error-msg",
+                )
+            )
+            return
+        self.push_screen(ModelPicker(available, self.model), self._apply_model_choice)
+
+    def _apply_model_choice(self, model: str | None) -> None:
+        if model and model != self.model:
+            self._handle_model_switch(model)
+
+    def action_undo_turn(self) -> None:
+        if self._refuse_while_running():
+            return
+        chat = self.query_one(ChatView)
+        index = None
+        for position in range(len(self._session) - 1, -1, -1):
+            if self._session[position].get("role") == "user":
+                index = position
+                break
+        if index is None:
+            chat.post_message(ChatView.AddSystemMessage("Nothing to undo.", style="system-msg"))
+            return
+        removed = self._session[index:]
+        self._redo.append(removed)
+        del self._session[index:]
+        self._save_session()
+        self._render_transcript()
+        self._post_context_meter()
+        self._set_session_labels(*self._session_label_values())
+        chat.post_message(
+            ChatView.AddSystemMessage(
+                f"↶ Undid the last turn ({len(removed)} messages). "
+                "File changes stay; the tool cards and `git status` name them.",
+                style="system-msg",
+            )
+        )
+
+    def action_redo_turn(self) -> None:
+        if self._refuse_while_running():
+            return
+        chat = self.query_one(ChatView)
+        if not self._redo:
+            chat.post_message(ChatView.AddSystemMessage("Nothing to redo.", style="system-msg"))
+            return
+        restored = self._redo.pop()
+        self._session.extend(restored)
+        self._save_session()
+        self._render_transcript()
+        self._post_context_meter()
+        self._set_session_labels(*self._session_label_values())
+        chat.post_message(
+            ChatView.AddSystemMessage(
+                f"↷ Restored the last undone turn ({len(restored)} messages).",
+                style="system-msg",
+            )
+        )
+
+    def _session_label_values(self) -> tuple[str, int]:
+        meta = ms.get_session(self._session_id) or {}
+        return str(meta.get("title") or "default"), len(self._session)
+
+    def _render_transcript(self) -> None:
+        chat = self.query_one(ChatView)
+        chat.clear_display()
+        for message in self._session:
+            role = message.get("role")
+            content = str(message.get("content") or "")
+            if role == "user":
+                chat.post_message(ChatView.AddUserMessage(content))
+            elif role == "assistant":
+                chat.post_message(ChatView.BeginAssistantMessage())
+                chat.post_message(ChatView.AppendChunk(content))
+                chat.post_message(ChatView.FinalizeAssistantMessage())
+
+    def action_editor(self) -> None:
+        if self._refuse_while_running():
+            return
+        composer = self.query_one(Composer)
+        draft = composer.value
+        if not draft.strip():
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage("Nothing to edit — the draft is empty.", style="system-msg")
+            )
+            return
+        command = editor_mod.editor_command()
+        if command is None:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(
+                    "No editor configured — set $VISUAL or $EDITOR.",
+                    style="error-msg",
+                )
+            )
+            return
+        with self.suspend():
+            edited, error = editor_mod.run_editor(draft, command)
+        if error:
+            self.query_one(ChatView).post_message(
+                ChatView.AddSystemMessage(error, style="error-msg")
+            )
+            return
+        composer.set_text(edited or "")
+        composer.focus_input()
+
+    # ── Shell mode ──────────────────────────────────────────────────────────
+
+    def _shell_mode(self, command: str) -> None:
+        if self._streaming:
+            self._during_turn(f"!{command}")
+            return
+        self._run_shell_command(command)
+
+    @work(exclusive=True, thread=False)
+    async def _run_shell_command(self, command: str) -> None:
+        chat = self.query_one(ChatView)
+        status = self.query_one(StatusBar)
+        self._streaming = True
+        self._set_run_state("working")
+        status.post_message(StatusBar.SetStreaming(True))
+        chat.post_message(ChatView.AddUserMessage(f"!{command}"))
+        chat.post_message(ChatView.BeginAssistantMessage())
+        chat.post_message(ChatView.ToolCallStart("run_shell", {"command": command}))
+        refused = self._declined or self._dry_run
+        if self._auto_approve:
+            approved = True
+        elif refused:
+            approved = False
+        else:
+            approved = await self._on_tui_tool_confirm("run_shell", {"command": command})
+        try:
+            if refused:
+                from core.tools.chat_gate import denial_message
+
+                result = denial_message("run_shell", "not_approved_by_user")
+            else:
+                from core.tools._shell_exec import execute_confirmed_shell
+
+                result = await execute_confirmed_shell(command, confirmed=approved)
+                self._set_run_state("working")
+        except Exception as exc:
+            result = f"[TOOL-ERROR] run_shell: {exc}"
+            self._set_run_state("error")
+        chat.post_message(ChatView.ToolCallDone("run_shell", result))
+        chat.post_message(ChatView.FinalizeAssistantMessage())
+        self._session.append(Message(role="user", content=f"!{command}"))
+        self._session.append(
+            Message(role="assistant", content=f"$ {command}\n{result}")
+        )
+        self._save_session()
+        status.post_message(StatusBar.SetStreaming(False))
+        self._streaming = False
+        self._post_context_meter()
+        if self._run_state not in ("error", "offline"):
+            self._set_run_state("done")
+        self._settle()
+        self.call_after_refresh(self._run_next_queued)
 
     def action_clear_chat(self) -> None:
         """Ctrl+L – clear the visual display only. Session data kept."""

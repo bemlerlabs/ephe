@@ -101,9 +101,8 @@
      — a destructive button must not read as branding. */
   --color-status-success: var(--color-signal-ok);
   /* Hover step (no role tone, stays a literal): one step lighter on the same
-     axis — in the dark theme the button carries ink text and the contrast
-     must not fall below AA on hover; the light theme works the same way
-     (black on signal-ok-hover = 4.9:1, html.light). */
+     axis — the button carries ink text and the contrast must not fall
+     below AA on hover (black on signal-ok-hover = 4.9:1). */
   --color-status-success-hover: hsl(158 34% 58%);
   --color-status-warning: var(--color-signal-warn);
   --color-status-danger: var(--color-signal-danger);
@@ -124,8 +123,8 @@
   --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /*  EPHEMORA COLOR SYSTEM — paper & ink (WP1)     */
 
-  /* Role layer (the only source of the new values, dark = ink;
-     html.light bends it to paper further below). The old names
+  /* Role layer (the only source of the new values, and the only ground the
+     product ships). The old names
      (moss-*, forest-*, firefly*, mist*, stone …) stay for
      utility compatibility (~1,381 sites) and point at this layer via var()
      — no alias gets deleted.
@@ -135,12 +134,10 @@
      card-foreground, muted, muted-foreground, secondary, secondary-foreground,
      stone, mist, firefly, firefly-glow) therefore stand in the dark block as
      a literal with "=" + reference — they must stay in sync with the role literal. */
-  --color-brand: hsl(7.46 78.6% 57.8%);         /* #E8543F — Ephemora red, lifted in the dark
-     theme to sit at 5.1:1 on the ink ground (measured, not guessed);
-     paper original #D83828 = hsl(5 69% 50%) in html.light */
+  --color-brand: hsl(7.46 78.6% 57.8%);         /* #E8543F — Ephemora red, lifted on the ink
+     ground to sit at 5.1:1 (measured, not guessed) */
   --color-brand-deep: var(--color-brand);/* text/link red: on ink the brand red itself
-     clears AA (5.1:1); only on paper does it go one step darker
-     (html.light: hsl(5 69% 42%)) so AA holds — firefly hangs off this */
+     clears AA (5.1:1) — firefly hangs off this */
   --color-brand-glow: hsl(7 84% 66%);    /* hover/glow step of the brand red */
   --color-brand-tint: hsl(5.45 69.3% 50.2% / 0.18); /* resting brand surface (18% Ephemora red, rgba(216,56,40,.18)) */
   --color-canvas: hsl(30 16.7% 7.06%);        /* #15120F — ink ground (warm, not dead black) */
@@ -155,10 +152,8 @@
   --color-hairline-strong: hsl(22.5 9% 46%);
   --color-control: var(--color-hairline-strong);
   /* W10-23: the raised/interactive surface pair. One theme-aware layer replaces
-     the bg-white/[0.03–0.12] veils that lifted chips, rows and hovers: white over
-     ink reads as a step, but over paper it is a ~1% luminance delta against
-     hsl(60 25% 92%) and disappears. html.light re-points the same two names at an
-     ink tint on the same ground, so one utility reads in both themes. */
+     the bg-white/[0.03–0.12] veils that lift chips, rows and hovers: white over
+     ink reads as a step, and one utility has to carry that step on its own. */
   --color-surface-raised: hsl(0 0% 100% / 0.04);
   --color-surface-interactive: hsl(0 0% 100% / 0.08);
   --color-signal-ok: hsl(158 34% 52%);   /* success — stepped back: desaturated (64→34),
@@ -201,7 +196,7 @@
   --color-figure-honey-deep: #FF9F1C; /* the honey lantern's deep amber */
   --color-figure-iris: #F5A623;      /* the amber iris */
   --color-figure-shine: #FFFDF6;     /* catchlight on eye and ball */
-  --color-figure-wing-root: #452718; /* glass wing, root stop (paper: html.light) */
+  --color-figure-wing-root: #452718; /* glass wing, root stop */
   --color-figure-wing-mid: #8A5232;  /* glass wing, middle stop */
   --color-figure-wing-tip: #D9A87C;  /* glass wing, tip stop — the lit edge */
 
@@ -322,126 +317,33 @@
   --color-trajectory-tool-result: hsl(199 89% 48%);
 }
 
-/* LIGHT MODE (paper, WP1 redesign 2026-10-04)
-   Paper / ink / Ephemora red: warm paper ground (#F0F0E6), ink black
-   as text, ONE red accent (#D83828). Only the role layer bends
-   (literals below) — the semantic layer and the legacy aliases (var())
-   follow automatically. The only exceptions: the two tokens the guardian
-   test_r48 recomputes raw (background, status-info) stay literals here
-   too. That required the semantic sweep: text-white → text-foreground
-   repo-wide. bg-white stays deliberately unchanged (white proof surfaces
-   such as the primary save button are correct in both themes). */
-html.light {
-  /* Role layer — paper values */
-  --color-brand: hsl(5.45 69.3% 50.2%);         /* #D83828 — the top-coat red. As text on
-     paper only 4.1:1: the brand carries rules/activity dots/core action; for
-     red text use brand-deep below — never #D83828 as body text. */
-  --color-brand-deep: hsl(5 69% 42%);    /* #B42D21 — AA text/link red on paper (5.4:1) */
-  --color-brand-glow: hsl(5 69% 50%);    /* hover lift = the original red */
-  /* Figure material: the seven being tokens stand in the dark block and hold
-     here; only the glass wing bends, because a wing reads as glass against its
-     own ground and the figure keeps its own colours on paper. */
-  --color-figure-wing-root: #D5A183;
-  --color-figure-wing-mid: #E4BFA2;
-  --color-figure-wing-tip: #F6E0CB;
-  --color-brand-tint: hsl(4.29 64.4% 65.9%);    /* #E07870 — resting brand surface, marker */
-  --color-canvas: hsl(60 25% 92%);       /* #F0F0E6 — warm paper, not pure white */
-  --color-surface: hsl(60 33.3% 97.1%);      /* #FAFAF5 — cards, rows */
-  --color-ink: hsl(20 13% 9%);           /* #1A1614 — ink */
-  --color-ink-soft: hsl(25 8% 35%);
-  --color-ink-faint: hsl(25 7% 40%);
-  --color-hairline: hsl(45 17% 81.6%);     /* #D8D4C8 — the dossier line */
-  --color-hairline-strong: hsl(45 12% 42%);   /* the control boundary on paper */
-  /* W10-23: the paper counterpart of the raised/interactive pair — an ink tint
-     where ink carried a white veil (see the @theme comment). */
-  --color-surface-raised: hsl(20 13% 9% / 0.07);
-  --color-surface-interactive: hsl(20 13% 9% / 0.14);
-  --color-signal-ok: hsl(158 32% 34%);   /* success — desaturated, dark, quiet (AA 4.9:1) */
-  --color-signal-danger: hsl(8 88% 38%); /* danger — darker/hotter than brand (ΔE≈10, AA 5.7:1) */
-  --color-signal-warn: hsl(36 92% 30%);   /* warning — AA text on paper (4.9:1 canvas, 5.4:1 raised) */
-
-  /* Surfaces (aliases; background stays a guardian literal = --color-canvas) */
-  --color-black-forest: var(--surface-base);
-  --color-black-midnight: var(--surface-card);
-  --color-moss-deep: var(--surface-card);
-  --color-moss: var(--color-muted);
-  --color-moss-light: var(--color-hairline-strong);
-  --color-background: hsl(60 25% 92%);
-  --color-foreground: var(--color-ink);
-  --color-card: var(--color-surface);
-  --color-card-foreground: var(--color-ink);
-  --color-secondary: var(--color-canvas);
-  --color-secondary-foreground: var(--color-ink);
-  --color-muted: var(--color-canvas);
-  --color-muted-foreground: var(--color-ink-faint);
-  --color-destructive: var(--color-signal-danger);
-  --color-border: var(--border-decorative);
-  --color-input: var(--color-muted);
-  --color-ring: var(--color-ink);
-  --color-forest-glow: color-mix(in oklab, var(--color-brand) 55%, transparent);
-  --color-forest-dark: var(--color-muted);
-  --color-forest-deep: var(--color-surface);
-
-  /* Accents (aliases) — brand-deep carries the red text; the 42% primitive of
-     2026-09 existed for exactly that; the name is now an honest var() link */
-  --color-firefly: var(--color-brand-deep);
-  --color-firefly-glow: var(--color-brand);
-  --color-lichen: var(--color-signal-warn);
-
-  /* Text — ink instead of white (aliases; stone/mist are not literal-mandated
-     here, only the dark @theme block is computed raw) */
-  --color-stone: var(--color-ink);
-  --color-mist: var(--color-ink-soft);
-  --color-mist-dim: var(--text-role-muted);
-
-  /* Status — still double-coded, values for paper (aliases of the role layer) */
-  --color-status-success: var(--color-signal-ok);
-  /* Lighter, not darker: the primary surface carries text-black and hover must
-     not push the black-on-green contrast below 4.5:1 (black on
-     hsl(158 32% 40%) = 4.9:1). */
-  --color-status-success-hover: hsl(158 32% 40%);
-  --color-status-warning: var(--color-signal-warn);
-  --color-status-danger: var(--color-signal-danger);
-  /* P1-7 (WCAG): 16% instead of 42% — on paper darkening RAISES the contrast.
-     Over the ~92% paper ground: /70=5.1, /80=7.0, /100=12.7 (AA normal);
-     /55=3.4 and /60=3.9 reach AA-large (>=3:1), measured against the new
-     canvas hsl(60 25% 92%). Still quieter than primary (ink 9%). Guardian
-     literal (test_r48): a change here moves a contrast-checked value. */
-  --color-status-info: hsl(0 0% 16%);
-
-  /* Elevation — soft shadows instead of deep-black glow */
-  --shadow-elevation-1: 0 1px 2px rgb(0 0 0 / 0.06);
-  --shadow-elevation-2: 0 8px 32px rgb(0 0 0 / 0.10);
-  --shadow-elevation-3: 0 12px 40px rgb(0 0 0 / 0.14);
-
-  /* Trajectory roles — saturated enough for paper */
-  --color-trajectory-user: hsl(221 83% 45%);
-  --color-trajectory-assistant: hsl(174 72% 28%);
-  --color-trajectory-reasoning: hsl(262 83% 48%);
-  --color-trajectory-tool-call: hsl(32 90% 36%);
-  --color-trajectory-tool-result: hsl(199 89% 35%);
-
-  /* Glass layers (paper). Reading and control carry the same veil here: on the 92%
-     ground every ink role clears 4.5:1 behind both, so the two separate by the text
-     they hold and by their edge, while the ink theme is where their fills diverge
-     (U3 rule and the measured table: docs/UI_4X_PROGRAM_2026-10-11.md section 8). */
-  --glass-reading-fill: hsla(0 0% 100% / 0.88);
-  --glass-reading-border: hsla(38 24% 40% / 0.24);
-  --glass-reading-inner: hsla(44 62% 100% / 0.70);
-  --glass-control-fill: hsla(0 0% 100% / 0.88);
-  --glass-control-border: hsla(45 12% 44% / 0.86);
-  --glass-control-inner: hsla(44 62% 100% / 0.70);
-  --glass-float-fill: hsla(0 0% 100% / 0.86);
-  --glass-float-border: hsla(45 12% 44% / 0.86);
-  --glass-float-inner: hsla(44 62% 100% / 0.70);
-  /* Rim light: one lighting model for all three layers, so it stays shared. Warm on
-     paper too, so a pane reads as the same material in both registers. */
-  --glass-grad-edge: hsla(38 22% 42% / 0.28);
-  --glass-grad-mid: hsla(38 22% 42% / 0.08);
-  --hero-a: #241d1c;
-  --hero-b: #7a2c27;
-  --hero-c: #b3403a;
+/* Curated accents (Wave 5C): each block bends only the four layer-1 brand roles.
+   The ground, status tones, selection steps and the terminal palette stay fixed.
+   Measured on the forest ground (canvas / surface): Ember 5.12 / 4.79, Indigo
+   5.18 / 4.84, Plum 6.47 / 6.05, Mono 9.60 / 8.98; black on brand 5.76 / 5.83 /
+   7.28 / 10.81; glow on canvas 6.44 / 7.38 / 8.65 / 11.88; ink on the tint
+   12.91 / 13.07 / 12.42 / 11.29. */
+html[data-accent='indigo'] {
+  --color-brand: hsl(232 72% 67%);
+  --color-brand-deep: hsl(232 72% 67%);
+  --color-brand-glow: hsl(232 82% 76%);
+  --color-brand-tint: hsl(232 64% 56% / 0.18);
 }
+
+html[data-accent='plum'] {
+  --color-brand: hsl(285 52% 67%);
+  --color-brand-deep: hsl(285 52% 67%);
+  --color-brand-glow: hsl(285 62% 76%);
+  --color-brand-tint: hsl(285 48% 56% / 0.18);
+}
+
+html[data-accent='mono'] {
+  --color-brand: hsl(35 12% 72%);
+  --color-brand-deep: hsl(35 12% 72%);
+  --color-brand-glow: hsl(35 16% 80%);
+  --color-brand-tint: hsl(35 10% 60% / 0.18);
+}
+
 
 /* Glass material (ink register): the pane, its four properties and the two rules that
    decide where it may rest. */
@@ -916,6 +818,13 @@ button[aria-label="Send"]:not(:disabled):hover {
   animation: frost-subtle 9s ease-in-out infinite;
 }
 
+/* The transcript's reading step: the interface lever times the chat's own
+   setting, so the one text a user reads for minutes scales without moving
+   the chrome around it. */
+.chat-reading-type {
+  font-size: var(--chat-font-size, var(--text-ui-sm));
+}
+
 /* Round 14: prose typography (F7/P1 finding)
    @tailwindcss/typography is NOT installed — the prose classes had no
    effect until now (h2 == body text). These rules give Markdown answers
@@ -1070,23 +979,6 @@ html.no-motion .hero-frost::after {
    ANTI-PERFECT-UI LAYER (round 15) — curated handwork
    Rule: at most ONE hand-made element per view level.
  */
-
-/* AP-4: paper grain as a data URI (feTurbulence). No image request,
-   no layout shift — purely decorative texture on card/panel surfaces.
-   Low opacity so the typography contrast values stay untouched. */
-.grain-paper {
-  position: relative;
-}
-.grain-paper::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  opacity: 0.35;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' type='fractalNoise'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-}
 
 /* AP-5: organic keyframes — springy landing (overshoot) instead of a
    hard ease. Uses the --ease-organic / --ease-settle tokens. */
@@ -1544,10 +1436,6 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
 .ephe-mark[data-state="settle"]::before,
 .ephe-mark[data-state="work"]::before { opacity: 1; }
 .ephe-mark[data-size="compact"]::before { display: none; }
-/* On paper there is no edge that could catch light: the streak in ink would
-   be a dark line over the mark. On a dark ground it is exactly what it was
-   built for. */
-html.light .ephe-mark::before { display: none; }
 
 .ephe-mark[data-state="condense"] {
   animation: ephe-condense var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
@@ -1707,14 +1595,6 @@ html.light .ephe-mark::before { display: none; }
   70%  { opacity: 1;    transform: scaleX(1.02); }
   78%  { opacity: 0.28; transform: scaleX(1); }
   100% { opacity: 0.28; transform: scaleX(0.98); }
-}
-/* A cream-hot seam needs a dark ground under it: on paper that line would be the ground
-   it sits on. There the seam is the paper red, which is what clears the floor on paper. */
-html.light .ephe-scene-core {
-  background: linear-gradient(to top,
-    var(--color-firefly-glow) 0%,
-    var(--color-firefly) 50%,
-    transparent 100%);
 }
 
 /* Embers that come off the wall and rise while it surges. */

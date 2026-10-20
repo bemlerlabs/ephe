@@ -74,6 +74,18 @@ export function deepText(key: string, fallback = ''): string {
  *  - animations_enabled: html.no-motion, the same hard switch-off that
  *    prefers-reduced-motion brings — here chosen by the user.
  */
+/** The chat reading step: the interface scale times the conversation's own factor. */
+export function chatFontSizePx(): number {
+  const ui = Math.min(150, Math.max(80, deepNumber('appearance.font_scale', 100)))
+  const chat = Math.min(150, Math.max(80, deepNumber('appearance.chat_font_scale', 100)))
+  return Math.round((UI_FONT_SIZE_BASE_PX - 2) * (ui / 100) * (chat / 100) * 100) / 100
+}
+
+/** The transcript's maximum reading width in pixels. */
+export function chatReadingWidthPx(): number {
+  return Math.round(Math.min(1200, Math.max(480, deepNumber('appearance.reading_width', 768))))
+}
+
 export function applyDeepAppearance(): void {
   if (typeof document === 'undefined') return
   const root = document.documentElement
@@ -82,6 +94,10 @@ export function applyDeepAppearance(): void {
     '--ui-font-size',
     `${Math.round(UI_FONT_SIZE_BASE_PX * (scale / 100) * 100) / 100}px`,
   )
+  root.style.setProperty('--chat-font-size', `${chatFontSizePx()}px`)
+  root.style.setProperty('--chat-reading-width', `${chatReadingWidthPx()}px`)
+  const accent = deepSelect('appearance.accent', 'ember')
+  root.dataset.accent = ['ember', 'indigo', 'plum', 'mono'].includes(accent) ? accent : 'ember'
   root.classList.toggle('no-motion', !deepBool('appearance.animations_enabled', true))
 }
 
@@ -129,4 +145,8 @@ export function useDeepNumber(key: string, fallback = 0): number {
     () => deepNumber(key, fallback),
     () => fallback,
   )
+}
+
+export function useChatReadingWidth(): number {
+  return useSyncExternalStore(subscribeDeepSettings, chatReadingWidthPx, () => 768)
 }

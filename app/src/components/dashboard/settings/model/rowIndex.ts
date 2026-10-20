@@ -20,12 +20,15 @@ export interface RowIndexEntry {
 
 export const ROW_INDEX: readonly RowIndexEntry[] = [
   // Appearance
-  { tab: 'appearance', key: 'settings.appearanceTheme' },
+  { tab: 'appearance', key: 'settings.appearanceTitle' },
+  { tab: 'appearance', key: 'settings.appearanceProfileExport' },
+  { tab: 'appearance', key: 'settings.appearanceProfileImport' },
+  { tab: 'appearance', key: 'settings.appearanceProfileReset' },
   // Engine (including the image endpoint)
   { tab: 'engine', key: 'settings.engineNotConfigured' },
   { tab: 'engine', key: 'settings.endpointLabel' },
   { tab: 'engine', key: 'settings.apiKeyLabel' },
-  { tab: 'engine', key: 'settings.workspaceTitle' },
+  { tab: 'behaviour', key: 'settings.workspaceTitle' },
   { tab: 'engine', key: 'settings.outputDirTitle' },
   { tab: 'engine', key: 'environment.title' },
   { tab: 'engine', key: 'settings.imageBaseUrl' },
@@ -56,12 +59,13 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   { tab: 'mobile', key: 'settings.discordTitle' },
   // Language
   { tab: 'language', key: 'settings.languageRow' },
-  // Privacy
-  { tab: 'privacy', key: 'settings.privacyProfileRow' },
-  { tab: 'privacy', key: 'settings.sandboxTitle' },
+  // Behaviour — the approval register moved here from Privacy (Wave 4.3).
+  { tab: 'behaviour', key: 'settings.privacyProfileRow' },
+  { tab: 'behaviour', key: 'settings.sandboxTitle' },
   // Wave 2/B3: the two categories that may be made to ask more often.
-  { tab: 'privacy', key: 'settings.askMoreSafe' },
-  { tab: 'privacy', key: 'settings.askMoreNetwork' },
+  { tab: 'behaviour', key: 'settings.askMoreSafe' },
+  { tab: 'behaviour', key: 'settings.askMoreNetwork' },
+  // Privacy — the store rows that stay in this area.
   { tab: 'privacy', key: 'settings.clearLocalData' },
   // Wave 4: the store row beside the browser-cache row — the one that deletes
   // files on the server's machine, not in the browser.
@@ -130,6 +134,7 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   // Shortcuts — read off the one table: a row is named by its description, and a
   // list copied by hand is how a 12-entry index survives a 13-entry table.
   ...SHORTCUTS.map((s) => ({ tab: 'shortcuts' as TabKey, key: s.labelKey })),
+  { tab: 'shortcuts', key: 'settings.globalShortcutLabel' },
   // About Ephe
   { tab: 'about', key: 'settings.aboutVersion' },
   { tab: 'about', key: 'settings.aboutLicense' },

@@ -97,8 +97,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // (3 keys) and B4's reasoning-effort row (4 keys) put en.json at 116,584 B and de.json
 // at 126,400 B — +584 B / +400 B over the ceilings this wave inherited. Both halves
 // move by the same 1,000 B so a later slice is not forced to raise the band mid-cut.
-const EN_CEILING = 117_000
-const DE_CEILING = 127_000
+// Raised on 2026-10-20 for Wave 5B: the companion quick panel and studio card
+// add twelve control and description keys. Measured en 117,574 B / de 127,488 B.
+// Raised again the same day for Wave 5C's appearance profile (three rows and
+// five refusal reasons): measured en 118,861 B / de 128,907 B. Both halves move
+// by 2,000 B, as the previous waves did.
+const EN_CEILING = 120_000
+const DE_CEILING = 130_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

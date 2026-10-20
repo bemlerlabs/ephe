@@ -120,12 +120,12 @@ describe('command palette → settings: reaching a control, not only the tab', (
     await act(async () => {
       palette!.setQuery('privacyProfileRow')
     })
-    const row = entries().find((c) => c.id === 'settings-row-privacy-settings.privacyProfileRow')
+    const row = entries().find((c) => c.id === 'settings-row-behaviour-settings.privacyProfileRow')
     expect(row, 'palette entry for the approval-profile row').toBeTruthy()
     await act(async () => {
       row!.action()
     })
-    expect(panel!.activeTab).toBe('privacy')
+    expect(panel!.activeTab).toBe('behaviour')
     // The panel's own search now names the control the user asked for.
     expect(panel!.settingsQuery).toBe('settings.privacyProfileRow')
   })

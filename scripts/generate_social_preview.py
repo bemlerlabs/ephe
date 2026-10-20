@@ -1,4 +1,4 @@
-"""◑ Ephe — social preview card (1200x630).
+"""Ephe — social preview card (1200x630).
 
 scripts/generate_social_preview.py
 
@@ -7,18 +7,18 @@ Playwright/Chromium (the repo's reference renderer) straight at 2x and downscale
 to exactly 1200x630 — the Open Graph / Twitter `summary_large_image` size.
 
 What it draws (all of it from tokens the app already ships):
-- ground   = --color-canvas  #F0F0E6 (paper, the light default) with a soft
-             --color-surface #FAFAF5 highlight and a warm paper falloff
-- figure   = the fire-spirit bee (scripts/generate_fire_spirit_bee.py), inlined
-             in the paper hex spelling its generator owns (`bee_body`), so the card
-             and the app cannot drift. It is the brand's face now (brand decision
-             2026-10-16); the card carries it whole — the panel on the right and the
-             small lockup beside the wordmark
+- ground   = --color-canvas #15120F, lifted with a --color-surface #1D1917
+             highlight and a darker falloff; the only ground the product offers
+             since the paper theme was retired (2026-10-19)
+- figure   = app/public/onboarding/bee-3d-hero.png, the shipped bee artwork the
+             icon kit and the first-run scene carry, inlined as a data URI so the
+             card cannot point at a file that moved. 2120x1504 at source, which is
+             what the 2x render of this card needs
 - type     = Space Grotesk (display), Inter (body), JetBrains Mono (kicker/footer),
              self-hosted @fontsource woff2 — never a system fallback
-- colour   = --color-brand-deep #B42D21 for the kicker (AA red text on paper),
-             --color-ink #1A1614 for the headline, --color-ink-soft / -faint for
-             the body and footer
+- colour   = --color-brand #E8543F for the kicker (5.13:1 on the canvas),
+             --color-ink #F2EFE8 for the headline, --color-ink-soft / -faint for
+             the body and footer; --color-hairline #2E2926 for the inset rule
 
 Copy is the app's own, not invented: "researches, builds and delivers. You watch
 live." is the welcome hero sub (app/src/locales/en.json welcome.heroSub); the
@@ -36,6 +36,7 @@ on the same Chromium revision.
 """
 from __future__ import annotations
 
+import base64
 import os
 import sys
 from pathlib import Path
@@ -43,23 +44,14 @@ from tempfile import TemporaryDirectory
 
 from playwright.sync_api import sync_playwright
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from brand_palette import ROLES  # noqa: E402  (path bootstrap above)
-from generate_fire_spirit_bee import bee_body  # noqa: E402  (same directory)
-
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 FONTS = APP / "node_modules" / "@fontsource"
-#: The bee on the paper column of scripts/brand_palette.py: the card is a paper
-#: surface, so the figure is inlined in the paper hex spelling the generator owns
-#: (`bee_body`): the card carries hex, and no stylesheet resolves a role.
-BEE = bee_body("calm", 512, ground="paper")
 
-#: The card's own roles, all paper, for the small rule and text tokens.
-PAPER_ROLES = "".join(
-    f"{ROLES[role].token}:{ROLES[role].paper};"
-    for role in ("brand", "brand_glow", "ink", "ground")
-)
+#: The bee the product ships as its face: the same artwork the icon kit is cut
+#: from and the first-run scene floats. Transparent, 2120x1504, already committed.
+BEE_PNG = APP / "public" / "onboarding" / "bee-3d-hero.png"
+BEE = "data:image/png;base64," + base64.b64encode(BEE_PNG.read_bytes()).decode()
 
 OUT_ASSET = ROOT / "docs" / "media" / "ephe-social-preview-1200x630.png"
 OUT_PUBLIC = APP / "public" / "og-image.png"
@@ -67,14 +59,14 @@ OUT_PUBLIC = APP / "public" / "og-image.png"
 W, H = 1200, 630
 SCALE = 2  # rendered at 2x, downscaled to 1x for clean anti-aliasing
 
-# Tokens, copied verbatim from app/src/styles/globals.css (html.light)
-PAPER = "#F0F0E6"        # --color-canvas
-SURFACE = "#FAFAF5"      # --color-surface
-INK = "#1A1614"          # --color-ink
-INK_SOFT = "hsl(25 8% 35%)"   # --color-ink-soft
-INK_FAINT = "hsl(25 7% 40%)"  # --color-ink-faint
-HAIRLINE = "#D8D4C8"     # --color-hairline
-BRAND_DEEP = "#B42D21"   # --color-brand-deep (AA red text on paper)
+# Tokens, copied verbatim from app/src/styles/globals.css (the one ground)
+CANVAS = "#15120F"       # --color-canvas
+SURFACE = "#1D1917"      # --color-surface
+INK = "#F2EFE8"          # --color-ink
+INK_SOFT = "hsl(30 9% 66%)"   # --color-ink-soft
+INK_FAINT = "hsl(30 8% 53%)"  # --color-ink-faint
+HAIRLINE = "#2E2926"     # --color-hairline
+BRAND = "#E8543F"        # --color-brand (5.13:1 on the canvas)
 
 HEADLINE = ("Work you can see.<br>"
             "A trace that disappears.")
@@ -104,33 +96,26 @@ def html() -> str:
             _font_face("JetBrains Mono", 500, "jetbrains-mono", "jetbrains-mono"),
         ]
     )
-    # The bee is inlined twice — the panel and the lockup — so the second copy gets
-    # its own id prefix; two figures that shared one set of gradient ids would both
-    # read the first set, which is invalid markup even when it happens to paint right.
-    panel = f'<svg viewBox="0 0 512 512" role="img">{BEE}</svg>'
-    lockup = f'<svg viewBox="0 0 512 512" role="img">{BEE.replace("bspc-", "bspl-")}</svg>'
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><style>
-:root{{{PAPER_ROLES}}}
 {faces}
 *{{margin:0;padding:0;box-sizing:border-box}}
 html,body{{width:{W}px;height:{H}px;overflow:hidden}}
 body{{font-family:'Inter',sans-serif;color:{INK};position:relative;
-  background:radial-gradient(135% 135% at 10% -10%,{SURFACE} 0%,{PAPER} 50%,#E7E6DA 100%);}}
+  background:radial-gradient(135% 135% at 10% -10%,{SURFACE} 0%,{CANVAS} 52%,#0F0D0B 100%);}}
 /* dossier hairline — 1 px rules instead of shadows (BRAND section Type & tokens) */
 .frame{{position:absolute;inset:22px;border:1px solid {HAIRLINE};border-radius:10px}}
 .glow{{position:absolute;right:-90px;top:40px;width:680px;height:680px;border-radius:50%;
-  background:radial-gradient(circle,rgba(216,56,40,.09) 0%,rgba(216,56,40,0) 66%)}}
-/* the mark: its right lobe decays into the paper — ephemeral made visible */
-.mark{{position:absolute;right:40px;top:112px;width:420px;height:420px}}
-.mark svg{{width:100%;height:100%;display:block}}
+  background:radial-gradient(circle,rgba(232,84,63,.12) 0%,rgba(232,84,63,0) 66%)}}
+.mark{{position:absolute;right:24px;top:92px;width:548px;height:452px}}
+.mark img{{width:100%;height:100%;object-fit:contain;display:block}}
 .lockup{{position:absolute;left:72px;top:60px;display:flex;align-items:center;gap:15px}}
-.lockup .m{{width:58px;height:58px}}
-.lockup .m svg{{width:100%;height:100%;display:block}}
+.lockup .m{{width:64px;height:52px}}
+.lockup .m img{{width:100%;height:100%;object-fit:contain;display:block}}
 .wordmark{{font-family:'Space Grotesk';font-weight:600;font-size:41px;letter-spacing:-.015em;
   line-height:1}}
 .kicker{{position:absolute;left:74px;top:228px;font-family:'JetBrains Mono';font-weight:500;
-  font-size:16px;letter-spacing:.34em;color:{BRAND_DEEP};text-transform:uppercase}}
+  font-size:16px;letter-spacing:.34em;color:{BRAND};text-transform:uppercase}}
 h1{{position:absolute;left:71px;top:264px;width:648px;font-family:'Space Grotesk';
   font-weight:600;font-size:52px;line-height:1.09;letter-spacing:-.018em;color:{INK}}}
 .sub{{position:absolute;left:74px;top:420px;width:566px;font-family:'Inter';font-weight:400;
@@ -142,8 +127,8 @@ h1{{position:absolute;left:71px;top:264px;width:648px;font-family:'Space Grotesk
 <body>
   <div class="glow"></div>
   <div class="frame"></div>
-  <div class="mark">{panel}</div>
-  <div class="lockup"><span class="m">{lockup}</span><span class="wordmark">Ephe</span></div>
+  <div class="mark"><img src="{BEE}" alt=""></div>
+  <div class="lockup"><span class="m"><img src="{BEE}" alt=""></span><span class="wordmark">Ephe</span></div>
   <div class="kicker">{KICKER}</div>
   <h1>{HEADLINE}</h1>
   <div class="sub">{SUB}</div>

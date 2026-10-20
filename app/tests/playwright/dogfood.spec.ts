@@ -11,6 +11,21 @@ import fs from 'node:fs'
 const SHOTS = '/tmp/ephe-dogfood'
 fs.mkdirSync(SHOTS, { recursive: true })
 
+// The product names no model, so the lane must read the owner's persisted choice
+// instead of pinning one — a hardcoded tag turns the instrument red when the
+// engine changes for a reason that has nothing to do with the UI.
+const ACTIVE_MODEL = (() => {
+  try {
+    const file = path.join(process.env.HOME ?? '', '.ephe', 'engine.json')
+    return String(JSON.parse(fs.readFileSync(file, 'utf8')).model ?? '')
+  } catch {
+    return ''
+  }
+})()
+const ACTIVE_MODEL_RE = ACTIVE_MODEL
+  ? new RegExp(ACTIVE_MODEL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  : null
+
 const uiErrors = (errors: string[]) =>
   errors.filter(
     (e) =>
@@ -29,6 +44,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('i18nextLng', 'de')
     localStorage.setItem('ephe_onboarded', '1')
+    localStorage.setItem('ephe.intro.seen.v1', '1')
   })
 })
 
@@ -51,10 +67,9 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     const errors: string[] = []
     await boot(page, '01-baseline', errors)
     await expect(page.locator('[data-testid="chat-sidebar"]')).toBeVisible()
-    // J2 header: the "new session" action exists twice (the full-width sidebar one + the header ⊕) —
-    // take the strict test ids, both have to be visible.
+    // The sidebar's full-width new-task row is the shipped control; the header ⊕
+    // was removed by the chrome budget and has no testid in the product today.
     await expect(page.getByTestId('new-session')).toBeVisible()
-    await expect(page.getByTestId('header-new-session')).toBeVisible()
     expect(uiErrors(errors)).toEqual([])
   })
 
@@ -84,6 +99,9 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
   test('P2 Hover-Toolbar: Copy + Neu generieren auf fertiger Assistant-Bubble', async ({
     page,
   }) => {
+    // A live free endpoint can take longer than the 60 s default; the stream-end
+    // wait below is the real boundary.
+    test.setTimeout(180_000)
     const errors: string[] = []
     await boot(page, '02c-toolbar', errors)
     // an existing session from P2? No — a fresh page. Send something short, let it answer.
@@ -115,18 +133,23 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
   }) => {
     const errors: string[] = []
     await boot(page, '03-a', errors)
+    // An auto title belongs to a NEW session; the previous version sent the prompt
+    // into the restored one and then waited for a title that could never change.
+    await page.getByTestId('new-session').click()
     const ta = composer(page)
     await ta.fill(
       'Gib mir eine ausführliche Liste mit den zehn häufigsten Programmiersprachen und ihrer Geschichte.',
     )
     await ta.press('Enter')
     await page.waitForTimeout(20000)
-    // the auto title in the sidebar: cut at a word boundary, it does NOT end mid-word
+    // The sidebar refreshes its list on its own cadence; a reload proves the title
+    // persisted instead of racing that poll.
+    await page.reload({ waitUntil: 'load' })
     const sidebarTitle = page
       .locator('[data-testid="sessions-view"]')
       .locator('text=/Gib mir eine ausführliche Liste mit den zehn/i')
       .first()
-    await expect(sidebarTitle).toBeVisible({ timeout: 10000 })
+    await expect(sidebarTitle).toBeVisible({ timeout: 30000 })
     await page.screenshot({ path: path.join(SHOTS, '03-b-auto-titel.png') })
     expect(uiErrors(errors)).toEqual([])
   })
@@ -134,28 +157,22 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
   test('P6 Settings: Panel öffnet, Model-Picker live, Memory-Stats, Sprache de/en', async ({
     page,
   }) => {
+    test.skip(!ACTIVE_MODEL_RE, 'no persisted engine model to compare against')
     const errors: string[] = []
     await boot(page, '04-settings', errors)
     await page.getByTestId('sidebar-settings-btn').click()
     await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: path.join(SHOTS, '04b-settings-modell.png') })
-    // model picker: the active model from /api/model/providers (qwen3.8-27b) is visible
-    await expect(page.getByText(/qwen3\.8/).first()).toBeVisible({ timeout: 10000 })
-    // memory tab: the vector statistics
-    await page
-      .getByRole('button', { name: /Gedächtnis|Memory/i })
-      .first()
-      .click()
-      .catch(() => {})
+    // model picker: the owner's persisted model is the one the UI shows
+    await expect(page.getByText(ACTIVE_MODEL_RE!).first()).toBeVisible({ timeout: 10000 })
+    // memory tab: the vector statistics (the tab key is stable; the German label is "Wissen")
+    await page.getByTestId('settings-nav-memory').click()
     await page.waitForTimeout(1500)
     await page.screenshot({ path: path.join(SHOTS, '04c-settings-memory.png') })
     // language: open the language tab → pick 'English' → the labels switch and persist
+    await page.getByTestId('settings-nav-language').click()
     await page
-      .getByRole('button', { name: /^Sprache$/i })
-      .first()
-      .click()
-    await page
-      .getByRole('button', { name: /English/i })
+      .getByRole('radio', { name: /English/i })
       .first()
       .click()
     await page.waitForTimeout(1000)
@@ -171,6 +188,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
   test('P7 Slash-Commands: /model /sessions /skills /settings antworten im Chat', async ({
     page,
   }) => {
+    test.skip(!ACTIVE_MODEL_RE, 'no persisted engine model to compare against')
     const errors: string[] = []
     await boot(page, '05-slash', errors)
     const ta = composer(page)
@@ -180,8 +198,8 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
       await page.waitForTimeout(1200)
     }
     await page.screenshot({ path: path.join(SHOTS, '05-slash-antworten.png') })
-    // /model shows the active model
-    await expect(page.getByText(/qwen3\.8/).first()).toBeVisible()
+    // /model shows the owner's active model
+    await expect(page.getByText(ACTIVE_MODEL_RE!).first()).toBeVisible()
     // an unknown command → feedback (not silence)
     await ta.fill('/definitely-not-a-command')
     await ta.press('Enter')
@@ -200,6 +218,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     await mpage.addInitScript(() => {
       localStorage.setItem('i18nextLng', 'de')
       localStorage.setItem('ephe_onboarded', '1')
+      localStorage.setItem('ephe.intro.seen.v1', '1')
     })
     const errors: string[] = []
     mpage.on('console', (m) => {
@@ -216,6 +235,71 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     await mpage.screenshot({ path: path.join(SHOTS, '06b-mobile-chat.png') })
     await ctx.close()
     expect(uiErrors(errors)).toEqual([])
+  })
+
+  test('P10 Companion at 390 does not overlap the task dock', async ({ browser }) => {
+    test.setTimeout(120_000)
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    const page = await ctx.newPage()
+    await page.addInitScript(() => {
+      localStorage.setItem('i18nextLng', 'de')
+      localStorage.setItem('ephe_onboarded', '1')
+      localStorage.setItem('ephe.intro.seen.v1', '1')
+    })
+    await page.goto('http://localhost:5173/', { waitUntil: 'load' })
+    const companion = page.getByTestId('workspace-companion')
+    await expect(companion).toBeVisible({ timeout: 30000 })
+    const dock = page.locator('[data-testid="task-dock-pill"], [data-testid="task-dock"]').first()
+    await expect(dock).toBeVisible({ timeout: 30000 })
+    const a = await companion.boundingBox()
+    const b = await dock.boundingBox()
+    expect(a).not.toBeNull()
+    expect(b).not.toBeNull()
+    const overlap =
+      a!.x < b!.x + b!.width &&
+      b!.x < a!.x + a!.width &&
+      a!.y < b!.y + b!.height &&
+      b!.y < a!.y + a!.height
+    expect(overlap, `companion ${JSON.stringify(a)} dock ${JSON.stringify(b)}`).toBe(false)
+    await page.screenshot({ path: path.join(SHOTS, '10-companion-390.png') })
+
+    const visibleActors = () =>
+      page.evaluate(() => {
+        const ids = [
+          'workspace-companion',
+          'header-companion',
+          'ephe-mark-hero',
+          'interactive-bee-guide',
+        ]
+        return ids.filter((id) => {
+          const el = document.querySelector(`[data-testid="${id}"]`)
+          if (!el) return false
+          const style = getComputedStyle(el)
+          const rect = el.getBoundingClientRect()
+          return (
+            style.visibility !== 'hidden' &&
+            style.display !== 'none' &&
+            rect.width > 0 &&
+            rect.height > 0
+          )
+        })
+      })
+
+    // One actor on the active page, one on the empty welcome, one in the tour.
+    expect(await visibleActors()).toEqual(['workspace-companion'])
+    await page.getByTestId('header-menu-toggle').click()
+    await page.getByTestId('new-session').click()
+    await page.keyboard.press('Escape')
+    await page.waitForSelector('[data-testid="ephe-mark-hero"]', { timeout: 30000 })
+    expect(await visibleActors()).toEqual(['ephe-mark-hero'])
+    await page.goto('http://localhost:5173/?tour=1', { waitUntil: 'load' })
+    await page.waitForSelector('[data-testid="interactive-bee-guide"]', { timeout: 30000 })
+    expect(await visibleActors()).toEqual(['interactive-bee-guide'])
+    await ctx.close()
   })
 
   test('P4 Attachments: Bild + Textdatei werden als Chips gerendert, entfernen funktioniert', async ({
@@ -265,16 +349,13 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     await boot(page, '08a-toast-start', errors)
     await page.getByTestId('sidebar-settings-btn').click()
     await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible({ timeout: 10000 })
+    await page.getByTestId('settings-nav-language').click()
     await page
-      .getByRole('button', { name: /^Sprache$/i })
+      .getByRole('radio', { name: /English/i })
       .first()
       .click()
-    await page
-      .getByRole('button', { name: /English/i })
-      .first()
-      .click()
-    // the "language changed" success toast appears (the Toaster renders role="status")
-    const toast = page.getByRole('status').filter({ hasText: /Sprache geändert/i })
+    // The toast speaks the language it just switched to.
+    const toast = page.getByRole('status').filter({ hasText: /Sprache geändert|Language changed/i })
     await expect(toast).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: path.join(SHOTS, '08b-toast-sprache.png') })
     // auto-dismiss: the toast disappears on its own (5s + buffer)
@@ -290,6 +371,9 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     test.setTimeout(180_000)
     const errors: string[] = []
     await boot(page, '09a-thinking-live', errors)
+    // A restored session may still carry the in-flight block of an interrupted
+    // turn; this leg measures the block the current turn opens and closes.
+    await page.getByTestId('new-session').click()
     const ta = composer(page)
     await ta.fill('Erkläre in zwei Sätzen, was du gerade denkst.')
     await ta.press('Enter')

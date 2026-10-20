@@ -14,14 +14,13 @@ from __future__ import annotations
 import asyncio
 import time
 
-from textual.widgets import Input
-
 from core.model_provider import (
     DEFAULT_OLLAMA_BASE_URL,
     ModelProviderConfig,
     ProviderChatResponse,
     ProviderMessage,
 )
+from ui.composer import ComposerArea
 from ui.widgets import AgentMessageCard
 
 ANSWER = "Offline turn answered by the stub engine."
@@ -99,7 +98,7 @@ async def _wait_for(predicate, pilot, timeout: float = 10.0) -> bool:
 
 async def _submit(pilot, app, text: str) -> None:
     """Type into the real input and press Enter, the way a user does."""
-    inp = app.query_one("#chat-input", Input)
+    inp = app.query_one("#chat-input", ComposerArea)
     inp.focus()
     inp.value = text
     await pilot.pause()
@@ -118,7 +117,7 @@ def test_tui_runs_an_offline_turn_and_persists_it(tmp_path, monkeypatch, tmp_ses
     engine = _StubEngine([ANSWER])
     _wire_stub_engine(monkeypatch, engine)
 
-    from core.session import load_last_session
+    from core import multi_session as ms
     from ui.app import EpheApp
 
     captured: dict = {}
@@ -135,13 +134,14 @@ def test_tui_runs_an_offline_turn_and_persists_it(tmp_path, monkeypatch, tmp_ses
             assert ok, f"the turn never finished; session={app._session}"
             captured["answer_acc"] = app.query(AgentMessageCard).last()._answer_acc
             captured["session"] = list(app._session)
+            captured["session_id"] = app._session_id
 
     asyncio.run(run())
 
     assert captured["session"][-1] == {"role": "assistant", "content": ANSWER}
     assert ANSWER in captured["answer_acc"], captured["answer_acc"]
 
-    on_disk = load_last_session()
+    on_disk = ms.load_messages(captured["session_id"])
     assert on_disk[-1] == {"role": "assistant", "content": ANSWER}, on_disk
 
 

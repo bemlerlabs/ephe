@@ -3,66 +3,47 @@
 /**
  * I3-V5: the appearance section — before this it did not exist as a place.
  *
- * The theme hung as a button on the chat header (localStorage 'ephe.theme'), the
- * font size and the animations sat in the expert box, timestamps and the thinking
- * phase were nowhere to find. They come together here: what you see, in one place,
- * in the row form of the rest of the settings.
+ * The font size and the animations sat in the expert box, timestamps and the thinking
+ * phase were nowhere to find, and the light or dark choice hung as a button on the chat
+ * header. They came together here: what you see, in one place, in the row form of the rest
+ * of the settings. The header's theme button went with the paper ground it switched
+ * (owner decision 2026-10-19: the forest is the only theme the product ships), so what
+ * remains is the register's own appearance block.
  */
-import { useState } from 'react'
-import { MoonStar, SunMedium } from 'lucide-react'
 import PageHeader from '@/components/shell/PageHeader'
-import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
-import { applyTheme, getStoredTheme, type ThemeMode } from '@/lib/theme'
+import { AppearancePresets } from './appearancePresets'
+import { AppearanceProfile } from './AppearanceProfileSection'
+import { CompanionStudioCard, COMPANION_KEYS } from './CompanionStudioCard'
 import { DeepFields } from './deepFields'
 import type { SettingsModel } from './types'
 
 export function AppearanceSection({ model }: { model: SettingsModel }) {
-  const { t } = model
-  const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme())
-
-  const pick = (next: ThemeMode) => {
-    applyTheme(next)
-    setTheme(next)
-  }
+  const { t, instantStatus, instantError } = model
 
   return (
     <div className="space-y-4">
       <PageHeader title={t('settings.appearanceTitle')} subtitle={t('settings.appearanceHint')} />
-      <SettingsGroup icon={MoonStar} title={t('settings.appearanceGroupTheme')}>
-        <SettingsRow
-          icon={theme === 'dark' ? MoonStar : SunMedium}
-          title={t('settings.appearanceTheme')}
-          description={t('settings.appearanceThemeHint')}
-          testid="appearance-row-theme"
-        >
-          <div
-            role="radiogroup"
-            aria-label={t('settings.appearanceTheme')}
-            className="flex rounded-lg bg-surface p-0.5 gap-0.5"
-          >
-            {(['dark', 'light'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={theme === mode}
-                data-testid={`appearance-theme-${mode}`}
-                onClick={() => pick(mode)}
-                className={`rounded-md px-3 py-1 text-ui-xs font-medium transition-colors ${
-                  theme === mode
-                    ? 'bg-brand/25 text-brand-deep'
-                    : 'text-ink-faint hover:text-foreground/80'
-                }`}
-              >
-                {t(`settings.appearanceTheme.${mode}`)}
-              </button>
-            ))}
-          </div>
-        </SettingsRow>
-      </SettingsGroup>
+      {/* The bundles sit above the raw rows and write only their own keys. */}
+      <AppearancePresets model={model} />
+      <CompanionStudioCard model={model} />
       {/* I6-3: the chat fields moved out to the behaviour section — what stays
-          here is what you see. */}
-      <DeepFields model={model} prefixes={['appearance.']} />
+          here is what you see. The five companion rows live in the studio. */}
+      <DeepFields model={model} prefixes={['appearance.']} exclude={[...COMPANION_KEYS]} />
+      <AppearanceProfile model={model} />
+      {instantStatus !== 'idle' && (
+        <p
+          role={instantStatus === 'error' ? 'alert' : 'status'}
+          data-testid="appearance-instant-status"
+          className={`px-1 text-scale-data ${
+            instantStatus === 'error' ? 'text-status-danger' : 'text-ink-faint'
+          }`}
+        >
+          {instantStatus === 'saving' && t('settings.appearanceSaving')}
+          {instantStatus === 'saved' && t('settings.appearanceSaved')}
+          {instantStatus === 'error' &&
+            `${t('settings.appearanceSaveFailed')}${instantError ? `: ${instantError}` : ''}`}
+        </p>
+      )}
     </div>
   )
 }

@@ -71,11 +71,23 @@ COMMANDS: dict[str, str] = {
     # The templates are only fallback documentation; the TUI renders them
     # via render_info_command() (info commands are intercepted there,
     # before resolve_command would resolve them here).
+    # App commands: the terminal runs them itself (no prompt, no engine call).
+    # The templates are documentation only; ui/app.py branches on the verb
+    # before resolve_command is reached.
+    "/new": "Start a new session (terminal)",
+    "/sessions": "Open, rename or delete a session (terminal)",
+    "/undo": "Remove the last turn from the transcript (terminal)",
+    "/redo": "Restore the last undone turn (terminal)",
+    "/editor": "Edit the draft in $VISUAL/$EDITOR (terminal)",
     "/help": "Ephe command overview (see /help in the TUI)",
     "/model": "Show active model/provider (see /model in the TUI)",
     "/engine": "Show engine config (see /engine in the TUI)",
     "/configure": "Select engine (see /configure in the TUI)",
 }
+
+APP_COMMANDS: frozenset[str] = frozenset(
+    {"/new", "/sessions", "/undo", "/redo", "/editor"}
+)
 
 # Info commands (Phase 2 Item 8)
 # These commands are rendered LOCALLY (no LLM pass): they show state.
@@ -113,6 +125,7 @@ def render_info_command(text: str) -> str:
             lines.append(f"  {name:<12} {desc}{tag}")
         lines.append("")
         lines.append("Info commands render locally (no LLM): /help /model /engine /configure")
+        lines.append("Terminal commands: /new /sessions /undo /redo /editor")
         return "\n".join(lines)
 
     if cmd == "/model":
@@ -178,6 +191,11 @@ _COMMAND_DESCRIPTIONS: dict[str, str] = {
     "/goal":    "Autonomous goal loop with a check command",
     "/plan":    "Stepwise implementation plan (prompt)",
     "/review":  "Critical code review (prompt)",
+    "/new":     "Start a new session (terminal)",
+    "/sessions": "Open, rename or delete a session (terminal)",
+    "/undo":    "Remove the last turn from the transcript (terminal)",
+    "/redo":    "Restore the last undone turn (terminal)",
+    "/editor":  "Edit the draft in $VISUAL/$EDITOR (terminal)",
     "/help":    "Command overview (local, no LLM)",
     "/model":   "Active model/provider (local, no LLM)",
     "/engine":  "Engine config (local, no LLM)",

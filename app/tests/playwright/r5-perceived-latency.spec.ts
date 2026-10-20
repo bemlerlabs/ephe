@@ -485,6 +485,7 @@ test.describe('R5 perceived latency', () => {
     await page.addInitScript(() => {
       localStorage.setItem('i18nextLng', 'de')
       localStorage.setItem('ephe_onboarded', '1')
+      localStorage.setItem('ephe.intro.seen.v1', '1')
     })
     await page.goto(`${origin}/#/chat`, { waitUntil: 'load' })
     await page.waitForSelector(CHAT_PANEL, { timeout: 15_000 })
@@ -698,6 +699,7 @@ test.describe('R5 perceived latency', () => {
       await page.addInitScript(() => {
         localStorage.setItem('i18nextLng', 'de')
         localStorage.setItem('ephe_onboarded', '1')
+        localStorage.setItem('ephe.intro.seen.v1', '1')
         localStorage.setItem(
           'ephe.setup_gate',
           JSON.stringify({ configured: true, skipped: false }),

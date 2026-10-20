@@ -307,7 +307,7 @@ async function stubStream(route: import('@playwright/test').Route) {
   return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
 }
 
-async function openChat(page: Page, theme: 'light' | 'dark' = 'light') {
+async function openChat(page: Page) {
   page.on('pageerror', (error) => console.log(`u6-focus PAGEERROR ${String(error).slice(0, 160)}`))
   // Installed before the first request: on the dev origin an unstubbed /api would reach
   // the live product server on :8765, which another lane is holding.
@@ -316,15 +316,17 @@ async function openChat(page: Page, theme: 'light' | 'dark' = 'light') {
   // on the request path, not on the substring.
   await page.route((url) => new URL(url).pathname.startsWith('/api/'), stubStream)
   await page.addInitScript(installFocusProbe)
-  await page.addInitScript((mode) => {
+  await page.addInitScript(() => {
     localStorage.setItem('i18nextLng', 'en')
     localStorage.setItem('ephe_onboarded', '1')
-    // theme.ts: getStoredTheme() reads 'dark' or falls back to light, and the class lives on
-    // <html>. The ring is `--color-ring: var(--color-ink)` in both, so one theme proves
-    // nothing about the other: light is the default and dark is the glass surface the
-    // contrast ratchet is written against.
-    if (mode === 'dark') localStorage.setItem('ephe.theme', 'dark')
-  }, theme)
+    // `ephe_onboarded` gates nothing since the first-run film took over the boot check;
+    // `ephe.intro.seen.v1` is the key `main.tsx` reads. Without it the film plays over this
+    // leg and its Skip button leaves the tab order on the scene timer, mid-test (`helpers.ts`
+    // sets both for the legs that share its boot).
+    localStorage.setItem('ephe.intro.seen.v1', '1')
+    // One ground: the ring is `--color-ring: var(--color-ink)` on it, and the contrast
+    // ratchet is written against that glass. There is no stored mode to set.
+  })
   const origin = USE_FIXTURE ? fixture?.origin : DEV_ORIGIN
   if (!origin) throw new Error('no origin: the fixture never started')
   await page.goto(`${origin}/#/chat`, { waitUntil: 'load' })
@@ -341,16 +343,14 @@ async function openChat(page: Page, theme: 'light' | 'dark' = 'light') {
     await page.reload({ waitUntil: 'load' })
   }
   await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 20_000 })
-  // Proving the theme actually applied, rather than assuming the init script did it: the ring
-  // colours of two walks that were in the same theme would be byte-identical, and that reads
-  // as "both themes pass" to anyone who is not looking.
+  // The walk used to prove which of two themes it was in, because two walks in the same one
+  // printed byte-identical figures and read as both passing. There is one ground now, and a
+  // second class on <html> would mean a second ground came back.
   const applied = await page.evaluate(() => document.documentElement.className || '(no class)')
-  console.log(`u6-focus THEME asked=${theme} htmlClass=${applied}`)
-  expect(
-    applied.includes('light'),
-    `asked for ${theme} and the document carries class "${applied}" — the walk would silently ` +
-      'measure the wrong theme',
-  ).toBe(theme === 'light')
+  console.log(`u6-focus GROUND htmlClass=${applied}`)
+  expect(applied.includes('light'), `the document carries a second ground: "${applied}"`).toBe(
+    false,
+  )
   await page.locator(CHAT_INPUT).click()
 }
 
@@ -517,14 +517,13 @@ test.describe('U6 focus and tab order', () => {
     fixture = null
   })
 
-  test('every stop in the chat tab order shows its own focus, in both themes', async ({
+  test('every stop in the chat tab order shows its own focus, on the shipped ground', async ({
     browser,
   }) => {
-    // One page per theme. Reusing the page and going to the same URL again is a same-document
-    // navigation (`/#/chat` differs by nothing), which never re-runs the init script that sets
-    // `ephe.theme` — the second walk then measured the first theme and printed byte-identical
-    // figures for what looked like two.
-    for (const theme of ['light', 'dark'] as const) {
+    // One page per walk, kept from the two-theme era: reusing a page and navigating to the
+    // same URL again is a same-document navigation (`/#/chat` differs by nothing), which
+    // never re-runs an init script.
+    for (const theme of ['forest'] as const) {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
       const page = await context.newPage()
       await openChat(page, theme)

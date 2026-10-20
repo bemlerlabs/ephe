@@ -6,6 +6,7 @@ import { useSettingsCore } from './useSettingsCore'
 import { useSettingsFeatures } from './useSettingsFeatures'
 import { useSettingsLists } from './useSettingsLists'
 import { useSettingsSave } from './useSettingsSave'
+import { useInstantAppearance } from './useInstantAppearance'
 
 /** Composition hook: calls the sub-hooks in a fixed order (the hooks rule)
  *  and merges their partial objects into the SettingsModel bag. */
@@ -18,7 +19,15 @@ export function useSettingsModel(props: SettingsPanelProps) {
   // decides when settings.json (the register) and engine.json (the main block)
   // get written, and what the user hears about it.
   const save = useSettingsSave(state, core, lists)
-  return { ...state, ...core, ...features, ...lists, ...save }
+  const instant = useInstantAppearance({
+    isOpen: state.isOpen,
+    activeTab: state.activeTab,
+    deepDraft: state.deepDraft,
+    deepSections: state.deepSections,
+    setDeepDraft: state.setDeepDraft,
+    saveDeepSettings: lists.saveDeepSettings,
+  })
+  return { ...state, ...core, ...features, ...lists, ...save, ...instant }
 }
 
 export type SettingsModel = ReturnType<typeof useSettingsModel>

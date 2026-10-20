@@ -1,24 +1,64 @@
 'use client'
 
 /**
- * I3-V1: the control on the right of a settings row — type-safe from the register.
+ * The control on the right of a settings row — type-safe from the register.
  *
- * Pulled out of sections-deep.tsx because every area (engine, audio, memory,
- * plugin store) needs the same four controls: a switch, a choice, a number with a
- * range, free text. One pattern, four shells, no section with its own handwriting.
+ * Four shells, one pattern: a switch, a choice, a number with a range, free
+ * text. Native contract: a neutral graphite field on the grouped card, 10-12 px
+ * radii, sentence-case labels and the one accent only for a live or primary
+ * action. The value is never dressed in a mono column.
  */
 import { useTranslation } from 'react-i18next'
 import Switch from './Switch'
 import type { DeepField } from '@/types'
 
-/**
- * A control of the register: square corners, one hairline as its edge, the canvas
- * as its ground, the value at the UI step in the mono face and set flush right so
- * every control of a column ends on the same axis. The radius and the filled
- * ground the old handwriting gave a control belong to the boxed register.
- */
-const CONTROL_CLASS =
-  'border border-hairline-strong bg-canvas px-2 py-1 text-right font-mono text-scale-ui text-ink outline-none focus-ring transition-colors'
+export const CONTROL_CLASS =
+  'h-9 rounded-lg border border-control bg-surface-raised px-3 text-scale-ui text-ink outline-none transition-colors hover:border-hairline-strong focus-ring'
+
+/** A neutral segmented choice for a small enum — selection is a graphite step,
+ *  so the one accent stays for the live action. */
+export function SegmentedControl<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  testid,
+}: {
+  label: string
+  value: T | null
+  options: { id: T; label: string }[]
+  onChange: (id: T) => void
+  testid?: string
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      data-testid={testid}
+      className="flex flex-wrap gap-0.5 rounded-lg bg-surface p-0.5"
+    >
+      {options.map((option) => {
+        const selected = option.id === value
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.id)}
+            className={`min-h-7 rounded-md px-2.5 py-1 text-scale-data font-medium transition-colors pointer-coarse:min-h-11 ${
+              selected
+                ? 'bg-surface-interactive text-ink'
+                : 'text-ink-soft hover:bg-surface-interactive hover:text-ink'
+            }`}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function SettingControl({
   field,
@@ -60,7 +100,7 @@ export default function SettingControl({
         onChange={(e) => onCommit(e.target.value)}
         aria-label={label}
         data-testid={`setting-select-${field.key}`}
-        className={`${CONTROL_CLASS} min-w-32 max-lg:min-h-11`}
+        className={`${CONTROL_CLASS} min-w-32 pr-8 max-lg:min-h-11`}
       >
         {(field.options ?? []).map((opt) => (
           <option key={opt} value={opt}>
@@ -85,7 +125,7 @@ export default function SettingControl({
           onChange={(e) => onCommit(e.target.value === '' ? '' : Number(e.target.value))}
           aria-label={label}
           data-testid={`setting-number-${field.key}`}
-          className={`${CONTROL_CLASS} w-28 tabular-nums max-lg:min-h-11`}
+          className={`${CONTROL_CLASS} w-24 text-right tabular-nums max-lg:min-h-11`}
         />
         {field.min !== undefined && field.max !== undefined && (
           <span className="text-scale-data text-ink-faint tabular-nums">
@@ -104,7 +144,7 @@ export default function SettingControl({
       onChange={(e) => onCommit(e.target.value)}
       aria-label={label}
       data-testid={`setting-text-${field.key}`}
-      className={`${CONTROL_CLASS} w-60 max-md:w-32`}
+      className={`${CONTROL_CLASS} w-56 max-md:w-40`}
     />
   )
 }

@@ -757,7 +757,7 @@ wheels = [
 
 [[package]]
 name = "ephe"
-version = "0.1.0b10"
+version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },

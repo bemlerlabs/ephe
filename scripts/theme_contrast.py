@@ -1,22 +1,19 @@
-"""Reading a theme out of the stylesheet and taking the WCAG ratio of two colours.
+"""Reading the one ground out of the stylesheet and taking the WCAG ratio of two colours.
 
-`app/src/styles/globals.css` holds the ink literals in `@theme` and the paper ones
-in `html.light`; a token either spells a colour or points at another token, so
-resolving one means following the links the sheet writes. `scripts/mark_contract.py`
-uses this to recompute the mark red against the ground of each theme, which is the
-number the frozen literal used to fail.
+`app/src/styles/globals.css` spells its role literals in `@theme` and bends nothing per
+theme: the forest is the only ground the product ships (owner decision 2026-10-19). A
+token either spells a colour or points at another token, so resolving one means following
+the links the sheet writes. `scripts/mark_contract.py` uses this to recompute the mark red
+against that ground, which is the number the frozen literal used to fail.
 
 The ratios here are the same arithmetic `tests/test_r48_design_tokens.py` and
-`tests/test_tui_black_forest.py` apply, kept in one place so a gate and a test can
-never disagree about what 4.5:1 means.
+`tests/test_tui_black_forest.py` apply, kept in one place so a gate and a test can never
+disagree about what 4.5:1 means.
 """
 from __future__ import annotations
 
 import re
 
-#: The two theme blocks, in the order the sheet declares them.
-THEMES = ("ink", "paper")
-PAPER_BLOCK = re.compile(r"(?m)^html\.light\s*\{")
 CSS_DECLARATION = re.compile(r"(--[a-zA-Z0-9-]+)\s*:\s*([^;{}]+);")
 VAR_LINK = re.compile(r"var\(\s*(--[a-zA-Z0-9-]+)\s*\)")
 HSL_LITERAL = re.compile(r"hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)")
@@ -30,16 +27,9 @@ def declarations(text: str) -> dict[str, str]:
     return out
 
 
-def theme_tables(sheet: str) -> dict[str, dict[str, str]]:
-    """{theme: {--token: value}} — ink from the sheet above html.light, paper inside it.
-
-    The anchor is the selector at the line start. Comments above the block name
-    `html.light` in prose, and a plain search for the word would split the sheet
-    inside one of them.
-    """
-    block = PAPER_BLOCK.search(sheet)
-    cut = block.start() if block else len(sheet)
-    return {"ink": declarations(sheet[:cut]), "paper": declarations(sheet[cut:])}
+def forest_table(sheet: str) -> dict[str, str]:
+    """{--token: value} for the ground the product ships."""
+    return declarations(sheet)
 
 
 def resolved(table: dict[str, str], token: str, hops: int = 4) -> str | None:

@@ -1,13 +1,14 @@
 /**
- * Theme-token consistency — one stylesheet, two themes.
+ * Token consistency — one stylesheet, one ground.
  *
- * The @theme block carries the ink (dark) role literals; html.light bends the
- * same role names to paper; :root holds the theme-neutral defaults. The structure
- * is fine until the two themes drift apart: a token aliased to one role in ink
- * and another in paper, a guardian literal that no longer equals the role it
- * duplicates, or a var() reference that resolves to nothing. Each of those fails
- * silently at build time and shows up only as a wrong color. These invariants
- * read the sheet statically, like globals.radius.test.ts.
+ * The @theme block carries the forest role literals and :root holds the
+ * theme-neutral defaults; there is no second block to bend them (owner decision
+ * 2026-10-19). The structure is fine until a guardian literal no longer equals
+ * the role it duplicates or a var() reference resolves to nothing — both fail
+ * silently at build time and show up only as a wrong colour. One case below
+ * refuses a second ground outright, because a `html.light` block returning here
+ * would make every other read of this file pass against a map nobody fills.
+ * These invariants read the sheet statically, like globals.radius.test.ts.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -43,14 +44,13 @@ function defs(src: string): Map<string, string> {
 }
 
 const theme = defs(block(/@theme\s*\{/))
-const light = defs(block(/html\.light\s*\{/))
 
-// Everything the *ink* default resolution carries: @theme, :root and local
-// component tokens. html.light is cut out before the scan.
-const [ls, le] = span(/html\.light\s*\{/)
-const inkTokens = new Set(defs(code.slice(0, ls) + code.slice(le)).keys())
+describe('theme tokens — one stylesheet, one ground', () => {
+  it('declares no second ground', () => {
+    expect(code).not.toMatch(/(^|\n)\s*html\.light\s*\{/)
+    expect(css).not.toContain('html.light')
+  })
 
-describe('theme tokens — one stylesheet, two themes', () => {
   it('every var() reference resolves in the sheet', () => {
     const defined = new Set([...code.matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)].map((m) => m[1]))
     const registered = new Set(
@@ -64,18 +64,6 @@ describe('theme tokens — one stylesheet, two themes', () => {
       (t) => !defined.has(t) && !registered.has(t) && !withFallback.has(t),
     )
     expect(dangling).toEqual([])
-  })
-
-  it('aliases the same role in ink and paper', () => {
-    const mismatches: string[] = []
-    for (const [name, ink] of theme) {
-      const paper = light.get(name)
-      if (!paper) continue
-      const a = /^var\((--[a-zA-Z0-9-]+)\)$/.exec(ink)
-      const b = /^var\((--[a-zA-Z0-9-]+)\)$/.exec(paper)
-      if (a && b && a[1] !== b[1]) mismatches.push(`${name}: ink ${a[1]} vs paper ${b[1]}`)
-    }
-    expect(mismatches).toEqual([])
   })
 
   it('keeps every guardian literal equal to the role it duplicates', () => {
@@ -99,11 +87,6 @@ describe('theme tokens — one stylesheet, two themes', () => {
       expect(theme.get(role), `${role} fehlt im @theme`).toBeTruthy()
       expect(theme.get(legacy), `${legacy} != ${role}`).toBe(theme.get(role))
     }
-  })
-
-  it('only overrides tokens the ink theme already carries', () => {
-    const orphans = [...light.keys()].filter((n) => !inkTokens.has(n))
-    expect(orphans).toEqual([])
   })
 
   it('names the radius steps the S6 comment actually defines', () => {

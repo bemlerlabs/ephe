@@ -221,15 +221,31 @@
       "surface": "update check",
       "web": "false; the feed decides",
       "desktop": "true; install and relaunch are offered"
+    },
+    {
+      "file": "app/src/components/dashboard/settings/index.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "settings save footer on the shortcuts tab",
+      "web": "hidden: the shortcuts area is a read board in the browser",
+      "desktop": "shown: the shortcuts area owns one saveable global opt-in"
+    },
+    {
+      "file": "app/src/components/dashboard/settings/model/sections-shortcuts.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "global shortcut row",
+      "web": "a disabled row names the desktop app and the chord it offers",
+      "desktop": "a switch writes the opt-in; a saved value registers the chord"
     }
   ],
   "platform_only": [
     {
       "id": "window-controls",
       "kind": "dom",
-      "selector": "header button:has(svg.lucide-minus), header button:has(svg.lucide-square)",
+      "selector": "[data-testid=\"header-minimize\"], [data-testid=\"header-maximize\"]",
       "present_on": "desktop",
-      "reason": "The shell draws its own title bar; a browser tab already has minimize and maximize. The comparison removes these controls from the desktop DOM before it compares text and landmarks."
+      "reason": "The shell draws its own title bar; a browser tab already has minimize and maximize. Both items sit in the header menu and exist only in the shell's DOM while that menu is open."
     },
     {
       "id": "service-worker",

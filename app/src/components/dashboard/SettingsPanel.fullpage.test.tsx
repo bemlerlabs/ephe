@@ -1,6 +1,6 @@
-// P6 B6 (ref-16/17/18/20) — full settings page: master-detail with nav groups
-// (Basics / Agent capabilities / Data and statistics / Onboard), ← Back to
-// workspace, H1 + language pill + ?-icon. No more mini dialog.
+// P6 B6 (ref-16/17/18/20) — full settings page: master-detail with the four
+// groups (Everyday / Capabilities / Data / Advanced) and About as the dashed
+// closing card, ← Back to workspace, H1 + language pill + ?-icon.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
@@ -108,7 +108,7 @@ vi.mock('@/lib/api', () => ({
 }))
 
 import SettingsPanel from './SettingsPanel'
-import { NAV, NAV_GROUPS } from './settings/model'
+import { ABOUT_KEYS, NAV, NAV_GROUPS } from './settings/model'
 
 beforeEach(() => {
   localStorage.clear()
@@ -129,15 +129,27 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
   it('Nav-Gruppen nach Schema und alle NAV-Einträge als Pillen-Zeilen', async () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
-    expect(screen.getByTestId('settings-nav-group-basics')).toBeInTheDocument()
-    expect(screen.getByTestId('settings-nav-group-agent')).toBeInTheDocument()
+    expect(screen.getByTestId('settings-nav-group-everyday')).toBeInTheDocument()
+    expect(screen.getByTestId('settings-nav-group-capabilities')).toBeInTheDocument()
     expect(screen.getByTestId('settings-nav-group-data')).toBeInTheDocument()
-    expect(screen.getByTestId('settings-nav-group-onboard')).toBeInTheDocument()
+    expect(screen.getByTestId('settings-nav-group-advanced')).toBeInTheDocument()
+    const about = screen.getByTestId('settings-nav-group-about')
+    expect(about).toBeInTheDocument()
+    // About closes the register as a card; there is no fifth heading.
+    expect(about.querySelector('p')).toBeNull()
     for (const n of NAV) {
-      expect(screen.getByTestId(`settings-nav-${n.key}`)).toBeInTheDocument()
+      const row = screen.getByTestId(`settings-nav-${n.key}`)
+      expect(row).toBeInTheDocument()
+      // One 12 px glyph per row; a group head carries none.
+      expect(row.querySelectorAll('svg')).toHaveLength(1)
+      expect(row.querySelector('svg')?.getAttribute('class')).toContain('h-3')
+    }
+    for (const group of NAV_GROUPS) {
+      const id = `settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`
+      expect(screen.getByTestId(id).querySelector('p')?.querySelector('svg')).toBeNull()
     }
     // 1:1 — every group matches the NAV keys, no entry missing or doubled
-    const groupKeys = NAV_GROUPS.flatMap((g) => g.keys)
+    const groupKeys = [...NAV_GROUPS.flatMap((g) => g.keys), ...ABOUT_KEYS]
     expect([...groupKeys].sort()).toEqual(NAV.map((n) => n.key).sort())
   })
 
@@ -148,18 +160,21 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
   it('Speichern-Fuss nur auf Tabs mit Settings-Formular', async () => {
     // I7-3: cron is no longer a read-only area — the four schedule controls sit
     // in that tab and need the same footer button as the others.
-    for (const tab of ['engine', 'appearance', 'cron'] as const) {
+    for (const tab of ['engine', 'behaviour', 'cron'] as const) {
       const { unmount } = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab={tab} />)
       await screen.findByTestId('settings-page')
       expect(screen.queryByText('settings.save')).toBeInTheDocument()
       unmount()
     }
     for (const tab of [
+      // Appearance rows persist on change; the section's own status line replaces
+      // the footer while no other section is dirty.
+      'appearance',
       'artifacts',
       'tasks',
       'about',
       'language',
-      'shortcuts',
+      'shortcuts', // a read board in the browser; the desktop shell saves its global opt-in
       'network',
     ] as const) {
       const { unmount } = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab={tab} />)

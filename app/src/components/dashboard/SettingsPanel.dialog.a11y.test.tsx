@@ -180,6 +180,19 @@ describe('Einstellungen sind ein echter modalen Dialog (P4 Befund 5)', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('a global live region stays outside the inert subtree', async () => {
+    render(
+      <>
+        <div data-testid="toast-region" data-inert-exempt="" />
+        <SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />
+      </>,
+    )
+    await screen.findByTestId('settings-page')
+    const toasts = screen.getByTestId('toast-region')
+    expect(toasts.hasAttribute('inert')).toBe(false)
+    expect(toasts.getAttribute('aria-hidden')).toBeNull()
+  })
+
   it('nach dem Schliessen ist der Hintergrund wieder frei und der Fokus beim Ausloeser', async () => {
     const { container, rerender } = render(
       <>

@@ -320,6 +320,7 @@ async function openChat(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('i18nextLng', 'en')
     localStorage.setItem('ephe_onboarded', '1')
+    localStorage.setItem('ephe.intro.seen.v1', '1')
   })
   const origin = fixture?.origin
   if (!origin) throw new Error('the fixture is the only server this file talks to')

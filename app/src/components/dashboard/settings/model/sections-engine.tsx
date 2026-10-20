@@ -14,7 +14,7 @@
  * the surface does not guess.
  */
 import { useMemo, useState } from 'react'
-import { FolderOpen, KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
+import { KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
 import { ModelPicker } from '@/components/model/ModelPicker'
 import { rowsFromOptions } from '@/components/model/modelPickerTypes'
 import PageHeader from '@/components/shell/PageHeader'
@@ -26,16 +26,16 @@ import {
   SettingsRow,
   VERB_BUTTON,
 } from '@/components/shell/SettingsRow'
+import { CONTROL_CLASS } from '@/components/shell/SettingControl'
 import EnvironmentTools from '@/components/shell/EnvironmentTools'
-import FolderPickerDialog from '../../FolderPickerDialog'
 import { engineStateOf, providerLabel } from './constants'
 import { DeepFields } from './deepFields'
 import { EngineImageGroup } from './sections-engine-image'
 import type { SettingsModel } from './types'
 
-/** A path or an address the row edits: the value column of the register, the data
- *  step in the mono face, flush right on the same axis as the words beside it. */
-const FIELD = `${FIELD_COL} max-md:w-32 border border-hairline-strong bg-canvas px-2 py-1 text-right font-mono text-scale-data text-ink placeholder:text-ink-faint focus-ring pointer-coarse:min-h-11 pointer-coarse:text-ui-input`
+/** A path or an address the row edits: the register's native field, right-aligned
+ *  so values of adjacent rows meet on one edge. */
+const FIELD = `${FIELD_COL} max-md:w-32 ${CONTROL_CLASS} text-right placeholder:text-ink-faint pointer-coarse:min-h-11 pointer-coarse:text-ui-input`
 
 export function EngineSection({ model }: { model: SettingsModel }) {
   const {
@@ -53,12 +53,8 @@ export function EngineSection({ model }: { model: SettingsModel }) {
     setCustomEndpoint,
     setOutputDraft,
     setSettings,
-    setWorkspaceDraft,
-    setWsPickerOpen,
     settings,
     t,
-    workspaceDraft,
-    wsPickerOpen,
   } = model
 
   const active = settings?.provider
@@ -202,7 +198,6 @@ export function EngineSection({ model }: { model: SettingsModel }) {
                           provider: { type: 'custom_ollama', model: '' },
                           memory_enabled: true,
                           language: 'de',
-                          theme: 'dark',
                         },
                   )
                 }
@@ -268,39 +263,6 @@ export function EngineSection({ model }: { model: SettingsModel }) {
         title={t('settings.engineFolders')}
         testid="engine-group-folders"
       >
-        <SettingsRow
-          icon={FolderInput}
-          title={t('settings.workspaceTitle')}
-          description={t('settings.workspaceRowHint')}
-          testid="engine-row-workspace"
-        >
-          <input
-            id="settings-workspace"
-            value={workspaceDraft}
-            onChange={(e) => setWorkspaceDraft(e.target.value)}
-            placeholder="/Users/du/Projekte/mein-projekt"
-            aria-label={t('settings.workspaceTitle')}
-            data-testid="settings-workspace"
-            spellCheck={false}
-            className={FIELD}
-          />
-          <SettingVerb>
-            <button
-              type="button"
-              onClick={() => setWsPickerOpen(true)}
-              data-testid="settings-workspace-pick"
-              className={VERB_BUTTON}
-            >
-              <FolderOpen className="h-3 w-3" />
-              {t('workspacePicker.open')}
-            </button>
-          </SettingVerb>
-        </SettingsRow>
-        <FolderPickerDialog
-          open={wsPickerOpen}
-          onClose={() => setWsPickerOpen(false)}
-          onPick={(p) => setWorkspaceDraft(p)}
-        />
         <SettingsRow
           icon={FileOutput}
           title={t('settings.outputDirTitle')}

@@ -47,10 +47,12 @@ vi.mock('@/lib/restore', () => ({
     if (restoreMock.shouldThrow) throw new Error('offline')
     return restoreMock.sessions
   },
+  restoreServerStore: async () => [],
 }))
 vi.mock('@/lib/sessionSync', () => ({
   queueSessionSync: () => {},
   queueSessionDeleted: () => {},
+  isSessionSyncEnabled: () => true,
   isTombstoned: (id: string) => (tombstonesMock.list ?? []).includes(id),
 }))
 

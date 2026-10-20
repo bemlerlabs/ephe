@@ -1,1058 +1,452 @@
 {
- "artifacts-ablage/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts-ablage/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts-ablage/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts-ablage/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "artifacts/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-approval/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-approval/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-approval/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-approval/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-empty/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-empty/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-empty/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-empty/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-offline/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-offline/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-offline/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-offline/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-turn/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-turn/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-turn/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "chat-turn/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "custody/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "custody/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "custody/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "custody/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "intro-scene/dark/1280": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "intro-scene/dark/390": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "intro-scene/light/1280": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 9,
-  "render-error": 0
- },
- "intro-scene/light/390": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 9,
-  "render-error": 0
- },
- "memory-bestand/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-bestand/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-bestand/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-bestand/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-gehirne/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-gehirne/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-gehirne/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-gehirne/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-korrekturen/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-korrekturen/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-korrekturen/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-korrekturen/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-papierkorb/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-papierkorb/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-papierkorb/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "memory-papierkorb/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-about/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-about/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-about/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-about/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-appearance/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-appearance/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-appearance/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-appearance/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-artifacts/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-artifacts/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-artifacts/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-artifacts/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-behaviour/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-behaviour/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-behaviour/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-behaviour/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-code-exec/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-code-exec/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-code-exec/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-code-exec/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-cron/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-cron/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-cron/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-cron/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-engine/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-engine/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-engine/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-engine/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemera/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemera/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemera/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemera/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemeris/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemeris/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemeris/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-ephemeris/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-generation/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-generation/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-generation/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-generation/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-agent/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-agent/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-agent/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-agent/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-basics/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-basics/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-basics/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-basics/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-data/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-data/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-data/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-data/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-onboard/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-onboard/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-onboard/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-group-onboard/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-hooks/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-hooks/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-hooks/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-hooks/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-language/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-language/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-language/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-language/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mcp/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mcp/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mcp/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mcp/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-memory/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-memory/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-memory/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-memory/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mobile/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mobile/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mobile/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-mobile/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-network/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-network/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-network/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-network/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-persona/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-persona/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-persona/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-persona/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-plugins/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-plugins/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-plugins/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-plugins/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-privacy/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-privacy/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-privacy/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-privacy/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-shortcuts/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-shortcuts/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-shortcuts/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-shortcuts/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-skills/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-skills/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-skills/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-skills/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-tasks/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-tasks/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-tasks/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-tasks/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-voice/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-voice/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-voice/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "settings-voice/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "setup/dark/1280": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "setup/dark/390": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "setup/light/1280": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 9,
-  "render-error": 0
- },
- "setup/light/390": {
-  "text": 1,
-  "boundary": 1,
-  "dark-surface": 9,
-  "render-error": 0
- },
- "tools/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "tools/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "tools/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "tools/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "tour-usage/dark/1280": {
-  "text": 1,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "tour-usage/dark/390": {
-  "text": 1,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "tour-usage/light/1280": {
-  "text": 3,
-  "boundary": 0,
-  "dark-surface": 12,
-  "render-error": 0
- },
- "tour-usage/light/390": {
-  "text": 3,
-  "boundary": 0,
-  "dark-surface": 12,
-  "render-error": 0
- },
- "workspaces-detail/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces-detail/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces-detail/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces-detail/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces/dark/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces/dark/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces/light/1280": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- },
- "workspaces/light/390": {
-  "text": 0,
-  "boundary": 0,
-  "dark-surface": 0,
-  "render-error": 0
- }
+  "artifacts-ablage/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "artifacts-ablage/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "artifacts/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "artifacts/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-approval/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-approval/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-empty/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-empty/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-offline/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-offline/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-turn/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "chat-turn/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "custody/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "custody/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "intro-scene/forest/1280": {
+    "text": 1,
+    "boundary": 1,
+    "render-error": 0
+  },
+  "intro-scene/forest/390": {
+    "text": 1,
+    "boundary": 1,
+    "render-error": 0
+  },
+  "memory-bestand/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-bestand/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-gehirne/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-gehirne/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-korrekturen/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-korrekturen/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-papierkorb/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "memory-papierkorb/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-about/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-about/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-appearance/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-appearance/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-artifacts/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-artifacts/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-behaviour/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-behaviour/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-code-exec/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-code-exec/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-cron/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-cron/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-engine/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-engine/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-ephemera/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-ephemera/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-ephemeris/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-ephemeris/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-generation/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-generation/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-about/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-about/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-advanced/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-advanced/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-capabilities/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-capabilities/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-data/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-data/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-everyday/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-group-everyday/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-hooks/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-hooks/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-language/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-language/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-mcp/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-mcp/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-memory/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-memory/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-mobile/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-mobile/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-network/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-network/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-persona/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-persona/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-plugins/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-plugins/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-privacy/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-privacy/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-shortcuts/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-shortcuts/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-skills/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-skills/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-tasks/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-tasks/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-voice/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-voice/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "setup/forest/1280": {
+    "text": 1,
+    "boundary": 1,
+    "render-error": 0
+  },
+  "setup/forest/390": {
+    "text": 1,
+    "boundary": 1,
+    "render-error": 0
+  },
+  "tools/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "tools/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "tour-usage/forest/1280": {
+    "text": 1,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "tour-usage/forest/390": {
+    "text": 1,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "workspaces-detail/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "workspaces-detail/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "workspaces/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "workspaces/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  }
 }

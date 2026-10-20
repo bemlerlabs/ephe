@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.0-beta.10"
+version = "0.1.0"
 description = "Ephe — the ephemeral local AI agent"
 authors = ["Ephe"]
 license = "BUSL-1.1"
@@ -33,3 +33,6 @@ tauri-plugin-dialog = "2"
 # `#[cfg(unix)]`; this plugin is the cross-platform counterpart and the backstop
 # for the run where `instance::claim` returns `Claim::Unknown` (no HOME).
 tauri-plugin-single-instance = "2"
+# Wave 6: the opt-in global chord. One command, one chord; the review note is
+# docs/DEPENDENCY_GLOBAL_SHORTCUT_2026-10-20.md.
+tauri-plugin-global-shortcut = "2"

@@ -37,7 +37,7 @@ from tests.test_settings_surface_is_real import _read_keys  # noqa: E402
 # I6-4: 'hooks' came with a reader (core/user_hooks.py), a guard rail and a text in
 # both languages — that is exactly what the contract demands before a section may
 # stand here.
-SECTION_KEYS = {"chat", "appearance", "advanced", "plugins", "memory",
+SECTION_KEYS = {"chat", "appearance", "shortcuts", "advanced", "plugins", "memory",
                 "ephemera", "cron", "hooks"}
 
 

@@ -121,28 +121,24 @@ def css() -> str:
     return (ROOT / "app" / "src" / "styles" / "globals.css").read_text(encoding="utf-8")
 
 
-def theme_table(theme: str) -> dict[str, str]:
-    """{--token: value} for one theme: ink above html.light, paper from inside it."""
-    sheet = css()
-    block = re.search(r"(?m)^html\.light\s*\{", sheet)
-    assert block, "the sheet carries no html.light block"
+def forest_table() -> dict[str, str]:
+    """{--token: value} for the one ground the product ships."""
     found: dict[str, str] = {}
-    for match in re.finditer(r"(--[a-zA-Z0-9-]+)\s*:\s*([^;{}]+);",
-                             sheet[block.start():] if theme == "paper" else sheet[:block.start()]):
+    for match in re.finditer(r"(--[a-zA-Z0-9-]+)\s*:\s*([^;{}]+);", css()):
         found.setdefault(match.group(1), match.group(2).strip())
     return found
 
 
-def resolved(token: str, theme: str) -> str:
-    """The literal `token` ends at inside `theme`, following the sheet's var() links."""
-    table = theme_table(theme)
+def resolved(token: str) -> str:
+    """The literal `token` ends at, following the sheet's var() links."""
+    table = forest_table()
     value = table[token]
     for _ in range(4):
         link = re.fullmatch(r"var\(\s*(--[a-zA-Z0-9-]+)\s*\)", value)
         if link is None:
             return value
         value = table[link.group(1)]
-    raise AssertionError(f"{token} still links somewhere else in {theme}")
+    raise AssertionError(f"{token} still links somewhere else in the sheet")
 
 
 def hsl_rgb(literal: str) -> tuple[int, int, int]:
@@ -185,38 +181,36 @@ class TestTheRoleTable:
                 continue
             assert f"{role.token}:" in sheet, f"{role.name} names {role.token}, which the sheet omits"
 
-    def test_the_mark_red_is_the_sheet_red_of_both_themes(self):
-        ink = hsl_rgb(resolved("--color-firefly", "ink"))
-        assert ink == hsl_rgb(resolved("--color-brand", "ink")) == (0xE8, 0x54, 0x3F)
-        paper = hsl_rgb(resolved("--color-firefly", "paper"))
-        assert paper == hsl_rgb(resolved("--color-brand-deep", "paper")) == (0xB5, 0x2E, 0x21)
-        # The raster halves are the ink spellings, so the icon paints what the app paints.
+    def test_the_mark_red_is_the_sheet_red(self):
+        forest = hsl_rgb(resolved("--color-firefly"))
+        assert forest == hsl_rgb(resolved("--color-brand")) == (0xE8, 0x54, 0x3F)
+        # The raster halves are the sheet's own spellings, so the icon paints what
+        # the app paints.
         assert ROLES["brand"].hex.upper() == "#E8543F"
         assert ROLES["brand_glow"].hex.upper() == "#F1705F"
         assert ROLES["brand_glow"].hex.upper() == "#%02X%02X%02X" % hsl_rgb(
-            resolved("--color-firefly-glow", "ink"))
+            resolved("--color-firefly-glow"))
 
     def test_the_mark_red_is_the_terminals_accent(self):
         import ui.palette as terminal
 
         assert ROLES["brand"].hex.upper() == terminal.ACCENT.upper()
 
-    def test_the_mark_red_clears_the_floor_on_the_ground_of_each_theme(self):
-        for theme in ("ink", "paper"):
-            red = hsl_rgb(resolved("--color-firefly", theme))
-            ground = hsl_rgb(resolved("--color-canvas", theme))
-            ratio = contrast(red, ground)
-            assert ratio >= 4.5, f"{theme}: the mark red measures {ratio:.2f}:1 on the canvas"
+    def test_the_mark_red_clears_the_floor_on_the_shipped_ground(self):
+        red = hsl_rgb(resolved("--color-firefly"))
+        ground = hsl_rgb(resolved("--color-canvas"))
+        ratio = contrast(red, ground)
+        assert ratio >= 4.5, f"the mark red measures {ratio:.2f}:1 on the canvas"
 
     def test_the_tuned_ink_pair_measures_the_quoted_ratio(self):
-        ratio = contrast(hsl_rgb(resolved("--color-firefly", "ink")),
-                         hsl_rgb(resolved("--color-canvas", "ink")))
+        ratio = contrast(hsl_rgb(resolved("--color-firefly")),
+                         hsl_rgb(resolved("--color-canvas")))
         assert round(ratio, 2) == 5.13, f"the tuned pair measures {ratio:.2f}:1"
 
     def test_the_frozen_literal_would_have_failed_the_same_floor(self):
         frozen = hsl_rgb("hsl(5.45 69.3% 50.2%)")
         assert frozen == FROZEN_RED_RGB
-        ratio = contrast(frozen, hsl_rgb(resolved("--color-canvas", "ink")))
+        ratio = contrast(frozen, hsl_rgb(resolved("--color-canvas")))
         assert round(ratio, 2) == 4.01, f"the frozen literal measured {ratio:.2f}:1"
 
 
@@ -308,8 +302,10 @@ class TestTheGateOnTheRepository:
         # Six in-app/public vectors: favicon.svg, mark.svg, mark-mono.svg and the
         # bee's three cuts (calm, fierce, template).
         assert "6 svg(s), 1 template asset(s)" in done.stdout, done.stdout
-        assert "ink mark red" in done.stdout and "= 5.13:1" in done.stdout, done.stdout
-        assert "= 5.42:1" in done.stdout, done.stdout
+        assert "forest mark red" in done.stdout and "= 5.13:1" in done.stdout, done.stdout
+        # The paper reading (5.42:1) left with the ground it measured; a second
+        # ratio in this output would mean a second ground came back.
+        assert "paper" not in done.stdout, done.stdout
         assert "mark: silhouette mass centre x=256.00" in done.stdout, done.stdout
         assert "mark-micro: silhouette mass centre x=256.00" in done.stdout, done.stdout
 

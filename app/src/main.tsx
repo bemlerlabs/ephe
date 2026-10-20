@@ -3,8 +3,9 @@ import { Suspense, lazy, useState } from 'react'
 // Side-effect import: i18n must be initialized before App renders.
 import './i18n'
 import { installDbAutoFlush } from '@/lib'
-import { applyTheme, getStoredTheme } from '@/lib'
-import { initDeepSettings } from '@/lib'
+import { deepBool, initDeepSettings } from '@/lib'
+import { ensureGlobalShortcut } from '@/lib/globalShortcut'
+import { saveSections } from '@/lib/api'
 import { hasSeenFirstRunIntro, loadSetupGate, readSetupGateHint } from '@/lib'
 import { initPwa } from './registerSW'
 import App from './App'
@@ -25,10 +26,6 @@ if (introPending) void import('./components/onboarding/FirstRunIntro')
 // for a returning load that will not show it.
 const FirstRunTour = lazy(() => import('./components/onboarding/FirstRunTour'))
 
-// Apply the theme before the first paint — otherwise Dark flashes up before
-// html.light has bent the primitive tokens.
-applyTheme(getStoredTheme())
-
 // R25 (perceived latency): the setup gate's round trip starts here — with the bundle, before
 // React's first commit — instead of inside a mount effect that runs after it. The answer
 // then lands while the route chunk is still arriving rather than after it.
@@ -44,7 +41,17 @@ if (readSetupGateHint() === null) void import('./pages/SetupPage')
 // I3-4: apply the appearance from the deep register (font size, animations) on
 // <html>. It comes from /api/settings; without a backend everything stays at the
 // default, and the app does not wait for it.
-void initDeepSettings()
+// Wave 6: a persisted global shortcut registers on this first answer, not only
+// when Settings opens. A chord another app owns is written back to off.
+void initDeepSettings().then(async () => {
+  if (!deepBool('shortcuts.global_enabled')) return
+  if ((await ensureGlobalShortcut(true)) !== 'failed') return
+  try {
+    await saveSections({ shortcuts: { 'shortcuts.global_enabled': false } })
+  } catch {
+    // The next Settings load retries the write; the chord stays unregistered.
+  }
+})
 
 // Self-hosted fonts (offline-first, no CDN): Inter (UI) and
 // Instrument Serif (display) — the font-family fallbacks in globals.css

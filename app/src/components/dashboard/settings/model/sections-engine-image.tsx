@@ -17,10 +17,11 @@ import {
   SettingsRow,
   VERB_BUTTON,
 } from '@/components/shell/SettingsRow'
+import { CONTROL_CLASS } from '@/components/shell/SettingControl'
 import type { SettingsModel } from './types'
 
-/** The value column of the register at the data step, flush right. */
-const FIELD_CLASS = `${FIELD_COL} max-md:w-32 border border-hairline-strong bg-canvas px-2 py-1 text-right font-mono text-scale-data text-ink placeholder:text-ink-faint focus-ring pointer-coarse:min-h-11 pointer-coarse:text-ui-input`
+/** The register's native field, right-aligned for values. */
+const FIELD_CLASS = `${FIELD_COL} max-md:w-32 ${CONTROL_CLASS} text-right placeholder:text-ink-faint pointer-coarse:min-h-11 pointer-coarse:text-ui-input`
 
 export function EngineImageGroup({ model }: { model: SettingsModel }) {
   const {

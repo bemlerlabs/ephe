@@ -125,6 +125,7 @@ def _bootstrap_engine_choice():
             allow_prompt=prompt_fn is not None,
             prompt_fn=prompt_fn,
         )
+        choice.apply_env()
     except EngineNotConfigured as exc:
         # W19 (live audit P1): a complete newcomer with no terminal experience NEVER
         # saw the UI — the start aborted before there was any setup page. On
@@ -148,14 +149,14 @@ def _bootstrap_engine_choice():
             print(f"\n  ✗ {exc}", file=sys.stderr)
             print(f"  Fix: {getattr(exc, 'hint', '')}\n", file=sys.stderr)
             raise SystemExit(1) from exc
-        print("\n  ◐ No engine configured yet — starting SETUP MODE (localhost only).")
+        print(f"\n  ◐ {exc}")
+        print("  Starting SETUP MODE (localhost only).")
         print("  Open the printed URL and pick your engine on the Setup page.")
         print(f"  Hint: {getattr(exc, 'hint', '')}\n")
         # Chat fail-closed anchor: chat endpoints decline while no engine is
         # chosen (see server/routes/chat.py::_ensure_engine_ready).
-        os.environ["EPHE_SETUP_MODE"] = os.environ["EPHE_SETUP_MODE"] = "1"
+        os.environ["EPHE_SETUP_MODE"] = "1"
         return None
-    choice.apply_env()
     return choice
 
 

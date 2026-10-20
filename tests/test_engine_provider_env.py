@@ -19,10 +19,13 @@ from __future__ import annotations
 import os
 from unittest.mock import patch as mock_patch
 
+import pytest
+
 from core.engine_config import (
     LOCAL_OLLAMA,
     OPENAI_COMPAT,
     EngineChoice,
+    EngineNotConfigured,
 )
 
 # W18: no default host/model in the repo — the test chooses its own (user decision).
@@ -44,6 +47,34 @@ def test_apply_env_sets_provider_env_openai_compat():
         assert os.environ["EPHE_MODEL"] == os.environ["EPHE_MODEL"] == PROVIDER_MODEL
         # The provider resolver reads the model from EPHE_OPENAI_COMPAT_MODEL.
         assert os.environ["EPHE_OPENAI_COMPAT_MODEL"] == PROVIDER_MODEL
+
+
+def test_apply_env_sets_the_model_key_before_it_refuses_a_missing_endpoint():
+    """GIVEN an openai_compatible choice without api_url
+    WHEN apply_env()
+    THEN the provider-specific model key is set, and the refusal names api_url
+    and the fix. The model assignment may not depend on the endpoint branch."""
+    choice = EngineChoice(provider=OPENAI_COMPAT, model=PROVIDER_MODEL, api_url=None)
+    with mock_patch.dict(os.environ, {}, clear=True):
+        with pytest.raises(EngineNotConfigured) as excinfo:
+            choice.apply_env()
+        assert os.environ["EPHE_OPENAI_COMPAT_MODEL"] == PROVIDER_MODEL
+        assert "api_url" in str(excinfo.value)
+        assert "ephe configure" in excinfo.value.hint
+
+
+def test_apply_env_refuses_openai_compat_without_api_url():
+    """GIVEN a persisted openai_compatible choice with no endpoint
+    WHEN apply_env()
+    THEN it fails closed and names the missing field instead of leaving the
+    provider resolver to report a missing model key."""
+    choice = EngineChoice(provider=OPENAI_COMPAT, model=PROVIDER_MODEL, api_url=None)
+    with mock_patch.dict(os.environ, {}, clear=True):
+        with pytest.raises(EngineNotConfigured) as excinfo:
+            choice.apply_env()
+        message = str(excinfo.value)
+        assert "missing field" in message and "api_url" in message
+        assert "EPHE_OPENAI_COMPAT_MODEL" not in message
 
 
 def test_apply_env_sets_provider_env_local_ollama():

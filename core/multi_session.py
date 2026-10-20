@@ -10,6 +10,8 @@ parallel sessions:
     <8-hex>.json          (one session per file, 8-hex-character short code)
 
 Design decisions:
+- The store decision for the 0.1 line (JSON transcripts, SQLite as derived index, and
+  the 0.2.0 triggers) is written down in `docs/SESSION_STORE_DECISION.md`.
 - Backward compat: the existing `default.json` is migrated into the registry on
   the first call (no data loss, idempotent).
 - Atomic writes: tmp + rename (POSIX-atomic), identical to core/session.py.
@@ -70,6 +72,52 @@ def _session_file(sid: str) -> Path | None:
     return Path(target)
 
 
+#: Fields a turn can carry beyond role/content. The PWA mirror and the chat
+#: route write them; the TUI reads role/content and ignores the rest.
+_MESSAGE_EXTRA_KEYS = (
+    "id",
+    "timestamp",
+    "blocks",
+    "thinkingPhases",
+    "thinking",
+    "durationMs",
+    "activities",
+    "artifacts",
+    "error",
+    "turnId",
+    "tool_calls",
+)
+
+
+def _clean_message(item: object) -> dict[str, Any] | None:
+    """One valid transcript row, extra turn fields preserved; None otherwise."""
+    if not isinstance(item, dict):
+        return None
+    if item.get("role") not in ("user", "assistant", "system"):
+        return None
+    if not isinstance(item.get("content"), str):
+        return None
+    msg: dict[str, Any] = {"role": item["role"], "content": item["content"]}
+    for key in _MESSAGE_EXTRA_KEYS:
+        if key in item:
+            msg[key] = item[key]
+    return msg
+
+
+def legacy_was_corrupt() -> bool:
+    """True when default.json exists but cannot be parsed (it is left in place)."""
+    if not LEGACY_FILE.exists():
+        return False
+    try:
+        raw = LEGACY_FILE.read_text(encoding="utf-8")
+        if not raw.strip():
+            return False
+        json.loads(raw)
+        return False
+    except (json.JSONDecodeError, OSError):
+        return True
+
+
 def _now_iso() -> str:
     """ISO-8601 with micro precision — for deterministic sorting."""
     return datetime.now(tz=timezone.utc).isoformat(timespec="microseconds")
@@ -98,6 +146,10 @@ def _atomic_write(path: Path, payload: str) -> None:
         except (ImportError, OSError):
             pass
         tmp.rename(path)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
     except OSError:
         # Best-effort – don't crash the app over persistence
         pass
@@ -282,8 +334,14 @@ def get_active_id() -> str | None:
 
 
 def save_messages(sid: str, messages: list[Message]) -> None:
-    """Stores the messages of a session atomically on disk."""
-    payload = json.dumps(list(messages), ensure_ascii=False, indent=2)
+    """Stores the messages of a session atomically on disk.
+
+    The full turn row is kept: a PWA mirror or a chat turn carries ids, blocks,
+    activities and tool cards, and dropping them here would make the one
+    server-side transcript poorer than the mirror it replaces.
+    """
+    cleaned = [msg for msg in (_clean_message(item) for item in messages) if msg is not None]
+    payload = json.dumps(cleaned, ensure_ascii=False, indent=2)
     session_file = _session_file(sid)
     if session_file is None:
         return
@@ -316,17 +374,9 @@ def load_messages(sid: str) -> list[Message]:
             return []
         valid: list[Message] = []
         for item in data:
-            if (
-                isinstance(item, dict)
-                and item.get("role") in ("user", "assistant", "system")
-                and isinstance(item.get("content"), str)
-            ):
-                msg: Message = {"role": item["role"], "content": item["content"]}
-                if isinstance(item.get("blocks"), list):
-                    msg["blocks"] = item["blocks"]
-                if isinstance(item.get("thinkingPhases"), list):
-                    msg["thinkingPhases"] = item["thinkingPhases"]
-                valid.append(msg)
+            msg = _clean_message(item)
+            if msg is not None:
+                valid.append(msg)  # type: ignore[arg-type]
         return valid
     except (json.JSONDecodeError, OSError, TypeError, KeyError):
         return []

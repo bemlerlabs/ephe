@@ -14,7 +14,7 @@
  * radius is spent to say it. A group name is the 11 px mono label the direction
  * draws above its rows.
  */
-import { NAV_GROUPS, navIcon } from './model'
+import { ABOUT_KEYS, NAV_GROUPS, navIcon } from './model'
 import type { SettingsModel } from './model/buildModel'
 import type { FieldHit, RowHit } from './model/settingsSearch'
 import type { TabKey } from './types'
@@ -135,19 +135,46 @@ export function RegisterNav({
       ) : (
         <></>
       )}
-      {!query &&
-        NAV_GROUPS.map((group) => (
+      {!query && (
+        <div className="max-md:flex max-md:w-full max-md:gap-1 max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden max-md:[mask-image:linear-gradient(to_right,transparent_0,black_12px,black_calc(100%-28px),transparent_100%)]">
+          {NAV_GROUPS.map((group) => (
+            <div
+              key={group.groupKey}
+              data-testid={`settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+              className="mb-2 max-md:flex max-md:items-center max-md:gap-1"
+            >
+              {/* Hidden at phone width, the chips ran as one undifferentiated strip
+                  inside a long scroll — the heading is what makes a run readable. */}
+              <p className={NAV_GROUP}>{t(group.groupKey)}</p>
+              {group.keys.map((key) => {
+                const Icon = navIcon(key)
+                const selected = activeTab === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    data-testid={`settings-nav-${key}`}
+                    onClick={() => onSelect(key)}
+                    aria-current={selected ? 'true' : undefined}
+                    className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
+                      selected
+                        ? 'border-l-hairline-strong text-ink'
+                        : 'border-l-transparent text-ink-soft hover:text-ink'
+                    }`}
+                  >
+                    <Icon className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{t(`settings.${key}`)}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
           <div
-            key={group.groupKey}
-            data-testid={`settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+            data-testid="settings-nav-group-about"
             className="mb-2 max-md:flex max-md:items-center max-md:gap-1"
           >
-            {/* Hidden at phone width, the 23 chips ran as one undifferentiated strip
-                inside a 2637 px scroll — the heading is what makes a run readable. */}
-            <p className={NAV_GROUP}>{t(group.groupKey)}</p>
-            {group.keys.map((key) => {
+            {ABOUT_KEYS.map((key) => {
               const Icon = navIcon(key)
-              const onboard = group.groupKey === 'settings.groupOnboard'
               const selected = activeTab === key
               return (
                 <button
@@ -156,9 +183,7 @@ export function RegisterNav({
                   data-testid={`settings-nav-${key}`}
                   onClick={() => onSelect(key)}
                   aria-current={selected ? 'true' : undefined}
-                  className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
-                    onboard ? 'border-y border-r border-dashed border-control' : ''
-                  } ${
+                  className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 border-y border-r border-dashed border-control ${
                     selected
                       ? 'border-l-hairline-strong text-ink'
                       : 'border-l-transparent text-ink-soft hover:text-ink'
@@ -170,7 +195,8 @@ export function RegisterNav({
               )
             })}
           </div>
-        ))}
+        </div>
+      )}
     </>
   )
 }

@@ -71,6 +71,24 @@ def test_engine_pick_clears_skip_marker(client, _isolated_config):
     assert status["skipped"] is False
 
 
+def test_an_incomplete_persisted_engine_cannot_be_skipped_into_chat(client, _isolated_config):
+    """GIVEN engine.json names openai_compatible without api_url
+    WHEN the user asks to skip onboarding
+    THEN the gate reports configured=false and skipped=false, so the setup page
+    opens instead of a chat that can only say Disconnected."""
+    from core.engine_config import EngineChoice, save_engine_config
+
+    save_engine_config(
+        EngineChoice("openai_compatible", "m", None),
+        _isolated_config / "engine.json",
+    )
+    client.post("/api/setup/skip")
+
+    status = client.get("/api/setup/status").json()
+    assert status["configured"] is False
+    assert status["skipped"] is False
+
+
 def test_corrupt_skip_marker_reads_as_not_skipped(client, _isolated_config):
     """A corrupt marker reads like no marker at all — the gate still decides."""
     _isolated_config.mkdir(parents=True, exist_ok=True)

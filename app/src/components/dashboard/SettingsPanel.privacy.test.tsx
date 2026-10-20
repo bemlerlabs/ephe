@@ -142,7 +142,7 @@ beforeEach(() => localStorage.clear())
 describe('SettingsPanel P4 Datenschutz', () => {
   it('privacy-Tab: die Auto-Speak-Zeile ist nach Audio umgezogen', async () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="privacy" />)
-    await screen.findByTestId('privacy-profile')
+    await screen.findByTestId('privacy-localdata')
     expect(screen.queryByTestId('autospeak-toggle')).toBeNull()
   })
 

@@ -41,8 +41,15 @@ function line(anchor: string): string {
   return only
 }
 
+/** Every chip line: the four groups and the dashed About card share the strip. */
+function lines(anchor: string): string[] {
+  const hits = SOURCE.split('\n').filter((l) => l.includes(anchor))
+  if (hits.length === 0) throw new Error(`"${anchor}" appears on no source line`)
+  return hits
+}
+
 const nav = line('max-md:[scrollbar-width:none]')
-const chip = line('max-md:whitespace-nowrap')
+const chips = lines('max-md:whitespace-nowrap')
 const groupHeading = line('max-md:self-center')
 const title = line('text-ui-lg font-semibold text-foreground/90 truncate max-md:sr-only')
 const footer = line('pb-[calc(1rem+env(safe-area-inset-bottom))]')
@@ -52,7 +59,7 @@ describe('register strip at phone width', () => {
   it('scrolls to a whole chip instead of stopping inside a label', () => {
     expect(nav).toMatch(/max-md:snap-x/)
     expect(nav).toMatch(/max-md:snap-mandatory/)
-    expect(chip).toMatch(/max-md:snap-start/)
+    for (const chip of chips) expect(chip).toMatch(/max-md:snap-start/)
   })
 
   it('keeps the group heading beside the chips it introduces', () => {
@@ -63,7 +70,7 @@ describe('register strip at phone width', () => {
   it('gives the strip no fixed width of its own', () => {
     expect(nav).toMatch(/max-md:w-full/)
     expect(nav).not.toMatch(/max-md:w-\[\d{3,}px\]/)
-    expect(chip).toMatch(/max-md:w-auto/)
+    for (const chip of chips) expect(chip).toMatch(/max-md:w-auto/)
   })
 
   it('scrolls the active section into view when the register opens on it', () => {

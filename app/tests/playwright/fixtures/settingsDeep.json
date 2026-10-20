@@ -1,0 +1,575 @@
+[
+  {
+    "key": "chat",
+    "fields": [
+      {
+        "key": "chat.show_reasoning",
+        "type": "bool",
+        "label": "Show reasoning",
+        "labelEn": "Show reasoning",
+        "default": true,
+        "value": true,
+        "hint": "Shows the model's reasoning as its own line — at its position in the timeline, first in the legacy layout. Off hides only the reasoning text; tools and the answer stay.",
+        "hintEn": "Shows the model's reasoning as its own line — at its position in the timeline, first in the legacy layout. Off hides only the reasoning text; tools and the answer stay."
+      },
+      {
+        "key": "chat.details_mode",
+        "type": "select",
+        "label": "Response process",
+        "labelEn": "Response process",
+        "default": "expanded",
+        "value": "expanded",
+        "hint": "Starting state of a finished turn: expanded shows the whole timeline — reasoning, tools and answer; collapsed shows the answer. Clicking the head overrides it for that one turn.",
+        "hintEn": "Starting state of a finished turn: expanded shows the whole timeline — reasoning, tools and answer; collapsed shows the answer. Clicking the head overrides it for that one turn.",
+        "options": [
+          "expanded",
+          "collapsed"
+        ],
+        "optionLabels": [
+          {
+            "value": "expanded",
+            "label": "Expanded",
+            "labelEn": "Expanded"
+          },
+          {
+            "value": "collapsed",
+            "label": "Collapsed",
+            "labelEn": "Collapsed"
+          }
+        ]
+      },
+      {
+        "key": "chat.allow_input_while_streaming",
+        "type": "bool",
+        "label": "Typing during the answer",
+        "labelEn": "Typing during the answer",
+        "default": true,
+        "value": true,
+        "hint": "On: Enter queues another task while Ephe answers. Off: the composer is read-only during a turn and Enter does nothing.",
+        "hintEn": "On: Enter queues another task while Ephe answers. Off: the composer is read-only during a turn and Enter does nothing."
+      },
+      {
+        "key": "chat.show_tool_count",
+        "type": "bool",
+        "label": "Tool-call count",
+        "labelEn": "Tool-call count",
+        "default": true,
+        "value": true,
+        "hint": "Shows after a tool group how often it was called — live as done/total, finished as a number. Off hides only that counter; the line stays.",
+        "hintEn": "Shows after a tool group how often it was called — live as done/total, finished as a number. Off hides only that counter; the line stays."
+      },
+      {
+        "key": "chat.expand_tool_calls",
+        "type": "bool",
+        "label": "Expand tool groups",
+        "labelEn": "Expand tool groups",
+        "default": false,
+        "value": false,
+        "hint": "The top tool group of a turn starts open instead of closed. Your own click always wins — the default holds until the first click on a line.",
+        "hintEn": "The top tool group of a turn starts open instead of closed. Your own click always wins — the default holds until the first click on a line."
+      },
+      {
+        "key": "chat.show_thinking_loader",
+        "type": "bool",
+        "label": "Thinking loader",
+        "labelEn": "Thinking loader",
+        "default": true,
+        "value": true,
+        "hint": "The pulsing “thinking…” line with its ticking seconds while the phase runs. Off drops only that line; the reasoning text follows “Show reasoning”.",
+        "hintEn": "The pulsing “thinking…” line with its ticking seconds while the phase runs. Off drops only that line; the reasoning text follows “Show reasoning”."
+      },
+      {
+        "key": "chat.stream_idle_seconds",
+        "type": "number",
+        "label": "Abort stream after silence (s)",
+        "labelEn": "Abort stream after silence (s)",
+        "default": 60,
+        "value": 60,
+        "hint": "Aborts a running stream when the server sends no byte for this long (10-600 seconds). Only silence counts, not total duration — a long answer is left alone.",
+        "hintEn": "Aborts a running stream when the server sends no byte for this long (10-600 seconds). Only silence counts, not total duration — a long answer is left alone.",
+        "min": 10,
+        "max": 600,
+        "step": 1
+      },
+      {
+        "key": "chat.duration_format",
+        "type": "select",
+        "label": "Duration format",
+        "labelEn": "Duration format",
+        "default": "compact",
+        "value": "compact",
+        "hint": "How long something took: compact per Ephe norm (4m 12s, at most two units) or as a clock (04:12, 1:04:12 past an hour). Applies to durations in the agent panels, memory and settings.",
+        "hintEn": "How long something took: compact per Ephe norm (4m 12s, at most two units) or as a clock (04:12, 1:04:12 past an hour). Applies to durations in the agent panels, memory and settings.",
+        "options": [
+          "compact",
+          "clock"
+        ],
+        "optionLabels": [
+          {
+            "value": "compact",
+            "label": "Compact (4m 12s)",
+            "labelEn": "Compact (4m 12s)"
+          },
+          {
+            "value": "clock",
+            "label": "Clock (04:12)",
+            "labelEn": "Clock (04:12)"
+          }
+        ]
+      },
+      {
+        "key": "chat.tool_result_chars",
+        "type": "number",
+        "label": "Cap tool output (characters)",
+        "labelEn": "Cap tool output (characters)",
+        "default": 32000,
+        "value": 32000,
+        "hint": "How many characters a tool result may carry before it is shortened into the conversation context (2,000-120,000). Low saves room in long tool chains, high keeps more of the file or shell output.",
+        "hintEn": "How many characters a tool result may carry before it is shortened into the conversation context (2,000-120,000). Low saves room in long tool chains, high keeps more of the file or shell output.",
+        "min": 2000,
+        "max": 120000,
+        "step": 1
+      },
+      {
+        "key": "chat.continue_attempts",
+        "type": "number",
+        "label": "Continue aborted plans (attempts)",
+        "labelEn": "Continue aborted plans (attempts)",
+        "default": 2,
+        "value": 2,
+        "hint": "How often Ephe nudges an answer that announces a step but never runs it (0-5). At 0 the stop stands and no extra model round is started.",
+        "hintEn": "How often Ephe nudges an answer that announces a step but never runs it (0-5). At 0 the stop stands and no extra model round is started.",
+        "min": 0,
+        "max": 5,
+        "step": 1
+      },
+      {
+        "key": "chat.custom_instructions",
+        "type": "text",
+        "label": "Custom instructions",
+        "labelEn": "Custom instructions",
+        "default": "",
+        "value": "",
+        "maxChars": 4000,
+        "multiline": true
+      }
+    ]
+  },
+  {
+    "key": "appearance",
+    "fields": [
+      {
+        "key": "appearance.font_scale",
+        "type": "number",
+        "label": "Font scale (%)",
+        "labelEn": "Font scale (%)",
+        "default": 100,
+        "value": 100,
+        "hint": "Sets the interface text size: all seven steps hang off one variable (14 px at 100 percent) while rem spacing stays. Applies right after saving.",
+        "hintEn": "Sets the interface text size: all seven steps hang off one variable (14 px at 100 percent) while rem spacing stays. Applies right after saving.",
+        "min": 80,
+        "max": 150,
+        "step": 1
+      },
+      {
+        "key": "appearance.chat_font_scale",
+        "type": "number",
+        "label": "Chat font scale (%)",
+        "labelEn": "Chat font scale (%)",
+        "default": 100,
+        "value": 100,
+        "hint": "Scales only the conversation text between 80 and 150 percent; the rest of the interface keeps following the general font scale.",
+        "hintEn": "Scales only the conversation text between 80 and 150 percent; the rest of the interface keeps following the general font scale.",
+        "min": 80,
+        "max": 150,
+        "step": 1
+      },
+      {
+        "key": "appearance.reading_width",
+        "type": "number",
+        "label": "Reading width (px)",
+        "labelEn": "Reading width (px)",
+        "default": 768,
+        "value": 768,
+        "hint": "Caps the conversation width between 480 and 1200 pixels; on narrow windows the available width stays the limit.",
+        "hintEn": "Caps the conversation width between 480 and 1200 pixels; on narrow windows the available width stays the limit.",
+        "min": 480,
+        "max": 1200,
+        "step": 1
+      },
+      {
+        "key": "appearance.animations_enabled",
+        "type": "bool",
+        "label": "Animations enabled",
+        "labelEn": "Animations enabled",
+        "default": true,
+        "value": true,
+        "hint": "Turns transitions and CSS animations on or off; off also stills the spring entrance of messages. The operating system's reduced-motion keeps applying on top.",
+        "hintEn": "Turns transitions and CSS animations on or off; off also stills the spring entrance of messages. The operating system's reduced-motion keeps applying on top."
+      },
+      {
+        "key": "appearance.companion_enabled",
+        "type": "bool",
+        "label": "Workspace companion (pet)",
+        "labelEn": "Workspace companion (pet)",
+        "default": true,
+        "value": true,
+        "hint": "Shows the chosen companion on the welcome screen and in the active chat. Off hides it everywhere while form, size and sound choices stay stored and return the next time it is switched on.",
+        "hintEn": "Shows the chosen companion on the welcome screen and in the active chat. Off hides it everywhere while form, size and sound choices stay stored and return the next time it is switched on."
+      },
+      {
+        "key": "appearance.companion_species",
+        "type": "select",
+        "label": "Companion form",
+        "labelEn": "Companion form",
+        "default": "fire_bee",
+        "value": "fire_bee",
+        "hint": "Chooses the form in the workspace: the full fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. The bee carries wings, the forehead flame and the gaze; the spark stays a single glow.",
+        "hintEn": "Chooses the form in the workspace: the full fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. The bee carries wings, the forehead flame and the gaze; the spark stays a single glow.",
+        "options": [
+          "fire_bee",
+          "ember_spark",
+          "minimal"
+        ],
+        "optionLabels": [
+          {
+            "value": "fire_bee",
+            "label": "Ephe Fire-Spirit Bee (3D)",
+            "labelEn": "Ephe Fire-Spirit Bee (3D)"
+          },
+          {
+            "value": "ember_spark",
+            "label": "Golden fire spark",
+            "labelEn": "Golden fire spark"
+          },
+          {
+            "value": "minimal",
+            "label": "Minimal emblem",
+            "labelEn": "Minimal emblem"
+          }
+        ]
+      },
+      {
+        "key": "appearance.companion_behavior",
+        "type": "select",
+        "label": "Companion behaviour",
+        "labelEn": "Companion behaviour",
+        "default": "interactive",
+        "value": "interactive",
+        "hint": "Sets place and motion: flying and clickable at the composer, sitting calmly above the input, or visible only on the welcome screen once the first chat has begun.",
+        "hintEn": "Sets place and motion: flying and clickable at the composer, sitting calmly above the input, or visible only on the welcome screen once the first chat has begun.",
+        "options": [
+          "interactive",
+          "perch",
+          "welcome_only"
+        ],
+        "optionLabels": [
+          {
+            "value": "interactive",
+            "label": "Interactive & flying",
+            "labelEn": "Interactive & flying"
+          },
+          {
+            "value": "perch",
+            "label": "Calm perch on composer",
+            "labelEn": "Calm perch on composer"
+          },
+          {
+            "value": "welcome_only",
+            "label": "Welcome screen only",
+            "labelEn": "Welcome screen only"
+          }
+        ]
+      },
+      {
+        "key": "appearance.companion_sound",
+        "type": "bool",
+        "label": "Companion & spark sounds",
+        "labelEn": "Companion & spark sounds",
+        "default": true,
+        "value": true,
+        "hint": "Turns the wing flutter and the spark's crystal note on or off. The system's reduced-motion setting and the animations switch keep the synthesizer silent as well, whatever this switch says.",
+        "hintEn": "Turns the wing flutter and the spark's crystal note on or off. The system's reduced-motion setting and the animations switch keep the synthesizer silent as well, whatever this switch says."
+      },
+      {
+        "key": "appearance.companion_scale",
+        "type": "number",
+        "label": "Companion size (%)",
+        "labelEn": "Companion size (%)",
+        "default": 100,
+        "value": 100,
+        "hint": "Scales the companion alone between 70 and 140 percent; type, spacing and the touch targets of every other control stay unchanged.",
+        "hintEn": "Scales the companion alone between 70 and 140 percent; type, spacing and the touch targets of every other control stay unchanged.",
+        "min": 70,
+        "max": 140,
+        "step": 1
+      },
+      {
+        "key": "appearance.show_timestamps",
+        "type": "bool",
+        "label": "Show timestamps",
+        "labelEn": "Show timestamps",
+        "default": true,
+        "value": true,
+        "hint": "Shows the time under each message. Off hides only that line; content, tool trail and buttons stay put.",
+        "hintEn": "Shows the time under each message. Off hides only that line; content, tool trail and buttons stay put."
+      },
+      {
+        "key": "appearance.update_check",
+        "type": "bool",
+        "label": "Check for updates (anonymous)",
+        "labelEn": "Check for updates (anonymous)",
+        "default": true,
+        "value": true,
+        "hint": "Polls the GitHub releases anonymously every 30 minutes and then shows the update banner. Off: no outbound request, no banner.",
+        "hintEn": "Polls the GitHub releases anonymously every 30 minutes and then shows the update banner. Off: no outbound request, no banner."
+      }
+    ]
+  },
+  {
+    "key": "advanced",
+    "fields": [
+      {
+        "key": "advanced.api_timeout",
+        "type": "number",
+        "label": "API timeout (s)",
+        "labelEn": "API timeout (s)",
+        "default": 120,
+        "value": 120,
+        "hint": "Time limit for one non-streaming request to the engine (10-1800 seconds). The streaming path keeps its own bounds (300 s read) and is untouched by this field.",
+        "hintEn": "Time limit for one non-streaming request to the engine (10-1800 seconds). The streaming path keeps its own bounds (300 s read) and is untouched by this field.",
+        "min": 10,
+        "max": 1800,
+        "step": 1
+      }
+    ]
+  },
+  {
+    "key": "plugins",
+    "fields": [
+      {
+        "key": "plugins.plugin_autorun",
+        "type": "bool",
+        "label": "Autorun plugins",
+        "labelEn": "Autorun plugins",
+        "default": false,
+        "value": false,
+        "hint": "Applies at install time only: a new marketplace plugin lands enabled instead of disabled in the registry. Existing entries stay as they are.",
+        "hintEn": "Applies at install time only: a new marketplace plugin lands enabled instead of disabled in the registry. Existing entries stay as they are."
+      },
+      {
+        "key": "plugins.plugin_signature_check",
+        "type": "bool",
+        "label": "Enforce signature check",
+        "labelEn": "Enforce signature check",
+        "default": true,
+        "value": true,
+        "hint": "Checks on enable whether the plugin content still matches its stored signature; on drift the activation fails with 409 and an audit entry. Installation is checked independently.",
+        "hintEn": "Checks on enable whether the plugin content still matches its stored signature; on drift the activation fails with 409 and an audit entry. Installation is checked independently."
+      }
+    ]
+  },
+  {
+    "key": "memory",
+    "fields": [
+      {
+        "key": "memory.capture_enabled",
+        "type": "bool",
+        "label": "Learn from conversations",
+        "labelEn": "Learn from conversations",
+        "default": true,
+        "value": true,
+        "hint": "After each answer, decide whether the pair is worth keeping and store it. Off: no new facts are added — search, injection and the memory tool keep working.",
+        "hintEn": "After each answer, decide whether the pair is worth keeping and store it. Off: no new facts are added — search, injection and the memory tool keep working."
+      },
+      {
+        "key": "memory.capture_min_answer_chars",
+        "type": "number",
+        "label": "Minimum answer length (chars)",
+        "labelEn": "Minimum answer length (chars)",
+        "default": 120,
+        "value": 120,
+        "hint": "Below this length an answer is too thin to become a memory (20-2000 characters). Higher filters more, lower keeps more; the question itself needs at least 8 characters.",
+        "hintEn": "Below this length an answer is too thin to become a memory (20-2000 characters). Higher filters more, lower keeps more; the question itself needs at least 8 characters.",
+        "min": 20,
+        "max": 2000,
+        "step": 1
+      },
+      {
+        "key": "memory.dedupe_score_threshold",
+        "type": "number",
+        "label": "Duplicate above (similarity)",
+        "labelEn": "Duplicate above (similarity)",
+        "default": 0.85,
+        "value": 0.85,
+        "hint": "From which similarity (0.5 to 1) a found entry counts as a duplicate and the new pair is not stored. Chroma returns about 0.89 for identical text, never 1.0.",
+        "hintEn": "From which similarity (0.5 to 1) a found entry counts as a duplicate and the new pair is not stored. Chroma returns about 0.89 for identical text, never 1.0.",
+        "min": 0.5,
+        "max": 1.0,
+        "step": 0.01
+      },
+      {
+        "key": "memory.inject_max_entries",
+        "type": "number",
+        "label": "Memory in context (entries)",
+        "labelEn": "Memory in context (entries)",
+        "default": 10,
+        "value": 10,
+        "hint": "At most how many entries are lifted into the system prompt (1-50) — the same number bounds injection's own search. More knowledge, more tokens.",
+        "hintEn": "At most how many entries are lifted into the system prompt (1-50) — the same number bounds injection's own search. More knowledge, more tokens.",
+        "min": 1,
+        "max": 50,
+        "step": 1
+      },
+      {
+        "key": "memory.inject_min_score",
+        "type": "number",
+        "label": "Injected above (similarity)",
+        "labelEn": "Injected above (similarity)",
+        "default": 0.3,
+        "value": 0.3,
+        "hint": "Below this value (0 to 1) a found entry is not injected, because it would only cost tokens. Higher keeps the block leaner, lower lets more through.",
+        "hintEn": "Below this value (0 to 1) a found entry is not injected, because it would only cost tokens. Higher keeps the block leaner, lower lets more through.",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      {
+        "key": "memory.embedder",
+        "type": "select",
+        "label": "Embedding model",
+        "labelEn": "Embedding model",
+        "default": "embeddinggemma-2",
+        "value": "embeddinggemma-2",
+        "hint": "Chooses the vector-search model: EmbeddingGemma 2 emits 768 values, of which Ephe stores the leading 256, while all-MiniLM-L6-v2 stays at 384. A switch applies from the next stored entry on.",
+        "hintEn": "Chooses the vector-search model: EmbeddingGemma 2 emits 768 values, of which Ephe stores the leading 256, while all-MiniLM-L6-v2 stays at 384. A switch applies from the next stored entry on.",
+        "options": [
+          "embeddinggemma-2",
+          "all-MiniLM-L6-v2"
+        ],
+        "optionLabels": [
+          {
+            "value": "embeddinggemma-2",
+            "label": "EmbeddingGemma 2 (recommended)",
+            "labelEn": "EmbeddingGemma 2 (recommended)"
+          },
+          {
+            "value": "all-MiniLM-L6-v2",
+            "label": "all-MiniLM-L6-v2 (small, local)",
+            "labelEn": "all-MiniLM-L6-v2 (small, local)"
+          }
+        ]
+      },
+      {
+        "key": "memory.embedder_allow_download",
+        "type": "bool",
+        "label": "Allow embedding-model download",
+        "labelEn": "Allow embedding-model download",
+        "default": false,
+        "value": false,
+        "hint": "Allows a one-time fetch of the EmbeddingGemma weights (540 MB) from huggingface.co into the device folder; without that permission vector search stays on all-MiniLM-L6-v2.",
+        "hintEn": "Allows a one-time fetch of the EmbeddingGemma weights (540 MB) from huggingface.co into the device folder; without that permission vector search stays on all-MiniLM-L6-v2."
+      }
+    ]
+  },
+  {
+    "key": "ephemera",
+    "fields": [
+      {
+        "key": "ephemera.idle_ttl_minutes",
+        "type": "number",
+        "label": "Discard an idle cell (minutes)",
+        "labelEn": "Discard an idle cell (minutes)",
+        "default": 30,
+        "value": 30,
+        "hint": "How long a cell survives without a run; the next access then discards it and its namespace is gone. A cell that is used stays as long as it is used.",
+        "hintEn": "How long a cell survives without a run; the next access then discards it and its namespace is gone. A cell that is used stays as long as it is used.",
+        "min": 5,
+        "max": 240,
+        "step": 1
+      },
+      {
+        "key": "ephemera.evaporate_on_delete",
+        "type": "bool",
+        "label": "Evaporate session on delete",
+        "labelEn": "Evaporate session on delete",
+        "default": false,
+        "value": false,
+        "hint": "Whether deleting a session also frees its work directory at once instead of waiting for the idle limit above. Files a run wrote to the output folder stay either way — no switch deletes those.",
+        "hintEn": "Whether deleting a session also frees its work directory at once instead of waiting for the idle limit above. Files a run wrote to the output folder stay either way — no switch deletes those."
+      }
+    ]
+  },
+  {
+    "key": "cron",
+    "fields": [
+      {
+        "key": "cron.misfire_grace_minutes",
+        "type": "number",
+        "label": "Catch up a missed run (minutes)",
+        "labelEn": "Catch up a missed run (minutes)",
+        "default": 60,
+        "value": 60,
+        "hint": "How long a slot may still start after its time when Ephe was not running (0-1440 minutes). 0 never catches up; past it the run lapses without replacement.",
+        "hintEn": "How long a slot may still start after its time when Ephe was not running (0-1440 minutes). 0 never catches up; past it the run lapses without replacement.",
+        "min": 0,
+        "max": 1440,
+        "step": 1
+      },
+      {
+        "key": "cron.history_keep",
+        "type": "number",
+        "label": "Runs to keep",
+        "labelEn": "Runs to keep",
+        "default": 50,
+        "value": 50,
+        "hint": "How many runs are kept — in memory and in schedule_results.json (10-500). Oldest go first; export anything you need before it drops.",
+        "hintEn": "How many runs are kept — in memory and in schedule_results.json (10-500). Oldest go first; export anything you need before it drops.",
+        "min": 10,
+        "max": 500,
+        "step": 1
+      },
+      {
+        "key": "cron.history_rows",
+        "type": "number",
+        "label": "Runs to show",
+        "labelEn": "Runs to show",
+        "default": 20,
+        "value": 20,
+        "hint": "How many runs the list under a schedule shows (5-100). Changes nothing about what is stored — only what is visible.",
+        "hintEn": "How many runs the list under a schedule shows (5-100). Changes nothing about what is stored — only what is visible.",
+        "min": 5,
+        "max": 100,
+        "step": 1
+      },
+      {
+        "key": "cron.max_parallel_jobs",
+        "type": "number",
+        "label": "Concurrent runs per job",
+        "labelEn": "Concurrent runs per job",
+        "default": 1,
+        "value": 1,
+        "hint": "How many runs of the same job may overlap (1-10). At 1, the default, a run waits for the previous one to end — closely spaced slots queue instead of being dropped.",
+        "hintEn": "How many runs of the same job may overlap (1-10). At 1, the default, a run waits for the previous one to end — closely spaced slots queue instead of being dropped.",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    ]
+  },
+  {
+    "key": "hooks",
+    "fields": [
+      {
+        "key": "hooks.enabled",
+        "type": "bool",
+        "label": "Run hooks",
+        "labelEn": "Run hooks",
+        "default": true,
+        "value": true,
+        "hint": "Off runs none of the commands in hooks.json — no subprocess before or after a tool call. The file stays as it is; tools and answers keep running unchanged.",
+        "hintEn": "Off runs none of the commands in hooks.json — no subprocess before or after a tool call. The file stays as it is; tools and answers keep running unchanged."
+      }
+    ]
+  }
+]

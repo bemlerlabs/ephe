@@ -41,7 +41,6 @@ vi.mock('@/lib/api', () => ({
     provider: { type: 'openai_compatible', model: 'm', endpoint: 'http://10.1.2.3:8000/v1' },
     memory_enabled: true,
     language: 'de',
-    theme: 'dark',
   })),
   updateSettings: vi.fn(async () => ({})),
   healthCheck: vi.fn(async () => ({

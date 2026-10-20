@@ -207,7 +207,7 @@ function MessageBubbleInner({
           ) : isUser ? (
             /* G1.5: user bubbles as Markdown (without syntax highlighting) —
                backticks/links/lists in user messages render cleanly. */
-            <div className="text-ui-sm text-foreground/80 prose prose-invert max-w-none break-words prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground text-left">
+            <div className="chat-reading-type text-foreground/80 prose prose-invert max-w-none break-words prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground text-left">
               <UserMarkdown text={msg.content} />
             </div>
           ) : (

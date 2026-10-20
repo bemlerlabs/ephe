@@ -65,9 +65,23 @@ bad()  { printf '  REFUSED  %s\n' "$1"; }
 
 semver_num() { printf '%s\n' "${1%%-*}"; }
 
-# semver_gt A B -> true when A is a strictly greater X.Y.Z than B (pre-release suffix ignored).
+# semver_pre X -> the prerelease part, empty when the version carries none.
+semver_pre() {
+  case "$1" in
+    *-*) printf '%s\n' "${1#*-}" ;;
+    *) printf '\n' ;;
+  esac
+}
+
+# semver_gt A B -> true when A sorts strictly above B.
+#
+# The prerelease suffix decides when the numbers are equal, because this product's whole
+# update story lives there: 0.1.0-beta.10 is ahead of 0.1.0-beta.9, and the release 0.1.0
+# is ahead of every prerelease of it. Identifiers compare numerically when both are digits
+# and as ASCII otherwise; a shorter prerelease that matches point for point is the lower
+# one (semver §11).
 semver_gt() {
-  local a b i x y
+  local a b i x y pa pb n
   a="$(semver_num "$1")"; b="$(semver_num "$2")"
   local IFS=.
   local -a A B
@@ -76,6 +90,30 @@ semver_gt() {
     x="${A[$i]:-0}"; y="${B[$i]:-0}"
     [ "$x" -gt "$y" ] && return 0
     [ "$x" -lt "$y" ] && return 1
+  done
+  pa="$(semver_pre "$1")"; pb="$(semver_pre "$2")"
+  [ -z "$pa" ] && [ -z "$pb" ] && return 1
+  [ -z "$pa" ] && return 0
+  [ -z "$pb" ] && return 1
+  local -a P Q
+  read -r -a P <<< "$pa"; read -r -a Q <<< "$pb"
+  n=${#P[@]}
+  [ ${#Q[@]} -gt "$n" ] && n=${#Q[@]}
+  for ((i = 0; i < n; i++)); do
+    x="${P[i]:-}"; y="${Q[i]:-}"
+    [ -z "$y" ] && return 0
+    [ -z "$x" ] && return 1
+    if [[ "$x" =~ ^[0-9]+$ ]] && [[ "$y" =~ ^[0-9]+$ ]]; then
+      [ "$((10#$x))" -gt "$((10#$y))" ] && return 0
+      [ "$((10#$x))" -lt "$((10#$y))" ] && return 1
+    elif [[ "$x" =~ ^[0-9]+$ ]]; then
+      return 1
+    elif [[ "$y" =~ ^[0-9]+$ ]]; then
+      return 0
+    else
+      [[ "$x" > "$y" ]] && return 0
+      [[ "$x" < "$y" ]] && return 1
+    fi
   done
   return 1
 }
@@ -94,10 +132,10 @@ except Exception:
 PYEOF
 }
 
-# last released version = the topmost `## [X.Y.Z]` header that is not [Unreleased],
-# so a version-numbering reset does not compare against an older, higher line.
+# last released version = the topmost `## [...]` header that starts with a digit, kept whole
+# including its prerelease, so a beta line compares against the beta that is actually on top.
 last_released_version() {
-  sed -n 's/^## \[\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)[^]]*\].*/\1/p' "$ROOT/CHANGELOG.md" | head -1
+  sed -n 's/^## \[\([0-9][^]]*\)\].*/\1/p' "$ROOT/CHANGELOG.md" | head -1
 }
 
 run_gate() {
@@ -181,20 +219,32 @@ else
   ok "tag $TAG is free"
 fi
 
-# 5. the changelog does not already carry this release, and is ahead of the last
-if [ -n "$V" ] && grep -qF "## [$V]" "$ROOT/CHANGELOG.md" 2>/dev/null; then
-  refuse "CHANGELOG.md already has a released section for [$V]" "the version is released; bump to a new one"
-else
+# 5. the changelog is folded for this cut and nothing newer sits above it.
+#
+# A `## [V]` section for the version being tagged is the normal state before the tag: the
+# checklist's `changelog-section` item, `release_notes.py` and every beta tag since beta.4 all
+# require the curated section to exist first, so the machine requires it too and refuses only
+# when the section is missing or a *newer* one sits on top. "Already released" is the tag, and
+# check 4 owns that refusal.
+if [ -n "$V" ]; then
   LASTV="$(last_released_version)"
-  if [ -n "$LASTV" ] && [ -n "$V" ]; then
-    if semver_gt "$V" "$LASTV" 2>/dev/null; then
-      ok "version $V is ahead of the last release ($LASTV)"
-    else
-      bad "version $V is not ahead of the last release ($LASTV)"
-      refuse "$V is not greater than the last release [$LASTV]" "bump the carriers above $LASTV and write the new CHANGELOG entry"
-    fi
+  FOLDED=0
+  grep -qF "## [$V]" "$ROOT/CHANGELOG.md" 2>/dev/null && FOLDED=1
+  if [ -z "$LASTV" ] && [ "$FOLDED" = 1 ]; then
+    ok "CHANGELOG.md carries ## [$V] as its topmost release"
+  elif [ -z "$LASTV" ]; then
+    bad "CHANGELOG.md has no released section at all"
+    refuse "CHANGELOG.md has no \`## [$V]\` section" "write the entry for $V, commit, re-run"
+  elif [ "$LASTV" = "$V" ]; then
+    ok "the topmost CHANGELOG section is [$V], folded for this cut"
+  elif semver_gt "$LASTV" "$V" 2>/dev/null; then
+    bad "a newer release ($LASTV) is already logged above [$V]"
+    refuse "$V is behind the last release [$LASTV]" "bump the carriers above $LASTV and write the new CHANGELOG entry"
+  elif [ "$FOLDED" = 1 ]; then
+    ok "version $V is ahead of the last release ($LASTV) and folded for the cut"
   else
-    ok "no released version in CHANGELOG.md to compare against"
+    bad "the last release is $LASTV and no \`## [$V]\` section exists"
+    refuse "CHANGELOG.md has no \`## [$V]\` section" "write the entry for $V, commit, re-run"
   fi
 fi
 

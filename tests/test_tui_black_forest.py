@@ -21,9 +21,6 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-import pytest
-
-
 # Ink-ground palette: one set of ten tokens, spelled in ui/palette.py (Python) and
 # ui/ephe.tcss (stylesheet). The retired palette below is the blue-black one this
 # file used to pin, whose green brand mark (#42d392) sat dE2000 68.6 from the
@@ -207,6 +204,36 @@ def test_no_state_is_signalled_by_colour_alone() -> None:
     # The two states differ in text colour as well as in their labels.
     assert "$ink-accent" in _rule_body(tcss, "#status-bar.streaming")
     assert "$ink-error" in _rule_body(tcss, "#status-bar.error")
+
+
+def test_diff_lines_use_the_measured_add_and_delete_tokens() -> None:
+    """GIVEN a tool result that is a unified diff
+    THEN additions carry the connected green, deletions the failure red, and the
+    two tokens are the measured palette values, not ad-hoc colours.
+
+    The same ten-token palette paints the transcript and the diff: a diff that
+    invented its own green would be the retirement test's next subject.
+    """
+    from ui.widgets import DIFF_ADD, DIFF_DEL, _diff_lines
+
+    tokens = _python_tokens()
+    assert DIFF_ADD == tokens["OK"], "additions left the palette's connected token"
+    assert DIFF_DEL == tokens["ERROR"], "deletions left the palette's failure token"
+    assert _contrast(DIFF_ADD, tokens["GROUND"]) >= 4.5
+    assert _contrast(DIFF_DEL, tokens["GROUND"]) >= 4.5
+
+    rendered = _diff_lines(
+        "--- a/notes.txt\n+++ b/notes.txt\n@@ -1 +1 @@\n-old line\n+new line\n context"
+    )
+    styles = [line.style for line in rendered.renderables]
+    assert styles == [
+        tokens["DIM"],
+        tokens["DIM"],
+        tokens["ACCENT"],
+        tokens["ERROR"],
+        tokens["OK"],
+        tokens["TEXT"],
+    ]
 
 
 def test_the_claim_lines_state_what_the_product_does() -> None:

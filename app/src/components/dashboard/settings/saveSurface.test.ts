@@ -12,6 +12,9 @@ import { READONLY_TABS, type TabKey } from './types'
 /** Sections whose controls write into the `settings` draft (no register). */
 const DRAFT_TABS: TabKey[] = ['generation']
 
+/** The one surface whose register rows persist on change, through the register path. */
+const INSTANT_TABS: TabKey[] = ['appearance']
+
 describe('die Fuss-Save folgt der Regel "ein Speicher, den der Bereich braucht"', () => {
   it('kein Register-Bereich steht auf der Leseliste', () => {
     const registerTabs = new Set(Object.values(SECTION_TAB))
@@ -22,9 +25,19 @@ describe('die Fuss-Save folgt der Regel "ein Speicher, den der Bereich braucht"'
   it('jeder Navigationsbereich ist entschieden: Register, Entwurf oder sofortwirkend', () => {
     const registerTabs = new Set(Object.values(SECTION_TAB))
     const undecided = NAV.map((n) => n.key).filter(
-      (tab) => !registerTabs.has(tab) && !READONLY_TABS.has(tab) && !DRAFT_TABS.includes(tab),
+      (tab) =>
+        !registerTabs.has(tab) &&
+        !READONLY_TABS.has(tab) &&
+        !DRAFT_TABS.includes(tab) &&
+        !INSTANT_TABS.includes(tab),
     )
     expect(undecided).toEqual([])
+  })
+
+  it('appearance is the one instant surface and still a register tab', () => {
+    expect(INSTANT_TABS).toEqual(['appearance'])
+    expect(READONLY_TABS.has('appearance')).toBe(false)
+    expect(Object.values(SECTION_TAB)).toContain('appearance')
   })
 
   it('die sofortwirkenden Bereiche sind benannt, nicht nur abwesend', () => {

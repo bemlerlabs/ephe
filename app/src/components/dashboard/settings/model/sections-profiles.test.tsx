@@ -29,7 +29,7 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-import { renderPrivacy } from './sections-misc'
+import { ApprovalRegister } from './approvalRegister'
 import type { SettingsModel } from './types'
 
 const PROFILES = ['strict', 'session', 'plan', 'full'] as const
@@ -49,7 +49,7 @@ function privacyModel(profile: string) {
 describe('the approval profile row', () => {
   it.each(PROFILES)('offers %s as a choice the code accepts', (profile) => {
     const { model } = privacyModel('strict')
-    render(<>{renderPrivacy(model)}</>)
+    render(<ApprovalRegister model={model} />)
     const radio = screen.getByTestId(`security-profile-${profile}`)
     expect(radio.getAttribute('role')).toBe('radio')
     expect(radio.textContent?.trim().length ?? 0).toBeGreaterThan(0)
@@ -57,7 +57,7 @@ describe('the approval profile row', () => {
 
   it('hands the chosen profile to the save call', () => {
     const { model, handleSecuritySave } = privacyModel('strict')
-    render(<>{renderPrivacy(model)}</>)
+    render(<ApprovalRegister model={model} />)
     fireEvent.click(screen.getByTestId('security-profile-full'))
     expect(handleSecuritySave).toHaveBeenCalledWith({ approval_profile: 'full' })
   })
@@ -71,7 +71,7 @@ describe('the approval profile row', () => {
       sandbox_enabled: false,
       ask_categories: ['SAFE'],
     }
-    render(<>{renderPrivacy(model)}</>)
+    render(<ApprovalRegister model={model} />)
     expect(screen.getByTestId('privacy-ask-safe')).toBeTruthy()
     expect(screen.getByTestId('privacy-ask-network')).toBeTruthy()
     expect(screen.queryByTestId('privacy-ask-mutating')).toBeNull()
@@ -86,21 +86,29 @@ describe('the approval profile row', () => {
       sandbox_enabled: false,
       ask_categories: ['SAFE', 'NETWORK'],
     }
-    render(<>{renderPrivacy(model)}</>)
+    render(<ApprovalRegister model={model} />)
     fireEvent.click(screen.getByTestId('ask-safe-toggle'))
     expect(handleSecuritySave).toHaveBeenCalledWith({ ask_categories: ['NETWORK'] })
   })
 
+  it('marks the selected profile with the neutral graphite step, not the brand', () => {
+    const { model } = privacyModel('plan')
+    render(<ApprovalRegister model={model} />)
+    const selected = screen.getByTestId('security-profile-plan')
+    expect(selected.className).toContain('bg-surface-interactive')
+    expect(selected.className).not.toContain('bg-brand')
+  })
+
   it('marks the stored profile as the checked one', () => {
     const { model } = privacyModel('plan')
-    render(<>{renderPrivacy(model)}</>)
+    render(<ApprovalRegister model={model} />)
     expect(screen.getByTestId('security-profile-plan').getAttribute('aria-checked')).toBe('true')
     expect(screen.getByTestId('security-profile-strict').getAttribute('aria-checked')).toBe('false')
   })
 
   it('states which surface decides and which one is the ceiling', () => {
     const { model } = privacyModel('strict')
-    render(<>{renderPrivacy(model)}</>)
+    render(<ApprovalRegister model={model} />)
     const note = screen.getByTestId('privacy-profile-note')
     expect(note.textContent).toContain('composer mode')
     expect(note.textContent).toContain('ceiling')

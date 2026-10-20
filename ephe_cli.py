@@ -853,7 +853,15 @@ def cmd_start(args: argparse.Namespace, config_path=None) -> int:
 
         choice = replace(choice, model=args.model)
     if choice is not None:
-        choice.apply_env()
+        try:
+            choice.apply_env()
+        except EngineNotConfigured as exc:
+            # A persisted choice can be incomplete (for example openai_compatible
+            # without api_url). Fall back to setup mode with the field named instead
+            # of aborting the start on an uncaught configuration error.
+            print(f"  ✗ {exc}")
+            print(f"  Fix: {exc.hint}")
+            choice = None
 
     if choice is not None and not args.skip_model_check:
         # Non-blocking readiness checks: Ephe is engine-agnostic —

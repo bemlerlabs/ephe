@@ -453,6 +453,14 @@ export default function FirstRunTour() {
     [still],
   )
 
+  // The shell stays mounted behind the tour. Its resting actors step out of the
+  // composed page for as long as the guide is the one figure on screen.
+  useEffect(() => {
+    if (!open) return
+    document.body.classList.add('ephe-tour-open')
+    return () => document.body.classList.remove('ephe-tour-open')
+  }, [open])
+
   if (!open) return null
 
   const configured = gate.configured || Boolean(engine?.model)

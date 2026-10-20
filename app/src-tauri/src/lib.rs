@@ -15,6 +15,8 @@ use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
 mod browser;
 #[cfg(unix)]
 mod backend;
@@ -40,6 +42,44 @@ fn keep_awake_stop() {
 #[tauri::command]
 fn stop_backend() {
     backend::stop_backend();
+}
+
+/// The one chord the desktop registers: Cmd+Shift+E on macOS, Ctrl+Shift+E elsewhere.
+fn global_shortcut() -> Shortcut {
+    #[cfg(target_os = "macos")]
+    let modifiers = Modifiers::SUPER | Modifiers::SHIFT;
+    #[cfg(not(target_os = "macos"))]
+    let modifiers = Modifiers::CONTROL | Modifiers::SHIFT;
+    Shortcut::new(Some(modifiers), Code::KeyE)
+}
+
+fn reveal_main_window(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.show();
+        let _ = win.unminimize();
+        let _ = win.set_focus();
+        let _ = app.emit("global-shortcut", ());
+    }
+}
+
+/// Opt-in registration. Disabled is the default; a conflict with another
+/// application surfaces as an error and the settings surface writes the value
+/// back to off instead of leaving a shortcut that never fires.
+#[tauri::command]
+fn set_global_shortcut(app: tauri::AppHandle, enabled: bool) -> Result<String, String> {
+    let manager = app.global_shortcut();
+    let shortcut = global_shortcut();
+    if enabled {
+        // Idempotent re-enable; only `register` decides whether the chord is free.
+        let _ = manager.unregister(shortcut);
+        manager
+            .register(shortcut)
+            .map_err(|error| error.to_string())?;
+        Ok("registered".into())
+    } else {
+        let _ = manager.unregister(shortcut);
+        Ok("unregistered".into())
+    }
 }
 
 /// The tour's carry-over stop: a native folder picker. The chosen folder is
@@ -107,12 +147,23 @@ mod tests {
     use super::clamp_window_size;
 
     #[test]
-    fn briefmarke_wird_auf_mindestmass_gezogen() {
+    fn the_global_shortcut_is_one_explicit_chord() {
+        let shortcut = super::global_shortcut();
+        assert_eq!(shortcut.key, tauri_plugin_global_shortcut::Code::KeyE);
+        assert!(shortcut.mods.contains(tauri_plugin_global_shortcut::Modifiers::SHIFT));
+        #[cfg(target_os = "macos")]
+        assert!(shortcut.mods.contains(tauri_plugin_global_shortcut::Modifiers::SUPER));
+        #[cfg(not(target_os = "macos"))]
+        assert!(shortcut.mods.contains(tauri_plugin_global_shortcut::Modifiers::CONTROL));
+    }
+
+    #[test]
+    fn a_stamp_is_pulled_up_to_the_minimum_size() {
         assert_eq!(clamp_window_size(155, 168), (960, 640));
     }
 
     #[test]
-    fn normales_fenster_bleibt_unberuehrt() {
+    fn a_normal_window_stays_untouched() {
         assert_eq!(clamp_window_size(1280, 800), (1280, 800));
         assert_eq!(clamp_window_size(960, 640), (960, 640));
     }
@@ -142,7 +193,7 @@ mod tests {
 
 fn main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
     app.get_webview_window("main")
-        .ok_or_else(|| "Hauptfenster nicht gefunden".to_string())
+        .ok_or_else(|| "main window not found".to_string())
 }
 
 #[tauri::command]
@@ -305,6 +356,15 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    if event.state() == ShortcutState::Pressed && shortcut == &global_shortcut() {
+                        reveal_main_window(app);
+                    }
+                })
+                .build(),
+        )
         .on_menu_event(|app, event| {
             if event.id.as_ref() == "check-updates" {
                 show_main_window(app);
@@ -329,7 +389,8 @@ pub fn run() {
             browser::browser_visible,
             browser::browser_history,
             browser::browser_close,
-            browser::browser_open_external
+            browser::browser_open_external,
+            set_global_shortcut
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -385,19 +446,19 @@ pub fn run() {
                 // 134×143 despite the clamp). So keep re-checking briefly until
                 // the frame is in place; afterwards `set_min_size` and the
                 // resize branch hold it.
-                let nachsetzen = app.handle().clone();
+                let app_handle = app.handle().clone();
                 std::thread::spawn(move || {
                     for pause_ms in [250_u64, 750, 1500, 3000] {
                         std::thread::sleep(std::time::Duration::from_millis(pause_ms));
-                        let Some(fenster) = nachsetzen.get_webview_window("main") else {
+                        let Some(win) = app_handle.get_webview_window("main") else {
                             return;
                         };
-                        let Ok(size) = fenster.outer_size() else { return };
+                        let Ok(size) = win.outer_size() else { return };
                         let (w, h) = clamp_window_size(size.width, size.height);
                         if w == size.width && h == size.height {
                             return; // frame is within bounds — done
                         }
-                        let _ = fenster
+                        let _ = win
                             .set_size(tauri::Size::Physical(tauri::PhysicalSize::new(w, h)));
                     }
                 });
@@ -441,8 +502,14 @@ pub fn run() {
                 }
             }
 
+            // The menu-bar glyph is the mono cut: macOS renders it as a template,
+            // so it follows both menu-bar appearances instead of keeping a coloured
+            // tile. `include_image!` embeds the raw pixels at compile time, so no
+            // PNG codec enters the runtime dependency tree.
+            let tray_icon = tauri::include_image!("icons/tray-mono.png");
             TrayIconBuilder::with_id("ephe-tray")
-                .icon(app.default_window_icon().expect("app icon").clone())
+                .icon(tray_icon)
+                .icon_as_template(true)
                 .tooltip("Ephe — local & private")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {

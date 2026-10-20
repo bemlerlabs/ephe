@@ -40,9 +40,45 @@ fn owner_token() -> String {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    let token = format!("{stamp:x}{:x}", std::process::id());
+    let token = format!("{stamp:x}-{:x}", std::process::id());
     *guard = Some(token.clone());
     token
+}
+
+/// The shell pid a token names, when the token carries one (current builds do;
+/// a token from before the label is unparseable and never replaceable).
+fn owner_pid(token: &str) -> Option<u32> {
+    let tail = token.rsplit_once('-')?.1;
+    u32::from_str_radix(tail, 16).ok().filter(|pid| *pid > 1)
+}
+
+fn pid_alive(pid: u32) -> bool {
+    Command::new("kill")
+        .arg("-0")
+        .arg(pid.to_string())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|status| status.success())
+        // A machine where `kill` cannot be asked is not a licence to kill.
+        .unwrap_or(true)
+}
+
+fn owner_is_dead(token: &str) -> bool {
+    owner_pid(token).map(|pid| !pid_alive(pid)).unwrap_or(false)
+}
+
+fn same_project(peer_root: &str, project: &Path) -> bool {
+    let theirs = fs::canonicalize(peer_root).unwrap_or_else(|_| PathBuf::from(peer_root));
+    let ours = fs::canonicalize(project).unwrap_or_else(|_| project.to_path_buf());
+    theirs == ours
+}
+
+/// A backend whose owning shell is gone, started from this project. Only that
+/// shape may be replaced; a live owner belongs to another shell, and an
+/// unlabelled owner may be a developer's server.
+fn is_replaceable_orphan(peer: &PeerStatement, project: &Path) -> bool {
+    peer.pid > 1 && same_project(&peer.root, project) && owner_is_dead(&peer.owner)
 }
 
 /// The backend this shell spawned. A reused backend (a dev server, another
@@ -310,7 +346,12 @@ fn notiz(home: &Path, text: &str) {
 }
 
 /// The reuse branch has to make the same statement the spawn branch can make.
-fn ergebnis_fur_besetzten_port(home: &Path, port: u16) -> Ergebnis {
+fn ergebnis_fur_besetzten_port(
+    home: &Path,
+    port: u16,
+    befehl: &Startbefehl,
+    key: Option<&str>,
+) -> Ergebnis {
     match statement(port) {
         None => {
             log::warn!("port {port} answers, but not as an Ephe backend — not treated as ours");
@@ -333,12 +374,47 @@ fn ergebnis_fur_besetzten_port(home: &Path, port: u16) -> Ergebnis {
             Ergebnis::Inkompatibel(found)
         }
         Some(s) if s.owner != owner_token() => {
+            if is_replaceable_orphan(&s, &befehl.projekt) {
+                // The owning shell is gone; the backend is this project's leftover.
+                // Ask it to stop, wait for the port, and start a watched child.
+                let _ = Command::new("kill")
+                    .arg(s.pid.to_string())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .status();
+                for _ in 0..20 {
+                    if !lauscht(port) {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+                if !lauscht(port) {
+                    notiz(
+                        home,
+                        &format!("replaced orphaned backend pid {} on port {port}", s.pid),
+                    );
+                    return match starten(befehl, key) {
+                        Ok(()) => Ergebnis::Gestartet,
+                        Err(e) => Ergebnis::StartFehler(e.to_string()),
+                    };
+                }
+                notiz(
+                    home,
+                    &format!(
+                        "orphaned backend pid {} on port {port} did not stop; stop it with: kill {}",
+                        s.pid, s.pid
+                    ),
+                );
+                return Ergebnis::FremderPort;
+            }
             log::warn!("port {port} holds an Ephe backend this shell did not start — not reused");
             notiz(
                 home,
                 &format!(
-                    "port {port} holds backend {} (pid {}), not started by this shell; not reused",
+                    "port {port} holds backend {} (pid {}), not started by this shell; another Ephe backend is running (pid {}); stop it with: kill {}; not reused",
                     if s.version.is_empty() { "unknown" } else { &s.version },
+                    s.pid,
+                    s.pid,
                     s.pid
                 ),
             );
@@ -405,10 +481,10 @@ pub fn sicherstellen(home: &Path, port: u16) -> Ergebnis {
     let Some(befehl) = befehl_aus(&text, home) else {
         return Ergebnis::KeinBefehl;
     };
-    if !braucht_start(lauscht(port), Some(&befehl)) {
-        return ergebnis_fur_besetzten_port(home, port);
-    }
     let key = key_for_start(home, std::env::var_os(KEY_ENV).as_deref());
+    if !braucht_start(lauscht(port), Some(&befehl)) {
+        return ergebnis_fur_besetzten_port(home, port, &befehl, key.as_deref());
+    }
     match starten(&befehl, key.as_deref()) {
         Ok(()) => Ergebnis::Gestartet,
         Err(e) => Ergebnis::StartFehler(e.to_string()),
@@ -631,7 +707,49 @@ mod tests {
         let home = temp_home("foreign-owner");
         fs::write(konfig_pfad(&home), held_port_config(port)).expect("config");
         assert_eq!(sicherstellen(&home, port), Ergebnis::FremderPort);
+        let note = note_text(&home).expect("a foreign owner is worth one line");
+        assert!(note.contains("pid 7"), "{note}");
+        assert!(note.contains("kill 7"), "{note}");
         let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_dead_owner_makes_a_matching_backend_replaceable() {
+        let mut child = Command::new("true").spawn().expect("spawn");
+        let pid = child.id();
+        child.wait().expect("wait");
+        let token = format!("abc-{:x}", pid);
+        let peer = PeerStatement {
+            key_challenge: false,
+            detail: String::new(),
+            version: "0.1.0".into(),
+            api_contract: API_CONTRACT,
+            owner: token,
+            instance_id: "i".into(),
+            pid: 4242,
+            root: "/x".into(),
+        };
+        assert!(owner_is_dead(&peer.owner));
+        assert!(is_replaceable_orphan(&peer, Path::new("/x")));
+        assert!(!is_replaceable_orphan(&peer, Path::new("/other")));
+    }
+
+    #[test]
+    fn a_live_or_unlabelled_owner_is_never_replaceable() {
+        let live = format!("abc-{:x}", std::process::id());
+        let peer = |owner: String| PeerStatement {
+            key_challenge: false,
+            detail: String::new(),
+            version: "0.1.0".into(),
+            api_contract: API_CONTRACT,
+            owner,
+            instance_id: "i".into(),
+            pid: 4242,
+            root: "/x".into(),
+        };
+        assert!(!is_replaceable_orphan(&peer(live), Path::new("/x")));
+        assert!(!is_replaceable_orphan(&peer("abc123".into()), Path::new("/x")));
+        assert!(!is_replaceable_orphan(&peer(String::new()), Path::new("/x")));
     }
 
     #[test]

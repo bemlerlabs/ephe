@@ -176,7 +176,6 @@ export function useSettingsCore(state: ReturnType<typeof useSettingsState>) {
         provider: { type: 'local_ollama', model: '' },
         memory_enabled: true,
         language: 'de',
-        theme: 'dark',
       })
     } finally {
       setLoading(false)

@@ -22,6 +22,15 @@ from typing import Final
 #: tests/test_settings_hints.py: field wired, both languages different,
 #: no echo of the label, 24-240 characters, no claim without code.
 HINTS: Final[dict[str, tuple[str, str]]] = {
+    "shortcuts.global_enabled": (
+        "Der einzige Schalter, der eine Taste außerhalb des Fensters belegt: "  # language-gate: ignore
+        "Cmd+Shift+E auf macOS, sonst Ctrl+Shift+E, holt Ephe nach vorn. Aus ist "  # language-gate: ignore
+        "die Vorgabe; belegt eine andere App die Kombination, schreibt Ephe den "  # language-gate: ignore
+        "Wert zurück auf aus.",  # language-gate: ignore
+        "The one switch that claims a key outside the window: Cmd+Shift+E on "
+        "macOS, Ctrl+Shift+E elsewhere, brings Ephe to the front. Off is the "
+        "default; if another app owns the chord, Ephe writes the value back to off.",
+    ),
     "advanced.api_timeout": (
         "Zeitlimit für eine einzelne Nicht-Stream-Anfrage an die Engine "
         "(10-1800 Sekunden). Der Stream-Pfad hält eigene Schranken (read 300 s) "
@@ -112,6 +121,24 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "Sets the interface text size: all seven steps hang off one variable "
         "(14 px at 100 percent) while rem spacing stays. Applies right after saving.",
     ),
+    "appearance.chat_font_scale": (
+        "Skaliert nur den Fließtext im Gespräch zwischen 80 und 150 Prozent; "  # language-gate: ignore
+        "die übrige Oberfläche folgt weiterhin der allgemeinen Schriftgröße.",  # language-gate: ignore
+        "Scales only the conversation text between 80 and 150 percent; the rest "
+        "of the interface keeps following the general font scale.",
+    ),
+    "appearance.reading_width": (
+        "Begrenzt die Breite des Gesprächs zwischen 480 und 1200 Pixeln; auf "  # language-gate: ignore
+        "schmalen Fenstern bleibt die verfügbare Breite die Grenze.",  # language-gate: ignore
+        "Caps the conversation width between 480 and 1200 pixels; on narrow "
+        "windows the available width stays the limit.",
+    ),
+    "appearance.accent": (
+        "Wählt den kuratierten Akzent für Marke und Live-Aktionen; Grund, "  # language-gate: ignore
+        "Statusfarben und Auswahl bleiben unverändert.",  # language-gate: ignore
+        "Chooses the curated accent for the mark and live actions; grounds, status "
+        "tones and selection stay unchanged.",
+    ),
     "appearance.companion_enabled": (
         "Zeigt den gewählten Begleiter im Startbildschirm und im aktiven Chat. "  # language-gate: ignore
         "Aus blendet ihn überall aus; Gestalt, Größe und Klangwahl bleiben "  # language-gate: ignore
@@ -130,11 +157,11 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
     ),
     "appearance.companion_behavior": (
         "Bestimmt Ort und Bewegung: mitfliegend und klickbar am Composer, ruhig "  # language-gate: ignore
-        "oben am Eingabefeld sitzend, oder nur auf dem Startbildschirm sichtbar, "  # language-gate: ignore
-        "sobald der erste Chat begonnen hat.",  # language-gate: ignore
+        "oben am Eingabefeld sitzend, oben in der Kopfzeile neben der Marke oder "  # language-gate: ignore
+        "nur auf dem Startbildschirm sichtbar, sobald der erste Chat begonnen hat.",  # language-gate: ignore
         "Sets place and motion: flying and clickable at the composer, sitting "
-        "calmly above the input, or visible only on the welcome screen once the "
-        "first chat has begun.",
+        "calmly above the input, resting in the header next to the mark, or "
+        "visible only on the welcome screen once the first chat has begun.",
     ),
     "appearance.companion_sound": (
         "Schaltet Flügelschwirren und den Kristallton der Funken an oder aus. "  # language-gate: ignore

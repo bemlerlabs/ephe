@@ -81,12 +81,14 @@ export function clampDeepDraft(
  * button used to apply. It also decides whether settings.json is written
  * at all: no change, no write.
  */
-export function countDeepChanges(
+function countIn(
   sections: DeepSection[] | null,
   draft: Record<string, Record<string, string | number | boolean>>,
+  keep: (sectionKey: string) => boolean,
 ): number {
   let changed = 0
   for (const sec of sections ?? []) {
+    if (!keep(sec.key)) continue
     const cur = draft[sec.key] ?? {}
     for (const f of sec.fields) {
       const value = cur[f.key]
@@ -95,6 +97,33 @@ export function countDeepChanges(
     }
   }
   return changed
+}
+
+export function countDeepChanges(
+  sections: DeepSection[] | null,
+  draft: Record<string, Record<string, string | number | boolean>>,
+): number {
+  return countIn(sections, draft, () => true)
+}
+
+/** Changes in the named sections — the instant surface saves one section only. */
+export function countDeepChangesIn(
+  sections: DeepSection[] | null,
+  draft: Record<string, Record<string, string | number | boolean>>,
+  sectionKeys: readonly string[],
+): number {
+  const keys = new Set(sectionKeys)
+  return countIn(sections, draft, (key) => keys.has(key))
+}
+
+/** Changes outside the named sections — what the footer still owns. */
+export function countDeepChangesOutside(
+  sections: DeepSection[] | null,
+  draft: Record<string, Record<string, string | number | boolean>>,
+  sectionKeys: readonly string[],
+): number {
+  const keys = new Set(sectionKeys)
+  return countIn(sections, draft, (key) => !keys.has(key))
 }
 
 /** The numbers the generation card edits, in the order the panel lists them. */

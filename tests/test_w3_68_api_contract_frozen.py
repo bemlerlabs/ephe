@@ -19,7 +19,10 @@ same commit that touches ``server/routes/*`` or ``server/main.py``.
 
 Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
 
-  173 operations (method + path) over 152 paths, on from 169 over 149. The three
+  177 operations (method + path) over 154 paths, on from 169 over 149. Wave 5D
+  (2026-10-20) adds the server-authoritative store's create, read, rename and
+  activate; the existing sessions routes stay and
+  ``docs/SESSION_STORE_DECISION.md`` records the store decision. The three
   sessions additions (list, delete, prune) landed with ``core/session_lifecycle.py``:
   the store had no reachable hold on the files it wrote. ``POST /api/sessions/clear``
   is the one-action counterpart (every namespace, nothing kept). The ten isolation
@@ -123,6 +126,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/sessions",
     "GET /api/sessions/export",
     "GET /api/sessions/restore",
+    "GET /api/sessions/{session_id}",
     "GET /api/settings",
     "GET /api/settings/code-exec",
     "GET /api/settings/hooks",
@@ -148,6 +152,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/usage/summary",
     "GET /api/workspaces",
     "GET /api/workspaces/{id}",
+    "PATCH /api/sessions/{session_id}",
     "POST /api/artifacts/expiry/answer",
     "POST /api/artifacts/{artifact_id}/adopt",
     "POST /api/artifacts/{artifact_id}/favorite",
@@ -194,10 +199,12 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/sandbox/approve",
     "POST /api/schedule",
     "POST /api/schedule/{job_id}/run",
+    "POST /api/sessions",
     "POST /api/sessions/clear",
     "POST /api/sessions/import",
     "POST /api/sessions/prune",
     "POST /api/sessions/sync",
+    "POST /api/sessions/{session_id}/activate",
     "POST /api/settings",
     "POST /api/settings/image/test",
     "POST /api/setup/reset",

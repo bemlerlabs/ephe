@@ -99,8 +99,27 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # Appearance
     "appearance.font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
                               "label": "Schriftgröße (%)", "labelEn": "Font scale (%)"},
+    "appearance.chat_font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
+                                   "label": "Schriftgröße im Gespräch (%)",
+                                   "labelEn": "Chat font scale (%)"},
+    "appearance.reading_width": {"type": "number", "default": 768, "min": 480, "max": 1200,
+                                 "label": "Lesebreite (px)", "labelEn": "Reading width (px)"},
+    "appearance.accent": {"type": "select", "default": "ember",
+                          "options": ["ember", "indigo", "plum", "mono"],
+                          "optionLabels": {
+                              "ember": ["Ember (Rot)", "Ember (red)"],
+                              "indigo": ["Indigoblau", "Indigo"],
+                              "plum": ["Pflaume", "Plum"],
+                              "mono": ["Monochrom", "Mono"],
+                          },
+                          "label": "Akzent", "labelEn": "Accent"},
     "appearance.animations_enabled": {"type": "bool", "default": True,
                                       "label": "Animationen aktiv", "labelEn": "Animations enabled"},
+    # Desktop-only opt-in. The reader is the shell bridge (app/src/lib/globalShortcut.ts)
+    # called from the shortcuts section; a failed registration writes the value back off.
+    "shortcuts.global_enabled": {"type": "bool", "default": False,
+                                 "label": "Globales Kürzel (Desktop)",
+                                 "labelEn": "Global shortcut (desktop)"},
     # The companion (owner order 2026-10-17): the bee outlives the onboarding.
     # Every field is read by WorkspaceCompanion / WelcomeEmptyState / spiritAudio.
     "appearance.companion_enabled": {"type": "bool", "default": True,
@@ -115,10 +134,11 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                      },
                                      "label": "Begleiter-Gestalt", "labelEn": "Companion form"},
     "appearance.companion_behavior": {"type": "select", "default": "interactive",
-                                      "options": ["interactive", "perch", "welcome_only"],
+                                      "options": ["interactive", "perch", "header", "welcome_only"],
                                       "optionLabels": {
                                           "interactive": ["Lebendig mitfliegend & interaktiv", "Interactive & flying"],
                                           "perch": ["Ruhig am Eingabefeld sitzend", "Calm perch on composer"],
+                                          "header": ["Ruhig in der Kopfzeile neben der Marke", "Calm in the header next to the mark"],
                                           "welcome_only": ["Nur auf dem Startbildschirm", "Welcome screen only"],
                                       },
                                       "label": "Begleiter-Verhalten", "labelEn": "Companion behaviour"},
@@ -205,7 +225,7 @@ SCHEMA: dict[str, dict[str, Any]] = {
 # Section breakdown (order = render order in the PWA).
 SECTIONS: list[dict[str, Any]] = [
     {"key": section, "fields": [k for k in SCHEMA if k.startswith(f"{section}.")]}
-    for section in ("chat", "appearance", "advanced", "plugins", "memory",
+    for section in ("chat", "appearance", "shortcuts", "advanced", "plugins", "memory",
                     "ephemera", "cron", "hooks")
 ]
 

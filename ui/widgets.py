@@ -1,12 +1,12 @@
 """
 ◑ Ephe – Widgets
 
-Four focused, reusable Textual widgets:
+The transcript side of the terminal:
 
-    HistoryInput      – Input with ↑/↓ history navigation + command completions
     ChatView          – Scrollable chat display with structured agent messages
     AgentMessageCard  – one assistant turn: thinking (collapsible) + tool calls + markdown answer
-    StatusBar         – live status: engine · model · tagline
+    ConfirmPrompt     – the in-terminal approval for a mutating tool
+    StatusBar         – live status: engine · model · context · session
 
 Streaming architecture (2026-08-22, "Structured Agent Message"):
     - ChatView keeps all turn containers (#chat-container, vertical, scrollbar)
@@ -21,219 +21,27 @@ Streaming architecture (2026-08-22, "Structured Agent Message"):
 from __future__ import annotations
 
 import asyncio
-import json
-import re
 import time
 from typing import Any
 
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.message import Message as TextualMessage
-from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Collapsible, Input, Static
+from textual.widgets import Collapsible, Static
 from rich.console import Group
 from rich.markdown import Markdown
 from rich.markup import escape as markup_escape
 from rich.text import Text
 
-from core.commands import get_completions
 from ui.context_meter import ContextUsage, meter_text
 from ui.palette import ACCENT, DIM, ERROR, OK, TEXT, WARN
 
-
-# ===========================================================================
-# HistoryInput
-# ===========================================================================
-
-
-class HistoryInput(Widget):
-    """
-    Input widget with ↑/↓ navigation through submission history.
-
-    Also handles:
-    - Command mode detection when first character is '/'
-    - Tab-completion for slash commands
-    - Emitting HistoryInput.Submitted for the App to handle
-    """
-
-    #: The keys this widget answers to, grouped as the greeting prints them:
-    #: key names, hint glyph, action label. `KEYS` is what `on_key` filters on,
-    #: so a key the hint names is a key this widget handles.
-    KEYS: tuple[tuple[tuple[str, ...], str, str], ...] = (
-        (("tab",), "Tab", "Autocomplete"),
-        (("up", "down"), "↑↓", "History"),
-    )
-
-    @classmethod
-    def key_hints(cls) -> str:
-        """The widget's key row for the greeting, one 'glyph = action' per group."""
-        return "  ·  ".join(f"{glyph} = {label}" for _keys, glyph, label in cls.KEYS)
-
-    DEFAULT_CSS = """
-    HistoryInput {
-        height: 3;
-        layout: vertical;
-    }
-    """
-
-    class Submitted(TextualMessage):
-        """Posted when the user submits (Enter). Contains the raw input value."""
-
-        def __init__(self, value: str) -> None:
-            super().__init__()
-            self.value = value
-
-    # ── State ────────────────────────────────────────────────────────────────
-
-    _history: list[str]
-    _history_index: int  # len(history) = "no history entry active"
-    _saved_draft: str    # saves current text when navigating up
-
-    def __init__(self, **kwargs: object) -> None:
-        super().__init__(**kwargs)
-        self._history = []
-        self._history_index = 0
-        self._saved_draft = ""
-
-    def compose(self) -> ComposeResult:
-        yield Static("", id="command-hint")
-        yield Input(
-            placeholder="› Type a message or /command…",
-            id="chat-input",
-        )
-
-    def on_mount(self) -> None:
-        self._history_index = 0
-
-    # ── Key handling ─────────────────────────────────────────────────────────
-
-    def on_key(self, event: object) -> None:  # type: ignore[override]
-        from textual.events import Key
-
-        if not isinstance(event, Key):
-            return
-
-        declared = {key for keys, _glyph, _label in self.KEYS for key in keys}
-        if event.key not in declared:
-            return
-
-        input_widget = self.query_one("#chat-input", Input)
-
-        if event.key == "up":
-            event.prevent_default()
-            self._navigate_history(-1, input_widget)
-
-        elif event.key == "down":
-            event.prevent_default()
-            self._navigate_history(+1, input_widget)
-
-        elif event.key == "tab":
-            event.prevent_default()
-            self._try_complete(input_widget)
-
-    def _navigate_history(self, direction: int, input_widget: Input) -> None:
-        """direction: -1 = older, +1 = newer"""
-        if not self._history:
-            return
-
-        # Save draft before first upward navigation
-        if self._history_index == len(self._history) and direction == -1:
-            self._saved_draft = input_widget.value
-
-        new_index = self._history_index + direction
-        new_index = max(0, min(len(self._history), new_index))
-        self._history_index = new_index
-
-        if new_index == len(self._history):
-            input_widget.value = self._saved_draft
-        else:
-            # new_index counts from the end: 0 = len-1 (newest), 1 = len-2, etc.
-            # Pressing UP once → most recent entry (history[-1])
-            input_widget.value = self._history[len(self._history) - 1 - new_index]
-
-        # Move cursor to end
-        input_widget.cursor_position = len(input_widget.value)
-
-    def _try_complete(self, input_widget: Input) -> None:
-        """Tab-complete slash commands."""
-        text = input_widget.value
-        if not text.startswith("/"):
-            return
-
-        # Only complete if it's a single-word prefix (no space yet)
-        if " " in text:
-            return
-
-        completions = get_completions(text)
-        if len(completions) == 1:
-            input_widget.value = completions[0] + " "
-            input_widget.cursor_position = len(input_widget.value)
-        elif len(completions) > 1:
-            hint = self.query_one("#command-hint", Static)
-            hint.update("  ".join(completions))
-            hint.add_class("visible")
-
-    # ── Input change ─────────────────────────────────────────────────────────
-
-    def on_input_changed(self, event: Input.Changed) -> None:
-        hint = self.query_one("#command-hint", Static)
-        text = event.value
-
-        if text.startswith("/") and " " not in text:
-            completions = get_completions(text)
-            if completions:
-                hint.update("  ".join(completions))
-                hint.add_class("visible")
-                self.add_class("command-mode")
-                return
-
-        hint.remove_class("visible")
-        self.remove_class("command-mode")
-
-    # ── Submission ───────────────────────────────────────────────────────────
-
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        value = event.value.strip()
-        if not value:
-            return
-
-        # Add to history (avoid duplicates at tip)
-        if not self._history or self._history[-1] != value:
-            self._history.append(value)
-
-        # Reset index
-        self._history_index = len(self._history)
-        self._saved_draft = ""
-
-        # Clear input + hint
-        event.input.value = ""
-        hint = self.query_one("#command-hint", Static)
-        hint.remove_class("visible")
-        self.remove_class("command-mode")
-
-        # Notify App
-        self.post_message(HistoryInput.Submitted(value))
-
-    # ── Public API ────────────────────────────────────────────────────────────
-
-    def disable(self) -> None:
-        """Disable input during streaming."""
-        self.query_one("#chat-input", Input).disabled = True
-
-    def enable(self) -> None:
-        """Re-enable input after streaming."""
-        inp = self.query_one("#chat-input", Input)
-        inp.disabled = False
-        inp.focus()
-
-    def focus_input(self) -> None:
-        self.query_one("#chat-input", Input).focus()
-
-
-# ===========================================================================
-# ChatView
-# ===========================================================================
+# Diff lines keep the two signal tokens the palette already measured: additions
+# in the connected green, deletions in the failure red. Both hold their ratio on
+# the ink ground (7.02:1 and 4.94:1); tests/test_tui_black_forest.py pins them.
+DIFF_ADD = OK
+DIFF_DEL = ERROR
 
 
 # ===========================================================================
@@ -327,6 +135,7 @@ class _ToolCallBlock(Collapsible):
         # hence `_tool_name`, otherwise super().__init__() overwrites the value.
         self._tool_name = name
         self._args = args
+        self._started = time.monotonic()
         self._args_static = Static("", id=f"tool-args-{id(self)}", markup=True)
         # Live title: present-tense verb (Ephe convention)
         super().__init__(self._args_static, title=f"{_tool_verb_present(name)}…", collapsed=True)
@@ -340,17 +149,47 @@ class _ToolCallBlock(Collapsible):
         self._output: Static | None = None
 
     def set_done(self, result: str) -> None:
-        """Tool done: past-tense verb + target, full output Static in the body."""
+        """Tool done: past-tense verb + target + duration, output in the body."""
         target = _tool_target(self._tool_name, self._args)
         past = _tool_verb_past(self._tool_name)
-        self.title = f"{past} {target}".rstrip() if target else past
+        elapsed = _format_elapsed(time.monotonic() - self._started)
+        title = f"{past} {target}".rstrip() if target else past
+        self.title = f"{title} · {elapsed}"
         self.remove_class("tool-pending")
         self._output = Static("", id=f"tool-out-{id(self)}", markup=True)
         self._output.add_class("tool-output")
         preview = result if len(result) <= 4000 else result[:4000] + "\n[… truncated]"
-        self._output.update(f"[{DIM}]output[/{DIM}]\n{markup_escape(preview)}")
+        if _looks_like_diff(preview):
+            self._output.update(Group(Text("output", style=DIM), _diff_lines(preview)))
+        else:
+            self._output.update(f"[{DIM}]output[/{DIM}]\n{markup_escape(preview)}")
         self.compose_add_child(self._output)
         self.refresh()
+
+
+def _looks_like_diff(text: str) -> bool:
+    return any(
+        line.startswith(("@@ ", "+++ ", "--- "))
+        for line in text.splitlines()[:8]
+    )
+
+
+def _diff_lines(text: str) -> Group:
+    """Colour a unified diff by line role; the default ink for context lines."""
+    rendered: list[Text] = []
+    for line in text.splitlines():
+        if line.startswith(("+++ ", "--- ")):
+            style = DIM
+        elif line.startswith("+"):
+            style = DIFF_ADD
+        elif line.startswith("-"):
+            style = DIFF_DEL
+        elif line.startswith("@@"):
+            style = ACCENT
+        else:
+            style = TEXT
+        rendered.append(Text(line, style=style))
+    return Group(*rendered)
 
 
 class AgentMessageCard(Widget):
@@ -433,6 +272,7 @@ class AgentMessageCard(Widget):
     AgentMessageCard {
         layout: vertical;
         width: 1fr;
+        height: auto;
         margin-bottom: 1;
     }
     """
@@ -585,6 +425,7 @@ class ChatView(Widget):
         layout: vertical;
         height: 1fr;
         width: 1fr;
+        overflow-y: auto;
     }
     """
 
@@ -658,9 +499,13 @@ class ChatView(Widget):
         return self.query_one("#chat-container", Vertical)
 
     def _add_static_block(self, markup: str) -> None:
+        container = self._container()
+        anchored = container.is_vertical_scroll_end
         block = Static(markup, markup=True)
         block.add_class("static-block")
-        self._container().mount(block)
+        container.mount(block)
+        if anchored:
+            self.call_after_refresh(container.scroll_end, animate=False)
 
     # ── Message Handlers ────────────────────────────────────────────────────
 
@@ -680,10 +525,14 @@ class ChatView(Widget):
         self._add_static_block(f"[{rich_style}]{event.text}[/{rich_style}]")
 
     def on_chat_view_begin_assistant_message(self, event: "ChatView.BeginAssistantMessage") -> None:
+        container = self._container()
+        anchored = container.is_vertical_scroll_end
         card = AgentMessageCard()
         self._active_card = card
-        self._container().mount(card)
+        container.mount(card)
         card.post_message(AgentMessageCard.Begin())
+        if anchored:
+            self.call_after_refresh(container.scroll_end, animate=False)
 
     def on_chat_view_append_chunk(self, event: "ChatView.AppendChunk") -> None:
         if self._active_card is not None:
@@ -734,6 +583,12 @@ class ChatView(Widget):
         await self._container().mount(prompt)
         self._confirm_prompt = prompt
         return prompt
+
+    def on_resize(self, event: object) -> None:
+        """A resize keeps the transcript where the reader left it."""
+        container = self._container()
+        if container.is_vertical_scroll_end:
+            self.call_after_refresh(container.scroll_end, animate=False)
 
     def clear_display(self) -> None:
         """Ctrl+L: clear the display. Session data stays untouched."""
@@ -880,6 +735,21 @@ class StatusBar(Widget):
             super().__init__()
             self.usage = usage
 
+    class SetSession(TextualMessage):
+        """Name the active session and how many messages it holds."""
+
+        def __init__(self, title: str, count: int) -> None:
+            super().__init__()
+            self.title = title
+            self.count = count
+
+    class SetQueue(TextualMessage):
+        """Show how many submitted turns wait for the running one."""
+
+        def __init__(self, count: int) -> None:
+            super().__init__()
+            self.count = count
+
     # ── State ────────────────────────────────────────────────────────────────
 
     _connected: bool = False
@@ -888,12 +758,17 @@ class StatusBar(Widget):
     _streaming: bool = False
     _error: str = ""
     _meter: ContextUsage | None = None
+    _session: str = ""
+    _session_count: int = 0
+    _queue: int = 0
 
     def compose(self) -> ComposeResult:
         yield Static("", id="status-indicator", markup=True)
         yield Static("", id="status-provider", markup=True)
         yield Static("", id="status-model", markup=True)
+        yield Static("", id="status-session", markup=True)
         yield Static("", id="status-meter", markup=True)
+        yield Static("", id="status-queue", markup=True)
         yield Static(
             f"[{DIM}]Runs locally on the engine you choose.[/{DIM}]",
             id="status-tagline",
@@ -929,33 +804,70 @@ class StatusBar(Widget):
         self._meter = event.usage
         self._update_display()
 
+    def on_status_bar_set_session(self, event: "StatusBar.SetSession") -> None:
+        self._session = event.title
+        self._session_count = event.count
+        self._update_display()
+
+    def on_status_bar_set_queue(self, event: "StatusBar.SetQueue") -> None:
+        self._queue = event.count
+        self._update_display()
+
+    def on_resize(self, event: object) -> None:
+        """At 80 columns the provider label yields to the model, session and meter."""
+        if self.size.width and self.size.width < 110:
+            self.add_class("narrow")
+        else:
+            self.remove_class("narrow")
+        self._update_display()
+
     # ── Rendering ────────────────────────────────────────────────────────────
 
     def _update_display(self) -> None:
         indicator = self.query_one("#status-indicator", Static)
         provider_label = self.query_one("#status-provider", Static)
         model_label = self.query_one("#status-model", Static)
+        session_label = self.query_one("#status-session", Static)
         meter_label = self.query_one("#status-meter", Static)
+        queue_label = self.query_one("#status-queue", Static)
 
+        narrow = self.has_class("narrow")
         if self._error:
             indicator.update(f"[bold {ERROR}]⚠  {self._error}[/bold {ERROR}]")
-            provider_label.update("")
-            model_label.update("")
-            meter_label.update("")
-            return
-
-        if self._streaming:
-            indicator.update(f"[{ACCENT}]⏳ Generating…[/{ACCENT}]")
+        elif self._streaming:
+            indicator.update(
+                f"[{ACCENT}]⏳ working[/{ACCENT}]" if narrow
+                else f"[{ACCENT}]⏳ Generating…[/{ACCENT}]"
+            )
         elif self._connected:
-            indicator.update(f"[{OK}]●  Engine: connected[/{OK}]")
+            indicator.update(
+                f"[{OK}]● connected[/{OK}]" if narrow
+                else f"[{OK}]●  Engine: connected[/{OK}]"
+            )
         else:
-            indicator.update(f"[{ERROR}]✗  Engine: offline[/{ERROR}]")
+            indicator.update(
+                f"[{ERROR}]✗ offline[/{ERROR}]" if narrow
+                else f"[{ERROR}]✗  Engine: offline[/{ERROR}]"
+            )
 
+        # Engine and model stay visible in every state: an error that hides the
+        # resolved engine would make the bar unable to say what failed.
         provider_label.update(
             f"[{ACCENT}]  │  {self._provider}[/{ACCENT}]" if self._provider else ""
         )
         model_label.update(f"[{DIM}]  │  {self._model}[/{DIM}]")
+        title = self._session
+        if narrow and len(title) > 18:
+            title = title[:17] + "…"
+        session_label.update(
+            f"[{DIM}]  │  {title} ({self._session_count})[/{DIM}]"
+            if title
+            else ""
+        )
         meter_label.update(self._meter_markup())
+        queue_label.update(
+            f"[{WARN}]  │  {self._queue} queued[/{WARN}]" if self._queue else ""
+        )
 
     def _meter_markup(self) -> str:
         """Empty when no fill was measured; the warning colour at/over the threshold."""

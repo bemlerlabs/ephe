@@ -11,6 +11,8 @@ export const SECTION_TAB: Record<string, TabKey> = {
   // appearance into the new range.
   chat: 'behaviour',
   appearance: 'appearance',
+  // The desktop's one saveable shortcut; the rest of that area stays a read board.
+  shortcuts: 'shortcuts',
   advanced: 'engine',
   plugins: 'plugins',
   // I6-7: the memory fields live in their own range — without this line

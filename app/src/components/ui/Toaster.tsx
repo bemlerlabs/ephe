@@ -68,7 +68,10 @@ export function Toaster() {
   if (items.length === 0) return null
 
   return (
-    <div className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] left-1/2 -translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:bottom-20">
+    <div
+      data-inert-exempt=""
+      className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] left-1/2 -translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:bottom-20"
+    >
       {items.map((item) => {
         const Icon =
           item.kind === 'error' ? AlertTriangle : item.kind === 'success' ? CheckCircle : Info

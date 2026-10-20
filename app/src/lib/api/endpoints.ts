@@ -23,6 +23,7 @@ import type {
   SessionPruneRequest,
   SessionPruneResult,
   SessionStoreView,
+  ServerSessionTranscript,
   SyncSession,
 } from './types_sessions'
 import type { AppSettings, AskAnswerResponse } from '@/types'
@@ -265,6 +266,11 @@ export async function importSessionsBundle(
  */
 export function getSessionStore(): Promise<SessionStoreView> {
   return request<SessionStoreView>('/api/sessions')
+}
+
+/** One server store transcript (the same session the CLI and the TUI use). */
+export function getServerSession(id: string): Promise<ServerSessionTranscript> {
+  return request<ServerSessionTranscript>(`/api/sessions/${encodeURIComponent(id)}`)
 }
 
 /**

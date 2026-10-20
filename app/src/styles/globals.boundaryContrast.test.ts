@@ -1,6 +1,6 @@
 /**
  * Boundary contrast as a token rule — the control boundary clears WCAG 1.4.11
- * in both themes.
+ * on the one ground.
  *
  * The measured defect: no UI boundary reached 3:1. The 1-px hairline sits at
  * 1.21-1.42:1 and the louder hover step at 1.4-1.9:1, so six interactive
@@ -9,7 +9,7 @@
  * fix cannot hold the floor — the next component re-derives a border from
  * whatever token is at hand. This file asserts the floor as a property of the
  * tokens: --border-control clears 3:1 against every background role the sheet
- * declares, in both themes, recomputed from the values in globals.css. No
+ * declares, on that ground, recomputed from the values in globals.css. No
  * figure here is a recorded number; change a token and this moves with it.
  *
  * It also pins the rest of the contract the same way: the semantic and
@@ -46,11 +46,9 @@ function defs(src: string): Map<string, string> {
 }
 
 const ink = defs(block(/@theme\s*\{/))
-const paper = defs(block(/html\.light\s*\{/))
-const THEMES: [string, Map<string, string>][] = [
-  ['ink', ink],
-  ['paper', new Map([...ink, ...paper])],
-]
+// One ground, kept as a list so a second one has to be added here on purpose and
+// every case below then runs against it.
+const THEME_GROUNDS: [string, Map<string, string>][] = [['forest', ink]]
 
 /** One hop of var() at a time, so a chain of roles still lands on a value. */
 function resolve(theme: Map<string, string>, name: string, seen: string[] = []): string {
@@ -124,8 +122,8 @@ function ground(theme: Map<string, string>, name: string): Rgba {
 }
 
 describe('the control boundary clears 3:1 as a token rule (WCAG 1.4.11)', () => {
-  it('declares the boundary role in both themes', () => {
-    for (const [label, theme] of THEMES) {
+  it('declares the boundary role on the shipped ground', () => {
+    for (const [label, theme] of THEME_GROUNDS) {
       expect(theme.has(BOUNDARY), `${BOUNDARY} missing from the ${label} theme`).toBe(true)
       expect(resolve(theme, BOUNDARY)).toMatch(/^(hsla?\(|#)/)
     }
@@ -133,7 +131,7 @@ describe('the control boundary clears 3:1 as a token rule (WCAG 1.4.11)', () => 
 
   it(`holds ${FLOOR}:1 against every background role the sheet declares`, () => {
     const rows: string[] = []
-    for (const [label, theme] of THEMES) {
+    for (const [label, theme] of THEME_GROUNDS) {
       const edge = parseColor(resolve(theme, BOUNDARY))
       for (const name of GROUNDS) {
         const value = ratio(edge, ground(theme, name))
@@ -150,11 +148,11 @@ describe('the control boundary clears 3:1 as a token rule (WCAG 1.4.11)', () => 
     console.log(
       ['boundary grid — the control edge on each background role, floor 3:1', ...rows].join('\n'),
     )
-    expect(rows.length).toBe(THEMES.length * GROUNDS.length)
+    expect(rows.length).toBe(THEME_GROUNDS.length * GROUNDS.length)
   })
 
   it('is a distinct role, never the decorative hairline under another name', () => {
-    for (const [label, theme] of THEMES) {
+    for (const [label, theme] of THEME_GROUNDS) {
       expect(
         resolve(theme, BOUNDARY),
         `${label}: the boundary role was pointed back at the decorative 1.3:1 hairline`,

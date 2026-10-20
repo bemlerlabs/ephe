@@ -400,13 +400,18 @@ class EngineChoice:
         engine (e.g. Qwen-DGX), always the local Ollama.
         """
         os.environ["EPHE_MODEL_PROVIDER"] = self.provider
-        os.environ["EPHE_MODEL"] = os.environ["EPHE_MODEL"] = self.model
-        if self.provider == OPENAI_COMPAT and self.api_url:
+        os.environ["EPHE_MODEL"] = self.model
+        # The provider-specific model key is not conditional on the endpoint: the
+        # resolver reads it for every openai_compatible call, and a missing URL is a
+        # separate field that is refused below with its own name.
+        os.environ[ENV_MODEL[self.provider]] = self.model
+        if self.provider == OPENAI_COMPAT:
+            if not self.api_url:
+                raise EngineNotConfigured(
+                    f"Engine config for {OPENAI_COMPAT} is missing field: api_url. "
+                    "The endpoint is part of the choice; no default is assumed."
+                )
             os.environ["EPHE_OPENAI_COMPAT_BASE_URL"] = self.api_url
-            # The provider resolver (core.model_provider._provider_from_env) reads
-            # the model from EPHE_OPENAI_COMPAT_MODEL — without this key the engine
-            # would report "custom-model" although EPHE_MODEL is correct.
-            os.environ["EPHE_OPENAI_COMPAT_MODEL"] = self.model
             # W18: NO implicit access token any more. The key comes from
             # EPHE_OPENAI_COMPAT_API_KEY (shell export, the settings key field, or the
             # desktop key file) — when a public endpoint needs one and none is there,

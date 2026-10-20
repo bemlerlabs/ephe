@@ -8,7 +8,7 @@
  * This module closes that loop: hydrate DbSessions from the server mirror.
  * Callers re-mirror what they accept, so the next start needs no round-trip.
  */
-import { restoreSessions } from '@/lib/api'
+import { getServerSession, getSessionStore, restoreSessions } from '@/lib/api'
 import type { ChatMessage, DbSession } from '@/types'
 
 export const RESTORE_LIMIT = 50
@@ -50,6 +50,38 @@ function zuletztAktiv(messages: Array<{ timestamp?: number }>): number | null {
     if (best === null || t > best) best = t
   }
   return best
+}
+
+/**
+ * The server store's own tasks — sessions a CLI, the TUI or the HTTP API made,
+ * not the `pwa-` mirror rows. A new empty task is listed on purpose: the CLI's
+ * `ephe session new` must be visible here before its first turn.
+ */
+export async function restoreServerStore(limit: number = RESTORE_LIMIT): Promise<DbSession[]> {
+  const { sessions } = await getSessionStore()
+  const tasks = sessions
+    .filter((row) => (row.namespace ?? 'user') === 'user' && row.id)
+    .slice(0, limit)
+  const out: DbSession[] = []
+  for (const row of tasks) {
+    try {
+      const transcript = await getServerSession(row.id)
+      const created = Date.parse(String(transcript.created_at)) || Date.now()
+      const updated = Date.parse(String(transcript.last_active)) || created
+      out.push({
+        id: transcript.id,
+        title: transcript.title || 'New task',
+        messages: (transcript.messages ?? []).map((message, index) =>
+          withMessageId({ timestamp: updated, ...message }, transcript.id, index),
+        ),
+        createdAt: created,
+        updatedAt: zuletztAktiv(transcript.messages ?? []) ?? updated,
+      })
+    } catch {
+      /* one unreadable session does not hide the rest */
+    }
+  }
+  return out
 }
 
 export async function restoreFromServer(limit: number = RESTORE_LIMIT): Promise<DbSession[]> {

@@ -48,8 +48,9 @@ def _drive(app, text: str) -> tuple[list[str], list, list]:
     Returns the blocks the chat view renders, and the session state afterwards.
     """
     from textual.containers import Vertical
-    from textual.widgets import Input, Static
+    from textual.widgets import Static
 
+    from ui.composer import ComposerArea
     from ui.widgets import ChatView
 
     shown: list[str] = []
@@ -57,7 +58,7 @@ def _drive(app, text: str) -> tuple[list[str], list, list]:
     async def go():
         async with app.run_test(size=(100, 40)) as pilot:
             await pilot.pause()
-            box = app.query_one("#chat-input", Input)
+            box = app.query_one("#chat-input", ComposerArea)
             box.focus()
             box.value = text
             await pilot.press("enter")

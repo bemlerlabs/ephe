@@ -42,6 +42,32 @@ def test_loopback_start_without_engine_enters_setup_mode(_no_engine, capsys):
     assert "SETUP MODE" in out
 
 
+def test_a_persisted_incomplete_engine_enters_setup_mode(monkeypatch, capsys):
+    """GIVEN engine.json names openai_compatible without api_url
+    WHEN a loopback start resolves it
+    THEN the server enters setup mode and names the missing field, instead of
+    aborting on an uncaught configuration error."""
+    import run_server
+    from core.engine_config import EngineChoice
+
+    monkeypatch.setattr(
+        "core.engine_config.resolve_engine_choice",
+        lambda **_kw: EngineChoice("openai_compatible", "m", None),
+    )
+    monkeypatch.delenv("EPHE_SETUP_MODE", raising=False)
+    monkeypatch.delenv("EPHE_LAN", raising=False)
+    monkeypatch.delenv("EPHE_HOST", raising=False)
+    mp = pytest.MonkeyPatch()
+    mp.setattr(sys, "argv", ["run_server.py", "--port", "8765"])
+    try:
+        assert run_server._bootstrap_engine_choice() is None
+    finally:
+        mp.undo()
+    out = capsys.readouterr().out
+    assert "SETUP MODE" in out
+    assert "api_url" in out
+
+
 def test_lan_start_without_engine_still_fails_closed(_no_engine, capsys):
     import run_server
 

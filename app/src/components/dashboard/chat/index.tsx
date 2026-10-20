@@ -1,11 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useState,
-  useRef,
-  useEffect,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react'
+import { lazy, Suspense, useRef, useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
   Menu,
   Download,
@@ -20,8 +13,6 @@ import {
   PanelRight,
   Plus,
   HelpCircle,
-  Sun,
-  Moon,
   MoreHorizontal,
 } from 'lucide-react'
 import WelcomeEmptyState from '../WelcomeEmptyState'
@@ -34,11 +25,11 @@ import WorkspaceBar from '../WorkspaceBar'
 import { UpdateDialog } from '../UpdateDialog'
 import ChatInput from '../ChatInput'
 import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
+import HeaderCompanion from '@/components/shell/HeaderCompanion'
 import { TaskDock } from '../TaskDock'
 import { CellLifeLine } from '../CellLifeLine'
 import { estimateContextUsage } from '@/lib/contextMeter'
 import MessageBubble from '../MessageBubble'
-import SettingsPanel from '../SettingsPanel'
 import StatusBar from '../StatusBar'
 import TimelineRail from '../TimelineRail'
 import { useStatusPanelData } from '../AgentStatusSections'
@@ -49,7 +40,6 @@ import SchedulerPanel, { SchedulerMobilePill } from '../SchedulerPanel'
 import ForestBackground from '../ForestBackground'
 import { useArtifactNotice } from './useArtifactNotice'
 import ShortcutOverlay, { SHORTCUTS_EVENT } from '../ShortcutOverlay'
-import { getStoredTheme, toggleTheme, type ThemeMode } from '@/lib/theme'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import {
   DropdownMenu,
@@ -59,6 +49,7 @@ import {
 } from '@/components/ui'
 import { EpheMark } from '@/components/shell/EpheMark'
 import { useChatLayoutModel } from './model'
+import { useChatReadingWidth } from '@/lib/deepSettings'
 import { useTaskDeepLink } from './useTaskDeepLink'
 
 // W3-1: the two heavy panes are their own chunks. The agent panel drags in xterm
@@ -66,6 +57,9 @@ import { useTaskDeepLink } from './useTaskDeepLink'
 // Both load after the chat shell paints instead of riding in the ChatPage chunk.
 const ArtifactRail = lazy(() => import('../ArtifactRail'))
 const AgentPanel = lazy(() => import('../AgentPanel'))
+// The register is opened, not painted: its own chunk keeps ChatPage under the
+// first-paint budget as the appearance surface grows.
+const SettingsPanel = lazy(() => import('../SettingsPanel'))
 
 /**
  * The virtual row key. A row restored from the server mirror arrives without an `id`
@@ -92,7 +86,6 @@ export function messageRowKey(msg: { id?: string }, index: number): string {
 export default function ChatLayout() {
   const update = useUpdateCheck()
   useTaskDeepLink()
-  const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme())
   // P1-10: while initFromDb() is running the message list shows a skeleton
   // instead of the welcome state (no empty flash on a cold start).
   const hydrated = useChatStore((s) => s.hydrated)
@@ -169,6 +162,7 @@ export default function ChatLayout() {
     denySandboxForTool,
     handleAnswerAsk,
   } = useChatLayoutModel()
+  const readingWidth = useChatReadingWidth()
 
   // The command/state bar and the run rail read the same status surface the agent
   // popover reads — the live turn, the plan and the goal of the newest turn — so the
@@ -333,6 +327,10 @@ export default function ChatLayout() {
                   >
                     <EpheMark size="1.25rem" testId="header-mark" />
                   </div>
+                  <HeaderCompanion
+                    runState={runState}
+                    hasMessages={(currentSession?.messages.length ?? 0) > 0}
+                  />
                   {/* WP5: under the title sits the life of the cell — not the
                       progress of an animation, but its elapsed time. */}
                   <div className="flex flex-col min-w-0 leading-tight">
@@ -514,18 +512,6 @@ export default function ChatLayout() {
                         : t('update.open')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={() => setTheme(toggleTheme())}
-                      data-testid="header-theme"
-                      className="gap-2"
-                    >
-                      {theme === 'light' ? (
-                        <Moon className="h-3.5 w-3.5" aria-hidden="true" />
-                      ) : (
-                        <Sun className="h-3.5 w-3.5" aria-hidden="true" />
-                      )}
-                      {theme === 'light' ? t('theme.toggleDark') : t('theme.toggleLight')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
                       onSelect={() => window.dispatchEvent(new CustomEvent(SHORTCUTS_EVENT))}
                       data-testid="header-help"
                       className="gap-2"
@@ -544,11 +530,19 @@ export default function ChatLayout() {
                     </DropdownMenuItem>
                     {isTauri && (
                       <>
-                        <DropdownMenuItem onSelect={minimize} className="gap-2">
+                        <DropdownMenuItem
+                          onSelect={minimize}
+                          data-testid="header-minimize"
+                          className="gap-2"
+                        >
                           <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                           {t('nav.minimize')}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={maximize} className="gap-2">
+                        <DropdownMenuItem
+                          onSelect={maximize}
+                          data-testid="header-maximize"
+                          className="gap-2"
+                        >
                           <Square className="h-3.5 w-3.5" aria-hidden="true" />
                           {t('nav.maximize')}
                         </DropdownMenuItem>
@@ -684,8 +678,11 @@ export default function ChatLayout() {
                     style={{ overflowAnchor: 'auto' }}
                   >
                     <div
-                      className="max-w-3xl mx-auto py-6 relative"
-                      style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+                      className="mx-auto py-6 relative"
+                      style={{
+                        maxWidth: readingWidth,
+                        height: `${rowVirtualizer.getTotalSize()}px`,
+                      }}
                     >
                       {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                         const msg = currentSession?.messages[virtualItem.index]
@@ -753,7 +750,7 @@ export default function ChatLayout() {
             )}
             <div className="relative">
               <WorkspaceCompanion
-                isStreaming={isTyping}
+                runState={runState}
                 hasMessages={(currentSession?.messages.length ?? 0) > 0}
               />
               <ChatInput
@@ -804,11 +801,13 @@ export default function ChatLayout() {
           <AgentPanel messages={currentSession?.messages ?? []} />
         </Suspense>
         {/* Settings Panel */}
-        <SettingsPanel
-          isOpen={settingsOpen}
-          initialTab={settingsTab === 'model' ? 'engine' : settingsTab}
-          onClose={() => setSettingsOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <SettingsPanel
+            isOpen={settingsOpen}
+            initialTab={settingsTab === 'model' ? 'engine' : settingsTab}
+            onClose={() => setSettingsOpen(false)}
+          />
+        </Suspense>
       </div>
     </ErrorBoundary>
   )

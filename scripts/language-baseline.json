@@ -7,7 +7,7 @@
   "app/src-tauri/src/backend.rs": 9,
   "app/src-tauri/src/browser.rs": 5,
   "app/src-tauri/src/instance.rs": 5,
-  "app/src-tauri/src/lib.rs": 3,
+  "app/src-tauri/src/lib.rs": 1,
   "app/src/components/dashboard/ActivityFeed.test.tsx": 2,
   "app/src/components/dashboard/AgentPanel.addmenu.a11y.test.tsx": 9,
   "app/src/components/dashboard/AgentPanel.audit.i9.test.tsx": 27,
@@ -117,7 +117,7 @@
   "app/src/components/dashboard/mutedContrast.gate.test.ts": 2,
   "app/src/components/dashboard/settings/model/bounds.test.tsx": 15,
   "app/src/components/dashboard/settings/model/deepFields.test.tsx": 5,
-  "app/src/components/dashboard/settings/model/sections-appearance.test.tsx": 2,
+  "app/src/components/dashboard/settings/model/sections-appearance.test.tsx": 1,
   "app/src/components/dashboard/settings/model/sections-behaviour.test.tsx": 5,
   "app/src/components/dashboard/settings/model/sections-ephemera.test.tsx": 5,
   "app/src/components/dashboard/settings/model/sections-hooks.test.tsx": 7,
@@ -176,7 +176,6 @@
   "app/src/lib/streamActions.test.ts": 11,
   "app/src/lib/streamErrors.test.ts": 3,
   "app/src/lib/taskNotify.test.ts": 4,
-  "app/src/lib/theme.sync.test.ts": 2,
   "app/src/lib/thinking.test.ts": 2,
   "app/src/lib/toast.test.tsx": 3,
   "app/src/lib/toolCardModel.runtime.test.ts": 6,
@@ -519,6 +518,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 2113,
+ "total": 2108,
  "version": 1
 }

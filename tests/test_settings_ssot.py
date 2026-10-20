@@ -152,3 +152,23 @@ def test_bootstrap_respects_explicit_env(monkeypatch: pytest.MonkeyPatch):
     # engine.json (Qwen) is NOT pushed over it
     assert os.environ["EPHE_MODEL_PROVIDER"] == "local_ollama"
     assert os.environ["EPHE_MODEL"] == os.environ["EPHE_MODEL"] == "gemma4:12b"
+
+
+def test_settings_carries_no_theme_field(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """GIVEN the product ships one ground
+    WHEN GET /api/settings, then POST it a `theme`
+    THEN the answer has no `theme` key and the request changes nothing.
+
+    The theme used to round-trip through this route into `os.environ["EPHE_THEME"]`, which
+    nothing read: a field the surface wrote and no consumer answered is the shape a theme
+    switch returns through, so both halves are refused here.
+    """
+    monkeypatch.setenv("EPHE_THEME", "paper-from-a-previous-run")
+    body = client.get("/api/settings").json()
+    assert "theme" not in body, f"the settings answer advertises a theme: {sorted(body)}"
+
+    posted = client.post("/api/settings", json={"theme": "light"})
+    assert posted.status_code == 200, posted.text[:200]
+    assert "theme" not in posted.json()
+    assert os.environ["EPHE_THEME"] == "paper-from-a-previous-run", (
+        "a POST wrote EPHE_THEME — the write branch came back")

@@ -320,11 +320,15 @@ test.describe('shell parity at 1280x800', () => {
     try {
       const web = await webContext.newPage()
       await prepare(web, '[data-testid="panel-chat"]', '/chat')
+      await web.getByTestId('header-more').focus()
+      await web.keyboard.press('Enter')
       expect(await web.locator(selector as string).count()).toBe(0)
 
       const desktop = await desktopContext.newPage()
       await prepare(desktop, '[data-testid="panel-chat"]', '/chat')
-      expect(await desktop.locator(selector as string).count()).toBe(2)
+      await desktop.getByTestId('header-more').focus()
+      await desktop.keyboard.press('Enter')
+      await expect(desktop.locator(selector as string)).toHaveCount(2)
     } finally {
       await webContext.close()
       await desktopContext.close()

@@ -98,42 +98,28 @@ const NAV_ICON: Record<TabKey, React.ComponentType<{ className?: string }>> = {
 export const NAV: { key: TabKey; icon: React.ComponentType<{ className?: string }> }[] =
   NAV_KEYS.map((key) => ({ key, icon: NAV_ICON[key] }))
 
-// P6 B6 (ref-16/17/18/20): nav grouping of the full settings page — schema like
-// the reference pattern (Basics / Agent capabilities / Data and statistics /
-// Onboard). Onboard is the dashed closing card (about).
+// The four groups of the register (docs/SCREEN_SPEC.md §7). About is the
+// dashed closing card below them, without a fifth heading.
 export const NAV_GROUPS: { groupKey: string; keys: TabKey[] }[] = [
   {
-    groupKey: 'settings.groupBasics',
-    keys: [
-      'language',
-      'appearance',
-      'behaviour',
-      'shortcuts',
-      'engine',
-      'generation',
-      'voice',
-      'mobile',
-      'network',
-      'privacy',
-    ],
+    groupKey: 'settings.groupEveryday',
+    keys: ['language', 'appearance', 'behaviour', 'shortcuts'],
   },
   {
-    groupKey: 'settings.groupAgent',
-    keys: [
-      'memory',
-      'persona',
-      'skills',
-      'mcp',
-      'plugins',
-      'hooks',
-      'code-exec',
-      'ephemera',
-      'cron',
-    ],
+    groupKey: 'settings.groupCapabilities',
+    keys: ['engine', 'generation', 'voice', 'memory', 'persona', 'skills', 'cron'],
   },
-  { groupKey: 'settings.groupData', keys: ['artifacts', 'tasks', 'ephemeris'] },
-  { groupKey: 'settings.groupOnboard', keys: ['about'] },
+  {
+    groupKey: 'settings.groupData',
+    keys: ['privacy', 'artifacts', 'tasks', 'ephemeris', 'mobile'],
+  },
+  {
+    groupKey: 'settings.groupAdvanced',
+    keys: ['mcp', 'plugins', 'hooks', 'code-exec', 'ephemera', 'network'],
+  },
 ]
+
+export const ABOUT_KEYS: TabKey[] = ['about']
 
 // IcoEphemora lookup for the group nav (one icon per row, no rows without an icon).
 export function navIcon(key: TabKey): React.ComponentType<{ className?: string }> {

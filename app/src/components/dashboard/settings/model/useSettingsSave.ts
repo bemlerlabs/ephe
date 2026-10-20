@@ -19,7 +19,7 @@
  */
 import { AppSettings, updateSettings } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
-import { countDeepChanges, generationWithOptions } from './bounds'
+import { countDeepChanges, countDeepChangesOutside, generationWithOptions } from './bounds'
 import type { useSettingsCore } from './useSettingsCore'
 import type { useSettingsLists } from './useSettingsLists'
 import type { useSettingsState } from './useSettingsState'
@@ -47,6 +47,9 @@ export function useSettingsSave(
   // which section it arose in — the button writes them all out of whatever
   // section is currently open.
   const deepChanged = countDeepChanges(deepSections, deepDraft)
+  // The footer keeps a job when a section other than the instant appearance
+  // surface is dirty; on appearance alone it hides and the section reports.
+  const otherDeepChanged = countDeepChangesOutside(deepSections, deepDraft, ['appearance'])
 
   async function saveSettings() {
     setSaving(true)
@@ -104,5 +107,5 @@ export function useSettingsSave(
     setSaving(false)
   }
 
-  return { saveSettings, deepChanged }
+  return { saveSettings, deepChanged, otherDeepChanged }
 }

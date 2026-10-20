@@ -235,18 +235,30 @@ _REST_MAX_MESSAGES = 2000
 _REST_MAX_CHARS = 64_000
 
 
-def _rest_store_id(session_id: str) -> str | None:
-    """Validate + namespace a caller-supplied session id. None when invalid."""
+def _store_id_for(session_id: str) -> str | None:
+    """The file a turn belongs to: a registered session's own id, otherwise the
+    `rest-` mirror. None when the caller sent no valid id.
+
+    Write-through is the Wave 5D rule: the server store is authoritative for a
+    session a surface created; the mirror stays for ids nobody registered.
+    """
     sid = (session_id or "").strip()
     if not sid or not _REST_SID_RE.match(sid):
         return None
+    try:
+        from core import multi_session as ms
+
+        if ms.get_session(sid) is not None:
+            return sid
+    except Exception:
+        logger.debug("session lookup skipped", exc_info=True)
     return _REST_NS + sid
 
 
 def _persist_rest_turn(session_id: str, user_message: str, answer: str) -> None:
     """Append one completed turn to the rest- mirror. Best effort — a broken
     store must never break the chat reply itself."""
-    store_id = _rest_store_id(session_id)
+    store_id = _store_id_for(session_id)
     if store_id is None:
         return
     try:
@@ -267,7 +279,7 @@ def _persist_rest_turn(session_id: str, user_message: str, answer: str) -> None:
 def _load_rest_history(session_id: str) -> list[dict]:
     """Persisted turns for a REST caller that omitted `history` ([] when no
     session id, invalid id or nothing stored)."""
-    store_id = _rest_store_id(session_id)
+    store_id = _store_id_for(session_id)
     if store_id is None:
         return []
     try:

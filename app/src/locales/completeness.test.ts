@@ -149,11 +149,6 @@ function dynamicDemands(): Array<{ key: string; from: string }> {
     'EVENT_ORDER (sections-hooks.tsx)',
   )
   add(
-    'settings.appearanceTheme',
-    loopArray(`${SET}/sections-appearance.tsx`, 'mode'),
-    'appearance themes (sections-appearance.tsx)',
-  )
-  add(
     'settings.plugins',
     loopArray(`${SET}/sections-plugins.tsx`, 'seg'),
     'plugin segments (sections-plugins.tsx)',

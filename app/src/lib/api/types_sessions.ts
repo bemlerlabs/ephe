@@ -90,8 +90,22 @@ export interface SessionStoreStats {
 export interface SessionRegistryEntry {
   id: string
   title?: string
+  created_at?: string
   last_active?: string
+  message_count?: number
+  namespace?: string
   [field: string]: unknown
+}
+
+/** One server store transcript (`GET /api/sessions/{id}`). */
+export interface ServerSessionTranscript {
+  id: string
+  title: string
+  created_at?: string
+  last_active?: string
+  message_count: number
+  namespace: string
+  messages: Array<Partial<import('@/types').ChatMessage> & { role: string; content: string }>
 }
 
 /** Body of `GET /api/sessions`: the stats plus the register list. */

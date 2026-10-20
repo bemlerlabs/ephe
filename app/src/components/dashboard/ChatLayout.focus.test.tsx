@@ -231,7 +231,7 @@ describe('ChatLayout — Composer-Fokus nach Session-Wechsel (I6)', () => {
 
   /**
    * Chrome budget: the header keeps identity, the panel toggle and one named
-   * overflow; New Session, navigation, update, theme and help are menu items.
+   * overflow; New Session, navigation, update and help are menu items.
    */
   it('header keeps the compact inventory and the overflow carries the tools', async () => {
     const { screen: sc } = await import('@testing-library/react')
@@ -245,7 +245,7 @@ describe('ChatLayout — Composer-Fokus nach Session-Wechsel (I6)', () => {
     const more = sc.getByTestId('header-more')
     more.focus()
     fireEvent.keyDown(more, { key: 'Enter' })
-    for (const id of ['header-new-session', 'header-help', 'header-update', 'header-theme']) {
+    for (const id of ['header-new-session', 'header-help', 'header-update']) {
       expect(await sc.findByTestId(id)).toBeTruthy()
     }
   })
@@ -264,7 +264,6 @@ describe('ChatLayout — Composer-Fokus nach Session-Wechsel (I6)', () => {
       'toolbar-files',
       'toolbar-meta',
       'header-update',
-      'header-theme',
       'header-help',
       'header-new-session',
       'session-nav-back',

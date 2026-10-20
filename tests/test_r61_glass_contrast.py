@@ -17,7 +17,7 @@ flat colour at a time. The canvas is the first. The glass material in `globals.c
 second (`--color-surface`, where the sidebar rows and the settings register sit) and the two
 lit steps a pane is kept off, so the grid here runs every column on every one of them, alone
 and stacked. Over content brighter than a declared ground the same veil costs more, the 3x
-dossier computes 1.19:1 for primary ink behind a 22% fill in the dark theme, and seeing it
+dossier computes 1.19:1 for primary ink behind a 22% fill in the forest theme, and seeing it
 needs composited pixels from the built bundle. That is the instrument the programme names
 wave 5, so the bright-backdrop case is absent here on purpose and the lit steps carry the
 recorded figures that mark the boundary.
@@ -50,16 +50,12 @@ GLASS_LAYERS = (
     ("glass-float-fill", ".glass-float"),
 )
 # Measured on the applied sheet at the forest-material landing: the lowest of the three role
-# ratios a layer shows. The muted role is the binding one in both themes. A layer is allowed
-# to get quieter than this only by a deliberate edit that lands the new figure here, in the
-# same commit.
+# ratios a layer shows. The muted role is the binding one. A layer is allowed to get quieter
+# than this only by a deliberate edit that lands the new figure here, in the same commit.
 LAYER_FLOORS = {
-    ("dark", ".glass-reading"): 5.06,
-    ("dark", ".glass-control"): 5.00,
-    ("dark", ".glass-float"): 5.42,
-    ("light", ".glass-reading"): 5.63,
-    ("light", ".glass-control"): 5.63,
-    ("light", ".glass-float"): 5.61,
+    ("forest", ".glass-reading"): 5.06,
+    ("forest", ".glass-control"): 5.00,
+    ("forest", ".glass-float"): 5.42,
 }
 # The columns a pane is built from, bottom to top the way the markup nests them. The three
 # single layers are the material; the three stacked ones are the two rules the material
@@ -80,10 +76,8 @@ REST_GROUNDS = ("color-background", "color-surface")
 # Measured: the binding column and its muted-role ratio on each rest ground. Every figure
 # clears AA_NORMAL, so a column that falls is a regression whatever it looks like on screen.
 GROUND_FLOORS = {
-    ("dark", "color-background"): ("reading+control", 4.84),
-    ("dark", "color-surface"): ("reading+control", 4.72),
-    ("light", "color-background"): ("float", 5.61),
-    ("light", "color-surface"): ("float", 5.68),
+    ("forest", "color-background"): ("reading+control", 4.84),
+    ("forest", "color-surface"): ("reading+control", 4.72),
 }
 # The lit steps of the ink theme, as (token, white veil over the surface, bare muted ratio,
 # the binding single-veil column's ratio, the ratio with both veils stacked). The first two
@@ -110,7 +104,7 @@ def _block(css: str, opener: str, marker: str) -> str:
 
     `marker` names the token that identifies which rule: `:root` opens more than once in
     globals.css (the motion tokens at :995 and :1101 stand in later ones) and only the block
-    at :362 carries the dark glass fills.
+    at :362 carries the forest glass fills.
     """
     start = css.index(opener)
     body = css[start : css.index("\n}", start)]
@@ -167,17 +161,17 @@ def _over(
     )
 
 
-def _themes() -> list[tuple[str, str, str]]:
-    """(label, role block, fill block) for both themes.
+def _grounds() -> list[tuple[str, str, str]]:
+    """(label, role block, fill block) for every ground the product ships: one.
 
-    Dark roles live in the `@theme` block at globals.css:3 and their fills in the `:root`
-    default at :362; light roles and light fills share the `html.light` block at :248.
+    Roles live in the `@theme` block and their fills in the `:root` default. The paper
+    ground this used to return a second entry for left the sheet on 2026-10-19; the
+    lists below stay lists so a second ground would have to be added on purpose.
     """
     css = _css()
-    dark = _block(css, "@theme {", "color-ink:")
-    light = _block(css, "html.light {", "glass-reading-fill:")
-    dark_glass = _block(css, ":root {", "glass-reading-fill:")
-    return [("dark", dark, dark_glass), ("light", light, light)]
+    roles = _block(css, "@theme {", "color-ink:")
+    fills = _block(css, ":root {", "glass-reading-fill:")
+    return [("forest", roles, fills)]
 
 
 def _panel(theme: tuple[str, str, str], fill_prop: str) -> tuple[float, float, float]:
@@ -214,7 +208,7 @@ def _muted(theme: tuple[str, str, str], panel: tuple[float, float, float]) -> fl
 def _pairs() -> list[tuple[str, str, str, float]]:
     """Theme, glass layer, ink role, computed contrast ratio, for all 18 combinations."""
     rows: list[tuple[str, str, str, float]] = []
-    for theme in _themes():
+    for theme in _grounds():
         label = theme[0]
         for fill_prop, css_class in GLASS_LAYERS:
             panel = _panel(theme, fill_prop)
@@ -230,9 +224,10 @@ def _report(rows: list[tuple[str, str, str, float]]) -> str:
 
 
 def test_glass_grid_is_complete():
-    """18 pairs, which is 3 ink roles x 3 layers x 2 themes, so a renamed token fails here."""
+    """9 pairs: 3 ink roles x 3 layers on the one ground the product ships, so a renamed
+    token fails here and so does a ground that comes back without these figures moving."""
     rows = _pairs()
-    assert len(rows) == 18, f"expected 18 glass pairs, computed {len(rows)}"
+    assert len(rows) == 9, f"expected 9 glass pairs, computed {len(rows)}"
     for theme, css_class, role, value in rows:
         assert value > 1.0, f"{theme} {css_class} {role} collapsed to {value:.2f}:1"
         assert value < 21.0, f"{theme} {css_class} {role} reads {value:.2f}:1, past any sRGB pair"
@@ -240,21 +235,16 @@ def test_glass_grid_is_complete():
 
 def test_arithmetic_matches_the_ratios_recorded_in_the_stylesheet():
     """globals.css:66-69 carries four measured figures. Reproducing them is the check that this
-    file's model is r48's model: status-info dimmed to /55 and /60 on the dark canvas at 4.96 and
+    file's model is r48's model: status-info dimmed to /55 and /60 on the forest canvas at 4.96 and
     5.69, the muted role at 4.98 on paper and 5.31 on ink. Recorded rounding is 0.02 wide."""
-    dark, light = _themes()
-    dark_canvas = _rgb(_hsl_in(dark[1], "color-background"))
-    info_dark = _rgb(_hsl_in(dark[1], "color-status-info"))
+    forest = _grounds()[0]
+    canvas = _rgb(_hsl_in(forest[1], "color-background"))
+    info = _rgb(_hsl_in(forest[1], "color-status-info"))
     for alpha, recorded in ((0.55, 4.96), (0.60, 5.69)):
-        dimmed = _over(info_dark, dark_canvas, alpha)
-        assert abs(_ratio(dimmed, dark_canvas) - recorded) <= TOLERANCE, f"status-info /{int(alpha * 100)}"
-    light_canvas = _rgb(_hsl_in(light[1], "color-background"))
-    for theme, canvas, recorded, which in (
-        (light, light_canvas, 4.98, "paper"),
-        (dark, dark_canvas, 5.31, "ink"),
-    ):
-        faint = _rgb(_hsl_in(theme[1], "color-ink-faint"))
-        assert abs(_ratio(faint, canvas) - recorded) <= TOLERANCE, f"muted on {which}"
+        dimmed = _over(info, canvas, alpha)
+        assert abs(_ratio(dimmed, canvas) - recorded) <= TOLERANCE, f"status-info /{int(alpha * 100)}"
+    faint = _rgb(_hsl_in(forest[1], "color-ink-faint"))
+    assert abs(_ratio(faint, canvas) - 5.31) <= TOLERANCE, "muted on the forest canvas"
 
 
 def test_every_pair_holds_aa_on_every_layer():
@@ -296,7 +286,7 @@ def test_a_pane_holds_aa_on_every_ground_it_may_rest_on():
     """Rule 1 of the material: a pane rests on --color-canvas or on --color-surface, alone or in
     a stack, and the muted role clears 4.5:1 on every one of those columns. The binding pair is
     reading over control on the surface at 4.72:1."""
-    for theme in _themes():
+    for theme in _grounds():
         label = theme[0]
         for ground in REST_GROUNDS:
             base = _rgb(_hsl_in(theme[1], ground))
@@ -312,7 +302,7 @@ def test_a_pane_holds_aa_on_every_ground_it_may_rest_on():
 def test_the_binding_column_of_each_rest_ground_is_recorded():
     """The ratchet under rule 1, one figure per ground. A veil spends the ground's own lightness
     budget, so the column that binds the ground is the number worth holding."""
-    for theme in _themes():
+    for theme in _grounds():
         label = theme[0]
         for ground in REST_GROUNDS:
             base = _rgb(_hsl_in(theme[1], ground))
@@ -336,17 +326,17 @@ def test_a_lit_step_is_out_of_budget_for_a_translucent_veil():
     lifts the surface, so the muted role sits under the floor before any glass lands on it and a
     translucent veil moves that figure by hundredths in either direction. The recorded pair is
     what keeps a veil from being quietly thickened until these steps read green."""
-    dark = _themes()[0]
+    forest = _grounds()[0]
     for token, lift, recorded_bare, recorded_veiled, _ in LIT_STEPS:
-        ground = _lit_step(dark, lift)
-        bare = _muted(dark, ground)
+        ground = _lit_step(forest, lift)
+        bare = _muted(forest, ground)
         assert abs(bare - recorded_bare) <= TOLERANCE, f"{token} bare {bare:.2f}:1"
         assert bare < AA_NORMAL, f"{token} clears AA bare at {bare:.2f}:1, so rule 1 needs review"
         worst: tuple[str, float] | None = None
         for column, props in GLASS_COLUMNS:
             if "float" in column:
                 continue
-            value = _muted(dark, _column(dark, ground, props))
+            value = _muted(forest, _column(forest, ground, props))
             if worst is None or value < worst[1]:
                 worst = (column, value)
         assert worst is not None
@@ -362,25 +352,25 @@ def test_the_float_rests_on_anything_and_the_two_veils_only_over_a_ground():
     veils are lighter than the page, so two of them stacked on --color-surface-interactive settle
     past the ceiling: they may rest on a ground, and on each other only over the canvas, the
     surface and the raised step."""
-    dark = _themes()[0]
+    forest = _grounds()[0]
     for ground_name in REST_GROUNDS:
-        base = _rgb(_hsl_in(dark[1], ground_name))
-        value = _muted(dark, _column(dark, base, ("glass-reading-fill", "glass-control-fill")))
+        base = _rgb(_hsl_in(forest[1], ground_name))
+        value = _muted(forest, _column(forest, base, ("glass-reading-fill", "glass-control-fill")))
         assert value >= AA_NORMAL, f"two veils over {ground_name} = {value:.2f}:1"
     for token, lift, _, _, recorded_stack in LIT_STEPS:
-        lit = _lit_step(dark, lift)
-        stacked = _muted(dark, _column(dark, lit, ("glass-reading-fill", "glass-control-fill")))
+        lit = _lit_step(forest, lift)
+        stacked = _muted(forest, _column(forest, lit, ("glass-reading-fill", "glass-control-fill")))
         assert abs(stacked - recorded_stack) <= TOLERANCE, (
             f"{token}: two veils read {stacked:.2f}:1, recorded {recorded_stack:.2f}:1"
         )
         for column, props in GLASS_COLUMNS:
             if "float" not in column:
                 continue
-            value = _muted(dark, _column(dark, lit, props))
+            value = _muted(forest, _column(forest, lit, props))
             assert value >= AA_NORMAL, f"the float column {column} on {token} = {value:.2f}:1"
-    interactive = _lit_step(dark, 0.08)
+    interactive = _lit_step(forest, 0.08)
     stacked = _muted(
-        dark, _column(dark, interactive, ("glass-reading-fill", "glass-control-fill"))
+        forest, _column(forest, interactive, ("glass-reading-fill", "glass-control-fill"))
     )
     assert stacked < AA_NORMAL, (
         f"two veils over --color-surface-interactive read {stacked:.2f}:1, so rule 2 moved"

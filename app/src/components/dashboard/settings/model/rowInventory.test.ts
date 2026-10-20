@@ -21,11 +21,14 @@ import en from '@/locales/en.json'
 import { NAV } from '../model'
 import { ROW_INDEX } from './rowIndex'
 
-const sections = import.meta.glob<string>('./sections-*.tsx', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-})
+const sections = import.meta.glob<string>(
+  ['./sections-*.tsx', './approvalRegister.tsx', './AppearanceProfileSection.tsx'],
+  {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  },
+)
 
 // Every source outside the specs and the bundles — where an index key has to be
 // built. The settings sections alone are not enough: the cron rows and the

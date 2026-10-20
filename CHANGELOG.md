@@ -10,6 +10,32 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
+## [0.1.0] - 2026-10-20
+
+The first stable release of the 0.1 line. It finishes the forest-only surface,
+the settings register, the companion studio, one session store and the terminal.
+
+### Added
+- The forest is the only ground: the paper theme left the stylesheet, the gates
+  and the API; the share card and the tray carry the shipped bee.
+- Appearance applies instantly: layout presets, reading width, chat type, curated
+  accents, and one validated appearance profile with export, import and reset.
+- The companion reads one run state and can rest in the header, with a quick
+  panel and a live studio card in Appearance.
+- One server-authoritative session store serves the CLI, the TUI, HTTP and the
+  PWA. The terminal gains a session switcher, a multi-line composer that steers
+  or queues, `@file` context with provenance and a size cap, `!` shell through
+  the approval gate, an action palette, a model picker, turn undo/redo,
+  `$EDITOR`, and a key-help overlay.
+- The desktop offers an opt-in global shortcut (Cmd/Ctrl+Shift+E) that stays off
+  after a registration conflict.
+
+### Changed
+- Settings reads as four navigation groups with native grouped rows and the
+  44 px floor; the register, hints and search follow the same list.
+- The model picker's budget test carries a calibration control. The 500 ms
+  ceiling is unchanged.
+
 ## [Unreleased]
 
 ### Added
@@ -80,6 +106,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - engine: The hero where the contract puts it, the setup plates where a reader needs them, and an engine that answers without tools (`215bda6f`)
 - composer: The chip menu is the shared picker's third host (`48f1bfd8`)
 - instructions: The words that steer Ephe are visible, bounded and reviewable (`aef59944`)
+- theme: The forest is the only ground the product offers (`68957af0`)
+- theme: Remove the paper ground from the sheet, the gates and the API (`176d0e1b`)
+- brand: The share card carries the shipped bee on the forest ground (`ad8edb27`)
+- settings: The register becomes a native grouped list (`f193169d`)
+- settings: Appearance applies instantly, presets and four nav groups (`e470cd4a`)
+- companion: One run state drives the actor, with a header perch (`5e8e0ee8`)
+- companion: The actor speaks through a quick panel, the studio previews it (`4f23aa0f`)
+- appearance: Curated accents and one appearance profile (`b5bf80de`)
+- sessions: One server-authoritative store across CLI, TUI, HTTP and PWA (`263ea14e`)
+- tui: A first-class terminal surface for sessions, context and undo (`d239c442`)
+- release: The 0.1.0 candidate, a native shortcut and a calibrated budget (`c0b742ac`)
 
 ### Changed
 - The app adopts the npm minor/patch group: Radix primitives, TanStack Virtual, the
@@ -215,6 +252,12 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - engine: The refusal OpenRouter sends is a refusal of the tool array (`5a865bba`)
 - chat: The model line stops printing an empty pair (`ce503c14`)
 - packaging: The scoop notes name the release their hash belongs to (`de1c4728`)
+- release: The cut machine reads a prerelease line and a folded changelog (`08f1f950`)
+- playwright: Make the baseline provenance answer against HEAD (`65cb6429`)
+- shell: The tray carries the mono template cut (`d9adc191`)
+- engine: An incomplete engine names its missing field (`321e1740`)
+- shell: A stale backend does not blank the next launch (`ba076039`)
+- settings: The selected profile is neutral (`66b130ba`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a

@@ -66,12 +66,14 @@ describe('Aufgaben-Bereich (I7-3)', () => {
     expect(screen.queryByTestId('task-row-task-2-desc')).toBeNull()
   })
 
-  it('eine erledigte Aufgabe tritt sichtbar zurück', () => {
+  it('a completed task steps back without striking through its name', () => {
     render(renderTasks(model()))
     const open = screen.getByTestId('task-row-task-1').querySelector('p') as HTMLElement
     const done = screen.getByTestId('task-row-task-2').querySelector('p') as HTMLElement
-    expect(done.className).toContain('line-through')
-    expect(open.className).not.toContain('line-through')
+    expect(done.className).toContain('text-ink-faint')
+    expect(done.className).not.toContain('line-through')
+    expect(open.className).toContain('text-ink')
+    expect(open.className).not.toContain('text-ink-faint')
   })
 
   it('ohne Liste: Ladezeile, dann leerer Text — keine halbe Karte', () => {

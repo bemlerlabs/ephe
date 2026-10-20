@@ -5,8 +5,8 @@ import {
   dbSaveSession,
   debouncedSaveSession,
 } from '@/lib/db'
-import { restoreFromServer } from '@/lib/restore'
-import { isTombstoned } from '@/lib/sessionSync'
+import { restoreFromServer, restoreServerStore } from '@/lib/restore'
+import { isSessionSyncEnabled, isTombstoned } from '@/lib/sessionSync'
 import { compactMessages } from '@/lib/compact'
 import type { ChatMessage, Session } from '@/types'
 import type { ChatState, GetFn, SetFn } from './types'
@@ -69,6 +69,31 @@ export function makeSessionActions(
           }
         } catch {
           /* offline or an empty mirror — the local sessions are enough */
+        }
+        // Wave 5D: the server-authoritative store (CLI/TUI/HTTP tasks). The
+        // PWA keeps IndexedDB as its cache; the opt-out disables this read too.
+        let syncEnabled = true
+        try {
+          syncEnabled = isSessionSyncEnabled()
+        } catch {
+          /* an older mock or a storage-denied tab: keep the local path */
+        }
+        if (syncEnabled) {
+          try {
+            const storeSessions = await restoreServerStore()
+            const knownServer = new Set(dbSessions.map((d) => d.id))
+            const missing = storeSessions.filter(
+              (d) => !knownServer.has(d.id) && !isTombstoned(d.id),
+            )
+            if (missing.length > 0) {
+              dbSessions = [...dbSessions, ...missing].sort(
+                (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+              )
+              for (const d of missing) await dbSaveSession(d)
+            }
+          } catch {
+            /* offline or no server store — the local sessions are enough */
+          }
         }
         if (dbSessions.length > 0) {
           // I6 P2b: a reload NEVER finds a continued stream — a bubble saved with

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from pathlib import Path
 
@@ -166,10 +167,21 @@ class PruneRequest(BaseModel):
 
 
 def _registered_entries() -> list[dict]:
-    """The registry rows as a list, newest activity first, for the holdings view."""
+    """The registry rows as a list, newest activity first, with list metadata.
+
+    `message_count` reads the session file, which is the cost the store decision
+    measures against its 0.2.0 trigger. `namespace` is `user` for a session a
+    surface created, or the mirror prefix (`rest-`/`pwa-`) for a mirror row.
+    """
+    from core import multi_session as ms
     from core import session_lifecycle as life
 
     rows = [dict(e) for e in life.read_registry().get("sessions", []) if e.get("id")]
+    for row in rows:
+        sid = str(row.get("id"))
+        info = ms.session_info(sid) or {}
+        row["message_count"] = int(info.get("message_count") or 0)
+        row["namespace"] = life.namespace_of(sid) or "user"
     rows.sort(key=lambda e: str(e.get("last_active") or ""), reverse=True)
     return rows
 
@@ -223,3 +235,105 @@ async def prune_sessions(request: PruneRequest) -> dict:
         len(result["deleted"]), result["bytes_freed"], request.dry_run,
     )
     return result
+
+
+# The server-authoritative store (Wave 5D). Static routes above are registered
+# first, so `/sessions/export`, `/restore`, `/sync`, `/clear` and `/prune` never
+# fall into the `{session_id}` route below.
+
+_SID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+MAX_TRANSCRIPT_BYTES = 40 * 1024 * 1024
+MAX_TRANSCRIPT_MESSAGES = 10_000
+
+
+class SessionCreateRequest(BaseModel):
+    title: str = Field(default="New Session", max_length=200)
+
+
+class SessionRenameRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
+def _checked_sid(session_id: str) -> str:
+    if not _SID_RE.fullmatch(session_id or ""):
+        raise HTTPException(status_code=400, detail="invalid session id")
+    return session_id
+
+
+def _namespace_of(session_id: str) -> str:
+    from core import session_lifecycle as life
+
+    return life.namespace_of(session_id) or "user"
+
+
+def _session_entry(session_id: str, meta: dict) -> dict:
+    from core import multi_session as ms
+
+    info = ms.session_info(session_id) or {}
+    return {
+        "id": session_id,
+        "title": str(meta.get("title") or ""),
+        "created_at": meta.get("created_at", ""),
+        "last_active": meta.get("last_active", ""),
+        "message_count": int(info.get("message_count") or 0),
+        "namespace": _namespace_of(session_id),
+    }
+
+
+@router.post("/sessions")
+async def create_session(request: SessionCreateRequest) -> dict:
+    """Create one server-authoritative session; it is not active until activated."""
+    from core import multi_session as ms
+
+    title = request.title.strip() or "New Session"
+    entry = ms.create_session(title)
+    return _session_entry(str(entry["id"]), entry)
+
+
+@router.get("/sessions/{session_id}")
+async def read_session(session_id: str) -> dict:
+    """The transcript of one registered session, validated and size-capped."""
+    session_id = _checked_sid(session_id)
+    from core import multi_session as ms
+
+    meta = ms.get_session(session_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id!r} not in the store")
+    path = ms.SESSIONS_DIR / f"{session_id}.json"
+    try:
+        if path.exists() and path.stat().st_size > MAX_TRANSCRIPT_BYTES:
+            raise HTTPException(status_code=413, detail="session transcript too large")
+    except OSError:
+        pass
+    messages = ms.load_messages(session_id)
+    if len(messages) > MAX_TRANSCRIPT_MESSAGES:
+        raise HTTPException(status_code=413, detail="session transcript has too many messages")
+    return {**_session_entry(session_id, meta), "messages": messages}
+
+
+@router.patch("/sessions/{session_id}")
+async def rename_session(session_id: str, request: SessionRenameRequest) -> dict:
+    """Rename one registered session; the id and the transcript stay."""
+    session_id = _checked_sid(session_id)
+    from core import multi_session as ms
+
+    meta = ms.get_session(session_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id!r} not in the store")
+    title = request.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title must not be blank")
+    ms.rename_session(session_id, title)
+    return _session_entry(session_id, {**meta, "title": title})
+
+
+@router.post("/sessions/{session_id}/activate")
+async def activate_session(session_id: str) -> dict:
+    """Make one registered session the machine's active cursor."""
+    session_id = _checked_sid(session_id)
+    from core import multi_session as ms
+
+    if ms.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id!r} not in the store")
+    ms.switch_to(session_id)
+    return {"active_id": ms.get_active_id()}

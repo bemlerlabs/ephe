@@ -3,7 +3,7 @@
 One role, two spellings. The generator asks `hex_for(role)` and concretises the
 role into a hex at build time, which is what a raster needs; the in-app vector in
 `app/src/assets/` names `token_for(role)` (or `currentColor`) instead, so the
-stylesheet decides what the role resolves to in each theme. The terminal reads the
+stylesheet decides what the role resolves to on the ground. The terminal reads the
 same red through `ui/palette.py`.
 
 The frozen five (`BLACK_FOREST`, `MOSS_DEEP`, `FIREFLY`, `FIREFLY_GLOW`, `WHITE`)
@@ -13,11 +13,12 @@ the icon painted 4.03:1 on its own field where the ink brand `#E8543F` measures
 it. A role carries the measured spelling and the property name.
 
 The mark's red is the one role with a job bigger than a name: it has to clear the
-4.5:1 floor of `scripts/asset_check.py` on the ground of BOTH themes, and the
-sheet pins exactly one red that does — the guardian alias `--color-firefly`, equal
-to `--color-brand` in `@theme` (5.13:1 on the ink ground) and to
-`--color-brand-deep` in `html.light` (5.4:1 on paper). The vector names it; the
-raster takes the ink hex, so the icon paints what the app paints.
+4.5:1 floor of `scripts/asset_check.py` on the ground. Since 2026-10-19 that is one
+ground — the guardian alias `--color-firefly`, equal to `--color-brand` in `@theme`
+(5.13:1 on the ink ground). The `paper` step (`#B52E21`, 5.4:1 on the retired paper
+sheet) survives only for the archived proof rungs, which the generator still renders
+by name. The vector takes the token; the raster takes the ink hex, so the icon paints
+what the app paints.
 """
 
 from __future__ import annotations

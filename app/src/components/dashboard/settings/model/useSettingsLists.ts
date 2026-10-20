@@ -18,7 +18,8 @@ import {
 } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
 import type { DeepSection } from '@/types'
-import { seedDeepSettings } from '@/lib/deepSettings'
+import { deepBool, seedDeepSettings } from '@/lib/deepSettings'
+import { ensureGlobalShortcut } from '@/lib/globalShortcut'
 import { clampDeepDraft } from './bounds'
 import type { useSettingsState } from './useSettingsState'
 
@@ -104,11 +105,42 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
     }
   }
 
+  async function syncShortcut(enabled: boolean) {
+    const outcome = await ensureGlobalShortcut(enabled)
+    if (outcome !== 'failed') return
+    // A chord another app owns must not stay written down as on. The shell
+    // already released its attempt; the register follows it back to off.
+    try {
+      await saveSections({ shortcuts: { 'shortcuts.global_enabled': false } })
+    } catch {
+      // The rejection the user needs to hear is the registration, below.
+    }
+    setDeepSections(
+      (prev) =>
+        prev?.map((sec) =>
+          sec.key === 'shortcuts'
+            ? {
+                ...sec,
+                fields: sec.fields.map((f) =>
+                  f.key === 'shortcuts.global_enabled' ? { ...f, value: false } : f,
+                ),
+              }
+            : sec,
+        ) ?? null,
+    )
+    setDeepDraft((prev) => ({
+      ...prev,
+      shortcuts: { ...(prev.shortcuts ?? {}), 'shortcuts.global_enabled': false },
+    }))
+    toastBus.error(t('settings.shortcutFailed'))
+  }
+
   function applyDeepView(sections: DeepSection[] | null) {
     setDeepSections(sections)
     // I3-4: the same state goes into the client pipe — a save in the panel
     // then takes effect without a reload (font size, animations, timestamps).
     seedDeepSettings(sections)
+    void syncShortcut(deepBool('shortcuts.global_enabled'))
     if (!sections) return
     setDeepDraft((prev) => {
       const next: Record<string, Record<string, string | number | boolean>> = { ...prev }
@@ -194,14 +226,78 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
    * itself here any more; the result says whether it worked and what the server
    * said about it. The caller decides what the user hears.
    */
-  async function saveDeepSettings(): Promise<{ ok: boolean; detail?: string }> {
+  /** One write for an imported or reset appearance profile; a missing section
+   *  refuses the whole write. */
+  async function saveAppearanceProfile(
+    values: Record<string, string | number | boolean>,
+  ): Promise<{ ok: boolean; detail?: string }> {
+    if (!deepSections) return { ok: false, detail: 'appearance register missing' }
+    const appearance = deepSections.find((section) => section.key === 'appearance')
+    if (!appearance) return { ok: false, detail: 'appearance register missing' }
+    const current: Record<string, string | number | boolean> = {}
+    for (const field of appearance.fields) {
+      current[field.key] = field.value ?? field.default ?? ''
+    }
+    const next = { ...current, ...values }
+    try {
+      await saveSections({ appearance: next })
+      const updated = deepSections.map((section) =>
+        section.key === 'appearance'
+          ? {
+              ...section,
+              fields: section.fields.map((field) => {
+                const value = next[field.key]
+                return value === undefined ? field : { ...field, value }
+              }),
+            }
+          : section,
+      )
+      setDeepSections(updated)
+      setDeepDraft((prev) => ({
+        ...prev,
+        appearance: { ...(prev.appearance ?? {}), ...next },
+      }))
+      seedDeepSettings(updated)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, detail: e instanceof Error && e.message ? e.message : undefined }
+    }
+  }
+
+  async function saveDeepSettings(scope?: string[]): Promise<{ ok: boolean; detail?: string }> {
     try {
       // I3-3: clamped to the register gate before sending — a value
       // outside it is a typo, not a 422 toast for the user.
-      await saveSections(clampDeepDraft(deepDraft, deepSections))
-      // Set fresh instead of leaving the draft: the draft has to follow the
-      // server values, or the footer button counter would stay after saving.
-      await loadDeepRegister()
+      const clamped = clampDeepDraft(deepDraft, deepSections)
+      const payload = scope
+        ? Object.fromEntries(Object.entries(clamped).filter(([key]) => scope.includes(key)))
+        : clamped
+      await saveSections(payload)
+      if (!scope) {
+        // Set fresh instead of leaving the draft: the draft has to follow the
+        // server values, or the footer button counter would stay after saving.
+        await loadDeepRegister()
+      } else {
+        // A scoped save is the instant path: refresh only its baseline, so a
+        // draft in another section is not silently discarded by a full reload.
+        // The global pipe is seeded from the same sections, or the accent, type
+        // and reading width would only move after the next full load.
+        const updated =
+          deepSections?.map((sec) =>
+            scope.includes(sec.key)
+              ? {
+                  ...sec,
+                  fields: sec.fields.map((f) => {
+                    const value = payload[sec.key]?.[f.key]
+                    return value === undefined ? f : { ...f, value }
+                  }),
+                }
+              : sec,
+          ) ?? null
+        setDeepSections(updated)
+        setDeepDraft((prev) => ({ ...prev, ...payload }))
+        seedDeepSettings(updated)
+      }
       return { ok: true }
     } catch (e) {
       return { ok: false, detail: e instanceof Error && e.message ? e.message : undefined }
@@ -225,5 +321,6 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
     handlePluginToggle,
     setDeepField,
     saveDeepSettings,
+    saveAppearanceProfile,
   }
 }

@@ -13,6 +13,7 @@ import {
   initDeepSettings,
   seedDeepSettings,
   subscribeDeepSettings,
+  useChatReadingWidth,
   useDeepSelect,
 } from './deepSettings'
 import { getSettings } from '@/lib/api'
@@ -44,6 +45,8 @@ const sections: DeepSection[] = [
     key: 'appearance',
     fields: [
       field('appearance.font_scale', 'number', 150, { min: 80, max: 150 }),
+      field('appearance.chat_font_scale', 'number', 120, { min: 80, max: 150 }),
+      field('appearance.reading_width', 'number', 1024, { min: 480, max: 1200 }),
       field('appearance.animations_enabled', 'bool', false),
       field('appearance.show_timestamps', 'bool', true),
     ],
@@ -52,6 +55,8 @@ const sections: DeepSection[] = [
 
 beforeEach(() => {
   document.documentElement.style.removeProperty('--ui-font-size')
+  document.documentElement.style.removeProperty('--chat-font-size')
+  document.documentElement.style.removeProperty('--chat-reading-width')
   document.documentElement.classList.remove('no-motion')
   seedDeepSettings(null)
 })
@@ -100,6 +105,38 @@ describe('applyDeepAppearance', () => {
     )
   })
 
+  it('scales the conversation step from the interface and chat factors', () => {
+    seedDeepSettings(sections)
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('23.4px')
+    expect(document.documentElement.style.getPropertyValue('--chat-reading-width')).toBe('1024px')
+  })
+
+  it('clamps the conversation step and the reading width to the register bounds', () => {
+    seedDeepSettings([
+      {
+        key: 'appearance',
+        fields: [
+          field('appearance.font_scale', 'number', 100),
+          field('appearance.chat_font_scale', 'number', 4000),
+          field('appearance.reading_width', 'number', 100),
+        ],
+      },
+    ])
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('19.5px')
+    expect(document.documentElement.style.getPropertyValue('--chat-reading-width')).toBe('480px')
+  })
+
+  it('applies the curated accent to the root and falls back to ember', () => {
+    seedDeepSettings([
+      { key: 'appearance', fields: [field('appearance.accent', 'select', 'indigo')] },
+    ])
+    expect(document.documentElement.dataset.accent).toBe('indigo')
+    seedDeepSettings([
+      { key: 'appearance', fields: [field('appearance.accent', 'select', 'neon')] },
+    ])
+    expect(document.documentElement.dataset.accent).toBe('ember')
+  })
+
   it('legt no-motion an, wenn Animationen aus sind', () => {
     seedDeepSettings(sections)
     expect(document.documentElement.classList.contains('no-motion')).toBe(true)
@@ -124,6 +161,18 @@ describe('applyDeepAppearance', () => {
       `${UI_FONT_SIZE_BASE_PX}px`,
     )
     expect(document.documentElement.classList.contains('no-motion')).toBe(false)
+  })
+})
+
+describe('useChatReadingWidth', () => {
+  it('follows a seeded reading width', () => {
+    const { result, rerender } = renderHook(() => useChatReadingWidth())
+    expect(result.current).toBe(768)
+    seedDeepSettings([
+      { key: 'appearance', fields: [field('appearance.reading_width', 'number', 600)] },
+    ])
+    rerender()
+    expect(result.current).toBe(600)
   })
 })
 

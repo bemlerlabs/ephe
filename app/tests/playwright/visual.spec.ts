@@ -1,7 +1,21 @@
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { ensureOnboarded, gotoHash } from './helpers'
+
+// `deep_view()` shape at defaults, generated 2026-10-19 from the register with a
+// fresh EPHE_CONFIG_DIR. Display text is the English half so a German sentence
+// does not enter a test fixture.
+const SETTINGS_DEEP = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./fixtures/settingsDeep.json', import.meta.url)), 'utf8'),
+)
+
+// A worker answers its own fetch() outside the page, so page.route never sees an
+// /api request the moment the app's freshly registered worker claims the client.
+// Blocking workers is the only way the fixture table below is the sole answer.
+test.use({ serviceWorkers: 'block' })
 
 /**
  * UI 4x wave 6 — visual regression over the states the inventory certifies.
@@ -9,18 +23,19 @@ import { ensureOnboarded, gotoHash } from './helpers'
  * `docs/UI_STATE_INVENTORY_2026-10-11.md` names 25 states and gives each a verdict. This spec
  * baselines 12 of them, the twelve it could certify as they look today: the two workbench
  * views and ten register sections. The refused rows stay refused — a baseline over a defect
- * turns the defect into the reference. Six more rows are refused in the dark theme over the
+ * turns the defect into the reference. Six more rows are refused on the forest ground over the
  * 4.43:1 pair this file's wave-1 gate left unpinned; U3 moved that veil and the pair now reads
  * 4.85:1, so those six verdicts are the inventory's to re-run.
  *
  * Three decisions make a shot repeatable, and each is the instrument's own claim:
  *
  * 1. Every read is answered from the fixture table below, so a baseline is over a named
- *    payload and not over this machine's 39 artifacts or 66 facts. `page.route` only works
- *    after the service worker is gone: `app/public/service-worker.js:78` answers `/api/*`
- *    from its own fetch context, which silently bypasses page routing until the worker is
- *    unregistered and the page has fully reloaded. That recipe is
- *    `out/ux-2026-10-10/09-error-states.mjs:20-27`, paid for in two wasted runs.
+ *    payload and not over this machine's 39 artifacts or 66 facts. Service workers are
+ *    blocked for this file (`serviceWorkers: 'block'`): a worker answers its own fetch()
+ *    outside the page, so the moment the app's freshly registered worker claims the client,
+ *    `page.route` never sees an /api request. The old unregister-and-reload recipe was undone
+ *    by the re-registration on the next boot, which is why every register shot used to
+ *    photograph an empty API body.
  * 2. The clock is frozen with `setFixedTime`, which fakes `Date` and leaves timers alone.
  *    Relative stamps (`artifact-stamp-*`, the memory ages) are the only other per-run pixels
  *    in these frames, and freezing the clock retires them without masking the row that
@@ -72,7 +87,12 @@ const FIXTURES: Array<[RegExp, () => unknown]> = [
       engine_state: 'ok',
     }),
   ],
-  [/\/api\/settings\b/, () => ({ language: 'en', theme: 'light', memory_enabled: true })],
+  // Anchored: the generic body used to match /api/settings/hooks as well, so the
+  // hooks section was answered by the main settings payload.
+  [
+    /\/api\/settings(?:\?|$)/,
+    () => ({ language: 'en', memory_enabled: true, deep: SETTINGS_DEEP }),
+  ],
   [
     /\/api\/model\/providers/,
     () => ({ active: {}, providers: [], local_models: [], local_model_options: [] }),
@@ -141,8 +161,10 @@ const FIXTURES: Array<[RegExp, () => unknown]> = [
       next_expiry: null,
     }),
   ],
+  // Anchored collection read: the old \b form also answered the detail route
+  // (/api/artifacts/va1), so the preview received the list body and crashed.
   [
-    /\/api\/artifacts\b/,
+    /\/api\/artifacts(?:\?|$)/,
     () => ({
       artifacts: [
         {
@@ -150,15 +172,15 @@ const FIXTURES: Array<[RegExp, () => unknown]> = [
           root_id: 'va1',
           version: 1,
           session_id: 'sess-visual',
-          name: 'wave-six-alpha.pdf',
-          path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.pdf',
-          kind: 'pdf',
+          name: 'wave-six-alpha.txt',
+          path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.txt',
+          kind: 'text',
           size: 2048,
           topic: '',
           created_at: '2026-10-11T08:00:00+00:00',
           favorite: false,
           tags: [],
-          origin_path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.pdf',
+          origin_path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.txt',
           adopted_path: '',
           content_hash: 'sha256:visual-a',
           viewed_at: null,
@@ -200,20 +222,54 @@ const FIXTURES: Array<[RegExp, () => unknown]> = [
     () => ({ known: false, turn_id: '', call_id: '', args_hash: '', session_id: '', calls: [] }),
   ],
   [
-    /\/api\/artifacts\/va/,
+    /\/api\/artifacts\/va2(?:\?|$)/,
+    () => ({
+      id: 'va2',
+      root_id: 'va2',
+      version: 1,
+      session_id: 'sess-visual',
+      name: 'wave-six-beta.txt',
+      path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-beta.txt',
+      kind: 'text',
+      size: 2048,
+      topic: '',
+      created_at: '2026-10-11T08:30:00+00:00',
+      favorite: true,
+      tags: [],
+      origin_path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-beta.txt',
+      adopted_path: '/home/visual/Desktop/wave-six-beta.txt',
+      content_hash: 'sha256:visual-b',
+      viewed_at: null,
+      turn_id: 'visualturn02',
+      call_id: 'visualtu-1',
+      expires_at: null,
+      keep: false,
+      adopted_state: 'current',
+    }),
+  ],
+  [
+    /\/api\/artifacts\/va1(?:\?|$)/,
     () => ({
       id: 'va1',
       root_id: 'va1',
       version: 1,
       session_id: 'sess-visual',
-      name: 'wave-six-alpha.pdf',
-      path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.pdf',
-      kind: 'pdf',
+      name: 'wave-six-alpha.txt',
+      path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.txt',
+      kind: 'text',
       size: 2048,
       topic: '',
       created_at: '2026-10-11T08:00:00+00:00',
       favorite: false,
       tags: [],
+      origin_path: '/home/visual/.ephe/artifacts/sess-visual/wave-six-alpha.txt',
+      adopted_path: '',
+      content_hash: 'sha256:visual-a',
+      viewed_at: null,
+      turn_id: 'visualturn01',
+      call_id: 'visualtu-0',
+      expires_at: null,
+      keep: false,
       adopted_state: 'none',
     }),
   ],
@@ -236,17 +292,15 @@ const FIXTURES: Array<[RegExp, () => unknown]> = [
 ]
 
 async function stubReads(page: Page) {
-  // The worker has to be gone before a route means anything, and the reload has to be a
-  // full one: a hash change alone leaves the old worker in charge of /api.
-  await page.goto('/', { waitUntil: 'load' })
-  await page.waitForTimeout(1500)
-  await page.evaluate(
-    `(async () => { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); })()`,
-  )
-  await page.reload({ waitUntil: 'load' })
-  await page.waitForTimeout(1000)
   await page.route('**/api/**', (route) => {
     const url = route.request().url()
+    if (/\/api\/artifacts\/[^/]+\/file/.test(url)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'text/plain',
+        body: 'Fixture artifact content.\n',
+      })
+    }
     const hit = FIXTURES.find(([re]) => re.test(url))
     return route.fulfill({
       status: 200,
@@ -324,7 +378,9 @@ const DESKTOP: Shot[] = [
       await openRegister(p, 'appearance')
     },
     decision:
-      'certifies a register section reached by tapping its chip, with the theme control in its light state over the fixture settings payload.',
+      'certifies the appearance section on the one ground: its header, the rows the truthful ' +
+      'deep fixture feeds it (including chat font scale and reading width), its Save footer, ' +
+      'and no Dark/Light control.',
   },
   {
     name: 'register-behaviour',
@@ -336,7 +392,7 @@ const DESKTOP: Shot[] = [
       await openRegister(p, 'behaviour')
     },
     decision:
-      'certifies the behaviour rows and their hint lines against an empty settings payload, which is where a renamed key would show as a raw string.',
+      'certifies the behaviour rows and their hint lines from the truthful deep fixture, which is where a renamed key would show as a raw string.',
   },
   {
     name: 'register-code-exec',
@@ -360,7 +416,7 @@ const DESKTOP: Shot[] = [
       await openRegister(p, 'ephemera')
     },
     decision:
-      'certifies the deep-field renderer for the ephemera prefix, the block that shows only what the store really writes.',
+      'certifies the deep-field renderer for the ephemera prefix from the truthful fixture, the block that shows only what the store really writes.',
   },
   {
     name: 'register-generation',
@@ -570,11 +626,15 @@ async function shoot(page: Page, shot: Shot) {
    * that dating done in advance — bump it in the same commit that regenerates a baseline,
    * so the report always answers `is this reference current` before anyone reads pixels.
    */
-  const BASELINE_COMMIT = 'bf5f9b6a'
+  const BASELINE_COMMIT = 'c0b742ac'
+  // The package is `type: module`, so `__dirname` is undefined in this file: with it the
+  // probe threw into its own catch, `apart` was always empty, and the provenance line
+  // printed the constant while never answering `is this reference current against HEAD`.
+  const here = path.dirname(fileURLToPath(import.meta.url))
   const head = (() => {
     try {
       return execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
-        cwd: path.resolve(__dirname, '..', '..', '..'),
+        cwd: path.resolve(here, '..', '..', '..'),
         encoding: 'utf8',
       }).trim()
     } catch {

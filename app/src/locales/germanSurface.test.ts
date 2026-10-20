@@ -88,6 +88,10 @@ const SAME_BY_DESIGN = new Set<string>([
   'modelPicker.tools', // Tools — the German surface's own word for the tool list
   'modelPicker.vision', // Vision — the same term the capability rows already use
   'settings.aboutProvider', // Provider
+  'settings.presetDensityStandard', // Standard
+  'settings.presetReadingStandard', // Standard
+  'settings.presetLayout', // Layout
+  'settings.presetLayoutStandard', // Standard
   'settings.aboutVersion', // Version
   'settings.audioTitle', // Audio
   'settings.codeExecGuest', // Interpreter
@@ -107,8 +111,6 @@ const SAME_BY_DESIGN = new Set<string>([
   'settings.skillsTitle', // Skills
   'tour.activate.skills', // Skills
   'settings.status', // Status
-  'settings.theme', // Theme
-  'settings.themeTitle', // Theme
   'settings.voice', // Audio
   'sidebar.filterTitle', // Filter
   'sidebar.navScheduled', // Automations — the file's own short form ("Automations-Vorlagen")
