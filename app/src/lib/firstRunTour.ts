@@ -64,18 +64,23 @@ let cachedMarker: TourMarker | null = null
 let inflightMarker: Promise<TourMarker> | null = null
 let writeGeneration = 0
 
+/** A read either carries the server's marker or failed; only the first may fill the cache. */
+type TourRead = { ok: true; marker: TourMarker } | { ok: false }
+
 /** The marker, or the defaults when the file is absent or the backend is down. */
 export function loadTourMarker(): Promise<TourMarker> {
   // Two surfaces read the marker at boot (the tour gate and the empty state); they
   // share the one answer. A write replaces the cache, and a load that was already in
-  // flight when that write happened must not put its older answer back.
+  // flight when that write happened must not put its older answer back. A failed read
+  // returns the defaults without caching them, so a backend that comes up later is read.
   if (cachedMarker) return Promise.resolve(cachedMarker)
   if (!inflightMarker) {
     const generation = writeGeneration
     inflightMarker = fetchTourMarker()
-      .then((marker) => {
-        if (generation === writeGeneration) cachedMarker = marker
-        return marker
+      .then((read) => {
+        if (!read.ok) return EMPTY
+        if (generation === writeGeneration) cachedMarker = read.marker
+        return read.marker
       })
       .finally(() => {
         inflightMarker = null
@@ -84,13 +89,13 @@ export function loadTourMarker(): Promise<TourMarker> {
   return inflightMarker
 }
 
-async function fetchTourMarker(): Promise<TourMarker> {
+async function fetchTourMarker(): Promise<TourRead> {
   try {
     const response = await fetch(apiUrl('/api/tour'))
-    if (!response.ok) return EMPTY
-    return normalize(await response.json())
+    if (!response.ok) return { ok: false }
+    return { ok: true, marker: normalize(await response.json()) }
   } catch {
-    return EMPTY
+    return { ok: false }
   }
 }
 

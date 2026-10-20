@@ -120,4 +120,39 @@ describe('loadTourMarker', () => {
     expect(again).toEqual(written)
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('retries after an offline read instead of caching the empty marker', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ step: 2, walked: false, exists: true, answers: {} }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const { loadTourMarker } = await freshModule()
+    const offline = await loadTourMarker()
+    expect(offline.exists).toBe(false)
+    const recovered = await loadTourMarker()
+    expect(recovered.exists).toBe(true)
+    expect(recovered.step).toBe(2)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries after a non-OK read instead of caching the empty marker', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ step: 3, walked: false, exists: true, answers: {} }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const { loadTourMarker } = await freshModule()
+    expect((await loadTourMarker()).exists).toBe(false)
+    const recovered = await loadTourMarker()
+    expect(recovered.exists).toBe(true)
+    expect(recovered.step).toBe(3)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
 })

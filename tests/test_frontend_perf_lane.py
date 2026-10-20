@@ -16,6 +16,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
+PICKER_PERF = ROOT / ".github" / "workflows" / "picker-perf.yml"
 TIMING = ROOT / ".github" / "workflows" / "timing.yml"
 FUNCTIONAL = APP / "src" / "components" / "model" / "ModelPicker.test.tsx"
 PERF = APP / "src" / "components" / "model" / "ModelPicker.perf.test.tsx"
@@ -105,20 +106,26 @@ def test_the_control_is_a_load_diagnostic_not_a_widened_budget():
     assert "budgetReport" in perf, "the perf lane does not use the shared budget report"
 
 
-def test_the_lane_runs_on_the_nightly_serial_runner():
-    """GIVEN the ceiling has a serial lane THEN it runs in the nightly timing workflow,
-    on the same routing label as the other measurement legs. The push paths stay free of
-    it: a wall clock read there is what went red on v0.1.1.
+def test_the_lane_runs_in_its_own_nightly_workflow():
+    """GIVEN the timing workflow has been red on stale pytest budgets since 2026-10-17 THEN the
+    picker reading gets its own workflow. A green measurement inside a permanently red run is
+    invisible, and the lane has to be schedule-triggered to stay serial.
     """
-    document = yaml.safe_load(TIMING.read_text(encoding="utf-8")) or {}
+    document = yaml.safe_load(PICKER_PERF.read_text(encoding="utf-8")) or {}
     triggers = document.get("on") or document.get(True) or {}
-    assert "schedule" in triggers, "timing.yml is no longer scheduled"
+    assert "schedule" in triggers, "picker-perf.yml is not scheduled"
+    assert "workflow_dispatch" in triggers, "picker-perf.yml cannot be run by hand"
     jobs = document.get("jobs") or {}
     lane = jobs.get("picker-perf")
-    assert lane is not None, "timing.yml has no picker-perf job"
+    assert lane is not None, "picker-perf.yml has no picker-perf job"
     assert lane.get("runs-on") == "${{ vars.CI_LINUX_RUNNER }}", (
         "the perf lane does not use the shared measurement runner label"
     )
     runs = "\n".join(str(step.get("run", "")) for step in lane.get("steps") or [])
     assert "pnpm run test:perf" in runs, "the scheduled lane does not run the serial config"
     assert "pnpm install --frozen-lockfile" in runs, "the scheduled lane installs outside the lockfile"
+
+    timing = yaml.safe_load(TIMING.read_text(encoding="utf-8")) or {}
+    assert "picker-perf" not in (timing.get("jobs") or {}), (
+        "picker-perf moved back into the long timing workflow, where its green status is hidden"
+    )

@@ -271,3 +271,14 @@ class TestBudgetFileAgreesWithTheWorkflows:
         """A budget below the number it was written from is a red the moment it lands."""
         for entry in self.data["entries"]:
             assert entry["budget_seconds"] > entry["measured_p90_seconds"], entry["measured_as"]
+
+    def test_the_parallel_suite_is_reported_not_gated(self):
+        """The suite grew fivefold after the 2026-10-11 budgets; a parallel wall clock is not a gate."""
+        suite = [
+            entry for entry in self.data["entries"]
+            if "Run tracked pytest suite" in entry["measured_as"]
+        ]
+        assert not suite, "the parallel suite is budgeted again; see the 2026-10-20 split"
+        assert any("no longer budgeted" in note for note in self.data["notes"]), (
+            "the split is not documented in the budget file"
+        )

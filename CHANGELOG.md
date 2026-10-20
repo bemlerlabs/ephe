@@ -276,6 +276,8 @@ the settings register, the companion studio, one session store and the terminal.
 - ci: Judge packaging freshness when the release exists (`91a2cba8`)
 - ci: Provision Node and pnpm inside the clean room (`249cc27b`)
 - app: Coalesce the first-open marker reads (`3f48003d`)
+- app: Retry the tour marker after a failed read (`ce968465`)
+- ci: Report the parallel suite and separate the picker lane (`8c450fae`)
 
 ### Changed
 - The permanent toolbar row is now a task dock at the bottom-left: it appears once a
@@ -342,6 +344,8 @@ the settings register, the companion studio, one session store and the terminal.
 - security: CORS grants the product's own origins, and a shell command needs an approval (`3bec7792`)
 - security: This server's own origin stays allowed, under both loopback spellings (`4016f7d8`)
 - security: The session size read stays in the validated store path (`472a61d9`)
+- security: Check committer addresses and name the history exceptions (`de6ee97f`)
+
 ## [0.1.0-beta.10] – 2026-10-19
 
 ### Added

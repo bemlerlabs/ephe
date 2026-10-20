@@ -26,6 +26,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTER = REPO_ROOT / ".github" / "identities.json"
 
+#: Two public commits predate the committer check. The author-only gate refused neither after
+#: their merge; the committer field still carries the account's primary address. History is not
+#: rewritten, so `--report` names them instead of pretending the history is clean.
+KNOWN_HISTORY_EXCEPTIONS = {
+    "ca513422": "squash merge of PR #2: author and committer carry the account's primary address",
+    "e1b1e67": "rebase merge of PR #3: the author is the noreply form, the committer is not",
+}
+
 
 def git(*args: str) -> str:
     return subprocess.run(("git", "-C", str(REPO_ROOT), *args), capture_output=True,
@@ -39,43 +47,65 @@ def allowed() -> dict[str, str]:
     return {email.lower(): who for email, who in names.items()}
 
 
-def authors(rev_range: str) -> list[tuple[str, str]]:
-    raw = git("log", "--format=%H%x09%ae", rev_range)
+def identities(rev_range: str) -> list[tuple[str, str, str]]:
+    """(short sha, author, committer) for every commit in the range."""
+    raw = git("log", "--format=%H%x09%ae%x09%ce", rev_range)
     out = []
     for line in raw.splitlines():
-        sha, _, email = line.partition("\t")
-        out.append((sha[:8], email.strip().lower()))
+        sha, author, committer = line.split("\t")
+        out.append((sha[:8], author.strip().lower(), committer.strip().lower()))
     return out
 
 
 def check(rev_range: str) -> list[str]:
     register = allowed()
     problems = []
-    for sha, email in authors(rev_range):
-        if email not in register:
+    for sha, author, committer in identities(rev_range):
+        for role, email in (("author", author), ("committer", committer)):
+            if email in register:
+                continue
             problems.append(
-                f"{sha}: author address {email!r} is not in {REGISTER.name}. A bare address on a "
-                f"domain anyone can register lets that stranger become the displayed author of the "
+                f"{sha}: {role} address {email!r} is not in {REGISTER.name}. A bare address on a "
+                f"domain anyone can register lets that stranger become the displayed {role} of the "
                 f"commit, so this repository accepts the noreply form only: "
-                f"<account-id>+<login>@users.noreply.github.com. Way out: set "
-                f"`git config --global user.email` to that address and amend or recommit.")
+                f"<account-id>+<login>@users.noreply.github.com. Way out: set `user.email`, "
+                f"`GIT_AUTHOR_EMAIL` and `GIT_COMMITTER_EMAIL` to that address and recommit; "
+                f"`--author` alone leaves the committer unregistered.")
     return problems
 
 
-def report() -> str:
-    register = allowed()
-    counts: Counter[str] = Counter()
-    for line in git("log", "--all", "--format=%ae").splitlines():
-        counts[line.strip().lower()] += 1
-    lines = [f"{REGISTER.name}: {len(register)} accepted addresses", ""]
+def _counts(field: str) -> Counter[str]:
+    return Counter(line.strip().lower() for line in git("log", "--all", f"--format=%{field}").splitlines())
+
+
+def _section(title: str, counts: Counter[str], register: dict[str, str]) -> tuple[list[str], int]:
+    lines = [f"{title}:"]
     for email, n in counts.most_common():
         verdict = register.get(email) or "UNREGISTERED"
         lines.append(f"  {n:>5}  {email:<55} {verdict}")
     unregistered = sum(n for email, n in counts.items() if email not in register)
+    return lines, unregistered
+
+
+def report() -> str:
+    register = allowed()
+    author_counts = _counts("ae")
+    committer_counts = _counts("ce")
+    lines = [f"{REGISTER.name}: {len(register)} accepted addresses", ""]
+    author_lines, unregistered_authors = _section("authors", author_counts, register)
+    lines.extend(author_lines)
     lines.append("")
-    lines.append(f"{unregistered} of {sum(counts.values())} commits across all refs carry an "
-                 f"address this register does not name. History is left as written; new commits "
-                 f"are refused.")
+    committer_lines, unregistered_committers = _section("committers", committer_counts, register)
+    lines.extend(committer_lines)
+    lines.append("")
+    lines.append(f"{unregistered_authors} of {sum(author_counts.values())} commits across all refs "
+                 f"carry an author address this register does not name; "
+                 f"{unregistered_committers} carry an unregistered committer address. History is "
+                 f"left as written; new commits are refused.")
+    lines.append("")
+    lines.append("known public-history exceptions (not rewritten):")
+    for sha, why in KNOWN_HISTORY_EXCEPTIONS.items():
+        lines.append(f"  {sha}  {why}")
     return "\n".join(lines)
 
 

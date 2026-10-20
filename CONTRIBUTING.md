@@ -33,11 +33,12 @@ pnpm run dev      # Vite dev server
 ### Commit attribution
 
 Commits carry a registered GitHub noreply address
-(`<account-id>+<login>@users.noreply.github.com`), checked against `.github/identities.json`.
-A bare address is refused: it can later be claimed by whoever registers that domain. The
-GitHub web UI's squash merge writes the account's primary email, so maintainers merge with
-**Rebase and merge** or with a local `git merge` under the noreply identity. A commit that
-lands with a refused address is fixed forward; this history is not rewritten.
+(`<account-id>+<login>@users.noreply.github.com`) in **both the author and committer fields**,
+checked against `.github/identities.json`. A bare address is refused: it can later be claimed
+by whoever registers that domain. The GitHub web UI's squash merge writes the account's
+primary email into the committer field, so maintainers merge with **Rebase and merge** or with
+a local `git merge` after setting `user.email`, `GIT_AUTHOR_EMAIL` and `GIT_COMMITTER_EMAIL`.
+A commit that lands with a refused address is fixed forward; this history is not rewritten.
 
 ## Validation
 
