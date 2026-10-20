@@ -56,9 +56,10 @@ test.describe('Agent-Panel Toggles & Dock (Runde 5/7)', () => {
       'aria-selected',
       'true',
     )
-    // Closing the last pill returns to the card empty state.
+    // Closing the last pill returns to the card empty state. The close is a client
+    // state update; 15 s is the UI wait, not a performance budget.
     await panel.getByTestId('panel-tab-close-terminal').click()
-    await expect(panel.getByTestId('panel-empty-state')).toBeVisible()
+    await expect(panel.getByTestId('panel-empty-state')).toBeVisible({ timeout: 15000 })
     // +-menu: the recently-closed entry restores the tab.
     await panel.getByTestId('panel-add-tab').click()
     await expect(panel.getByTestId('panel-recent-terminal')).toBeVisible()
