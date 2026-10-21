@@ -901,9 +901,14 @@ def to_webp(
 
 TUI_COLS, TUI_ROWS = 108, 30
 TUI_MAX_APPROVALS = 8
+#: Wall clock the clip waits for the answer after the task is sent. A hosted engine
+#: that has not finished by then is having a slow minute, and the README frame is
+#: not the place to watch it.
+TUI_TURN_BUDGET = 100.0
 TUI_TASK = (
     "Add a discount_total(items, percent) helper to invoices/totals.py that takes a "
-    "percentage off the invoice total, add a test for it, then run pytest."
+    "percentage off invoice_total and rounds to cents, then run pytest and tell me "
+    "the result in one line."
 )
 
 
@@ -1015,8 +1020,8 @@ def record_tui_cast(cast: Path, cfg: Path, ws: Path, engine: Path) -> None:
                 send("a")
                 answered += 1
             elif time.time() - last_activity > 25.0:
-                # Still for 25 s with no prompt open: the answer has landed and the
-                # reader has had it on screen. Anything longer is dead air.
+                break
+            elif elapsed - 5.5 > TUI_TURN_BUDGET:
                 break
 
     time.sleep(2.0)
@@ -1058,7 +1063,7 @@ def tui_clip(engine: Path) -> None:
             "agg", str(cast), str(gif),
             "--font-size", "17",
             "--line-height", "1.3",
-            "--idle-time-limit", "1.2",
+            "--idle-time-limit", "1.0",
             "--speed", "1.25",
             "--theme", "asciinema",
         ],

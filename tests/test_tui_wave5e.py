@@ -878,3 +878,35 @@ def test_hostile_tool_output_never_becomes_markup(app_factory):
             assert "base64ish [$@3cg" in painted, painted
 
     _run(go())
+
+
+def test_a_tool_row_names_what_the_tool_did_to_what(app_factory):
+    """GIVEN the tools an agent turn actually calls
+    WHEN their rows are written in the past tense
+    THEN each row carries the verb the action deserves and the thing it acted on,
+    so a finished turn is readable without opening a row."""
+    from ui.widgets import ChatView, _tool_verb_past
+
+    assert _tool_verb_past("run_tests") == "Ran"
+    assert _tool_verb_past("write_file") == "Wrote"
+    assert _tool_verb_past("edit_file") == "Edited"
+    assert _tool_verb_past("read_file") == "Explored"
+
+    _active("Row titles")
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            chat = app.query_one(ChatView)
+            chat.post_message(ChatView.BeginAssistantMessage())
+            chat.post_message(ChatView.ToolCallStart("run_tests", {"command": "pytest -q"}))
+            chat.post_message(ChatView.ToolCallDone("run_tests", "4 passed"))
+            chat.post_message(ChatView.ToolCallStart("write_file", {"path": "launch.md"}))
+            chat.post_message(ChatView.ToolCallDone("write_file", "wrote launch.md"))
+            await pilot.pause()
+            titles = [block.title for block in app.query(".tool-call-block")]
+            assert any("Ran pytest -q" in t for t in titles), titles
+            assert any("Wrote launch.md" in t for t in titles), titles
+
+    _run(go())

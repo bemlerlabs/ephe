@@ -66,10 +66,13 @@ def _format_elapsed(seconds: float) -> str:
 
 def _tool_category(name: str) -> str:
     """Category of a tool: run/explore/edit/other (Ephe timeline convention)."""
-    run = {"run_shell", "execute_code", "spawn_swarm", "terminate_self"}
+    run = {
+        "run_shell", "run_tests", "execute_code", "spawn_swarm", "terminate_self",
+    }
     edit = {
         "create_pdf", "create_svg", "create_pptx_deck", "create_pitch_deck",
         "edit_pptx_template", "create_source_notebook", "generate_chart",
+        "edit_file",
     }
     explore = {
         "read_file", "file_search", "web_search", "list_directory",
@@ -95,13 +98,18 @@ _TOOL_COPY = {
     "run": {"present": "Running", "past": "Ran"},
 }
 
+#: A tool whose row would otherwise read "Used x.md" when it wrote the file.
+_TOOL_VERBS = {
+    "write_file": {"present": "Writing", "past": "Wrote"},
+}
+
 
 def _tool_verb_present(name: str) -> str:
-    return _TOOL_COPY[_tool_category(name)]["present"]
+    return _TOOL_VERBS.get(name, _TOOL_COPY[_tool_category(name)])["present"]
 
 
 def _tool_verb_past(name: str) -> str:
-    return _TOOL_COPY[_tool_category(name)]["past"]
+    return _TOOL_VERBS.get(name, _TOOL_COPY[_tool_category(name)])["past"]
 
 
 def _tool_target(name: str, args: dict) -> str:
