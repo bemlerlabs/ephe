@@ -543,6 +543,62 @@ def test_a_declined_bang_call_never_reaches_the_executor(app_factory, monkeypatc
     _run(go())
 
 
+def test_the_approval_prompt_takes_the_answer_keystroke(app_factory):
+    """GIVEN a mutating tool parked on the in-terminal prompt
+    WHEN the user presses y
+    THEN the prompt receives the key and releases the worker approved — a
+    widget that cannot hold focus never sees the keystroke."""
+    from ui.widgets import ChatView
+
+    _active("Approve")
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            prompt = await app.query_one(ChatView).show_confirm_prompt(
+                "Run shell command?  ls -la", "run_shell"
+            )
+            await pilot.pause()
+            await pilot.press("y")
+            await pilot.pause()
+            assert prompt.answered.is_set()
+            assert prompt.result == (True, False)
+
+    _run(go())
+
+
+def test_a_declined_prompt_leaves_nothing_in_the_composer(app_factory):
+    """GIVEN the prompt is on screen
+    WHEN the user presses n and then types
+    THEN the answer is a decline, the keystroke stays out of the draft, and the
+    composer takes the next keys once the prompt is gone."""
+    from ui.composer import Composer
+    from ui.widgets import ChatView
+
+    _active("Decline")
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            prompt = await app.query_one(ChatView).show_confirm_prompt(
+                "Run shell command?  rm -rf build", "run_shell"
+            )
+            await pilot.pause()
+            assert app.focused is prompt
+            await pilot.press("n")
+            await pilot.pause()
+            assert prompt.answered.is_set()
+            assert prompt.result == (False, False)
+            assert app.query_one(Composer).value == ""
+            await pilot.press("h", "i")
+            await pilot.pause()
+            assert app.query_one(Composer).value == "hi"
+
+    _run(go())
+
+
 
 
 def test_the_model_picker_writes_the_same_engine_config_the_pwa_writes(

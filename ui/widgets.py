@@ -619,6 +619,10 @@ class ConfirmPrompt(Widget):
     The worker waits on `await prompt.answered` (asyncio.Event).
     """
 
+    # A plain Widget cannot hold focus, and Textual delivers key events only to
+    # the focused widget — without this the y/n/a never reaches on_key.
+    can_focus = True
+
     DEFAULT_CSS = f"""
     ConfirmPrompt {{
         height: 5;
