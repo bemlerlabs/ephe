@@ -108,7 +108,7 @@ export default function WorkspaceBar({ branch, dirty = 0, git = false }: Workspa
         aria-haspopup="menu"
         data-testid="workspace-bar-chip"
         title={t('workspacePicker.title')}
-        className="inline-flex items-center gap-1.5 min-w-0 min-h-6 max-w-72 rounded-md border border-hairline bg-surface px-2 py-0.5 text-ui-sm text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors"
+        className="inline-flex items-center gap-1.5 min-w-0 min-h-6 max-w-72 rounded-md border border-control bg-surface px-2 py-0.5 text-ui-sm text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors"
       >
         <FolderClosed className="h-3.5 w-3.5 shrink-0 text-brand/60" aria-hidden="true" />
         <span className="truncate">
