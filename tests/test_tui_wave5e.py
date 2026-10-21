@@ -635,8 +635,15 @@ def test_the_prompt_is_scrolled_to_where_the_reader_is(app_factory):
             prompt = await chat.show_confirm_prompt(
                 "Run shell command?  ls -la", "run_shell"
             )
-            await pilot.pause()
-            rows = painted_rows(app.export_screenshot(title="overflow"))
+            # The scroll is scheduled with call_after_refresh, so a single pause is
+            # not a promise that the frame has painted. Poll the export instead of
+            # guessing a duration.
+            rows: list[str] = []
+            for _ in range(20):
+                await pilot.pause(0.05)
+                rows = painted_rows(app.export_screenshot(title="overflow"))
+                if any("y=Yes" in row and "a=Always" in row for row in rows):
+                    break
             assert any("y=Yes" in row and "a=Always" in row for row in rows), rows[-8:]
             assert app.focused is prompt
 
@@ -839,8 +846,12 @@ def test_a_long_command_still_shows_the_answer_keys(app_factory):
             await pilot.pause()
             chat = app.query_one(ChatView)
             await chat.show_confirm_prompt(f"Run shell command?  {command}", "run_shell")
-            await pilot.pause()
-            rows = painted_rows(app.export_screenshot(title="long"))
+            rows: list[str] = []
+            for _ in range(20):
+                await pilot.pause(0.05)
+                rows = painted_rows(app.export_screenshot(title="long"))
+                if any("y=Yes" in row and "a=Always" in row for row in rows):
+                    break
             assert any("y=Yes" in row and "a=Always" in row for row in rows), rows[-10:]
 
     _run(go())

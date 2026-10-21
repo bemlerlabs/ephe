@@ -14,6 +14,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent
 FLOOR = (48, 0, 0)
 
@@ -47,6 +49,8 @@ def test_the_cell_config_still_builds_on_the_patched_engine():
     WHEN the cell builds its sandbox config
     THEN the configuration object exists with its caps, so the version bump did
     not break the seam the product calls."""
+    pytest.importorskip("ephemora_cell", reason="the sandbox extra is not installed")
+
     from ephemora_cell import WASIConfig
 
     config = WASIConfig()
@@ -60,6 +64,8 @@ def test_fuel_is_enforced_by_the_patched_engine(tmp_path):
     THEN execution traps on exhausted fuel. The flags on ``wasmtime.Config``
     cannot be read back, so enforcement is the only honest check: a config the
     engine ignores would run forever instead of trapping."""
+    pytest.importorskip("wasmtime", reason="the sandbox extra is not installed")
+
     script = tmp_path / "fuel_probe.py"
     script.write_text(
         "import wasmtime\n"
