@@ -21,21 +21,10 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
-
 import pytest
 from rich.markup import render
 
 UI_DIR = Path(__file__).parent.parent / "ui"
-
-
-def _static_content(widget: Any) -> str:
-    """Reads the raw markup string out of a Textual Static.
-
-    Textual 8.x types ``content`` as ``VisualType``; at runtime it is
-    the original string (as long as no visual override is set).
-    """
-    return str(widget.content)
 
 
 # Target test: exact crash path (ConfirmPrompt mount → Static render)
@@ -66,23 +55,29 @@ async def test_confirm_prompt_composes_without_markup_error():
     async with Host().run_test():
         static = prompt.query_one("#confirm-question", Static)
         # Parse the Rich markup: throws MarkupError on orphaned/unbalanced tags.
-        render(_static_content(static))
+        render(static.content.plain)
 
 
 @pytest.mark.asyncio
-async def test_confirm_prompt_escapes_user_question():
-    """GIVEN the question contains Rich tags as PLAIN TEXT ([shell] etc.)
-    THEN they appear in the Static content ESCAPED (\\[) — not as markup.
+async def test_confirm_prompt_keeps_a_tagged_question_as_text():
+    """GIVEN the question contains bracket shapes that a parser would read as tags
+    THEN they reach the screen verbatim, and the prompt's content is a Text rather
+    than a markup string.
 
-    Otherwise a tool name carrying [b] could unintentionally inject markup
-    or (worse) bring the parser to crashing.
+    Escaping was the first answer to this crash and it is not enough: neither
+    rich's nor Textual's ``escape`` quotes a group like ``[$@3cg\\x01]``, and
+    Textual's tokenizer still reads it as a tag. Only a renderable that never
+    meets a parser closes the class.
     """
     from textual.app import App, ComposeResult
+    from rich.text import Text
     from textual.widgets import Static
 
     from ui.widgets import ConfirmPrompt
 
-    prompt = ConfirmPrompt("run [shell] --target build", tool_name="run_shell")
+    prompt = ConfirmPrompt(
+        "run [shell] --target build [$@3cg\\x01\\x02=] (c:\\[dir])", tool_name="run_shell"
+    )
 
     class Host(App):
         def compose(self) -> ComposeResult:
@@ -90,33 +85,31 @@ async def test_confirm_prompt_escapes_user_question():
 
     async with Host().run_test():
         static = prompt.query_one("#confirm-question", Static)
-        content = _static_content(static)
-        assert "\\[" in content, "question tags are not escaped — markup injection risk"
-        render(content)  # escaped → still renders cleanly
+        assert isinstance(static.content, Text)
+        plain = static.content.plain
+        assert "[shell]" in plain
+        assert "[$@3cg\\x01\\x02=]" in plain
+        assert "c:\\[dir]" in plain
 
-
-# Regression test: the exact bug line (the a=Always hint) at source level
 
 def test_confirm_prompt_hint_line_is_balanced():
     """GIVEN the ConfirmPrompt hint (the y/n/a line) in the source code
-    THEN every colour tag on that line is balanced (no orphaned tags) and the
-    'a' affordance carries its label, not just a colour.
+    THEN it is built as a styled Text and no markup string is assembled from the
+    question.
 
-    The crash from the screenshot: three colour tags on the line, an orphaned
-    closing tag at the end of it. The tag shape is read generically — a literal
-    hex or a ``{NAME}`` constant of ``ui/palette.py`` — so moving a colour into
-    the palette cannot leave this test checking a retired value.
+    The crash from the screenshot was an orphaned closing colour tag in a
+    hand-built markup string. The line moved to ``Text.assemble``, so the guard
+    is that the question never re-enters a markup string again.
     """
     widgets_src = (UI_DIR / "widgets.py").read_text(encoding="utf-8")
-    tag = r"(\{[A-Z_]+\}|#[0-9A-Fa-f]{6})"
-    # The a=Always hint: one opening tag, the letter, one matching closing tag.
-    match = re.search(r"\[" + tag + r"\](a)\[/\1\][^\"]*", widgets_src)
-    assert match, "the a=Always hint line is no longer findable (refactored?)"
-    hint = match.group(0)
+    compose_src = widgets_src[
+        widgets_src.index("class ConfirmPrompt"):
+    ].split("def on_mount")[0]
 
-    opens = re.findall(r"\[" + tag + r"\]", hint)
-    closes = re.findall(r"\[/" + tag + r"\]", hint)
-    assert opens and opens == closes, (
-        f"unbalanced colour tags in the a=Always hint: {opens} opens, {closes} closes"
+    assert "Text.assemble" in compose_src, "the hint lost its Text build"
+    assert "markup_escape(question)" not in compose_src, (
+        "the question is back inside a markup string"
     )
-    assert "Always" in hint, "the 'a' affordance lost its label"
+    assert '"=Always (this tool, this session)"' in compose_src, (
+        "the 'a' affordance lost its label"
+    )

@@ -807,3 +807,74 @@ def test_a_tool_round_starts_a_new_paragraph_in_the_answer(app_factory):
             assert card._answer_acc == "I'll read the file.\n\nNow I'll edit it."
 
     _run(go())
+
+
+def test_a_long_command_still_shows_the_answer_keys(app_factory):
+    """GIVEN a tool call whose command is far longer than the prompt box
+    WHEN the prompt mounts
+    THEN the y/n/a legend is still painted — a box of wrapped command text with
+    no legend reads as a dead screen."""
+    import html as html_module
+    import re
+
+    from ui.widgets import ChatView
+
+    def painted_rows(dump: str) -> list[str]:
+        rows: list[str] = []
+        for line in dump.splitlines():
+            for chunk in line.split("</div>"):
+                text = html_module.unescape(re.sub(r"<[^>]+>", "", chunk))
+                if text.strip():
+                    rows.append(text)
+        return rows
+
+    _active("Long command")
+    app = app_factory()
+    command = "ls -la /some/deep/path && echo '---MARK---' && " + " && ".join(
+        f"ls -la dir-{i}" for i in range(12)
+    )
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            chat = app.query_one(ChatView)
+            await chat.show_confirm_prompt(f"Run shell command?  {command}", "run_shell")
+            await pilot.pause()
+            rows = painted_rows(app.export_screenshot(title="long"))
+            assert any("y=Yes" in row and "a=Always" in row for row in rows), rows[-10:]
+
+    _run(go())
+
+
+def test_hostile_tool_output_never_becomes_markup(app_factory):
+    """GIVEN a tool that returns text shaped like markup, or like an escaped tag
+    WHEN its result is rendered in the tool block
+    THEN the block paints that text verbatim and the app survives — the terminal
+    must not crash on content the engine fetched."""
+    from ui.widgets import ChatView
+
+    _active("Hostile output")
+    app = app_factory()
+    hostile = (
+        "## Workspace\n"
+        "literal tag [bold]red[/bold]\n"
+        "double escaped \\[not a tag\\]\n"
+        "base64ish [$@3cg\\x01\\x02=] tail\n"
+    )
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            chat = app.query_one(ChatView)
+            chat.post_message(ChatView.BeginAssistantMessage())
+            chat.post_message(ChatView.ToolCallStart("analyze_project", {"path": "."}))
+            chat.post_message(ChatView.ToolCallDone("analyze_project", hostile))
+            await pilot.pause()
+            assert app._exception is None
+            painted = "\n".join(
+                out.content.plain for out in app.query(".tool-output")
+            )
+            assert "literal tag [bold]red[/bold]" in painted, painted
+            assert "base64ish [$@3cg" in painted, painted
+
+    _run(go())

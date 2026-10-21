@@ -143,7 +143,12 @@ class _ToolCallBlock(Collapsible):
         self.add_class("tool-pending")
         target = _tool_target(name, args)
         if target:
-            self._args_static.update(f"[{DIM}]{_tool_verb_present(name).lower()}[/{DIM}]  {markup_escape(target)}")
+            self._args_static.update(
+                Text.assemble(
+                    (_tool_verb_present(name).lower(), DIM),
+                    "  " + target,
+                )
+            )
         else:
             self._args_static.update(f"[{DIM}]{_tool_verb_present(name).lower()}[/{DIM}]")
         self._output: Static | None = None
@@ -162,7 +167,11 @@ class _ToolCallBlock(Collapsible):
         if _looks_like_diff(preview):
             self._output.update(Group(Text("output", style=DIM), _diff_lines(preview)))
         else:
-            self._output.update(f"[{DIM}]output[/{DIM}]\n{markup_escape(preview)}")
+            # A Text carries styles as spans and never reaches a markup parser.
+            # Tool output is arbitrary text, and both rich's and Textual's escape
+            # leave bracket shapes that Textual's tokenizer still reads as a tag —
+            # one such result crashed the block.
+            self._output.update(Text.assemble(("output\n", DIM), preview))
         self.compose_add_child(self._output)
         self.refresh()
 
@@ -349,7 +358,10 @@ class AgentMessageCard(Widget):
             # The status line is redundant once the content streams
             self._phase_line.visible = False
         self._answer_live.update(
-            f"[bold {ACCENT}]Assistant[/bold {ACCENT}]\n[{TEXT}]{markup_escape(self._answer_acc)}[/{TEXT}]▌"
+            Text.assemble(
+                ("Assistant\n", f"bold {ACCENT}"),
+                (self._answer_acc + "▌", TEXT),
+            )
         )
 
     def on_agent_message_card_reset_answer(self, event: "AgentMessageCard.ResetAnswer") -> None:
@@ -676,13 +688,26 @@ class ConfirmPrompt(Widget):
         self.result = (False, False)
         self.answered = asyncio.Event()
 
+    # The box is five rows: two borders, the question, the legend, one spare. A
+    # question that wraps past its row pushes the legend out of the box, and a
+    # prompt without its keys looks like a frozen screen.
+    QUESTION_MAX_CHARS = 92
+
     def compose(self) -> ComposeResult:
+        question = " ".join(self._question.split())
+        if len(question) > self.QUESTION_MAX_CHARS:
+            question = question[: self.QUESTION_MAX_CHARS - 1].rstrip() + "…"
         yield Static(
-            f"[bold {ERROR}]⚠  {markup_escape(self._question)}[/bold {ERROR}]\n"
-            f"[{DIM}]y[/{DIM}]=Yes  [{DIM}]n[/{DIM}]=No  "
-            f"[{ACCENT}]a[/{ACCENT}]=Always (this tool, this session)",
+            Text.assemble(
+                (f"⚠  {question}\n", f"bold {ERROR}"),
+                ("y", DIM),
+                "=Yes  ",
+                ("n", DIM),
+                "=No  ",
+                ("a", ACCENT),
+                "=Always (this tool, this session)",
+            ),
             id="confirm-question",
-            markup=True,
         )
 
     def on_mount(self) -> None:
