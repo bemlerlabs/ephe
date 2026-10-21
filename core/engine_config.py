@@ -899,6 +899,12 @@ def validate_workspace_dir(path: str | None) -> str | None:
     return str(p)
 
 
+def _source_checkout_root() -> Path | None:
+    """The Ephe tree this module is running from, or None when installed."""
+    root = Path(__file__).resolve().parent.parent
+    return root if (root / "pyproject.toml").is_file() else None
+
+
 def get_workspace_dir() -> str:
     """Active workspace directory for the shell/file tools.
 
@@ -927,9 +933,8 @@ def get_workspace_dir() -> str:
     cwd = Path.cwd().resolve()
     # A server started from the source checkout must never expose that checkout
     # as the user's workspace (or its branches) by default.
-    if (cwd / "core").is_dir() and (cwd / "app" / "src-tauri").is_dir() and (
-        cwd / "pyproject.toml"
-    ).is_file():
+    root = _source_checkout_root()
+    if root is not None and (cwd == root or root in cwd.parents):
         neutral = config_root() / "workspace"
         try:
             neutral.mkdir(parents=True, exist_ok=True)

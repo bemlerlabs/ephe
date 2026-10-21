@@ -286,7 +286,8 @@ class TestListDirectory:
         (tmp_path / "file1.txt").write_text("a")
         (tmp_path / "file2.py").write_text("b")
 
-        with patch.dict(os.environ, {"HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"HOME": str(tmp_path),
+                                     "EPHE_WORKSPACE": str(tmp_path)}):
             result = await list_directory(str(tmp_path))
 
         assert isinstance(result, list)

@@ -261,10 +261,11 @@ class TestFsWorkspaceHelpers:
 
         monkeypatch.setattr(ec, "load_engine_config", flaky)
         monkeypatch.delenv("EPHE_WORKSPACE", raising=False)
+        monkeypatch.chdir(tmp_path)
 
         ws, is_set = fsmod._workspace_state()
 
-        assert ws == os.getcwd()
+        assert ws == str(Path(os.getcwd()).resolve())
         assert is_set is False
 
     def test_workspace_state_none_when_all_sources_fail(self, tmp_path, monkeypatch):
@@ -291,7 +292,8 @@ class TestFsWorkspaceHelpers:
         import server.routes.fs as fsmod
         _isolate_config(tmp_path, monkeypatch)
         monkeypatch.delenv("EPHE_WORKSPACE", raising=False)
-        assert fsmod._workspace_or_none() == os.getcwd()
+        monkeypatch.chdir(tmp_path)
+        assert fsmod._workspace_or_none() == str(Path(os.getcwd()).resolve())
 
     def test_workspace_or_none_none_when_all_sources_fail(self, tmp_path, monkeypatch):
         import server.routes.fs as fsmod

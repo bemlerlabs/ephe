@@ -139,20 +139,45 @@ async def test_confirmed_shell_runs_in_configured_workspace(tmp_path, monkeypatc
     assert "ok" in out
 
 
-def test_workspace_dir_fallback_is_documented_server_cwd(monkeypatch):
-    """GIVEN engine.json without a valid workspace_dir
+def test_workspace_dir_fallback_is_documented_server_cwd(monkeypatch, tmp_path):
+    """GIVEN engine.json without a valid workspace_dir and a server started
+    outside the Ephe tree
     WHEN  get_workspace_dir()
-    THEN  the return value is the server process cwd (os.getcwd()), never an empty path."""
+    THEN  the return value is the server process cwd, never an empty path."""
     import os
 
     import core.engine_config as ec
 
+    outside = tmp_path.resolve()
+    monkeypatch.chdir(outside)
     monkeypatch.setattr(ec, "load_engine_config",
                         lambda: ec.EngineChoice(provider="local_ollama", model="m", workspace_dir=""))
-    assert ec.get_workspace_dir() == os.getcwd()
+    assert ec.get_workspace_dir() == str(outside)
 
     # A valid path wins over the fallback.
     monkeypatch.setattr(ec, "load_engine_config",
                         lambda: ec.EngineChoice(provider="local_ollama", model="m",
                                                  workspace_dir=str(ec.os.getcwd())))
     assert ec.get_workspace_dir() == os.getcwd()
+
+
+def test_workspace_dir_never_defaults_to_the_ephe_checkout(monkeypatch, tmp_path):
+    """GIVEN no user choice and a server started inside the Ephe source tree
+    WHEN  get_workspace_dir()
+    THEN  the neutral per-device workspace answers, not the checkout — the
+    checkout's branches and file names are ours, never the user's project."""
+    from pathlib import Path
+
+    import core.engine_config as ec
+
+    repo = Path(ec.__file__).resolve().parent.parent
+    monkeypatch.chdir(repo / "core")
+    monkeypatch.delenv("EPHE_WORKSPACE", raising=False)
+    monkeypatch.setattr(ec, "load_engine_config",
+                        lambda: ec.EngineChoice(provider="local_ollama", model="m", workspace_dir=""))
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+
+    ws = Path(ec.get_workspace_dir())
+    assert ws == tmp_path / "workspace"
+    assert ws.is_dir()
+    assert repo not in ws.parents and ws != repo
