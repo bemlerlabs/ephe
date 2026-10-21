@@ -30,11 +30,13 @@ Output
     docs/media/ephe-demo-palette.webp      command palette, rename, shortcuts
     docs/media/ephe-demo-plugins.webp      plugin store, master switch, detail sheet
     docs/media/ephe-demo-mobile.webp       mobile PWA with artifact
+    docs/media/ephe-demo-tui.webp          ephe tui in a real terminal, with approvals
     docs/screenshots/hero-banner.png      2x hero shot
 
 Usage
     ./.venv/bin/python scripts/create_demo_media.py
     ./.venv/bin/python scripts/create_demo_media.py --only=palette,plugins
+    ./.venv/bin/python scripts/create_demo_media.py --only=tui
     ./.venv/bin/python scripts/create_demo_media.py --keep-root
 """
 from __future__ import annotations
@@ -66,6 +68,15 @@ REAL_HOME = Path.home() / ".ephe"
 
 DESKTOP_W, DESKTOP_H = 1280, 720
 MOBILE_W, MOBILE_H = 390, 844
+
+
+def engine_api_key() -> str:
+    """The key the demo engine is called with: the env, or the owner's own key file."""
+    env_key = (os.environ.get("EPHE_OPENAI_COMPAT_API_KEY") or "").strip()
+    if env_key:
+        return env_key
+    key_file = REAL_HOME / "engine.key"
+    return key_file.read_text().strip() if key_file.exists() else ""
 
 # English UI is the product default since round 14 — demos match it.
 INIT_SCRIPT = (
@@ -235,11 +246,7 @@ class DemoStack:
         )
 
     def _key(self) -> str:
-        env_key = (os.environ.get("EPHE_OPENAI_COMPAT_API_KEY") or "").strip()
-        if env_key:
-            return env_key
-        key_file = REAL_HOME / "engine.key"
-        return key_file.read_text().strip() if key_file.exists() else ""
+        return engine_api_key()
 
     def _child_env(self) -> dict[str, str]:
         env = dict(os.environ)
@@ -780,6 +787,186 @@ def to_webp(
     print(f"    [WARN] {out.name} stays above target size")
 
 
+# Terminal clip
+#
+# The TUI is recorded through a real pty and rendered by agg, so the frames carry the
+# same terminal the product runs in. The driver waits for screen text (the approval
+# legend) instead of a clock, because the engine decides how long a turn takes.
+
+TUI_COLS, TUI_ROWS = 108, 30
+TUI_MAX_APPROVALS = 8
+TUI_TASK = (
+    "Add a discount_total(items, percent) helper to invoices/totals.py that takes a "
+    "percentage off the invoice total, add a test for it, then run pytest."
+)
+
+
+def _tui_project(ws: Path) -> None:
+    """The demo repository the terminal clip works in — never this checkout."""
+    ws.mkdir(parents=True, exist_ok=True)
+    (ws / "README.md").write_text(
+        "# Invoice totals\n\nA small tool that adds up invoice line items.\n"
+    )
+    pkg = ws / "invoices"
+    pkg.mkdir(exist_ok=True)
+    (pkg / "totals.py").write_text(
+        '"""Invoice totals: line items in, one number out."""\n'
+        "\n"
+        "\n"
+        "def line_total(qty: int, unit_price: float) -> float:\n"
+        "    return round(qty * unit_price, 2)\n"
+        "\n"
+        "\n"
+        "def invoice_total(items: list[dict]) -> float:\n"
+        "    return round(sum(line_total(i['qty'], i['unit_price']) for i in items), 2)\n"
+    )
+    (pkg / "test_totals.py").write_text(
+        "from invoices.totals import invoice_total, line_total\n"
+        "\n"
+        "\n"
+        "def test_line_total_rounds_to_cents():\n"
+        "    assert line_total(3, 19.99) == 59.97\n"
+        "\n"
+        "\n"
+        "def test_invoice_total_adds_lines():\n"
+        "    items = [{'qty': 2, 'unit_price': 10.0}, {'qty': 1, 'unit_price': 5.5}]\n"
+        "    assert invoice_total(items) == 25.5\n"
+    )
+    (ws / "pytest.ini").write_text('[tool.pytest.ini_options]\npythonpath = ["."]\n')
+    for step in (
+        ["git", "init", "-q", "-b", "main"],
+        ["git", "config", "user.email", "demo@example.invalid"],
+        ["git", "config", "user.name", "Demo"],
+        ["git", "add", "-A"],
+        ["git", "commit", "-q", "-m", "invoice totals with two tests"],
+    ):
+        subprocess.run(step, cwd=ws, check=True, capture_output=True)
+
+
+def record_tui_cast(cast: Path, cfg: Path, ws: Path, engine: Path) -> None:
+    """Drive ``ephe tui`` in a pty and write the byte stream as an asciicast v2 file."""
+    import fcntl
+    import json
+    import pty
+    import select
+    import struct
+    import termios
+
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    env.update({"TERM": "xterm-256color", "EPHE_CONFIG_DIR": str(cfg)})
+    key = engine_api_key()
+    if key:
+        env["EPHE_OPENAI_COMPAT_API_KEY"] = key
+    chosen = json.loads(engine.read_text())
+    chosen["workspace_dir"] = str(ws)
+    (cfg / "engine.json").write_text(json.dumps(chosen, indent=2))
+
+    pid, master = pty.fork()
+    if pid == 0:
+        os.chdir(ws)
+        os.execvpe(
+            str(ROOT / ".venv" / "bin" / "python"),
+            [str(ROOT / ".venv" / "bin" / "python"), str(ROOT / "ephe_cli.py"), "tui"],
+            env,
+        )
+    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", TUI_ROWS, TUI_COLS, 0, 0))
+
+    events: list[tuple[float, str]] = []
+    pending = bytearray()
+    started = time.time()
+    deadline = started + 300.0
+    last_activity = started
+    stage = 0
+    answered = 0
+
+    def send(data: str) -> None:
+        pending.clear()
+        os.write(master, data.encode())
+
+    while time.time() < deadline:
+        ready, _, _ = select.select([master], [], [], 0.2)
+        if ready:
+            try:
+                chunk = os.read(master, 65536)
+            except OSError:
+                break
+            if not chunk:
+                break
+            now = time.time()
+            events.append((now - started, chunk.decode("utf-8", "replace")))
+            pending += chunk
+            last_activity = now
+        elapsed = time.time() - started
+        if stage == 0 and elapsed > 4.0:
+            send(TUI_TASK)
+            stage = 1
+        elif stage == 1 and elapsed > 5.5:
+            send("\r")
+            stage = 2
+        elif stage == 2:
+            if b"Always" in pending[-9000:] and answered < TUI_MAX_APPROVALS:
+                send("a")
+                answered += 1
+            elif time.time() - last_activity > 25.0:
+                # Still for 25 s with no prompt open: the answer has landed and the
+                # reader has had it on screen. Anything longer is dead air.
+                break
+
+    time.sleep(2.0)
+    try:
+        os.write(master, b"\x03")
+        time.sleep(0.6)
+    except OSError:
+        pass
+    os.close(master)
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+
+    header = {
+        "version": 2,
+        "width": TUI_COLS,
+        "height": TUI_ROWS,
+        "timestamp": int(started),
+        "env": {"SHELL": "/bin/zsh", "TERM": "xterm-256color"},
+    }
+    with cast.open("w", encoding="utf-8") as fh:
+        fh.write(json.dumps(header) + "\n")
+        for at, data in events:
+            fh.write(json.dumps([round(at, 4), "o", data]) + "\n")
+    print(f"    cast: {len(events)} events over {events[-1][0]:.1f}s")
+
+
+def tui_clip(engine: Path) -> None:
+    cast = TEMP / "ephe-demo-tui.cast"
+    gif = TEMP / "ephe-demo-tui.gif"
+    ws = TEMP / "tui-workspace"
+    cfg = TEMP / "tui-config"
+    cfg.mkdir(parents=True, exist_ok=True)
+    _tui_project(ws)
+    record_tui_cast(cast, cfg, ws, engine)
+    result = subprocess.run(
+        [
+            "agg", str(cast), str(gif),
+            "--font-size", "17",
+            "--line-height", "1.3",
+            "--idle-time-limit", "1.2",
+            "--speed", "1.25",
+            "--theme", "asciinema",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"agg failed: {result.stderr[-400:]}")
+    _gif_to_webp(gif, MEDIA / "ephe-demo-tui.webp")
+    gif.unlink(missing_ok=True)
+    cast.unlink(missing_ok=True)
+
+
 # Recording
 
 
@@ -889,6 +1076,10 @@ def main() -> None:
                     webm.unlink()
             finally:
                 browser.close()
+
+        if wanted("tui"):
+            print("[tui] recording the terminal through a pty ...")
+            tui_clip(stack.root / "engine.json")
     finally:
         stack.stop()
         if keep_root:
