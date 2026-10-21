@@ -13,8 +13,10 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
+import textwrap
 from urllib.parse import urlparse
 
+from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -64,6 +66,7 @@ from ui.session_switcher import SessionChoice, SessionSwitcher
 from ui import editor as editor_mod
 from ui import file_context
 from ui.palette import ACCENT, DIM, ERROR, OK, WARN
+from ui.terminal_mark import MARK_ROWS
 
 
 def _relative_when(iso: object) -> str:
@@ -437,39 +440,75 @@ class EpheApp(App):
 
         # Multi-session hint (Phase 2 item 7): shows when further sessions
         # exist in parallel. Fail-safe (no exception inside the greeting).
-        multi_hint = ""
-        try:
-            n_sessions = len(ms.list_sessions())
-            if n_sessions > 1:
-                multi_hint = (
-                    f"\n   {n_sessions} sessions stored — /sessions opens the list, "
-                    f"`ephe session list` names them."
-                )
-        except Exception:
-            multi_hint = ""
         self._set_session_labels(title, count)
         self.query_one(StatusBar).post_message(StatusBar.SetSession(title, count))
 
         if count > 0:
-            chat.post_message(
-                ChatView.AddSystemMessage(
-                    f"◑ Ephe – Welcome back.\n"
-                    f"   Session “{title}”: {count} messages, {when}\n"
-                    f"   {self._key_hints()}{multi_hint}",
-                    style="welcome",
-                )
-            )
+            chat.post_message(ChatView.AddSystemVisual(self._welcome_card(
+                head=("Ephe", "Welcome back."),
+                body=(f"Session “{title}”: {count} messages, {when}.",
+                      *self._key_hint_rows(), *self._session_hints()),
+            )))
         else:
-            chat.post_message(
-                ChatView.AddSystemMessage(
-                    f"◑ Ephe – Ready. Runs locally. Everything else is a decision.\n"
-                    f"   Session “{title}”. /sessions switches, /new starts one.\n"
-                    f"   /help lists every key; Ctrl+P lists every action.\n"
-                    f"   {self._key_hints()}{multi_hint}",
-                    style="welcome",
-                )
-            )
+            chat.post_message(ChatView.AddSystemVisual(self._welcome_card(
+                head=("Ephe", "Runs locally. Everything else is a decision."),
+                body=(f"Session “{title}”. /sessions switches, /new starts one.",
+                      *self._key_hint_rows(), *self._session_hints()),
+            )))
         self._post_context_meter()
+
+    def _key_hint_rows(self) -> tuple[str, ...]:
+        """The key legend as one row per line, ready for the card's right margin."""
+        return tuple(
+            line.strip() for line in self._key_hints().splitlines() if line.strip()
+        )
+
+    def _session_hints(self) -> tuple[str, ...]:
+        """The lines under the greeting: one per thing the user can do next."""
+        hints = []
+        try:
+            stored = len(ms.list_sessions())
+        except Exception:
+            stored = 0
+        if stored > 1:
+            hints.append(
+                f"{stored} sessions stored — /sessions opens the list, "
+                "`ephe session list` names them."
+            )
+        return tuple(hints)
+
+    def _welcome_card(self, head: tuple[str, ...], body: tuple[str, ...]) -> Text:
+        """The bee beside the first words of a session.
+
+        The mark is the template cut of `app/src/assets/mark-mono.svg` folded to a
+        character grid by `scripts/generate_terminal_mark.py`, so the terminal shows
+        the same silhouette as the app icon. The words sit in its right margin.
+
+        A Text carries styles as spans: a session title is the user's own text and
+        must not reach a markup parser.
+        """
+        gutter = 3
+        width = max(len(row) for row in MARK_ROWS) + gutter
+        # 72 keeps a wrapped row inside a 100-column terminal next to the mark; a
+        # narrower terminal wraps the whole block the same way any long line does.
+        wrapped: list[str] = []
+        for line in body:
+            wrapped.extend(textwrap.wrap(line, width=72) or [""])
+        rows = max(len(MARK_ROWS) + 1 + len(wrapped), 2 + len(head))
+        visual = Text()
+        for index in range(rows):
+            if index:
+                visual.append("\n")
+            mark = MARK_ROWS[index] if index < len(MARK_ROWS) else ""
+            visual.append(mark.ljust(width), style=DIM)
+            head_row = index - 1
+            if 0 <= head_row < len(head):
+                visual.append(head[head_row], style=f"bold {ACCENT}")
+            else:
+                body_row = index - (len(MARK_ROWS) + 1)
+                if 0 <= body_row < len(wrapped):
+                    visual.append(wrapped[body_row])
+        return visual
 
     def _switch_session(self, sid: str) -> bool:
         """Load another stored session; the active cursor moves with it."""

@@ -29,7 +29,7 @@ from textual.containers import Vertical
 from textual.message import Message as TextualMessage
 from textual.widget import Widget
 from textual.widgets import Collapsible, Static
-from rich.console import Group
+from rich.console import Group, RenderableType
 from rich.markdown import Markdown
 from rich.markup import escape as markup_escape
 from rich.text import Text
@@ -461,6 +461,16 @@ class ChatView(Widget):
             self.text = text
             self.style = style
 
+    class AddSystemVisual(TextualMessage):
+        """A system block handed over as a renderable.
+
+        Text carries its styles as spans and never meets a markup parser, which is
+        what a block built from a user's own session title has to be."""
+
+        def __init__(self, visual: RenderableType) -> None:
+            super().__init__()
+            self.visual = visual
+
     class BeginAssistantMessage(TextualMessage):
         pass
 
@@ -542,6 +552,15 @@ class ChatView(Widget):
         rich_style = style_map.get(event.style, DIM)
         # event.text may itself contain markup (App uses [bold …])
         self._add_static_block(f"[{rich_style}]{event.text}[/{rich_style}]")
+
+    def on_chat_view_add_system_visual(self, event: "ChatView.AddSystemVisual") -> None:
+        container = self._container()
+        anchored = container.is_vertical_scroll_end
+        block = Static(event.visual)
+        block.add_class("static-block")
+        container.mount(block)
+        if anchored:
+            self.call_after_refresh(container.scroll_end, animate=False)
 
     def on_chat_view_begin_assistant_message(self, event: "ChatView.BeginAssistantMessage") -> None:
         container = self._container()

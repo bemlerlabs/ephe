@@ -26,6 +26,8 @@ Output
     docs/media/ephe-demo-onboarding.webp  first open: film + four questions
     docs/media/ephe-demo-chat.webp         real streaming chat (engine)
     docs/media/ephe-demo-artifacts.webp    SVG + XLSX artifacts, and the hero frame
+    docs/media/ephe-demo-budget.webp       read a CSV in the workspace, answer in euros
+    docs/media/ephe-demo-launch.webp       turn the plan into a written checklist file
     docs/media/ephe-demo-agent-panel.webp  live git diff, terminal, task list
     docs/media/ephe-demo-palette.webp      command palette, rename, shortcuts
     docs/media/ephe-demo-plugins.webp      plugin store, master switch, detail sheet
@@ -107,11 +109,18 @@ TRIM_START = {
     "onboarding": 1.0,
     "chat": 3.0,
     "artifacts": 2.5,
+    "budget": 2.5,
+    "launch": 2.5,
     "agent-panel": 1.2,
     "palette": 1.2,
     "plugins": 1.2,
     "mobile": 2.5,
 }
+
+# Clips whose turn runs long keep only their ending, in seconds. A tool turn that
+# takes half a minute is the product working, not dead air, so the cap sits above
+# the longest turn recorded here and only trims the settle before it.
+TAIL_SECONDS = {}
 
 # Filled by main() from the stack's Vite port; a clip must not run against an empty VITE.
 VITE = ""
@@ -205,7 +214,28 @@ class DemoStack:
         subprocess.run(
             ["git", "commit", "-q", "-m", "demo: initial project"], cwd=ws, check=True
         )
-        (ws / "plan.md").write_text("# Launch plan\n\n- draft the page\n")
+        (ws / "plan.md").write_text(
+            "# Launch plan\n\n"
+            "- draft the landing page — owner: Dana — open\n"
+            "- record the three demo clips — owner: Dana — open\n"
+            "- write the install guide — owner: Ravi — open\n"
+            "- set up the feedback inbox — owner: Ravi — not started\n"
+            "- price the hosted engine add-on — owner: Mira — not started\n"
+            "- accessibility pass on the composer — owner: Dana — open\n"
+            "- mobile pairing smoke — owner: Ravi — not started\n"
+            "- publish the changelog — owner: Mira — not started\n"
+        )
+        (ws / "monthly_budget_2026.csv").write_text(
+            "month,category,amount_eur,kind\n"
+            "2026-01,hosting,820,fixed\n"
+            "2026-01,payroll,14200,fixed\n"
+            "2026-01,marketing,3100,variable\n"
+            "2026-01,tooling,1450,variable\n"
+            "2026-02,hosting,910,fixed\n"
+            "2026-02,payroll,14200,fixed\n"
+            "2026-02,marketing,4300,variable\n"
+            "2026-02,tooling,1610,variable\n"
+        )
         readme.write_text(readme.read_text() + "\n- one pending change\n")
         return ws
 
@@ -383,7 +413,7 @@ def _js_click(page: Page, testid: str) -> None:
 
 
 def rename_session(page: Page, title: str) -> None:
-    """Give the recorded session a title a viewer can read, not "default"."""
+    """Title the recorded session so a viewer can read what the frame shows."""
     page.wait_for_selector('[data-testid="session-title-text"]', timeout=10000)
     page.evaluate(
         "() => { const el = document.querySelector('[data-testid=\"session-title-text\"]');"
@@ -580,6 +610,60 @@ def clip_artifacts(page: Page) -> None:
     page.wait_for_timeout(1400)
 
 
+def clip_budget(page: Page) -> None:
+    """Read a real CSV in the workspace and answer with numbers from it.
+
+    The prompt names the file and refuses memory on purpose: the frame has to show
+    the tool card opening and the figures matching the rows the demo wrote."""
+    page.goto(f"{VITE}/#/chat", wait_until="load")
+    page.wait_for_selector(COMPOSER, timeout=20000)
+    page.locator('[data-testid="new-session"]').click()
+    page.wait_for_timeout(1600)
+    suppress_task_dock(page)
+    rename_session(page, "Where the money goes")
+
+    human_type_lines(
+        page,
+        COMPOSER,
+        [
+            "Read monthly_budget_2026.csv in my workspace. Which three variable",
+            "categories grew most between January and February? Give the euro",
+            "difference for each. Answer in English, under 60 words.",
+        ],
+    )
+    send_and_wait(page, done_timeout=180_000, label="budget turn")
+    page.wait_for_timeout(2600)
+    dismiss_task_dock(page)
+    dismiss_status_popover(page)
+
+
+def clip_launch(page: Page) -> None:
+    """Turn the workspace's own plan into a written deliverable the user can open."""
+    page.goto(f"{VITE}/#/chat", wait_until="load")
+    page.wait_for_selector(COMPOSER, timeout=20000)
+    page.locator('[data-testid="new-session"]').click()
+    page.wait_for_timeout(1600)
+    suppress_task_dock(page)
+    rename_session(page, "What is still open")
+
+    human_type_lines(
+        page,
+        COMPOSER,
+        [
+            "Read plan.md in my workspace. Write launch_checklist.md with only the",
+            "steps that are still open, as a markdown table with columns Step and",
+            "Owner, sorted by owner. Use the file tool. Then reply in English with",
+            "one line: the path and how many steps you moved.",
+        ],
+    )
+    send_and_wait(page, done_timeout=200_000, label="checklist turn")
+    page.wait_for_timeout(2600)
+    dismiss_task_dock(page)
+    dismiss_status_popover(page)
+    # The file card is the proof; the preview pane is not opened on camera because
+    # its address row carries the resolved path of the throwaway demo root.
+
+
 DEMO_TASK_TITLES = ("Ship v4 README demos", "Review repo hygiene report")
 
 
@@ -748,13 +832,33 @@ def _gif_to_webp(gif: Path, out: Path) -> None:
         raise RuntimeError(f"gif2webp failed: {result.stderr[-400:]}")
 
 
+def _duration(webm: Path) -> float:
+    out = subprocess.run(
+        [
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=nw=1:nk=1", str(webm),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    return float(out.stdout.strip() or 0.0)
+
+
 def to_webp(
     webm: Path,
     out: Path,
     mobile: bool = False,
     small: bool = False,
     trim_start: float = 0.1,
+    tail_seconds: float | None = None,
 ) -> None:
+    if tail_seconds:
+        # A long tool turn is mostly waiting. The header row already names the task,
+        # so the clip keeps the end where the answer lands and drops the dead air.
+        total = _duration(webm)
+        if total > trim_start + tail_seconds:
+            trim_start = total - tail_seconds
     if mobile:
         ladder = [(390, 12), (340, 10)]
     elif small:
@@ -762,7 +866,9 @@ def to_webp(
         # tour's type readable while the file stays in the same class as the rest.
         ladder = [(640, 8), (560, 6)]
     else:
-        ladder = [(960, 12), (840, 10), (760, 8)]
+        # The capture is 2x the viewport, so the top rung downsamples from more
+        # pixels than the README ever shows; type stays crisp on a retina display.
+        ladder = [(1160, 12), (960, 10), (840, 8), (840, 5)]
     for width, fps in ladder:
         palette = TEMP / f"pal_{width}_{fps}.png"
         intermediate = TEMP / f"{out.stem}-{width}-{fps}.gif"
@@ -987,6 +1093,9 @@ def record_clip(browser: Browser, name: str, runner, mobile: bool = False) -> Pa
         is_mobile=mobile,
         has_touch=mobile,
         record_video_dir=str(record_dir),
+        # Playwright pads the screencast to a size larger than the viewport instead
+        # of rendering at device scale, so the video stays at the CSS viewport and
+        # the crispness comes from device_scale_factor plus the downscale below.
         record_video_size=viewport,
     )
     context.add_init_script(ONBOARDING_INIT if name == "onboarding" else INIT_SCRIPT)
@@ -1003,6 +1112,8 @@ DESKTOP_CLIPS = {
     "onboarding": clip_onboarding,
     "chat": clip_chat,
     "artifacts": clip_artifacts,
+    "budget": clip_budget,
+    "launch": clip_launch,
     "agent-panel": clip_agent_panel,
     "palette": clip_palette,
     "plugins": clip_plugins,
@@ -1072,6 +1183,7 @@ def main() -> None:
                         mobile=mobile,
                         small=name in {"onboarding", "artifacts"},
                         trim_start=TRIM_START.get(name, 0.1),
+                        tail_seconds=TAIL_SECONDS.get(name),
                     )
                     webm.unlink()
             finally:

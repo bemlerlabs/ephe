@@ -164,8 +164,8 @@ def test_workspace_dir_fallback_is_documented_server_cwd(monkeypatch, tmp_path):
 def test_workspace_dir_never_defaults_to_the_ephe_checkout(monkeypatch, tmp_path):
     """GIVEN no user choice and a server started inside the Ephe source tree
     WHEN  get_workspace_dir()
-    THEN  the neutral per-device workspace answers, not the checkout — the
-    checkout's branches and file names are ours, never the user's project."""
+    THEN  the neutral per-device workspace answers. The checkout's branches and
+    file names are ours, and a user's project is theirs."""
     from pathlib import Path
 
     import core.engine_config as ec
