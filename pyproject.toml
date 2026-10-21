@@ -138,6 +138,16 @@ constraint-dependencies = [
     "multidict>=6.9.1",
     "aiohttp>=3.14.5",
 ]
+# ephemora-cell 1.1.0 declares wasmtime<48, a bound older than the engine the
+# advisories were patched in. An override replaces that requirement outright; a
+# constraint cannot, because the two ranges do not intersect. The floor is the pip
+# release, not the crate release: PyPI ships 47.0.1, 48.0.0 and 49.0.0, and OSV on
+# 2026-10-21 lists 23 open advisories for 47.0.1, 18 for 48.0.0 and 19 for 49.0.0,
+# so 48.0.0 leaves the fewest. A pip resolver still reads ephemora-cell's own
+# bound until upstream widens it; this override covers installs from this lock.
+override-dependencies = [
+    "wasmtime>=48.0.0,<49",
+]
 
 [tool.hatch.build.targets.wheel]
 # Note: in Hatchling `packages` displaces the `include` patterns (measured:

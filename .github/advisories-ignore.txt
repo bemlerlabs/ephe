@@ -94,6 +94,17 @@ GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed 
 # advisory inside a pip wheel is not a manifest Dependabot reads.
 # Alert counts and register rows are different units; neither number is the other's check.
 
+# Measured 2026-10-21 against crates.io `wasmtime` through the OSV API, because no
+# reader in this repository reaches that layer: the PyPI package answers zero
+# advisories (the wheel is asked about, the engine inside it is a Rust crate), and
+# Dependabot reads manifests. Open advisories: 23 for 47.0.1, 18 for 48.0.0, 19 for
+# 49.0.0. Ephe therefore overrides ephemora-cell's `wasmtime<48` bound to 48.0.0 in
+# pyproject.toml, and tests/test_cell_runtime_floor.py holds that floor so a later
+# `uv lock` cannot walk back. The remaining 18 are not triaged here: the cell
+# disables function references, exceptions, GC, tail calls, stack switching,
+# threads, multi-memory and memory64, so several of those records describe paths
+# this configuration refuses to compile. That triage is a named follow-up.
+
 # Eight npm advisories left this file on 2026-10-14, because they stopped being true: the
 # lockfile lane applied the overrides the blocks below used to ask for, and Dependabot reports
 # all eight closed (katex 0.18.2, source-map-js 1.2.2, brace-expansion 1.1.21 and 5.0.12).
