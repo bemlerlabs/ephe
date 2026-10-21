@@ -82,6 +82,13 @@ def test_registry_flip_applies_without_invalidation(cfg):
     hidden = registry.get_tool_schemas()
     assert "web_search" not in _names(hidden)
 
-    _write_registry(cfg, [{"name": "web-research", "enabled": True}])
+    from core.plugin_lifecycle import STATE_FILENAME, PluginLifecycle
+
+    lifecycle = PluginLifecycle(
+        cfg / STATE_FILENAME,
+        versions={"web-research": "1.0.0"},
+        audit_sink=lambda entry: None,
+    )
+    lifecycle.set_enabled("web-research", True)
     visible = registry.get_tool_schemas()
     assert "web_search" in _names(visible)

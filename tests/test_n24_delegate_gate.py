@@ -189,8 +189,9 @@ def test_given_a_mutating_helper_call_when_the_watcher_declines_then_nothing_is_
     assert _audit_rows("write_file")[-1]["decision"] == "denied"
 
 
-def test_given_a_mutating_helper_call_when_the_watcher_approves_then_it_runs(tmp_path):
+def test_given_a_mutating_helper_call_when_the_watcher_approves_then_it_runs(tmp_path, monkeypatch):
     """Rule 3 — an approved call runs, and the approval is the record."""
+    monkeypatch.setenv("EPHE_WORKSPACE", str(tmp_path))
     target = tmp_path / "by-helper.txt"
 
     with _Watcher(answer=True) as watcher:

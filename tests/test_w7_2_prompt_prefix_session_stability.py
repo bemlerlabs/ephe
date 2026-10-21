@@ -94,15 +94,21 @@ def gated_home(tmp_path, monkeypatch, request):
     would be empty. The family and its tools are read from the catalog, never
     pinned as literals.
     """
-    from core.plugin_runtime import CATALOG_TOOL_FAMILIES
+    from pathlib import Path
+
+    from core.plugin_registry import PluginRegistry
     from core.tools import registry
     from core.tools._schemas import BASE_TOOL_SCHEMAS
 
+    root = Path(__file__).resolve().parents[1]
+    activations: dict[str, list[str]] = {}
+    for tool, plugin in PluginRegistry.load(root / "plugins", root / "skills").tool_activations():
+        activations.setdefault(plugin, []).append(tool)
     advertised = {entry.get("function", {}).get("name", "") for entry in BASE_TOOL_SCHEMAS}
     catalog = [
-        (plugin_id, sorted(family["tools"]))
-        for plugin_id, family in CATALOG_TOOL_FAMILIES.items()
-        if family.get("tools") and set(family["tools"]) & advertised
+        (plugin_id, sorted(tools))
+        for plugin_id, tools in sorted(activations.items())
+        if set(tools) & advertised
     ]
     assert catalog, "no catalog family gates a tool the registry advertises"
     plugin_id, gated_tools = catalog[0]

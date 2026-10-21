@@ -901,8 +901,9 @@ _PORT_SERVER_SCRIPT = (
 
 #: The worker that gets SIGKILLed while its server serves. It starts the child detached and
 #: then waits to be killed, so the kill lands between the spawn and any teardown of its own:
-#: an exit no ``finally`` can answer. The child reparents to launchd, the state gw8's server
-#: was found in and the state nothing on the box reaches afterwards.
+#: an exit no ``finally`` can answer. The child reparents to launchd, or to the CI runner's
+#: subreaper on Linux, the state gw8's server was found in and the state nothing on the box
+#: reaches afterwards.
 _TORN_WORKER_SCRIPT = (
     "import subprocess, sys, time\n"
     "child = subprocess.Popen([sys.executable, 'run_server.py', '--port', '0',\n"
@@ -958,7 +959,10 @@ def test_a_torn_down_worker_leaves_a_server_the_sweep_ends(tmp_path) -> None:
         os.kill(worker.pid, signal.SIGKILL)
         assert worker.wait(timeout=20) == -signal.SIGKILL, "SIGKILL leaves no exit status"
         if still_alive(children[0]):
-            assert _parent_of(children[0]) == 1, "an orphan is nobody's child any more"
+            parent = _parent_of(children[0])
+            assert parent not in (worker.pid, os.getpid()), (
+                f"the server is still a child of the worker or the test (parent {parent})"
+            )
             named = _named_for(children[0], session_offenders(port, [], False, grace=0.0))
             assert len(named) == 1, named
             assert f"EPHE_CONFIG_DIR={marker}" in named[0]

@@ -65,7 +65,7 @@ async def test_create_video_full_pipeline(monkeypatch):
         calls.append(list(argv))
         return SimpleNamespace(
             returncode=0,
-            stdout="chat.gif\n  ephe-demo-chat.gif: 2.10 MB (1280px @30fps)\n"
+            stdout="chat.webp\n  ephe-demo-chat.webp: 2.10 MB (1280px @30fps)\n"
             "Done. README assets refreshed in docs/media/ + docs/screenshots/hero-banner.png",
             stderr="",
         )
@@ -74,7 +74,7 @@ async def test_create_video_full_pipeline(monkeypatch):
     result = await _cv()
     assert calls, "subprocess.run wurde nicht aufgerufen"
     assert "create_demo_media.py" in calls[0][1]
-    assert "ephe-demo-chat.gif" in result
+    assert "ephe-demo-chat.webp" in result
     assert "PNG_FILE:" in result
 
 

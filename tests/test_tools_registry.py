@@ -153,6 +153,8 @@ class TestToolMap:
             "ask_user",
             # zen gateway parity: opencode nomenclature aliases (bash/read/edit)
             "bash", "read", "edit",
+            # P1: read-only view of the plugin portfolio and switch state
+            "plugin_manager",
         }
         assert set(TOOL_MAP.keys()) == expected_tools
 

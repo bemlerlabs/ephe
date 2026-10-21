@@ -15,6 +15,7 @@ from pathlib import Path
 from core.tools.base import (
     SHELL_TIMEOUT_SECONDS,
 )
+from core.secret_broker import child_env
 
 # Issue #19 (Runs-anywhere): Execution-Backends — local (default) | docker
 # Opt-in via EPHE_SHELL_BACKEND=docker; without the env, byte-identical locally.
@@ -94,7 +95,9 @@ def _docker_image() -> str:
 
 
 def _docker_run(args: list[str], timeout: float = 60.0) -> "subprocess.CompletedProcess[str]":
-    return subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+    return subprocess.run(
+        args, capture_output=True, text=True, timeout=timeout, env=child_env()
+    )
 
 
 def _docker_container_name(workspace: Path) -> str:
@@ -221,6 +224,7 @@ def _exec_sync(command, cwd: "str | None", use_shell: bool):
         stderr=subprocess.PIPE,
         text=True,
         cwd=cwd,
+        env=child_env(),
         **_new_group_kwargs(),
     )
     register_group(proc.pid)

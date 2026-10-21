@@ -33,6 +33,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from core.secret_broker import child_env
+
 HOOKS_FILENAME = "hooks.json"
 _HOOK_TIMEOUT_S = 10.0
 
@@ -145,6 +147,7 @@ def _run_command(spec: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any
             input=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             capture_output=True,
             timeout=_HOOK_TIMEOUT_S,
+            env=child_env(),
         )
         if proc.returncode != 0:
             return None

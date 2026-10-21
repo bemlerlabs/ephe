@@ -17,18 +17,29 @@
       {
         "name": "pdf",
         "description": "Produce a real PDF document",
-        "template": "Erstelle ein echtes PDF zu: {input}. Nutze create_pdf und liefere ein strukturiertes, artefakt-basiertes Dokument mit Kennzahlen und Quellen."
+        "template": "Create a real PDF about: {input}. Use create_pdf and deliver a structured, artifact-based document with figures and sources."
       },
       {
         "name": "docx",
         "description": "Produce a real DOCX document",
-        "template": "Erstelle ein echtes DOCX zu: {input}. Nutze create_docx und liefere ein sauber formatiertes Dokument."
+        "template": "Create a real DOCX about: {input}. Use create_docx and deliver a cleanly formatted document."
       },
       {
         "name": "report",
         "description": "Build a report-grade PDF brief",
-        "template": "Erstelle einen Report im McKinsey-Stil zu: {input}. Liefere echte Artefakte (PDF) mit Struktur, Kennzahlen und Quellen."
+        "template": "Create a McKinsey-style report on: {input}. Deliver real artifacts (PDF) with structure, figures and sources."
       }
+    ],
+    "tools": [
+      "create_pdf",
+      "create_docx",
+      "create_qrcode",
+      "extract_pdf_text",
+      "build_document",
+      "export_source_brief",
+      "create_source_notebook",
+      "query_source_notebook",
+      "verify_artifact"
     ]
   },
   "icon": "icon.svg"

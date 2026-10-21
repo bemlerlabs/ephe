@@ -342,22 +342,56 @@ def _mapp_entry(entry: dict[str, Any], enabled_lookup: dict[str, bool]) -> dict[
 
 
 def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = None) -> dict[str, Any]:
-    """Aggregated view: catalogue (both segments) + enabled switches + master.
+    """Aggregated view: catalogue (both segments) + lifecycle switches.
 
-    Enabled comes from the registry; a missing entry falls back to the catalogue default
-    (`enabled`, otherwise True). `master_enabled` (E1) is the kill switch: False
-    = stock Ephe, every catalogue toggle inactive."""
+    The lifecycle state is the only switch truth; a missing per-plugin entry
+    keeps the one-release default. If the state cannot be read, the view is
+    ``unproven``: every switch is off, a stable notice explains it, and the
+    legacy ``master_enabled`` value is never consulted. ``read_only`` mirrors the
+    operator brake on the switch surface.
+    """
+    from core import plugin_switch_policy
+
     catalog = load_catalog(catalog_file)
     reg_items = load_registry(registry_file)
-    enabled_lookup: dict[str, bool] = {}
-    for item in reg_items:
-        if isinstance(item, dict) and item.get("name") and "enabled" in item:
-            enabled_lookup[str(item["name"])] = bool(item["enabled"])
-    raw = _read_json(registry_file if registry_file is not None else registry_path())
-    master = bool(raw.get("master_enabled")) if isinstance(raw, dict) and isinstance(raw.get("master_enabled"), bool) else True
+    names = [
+        str(entry.get("name") or "")
+        for seg in ("public", "personal")
+        for entry in catalog[seg]
+    ]
+    read_only = plugin_switch_policy.read_only()
+    unproven = False
+    try:
+        from core import plugin_runtime
+
+        state = plugin_runtime.store_state(names, registry_file)
+        enabled_lookup = state.enabled
+        master = not state.pause_all
+        notices = list(plugin_runtime.notices(registry_file))
+        unproven = state.unproven
+    except Exception:
+        enabled_lookup = {name: False for name in names}
+        master = False
+        notices = []
+        unproven = True
+    if unproven and not any(
+        notice.get("code") == "plugin_state_unproven" for notice in notices
+    ):
+        notices.append(
+            {
+                "code": "plugin_state_unproven",
+                "message": (
+                    "The plugin state could not be read; every switch stays off "
+                    "until it can."
+                ),
+            }
+        )
     view = {
         "version": CATALOG_VERSION,
         "master_enabled": master,
+        "read_only": read_only,
+        "unproven": unproven,
+        "notices": notices,
         "public": [_mapp_entry(e, enabled_lookup) for e in catalog["public"]],
         "personal": [_mapp_entry(e, enabled_lookup) for e in catalog["personal"]],
     }

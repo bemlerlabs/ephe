@@ -30,12 +30,16 @@ export function DeepFieldRow({
   secKey: string
   field: DeepField
 }) {
-  const { deepDraft, i18n, setDeepField } = model
+  const { deepDraft, i18n, setDeepField, t } = model
   const isDe = i18n?.language === 'de'
   if (field.multiline) return null
   const value = deepDraft[secKey]?.[field.key] ?? field.value ?? field.default ?? ''
-  const label = isDe ? field.label : field.labelEn || field.label
-  const hint = isDe ? field.hint : field.hintEn || field.hint
+  const label = field.labelKey
+    ? t(field.labelKey)
+    : isDe
+      ? field.label
+      : field.labelEn || field.label
+  const hint = field.hintKey ? t(field.hintKey) : isDe ? field.hint : field.hintEn || field.hint
   return (
     <SettingsRow
       icon={fieldIcon(field.key, field.type)}

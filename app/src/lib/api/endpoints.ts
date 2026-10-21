@@ -92,29 +92,49 @@ export interface PluginView {
   public: PluginEntry[]
   personal: PluginEntry[]
   orphans?: string[]
+  /** P1: migration notices, e.g. the retired legacy master bypass. */
+  notices?: { code: string; message?: string }[]
   /** E1 master kill-switch: false = stock Ephe, all toggles inactive. */
   master_enabled?: boolean
+  /** O-10: the operator brake; every switch mutation answers 423. */
+  read_only?: boolean
+  /** The lifecycle state could not be read; every switch is off. */
+  unproven?: boolean
 }
 /** Aggregated store view: curated catalog + installed registry. */
 export function getPlugins(): Promise<PluginView> {
   return request<PluginView>('/api/plugins')
 }
 
-/** Set a plugin's enabled switch (best effort, always able to return 200). */
+/** Server-confirmed plugin state after a switch request. */
+export interface PluginStateResponse {
+  name: string
+  state: string
+  enabled: boolean
+  version: string
+  scope: 'user' | 'workspace'
+  etag: string
+  pause_all: boolean
+}
+
+/** One endpoint for both directions; the server commits before this resolves. */
 export function setPluginEnabled(
   id: string,
   enabled: boolean,
-): Promise<{ id: string; enabled: boolean; saved: boolean }> {
-  return request<{ id: string; enabled: boolean; saved: boolean }>(
-    `/api/plugins/${encodeURIComponent(id)}/enable`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ enabled }),
-    },
-  )
+  options: { scope?: 'user' | 'workspace'; expectedEtag?: string } = {},
+): Promise<PluginStateResponse> {
+  const headers: Record<string, string> = {}
+  if (options.expectedEtag) headers['If-Match'] = options.expectedEtag
+  const key = globalThis.crypto?.randomUUID?.()
+  if (key) headers['Idempotency-Key'] = key
+  return request<PluginStateResponse>(`/api/plugins/${encodeURIComponent(id)}/enabled`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ enabled, scope: options.scope ?? 'user' }),
+  })
 }
 
-/** E1: master kill switch — false = stock Ephe without plugin gating. */
+/** Legacy master control: off pauses every plugin, on restores its switch state. */
 export function setPluginMaster(
   enabled: boolean,
 ): Promise<{ master_enabled: boolean; saved: boolean }> {

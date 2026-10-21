@@ -944,6 +944,9 @@ def _ensure_engine_ready() -> None:
 async def chat(request: ChatRequest) -> ChatResponse:
     """Synchronous chat endpoint (waits for the complete answer)."""
     _ensure_engine_ready()
+    from core.plugin_commands import expand_plugin_command
+
+    request.message = expand_plugin_command(request.message)
     provider = get_active_provider()
     model = provider.model if request.model == DEFAULT_MODEL else request.model
     # R33 (P1-1): REST callers may omit `history` — the server then feeds back
@@ -1668,6 +1671,9 @@ async def chat_stream(
       4. done
     """
     _ensure_engine_ready()
+    from core.plugin_commands import expand_plugin_command
+
+    request.message = expand_plugin_command(request.message)
     # WH-50: the id the observability middleware already put on the response
     # header and the request log — the SSE error envelope reports the same one,
     # so a streamed failure correlates with the server's log line. Direct

@@ -162,6 +162,16 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                "label": "Plugins automatisch starten", "labelEn": "Autorun plugins"},
     "plugins.plugin_signature_check": {"type": "bool", "default": True,
                                        "label": "Signaturprüfung erzwingen", "labelEn": "Enforce signature check"},
+    # O-10 (2026-10-21): the emergency brake on the switch surface. The label
+    # text lives in the app locale under this key; the register carries no German.
+    "plugins.plugin_lifecycle_read_only": {
+        "type": "bool",
+        "default": False,
+        "label": "Plugin switches read-only",
+        "labelEn": "Plugin switches read-only",
+        "labelKey": "settings.pluginReadOnly",
+        "hintKey": "settings.pluginReadOnlyHint",
+    },
     # Memory (I6-7 — own area; the readers are core/auto_memory.py and
     # core/memory.py). The size field stays in the generation block of
     # engine.json (memory_max_entries) — a second one here would be a second number
@@ -423,6 +433,10 @@ def deep_view() -> list[dict[str, Any]]:
                 "default": meta["default"],
                 "value": merged.get(sec_key, {}).get(field_key, meta["default"]),
             }
+            if "labelKey" in meta:
+                entry["labelKey"] = meta["labelKey"]
+            if "hintKey" in meta:
+                entry["hintKey"] = meta["hintKey"]
             pair = HINTS.get(field_key)
             if pair is not None:
                 entry["hint"], entry["hintEn"] = pair

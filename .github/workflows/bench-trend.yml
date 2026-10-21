@@ -20,7 +20,7 @@ permissions:
 jobs:
   trend:
     name: pass^3 trend (offline, tracked manifests)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Checkout

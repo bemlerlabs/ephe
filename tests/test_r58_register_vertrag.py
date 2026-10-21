@@ -61,7 +61,9 @@ def test_jedes_feld_ist_beschrieben() -> None:
     # from the locale files (both languages), because the German half of a HINTS pair
     # may not grow any more. The keys below are that card's contract.
     cards = {"chat.custom_instructions": ("settings.customInstructionsTitle",
-                                          "settings.customInstructionsHint")}
+                                          "settings.customInstructionsHint"),
+             "plugins.plugin_lifecycle_read_only": ("settings.pluginReadOnly",
+                                                    "settings.pluginReadOnlyHint")}
     for key, keys in cards.items():
         import json
         from pathlib import Path as _P
@@ -148,6 +150,11 @@ def test_deep_view_reicht_grenzen_texte_und_werte(tmp_path, monkeypatch):
         assert entry["value"] == meta["default"], key
         if key in HINTS:
             assert entry["hint"] == HINTS[key][0] and entry["hintEn"] == HINTS[key][1], key
+        elif meta.get("hintKey"):
+            # The copy lives in the locale files, so the register carries the key
+            # instead of a second German/English pair.
+            assert entry["hintKey"] == meta["hintKey"], key
+            assert "hint" not in entry and "hintEn" not in entry, key
         else:
             # A multiline field's copy lives in the locale files; its register entry
             # still carries the bound the editor uses.

@@ -26,12 +26,20 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTER = REPO_ROOT / ".github" / "identities.json"
 
-#: Two public commits predate the committer check. The author-only gate refused neither after
-#: their merge; the committer field still carries the account's primary address. History is not
-#: rewritten, so `--report` names them instead of pretending the history is clean.
+#: Two public commits predate the committer check. `ca513422` has the primary address in the
+#: author field and GitHub's generic noreply address as committer; the author-only gate refused it and
+#: it was fixed forward. `e1b1e67` has the registered noreply as author, so the author-only gate
+#: passed it, while its committer field carries the primary address. History is not rewritten, so
+#: `--report` names them instead of pretending the history is clean.
 KNOWN_HISTORY_EXCEPTIONS = {
-    "ca513422": "squash merge of PR #2: author and committer carry the account's primary address",
-    "e1b1e67": "rebase merge of PR #3: the author is the noreply form, the committer is not",
+    "ca513422": (
+        "squash merge of PR #2: the author carries the account's primary address; "
+        "the committer is GitHub's generic noreply address"
+    ),
+    "e1b1e67": (
+        "rebase merge of PR #3: the author is the registered noreply form; "
+        "the committer carries the account's primary address"
+    ),
 }
 
 

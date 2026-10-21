@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import time
 
 from core.artifact_markers import ARTIFACT_MARKER_PREFIXES
 from core.reason import Reason
 from core.tools.base import (
+    PLUGIN_FILE_SCOPE,
     TOOL_SCHEMA_CACHE_TTL_SECONDS,
     _TOOL_SCHEMA_CACHE,
     ShellConfirmationRequired,
@@ -77,6 +79,7 @@ from core.tools.code_kernel import execute_code
 from core.tools.todo_tools import todo_list
 from core.tools.ask_gate import ASK_TOOL_SCHEMAS, ask_user
 from core.tools.process_tools import process_manage
+from core.tools.plugin_manager import PLUGIN_MANAGER_SCHEMA, plugin_manager
 from core.tools.workbench_tools import (
     WORKBENCH_TOOL_SCHEMAS,
     read_cell_journal,
@@ -104,6 +107,8 @@ async def _agent_message_impl(agent_id: str, message: str) -> str:
     from core.swarm_v2 import agent_message
 
     return await agent_message(agent_id, message)
+
+
 from core.tools.utility_tools import (
     extract_pdf_text,
     format_code,
@@ -170,7 +175,9 @@ def _run_tool_hooks(phase: str, name: str, value):
                 value = (arguments, result)
             audit_event("hook", tool=name, status="ok", detail=phase)
         except Exception as exc:
-            audit_event("hook", tool=name, status="error", detail=f"{phase}: {str(exc)[:160]}")
+            audit_event(
+                "hook", tool=name, status="error", detail=f"{phase}: {str(exc)[:160]}"
+            )
     return value
 
 
@@ -179,7 +186,6 @@ def _run_tool_hooks(phase: str, name: str, value):
 # Runs automatically as a post hook with priority 100. The marker set comes from
 # the single source in core/artifact_markers; it is never re-listed here.
 _ARTIFACT_MARKERS: tuple[str, ...] = ARTIFACT_MARKER_PREFIXES
-
 
 
 # ── P1-4 (deep audit 2026-09-14): session-scoped assertion ledger ───────────
@@ -221,7 +227,7 @@ def _assertion_post_hook(name: str, arguments: dict, result: str) -> str | None:
         line = line.strip()
         for marker in _ARTIFACT_MARKERS:
             if line.startswith(marker):
-                entry["path"] = line[len(marker):].strip()[:200]
+                entry["path"] = line[len(marker) :].strip()[:200]
                 break
     # 2. ARTIFACT_VERIFIED
     if "ARTIFACT_VERIFIED" in result:
@@ -231,6 +237,7 @@ def _assertion_post_hook(name: str, arguments: dict, result: str) -> str | None:
                 break
     # 3. Test result (pytest: N passed, M failed)
     import re as _re
+
     m = _re.search(r"(\d+)\s+passed", result)
     if m:
         entry["tests_passed"] = int(m.group(1))
@@ -243,9 +250,14 @@ def _assertion_post_hook(name: str, arguments: dict, result: str) -> str | None:
         if len(_ASSERTION_LEDGER) > _LEDGER_MAX:
             _ASSERTION_LEDGER.pop(0)
     return None
+
+
 # ── End P1-4 ──────────────────────────────────────────────────────────────────
 
-def _evidence_gate_post_hook(name: str, arguments: dict[str, object], result: str) -> str | None:
+
+def _evidence_gate_post_hook(
+    name: str, arguments: dict[str, object], result: str
+) -> str | None:
     """P0-3: Pins the evidence chain down — every artifact tool call ends with an
     ARTIFACT_VERIFIED-/ARTIFACT_FAILED line, so the agent path does not just see a
     *_FILE: marker but a hard check.
@@ -265,13 +277,20 @@ def _evidence_gate_post_hook(name: str, arguments: dict[str, object], result: st
     if marker_line:
         # Append ARTIFACT_VERIFIED only when it is not there yet
         if "ARTIFACT_VERIFIED" not in result:
-            path = marker_line.split(":", 1)[-1].strip() if ":" in marker_line else marker_line
+            path = (
+                marker_line.split(":", 1)[-1].strip()
+                if ":" in marker_line
+                else marker_line
+            )
             return result + "\nARTIFACT_VERIFIED: " + str(path)[:200]
         return None
     # No marker but also no error → not an artifact tool, the hook stays inactive
-    if result.startswith(("[TOOL-ERROR", "[text-search", "FILE_NOT_FOUND", "ARTIFACT_FAILED")):
+    if result.startswith(
+        ("[TOOL-ERROR", "[text-search", "FILE_NOT_FOUND", "ARTIFACT_FAILED")
+    ):
         return None
     return None
+
 
 # Register the hook with priority 100 (later than result-changing hooks, not as an error)
 register_tool_hook("post", _evidence_gate_post_hook, priority=100)
@@ -301,7 +320,10 @@ _PARITY_TOOL_SCHEMAS: list[dict] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "code": {"type": "string", "description": "Python source to execute."},
+                    "code": {
+                        "type": "string",
+                        "description": "Python source to execute.",
+                    },
                     "reset": {
                         "type": "boolean",
                         "description": "Clear the kernel namespace before running (new session).",
@@ -396,7 +418,10 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Keyword(s), e.g. 'pdf' or 'pptx deck'."},
+                    "query": {
+                        "type": "string",
+                        "description": "Keyword(s), e.g. 'pdf' or 'pptx deck'.",
+                    },
                 },
             },
         },
@@ -421,13 +446,16 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
             "name": "tool_call",
             "description": (
                 "Executes any registered tool (including deferred ones) by name. 'arguments' "
-                "is a JSON object as a string, e.g. '{\"title\":\"Report\"}'."
+                'is a JSON object as a string, e.g. \'{"title":"Report"}\'.'
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "Exact tool name."},
-                    "arguments": {"type": "string", "description": "JSON object string of arguments."},
+                    "arguments": {
+                        "type": "string",
+                        "description": "JSON object string of arguments.",
+                    },
                 },
                 "required": ["name"],
             },
@@ -448,12 +476,33 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "action": {"type": "string", "enum": ["add", "replace", "remove", "list"], "description": "Operation."},
-                    "target": {"type": "string", "enum": ["user", "memory"], "description": "Which tier to write."},
-                    "content": {"type": "string", "description": "Entry text (add/replace). For target=user use 'field=value', e.g. 'name=Test User'."},
-                    "old_text": {"type": "string", "description": "Substring identifying the entry (replace/remove)."},
-                    "memory_type": {"type": "string", "enum": ["semantic", "episodic", "procedural"], "description": "Fact kind for target=memory: semantic=state of things, episodic=something that happened, procedural=how to do it."},
-                    "supersedes": {"type": "string", "description": "Entry id that this write corrects (target=memory, action=replace). Optional; 'old_text' identifies it otherwise."},
+                    "action": {
+                        "type": "string",
+                        "enum": ["add", "replace", "remove", "list"],
+                        "description": "Operation.",
+                    },
+                    "target": {
+                        "type": "string",
+                        "enum": ["user", "memory"],
+                        "description": "Which tier to write.",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Entry text (add/replace). For target=user use 'field=value', e.g. 'name=Test User'.",
+                    },
+                    "old_text": {
+                        "type": "string",
+                        "description": "Substring identifying the entry (replace/remove).",
+                    },
+                    "memory_type": {
+                        "type": "string",
+                        "enum": ["semantic", "episodic", "procedural"],
+                        "description": "Fact kind for target=memory: semantic=state of things, episodic=something that happened, procedural=how to do it.",
+                    },
+                    "supersedes": {
+                        "type": "string",
+                        "description": "Entry id that this write corrects (target=memory, action=replace). Optional; 'old_text' identifies it otherwise.",
+                    },
                 },
                 "required": ["action", "target"],
             },
@@ -471,15 +520,40 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "action": {"type": "string", "enum": ["list", "show", "create", "delete"], "description": "Operation."},
+                    "action": {
+                        "type": "string",
+                        "enum": ["list", "show", "create", "delete"],
+                        "description": "Operation.",
+                    },
                     "name": {"type": "string", "description": "Skill name (slug)."},
-                    "trigger": {"type": "string", "description": "Trigger phrase for activation (create)."},
-                    "description": {"type": "string", "description": "One-line description (create)."},
-                    "tools": {"type": "string", "description": "Comma-separated allowed tool names (create)."},
-                    "system_prompt": {"type": "string", "description": "The skill's system-prompt body (create)."},
-                    "test_input": {"type": "string", "description": "Optional golden-example input (create) — adds a ## Test block."},
-                    "test_expect_tool": {"type": "string", "description": "Tool the test expects to be called (create)."},
-                    "test_expect_contains": {"type": "string", "description": "Substring the answer must contain (create)."},
+                    "trigger": {
+                        "type": "string",
+                        "description": "Trigger phrase for activation (create).",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "One-line description (create).",
+                    },
+                    "tools": {
+                        "type": "string",
+                        "description": "Comma-separated allowed tool names (create).",
+                    },
+                    "system_prompt": {
+                        "type": "string",
+                        "description": "The skill's system-prompt body (create).",
+                    },
+                    "test_input": {
+                        "type": "string",
+                        "description": "Optional golden-example input (create) — adds a ## Test block.",
+                    },
+                    "test_expect_tool": {
+                        "type": "string",
+                        "description": "Tool the test expects to be called (create).",
+                    },
+                    "test_expect_contains": {
+                        "type": "string",
+                        "description": "Substring the answer must contain (create).",
+                    },
                 },
                 "required": ["action"],
             },
@@ -553,6 +627,7 @@ TOOL_MAP: dict[str, object] = {
     "execute_code": execute_code,
     "todo_list": todo_list,
     "process_manage": process_manage,
+    "plugin_manager": plugin_manager,
     # G1: a run that can pause on a question — the human's answer arrives as the
     # result of this call, in the same tool loop.
     "ask_user": ask_user,
@@ -645,16 +720,24 @@ def _validate_tool_arguments(name: str, arguments: dict) -> str | None:
     missing = [key for key in required if key not in arguments]
     if missing:
         names = ", ".join(missing)
-        return _refuse(name, "missing-param", f"required parameter(s) not set: {names}", names=names)
+        return _refuse(
+            name,
+            "missing-param",
+            f"required parameter(s) not set: {names}",
+            names=names,
+        )
 
     closed = bool(properties) and params.get("additionalProperties") is False
     unknown = [
-        key for key in arguments
+        key
+        for key in arguments
         if key not in properties and (closed or not _handler_accepts(name, key))
     ]
     if unknown:
         names = ", ".join(unknown)
-        return _refuse(name, "unknown-param", f"undeclared parameter(s): {names}", names=names)
+        return _refuse(
+            name, "unknown-param", f"undeclared parameter(s): {names}", names=names
+        )
 
     # Enum check (the most frequent small-model error source, cheap and hard).
     for key, value in arguments.items():
@@ -768,9 +851,29 @@ def _typed_repair(name: str, arguments: dict, error_str: str) -> dict | None:
         return repaired
 
     return None
+
+
 # ── end of P1-2 / W7-9 ───────────────────────────────────────────────────────
 
-async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None = None) -> str:
+
+def _audit_plugin_gate(tool: str, decision: str, detail: str) -> None:
+    try:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "plugin_gate",
+            tool=tool,
+            decision=decision,
+            status="denied",
+            detail=detail,
+        )
+    except Exception:
+        pass
+
+
+async def execute_tool(
+    name: str, arguments: dict, policy: ApprovalPolicy | None = None
+) -> str:
     """Execute a tool by name (E5 wrapper: plugin gate + user hooks + core).
 
     Order: plugin gate (fail-closed) → user pre_tool hooks (transform or
@@ -780,18 +883,20 @@ async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None
     # ── E1 plugin runtime gate (fail-closed) ────────────────────────────────
     # A plugin that was explicitly disabled takes its tool out of execution —
     # even if a model still guesses the name. Visibility fails open, execution
-    # fails closed: both honest (denial + audit line).
+    # fails closed: both honest (denial + audit line). A gate that cannot be
+    # evaluated is a denial, never a pass.
+    plugin_owner = ""
     try:
         from core import plugin_runtime
 
         gate = plugin_runtime.tool_gate(name)
-        if not gate.visible:
-            from core.audit_log import audit_event
-
-            audit_event("plugin_gate", tool=name, decision="denied", detail=f"plugin={gate.plugin}")
-            return f"[Tool '{name}' is disabled (plugin '{gate.plugin}' is off — enable it in Settings → Plugins)]"
-    except Exception:
-        pass
+    except Exception as exc:
+        _audit_plugin_gate(name, "gate_unavailable", f"gate failed: {exc}")
+        return f"[Tool '{name}' refused: the plugin gate could not be evaluated.]"
+    if not gate.visible:
+        _audit_plugin_gate(name, "denied", f"plugin={gate.plugin}")
+        return f"[Tool '{name}' is disabled (plugin '{gate.plugin}' is off — enable it in Settings → Plugins)]"
+    plugin_owner = gate.plugin
 
     # W10 mode contract (Plan read-only / Ask no-tools), fail-closed: the offer
     # filter hides tools from the model, yet the deferred bridge resolves a name at
@@ -804,7 +909,9 @@ async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None
         try:
             from core.audit_log import audit_event
 
-            audit_event("mode_gate", tool=name, decision="denied", status=mode_refusal.code)
+            audit_event(
+                "mode_gate", tool=name, decision="denied", status=mode_refusal.code
+            )
         except Exception:
             pass
         return mode_refusal
@@ -831,7 +938,11 @@ async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None
             from core.audit_log import audit_event
 
             audit_event(
-                "security", tool=name, args=effective_args, decision="denied", status="protected-root"
+                "security",
+                tool=name,
+                args=effective_args,
+                decision="denied",
+                status="protected-root",
             )
         except Exception:
             pass
@@ -840,7 +951,59 @@ async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None
             "(~/.ephe, ~/.ssh, ~/.aws, ~/.gnupg or a peer); no approval can open it.]"
         )
 
-    result = await _execute_tool_core(name, effective_args, policy)
+    # Registered last, immediately before execution: an early refusal above must
+    # not leave a guard behind, and a call that cannot be registered must not run.
+    guard = None
+    if plugin_owner:
+        try:
+            from core import plugin_activity
+
+            guard = plugin_activity.begin_call(plugin_owner)
+        except Exception as exc:
+            _audit_plugin_gate(
+                name, "guard_unavailable", f"plugin={plugin_owner}: {exc}"
+            )
+            return (
+                f"[Tool '{name}' refused: the in-flight guard could not be registered.]"
+            )
+        if guard is None:
+            _audit_plugin_gate(
+                name, "guard_unavailable", f"plugin={plugin_owner}: no guard"
+            )
+            return (
+                f"[Tool '{name}' refused: the in-flight guard could not be registered.]"
+            )
+
+    file_scope = PLUGIN_FILE_SCOPE.set(plugin_owner) if plugin_owner else None
+    try:
+        result = await _execute_tool_core(name, effective_args, policy)
+    except asyncio.CancelledError:
+        if guard is not None and guard.cancelled:
+            try:
+                from core.audit_log import audit_event
+
+                audit_event(
+                    "plugin_gate",
+                    tool=name,
+                    decision="cancelled",
+                    detail=f"plugin={plugin_owner}",
+                )
+            except Exception:
+                pass
+            return (
+                f"[Tool '{name}' was cancelled (plugin '{plugin_owner}' was disabled)]"
+            )
+        raise
+    finally:
+        if file_scope is not None:
+            PLUGIN_FILE_SCOPE.reset(file_scope)
+        if guard is not None:
+            try:
+                from core import plugin_activity
+
+                plugin_activity.end_call(guard)
+            except Exception:
+                pass
 
     # Sky 3: one track point per tool call — the ephemeris only sees THAT a tool
     # ran, never with which arguments (d/h/k/n, fail-soft).
@@ -860,18 +1023,27 @@ async def execute_tool(name: str, arguments: dict, policy: ApprovalPolicy | None
     return result
 
 
-async def _execute_tool_core(name: str, arguments: dict, policy: ApprovalPolicy | None = None) -> str:
+async def _execute_tool_core(
+    name: str, arguments: dict, policy: ApprovalPolicy | None = None
+) -> str:
     """Tool core: approval gate, internal pre/post hooks, MCP dispatch,
     validation and execution (everything that existed before the E5 wrapper)."""
     # ── P0-1 E1: Approval-Gate ──────────────────────────────────────────────
     if policy is not None:
         from core.tools.session_ctx import set_current_policy
+
         set_current_policy(policy)
         decision = await request_approval(name, arguments, policy)
         if not decision.approved:
             from core.audit_log import audit_event
 
-            audit_event("approval", tool=name, args=arguments, decision="denied", status="cli-policy")
+            audit_event(
+                "approval",
+                tool=name,
+                args=arguments,
+                decision="denied",
+                status="cli-policy",
+            )
             return decision.report
 
     # R40b (Z43): pre hooks transform the args chain before execution.
@@ -890,7 +1062,9 @@ async def _execute_tool_core(name: str, arguments: dict, policy: ApprovalPolicy 
 
     func = TOOL_MAP.get(name)
     if func is None:
-        return _run_tool_hooks("post", name, (arguments, f"[Tool '{name}' not found]"))[1]
+        return _run_tool_hooks("post", name, (arguments, f"[Tool '{name}' not found]"))[
+            1
+        ]
 
     # P1-9 (deep audit 2026-09-13): structured parameter validation against the
     # declared JSON schema, BEFORE func(**arguments) runs. An unknown or missing
@@ -933,7 +1107,9 @@ async def _execute_tool_core(name: str, arguments: dict, policy: ApprovalPolicy 
         from core.quality import is_error_result, result_decision
 
         audit_event(
-            "tool_exec", tool=name, args=arguments,
+            "tool_exec",
+            tool=name,
+            args=arguments,
             status="error" if is_error_result(result) else "ok",
             decision=result_decision(result),
             duration_ms=int((_time.monotonic() - _started) * 1000),
@@ -946,7 +1122,10 @@ async def _execute_tool_core(name: str, arguments: dict, policy: ApprovalPolicy 
         if exc.__class__.__name__ == "SandboxConfirmationRequired":
             raise
         audit_event(
-            "tool_exec", tool=name, args=arguments, status="error",
+            "tool_exec",
+            tool=name,
+            args=arguments,
+            status="error",
             duration_ms=int((_time.monotonic() - _started) * 1000),
             detail=str(exc)[:300],
         )
@@ -1066,6 +1245,7 @@ _UTILITY_TOOL_SCHEMAS = [
     },
 ]
 
+
 def _apply_plugin_filter(schemas: list[dict]) -> list[dict]:
     """E1 plugin runtime: the gate is a post filter OUTSIDE the cache.
 
@@ -1084,7 +1264,10 @@ def _apply_plugin_filter(schemas: list[dict]) -> list[dict]:
 def get_tool_schemas() -> list[dict]:
     global _TOOL_SCHEMA_CACHE
     now = time.monotonic()
-    if _TOOL_SCHEMA_CACHE and now - _TOOL_SCHEMA_CACHE[0] < TOOL_SCHEMA_CACHE_TTL_SECONDS:
+    if (
+        _TOOL_SCHEMA_CACHE
+        and now - _TOOL_SCHEMA_CACHE[0] < TOOL_SCHEMA_CACHE_TTL_SECONDS
+    ):
         return _apply_plugin_filter(_TOOL_SCHEMA_CACHE[1])
 
     schemas = list(BASE_TOOL_SCHEMAS)
@@ -1106,12 +1289,23 @@ def get_tool_schemas() -> list[dict]:
     schemas.extend(ASK_TOOL_SCHEMAS)
     # R36-S: sub-agent delegation — one schema, the main agent decides on its own.
     schemas.append(SPAWN_AGENT_SCHEMA)
+    # P1: read-only view of the installed plugin portfolio and its switch state.
+    schemas.append(PLUGIN_MANAGER_SCHEMA)
     # Append MCP remote tools dynamically (namespace 'mcp_')
     for mcp_name, mcp_entry in get_mcp_tools().items():
-        schemas.append({
-            "type": "function",
-            "function": mcp_entry.get("schema", {"name": mcp_name, "description": "", "inputSchema": {"type": "object"}}),
-        })
+        schemas.append(
+            {
+                "type": "function",
+                "function": mcp_entry.get(
+                    "schema",
+                    {
+                        "name": mcp_name,
+                        "description": "",
+                        "inputSchema": {"type": "object"},
+                    },
+                ),
+            }
+        )
 
     _TOOL_SCHEMA_CACHE = (now, schemas)
     return _apply_plugin_filter(schemas)
@@ -1128,7 +1322,4 @@ def get_filtered_tool_schemas(whitelist: list[str]) -> list[dict]:
 
     effective = set(whitelist) | set(META_TOOL_NAMES) | {"memory", "skill_manage"}
     all_tools = get_tool_schemas()
-    return [
-        t for t in all_tools
-        if t.get("function", {}).get("name") in effective
-    ]
+    return [t for t in all_tools if t.get("function", {}).get("name") in effective]

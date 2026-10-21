@@ -17,6 +17,9 @@
         "description": "Store a durable fact",
         "template": "Store the following as a durable memory and confirm what you kept: {input}"
       }
+    ],
+    "tools": [
+      "memory"
     ]
   },
   "origin": "first-party",

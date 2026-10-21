@@ -44,7 +44,13 @@ def _row_keys() -> list[str]:
 
 
 def test_jeder_regler_hat_einen_text() -> None:
-    fehlt = sorted(k for k in _row_keys() if k not in HINTS)
+    # A field may carry its explanation as a locale key when the text belongs to
+    # the product surface rather than to this German-annotated register.
+    fehlt = sorted(
+        k
+        for k in _row_keys()
+        if k not in HINTS and not SCHEMA.get(k, {}).get("hintKey")
+    )
     assert not fehlt, f"verdrahtete Felder ohne Erklaerung: {fehlt}"
 
 
@@ -103,3 +109,17 @@ def test_deep_view_hat_keinen_halben_kanal(tmp_path, monkeypatch: pytest.MonkeyP
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
     for entry in (f for s in deep_view() for f in s["fields"]):
         assert ("hint" in entry) == ("hintEn" in entry), entry["key"]
+
+
+def test_a_hint_key_reaches_the_view_without_a_second_copy(tmp_path, monkeypatch) -> None:
+    """A product-copy hint lives in the locale, not as a second HINTS pair."""
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    from core.settings_schema import deep_view
+
+    entries = {field["key"]: field for section in deep_view() for field in section["fields"]}
+    entry = entries["plugins.plugin_lifecycle_read_only"]
+
+    assert entry["labelKey"] == "settings.pluginReadOnly"
+    assert entry["hintKey"] == "settings.pluginReadOnlyHint"
+    assert "hint" not in entry and "hintEn" not in entry
+    assert entry["label"] and entry["labelEn"]

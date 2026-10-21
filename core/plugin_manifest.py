@@ -31,7 +31,58 @@ from typing import Any
 MANIFEST_FILENAME = "ephe-plugin.json"
 SIG_FILENAME = "ephe-plugin.sig.json"
 MANIFEST_VERSION = 1
+MANIFEST_VERSION_V2 = 2
+SUPPORTED_MANIFEST_VERSIONS = frozenset({MANIFEST_VERSION, MANIFEST_VERSION_V2})
 PLUGINS_DIRNAME = "plugins"
+
+KNOWN_MANIFEST_FIELDS = frozenset(
+    {
+        "manifest_version",
+        "name",
+        "version",
+        "description",
+        "publisher",
+        "license",
+        "engines",
+        "dependencies",
+        "permissions",
+        "components",
+        "origin",
+        "icon",
+        "displayName",
+        "description_i18n",
+        "categories",
+        "keywords",
+        "homepage",
+        "repository",
+        "support",
+        "securityContact",
+        "changelog",
+        "releaseNotes",
+        "deprecated",
+        "replacement",
+        "signature",
+        "sha256",
+    }
+)
+
+KNOWN_COMPONENT_KEYS = frozenset(
+    {
+        "skills",
+        "commands",
+        "agents",
+        "hooks",
+        "mcp",
+        "resources",
+        "prompts",
+        "instructions",
+        "rules",
+        "outputStyles",
+        "workflows",
+        "tools",
+        "ui",
+    }
+)
 
 #: First-party manifests shipped inside the repo (catalog-backed bundles).
 BUILTIN_PLUGINS_ROOT = Path(__file__).resolve().parent.parent / "plugins"
@@ -41,6 +92,7 @@ BUILTIN_PLUGINS_ROOT = Path(__file__).resolve().parent.parent / "plugins"
 KNOWN_TOOL_FAMILIES = {"read", "write", "shell", "network", "memory", "vision", "docs", "browser"}
 
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_TOOL_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 #: Test seam — when set, plugins_root() returns this path.
@@ -60,8 +112,31 @@ def _validate(manifest: Any, plugin_dir: Path) -> str | None:
     """Full contract check. Returns an error string or None."""
     if not isinstance(manifest, dict):
         return "manifest: object expected"
-    if manifest.get("manifest_version") != MANIFEST_VERSION:
-        return f"manifest_version: must be {MANIFEST_VERSION}"
+    if manifest.get("manifest_version") not in SUPPORTED_MANIFEST_VERSIONS:
+        return (
+            "manifest_version: must be one of "
+            f"{sorted(SUPPORTED_MANIFEST_VERSIONS)}"
+        )
+    unknown_fields = sorted(set(manifest) - KNOWN_MANIFEST_FIELDS)
+    if unknown_fields:
+        return f"unknown top-level field(s): {', '.join(unknown_fields)}"
+    if manifest["manifest_version"] == MANIFEST_VERSION_V2:
+        publisher = manifest.get("publisher")
+        if isinstance(publisher, dict):
+            publisher_name = publisher.get("name")
+        else:
+            publisher_name = publisher
+        if not isinstance(publisher_name, str) or not publisher_name.strip():
+            return "publisher: name expected (string or object with name)"
+        license_id = manifest.get("license")
+        if not isinstance(license_id, str) or not license_id.strip():
+            return "license: SPDX identifier expected"
+        engines = manifest.get("engines")
+        if engines is not None:
+            if not isinstance(engines, dict):
+                return "engines: object expected"
+            if not isinstance(engines.get("ephe"), str) or not engines.get("ephe", "").strip():
+                return "engines.ephe: SemVer range expected"
     name = manifest.get("name")
     if not isinstance(name, str) or not _SLUG_RE.match(name or ""):
         return "name: lowercase slug expected (a-z0-9-)"
@@ -86,11 +161,27 @@ def _validate(manifest: Any, plugin_dir: Path) -> str | None:
         roots = perms.get("data_roots", [])
         if not isinstance(roots, list) or any(not isinstance(r, str) for r in roots):
             return "permissions.data_roots: list of strings expected"
+        from core.capability_policy import validate_data_roots
+
+        root_error = validate_data_roots(roots)
+        if root_error:
+            return root_error
+
+    dependencies = manifest.get("dependencies", [])
+    if dependencies is not None:
+        if not isinstance(dependencies, list):
+            return "dependencies: list of plugin slugs expected"
+        for dependency in dependencies:
+            if not isinstance(dependency, str) or not _SLUG_RE.match(dependency):
+                return f"dependencies: bad plugin slug {dependency!r}"
 
     components = manifest.get("components", {})
     if components is not None:
         if not isinstance(components, dict):
             return "components: object expected"
+        unknown_components = sorted(set(components) - KNOWN_COMPONENT_KEYS)
+        if unknown_components:
+            return f"components: unknown component(s): {', '.join(unknown_components)}"
         skills = components.get("skills", [])
         if not isinstance(skills, list):
             return "components.skills: list expected"
@@ -108,10 +199,34 @@ def _validate(manifest: Any, plugin_dir: Path) -> str | None:
                 return f"components.commands: bad command name {cmd!r}"
             if not isinstance(cmd.get("description"), str) or not cmd.get("description", "").strip():
                 return f"components.commands.{cmd.get('name')}: description required"
-        # agents / hooks / mcp: reserved for E4/E5 — accepted structurally,
-        # never executed by the E2 runtime.
-        for reserved in ("agents", "hooks", "mcp"):
-            if reserved in components and not isinstance(components[reserved], (dict, list)):
+        tools = components.get("tools", [])
+        if not isinstance(tools, list):
+            return "components.tools: list expected"
+        for tool in tools:
+            if not isinstance(tool, str) or not _TOOL_NAME_RE.match(tool):
+                return f"components.tools: bad tool name {tool!r}"
+        from core.capability_policy import validate_tool_permissions
+
+        permission_error = validate_tool_permissions(manifest)
+        if permission_error:
+            return permission_error
+        # agents / hooks / mcp and the later declarative components: accepted
+        # structurally, never executed by the P1 runtime.
+        for reserved in (
+            "agents",
+            "hooks",
+            "mcp",
+            "resources",
+            "prompts",
+            "instructions",
+            "rules",
+            "outputStyles",
+            "workflows",
+            "ui",
+        ):
+            if reserved in components and not isinstance(
+                components[reserved], (dict, list)
+            ):
                 return f"components.{reserved}: dict or list expected"
     # Extensions v2 (E2): optional icon. Registered by path (no traversal, no
     # absolute paths), only .svg/.png, and it has to sit inside the plugin dir.

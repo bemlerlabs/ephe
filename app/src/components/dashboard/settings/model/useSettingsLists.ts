@@ -199,8 +199,12 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
             personal: prev.personal.map((p) => (p.id === id ? { ...p, enabled } : p)),
           },
       )
-    } catch {
+    } catch (error) {
+      // The switch reverts on its own; the view must return to the backend truth
+      // as well, so a conflict cannot leave a stale knob behind.
+      await loadPluginStore()
       toastBus.error(t('settings.pluginToggleFailed'))
+      throw error
     }
   }
   // E1: master kill switch — off = stock Ephe (every toggle inactive).

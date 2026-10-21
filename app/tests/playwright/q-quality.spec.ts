@@ -106,6 +106,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     const t0 = Date.now()
     await page.goto('/#/chat', { waitUntil: 'load' })
     await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 15000 })
+    const bootApiCalls = [...apiCalls]
     const bootMs = Date.now() - t0
 
     const ids: string[] = await page.evaluate(() =>
@@ -148,9 +149,11 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // (GET /api/tour, the device marker) to the 24 measured before it. The workspace
     // bar is now always present, so its one read of the active folder (GET /api/fs,
     // shared by every consumer through useWorkspaceState) joins that set: 26.
+    // Snapshot at the panel-ready boundary: a late health or session poll is not part
+    // of the boot set, and a slower runner otherwise adds one while the DOM is read.
     expect(
-      apiCalls.length,
-      `API-Anzahl ${apiCalls.length}: ${apiCalls.join(' ')}`,
+      bootApiCalls.length,
+      `API-Anzahl ${bootApiCalls.length}: ${bootApiCalls.join(' ')}`,
     ).toBeLessThanOrEqual(26)
     expect(requests.length, `Total-Anzahl ${requests.length}`).toBeLessThanOrEqual(400)
     // UI errors: favicon/connection are expected offline paths; the rest must be 0

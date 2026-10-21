@@ -16,6 +16,8 @@ export default function Switch({
   label,
   testid,
   disabled = false,
+  busy = false,
+  expandedHitArea = false,
 }: {
   checked: boolean
   onChange: (next: boolean) => void
@@ -23,6 +25,10 @@ export default function Switch({
   label: string
   testid?: string
   disabled?: boolean
+  /** A request is in flight; aria-busy follows it without disabling the control. */
+  busy?: boolean
+  /** A 44 px hit area around the 24 px track, via a transparent pseudo-element. */
+  expandedHitArea?: boolean
 }) {
   const handleKeys = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -39,18 +45,23 @@ export default function Switch({
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-busy={busy}
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       onKeyDown={handleKeys}
       data-testid={testid}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-base focus-ring disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-base motion-reduce:transition-none focus-ring disabled:cursor-not-allowed disabled:opacity-40 ${
         checked ? 'border-ink bg-ink' : 'border-control bg-surface-interactive'
+      } ${
+        expandedHitArea
+          ? "after:absolute after:-inset-2.5 after:rounded-full after:content-[''] max-lg:after:-inset-3"
+          : ''
       }`}
     >
       <span
         aria-hidden="true"
-        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform duration-base ${
+        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform duration-base motion-reduce:transition-none ${
           checked ? 'translate-x-5 bg-canvas' : 'translate-x-0 bg-ink-faint'
         }`}
       />

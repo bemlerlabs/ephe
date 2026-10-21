@@ -90,7 +90,7 @@ def parse_server_spec(spec: str) -> MCPServerSpec:
         parts = shlex.split(rest)
         cmd = parts[0] if parts else ""
         return MCPServerSpec(transport="stdio", command=cmd, args=parts[1:])
-    endpoint = spec if spec.startswith("http") else f"http://{spec}"
+    endpoint = spec if spec.startswith("http://") or spec.startswith("https://") else f"https://{spec}"
     return MCPServerSpec(transport="http", endpoint=endpoint)
 
 
@@ -167,16 +167,83 @@ def _live_key(spec: MCPServerSpec) -> str:
     return f"{spec.transport}:{spec.render()}"
 
 
+class MCPTeardownError(RuntimeError):
+    """The MCP clients could not be closed safely; no teardown may be claimed."""
+
+
 async def close_all_mcp_clients() -> None:
-    """Closes every live MCP client — the lifespan shutdown hook.
+    """Closes every live MCP client — shutdown and plugin teardown.
 
     A stdio server that outlives the parent is a leak nobody sees:
-    it holds the binary, directories and one entry in the process table.
+    it holds the binary, directories and one entry in the process table. A
+    client is removed only after its close returned, so a failed close stays
+    reachable for a retry instead of turning into an unreferenced process.
     """
-    clients = list(_LIVE_CLIENTS.values())
-    _LIVE_CLIENTS.clear()
-    for client in clients:
-        await client.close()
+    errors: list[str] = []
+    for key, client in list(_LIVE_CLIENTS.items()):
+        try:
+            await client.close()
+        except Exception as exc:  # noqa: BLE001 — collected, then raised below
+            errors.append(f"{key}: {exc}")
+        else:
+            _LIVE_CLIENTS.pop(key, None)
+    if errors:
+        raise MCPTeardownError("; ".join(errors))
+
+
+async def _close_mcp_connector() -> None:
+    await close_all_mcp_clients()
+    unregister_mcp_tools()
+
+
+def teardown_mcp_connector_sync() -> None:
+    """Closes the connector from the synchronous lifecycle, fail-closed.
+
+    The clients belong to the loop that armed discovery. Blocking that loop from
+    inside itself would deadlock; skipping the close would claim a teardown that
+    did not happen. Both cases raise, so the lifecycle keeps the plugin enabled.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise MCPTeardownError(
+            "cannot close MCP clients from the event loop that is running them"
+        )
+    armed = _MCP_ARMED_LOOP
+    if armed is not None and armed.is_running():
+        future = asyncio.run_coroutine_threadsafe(_close_mcp_connector(), armed)
+        try:
+            future.result(timeout=15)
+        except Exception as exc:  # noqa: BLE001 — the caller needs the reason
+            raise MCPTeardownError(str(exc) or exc.__class__.__name__) from exc
+        return
+    if _LIVE_CLIENTS:
+        if armed is not None:
+            raise MCPTeardownError(
+                "the MCP client loop is not running; no safe close"
+            )
+        asyncio.run(_close_mcp_connector())
+        return
+    unregister_mcp_tools()
+
+
+def request_mcp_refresh() -> None:
+    """Re-discovers the catalogue after the connector is enabled again.
+
+    The next read also treats the catalogue as stale, so a loop that is not
+    reachable here does not hide the tools forever.
+    """
+    loop = _MCP_ARMED_LOOP
+    if loop is None or not loop.is_running():
+        return
+    coroutine = sync_mcp_tools()
+    try:
+        asyncio.run_coroutine_threadsafe(coroutine, loop)
+    except RuntimeError:
+        coroutine.close()
+        return
 
 
 def _record_discovery(specs: list[MCPServerSpec]) -> None:

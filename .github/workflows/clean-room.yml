@@ -47,7 +47,7 @@ jobs:
     # The four interpreters of tests.yml's literal matrix, so a lock that only installs on the
     # versions CI already tests cannot pass here. tests/test_clean_room_workflow.py compares the two
     # lists: a leg that silently drops 3.10 would be a green answer to an unasked question.
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false

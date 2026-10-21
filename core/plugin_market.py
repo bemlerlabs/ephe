@@ -24,6 +24,7 @@ The fetcher is injectable so tests (and offline users) never touch network.
 
 Ephe – Bad Liebenzell, Schwarzwald
 """
+
 from __future__ import annotations
 
 import json
@@ -34,10 +35,21 @@ from pathlib import Path
 from typing import Any, Callable
 
 from core import plugin_manifest
-from core.plugin_store import REGISTRY_FILENAME, config_root, load_registry, sha256_hex, _write_registry
+from core.plugin_store import (
+    REGISTRY_FILENAME,
+    config_root,
+    load_registry,
+    sha256_hex,
+    _write_registry,
+)
 
 MARKETPLACE_FILENAME = "plugin-marketplace.json"
 MARKETPLACE_VERSION = 1
+
+#: Archive bounds checked before any member reaches the staging directory.
+MAX_ARCHIVE_MEMBERS = 2000
+MAX_ARCHIVE_BYTES = 50 * 1024 * 1024
+MAX_ARCHIVE_RATIO = 100
 
 
 def marketplace_path() -> Path:
@@ -85,8 +97,30 @@ def _safe_extract(payload: bytes, dest: Path) -> str | None:
         zf = zipfile.ZipFile(BytesIO(payload))
     except zipfile.BadZipFile:
         return "not a zip archive"
+    infos = zf.infolist()
+    if len(infos) > MAX_ARCHIVE_MEMBERS:
+        return (
+            "unsafe_archive: members "
+            f"{len(infos)} exceed {MAX_ARCHIVE_MEMBERS}"
+        )
+    total_bytes = sum(info.file_size for info in infos)
+    if total_bytes > MAX_ARCHIVE_BYTES:
+        return (
+            "unsafe_archive: uncompressed bytes "
+            f"{total_bytes} exceed {MAX_ARCHIVE_BYTES}"
+        )
+    compressed_bytes = sum(info.compress_size for info in infos)
+    if compressed_bytes and total_bytes / compressed_bytes > MAX_ARCHIVE_RATIO:
+        return (
+            "unsafe_archive: compression ratio "
+            f"{total_bytes / compressed_bytes:.0f} exceeds {MAX_ARCHIVE_RATIO}"
+        )
     dest_resolved = dest.resolve()
-    for member in zf.namelist():
+    for info in infos:
+        mode = (info.external_attr >> 16) & 0o170000
+        if mode and mode not in (0o100000, 0o040000):
+            return "unsafe_archive: non-regular member"
+        member = info.filename
         target = (dest / member).resolve()
         if not target.is_relative_to(dest_resolved):
             return "unsafe_archive: path traversal member"
@@ -103,11 +137,15 @@ def install_from_marketplace(
     fetcher: Callable[[str], bytes] | None = None,
     root: Path | None = None,
     trusted_public_keys: list[bytes] | None = None,
+    allow_local_trust: bool = False,
 ) -> dict[str, Any]:
     """Install one marketplace plugin, verifying everything in staging.
 
     The plugins root only receives a directory that has passed hash, manifest,
-    listing-identity and (when the entry carries one) signature checks.
+    listing-identity and trust checks. Official, verified and community entries
+    require a valid signature regardless of the enable-time drift setting; a
+    local unsigned artifact needs `allow_local_trust`, lands disabled and
+    carries the local-trust warning.
     """
     listing = marketplace if marketplace is not None else load_marketplace()
     entry = None
@@ -116,10 +154,51 @@ def install_from_marketplace(
             entry = e
             break
     if entry is None:
-        return {"status": "unknown_plugin", "name": name, "error": "not in marketplace listing"}
+        return {
+            "status": "unknown_plugin",
+            "name": name,
+            "error": "not in marketplace listing",
+        }
+
+    trust = str(entry.get("trust") or "local").strip().lower()
+    if trust not in {"official", "verified", "community", "local", "blocked"}:
+        return {
+            "status": "invalid_trust",
+            "name": name,
+            "trust": trust,
+            "error": "unknown trust class",
+        }
+    if trust == "blocked":
+        return {
+            "status": "blocked_source",
+            "name": name,
+            "trust": trust,
+            "error": "the source is blocked",
+        }
+    signature = entry.get("signature")
+    signed = isinstance(signature, dict)
+    if not signed and trust in {"official", "verified", "community"}:
+        return {
+            "status": "signature_required",
+            "name": name,
+            "trust": trust,
+            "error": "the trust class requires a verified artifact signature",
+        }
+    if not signed and trust == "local" and not allow_local_trust:
+        return {
+            "status": "local_trust_required",
+            "name": name,
+            "trust": trust,
+            "error": "a local unsigned artifact needs explicit trust",
+        }
+
     url = str(entry.get("url") or "")
     if not url:
-        return {"status": "no_url", "name": name, "error": "marketplace entry carries no artifact url"}
+        return {
+            "status": "no_url",
+            "name": name,
+            "error": "marketplace entry carries no artifact url",
+        }
 
     fetch = fetcher if fetcher is not None else _default_fetcher
     try:
@@ -129,9 +208,17 @@ def install_from_marketplace(
 
     expected = str(entry.get("sha256") or "")
     if not expected or sha256_hex(payload) != expected:
-        return {"status": "hash_mismatch", "name": name, "error": "artifact hash does not match the marketplace entry"}
+        return {
+            "status": "hash_mismatch",
+            "name": name,
+            "error": "artifact hash does not match the marketplace entry",
+        }
 
-    plugins_root = Path(root) if root is not None else config_root() / plugin_manifest.PLUGINS_DIRNAME
+    plugins_root = (
+        Path(root)
+        if root is not None
+        else config_root() / plugin_manifest.PLUGINS_DIRNAME
+    )
     staging = plugins_root / f".staging-{name}"
     payload_dir = staging / "payload"
     err = _safe_extract(payload, payload_dir)
@@ -153,7 +240,11 @@ def install_from_marketplace(
                     shutil.move(str(stray), str(candidate / stray.name))
         else:
             shutil.rmtree(staging, ignore_errors=True)
-            return {"status": "quarantined", "name": name, "error": f"archive does not contain {name}/{plugin_manifest.MANIFEST_FILENAME}"}
+            return {
+                "status": "quarantined",
+                "name": name,
+                "error": f"archive does not contain {name}/{plugin_manifest.MANIFEST_FILENAME}",
+            }
 
     manifest, merr = plugin_manifest.load_manifest(candidate)
     if merr or manifest is None:
@@ -178,15 +269,22 @@ def install_from_marketplace(
     # E4b: the signature is verified against the STAGED content, before anything
     # is moved to a loadable path. Fail-closed → the staging directory goes away
     # and the installed plugin (if any) is left untouched.
-    signature = entry.get("signature")
     if isinstance(signature, dict):
         from core import plugin_signing
 
-        pems = trusted_public_keys if trusted_public_keys is not None else plugin_signing.load_trusted_public_keys()
+        pems = (
+            trusted_public_keys
+            if trusted_public_keys is not None
+            else plugin_signing.load_trusted_public_keys()
+        )
         ok, reason = plugin_signing.verify_plugin_dir(candidate, signature, pems)
         if not ok:
             shutil.rmtree(staging, ignore_errors=True)
-            return {"status": "quarantined", "name": name, "error": f"signature_invalid: {reason}"}
+            return {
+                "status": "quarantined",
+                "name": name,
+                "error": f"signature_invalid: {reason}",
+            }
         # Persist the verified record inside the dir for enable-time drift checks.
         (candidate / plugin_manifest.SIG_FILENAME).write_text(
             json.dumps(signature, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -199,16 +297,25 @@ def install_from_marketplace(
     shutil.rmtree(staging, ignore_errors=True)
 
     _register_installed(name)
-    return {"status": "extracted", "name": name, "version": delivered}
+    result = {
+        "status": "extracted",
+        "name": name,
+        "version": delivered,
+        "trust": trust,
+    }
+    if trust == "local" and not signed:
+        result["warning"] = "local_trust"
+    return result
 
 
 def _register_installed(name: str) -> None:
     """Best-effort: make the installed plugin visible as an explicit registry
     entry. E5 wiring: the deep setting `plugins.plugin_autorun` (default
     OFF, conservative) decides whether a fresh install lands enabled."""
+    from core import plugin_switch_policy
     from core.settings_schema import deep_bool
 
-    enabled = deep_bool("plugins.plugin_autorun")
+    enabled = deep_bool("plugins.plugin_autorun") and not plugin_switch_policy.read_only()
     items = load_registry()
     if any(str(p.get("name")) == name for p in items):
         return
@@ -216,4 +323,16 @@ def _register_installed(name: str) -> None:
     try:
         _write_registry(items, config_root() / REGISTRY_FILENAME)
     except OSError:
+        pass
+    from core import plugin_runtime
+    from core.plugin_lifecycle import LifecycleError
+    from core.skills import invalidate_skill_cache
+
+    plugin_runtime.invalidate_ownership_cache()
+    invalidate_skill_cache()
+    try:
+        plugin_runtime.lifecycle().set_enabled(
+            name, enabled, reason="marketplace install"
+        )
+    except LifecycleError:
         pass

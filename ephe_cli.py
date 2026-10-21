@@ -1400,19 +1400,25 @@ def cmd_session(args: argparse.Namespace) -> int:
 
 def cmd_plugin(args: argparse.Namespace) -> int:
     """E4a: plugin management (list / enable / disable / install)."""
-    from core import plugin_market
-    from core.plugin_store import load_catalog, load_registry, set_enabled
+    from core import plugin_market, plugin_runtime
+    from core.plugin_lifecycle import LifecycleError
+    from core.plugin_store import load_catalog
 
     action = getattr(args, "action", "list")
 
     if action == "list":
         catalog = load_catalog()
-        registry = {str(p["name"]): bool(p.get("enabled", True)) for p in load_registry() if p.get("name")}
         rows = []
         for seg in ("public", "personal"):
             for entry in catalog[seg]:
                 name = str(entry["name"])
-                rows.append((name, "on" if registry.get(name, bool(entry.get("enabled", True))) else "off", entry.get("version", "-")))
+                rows.append(
+                    (
+                        name,
+                        "on" if plugin_runtime.effective_enabled(name) else "off",
+                        entry.get("version", "-"),
+                    )
+                )
         print(f"{'PLUGIN':<22} STATE  VERSION")
         for name, state, version in sorted(rows):
             print(f"{name:<22} {state:<6} {version}")
@@ -1420,21 +1426,33 @@ def cmd_plugin(args: argparse.Namespace) -> int:
 
     if action in ("enable", "disable"):
         pid = str(args.plugin_id)
-        ok = set_enabled(pid, enabled=action == "enable")
-        if not ok:
-            print(f"[error] could not persist state for '{pid}'")
+        try:
+            snapshot = plugin_runtime.lifecycle().set_enabled(
+                pid, action == "enable", actor="cli", reason="cli plugin command"
+            )
+        except LifecycleError as exc:
+            print(f"[error] {pid}: {exc.code} ({exc.detail})")
             return 1
         from core.skills import invalidate_skill_cache
 
         invalidate_skill_cache()
-        print(f"{pid}: {action}d — takes effect on the next agent turn")
+        print(
+            f"{pid}: {snapshot.state.value} — takes effect on the next agent turn"
+        )
         return 0
 
     if action == "install":
         pid = str(args.plugin_id)
-        status = plugin_market.install_from_marketplace(pid)
+        status = plugin_market.install_from_marketplace(
+            pid,
+            allow_local_trust=bool(getattr(args, "trust_local", False)),
+        )
         if status["status"] == "extracted":
-            print(f"installed: {pid} (v{status.get('version', '?')}) — enabled by default")
+            suffix = " (local trust)" if status.get("warning") == "local_trust" else ""
+            print(
+                f"installed: {pid} (v{status.get('version', '?')}){suffix} — "
+                "disabled until you enable it"
+            )
             return 0
         reason = status.get("error") or status["status"]
         print(f"[error] install of '{pid}' failed: {status['status']} ({reason})")
@@ -2392,6 +2410,11 @@ def build_parser() -> argparse.ArgumentParser:
     pdisable.set_defaults(func=cmd_plugin)
     pinstall = psub.add_parser("install", help="Install a marketplace plugin")
     pinstall.add_argument("plugin_id", help="Plugin id from plugin-marketplace.json")
+    pinstall.add_argument(
+        "--trust-local",
+        action="store_true",
+        help="Explicitly trust an unsigned local artifact",
+    )
     pinstall.set_defaults(func=cmd_plugin)
 
     # E6: vendor-neutral reference-client import

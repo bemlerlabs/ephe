@@ -11,7 +11,12 @@
   },
   "components": {
     "skills": [],
-    "commands": []
+    "commands": [],
+    "tools": [
+      "analyze_image",
+      "vision_click",
+      "vision_type"
+    ]
   },
   "origin": "first-party",
   "icon": "icon.svg"

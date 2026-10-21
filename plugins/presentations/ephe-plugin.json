@@ -17,8 +17,17 @@
       {
         "name": "deck",
         "description": "Produce a real PPTX deck",
-        "template": "Erstelle einen echten PPTX-Pitch-Deck zu: {input}. Nutze create_pptx_deck/create_pitch_deck und liefere Folien mit klarer Story-Arc."
+        "template": "Create a real PPTX pitch deck for: {input}. Use create_pptx_deck/create_pitch_deck and deliver slides with a clear story arc."
       }
+    ],
+    "tools": [
+      "create_pptx_deck",
+      "create_pitch_deck",
+      "edit_pptx_template",
+      "inspect_pptx_template",
+      "qa_pptx_deck",
+      "create_diagram",
+      "create_svg"
     ]
   },
   "icon": "icon.svg"

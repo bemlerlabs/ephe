@@ -183,7 +183,9 @@ class TestEnableDriftGate:
         (tmp_path / "cfg" / "plugins").mkdir(parents=True, exist_ok=True)
         from server.main import create_app
 
-        return TestClient(create_app()), tmp_path / "cfg"
+        client = TestClient(create_app())
+        client.headers.update({"X-Requested-With": "XMLHttpRequest"})
+        return client, tmp_path / "cfg"
 
     def test_drifted_plugin_cannot_reenable(self, tmp_path, monkeypatch, keypair):
         client, cfg = self._app(tmp_path, monkeypatch)

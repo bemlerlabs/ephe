@@ -289,11 +289,19 @@ def test_cmd_plugin_list(monkeypatch, capsys):
 
 
 def test_cmd_plugin_toggle(monkeypatch, capsys):
-    import core.plugin_store as ps
+    import core.plugin_lifecycle as lifecycle_module
+    import core.plugin_runtime as runtime
     import core.skills as skills
 
     seen: dict = {}
-    monkeypatch.setattr(ps, "set_enabled", lambda pid, enabled: seen.update(pid=pid, enabled=enabled) or True)
+
+    class FakeLifecycle:
+        def set_enabled(self, pid, enabled, **kwargs):
+            seen.update(pid=pid, enabled=enabled, **kwargs)
+            state = "enabled" if enabled else "disabled"
+            return type("Snapshot", (), {"state": type("State", (), {"value": state})()})()
+
+    monkeypatch.setattr(runtime, "lifecycle", lambda *args, **kwargs: FakeLifecycle())
     monkeypatch.setattr(skills, "invalidate_skill_cache", lambda: seen.update(invalidated=True))
     p = _parser()
     assert ephe_cli.cmd_plugin(p.parse_args(["plugin", "enable", "alpha"])) == 0
@@ -302,7 +310,11 @@ def test_cmd_plugin_toggle(monkeypatch, capsys):
     assert ephe_cli.cmd_plugin(p.parse_args(["plugin", "disable", "alpha"])) == 0
     assert seen["enabled"] is False
     capsys.readouterr()
-    monkeypatch.setattr(ps, "set_enabled", lambda pid, enabled: False)
+
+    def refuse(*args, **kwargs):
+        raise lifecycle_module.LifecycleError("unknown_plugin", 404, "not installed")
+
+    monkeypatch.setattr(runtime, "lifecycle", lambda *args, **kwargs: type("L", (), {"set_enabled": refuse})())
     assert ephe_cli.cmd_plugin(p.parse_args(["plugin", "enable", "alpha"])) == 1
     capsys.readouterr()
 
@@ -310,10 +322,18 @@ def test_cmd_plugin_toggle(monkeypatch, capsys):
 def test_cmd_plugin_install(monkeypatch, capsys):
     import core.plugin_market as pm
 
-    monkeypatch.setattr(pm, "install_from_marketplace", lambda pid: {"status": "extracted", "version": "2.1"})
+    monkeypatch.setattr(
+        pm,
+        "install_from_marketplace",
+        lambda pid, **kwargs: {"status": "extracted", "version": "2.1"},
+    )
     assert ephe_cli.cmd_plugin(_parser().parse_args(["plugin", "install", "alpha"])) == 0
     assert "installed: alpha" in capsys.readouterr().out
-    monkeypatch.setattr(pm, "install_from_marketplace", lambda pid: {"status": "quarantined", "error": "sha"})
+    monkeypatch.setattr(
+        pm,
+        "install_from_marketplace",
+        lambda pid, **kwargs: {"status": "quarantined", "error": "sha"},
+    )
     assert ephe_cli.cmd_plugin(_parser().parse_args(["plugin", "install", "alpha"])) == 1
     capsys.readouterr()
 
