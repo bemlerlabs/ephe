@@ -1018,14 +1018,9 @@ class EpheApp(App):
             chat.post_message(ChatView.AppendChunk(chunk))
 
         def on_loading_hint() -> None:
-            """Called when the model needs more than 15s (loading from disk)."""
+            """Called when the turn needs more than 15s."""
             chat.post_message(
-                ChatView.AddSystemMessage(
-                    f"⏳ Model '{self.model}' is loading…\n"
-                    f"   Large models (>4GB) need 30-90s on the first call.\n"
-                    f"   Please wait.",
-                    style="fallback-hint",
-                )
+                ChatView.AddSystemMessage(self._slow_turn_hint(), style="fallback-hint")
             )
 
         try:
@@ -1207,6 +1202,23 @@ class EpheApp(App):
                 self._set_run_state("done")
             self._settle()
             self.call_after_refresh(self._run_next_queued)
+
+    def _slow_turn_hint(self) -> str:
+        """What a long wait means on the engine the user actually chose.
+
+        The disk-load figure is an Ollama fact; a hosted endpoint has no weights to
+        load, so it gets the reason that applies there instead.
+        """
+        if self.api_url:
+            return (
+                f"⏳ Waiting on {self.model} — a hosted engine queues requests.\n"
+                f"   Nothing is wrong; the answer is on its way."
+            )
+        return (
+            f"⏳ Model '{self.model}' is loading…\n"
+            f"   Large models (>4GB) need 30-90s on the first call.\n"
+            f"   Please wait."
+        )
 
     @staticmethod
     async def _loading_hint_after_delay(

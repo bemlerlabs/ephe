@@ -257,6 +257,7 @@ class AgentMessageCard(Widget):
     _thinking_t0: float
     _blocks: list[_ToolCallBlock]
     _streaming_answer: bool
+    _round_break: bool
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -267,6 +268,7 @@ class AgentMessageCard(Widget):
         self._thinking_t0 = 0.0
         self._blocks = []
         self._streaming_answer = False
+        self._round_break = False
 
     DEFAULT_CSS = """
     AgentMessageCard {
@@ -326,6 +328,7 @@ class AgentMessageCard(Widget):
         block = _ToolCallBlock(event.name, event.args)
         self._blocks.append(block)
         self._tool_area.mount(block)
+        self._round_break = True
 
     def on_agent_message_card_tool_done(self, event: "AgentMessageCard.ToolDone") -> None:
         """Close the last still-open tool block (FIFO over the 'tool-pending' class)."""
@@ -335,6 +338,9 @@ class AgentMessageCard(Widget):
                 break
 
     def on_agent_message_card_answer_chunk(self, event: "AgentMessageCard.AnswerChunk") -> None:
+        if self._round_break and self._answer_acc:
+            self._answer_acc += "\n\n"
+        self._round_break = False
         self._answer_acc += event.chunk
         if not self._streaming_answer:
             self._streaming_answer = True
@@ -355,6 +361,7 @@ class AgentMessageCard(Widget):
         answer twice."""
         self._answer_acc = ""
         self._streaming_answer = False
+        self._round_break = False
         self._answer_live.update("")
         self._answer_live.visible = False
 
@@ -579,9 +586,15 @@ class ChatView(Widget):
         result directly from the widget (``prompt.result``). The mount is awaited
         so that ``on_mount`` (focus) is guaranteed to run before the first keystroke.
         """
+        container = self._container()
         prompt = ConfirmPrompt(question, tool_name)
-        await self._container().mount(prompt)
+        await container.mount(prompt)
         self._confirm_prompt = prompt
+        # A prompt the reader cannot see is a prompt that never gets an answer:
+        # the worker holds the turn for 300 s. Streaming keeps the reader's place,
+        # this one does not — it is the last thing in the transcript and it asks
+        # for a decision now.
+        self.call_after_refresh(container.scroll_end, animate=False)
         return prompt
 
     def on_resize(self, event: object) -> None:

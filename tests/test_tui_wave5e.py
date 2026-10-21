@@ -599,6 +599,50 @@ def test_a_declined_prompt_leaves_nothing_in_the_composer(app_factory):
     _run(go())
 
 
+def test_the_prompt_is_scrolled_to_where_the_reader_is(app_factory):
+    """GIVEN a transcript that already fills the viewport
+    WHEN the approval prompt mounts at its end
+    THEN the prompt is painted on screen — a prompt below the fold is a prompt
+    the user never sees, and the worker waits 300 s for it."""
+    import html as html_module
+    import re
+
+    from ui.widgets import ChatView
+
+    def painted_rows(dump: str) -> list[str]:
+        rows: list[str] = []
+        for line in dump.splitlines():
+            for chunk in line.split("</div>"):
+                text = html_module.unescape(
+                    re.sub(r"<[^>]+>", "", chunk)
+                ).replace("\xa0", " ")
+                if text.strip():
+                    rows.append(text)
+        return rows
+
+    _active("Overflow")
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(120, 34)) as pilot:
+            await pilot.pause()
+            chat = app.query_one(ChatView)
+            for line in range(14):
+                chat.post_message(
+                    ChatView.AddUserMessage(f"row {line} " + "x" * 60)
+                )
+            await pilot.pause()
+            prompt = await chat.show_confirm_prompt(
+                "Run shell command?  ls -la", "run_shell"
+            )
+            await pilot.pause()
+            rows = painted_rows(app.export_screenshot(title="overflow"))
+            assert any("y=Yes" in row and "a=Always" in row for row in rows), rows[-8:]
+            assert app.focused is prompt
+
+    _run(go())
+
+
 
 
 def test_the_model_picker_writes_the_same_engine_config_the_pwa_writes(
@@ -718,5 +762,48 @@ def test_a_tool_card_names_its_duration(app_factory):
             assert "·" in block.title and block.title.rstrip().endswith("s"), (
                 block.title
             )
+
+    _run(go())
+
+
+def test_the_slow_turn_hint_describes_the_engine_that_is_slow(app_factory):
+    """GIVEN a turn that outlives the hint delay
+    WHEN the TUI explains the wait
+    THEN a hosted engine is described as a queue — it has no weights to load —
+    and only a local engine gets the disk-load figure."""
+    from ui.app import EpheApp
+
+    hosted = EpheApp(model="some/hosted-tag", api_url="https://engine.invalid/v1")
+    text = hosted._slow_turn_hint()
+    assert "is loading" not in text
+    assert "some/hosted-tag" in text
+
+    local = EpheApp(model="llama-local", api_url=None)
+    assert "is loading" in local._slow_turn_hint()
+
+
+def test_a_tool_round_starts_a_new_paragraph_in_the_answer(app_factory):
+    """GIVEN an agent turn that streams text, runs a tool, streams more text
+    WHEN the card renders the answer
+    THEN the rounds are separated — two sentences from two rounds do not run on
+    into one word at the seam."""
+    from ui.widgets import ChatView
+
+    _active("Paragraphs")
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            chat = app.query_one(ChatView)
+            chat.post_message(ChatView.BeginAssistantMessage())
+            await pilot.pause()
+            card = chat._active_card
+            chat.post_message(ChatView.AppendChunk("I'll read the file."))
+            chat.post_message(ChatView.ToolCallStart("read_file", {"path": "a.py"}))
+            chat.post_message(ChatView.ToolCallDone("read_file", "contents"))
+            chat.post_message(ChatView.AppendChunk("Now I'll edit it."))
+            await pilot.pause()
+            assert card._answer_acc == "I'll read the file.\n\nNow I'll edit it."
 
     _run(go())
