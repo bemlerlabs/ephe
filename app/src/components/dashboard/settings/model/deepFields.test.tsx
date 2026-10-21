@@ -118,3 +118,39 @@ describe('DeepFields im Bereich', () => {
     expect(container.firstChild).toBeNull()
   })
 })
+
+describe('DeepFields locale keys', () => {
+  it('takes label and hint from the locale when the field carries a key', () => {
+    const withKey = [
+      {
+        key: 'plugins',
+        fields: [
+          {
+            key: 'plugins.plugin_lifecycle_read_only',
+            type: 'bool',
+            label: 'Plugin switches read-only',
+            labelEn: 'Plugin switches read-only',
+            labelKey: 'settings.pluginReadOnly',
+            hintKey: 'settings.pluginReadOnlyHint',
+            default: false,
+            value: false,
+          },
+        ],
+      },
+    ] as unknown as DeepSection[]
+    const t = (key: string) =>
+      key === 'settings.pluginReadOnly'
+        ? 'Read-only'
+        : key === 'settings.pluginReadOnlyHint'
+          ? 'Blocks switch changes.'
+          : key
+
+    render(<DeepFields model={model({ deepSections: withKey, t })} prefixes={['plugins.']} />)
+
+    const row = screen.getByTestId('deep-row-plugins.plugin_lifecycle_read_only')
+    expect(row.textContent).toContain('Read-only')
+    expect(
+      screen.getByTestId('deep-row-plugins.plugin_lifecycle_read_only-desc').textContent,
+    ).toContain('Blocks switch changes.')
+  })
+})

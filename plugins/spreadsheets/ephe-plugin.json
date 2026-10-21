@@ -17,8 +17,12 @@
       {
         "name": "xlsx",
         "description": "Produce a real Excel workbook",
-        "template": "Erstelle eine echte Excel-Datei zu: {input}. Nutze create_xlsx (und generate_chart, wo sinnvoll) mit formatierten Kopfzeilen und klaren Spalten."
+        "template": "Create a real Excel workbook for: {input}. Use create_xlsx (and generate_chart where useful) with formatted headers and clear columns."
       }
+    ],
+    "tools": [
+      "create_xlsx",
+      "generate_chart"
     ]
   },
   "icon": "icon.svg"

@@ -18,6 +18,10 @@
         "description": "Run deep research on a topic",
         "template": "Run thorough research on: {input}. Use web_search and fetch_url for real sources, then write a structured brief with citations."
       }
+    ],
+    "tools": [
+      "web_search",
+      "fetch_url"
     ]
   },
   "origin": "first-party",

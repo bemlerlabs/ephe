@@ -22,6 +22,8 @@ import asyncio
 import json
 from typing import Any
 
+from core.secret_broker import child_env
+
 #: Backoff for restarting a dead server: 0.5 s, doubled,
 #: finished at 30 s.
 BACKOFF_BASE_SECONDS = 0.5
@@ -120,6 +122,7 @@ class StdioLink:
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    env=child_env(),
                 )
             except Exception as exc:  # noqa: BLE001 — a missing binary is a refusal
                 self.note_failure()

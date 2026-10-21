@@ -63,12 +63,13 @@ def _jsonrpc_error_text(resp: dict) -> str:
 class MCPClient:
     """A single MCP server: list_tools() → tools, call_tool() → result."""
 
-    def __init__(self, endpoint: str, transport: str = "http", label: str = "", timeout: float = 30.0, args: list[str] | None = None):
+    def __init__(self, endpoint: str, transport: str = "http", label: str = "", timeout: float = 30.0, args: list[str] | None = None, auth_token: str = ""):
         self.endpoint = endpoint
         self.transport = transport
         self.label = label or endpoint
         self.timeout = timeout
         self.args = list(args or [])
+        self.auth_token = auth_token
         self.session_id: str | None = None
         # Restart policy (I1-8): failures count, the backoff window applies —
         # both sit with the process, because only the process restarts.
@@ -125,20 +126,41 @@ class MCPClient:
         return text, is_error
 
     def _headers(self) -> dict:
-        return {
+        headers = {
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
             "MCP-Protocol-Version": _MCP_PROTOCOL_VERSION,
             "MCP-Session-Id": self.session_id or "",
         }
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        return headers
 
     # --- Transport ---
     async def _post(self, endpoint: str, headers: dict, body: dict) -> dict:
         """HTTP POST with JSON-RPC. Overridable for tests."""
         if httpx is None:  # pragma: no cover
             return error_envelope(body, -32000, "httpx not installed")
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(endpoint, headers=headers, json=body)
+        from core.network_guard import NetworkGuardError, prepare_http_target
+
+        try:
+            target, host_header, sni = prepare_http_target(endpoint)
+        except NetworkGuardError as exc:
+            return error_envelope(body, -32010, f"mcp network guard: {exc}")
+        request_headers = dict(headers)
+        request_headers["Host"] = host_header
+        extensions = {"sni_hostname": sni} if sni else None
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=False, trust_env=False
+        ) as client:
+            resp = await client.post(
+                target,
+                headers=request_headers,
+                json=body,
+                extensions=extensions,
+            )
+            if 300 <= resp.status_code < 400:
+                return error_envelope(body, -32011, "mcp redirect refused")
             try:
                 return resp.json()
             except Exception:

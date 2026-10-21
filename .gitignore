@@ -39,8 +39,9 @@ docs/media/frames/
 # Swift package build products (the root Package.swift serves CodeQL)
 .build/
 
-# JavaScript dependencies
-node_modules/
+# JavaScript dependencies. No trailing slash: the pattern only matches a symlink
+# of that name without it, and a clone that shares one install carries exactly that.
+node_modules
 .vite/
 
 # Local databases and SQLite sidecars

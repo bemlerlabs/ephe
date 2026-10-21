@@ -371,13 +371,10 @@ def test_the_documented_flag_owners_really_carry_those_flags():
 
 def test_the_documented_tool_example_names_the_plugin_that_can_hide_it():
     """A plugin switch can take a tool out of the list; the example says which one."""
-    from core.plugin_runtime import CATALOG_TOOL_FAMILIES
+    from core.plugin_registry import PluginRegistry
 
-    owners = {
-        tool: plugin
-        for plugin, family in CATALOG_TOOL_FAMILIES.items()
-        for tool in family.get("tools", ())
-    }
+    root = Path(__file__).resolve().parents[1]
+    owners = dict(PluginRegistry.load(root / "plugins", root / "skills").tool_activations())
     section = _docs_paragraph_with("ephe tool <name>")
     examples = re.findall(r"ephe tool ([a-z_][a-z0-9_]*)", section)
 

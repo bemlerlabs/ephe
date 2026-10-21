@@ -35,6 +35,7 @@ SAFE_TOOLS: frozenset[str] = frozenset({
     "execute_code",
     "todo_list",
     "process_manage",
+    "plugin_manager",
     # G6 (workbench): the agent's own readers are read-only — a transcript of a
     # past turn and a byte range of the cell journal. Nothing here mutates.
     "read_transcript",
@@ -85,6 +86,7 @@ CHAT_AUTO_RUN_TOOLS: frozenset[str] = frozenset({
     "execute_code",
     "todo_list",
     "process_manage",
+    "plugin_manager",
     # G1: the ask gate asks the human and awaits the answer — the dialog is what
     # this tool IS, so a confirmation gate in front of it would ask nothing.
     "ask_user",

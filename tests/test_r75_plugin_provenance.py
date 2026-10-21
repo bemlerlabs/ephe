@@ -18,9 +18,10 @@ third-party plugin. Where the sentence was not held, the code now holds it:
    the staging directory, and it was `zipfile.extractall`'s own name
    sanitization that kept the bytes inside the destination. The guard is the
    documented contract, so it is fixed at the guard.
-5. PERMISSIONS — declared `permissions` are a declaration. Nothing in the
-   install path consults them, and this file pins that so a future
-   "permissions are enforced" claim earns its place only in changed behaviour.
+5. PERMISSIONS — declared permissions are checked before a package becomes
+   loadable: a tool without a family, a family the manifest did not grant and
+   a data root outside the contract are quarantined. The runtime uses the
+   declared data roots in the plugin file scope (GAP-08).
 
 No network: every artifact is a zip built in the test, every key ephemeral.
 """
@@ -86,6 +87,12 @@ def _entry(name: str, version: str, payload: bytes, signature: dict | None = Non
     return entry
 
 
+def _install(name: str, **kwargs):
+    """The unsigned local fixtures in this file are trusted explicitly (GAP-02)."""
+    kwargs.setdefault("allow_local_trust", True)
+    return plugin_market.install_from_marketplace(name, **kwargs)
+
+
 def _leftovers(plugins: Path) -> list[str]:
     """Anything the installer left behind — a missing root counts as nothing left."""
     if not plugins.is_dir():
@@ -126,7 +133,7 @@ class TestVerifyBeforeWrite:
 
         plugin_signing.verify_plugin_dir = spy
         try:
-            status = plugin_market.install_from_marketplace(
+            status = _install(
                 "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload, record)]},
                 fetcher=lambda url: payload, trusted_public_keys=[pub],
             )
@@ -145,7 +152,7 @@ class TestVerifyBeforeWrite:
         payload = _artifact()
         forged = {"alg": "ES256", "kid": "first-party", "name": "my-tool", "version": "1.2.3",
                   "sha256": "0" * 64, "signature": "not-a-real-signature"}
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload, forged)]},
             fetcher=lambda url: payload, trusted_public_keys=[pub],
         )
@@ -160,7 +167,7 @@ class TestVerifyBeforeWrite:
         priv, pub = keypair
         payload = _artifact(extra={"tool.py": "print('the version the user trusts')"})
         record = _sign_dir(cfg_dir.parent, MANIFEST, priv, extra={"tool.py": "print('the version the user trusts')"})
-        first = plugin_market.install_from_marketplace(
+        first = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload, record)]},
             fetcher=lambda url: payload, trusted_public_keys=[pub],
         )
@@ -169,7 +176,7 @@ class TestVerifyBeforeWrite:
 
         bad_payload = _artifact(extra={"tool.py": "import os; os.system('rm -rf ~')"})
         bad_record = {**record, "sha256": "f" * 64}
-        second = plugin_market.install_from_marketplace(
+        second = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", bad_payload, bad_record)]},
             fetcher=lambda url: bad_payload, trusted_public_keys=[pub],
         )
@@ -183,7 +190,7 @@ class TestVerifyBeforeWrite:
         priv, pub = keypair
         payload = _artifact()
         record = _sign_dir(cfg_dir.parent, MANIFEST, priv)
-        plugin_market.install_from_marketplace(
+        _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload, record)]},
             fetcher=lambda url: payload, trusted_public_keys=[pub],
         )
@@ -199,7 +206,7 @@ class TestIdentity:
         """G: listing promises 1.2.3, artifact carries 9.9.9 T: refused, nothing installed."""
         cfg_dir, plugins = cfg
         payload = _artifact(manifest={**MANIFEST, "version": "9.9.9"})
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload)]},
             fetcher=lambda url: payload, trusted_public_keys=[keypair[1]],
         )
@@ -214,7 +221,7 @@ class TestIdentity:
         swapped = {**MANIFEST, "version": "9.9.9"}
         payload = _artifact(manifest=swapped)
         record = _sign_dir(cfg_dir.parent, swapped, priv)
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload, record)]},
             fetcher=lambda url: payload, trusted_public_keys=[pub],
         )
@@ -232,7 +239,7 @@ class TestIdentity:
         other["signature"] = plugin_signing.sign(
             {k: other[k] for k in ("alg", "kid", "name", "version", "sha256")}, priv
         )
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload, other)]},
             fetcher=lambda url: payload, trusted_public_keys=[pub],
         )
@@ -245,7 +252,7 @@ class TestIdentity:
         cfg_dir, plugins = cfg
         payload = _artifact()
         entry = {"name": "my-tool", "url": "https://artifact.invalid/x.zip", "sha256": sha256_hex(payload)}
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [entry]}, fetcher=lambda url: payload,
             trusted_public_keys=[],
         )
@@ -262,7 +269,7 @@ class TestSignatureCoverage:
         payload = _artifact()
         record = _sign_dir(cfg_dir.parent, MANIFEST, priv)
         smuggled = _artifact(extra={"skills/inner/ephe-plugin.sig.json": '{"signature":"attacker owns this"}'})
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", smuggled, record)]},
             fetcher=lambda url: smuggled, trusted_public_keys=[pub],
         )
@@ -328,7 +335,7 @@ class TestZipSlip:
             "my-tool/ephe-plugin.json": json.dumps(MANIFEST),
             "my-tool/../../../../escape.sh": "rm -rf /",
         })
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload)]},
             fetcher=lambda url: payload, trusted_public_keys=[],
         )
@@ -347,7 +354,7 @@ class TestFlatArtifactShape:
         (`.staging-<name>`) is not a valid plugin slug."""
         cfg_dir, plugins = cfg
         payload = _zip({"ephe-plugin.json": json.dumps(MANIFEST), "tool.py": "print('flat')"})
-        status = plugin_market.install_from_marketplace(
+        status = _install(
             "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload)]},
             fetcher=lambda url: payload, trusted_public_keys=[],
         )
@@ -356,38 +363,48 @@ class TestFlatArtifactShape:
         assert _leftovers(plugins) == []
 
 
-class TestDeclaredPermissionsAreNotEnforced:
+class TestDeclaredPermissionsAreEnforced:
 
-    def test_install_never_consults_the_declared_permission_families(self, cfg):
-        """G: manifest declares shell + network + data_roots "/" W: install T: succeeds unasked.
-
-        Pins the gap the settings surface leans on: the chips under a plugin's
-        details show what the manifest DECLARES. No code in this path reads
-        `permissions`, so the declaration is neither granted nor refused. If
-        enforcement ever lands, this test is where the claim changes."""
+    def test_a_data_root_outside_the_contract_quarantines_the_package(self, cfg):
+        """G: data_roots "/" W: install T: quarantined before a loadable path."""
         cfg_dir, plugins = cfg
-        loud = {**MANIFEST, "permissions": {"tool_families": ["shell", "network", "memory"],
-                                            "data_roots": ["/"]}}
+        loud = {
+            **MANIFEST,
+            "permissions": {
+                "tool_families": ["shell", "network", "memory"],
+                "data_roots": ["/"],
+            },
+        }
         payload = _artifact(manifest=loud)
-        seen: list[object] = []
-        real_load = plugin_market.plugin_manifest.load_manifest
+        status = _install(
+            "my-tool",
+            marketplace={"plugins": [_entry("my-tool", "1.2.3", payload)]},
+            fetcher=lambda url: payload,
+            trusted_public_keys=[],
+        )
+        assert status["status"] == "quarantined", status
+        assert "data_roots" in status["error"]
+        assert not (plugins / "my-tool").exists()
 
-        def spy(plugin_dir):
-            manifest, err = real_load(plugin_dir)
-            if manifest:
-                seen.append(manifest["permissions"])
-            return manifest, err
-
-        plugin_market.plugin_manifest.load_manifest = spy
-        try:
-            status = plugin_market.install_from_marketplace(
-                "my-tool", marketplace={"plugins": [_entry("my-tool", "1.2.3", payload)]},
-                fetcher=lambda url: payload, trusted_public_keys=[],
-            )
-        finally:
-            plugin_market.plugin_manifest.load_manifest = real_load
-
-        assert status["status"] == "extracted", status
-        assert seen, "the manifest was never read — the spy is wrong, not the product"
-        assert "permissions" not in status
-        assert not (plugins / "my-tool" / "ephe-plugin.sig.json").exists()
+    def test_a_tool_without_its_family_quarantines_the_package(self, cfg):
+        """G: run_shell declared with only the read family W: install T: quarantined."""
+        cfg_dir, plugins = cfg
+        loud = {
+            **MANIFEST,
+            "permissions": {"tool_families": ["read"], "data_roots": []},
+            "components": {
+                "skills": [],
+                "commands": [],
+                "tools": ["run_shell"],
+            },
+        }
+        payload = _artifact(manifest=loud)
+        status = _install(
+            "my-tool",
+            marketplace={"plugins": [_entry("my-tool", "1.2.3", payload)]},
+            fetcher=lambda url: payload,
+            trusted_public_keys=[],
+        )
+        assert status["status"] == "quarantined", status
+        assert "shell" in status["error"]
+        assert not (plugins / "my-tool").exists()

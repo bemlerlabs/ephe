@@ -64,12 +64,13 @@ def test_skills_count_matches_loader(client):
 
 def test_tools_count_matches_registry(client):
     """GIVEN the tool landscape (R36-S: spawn_agent added; G1: ask_user and the
-    ask card; G6: the two workbench readers) WHEN the registry is counted THEN it
-    reports exactly the documented number (73) — both import paths identical."""
+    ask card; G6: the two workbench readers; P1: plugin_manager) WHEN the
+    registry is counted THEN it reports exactly the documented number (74) —
+    both import paths identical."""
     from core.tools.registry import TOOL_MAP
     from core.tools import TOOL_MAP as TOOLS
 
-    assert len(TOOL_MAP) == 73
+    assert len(TOOL_MAP) == 74
     assert len(TOOLS) == len(TOOL_MAP)
 
 

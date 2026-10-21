@@ -9,6 +9,7 @@ so tests can use isolated tmp directories.
 LAN mode: with --lan active, an auth token is generated and every
 API endpoint has to send X-Auth-Token in the header.
 """
+
 from __future__ import annotations
 
 import logging
@@ -77,9 +78,11 @@ from core import __version__, __edition__, __tagline__
 from contextlib import asynccontextmanager
 import asyncio
 
+
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
     """Lifecycle events: Start background warmup tasks."""
+
     # Warmup STT in the background — from the local cache only. The unqualified
     # `_get_model()` this used to call fetched the speech model from
     # huggingface.co on a fresh start, without asking (first-start probe,
@@ -104,8 +107,10 @@ async def lifespan(fastapi_app: FastAPI):
     def configure_gui_safety():
         import sys
         import logging
+
         try:
             import pyautogui
+
             pyautogui.FAILSAFE = True
             if sys.platform == "darwin":
                 logging.getLogger("uvicorn.error").warning(
@@ -124,9 +129,20 @@ async def lifespan(fastapi_app: FastAPI):
     # every scheduled job stayed pending forever (next_run=None, never fired).
     try:
         from core.scheduler import ephe_scheduler
+
         ephe_scheduler.start()
     except Exception:
-        logging.getLogger("uvicorn.error").exception("Failed to start background scheduler")
+        logging.getLogger("uvicorn.error").exception(
+            "Failed to start background scheduler"
+        )
+
+    # --- P1: import the legacy plugin registry once, before any request reads state ---
+    try:
+        from core import plugin_runtime
+
+        plugin_runtime.lifecycle()
+    except Exception:
+        logging.getLogger("uvicorn.error").exception("plugin state migration failed")
 
     # --- R40 (Z44): attach the MCP server opt-in (env > mcp.json; fault-tolerant) ---
     try:
@@ -134,7 +150,9 @@ async def lifespan(fastapi_app: FastAPI):
 
         registered = await init_mcp_from_config()
         if registered:
-            logging.getLogger("uvicorn.access").info(f"MCP tools registered: {', '.join(registered)}")
+            logging.getLogger("uvicorn.access").info(
+                f"MCP tools registered: {', '.join(registered)}"
+            )
     except Exception:
         logging.getLogger("uvicorn.error").exception("MCP init failed")
 
@@ -142,6 +160,7 @@ async def lifespan(fastapi_app: FastAPI):
 
     try:
         from core.scheduler import ephe_scheduler
+
         ephe_scheduler.stop()
     except Exception:
         pass
@@ -160,6 +179,7 @@ async def lifespan(fastapi_app: FastAPI):
     except Exception:
         pass
 
+
 def create_app(lan_mode: bool = False) -> FastAPI:
     """
     FastAPI app factory.
@@ -168,7 +188,13 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     lan_mode: when True, an auth token is generated + security/rate limit enabled.
     """
     # Init auth (generates the token in LAN mode)
-    from server.middleware import init_auth, SecurityHeadersMiddleware, RateLimitMiddleware, AuthMiddleware
+    from server.middleware import (
+        init_auth,
+        SecurityHeadersMiddleware,
+        RateLimitMiddleware,
+        AuthMiddleware,
+    )
+
     init_auth(lan_mode=lan_mode)
 
     app = FastAPI(
@@ -200,11 +226,24 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     # spellings, because a page it serves may call it under the other one (`localhost` page,
     # `127.0.0.1` API).
     port = os.environ.get("EPHE_PORT") or "8765"
-    own_origins = [f"http://127.0.0.1:{port}", f"http://localhost:{port}", f"http://[::1]:{port}"]
-    dev_origins = [o.strip() for o in os.environ.get("EPHE_DEV_ORIGINS", "").split(",") if o.strip()]
+    own_origins = [
+        f"http://127.0.0.1:{port}",
+        f"http://localhost:{port}",
+        f"http://[::1]:{port}",
+    ]
+    dev_origins = [
+        o.strip()
+        for o in os.environ.get("EPHE_DEV_ORIGINS", "").split(",")
+        if o.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["tauri://localhost", "http://tauri.localhost", *own_origins, *dev_origins],
+        allow_origins=[
+            "tauri://localhost",
+            "http://tauri.localhost",
+            *own_origins,
+            *dev_origins,
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -239,11 +278,18 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         # getattr keeps the handler type-safe for both classes.
         rid = getattr(request.state, "rid", None)
         detail = getattr(exc, "detail", None)
-        message = detail if isinstance(detail, str) else str(detail or "Error")
+        extra = detail if isinstance(detail, dict) else None
+        if isinstance(detail, dict):
+            message = str(detail.get("detail") or detail.get("code") or "Error")
+        else:
+            message = detail if isinstance(detail, str) else str(detail or "Error")
         status_code = int(getattr(exc, "status_code", 500))
         code_id = _transport_code(status_code)
+        body = error_payload(code_id, message, rid)
+        if extra is not None:
+            body["error"]["detail"] = extra
         return JSONResponse(
-            error_payload(code_id, message, rid),
+            body,
             status_code=status_code,
             headers={REQUEST_ID_HEADER: rid or ""},
         )
@@ -285,7 +331,13 @@ def create_app(lan_mode: bool = False) -> FastAPI:
 
     def _v1_not_found(full_path: str) -> JSONResponse:
         return JSONResponse(
-            {"error": {"code": "not_found", "message": _V1_HINT, "path": f"/v1/{full_path}"}},
+            {
+                "error": {
+                    "code": "not_found",
+                    "message": _V1_HINT,
+                    "path": f"/v1/{full_path}",
+                }
+            },
             status_code=404,
         )
 
@@ -298,14 +350,14 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         return _v1_not_found(full_path)
 
     # API routes
-    app.include_router(health.router,   prefix="/api")
-    app.include_router(usage.router,    prefix="/api")
-    app.include_router(files.router,    prefix="/api")
-    app.include_router(chat.router,     prefix="/api")
-    app.include_router(shell.router,    prefix="/api")
-    app.include_router(memory.router,   prefix="/api")
+    app.include_router(health.router, prefix="/api")
+    app.include_router(usage.router, prefix="/api")
+    app.include_router(files.router, prefix="/api")
+    app.include_router(chat.router, prefix="/api")
+    app.include_router(shell.router, prefix="/api")
+    app.include_router(memory.router, prefix="/api")
     app.include_router(memory_trash.router, prefix="/api")
-    app.include_router(skills.router,   prefix="/api")
+    app.include_router(skills.router, prefix="/api")
     app.include_router(artifacts.router, prefix="/api")
     app.include_router(audit.router, prefix="/api")
     app.include_router(cell.router, prefix="/api")
@@ -317,41 +369,45 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(learning.router, prefix="/api")
     app.include_router(context.router, prefix="/api")
     app.include_router(metrics.router, prefix="/api")
-    app.include_router(profile.router,  prefix="/api")
+    app.include_router(profile.router, prefix="/api")
     app.include_router(feedback.router, prefix="/api")
-    app.include_router(audio.router,    prefix="/api")
-    app.include_router(mobile.router,   prefix="/api")
-    app.include_router(schedule.router,   prefix="/api")
-    app.include_router(settings.router,   prefix="/api")
-    app.include_router(plugins.router,   prefix="/api")
-    app.include_router(importer.router,  prefix="/api")
-    app.include_router(tour.router,      prefix="/api")
+    app.include_router(audio.router, prefix="/api")
+    app.include_router(mobile.router, prefix="/api")
+    app.include_router(schedule.router, prefix="/api")
+    app.include_router(settings.router, prefix="/api")
+    app.include_router(plugins.router, prefix="/api")
+    app.include_router(importer.router, prefix="/api")
+    app.include_router(tour.router, prefix="/api")
     app.include_router(environment.router, prefix="/api")
     app.include_router(ephemeris.router, prefix="/api")
     app.include_router(mcp.router, prefix="/api")
-    app.include_router(vision.router,   prefix="/api")
-    app.include_router(tasks.router,    prefix="/api")
+    app.include_router(vision.router, prefix="/api")
+    app.include_router(tasks.router, prefix="/api")
     app.include_router(subagents.router, prefix="/api")
     app.include_router(trajectory.router, prefix="/api")
-    app.include_router(export.router,   prefix="/api")
+    app.include_router(export.router, prefix="/api")
     app.include_router(model_provider.router, prefix="/api")
     app.include_router(fs.router, prefix="/api")
     app.include_router(git_info.router, prefix="/api")
     app.include_router(proxy.router, prefix="/api")
-    app.include_router(update.router,  prefix="/api")
+    app.include_router(update.router, prefix="/api")
     app.include_router(reader.router, prefix="/api")
     app.include_router(workspaces.router, prefix="/api")
 
     # Static files (audio recordings for playback)
     audio_dir = Path(
-        os.environ.get("EPHE_AUDIO_DIR", str(Path.home() / ".ephe" / "sessions" / "audio"))
+        os.environ.get(
+            "EPHE_AUDIO_DIR", str(Path.home() / ".ephe" / "sessions" / "audio")
+        )
     )
     audio_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/audio", StaticFiles(directory=str(audio_dir)), name="audio")
 
     # Static files (images/screenshots for remote)
     image_dir = Path(
-        os.environ.get("EPHE_IMAGE_DIR", str(Path.home() / ".ephe" / "sessions" / "images"))
+        os.environ.get(
+            "EPHE_IMAGE_DIR", str(Path.home() / ".ephe" / "sessions" / "images")
+        )
     )
     image_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/images", StaticFiles(directory=str(image_dir)), name="images")
@@ -422,10 +478,12 @@ def mount_frontend(app: FastAPI) -> None:
     frontend_dir = resolve_frontend_dir()
     if (frontend_dir / "index.html").is_file():
         app.mount(
-            "/", SPAStaticFiles(directory=str(frontend_dir), html=True),
+            "/",
+            SPAStaticFiles(directory=str(frontend_dir), html=True),
             name="frontend",
         )
     else:
+
         @app.get("/", include_in_schema=False)
         async def _root_missing_build() -> HTMLResponse:
             return _frontend_missing_hint()
@@ -481,6 +539,7 @@ def _register_mobile_entrypoint(app: FastAPI) -> None:
     A route instead of a StaticFile: app/dist is git-ignored (a build artifact),
     so the QR page has to be available without a build step.
     """
+
     @app.get("/mobile.html", include_in_schema=False)
     async def _mobile_entrypoint() -> Response:
         return Response(_MOBILE_HTML, media_type="text/html")

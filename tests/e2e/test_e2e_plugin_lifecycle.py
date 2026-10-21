@@ -126,6 +126,7 @@ def client(config_dir):
     from server.main import create_app
 
     with TestClient(create_app()) as c:
+        c.headers.update({"X-Requested-With": "XMLHttpRequest"})
         yield c
 
 
@@ -146,7 +147,10 @@ def _install() -> dict:
 
     payload = _artifact_bytes()
     return plugin_market.install_from_marketplace(
-        PLUGIN_ID, marketplace=_listing(payload), fetcher=lambda url: payload
+        PLUGIN_ID,
+        marketplace=_listing(payload),
+        fetcher=lambda url: payload,
+        allow_local_trust=True,
     )
 
 

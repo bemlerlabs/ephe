@@ -58,7 +58,11 @@ async def create_video(case: str | None = None) -> str:
 
     stdout = str(getattr(completed, "stdout", "") or "")
     lines = [line for line in stdout.splitlines() if line.strip()]
-    files = [line for line in lines if ".gif" in line or ".webm" in line or ".png" in line]
+    files = [
+        line
+        for line in lines
+        if ".gif" in line or ".webp" in line or ".webm" in line or ".png" in line
+    ]
     summary = "\n".join(files) if files else stdout.strip()
 
     hero = os.path.join(_ROOT, "docs", "screenshots", "hero-banner.png")

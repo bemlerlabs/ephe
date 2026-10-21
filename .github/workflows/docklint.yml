@@ -48,7 +48,7 @@ jobs:
     # scope: a reference there fails validation for the entire file, and the run arrives with zero
     # jobs, no log, and the file path in place of its name. Measured on the push of `6e5fe969` against
     # `lint.yml`; `tests/test_workflow_env_scopes.py` refuses the shape now.
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Scratch root

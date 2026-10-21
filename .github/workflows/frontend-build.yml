@@ -22,8 +22,10 @@ jobs:
     # settings answer 422; see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md). Accepted
     # consequence: fork PRs get no CI and are reviewed by hand. Push and same-repo PR runs
     # continue unchanged; every pull request this repository has seen was a dependabot branch.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    # Private workshop: only the security/preflight lane runs here. The full frontend and
+    # timing gate belongs to the public release-candidate CI on GitHub-hosted runners.
+    if: github.repository == 'bemlerlabs/ephe' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     # Not 20: the e2e step below downloads a Chromium (~150 MB) before it runs its 91
     # specs, on top of the pnpm install, the 1400-test vitest suite and the build.
     # tests.yml:50 gives its browser-downloading Python leg 25 minutes for the same reason.

@@ -53,10 +53,13 @@ class TestPortfolio:
             assert manifest["origin"] == "first-party", d.name
 
     def test_runtime_mapping_covers_whole_portfolio(self):
-        missing = EXPECTED_V2 - set(plugin_runtime.CATALOG_TOOL_FAMILIES.keys())
-        orphans = set(plugin_runtime.CATALOG_TOOL_FAMILIES.keys()) - EXPECTED_V2
-        assert not missing, missing
-        assert not orphans, orphans
+        from core.plugin_registry import PluginRegistry
+
+        registry = PluginRegistry.load(PLUGINS, ROOT / "skills")
+        assert {plugin.id for plugin in registry.plugins} == EXPECTED_V2
+        for plugin in registry.plugins:
+            for tool in plugin.manifest.get("components", {}).get("tools", []):
+                assert registry.activation_owner(tool) == plugin.id
 
     def test_catalog_matches_disk(self):
         catalog = json.loads((ROOT / "plugin-catalog.json").read_text(encoding="utf-8"))

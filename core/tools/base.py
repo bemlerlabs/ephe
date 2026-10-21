@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 import os
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
+
+
+#: The plugin whose capability is executing, or empty for a kernel call.
+#: Plugin file tools are scoped to the validated workspace; the kernel path
+#: keeps the user's allowed roots.
+PLUGIN_FILE_SCOPE: ContextVar[str] = ContextVar("plugin_file_scope", default="")
 
 
 # Module-level shared Ollama client (reuse TCP connection)
@@ -195,6 +202,26 @@ AMATEUR_DECK_TERMS = {
 # Whitelist Helpers
 
 def _get_allowed_roots() -> list[Path]:
+    plugin = PLUGIN_FILE_SCOPE.get()
+    if plugin:
+        try:
+            from core.engine_config import get_workspace_dir, validate_workspace_dir
+
+            workspace = validate_workspace_dir(get_workspace_dir())
+        except (OSError, ValueError):
+            return []
+        if not workspace:
+            return []
+        root = Path(workspace)
+        roots = [root]
+        from core.capability_policy import declared_data_roots
+
+        for declared in declared_data_roots(plugin):
+            candidate = Path(declared).expanduser()
+            if not candidate.is_absolute():
+                candidate = root / candidate
+            roots.append(candidate.resolve())
+        return roots
     home = Path.home()
     roots = [
         home,

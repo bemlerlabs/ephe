@@ -6,8 +6,10 @@ import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
 import Switch from '@/components/shell/Switch'
 import SearchInput from '@/components/shell/SearchInput'
 import PluginIcon from '@/components/shell/PluginIcon'
+import PluginSwitch from '@/components/ui/PluginSwitch'
 import { Puzzle, Power, Store } from 'lucide-react'
 import type { PluginEntry } from '@/lib/api'
+import { ApiError } from '@/lib/api'
 import { DeepFields } from './deepFields'
 import type { SettingsModel } from './types'
 
@@ -50,6 +52,30 @@ export function renderPlugins(model: SettingsModel) {
         placeholder={t('settings.pluginsSearch')}
         label={t('settings.pluginsSearch')}
       />
+      {pluginView?.notices?.some((notice) => notice.code === 'legacy_master_bypass_retired') && (
+        <p
+          data-testid="plugin-legacy-master-notice"
+          className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+        >
+          {t('settings.pluginLegacyMasterRetired')}
+        </p>
+      )}
+      {pluginView?.read_only && (
+        <p
+          data-testid="plugin-read-only-notice"
+          className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+        >
+          {t('settings.pluginReadOnly')}
+        </p>
+      )}
+      {pluginView?.unproven && (
+        <p
+          data-testid="plugin-state-unproven-notice"
+          className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+        >
+          {t('settings.pluginStateUnproven')}
+        </p>
+      )}
       {pluginView === null ? (
         <LoadingRow label={t('settings.loading')} />
       ) : (
@@ -70,6 +96,11 @@ export function renderPlugins(model: SettingsModel) {
                 checked={pluginView.master_enabled !== false}
                 label={t('settings.pluginsMaster')}
                 testid="plugins-master-toggle"
+                disabled={
+                  pluginView.master_enabled === false ||
+                  pluginView.read_only === true ||
+                  pluginView.unproven === true
+                }
                 onChange={(next) => void handlePluginMasterToggle(next)}
               />
             </SettingsRow>
@@ -130,17 +161,51 @@ export function renderPlugins(model: SettingsModel) {
                           </p>
                           <p className="line-clamp-1 text-ui-xs text-ink-faint">{p.description}</p>
                         </div>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={p.enabled}
-                          disabled={pluginView.master_enabled === false}
-                          onClick={() => void handlePluginToggle(p.id, !p.enabled)}
-                          data-testid={`plugin-toggle-${p.id}`}
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-ui-xs font-medium transition-colors max-lg:min-h-9 disabled:opacity-40 disabled:cursor-not-allowed ${p.enabled ? 'bg-brand/20 text-brand-deep' : 'bg-surface text-ink-faint'}`}
-                        >
-                          {p.enabled ? t('settings.pluginOn') : t('settings.pluginOff')}
-                        </button>
+                        <PluginSwitch
+                          name={p.name}
+                          checked={p.enabled}
+                          disabled={
+                            pluginView.master_enabled === false ||
+                            pluginView.read_only === true ||
+                            pluginView.unproven === true
+                          }
+                          onToggle={(next) => handlePluginToggle(p.id, next)}
+                          testid={`plugin-toggle-${p.id}`}
+                          errorTestid={`plugin-toggle-error-${p.id}`}
+                          labels={{
+                            on: t('settings.pluginOn'),
+                            off: t('settings.pluginOff'),
+                            enabling: t('settings.pluginEnabling'),
+                            disabling: t('settings.pluginDisabling'),
+                            failed: t('settings.pluginToggleFailed'),
+                          }}
+                          describeError={(reason, fallback) => {
+                            if (reason instanceof ApiError) {
+                              if (reason.reasonCode === 'dependency_blocked') {
+                                return t('settings.pluginErrorDependency', {
+                                  name: reason.message,
+                                })
+                              }
+                              if (reason.reasonCode === 'dependents_enabled') {
+                                return t('settings.pluginErrorDependents', {
+                                  name: reason.message,
+                                })
+                              }
+                              if (reason.reasonCode === 'stale_state') {
+                                return t('settings.pluginErrorStale')
+                              }
+                              if (reason.reasonCode === 'not_cancellable') {
+                                return t('settings.pluginErrorNotCancellable')
+                              }
+                              if (reason.reasonCode === 'plugin_lifecycle_read_only') {
+                                return t('settings.pluginErrorReadOnly')
+                              }
+                            }
+                            return reason instanceof Error && reason.message
+                              ? reason.message
+                              : fallback
+                          }}
+                        />
                       </div>
                       {p.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">

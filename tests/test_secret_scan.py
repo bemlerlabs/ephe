@@ -207,9 +207,9 @@ def test_the_workflow_wires_the_scan_and_cannot_warn_through() -> None:
     assert "continue-on-error:" not in text
     assert "permissions:" in text and "contents: read" in text
     assert "persist-credentials: false" in text
-    # The scan is a sub-minute gate: it runs on a GitHub-hosted runner with the other
-    # light checks instead of queueing behind the heavy suites on the Spark.
-    assert "runs-on: ubuntu-latest" in text
+    # The scan is a sub-minute gate: private runs use the self-hosted Linux runner;
+    # the public snapshot falls back to GitHub-hosted when the variable is absent.
+    assert "runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}" in text
     for ref in re.findall(r"uses:\s*([^\s@]+)@(\S+)", text):
         assert re.fullmatch(r"[0-9a-f]{40}", ref[1]), f"unpinned action {ref[0]}@{ref[1]}"
 

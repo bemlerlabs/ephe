@@ -45,7 +45,7 @@ jobs:
     # Same fork exclusion as the workflow-audit job in ci-gates.yml.
     # Push, the weekly schedule and same-repo PRs keep running.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Checkout

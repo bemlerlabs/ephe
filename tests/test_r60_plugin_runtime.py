@@ -10,8 +10,9 @@ and hides/disables the mapped tool families. Keystone honesty properties:
 2. Only EXPLICIT registry entries gate (plugins.json via the store UI);
    catalog defaults never hide tools silently (no behavior change until the
    user toggles — never break userspace).
-3. Master switch (plugins.json top-level `master_enabled`, default true):
-   off = stock Ephe, nothing gated.
+3. Legacy master switch (plugins.json top-level `master_enabled`): the gating
+   bypass retired with O-1. Explicit per-plugin states win; pause all is the
+   separate global control.
 4. TOOL_MAP stays complete (userspace); gating applies to the SCHEMA view
    (model-facing) and to EXECUTION (fail-closed, honest denial + audit).
 5. Unknown plugin ids / unknown tool names never crash — fail-closed means
@@ -71,10 +72,11 @@ class TestGateSemantics:
         assert plugin_runtime.is_tool_visible("mcp_github_search") is False
         assert plugin_runtime.is_tool_visible("read_file") is True
 
-    def test_master_off_is_stock(self, cfg):
-        """G: web-research disabled BUT master off W: gate T: everything visible."""
+    def test_master_off_no_longer_bypasses_explicit_off(self, cfg):
+        """G: web-research disabled and legacy master off W: gate T: still hidden."""
         _write_registry(cfg.parent, [{"name": "web-research", "enabled": False}], master=False)
-        assert plugin_runtime.is_tool_visible("web_search") is True
+        assert plugin_runtime.is_tool_visible("web_search") is False
+        assert plugin_runtime.is_tool_visible("read_file") is True
 
     def test_unknown_tool_visible_and_unknown_plugin_ignored(self, cfg):
         _write_registry(cfg.parent, [{"name": "totally-unknown-plugin", "enabled": False}])
@@ -102,7 +104,7 @@ class TestSchemaView:
         _write_registry(cfg.parent, [{"name": "web-research", "enabled": False}])
         from core.tools.registry import TOOL_MAP
 
-        assert len(TOOL_MAP) == 73
+        assert len(TOOL_MAP) == 74
 
 
 class TestExecution:

@@ -42,7 +42,7 @@ jobs:
     # validation for the whole file, which shows up as a run with no jobs, no log and the path where
     # the name belongs. Measured on the push of `6e5fe969`; two steps here need the root, so the job is
     # the scope that holds it. `tests/test_workflow_env_scopes.py` refuses the shape.
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Scratch root

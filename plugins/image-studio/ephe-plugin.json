@@ -11,7 +11,10 @@
   },
   "components": {
     "skills": [],
-    "commands": []
+    "commands": [],
+    "tools": [
+      "generate_image"
+    ]
   },
   "origin": "first-party",
   "icon": "icon.svg"

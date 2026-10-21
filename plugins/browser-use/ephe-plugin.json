@@ -19,6 +19,16 @@
         "description": "Open a page and work with it in the browser",
         "template": "Öffne {input} im Browser (browser_go), mache einen Screenshot und führe die Aufgabe mit browser_click/browser_type aus — approval-gated."
       }
+    ],
+    "tools": [
+      "browser_go",
+      "browser_screenshot",
+      "browser_click",
+      "browser_type",
+      "browser_press",
+      "browser_scroll",
+      "browser_evaluate",
+      "browser_exec"
     ]
   },
   "icon": "icon.svg"

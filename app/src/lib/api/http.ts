@@ -136,12 +136,17 @@ async function requestBoundMs(): Promise<number> {
 }
 
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
-  const { timeoutMs, signal: callerSignal, ...rest } = init ?? {}
+  const { timeoutMs, signal: callerSignal, headers: callerHeaders, ...rest } = init ?? {}
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     // W16: XHR marker — the shell route uses it to recognise the PWA's own calls
     // (CSRF guard against simple cross-origin form POSTs).
     'X-Requested-With': 'XMLHttpRequest',
+  }
+  if (callerHeaders) {
+    new Headers(callerHeaders as HeadersInit).forEach((value, key) => {
+      headers[key] = value
+    })
   }
   if (LAN_TOKEN) headers['X-Auth-Token'] = LAN_TOKEN
 
@@ -186,10 +191,11 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
             message?: string
             reason_code?: string
             reason_params?: Record<string, string | number>
+            detail?: { code?: string }
           }
           detail?: string
         }
-        const code = body.error?.reason_code ?? ''
+        const code = body.error?.reason_code ?? body.error?.detail?.code ?? ''
         reasonCode = code
         // Loaded here rather than at the top: the i18n instance initialises react-i18next, and
         // a module-level import would pull that into every file that mocks it.

@@ -248,7 +248,7 @@ def test_health_names_the_process_and_the_contract(monkeypatch) -> None:
     assert body["version"]
     assert body["instance_id"]
     assert body["pid"] > 0
-    assert body["root"].endswith("ephe")
+    assert Path(body["root"]).resolve() == Path(__file__).resolve().parents[1]
     assert body["api_contract"] >= 1
     assert "owner" in body
 

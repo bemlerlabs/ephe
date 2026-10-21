@@ -109,6 +109,9 @@ def test_safe_tools_bypass_policy_even_without_auto_approve(tmp_path, monkeypatc
     from core.tools.approval import ApprovalPolicy
     from core.tools.registry import execute_tool
 
+    # read_file is owned by code-shell, so its file scope is the active
+    # workspace. Point that workspace at the test file's directory.
+    monkeypatch.setenv("EPHE_WORKSPACE", str(tmp_path))
     # read_file on a file in the allowed roots must work with a strict policy
     # (SAFE tools never need approval).
     target = tmp_path / "allow.txt"

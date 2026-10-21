@@ -366,3 +366,94 @@ def test_Katalog_spricht_beide_Sprachen():
         assert en.strip(), f"{entry['id']} ohne englische description_en"
         assert en != de, f"{entry['id']} traegt deutschen Text in description_en"
         assert 20 <= len(en) <= 400, f"{entry['id']}: description_en ausserhalb 20-400"
+
+
+def _install_live_client(monkeypatch, mcp_module):
+    _Spy.instances = []
+    client = _Spy("http://127.0.0.1:9/mcp")
+    mcp_module._LIVE_CLIENTS["http:http://127.0.0.1:9/mcp"] = client
+    mcp_module.register_mcp_tool(
+        "mcp_probe",
+        "probe",
+        "probe",
+        lambda arguments=None: ("ok", False),
+        {"name": "mcp_probe", "description": "", "inputSchema": {}},
+        discovered=True,
+    )
+    return client
+
+
+def test_disabling_the_connector_closes_clients_and_unregisters_tools(monkeypatch):
+    import core.tools.mcp_client as mcp_module
+    from core import plugin_runtime
+
+    client = _install_live_client(monkeypatch, mcp_module)
+    monkeypatch.setattr(mcp_module, "_MCP_ARMED_LOOP", None)
+    try:
+        plugin_runtime._deactivate("mcp-connector")
+
+        assert client.closed is True
+        assert mcp_module._LIVE_CLIENTS == {}
+        assert mcp_module.mcp_tool_names() == []
+    finally:
+        mcp_module._LIVE_CLIENTS.clear()
+
+
+def test_teardown_fails_closed_when_the_owning_loop_is_gone(monkeypatch):
+    import core.tools.mcp_client as mcp_module
+
+    client = _install_live_client(monkeypatch, mcp_module)
+    dead_loop = asyncio.new_event_loop()
+    dead_loop.close()
+    monkeypatch.setattr(mcp_module, "_MCP_ARMED_LOOP", dead_loop)
+    try:
+        with pytest.raises(mcp_module.MCPTeardownError):
+            mcp_module.teardown_mcp_connector_sync()
+        assert client.closed is False
+        assert "mcp_probe" in mcp_module.mcp_tool_names()
+    finally:
+        mcp_module._LIVE_CLIENTS.clear()
+
+
+def test_teardown_runs_on_the_loop_that_owns_the_clients(monkeypatch):
+    import threading
+
+    import core.tools.mcp_client as mcp_module
+
+    loop = asyncio.new_event_loop()
+    ready = threading.Event()
+
+    def run() -> None:
+        asyncio.set_event_loop(loop)
+        loop.call_soon(ready.set)
+        loop.run_forever()
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    assert ready.wait(timeout=5)
+    client = _install_live_client(monkeypatch, mcp_module)
+    monkeypatch.setattr(mcp_module, "_MCP_ARMED_LOOP", loop)
+    try:
+        mcp_module.teardown_mcp_connector_sync()
+
+        assert client.closed is True
+        assert mcp_module.mcp_tool_names() == []
+    finally:
+        mcp_module._LIVE_CLIENTS.clear()
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join(timeout=5)
+        loop.close()
+
+
+@pytest.mark.asyncio
+async def test_teardown_from_the_owning_loop_fails_closed(monkeypatch):
+    import core.tools.mcp_client as mcp_module
+
+    client = _install_live_client(monkeypatch, mcp_module)
+    monkeypatch.setattr(mcp_module, "_MCP_ARMED_LOOP", asyncio.get_running_loop())
+    try:
+        with pytest.raises(mcp_module.MCPTeardownError):
+            mcp_module.teardown_mcp_connector_sync()
+        assert client.closed is False
+    finally:
+        mcp_module._LIVE_CLIENTS.clear()

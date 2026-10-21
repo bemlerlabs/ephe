@@ -57,7 +57,7 @@ jobs:
     # (run 38098960856), and `tests/test_workflow_env_scopes.py` now refuses the shape.
     # Fork pull requests are excluded for the reason written out on the pytest job in tests.yml.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Scratch root

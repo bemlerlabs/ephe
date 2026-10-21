@@ -74,7 +74,10 @@ class TestInstall:
         payload = _zip_bytes("my-tool", VALID)
         entry = {**MARKET["plugins"][0], "sha256": "00" * 32}
         status = plugin_market.install_from_marketplace(
-            "my-tool", marketplace={"plugins": [entry]}, fetcher=lambda url: payload
+            "my-tool",
+            marketplace={"plugins": [entry]},
+            fetcher=lambda url: payload,
+            allow_local_trust=True,
         )
         assert status["status"] == "hash_mismatch"
         assert not (tmp_path / "cfg" / "plugins" / "my-tool").exists()
@@ -84,7 +87,10 @@ class TestInstall:
         payload = _zip_bytes("my-tool", VALID)
         entry = {**MARKET["plugins"][0], "sha256": sha256_hex(payload)}
         status = plugin_market.install_from_marketplace(
-            "my-tool", marketplace={"plugins": [entry]}, fetcher=lambda url: payload
+            "my-tool",
+            marketplace={"plugins": [entry]},
+            fetcher=lambda url: payload,
+            allow_local_trust=True,
         )
         assert status["status"] == "extracted"
         pdir = tmp_path / "cfg" / "plugins" / "my-tool"
@@ -97,7 +103,10 @@ class TestInstall:
         payload = _zip_bytes("my-tool", bad)
         entry = {**MARKET["plugins"][0], "sha256": sha256_hex(payload)}
         status = plugin_market.install_from_marketplace(
-            "my-tool", marketplace={"plugins": [entry]}, fetcher=lambda url: payload
+            "my-tool",
+            marketplace={"plugins": [entry]},
+            fetcher=lambda url: payload,
+            allow_local_trust=True,
         )
         assert status["status"] == "quarantined" and status["error"]
         assert not (tmp_path / "cfg" / "plugins" / "my-tool").exists()
@@ -111,7 +120,10 @@ class TestInstall:
         payload = buf.getvalue()
         entry = {**MARKET["plugins"][0], "sha256": sha256_hex(payload)}
         status = plugin_market.install_from_marketplace(
-            "my-tool", marketplace={"plugins": [entry]}, fetcher=lambda url: payload
+            "my-tool",
+            marketplace={"plugins": [entry]},
+            fetcher=lambda url: payload,
+            allow_local_trust=True,
         )
         assert status["status"] == "unsafe_archive"
         assert not (tmp_path / "escape.sh").exists()
@@ -128,6 +140,7 @@ class TestInstall:
         status = plugin_market.install_from_marketplace(
             "my-tool", marketplace={"plugins": [{**MARKET["plugins"][0], "url": ""}]},
             fetcher=lambda url: b"",
+            allow_local_trust=True,
         )
         assert status["status"] == "no_url"
 

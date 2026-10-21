@@ -340,6 +340,10 @@ export interface DeepField {
   type: 'bool' | 'number' | 'select' | 'text'
   label: string
   labelEn: string
+  /** A locale key that carries the label in both languages; product copy stays
+   *  in app/src/locales, never in the Python register. */
+  labelKey?: string
+  hintKey?: string
   default: string | number | boolean | null
   value: string | number | boolean | null
   min?: number
