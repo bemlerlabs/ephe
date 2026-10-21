@@ -148,7 +148,7 @@ ephe session list|new|switch|rm|rename
    {"response": "17 × 3 is **51**.", "model": "deepseek-v4-pro"}
    ```
 
-截图与短片位于 `docs/screenshots/`（上方的横幅）和 `docs/media/`（[演示](docs/DEMOS.md)中的 GIF 短片）。
+截图与短片位于 `docs/screenshots/`（上方的横幅）和 `docs/media/`（[演示](docs/DEMOS.md)中的 WebP 短片）。
 
 ## 接下来可以做什么
 

@@ -157,8 +157,8 @@ From a checkout, five steps to a working session. Each numbered step is one comm
    {"response": "17 × 3 is **51**.", "model": "deepseek-v4-pro"}
    ```
 
-Screenshots and clips live in `docs/screenshots/` (the banner above) and `docs/media/` (the GIF
-clips under [Demos](docs/DEMOS.md)).
+Screenshots and clips live in `docs/screenshots/` (the banner above) and `docs/media/` (the clips under
+[Demos](docs/DEMOS.md)).
 
 ## What You Can Do Next
 

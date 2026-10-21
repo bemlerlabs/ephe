@@ -154,7 +154,7 @@ Desde un checkout, cinco pasos hasta una sesión funcional. Cada paso numerado e
    {"response": "17 × 3 is **51**.", "model": "deepseek-v4-pro"}
    ```
 
-Las capturas y los clips están en `docs/screenshots/` (el banner de arriba) y `docs/media/` (los clips GIF de [Demos](docs/DEMOS.md)).
+Las capturas y los clips están en `docs/screenshots/` (el banner de arriba) y `docs/media/` (los clips WebP de [Demos](docs/DEMOS.md)).
 
 ## Qué puedes hacer después
 
