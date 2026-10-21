@@ -499,7 +499,7 @@ def clip_chat(page: Page) -> None:
     dismiss_task_dock(page)
     dismiss_status_popover(page)
 
-    # The README hero: a finished answer plus a live draft, not an empty composer.
+    # The README hero wants a finished answer and a live draft.
     human_type(page, COMPOSER, "Turn that into a one-line launch message")
     page.wait_for_selector(EMPTY_HINT, state="detached", timeout=5000)
     assert_demo_sidebar(page)
@@ -558,7 +558,7 @@ def clip_artifacts(page: Page) -> None:
             page.wait_for_selector('[data-testid="preview-frame"]', state="attached", timeout=8000)
             page.wait_for_selector('[data-testid="preview-frame-status"]', state="detached", timeout=10000)
             # The default 420 px pane crops a poster. Cycle it wide so the artifact
-            # is the subject of the frame, not a sliver behind the transcript.
+            # fills the frame.
             for _ in range(2):
                 cycle = page.locator('button[aria-label^="Cycle width"]')
                 if cycle.count():
@@ -640,7 +640,7 @@ def clip_palette(page: Page) -> None:
     page.wait_for_timeout(600)
 
     page.evaluate("() => { document.activeElement && document.activeElement.blur() }")
-    # The cheatsheet opens via the SHORTCUTS_EVENT (header button), not a '?' keystroke.
+    # The cheatsheet opens through the SHORTCUTS_EVENT the header button dispatches.
     page.evaluate("window.dispatchEvent(new CustomEvent('ephe:toggle-shortcuts'))")
     page.wait_for_selector('[data-testid="shortcuts-overlay"]', timeout=8000)
     page.wait_for_timeout(2600)
