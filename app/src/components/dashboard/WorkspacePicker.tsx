@@ -8,7 +8,7 @@
  * Every switch broadcasts `ephe:workspace-changed` so other surfaces
  * (bar chip, git info) re-sync without a page reload.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { listFs, updateSettings } from '@/lib/api'
 
 export const WORKSPACE_CHANGED_EVENT = 'ephe:workspace-changed'
@@ -21,26 +21,67 @@ export interface WorkspaceState {
   set: boolean
 }
 
-export function useWorkspaceState(): WorkspaceState {
-  const [state, setState] = useState<WorkspaceState>({ name: null, set: false })
-  const refresh = useCallback(() => {
-    listFs()
-      .then((fs) => {
-        const dir = fs.workspace
-        const set = (fs as { workspace_set?: boolean }).workspace_set === true
-        setState({
-          name: dir ? (dir.split('/').filter(Boolean).pop() ?? dir) : null,
-          set,
-        })
+const EMPTY: WorkspaceState = { name: null, set: false }
+
+/**
+ * One fact about the device, read once.
+ *
+ * The bar chip, the composer and the header all want `set`, and a hook that
+ * fetched per instance doubled the boot request count — the q-quality budget
+ * caught it at 27 against a ceiling of 25. Consumers now share one snapshot,
+ * one in-flight request, and one window listener while anyone is watching.
+ */
+let snapshot: WorkspaceState = EMPTY
+const listeners = new Set<() => void>()
+let inflight: Promise<void> | null = null
+let watching = false
+
+function publish(next: WorkspaceState) {
+  if (next.name === snapshot.name && next.set === snapshot.set) return
+  snapshot = next
+  for (const notify of listeners) notify()
+}
+
+function refreshWorkspace(): Promise<void> {
+  if (inflight) return inflight
+  inflight = listFs()
+    .then((fs) => {
+      const dir = fs.workspace
+      const set = (fs as { workspace_set?: boolean }).workspace_set === true
+      publish({
+        name: dir ? (dir.split('/').filter(Boolean).pop() ?? dir) : null,
+        set,
       })
-      .catch(() => setState({ name: null, set: false }))
-  }, [])
-  useEffect(() => {
-    refresh()
-    window.addEventListener(WORKSPACE_CHANGED_EVENT, refresh)
-    return () => window.removeEventListener(WORKSPACE_CHANGED_EVENT, refresh)
-  }, [refresh])
-  return state
+    })
+    .catch(() => publish(EMPTY))
+    .finally(() => {
+      inflight = null
+    })
+  return inflight
+}
+
+function onWorkspaceChanged() {
+  void refreshWorkspace()
+}
+
+function subscribe(notify: () => void) {
+  listeners.add(notify)
+  if (!watching) {
+    watching = true
+    window.addEventListener(WORKSPACE_CHANGED_EVENT, onWorkspaceChanged)
+    void refreshWorkspace()
+  }
+  return () => {
+    listeners.delete(notify)
+    if (listeners.size === 0) {
+      watching = false
+      window.removeEventListener(WORKSPACE_CHANGED_EVENT, onWorkspaceChanged)
+    }
+  }
+}
+
+export function useWorkspaceState(): WorkspaceState {
+  return useSyncExternalStore(subscribe, () => snapshot)
 }
 
 export function useWorkspaceName(): string | null {

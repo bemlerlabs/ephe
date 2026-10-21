@@ -145,11 +145,13 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
       })
     }
     // The ceiling counts the boot set; the first-open tour added one named request
-    // (GET /api/tour, the device marker) to the 24 measured before it.
+    // (GET /api/tour, the device marker) to the 24 measured before it. The workspace
+    // bar is now always present, so its one read of the active folder (GET /api/fs,
+    // shared by every consumer through useWorkspaceState) joins that set: 26.
     expect(
       apiCalls.length,
       `API-Anzahl ${apiCalls.length}: ${apiCalls.join(' ')}`,
-    ).toBeLessThanOrEqual(25)
+    ).toBeLessThanOrEqual(26)
     expect(requests.length, `Total-Anzahl ${requests.length}`).toBeLessThanOrEqual(400)
     // UI errors: favicon/connection are expected offline paths; the rest must be 0
     const uiErrors = errors.filter(
