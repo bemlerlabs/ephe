@@ -22,6 +22,7 @@ import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { useUpdateCheck } from '@/lib/useUpdateCheck'
 import Sidebar from '../Sidebar'
 import WorkspaceBar from '../WorkspaceBar'
+import { useWorkspaceState } from '../WorkspacePicker'
 import { UpdateDialog } from '../UpdateDialog'
 import ChatInput from '../ChatInput'
 import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
@@ -86,6 +87,9 @@ export function messageRowKey(msg: { id?: string }, index: number): string {
 export default function ChatLayout() {
   const update = useUpdateCheck()
   useTaskDeepLink()
+  // Git surfaces belong to a project the user chose. The neutral default must
+  // never turn the Ephe checkout (or any cwd) into the header's branch chip.
+  const workspace = useWorkspaceState()
   // P1-10: while initFromDb() is running the message list shows a skeleton
   // instead of the welcome state (no empty flash on a cold start).
   const hydrated = useChatStore((s) => s.hydrated)
@@ -384,7 +388,7 @@ export default function ChatLayout() {
                     </button>
                   )}
                 </div>
-                {headerMeta && (
+                {headerMeta && workspace.set && (
                   <div className="hidden md:flex items-center gap-1.5 min-w-0">
                     {headerMeta.git && headerMeta.branch && (
                       <span className="relative">
@@ -733,7 +737,7 @@ export default function ChatLayout() {
                   <TaskDock
                     messages={currentSession?.messages ?? []}
                     plan={runData.plan}
-                    headerMeta={headerMeta}
+                    headerMeta={workspace.set ? headerMeta : null}
                   />
                 </div>
                 <div ref={messagesEndRef} />
@@ -743,11 +747,13 @@ export default function ChatLayout() {
             {/* Input — G1.3: NOT disabled while streaming (typing/queueing stay
             possible); only the send button turns into stop. Backstop guard in the
             parent's handleSend. */}
-            {/* Zone 3 — the workspace bar sits above the composer, and only when a
-                real git repo is open: an empty default chat keeps a clean stage. */}
-            {headerMeta?.git && (
-              <WorkspaceBar branch={headerMeta.branch} dirty={headerMeta.dirty} git />
-            )}
+            {/* Zone 3 — the workspace bar is the one place the project is chosen.
+                Its branch chip appears only for a project the user chose. */}
+            <WorkspaceBar
+              branch={workspace.set ? headerMeta?.branch : undefined}
+              dirty={workspace.set ? (headerMeta?.dirty ?? 0) : 0}
+              git={Boolean(workspace.set && headerMeta?.git)}
+            />
             <div className="relative">
               <WorkspaceCompanion
                 runState={runState}

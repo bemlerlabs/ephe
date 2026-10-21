@@ -16,11 +16,23 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from core.engine_config import get_workspace_dir
+from core.engine_config import get_workspace_dir, workspace_is_explicit
 
 router = APIRouter(tags=["Git"])
 
 _TIMEOUT = 5.0
+
+
+def _explicit_workspace() -> str | None:
+    """The workspace a user chose; None for the neutral default.
+
+    Git surfaces are about the user's project. A server started in the source
+    checkout must not turn that checkout's branches and dirty count into the
+    product's default header.
+    """
+    if not workspace_is_explicit():
+        return None
+    return get_workspace_dir()
 
 
 class GitInfoResponse(BaseModel):
@@ -55,7 +67,9 @@ async def _git(cwd: str, *args: str) -> str:
 
 @router.get("/git/info", response_model=GitInfoResponse)
 async def git_info() -> GitInfoResponse:
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        return GitInfoResponse(workspace="")
     workspace = Path(wd).name or wd
     if not Path(wd).is_dir():
         return GitInfoResponse(workspace=workspace)
@@ -94,7 +108,9 @@ _BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,120}$")
 @router.get("/git/branches", response_model=BranchListResponse)
 async def git_branches() -> BranchListResponse:
     """Local branches for the header chip dropdown (read-only)."""
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        return BranchListResponse(workspace="")
     workspace = Path(wd).name or wd
     if not Path(wd).is_dir():
         return BranchListResponse(workspace=workspace)
@@ -115,7 +131,9 @@ async def git_checkout(req: CheckoutRequest) -> CheckoutResponse:
     branch = (req.branch or "").strip()
     if not _BRANCH_RE.fullmatch(branch):
         raise HTTPException(status_code=400, detail="invalid branch name")
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        raise HTTPException(status_code=409, detail="No workspace selected")
     if not Path(wd).is_dir():
         raise HTTPException(status_code=409, detail="Workspace directory does not exist")
     rc, out = await _git_raw(wd, "checkout", branch)
@@ -213,7 +231,9 @@ def _status_changes(porcelain: str, nums: dict[str, tuple[str, str]], staged: bo
 @router.get("/git/status", response_model=GitStatusResponse)
 async def git_status(staged: bool = False) -> GitStatusResponse:
     """Change list for the review tab. Read-only, fixed git arguments."""
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        return GitStatusResponse(workspace="")
     workspace = Path(wd).name or wd
     if not Path(wd).is_dir():
         return GitStatusResponse(workspace=workspace)
@@ -274,7 +294,9 @@ def _safe_relpath(wd: str, raw: str) -> str | None:
 @router.get("/git/diff", response_model=GitDiffResponse)
 async def git_diff(path: str, staged: bool = False) -> GitDiffResponse:
     """Patch text of one file for the review tab. Read-only, path guard, cap."""
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        raise HTTPException(status_code=409, detail="No workspace selected")
     if not Path(wd).is_dir():
         raise HTTPException(status_code=409, detail="workspace directory missing")
     rel = _safe_relpath(wd, path)
@@ -317,7 +339,9 @@ class GitCommitResponse(BaseModel):
 @router.post("/git/add", response_model=GitAddResponse)
 async def git_add(req: GitAddRequest) -> GitAddResponse:
     """Stages files (add with path guard) or everything (-A). Argument list, no shell."""
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        raise HTTPException(status_code=409, detail="No workspace selected")
     if not Path(wd).is_dir():
         raise HTTPException(status_code=409, detail="workspace directory missing")
     if req.paths:
@@ -340,7 +364,9 @@ async def git_add(req: GitAddRequest) -> GitAddResponse:
 @router.post("/git/commit", response_model=GitCommitResponse)
 async def git_commit(req: GitCommitRequest) -> GitCommitResponse:
     """Commit with a message. 409 on empty index/small error; no shell."""
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        raise HTTPException(status_code=409, detail="No workspace selected")
     message = (req.message or "").strip()
     if not Path(wd).is_dir():
         raise HTTPException(status_code=409, detail="workspace directory missing")
@@ -395,7 +421,9 @@ async def git_apply(req: GitApplyRequest) -> GitApplyResponse:
 
     git apply reads the patch from stdin; fixed argument list, no shell.
     400 on empty patch/path outside the workspace, 409 when applying fails."""
-    wd = get_workspace_dir()
+    wd = _explicit_workspace()
+    if wd is None:
+        raise HTTPException(status_code=409, detail="No workspace selected")
     if not Path(wd).is_dir():
         raise HTTPException(status_code=409, detail="workspace directory missing")
     patch = (req.patch or "").replace("\r\n", "\n")

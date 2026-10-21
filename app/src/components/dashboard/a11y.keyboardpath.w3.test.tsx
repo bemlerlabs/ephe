@@ -81,6 +81,7 @@ vi.mock('@/lib/api', () => ({
       parent: null,
       home: '/tmp',
       workspace: '/tmp/ws',
+      workspace_set: true,
       entries: [],
     }),
   updateSettings: vi.fn(async () => ({

@@ -69,13 +69,14 @@ class TestWorkspaceThreeState:
         assert body["workspace"] == str(ws)
 
     def test_state_2_no_workspace_reports_neutral(self, client):
-        """G: no workspace_dir W: GET /api/fs T: workspace_set=false, CWD mirror."""
+        """G: no workspace_dir W: GET /api/fs T: neutral root, never the checkout."""
         r = client.get("/api/fs")
         assert r.status_code == 200
         body = r.json()
         assert body["workspace_set"] is False
-        # R26 parity: the reported root mirrors the process CWD fallback.
-        assert Path(body["workspace"]).resolve() == Path.cwd().resolve()
+        reported = Path(body["workspace"]).resolve()
+        assert reported != Path.cwd().resolve()
+        assert reported.name == "workspace"
 
     def test_state_3_out_of_roots_rejected(self, client):
         """G: absolute path outside allowed roots W: GET /api/fs T: 403."""

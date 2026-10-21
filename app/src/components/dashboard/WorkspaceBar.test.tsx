@@ -100,9 +100,9 @@ describe('WorkspaceBar — 24 px floor and one glyph size (W13)', () => {
     }
   })
 
-  it('the branch chip matches the row height and its glyph step', () => {
+  it('the branch chip matches the row height and its glyph step', async () => {
     render(<WorkspaceBar branch="main" dirty={3} git />)
-    const branch = screen.getByTestId('workspace-bar-branch')
+    const branch = await screen.findByTestId('workspace-bar-branch')
     expect(branch.className.split(/\s+/)).toContain('min-h-6')
     expect(branch.querySelector('svg')!.getAttribute('class')).toContain('h-3.5 w-3.5')
   })

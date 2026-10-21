@@ -114,9 +114,9 @@ def _workspace_state() -> tuple[str | None, bool]:
 
     workspace_set=True  ⇒ the user picked a project (engine.json, deliberate
     SSOT — no second source in settings.json). Display: the project name.
-    workspace_set=False ⇒ no project: neutral display ("Workspace"), the root
-    stays the documented CWD fallback (R26 parity with /api/projects, no
-    hardcoded path).
+    workspace_set=False ⇒ no project: neutral display ("Workspace") over the
+    neutral default root. A server started from the source checkout never
+    reports that checkout as the user's workspace.
     """
     try:
         from core.engine_config import load_engine_config
@@ -143,8 +143,8 @@ def _workspace_or_none() -> str | None:
             return choice.workspace_dir
     except Exception:
         pass
-    # No configured workspace: mirror get_workspace_dir()'s cwd fallback so
-    # /api/fs and /api/projects report the same active workspace (R26).
+    # No configured workspace: the same neutral root get_workspace_dir() uses,
+    # so /api/fs and /api/projects agree (R26).
     try:
         from core.engine_config import get_workspace_dir
 

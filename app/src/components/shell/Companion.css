@@ -9,10 +9,10 @@
   flex: none;
 }
 .companion-actor.is-hero {
-  --companion-base: clamp(14rem, 22vw, 18rem);
+  --companion-base: clamp(8rem, 13vw, 11rem);
 }
 .companion-actor.is-workspace {
-  --companion-base: clamp(9rem, 13vw, 12rem);
+  --companion-base: clamp(4.5rem, 7vw, 7rem);
 }
 .companion-actor.is-header {
   --companion-base: 1.5rem;
@@ -97,15 +97,15 @@
   position: absolute;
   left: 50%;
   top: 52%;
-  width: 16rem;
-  height: 16rem;
+  width: 9rem;
+  height: 9rem;
   transform: translate(-50%, -50%);
   pointer-events: none;
   mix-blend-mode: screen;
 }
 .companion-actor.is-hero .companion-sparks {
-  width: 20rem;
-  height: 20rem;
+  width: 14rem;
+  height: 14rem;
 }
 
 /* The ember spark keeps the film's act-two face: a glow, a core, two eyes. */

@@ -361,7 +361,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     # I2-2: no silent default — without a chosen engine the run aborts, override or not.
     choice = engine_for_headless_run(args, getattr(args, "model", None))
     as_json, record_path = _record_targets(args)
-    workspace = os.path.expanduser(getattr(args, "workspace", None) or os.getcwd())
+    from core.engine_config import get_workspace_dir
+
+    workspace = os.path.expanduser(getattr(args, "workspace", None) or get_workspace_dir())
     verify = (getattr(args, "verify", None) or "").strip() or None
     resume = (getattr(args, "resume", None) or "").strip()
 

@@ -120,7 +120,7 @@ export default function WorkspaceBar({ branch, dirty = 0, git = false }: Workspa
         />
       </button>
 
-      {git && branch && (
+      {ws.set && git && branch && (
         <span
           data-testid="workspace-bar-branch"
           title={t('header.branchChip')}

@@ -81,7 +81,7 @@ def workspace_key(path_or_identity=None) -> str:
 
 
 def resolve_workspace_dir() -> str:
-    """Active workspace root: env override → engine.json → cwd."""
+    """Active workspace root: env override → engine.json → neutral default."""
     env = (os.environ.get("EPHE_WORKSPACE") or "").strip()
     if env:
         return env

@@ -924,7 +924,31 @@ def get_workspace_dir() -> str:
                 return str(p.resolve())
         except Exception:
             pass
-    return os.getcwd()
+    cwd = Path.cwd().resolve()
+    # A server started from the source checkout must never expose that checkout
+    # as the user's workspace (or its branches) by default.
+    if (cwd / "core").is_dir() and (cwd / "app" / "src-tauri").is_dir() and (
+        cwd / "pyproject.toml"
+    ).is_file():
+        neutral = config_root() / "workspace"
+        try:
+            neutral.mkdir(parents=True, exist_ok=True)
+            return str(neutral)
+        except OSError:
+            return str(config_root())
+    return str(cwd)
+
+
+def workspace_is_explicit() -> bool:
+    """True only when the user chose a workspace (env or engine.json).
+
+    The UI uses this to keep git branch chips and branch lists off the neutral
+    default; a cwd fallback is never a user choice.
+    """
+    if (os.environ.get("EPHE_WORKSPACE") or "").strip():
+        return True
+    choice = load_engine_config()
+    return bool(choice and choice.workspace_dir)
 
 
 def workspace_hash(path: str | None = None) -> str:
