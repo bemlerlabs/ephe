@@ -291,6 +291,20 @@ def install_from_marketplace(
         )
 
     final = plugins_root / name
+    installed = _installed_version(final)
+    if installed and _version_key(str(manifest.get("version", ""))) < _version_key(installed):
+        # T-03: the signature says who built the artifact, not that it is the
+        # newest one. An old signed artifact served by a listing, or signed by a
+        # key that was trusted once, must not replace a newer install.
+        shutil.rmtree(staging, ignore_errors=True)
+        return {
+            "status": "downgrade_refused",
+            "name": name,
+            "error": (
+                f"installed {installed}, refused to replace it with "
+                f"{manifest.get('version')}"
+            ),
+        }
     if final.exists():
         shutil.rmtree(final, ignore_errors=True)
     candidate.rename(final)
@@ -306,6 +320,22 @@ def install_from_marketplace(
     if trust == "local" and not signed:
         result["warning"] = "local_trust"
     return result
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    """The numeric shape of an X.Y.Z manifest version, for the floor comparison."""
+    try:
+        return tuple(int(part) for part in str(version).split("."))
+    except ValueError:
+        return ()
+
+
+def _installed_version(root: Path) -> str:
+    """The version of the plugin already at `root`, or empty when none is there."""
+    if not root.is_dir():
+        return ""
+    manifest, _error = plugin_manifest.load_manifest(root)
+    return str(manifest.get("version", "")) if manifest else ""
 
 
 def _register_installed(name: str) -> None:

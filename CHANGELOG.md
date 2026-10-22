@@ -10,6 +10,52 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
+## [0.1.2] - 2026-10-22
+
+The plugin platform, the cell runtime and a security pass. One change breaks an
+interpreter, and it is listed first for that reason.
+
+### Changed
+- **Python 3.10 is no longer supported.** It entered its end-of-life phase on
+  2026-10-01 and ends on 2026-10-31 (PEP 619; 3.10.22 was the final security
+  release). `requires-python` is `>=3.11`, the installer and `ephe doctor` look
+  for 3.11, and the CI matrices run 3.11–3.13.
+- wasmtime moves from 47.0.1 to 48.0.0, the pip release with the fewest open
+  advisories. `tests/test_cell_runtime_floor.py` holds the floor.
+
+### Added
+- The plugin platform: registry, lifecycle state machine, switch contract, the
+  read-only brake `plugins.plugin_lifecycle_read_only`, signature, package,
+  dependency, secret, network-guard and audit gates.
+- The CPython WASI guest can be built reproducibly enough to install and verify
+  (`build_cpython_guest.py`), and the cell runs model-written Python with fuel,
+  memory, disk and network limits enforced. Twenty-one tests that skipped
+  without a guest now run.
+- Semgrep runs as a public check at ERROR severity. Bandit and its reviewed
+  baseline stay in the private lane, because that baseline names the accepted
+  findings.
+
+### Security
+- A signed artifact older than the installed one is refused with `downgrade_refused`
+  instead of replacing it (RT-01Z F1 / SIG-05). The signature proves who built
+  an artifact, not that it is the newest one the user should run.
+- Nine open advisories against `uv.lock` were all Pillow, all from the single
+  Pillow 12.3.0 entry that Python 3.10 required. Pillow 13.0.0 now resolves for
+  every supported interpreter, including the critical heap overflow in
+  `ImagingJpegDecode`.
+- certifi 2026.10.19, vite 6.4.4, `@vitest/mocker` 4.1.12, rustls-webpki
+  0.103.16 and webpki-root-certs 1.0.10 close the remaining audit findings.
+  The Dependabot alert count is zero.
+
+### Fixed
+- The terminal's approval prompt could not be answered: it was not focusable and
+  it mounted below the fold, so the worker waited out its timeout.
+- A tool result could crash the terminal through the markup parser; tool output,
+  the streaming answer and the approval question now carry a `Text`.
+- The workspace bar's chip had a 1.3:1 edge; the control boundary role replaces
+  the decorative hairline.
+- Two components read the active workspace, which doubled the boot request.
+
 ## [0.1.1] - 2026-10-20
 
 A security patch for the 0.1.0 line. No new capability.
