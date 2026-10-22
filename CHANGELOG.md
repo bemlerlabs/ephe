@@ -36,6 +36,9 @@ interpreter, and it is listed first for that reason.
   findings.
 
 ### Security
+- A signed artifact older than the installed one is refused with `downgrade_refused`
+  instead of replacing it (RT-01Z F1 / SIG-05). The signature proves who built
+  an artifact, not that it is the newest one the user should run.
 - Nine open advisories against `uv.lock` were all Pillow, all from the single
   Pillow 12.3.0 entry that Python 3.10 required. Pillow 13.0.0 now resolves for
   every supported interpreter, including the critical heap overflow in

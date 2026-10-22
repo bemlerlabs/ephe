@@ -184,3 +184,71 @@ def test_cli_plugin_toggle_uses_the_lifecycle(device) -> None:
     assert plugin_runtime.lifecycle().snapshot("web-research").enabled is False
     assert cmd_plugin(Namespace(action="enable", plugin_id="web-research")) == 0
     assert plugin_runtime.lifecycle().snapshot("web-research").enabled is True
+
+
+def _signed_at(root: Path, version: str) -> tuple[bytes, dict, bytes]:
+    private, public = plugin_signing.generate_keypair()
+    source = root / "src" / "my-tool"
+    source.mkdir(parents=True)
+    manifest = _manifest()
+    manifest["version"] = version
+    (source / "ephe-plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (source / "README.md").write_text("signed content\n", encoding="utf-8")
+    record = plugin_signing.sign_plugin_dir(source, private)
+    return _zip_tree(source), record, public
+
+
+def _entry_at(payload: bytes, version: str, signature: dict) -> dict:
+    entry = _entry(payload, "official", signature)
+    entry["version"] = version
+    return entry
+
+
+def test_anti_rollback_floor(device, tmp_path) -> None:
+    """GIVEN a signed 2.0.0 is installed
+    WHEN a signed 1.0.0 from a trusted key is offered
+    THEN the install is refused and the newer version stays on disk.
+
+    T-03: an old artifact served by a listing, or signed by a key that was
+    trusted once, must not downgrade an install. The signature proves who made
+    the artifact, not that it is the newest one the user should run.
+    """
+    newest, newest_record, newest_key = _signed_at(tmp_path / "v2", "2.0.0")
+    installed = plugin_market.install_from_marketplace(
+        "my-tool",
+        marketplace={"plugins": [_entry_at(newest, "2.0.0", newest_record)]},
+        fetcher=lambda url: newest,
+        trusted_public_keys=[newest_key],
+    )
+    assert installed["status"] == "extracted"
+
+    older, older_record, older_key = _signed_at(tmp_path / "v1", "1.0.0")
+    refused = plugin_market.install_from_marketplace(
+        "my-tool",
+        marketplace={"plugins": [_entry_at(older, "1.0.0", older_record)]},
+        fetcher=lambda url: older,
+        trusted_public_keys=[newest_key, older_key],
+    )
+    assert refused["status"] == "downgrade_refused"
+    assert "2.0.0" in refused["error"] and "1.0.0" in refused["error"]
+
+    on_disk = json.loads(
+        (device / "plugins" / "my-tool" / "ephe-plugin.json").read_text(encoding="utf-8")
+    )
+    assert on_disk["version"] == "2.0.0"
+
+
+def test_reinstalling_the_same_version_is_not_a_downgrade(device, tmp_path) -> None:
+    """GIVEN 2.0.0 is installed
+    WHEN the same 2.0.0 is installed again
+    THEN it replaces cleanly, so a repair is possible and only a lower version
+    is refused."""
+    payload, record, public = _signed_at(tmp_path / "v2", "2.0.0")
+    for _ in range(2):
+        status = plugin_market.install_from_marketplace(
+            "my-tool",
+            marketplace={"plugins": [_entry_at(payload, "2.0.0", record)]},
+            fetcher=lambda url: payload,
+            trusted_public_keys=[public],
+        )
+        assert status["status"] == "extracted"

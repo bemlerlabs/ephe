@@ -6,7 +6,7 @@
   "license": "BUSL-1.1",
   "notes": "Ephe installs via the repo installer (install.ps1) — the scoop manifest wraps the one-command install. The hash is measured from the v0.1.2 source archive; scripts/render_packaging.py replaces it before the bucket receives the file.",
   "url": "https://github.com/bemlerlabs/ephe/archive/refs/tags/v0.1.2.zip",
-  "hash": "f9a0aff284ed105cab910423f88c83fdcb3a130b15d34caf69b8e307e1605516",
+  "hash": "12d212ff71be2f46b5648515f7d44329e190b2cfae4bd735ed86d7ceb828ecd4",
   "extract_dir": "ephe-0.1.2",
   "installer": {
     "script": [
