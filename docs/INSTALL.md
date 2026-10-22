@@ -8,7 +8,7 @@ chosen in the app after install — the installer does not install Ollama and do
 | Component | Minimum | Recommended |
 |---|---|---|
 | OS | macOS 13+ · Ubuntu 22+ · Windows with PowerShell | macOS 14+ or a recent Linux |
-| Python | 3.10 | 3.12+ |
+| Python | 3.11 | 3.12+ |
 | Node.js | 20 LTS with `npm` — **desktop/PWA mode only**, see the table below | 22 LTS |
 | Ollama | User-managed; the installer only detects it | Latest stable |
 | RAM | 8 GB for a small local tag | 16 GB+ for a local 12B-class tag, or a remote endpoint |
@@ -18,8 +18,8 @@ What each mode needs, beyond the OS:
 
 | Mode | Python | Node.js | What the installer installs |
 |---|---|---|---|
-| CLI (`--cli`, `EPHE_MODE=cli`) | 3.10+ — uv provides one if the machine has none, otherwise the distro package | not needed; the TUI has no frontend build | `.[tui]` only |
-| Desktop / PWA (default) | 3.10+ | **20 LTS with `npm` (or `pnpm`)** — the PWA is built with it, and the installer does not install Node.js for you | `.[gui,voice]` plus the built PWA |
+| CLI (`--cli`, `EPHE_MODE=cli`) | 3.11+ — uv provides one if the machine has none, otherwise the distro package | not needed; the TUI has no frontend build | `.[tui]` only |
+| Desktop / PWA (default) | 3.11+ | **20 LTS with `npm` (or `pnpm`)** — the PWA is built with it, and the installer does not install Node.js for you | `.[gui,voice]` plus the built PWA |
 
 Desktop is the default, and a piped `curl … | bash` has no terminal, so it never asks: it takes
 Desktop and therefore needs Node.js. On a box without Node.js the install stops at
@@ -101,8 +101,8 @@ ephe start --open # desktop mode: start the local app, then open http://127.0.0.
 
 | Mode | Flag | Needs | Installs | Starts |
 |---|---|---|---|---|
-| Desktop / PWA (default) | `--desktop` (`--gui`, `--web`, `--pwa`) | Python 3.10+ and Node.js 20+ with `npm` (or `pnpm`) | `.[gui,voice]` plus the built PWA | `ephe start --open` |
-| CLI | `--cli` (`--headless`, `--tui`) | Python 3.10+ only | `.[tui]` only | `ephe tui` |
+| Desktop / PWA (default) | `--desktop` (`--gui`, `--web`, `--pwa`) | Python 3.11+ and Node.js 20+ with `npm` (or `pnpm`) | `.[gui,voice]` plus the built PWA | `ephe start --open` |
+| CLI | `--cli` (`--headless`, `--tui`) | Python 3.11+ only | `.[tui]` only | `ephe tui` |
 
 `--no-start` installs without launching anything. `--dry-run` prints the plan without changing
 anything. With no flag, the installer asks interactively (Desktop is the default) when a terminal is

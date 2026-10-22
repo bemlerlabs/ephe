@@ -12,7 +12,7 @@
 
 One command installs the app; the engine is chosen inside it afterwards, from local Ollama, a remote Ollama, or an OpenAI-compatible endpoint such as a DGX Spark. The installer does not install Ollama and does not pull a model. Until an engine is chosen the app says so and waits, with no hidden fallback; once it is chosen, a fully offline local setup and a remote high-throughput setup run as peers. Custom Ollama servers, public mobile access, web research, text-to-speech services, and OpenAI-compatible APIs are optional opt-in paths.
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org) [![Engine chosen in-app](https://img.shields.io/badge/Engine-chosen%20in%20app-8250df?style=for-the-badge)](https://ollama.com)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org) [![Engine chosen in-app](https://img.shields.io/badge/Engine-chosen%20in%20app-8250df?style=for-the-badge)](https://ollama.com)
 [![License](https://img.shields.io/badge/License-BUSL%201.1-2d6a4f?style=for-the-badge)](LICENSE) [![Tests](https://github.com/bemlerlabs/ephe/actions/workflows/tests.yml/badge.svg)](https://github.com/bemlerlabs/ephe/actions/workflows/tests.yml) [![Frontend Build](https://github.com/bemlerlabs/ephe/actions/workflows/frontend-build.yml/badge.svg)](https://github.com/bemlerlabs/ephe/actions/workflows/frontend-build.yml)
 [![Lang-中文](https://img.shields.io/badge/Lang-中文-red?style=for-the-badge)](README.zh-CN.md) [![Lang-Español](https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge)](README.es.md)
 
@@ -79,7 +79,7 @@ The way out ships with the checkout: `./uninstall.sh --dry-run` prints the plan 
 | Component | Minimum | Notes |
 |---|---|---|
 | OS | macOS 13+, Ubuntu 22+, or Windows with the PowerShell path | a current browser |
-| Python | 3.10 or newer | `.python-version` pins 3.13 for this checkout |
+| Python | 3.11 or newer | `.python-version` pins 3.13 for this checkout |
 | RAM | 8 GB free for a small local tag | 16 GB+ for a local 12B-class tag; a remote endpoint needs none |
 | Storage | 12 GB free | 20 GB+ recommended |
 
@@ -112,7 +112,7 @@ From a checkout, five steps to a working session. Each numbered step is one comm
    ▶ Checking the system
      ✓ Darwin supported
      ✓ Disk space OK
-   ▶ Checking Python 3.10+
+   ▶ Checking Python 3.11+
      ✓ 3.12.15 found
    ▶ Setting up the local Python environment
      DRY-RUN: pnpm --dir …/app install --frozen-lockfile

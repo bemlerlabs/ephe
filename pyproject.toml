@@ -7,7 +7,7 @@ name = "ephe"
 version = "0.1.1"
 description = "◑ Ephe – Offline-first local SI agent, ephemeral by design. Private. Local. Yours."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "BUSL-1.1"
 license-files = ["LICENSE", "NOTICE"]
 authors = [
@@ -19,7 +19,6 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -41,16 +40,10 @@ dependencies = [
     "pdfplumber>=0.11.0",
     "reportlab>=4.0.0",
     "psutil>=5.9.0",
-    # requires-python says >=3.10 and CI tests 3.10, but tomllib is stdlib only from
-    # 3.11 — so on 3.10 core/environment_mirror silently answered None for every TOML
-    # tool config and "the mirror reads your coding agents' configs" was untrue there.
-    # Marker-scoped: nothing installs on 3.11+, and tomli is the pure-Python MIT
-    # backport with the stdlib API.
-    "tomli>=1.2; python_version < '3.11'",
     # The embedding model (core/memory_embed_onnx.py) reads its ONNX file directly and
     # owns its runtime, so the session, the vocabulary and the pooling arithmetic each
     # have a name here. Floors stay low on purpose — onnxruntime 1.29 and numpy 2.5 want
-    # a newer Python than this package supports (>=3.10, CI runs 3.10-3.13) and a higher
+    # a newer Python than this package supports (>=3.11, CI runs 3.11-3.13) and a higher
     # floor would drop a leg. The versions the frozen vectors were measured against are in
     # tests/fixtures/memory_embed_golden.json.
     "numpy>=1.22.5",

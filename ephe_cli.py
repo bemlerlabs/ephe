@@ -627,7 +627,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # other row and never decide the exit code: a valid remote engine must not fail this
     # box's plan because the box has no local Ollama (W10-24, 2026-10-13).
     informational: list[tuple[str, bool, str]] = []
-    checks.append(("Python", sys.version_info >= (3, 10), sys.version.split()[0]))
+    checks.append(("Python", sys.version_info >= (3, 11), sys.version.split()[0]))
     checks.append(("Project files", (PROJECT_ROOT / "app" / "index.html").exists(), str(PROJECT_ROOT)))
 
     engine = _active_engine_choice()

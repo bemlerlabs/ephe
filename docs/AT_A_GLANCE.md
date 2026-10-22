@@ -56,7 +56,7 @@ Measured on the clean-install path (`uv venv` + wheel install, CLI `--version` c
 | 3.13 | yes | yes |
 
 6/6 combinations green on that host. CI is a wider grid and a different instrument: it builds four
-interpreters (3.10, 3.11, 3.12, 3.13) on Linux for the pytest and integration legs, plus one macOS
+interpreters (3.11, 3.12, 3.13) on Linux for the pytest and integration legs, plus one macOS
 3.12 leg. Read the workflow files for what runs on every push; this table is the clean-host reading.
 `engine.example.json` is one template, the OpenAI-compatible one; the local-Ollama path is chosen by
 `ephe configure` or by `EPHE_MODEL_PROVIDER=local_ollama`. Which start path really waits for that

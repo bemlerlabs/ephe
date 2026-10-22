@@ -8,9 +8,9 @@
     "install_dir": "cells/cpython-wasi-3.13.16",
     "entry": "python.wasm",
     "stdlib_dir": "root",
-    "entry_sha256": "056af5c5acc74d030a1683855a68a33bf2eec31db741ff352e34e595d5e9574f",
-    "entry_bytes": 29309906,
-    "root_tree_sha256": "e6e393d33952556ad0d2219e3cbdcb8dae62fc39a206a985c9c40796aad6aaae",
+    "entry_sha256": "a8fdd8ef7815fc91255022fad6805859f5e1788a9c75809f8e7f65519f465380",
+    "entry_bytes": 29343587,
+    "root_tree_sha256": "fb0606b110dfd4a900a757d98aed615f158f67dfeb3d239cf98db8d48c57345a",
     "root_tree_files": 1256
   },
   "provenance": {
@@ -30,8 +30,24 @@
     "parallelism": "MAKEFLAGS=-jN in der Umgebung; make-build-python und make kennen kein `--`-Durchreichen an make",
     "staging": {
       "stdlib_source": "Python-3.13.16/Lib des signierten Quelltext-Archivs (pristine, nicht das Build-Verzeichnis)",
-      "pruned_dirs": ["test", "tests", "idle_test", "turtledemo", "site-packages", "__pycache__"],
-      "pruned_suffixes": [".whl", ".png", ".gif", ".svg", ".po", ".mo", ".xpm", ".tm"],
+      "pruned_dirs": [
+        "test",
+        "tests",
+        "idle_test",
+        "turtledemo",
+        "site-packages",
+        "__pycache__"
+      ],
+      "pruned_suffixes": [
+        ".whl",
+        ".png",
+        ".gif",
+        ".svg",
+        ".po",
+        ".mo",
+        ".xpm",
+        ".tm"
+      ],
       "bytecode": "compileall -q -f ueber den gestagten Baum mit dem Host-Python derselben Minor-Version; .pyc sind magestapf-abhaengig und liegen deshalb im Manifest-Digest",
       "sysconfigdata": "_sysconfigdata__wasi_*.py aus cross-build in den stdlib-Ordner kopiert (PYTHONHOME=/usr/local reicht dafuer nicht)",
       "install_modes": "Dateien 0444, Ordner 0555 — der Gast hat / als Preopen und darf seinen eigenen Interpreter nicht umbauen koennen"

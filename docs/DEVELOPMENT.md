@@ -65,7 +65,7 @@ Quality gates run in CI on every push and pull request:
 
 | Workflow | What it runs |
 |---|---|
-| `tests.yml` — pytest | the tracked offline test subset (repo hygiene, security guards, routes, engine defaults) across Python 3.10–3.13 |
+| `tests.yml` — pytest | the tracked offline test subset (repo hygiene, security guards, routes, engine defaults) across Python 3.11–3.13 |
 | `tests.yml` — integration | package import integrity, installer syntax (bash + PowerShell), security-default audit (conservative server binding), Docker image build |
 | `frontend-build.yml` | TypeScript type check, Vite production build, ESLint |
 

@@ -17,7 +17,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   # A `pip install --user` tree in ~/.local is inserted ahead of the leg's own site-packages, and
   # pip then reads those distributions as already satisfied. Measured 2026-10-09 on the lab runner:
-  # the py3.10 leg imported pytest 9.0.3 from ~/.local while installing its own. Set here and not
+  # the py3.10 leg then imported pytest 9.0.3 from ~/.local while installing its own. Set here and not
   # only in the runner's `.env`, which the listener reads once at start and so cannot deliver
   # without a restart.
   PYTHONNOUSERSITE: "1"
@@ -52,11 +52,11 @@ jobs:
       fail-fast: false
       matrix:
         # The same four interpreters `integration` builds. CI Python parity
-        # (test_sprint2_f2_pwa_hygiene.py): the lower bound is requires-python (>=3.10), the local
+        # (test_sprint2_f2_pwa_hygiene.py): the lower bound is requires-python (>=3.11), the local
         # venv (3.13) is in the matrix, and every entry stays inside the pyproject classifiers. An
         # unset `CI_LINUX_RUNNER` sends every leg to a label that matches no runner, so the job
         # waits instead of quietly becoming a run somewhere else.
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13']
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -409,9 +409,9 @@ jobs:
     strategy:
       matrix:
         # CI Python parity (test_sprint2_f2_pwa_hygiene.py): the lower bound is
-        # requires-python (>=3.10), the local venv (3.13) is in the matrix, and every
+        # requires-python (>=3.11), the local venv (3.13) is in the matrix, and every
         # entry stays inside the pyproject classifiers.
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13']
 
     steps:
       - name: Checkout
@@ -538,7 +538,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, urllib.request
-          expected = [f"pytest-linux (py{v})" for v in ("3.10", "3.11", "3.12", "3.13")]
+          expected = [f"pytest-linux (py{v})" for v in ("3.11", "3.12", "3.13")]
           # The laptop leg: `pytest-macos` is switched off for pull requests by its own `if:`, so a
           # PR expects four legs and a push expects five.
           if os.environ["EVENT_NAME"] != "pull_request":

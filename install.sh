@@ -273,7 +273,7 @@ else
   ok "Disk space OK"
 fi
 
-step "Checking Python 3.10+"
+step "Checking Python 3.11+"
 find_uv() {
   for candidate in \
     "$(command -v uv 2>/dev/null || true)" \
@@ -296,9 +296,9 @@ find_python() {
   fi
 
   for candidate in \
-    python3.13 python3.12 python3.11 python3.10 python3 python \
-    /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3.10 /opt/homebrew/bin/python3 \
-    /usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11 /usr/local/bin/python3.10 /usr/local/bin/python3; do
+    python3.13 python3.12 python3.11 python3 python \
+    /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3 \
+    /usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11 /usr/local/bin/python3; do
     if [[ "$candidate" == */* ]]; then
       [[ -x "$candidate" ]] || continue
       bin="$candidate"
@@ -306,7 +306,7 @@ find_python() {
       command -v "$candidate" >/dev/null 2>&1 || continue
       bin="$(command -v "$candidate")"
     fi
-    if "$bin" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
+    if "$bin" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
       echo "$bin"
       return 0
     fi
@@ -339,12 +339,12 @@ install_uv_python() {
 }
 
 install_python() {
-  info "Python 3.10+ is missing. Starting the installation."
+  info "Python 3.11+ is missing. Starting the installation."
   if [[ "$OS_NAME" == "Darwin" ]]; then
     if command -v brew >/dev/null 2>&1; then
       run brew install python@3.12 || run brew install python
     else
-      install_uv_python || fail "Python 3.10+ could not be installed automatically."
+      install_uv_python || fail "Python 3.11+ could not be installed automatically."
     fi
   elif install_uv_python; then
     return 0
@@ -358,7 +358,7 @@ install_python() {
   elif command -v pacman >/dev/null 2>&1; then
     run as_root pacman -Sy --noconfirm python python-pip
   else
-    fail "Python 3.10+ is missing. Install Python and python3-venv with your package manager and run ./install.sh again."
+    fail "Python 3.11+ is missing. Install Python and python3-venv with your package manager and run ./install.sh again."
   fi
 }
 
@@ -369,9 +369,9 @@ if [[ -z "$PYTHON" ]]; then
 fi
 if [[ -z "$PYTHON" && "$DRY_RUN" == "1" ]]; then
   PYTHON="python3"
-  ok "Python 3.10+ would be installed"
+  ok "Python 3.11+ would be installed"
 else
-  [[ -n "$PYTHON" ]] || fail "Python 3.10+ is missing. Install Python and run the installer again."
+  [[ -n "$PYTHON" ]] || fail "Python 3.11+ is missing. Install Python and run the installer again."
   ok "$("$PYTHON" -c 'import sys; print(sys.version.split()[0])') found"
 fi
 

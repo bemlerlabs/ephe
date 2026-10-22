@@ -3,8 +3,11 @@
 
 The guest (~29 MB interpreter + stdlib tree) must NOT enter git. It lives under
 ``~/.ephe/cells/<install_dir>`` and is verified against ``core/cpython_guest.manifest.json``.
-The recipe below is the single source of truth for what has to be built so the hashes in
-the manifest stay reproducible — a guest without a recipe is a rumour.
+The recipe is the single source of truth for what gets built. It is not byte
+reproducible: measured 2026-10-22, a second run of this recipe wrote 291 absolute
+build paths into ``python.wasm`` and produced a different entry hash, so the
+manifest records the artifact that was actually installed. A guest without a
+recipe is a rumour; an unchanged recipe is not a promise of identical bytes.
 
 Flow (every step can also be invoked alone via the flags):
 
