@@ -123,6 +123,37 @@ def test_toggle_authorization(device) -> None:
         assert bare.get("/api/plugins").status_code == 200
 
 
+def test_a_foreign_host_is_refused(client) -> None:
+    refused = client.put(
+        "/api/plugins/web-research/enabled",
+        json={"enabled": False},
+        headers={
+            "Host": "rebind.attacker.test",
+            "Origin": "http://rebind.attacker.test",
+        },
+    )
+    assert refused.status_code == 403
+    assert refused.json()["error"]["detail"]["code"] == "untrusted_host"
+
+
+def test_a_foreign_origin_is_refused(client) -> None:
+    refused = client.put(
+        "/api/plugins/web-research/enabled",
+        json={"enabled": False},
+        headers={"Origin": "http://evil.example"},
+    )
+    assert refused.status_code == 403
+    assert refused.json()["error"]["detail"]["code"] == "untrusted_origin"
+
+
+def test_settings_mutations_reject_a_foreign_origin(client) -> None:
+    refused = client.post(
+        "/api/settings", json={"language": "en"}, headers={"Origin": "http://evil.example"}
+    )
+    assert refused.status_code == 403
+    assert refused.json()["error"]["detail"]["code"] == "untrusted_origin"
+
+
 def test_rapid_clicks_serialize(tmp_path) -> None:
     started = threading.Event()
     release = threading.Event()
@@ -370,6 +401,106 @@ def test_malformed_state_reads_off_and_unproven(tmp_path, payload) -> None:
     assert activated == []
 
 
+def test_an_unrelated_write_does_not_resurrect_an_unproven_enabled_state(tmp_path) -> None:
+    """T-28: the damaged file's enabled intent stays off after another plugin's write."""
+    state = tmp_path / "state.json"
+    state.write_text(
+        json.dumps(
+            {
+                "schema": 2,
+                "plugins": {
+                    "acme-research": {
+                        "user": {"committed": "enabled", "version": "1.4.0"}
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    audit: list[dict] = []
+    lifecycle = PluginLifecycle(
+        state,
+        versions={"acme-research": "1.4.0", "documents": "2.0.0"},
+        audit_sink=audit.append,
+    )
+
+    assert lifecycle.unproven is True
+    assert lifecycle.snapshot("acme-research").enabled is False
+
+    lifecycle.set_enabled("documents", False, reason="unrelated toggle")
+
+    assert lifecycle.snapshot("acme-research").enabled is False
+    on_disk = json.loads(state.read_text(encoding="utf-8"))
+    assert on_disk["plugins"]["acme-research"]["user"]["committed"] == "disabled"
+    assert any(
+        entry["action"] == "repair" and entry["plugin"] == "acme-research"
+        for entry in audit
+    )
+
+
+def test_an_idempotency_key_survives_a_new_instance(tmp_path) -> None:
+    state = tmp_path / "state.json"
+    versions = {"alpha": "1.0.0"}
+    first = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    first.set_enabled("alpha", False, idempotency_key="switch-1")
+
+    second = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    second.set_enabled("alpha", True)
+
+    third = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    cached = third.set_enabled("alpha", False, idempotency_key="switch-1")
+    assert cached.enabled is False
+
+    fresh = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    assert fresh.effective("alpha").enabled is True
+
+
+def test_an_empty_scope_entry_reads_disabled(tmp_path) -> None:
+    state = tmp_path / "state.json"
+    state.write_text(
+        json.dumps(
+            {"schema": 1, "plugins": {"acme-research": {"user": {}}}}
+        ),
+        encoding="utf-8",
+    )
+    lifecycle = PluginLifecycle(
+        state, versions={"acme-research": "1.0.0"}, audit_sink=lambda entry: None
+    )
+    assert lifecycle.snapshot("acme-research").enabled is False
+    assert lifecycle.effective("acme-research").enabled is False
+
+
+def test_a_failed_workspace_write_leaves_no_phantom_entry(
+    tmp_path, monkeypatch
+) -> None:
+    state = tmp_path / "state.json"
+    versions = {"alpha": "1.0.0", "beta": "1.0.0"}
+    lifecycle = PluginLifecycle(
+        state, versions=versions, audit_sink=lambda entry: None
+    )
+    lifecycle.set_enabled("alpha", False, scope="user")
+
+    from core import plugin_lifecycle_store as store
+
+    real_replace = store.os.replace
+    monkeypatch.setattr(
+        store.os,
+        "replace",
+        lambda src, dst: (_ for _ in ()).throw(OSError("disk full")),
+    )
+    with pytest.raises(LifecycleError) as err:
+        lifecycle.set_enabled("alpha", True, scope="workspace")
+    assert err.value.code == "state_write_failed"
+    monkeypatch.setattr(store.os, "replace", real_replace)
+
+    assert lifecycle.effective("alpha").enabled is False
+    assert "workspace" not in lifecycle._data["plugins"].get("alpha", {})
+
+    lifecycle.set_enabled("beta", False)
+    fresh = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    assert fresh.effective("alpha").enabled is False
+
+
 def test_a_malformed_pause_all_stays_paused_instead_of_unpausing(tmp_path) -> None:
     state = tmp_path / "state.json"
     state.write_text(
@@ -580,3 +711,23 @@ def test_a_disable_while_an_enable_is_pending_does_not_start_a_second_flight(
     thread.join(timeout=5)
     assert lifecycle.snapshot("acme-research").state is PluginState.ENABLED
     assert active == ["resource"]
+
+
+def test_a_cancel_from_another_process_reaches_the_next_call(tmp_path, monkeypatch):
+    """SC-08: guards are process-local, so the cancel is written down as well."""
+    from core import plugin_activity
+
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    # Another process wrote this: this process never saw the guards.
+    (tmp_path / "plugin-cancel.json").write_text('{"acme-research": ' + repr(__import__("time").time()) + "}")
+    plugin_activity._LOCAL_CANCELS.clear()
+    guard = plugin_activity.begin_call("acme-research")
+    try:
+        assert guard is not None and guard.cancelled is True
+    finally:
+        plugin_activity.end_call(guard)
+    other = plugin_activity.begin_call("another-plugin")
+    try:
+        assert other is not None and other.cancelled is False
+    finally:
+        plugin_activity.end_call(other)

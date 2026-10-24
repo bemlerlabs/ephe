@@ -201,3 +201,14 @@ class TestGetFilteredToolSchemas:
         # P0-1: META_TOOL_NAMES + memory + skill_manage are always injected (at least 1)
         assert len(result) >= 1
         assert result[0]["function"]["name"] == "web_search"
+
+
+def test_run_linter_resolves_a_relative_path_in_the_workspace(tmp_path, monkeypatch):
+    import asyncio
+
+    from core.tools.utility_tools import run_linter
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(tmp_path))
+    (tmp_path / "clean.py").write_text("x = 1\n", encoding="utf-8")
+    result = asyncio.run(run_linter("clean.py"))
+    assert "Path not found" not in result

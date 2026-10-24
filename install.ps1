@@ -171,12 +171,12 @@ if (-not (Test-ProjectRoot)) {
   exit $LASTEXITCODE
 }
 
-Step "Checking Python 3.10+"
+Step "Checking Python 3.11+"
 function Find-Python {
   $Candidate = Get-Command python -ErrorAction SilentlyContinue
   if (-not $Candidate) { $Candidate = Get-Command py -ErrorAction SilentlyContinue }
   if (-not $Candidate) { return $null }
-  & $Candidate.Source -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+  & $Candidate.Source -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)"
   if ($LASTEXITCODE -eq 0) { return $Candidate }
   return $null
 }
@@ -190,9 +190,9 @@ if (-not $Python) {
 }
 if (-not $Python) {
   if ($script:DryRun) {
-    Ok "Python 3.10+ would be installed"
+    Ok "Python 3.11+ would be installed"
   } else {
-    Fail "Python 3.10+ is missing. Install Python 3.12 and run this script again."
+    Fail "Python 3.11+ is missing. Install Python 3.12 and run this script again."
   }
 } else {
   Ok (& $Python.Source -c "import sys; print(sys.version.split()[0])")
@@ -231,7 +231,7 @@ if ($Ollama -and $OllamaServiceOk) {
 Step "Setting up the local Python environment"
 if ($script:DryRun) {
   Info "DRY-RUN: python -m venv .venv"
-  Info "DRY-RUN: pip install --upgrade pip"
+  Info "DRY-RUN: pip bootstrap 26.2.2 (hash-pinned)"
   if ($Cli) { Info 'DRY-RUN: pip install -e ".[tui]"' } else { Info 'DRY-RUN: pip install -e ".[gui,voice]"' }
 } else {
   if (-not (Test-Path -LiteralPath ".venv")) {
@@ -246,7 +246,15 @@ if ($script:DryRun) {
   if ($LASTEXITCODE -ne 0) {
     Run "python -m ensurepip --upgrade" { & ".\.venv\Scripts\python.exe" -m ensurepip --upgrade }
   }
-  Run "pip install --upgrade pip" { & ".\.venv\Scripts\python.exe" -m pip install --upgrade pip }
+  # pip older than 26.2.2 trusts the compromised eMudhra intermediates through
+  # its vendored certifi. The direct URL carries the wheel's SHA-256 (advisory
+  # 2026-10-20), so the bootstrap is verified before the new pip exists.
+  $PipBootstrapUrl = 'https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70'
+  Run "pip bootstrap 26.2.2" { & ".\.venv\Scripts\python.exe" -m pip install --upgrade $PipBootstrapUrl }
+  $PipVersion = & ".\.venv\Scripts\python.exe" -m pip --version
+  if ($PipVersion -notmatch '^pip 26\.2\.2') {
+    Fail "pip bootstrap did not reach 26.2.2 (CA advisory 2026-10-20)"
+  }
   if ($Cli) {
     Info "CLI mode: installing minimal dependencies (tui) only"
     Run 'pip install -e ".[tui]"' { & ".\.venv\Scripts\python.exe" -m pip install -e ".[tui]" }

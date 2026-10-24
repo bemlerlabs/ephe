@@ -46,7 +46,7 @@ fixed forward; this history is not rewritten.
 This repository runs the **CI quality gates** on every push to `main`/`develop` and every pull
 request into `main`:
 
-- **Tests** (`tests.yml`): the tracked pytest suite on four interpreters (3.10, 3.11, 3.12, 3.13) on
+- **Tests** (`tests.yml`): the tracked pytest suite on three interpreters (3.11, 3.12, 3.13) on
   Linux and on a macOS 3.12 leg, plus **Integration checks** — package import integrity, installer
   syntax (bash + PowerShell), security-default audit (conservative server binding), Docker image build
 - **Frontend build** (`frontend-build.yml`): TypeScript type check, vitest unit tests, Vite production

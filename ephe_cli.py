@@ -614,6 +614,23 @@ def _probe_active_remote_engine(api_url: str, model: str) -> tuple[bool, str]:
     ``https://api.deepseek.com/v1`` on 2026-10-13, the endpoint this repository's own
     engine.json names). One implementation now serves doctor and `ephe start`.
     """
+    try:
+        from core.engine_config import (
+            EngineChoice,
+            EngineKeyMismatch,
+            assert_engine_key_binding,
+        )
+
+        if model:
+            assert_engine_key_binding(
+                EngineChoice(
+                    provider="openai_compatible", model=model, api_url=api_url
+                )
+            )
+    except EngineKeyMismatch as exc:
+        return False, f"{exc} {exc.hint}"
+    except Exception:
+        pass
     return _probe_remote_engine(api_url, model)
 
 
@@ -854,6 +871,15 @@ def cmd_start(args: argparse.Namespace, config_path=None) -> int:
         from dataclasses import replace
 
         choice = replace(choice, model=args.model)
+    if choice is not None:
+        from core.engine_config import EngineKeyMismatch, assert_engine_key_binding
+
+        try:
+            assert_engine_key_binding(choice)
+        except EngineKeyMismatch as exc:
+            print(f"  ✗ {exc}")
+            print(f"  Fix: {exc.hint}")
+            return 1
     if choice is not None:
         try:
             choice.apply_env()

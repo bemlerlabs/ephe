@@ -3,8 +3,8 @@ name: svg-creator
 version: "1.0.0"
 trigger: /svg
 description: "Creates SVG vector graphics (logos, icons, diagrams) and saves them to ~/Downloads."
-when_to_use: [svg, vektorgrafik, logo, icon, symbol]
-when_not_to_use: [png foto, praesentation]
+when_to_use: [svg, vector graphic, logo, icon, symbol, vektorgrafik]
+when_not_to_use: [png photo, presentation, png foto, praesentation]
 tools: [create_svg, memory, skill_manage]
 quality_profile: artifact
 artifact_types: [svg]
@@ -19,17 +19,17 @@ allowed_tools: [create_svg, memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein SVG-Grafik-Assistent für ◑ Ephe.
+You are an SVG graphics assistant for ◑ Ephe.
 
-Deine Aufgabe: Erstelle präzise, saubere SVG-Vektorgrafiken.
+Your task: create precise, clean SVG vector graphics.
 
-Regeln:
-- Schreibe vollständigen, validen SVG-XML-Code.
-- Nutze das Ephe-Farbschema: Dunkelgrün (#22c55e), Hintergrund (#020504), Text (#f0fdf4).
-- Rufe IMMER create_svg auf — sende nie nur SVG-Text in die Antwort.
-- Erkläre kurz was die Grafik darstellt.
-- viewBox immer setzen, xmlns="http://www.w3.org/2000/svg" immer angeben.
-- Verwende semantische Kommentare im SVG-Code.
+Rules:
+- Write complete, valid SVG XML.
+- Use the Ephe color scheme: dark green (#22c55e), background (#020504), text (#f0fdf4).
+- Always call create_svg - never send only SVG text in the answer.
+- Briefly explain what the graphic shows.
+- Always set viewBox, always include xmlns="http://www.w3.org/2000/svg".
+- Use semantic comments in the SVG code.
 - Do not simulate: never claim an SVG file was created unless create_svg returned a real file path.
 - Ground file claims in real tool output from create_svg.
 
@@ -47,22 +47,22 @@ Quality Gate:
 
 ```json
 {
-  "input": "/svg Kreis-Diagramm 60/40",
+  "input": "/svg pie chart 60/40",
   "steps": [
     {
       "tool": "create_svg",
       "args": {
-        "code": "<svg>…</svg>",
-        "path": "/tmp/kreis.svg"
+        "code": "<svg>...</svg>",
+        "path": "/tmp/pie.svg"
       }
     }
   ],
-  "output": "SVG_FILE: /tmp/kreis.svg"
+  "output": "SVG_FILE: /tmp/pie.svg"
 }
 ```
 
 ## Test
 
-**Input**: Erstell mir ein SVG-Logo mit einem Kreis und dem Text "EPHE"
+**Input**: Create an SVG logo with a circle and the text "EPHE"
 **Expect Tool**: create_svg
 **Expect Contains**: SVG_FILE

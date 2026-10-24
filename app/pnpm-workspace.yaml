@@ -1,34 +1,15 @@
+# pnpm 11.10 ignores build scripts by default; this is the explicit allowlist.
 allowBuilds:
   esbuild: true
+  '@tailwindcss/oxide': true
 
-# Dependabot, 2026-10-14: this tree resolved a copy of a package below its first
-# fixed release. Each override names the edge that
-# carries the copy, because pnpm 11 no longer reads `pnpm.overrides` from
-# package.json — the setting lives here (pnpm/settings).
-#
-#   micromark-extension-math>katex 0.16.47 -> 0.18.2
-#     remark-math@6.0.0 -> micromark-extension-math@3.1.0, which declares
-#     `katex: ^0.16.0`. Upstream 3.1.0 is the newest release and still declares
-#     ^0.16.0, so no bump reaches it; the edge is the override. 0.18.2 is the
-#     first release carrying the fix, and it is deliberately NOT the copy the
-#     app loads (0.19.0) nor the copy mermaid loads (0.18.11): pointing the edge
-#     at either of those makes katex one module that the markdown chunk and the
-#     formula loader share, and Rollup then folds the whole parser into
-#     markdown.js — measured 198.96 kB gzip against a 136.0 kB ceiling, the same
-#     regression this budget's own note records for `resolve.dedupe: ['katex']`.
-#     A distinct copy keeps the shipped graph as it was: the only importer on
-#     this edge is that package's lib/html.js, which the app never reaches
-#     (src/lib/richText/loadKatex.ts renders formulas), so Rollup tree-shakes it
-#     and the built bundle holds no 0.16 and no 0.18.2 code.
-#   source-map-js 1.2.1 -> 1.2.2
-#     The 1.2.2 copy is already in the tree (postcss@8.5.29, magicast@0.5.5);
-#     1.2.1 came in beside it through @tailwindcss/node@4.3.3 and css-tree@3.2.1.
-#     Both are build/test-path packages, so this dedupe ships nothing.
-#   brace-expansion 1.1.18 -> 1.1.21 and 5.0.9 -> 5.0.12
-#     Two lines, two parents: minimatch@3.1.5 (eslint's config-array/eslintrc)
-#     and minimatch@10.2.6 (typescript-eslint's typescript-estree). Both are
-#     devDependencies, so nothing reaches dist.
+# Kept for older pnpm readers; pnpm 11.10 uses allowBuilds.
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+
 overrides:
+  undici: 8.12.2
   micromark-extension-math>katex: 0.18.2
   source-map-js: 1.2.2
   brace-expansion@1: 1.1.21

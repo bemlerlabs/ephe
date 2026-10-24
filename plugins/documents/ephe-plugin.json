@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "documents",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "origin": "first-party",
   "description": "Real document production: PDF, DOCX, QR codes, source notebooks and report-grade briefs.",
   "permissions": {
@@ -12,7 +12,9 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "documents"
+    ],
     "commands": [
       {
         "name": "pdf",
@@ -42,5 +44,6 @@
       "verify_artifact"
     ]
   },
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

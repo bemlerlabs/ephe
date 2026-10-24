@@ -56,7 +56,7 @@ for arg in "$@"; do
       echo "  --cli      Minimal CLI path: installs only the TUI (textual), starts 'ephe tui'"
       echo "  --desktop  (default) Desktop/PWA: installs gui+voice, starts 'ephe start --open'"
       echo ""
-      echo "Without a flag the installer asks interactively when a terminal is available."
+      echo "Defaults to Desktop; choose --cli or EPHE_MODE=cli for terminal-only use."
       exit 0
       ;;
     *) echo "Unknown argument: $arg" >&2; exit 2 ;;
@@ -191,15 +191,12 @@ fetch_verify_run() {
   exp="$(printf '%s' "$expected" | tr 'ABCDEF' 'abcdef')"
   if [[ "$got" != "$exp" ]]; then
     rm -f "$tmp"; EPHE_VENDOR_TMP=""
-    # Reported, not fatal. A rotated vendor hash must not strand a bare box
-    # before it has any interpreter; both hashes are named so the pin can be
-    # rotated straight from the output. Raw echo (no helper) so the message also
-    # works when this function is extracted and run on its own.
+    # Status 3 selects the distro fallback; the observed hash cannot authorize a new pin.
     {
       echo -e "  ${YELLOW}⚠${NC} SHA256 integrity check FAILED for ${label} — the fetched script was NOT run."
       echo -e "      pinned: ${expected}"
       echo -e "      live:   ${got}"
-      echo -e "      The vendor has probably rotated the script: set ${override_env} to the live sha256 and run ./install.sh again."
+      echo -e "      Keep the distro fallback. Change ${override_env} only to an independently verified checksum from a trusted source."
     } >&2
     return 3
   fi
@@ -260,7 +257,7 @@ OS_NAME="$(uname -s)"
 step "Checking the system"
 case "$OS_NAME" in
   Darwin|Linux) ok "$OS_NAME supported" ;;
-  *) fail "The automatic installer supports macOS and Linux. For Windows: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -o install.ps1; powershell -ExecutionPolicy Bypass -File .\\install.ps1" ;;
+  *) fail "The Bash installer supports macOS and Linux. On Windows, open PowerShell in this checkout and run: powershell -ExecutionPolicy Bypass -File .\\install.ps1" ;;
 esac
 command -v curl >/dev/null 2>&1 || fail "curl is missing. Install curl and run the installer again."
 
@@ -406,7 +403,15 @@ fi
 if [[ "$DRY_RUN" != "1" && -d .venv ]] && ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
   run .venv/bin/python -m ensurepip --upgrade
 fi
-run .venv/bin/python -m pip install --upgrade pip
+# pip 25.1 and every older release still trusts the compromised eMudhra
+# intermediate CAs through its vendored certifi; the plain index upgrade would
+# be fetched over that trust path. The wheel URL carries its SHA-256, so the
+# bootstrap is verified before the new pip exists (advisory 2026-10-20).
+PIP_BOOTSTRAP_URL="https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
+run .venv/bin/python -m pip install --upgrade "$PIP_BOOTSTRAP_URL"
+if [[ "$DRY_RUN" != "1" ]] && ! .venv/bin/python -m pip --version | grep -q '^pip 26\.2\.2'; then
+  fail "pip bootstrap did not reach 26.2.2 (CA advisory 2026-10-20)"
+fi
 if [[ "$INSTALL_MODE" == "cli" ]]; then
   info "CLI mode: installing minimal dependencies (tui) only"
   run .venv/bin/python -m pip install -e ".[tui]"

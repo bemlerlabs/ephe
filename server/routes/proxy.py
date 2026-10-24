@@ -100,6 +100,9 @@ async def proxy_ws(websocket: WebSocket, port: str, full_path: str = "") -> None
     explicit gate this loopback tunnel would be unauthenticated in LAN mode
     (SSRF valve). Same trust logic as the rest of the API."""
     if not ws_client_authorized(websocket):
+        from server.middleware import audit_ws_refusal
+
+        audit_ws_refusal(websocket, "ws_refused", path=f"/proxy/{port}")
         await websocket.close(code=1008)
         return
     number = _validate_port(port)

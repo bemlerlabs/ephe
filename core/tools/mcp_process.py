@@ -20,9 +20,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import sys
 from typing import Any
 
+from core import mcp_sandbox
 from core.secret_broker import child_env
+
+logger = logging.getLogger(__name__)
 
 #: Backoff for restarting a dead server: 0.5 s, doubled,
 #: finished at 30 s.
@@ -40,9 +45,16 @@ def error_envelope(body: dict, code: int, message: str) -> dict:
 class StdioLink:
     """Spawn, one JSON line, wait for exit — the process side of a stdio server."""
 
-    def __init__(self, command: str, args: list[str] | None = None, timeout: float = 30.0):
+    def __init__(
+        self,
+        command: str,
+        args: list[str] | None = None,
+        timeout: float = 30.0,
+        trusted: bool = False,
+    ):
         self.command = command
         self.args = list(args or [])
+        self.trusted = trusted
         self.timeout = timeout
         self.proc: Any | None = None
         self.last_error: str = ""
@@ -56,6 +68,24 @@ class StdioLink:
     def _fail(self, body: dict, code: int, message: str) -> dict:
         self.last_error = message
         return error_envelope(body, code, message)
+
+    def _audit_child(
+        self, boundary: str, home: str, *, decision: str = ""
+    ) -> None:
+        try:
+            from core.audit_log import audit_event
+
+            verdict = decision or (
+                "unsandboxed" if boundary == "unavailable" else "sandboxed"
+            )
+            audit_event(
+                "mcp_child",
+                tool=self.command,
+                decision=verdict,
+                detail=f"home={home} os_boundary={boundary}",
+            )
+        except Exception:  # noqa: BLE001 — an audit failure must not block the spawn
+            logger.debug("mcp child audit skipped", exc_info=True)
 
     def note_failure(self) -> None:
         self.failures += 1
@@ -115,18 +145,62 @@ class StdioLink:
                     f"stdio restart deferred {waiting:.1f}s after {self.failures} "
                     f"failures (last: {self.last_error or 'unknown'})",
                 )
+            home = None
+            argv = [self.command, *self.args]
+            boundary = "trusted"
+            if not self.trusted:
+                home = str(mcp_sandbox.home_for(self.command))
+                boundary = mcp_sandbox.platform_boundary()
+                if boundary == "unavailable":
+                    # No boundary, no child: a model-chosen server next to the
+                    # user's key material is the one spawn this product refuses
+                    # to make. No raw argv fallback exists here.
+                    self._audit_child("unavailable", home, decision="refused")
+                    self.note_failure()
+                    if sys.platform.startswith("win"):
+                        detail = (
+                            "MCP server needs a filesystem boundary; Windows "
+                            "provides none in this build, so the child is not started"
+                        )
+                    else:
+                        detail = (
+                            "MCP server needs a filesystem boundary "
+                            "(install bubblewrap and enable user namespaces, or use a "
+                            "platform that provides Seatbelt); no boundary, no start"
+                        )
+                    return self._fail(body, -32006, detail)
+                wrapped = mcp_sandbox.wrap(self.command, self.args, home)
+                if wrapped is None:  # the boundary claimed to work and did not
+                    self._audit_child(boundary, home, decision="refused")
+                    self.note_failure()
+                    return self._fail(
+                        body,
+                        -32006,
+                        "MCP server needs a filesystem boundary; the wrapper "
+                        "refused to build one",
+                    )
+                argv = wrapped
             try:
                 self.proc = await asyncio.create_subprocess_exec(
-                    self.command,
-                    *self.args,
+                    *argv,
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
-                    env=child_env(),
+                    env=child_env(home=home),
+                    # The bwrap path already chdirs; Seatbelt needs the same
+                    # start directory, or `python -c` reads the denied home as
+                    # its cwd and dies before the first message.
+                    cwd=home,
                 )
             except Exception as exc:  # noqa: BLE001 — a missing binary is a refusal
+                self._audit_child(boundary, home or "", decision="spawn_failed")
                 self.note_failure()
                 return self._fail(body, -32005, f"stdio spawn failed: {exc}")
+            # The sandboxed line is written only once the child exists under it.
+            if self.trusted:
+                self._audit_child("trusted", "", decision="trusted")
+            else:
+                self._audit_child(boundary, home or "")
         proc = self.proc
         if proc.stdin is None or proc.stdout is None:
             await self.reap()
@@ -144,7 +218,7 @@ class StdioLink:
         except Exception as exc:  # noqa: BLE001 — a broken pipe is a refusal
             await self.reap()
             self.note_failure()
-            return self._fail(body, -32006, f"stdio write failed: {exc}")
+            return self._fail(body, -32007, f"stdio write failed: {exc}")
         if not line:
             await self.reap()
             self.note_failure()

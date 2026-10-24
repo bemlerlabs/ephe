@@ -72,15 +72,14 @@ Ephe is designed with **privacy and security as core principles**:
 - **Zero Telemetry in this repository** — No analytics or tracking pipeline is included
 - **No Engine Default** — the engine is the user's declared choice (a local Ollama or an
   OpenAI-compatible endpoint); nothing picks one in code, and the online providers are opt-in
-- **Shell Sandbox** — Commands always require explicit user approval
-- **Per-Segment Shell Whitelist** — Every segment of a chained shell command (`;`, `&&`, `||`, `|`) must start with a whitelisted binary. Command substitution (`$(…)`, backticks, process substitution), shell redirects, and network binaries (`curl`/`wget`) are rejected outright. Mutating tools are never auto-approved (`ApprovalPolicy.auto_approve` defaults to `false`).
+- **Tool approval and optional OS sandbox** — The default strict profile requires approval for shell, screenshot and GUI actions. On macOS the optional Seatbelt sandbox wraps approved commands; Linux has no OS wrapper.
+- **Per-Segment Shell Whitelist** — Every segment of a chained shell command (`;`, `&&`, `||`, `|`) must start with a whitelisted binary. Command substitution (`$(…)`, backticks, process substitution), shell redirects, and network binaries (`curl`/`wget`) are rejected outright. The default strict profile asks before mutations. Opt-in modes and remembered approvals can allow execution without another prompt.
 - **File Whitelist** — Access restricted to safe directories only
 - **Hardened Response Headers** — `Content-Security-Policy: frame-ancestors 'self'` (own artifact previews render, foreign framing blocked), `X-Content-Type-Options: nosniff`, strict `Referrer-Policy`
-- **XSS Protection** — All output sanitized via DOMPurify
+- **Rendered content** — Chat markdown uses react-markdown without raw HTML. Mermaid uses strict mode; plugin SVG icons undergo server-side checks and receive a restrictive CSP.
 - **SVG Sanitizer** — Blocks script injection in generated graphics
 - **No API Keys Required for Core Use** — External providers are optional
-- **Supply-Chain Integrity** — `install.sh` verifies every vendor download (uv) against a pinned SHA256 and hard-fails on mismatch; `install.ps1` performs no vendor downloads at all (git clone + system Python only)
-- **Virtual Environment Isolation** — Python dependencies run from the project environment
+- **Installer checks** — `install.sh` verifies the uv installer against a pinned SHA256. A mismatch leaves it unexecuted and selects the distro interpreter fallback. Override the pin only after independent verification. This check does not cover every downstream download: Windows uses winget/pip. Both installers hash-pin the pip bootstrap wheel.
 
 ## Accepted advisories and pins
 

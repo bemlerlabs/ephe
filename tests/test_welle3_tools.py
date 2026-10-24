@@ -3,7 +3,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture
+def ruff_environment(monkeypatch):
+    ruff = pytest.importorskip("ruff", reason="ruff is absent from the active test interpreter")
+    executable = Path(ruff.find_ruff_bin())
+    monkeypatch.setenv("PATH", str(executable.parent) + os.pathsep + os.defpath)
 
 
 # T1: extract_pdf_text
@@ -21,8 +31,8 @@ def test_t1_non_pdf_extension_returns_error():
 
 
 def test_t1_real_pdf_returns_text():
-    from core.tools.utility_tools import extract_pdf_text
     from core.tools.pdf_tools import create_pdf
+    from core.tools.utility_tools import extract_pdf_text
     pdf_path = Path("/tmp/w3_test.pdf")
     if not pdf_path.exists():
         asyncio.run(create_pdf(title="W3 Test", content="Hello W3 World"))
@@ -36,7 +46,7 @@ def test_t1_real_pdf_returns_text():
 
 # T2: format_code
 
-def test_t2_existing_file_returns_ok(tmp_path):
+def test_t2_existing_file_returns_ok(tmp_path, ruff_environment):
     """Format a real file — in a temp dir, never in the repository.
 
     This case used to call `format_code("core/tools/utility_tools.py")`, i.e. write-mode
@@ -59,7 +69,7 @@ def test_t2_missing_file_returns_error():
     assert result.startswith("ERROR")
 
 
-def test_t2_check_only_returns_prefix(tmp_path):
+def test_t2_check_only_returns_prefix(tmp_path, ruff_environment):
     """A file that needs formatting is the ANSWER, not a failure.
 
     `ruff format --diff` exits 1 exactly when the file would be reformatted, and the
@@ -85,7 +95,7 @@ def test_t2_check_only_returns_prefix(tmp_path):
 def test_t3_existing_file_returns_prefix():
     from core.tools.utility_tools import run_linter
     result = asyncio.run(run_linter("core/tools/utility_tools.py"))
-    assert result.startswith("OK") or result.startswith("ERROR")
+    assert result.startswith(("OK", "ERROR"))
 
 
 def test_t3_missing_file_returns_error():
@@ -97,7 +107,7 @@ def test_t3_missing_file_returns_error():
 def test_t3_directory_returns_prefix():
     from core.tools.utility_tools import run_linter
     result = asyncio.run(run_linter("core/tools/"))
-    assert result.startswith("OK") or result.startswith("ERROR")
+    assert result.startswith(("OK", "ERROR"))
 
 
 # T4: validate_json

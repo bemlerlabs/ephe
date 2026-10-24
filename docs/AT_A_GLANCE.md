@@ -64,7 +64,7 @@ choice, and which one does not yet, is spelled out in [CLI.md](CLI.md) under "En
 
 ## Feature Parity
 
-Measured against the two reference clients (anonymized per product policy); a state is **Present** or **Partial**. See [`FEATURE_PARITY_AUDIT_2026-09-04.md`](FEATURE_PARITY_AUDIT_2026-09-04.md) for the full audit trail.
+Measured against the two reference clients (anonymized per product policy); a state is **Present** or **Partial**. See the dated feature-parity audit for the full audit trail.
 
 | Gap | Area | State now |
 |---|---|---|

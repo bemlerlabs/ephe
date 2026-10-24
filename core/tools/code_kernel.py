@@ -104,7 +104,7 @@ def _make_ephe_tools_stub() -> types.ModuleType:
         from core.tools.registry import TOOL_MAP
 
         if name not in TOOL_MAP:
-            return f"[tool_call] unbekanntes Tool: {name!r}"
+            return f"[tool_call] unknown tool: {name!r}"
         return _resolve(name)(**kwargs)
 
     module = types.ModuleType("ephe_tools")
@@ -200,7 +200,7 @@ def _empty_report(runtime: str) -> dict:
     return {
         "runtime": runtime,
         "status": "SKIPPED",
-        "stdout": "[execute_code] leerer Code-Block",
+        "stdout": "[execute_code] empty code block",
         "stderr": "",
         "names": [],
         "dropped": [],
@@ -225,7 +225,7 @@ async def _execute_in_kernel(code: str, sid: str, *, reset: bool = False) -> str
     except SyntaxError as exc:
         line, offset = exc.lineno or 0, exc.offset or 0
         return (cpython_cell_header("SYNTAX_ERROR")
-                + f"[execute_code] SyntaxError (Zeile {line}, Spalte {offset}): {exc.msg}")
+                + f"[execute_code] SyntaxError (line {line}, column {offset}): {exc.msg}")
 
     def _run_in_worker() -> tuple[str, str]:
         # Own worker thread = no running loop → the tool wrappers can drive
@@ -251,7 +251,7 @@ async def _execute_in_kernel(code: str, sid: str, *, reset: bool = False) -> str
         head = body[:_MAX_STDOUT_CHARS - _STDOUT_TAIL_CHARS]
         tail = body[-_STDOUT_TAIL_CHARS:]
         lost = len(body) - len(head) - len(tail)
-        body = head + f"\n…[{lost} Zeichen nicht uebergeben — keine Rueckhol-Route im Kernel]\n" + tail
+        body = head + f"\n...[{lost} characters not passed - no retrieval path in the kernel]\n" + tail
     if not body.strip():
         body = "[execute_code] ran (no output)"
     return cpython_cell_header("ERROR" if error else "OK") + body

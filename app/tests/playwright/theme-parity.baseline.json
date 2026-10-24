@@ -129,6 +129,16 @@
     "boundary": 0,
     "render-error": 0
   },
+  "settings-agents/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-agents/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
   "settings-appearance/forest/1280": {
     "text": 0,
     "boundary": 0,
@@ -385,6 +395,16 @@
     "render-error": 0
   },
   "settings-tasks/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-teams/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-teams/forest/390": {
     "text": 0,
     "boundary": 0,
     "render-error": 0

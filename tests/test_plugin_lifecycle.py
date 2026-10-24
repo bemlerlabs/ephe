@@ -16,6 +16,12 @@ from pathlib import Path
 
 import pytest
 
+from core.audit_log import tail as audit_tail
+
+
+def audit_rows():
+    return audit_tail(limit=200)
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -108,8 +114,9 @@ def test_a_stale_expected_version_is_rejected(lifecycle) -> None:
     assert err.value.code == "stale_state"
     assert err.value.snapshot.version == "2.0.0"
     assert err.value.snapshot.state is PluginState.ENABLED
-    assert lifecycle.audit == []
     assert lifecycle.calls == []
+    refusal = next(row for row in audit_rows() if row.get("kind") == "plugin_refusal")
+    assert (refusal["decision"], refusal["status"]) == ("stale_state", "refused")
 
 
 def test_an_unknown_plugin_is_refused(lifecycle) -> None:
@@ -220,6 +227,48 @@ def test_pause_all_preserves_every_per_plugin_state(lifecycle) -> None:
     lc.set_pause_all(False)
     assert lc.effective("acme-research").state is PluginState.DISABLED
     assert lc.effective("web-research").state is PluginState.ENABLED
+
+
+def test_a_non_bool_pause_all_is_refused(tmp_path) -> None:
+    lc = PluginLifecycle(
+        tmp_path / "state.json",
+        versions={"acme-research": "1.0.0"},
+        audit_sink=lambda entry: None,
+    )
+    with pytest.raises(LifecycleError) as err:
+        lc.set_pause_all(None)  # type: ignore[arg-type]
+    assert err.value.code == "invalid_request"
+
+
+def test_an_enable_while_paused_does_not_start_until_unpause(tmp_path) -> None:
+    calls: list[str] = []
+    lc = PluginLifecycle(
+        tmp_path / "state.json",
+        versions={"acme-research": "1.0.0"},
+        activator=calls.append,
+        deactivator=lambda name: None,
+        audit_sink=lambda entry: None,
+    )
+    lc.set_enabled("acme-research", False)
+    lc.set_pause_all(True)
+    lc.set_enabled("acme-research", True)
+    assert calls == []
+    lc.set_pause_all(False)
+    assert calls == ["acme-research"]
+
+
+def test_a_paused_dependent_blocks_disabling_its_dependency(tmp_path) -> None:
+    lc = PluginLifecycle(
+        tmp_path / "state.json",
+        versions={"acme-research": "1.4.0", "base-pack": "1.0.0"},
+        dependencies={"acme-research": ("base-pack",)},
+        audit_sink=lambda entry: None,
+    )
+    lc.set_enabled("acme-research", True)
+    lc.set_pause_all(True)
+    with pytest.raises(LifecycleError) as err:
+        lc.set_enabled("base-pack", False)
+    assert err.value.code == "dependents_enabled"
 
 
 def test_a_write_keeps_other_plugins_and_the_pause_state(lifecycle) -> None:

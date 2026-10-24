@@ -77,6 +77,38 @@ def _write(root: Path, manifest: dict) -> Path:
     return plugin
 
 
+def test_duplicate_command_names_are_refused(tmp_path) -> None:
+    manifest = _v1()
+    manifest["components"]["commands"] = [
+        {"name": "same", "description": "one", "template": "a"},
+        {"name": "same", "description": "two", "template": "b"},
+    ]
+    plugin = _write(tmp_path / "duplicate", manifest)
+    loaded, error = load_manifest(plugin)
+    assert loaded is None
+    assert error and "duplicate" in error
+
+
+@pytest.mark.parametrize("field", ["permissions", "components"])
+def test_an_explicit_null_object_field_is_refused(tmp_path, field) -> None:
+    manifest = _v1()
+    manifest[field] = None
+    plugin = _write(tmp_path / field, manifest)
+    loaded, error = load_manifest(plugin)
+    assert loaded is None
+    assert error and field in error
+
+
+@pytest.mark.parametrize("value", [True, 1.0, "1"])
+def test_manifest_version_must_be_an_integer(tmp_path, value) -> None:
+    manifest = _v1()
+    manifest["manifest_version"] = value
+    plugin = _write(tmp_path / str(value).replace(".", "_"), manifest)
+    loaded, error = load_manifest(plugin)
+    assert loaded is None
+    assert error and "manifest_version" in error
+
+
 def test_v2_required_fields(tmp_path) -> None:
     plugin = _write(tmp_path, _v2())
     manifest, error = load_manifest(plugin)

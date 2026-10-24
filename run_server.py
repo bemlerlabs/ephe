@@ -126,6 +126,14 @@ def _bootstrap_engine_choice():
             prompt_fn=prompt_fn,
         )
         choice.apply_env()
+        from core.engine_config import EngineKeyMismatch, assert_engine_key_binding
+
+        try:
+            assert_engine_key_binding(choice)
+        except EngineKeyMismatch as exc:
+            print(f"\n  ✗ {exc}", file=sys.stderr)
+            print(f"  Fix: {exc.hint}\n", file=sys.stderr)
+            raise SystemExit(1) from exc
     except EngineNotConfigured as exc:
         # W19 (live audit P1): a complete newcomer with no terminal experience NEVER
         # saw the UI — the start aborted before there was any setup page. On

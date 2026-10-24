@@ -1,11 +1,12 @@
 """The kernel's secret boundary for child processes (GAP-05).
 
 MCP stdio servers, user hooks and shell commands are plugin-reachable process
-paths. None of them inherits the host's credential environment. The scrub keeps
-the loader and shell basics a child needs (PATH, HOME, locale, library paths,
-the SSH agent socket) and drops credential-shaped names and credential-file
-pointers. An explicit value a trusted config hands to its own connector is added
-by the caller through `extra`; it is then that declared value, not the host's.
+paths. None of them inherits the host's credential environment. The child gets
+an allowlist of loader and shell basics (PATH, HOME, locale, library paths) and
+drops every other name by default; SSH_AUTH_SOCK is the one reviewed exception,
+so git/ssh can use the agent the user already authorised. An explicit value a
+trusted config hands to its own connector is added by the caller through
+`extra`; it is that declared value alone.
 
 Values are never logged here.
 """
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from pathlib import Path
 
 #: Credential-shaped fragments, matched against the upper-cased name.
 _SECRET_PARTS = (
@@ -57,6 +59,35 @@ _CREDENTIAL_FILES = frozenset(
 #: Harmless names that a fragment would otherwise catch.
 _NOT_SECRET = frozenset({"TOKENIZERS_PARALLELISM"})
 
+#: The complete set a child may inherit. Default-deny: a new host variable is
+#: not passed until it is named here. Locale prefixes are the only wildcard.
+#: The SSH agent is NOT in this set. A plugin or MCP child that needs git over SSH
+#: gets the socket only when its own connector names it in `extra`; an inherited
+#: agent would let any child sign with the user's keys.
+_CHILD_ENV_NAMES = frozenset(
+    {
+        "PATH",
+        "HOME",
+        "USER",
+        "LOGNAME",
+        "SHELL",
+        "PWD",
+        "TMPDIR",
+        "TEMP",
+        "TMP",
+        "LANG",
+        "LANGUAGE",
+        "TERM",
+        "COLORTERM",
+        "NO_COLOR",
+        "FORCE_COLOR",
+        "DISPLAY",
+        "WAYLAND_DISPLAY",
+        "DBUS_SESSION_BUS_ADDRESS",
+    }
+)
+_CHILD_ENV_PREFIXES = ("LC_",)
+
 
 def is_secret_name(name: str) -> bool:
     upper = str(name or "").upper()
@@ -67,18 +98,25 @@ def is_secret_name(name: str) -> bool:
     return any(part in upper for part in _SECRET_PARTS)
 
 
-def child_env(extra: Mapping[str, str] | None = None) -> dict[str, str]:
+def child_env(
+    extra: Mapping[str, str] | None = None, *, home: str | os.PathLike[str] | None = None
+) -> dict[str, str]:
     """A scrubbed copy of the environment, plus explicitly declared values.
 
     `extra` is for a trusted configuration that owns the connector and names
-    its own values. It is the one path by which a credential reaches a child;
-    inherited host credentials never do.
+    its own values. It is the one path by which a credential, including
+    `SSH_AUTH_SOCK`, reaches a child; inherited host credentials never do.
     """
     env = {
         str(name): str(value)
         for name, value in os.environ.items()
-        if not is_secret_name(name)
+        if str(name).upper() in _CHILD_ENV_NAMES
+        or any(str(name).upper().startswith(prefix) for prefix in _CHILD_ENV_PREFIXES)
     }
+    if home is not None:
+        root = str(home)
+        env["HOME"] = root
+        env["TMPDIR"] = str(Path(root) / "tmp")
     for name, value in (extra or {}).items():
         env[str(name)] = str(value)
     return env

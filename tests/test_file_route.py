@@ -60,6 +60,30 @@ class TestFileRoute:
         r = client.get("/api/file", params={"path": "/etc/passwd"})
         assert r.status_code == 403
 
+    def test_a_credential_shaped_file_is_refused(self, client, monkeypatch, tmp_path):
+        """A project .env has no dialog on this route; the tool path asks a human."""
+        home = tmp_path / "home"
+        home.mkdir()
+        env_file = home / ".env"
+        env_file.write_text("API_KEY=fixture", encoding="utf-8")
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [home])
+        assert client.get("/api/file", params={"path": str(env_file)}).status_code == 403
+
+    def test_a_protected_root_is_refused(self, client, monkeypatch, tmp_path):
+        """The content side of /api/fs must use the same deny list as the tools."""
+        home = tmp_path / "home"
+        (home / ".ephe").mkdir(parents=True)
+        (home / ".ssh").mkdir()
+        engine_key = home / ".ephe" / "engine.key"
+        engine_key.write_text("sk-fixture", encoding="utf-8")
+        ssh_key = home / ".ssh" / "id_rsa"
+        ssh_key.write_text("fixture", encoding="utf-8")
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [home])
+
+        assert client.get("/api/file", params={"path": str(engine_key)}).status_code == 403
+        assert client.get("/api/file", params={"path": str(ssh_key)}).status_code == 403
+
     def test_relative_path_resolves_against_workspace(self, client, monkeypatch, tmp_path):
         """GIVEN a deliverable with a relative name WHEN GET /api/file THEN 200.
         Found 2026-10-01: the artifact detector reports "document.md" relative

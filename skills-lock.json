@@ -4,257 +4,257 @@
     {
       "name": "api-designer",
       "source": "skills/api-designer",
-      "computedHash": "311e791b8a2a00ed030b8c7917417db9a381fbe48a5d67482db1c3c488b2c2d7"
+      "computedHash": "d58293b84a84b4bb8ebdfeed59d746fb6e61b7a5fe7f0ed6cad44c0ed581848f"
     },
     {
       "name": "api-tester",
       "source": "skills/api-tester",
-      "computedHash": "a197e8b85940673bccaa18664b4654be7eb0e743aeb2a913481366abe56cdd8a"
+      "computedHash": "1094335fd1356935c1f08e5b0979d05c596492ba88c4d07d20e40eba373b2a32"
     },
     {
       "name": "business-plan",
       "source": "skills/business-plan",
-      "computedHash": "95129eadd7e86aa4ab970812ce066a5c6db7d3e8e01e2f5a6213f9e4facde68f"
+      "computedHash": "cf3d818d43c19b03a8e131f75e5ee4da3120dc009d3d3a172b8146f505fcf25f"
     },
     {
       "name": "chart-creator",
       "source": "skills/chart-creator",
-      "computedHash": "dd1bb50d4876826dbc07ac89cf5b570f3e6d528f341c53e07231caec1cd858b2"
+      "computedHash": "00aa61f58a132f6fde33092c41a9384004f2cc4c65a74164951ee6b02853984b"
     },
     {
       "name": "checklist-maker",
       "source": "skills/checklist-maker",
-      "computedHash": "645deddb67c6f50a033cb813f9835eea0601c9c767bbd1ebe357f88a715b02b9"
+      "computedHash": "d68b0bcc1f4cbb5fd2997b955a1396691145a8a94a5f1c82f38a0a50af5aa8e9"
     },
     {
       "name": "code-metrics",
       "source": "skills/code-metrics",
-      "computedHash": "83f54dfede36c14beb84bae877ebfc8762a079ed9a1c06b5147e7eb5ef6b5a35"
+      "computedHash": "82c5eebd13983e1878c704c3433c90af94578f0ed0fe4454664e8219fd9df670"
     },
     {
       "name": "code-reviewer",
       "source": "skills/code-reviewer",
-      "computedHash": "669b61e436e84ce8762cbc1f61a795c642c91bf6203637185a3f3a9b1d3da8de"
+      "computedHash": "aeac81558bbb19990e6be5c148d97daa3d8090cde7d741597c7d2baf33bd94a7"
     },
     {
       "name": "coding-agent",
       "source": "skills/coding-agent",
-      "computedHash": "f9be914bf381bb346f02a7dff89dfcd5ba0cb1d5471f97ba5947954ff9d1a34b"
+      "computedHash": "4f231a8657aa6fa3e47c85c1b53d404f45bc9a0db3299f116d5ed5181d53c7ef"
     },
     {
       "name": "competitor-analysis",
       "source": "skills/competitor-analysis",
-      "computedHash": "a287f712681ddbc918658fdf727ff970392e1dc26a08bc7ecd6dfbc67ae641e3"
+      "computedHash": "ade4e3e498e8471bad4ac1916742d6209dd932517e56911f3edf42f29c45b6c1"
     },
     {
       "name": "config-setup",
       "source": "skills/config-setup",
-      "computedHash": "6a91b970f37bbffddddb106d63dcf7786960a7b10066eb8f8fa6a129ad1a1ff2"
+      "computedHash": "783bd1a32833cdc90d562148617f042e9fcb67a24946c0bada6962f9e2cec118"
     },
     {
       "name": "cover-letter",
       "source": "skills/cover-letter",
-      "computedHash": "8b80a94d8af333aee917df6a74f19ab447382f4494d48e13083922c92b364a72"
+      "computedHash": "46be566c4a76671d850df10748679e7247ff6bcc24a06e13ac75d61081ab67e0"
     },
     {
       "name": "cv-helper",
       "source": "skills/cv-helper",
-      "computedHash": "d792d5b28478e522f178d4b86f0e96a20d7d7432deaaa32f8fd409f40c6d3663"
+      "computedHash": "10a9397b46c7799030f8f45b56a1c59a7d85754b8f08a3148cf12b5fb848cb68"
     },
     {
       "name": "data-analyst",
       "source": "skills/data-analyst",
-      "computedHash": "aa89363105be9e5f66665cf546ceef9c33543a97ea50c01d88b59a4b9305f321"
+      "computedHash": "4e51cde1ddf66de72d7aa62a23a385bb998a112db6834011c085fa3325ad5590"
     },
     {
       "name": "debugger",
       "source": "skills/debugger",
-      "computedHash": "d0f242fa4da5c7aeabad6b916ab55766e3bb706fcc16052a8dfd3ece1e8ef5ab"
+      "computedHash": "dbf1d30aad69f72e4fcc69c5d9fca095cce304fb3ceba0edec85a7eaab6f969d"
     },
     {
       "name": "decision-matrix",
       "source": "skills/decision-matrix",
-      "computedHash": "973bb7750f44ac275779950da913ebc22c99f3b70fe53e646e805d9b5cedc080"
+      "computedHash": "08b6534df81ac9eaca9d8b9413897525b082c3910e510072d5cfc751b3b1558c"
     },
     {
       "name": "deck-creator",
       "source": "skills/deck-creator",
-      "computedHash": "1f2f374670e79b65c8268c649655545dcd0c6cc122d40438f00f11dbefece2ac"
+      "computedHash": "7e9f30fc2a56b6ea9c80b68a9c6835c0f387cf9833ab5de0b863bc3ac7883454"
     },
     {
       "name": "diagram-creator",
       "source": "skills/diagram-creator",
-      "computedHash": "853ee6ba65bf756bff58ca0f109c010089d4e325b4f7269fd771acd2e3e71531"
+      "computedHash": "4698f073bfc91cc38be5faf51ebf59c9453d1cbbe20abd12809123cffe4bfa15"
     },
     {
       "name": "document-factory",
       "source": "skills/document-factory",
-      "computedHash": "5f2eacf7d4e7308a31aba9488f78963f61cf4987305c835fd9be13e031db6cfc"
+      "computedHash": "e19911559d186c2106685bf483e8d4d4c3df5390edbfb640204ecaac7474cb80"
     },
     {
       "name": "docx-creator",
       "source": "skills/docx-creator",
-      "computedHash": "63d113152b89a79a34c5f0f1b5e1ea6a046d0457b505c5c41bfbdc3b5dbd9c1e"
+      "computedHash": "6911abbd4c2af7568fe54d9871d3e1f453ee06b7253eceb3e46d708509fc6ead"
     },
     {
       "name": "email-writer",
       "source": "skills/email-writer",
-      "computedHash": "7ea18af3d363bdbd94915c299f8a6ea9139453209fd8874e93eac2a3fc527e61"
+      "computedHash": "66e5b2a6df2a634191e22711e7c9c70aaaef84e796b64603823267e0acfd565c"
     },
     {
       "name": "ephe-agent",
       "source": "skills/ephe-agent",
-      "computedHash": "f8f358d631407638c2d969eab31b67ed37041f1f76d33fad8f9ffd5a4879f18d"
+      "computedHash": "9e52a41e3e60b3e3a31773f977b3c99aaa6a8685ff51ca14c7bc8b05f4e34e9d"
     },
     {
       "name": "explain-expert",
       "source": "skills/explain-expert",
-      "computedHash": "f1158c6ecc1475092b37fdc91f44d235b9c9f75e8fba3d39741b3b5e9383e666"
+      "computedHash": "4b3007bf11558fe315ae6ddd27424fd02acd0a138b22e63448bf08a1a0103865"
     },
     {
       "name": "file-assistant",
       "source": "skills/file-assistant",
-      "computedHash": "29c8837068826627dc8f2e3639052f9f7b066bb698b6510d5a7e6627af3f92b0"
+      "computedHash": "dec3120f9ecf1e60e3a0bd57838f7ce6e201032ff6ed7fee870ff63e48d0eefc"
     },
     {
       "name": "help",
       "source": "skills/help",
-      "computedHash": "ee499517626bf95f8573885436e2184cc8a1141a096be4815373ad296c3d3d9e"
+      "computedHash": "8587f563c35f19155c6ad956cbe5c56f57b3506e53380ac92d3c3fb9837c5bfc"
     },
     {
       "name": "image-creator",
       "source": "skills/image-creator",
-      "computedHash": "e5c61d292d905f56453ca5c50de4ab3d9028548c154cf4bbcb6ee1ed9de1f9ee"
+      "computedHash": "3923ec8ec3091756f46ba36a3cf33c9814ee18d7f45475237a563686342e2fa6"
     },
     {
       "name": "json-helper",
       "source": "skills/json-helper",
-      "computedHash": "044fe87253bd29e8f36ae249012e3d16cc88d203193021b7d9636bba9e4665a7"
+      "computedHash": "2b5dcbb90d792d8b20fd3a966fdd328590d6fd66d6670be112ce03aca282c89c"
     },
     {
       "name": "meeting-notes",
       "source": "skills/meeting-notes",
-      "computedHash": "17c3d8166420f2c5046d2d5ed2e61e4a5ade7aa9d56856325c4f1afff43f0293"
+      "computedHash": "60e3349d27dfa343ca63b72782bee9528102e6444fce42b311e16dc379604a82"
     },
     {
       "name": "pdf-creator",
       "source": "skills/pdf-creator",
-      "computedHash": "e94bdfe795406adc550d422f96efadfe23a0fd0f2d785245c044eeeb108b7ce9"
+      "computedHash": "db5fa5943a2d4a0f47986f60afb69dd20dc852ac92527c36ac3d4eb93a01dbea"
     },
     {
       "name": "plan",
       "source": "skills/plan",
-      "computedHash": "d32581722dd8f6b706aa46777d11012c00cc73ee30e25c1e1ebac2a9061730d5"
+      "computedHash": "b6daeb40277c10c22e199ebde6f2c67e157db4b288d340fee842561d32ebda56"
     },
     {
       "name": "project-assistant",
       "source": "skills/project-assistant",
-      "computedHash": "ee6c98377e162494eeff64bc1bd38912c3cb9250b772e6b9b21c3ae694d1e33c"
+      "computedHash": "a0997c80dbc78ddff9e990eff9381ee23b3de4891c310fb116fd598c7631d31d"
     },
     {
       "name": "project-factory",
       "source": "skills/project-factory",
-      "computedHash": "5ac8040c9628dc266c7fb8172b951a298f62138d3e9b22d2c71218d20e8911c3"
+      "computedHash": "21319c3bf140ed88e891bee887941ffa8233277308f0d8db4c0c97d3a50f7984"
     },
     {
       "name": "qrcode-creator",
       "source": "skills/qrcode-creator",
-      "computedHash": "3e143c3b455855d0f6a3444e738f805ec4228846692dd6eb74a41dc6b77167fb"
+      "computedHash": "2a82b5c381225e3e7e1ff940a98d2eb1aa47a6bcc0a179f18a1fda25175a6284"
     },
     {
       "name": "quiz-maker",
       "source": "skills/quiz-maker",
-      "computedHash": "8d2fcb9c6efe6b98ba9e60f87c8abab6b2d57e0d03e17236cdb03ebdff2cfdac"
+      "computedHash": "03d03f9f5f7959ba18d4ec002c19332c5a4771baae2f22e46ab8ea177b41fda9"
     },
     {
       "name": "refactor-helper",
       "source": "skills/refactor-helper",
-      "computedHash": "b730d50c30d0bdd29edc4124c7d57ca7d878b1c2f1dd769df5dda1e2c1e94d8f"
+      "computedHash": "d3d677dd5c57dc98fb13e398d7b2478e424bba75b40069fdb64291400a419369"
     },
     {
       "name": "regex-helper",
       "source": "skills/regex-helper",
-      "computedHash": "ced7405f7dcd2415194e3972c347cc59a06faeacb5a9dc95b6b51e39f61febb1"
+      "computedHash": "5d52510d54a940a75a95d166aacbb51d6d0da910492627758ac2e8268704b0ee"
     },
     {
       "name": "roadmap-planner",
       "source": "skills/roadmap-planner",
-      "computedHash": "5290dcaf211b9d3a6dc245b5367b5cfe451635e4a95e108932692d4caefdc5a3"
+      "computedHash": "c7ca720ed815728940488750d1f429f179bac6c390ce3df003508fe4ffd8b133"
     },
     {
       "name": "security-review",
       "source": "skills/security-review",
-      "computedHash": "5abbfbf74fbd520fb16036c6191d85b846289ab069cd75d2c8b09ab4ea8ef905"
+      "computedHash": "05172016b4d1656f4e4bd4627d5479cb7750ecb9f6b3ab1a72c2ce5cef4ce7f9"
     },
     {
       "name": "shell-helper",
       "source": "skills/shell-helper",
-      "computedHash": "15d1d7882abd77d29196eb1c8ebf0be0bc6e99cf08e2530dda8fb2a0e0afcce0"
+      "computedHash": "7ad8c9487dbd3b065960fe33991b1af4f70da0653990226e89701c928109b95e"
     },
     {
       "name": "social-media",
       "source": "skills/social-media",
-      "computedHash": "c8937e0f58bb7d55440c32152e3faec5e62f90a62558f739665bca732a3f2afd"
+      "computedHash": "7c17343eec419756b5f177c0502ec2bf340739be3b6575f2b2ba671a460b1b1e"
     },
     {
       "name": "source-notebook",
       "source": "skills/source-notebook",
-      "computedHash": "3a085ab000def5493cda44ed403f9970fbe5b50d958f2c3000f0c55f58bb067f"
+      "computedHash": "fe9d1479954d1b229afdd1268f3dfafbabc3b100d3ac6dc4e3ef92c9c8863220"
     },
     {
       "name": "sql-helper",
       "source": "skills/sql-helper",
-      "computedHash": "5c3bd85867436002a618bc306838b20dc14eef9ba6f346599a806f12f7ac2f42"
+      "computedHash": "7edc64b199ad8424e7e9f9b82316e521a998307e67fbb6c3e5300fe398f03b7c"
     },
     {
       "name": "summarizer",
       "source": "skills/summarizer",
-      "computedHash": "7d5536163799367ba9cd368deaa40c3f90b1ce2153a11caba2f3c95619775c1e"
+      "computedHash": "ed9fb992a9dc33f721ef3ceb38d00f9a6ce448755590c70861d298079808d98b"
     },
     {
       "name": "svg-creator",
       "source": "skills/svg-creator",
-      "computedHash": "51da673a58b478a5d9dccd5fd5462ec21b1591c80e4aa62b04c085b5d58bf2ad"
+      "computedHash": "e73e5f42ec60366601a9996483ede0a22e340e179c44169fe79790604c96e5b4"
     },
     {
       "name": "swot-analyzer",
       "source": "skills/swot-analyzer",
-      "computedHash": "05d675b8867cea28b371d7f81e22d345ccb2f71b6f900eef4b62c5d7fea91ab5"
+      "computedHash": "c98dae80d264d0011a229f69864f229b33f9b05abeb781ce0a9117177a0af4e0"
     },
     {
       "name": "test-writer",
       "source": "skills/test-writer",
-      "computedHash": "1e5cecc82f090cfe4193dfc7c85e46c5f2a9c86f1d424181ddb7f21fa8c067aa"
+      "computedHash": "68e6a668a64562b77bd50b27a2699d972f36e3497ff7301408685d74fc04186a"
     },
     {
       "name": "translator",
       "source": "skills/translator",
-      "computedHash": "4cef5ec31263675b5b70296e61bf9ee8c1eb8d8ed0aa032720dbce63876734c2"
+      "computedHash": "cd1eddbbf3be11b312e76df856556b446d740c3c9e262d6810182a9879dd91d5"
     },
     {
       "name": "video-creator",
       "source": "skills/video-creator",
-      "computedHash": "78df70e2f0b0d56dafba664b8c5d0d250b613c6800eafa6d3d2c23f8609fe361"
+      "computedHash": "a04911ec01412b47f0db17d6452243609dd5e0edef153441b22f1263ae47e932"
     },
     {
       "name": "vision-assistant",
       "source": "skills/vision-assistant",
-      "computedHash": "a1ccc316b1de73ec1059560e32aa7884b3511d2dfb9fcf396a8422041165598f"
+      "computedHash": "9e5fbfe788d1abaf11aae42aaa69d54dd5f74d9246edf7357c5e69ee6e1c18a9"
     },
     {
       "name": "web-researcher",
       "source": "skills/web-researcher",
-      "computedHash": "16549c692e65b1b1bc822e36a8cfc00622d1a44c61b3b6cee6940bd00649e686"
+      "computedHash": "65202b1ce7e3a76e9f48a515ae71e8bce1f1fb47d12cab3540301baf36da8cae"
     },
     {
       "name": "writer",
       "source": "skills/writer",
-      "computedHash": "59b04d0427cb12f43633938ffb052b3d71e23979d2f66dfcdeb58d638151c83b"
+      "computedHash": "0d8c09dbb73fb62f5c3519003ba74ce1767a89ebdbed8a7303f4c087f2b5ff75"
     },
     {
       "name": "xlsx-creator",
       "source": "skills/xlsx-creator",
-      "computedHash": "b7097426e92c98ac2bf0d5236c198ec32e95e32896bb57fdfe390c982f6f562c"
+      "computedHash": "7b246b028af22524bb6aa32732f1c652479cdbe79701bbdf81f604bacc073e85"
     }
   ]
 }

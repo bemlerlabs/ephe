@@ -1,7 +1,9 @@
 # Install
 
-Two supported paths: the one-command installer (macOS, Linux, Windows) and Docker. The AI engine is
-chosen in the app after install — the installer does not install Ollama and does not pull any model.
+Use the installer or Docker. Windows PowerShell installation is documented but has not been
+verified end to end for this revision. The engine is chosen after install; the installer neither
+installs Ollama nor pulls a model. Node 22.23.4 is the tested build runtime; the minimum below is
+the installer's accepted floor, not evidence of a Node 20 build.
 
 ## Requirements
 
@@ -31,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -40,8 +42,8 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the published repository. While the repository is not yet
-public an anonymous fetch answers HTTP 404, so install from a checkout you have access to instead.
+The one-liner fetches `install.sh` from the public `v0.1.3` tag. The fetch answers HTTP 200; the
+checkout path above is the alternative for reading the script before it runs.
 
 For the end-to-end first-run walkthrough — install, the engine choice (hosted API key or local
 Ollama runtime), and the first answer — see [FIRST_RUN.md](FIRST_RUN.md).
@@ -50,13 +52,14 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -o install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 From a checkout:
@@ -83,12 +86,12 @@ On first run you pick the engine in the app: local Ollama (bring your own models
 an OpenAI-compatible endpoint. Nothing is sized from this machine's RAM, nothing is pulled for you,
 and no model is treated as a default.
 
-`install.ps1` installs into `~/Documents/Ephe/.venv` and edits no PowerShell profile, so `ephe` is
-not on your `PATH` in a fresh window. Activate the environment first — the installer prints exactly
-these lines when it finishes:
+`install.ps1` defaults to `~/Documents/Ephe/.venv` and edits no PowerShell profile, so `ephe` is
+not on your `PATH` in a fresh window. Activate the environment first. For a checkout or custom
+installation, use that folder's `.venv` instead of the default below:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+& "$HOME\Documents\Ephe\.venv\Scripts\Activate.ps1"
 ephe configure    # choose the engine once (saved to ~/.ephe/engine.json)
 ephe doctor       # check Ollama, model and server state
 ephe tui          # CLI mode: start the terminal UI
@@ -105,9 +108,9 @@ ephe start --open # desktop mode: start the local app, then open http://127.0.0.
 | CLI | `--cli` (`--headless`, `--tui`) | Python 3.11+ only | `.[tui]` only | `ephe tui` |
 
 `--no-start` installs without launching anything. `--dry-run` prints the plan without changing
-anything. With no flag, the installer asks interactively (Desktop is the default) when a terminal is
-available — without a terminal it does not ask at all and simply takes Desktop, so a piped
-`curl … | bash` needs Node.js.
+anything. The Bash installer defaults to Desktop; choose `--cli` or `EPHE_MODE=cli` for
+terminal-only use. The default piped installation needs Node.js.
+Windows uses `-Cli` and `-Desktop` for these modes.
 
 ### Environment variables
 
@@ -120,20 +123,21 @@ available — without a terminal it does not ask at all and simply takes Desktop
 | `EPHE_DRY_RUN` | `0` | `1` prints the plan, changes nothing |
 | `EPHE_REPO_URL` | the project Git URL | Clone source |
 | `EPHE_OLLAMA_HOST` | `127.0.0.1:11434` | Where a local Ollama is detected |
-| `EPHE_UV_INSTALL_SHA256` | the pinned hash | Override the pinned uv installer hash — set it to the live hash the mismatch warning prints |
+| `EPHE_UV_INSTALL_SHA256` | the pinned hash | Override only with an independently verified checksum; the mismatch warning alone is not a trusted source |
 
 Windows equivalents: the same `EPHE_*` variables, or the switches `-InstallDir`, `-Port`, `-Cli`,
 `-Desktop`, `-NoStart`, `-DryRun`.
 
 ### Supply-chain integrity
 
-Every vendor download (uv) is verified against a pinned SHA256 hash before execution, so a
-compromised vendor script is never run. A mismatch does **not** abort the install: `install.sh`
-prints the pinned hash and the live hash, does not execute the fetched script, and continues on the
-distro interpreter path — so a bare box (no Python, no uv) still reaches an interpreter instead of
-stopping at the gate. The uv installer is rotated often enough that the old hard abort was a launch
-blocker. If you see the warning, set `EPHE_UV_INSTALL_SHA256` to the live hash it printed and re-run
-`./install.sh` to use uv again.
+`install.sh` checks the downloaded uv installer against a pinned SHA256 before execution.
+A mismatch leaves that script unexecuted and continues on the distro interpreter path.
+Keep this fallback unless you independently verify an updated checksum from a trusted source.
+Do not copy the mismatching download's own hash into the trusted pin.
+
+This check covers the uv installer, not every downstream download. Windows can install Python
+through winget and resolves packages through pip. Both installers pin the pip bootstrap wheel
+by version and hash.
 
 ### When a step fails
 
@@ -191,7 +195,7 @@ ephe start --open # desktop mode: start the local app, then open http://127.0.0.
 
 ```bash
 ephe doctor --fix      # apply safe local repairs
-ephe update            # repo pull, dependencies, and model
+ephe update            # repo pull and dependencies; models stay your choice
 ```
 
 Explicit `--model` and `--api-url` flags always override the persisted choice. See the
@@ -237,4 +241,38 @@ isolation, start the server with `EPHE_SHELL_BACKEND=docker` — confirmed comma
 inside a container that mounts only your workspace at `/workspace`. Two limits apply: the
 container keeps the Docker daemon's default network and user, and the interactive terminal
 panel still runs on the host. The boundary review is
-[HOST_EXEC_BOUNDARY_REVIEW_2026-10-11.md](HOST_EXEC_BOUNDARY_REVIEW_2026-10-11.md).
+the dated host-exec boundary review.
+
+## MCP server boundary
+
+A stdio MCP server is a child process the model can choose. Ephe starts it only under an
+OS filesystem boundary:
+
+- **macOS**: a Seatbelt profile denies reads of the user's whole home, re-opens only the
+  child's own home, and allows writes only in that home and the temp directory. The
+  interpreter prefixes (the running Ephe venv and the command's resolved install prefix)
+  are the measured read exceptions; without them the deny also refuses the interpreter
+  that runs the child.
+- **Linux**: bubblewrap (`bwrap`) with a read-only root, the user's home, `/run/user/<uid>`
+  and a config root outside the home replaced by empty tmpfs mounts, and only the child
+  home bound back in.
+- **Windows**: this build provides no filesystem boundary, so a stdio MCP server is
+  refused with `-32006` and is not started.
+
+Without a boundary there is no child, and the two failure shapes are distinguishable:
+
+- **`bwrap` missing** (or no Seatbelt): the call returns `-32006`, "MCP server needs a
+  filesystem boundary", and the audit says `mcp_child decision=refused
+  os_boundary=unavailable`. Install `bubblewrap`.
+- **`bwrap` installed but the kernel refuses user namespaces**: the spawn raises and the
+  call returns `-32005`, "stdio spawn failed", with `decision=spawn_failed
+  os_boundary=bubblewrap`. Ubuntu 24.04 ships
+  `kernel.apparmor_restrict_unprivileged_userns=1` and no bwrap profile, so this is the
+  state to expect there. Check it with `bwrap --dev-bind / / true`; `setting up uid map:
+  Permission denied` means namespaces are denied. Permit them for the bwrap binary (an
+  AppArmor profile) or run Ephe where Seatbelt is available.
+
+A connector marked trusted in code is the one exception to the boundary; the spawn writes
+an `mcp_child` line with `decision=trusted`. There is no user-facing switch for it today:
+every connector configured through `mcp.json` or `EPHE_MCP_SERVERS` is subject to the rules
+above, and nothing falls back to a raw spawn.

@@ -102,8 +102,21 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // Raised again the same day for Wave 5C's appearance profile (three rows and
 // five refusal reasons): measured en 118,861 B / de 128,907 B. Both halves move
 // by 2,000 B, as the previous waves did.
-const EN_CEILING = 120_000
-const DE_CEILING = 130_000
+// Raised on 2026-10-22 for the Agent Center and Agent Teams surfaces: 125
+// product strings each (list and editor labels, model and budget fields, run
+// states, six template names and descriptions, permission rows). Measured as
+// committed: en.json 125,353 B and de.json 135,881 B, +5,353 B / +5,881 B over
+// the numbers this wave inherited. Both halves move by the same 2,000 B; every
+// key carries German, and the four same-by-design leaves (Name, Ephe, Plugin,
+// Budget) are named in germanSurface.test.ts. The unused extension-hub keys were
+// removed before the measurement rather than shipped as dead strings.
+// Raised on 2026-10-22 for the Extension Center: 49 marketplace strings
+// (sources, discover, updates, trust, permission review and actions). Measured
+// as committed: en.json 127,453 B and de.json 138,213 B. Both halves move by
+// 1,400 B; the three same-by-design leaves (HTTPS, Details, Version) are named
+// in germanSurface.test.ts.
+const EN_CEILING = 129_000
+const DE_CEILING = 140_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

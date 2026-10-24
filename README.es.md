@@ -1,290 +1,200 @@
-<p align="center"><a href="README.zh-CN.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.md">English</a></p>
+<p align="center"><a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.es.md">Español</a></p>
+
+<!-- canonical: README.md is authoritative -->
+> **La versión en inglés es la referencia oficial.** Esta traducción puede quedar desactualizada; prevalece [README.md](README.md).
 
 <div align="center">
-
-<img src="docs/media/ephe-bee-512.png" alt="Ephe — la abeja espíritu del fuego" width="88">
+<img src="docs/media/ephe-bee-512.png" alt="Emblema de la abeja de Ephe" width="88">
 
 # Ephe
 
-**Ephe es un espacio de trabajo agéntico local-first que se ejecuta en tu máquina — un agente SI efímero que controlas desde una CLI (`ephe tui`) o una app de escritorio (`ephe start`) sobre un único backend en Python. Tú eliges el motor: Ollama local, un Ollama remoto o cualquier endpoint compatible con OpenAI, y no hay ningún valor por defecto silencioso. Las funciones opcionales en línea/API siempre son opt-in.**
+**Ephe es un espacio de trabajo para un agente de IA en tu propio ordenador que prioriza el uso local. Tú eliges el motor y el modelo, apruebas el uso de las herramientas y conservas los archivos. No necesitas una cuenta ni hay un modelo predeterminado oculto.**
 
-<img src="docs/screenshots/hero-banner.png" alt="El banco de trabajo de chat de Ephe: un panel de lectura del asistente con una fila de herramienta completada anidada, la lista de tareas en la barra lateral y el compositor sobre la barra de estado" width="100%">
-
-Un solo comando instala la app; después el motor se elige dentro de ella: Ollama local, un Ollama remoto o un endpoint compatible con OpenAI como una DGX Spark. El instalador no instala Ollama ni descarga modelos. Hasta que se elige un motor, la app lo dice y espera, sin fallback oculto; una vez elegido, una instalación totalmente offline y una instalación remota de alto rendimiento son pares. Los servidores Ollama personalizados, el acceso móvil público, la búsqueda web, los servicios de texto a voz y las API compatibles con OpenAI son rutas opcionales opt-in.
-
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org) [![Engine chosen in-app](https://img.shields.io/badge/Engine-chosen%20in%20app-8250df?style=for-the-badge)](https://ollama.com)
-[![License](https://img.shields.io/badge/License-BUSL%201.1-2d6a4f?style=for-the-badge)](LICENSE) [![Tests](https://github.com/bemlerlabs/ephe/actions/workflows/tests.yml/badge.svg)](https://github.com/bemlerlabs/ephe/actions/workflows/tests.yml) [![Frontend Build](https://github.com/bemlerlabs/ephe/actions/workflows/frontend-build.yml/badge.svg)](https://github.com/bemlerlabs/ephe/actions/workflows/frontend-build.yml)
-[![Lang-中文](https://img.shields.io/badge/Lang-中文-red?style=for-the-badge)](README.zh-CN.md) [![Lang-Español](https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge)](README.es.md)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Licencia BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-2d6a4f?style=flat-square)](LICENSE)
+[![Pruebas](https://github.com/bemlerlabs/ephe/actions/workflows/tests.yml/badge.svg)](https://github.com/bemlerlabs/ephe/actions/workflows/tests.yml)
+[![Compilación del frontend](https://github.com/bemlerlabs/ephe/actions/workflows/frontend-build.yml/badge.svg)](https://github.com/bemlerlabs/ephe/actions/workflows/frontend-build.yml)
 
 </div>
 
-<div align="center">
+![El espacio de trabajo de Ephe a 1280 px: lista de tareas a la izquierda, chat vacío del agente en el centro, selector de espacio de trabajo y cuadro de entrada.](docs/screenshots/readme-chat-1280.png)
 
-**Las estrellas ayudan a que más gente encuentre Ephe.**
+- **Privado por defecto.** Con un motor local, tus instrucciones se quedan en tu ordenador. Las funciones en línea requieren tu activación.
+- **Tu modelo.** Elige un modelo local de Ollama o un endpoint compatible con OpenAI. Ephe nunca elige por ti.
+- **Tus archivos.** Trabaja en la carpeta que elijas. Los archivos que genera el agente se guardan en tu ordenador.
 
-</div>
+## Qué es Ephe
 
-<details>
-<summary>Contenido</summary>
+Ephe es un espacio de trabajo para un agente de IA en tu ordenador. Le das una tarea y el agente elabora un plan, utiliza herramientas y muestra el trabajo mientras lo realiza. En el perfil estricto predeterminado, las modificaciones de archivos y los comandos de shell requieren tu aprobación.
 
-- [Instalación rápida](#-instalación-rápida)
-- [Los primeros dos minutos](#los-primeros-dos-minutos)
-- [Qué puedes hacer después](#qué-puedes-hacer-después)
-- [Qué es Ephe y qué no es](#qué-es-ephe-y-qué-no-es)
-- [El shell de escritorio](#el-shell-de-escritorio)
-- [Obtener ayuda](#obtener-ayuda)
-- [Licencia](#licencia)
+El motor utiliza un modelo para responder. Un motor local como Ollama ejecuta el modelo en tu hardware. Un endpoint compatible con OpenAI lo ejecuta en el proveedor que elijas. Ephe no incluye pesos de modelos ni selecciona un modelo predeterminado.
 
-- [Quickstart](docs/QUICKSTART.md) · [At a Glance](docs/AT_A_GLANCE.md) · [Feature Status](docs/FEATURE_STATUS.md) · [Skills](docs/SKILLS.md) · [Plugins](docs/PLUGINS_OVERVIEW.md) · [Benchmarks](docs/BENCHMARKS.md) · [Demos](docs/DEMOS.md)
-- [Install Options](docs/INSTALL_OPTIONS.md) · [CLI](docs/CLI.md) · [Architecture](docs/ARCHITECTURE.md) · [Development](docs/DEVELOPMENT.md) · [Mobile](docs/MOBILE.md) · [Telegram](docs/TELEGRAM.md) · [Security And Privacy](docs/SECURITY_AND_PRIVACY.md) · [Docs index](docs/README.md)
+Un plugin agrupa comandos y un paquete de habilidades. Una habilidad es un conjunto de instrucciones reutilizables que el agente puede seguir. Un conector enlaza una herramienta externa. Ya puedes configurar servidores MCP manualmente. El paquete de habilidades Superpowers incluido se instala en tu propio perfil desde el Centro de extensiones tras una confirmación.
 
-</details>
+Ephe llama celda a cada ejecución. La celda es un espacio de trabajo desechable para la sesión. Los archivos que conserves y los ajustes que guardes permanecen en el disco. Ephe usa SI como abreviatura de superinteligencia personal: un agente capaz de planificar y utilizar herramientas con tu aprobación.
 
-## ⚡ Instalación rápida
+El banco de trabajo conserva los archivos que ha generado el agente. Puedes abrirlos, descargarlos o incorporarlos; el original permanece en el espacio de trabajo.
 
-Instala con el instalador del propio repositorio — la ruta que existe hoy:
+## Qué puedes hacer
+
+Estos flujos de trabajo se incluyen como plugins propios. El chat identifica el resultado de la herramienta que respalda cada paso.
+
+1. **Redactar un documento a partir de un conjunto de fuentes.** Los plugins [documents](plugins/documents) y [local-document-factory](plugins/local-document-factory) generan archivos PDF o DOCX con fuentes y un paso de verificación.
+2. **Crear una presentación o una hoja de cálculo.** [presentations](plugins/presentations) genera presentaciones PPTX con evidencias y notas del orador; [spreadsheets](plugins/spreadsheets) crea modelos XLSX con datos de entrada y supuestos separados.
+3. **Investigar con fuentes fechadas.** [web-research](plugins/web-research) conserva las URL directas, las fechas y las evidencias citadas. El acceso web requiere tu activación.
+4. **Reproducir un error y demostrar que se ha corregido.** [code-shell](plugins/code-shell) reproduce el defecto, aplica la corrección mínima y la verifica ejecutando pruebas.
+5. **Guardar notas que puedas recuperar.** [memory](plugins/memory) almacena, recupera y elimina datos persistentes tras tu confirmación; [private-research-notebook](plugins/private-research-notebook) elabora respuestas e informes con citas a partir de fuentes locales.
+
+Elige el motor adecuado para tu ordenador:
+
+![Ajustes de Ephe a 1280 px: un motor compatible con OpenAI, un selector de modelos y el endpoint.](docs/screenshots/readme-settings-1280.png)
+
+Trabaja en una ventana del tamaño de un teléfono a través de tu propia red:
+
+![Ephe en una vista móvil de 390 px: el espacio de trabajo del agente, el estado del motor y el cuadro de entrada.](docs/screenshots/readme-chat-390.png)
+
+## Qué ocurre durante una tarea
+
+1. Escribes una tarea en el cuadro de entrada. El agente la convierte en un plan.
+2. Utiliza una herramienta, por ejemplo, para leer un archivo o ejecutar un comando. El perfil estricto exige aprobación para modificar archivos y ejecutar comandos de shell.
+3. El resultado aparece en el chat. Los archivos y gráficos llegan al banco de trabajo, donde puedes abrirlos o incorporarlos.
+4. La celda de la sesión termina. Los archivos generados y los ajustes que hayas guardado permanecen en el disco.
+
+Cada resultado de una herramienta queda vinculado al turno que lo produjo. Las afirmaciones sobre un archivo proceden de resultados reales de herramientas, no de la memoria del modelo.
+
+## Escritorio, terminal y teléfono
+
+El escritorio y el navegador comparten una aplicación web instalable (PWA) y un mismo backend en Python. `ephe desktop` compila e instala la aplicación contenedora de escritorio; `ephe start --open` abre la aplicación en el navegador.
+
+La terminal (`ephe tui`) utiliza el motor elegido en `~/.ephe/engine.json`. Un teléfono en tu red local puede abrir la PWA después de ejecutar `ephe start --lan --open`; el acceso público es una opción independiente que debes activar.
+
+## Inicio rápido
+
+### 1. Instalar
+
+#### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.sh | bash
 ```
 
-La app aún no está notarizada: en macOS, el primer arranque pregunta una vez y hay que abrirla desde Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos.
-
-La ruta por gestor de paquetes (`@ephemora/ephe` en npm, un cask de Homebrew, un manifiesto de Scoop) llega cuando una release la publique automáticamente; hasta entonces el comando de arriba es el que funciona; el nombre sin scope en npm pertenece a un paquete no relacionado, por eso el nuestro lleva scope.
-
-El one-liner descarga `./install.sh` del repositorio publicado y lo ejecuta. Para leer el script antes de ejecutarlo, usa el mismo script desde un checkout:
+Para leer el script antes de ejecutarlo, usa una copia local del repositorio:
 
 ```bash
-git clone https://github.com/bemlerlabs/ephe.git && cd ephe && ./install.sh
+git clone https://github.com/bemlerlabs/ephe.git
+cd ephe
+./install.sh
 ```
 
-Dónde coloca las cosas el instalador, qué comprueba y cómo se verifica el hash de la descarga de uv: [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md#what-the-installer-does). Un recorrido paso a paso de la instalación, las dos formas de elegir motor y de dónde sale realmente una API key: [docs/FIRST_RUN.md](docs/FIRST_RUN.md).
+El instalador prepara Python y el entorno local, compila la aplicación web y la inicia en `http://127.0.0.1:8765`. Si macOS pregunta si quieres abrir la aplicación, ve a Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos.
 
-### Windows (PowerShell)
+#### Windows (PowerShell)
 
 ```powershell
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -o install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1   # desde un checkout local
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-El modo de instalación es seleccionable: `--cli` (solo TUI/Textual, dependencias mínimas) o `--desktop`/`--gui` (por defecto, PWA más gui/voz). Sin flag, el instalador pregunta de forma interactiva.
+Si usas una copia local del repositorio, abre PowerShell en esa carpeta y ejecuta el mismo comando: `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
 
-La salida también viene con el checkout: `./uninstall.sh --dry-run` imprime el plan y no cambia nada; `./uninstall.sh --keep-data` elimina el checkout mientras `~/.ephe` se conserva. Docker, las variables de entorno del instalador y las comprobaciones de cadena de suministro están en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md) y [docs/INSTALL.md](docs/INSTALL.md).
+La instalación en Windows aún no se ha verificado de principio a fin para esta revisión. Los comandos están documentados, pero sigue pendiente comprobarlos en un entorno de ejecución o una máquina virtual con Windows.
 
-### Requisitos del sistema
+#### Docker
 
-| Componente | Mínimo | Notas |
-|---|---|---|
-| SO | macOS 13+, Ubuntu 22+, o Windows con la ruta PowerShell | un navegador actual |
-| Python | 3.10 o superior | `.python-version` fija 3.13 para este checkout |
-| RAM | 8 GB libres para un tag local pequeño | 16 GB+ para un tag local de clase 12B; un endpoint remoto no necesita ninguna |
-| Almacenamiento | 12 GB libres | 20 GB+ recomendados |
+Docker y todas las opciones del instalador se describen en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-La tabla completa está en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md#system-requirements).
+El comando apunta a la versión pública actual, `v0.1.3`. El instalador Bash usa `--desktop` por defecto; pasa `--cli` o establece `EPHE_MODE=cli` para instalar solo la interfaz de terminal.
 
-### Mapa de comandos
+Antes de usar `ephe` en una terminal nueva, activa el entorno instalado.
+Para la instalación predeterminada en macOS o Linux:
 
 ```bash
-ephe start --open          # app web local + navegador (puerto 8765)
-ephe tui                   # interfaz de terminal (Textual) sobre el motor configurado
-ephe desktop               # construye el shell de Tauri, lo instala en /Applications y lo abre
-ephe configure             # elige el motor una vez (se guarda en ~/.ephe/engine.json)
-ephe doctor                # comprobación de instalación; `ephe doctor --fix` para reparaciones locales seguras
-ephe update                # pull del repositorio + dependencias + modelo
-ephe serve                 # motor compatible con OpenAI (/v1/chat/completions)
-ephe session list|new|switch|rm|rename
+source "$HOME/Documents/Ephe/.venv/bin/activate"
 ```
 
-Cada flag, las compuertas de aprobación y los códigos de salida están en [docs/CLI.md](docs/CLI.md).
+Para la instalación predeterminada en Windows:
 
-## Los primeros dos minutos
-
-Desde un checkout, cinco pasos hasta una sesión funcional. Cada paso numerado es un comando, y el bloque debajo es lo que esta máquina imprimió mientras se escribía la sección; las rutas absolutas largas se abrevian como `…`.
-
-1. **Instalar.** `./install.sh` prepara Python, construye la PWA, crea las carpetas de datos bajo
-   `~/.ephe/` y arranca el servidor local en `http://127.0.0.1:8765`. Añade `--dry-run` para imprimir ese
-   plan sin tocar nada:
-
-   ```text
-   ▶ Checking the system
-     ✓ Darwin supported
-     ✓ Disk space OK
-   ▶ Checking Python 3.10+
-     ✓ 3.12.15 found
-   ▶ Setting up the local Python environment
-     DRY-RUN: pnpm --dir …/app install --frozen-lockfile
-     DRY-RUN: pnpm --dir …/app run build
-     ✓ PWA built → app/dist
-   Setup complete.
-   ```
-
-   El mismo script es el one-liner de [Instalación rápida](#-instalación-rápida).
-
-2. **Elegir el motor, una vez.** `ephe configure` guarda la elección en `~/.ephe/engine.json`. Hasta
-   que algo se guarde ahí, la app y `ephe start` se niegan a arrancar y nombran las dos salidas:
-
-   ```text
-   $ ephe start
-   Error: No engine configured.
-     Fix: Run `ephe configure` and pick your engine (saved to ~/.ephe/engine.json), or set it
-     explicitly via env: EPHE_MODEL_PROVIDER=local_ollama|custom_ollama|openai_compatible ...
-   ```
-
-3. **Comprobarlo.** `ephe doctor` imprime una línea por comprobación y sale con estado distinto de cero
-   mientras falte algo:
-
-   ```text
-   OK      Python - 3.13.5
-   OK      Engine openai_compatible - deepseek-v4-pro @ https://api.deepseek.com/v1 — engine up
-   OK      Ephe server - http://127.0.0.1:8765
-   OK      skills-lock.json - 51 packs match
-   MISSING Voice (TTS) - piper not found — setup: 'brew install piper' ...
-   Summary: 10/12 checks OK
-   ```
-
-4. **Arrancarlo.** `ephe start --open` para la app; `ephe tui` para el terminal. `ephe start --lan
-   --open` también lo expone en tu red para emparejar el teléfono.
-
-5. **Preguntar.** Esta es la llamada que hace la app contra el motor guardado en el paso 2 — la petición
-   de abajo respondió en 4,7 s:
-
-   ```text
-   $ curl -s -X POST http://127.0.0.1:8765/api/chat -H 'Content-Type: application/json' \
-       -d '{"message":"Answer in one short sentence: what is 17 * 3?","mode":"ask"}'
-   {"response": "17 × 3 is **51**.", "model": "deepseek-v4-pro"}
-   ```
-
-Las capturas y los clips están en `docs/screenshots/` (el banner de arriba) y `docs/media/` (los clips WebP de [Demos](docs/DEMOS.md)).
-
-## Qué puedes hacer después
-
-Cinco cosas que este producto hace y una ventana de chat no.
-
-1. **Elegir el motor y verlo negarse a adivinar.** `ephe configure` escribe la elección una vez; una
-   máquina sin elección falla cerrada con la salida en vez de caer a un valor por defecto oculto
-   ([paso 2 arriba](#los-primeros-dos-minutos)).
-2. **Ver una flota trabajar en worktrees paralelos.** `ephe agents` imprime cada ejecución viva con su
-   estado y antigüedad, y luego `ephe changes <workspace>` imprime lo que construyó cada ejecución —
-   ruta por ruta, con el digest de cada diff:
-
-   ```text
-   $ ephe agents
-   1 live workspace (register ~/.ephe/workspaces/register.json)
-   cb9f70d9  probe-n1  dirty  age 8s
-   $ ephe changes cb9f70d9
-   1 change set for /…/workspaces/cb9f70d9 (newest first)
-   cs-20261014T141323Z-b519db23  draft  1 file  2026-10-14T14:13:23  probe: one file …
-       create  docs/n1-probe.txt  sha256:8031de4f05e6
-   ```
-
-3. **Poner una compuerta de revisión entre un agente y tu tronco.** `ephe review` registra un veredicto;
-   aprobar tu propio trabajo se rechaza, y publicar sin veredicto también:
-
-   ```text
-   $ ephe review cs-20261014T141323Z-b519db23 approve --reviewer probe-n1 --reason "docs/n1-probe.txt:1:the author cannot approve its own set"
-   Error: probe-n1 authored cs-20261014T141323Z-b519db23 and cannot approve it
-     Fix: nothing was recorded: a verdict needs a reason inside the change set and a reviewer other than its author
-   $ ephe publish cs-20261014T141344Z-f40dcdf2 --dry-run
-   Error: cs-20261014T141344Z-f40dcdf2 may not publish: no verdict is recorded
-     Fix: ephe review cs-20261014T141344Z-f40dcdf2 approve --reviewer <reviewer> --reason <path:line:why>
-   ```
-
-   Con un veredicto de un revisor que no es el autor, el mismo verbo lo registra y mueve el conjunto a
-   `review`; `ephe publish --target <branch>` aterriza entonces cada archivo del conjunto o ninguno.
-4. **Acotar el almacén de sesiones.** `ephe prune` informa lo que liberaría y no cambia nada; el mismo
-   verbo con `--apply` lo hace:
-
-   ```text
-   $ ephe prune
-   Session store: ~/.ephe/sessions
-   Holds 8942 files (3.9 MB): 2666 tasks a list shows, 6276 files no list reaches.
-   Dry run: would delete 2079 files, freeing 2.1 MB. Nothing was changed — repeat with --apply.
-   ```
-
-5. **Usarlo desde tu teléfono.** Arranca con `ephe start --lan --open`, abre **Settings → Mobile** en
-   la app y sigue los tres pasos que muestra el panel: pulsa **Connect mobile**, escanea el código QR
-   con un teléfono en la misma red y conversa desde la PWA móvil. El acceso público es un opt-in
-   aparte; el recorrido está en [docs/MOBILE.md](docs/MOBILE.md).
-
-## Qué es Ephe y qué no es
-
-Ephe es una app web local y un backend en Python para un agente SI personal — SI aquí significa *superinteligencia*. La unidad de trabajo es la célula: se ejecuta en tu máquina, cada llamada a herramienta y cada decisión de aprobación se escriben en el registro, y la célula se destruye cuando termina la sesión. No se guarda nada a menos que tú lo guardes:
-
-| Capacidad | Comportamiento por defecto | Comportamiento de red |
-|---|---|---|
-| Chat con el modelo elegido | Lo eliges tú en la app — sin valor por defecto silencioso | No requiere internet para un motor local una vez instalado su modelo |
-| Comprensión de imágenes / OCR | Lo eliges tú en la app (Ollama local funciona offline) | No requiere internet una vez instalado el modelo |
-| Archivos, PDFs, perfil, memoria | Disco local | No requiere internet |
-| Acceso por QR al teléfono | Red local | El túnel móvil público es Optional Online |
-| Acciones de shell y escritorio | Aprobación requerida | Solo local, salvo que una herramienta use internet explícitamente |
-| `/research` | Deshabilitado hasta confirmación | Búsqueda web Optional Online |
-| Integraciones de servicio TTS | Opcional | Internet, depende del proveedor — [Piper TTS](docs/VOICE.md) local cuando está instalado; el servicio en la nube es opt-in |
-| Servidor Ollama personalizado | Advanced Opt-in | Endpoint localhost o LAN |
-| API compatible con OpenAI | Advanced Opt-in | Tu proveedor de API configurado |
-| Ejecución de código en sandbox (`run_sandboxed_code`) | Advanced Opt-in | `pip install 'ephe[sandbox]'` — sandbox WASI local (Ephemora Cell), sin red, sin acceso al host |
-
-Local-first aquí significa que el producto central funciona localmente una vez que has elegido un motor en la app (Ollama o compatible con OpenAI), y que un motor local es par de los remotos. No significa que cada integración opcional sea offline, ni que haya un motor preseleccionado en silencio.
-
-La elección de motor es la frontera que decide qué es Ephe y qué no. La build por defecto, con un motor elegido:
-
-- **Sin servicio en la nube, sin cuenta.** La ruta local corre en tu máquina y no pide registro; no hay endpoint de telemetría: la única llamada que sale de la máquina es la comprobación de actualizaciones, que pregunta a GitHub por la última release.
-- **Sin modelo y sin paquete de modelos.** Ephe no incluye pesos. El instalador detecta un Ollama en ejecución y se detiene ahí; nunca instala Ollama ni descarga un tag. Sin un motor elegido, la app espera y nombra las dos salidas.
-- **Sin servidor multiusuario.** Una instancia sirve a una persona en una máquina.
-- **Sin app de tienda de aplicaciones.** La superficie del teléfono es la misma PWA sobre tu red; no hay build para iOS ni Android.
-- **Sin crawler por defecto.** `/research`, los motores remotos, el acceso móvil público y el TTS externo son rutas opt-in; un motor offline basta para todo lo demás.
-- **Sin una segunda app nativa.** El shell de escritorio de Tauri es un envoltorio fino alrededor de la PWA; los experimentos v2 de `docs/` no son la superficie que se envía.
-
-## El shell de escritorio
-
-`ephe desktop` construye el shell de Tauri, lo instala en `/Applications` y lo abre. La ventana enmarca la misma PWA y el mismo backend en Python; la capa nativa debajo añade las funciones de plataforma de abajo:
-
-```bash
-ephe desktop               # construye, instala en /Applications, abre
-ephe desktop --dev         # ejecuta el shell en vivo contra la URL de desarrollo
-ephe desktop --no-install  # conserva la copia construida en lugar de instalarla
+```powershell
+& "$HOME\Documents\Ephe\.venv\Scripts\Activate.ps1"
 ```
 
-| Capacidad | Implementación |
+Si usas una copia del repositorio o una ubicación personalizada, utiliza la `.venv` de esa carpeta.
+
+### 2. Elegir el motor
+
+La aplicación abre la página de configuración inicial (Setup). Elige un modelo local de Ollama, un Ollama remoto o un endpoint compatible con OpenAI. En la terminal, `ephe configure` guarda la misma elección en `~/.ephe/engine.json`. Ephe se niega a arrancar sin una elección; no hay una opción predeterminada oculta.
+
+Si usas un endpoint alojado, introduce su clave en la misma página. La aplicación la guarda en el llavero del sistema operativo o en `~/.ephe/engine.key`, con permisos exclusivos para su propietario. Nunca se escribe en `engine.json` ni se muestra en el chat.
+
+### 3. Pedir una tarea
+
+Abre `http://127.0.0.1:8765` o ejecuta `ephe start --open`. El contenedor de escritorio se compila a partir de la misma aplicación; `ephe desktop` lo instala. Desde la terminal, `ephe tui` abre la interfaz de texto. Escribe una tarea. El perfil estricto pide permiso antes de modificar archivos o ejecutar comandos de shell.
+
+Para usar el mismo espacio de trabajo desde un teléfono de tu red, inicia con `ephe start --lan --open` y abre Ajustes (Settings) → Móvil (Mobile). Pulsa **Conectar móvil (Connect mobile)**. Escanea el código QR y abre la PWA en el teléfono. El acceso público requiere una activación independiente; los pasos están en [docs/MOBILE.md](docs/MOBILE.md).
+
+## Qué necesitas
+
+| Requisito | Detalle |
 |---|---|
-| Icono de bandeja con mostrar / ocultar / salir / nueva sesión, notificaciones nativas y un diálogo de archivos nativo en lugar de una ruta escrita a mano | `app/src-tauri/src/lib.rs` (`tray-icon`), `tauri-plugin-notification`, `tauri-plugin-dialog` |
-| Supervisión del backend: arranca y detiene el backend de Python registrado en `~/.ephe/desktop.json`, y nombra el registro ausente en vez de adivinar un intérprete | `app/src-tauri/src/backend.rs` |
-| Clave del motor en el keychain del SO (macOS Keychain / Linux SecretService), con un archivo de clave `0600` como fallback | `core/engine_config.py` |
-| Mantener despierto durante una ejecución (`caffeinate` en macOS) | `app/src-tauri/src/lib.rs` (`set_keep_awake`) |
-| Panel de navegador: un WebView hijo, para que una página que envía `X-Frame-Options` cargue donde un `<iframe>` pintaba en blanco | `app/src-tauri/src/browser.rs` |
-| Instancia única: un socket en el directorio de configuración frente a la app en ejecución, con `tauri-plugin-single-instance` como red de seguridad multiplataforma | `app/src-tauri/src/instance.rs` |
-| Actualizador automático firmado conectado a la comprobación de actualizaciones de la propia app | `tauri-plugin-updater`, `tauri-plugin-process` |
+| Ordenador | macOS 13+ o Ubuntu 22+; un navegador actual; las instrucciones para Windows PowerShell siguen sin verificarse de principio a fin |
+| RAM | 8 GB libres para un modelo local pequeño; 16 GB o más para un modelo de clase 12B; un motor remoto necesita menos |
+| Disco | 12 GB libres; más espacio para el modelo que elijas |
+| Herramientas de compilación | Node.js 22.23.4 es el entorno de compilación probado; úsalo con npm/pnpm. Se admite Python 3.11 o posterior; `.python-version` fija la serie 3.13 |
+| Motor | Un modelo local de Ollama o un endpoint compatible con OpenAI y su clave; sin cuenta de Ephe |
 
-## Obtener ayuda
+Un modelo local utiliza la RAM y el disco de la máquina que lo ejecuta. Un endpoint alojado necesita conexión de red, una URL de endpoint y una clave de API. Un motor local no necesita clave de API. Ephe no incluye ningún modelo ni pide una cuenta. Para usar un modelo local, descarga primero una etiqueta: `ollama pull <tag>`.
 
-El índice es [`docs/`](docs/README.md): el [quickstart](docs/QUICKSTART.md), la [guía de instalación](docs/INSTALL.md), la [arquitectura](docs/ARCHITECTURE.md), la [referencia de la CLI](docs/CLI.md), la metodología del benchmark ([benchmark-mapping.md](docs/benchmark-mapping.md)), la especificación del formato de plugins ([PLUGINS.md](docs/PLUGINS.md)), la guía del conmutador ([SWITCHING.md](docs/SWITCHING.md)) y los medios de demo.
+## Cuánto cuesta
 
-- Bugs y peticiones de funciones: el [issue tracker](https://github.com/bemlerlabs/ephe/issues) de GitHub — las plantillas `bug_report` y `feature_request` están en el repositorio.
-- Preguntas y notas de release: el [canal de Telegram](docs/TELEGRAM.md).
-- Informes de seguridad: el canal privado de [SECURITY.md](SECURITY.md), nunca un issue público.
-- Contribuir: [CONTRIBUTING.md](CONTRIBUTING.md) — fork, rama, añade o actualiza tests Given-When-Then, ejecuta primero las comprobaciones relevantes más estrechas y abre un pull request con la plantilla.
+Ephe no tiene suscripción ni cuenta. Un modelo local utiliza tu hardware. Un motor alojado te factura directamente según sus propias condiciones. El código fuente está disponible bajo BUSL-1.1; el uso en producción requiere una licencia comercial, descrita en [COMMERCIAL.md](COMMERCIAL.md).
 
-## Para quién es esto
+La inferencia local no tiene tarifas de proveedor. El uso fuera de producción es gratuito; el uso en producción requiere una licencia comercial independientemente del motor. Cada proveedor alojado fija sus propios precios.
 
-**En casa, para ti.** Ephe corre en tu máquina y guarda su estado en tu máquina.
-Sin cuenta, sin telemetría, sin servidor nuestro en el camino. Instálalo, úsalo, quédate con él.
+## Privacidad y control
 
-**Aprender, probar, contribuir.** Bienvenido. Los tests están en este repositorio, la
-arquitectura está documentada, y un pull request que arregla un bug o pule una frase vale más
-que una estrella. Ver [CONTRIBUTING.md](CONTRIBUTING.md).
+Con un motor local, las instrucciones se quedan en tu ordenador. Un motor remoto, la búsqueda web, el acceso móvil público y la conversión de texto a voz en la nube envían lo que solicitas al servicio correspondiente; cada opción requiere tu activación.
 
-**Uso en producción.** Requiere una licencia comercial. Eso es todo: ejecutar Ephe para
-trabajo real, en el trabajo o dentro de una empresa, o como parte de un producto o un servicio
-que ofreces. La concesión es `None`, así que ninguna otra parte de la licencia lo cubre.
-Pregúntanos; los niveles y el proceso están en [COMMERCIAL.md](COMMERCIAL.md).
+La clave del motor permanece en el llavero del sistema operativo o en `~/.ephe/engine.key`, con permisos exclusivos para su propietario. La página de ajustes y `ephe configure` la guardan; Ephe no la muestra.
 
-## Licencia
+El perfil estricto predeterminado pide permiso antes de modificar archivos y ejecutar comandos de shell. Otros modos que actives y las aprobaciones recordadas pueden permitir la ejecución sin volver a preguntar. Comprueba el perfil de aprobación en el cuadro de entrada. La celda se destruye al terminar la sesión; los archivos generados y los ajustes que hayas guardado permanecen en el disco.
 
-Business Source License 1.1 (BUSL-1.1) — source-available y gratuita para uso no
-productivo: léela, ejecútala, modifícala, construye sobre ella, evalúala, contribuye. **El uso
-en producción necesita una licencia comercial**, lo que significa ejecutar Ephe para trabajo
-real, en el trabajo o dentro de una empresa, o como parte de un producto o servicio que ofreces. Ver [COMMERCIAL.md](COMMERCIAL.md).
+No hay cuenta ni registro. La comprobación de actualizaciones consulta a GitHub cuál es la versión más reciente; cualquier otro acceso de red espera a que actúes. Las funciones en línea opcionales aparecen en Setup y Settings. Los detalles están en [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) y [SECURITY.md](SECURITY.md).
 
-Cada versión pasa a la Licencia Apache 2.0 en el cuarto aniversario de su primera
-release pública, así que todo lo publicado aquí se convierte en open source corriente cuatro
-años después. Los términos operativos están en [LICENSE](LICENSE); lo que nos concedes al enviar
-una contribución está en [CONTRIBUTING.md](CONTRIBUTING.md).
+## Plugins, habilidades y conectores
+
+Ephe incluye nueve plugins propios, siete preajustes de capacidades, cinco paquetes de habilidades propios y un paquete de habilidades de terceros incluido (Superpowers, MIT). Un plugin añade comandos y un paquete de habilidades; una habilidad es un conjunto de instrucciones reutilizables; un preajuste ofrece una capacidad sin atribuirle la calidad de un plugin. La aplicación también incluye sus habilidades integradas; consulta [docs/SKILLS.md](docs/SKILLS.md).
+
+Los plugins son documents, presentations, spreadsheets, code-shell, browser-use, web-research, memory, local-document-factory y private-research-notebook. Los preajustes abarcan trabajo con imágenes, herramientas del Protocolo de Contexto de Modelos (MCP), visión, voz, guías, creación de plugins y creación de habilidades.
+
+Los nueve plugins propios y los cinco paquetes de habilidades propios se distribuyen con la aplicación. El Centro de extensiones muestra qué puede hacer cada entrada. El paquete Superpowers se incluye como contenido de terceros y se instala en tu propio perfil tras una confirmación, porque no está firmado. Está previsto un catálogo público para editores externos.
+
+Ya puedes añadir servidores MCP manualmente en Ajustes (Settings) → Conectores (Connectors). Su catálogo ofrece indicaciones de configuración y enlaces a la documentación; no instala esos servidores externos.
+
+## Qué falta todavía
+
+- No hay aplicación para iOS ni Android. En el teléfono se usa la PWA a través de tu propia red.
+- No se incluyen pesos de modelos. Tú eliges el motor y el modelo.
+- No hay rastreador web por defecto. La investigación web requiere tu activación.
+- No hay instalación con un clic de servidores MCP externos. Las conexiones MCP requieren configuración manual.
+- No es un servidor multiusuario. Cada instancia sirve a una persona en una máquina.
+- No hay un catálogo público para editores de terceros. Un paquete de terceros (Superpowers, MIT) se incluye con la aplicación; el resto de las entradas son propias.
+- La instalación y el arranque del navegador en Windows siguen pendientes de una comprobación de principio a fin en Windows.
+- No hay un mercado público de plugins. El paquete incluido se puede instalar; está previsto un mercado con entradas externas.
+
+## Si algo falla
+
+- **El comando de instalación que guardaste apunta a una versión antigua.** Compáralo con el comando de Inicio rápido de arriba antes de instalar.
+- **La aplicación abre Setup y no permite chatear.** Elige un motor allí o ejecuta `ephe configure`. Tanto un modelo local como un endpoint alojado son opciones válidas.
+- **macOS indica que la aplicación no está notarizada.** Abre Ajustes del Sistema → Privacidad y seguridad y elige Abrir de todos modos.
+- **PowerShell bloquea el script.** Usa `powershell -ExecutionPolicy Bypass -File .\install.ps1` en la carpeta donde descargaste el script.
+- **Un modelo local va lento.** Comprueba primero la RAM libre; un modelo más pequeño consume menos. Un endpoint alojado traslada el trabajo a otra máquina.
+- **¿Dónde están mis datos y mi clave?** `~/.ephe` contiene ajustes, sesiones, archivos generados y registros; el llavero del sistema operativo (preferido) o `~/.ephe/engine.key` (0600) guarda la clave del motor. `./uninstall.sh --dry-run` muestra el plan sin cambiar nada; `./uninstall.sh --keep-data` elimina la copia del repositorio y conserva `~/.ephe`; `./uninstall.sh --yes` elimina ambos.
+
+## Documentación, contribuciones y licencia
+
+El índice está en [docs/README.md](docs/README.md). Empieza por el [inicio rápido](docs/QUICKSTART.md), la [guía de instalación](docs/INSTALL.md), el [primer uso](docs/FIRST_RUN.md), la [referencia de la CLI](docs/CLI.md), los [plugins](docs/PLUGINS_OVERVIEW.md), las [habilidades](docs/SKILLS.md) y la [seguridad y privacidad](docs/SECURITY_AND_PRIVACY.md).
+
+- Errores y solicitudes de funciones: el [gestor de incidencias](https://github.com/bemlerlabs/ephe/issues).
+- Informes de seguridad: el canal privado indicado en [SECURITY.md](SECURITY.md).
+- Contribuciones: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Licencia: Business Source License 1.1 (BUSL-1.1), con código fuente disponible. Las condiciones están en [LICENSE](LICENSE); el uso en producción se describe en [COMMERCIAL.md](COMMERCIAL.md). Cada versión pasa a Apache 2.0 cuatro años después de su primera publicación.

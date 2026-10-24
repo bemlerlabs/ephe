@@ -704,6 +704,7 @@ with sync_playwright() as p:
         # SHIPPED assets untouched.
         from PIL import Image, ImageDraw
 
+        # Rendered on demand for review; the sheet is not a tracked asset.
         sheet_path = ROOT / "docs" / "screenshots" / "icon-candidates.png"
         cell, pad = 256, 26
         cols = len(VARIANTS)  # scales along, otherwise new candidates run off

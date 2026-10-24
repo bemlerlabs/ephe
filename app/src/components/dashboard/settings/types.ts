@@ -21,6 +21,8 @@ export type TabKey =
   | 'generation'
   | 'skills'
   | 'cron'
+  | 'agents'
+  | 'teams'
   | 'artifacts'
   | 'tasks'
   | 'voice'
@@ -51,6 +53,8 @@ export const NAV_KEYS = [
   'generation',
   'skills',
   'cron',
+  'agents',
+  'teams',
   'artifacts',
   'ephemera',
   'ephemeris',
@@ -103,6 +107,9 @@ export const READONLY_TABS: ReadonlySet<TabKey> = new Set([
   'persona',
   'voice',
   'mobile',
+  // Agent Center and Agent Teams save through their own endpoints and buttons.
+  'agents',
+  'teams',
 ])
 
 export const VOICES = [

@@ -23,6 +23,7 @@ from core.vision import (
     SandboxConfirmationRequired,
     _get_bounding_box,
     _take_screenshot,
+    _vision_timeout_s,
     check_sandbox,
     set_sandbox_confirm_cb,
     set_vision_learned_success_cb,
@@ -197,16 +198,78 @@ def test_bounding_box_sends_the_reference_crop_as_a_second_image(monkeypatch, vi
     assert "image 2" in calls["prompt"]
 
 
+def test_without_a_vision_engine_the_click_refuses_instead_of_waiting(monkeypatch):
+    """No EPHE_VISION_MODEL and no vision role: the refusal names the setting;
+    the local Ollama is never asked for a chat model."""
+    monkeypatch.delenv("EPHE_VISION_MODEL", raising=False)
+    calls = _install_generate(monkeypatch, text="[0.0, 0.0, 1.0, 1.0]")
+    import core.model_provider as model_provider
+
+    def no_vision(_context):
+        raise RuntimeError("no vision role")
+
+    monkeypatch.setattr(model_provider, "chosen_model", no_vision)
+    with pytest.raises(vision_mod.VisionUnavailable, match="EPHE_VISION_MODEL"):
+        asyncio.run(_get_bounding_box("BASE64", "Save"))
+    assert calls == {}, "the local client must not be called without a vision model"
+
+
+def test_a_vision_call_that_does_not_answer_is_bounded(monkeypatch, vision_model):
+    monkeypatch.setenv("EPHE_VISION_TIMEOUT_S", "0.05")
+    async def never(**_kwargs):
+        await asyncio.sleep(5)
+        return {"response": "[0.0, 0.0, 1.0, 1.0]"}
+
+    monkeypatch.setattr(vision_mod.ollama, "AsyncClient", lambda: SimpleNamespace(generate=never))
+    with pytest.raises(vision_mod.VisionUnavailable, match="did not answer"):
+        asyncio.run(_get_bounding_box("BASE64", "Save"))
+
+
 def test_bounding_box_falls_back_to_chosen_model(monkeypatch):
     monkeypatch.delenv("EPHE_VISION_MODEL", raising=False)
     calls = _install_generate(monkeypatch, text="[0.0, 0.0, 1.0, 1.0]")
 
     import core.model_provider as model_provider
 
+    monkeypatch.setattr(
+        model_provider,
+        "get_active_provider",
+        lambda: SimpleNamespace(provider="local_ollama", model="chat:1b"),
+    )
     monkeypatch.setattr(model_provider, "chosen_model", lambda _context: "chosen:1b")
 
     asyncio.run(_get_bounding_box("BASE64", "Save"))
     assert calls["model"] == "chosen:1b"
+
+
+def test_a_hosted_chat_engine_is_not_asked_for_a_vision_box(monkeypatch):
+    """Only the local Ollama falls back to the chat model. A hosted engine has no
+    local vision client and no role to borrow, so the refusal comes first."""
+    monkeypatch.delenv("EPHE_VISION_MODEL", raising=False)
+    calls = _install_generate(monkeypatch, text="[0.0, 0.0, 1.0, 1.0]")
+    chosen: list[str] = []
+    import core.model_provider as model_provider
+
+    monkeypatch.setattr(
+        model_provider,
+        "get_active_provider",
+        lambda: SimpleNamespace(provider="openai_compatible", model="chat"),
+    )
+    monkeypatch.setattr(
+        model_provider,
+        "chosen_model",
+        lambda context: chosen.append(context) or "chat",
+    )
+    with pytest.raises(vision_mod.VisionUnavailable, match="EPHE_VISION_MODEL"):
+        asyncio.run(_get_bounding_box("BASE64", "Save"))
+    assert chosen == [], "a hosted engine must not lend its chat model"
+    assert calls == {}, "the local Ollama client must not be called"
+
+
+@pytest.mark.parametrize("raw", ["not-a-number", "", "nan", "inf", "0", "-5"])
+def test_an_invalid_vision_timeout_falls_back_to_30(monkeypatch, raw):
+    monkeypatch.setenv("EPHE_VISION_TIMEOUT_S", raw)
+    assert _vision_timeout_s() == 30.0
 
 
 # GUI entry points degrade to one readable line without the libraries

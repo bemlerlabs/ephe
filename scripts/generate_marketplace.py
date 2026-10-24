@@ -21,7 +21,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # core.* is not
 from core.plugin_manifest import load_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
-PLUGINS = ROOT / "plugins"
 
 CATEGORIES = {
     "web-research": "research",
@@ -72,31 +71,101 @@ DESCRIPTION_I18N = {
 }
 
 
-def main() -> None:
+def generate(root: Path = ROOT) -> dict:
+    try:
+        source = {
+            str(entry["name"]): entry
+            for entry in json.loads(
+                (root / "marketplace" / "first-party.json").read_text(encoding="utf-8")
+            ).get("plugins", [])
+            if isinstance(entry, dict) and entry.get("name")
+        }
+    except (OSError, ValueError):
+        source = {}
     plugins = []
-    for plugin_dir in sorted(p for p in PLUGINS.iterdir() if p.is_dir()):
+    for plugin_dir in sorted(p for p in (root / "plugins").iterdir() if p.is_dir()):
         manifest, err = load_manifest(plugin_dir)
         if manifest is None:
             print(f"SKIP {plugin_dir.name}: {err}")
             continue
         slug = str(manifest["name"])
         de = str(manifest["description"])
-        plugins.append(
-            {
-                "name": slug,
-                "source": f"plugins/{slug}",
-                "description": DESCRIPTION_I18N.get(slug, {}).get("en", de),
-                "description_i18n": DESCRIPTION_I18N.get(slug, {"en": de, "de": de}),
-                "version": str(manifest["version"]),
-                "author": "Ephe",
-                "icon": f"plugins/{slug}/icon.svg",
-                "category": CATEGORIES.get(slug, "meta"),
-                "keywords": [slug.replace("-", " "), "ephe", "local-first"],
-                "origin": str(manifest.get("origin", "first-party")),
-            }
-        )
+        entry = {
+            "name": slug,
+            "source": f"plugins/{slug}",
+            "description": DESCRIPTION_I18N.get(slug, {}).get("en", de),
+        }
+        translated = DESCRIPTION_I18N.get(slug)
+        if translated:
+            entry["description_i18n"] = translated
+        entry.update({
+            "version": str(manifest["version"]),
+            "author": "Ephe",
+            "icon": f"plugins/{slug}/icon.svg",
+            "category": CATEGORIES.get(slug, "meta"),
+            "keywords": [slug.replace("-", " "), "ephe", "local-first"],
+            "origin": str(manifest.get("origin", "first-party")),
+        })
+        # Labels, measurements and edited descriptions live in
+        # marketplace/first-party.json, so a rebuild does not revert them.
+        for key in (
+            "displayName",
+            "description",
+            "description_i18n",
+            "author",
+            "icon",
+            "category",
+            "keywords",
+            "origin",
+            "quality_label",
+            "quality_reason",
+            "measurement",
+        ):
+            if key in source.get(slug, {}):
+                entry[key] = source[slug][key]
+        plugins.append(entry)
 
-    out = {
+    # Third-party packs that ship through the marketplace but are not part of
+    # the first-party plugin portfolio (source: marketplace/third-party.json).
+    try:
+        foreign = json.loads(
+            (root / "marketplace" / "third-party.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        foreign = {}
+    for item in foreign.get("plugins", []):
+        path = str(item.get("path") or "")
+        if not path:
+            continue
+        manifest, err = load_manifest(root / path)
+        if manifest is None:
+            print(f"SKIP {path}: {err}")
+            continue
+        slug = str(manifest["name"])
+        description_i18n = item.get("description_i18n") or {}
+        english = (
+            description_i18n.get("en")
+            if isinstance(description_i18n, dict)
+            else ""
+        ) or str(item.get("description") or manifest["description"])
+        entry = {
+            "name": slug,
+            "displayName": str(item.get("displayName") or slug),
+            "source": path,
+            "description": english,
+            "description_i18n": description_i18n or {"en": english, "de": english},
+            "version": str(manifest["version"]),
+            "author": str(item.get("author") or manifest.get("origin") or "third-party"),
+            "category": str(item.get("category") or "skills"),
+            "keywords": list(item.get("keywords") or [slug]),
+            "origin": str(manifest.get("origin") or "third-party"),
+        }
+        for key in ("kind", "quality_label"):
+            if item.get(key):
+                entry[key] = str(item[key])
+        plugins.append(entry)
+
+    return {
         "name": "ephe-plugins-official",
         "version": 1,
         "description": "Official Ephe plugins: built-in product plugins for Ephe Agent.",
@@ -105,11 +174,15 @@ def main() -> None:
             "de": "Offizielle Ephe-Plugins: eingebaute Produkt-Plugins für den Ephe Agent.",
         },
         "owner": "Ephe",
-        "plugins": plugins,
+        "plugins": sorted(plugins, key=lambda entry: entry["name"]),
     }
+
+
+def main() -> None:
+    out = generate(ROOT)
     target = ROOT / "ephe-marketplace.json"
     target.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"ephe-marketplace.json written: {len(plugins)} plugins")
+    print(f"ephe-marketplace.json written: {len(out['plugins'])} plugins")
 
 
 if __name__ == "__main__":

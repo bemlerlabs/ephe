@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "browser-use",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "origin": "first-party",
   "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
   "permissions": {
@@ -12,12 +12,24 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "browser-use"
+    ],
     "commands": [
       {
         "name": "browse",
         "description": "Open a page and work with it in the browser",
-        "template": "Öffne {input} im Browser (browser_go), mache einen Screenshot und führe die Aufgabe mit browser_click/browser_type aus — approval-gated."
+        "template": "Open {input} in the browser with browser_go, take a screenshot, and complete the task with browser_click/browser_type - approval-gated."
+      },
+      {
+        "name": "capture",
+        "description": "Capture visual evidence for a page",
+        "template": "Capture visual evidence for: {input}. Navigate, take a screenshot, record the URL and a short observation; do not submit a form."
+      },
+      {
+        "name": "fill",
+        "description": "Fill a form with approval before submit",
+        "template": "Fill the form for: {input}. Show the exact fields and values, request approval before submit, and capture the result."
       }
     ],
     "tools": [
@@ -31,5 +43,6 @@
       "browser_exec"
     ]
   },
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

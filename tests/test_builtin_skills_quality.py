@@ -64,10 +64,25 @@ def test_given_builtin_skills_when_loaded_then_public_trigger_set_is_complete():
     from core.skills import BUILTIN_SKILLS_DIR, SkillLoader
 
     skills = SkillLoader(skills_dir=Path("/tmp/ephe-no-user-skills"), builtin_dir=BUILTIN_SKILLS_DIR).load_all()
-    triggers = {skill.trigger for skill in skills}
+    builtin = {
+        path.name for path in BUILTIN_SKILLS_DIR.iterdir()
+        if path.is_dir() and (path / "SKILL.md").is_file()
+    }
+    builtin_skills = [skill for skill in skills if skill.name in builtin]
+    triggers = {skill.trigger for skill in builtin_skills}
 
     assert triggers == EXPECTED_BUILTIN_TRIGGERS
-    assert len(triggers) == len(skills)
+    assert len(triggers) == len(builtin_skills)
+
+
+def test_loaded_skill_triggers_are_unique_across_builtin_and_plugin_packs():
+    from core.skills import BUILTIN_SKILLS_DIR, SkillLoader
+
+    skills = SkillLoader(skills_dir=Path("/tmp/ephe-no-user-skills"), builtin_dir=BUILTIN_SKILLS_DIR).load_all()
+    triggers = [skill.trigger for skill in skills if skill.trigger]
+    duplicates = sorted({trigger for trigger in triggers if triggers.count(trigger) > 1})
+
+    assert duplicates == []
 
 
 def test_given_builtin_skills_when_tools_declared_then_every_tool_exists():
@@ -195,11 +210,16 @@ def test_given_builtin_skill_packs_when_loaded_then_each_declares_name_and_semve
     skills = SkillLoader(
         skills_dir=Path("/tmp/ephe-no-user-skills"), builtin_dir=BUILTIN_SKILLS_DIR
     ).load_all()
-    assert len(skills) >= 40
+    builtin = {
+        path.name for path in BUILTIN_SKILLS_DIR.iterdir()
+        if path.is_dir() and (path / "SKILL.md").is_file()
+    }
+    builtin_skills = [skill for skill in skills if skill.name in builtin]
+    assert len(builtin_skills) >= 40
 
     semver = re.compile(r"^\d+\.\d+\.\d+$")
     problems: list[str] = []
-    for skill in skills:
+    for skill in builtin_skills:
         pack_dir = BUILTIN_SKILLS_DIR / skill.name
         if not (pack_dir / "SKILL.md").exists():
             problems.append(f"{skill.name}: kein Pack (skills/{skill.name}/SKILL.md fehlt)")

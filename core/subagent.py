@@ -60,6 +60,8 @@ class Subagent:
         on_event: Callable[[dict], None] | None = None,
         allowed_tools: list[str] | None = None,
         timeout: float | None = None,
+        instructions: str = "",
+        max_iterations: int | None = None,
         chat_session_id: str = "",
         parent_session: str = "",
         steering: SteeringChannel | None = None,
@@ -68,6 +70,10 @@ class Subagent:
         self.role = role
         self.task = task
         self.context = context
+        # Agent Center: the profile's own instructions and step budget. Empty
+        # and None keep the stock helper exactly as it was.
+        self.instructions = instructions or ""
+        self.max_iterations = max(1, min(24, int(max_iterations))) if max_iterations else None
         # The parent turn's channel, handed down by spawn_agent: holding its focus
         # while this helper runs is what lets a direction change reach the work the
         # user is watching instead of waiting for the parent's next round.
@@ -105,11 +111,12 @@ class Subagent:
     def _system_prompt(self) -> str:
         role_line = f"You act as: {self.role}." if self.role else ""
         ctx = f"\nShared context from the main conversation:\n{self.context}" if self.context else ""
+        own = f"\n\nAgent instructions:\n{self.instructions}" if self.instructions else ""
         return (
             "You are a focused subagent spawned by the main assistant to handle ONE "
             "delegated task. Work autonomously: use your read-only tools when they help, "
             "then produce a compact, factual final report (no preamble, no apologies). "
-            f"{role_line}{ctx}"
+            f"{role_line}{ctx}{own}"
         )
 
     async def run(self) -> SubagentResult:
@@ -153,7 +160,7 @@ class Subagent:
         try:
             effective_timeout = float(self.timeout) if self.timeout else SUBAGENT_TIMEOUT
             effective_whitelist = set(self.allowed_tools) if self.allowed_tools else set(SUBAGENT_TOOL_WHITELIST)
-            for _iteration in range(SUBAGENT_MAX_ITERATIONS):
+            for _iteration in range(self.max_iterations or SUBAGENT_MAX_ITERATIONS):
                 # The helper's own round boundary: the previous iteration's tool
                 # results are in `messages`, so a direction change lands where the
                 # parent turn's does — between rounds, never mid-call.

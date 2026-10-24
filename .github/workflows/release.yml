@@ -60,10 +60,10 @@ jobs:
     # R1: this gate stood on a hosted runner the account cannot allocate, so no run was ever
     # started and `build-bundles` (`needs: test-gate`) never ran either. It takes the same
     # Linux label the rest of CI runs on, `vars.CI_LINUX_RUNNER` - whichever runner the
-    # repository points that variable at. An unset variable matches no runner and the job waits,
-    # which is the fail-closed routing
-    # `tests.yml:49` documents.
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    # repository points that variable at. An unset variable falls back to GitHub-hosted
+    # `ubuntu-latest`, so a public checkout runs the same gate instead of waiting on a
+    # label it never defined.
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -82,6 +82,16 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -e ".[dev,tui]"
+      - name: Enable user namespaces for the MCP sandbox
+        # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
+        # map a uid there and every stdio MCP server refuses to start. The product keeps that
+        # refusal; the test host provides the kernel setting the sandbox needs. Older images
+        # without the key stay green.
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
       - name: Run tracked pytest suite
         run: python -m pytest tests/ -q
       - name: pass^3 release gate
@@ -100,7 +110,7 @@ jobs:
   frontend-gate:
     name: Frontend gate (release bar)
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -119,7 +129,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           # No cache: a publishing workflow restores nothing from an earlier run (zizmor:
           # cache-poisoning). The install below is cold, like the bundle build.
           package-manager-cache: false
@@ -168,10 +178,10 @@ jobs:
           # that leg is dropped and the Windows bundle stays a hand build; §5.1 of
           # docs/RELEASE_SIGNING_DRY_RUN_2026-10-11.md carries the labels and the price.
           - os: macos
-            runner: ${{ vars.CI_MAC_RUNNER }}
+            runner: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
             args: --target aarch64-apple-darwin
           - os: linux
-            runner: ${{ vars.CI_LINUX_RUNNER }}
+            runner: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
             args: ''
     steps:
       - name: Checkout
@@ -195,7 +205,7 @@ jobs:
         # workflow restores nothing.
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           # Explicitly off: leaving it unset enables the package-manager cache, which is
           # exactly what a publishing workflow must not restore (zizmor: cache-poisoning).
           package-manager-cache: false
@@ -342,7 +352,7 @@ jobs:
     # Same routing label as the rest of the tree. No `environment:` on purpose: NPM_TOKEN and
     # PACKAGES_TOKEN are repository secrets and the `release` environment holds only the signing
     # key this job has no use for.
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -359,7 +369,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           # A publishing job restores no package-manager cache: the registry is written, never read
           # from a store an earlier run could have poisoned (zizmor: cache-poisoning).
           package-manager-cache: false
