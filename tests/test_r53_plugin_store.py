@@ -233,6 +233,60 @@ def test_plugins_view_produces_orphans(tmp_path: Path) -> None:
     assert view["orphans"] == ["gamma"]
 
 
+def test_plugins_view_shows_the_installed_identity_of_a_shadowing_user_plugin(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from core import plugin_manifest, plugin_runtime
+
+    config = tmp_path / "cfg"
+    plugin_dir = config / "plugins" / "documents"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "ephe-plugin.json").write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "name": "documents",
+                "version": "9.9.9",
+                "description": "user description",
+                "permissions": {"tool_families": [], "data_roots": []},
+                "components": {"skills": [], "commands": []},
+            }
+        ),
+        encoding="utf-8",
+    )
+    catalog = tmp_path / "plugin-catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "public": [
+                    {
+                        "name": "documents",
+                        "description": "catalog description",
+                        "version": "1.0.0",
+                        "sha256": "catalog-hash",
+                        "origin": "first-party",
+                    }
+                ],
+                "personal": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(config))
+    plugin_runtime.invalidate_ownership_cache()
+    try:
+        view = plugin_store.plugins_view(catalog_file=catalog)
+    finally:
+        plugin_runtime.invalidate_ownership_cache()
+    row = view["public"][0]
+    assert row["version"] == "9.9.9"
+    assert row["description"] == "user description"
+    assert row["source"] == "user"
+    assert row["origin"] == "user"
+    assert row["sha256"] == plugin_manifest.dir_sha256(plugin_dir)
+    assert row["shadowed_builtin"] is True
+
+
 def test_plugins_view_orphans_empty_when_registry_silent(tmp_path: Path) -> None:
     """No registry => no orphans, but the field is set (UI path)."""
     catalog = tmp_path / "catalog.json"

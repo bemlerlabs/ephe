@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: Nimm die Demo-Clips auf
+1. Input: Record the demo clips
 2. ToolCall: {"name": "create_video", "arguments": {}}
 3. Observation: ok
-4. Final: ok (belegt durch Tool-Output).
+4. Final: ok (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: Nimm die Demo-Clips auf (Quelle/Pfad nicht gefunden)
+## Trace 2 (Edge case: error path)
+1. Input: Record the demo clips (source/path not found)
 2. ToolCall: {"name": "create_video", "arguments": {}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: ok.
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: ok.

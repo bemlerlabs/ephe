@@ -12,9 +12,12 @@ and switchable.
   opt in (`plugin_autorun`).
 - **Signed.** ES256 signatures over the canonical content hash. A signature-verified plugin that
   changes on disk cannot be re-enabled: the drift gate answers 409 and writes an audit line.
-- **14 first-party bundles ship in-repo** (`plugins/`): browser-use, code-shell, documents, guide,
-  image-studio, mcp-connector, memory, plugin-creator, presentations, skill-creator, spreadsheets,
-  vision, voice, web-research.
+- **16 first-party bundles ship in-repo** (`plugins/`): nine plugins and seven presets.
+  Plugins: browser-use, code-shell, documents, local-document-factory, memory, presentations,
+  private-research-notebook, spreadsheets, web-research.
+  Presets: guide, image-studio, mcp-connector, plugin-creator, skill-creator, vision, voice.
+  The catalogue also offers five first-party skill packs and one bundled third-party pack
+  (Superpowers, MIT); the 51 built-in skills are separate ([`SKILLS.md`](SKILLS.md)).
 - **CLI:** `ephe plugin list | enable | disable | install`.
 - **Switching in:** `ephe import <dir>` imports persona, skills, tool servers, and settings from an
   existing local agent setup. It plans first, writes additively, and leaves everything disabled until

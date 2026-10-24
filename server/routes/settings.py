@@ -196,14 +196,11 @@ async def update_settings(req: SettingsRequest) -> dict:
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+        key = ""
         if provider_type == "openai_compatible" and req.provider.api_key:
             key = req.provider.api_key.strip()
             if key:
                 os.environ["EPHE_OPENAI_COMPAT_API_KEY"] = key
-                # The variable answers this process only and never reaches an
-                # icon-launched app, so the keychain persists the copy the next
-                # start reads back (a 0600 file when no keyring backend exists).
-                store_engine_api_key(key)
 
         try:
             set_active_provider(
@@ -213,6 +210,21 @@ async def update_settings(req: SettingsRequest) -> dict:
             )
         except ProviderSetupError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        if key:
+            # The env copy answers this process only; the stored copy is what the
+            # next start reads, so it is bound to the engine that just validated.
+            from core.engine_config import EngineChoice
+
+            active = get_active_provider()
+            store_engine_api_key(
+                key,
+                engine=EngineChoice(
+                    provider=active.provider,
+                    model=active.model,
+                    api_url=active.base_url,
+                ),
+            )
 
     if req.memory_enabled is not None:
         os.environ["EPHE_MEMORY_ENABLED"] = "1" if req.memory_enabled else "0"

@@ -10,7 +10,11 @@ that did not finish.
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import threading
+import time
+from pathlib import Path
 import uuid
 from dataclasses import dataclass
 from typing import Callable
@@ -28,12 +32,56 @@ class CallGuard:
     loop: asyncio.AbstractEventLoop | None
     run_id: str = ""
     cancelled: bool = False
+    from_other_process: bool = False
 
 
 _LOCK = threading.Lock()
 _CALLS: dict[str, dict[str, CallGuard]] = {}
 _DISPOSERS: dict[str, list[Callable[[], None]]] = {}
 _TEARDOWN_LOCKS: dict[str, threading.Lock] = {}
+#: A cancel that arrives in another Ephe process cannot reach this process's
+#: asyncio tasks, so it is written down and read by the next call that starts.
+_CANCEL_TTL_SECONDS = 120.0
+#: Stamps this process wrote itself; its own guards are cancelled through their
+#: tasks, and treating its own marker as foreign would refuse unrelated calls.
+_LOCAL_CANCELS: dict[str, float] = {}
+
+
+def _marker_path() -> Path:
+    base = os.environ.get("EPHE_CONFIG_DIR")
+    return (Path(base) if base else Path.home() / ".ephe") / "plugin-cancel.json"
+
+
+def _record_cancel(plugin: str) -> None:
+    path = _marker_path()
+    now = time.time()
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        rows = {str(k): float(v) for k, v in raw.items()} if isinstance(raw, dict) else {}
+    except (OSError, ValueError):
+        rows = {}
+    rows = {name: stamp for name, stamp in rows.items() if now - stamp <= _CANCEL_TTL_SECONDS}
+    rows[plugin] = now
+    _LOCAL_CANCELS[plugin] = now
+    tmp = path.with_suffix(".tmp")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(json.dumps(rows), encoding="utf-8")
+        tmp.chmod(0o600)
+        tmp.replace(path)
+    except OSError:
+        pass
+
+
+def _cancel_pending(plugin: str) -> bool:
+    try:
+        raw = json.loads(_marker_path().read_text(encoding="utf-8"))
+        stamp = float(raw.get(plugin, 0)) if isinstance(raw, dict) else 0.0
+    except (OSError, ValueError, TypeError):
+        return False
+    if _LOCAL_CANCELS.get(plugin) == stamp:
+        return False
+    return bool(stamp) and time.time() - stamp <= _CANCEL_TTL_SECONDS
 
 
 def _current_run() -> str:
@@ -65,6 +113,9 @@ def begin_call(plugin: str) -> CallGuard | None:
         loop=loop,
         run_id=_current_run(),
     )
+    if _cancel_pending(plugin):
+        guard.cancelled = True
+        guard.from_other_process = True
     with _LOCK:
         _CALLS.setdefault(plugin, {})[guard.id] = guard
     return guard
@@ -94,6 +145,7 @@ def cancel_calls(plugin: str) -> int:
                 guard.loop.call_soon_threadsafe(guard.task.cancel)
             except RuntimeError:
                 pass
+    _record_cancel(plugin)
     for run_id in run_ids:
         try:
             from core import cancel_scope

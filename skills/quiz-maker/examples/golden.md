@@ -1,10 +1,10 @@
 # Golden Example
 
-## Trace 1 (Standard, kein Tool — Text-Skill)
-1. Input: /quiz zum Wasserzyklus
-2. Final: 1. (direkt, ohne Tool-Call).
+## Trace 1 (Standard, text skill - no tool)
+1. Input: /quiz on the water cycle
+2. Final: difficulty (direct, without a tool call).
 
-Qualitaets-Checkliste (deckt die Rubric-Felder ab):
-1. Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
-2. Do not simulate: beanspruche niemals ein Ergebnis/eine Datei, das/die das Tool nicht real zurückgegeben hat. Ground every claim in real tool output.
+Quality checklist (covers the rubric fields):
+1. Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
+2. Do not simulate: never claim a result or a file the tool did not actually return. Ground every claim in real tool output.
 3. Ground every number/path on real tool output; no simulated output without a returned path.

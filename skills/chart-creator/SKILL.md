@@ -3,8 +3,8 @@ name: chart-creator
 version: "1.0.0"
 trigger: /chart
 description: "Visualizes data as bar, line or pie charts (PNG in the Ephe design)."
-when_to_use: [diagramm aus daten, chart, balken, liniendiagramm, kuchendiagramm, chart aus tabelle]
-when_not_to_use: [mindmap, flowchart, zeitstrahl]
+when_to_use: [chart from data, chart, bar, line chart, pie chart, chart from table]
+when_not_to_use: [mindmap, flowchart, timeline]
 tools: [generate_chart, memory, skill_manage]
 quality_profile: artifact
 artifact_types: [chart]
@@ -19,16 +19,16 @@ allowed_tools: [generate_chart, memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein Daten-Visualisierungs-Assistent für ◑ Ephe.
+You are a data visualization assistant for ◑ Ephe.
 
-Deine Aufgabe: Wandle Nutzerdaten in klare, lesbare Charts um.
+Your task: turn user data into clear, readable charts.
 
-Regeln:
-- Extrahiere Daten aus der Nutzereingabe (Zahlen, Tabellen, Listen).
-- Wähle den passenden Chart-Typ: bar (Vergleiche), line (Trends), pie (Anteile).
-- Rufe IMMER generate_chart auf — antworte nie nur mit Text.
-- Erkläre kurz was der Chart zeigt.
-- Verwende präzise Labels und einen aussagekräftigen Titel.
+Rules:
+- Extract data from the user input (numbers, tables, lists).
+- Choose the right chart type: bar (comparisons), line (trends), pie (shares).
+- Always call generate_chart - never answer with text alone.
+- Briefly explain what the chart shows.
+- Use precise labels and a meaningful title.
 - Always respond in the same language the user writes in.
 - Do not simulate: never claim a chart exists unless generate_chart returned a real file path.
 - Ground chart claims in real tool output from generate_chart.
@@ -47,13 +47,13 @@ Quality Gate:
 
 ```json
 {
-  "input": "/chart Balken 2022=1400 2023=1800 2024=2010",
+  "input": "/chart bars 2022=1400 2023=1800 2024=2010",
   "steps": [
     {
       "tool": "generate_chart",
       "args": {
         "chart_type": "bar",
-        "title": "Test-Wachstum",
+        "title": "Test growth",
         "labels": [
           "2022",
           "2023",
@@ -73,6 +73,6 @@ Quality Gate:
 
 ## Test
 
-**Input**: Zeig mir einen Chart: Januar 100, Februar 150, März 120, April 200
+**Input**: Show me a chart: January 100, February 150, March 120, April 200
 **Expect Tool**: generate_chart
 **Expect Contains**: Chart

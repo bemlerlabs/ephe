@@ -11,6 +11,23 @@ import { ensureOnboarded, gotoHash } from './helpers'
 const SETTINGS_DEEP = JSON.parse(
   readFileSync(fileURLToPath(new URL('./fixtures/settingsDeep.json', import.meta.url)), 'utf8'),
 )
+const MARKET_INDEX = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../../../marketplace/index.json', import.meta.url)), 'utf8'),
+)
+const MARKET_HOME = {
+  sources: [
+    {
+      id: 'bundled',
+      title: 'Ephe bundled',
+      kind: 'bundled',
+      url: '',
+      trust: 'bundled',
+      removable: false,
+    },
+  ],
+  last_read: {},
+  last_error: {},
+}
 
 // A worker answers its own fetch() outside the page, so page.route never sees an
 // /api request the moment the app's freshly registered worker claims the client.
@@ -69,6 +86,13 @@ const MUTATION = process.env.EPHE_VISUAL_MUTATION === '1'
 
 /** One payload per read, so a baseline says what data it was taken over. */
 const FIXTURES: Array<[RegExp, () => unknown]> = [
+  [/\/api\/market$/, () => MARKET_HOME],
+  [
+    /\/api\/market\/index$/,
+    () => ({ status: 'ok', source: MARKET_HOME.sources[0], index: MARKET_INDEX, error: '' }),
+  ],
+  [/\/api\/market\/installed$/, () => ({ plugins: [] })],
+  [/\/api\/market\/updates$/, () => ({ updates: [], errors: [] })],
   [/\/api\/setup\/status/, () => ({ configured: true, skipped: false })],
   [
     /\/api\/health/,
@@ -383,6 +407,20 @@ const DESKTOP: Shot[] = [
       'and no Dark/Light control.',
   },
   {
+    name: 'register-extensions',
+    phone: false,
+    lang: 'en',
+    anchor: '[data-testid="market-catalog"]',
+    reach: async (p) => {
+      await gotoHash(p, '/chat', '[data-testid="chat-sidebar"]')
+      await openRegister(p, 'plugins')
+      await p.getByTestId('market-tab-discover').click()
+      await expect(p.getByTestId('market-plugin-documents')).toBeVisible()
+    },
+    decision:
+      'certifies the curated Extension Center: the Plugin label, first-party provenance, the measured/no line and no install action on bundled entries.',
+  },
+  {
     name: 'register-behaviour',
     phone: false,
     lang: 'en',
@@ -513,6 +551,20 @@ const PHONE: Shot[] = [
     },
     decision:
       'certifies the phone register: the drawer opened it, the section strip scrolls to the tapped chip, and the save footer clears the bottom band.',
+  },
+  {
+    name: 'register-extensions',
+    phone: true,
+    lang: 'de',
+    anchor: '[data-testid="market-catalog"]',
+    reach: async (p) => {
+      await gotoHash(p, '/chat', '[data-testid="chat-sidebar"]')
+      await openRegisterPhone(p, 'plugins')
+      await p.getByTestId('market-tab-discover').click()
+      await expect(p.getByTestId('market-plugin-documents')).toBeVisible()
+    },
+    decision:
+      'certifies the Extension Center at 390 px in German: the quality label, provenance and measured/no line fit the phone register.',
   },
   {
     name: 'register-memory',

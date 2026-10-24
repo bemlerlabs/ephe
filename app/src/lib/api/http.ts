@@ -97,11 +97,14 @@ export class ApiError extends Error {
   /** The refusal's own name, when the server sent one: stable across languages, so a
    * surface can branch on it instead of matching the text it shows. */
   readonly reasonCode: string
-  constructor(message: string, status: number, reasonCode = '') {
+  /** The full `error.detail` body, when the server sent one (a 428 delta, a refusal). */
+  readonly payload: unknown
+  constructor(message: string, status: number, reasonCode = '', payload: unknown = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.reasonCode = reasonCode
+    this.payload = payload
   }
 }
 
@@ -185,6 +188,7 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
       // sentence in the language they set; the server's own text stays the fallback.
       let detail = `API ${res.status}: ${res.statusText}`
       let reasonCode = ''
+      let payload: unknown = null
       try {
         const body = (await res.json()) as {
           error?: {
@@ -197,6 +201,7 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
         }
         const code = body.error?.reason_code ?? body.error?.detail?.code ?? ''
         reasonCode = code
+        payload = body.error?.detail ?? body.detail ?? null
         // Loaded here rather than at the top: the i18n instance initialises react-i18next, and
         // a module-level import would pull that into every file that mocks it.
         const { serverErrorText } = await import('../serverError')
@@ -208,7 +213,7 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
       } catch {
         /* Body is not JSON → generic message */
       }
-      throw new ApiError(detail, res.status, reasonCode)
+      throw new ApiError(detail, res.status, reasonCode, payload)
     }
     return res.json() as Promise<T>
   } catch (err) {

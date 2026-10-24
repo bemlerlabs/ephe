@@ -48,6 +48,42 @@ def _source(plugin_dir: Path) -> str:
         return "user"
 
 
+def trust_class_for(
+    name: str, plugin_dir: Path, listing: dict[str, Any] | None = None
+) -> str:
+    """The key class an installed artifact was verified under.
+
+    A pin written since TS-09 carries the class. Entries from before that are
+    migrated from their source: a bundled plugin only ships against the
+    repository key, an installed one takes the class its listing entry declares,
+    and an entry nobody can vouch for is a user artifact. The result is never
+    empty — an unknown class would mean "try every key", which is what TS-09
+    removed.
+    """
+    from core import plugin_signing
+
+    pin = plugin_signing.load_pin(name) or {}
+    known = str(pin.get("trust_class") or "")
+    if known in (plugin_signing.FIRST_PARTY, plugin_signing.USER):
+        return known
+    if _source(Path(plugin_dir)) == "builtin":
+        return plugin_signing.FIRST_PARTY
+    try:
+        if listing is None:
+            from core.plugin_listing import load_marketplace
+
+            listing = load_marketplace()
+        for entry in (listing or {}).get("plugins", []):
+            if str(entry.get("name")) != name:
+                continue
+            if str(entry.get("trust") or "").strip().lower() in {"official", "verified"}:
+                return plugin_signing.FIRST_PARTY
+            break
+    except Exception:  # noqa: BLE001 — a listing outage must not invent a class
+        pass
+    return plugin_signing.USER
+
+
 def build_lockfile(
     plugins_root: Path | None = None,
     *,
@@ -56,6 +92,13 @@ def build_lockfile(
     scopes = dict(scopes or {})
     entries: list[dict[str, Any]] = []
     quarantined: list[dict[str, str]] = []
+    # One listing read for the whole lock, not one per plugin.
+    try:
+        from core.plugin_listing import load_marketplace
+
+        listing: dict[str, Any] = load_marketplace()
+    except Exception:  # noqa: BLE001 — the migration default does not need it
+        listing = {}
     for entry in plugin_manifest.scan_plugins(
         None if plugins_root is None else Path(plugins_root)
     ):
@@ -87,6 +130,7 @@ def build_lockfile(
                 else "",
                 "dependencies": [str(dep) for dep in dependencies],
                 "scope": scope,
+                "trust_class": trust_class_for(name, directory, listing=listing),
             }
         )
     entries.sort(key=lambda item: item["name"])

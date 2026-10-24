@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /cv optimiere meinen Lebenslauf
-2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Beispiel", "content": "# Beispiel\nx = 1", "filename": "out"}}
-3. Observation: Erfahrung
-4. Final: Erfahrung (belegt durch Tool-Output).
+1. Input: /cv optimize my resume
+2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Example", "content": "# Example\nx = 1", "filename": "out"}}
+3. Observation: experience
+4. Final: experience (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /cv optimiere meinen Lebenslauf (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Beispiel", "content": "# Beispiel\nx = 1", "filename": "out"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: Erfahrung.
+## Trace 2 (Edge case: error path)
+1. Input: /cv optimize my resume (source/path not found)
+2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Example", "content": "# Example\nx = 1", "filename": "out"}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: experience.

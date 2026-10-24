@@ -1,7 +1,7 @@
-{"id": "mcp-connector-1", "command": null, "input": "Welche MCP-Server sind konfiguriert und wie viele Tools lief jeder?", "expect": {"kind": "tool_use", "any": ["tool_describe", "tool_search"]}}
-{"id": "mcp-connector-2", "command": null, "input": "Rufe über MCP das Tool 'get_current_time' des time-Servers auf.", "expect": {"kind": "tool_use", "any": ["tool_call"]}}
-{"id": "mcp-connector-3", "command": null, "input": "Suche in den konfigurierten MCP-Servern ein Tool, das Dateien lesen kann.", "expect": {"kind": "tool_use", "any": ["tool_search"]}}
-{"id": "mcp-connector-4", "command": null, "input": "Der Server unter http://127.0.0.1:9/mcp antwortet nicht — diagnose, was los ist.", "expect": {"kind": "contains", "any": ["erreicht", "Status", "Health"]}}
-{"id": "mcp-connector-5", "command": null, "input": "Beschreibe das Tool-Set des filesystem-Servers, ohne es auszuführen.", "expect": {"kind": "tool_use", "any": ["tool_describe"]}}
-{"id": "mcp-connector-6", "command": null, "input": "Wie füge ich einen neuen MCP-Server in Ephe hinzu? Nenne die Datei.", "expect": {"kind": "contains", "any": ["mcp.json"]}}
-{"id": "mcp-connector-7", "command": null, "input": "Fasse den Status aller konfigurierten Server in einem Satz zusammen.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}
+{"id": "mcp-connector-1", "command": null, "input": "Which MCP servers are configured and how many tools did each expose?", "expect": {"kind": "tool_use", "any": ["tool_describe", "tool_search"]}}
+{"id": "mcp-connector-2", "command": null, "input": "Call the 'get_current_time' tool of the time server via MCP.", "expect": {"kind": "tool_use", "any": ["tool_call"]}}
+{"id": "mcp-connector-3", "command": null, "input": "Search the configured MCP servers for a tool that can read files.", "expect": {"kind": "tool_use", "any": ["tool_search"]}}
+{"id": "mcp-connector-4", "command": null, "input": "The server at http://127.0.0.1:9/mcp does not answer - diagnose what is wrong.", "expect": {"kind": "contains", "any": ["reachable", "status", "health"]}}
+{"id": "mcp-connector-5", "command": null, "input": "Describe the tool set of the filesystem server without executing it.", "expect": {"kind": "tool_use", "any": ["tool_describe"]}}
+{"id": "mcp-connector-6", "command": null, "input": "How do I add a new MCP server in Ephe? Name the file.", "expect": {"kind": "contains", "any": ["mcp.json"]}}
+{"id": "mcp-connector-7", "command": null, "input": "Summarize the status of all configured servers in one sentence.", "expect": {"kind": "not_contains", "any": ["placeholder", "TODO", "Lorem ipsum", "[...]"]}}

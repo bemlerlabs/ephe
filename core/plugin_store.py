@@ -418,6 +418,17 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
                 if not found:
                     continue
                 entry["source"] = "builtin" if found["dir"].parent == plugin_manifest.BUILTIN_PLUGINS_ROOT else "user"
+                if entry["source"] == "user":
+                    # A user install that shadows a catalog identity must show
+                    # its own version, description and content hash.
+                    catalog_origin = entry.get("origin")
+                    manifest = found["manifest"]
+                    entry["version"] = str(manifest.get("version") or "")
+                    entry["description"] = str(manifest.get("description") or "")
+                    entry["sha256"] = plugin_manifest.dir_sha256(found["dir"])
+                    entry["origin"] = str(manifest.get("origin") or "user")
+                    if catalog_origin == "first-party":
+                        entry["shadowed_builtin"] = True
                 families = found["manifest"].get("permissions", {}).get("tool_families", [])
                 entry["permissions"] = [str(f) for f in families] if isinstance(families, list) else []
     except Exception:

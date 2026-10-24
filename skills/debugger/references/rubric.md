@@ -1,7 +1,7 @@
 # Quality Rubric
 
-1. Berichte ehrlich, wenn eine Hypothese widerlegt wurde — das ist Fortschritt.
-2. Mehrere Ursachen möglich? Erst die wahrscheinlichste beweisen, dann weiter.
-3. Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
-4. Do not simulate: beanspruche niemals ein Ergebnis/eine Datei, das/die das Tool nicht real zurückgegeben hat. Ground every claim in real tool output.
+1. Report honestly when a hypothesis is disproven - that is progress.
+2. Multiple causes possible? Prove the most likely one first, then continue.
+3. Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
+4. Do not simulate: never claim a result or a file the tool did not actually return. Ground every claim in real tool output.
 5. Ground every number/path on real tool output; no simulated output without a returned path.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ephe"
-version = "0.1.1"
+version = "0.1.3"
 description = "◑ Ephe – Offline-first local SI agent, ephemeral by design. Private. Local. Yours."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -130,16 +130,17 @@ Issues     = "https://github.com/bemlerlabs/ephe/issues"
 constraint-dependencies = [
     "multidict>=6.9.1",
     "aiohttp>=3.14.5",
+    "certifi>=2026.10.19",
 ]
 # ephemora-cell 1.1.0 declares wasmtime<48, a bound older than the engine the
 # advisories were patched in. An override replaces that requirement outright; a
-# constraint cannot, because the two ranges do not intersect. The floor is the pip
-# release, not the crate release: PyPI ships 47.0.1, 48.0.0 and 49.0.0, and OSV on
-# 2026-10-21 lists 23 open advisories for 47.0.1, 18 for 48.0.0 and 19 for 49.0.0,
-# so 48.0.0 leaves the fewest. A pip resolver still reads ephemora-cell's own
-# bound until upstream widens it; this override covers installs from this lock.
+# constraint cannot, because the two ranges do not intersect. Owner decision D29
+# (2026-10-23): 50.0.1 is the first published pip release outside every affected
+# range — PyPI has no fixed 48.x (48.0.6) and no fixed 49.0.3 — and RUSTSEC-2026-0352
+# is a filesystem sandbox escape. A pip resolver still reads ephemora-cell's own bound
+# until upstream widens it; this override covers installs from this lock.
 override-dependencies = [
-    "wasmtime>=48.0.0,<49",
+    "wasmtime>=50.0.1,<51",
 ]
 
 [tool.hatch.build.targets.wheel]

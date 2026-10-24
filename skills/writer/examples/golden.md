@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: Schreibe eine kurze professionelle E-Mail um ein Meeting vorzuschlagen.
-2. ToolCall: {"name": "web_search", "arguments": {"query": "Schreibe eine kurze professionelle E-Mail um ein Meeting vor", "max_results": 5}}
-3. Observation: Betreff
-4. Final: Betreff (belegt durch Tool-Output).
+1. Input: Write a short professional email to propose a meeting.
+2. ToolCall: {"name": "web_search", "arguments": {"query": "Write a short professional email to propose a meeting", "max_results": 5}}
+3. Observation: subject
+4. Final: subject (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: Schreibe eine kurze professionelle E-Mail um ein Meeting vorzuschlagen. (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "web_search", "arguments": {"query": "Schreibe eine kurze professionelle E-Mail um ein Meeting vor", "max_results": 5}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: Betreff.
+## Trace 2 (Edge case: error path)
+1. Input: Write a short professional email to propose a meeting. (source/path not found)
+2. ToolCall: {"name": "web_search", "arguments": {"query": "Write a short professional email to propose a meeting", "max_results": 5}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: subject.

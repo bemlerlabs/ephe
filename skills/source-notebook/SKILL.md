@@ -3,7 +3,7 @@ name: source-notebook
 trigger: /notebook
 description: "Creates and queries local NotebookLM-style source notebooks with citations, source manifests, evidence registers and briefing exports."
 tools: [create_source_notebook, query_source_notebook, export_source_brief, create_pptx_deck, create_pitch_deck, read_file, file_search, list_directory, memory, skill_manage]
-when_to_use: [NotebookLM, NotebookLM slide deck, NotebookLM slides, source notebook, Quellen-Notebook, Quellen, cited answer, source-grounded, chat with documents, study guide, evidence brief, source manifest]
+when_to_use: [NotebookLM, NotebookLM slide deck, NotebookLM slides, source notebook, sources, cited answer, source-grounded, chat with documents, study guide, evidence brief, source manifest, Quellen-Notebook, Quellen]
 when_not_to_use: [online research only, plain PDF creation, simple single file read, image scan only, web research, fetch URLs, compare pros and cons, compare options, general chat with web search]
 quality_profile: source_grounded
 allowed_tools: [create_source_notebook, query_source_notebook, export_source_brief, create_pptx_deck, create_pitch_deck, read_file, file_search, list_directory, memory, skill_manage]
@@ -65,18 +65,18 @@ Evidence rule: all final file, citation, source, and artifact claims must be gro
 
 ```json
 {
-  "input": "/notebook aus papier.pdf",
+  "input": "/notebook from paper.pdf",
   "steps": [
     {
       "tool": "create_source_notebook",
       "args": {
-        "path": "papier.pdf"
+        "path": "paper.pdf"
       }
     },
     {
       "tool": "query_source_notebook",
       "args": {
-        "question": "Kapitel 3 Kernaussage"
+        "question": "chapter 3 key message"
       }
     },
     {
@@ -92,6 +92,6 @@ Evidence rule: all final file, citation, source, and artifact claims must be gro
 
 ## Test
 
-**Input**: /notebook Erstelle aus ~/Documents/company/strategy.pdf ein Quellen-Notebook und beantworte die wichtigsten Risiken
+**Input**: /notebook Create a source notebook from ~/Documents/company/strategy.pdf and answer the most important risks
 **Expect Tool**: create_source_notebook
 **Expect Contains**: SOURCE_NOTEBOOK_FILE

@@ -7,9 +7,14 @@ The third security layer, alongside the injection guard (content) and the approv
 ## Activation
 
 ```bash
-pip install 'ephe[sandbox]'                 # pulls ephemora-cell from PyPI (pinned >=1.1.0,<1.2)
+# Do not use pip for the sandbox extra yet: ephemora-cell 1.1.0 declares
+# wasmtime<48, so pip resolves 47.0.1. The uv.lock in this checkout pins 48.0.0.
+uv sync --extra sandbox
 python3 build_cpython_guest.py      # builds the pinned CPython guest into ~/./.ephe/cells
 ```
+
+Ephemora Cell 1.1.1 is the first release expected to widen the wasmtime bound
+to 48; the pip extra returns when that release is published and measured.
 
 Without that install the runtime stays identical: `run_sandboxed_code` answers fail-closed with an
 install hint, and the tool schema never appears at all (lazy import, no hard dependency). `execute_code`
@@ -204,13 +209,13 @@ state that every load is checked against — not an expectation for every rebuil
 rebuilding runs `record`, and `--stage-only` compares built against pinned before anything is installed.
 A bit-for-bit reproducible build would be the next step and is not claimed here.
 
-**Measured caps** (ephemora-cell 1.0.4.3 / wasmtime 47.0.1 / Darwin arm64):
+**Measured caps** (ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64, fuel re-measured 2026-10-23):
 
 | Cap | Value | Evidence |
 |---|---|---|
 | Fuel per run | 20.000.000.000 (`EPHE_CELL_MAX_FUEL`) | `while True` → `FUEL_EXHAUSTED`, `fuel_consumed == fuel_budget`, Ephe survives and the next run proceeds |
-| Boot fixed cost | 1.418.393.708 fuel / 995 ms wall | `print(1+1)` — before any model code |
-| Conversion | ~9,0 G fuel per guest CPU second | a 2,0 s counting loop = 18,04 G fuel → the default cap is ~2,2 s of compute time |
+| Boot fixed cost | ~1.43 G fuel / ~880 ms wall | `print(1+1)` — before any model code |
+| Conversion | ~11.0 G fuel per guest CPU second | a counting loop of 0.4/1.6/3.2 M iterations: guest CPU 0.128/0.515/1.025 s against 3.00/6.97/12.88 G fuel (10.2–11.0 G/s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. The 47.x engine measured 9.0 G on the same loop, so the default cap is now ~1.7 s of compute time |
 | Memory | 256 MB | a 512 MB allocation → `MemoryError` **inside the guest**, no host OOM |
 | Wall timeout | 30 s | Ephemora watchdog, independent of fuel |
 | `/work` per **file** | 32 MiB (`disk_quota_bytes`) | The engine sets RLIMIT_FSIZE in the worker: 64 × 1 MiB in *one* file → `OSError [Errno 22] File too large` at exactly 33.554.432 bytes, the file sits on the cap (measured) |

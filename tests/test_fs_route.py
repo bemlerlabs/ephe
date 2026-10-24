@@ -63,6 +63,19 @@ class TestFsListing:
         assert isinstance(data["entries"], list)
         assert any(e["name"] == "Documents" for e in data["entries"])
 
+    def test_given_a_symlinked_home_when_list_then_home_is_served(self, client, tmp_path, monkeypatch):
+        """G: HOME resolves through a symlink (/tmp -> /private/tmp)
+        W: GET /api/fs without a path
+        T: 200 and the resolved home — the same directory, not a 403."""
+        real = tmp_path / "real-home"
+        (real / "Documents").mkdir(parents=True)
+        link = tmp_path / "home-link"
+        link.symlink_to(real)
+        monkeypatch.setattr(Path, "home", lambda: link)
+        r = client.get("/api/fs")
+        assert r.status_code == 200
+        assert r.json()["path"] == str(real)
+
     def test_given_allowed_root_dir_when_list_then_entries_sorted_dirs_first(self, client, tmp_path):
         """G: directory inside an allowed root W: listing T: dirs first, files with size"""
         root = tmp_path / "roots" / "Documents"
@@ -106,6 +119,15 @@ class TestFsListing:
     def test_given_path_outside_roots_when_list_then_403(self, client):
         """G: path outside every root (e.g. /etc) W: GET T: 403"""
         r = client.get("/api/fs", params={"path": "/etc"})
+        assert r.status_code == 403
+
+    def test_given_a_protected_root_when_list_then_403(self, client, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        (home / ".ssh").mkdir(parents=True)
+        (home / ".ssh" / "id_rsa").write_text("fixture", encoding="utf-8")
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.setattr(Path, "home", lambda: home)
+        r = client.get("/api/fs", params={"path": str(home / ".ssh")})
         assert r.status_code == 403
 
     def test_given_missing_dir_when_list_then_404(self, client, tmp_path):

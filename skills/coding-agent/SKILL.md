@@ -4,8 +4,8 @@ version: "1.0.0"
 trigger: /code
 description: "Agent loop for coding tasks: read, edit, run tests - every mutating step behind an approval gate."
 tools: [read_file, list_directory, edit_file, write_file, run_tests, file_search, run_shell, verify_artifact, execute_code, todo_list, memory, skill_manage]
-when_to_use: [code, fix, implement, refactor, test failt, failing test, implementiere, programmier, bug fixen]
-when_not_to_use: [nur erklaeren, ohne dateiaenderung, code review, rede]
+when_to_use: [code, fix, implement, refactor, failing test, program, fix bug]
+when_not_to_use: [explain only, no file change, code review, talk]
 quality_profile: standard
 allowed_tools: [read_file, list_directory, edit_file, write_file, run_tests, file_search, run_shell, verify_artifact, execute_code, todo_list, memory, skill_manage]
 artifact_types: []
@@ -48,7 +48,7 @@ Quality Gate:
 
 ```json
 {
-  "input": "/code Implementiere get_assertions()",
+  "input": "/code Implement get_assertions()",
   "steps": [
     {
       "tool": "read_file",
@@ -69,7 +69,7 @@ Quality Gate:
       }
     }
   ],
-  "output": "OK: Alle Tests bestehen"
+  "output": "OK: all tests pass"
 }
 ```
 

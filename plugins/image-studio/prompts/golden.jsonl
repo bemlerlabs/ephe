@@ -1,7 +1,7 @@
-{"id": "image-studio-1", "command": null, "input": "Erzeuge ein SVG-Logo: Kreis mit aufgehendem Pfeil, flat, 512x512.", "expect": {"kind": "artifact", "suffix": ".svg"}}
-{"id": "image-studio-2", "command": null, "input": "Baue ein isometrisches Icon einer Werkstatt als SVG.", "expect": {"kind": "tool_use", "any": ["create_svg"]}}
-{"id": "image-studio-3", "command": null, "input": "Erstelle einen 5-Sekunden-Loop: Tautropfen fällt in einen See, als MP4.", "expect": {"kind": "artifact", "suffix": ".mp4"}}
-{"id": "image-studio-4", "command": null, "input": "Zeichne ein Diagramm-Thumbnail (Balken, 3 Balken, blau) als SVG.", "expect": {"kind": "tool_use", "any": ["create_svg", "create_diagram"]}}
-{"id": "image-studio-5", "command": null, "input": "Erzeuge ein 1024x1024 Rasterbild eines Orbs — sag ehrlich, ob die lokale Bild-Engine das kann.", "expect": {"kind": "contains", "any": ["Engine", "Vektor", "SVG"]}}
-{"id": "image-studio-6", "command": null, "input": "Erkläre den Unterschied zwischen SVG- und PNG-Ausgabe in deinem Werkzeugkasten.", "expect": {"kind": "contains", "any": ["Vektor", "Raster"]}}
-{"id": "image-studio-7", "command": null, "input": "Beschreibe das fertige Logo-Design in 3 Sätzen — das konkrete Ergebnis.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}
+{"id": "image-studio-1", "command": null, "input": "Create an SVG logo: circle with an upward arrow, flat, 512x512.", "expect": {"kind": "artifact", "suffix": ".svg"}}
+{"id": "image-studio-2", "command": null, "input": "Build an isometric icon of a workshop as SVG.", "expect": {"kind": "tool_use", "any": ["create_svg"]}}
+{"id": "image-studio-3", "command": null, "input": "Create a 5-second loop: a dewdrop falls into a lake, as MP4.", "expect": {"kind": "artifact", "suffix": ".mp4"}}
+{"id": "image-studio-4", "command": null, "input": "Draw a chart thumbnail (bars, 3 bars, blue) as SVG.", "expect": {"kind": "tool_use", "any": ["create_svg", "create_diagram"]}}
+{"id": "image-studio-5", "command": null, "input": "Create a 1024x1024 raster image of an orb - say honestly whether the local image engine can do that.", "expect": {"kind": "contains", "any": ["engine", "vector", "SVG"]}}
+{"id": "image-studio-6", "command": null, "input": "Explain the difference between SVG and PNG output in your toolbox.", "expect": {"kind": "contains", "any": ["vector", "raster"]}}
+{"id": "image-studio-7", "command": null, "input": "Describe the finished logo design in 3 sentences - the concrete result.", "expect": {"kind": "not_contains", "any": ["placeholder", "TODO", "Lorem ipsum", "[...]"]}}

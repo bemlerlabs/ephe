@@ -54,16 +54,24 @@ def _const(source: str, name: str) -> str:
     return match.group(1)
 
 
-def test_spawn_hands_the_one_declared_variable_to_the_backend(backend_source):
-    """The desktop bridge sets the variable the engine already reads, and no other."""
+def test_spawn_hands_the_declared_variables_to_the_backend(backend_source):
+    """The desktop bridge sets the key and its provenance marker, and no raw names.
+
+    The marker says the token came from the stored file rather than an inherited
+    shell export. It carries no credential; the key still travels only through
+    the one declared variable.
+    """
     assert _const(backend_source, "KEY_ENV") == "EPHE_OPENAI_COMPAT_API_KEY"
+    assert _const(backend_source, "KEY_SOURCE_ENV") == "EPHE_ENGINE_KEY_SOURCE"
     literals = [
         name
-        for name in re.findall(r'\.env\(\s*"([^"]+)"', backend_source)
+        for name in re.findall(r'\.envs?\(\s*"([^"]+)"', backend_source)
         if name not in {"EPHE_BACKEND_OWNER", "EPHE_PARENT_PID"}
     ]
-    assert literals == [], f"hardcoded env names beside the declared one: {literals}"
-    assert backend_source.count("cmd.env(") == 1, "a second env injection point appeared"
+    assert literals == [], f"hardcoded env names beside the declared ones: {literals}"
+    assert backend_source.count("cmd.envs(") == 1, "a second env injection point appeared"
+    assert "KEY_ENV, value" in backend_source
+    assert 'KEY_SOURCE_ENV, "file"' in backend_source
 
 
 def test_declared_key_file_is_named_where_the_user_reads_it(backend_source, threat_model):
@@ -114,13 +122,13 @@ def test_the_engine_config_has_no_place_for_a_key(tmp_path):
 
 
 def _resolver_source() -> str:
-    """The three functions the resolver is made of, read out of the module file.
+    """The functions the resolver is made of, read out of the module file.
 
     AST instead of `inspect.getsource`: an autouse fixture makes the key-file path hermetic for
     every test, and `inspect` would then describe the fixture rather than the code under review.
     """
     text = (ROOT / "core" / "engine_config.py").read_text(encoding="utf-8")
-    wanted = {"engine_api_key_for", "_key_file", "key_file_path"}
+    wanted = {"engine_api_key_for", "resolve_engine_api_key", "_key_file", "key_file_path"}
     tree = ast.parse(text)
     bodies = [
         ast.get_source_segment(text, node)

@@ -42,15 +42,16 @@ class LifecycleTransitions:
         key: str,
         request: dict[str, Any],
     ) -> _Staged:
-        entry = self._entry(plugin, scope, create=True)
         previous = (
             "disabled"
             if self._unproven
-            else str(
-                entry.get("committed")
-                or ("enabled" if self._default_on() else "disabled")
+            else (
+                PluginState.ENABLED.value
+                if self.effective(plugin).enabled
+                else PluginState.DISABLED.value
             )
         )
+        entry = self._entry(plugin, scope, create=True)
         pending_state = PluginState.ENABLING if enabled else PluginState.DISABLING
         self._token += 1
         flight = _Pending(
@@ -76,6 +77,7 @@ class LifecycleTransitions:
         except LifecycleError:
             self._pending.pop((plugin, scope), None)
             entry.pop("pending", None)
+            self._drop_entry_if_empty(plugin, scope, entry)
             raise
         self._publish(
             "plugin.pending",
@@ -123,7 +125,8 @@ class LifecycleTransitions:
 
         try:
             if staged.enabled:
-                self._activator(staged.plugin)
+                if not self.pause_all():
+                    self._activator(staged.plugin)
             else:
                 self._deactivator(staged.plugin)
         except Exception as exc:
@@ -148,9 +151,17 @@ class LifecycleTransitions:
                 else PluginState.DISABLED.value
             )
             entry["version"] = self._versions[staged.plugin]
+            if staged.key:
+                self._remember(
+                    staged.key,
+                    staged.request,
+                    self._snapshot_locked(staged.plugin, staged.scope),
+                )
             try:
-                self._persist()
+                self._persist(keep=(staged.plugin, staged.scope))
             except LifecycleError as exc:
+                if staged.key:
+                    self._data["idempotency"].pop(staged.key, None)
                 entry["committed"] = staged.previous
                 if staged.enabled:
                     self._rollback_activation(staged.plugin)
@@ -180,8 +191,6 @@ class LifecycleTransitions:
                 )
                 raise
             snap = self._snapshot_locked(staged.plugin, staged.scope)
-            if staged.key:
-                self._remember(staged.key, staged.request, snap)
             self._audit_entry(
                 action="enable" if staged.enabled else "disable",
                 plugin=staged.plugin,
@@ -226,6 +235,15 @@ class LifecycleTransitions:
                         reason="cancelled activation rolled back",
                         status="committed" if rolled_back else "failed",
                     )
+            elif own:
+                # A failed or cancelled teardown leaves the plugin where it was;
+                # an empty entry must not read as a successful disable.
+                entry["committed"] = (
+                    PluginState.ENABLED.value
+                    if staged.previous == PluginState.ENABLED.value
+                    else PluginState.DISABLED.value
+                )
+                entry["version"] = self._versions[staged.plugin]
             try:
                 if own:
                     self._persist()
@@ -291,6 +309,17 @@ class LifecycleTransitions:
             )
             return snap
 
+    def _drop_entry_if_empty(
+        self, plugin: str, scope: str, entry: dict[str, Any]
+    ) -> None:
+        if entry:
+            return
+        scopes = self._data.get("plugins", {}).get(plugin)
+        if isinstance(scopes, dict) and scopes.get(scope) is entry:
+            scopes.pop(scope, None)
+            if not scopes:
+                self._data["plugins"].pop(plugin, None)
+
     def _flight_lock(self, plugin: str) -> threading.Lock:
         with self._lock:
             lock = self._flight_locks.get(plugin)
@@ -316,27 +345,37 @@ class LifecycleTransitions:
         key: str,
         request: dict[str, Any],
     ) -> PluginSnapshot:
-        entry = self._entry(plugin, scope, create=True)
+        existing = self._entry(plugin, scope)
+        had_committed = isinstance(existing, dict) and "committed" in existing
         previous = (
             "disabled"
             if self._unproven
-            else str(
-                entry.get("committed")
-                or ("enabled" if self._default_on() else "disabled")
+            else (
+                PluginState.ENABLED.value
+                if self.effective(plugin).enabled
+                else PluginState.DISABLED.value
             )
         )
+        entry = self._entry(plugin, scope, create=True)
         entry["committed"] = (
             PluginState.ENABLED.value if enabled else PluginState.DISABLED.value
         )
         entry["version"] = self._versions[plugin]
-        try:
-            self._persist()
-        except LifecycleError:
-            entry["committed"] = previous
-            raise
         snap = self._snapshot_locked(plugin, scope)
         if key:
             self._remember(key, request, snap)
+        try:
+            self._persist(keep=(plugin, scope))
+        except LifecycleError:
+            if key:
+                self._data["idempotency"].pop(key, None)
+            if had_committed:
+                entry["committed"] = previous
+            else:
+                entry.pop("committed", None)
+                entry.pop("version", None)
+                self._drop_entry_if_empty(plugin, scope, entry)
+            raise
         self._audit_entry(
             action="enable" if enabled else "disable",
             plugin=plugin,

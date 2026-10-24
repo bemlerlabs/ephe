@@ -51,13 +51,21 @@ def test_create_video_registered_in_tool_map_and_schemas():
 
 
 @pytest.mark.asyncio
-async def test_create_video_full_pipeline(monkeypatch):
+async def test_create_video_full_pipeline(monkeypatch, tmp_path):
     """GIVEN the v4 demo pipeline (no case)
     WHEN create_video(None) runs against a fake subprocess.run
     THEN scripts/create_demo_media.py is invoked and the
-    stdout summary plus the PNG_FILE marker land in the result."""
+    stdout summary plus the PNG_FILE marker land in the result.
+
+    The hero is planted: the publication withholds the shipped banner by policy, and a
+    test that reads it would pass only in the workshop."""
     from core.tools.video_tools import create_video as _cv
     from core.tools import video_tools
+
+    hero = tmp_path / "docs" / "screenshots" / "hero-banner.png"
+    hero.parent.mkdir(parents=True)
+    hero.write_bytes(b"\x89PNG\r\n")
+    monkeypatch.setattr(video_tools, "_ROOT", str(tmp_path))
 
     calls = []
 
@@ -66,7 +74,7 @@ async def test_create_video_full_pipeline(monkeypatch):
         return SimpleNamespace(
             returncode=0,
             stdout="chat.webp\n  ephe-demo-chat.webp: 2.10 MB (1280px @30fps)\n"
-            "Done. README assets refreshed in docs/media/ + docs/screenshots/hero-banner.png",
+            "Done. README assets refreshed.",
             stderr="",
         )
 

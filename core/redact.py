@@ -58,7 +58,12 @@ def _mask_env_assignment(match: "re.Match[str]") -> str:
 
 
 def _mask_pem(text: str) -> str:
-    """Masks each complete BEGIN/END private-key block, unmatched headers untouched."""
+    """Masks each BEGIN/END private-key block; an unclosed header masks the rest.
+
+    A log line and an error message are both truncated, so the header without a
+    footer is exactly how a key reaches a sink: the body after it is key material
+    whether or not the END line survived the cut.
+    """
     out: list[str] = []
     pos = 0
     footers = list(_PEM_FOOTER.finditer(text))
@@ -69,7 +74,9 @@ def _mask_pem(text: str) -> str:
         while footer_at < len(footers) and footers[footer_at].start() < header.end():
             footer_at += 1
         if footer_at >= len(footers):
-            break
+            out.append(text[pos:header.start()])
+            out.append(_MASK)
+            return "".join(out)
         out.append(text[pos:header.start()])
         out.append(_MASK)
         pos = footers[footer_at].end()

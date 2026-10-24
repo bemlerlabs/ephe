@@ -29,6 +29,8 @@ from core.observability import (
 )
 
 from server.routes import (
+    agents,
+    agent_teams,
     artifacts,
     audit,
     cell,
@@ -52,6 +54,7 @@ from server.routes import (
     mobile,
     network,
     model_provider,
+    marketplace,
     mcp,
     plugins,
     profile,
@@ -193,6 +196,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         SecurityHeadersMiddleware,
         RateLimitMiddleware,
         AuthMiddleware,
+        LocalRequestGuardMiddleware,
     )
 
     init_auth(lan_mode=lan_mode)
@@ -208,6 +212,10 @@ def create_app(lan_mode: bool = False) -> FastAPI:
 
     # Security Middleware
     app.add_middleware(SecurityHeadersMiddleware)
+    # A loopback TCP peer is not an identity: DNS rebinding reaches the port
+    # under the attacker's Host. This guard runs for desktop and loopback LAN
+    # clients; a non-loopback LAN client stays behind AuthMiddleware.
+    app.add_middleware(LocalRequestGuardMiddleware)
     if lan_mode:
         app.add_middleware(AuthMiddleware)
         app.add_middleware(RateLimitMiddleware, max_requests=400, window=60)
@@ -259,7 +267,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     # (real Starlette HTTPException) are caught by it as well.
     def _transport_code(status_code: int) -> ErrorCode:
         """The envelope's own code for a status, so both refusal handlers answer it alike."""
-        if status_code == 401:
+        if status_code in (401, 403):
             return ErrorCode.AUTH
         if status_code == 409:
             return ErrorCode.SETUP_REQUIRED  # W19: chat without an engine in setup mode
@@ -384,9 +392,12 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(vision.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
     app.include_router(subagents.router, prefix="/api")
+    app.include_router(agents.router, prefix="/api")
+    app.include_router(agent_teams.router, prefix="/api")
     app.include_router(trajectory.router, prefix="/api")
     app.include_router(export.router, prefix="/api")
     app.include_router(model_provider.router, prefix="/api")
+    app.include_router(marketplace.router, prefix="/api")
     app.include_router(fs.router, prefix="/api")
     app.include_router(git_info.router, prefix="/api")
     app.include_router(proxy.router, prefix="/api")

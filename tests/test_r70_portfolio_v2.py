@@ -33,6 +33,7 @@ EXPECTED_V2 = {
     "documents", "spreadsheets", "presentations", "web-research", "memory",
     "browser-use", "vision", "image-studio", "voice", "code-shell",
     "mcp-connector", "plugin-creator", "skill-creator", "guide",
+    "local-document-factory", "private-research-notebook",
 }
 
 

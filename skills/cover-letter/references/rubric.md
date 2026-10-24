@@ -1,8 +1,8 @@
 # Quality Rubric
 
-1. Bei Firmenname: web_search für aktuelle Fakten über das Unternehmen (Produkt, Kultur, News) — der Einstieg MUSS konkret sein.
-2. Keine Wiederholung des Lebenslaufs, keine Floskeln ("teamfähig, motiviert").
-3. Ton der Branche folgen (Konzern formell, Startup frischer).
-4. Export-Wunsch → create_pdf, einseitig.
-5. Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
+1. For a company name: web_search for current facts about the company (product, culture, news) - the opening MUST be concrete.
+2. No repetition of the resume, no cliches ("team player, motivated").
+3. Follow the tone of the industry (corporate formal, startup fresher).
+4. Export request -> create_pdf, one page.
+5. Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
 6. Ground every number/path on real tool output; no simulated output without a returned path.

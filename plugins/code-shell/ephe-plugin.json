@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "code-shell",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
   "permissions": {
     "tool_families": [
@@ -12,12 +12,24 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "code-shell"
+    ],
     "commands": [
       {
         "name": "fix",
         "description": "Reproduce and fix a defect in the workspace",
-        "template": "Reproduziere und behebe den folgenden Defekt im Workspace und fuehre die Tests aus: {input}"
+        "template": "Reproduce and fix the following defect in the workspace, then run the tests: {input}"
+      },
+      {
+        "name": "test",
+        "description": "Write or run the failing test first",
+        "template": "Write or run the failing test for: {input}. Show the failing command and output first, then the smallest fix, then the passing run."
+      },
+      {
+        "name": "review",
+        "description": "Review a change for concrete risks",
+        "template": "Review the change described by: {input}. Report correctness, security and regression risks with file:line evidence; no style-only findings."
       }
     ],
     "tools": [
@@ -25,7 +37,6 @@
       "read_file",
       "write_file",
       "edit_file",
-      "delete_file",
       "run_tests",
       "run_linter",
       "format_code",
@@ -37,5 +48,6 @@
     ]
   },
   "origin": "first-party",
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

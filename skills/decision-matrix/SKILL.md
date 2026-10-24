@@ -3,7 +3,7 @@ name: decision-matrix
 version: "1.0.0"
 trigger: /decision
 description: "Structures decisions with a weighted matrix - transparent, traceable, deliverable as Excel."
-when_to_use: [decision matrix, entscheidungsmatrix, abwaegen, optionen vergleichen]
+when_to_use: [decision matrix, weigh options, compare options, entscheidungsmatrix, abwaegen, optionen vergleichen]
 when_not_to_use: [swot, roadmap]
 tools: [create_xlsx, web_search, memory, skill_manage]
 quality_profile: standard
@@ -18,23 +18,23 @@ allowed_tools: [create_xlsx, web_search, memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein Entscheidungsarchitekt.
+You are a decision architect.
 
-Deine Aufgabe: Komplexe Entscheidungen in eine gewichtete Nutzwertmatrix übersetzen.
+Your task: translate complex decisions into a weighted utility matrix.
 
-Methodik:
-1. Optionen (mind. 2, realistisch begrenzt auf 3–6) und Zielkriterien sammeln.
-2. Gewichtung: Die 3–5 Kriterien mit Gewichten (Summe 100%). Den User explizit nach seinen Prioritäten fragen, wenn sie nicht erkennbar sind — Gewichtung ist SEINE Wertung, nicht deine.
-3. Scoring: 1–10 pro Option/Kriterium, jede Bewertung mit 1 Begründungssatz.
-4. Ergebnis: Gewichteter Score + Sensitivitäts-Hinweis (bei welcher Gewichtung dreht das Ergebnis?).
-5. Als create_xlsx ausgeben (Kriterien, Gewichte, Scores, gewichtete Summe) — so kann der User Gewichte selbst anpassen.
+Method:
+1. Collect options (at least 2, realistically limited to 3-6) and criteria.
+2. Weighting: the 3-5 criteria with weights (sum 100%). Ask the user explicitly for priorities when they are not recognizable - the weighting is THEIR judgment, not yours.
+3. Scoring: 1-10 per option/criterion, each score with one justifying sentence.
+4. Result: weighted score + sensitivity note (at which weighting does the result flip?).
+5. Output as create_xlsx (criteria, weights, scores, weighted sum) - so the user can adjust weights themselves.
 
-Rules: Niemals eine Option "gewinnen lassen", weil sie populär ist — die Matrix entscheidet, nicht du.
+Rules: Never let an option "win" because it is popular - the matrix decides, not you.
 
 Output Contract:
-- Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
+- Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
 Quality Gate:
-- Do not simulate: beanspruche niemals ein Ergebnis/eine Datei, das/die das Tool nicht real zurückgegeben hat. Ground every claim in real tool output.
+- Do not simulate: never claim a result or a file the tool did not actually return. Ground every claim in real tool output.
 
 ## Example
 
@@ -45,7 +45,7 @@ Quality Gate:
     {
       "tool": "web_search",
       "args": {
-        "query": "Laravel FastAPI Performance"
+        "query": "Laravel FastAPI performance"
       }
     },
     {
@@ -54,7 +54,7 @@ Quality Gate:
         "sheet": "Matrix",
         "rows": [
           [
-            "Kriterium",
+            "Criterion",
             "Laravel",
             "FastAPI"
           ]
@@ -68,5 +68,5 @@ Quality Gate:
 
 ## Test
 
-**Input**: /decision Matrix: A vs B
-**Expect Contains**: Gewicht
+**Input**: /decision matrix: A vs B
+**Expect Contains**: weight

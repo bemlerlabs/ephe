@@ -237,7 +237,7 @@ class TestChatEndpoint:
         assert response.status_code == 200
         assert "PDF ready" in body
         assert "create_pdf" in captured["allowed_tool_names"]
-        assert "professionelle PDF-Dokumente" in captured["extra_system_prompt"]
+        assert "professional PDF documents" in captured["extra_system_prompt"]
         history = captured["history"]
         assert history[-1]["content"] == "Erstelle ein kurzes Test-PDF"
 
@@ -276,7 +276,7 @@ class TestChatEndpoint:
         assert _atn >= {"create_pitch_deck", "create_pptx_deck",
                        "inspect_pptx_template", "edit_pptx_template",
                        "qa_pptx_deck"}  # P0-1: extras (meta+state) allowed
-        assert "Pitchdeck" in captured["extra_system_prompt"]
+        assert "pitch-deck" in captured["extra_system_prompt"]
 
     def test_given_skill_stream_when_quality_gate_runs_then_quality_events_are_emitted(self, client):
         """
@@ -428,7 +428,7 @@ class TestChatEndpoint:
         assert _atn >= {"discover_projects", "analyze_project",
                        "read_file", "list_directory",
                        "file_search"}  # P0-1: extras allowed
-        assert "lokaler Projekt-Analyst" in captured["extra_system_prompt"]
+        assert "local project analyst" in captured["extra_system_prompt"]
 
 # Streaming Contract (SSE)
 

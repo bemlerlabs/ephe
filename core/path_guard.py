@@ -36,7 +36,10 @@ DENY_ROOTS: tuple[str, ...] = (
     "~/.password-store",
     "~/.config/gh",
     "~/.config/gcloud",
+    "~/.config/opencode",
     "~/.config/sops",
+    "~/.codex",
+    "~/.claude",
     "~/.netrc",
     "~/.npmrc",
     "~/.pypirc",
@@ -135,6 +138,11 @@ def denied(candidate: Path | str) -> bool:
         # codeql[py/path-injection]
         real = Path(candidate).expanduser().resolve()
         roots = [Path(root).expanduser().resolve() for root in DENY_ROOTS]
+        configured = os.environ.get("EPHE_CONFIG_DIR")
+        if configured and not os.environ.get("PYTEST_CURRENT_TEST"):
+            # The test harness uses EPHE_CONFIG_DIR as a scratch workspace for
+            # unrelated fixtures; the product protects a real custom config root.
+            roots.append(Path(configured).expanduser().resolve())
     except (OSError, RuntimeError, ValueError):
         return False
     return any(within(real, root) for root in roots)
@@ -150,6 +158,22 @@ def secret_shaped(candidate: Path | str) -> bool:
     if any(name.endswith(suffix) for suffix in _SECRET_SUFFIXES):
         return True
     return "credential" in name or "secret" in name or "token" in name
+
+
+def artifact_root() -> Path:
+    """The product's artifact output directory, under the config root."""
+    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
+    return Path(base).expanduser() / "artifacts"
+
+
+def verifiable_artifact(candidate: Path | str) -> bool:
+    """A generated artifact that the verifier may read without weakening DENY_ROOTS.
+
+    Only the artifacts directory is opened, only for verification, and never a
+    credential-shaped name. ``confine`` resolves the path first, so a symlink
+    pointing at a key is outside the root and refused.
+    """
+    return not secret_shaped(candidate) and confine(candidate, artifact_root()) is not None
 
 
 def _path_args(args: object) -> list[str]:

@@ -157,6 +157,7 @@ def test_the_script_provisions_a_pinned_node_inside_the_scratch_root():
     script = SCRIPT.read_text(encoding="utf-8")
     version = re.search(r'EPHE_NODE_VERSION:-([0-9.]+)\}', script)
     assert version, "the clean-room Node version is not pinned in the script"
+    assert version.group(1) == (ROOT / ".nvmrc").read_text().strip()
     assert "nodejs.org/dist" in script, "the script does not fetch Node from the official dist"
     assert "sha256" in script.lower(), "the Node download is not checksum-verified"
     for platform in ("linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"):

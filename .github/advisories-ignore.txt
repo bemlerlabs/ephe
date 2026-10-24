@@ -57,6 +57,31 @@
 # the bump removes the finding for every install that carries the extra.
 GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed affected=<=3.14.3 fixed_in=3.14.5 recheck=2026-11-06
 
+# 2026-10-23 S1 incident: the eMudhra/emSign CA compromise and the pip advisory.
+# Why it is fixed: uv.lock resolves certifi 2026.10.19 and pyproject carries the floor;
+# the compromised emSign ECC Root CA - G3 is absent from the bundle the product uses.
+# Exposure as measured: the product venv and the 3.13.17 venv use certifi 2026.10.19;
+# the miniconda CLI still carries 2025.8.3; that is a migration item outside the product lock.
+PYSEC-2026-4320  # package=certifi ecosystem=PyPI scope=runtime state=fixed affected=<=2026.10.18 fixed_in=2026.10.19 recheck=2026-11-23
+GHSA-6q48-6c7w-9gw2  # package=certifi ecosystem=PyPI scope=runtime state=fixed affected=<=2026.10.18 fixed_in=2026.10.19 recheck=2026-11-23
+
+# Why it is fixed: D19 owner approval moves the CI pin to uv 0.13.5, above the 0.13.4 fix.
+# The workflow pin holds this build tool; uv is not a package in uv.lock.
+# This fixes CI tooling only; older user-global uv installations remain host follow-ups.
+# Exposure as measured: uv is a build tool. It is not a runtime package; it fetches and installs
+# the locked set, and the CA advisory says 0.12.24 trusts the compromised intermediates.
+PYSEC-2026-4321  # package=uv ecosystem=PyPI scope=development state=fixed affected=<=0.13.3 fixed_in=0.13.4 recheck=2026-11-23
+GHSA-hq85-5cpj-mr62  # package=uv ecosystem=PyPI scope=development state=fixed affected=<=0.13.3 fixed_in=0.13.4 recheck=2026-11-23
+
+# Why it is not fixed yet: the installers bootstrap 26.2.2, but the inventoried miniconda
+# dev environment retains pip 25.1. The migrated CLI no longer uses that environment.
+# Exposure as measured: pip is a build/install tool; the product venv has no pip, and the
+# installer path uses the hash-pinned 26.2.2 wheel.
+# CVE-2026-13346 is the NVD/GHSA alias of PYSEC-2026-3721; the OSV CVE record
+# names no package, so the pip decision is carried on the PYSEC line below.
+# CVE-2026-13346
+PYSEC-2026-3721  # package=pip ecosystem=PyPI scope=development state=pending-fix affected=<=26.2.1 fixed_in=26.2.2 blocked_by=miniconda-global-pip-25.1 recheck=2026-11-23
+
 # Re-check protocol for the entries below:
 #   1. `/work/.local/bin/uv pip compile` is not used here; the authoritative
 #      command is the one the gate runs — `uv export --frozen --all-groups --no-emit-project
@@ -211,6 +236,11 @@ RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime s
 RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+
+# Why it is fixed: `AsyncFd::new` and related constructors violate I/O safety; a patch
+# bump inside the Tauri shell's existing dependency graph moves it to 1.53.3, and no
+# dependency was added.
+RUSTSEC-2026-0386  # package=tokio ecosystem=crates.io scope=runtime state=fixed affected=>=1.52.0,<1.53.3 fixed_in=1.53.3 recheck=2027-01-23
 
 # Re-check protocol for the npm and crates.io rows:
 #   1. Re-run the gate's own commands in app/ (`pnpm audit --prod --json`, `pnpm audit

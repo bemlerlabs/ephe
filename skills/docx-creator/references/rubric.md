@@ -1,8 +1,8 @@
 # Quality Rubric
 
 1. Call create_docx for every Word/document request. Never only answer with text.
-2. Struktur: Titel, dann Abschnitte 'Überblick', 'Kernpunkte' (Bullets), 'Details/Nächste Schritte'. Erlaubtes Markdown-Subset: Raute-Überschriften, Bindestrich-Bullets, 1. Nummerierungen, Pipe-Tabellen.
-3. Bei Research-Anfragen zuerst web_search und belegte Punkte verwenden — keine erfundenen Fakten.
-4. Beschreibender, ASCII-sicherer Dateiname mit .docx.
-5. Antworte in der Sprache des Users; nenne den echten Pfad aus dem Tool-Ergebnis.
+2. Structure: title, then sections 'Overview', 'Key points' (bullets), 'Details/Next steps'. Allowed Markdown subset: hash headings, hyphen bullets, 1. numbered lists, pipe tables.
+3. For research requests, web_search first and use evidenced points - no invented facts.
+4. Descriptive, ASCII-safe filename with .docx.
+5. Answer in the user's language; name the real path from the tool result.
 6. Ground every number/path on real tool output; no simulated output without a returned path.

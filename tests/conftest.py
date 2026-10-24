@@ -154,6 +154,7 @@ def _isolate_provider_state(monkeypatch: pytest.MonkeyPatch):
         "EPHE_OPENAI_COMPAT_BASE_URL",
         "EPHE_OPENAI_COMPAT_MODEL",
         "EPHE_OPENAI_COMPAT_API_KEY",
+        "EPHE_ENGINE_KEY_SOURCE",
         "EPHE_CUSTOM_OLLAMA_BASE_URL",
         "EPHE_LOCAL_OLLAMA_BASE_URL",
         "EPHE_MODEL",
@@ -312,6 +313,29 @@ def _hermetic_skills_state(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _hermetic_security_store(tmp_path, monkeypatch):
+    """The developer's own approval preferences never decide a test.
+
+    `security_config_path()` is built from `engine_config.CONFIG_DIR`, which is bound at
+    import; `EPHE_CONFIG_DIR` alone therefore leaves the real `~/.ephe/security.json`
+    in play. Measured 2026-10-23: a store with `ask_categories: ["NETWORK"]` made
+    `chat_tool_requires_confirm("web_search")` return True, so eight approval tests went
+    red or green depending on xdist distribution. A test that wants its own store
+    patches later, which runs after this fixture.
+    """
+    import core.engine_config as _engine_config
+    import core.security_config as _security
+
+    developer_default = _engine_config.CONFIG_DIR
+
+    def isolated_path():
+        root = _engine_config.CONFIG_DIR
+        return (tmp_path / "ephe-home" if root == developer_default else root) / "security.json"
+
+    monkeypatch.setattr(_security, "security_config_path", isolated_path)
+
+
+@pytest.fixture(autouse=True)
 def _hermetic_audit_log(tmp_path, monkeypatch):
     """R23 audit: channel/tool events never go into the real ~/.ephe/audit.log.
 
@@ -322,6 +346,15 @@ def _hermetic_audit_log(tmp_path, monkeypatch):
     import core.audit_log as _audit
 
     monkeypatch.setattr(_audit, "AUDIT_LOG_FILE", tmp_path / "audit.log")
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_refusal_throttle(monkeypatch):
+    """The LAN refusal audit is throttled per client+host+reason per minute; a
+    shared dict would let one test's refusal mute the next test's expectation."""
+    from server import middleware
+
+    monkeypatch.setattr(middleware, "_REFUSAL_AUDIT", {})
 
 
 @pytest.fixture(autouse=True)

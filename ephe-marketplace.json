@@ -16,7 +16,7 @@
         "en": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
         "de": "Echte Browser-Automatisierung: navigieren, klicken, tippen, Screenshot — approval-gated."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/browser-use/icon.svg",
       "category": "browser",
@@ -25,7 +25,8 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin"
     },
     {
       "name": "code-shell",
@@ -35,7 +36,7 @@
         "en": "Coding loop: read, edit, patch, run tests, format and analyze code.",
         "de": "Coding-Loop: lesen, editieren, patchen, Tests laufen lassen, formatieren, analysieren."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/code-shell/icon.svg",
       "category": "code",
@@ -44,7 +45,17 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
     },
     {
       "name": "documents",
@@ -54,7 +65,7 @@
         "en": "Real document production: PDF, DOCX, QR codes, notebooks, briefs.",
         "de": "Echte Dokument-Produktion: PDF, DOCX, QR-Codes, Notebooks, Briefe."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/documents/icon.svg",
       "category": "documents",
@@ -63,7 +74,17 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 10,
+        "runs": 3,
+        "pass3": "9/10",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
     },
     {
       "name": "guide",
@@ -82,7 +103,9 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
     },
     {
       "name": "image-studio",
@@ -101,7 +124,28 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "local-document-factory",
+      "source": "plugins/local-document-factory",
+      "description": "One fact pack, four verified formats: PDF, DOCX, XLSX and PPTX documents built locally.",
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/local-document-factory/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "document factory",
+        "pdf",
+        "docx",
+        "xlsx",
+        "pptx",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
     },
     {
       "name": "mcp-connector",
@@ -120,7 +164,9 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
     },
     {
       "name": "memory",
@@ -130,7 +176,7 @@
         "en": "Short- and long-term memory across sessions.",
         "de": "Kurz- und Langzeitgedächtnis über Sitzungen hinweg."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/memory/icon.svg",
       "category": "memory",
@@ -139,7 +185,17 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
     },
     {
       "name": "plugin-creator",
@@ -158,7 +214,9 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
     },
     {
       "name": "presentations",
@@ -168,7 +226,7 @@
         "en": "Real deck production: PPTX presentations, pitch decks, diagrams.",
         "de": "Echte Deck-Produktion: PPTX-Präsentationen, Pitch-Decks, Diagramme."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/presentations/icon.svg",
       "category": "documents",
@@ -177,7 +235,35 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "private-research-notebook",
+      "source": "plugins/private-research-notebook",
+      "description": "Private research notebook: cited answers, evidence briefs and decks from local sources.",
+      "version": "1.0.0",
+      "author": "Ephe",
+      "icon": "plugins/private-research-notebook/icon.svg",
+      "category": "research",
+      "keywords": [
+        "research notebook",
+        "citations",
+        "evidence",
+        "local-first",
+        "private"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
     },
     {
       "name": "skill-creator",
@@ -196,7 +282,9 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
     },
     {
       "name": "spreadsheets",
@@ -206,7 +294,7 @@
         "en": "Real spreadsheet production: formatted XLSX workbooks and charts.",
         "de": "Echte Tabellen-Produktion: formatierte XLSX-Arbeitsmappen und Charts."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/spreadsheets/icon.svg",
       "category": "documents",
@@ -215,7 +303,39 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "superpowers",
+      "displayName": "Superpowers",
+      "source": "marketplace/sources/superpowers",
+      "description": "Superpowers workflow skills (MIT), adapted for Ephe: planning, TDD, code review, worktrees, verification.",
+      "description_i18n": {
+        "en": "Superpowers workflow skills (MIT), adapted for Ephe: planning, TDD, code review, worktrees, verification."
+      },
+      "version": "1.0.0",
+      "author": "Jesse Vincent (MIT), pack by Ephe",
+      "category": "skills",
+      "keywords": [
+        "superpowers",
+        "skills",
+        "tdd",
+        "planning",
+        "code review"
+      ],
+      "origin": "third-party",
+      "kind": "skill-pack",
+      "quality_label": "bundled"
     },
     {
       "name": "vision",
@@ -234,7 +354,9 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
     },
     {
       "name": "voice",
@@ -253,7 +375,9 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
     },
     {
       "name": "web-research",
@@ -263,7 +387,7 @@
         "en": "Live web research for the agent (opt-in, needs an API key).",
         "de": "Live-Websuche für den Agenten (Opt-in, braucht einen API-Key)."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/web-research/icon.svg",
       "category": "research",
@@ -272,7 +396,17 @@
         "ephe",
         "local-first"
       ],
-      "origin": "first-party"
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
     }
   ]
 }
