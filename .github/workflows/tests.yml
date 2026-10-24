@@ -42,9 +42,9 @@ jobs:
     # (measured 2026-10-09 on a user-owned private repository, see
     # docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so the boundary lives in this file instead.
     # Accepted consequence, chosen over moving fork PRs back to hosted: a fork PR gets no CI here
-    # and is reviewed by hand. Nothing silently blocks it — no pull request this repository has
-    # seen came from a fork, and `main` has no required status checks. Dependabot PRs are same-repo
-    # branches, so they keep running.
+    # and is reviewed by hand. Nothing silently blocks it — a fork PR's skipped checks count as
+    # success, so the review is the gate. Dependabot PRs are same-repo branches, so they keep
+    # running.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 25
@@ -275,24 +275,14 @@ jobs:
   # exists only on macOS, so this is where the macOS-only live guards run for real instead of
   # skipping.
   #
-  # This is where the rule about the laptop lives, and nowhere else. The macOS runner is the owner's
-  # personal working machine — his `~/.ephe` engine data, his keychain, his signed-in browser — so a
-  # pull request must not be scheduled on it at all: not a fork PR, not a same-repo PR, not a
-  # Dependabot PR. The fork guard cannot express that per leg: it compares
-  # `github.event.pull_request.head.repo.full_name` with the repository, and a Dependabot branch IS
-  # a branch of this repository, so dependency bumps pass it — and `pip install -e ".[dev,tui]"`
-  # would then install and execute the proposed versions on that machine. On the DGX Spark, a
-  # dedicated box with no personal data and no signing material, the same exposure is a documented,
-  # accepted risk; here it is refused (owner decision 2026-10-09).
-  #
-  # The exclusion is a job-level `if:` on purpose: it is the mechanism GitHub is measured to
-  # evaluate, while the matrix expression that used to carry the same decision built zero legs in
-  # six runs. A job switched off by `if:` is never allocated, not even for `Set up job` and
-  # Checkout, which is exactly the property the laptop rule needs. Reversing it is one line, which
-  # is what a dedicated Mac mini or a Tart VM pool makes correct.
+  # The public repository is hosted-only: `CI_MAC_RUNNER` names `macos-latest`, so no pull request
+  # reaches a personal machine. The leg is a required check, and a required check that is skipped
+  # still counts as a success — which is how a red macOS leg first surfaced on `main` after a green
+  # PR (run 40136777673). It therefore runs on every same-repo event, pull requests included; the
+  # fork guard is the one in `pytest-linux`, and a fork PR stays hand-reviewed.
   pytest-macos:
     name: pytest-macos (py3.12)
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
     timeout-minutes: 25
     steps:
@@ -546,15 +536,13 @@ jobs:
           API_URL: ${{ github.api_url }}
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
           python3 - <<'PY'
           import json, os, urllib.request
           expected = [f"pytest-linux (py{v})" for v in ("3.11", "3.12", "3.13")]
-          # The laptop leg: `pytest-macos` is switched off for pull requests by its own `if:`, so a
-          # PR expects four legs and a push expects five.
-          if os.environ["EVENT_NAME"] != "pull_request":
-              expected.append("pytest-macos (py3.12)")
+          # The macOS leg runs on every event. A skipped required check reads as a success,
+          # so a pull request must build it too.
+          expected.append("pytest-macos (py3.12)")
           url = (f"{os.environ['API_URL']}/repos/{os.environ['REPOSITORY']}"
                  f"/actions/runs/{os.environ['RUN_ID']}/jobs?per_page=100")
           request = urllib.request.Request(url, headers={
@@ -574,9 +562,8 @@ jobs:
               else:
                   print(f"    {leg.get('conclusion') or leg['status']}  {name}  "
                         f"runner={leg.get('runner_name') or '-'}")
-          # A job switched off by its own `if:` still arrives in the job list as `skipped`, so the
-          # laptop leg on a pull request is not a surprise: it is the exclusion working. Only a leg
-          # that GitHub actually scheduled can be unplanned here.
+          # A job switched off by its own `if:` still arrives in the job list as `skipped`.
+          # Only a leg that GitHub actually scheduled can be unplanned here.
           extra = sorted(n for n, leg in by_name.items()
                          if n.startswith("pytest-") and n not in expected
                          and leg.get("conclusion") != "skipped")
@@ -595,6 +582,5 @@ jobs:
                   + ", ".join(missing))
           if extra:
               raise SystemExit(
-                  "legs scheduled that this event does not plan; a pytest-macos name here means "
-                  "the laptop exclusion broke: " + ", ".join(extra))
+                  "legs scheduled that this event does not plan: " + ", ".join(extra))
           PY

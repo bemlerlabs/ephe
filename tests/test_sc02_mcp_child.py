@@ -175,6 +175,60 @@ def test_the_runtime_exception_cannot_open_a_secret_subtree(monkeypatch, tmp_pat
     assert not any(".ssh" in prefix for prefix in outside)
 
 
+def test_a_prefix_with_only_a_minor_python_is_a_runtime(monkeypatch, tmp_path):
+    """uv installs `bin/python3.<minor>` and, on the macOS runner, no bare aliases."""
+    fake_home = tmp_path / "user"
+    prefix = fake_home / ".local" / "share" / "uv" / "python" / "cpython-3.12.15"
+    interpreter = prefix / "bin" / "python3.12"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(fake_home))
+    real_home = os.path.realpath(fake_home)
+
+    assert mcp_sandbox._looks_like_runtime(str(prefix))
+    assert os.path.realpath(prefix) in mcp_sandbox._runtime_prefixes(
+        str(interpreter), real_home
+    )
+
+
+def test_a_minor_python_under_a_secret_subtree_is_refused(monkeypatch, tmp_path):
+    fake_home = tmp_path / "user"
+    prefix = fake_home / ".ssh" / "uv-venv"
+    interpreter = prefix / "bin" / "python3.12"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(fake_home))
+    real_home = os.path.realpath(fake_home)
+
+    assert mcp_sandbox._looks_like_runtime(str(prefix))
+    assert mcp_sandbox._runtime_prefixes(str(interpreter), real_home) == []
+
+
+def test_the_runtime_allow_follows_the_home_deny_and_the_child_home_is_last(
+    monkeypatch, tmp_path
+):
+    fake_home = tmp_path / "user"
+    prefix = fake_home / "runtimes" / "python"
+    interpreter = prefix / "bin" / "python3.12"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("", encoding="utf-8")
+    child_home = fake_home / ".ephe" / "mcp" / "homes" / "srv"
+    child_home.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.delenv("EPHE_CONFIG_DIR", raising=False)
+
+    profile = mcp_sandbox.build_profile(str(child_home), str(interpreter))
+
+    real_home = os.path.realpath(fake_home)
+    real_prefix = os.path.realpath(prefix)
+    real_child = os.path.realpath(child_home)
+    home_deny = profile.index(f'(deny file-read*\n  (subpath "{real_home}")')
+    runtime_allow = profile.index(f'(allow file-read* (subpath "{real_prefix}"))')
+    child_allow = profile.index(f'(allow file-read* (subpath "{real_child}"))')
+    assert home_deny < runtime_allow < child_allow
+    assert profile.rstrip().endswith(f'(allow file-read* (subpath "{real_child}"))')
+
+
 def test_node_and_python_start_under_the_boundary(monkeypatch, tmp_path):
     fake_home = tmp_path / "user"
     fake_home.mkdir()

@@ -150,11 +150,12 @@ jobs:
     name: Coverage floor (per-module ratchet)
     # Cost, measured on the owner's idle box 2026-10-11
     # (docs/COVERAGE_GAPS_2026-10-11.md): the process-start tracer runs the whole tracked
-    # suite in 308 s where the same suite untraced takes 61.7 s, about five times. On the
-    # Spark that puts this leg near four minutes on top of the suite's own 48 s of runner
-    # time. The leg therefore runs on a push and on the weekly schedule; a pull request
-    # skips it, because its branch push already ran it and the drop is caught there.
-    if: github.event_name != 'pull_request'
+    # suite in 308 s where the same suite untraced takes 61.7 s, about five times. That price
+    # is paid on every event: this job is a required check on `main`, and a skipped required
+    # check counts as a success — which is how a module that had fallen to 99% merged. A pull
+    # request must fail here before the merge; a push after it is too late. The fork guard is
+    # the one the other runner jobs carry.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     steps:

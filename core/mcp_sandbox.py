@@ -89,10 +89,18 @@ def _looks_like_runtime(prefix: str) -> bool:
     """An install prefix with a python or node entry, or a venv root."""
     if os.path.basename(prefix) in {".venv", "venv", "env"}:
         return True
-    return any(
+    if any(
         os.path.exists(os.path.join(prefix, rel))
         for rel in ("bin/python", "bin/python3", "bin/node")
-    )
+    ):
+        return True
+    try:
+        entries = os.listdir(os.path.join(prefix, "bin"))
+    except OSError:
+        return False
+    # A uv-installed CPython ships `bin/python3.<minor>` and, on the macOS runner,
+    # no bare `python` or `python3` beside it.
+    return any(name.startswith("python3.") and name[8:].isdigit() for name in entries)
 
 
 def _runtime_prefixes(command: str | None, real_home: str) -> list[str]:
@@ -117,6 +125,11 @@ def _runtime_prefixes(command: str | None, real_home: str) -> list[str]:
     if command:
         for candidate in (os.path.abspath(command), os.path.realpath(command)):
             consider(os.path.dirname(os.path.dirname(candidate)))
+    # The interpreter itself, through its symlink and its target: a venv's `bin/python`
+    # points at the base installation, and the child has to execute both.
+    for executable in (sys.executable, os.path.realpath(sys.executable or "")):
+        if executable:
+            consider(os.path.dirname(os.path.dirname(executable)))
     for prefix in (sys.prefix, sys.base_prefix):
         consider(prefix)
     return sorted(roots)
