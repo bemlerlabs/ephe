@@ -180,8 +180,8 @@ def _install_from_marketplace(
         payload = fetch(url)
     except GuardedFetchError as exc:
         return {"status": "fetch_failed", "name": name, "code": exc.code}
-    except Exception as exc:  # noqa: BLE001 — honest status, never a crash
-        return {"status": "fetch_failed", "name": name, "error": str(exc)[:200]}
+    except Exception:  # noqa: BLE001 — honest status, never a crash
+        return {"status": "fetch_failed", "name": name, "error": "fetch_failed"}
 
     expected = str(entry.get("sha256") or "")
     if not expected or sha256_hex(payload) != expected:
@@ -335,14 +335,14 @@ def _install_from_marketplace(
             # A deliberate unsigned local install is not a lost record; it is a
             # new identity and must not inherit the previous signature's pin.
             plugin_signing.clear_pin(name)
-    except OSError as exc:
+    except OSError:
         shutil.rmtree(final, ignore_errors=True)
         plugin_versions.restore_backup(backup, final)
         shutil.rmtree(staging, ignore_errors=True)
         return {
             "status": "pin_failed",
             "name": name,
-            "error": f"signature pin could not be updated: {exc}",
+            "error": "pin_failed",
         }
     plugin_versions.commit_backup(final)
     shutil.rmtree(staging, ignore_errors=True)

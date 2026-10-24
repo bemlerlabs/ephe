@@ -302,8 +302,8 @@ def load_manifest(
         return None, f"{MANIFEST_FILENAME} missing"
     try:
         manifest = json.loads(mfile.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        return None, f"manifest unreadable: {exc}"
+    except (OSError, ValueError):
+        return None, "manifest unreadable"
     err = _validate(manifest, plugin_dir, require_dir_name=require_dir_name)
     if err:
         return None, err
