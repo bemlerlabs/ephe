@@ -107,7 +107,12 @@ async def run_linter(path: str, fix: bool = False, max_issues: int = 50) -> str:
     Returns:
         OK prefix + summary, or the ERROR prefix with the issue list.
     """
-    p = Path(path).resolve()
+    p = Path(path).expanduser()
+    if not p.is_absolute():
+        from core.engine_config import get_workspace_dir
+
+        p = Path(get_workspace_dir()) / p
+    p = p.resolve()
     if not p.exists():
         return f"ERROR: Path not found: {path}"
     cmd = ["ruff", "check", "--no-cache", str(p)]

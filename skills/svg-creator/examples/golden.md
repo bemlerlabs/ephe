@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: Erstell mir ein SVG-Logo mit einem Kreis und dem Text "EPHE"
+1. Input: Create an SVG logo with a circle and the text "EPHE"
 2. ToolCall: {"name": "create_svg", "arguments": {"filename": "out"}}
 3. Observation: svg
-4. Final: svg (belegt durch Tool-Output).
+4. Final: svg (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: Erstell mir ein SVG-Logo mit einem Kreis und dem Text "EPHE" (Quelle/Pfad nicht gefunden)
+## Trace 2 (Edge case: error path)
+1. Input: Create an SVG logo with a circle and the text "EPHE" (source/path not found)
 2. ToolCall: {"name": "create_svg", "arguments": {"filename": "out"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: svg.
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: svg.

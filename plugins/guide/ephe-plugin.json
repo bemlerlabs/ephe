@@ -16,12 +16,12 @@
       {
         "name": "howto",
         "description": "Answer a how-to question about Ephe",
-        "template": "Beantworte die Ephe-Frage: {input}. Nutze die Ephe-Doku (docs/) und gib konkrete Schritte + Befehle."
+        "template": "Answer the Ephe question: {input}. Use the Ephe documentation in docs/ and give concrete steps and commands."
       },
       {
         "name": "diagnose",
         "description": "Guide through a diagnosis flow",
-        "template": "Führe eine Diagnose durch zu: {input}. Nutze ephe doctor-Logik und ordne die Symptome zu."
+        "template": "Diagnose: {input}. Use the ephe doctor logic and map the symptoms."
       }
     ]
   },

@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /decision Matrix: A vs B
-2. ToolCall: {"name": "create_xlsx", "arguments": {"title": "Beispiel", "data": "[[1,2],[3,4]]", "filename": "out"}}
-3. Observation: Gewicht
-4. Final: Gewicht (belegt durch Tool-Output).
+1. Input: /decision matrix: A vs B
+2. ToolCall: {"name": "create_xlsx", "arguments": {"title": "Example", "data": "[[1,2],[3,4]]", "filename": "out"}}
+3. Observation: weight
+4. Final: weight (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /decision Matrix: A vs B (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "create_xlsx", "arguments": {"title": "Beispiel", "data": "[[1,2],[3,4]]", "filename": "out"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: Gewicht.
+## Trace 2 (Edge case: error path)
+1. Input: /decision matrix: A vs B (source/path not found)
+2. ToolCall: {"name": "create_xlsx", "arguments": {"title": "Example", "data": "[[1,2],[3,4]]", "filename": "out"}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: weight.

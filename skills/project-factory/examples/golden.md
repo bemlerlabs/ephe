@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /factory Baue einen Taschenrechner
+1. Input: /factory Build a calculator
 2. ToolCall: {"name": "scaffold_project", "arguments": {"template": "default"}}
 3. Observation: README
-4. Final: README (belegt durch Tool-Output).
+4. Final: README (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /factory Baue einen Taschenrechner (Quelle/Pfad nicht gefunden)
+## Trace 2 (Edge case: error path)
+1. Input: /factory Build a calculator (source/path not found)
 2. ToolCall: {"name": "scaffold_project", "arguments": {"template": "default"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: README.
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: README.

@@ -8,6 +8,11 @@ import pkg from './package.json'
 // drag in (`@floating-ui/*`, `react-remove-scroll*`, `react-style-singleton`,
 // `use-sidecar`, `use-callback-ref`, `get-nonce`, `aria-hidden`) — 45 vendor modules
 // that used to sit in the entry chunk next to the app shell.
+// One target for the dev proxy. The backend now rejects a foreign Origin on
+// mutations and WebSocket handshakes; the proxy rewrites both to the app's own
+// origin so the Vite page keeps working without a second allowlist entry.
+const API_TARGET = process.env.EPHE_API_TARGET || 'http://127.0.0.1:8765'
+
 const RADIX_VENDOR = [
   '@radix-ui/',
   '@floating-ui/',
@@ -58,12 +63,13 @@ export default defineConfig({
     // still overrides it for external setups.
     proxy: {
       '/api': {
-        target: process.env.EPHE_API_TARGET || 'http://127.0.0.1:8765',
+        target: API_TARGET,
         changeOrigin: true,
+        headers: { Origin: API_TARGET },
         ws: true, // P1-5: /api/shell/term WebSocket (PTY) + /api/proxy HMR tunnel
       },
-      '/audio': 'http://127.0.0.1:8765',
-      '/images': 'http://127.0.0.1:8765',
+      '/audio': API_TARGET,
+      '/images': API_TARGET,
     },
   },
   build: {

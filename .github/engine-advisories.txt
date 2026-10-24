@@ -7,109 +7,49 @@
 # `POST https://api.osv.dev/v1/query` for `{package: wasmtime, ecosystem: PyPI,
 # version: 47.0.1}` returns **zero** vulnerabilities, while the same engine version in
 # the `wasmtime-wasi` crate range is under an active advisory. So an entry here is
-# never a `--ignore-vuln` flag — pip-audit would not have reported it — it is the
-# written acceptance of a flaw our own audit cannot see, and
+# never a `--ignore-vuln` flag — pip-audit would not have reported it.
 # `.github/workflows/supply-chain.yml` resolves every ID in this file and in
 # `advisories-ignore.txt` against the advisory databases, failing the run on an ID
 # that resolves nowhere (that is how `GHSA-j2g9-4prp-pf6h` was nearly lost: a
 # well-formed ID that only exists as an *alias*, which the naive lookup reads as a 404).
 #
 # Line format: <ID>  # package=<name> ecosystem=<eco> probe=<version>
-#                    affected=<range> fixed_in=<version> blocked_by=<constraint>
+#                    affected=<range> fixed_in=<version> state=fixed
 #                    alias=<the GHSA string for the same record, if any> recheck=<YYYY-MM-DD>
-# The alias is written down because it is the form a reader searches for and the
-# form a single-route lookup reports as missing.
-# `probe` is the version the resolution check asks the databases about, and
-# `blocked_by` names the constraint that keeps the fix out of reach — an acceptance
-# without it would be a shrug. Past its recheck date the gate fails, same rule as the
-# other register: the decision carries the date it stops being valid.
+# `probe` is the version the resolution check asks the databases about. An entry
+# without `state=fixed` is a written acceptance and must also name `blocked_by`, the
+# constraint that keeps the fix out of reach, plus the exposure that was measured and
+# what remains UNPROVEN. Past its recheck date the gate fails, same rule as the other
+# register: the decision carries the date it stops being valid.
+#
+# 2026-10-23, owner decision D29: the engine moved from 48.0.0 to 50.0.1.
+# Why that version: RUSTSEC-2026-0352 (GHSA-m9f7-9w4p-gv38) is a filesystem sandbox
+# escape when renaming symlinks with trailing slashes, and PyPI publishes no fixed
+# 48.x (48.0.6) and no fixed 49.0.3. 50.0.1 is the first published release outside
+# every affected range below. Ephemora Cell 1.1.0 declares `wasmtime<48`; the uv
+# override in pyproject.toml replaces that bound, and `tests/test_cell_runtime_floor.py`
+# holds both the floor and the lock to it.
+# Evidence for the move: 142 cell, sandbox and fence tests passed on 50.0.1 on
+# 2026-10-23 (out/s4-20261023-_5_914gn/cell-tests-wasmtime50.log), including the cell
+# boot, the policy snapshot and the WASIConfig seam. The four cap figures in
+# core/cpython_cell.py were measured on the 47.x engine; re-running one live cell on
+# 50.0.1 is the next measurement, and until it runs this register does not claim the
+# fuel-per-second figure is re-measured.
 
 # GHSA-j2g9-4prp-pf6h = RUSTSEC-2026-0314 (the RustSec entry is the primary record;
 # the GHSA string is an alias of it, and the canonical advisory sits in the
 # bytecodealliance/wasmtime repository, not in the pip ecosystem).
-# Why there is no fix within reach: affected `wasmtime-wasi` 37.0.0 through 48.0.2,
-# fixed in 48.0.3, but every published Ephemora Cell release — 1.0.4.3, 1.0.5 and
-# 1.1.0 alike — requires `wasmtime<48,>=43.0.1` in its own METADATA, and `uv.lock`
-# resolves wasmtime 47.0.1. The bundled library in the installed wheel
-# (wasmtime/darwin-aarch64/_libwasmtime.dylib) carries a 47.x version token. So no
-# upgrade of the cell, and no upgrade of the binding, reaches 48.0.3 while the cell
-# holds its ceiling: moving past it is Ephemora's release decision, not ours.
-# Exposure as measured: CVSS 3.1 AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H — a guest that
-# hands the host a datetime beyond its range panics the host process, on the
-# in-process path. Ephe does not use that path: `core/cpython_cell.py:200` calls
-# `ephemora_cell.run_isolated()`, which in the installed runtime dispatches
-# exclusively to `process_executor.run_isolated` → `process_worker`, i.e. a
-# disposable worker subprocess, and a guest panic costs that worker. UNPROVEN: that
-# the subprocess boundary contains every variant of the flaw (the overflow itself,
-# and any state the worker shares before it dies), and whether the 47.x engine in the
-# Linux wheel we ship on x86_64 carries the same code path — measured here on
-# darwin-arm64 only.
-RUSTSEC-2026-0314  # package=wasmtime-wasi ecosystem=crates.io probe=47.0.1 affected=>=37.0.0,<48.0.3 fixed_in=48.0.3 blocked_by=ephemora-cell-requires-wasmtime<48 alias=GHSA-j2g9-4prp-pf6h recheck=2027-01-09
+RUSTSEC-2026-0314  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.3 fixed_in=48.0.3 state=fixed alias=GHSA-j2g9-4prp-pf6h recheck=2027-01-23
 
-# Re-check protocol for the entries above:
-#   1. Ask the engine, not the changelog: which `wasmtime` does the installed
-#      `ephemora-cell` require (`*.dist-info/METADATA`, `Requires-Dist`), and which
-#      engine version does the binding's library carry?
-#   2. Re-read the advisory at its primary record (`https://api.osv.dev/v1/vulns/<id>`)
-#      and confirm the affected range still covers the version we resolve.
-#   3. Re-check the mitigation claim against the code, not against this file: the
-#      panic-containment argument holds only while `core/cpython_cell.py` goes through
-#      `run_isolated`/`process_executor`. If an in-process call appears, this entry
-#      stops being an acceptance and becomes a defect.
-#   4. If Ephemora Cell lifts its wasmtime ceiling past 48.0.3, this line leaves the
-#      register with the version that proves it — deleting a line without a
-#      replacement version is not a fix.
+RUSTSEC-2026-0321  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-j366-h8gg-77pm recheck=2027-01-23
 
-# ---------------------------------------------------------------------------
-# The rest of the same wave. Asked OSV for exactly what we lock
-# (`wasmtime-wasi@47.0.1`, crates.io) answers five advisories; the entry above is the
-# one `docs/SANDBOX_EXECUTION.md` had noticed. All four below
-# are fixed in 48.0.4, which is out of reach for the same reason: every published
-# Ephemora Cell release requires `wasmtime<48`.
-# ---------------------------------------------------------------------------
+RUSTSEC-2026-0322  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-gqmc-89g8-p25r recheck=2027-01-23
 
-# Fuel accounting is the cap `core/cpython_cell.py` sets first (DEFAULT_MAX_FUEL,
-# 20 G ≈ 2.2 s of guest CPU) and `core/cell_policy.policy_snapshot()` reports it as
-# enforced. This advisory says a guest reaching `poll_oneoff` on the WASI preview-0
-# path is not metered while it waits — so the number on the card overstates the bound
-# for exactly that shape of program. Exposure as measured: Ephe's guest is the CPython
-# WASI build, and any code it runs may call `time.sleep`/`selectors`, which lower to
-# `poll_oneoff`; the remaining bounds are `timeout_seconds` (30 s) and the worker's
-# `io_cpu_seconds` wall, which the subprocess path does enforce. UNPROVEN: whether a
-# waiting guest can hold a session past `timeout_seconds`, and how much host wall the
-# unmetered wait actually costs — never measured against this engine build.
-RUSTSEC-2026-0321  # package=wasmtime-wasi ecosystem=crates.io probe=47.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 blocked_by=ephemora-cell-requires-wasmtime<48 alias=GHSA-j366-h8gg-77pm recheck=2027-01-09
+RUSTSEC-2026-0323  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-96f6-r43r-8c24 recheck=2027-01-23
 
-# A guest without stdio makes the host allocate unboundedly.
-# Why there is no fix within reach: fixed in 48.0.4, behind the same `wasmtime<48`
-# ceiling as the entries above.
-# Exposure as measured: the flaw's precondition is a guest started without stdio, and
-# Ephe always hands the cell a stdout and a stderr journal (`core/cell_output.py`,
-# written into the report by `core/cpython_cell.py`), so we do not run that shape.
-# UNPROVEN: that no code path can start a cell with stdio closed — `run_isolated` is
-# the only caller in this tree and it was read, not fuzzed.
-RUSTSEC-2026-0322  # package=wasmtime-wasi ecosystem=crates.io probe=47.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 blocked_by=ephemora-cell-requires-wasmtime<48 alias=GHSA-gqmc-89g8-p25r recheck=2027-01-09
+RUSTSEC-2026-0324  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=48.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-mr2v-56j5-cmfc recheck=2027-01-23
 
-# `fd_readdir` copies uninitialised struct padding into guest memory: a guest that
-# reads a directory can see host bytes it was not given. That is a leak *into* the
-# sandbox, which is the one direction our threat model treats as uninteresting for
-# trusted guests and interesting for untrusted ones — and Ephe's whole cell premise is
-# untrusted, model-authored code (`docs/SECURITY_THREAT_MODEL.md` §7). Exposure as
-# measured: the cell preopens its own session `/work` and the guest root read-only, so
-# the readable directories are the ones Ephe put there; the padding bytes would come
-# from the host process, not from another session. UNPROVEN: whether anything
-# secret-bearing can sit in those bytes in practice, and whether a guest can force a
-# readdir on a directory outside the preopens.
-RUSTSEC-2026-0323  # package=wasmtime-wasi ecosystem=crates.io probe=47.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 blocked_by=ephemora-cell-requires-wasmtime<48 alias=GHSA-96f6-r43r-8c24 recheck=2027-01-09
-
-# The same host-panic timestamp flaw as the first entry, on the wasip3 path and before
-# the epoch.
-# Why there is no fix within reach: fixed in 48.0.4, and the affected range starts at
-# 48.0.0, so it is the one entry here the `<48` ceiling actually keeps out — a fact
-# worth stating, because it is the only reason this line is not a live exposure.
-# Exposure as measured: Ephe runs the guest on WASI preview 1 through `run_isolated`
-# (`core/cpython_cell.py`), which is not the wasip3 path this advisory describes.
-# UNPROVEN: that no component guest ever reaches wasip3 — the Python-WASI guest we
-# build is preview 1 today, and that is a reading of our build recipe, not a test.
-RUSTSEC-2026-0324  # package=wasmtime-wasi ecosystem=crates.io probe=47.0.1 affected=>=48.0.0,<48.0.4 fixed_in=48.0.4 blocked_by=not-on-the-wasip3-path alias=GHSA-mr2v-56j5-cmfc recheck=2027-01-09
-
+# Filesystem sandbox escape when renaming symlinks with trailing slashes.
+# CVSS v4 AV:N/AC:L/AT:P/PR:L/UI:P/VC:H/VI:H/VA:L/SC:H/SI:H/SA:L.
+# Fixed ranges: 36.0.18, 48.0.6 and 49.0.3 — none of the latter two are on PyPI.
+RUSTSEC-2026-0352  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.6 fixed_in=48.0.6 state=fixed alias=GHSA-m9f7-9w4p-gv38 recheck=2027-01-23

@@ -3,8 +3,8 @@ name: cv-helper
 version: "1.0.0"
 trigger: /cv
 description: "Optimizes resumes: impact instead of duty lists, ATS-safe, optionally exported as a PDF."
-when_to_use: [lebenslauf, cv, resume, bewerbungsprofil]
-when_not_to_use: [anschreiben, cover letter]
+when_to_use: [resume, cv, application profile, lebenslauf, bewerbungsprofil]
+when_not_to_use: [cover letter, anschreiben]
 tools: [create_pdf, read_file, memory, skill_manage]
 quality_profile: artifact
 artifact_types: [pdf]
@@ -19,27 +19,27 @@ allowed_tools: [create_pdf, read_file, memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein Karriereberater und Recruiter mit 15 Jahren Screening-Erfahrung.
+You are a career advisor and recruiter with 15 years of screening experience.
 
-Deine Aufgabe: Lebensläufe auf Wirksamkeit optimieren.
+Your task: optimize resumes for impact.
 
 Rules:
-- Jede Position: Wirkung statt Tätigkeit. Format "Verb + was + messbares Ergebnis" ("Reduzierte Deploy-Zeit um 40% durch CI-Automatisierung"). Fehlende Zahlen als [X] Platzhalter markieren und den User danach fragen.
-- ATS-sicher: gängige Section-Titel (Erfahrung, Ausbildung, Skills), keine Tabellen/Icons/Spalten im Kern, Schlüsselwörter aus der Ziel-Stellenausschreibung spiegeln (falls angegeben).
-- Reihenfolge nach Karrierestand: ≤3 Jahre Erfahrung → Ausbildung zuerst; danach Erfahrung zuerst.
-- Bei Export-Wunsch: create_pdf mit Template "report" — ein bis zwei Seiten, kein Schnickschnack.
-- Ehrlichkeit: nichts schönfärben, was der User nicht belegen kann.
+- Every position: impact instead of duty. Format "verb + what + measurable result" ("Reduced deploy time by 40% through CI automation"). Mark missing numbers as [X] placeholders and ask the user for them.
+- ATS-safe: common section titles (Experience, Education, Skills), no tables, icons or columns in the core, mirror keywords from the target job ad (if provided).
+- Order by career stage: 3 years of experience or less -> education first; otherwise experience first.
+- For an export request: create_pdf with template "report" - one to two pages, no frills.
+- Honesty: do not embellish anything the user cannot prove.
 
 Output Contract:
-- Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
+- Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
 Quality Gate:
-- Do not simulate: beanspruche niemals ein Ergebnis/eine Datei, das/die das Tool nicht real zurückgegeben hat. Ground every claim in real tool output.
+- Do not simulate: never claim a result or a file the tool did not actually return. Ground every claim in real tool output.
 
 ## Example
 
 ```json
 {
-  "input": "/cv aus cv_data.md",
+  "input": "/cv from cv_data.md",
   "steps": [
     {
       "tool": "read_file",
@@ -50,16 +50,16 @@ Quality Gate:
     {
       "tool": "create_pdf",
       "args": {
-        "title": "Lebenslauf",
-        "content": "Erfahrung…"
+        "title": "Resume",
+        "content": "Experience..."
       }
     }
   ],
-  "output": "PDF_FILE: /tmp/lebenslauf.pdf"
+  "output": "PDF_FILE: /tmp/resume.pdf"
 }
 ```
 
 ## Test
 
-**Input**: /cv optimiere meinen Lebenslauf
-**Expect Contains**: Erfahrung
+**Input**: /cv optimize my resume
+**Expect Contains**: experience

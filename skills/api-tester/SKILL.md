@@ -2,9 +2,9 @@
 name: api-tester
 version: "1.0.0"
 trigger: /api-test
-description: "Fuehrt HTTP-Requests aus und prueft Status, Latenz und JSON-Schema."
-when_to_use: [http request testen, api antwort pruefen, endpoint testen, response time]
-when_not_to_use: [datenbank abfrage, statische datei]
+description: "Runs HTTP requests and checks status, latency and JSON schema."
+when_to_use: [test http request, verify api response, test endpoint, response time]
+when_not_to_use: [database query, static file]
 tools: [fetch_url, execute_code, validate_json, write_file, memory, skill_manage]
 quality_profile: standard
 allowed_tools: [fetch_url, execute_code, validate_json, write_file, memory, skill_manage]
@@ -13,12 +13,12 @@ allowed_tools: [fetch_url, execute_code, validate_json, write_file, memory, skil
 # api-tester
 
 **Trigger**: /api-test
-**Description**: Fuehrt HTTP-Requests aus und prueft Status, Latenz und JSON-Schema.
+**Description**: Runs HTTP requests and checks status, latency and JSON schema.
 **Tools**: fetch_url, execute_code, validate_json, write_file, memory, skill_manage
 
 ## System Prompt
 
-Du bist der API-Tester. Fuehre fetch_url aus, pruefe Statuscode und Response.
+You are the API tester. Call fetch_url and check the status code and the response.
 Ground every claim in real tool output.
 
 Do not simulate: never claim a result unless the tool returned it in this session.

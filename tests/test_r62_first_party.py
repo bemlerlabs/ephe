@@ -35,6 +35,7 @@ EXPECTED_IDS = {
     "mcp-connector", "browser-use", "code-shell",
     "documents", "spreadsheets", "presentations",
     "plugin-creator", "skill-creator", "guide",
+    "local-document-factory", "private-research-notebook",
 }
 
 

@@ -99,3 +99,51 @@ def test_a_root_with_a_trailing_separator_still_matches():
     """A caller that builds the root by joining gets no surprise from one extra slash."""
     assert within(Path("/srv/workspaces/one"), Path("/srv/workspaces/"))
     assert within(Path("/srv/workspaces"), Path(f"/srv{os.sep}"))
+
+
+def test_the_verifier_may_read_a_generated_artifact(tmp_path, monkeypatch):
+    from core.path_guard import verifiable_artifact
+
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    artifact = tmp_path / "artifacts" / "session" / "brief.pdf"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(b"%PDF-1.4")
+    assert verifiable_artifact(str(artifact))
+
+
+def test_the_verifier_still_refuses_config_and_credential_names(tmp_path, monkeypatch):
+    from core.path_guard import verifiable_artifact
+
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    key = tmp_path / "engine.key"
+    key.write_text("secret", encoding="utf-8")
+    assert not verifiable_artifact(str(key))
+    credential = tmp_path / "artifacts" / "session" / "credentials"
+    credential.parent.mkdir(parents=True)
+    credential.write_text("secret", encoding="utf-8")
+    assert not verifiable_artifact(str(credential))
+
+
+def test_a_symlink_out_of_the_artifact_root_is_refused(tmp_path, monkeypatch):
+    from core.path_guard import verifiable_artifact
+
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    secret = tmp_path / "engine.key"
+    secret.write_text("secret", encoding="utf-8")
+    link = tmp_path / "artifacts" / "session" / "brief.pdf"
+    link.parent.mkdir(parents=True)
+    link.symlink_to(secret)
+    assert not verifiable_artifact(str(link))
+
+
+def test_the_deck_resolver_may_read_an_artifact_only_with_the_flag(tmp_path, monkeypatch):
+    from core.tools._deck_common import _resolve_allowed_file
+
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setattr("core.tools._deck_common._is_path_allowed", lambda _path: False)
+    artifact = tmp_path / "artifacts" / "session" / "deck.pptx"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(b"PK\x03\x04")
+    assert _resolve_allowed_file(str(artifact), allow_artifacts=True) == artifact.resolve()
+    with pytest.raises(PermissionError):
+        _resolve_allowed_file(str(artifact))

@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: Zeig mir einen Chart: Januar 100, Februar 150, März 120, April 200
-2. ToolCall: {"name": "generate_chart", "arguments": {"chart_type": "bar", "title": "Beispiel", "labels": "A,B"}}
+1. Input: Show me a chart: January 100, February 150, March 120, April 200
+2. ToolCall: {"name": "generate_chart", "arguments": {"chart_type": "bar", "title": "Example", "labels": "A,B"}}
 3. Observation: Chart
-4. Final: Chart (belegt durch Tool-Output).
+4. Final: Chart (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: Zeig mir einen Chart: Januar 100, Februar 150, März 120, April 200 (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "generate_chart", "arguments": {"chart_type": "bar", "title": "Beispiel", "labels": "A,B"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: Chart.
+## Trace 2 (Edge case: error path)
+1. Input: Show me a chart: January 100, February 150, March 120, April 200 (source/path not found)
+2. ToolCall: {"name": "generate_chart", "arguments": {"chart_type": "bar", "title": "Example", "labels": "A,B"}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: Chart.

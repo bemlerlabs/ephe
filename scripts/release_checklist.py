@@ -31,7 +31,9 @@ What it refuses (a FAIL, exit 1):
 What it warns about without blocking:
   feed-wired          the updater pubkey or the endpoint list is empty, so a signed build would post
                       a feed no client reads.
-  signing-key         `~/.tauri/ephe.key` is absent, so the local signed build path cannot run.
+  signing-key         `~/.tauri/ephe.key` is absent, or its public half does not match
+                      `plugins.updater.pubkey`, so a local signed build would post a feed the
+                      client refuses.
   branch              HEAD is not `main`.
 
 Exit codes follow the other gates in `scripts/`: 0 the tree is ready to tag, 1 the checklist is
@@ -310,24 +312,23 @@ def check_tag_free(root: Path, release: str, remote: bool) -> Item:
     return Item("tag-free", "PASS", f"{tag} is free")
 
 
+def _updater_checks():
+    local = str(Path(__file__).resolve().parent)
+    if local not in sys.path:
+        sys.path.insert(0, local)
+    import release_checklist_updater
+
+    return release_checklist_updater
+
+
 def check_feed_wired(root: Path) -> Item:
-    try:
-        conf = read_json(root / TAURI_CONF)
-    except (OSError, ValueError, KeyError) as exc:
-        return Item("feed-wired", "SKIP", f"cannot read {TAURI_CONF}: {type(exc).__name__}")
-    updater = conf.get("plugins", {}).get("updater", {})
-    pubkey = updater.get("pubkey")
-    endpoints = updater.get("endpoints") or []
-    if not pubkey or not endpoints:
-        return Item("feed-wired", "WARN", "updater pubkey or endpoints empty; the feed would be dead")
-    return Item("feed-wired", "PASS", f"{len(endpoints)} endpoint(s), pubkey set")
+    status, detail = _updater_checks().feed_status(root)
+    return Item("feed-wired", status, detail)
 
 
-def check_signing_key() -> Item:
-    key = os.environ.get("EPHE_UPDATER_KEY") or str(Path.home() / ".tauri" / "ephe.key")
-    if Path(key).is_file():
-        return Item("signing-key", "PASS", "signing key present")
-    return Item("signing-key", "WARN", f"{key} missing; the local signed build cannot run")
+def check_signing_key(root: Path | None = None, key_path: str | None = None) -> Item:
+    status, detail = _updater_checks().signing_status(root or REPO, key_path)
+    return Item("signing-key", status, detail)
 
 
 def check_branch(root: Path) -> Item:
@@ -351,7 +352,7 @@ def run(root: Path, release: str | None, remote: bool) -> tuple[int, list[Item]]
         check_tree_committed(root),
         check_tag_free(root, release, remote),
         check_feed_wired(root),
-        check_signing_key(),
+        check_signing_key(root),
         check_branch(root),
     ]
     return (1 if any(i.status == "FAIL" for i in items) else 0), items

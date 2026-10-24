@@ -122,6 +122,64 @@ def test_master_true_has_no_notice(tmp_path) -> None:
     assert lifecycle.notices() == ()
 
 
+def test_two_instances_do_not_lose_each_others_switches(tmp_path) -> None:
+    """T-28: two surfaces load the same file; each writes one plugin."""
+    state = tmp_path / "plugin-state.json"
+    state.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "plugins": {
+                    "alpha": {"user": {"committed": "enabled", "version": "1.0.0"}},
+                    "beta": {"user": {"committed": "enabled", "version": "1.0.0"}},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    versions = {"alpha": "1.0.0", "beta": "1.0.0"}
+    first = PluginLifecycle(
+        state, versions=versions, audit_sink=lambda entry: None
+    )
+    second = PluginLifecycle(
+        state, versions=versions, audit_sink=lambda entry: None
+    )
+
+    first.set_enabled("alpha", False)
+    second.set_enabled("beta", False)
+
+    fresh = PluginLifecycle(
+        state, versions=versions, audit_sink=lambda entry: None
+    )
+    assert fresh.effective("alpha").state is PluginState.DISABLED
+    assert fresh.effective("beta").state is PluginState.DISABLED
+
+
+def test_a_concurrent_writer_keeps_a_committed_pause(tmp_path) -> None:
+    state = tmp_path / "plugin-state.json"
+    state.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "plugins": {
+                    "alpha": {"user": {"committed": "enabled", "version": "1.0.0"}},
+                    "beta": {"user": {"committed": "enabled", "version": "1.0.0"}},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    versions = {"alpha": "1.0.0", "beta": "1.0.0"}
+    first = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    second = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+
+    first.set_pause_all(True)
+    second.set_enabled("beta", False)
+
+    fresh = PluginLifecycle(state, versions=versions, audit_sink=lambda entry: None)
+    assert fresh.pause_all() is True
+
+
 def test_atomic_merge_preserves_unrelated_state(tmp_path) -> None:
     lifecycle = _lifecycle(
         tmp_path, {"web-research": "1.0.0", "memory": "1.0.0"}
@@ -137,8 +195,8 @@ def test_atomic_merge_preserves_unrelated_state(tmp_path) -> None:
 
 def test_portfolio_counts_and_no_deletion() -> None:
     registry = PluginRegistry.load(ROOT / "plugins", ROOT / "skills")
-    assert len(registry.plugins) == 14
-    assert len(registry.capabilities(CapabilityKind.SKILL)) == 51
+    assert len(registry.plugins) == 16
+    assert len(registry.capabilities(CapabilityKind.SKILL)) == 60
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7
     assert len(mcp_catalog.catalog_entries()) == 7
     legacy = json.loads((ROOT / "plugin-marketplace.json").read_text(encoding="utf-8"))

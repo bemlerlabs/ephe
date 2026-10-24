@@ -28,6 +28,8 @@ async def probe_ollama(base_url: str | None) -> tuple[bool, list[str], str, str]
         base = f"http://{base}"
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
+            # codeql[py/partial-ssrf]  (the engine URL is the user's own choice; this is a
+            # read-only reachability check against it, never a discovered or index-supplied host)
             resp = await client.get(f"{base}/api/tags")
             resp.raise_for_status()
             data = resp.json()
@@ -126,6 +128,8 @@ async def probe_openai_models(
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
+            # codeql[py/partial-ssrf]  (the engine URL is the user's own choice; the key is
+            # sent to the endpoint the user configured, and nowhere else)
             resp = await client.get(f"{base}/v1/models", headers=headers)
             resp.raise_for_status()
             data = resp.json()

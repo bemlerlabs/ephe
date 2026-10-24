@@ -1,0 +1,1163 @@
+{
+  "format": 2,
+  "metadata": {
+    "categories": {
+      "audio": {
+        "title": {
+          "en": "Audio"
+        }
+      },
+      "browser": {
+        "title": {
+          "en": "Browser"
+        }
+      },
+      "code": {
+        "title": {
+          "en": "Code"
+        }
+      },
+      "documents": {
+        "title": {
+          "en": "Documents"
+        }
+      },
+      "image": {
+        "title": {
+          "en": "Image"
+        }
+      },
+      "mcp": {
+        "title": {
+          "en": "Mcp"
+        }
+      },
+      "memory": {
+        "title": {
+          "en": "Memory"
+        }
+      },
+      "meta": {
+        "title": {
+          "en": "Meta"
+        }
+      },
+      "research": {
+        "title": {
+          "en": "Research"
+        }
+      },
+      "skills": {
+        "title": {
+          "en": "Skills"
+        }
+      },
+      "vision": {
+        "title": {
+          "en": "Vision"
+        }
+      }
+    },
+    "skill_tiers": {
+      "api-designer": "B",
+      "api-tester": "B",
+      "business-plan": "B",
+      "chart-creator": "A",
+      "checklist-maker": "B",
+      "code-metrics": "B",
+      "code-reviewer": "A",
+      "coding-agent": "A",
+      "competitor-analysis": "B",
+      "config-setup": "B",
+      "cover-letter": "B",
+      "cv-helper": "B",
+      "data-analyst": "A",
+      "debugger": "A",
+      "decision-matrix": "B",
+      "deck-creator": "A",
+      "diagram-creator": "A",
+      "document-factory": "A",
+      "docx-creator": "A",
+      "email-writer": "C",
+      "ephe-agent": "A",
+      "explain-expert": "C",
+      "file-assistant": "B",
+      "help": "C",
+      "image-creator": "C",
+      "json-helper": "B",
+      "meeting-notes": "C",
+      "pdf-creator": "A",
+      "plan": "C",
+      "project-assistant": "B",
+      "project-factory": "A",
+      "qrcode-creator": "A",
+      "quiz-maker": "C",
+      "refactor-helper": "B",
+      "regex-helper": "B",
+      "roadmap-planner": "B",
+      "security-review": "A",
+      "shell-helper": "B",
+      "social-media": "C",
+      "source-notebook": "A",
+      "sql-helper": "B",
+      "summarizer": "B",
+      "svg-creator": "A",
+      "swot-analyzer": "B",
+      "test-writer": "A",
+      "translator": "C",
+      "video-creator": "C",
+      "vision-assistant": "C",
+      "web-researcher": "A",
+      "writer": "C",
+      "xlsx-creator": "A"
+    }
+  },
+  "name": "ephe-bundled",
+  "owner": {
+    "name": "Ephe"
+  },
+  "plugins": [
+    {
+      "categories": [
+        "browser"
+      ],
+      "description": {
+        "en": "Real browser automation: navigate, click, type, screenshot — approval-gated."
+      },
+      "displayName": "Browser Use",
+      "icon": {
+        "alt": "Browser Use",
+        "dark": "icons/browser-use.svg",
+        "light": "icons/browser-use.svg"
+      },
+      "name": "browser-use",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "browser",
+              "read"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "df01cd2b70e50eac8f3e0118f8c96b382f03986f530f698d898b90d1063840a1",
+            "type": "zip",
+            "url": "artifacts/browser-use-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "skills"
+      ],
+      "description": {
+        "en": "Business plans, competitor analysis, SWOT, decision matrices, roadmaps, meetings."
+      },
+      "displayName": "Business",
+      "kind": "skill-pack",
+      "name": "business-pack",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "bundled",
+      "tiers": {
+        "A": 19,
+        "B": 20,
+        "C": 12
+      },
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {},
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "cc314cd5ed2455a9f36e3ef4877b65e415408f72208a1729f21d1912f4e32c4d",
+            "type": "zip",
+            "url": "artifacts/business-pack-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "code"
+      ],
+      "description": {
+        "en": "Coding loop: read, edit, patch, run tests, format and analyze code."
+      },
+      "displayName": "Code Shell",
+      "icon": {
+        "alt": "Code Shell",
+        "dark": "icons/code-shell.svg",
+        "light": "icons/code-shell.svg"
+      },
+      "measurement": {
+        "cases": 11,
+        "commit": "67b37bfc",
+        "date": "2026-10-23",
+        "model": "deepseek-chat",
+        "pass3": "10/11",
+        "provider": "openai_compatible",
+        "runs": 3
+      },
+      "name": "code-shell",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write",
+              "shell"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "f23bf84b0c11362e99c1916b84da2854ae389c94aaae4650f08ef74ff9207fa8",
+            "type": "zip",
+            "url": "artifacts/code-shell-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "skills"
+      ],
+      "description": {
+        "en": "Test writing, refactoring, debugging, API design, SQL, regex, code and security review."
+      },
+      "displayName": "Development",
+      "kind": "skill-pack",
+      "name": "dev-pack",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "bundled",
+      "tiers": {
+        "A": 19,
+        "B": 20,
+        "C": 12
+      },
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {},
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "e36ada18c9e110a6a3b506e78c66f44fe611570dbf17e8fe9398818abed672b9",
+            "type": "zip",
+            "url": "artifacts/dev-pack-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "documents"
+      ],
+      "description": {
+        "en": "Real document production: PDF, DOCX, QR codes, notebooks, briefs."
+      },
+      "displayName": "Documents",
+      "icon": {
+        "alt": "Documents",
+        "dark": "icons/documents.svg",
+        "light": "icons/documents.svg"
+      },
+      "measurement": {
+        "cases": 10,
+        "commit": "67b37bfc",
+        "date": "2026-10-23",
+        "model": "deepseek-chat",
+        "pass3": "9/10",
+        "provider": "openai_compatible",
+        "runs": 3
+      },
+      "name": "documents",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "docs",
+              "read"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "260e5595769da4d5a0a8967524f99359044dc4fd260cc1ae76b537d29396b5c7",
+            "type": "zip",
+            "url": "artifacts/documents-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "meta"
+      ],
+      "description": {
+        "en": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, doctor flows."
+      },
+      "displayName": "Guide",
+      "icon": {
+        "alt": "Guide",
+        "dark": "icons/guide.svg",
+        "light": "icons/guide.svg"
+      },
+      "name": "guide",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "commands"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "36d5bd4329a17dca837a9d61eea143ce0e184f10be1c00e1e036313f4b963034",
+            "type": "zip",
+            "url": "artifacts/guide-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "description": {
+        "en": "Image generation for posters, illustrations and concepts."
+      },
+      "displayName": "Image Studio",
+      "icon": {
+        "alt": "Image Studio",
+        "dark": "icons/image-studio.svg",
+        "light": "icons/image-studio.svg"
+      },
+      "name": "image-studio",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "network"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "d69121e1c79c15a330c1cd7c68da746098e922c5d73983de2db84ed29cbd8447",
+            "type": "zip",
+            "url": "artifacts/image-studio-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "documents"
+      ],
+      "description": {
+        "en": "One fact pack, four formats, one evidence gate: verified PDF, DOCX, XLSX and PPTX documents built locally."
+      },
+      "displayName": "Local Document Factory",
+      "icon": {
+        "alt": "Local Document Factory",
+        "dark": "icons/local-document-factory.svg",
+        "light": "icons/local-document-factory.svg"
+      },
+      "name": "local-document-factory",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "docs",
+              "read",
+              "write"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "d85c0a0473307427ce324bf2401c231fff62f88de995c8ab4f2ea86fe48fc0be",
+            "type": "zip",
+            "url": "artifacts/local-document-factory-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "mcp"
+      ],
+      "description": {
+        "en": "External tools via Model Context Protocol servers."
+      },
+      "displayName": "Mcp Connector",
+      "icon": {
+        "alt": "Mcp Connector",
+        "dark": "icons/mcp-connector.svg",
+        "light": "icons/mcp-connector.svg"
+      },
+      "name": "mcp-connector",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "network",
+              "shell"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "fb6a28a3c27292f2fff84d21ed685d51b3fb416a7476443e415ffed050f5810e",
+            "type": "zip",
+            "url": "artifacts/mcp-connector-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "memory"
+      ],
+      "description": {
+        "en": "Short- and long-term memory across sessions."
+      },
+      "displayName": "Memory",
+      "icon": {
+        "alt": "Memory",
+        "dark": "icons/memory.svg",
+        "light": "icons/memory.svg"
+      },
+      "measurement": {
+        "cases": 11,
+        "commit": "67b37bfc",
+        "date": "2026-10-23",
+        "model": "deepseek-chat",
+        "pass3": "10/11",
+        "provider": "openai_compatible",
+        "runs": 3
+      },
+      "name": "memory",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "memory"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "1c940fd21da71bc7bbb8d62202059b9692f113f6d6fe9809546eb415baccddd8",
+            "type": "zip",
+            "url": "artifacts/memory-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "skills"
+      ],
+      "description": {
+        "en": "Real local artifacts: PDFs, Excel sheets, Word documents, pitch decks, QR codes."
+      },
+      "displayName": "Office & Documents",
+      "kind": "skill-pack",
+      "name": "office-pack",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "bundled",
+      "tiers": {
+        "A": 19,
+        "B": 20,
+        "C": 12
+      },
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {},
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "ff3cb8ac8aba1e69840350f46a604224cfc8a673fcf2e9f941c86b71ff316439",
+            "type": "zip",
+            "url": "artifacts/office-pack-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "meta"
+      ],
+      "description": {
+        "en": "Create and validate Ephe plugins: scaffolds, permissions, signing."
+      },
+      "displayName": "Plugin Creator",
+      "icon": {
+        "alt": "Plugin Creator",
+        "dark": "icons/plugin-creator.svg",
+        "light": "icons/plugin-creator.svg"
+      },
+      "name": "plugin-creator",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "commands"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "ca56d4fcad8df985b9662ca9f462868057d6d2ce426b89db028827f077622263",
+            "type": "zip",
+            "url": "artifacts/plugin-creator-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "documents"
+      ],
+      "description": {
+        "en": "Real deck production: PPTX presentations, pitch decks, diagrams."
+      },
+      "displayName": "Presentations",
+      "icon": {
+        "alt": "Presentations",
+        "dark": "icons/presentations.svg",
+        "light": "icons/presentations.svg"
+      },
+      "measurement": {
+        "cases": 11,
+        "commit": "67b37bfc",
+        "date": "2026-10-23",
+        "model": "deepseek-chat",
+        "pass3": "10/11",
+        "provider": "openai_compatible",
+        "runs": 3
+      },
+      "name": "presentations",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "docs",
+              "read"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "66b42da8670d79da17a5d0a0cbb379ba9800e1ee8893d63de0e150a794beaec5",
+            "type": "zip",
+            "url": "artifacts/presentations-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "research"
+      ],
+      "description": {
+        "en": "A private research notebook: index local sources, answer with citations, export an evidence brief and a deck, audit the gaps."
+      },
+      "displayName": "Private Research Notebook",
+      "icon": {
+        "alt": "Private Research Notebook",
+        "dark": "icons/private-research-notebook.svg",
+        "light": "icons/private-research-notebook.svg"
+      },
+      "name": "private-research-notebook",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "network",
+              "docs"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "a7cca637f7a82bde5795ded1b5bfd2d17895142b84660116f57246c9ac8d514f",
+            "type": "zip",
+            "url": "artifacts/private-research-notebook-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "skills"
+      ],
+      "description": {
+        "en": "Web research, source notebooks, data analysis, explanations, quizzes, checklists."
+      },
+      "displayName": "Research & Learning",
+      "kind": "skill-pack",
+      "name": "research-pack",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "bundled",
+      "tiers": {
+        "A": 19,
+        "B": 20,
+        "C": 12
+      },
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {},
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "a99f8ac8a0d302f61a19c2fd906925e3d6ca27f72d494778279af7522e790f63",
+            "type": "zip",
+            "url": "artifacts/research-pack-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "meta"
+      ],
+      "description": {
+        "en": "Create and grade Ephe skill packs with rubric and golden gates."
+      },
+      "displayName": "Skill Creator",
+      "icon": {
+        "alt": "Skill Creator",
+        "dark": "icons/skill-creator.svg",
+        "light": "icons/skill-creator.svg"
+      },
+      "name": "skill-creator",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "commands"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "35af585d0e7bccd8803d33b412a9d098c89b66fc6d129cde835acf6a5b036cde",
+            "type": "zip",
+            "url": "artifacts/skill-creator-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "documents"
+      ],
+      "description": {
+        "en": "Real spreadsheet production: formatted XLSX workbooks and charts."
+      },
+      "displayName": "Spreadsheets",
+      "icon": {
+        "alt": "Spreadsheets",
+        "dark": "icons/spreadsheets.svg",
+        "light": "icons/spreadsheets.svg"
+      },
+      "measurement": {
+        "cases": 11,
+        "commit": "67b37bfc",
+        "date": "2026-10-23",
+        "model": "deepseek-chat",
+        "pass3": "10/11",
+        "provider": "openai_compatible",
+        "runs": 3
+      },
+      "name": "spreadsheets",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "docs",
+              "read"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "22469558755d7b312adcf0f1f6e279fbc91d1a5b9012d1b73da50b3acf717afa",
+            "type": "zip",
+            "url": "artifacts/spreadsheets-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "skills"
+      ],
+      "description": {
+        "en": "Superpowers workflow skills (MIT), adapted for Ephe: planning, TDD, code review, worktrees, verification."
+      },
+      "displayName": "Superpowers",
+      "kind": "skill-pack",
+      "name": "superpowers",
+      "provenance": "third-party",
+      "publisher": {
+        "name": "Jesse Vincent (MIT), pack by Ephe",
+        "verified": false
+      },
+      "quality_label": "bundled",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": []
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "5e608a36fb15d98cb5ef3052fb7ec221e5d772bdd3c8043f530073fcdb9f1fc4",
+            "type": "zip",
+            "url": "artifacts/superpowers-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "vision"
+      ],
+      "description": {
+        "en": "Vision-capable model reads screenshots and images."
+      },
+      "displayName": "Vision",
+      "icon": {
+        "alt": "Vision",
+        "dark": "icons/vision.svg",
+        "light": "icons/vision.svg"
+      },
+      "name": "vision",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "vision"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "a75c013801aa6f77f687a602ccfd31c91f3b7d44188b90b0c4a983a56ec58ef2",
+            "type": "zip",
+            "url": "artifacts/vision-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "description": {
+        "en": "Text-to-speech for answers and read-aloud."
+      },
+      "displayName": "Voice",
+      "icon": {
+        "alt": "Voice",
+        "dark": "icons/voice.svg",
+        "light": "icons/voice.svg"
+      },
+      "name": "voice",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "capability-preset",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": []
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "046210a89240f63f5763a11c6ab2e07581f04315767bd693a9f6955f379c1d0f",
+            "type": "zip",
+            "url": "artifacts/voice-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "research"
+      ],
+      "description": {
+        "en": "Live web research for the agent (opt-in, needs an API key)."
+      },
+      "displayName": "Web Research",
+      "icon": {
+        "alt": "Web Research",
+        "dark": "icons/web-research.svg",
+        "light": "icons/web-research.svg"
+      },
+      "measurement": {
+        "cases": 11,
+        "commit": "67b37bfc",
+        "date": "2026-10-23",
+        "model": "deepseek-chat",
+        "pass3": "10/11",
+        "provider": "openai_compatible",
+        "runs": 3
+      },
+      "name": "web-research",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "network"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "af0371dfea2f49ffc8767c94568ac309dbe11a1a7f589f2dc333529283ffe0d2",
+            "type": "zip",
+            "url": "artifacts/web-research-1.1.0.zip"
+          },
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "skills"
+      ],
+      "description": {
+        "en": "Writing, summaries, translation, explanations, CVs and cover letters."
+      },
+      "displayName": "Writing",
+      "kind": "skill-pack",
+      "name": "writing-pack",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "bundled",
+      "tiers": {
+        "A": 19,
+        "B": 20,
+        "C": 12
+      },
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills"
+          ],
+          "engines": {
+            "ephe": ">=0.1.3"
+          },
+          "permissions": {},
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "3fe5a249df302507fa43deff9dcf521c19ea2871c44120453f9d3bd6d3028f34",
+            "type": "zip",
+            "url": "artifacts/writing-pack-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    }
+  ]
+}

@@ -87,8 +87,7 @@ RSS_GROWTH_BUDGET_MB_PER_TURN = 0.5
 # below asserts it stays under the budget, so a future leak that lifts the profile and the
 # budget's 357x headroom (0.5 / 0.0014) cannot drift apart unnoticed.
 RSS_PROFILE_1000_MB_PER_TURN = 0.0014
-# turns the memory gate drives (warmup not measured); kept small so the serial step's own
-# budget still holds — measured ~22 ms/turn through the app with the engine stubbed.
+# Turn warmup excludes caches and allocator setup from the retained-growth window.
 N_MEMORY_TURNS = 60
 N_MEMORY_WARMUP_TURNS = 10
 # Startup is decided as a RATIO against a bare interpreter boot measured in the same
@@ -547,9 +546,17 @@ def test_long_session_memory_budget(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
     from core import multi_session as ms
+    from core.transcribe import warm_if_cached
     from server.main import create_app
 
     process = psutil.Process(os.getpid())
+    startup_before_mb = process.memory_info().rss / 1048576.0
+    startup_started = time.perf_counter()
+    # Lifespan otherwise loads cached speech weights concurrently with the turn window.
+    warm_if_cached()
+    startup_after_mb = process.memory_info().rss / 1048576.0
+    print(f"\n  [memory-startup] {startup_before_mb:.1f}MB -> {startup_after_mb:.1f}MB "
+          f"in {time.perf_counter() - startup_started:.3f}s (cached speech warmup)")
     session_turn = {"model": "gemma4:12b", "session_id": "bench-memory"}
 
     with (

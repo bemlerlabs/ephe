@@ -178,12 +178,25 @@ def test_client_builds_jsonrpc_headers():
 
 
 @pytest.mark.asyncio
-async def test_stdio_send_spawns_command_with_args():
+async def test_stdio_send_spawns_command_with_args(monkeypatch):
     """GIVEN a stdio client WITH args WHEN it lazily spawns THEN command+args are forwarded.
+
+    The Seatbelt wrapper is covered by tests/test_sc02_mcp_child.py; this test
+    measures the argv the spawn path builds.
 
     Regression: sync_mcp_tools dropped spec.args, so `npx -y <pkg>` started as a
     bare `npx` and every stdio server silently failed to launch.
     """
+    from core.tools import mcp_process
+
+    # A boundary is mandatory since S8; the wrapper's own argv is covered by
+    # tests/test_sc02_mcp_child.py, this test measures what follows it.
+    monkeypatch.setattr(
+        mcp_process.mcp_sandbox, "wrap",
+        lambda command, args, home: ["sandbox-exec", "-p", "profile", command, *args],
+    )
+    monkeypatch.setattr(mcp_process.mcp_sandbox, "platform_boundary", lambda: "seatbelt")
+    monkeypatch.setattr(mcp_process.mcp_sandbox, "home_for", lambda name: "/tmp/mcp-home")
     seen = {}
 
     class FakeProc:
@@ -222,7 +235,10 @@ async def test_stdio_send_spawns_command_with_args():
     finally:
         asyncio.create_subprocess_exec = orig
 
-    assert seen["cmd"] == ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~/Desktop"]
+    assert seen["cmd"] == [
+        "sandbox-exec", "-p", "profile",
+        "npx", "-y", "@modelcontextprotocol/server-filesystem", "~/Desktop",
+    ]
 
 
 def test_sync_mcp_tools_passes_stdio_args(monkeypatch):

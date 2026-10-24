@@ -25,18 +25,25 @@ never claimed from a smaller run.
 
 | Metric | Value |
 |---|---|
-| pass³ | **57 / 60 (95.0 %)** |
-| Families | τ-policy 94 % · GAIA-style 100 % · end-state 92 % |
+| pass³ | **56 / 60 (93.3 %)** |
+| Families | τ-policy 94 % · GAIA-style 100 % · end-state 92 % (as measured; see the correction) |
 | Wall-clock median | ~25 s per run |
 | TTFT median | ~155 ms (streaming first event) |
 | Cost of the full matrix | ~$0.50 (local-first engine) |
+
+The run originally read 57/60 (95.0 %). The 2026-10-12 correction in
+`evals/bench-trend.json` re-derived three phantom reps (K5 r3, W9 r2, W9 r3)
+and records 56/60 = 93.3 % as the honest figure. This page uses the corrected
+figure. The family rows remain the as-measured reading and follow the same
+correction.
 
 Every figure in that table is a single trend point and
 **volatile** — it moves with each run. The ledger is the authority when the two disagree; the table is
 the reading at commit `613a8945`.
 
 Scope: this is a **product benchmark**, not an academic SOTA claim. It measures Ephe's own success
-criteria with a fully reproducible harness (deterministic scoring, no LLM judge), and the tracked run
-manifests are the evidence. Methodology, family definitions, and the deliberate limits live in
-[`benchmark-mapping.md`](benchmark-mapping.md); the CI job re-aggregates pass³ from the
-manifests without any model in the loop.
+criteria with a fully reproducible harness (deterministic scoring, no LLM judge). The tracked
+50-task cohort is the release gate's evidence; it does not carry this 60-task run's engine
+provenance, and the two cohorts are not interchangeable. Methodology, family definitions, and the
+deliberate limits live in [`benchmark-mapping.md`](benchmark-mapping.md); the CI job re-aggregates
+pass³ from the manifests without any model in the loop.

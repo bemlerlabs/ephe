@@ -4,8 +4,8 @@ version: "1.0.0"
 trigger: /factory
 description: "Builds complete, runnable projects from one request: scaffold, real sources, tests, docs, git commit — verified by the evidence gate before anything is called done."
 tools: [scaffold_project, verify_artifact, run_tests, write_file, edit_file, read_file, list_directory, run_shell, manage_tasks, memory, skill_manage]
-when_to_use: [komplettes Projekt, Projekt von Grund auf, neues Projekt erstellen, Projektgeruest, Projekt erstellen fertig, ganzes Projekt, Millionen-Projekt, app from scratch, complete project, build me an app, new project with tests, project scaffold, full repo, scaffold a project, runnable prototype, cli tool build, small business software]
-when_not_to_use: [analyse an existing project, find projects on disk, single file edit, just explain code, pdf or deck only]
+when_to_use: [complete project, project from scratch, create new project, project scaffold, create project, whole project, app from scratch, build me an app, new project with tests, full repo, scaffold a project, runnable prototype, cli tool build, small business software, komplettes Projekt, Projekt von Grund auf, neues Projekt erstellen, Projektgeruest, Projekt erstellen fertig, ganzes Projekt, Millionen-Projekt]
+when_not_to_use: [analyze an existing project, find projects on disk, single file edit, just explain code, pdf or deck only, analyse an existing project]
 quality_profile: artifact
 allowed_tools: [scaffold_project, verify_artifact, run_tests, write_file, edit_file, read_file, list_directory, run_shell, manage_tasks, memory, skill_manage]
 artifact_types: [project]
@@ -46,7 +46,7 @@ Quality Gate (hard requirements before you write "done"):
 
 ```json
 {
-  "input": "/factory FastAPI-Projekt mit Tests",
+  "input": "/factory FastAPI project with tests",
   "steps": [
     {
       "tool": "scaffold_project",
@@ -68,11 +68,11 @@ Quality Gate (hard requirements before you write "done"):
       }
     }
   ],
-  "output": "OK: Projekt app angelegt, 12 Tests bestanden"
+  "output": "OK: project app created, 12 tests passed"
 }
 ```
 
 ## Test
 
-**Input**: /factory Baue einen Taschenrechner
+**Input**: /factory Build a calculator
 **Expect Contains**: README

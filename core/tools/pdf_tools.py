@@ -986,4 +986,4 @@ async def create_pdf(
     except ImportError:
         return "[pdf: reportlab is not installed — 'pip install reportlab']"
     except Exception as e:
-        return f"[pdf-Fehler: {e}]"
+        return f"[pdf error: {e}]"

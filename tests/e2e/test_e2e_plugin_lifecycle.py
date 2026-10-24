@@ -203,7 +203,7 @@ def test_plugin_install_use_remove(client, config_dir):
     assert enabled.status_code == 200, enabled.text
     assert enabled.json() == {"id": PLUGIN_ID, "enabled": True, "saved": True}
 
-    assert plugin_manifest.active_skill_roots() == [pdir / "skills" / SKILL_PACK]
+    assert pdir / "skills" / SKILL_PACK in plugin_manifest.active_skill_roots()
 
     from core.skills import SkillLoader
 

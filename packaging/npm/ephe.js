@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
  * npx ephe — one-command install wrapper (R20).
- * macOS/Linux: runs install.sh from the default branch (override with EPHE_INSTALL_URL).
+ * macOS/Linux: runs install.sh from the tag that matches this package
+ * (override with EPHE_INSTALL_URL).
  * Windows: runs install.ps1 through PowerShell, with `scoop install ephe` as the fallback.
  */
 const { spawn } = require('node:child_process')
+const { version } = require('./package.json')
 
-const INSTALL_SH =
-  process.env.EPHE_INSTALL_URL ||
-  'https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh'
-const INSTALL_PS1 = 'https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1'
+const RELEASE_BASE = `https://raw.githubusercontent.com/bemlerlabs/ephe/v${version}`
+const INSTALL_SH = process.env.EPHE_INSTALL_URL || `${RELEASE_BASE}/install.sh`
+const INSTALL_PS1 = `${RELEASE_BASE}/install.ps1`
 const args = process.argv.slice(2)
 
 console.log('◑ Ephe — one-command install')

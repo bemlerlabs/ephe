@@ -33,6 +33,8 @@ import {
   Palette,
   MoonStar,
   Hourglass,
+  Bot,
+  UsersRound,
 } from 'lucide-react'
 import type { TabKey } from './types'
 import type { SettingsPanelProps } from './types'
@@ -62,6 +64,16 @@ import { ShortcutsSection } from './model/sections-shortcuts'
 import { NetworkSection } from './model/sections-network'
 import { BehaviourSection } from './model/sections-behaviour'
 
+// Agent Center and Teams are their own lazy chunks: a reader who opens Engine
+// should not download two editors. The settings register is already a route
+// chunk; these are the second split inside it.
+const AgentsSection = React.lazy(() => import('./model/sections-agents'))
+const TeamsSection = React.lazy(() => import('./model/sections-teams'))
+
+function SectionSkeleton() {
+  return <div className="h-24 animate-pulse rounded-xl bg-surface/40" aria-hidden="true" />
+}
+
 export type { SettingsPanelProps, TabKey } from './types'
 export { VOICES } from './types'
 export { providerLabel, languageOptions } from './model/constants'
@@ -76,6 +88,8 @@ const NAV_ICON: Record<TabKey, React.ComponentType<{ className?: string }>> = {
   generation: SlidersHorizontal,
   skills: Wrench,
   cron: CalendarClock,
+  agents: Bot,
+  teams: UsersRound,
   artifacts: FileBox,
   ephemera: Hourglass,
   ephemeris: MoonStar,
@@ -107,7 +121,17 @@ export const NAV_GROUPS: { groupKey: string; keys: TabKey[] }[] = [
   },
   {
     groupKey: 'settings.groupCapabilities',
-    keys: ['engine', 'generation', 'voice', 'memory', 'persona', 'skills', 'cron'],
+    keys: [
+      'engine',
+      'generation',
+      'voice',
+      'memory',
+      'persona',
+      'skills',
+      'cron',
+      'agents',
+      'teams',
+    ],
   },
   {
     groupKey: 'settings.groupData',
@@ -141,6 +165,16 @@ export function useSettingsPanelModel(props: SettingsPanelProps) {
     generation: renderGeneration(model),
     skills: renderSkills(model),
     cron: renderCron(model),
+    agents: (
+      <React.Suspense fallback={<SectionSkeleton />}>
+        <AgentsSection model={model} />
+      </React.Suspense>
+    ),
+    teams: (
+      <React.Suspense fallback={<SectionSkeleton />}>
+        <TeamsSection model={model} />
+      </React.Suspense>
+    ),
     artifacts: renderArtifacts(model),
     ephemeris: renderEphemeris(model),
     tasks: renderTasks(model),

@@ -1,0 +1,49 @@
+{
+  "manifest_version": 1,
+  "name": "private-research-notebook",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "A private research notebook: index local sources, answer with citations, export an evidence brief and a deck, audit the gaps.",
+  "permissions": {
+    "tool_families": [
+      "read",
+      "network",
+      "docs"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [
+      "private-research-notebook"
+    ],
+    "commands": [
+      {
+        "name": "notebook-build",
+        "description": "Index local files into a private source notebook",
+        "template": "Build a source notebook from the local files in: {input}. Use create_source_notebook with the supplied paths; do not invent paths."
+      },
+      {
+        "name": "notebook-ask",
+        "description": "Answer a question only from indexed notebook evidence",
+        "template": "Answer from the source notebook: {input}. Use query_source_notebook and cite every grounded claim as [Sxxx-Cxxx]."
+      },
+      {
+        "name": "notebook-brief",
+        "description": "Export a source brief with an evidence register",
+        "template": "Export a source brief from the notebook: {input}. Use export_source_brief and list the evidence register and open gaps."
+      },
+      {
+        "name": "notebook-deck",
+        "description": "Turn the evidence into a PPTX deck with citations",
+        "template": "Build a deck from the source notebook: {input}. Use create_pptx_deck with one claim per slide and a citation in the speaker notes."
+      },
+      {
+        "name": "notebook-audit",
+        "description": "Audit citation coverage and name unsupported claims",
+        "template": "Audit the notebook evidence for: {input}. List supported claims, unsupported claims and missing sources; cite chunk IDs."
+      }
+    ]
+  },
+  "icon": "icon.svg",
+  "changelog": "1.0.0 - Private Research Notebook: five-command local evidence suite with citation contract and gap audit."
+}

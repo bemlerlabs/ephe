@@ -86,3 +86,27 @@ def test_a_disabled_dependency_blocks_enable(tmp_path) -> None:
     with pytest.raises(LifecycleError) as err:
         lifecycle.set_enabled("acme-research", True)
     assert err.value.code == "dependency_blocked"
+
+
+def test_an_already_effectively_on_plugin_still_checks_its_dependency(tmp_path) -> None:
+    lifecycle = PluginLifecycle(
+        tmp_path / "state.json",
+        versions={"acme-research": "1.4.0"},
+        dependencies={"acme-research": ("missing-pack",)},
+        audit_sink=lambda entry: None,
+    )
+    with pytest.raises(LifecycleError) as err:
+        lifecycle.set_enabled("acme-research", True)
+    assert err.value.code == "dependency_blocked"
+
+
+def test_a_cycle_is_blocked_at_enable(tmp_path) -> None:
+    lifecycle = PluginLifecycle(
+        tmp_path / "state.json",
+        versions={"a": "1.0.0", "b": "1.0.0"},
+        dependencies={"a": ("b",), "b": ("a",)},
+        audit_sink=lambda entry: None,
+    )
+    with pytest.raises(LifecycleError) as err:
+        lifecycle.set_enabled("a", True)
+    assert err.value.code == "dependency_cycle"

@@ -102,6 +102,7 @@ static BACKEND_CHILD: Mutex<Option<Child>> = Mutex::new(None);
 /// still holds no secret field.
 pub const KEY_ENV: &str = "EPHE_OPENAI_COMPAT_API_KEY";
 pub const KEY_FILE: &str = "engine.key";
+pub const KEY_SOURCE_ENV: &str = "EPHE_ENGINE_KEY_SOURCE";
 
 #[derive(Debug, Clone, Deserialize)]
 struct Eintrag {
@@ -451,7 +452,9 @@ fn starten(befehl: &Startbefehl, key: Option<&str>) -> std::io::Result<()> {
     // log line and no config file: a command line is visible in `ps` to every user
     // on the machine, the child's environment only to its own user.
     if let Some(value) = key {
-        cmd.env(KEY_ENV, value);
+        // The marker tells the Python guard the token came from the stored file,
+        // not an inherited shell export; it carries no credential.
+        cmd.envs([(KEY_ENV, value), (KEY_SOURCE_ENV, "file")]);
     }
     let child = cmd.spawn()?;
     if let Ok(mut guard) = BACKEND_CHILD.lock() {
