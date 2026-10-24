@@ -34,45 +34,59 @@ _REVIEW_FIELDS = (
     "local_trust_required",
     "approved_delta",
 )
-#: The fields a success payload may carry. `error` is deliberately absent: the
-#: service dictionaries use it for their own diagnostics, which can name a path
-#: or an exception, and a response is not the place for either.
-_PUBLIC_FIELDS = frozenset(
-    {
-        "status",
-        "name",
-        "version",
-        "installed_version",
-        "sha256",
-        "url",
-        "trust",
-        "signature",
-        "permissions",
-        "components",
-        "delta",
-        "approved_delta",
-        "allow_local_trust",
-        "source_id",
-        "source_title",
-        "stale",
-        "displayName",
-        "description",
-        "publisher",
-        "categories",
-        "icon",
-        "warning",
-        "enabled",
-        "activation_error",
-        "lockfile_error",
-        "data_removed",
-        "dependents",
-        "code",
-    }
-)
 
 
-def _public(body: dict) -> dict:
-    return {key: value for key, value in body.items() if key in _PUBLIC_FIELDS}
+def _compact(body: dict) -> dict:
+    return {key: value for key, value in body.items() if value is not None and value != ""}
+
+
+def _public_plan(plan: dict) -> dict:
+    """A plan success payload, field by field. `error` is never read: the service
+    dictionaries use it for diagnostics that can name a path or an exception."""
+    return _compact(
+        {
+            "status": plan.get("status"),
+            "name": plan.get("name"),
+            "version": plan.get("version"),
+            "installed_version": plan.get("installed_version"),
+            "sha256": plan.get("sha256"),
+            "url": plan.get("url"),
+            "trust": plan.get("trust"),
+            "signature": plan.get("signature"),
+            "permissions": plan.get("permissions"),
+            "components": plan.get("components"),
+            "delta": plan.get("delta"),
+            "approved_delta": plan.get("approved_delta"),
+            "allow_local_trust": plan.get("allow_local_trust"),
+            "source_id": plan.get("source_id"),
+            "source_title": plan.get("source_title"),
+            "stale": plan.get("stale"),
+            "displayName": plan.get("displayName"),
+            "description": plan.get("description"),
+            "publisher": plan.get("publisher"),
+            "categories": plan.get("categories"),
+            "icon": plan.get("icon"),
+        }
+    )
+
+
+def _public_result(result: dict) -> dict:
+    return _compact(
+        {
+            "status": result.get("status"),
+            "name": result.get("name"),
+            "version": result.get("version"),
+            "trust": result.get("trust"),
+            "warning": result.get("warning"),
+            "permissions": result.get("permissions"),
+            "enabled": result.get("enabled"),
+            "activation_error": result.get("activation_error"),
+            "lockfile_error": result.get("lockfile_error"),
+            "data_removed": result.get("data_removed"),
+            "dependents": result.get("dependents"),
+            "code": result.get("code"),
+        }
+    )
 
 _ERROR_STATUS = {
     "unknown_source": 404,
@@ -213,7 +227,7 @@ async def plan_install(body: dict) -> dict:
         ) from exc
     if plan.get("status") == "refused" or plan.get("status") == "permission_review":
         _refusal(str(plan.get("status")), plan)
-    return _public(plan)
+    return _public_plan(plan)
 
 
 @router.post("/market/install")
@@ -235,7 +249,7 @@ async def install_plan(body: dict) -> dict:
         _refusal("refused", result)
     if result.get("status") != "extracted":
         _refusal(str(result.get("code") or result.get("status") or "install_failed"), result)
-    return _public(result)
+    return _public_result(result)
 
 
 @router.post("/market/rollback")
@@ -253,7 +267,7 @@ async def rollback(body: dict) -> dict:
             status_code=409,
             detail={"code": status, "detail": _REFUSED},
         )
-    return _public(result)
+    return _public_result(result)
 
 
 @router.post("/market/remove")
@@ -281,4 +295,4 @@ async def remove_plugin(body: dict) -> dict:
                 },
             },
         )
-    return _public(result)
+    return _public_result(result)
