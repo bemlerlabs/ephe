@@ -613,24 +613,26 @@ def _probe_active_remote_engine(api_url: str, model: str) -> tuple[bool, str]:
     with 401 — reachable, yet reported as "not reachable" (measured against
     ``https://api.deepseek.com/v1`` on 2026-10-13, the endpoint this repository's own
     engine.json names). One implementation now serves doctor and `ephe start`.
-    """
-    try:
-        from core.engine_config import (
-            EngineChoice,
-            EngineKeyMismatch,
-            assert_engine_key_binding,
-        )
 
-        if model:
+    A stored key bound to another engine stops the probe before a request can send
+    it. Only the refusal is caught: a fault in the binding is not a reason to probe
+    anyway.
+    """
+    from core.engine_config import (
+        EngineChoice,
+        EngineKeyMismatch,
+        assert_engine_key_binding,
+    )
+
+    if model:
+        try:
             assert_engine_key_binding(
                 EngineChoice(
                     provider="openai_compatible", model=model, api_url=api_url
                 )
             )
-    except EngineKeyMismatch as exc:
-        return False, f"{exc} {exc.hint}"
-    except Exception:
-        pass
+        except EngineKeyMismatch as exc:
+            return False, f"{exc} {exc.hint}"
     return _probe_remote_engine(api_url, model)
 
 

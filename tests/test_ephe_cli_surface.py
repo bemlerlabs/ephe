@@ -889,6 +889,31 @@ def test_cmd_start_incomplete_engine_falls_back_to_setup(monkeypatch, tmp_path, 
     assert seen["env"].get("EPHE_OPENAI_COMPAT_BASE_URL") is None
 
 
+def test_cmd_start_refuses_an_unbound_engine_key(monkeypatch, tmp_path, capsys):
+    """A mismatched binding ends the start before the server is spawned."""
+    from core import engine_config
+
+    _patch_start_common(monkeypatch, tmp_path)
+    choice = _FakeChoice(ephe_cli.OPENAI_COMPAT, "gpt", api_url="http://remote/v1")
+    monkeypatch.setattr(ephe_cli, "resolve_engine_choice", lambda **_k: choice)
+
+    def refuse(_choice):
+        raise engine_config.EngineKeyMismatch("the stored engine key is bound to another engine")
+
+    monkeypatch.setattr(engine_config, "assert_engine_key_binding", refuse)
+    started: list[tuple] = []
+    monkeypatch.setattr(
+        ephe_cli, "_run",
+        lambda *a, **k: (started.append(a), types.SimpleNamespace(returncode=0))[1],
+    )
+
+    assert ephe_cli.cmd_start(_parser().parse_args(["start"])) == 1
+    out = capsys.readouterr().out
+    assert "bound to another engine" in out
+    assert "Fix: Re-enter the key" in out
+    assert started == []
+
+
 def test_cmd_start_remote_probe(monkeypatch, tmp_path, capsys):
     _patch_start_common(monkeypatch, tmp_path)
     monkeypatch.setattr(
@@ -1560,6 +1585,30 @@ def test_probe_active_remote_engine_delegates_to_the_shared_probe(monkeypatch):
         assert reachable is True, detail
     finally:
         server.shutdown()
+
+
+def test_probe_active_remote_engine_refuses_an_unbound_key(monkeypatch):
+    """A refusal is reported and no request is sent with the mismatched key."""
+    from core import engine_config
+
+    def refuse(_choice):
+        raise engine_config.EngineKeyMismatch("the stored engine key is bound to another engine")
+
+    monkeypatch.setattr(engine_config, "assert_engine_key_binding", refuse)
+    sent: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        ephe_cli, "_probe_remote_engine",
+        lambda url, model: (sent.append((url, model)), (True, "reachable"))[1],
+    )
+
+    reachable, detail = ephe_cli._probe_active_remote_engine(
+        "http://127.0.0.1:9/v1", "hosted-model"
+    )
+
+    assert reachable is False
+    assert "bound to another engine" in detail
+    assert "Re-enter the key" in detail
+    assert sent == []
 
 
 # Welle 1 "Isolation" — the verbs an operator runs a wave and reads its gate with.
