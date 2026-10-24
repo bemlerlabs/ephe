@@ -118,7 +118,7 @@ def test_the_lane_runs_in_its_own_nightly_workflow():
     jobs = document.get("jobs") or {}
     lane = jobs.get("picker-perf")
     assert lane is not None, "picker-perf.yml has no picker-perf job"
-    assert lane.get("runs-on") == "${{ vars.CI_LINUX_RUNNER }}", (
+    assert lane.get("runs-on") == "${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}", (
         "the perf lane does not use the shared measurement runner label"
     )
     runs = "\n".join(str(step.get("run", "")) for step in lane.get("steps") or [])

@@ -220,6 +220,22 @@ def test_the_allowlist_file_exists_and_documents_its_format() -> None:
     assert "secret-scan" in text or "secret_scan" in text
 
 
+def test_a_removed_binary_blob_is_skipped_not_fatal(sandbox) -> None:
+    """A tracked PNG deleted from the worktree is read from the index; decoding
+    that blob as text crashed the whole scan (0x89 at position 0)."""
+    work = sandbox["work"]
+    git = sandbox["git"]
+    binary = work / "image.png"
+    binary.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+    git("add", "image.png")
+    git("commit", "-qm", "binary")
+    binary.unlink()
+
+    result = run(["--all", "--root", str(work)], root=work, env=sandbox["env"])
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "1 binary skipped" in result.stderr
+
+
 def test_the_tracked_tree_is_clean_today() -> None:
     """The gate the workflow runs must be green on the tree it landed in."""
     result = run(["--all"])

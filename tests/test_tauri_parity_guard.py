@@ -162,10 +162,10 @@ def write_manifest(tmp_path: Path, data: dict) -> str:
 
 
 def test_the_committed_shell_manifest_agrees_with_the_app():
-    """Eleven routes in App.tsx and every platform read in app/src are declared, so the tree is clean."""
+    """Thirteen routes in App.tsx and every platform read in app/src are declared, so the tree is clean."""
     result = run_guard()
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "11 route(s)" in result.stdout, result.stdout
+    assert "13 route(s)" in result.stdout, result.stdout
     assert "are declared" in result.stdout, result.stdout
     assert "plugin pair(s) agree" in result.stdout, result.stdout
 

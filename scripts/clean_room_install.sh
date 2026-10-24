@@ -22,10 +22,10 @@
 # installing a resolver into the venv would add a package to the set under test.
 set -uo pipefail
 
-readonly UV_VERSION="${EPHE_UV_VERSION:-0.12.24}"
+readonly UV_VERSION="${EPHE_UV_VERSION:-0.13.5}"
 #: Node 22 LTS, fetched into the scratch root because the leg must not use setup-node.
-#: The digests are from nodejs.org/dist/v22.23.3/SHASUMS256.txt (read 2026-10-20).
-readonly NODE_VERSION="${EPHE_NODE_VERSION:-22.23.3}"
+#: Digests: nodejs.org/dist/v22.23.4/SHASUMS256.txt, verified 2026-10-23.
+readonly NODE_VERSION="${EPHE_NODE_VERSION:-22.23.4}"
 readonly EXTRAS=(--extra dev --extra tui)
 readonly TARGETS="${EPHE_CLEAN_ROOM_TARGETS:-py,js}"
 readonly WANT_REF="${EPHE_CLEAN_ROOM_REF:-HEAD}"
@@ -287,10 +287,10 @@ node_platform() {
 
 node_sha256() {
     case "$1" in
-        linux-x64) echo "1084aa36196bba4c3a5e69a1ee388a6e4ff729dad09445fbcd434b28fe3c24af" ;;
-        linux-arm64) echo "5ced2d48d1d7198739b7f86804de0171aefb6823b684b12341d3321afc3cb0b2" ;;
-        darwin-x64) echo "8a677b0219178efd6eb0e475457c4afb452b521a92f6e67845a73bd85727f2a8" ;;
-        darwin-arm64) echo "23b25245dcfb9af7262f8ff142e9e2e0af025368117329e7a7458a51e5922f53" ;;
+        linux-x64) echo "b8492284c76a54baf58d61668dd0e41ee0fc98adabf9503d30f05d08f55b4406" ;;
+        linux-arm64) echo "f7a1e486dbc8b286847815b477d4fb5e9fb963ed4489c3e1588853d685f589f9" ;;
+        darwin-x64) echo "efcc2b0db6f94bf53eddb038fe2b370277a042bd29e4f19b8f8e23598795b819" ;;
+        darwin-arm64) echo "c9e1dbc748b33ed2d14f42445191ecaf14c56259c7a9a26d0042c49ec2b66428" ;;
         *) return 1 ;;
     esac
 }

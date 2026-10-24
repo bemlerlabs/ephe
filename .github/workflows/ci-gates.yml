@@ -43,7 +43,7 @@ jobs:
     # user-owned private repository — see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so the
     # guard is here. Push, the weekly schedule and same-repo PRs keep running.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -106,7 +106,7 @@ jobs:
     name: Repository gates (architecture, language, prose)
     # Fork PRs are excluded for the reason given on the workflow-audit job.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -117,8 +117,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
-
+          node-version: 22.23.4
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -156,7 +155,7 @@ jobs:
     # time. The leg therefore runs on a push and on the weekly schedule; a pull request
     # skips it, because its branch push already ran it and the drop is caught there.
     if: github.event_name != 'pull_request'
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -176,6 +175,17 @@ jobs:
           pip install --upgrade pip
           pip install -e ".[dev,tui]"
           pip install "coverage==7.16.2"
+
+      - name: Enable user namespaces for the MCP sandbox
+        # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
+        # map a uid there and every stdio MCP server refuses to start. The product keeps that
+        # refusal; the test host provides the kernel setting the sandbox needs. Older images
+        # without the key stay green.
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
 
       - name: Produce the coverage report
         id: trace

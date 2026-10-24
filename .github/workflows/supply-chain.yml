@@ -109,6 +109,8 @@ env:
 jobs:
   advisories:
     name: Advisory audit and verdict (unaccounted findings, expiry and unknown IDs block)
+    # A fork PR must not run on the self-hosted runner.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.SUPPLY_CHAIN_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     steps:
@@ -147,7 +149,7 @@ jobs:
           set -uo pipefail
           # No -e here on purpose: a failed install must land in the resolution below, which names
           # the tool that is missing, rather than aborting on a pip traceback.
-          pip install --quiet "uv==0.12.24" "pip-audit==2.10.1" \
+          pip install --quiet "uv==0.13.5" "pip-audit==2.10.1" \
             || echo "::notice::the tool install did not complete; the resolution below names what is missing"
           if [ -n "${EPHE_LEG_VENV:-}" ] && ! pip -V | grep -q "$EPHE_LEG_VENV"; then
             echo "::error::install resolves outside the job's own venv: $(pip -V)"
@@ -334,7 +336,7 @@ jobs:
         run: python3 scripts/advisory_id_check.py
 
       - name: Set up Node
-        # The interpreter the guard below and the audit itself run on. `node-version: 22` is the
+        # The interpreter the guard below and the audit itself run on. `node-version: 22.23.4` is the
         # version Frontend Build type-checks and tests on. It is the only thing this action is asked
         # for: `actions/setup-node` provisions an interpreter and never a package manager. The step
         # used to carry `packageManager: pnpm@11.10.0` as well, which read as the source of `pnpm`
@@ -344,8 +346,7 @@ jobs:
         # (`frontend-build.yml`, `lockfile.yml`, `release.yml`, and `install.sh` on a user's box).
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
-
+          node-version: 22.23.4
       - name: Resolve the audit tools, JS side (blocking)
         # The same refusal for the other ecosystem, and the one place this job stops being polite
         # about the JS audit: the step below annotates an unparsable audit as an error but runs

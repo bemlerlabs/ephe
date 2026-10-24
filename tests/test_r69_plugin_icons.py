@@ -131,3 +131,42 @@ class TestIconRoute:
     def test_bad_id_404(self):
         client = self._client()
         assert client.get("/api/plugins/icon/..%2Fetc").status_code == 404
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            b"<svg><animate onbegin='alert(1)'/></svg>",
+            b"<svg><a href='&#106;avascript:alert(1)'>x</a></svg>",
+            b"<svg><image href='https://attacker.invalid/pixel.png'/></svg>",
+        ],
+    )
+    def test_unsafe_svg_variants_are_refused(
+        self, tmp_path, monkeypatch, payload
+    ) -> None:
+        cfg = tmp_path / "cfg"
+        pdir = cfg / "plugins" / "evil"
+        pdir.mkdir(parents=True)
+        (pdir / "ephe-plugin.json").write_text(
+            json.dumps(
+                {
+                    "manifest_version": 1,
+                    "name": "evil",
+                    "version": "1.0.0",
+                    "description": "icon probe",
+                    "permissions": {"tool_families": [], "data_roots": []},
+                    "components": {"skills": [], "commands": []},
+                    "icon": "icon.svg",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (pdir / "icon.svg").write_bytes(payload)
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(cfg))
+        assert self._client().get("/api/plugins/icon/evil").status_code == 404
+
+    def test_a_safe_icon_carries_nosniff_and_a_strict_csp(self):
+        response = self._client().get("/api/plugins/icon/documents")
+        assert response.status_code == 200
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert "default-src 'none'" in response.headers["content-security-policy"]
+        assert "frame-ancestors 'self'" in response.headers["content-security-policy"]

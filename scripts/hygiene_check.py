@@ -41,6 +41,9 @@ ARTIFACT_SOURCES = {
 }
 ARTIFACT_PATTERNS = {name: re.compile(src) for name, src in ARTIFACT_SOURCES.items()}
 
+#: A public verification key ships so signatures can be checked; it is not private state.
+PUBLIC_KEYS = frozenset({"plugins/first-party.pub.pem"})
+
 
 def tracked_files() -> list[str]:
     out = subprocess.run(["git", "ls-files", "-z"], capture_output=True, check=True, text=True)
@@ -58,7 +61,7 @@ def tracked_artifacts(files: list[str]) -> list[tuple[str, str]]:
     hits = []
     for name, pattern in ARTIFACT_PATTERNS.items():
         for path in files:
-            if pattern.search(path):
+            if pattern.search(path) and path not in PUBLIC_KEYS:
                 hits.append((name, path))
     return sorted(hits)
 

@@ -10,7 +10,7 @@ name: Shipped asset checks
 # `uv.lock` records (`name = "pillow"` followed by `version = ...`, currently 12.3.0) and puts exactly
 # that into a venv under `RUNNER_TEMP`, which the runner wipes. Reading it from the lock instead of
 # writing a number here is the difference between a pin and a habit -- the same reason the tests legs
-# install `uv==0.12.24` rather than `pip install uv`.
+# install `uv==0.13.5` rather than `pip install uv`.
 #
 # The floors in `scripts/asset_check.py` were measured on this tree, not chosen: the weakest of the 20
 # icons keeps a luminance spread of 180.9 at 16 px with all 256 pixels visible under both Pillow 12.2.0

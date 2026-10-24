@@ -4,8 +4,8 @@ version: "1.0.0"
 trigger: /video
 description: "Records the Ephe demo clips (chat, shell, tasks, palette, mobile) as GIF/WebP + hero banner via the built-in Playwright + ffmpeg pipeline."
 tools: [create_video, memory, skill_manage]
-when_to_use: [demo video, clips aufnehmen, readme material, product launch medien]
-when_not_to_use: [einzelbild png, nur texte, tabellen]
+when_to_use: [demo video, record clips, readme material, product launch media, clips aufnehmen, product launch medien]
+when_not_to_use: [single image png, text only, tables, einzelbild png, nur texte, tabellen]
 quality_profile: standard
 allowed_tools: [create_video, memory, skill_manage]
 artifact_types: [png]
@@ -38,12 +38,12 @@ Quality Gate:
 
 ```json
 {
-  "input": "/video Produkt-Teaser 15s",
+  "input": "/video product teaser 15s",
   "steps": [
     {
       "tool": "create_video",
       "args": {
-        "script": "1. Titel…",
+        "script": "1. Title...",
         "path": "/tmp/teaser.mp4"
       }
     }
@@ -53,6 +53,6 @@ Quality Gate:
 ```
 
 ## Test
-**Input**: Nimm die Demo-Clips auf
+**Input**: Record the demo clips
 **Expect Tool**: create_video
 **Expect Contains**: .mp4

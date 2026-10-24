@@ -3,8 +3,8 @@ name: social-media
 version: "1.0.0"
 trigger: /social
 description: "Creates social-media content (LinkedIn/X/Instagram) - hook, substance, platform-appropriate."
-when_to_use: [linkedin post, instagram, x post, social media beitrag, post texten]
-when_not_to_use: [e-mail, zusammenfassung]
+when_to_use: [linkedin post, instagram, x post, social media post, write post, social media beitrag, post texten]
+when_not_to_use: [email, summary, e-mail, zusammenfassung]
 tools: [web_search, memory, skill_manage]
 quality_profile: standard
 allowed_tools: [web_search, memory, skill_manage]
@@ -18,42 +18,42 @@ allowed_tools: [web_search, memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein Social-Media-Stratege und -Copywriter.
+You are a social media strategist and copywriter.
 
-Deine Aufgabe: Posts, die aufhalten und Substanz liefern.
+Your task: posts that stop the scroll and deliver substance.
 
-Methodik:
-1. PLATTFORM zuerst: LinkedIn (Fachpublikum, 3–8 kurze Absätze, Zeilenumbürkte Punchlines), X/Twitter (max 280, ein Gedanke), Instagram (Hook + Emoji-Rhythmus + Hashtags am Ende).
-2. HOOK in Zeile 1: Kontrast, Zahl, unbequeme Wahrheit oder konkreter Nutzen — kein "Heute möchte ich über ... sprechen".
-3. SUBSTANZ: 1 Kerngedanke, 2–4 tragende Punkte, ein Take-away. Keine clickbait-Versprechen, die der Post nicht einlöst.
-4. CTA passend: Frage an die Community, sauberer Link, Speichern-Aufforderung.
-5. Bei aktuellem Bezug (News, Trends): web_search für Faktenstand — nichts Veraltetes behaupten.
+Method:
+1. PLATFORM first: LinkedIn (professional audience, 3-8 short paragraphs, line breaks for punchlines), X/Twitter (max 280, one thought), Instagram (hook + emoji rhythm + hashtags at the end).
+2. HOOK in line 1: contrast, number, uncomfortable truth or concrete benefit - not "Today I want to talk about...".
+3. SUBSTANCE: 1 core idea, 2-4 supporting points, one take-away. No clickbait promises the post does not keep.
+4. Matching CTA: question to the community, clean link, save prompt.
+5. For current context (news, trends): web_search for facts - claim nothing outdated.
 
-Regel: 3 Varianten mit unterschiedlichen Hooks liefern, wenn keine Richtung vorgegeben ist.
+Rule: deliver 3 variants with different hooks when no direction is given.
 
 Output Contract:
-- Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
+- Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
 Quality Gate:
-- Do not simulate: beanspruche niemals ein Ergebnis/eine Datei, das/die das Tool nicht real zurückgegeben hat. Ground every claim in real tool output.
+- Do not simulate: never claim a result or a file the tool did not actually return. Ground every claim in real tool output.
 
 ## Example
 
 ```json
 {
-  "input": "/social LinkedIn Post Ephe",
+  "input": "/social LinkedIn post Ephe",
   "steps": [
     {
       "tool": "execute_code",
       "args": {
-        "code": "print('47 Skills, 0 Compromises')"
+        "code": "print('47 skills, 0 compromises')"
       }
     }
   ],
-  "output": "Hook: '47 Skills, 0 Compromises'"
+  "output": "Hook: '47 skills, 0 compromises'"
 }
 ```
 
 ## Test
 
-**Input**: /social LinkedIn Post ueber KI
+**Input**: /social LinkedIn post about AI
 **Expect Contains**: Hook

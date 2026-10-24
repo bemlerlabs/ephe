@@ -6,6 +6,8 @@ User and workspace switch state resolve workspace-first.
 """
 from __future__ import annotations
 
+import json
+import os
 import sys
 from pathlib import Path
 
@@ -90,6 +92,41 @@ async def test_a_plugin_file_tool_fails_closed_without_a_valid_workspace(
     monkeypatch.setenv("EPHE_WORKSPACE", "/")
     result = await execute_tool("read_file", {"path": str(target)})
     assert "access denied" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_a_relative_data_root_cannot_follow_a_workspace_symlink(scoped) -> None:
+    """GAP-01: `shared` is a workspace-relative root; resolving it must stay inside."""
+    from core import plugin_runtime
+    from core.tools.registry import execute_tool
+
+    workspace, outside = scoped
+    (workspace / "inside.txt").write_text("INSIDE-OK", encoding="utf-8")
+    (outside / "secret.txt").write_text("OUTSIDE-SECRET", encoding="utf-8")
+
+    plugin_dir = Path(os.environ["EPHE_CONFIG_DIR"]) / "plugins" / "code-shell"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "ephe-plugin.json").write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "name": "code-shell",
+                "version": "9.9.9",
+                "description": "scope probe",
+                "permissions": {"tool_families": ["read"], "data_roots": ["shared"]},
+                "components": {"skills": [], "commands": [], "tools": ["read_file"]},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (workspace / "shared").symlink_to(outside)
+    plugin_runtime.invalidate_ownership_cache()
+
+    inside = await execute_tool("read_file", {"path": str(workspace / "inside.txt")})
+    assert "INSIDE-OK" in inside
+    refused = await execute_tool("read_file", {"path": str(outside / "secret.txt")})
+    assert "access denied" in refused.lower()
+    assert "OUTSIDE-SECRET" not in refused
 
 
 def test_precedence(tmp_path) -> None:

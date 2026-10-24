@@ -856,6 +856,22 @@ def _typed_repair(name: str, arguments: dict, error_str: str) -> dict | None:
 # ── end of P1-2 / W7-9 ───────────────────────────────────────────────────────
 
 
+def _audit_schema_rejection(tool: str, arguments: dict, reason: str) -> None:
+    try:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "tool_refused",
+            tool=tool,
+            args=arguments,
+            decision="schema_rejected",
+            status="error",
+            detail=reason,
+        )
+    except Exception:
+        pass
+
+
 def _audit_plugin_gate(tool: str, decision: str, detail: str) -> None:
     try:
         from core.audit_log import audit_event
@@ -930,9 +946,11 @@ async def execute_tool(
     # SEC-1 backstop: the chat gate runs one frame above for the model's own calls,
     # but a delegated agent, a channel or a plugin can reach this dispatch directly.
     # A protected root is refused here as well, and the refusal is a line.
-    from core.path_guard import deny_paths
+    from core.path_guard import deny_paths, verifiable_artifact
 
     blocked = deny_paths(effective_args)
+    if blocked and name in {"verify_artifact", "qa_pptx_deck", "inspect_pptx_template"}:
+        blocked = [value for value in blocked if not verifiable_artifact(value)]
     if blocked:
         try:
             from core.audit_log import audit_event
@@ -972,6 +990,17 @@ async def execute_tool(
             )
             return (
                 f"[Tool '{name}' refused: the in-flight guard could not be registered.]"
+            )
+        if guard.cancelled and guard.from_other_process:
+            from core import plugin_activity
+
+            plugin_activity.end_call(guard)
+            _audit_plugin_gate(
+                name, "cancelled_elsewhere", f"plugin={plugin_owner}"
+            )
+            return (
+                f"[Tool '{name}' refused: a cancel from another process is in "
+                f"effect for plugin '{plugin_owner}'.]"
             )
 
     file_scope = PLUGIN_FILE_SCOPE.set(plugin_owner) if plugin_owner else None
@@ -1052,16 +1081,49 @@ async def _execute_tool_core(
     # MCP remote tools (namespace 'mcp_') are dispatched separately.
     mcp_tools = get_mcp_tools()
     if name in mcp_tools:
+        import time as _time
+
+        from core.audit_log import audit_event as _mcp_audit
+        from core.quality import is_error_result, result_decision
+
+        _mcp_audit("tool_start", tool=name, args=arguments)
+        _started = _time.monotonic()
         try:
             text, is_error = await call_registered_mcp_tool(name, arguments)
             prefix = "[MCP-tool-error] " if is_error else ""
             result = f"{prefix}{text}"
+            _mcp_audit(
+                "tool_exec",
+                tool=name,
+                args=arguments,
+                status="error" if is_error_result(result) else "ok",
+                decision=result_decision(result),
+                duration_ms=int((_time.monotonic() - _started) * 1000),
+                detail=result[:300],
+            )
         except Exception as exc:
             result = _error_line(f"[MCP-tool-error '{name}': {exc}]", exc)
+            _mcp_audit(
+                "tool_exec",
+                tool=name,
+                args=arguments,
+                status="error",
+                duration_ms=int((_time.monotonic() - _started) * 1000),
+                detail=str(exc)[:300],
+            )
         return _run_tool_hooks("post", name, (arguments, result))[1]
 
     func = TOOL_MAP.get(name)
     if func is None:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "tool_refused",
+            tool=name,
+            args=arguments,
+            decision="unknown_tool",
+            status="error",
+        )
         return _run_tool_hooks("post", name, (arguments, f"[Tool '{name}' not found]"))[
             1
         ]
@@ -1081,8 +1143,10 @@ async def _execute_tool_core(
             if retry_error is None:
                 arguments = repaired  # reparierte Args verwenden
             else:
+                _audit_schema_rejection(name, arguments, validation_error)
                 return _run_tool_hooks("post", name, (arguments, validation_error))[1]
         else:
+            _audit_schema_rejection(name, arguments, validation_error)
             return _run_tool_hooks("post", name, (arguments, validation_error))[1]
 
     # R23: audit around EVERY execution (duration + status; payload redacted).
@@ -1090,6 +1154,9 @@ async def _execute_tool_core(
 
     from core.audit_log import audit_event
 
+    # A call that hangs or kills the worker writes no completion; the start line
+    # is what makes its absence readable as "began and never returned".
+    audit_event("tool_start", tool=name, args=arguments)
     _started = _time.monotonic()
     try:
         result = await func(**arguments)

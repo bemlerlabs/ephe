@@ -63,6 +63,18 @@
       "anchor": "[data-testid=\"panel-chat\"]"
     },
     {
+      "path": "/settings",
+      "probe": "/settings",
+      "page": "SettingsPage",
+      "anchor": "[data-testid=\"settings-page\"]"
+    },
+    {
+      "path": "/settings/:tab",
+      "probe": "/settings/agents",
+      "page": "SettingsPage",
+      "anchor": "[data-testid=\"settings-page\"]"
+    },
+    {
       "path": "*",
       "probe": "/no-such-route",
       "page": "UnknownRoute",

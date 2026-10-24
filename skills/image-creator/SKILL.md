@@ -3,7 +3,7 @@ name: image-creator
 version: "1.0.0"
 trigger: /image
 description: "Generates real images (PNG/JPEG) via text-to-image - locally through an OpenAI-compatible image endpoint (e.g. LocalAI with Stable Diffusion) or a cloud provider of your choice."
-when_to_use: [bild erzeugen, generate image, foto generieren, text-zu-bild]
+when_to_use: [generate image, create image, generate photo, text-to-image, bild erzeugen, foto generieren, text-zu-bild]
 when_not_to_use: [svg, diagramm, qr code]
 tools: [generate_image, memory, skill_manage]
 quality_profile: standard
@@ -38,12 +38,12 @@ Quality Gate:
 
 ```json
 {
-  "input": "/image Logo in Aquarell-Optik",
+  "input": "/image logo in watercolor style",
   "steps": [
     {
       "tool": "generate_image",
       "args": {
-        "prompt": "Aquarell-Logo",
+        "prompt": "Watercolor logo",
         "size": "512x512"
       }
     }
@@ -53,6 +53,6 @@ Quality Gate:
 ```
 
 ## Test
-**Input**: Erstelle ein Bild von einem Fuchs im Schwarzwald
+**Input**: Create an image of a fox in the Black Forest
 **Expect Tool**: generate_image
 **Expect Contains**: PNG_FILE

@@ -108,7 +108,7 @@ def test_the_frontend_gate_runs_the_same_checks_as_the_frontend_build():
     setup = [step for step in _steps(job) if "setup-node" in str(step.get("uses", ""))]
     assert setup, "the gate has no actions/setup-node step"
     with_block = setup[0].get("with") or {}
-    assert str(with_block.get("node-version")) == "22", "the gate is not on Node 22"
+    assert str(with_block.get("node-version")) == "22.23.4", "the gate is not on Node 22.23.4"
     assert with_block.get("package-manager-cache") is False, (
         "a release gate must not restore a package-manager cache (cache poisoning)"
     )

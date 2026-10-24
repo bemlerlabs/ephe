@@ -4,8 +4,8 @@ version: "1.0.0"
 trigger: /ephe
 description: "Ephe, the Ephe coding agent: plan first, work step by step, verify every step - with hard step and repair budgets."
 tools: [read_file, list_directory, edit_file, write_file, run_tests, verify_artifact, run_shell, file_search, execute_code, todo_list, memory, skill_manage]
-when_to_use: [ephe, projekt erstellen, grosses feature, multi step, mehrere dateien, refactor projekt, build something, implement feature]
-when_not_to_use: [eine zeile fixen, nur erklaeren, code review, rede]
+when_to_use: [ephe, create project, large feature, multi step, multiple files, refactor project, build something, implement feature, projekt erstellen, grosses feature, mehrere dateien, refactor projekt]
+when_not_to_use: [fix one line, explain only, code review, talk, eine zeile fixen, nur erklaeren, rede]
 quality_profile: standard
 allowed_tools: [read_file, list_directory, edit_file, write_file, run_tests, verify_artifact, run_shell, file_search, execute_code, todo_list, memory, skill_manage]
 artifact_types: []
@@ -59,7 +59,7 @@ Quality Gate:
 
 ```json
 {
-  "input": "/ephe alle Tests zum Laufen bringen",
+  "input": "/ephe get all tests running",
   "steps": [
     {
       "tool": "read_file",
@@ -80,7 +80,7 @@ Quality Gate:
       }
     }
   ],
-  "output": "OK: 2247 Tests, 2152 bestanden"
+  "output": "OK: 2247 tests, 2152 passed"
 }
 ```
 

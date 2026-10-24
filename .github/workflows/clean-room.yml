@@ -44,6 +44,8 @@ env:
 jobs:
   clean-room:
     name: Cold install from a fresh clone (py${{ matrix.python-version }})
+    # A fork PR must not run on the self-hosted runner.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     # The three interpreters of tests.yml's literal matrix, so a lock that only installs on the
     # versions CI already tests cannot pass here. tests/test_clean_room_workflow.py compares the two
     # lists: a leg that silently drops an interpreter would be a green answer to an unasked question.

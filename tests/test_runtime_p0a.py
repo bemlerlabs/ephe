@@ -64,9 +64,12 @@ def test_the_redactor_pairs_each_private_key_block_once() -> None:
     masked = redact(two)
     assert "first-body" not in masked and "second-body" not in masked
     assert masked.count("***") == 2
-    # A header without a footer is not a block, and the redactor must not invent one.
-    unclosed = "-----BEGIN RSA PRIVATE KEY-----\nno footer"
-    assert redact(unclosed) == unclosed
+    # An audit detail is cut at 300 characters and an error message can be
+    # truncated anywhere, so an unclosed header is the normal shape of a key that
+    # leaked: what follows it is key material and is masked to the end.
+    unclosed = "prefix -----BEGIN RSA PRIVATE KEY-----\nno footer"
+    assert "no footer" not in redact(unclosed)
+    assert redact(unclosed).endswith("***")
 
 
 def test_the_redactor_walks_nested_event_payloads() -> None:
@@ -267,3 +270,22 @@ def test_a_late_approval_is_gone(monkeypatch) -> None:
     assert exc.value.status_code == 410
     assert token in chat._expired_sandbox_tokens
     assert token not in chat._active_sandbox_events
+
+
+def test_the_verifier_may_read_a_generated_artifact(tmp_path: Path, monkeypatch) -> None:
+    from core.tools.chat_gate import confirm_for_chat
+
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    artifact = tmp_path / "artifacts" / "session" / "brief.pdf"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(b"%PDF-1.4")
+
+    for tool, key in (
+        ("verify_artifact", "path"),
+        ("qa_pptx_deck", "pptx_path"),
+        ("inspect_pptx_template", "path"),
+    ):
+        allowed, denial = asyncio.run(
+            confirm_for_chat(tool, {key: str(artifact)}, on_confirm=None)
+        )
+        assert allowed and not denial, tool

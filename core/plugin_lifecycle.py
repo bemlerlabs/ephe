@@ -14,6 +14,7 @@ the legacy map once. The HTTP route, SSE and the UI switch map
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 from collections.abc import Callable, Iterable, Mapping
@@ -33,9 +34,33 @@ from core.plugin_lifecycle_types import (
     PluginSnapshot,
     PluginState,
     Scope,
-    _Pending,
     _default_audit,
+    _Pending,
 )
+
+__all__ = [
+    "DEFAULT_SCOPE",
+    "SCOPES",
+    "STATE_FILENAME",
+    "LifecycleError",
+    "PluginLifecycle",
+    "PluginSnapshot",
+    "PluginState",
+    "subscribe",
+    "unsubscribe",
+]
+
+
+logger = logging.getLogger(__name__)
+
+
+def _audit_refusal(plugin: str, code: str, detail: str) -> None:
+    """A refused switch is an event, not a silence: the forensic record needs it."""
+    from core.audit_log import audit_event
+
+    audit_event(
+        "plugin_refusal", tool=plugin, decision=code, status="refused", detail=detail,
+    )
 
 
 class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions):
@@ -66,6 +91,7 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
         self._token = 0
         self._unproven = False
         self._seen_signature = None
+        self._loaded_data: dict[str, Any] = {}
         self._data: dict[str, Any] = {
             "schema": SCHEMA_VERSION,
             "pause_all": False,
@@ -81,6 +107,18 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
     def snapshot(self, name: str, scope: str | Scope = DEFAULT_SCOPE) -> PluginSnapshot:
         with self._lock:
             return self._snapshot_locked(self._known(name), self._scope(scope))
+
+    def has_committed_state(self, name: str, scope: str | Scope = DEFAULT_SCOPE) -> bool:
+        """Whether this plugin has an explicit switch record in the state file.
+
+        A fresh install or a legacy registry entry has none; the caller then
+        falls back to the registry rather than the default-on snapshot.
+        """
+        with self._lock:
+            try:
+                return self._entry(self._known(name), self._scope(scope)) is not None
+            except LifecycleError:
+                return False
 
     def effective(self, name: str) -> PluginSnapshot:
         with self._lock:
@@ -129,6 +167,7 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
                 expected_version is not None
                 and expected_version != self._versions[plugin]
             ):
+                _audit_refusal(plugin, "stale_state", "version mismatch")
                 raise LifecycleError(
                     "stale_state",
                     409,
@@ -136,12 +175,38 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
                     current,
                 )
             if expected_etag is not None and expected_etag != current.etag:
+                _audit_refusal(plugin, "stale_state", "etag mismatch")
                 raise LifecycleError(
                     "stale_state",
                     409,
                     "etag does not match the committed state",
                     current,
                 )
+            if enabled:
+                # The HTTP route checks before it gets here; this is the gate the
+                # CLI and every direct caller also pass through.
+                from core import plugin_signing
+
+                ok, reason = plugin_signing.verify_enable(plugin)
+                if not ok:
+                    from core.audit_log import audit_event
+
+                    audit_event(
+                        "plugin_gate",
+                        tool=plugin,
+                        decision="signature_denied",
+                        detail=reason,
+                    )
+                    raise LifecycleError("signature_denied", 409, reason, current)
+                blocked = self._blocked_dependency(plugin)
+                if blocked is not None:
+                    _audit_refusal(plugin, "dependency_blocked", blocked)
+                    raise LifecycleError("dependency_blocked", 409, blocked, current)
+                cycle = self._dependency_cycle(plugin)
+                if cycle is not None:
+                    raise LifecycleError(
+                        "dependency_cycle", 409, " -> ".join(cycle), current
+                    )
 
             request = {
                 "enabled": enabled,
@@ -178,14 +243,15 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
             ):
                 if key:
                     self._remember(key, request, current)
+                    try:
+                        self._persist(keep=(plugin, scope_value))
+                    except LifecycleError:
+                        self._data["idempotency"].pop(key, None)
+                        raise
                 return current
 
             before = self.effective(plugin).enabled
             after = self._preview_effective(plugin, scope_value, enabled)
-            if enabled and after and not before:
-                blocked = self._blocked_dependency(plugin)
-                if blocked is not None:
-                    raise LifecycleError("dependency_blocked", 409, blocked, current)
             if not enabled and before and not after:
                 dependents = self._enabled_dependents(plugin)
                 if dependents:
@@ -260,11 +326,15 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
     def set_pause_all(
         self, enabled: bool, *, actor: str = "user", reason: str = ""
     ) -> dict[str, Any]:
+        if not isinstance(enabled, bool):
+            raise LifecycleError(
+                "invalid_request", 400, "pause_all must be a boolean"
+            )
         with self._lock:
             previous = bool(self._data.get("pause_all"))
-            if previous is bool(enabled):
+            if previous is enabled:
                 return {"pause_all": previous, "changed": False}
-            self._data["pause_all"] = bool(enabled)
+            self._data["pause_all"] = enabled
             try:
                 self._persist()
             except LifecycleError:
@@ -283,8 +353,18 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
                 reason=reason,
                 status="committed",
             )
-            self._publish("plugin.paused", {"pause_all": bool(enabled)})
-            return {"pause_all": bool(enabled), "changed": True}
+            if not enabled:
+                # An enable committed while paused deliberately did not start
+                # its resource; unpause is where it starts.
+                for name in sorted(self._versions):
+                    snapshot = self.effective(name)
+                    if snapshot.enabled and snapshot.state is not PluginState.FAILED:
+                        try:
+                            self._activator(name)
+                        except Exception:
+                            logger.exception("activating %s on unpause failed", name)
+            self._publish("plugin.paused", {"pause_all": enabled})
+            return {"pause_all": enabled, "changed": True}
 
     def import_legacy(self, legacy_path: Path) -> tuple[str, ...]:
         """Imports explicit legacy per-plugin states once (ADR-004, option B2).
@@ -379,11 +459,25 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
                 return dependency
         return None
 
+    def _dependency_cycle(self, plugin: str) -> list[str] | None:
+        def walk(name: str, path: list[str]) -> list[str] | None:
+            if name in path:
+                return path[path.index(name) :] + [name]
+            for dependency in self._dependencies.get(name, ()):
+                if dependency not in self._versions:
+                    continue
+                found = walk(dependency, [*path, name])
+                if found is not None:
+                    return found
+            return None
+
+        return walk(plugin, [])
+
     def _enabled_dependents(self, plugin: str) -> list[str]:
         return sorted(
             name
             for name, dependencies in self._dependencies.items()
             if plugin in dependencies
             and name in self._versions
-            and self.effective(name).active
+            and self.effective(name).enabled
         )

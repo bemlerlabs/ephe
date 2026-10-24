@@ -19,6 +19,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from core.path_guard import denied
 from core.tools.base import _get_allowed_roots, allowed_root_of
 
 router = APIRouter(tags=["FS"])
@@ -43,7 +44,9 @@ def _in_allowed_roots(resolved: Path) -> bool:
 
 @router.get("/fs", tags=["FS"])
 async def list_fs(path: str = Query("", description="Verzeichnis; leer = Startpunkt (Home)")) -> dict:
-    home = Path.home()
+    # Resolve once: a symlinked HOME (/tmp -> /private/tmp) otherwise fails the
+    # equality against its own resolved form and 403s the default listing.
+    home = Path.home().resolve()
     raw = (path or "").strip()
     if not raw:
         target = home
@@ -67,6 +70,8 @@ async def list_fs(path: str = Query("", description="Verzeichnis; leer = Startpu
             target = Path(probe)
 
     is_dir_entry = target == home.resolve()
+    if denied(target):
+        raise HTTPException(status_code=403, detail="path is protected")
     if not is_dir_entry and not _in_allowed_roots(target):
         raise HTTPException(status_code=403, detail="path not in allowed roots")
     if not target.is_dir():

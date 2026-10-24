@@ -271,9 +271,9 @@ def test_engine_not_configured_carries_the_fixed_hint():
 
 
 def _resolver_source() -> str:
-    """The three functions the resolver is made of, read out of the module file."""
+    """The functions the resolver is made of, read out of the module file."""
     text = (ROOT / "core" / "engine_config.py").read_text(encoding="utf-8")
-    wanted = {"engine_api_key_for", "_key_file", "key_file_path"}
+    wanted = {"engine_api_key_for", "resolve_engine_api_key", "_key_file", "key_file_path"}
     tree = ast.parse(text)
     bodies = [
         ast.get_source_segment(text, node)

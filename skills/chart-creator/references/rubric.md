@@ -1,8 +1,8 @@
 # Quality Rubric
 
-1. Extrahiere Daten aus der Nutzereingabe (Zahlen, Tabellen, Listen).
-2. Wähle den passenden Chart-Typ: bar (Vergleiche), line (Trends), pie (Anteile).
-3. Rufe IMMER generate_chart auf — antworte nie nur mit Text.
-4. Erkläre kurz was der Chart zeigt.
-5. Verwende präzise Labels und einen aussagekräftigen Titel.
+1. Extract data from the user input (numbers, tables, lists).
+2. Choose the right chart type: bar (comparisons), line (trends), pie (shares).
+3. Always call generate_chart - never answer with text alone.
+4. Briefly explain what the chart shows.
+5. Use precise labels and a meaningful title.
 6. Ground every number/path on real tool output; no simulated output without a returned path.

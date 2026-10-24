@@ -42,7 +42,7 @@ def cell_runtime_license() -> str:
     try:
         from importlib.metadata import metadata, version
 
-        lizenz = (metadata("ephemora-cell").get("License") or "unbekannt").strip()
+        lizenz = (metadata("ephemora-cell").get("License") or "unknown").strip()
         return f"{lizenz} (ephemora-cell {version('ephemora-cell')})"
     except Exception:  # noqa: BLE001 — the card must not be missing over an unknown licence
         return "ephemora-cell: Version unbestimmt"
@@ -67,7 +67,7 @@ def policy_snapshot() -> dict[str, Any]:
         "quota_scopes": {
             "disk_quota_bytes": "je Datei — durchgesetzt von der Engine (RLIMIT_FSIZE, EFBIG)",
             "work_quota_bytes": "je Session ueber alle Dateien — durchgesetzt von ephe (sweep_work_dir)",
-            "io_budget_bytes": "nur der Sandbox-Ordner der Engine, nicht /work — meldet hier stets 0",
+            "io_budget_bytes": "only the engine sandbox folder, not /work - reports 0 here",
             "io_cpu_seconds": "Host-CPU-Wall des Workers — deckelt Schreiblast im Preopen zeitlich",
         },
         "output_cap_bytes": OUTPUT_CAP_BYTES,

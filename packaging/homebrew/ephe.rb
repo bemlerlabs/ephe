@@ -8,9 +8,9 @@
 # version and the sha256 from the published release. This file is the template it reads, so
 # keep its shape; the numbers are checked against the release by scripts/packaging_freshness.py.
 cask "ephe" do
-  version "0.1.1"
+  version "0.1.3"
   license "BUSL-1.1"
-  sha256 "bfbc3b5f25abc82f0927b69e6cdb00da2807a084a8e3ba28796d331bef9cd171" # 0.1.0 candidate DMG; render_packaging replaces it at release
+  sha256 "fe79c63f40c8091f22e233adc0fb2005d63258a3a088a1dbc1c5bacbbcedf0ba" # 0.1.0 candidate DMG; render_packaging replaces it at release
 
   url "https://github.com/bemlerlabs/ephe/releases/download/v#{version}/Ephe_#{version}_aarch64.dmg"
   name "Ephe"

@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "web-research",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Live web research for the agent (opt-in, needs an API key).",
   "permissions": {
     "tool_families": [
@@ -11,12 +11,24 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "web-research"
+    ],
     "commands": [
       {
         "name": "research",
         "description": "Run deep research on a topic",
         "template": "Run thorough research on: {input}. Use web_search and fetch_url for real sources, then write a structured brief with citations."
+      },
+      {
+        "name": "cite",
+        "description": "Verify sources and quote the evidence",
+        "template": "Verify the sources for: {input}. Return each claim with a direct URL, publication date and the quoted passage; mark anything unverified."
+      },
+      {
+        "name": "compare",
+        "description": "Compare sources and name conflicts",
+        "template": "Compare the sources on: {input}. Use a table of claim, source, date and agreement; state where the sources conflict."
       }
     ],
     "tools": [
@@ -25,5 +37,6 @@
     ]
   },
   "origin": "first-party",
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

@@ -36,6 +36,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # became its own lazy chunk, opened rather than painted. Measured 29.48 kB
     # gzip; the row carries ~10% headroom. ChatPage now measures 83.82 kB.
     "SettingsPanel.js": 32.5,
+    # 2026-10-22: the scheduler panel crossed the 12 kB small ceiling after the
+    # Agent Center and Teams sections moved into their own lazy chunks. Measured
+    # 13.45 kB gzip; the row carries ~10% headroom.
+    "SchedulerPanel.js": 14.8,
     "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
     "motion.js": 30.8,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion)
     "ui-vendor.js": 40.0,    # lucide-react, i18next
@@ -63,8 +67,13 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # and held-back-restart sentences, so one German reader downloads 0.19 kB
     # more than the old ceiling allowed. Measured again from app/dist:
     # de.js 35.57 kB, en.js 32.24 kB; both rows carry ~9% headroom.
-    "de.js": 38.8,           # measured 35.57
-    "en.js": 35.2,           # measured 32.24
+    # 2026-10-22: the Agent Center and Agent Teams surfaces added one locale
+    # block (agents, teams, templates, run states, form labels), measured from
+    # app/dist after the two sections moved into their own lazy chunks:
+    # de.js 40.58 kB, en.js 36.71 kB. Both rows keep ~10% headroom. The two
+    # section chunks themselves are 4.85 and 4.52 kB and need no row.
+    "de.js": 44.6,           # measured 40.58
+    "en.js": 40.4,           # measured 36.71
     # 2026-10-14: the chat's fence highlighter is on demand, so these are lazy
     # chunks like any route chunk — but each one that passes the small ceiling
     # ships unwatched without a row here. A fence fetches core, the JS engine,
@@ -155,8 +164,10 @@ MEASURED_GZIP_KB: dict[str, float] = {
     # sidebar's dated list reads; the entry keeps the locales and relative time.
     "dates.js": 5.8,
     "dates-format.js": 3.63,
-    "de.js": 35.57,
-    "en.js": 32.24,
+    "de.js": 40.58,
+    "en.js": 36.71,
+    "SettingsPanel.js": 31.94,
+    "SchedulerPanel.js": 13.45,
     # 2026-10-14, same instrument and day as the budgets above.
     "core.js": 24.01,
     "engine-javascript.js": 20.26,

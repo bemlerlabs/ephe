@@ -25,16 +25,12 @@ There are five steps:
 ### The one-command install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.sh | bash
 ```
 
 That is the command Ephe is designed around, and it is the one the README shows. The
-repository is public, so the fetch answers HTTP 200 and the installer runs; nothing else
-has to happen first. The package route is wired but not yet live: the Homebrew cask
-(`packaging/homebrew/ephe.rb`) and the Scoop manifest (`packaging/scoop/ephe.json`) name
-the published `v0.1.0-beta.3` release with hashes measured from its assets, but the tap and
-bucket they land in are not created yet, and the npm wrapper (`packaging/npm/`) is
-unpublished. See [The step that still needs the owner](#the-step-that-still-needs-the-owner).
+repository is public, so the fetch answers HTTP 200 and the installer runs. The
+package-manager routes are not published; use this one-liner or the checkout below.
 
 ### The path that works today
 
@@ -46,9 +42,10 @@ cd ephe
 ./install.sh
 ```
 
-On Windows the equivalent is `install.ps1`:
+On Windows, download and run `install.ps1`. This path is not yet verified end to end on Windows for this revision:
 
 ```powershell
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -58,7 +55,7 @@ Requirements, all of them ordinary:
 
 | Component | Needed for | Minimum |
 |---|---|---|
-| Python | everything | 3.10 (the installer will provision one via `uv` if the machine has none) |
+| Python | everything | 3.11 (the installer will provision one via `uv` if the machine has none) |
 | Node.js + npm/pnpm | the desktop/PWA build | 20 LTS |
 | Ollama | only the local-runtime engine path | any recent version, installed by you |
 
@@ -92,15 +89,27 @@ Then, in that same shell:
 
 ## 3. Choose an engine
 
+If the installer opened the setup screen, choose an engine there. For terminal use,
+activate the default macOS/Linux installation and configure the engine before starting:
+
 ```bash
-source .venv/bin/activate
+source "$HOME/Documents/Ephe/.venv/bin/activate"
+ephe configure
 ephe start --open
 ```
 
-With no `~/.ephe/engine.json`, the app opens the **setup screen** instead of an
-empty chat (the chat fails closed with an honest hint until an engine is chosen).
-The screen offers three classes of engine. Two of them are the realistic first
-run, and each has its own next step.
+For a checkout installation, run `source .venv/bin/activate` from that checkout instead.
+For Windows, activate the default installation with PowerShell:
+
+```powershell
+& "$HOME\Documents\Ephe\.venv\Scripts\Activate.ps1"
+ephe configure
+ephe start --open
+```
+
+Use that installation's `.venv` for a custom location. Without an engine choice,
+the terminal start refuses with a setup hint. The setup screen offers three engine
+classes; the paths below describe hosted and local engines.
 
 ### Path A — a hosted API you already have a key for
 
@@ -113,9 +122,9 @@ This is the fastest first answer: nothing to install, nothing to run locally.
 2. On the setup screen, pick **OpenAI-compatible API** and use the matching quick
    pick (OpenRouter, OpenCode Zen), or type your endpoint under "Endpoint URL"
    (for example a vLLM or SGLang host you already run).
-3. Paste the key into **API key**. It stays on this device: the desktop app writes
-   it owner-only to `~/.ephe/engine.key`, and in a browser it lives only in the
-   running server process.
+3. Paste the key into **API key**. The settings page stores it in the OS keychain
+   or in `~/.ephe/engine.key` with owner-only permissions; a shell export stays in
+   the running process. Ephe never writes the key to `engine.json` or the chat.
 4. Click **Probe endpoint**. The screen lists the models the endpoint reports;
    pick one and click **Save**.
 
@@ -157,22 +166,11 @@ That is the whole path. No wiki, no configuration file to write by hand.
 
 ---
 
-## The step that still needs the owner
+## Package-manager routes
 
-Everything above a stranger can do alone **except the package installs**. The `curl … | bash`
-one-liner and the checkout both work today: the repository is public and `v0.1.0-beta.3` is
-published with its desktop bundles, so `install.sh` and the `Ephe.app` download it pulls are
-reachable. What is not live yet is the package route, and it needs four things only the owner can
-create:
-
-- the repositories `bemlerlabs/homebrew-tap` and `bemlerlabs/scoop-bucket`, and
-- the secrets `NPM_TOKEN` and `PACKAGES_TOKEN`.
-
-Until those exist, `brew install --cask` and `scoop install` have no tap or bucket to read, and the
-npm wrapper is unpublished. The exact names and scopes are pinned in the manifests under
-`packaging/`.
-Nothing after the install reads the owner's personal `~/.ephe` — a machine with no `~/.ephe` at all
-reaches the setup screen and a first answer by following the steps above.
+The Homebrew cask and Scoop manifest are prepared under `packaging/`, but the tap and
+bucket are not published; the npm wrapper is unpublished too. Use the one-liner or the
+checkout until those routes exist.
 
 ## Measured sequence
 

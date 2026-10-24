@@ -123,7 +123,7 @@ class TestVerifyBeforeWrite:
         seen: dict[str, object] = {}
         real = plugin_signing.verify_plugin_dir
 
-        def spy(plugin_dir, rec, pems):
+        def spy(plugin_dir, rec, pems, **kwargs):
             # Observed, and not assumed: where the check ran, and whether the
             # loadable path already held the unverified package.
             seen["checked_dir"] = Path(plugin_dir).name

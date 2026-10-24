@@ -23,6 +23,7 @@ const ToolsPage = lazy(() => import('./pages/ToolsPage'))
 // W1: the parallel agents and their change sets — the overview the product lacked.
 const WorkspacesPage = lazy(() => import('./pages/WorkspacesPage'))
 const CustodyPage = lazy(() => import('./pages/CustodyPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 /**
  * First-run engine gate:
@@ -288,6 +289,22 @@ function AppInner() {
           element={
             <DataRoute>
               <CustodyPage />
+            </DataRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <DataRoute>
+              <SettingsPage />
+            </DataRoute>
+          }
+        />
+        <Route
+          path="/settings/:tab"
+          element={
+            <DataRoute>
+              <SettingsPage />
             </DataRoute>
           }
         />

@@ -1,0 +1,91 @@
+{
+  "upstream": "https://github.com/obra/superpowers",
+  "tag": "v6.3.0",
+  "commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+  "archive": {
+    "url": "https://github.com/obra/superpowers/archive/b36e0829c6d0140e93cfef2ca599b1b07d4a7797.zip",
+    "sha256": "7631e472822436006e15a399be890a01acae5a9d0d21fa02646c82e7449a3bc3",
+    "fetched_at": "2026-10-24",
+    "construction": "GitHub commit archive (codeload); not the ledger value 29337031…, whose artifact was never named"
+  },
+  "license": {
+    "id": "MIT",
+    "copyright": "Copyright (c) 2025 Jesse Vincent",
+    "sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+  },
+  "included_skills": [
+    "dispatching-parallel-agents",
+    "executing-plans",
+    "finishing-a-development-branch",
+    "receiving-code-review",
+    "requesting-code-review",
+    "test-driven-development",
+    "using-git-worktrees",
+    "using-superpowers",
+    "verification-before-completion",
+    "writing-plans"
+  ],
+  "excluded_skills": {
+    "brainstorming": "starts a local HTTP server and writes a token (P-2)",
+    "systematic-debugging": "runs find-polluter.sh / npm test (P-2)",
+    "subagent-driven-development": "instructs executing scripts (P-2)",
+    "writing-skills": "runs render-graphs.js (P-2)"
+  },
+  "adaptation": "frontmatter (trigger, per-skill tools, quality profile), headings flattened outside code fences for the Ephe system-prompt block, references to excluded skills rewritten, hooks/host adapters/references/tests/root scripts excluded, companion Markdown kept",
+  "construction": "GitHub commit archive (codeload). Included files are listed with their SHA-256; verify by extracting the archive and hashing each path.",
+  "upstream_files": [
+    {
+      "path": "skills/dispatching-parallel-agents/SKILL.md",
+      "sha256": "1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c"
+    },
+    {
+      "path": "skills/executing-plans/SKILL.md",
+      "sha256": "c4c3d8b628c51114cd165fb8246fe02744cd8be180032328391252e653028d9b"
+    },
+    {
+      "path": "skills/finishing-a-development-branch/SKILL.md",
+      "sha256": "8db5a922b242dd4e1bf824cb91c13b3e8d8e8a86d6ceaf7f0774eb9cce909d65"
+    },
+    {
+      "path": "skills/receiving-code-review/SKILL.md",
+      "sha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
+    },
+    {
+      "path": "skills/requesting-code-review/SKILL.md",
+      "sha256": "d71cc01ba56d2325cf8af5f7c11837819b63ecd57de0bfdb812f7f3ff7751df8"
+    },
+    {
+      "path": "skills/requesting-code-review/code-reviewer.md",
+      "sha256": "5eca5fcfd48a50e0a526ce5ffd64bf625d6b81bb46d11795274dae451fe6ffd4"
+    },
+    {
+      "path": "skills/test-driven-development/SKILL.md",
+      "sha256": "bf1b8216e523851a411e91d429a7c1c2a173e79d88957bc78e348218d50edd54"
+    },
+    {
+      "path": "skills/test-driven-development/writing-good-tests.md",
+      "sha256": "51471c853306ff92ca8bb41dcaea05f31c0e46b03651f8f3c99754b7172f4ae1"
+    },
+    {
+      "path": "skills/using-git-worktrees/SKILL.md",
+      "sha256": "8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd"
+    },
+    {
+      "path": "skills/using-superpowers/SKILL.md",
+      "sha256": "30f2ab78e20ddc27ee7158ae8d4a2abe161c360981c7cc3548070913142d3dc3"
+    },
+    {
+      "path": "skills/verification-before-completion/SKILL.md",
+      "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
+    },
+    {
+      "path": "skills/writing-plans/SKILL.md",
+      "sha256": "48508f44bbfd7d24b029fbf3a314f3cd14c9615599059366e922f47b8dc08cf2"
+    },
+    {
+      "path": "skills/writing-plans/plan-document-reviewer-prompt.md",
+      "sha256": "aa728b96aad603c8be28875a4305637f6c984aa81ffcadcb13e743202fa2a0c7"
+    }
+  ],
+  "note": "The hashes describe the upstream archive files; the delivered bytes are covered by the artifact hash in the marketplace index."
+}

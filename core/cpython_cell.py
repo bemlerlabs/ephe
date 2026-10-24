@@ -19,11 +19,12 @@ Integrity: an installed but unfitting guest is an error case with an actionable
 hint, not a silent fallback into the kernel (AGENTS.md: fail closed, never a
 hidden fallback).
 
-Guest limits (measured, see the manifest): bootstrap ~1.42G fuel / ~0.95 s
-wall, ~9.0G fuel per CPU second, stdout and stderr up to ~10,000 bytes per
-stream — beyond that the sink itself throws an I/O error back into the model
-code, which is why ``core.cell_boot`` tees the full stream into /work and the
-policy cuts it here. No socket, no fork, no OpenSSL/zlib modules.
+Guest limits (measured on wasmtime 50.0.1, 2026-10-23): bootstrap ~1.43G
+fuel / ~0.88 s wall, 11.0G fuel per guest CPU second, stdout and stderr up to
+~10,000 bytes per stream — beyond that the sink itself throws an I/O error
+back into the model code, which is why ``core.cell_boot`` tees the full stream
+into /work and the policy cuts it here. No socket, no fork, no OpenSSL/zlib
+modules.
 """
 from __future__ import annotations
 
@@ -57,11 +58,12 @@ from core.cpython_report import (  # noqa: F401  (re-exported: callers read thes
     runtime_of_report_text,
 )
 
-#: Cap of one cell run. Fuel is an engine unit, not time: measured ~9.0G fuel
-#: per CPU second of guest CPU (wasmtime 47 / wasi-sdk 24 / arm64, manifest
-#: provenance.measured). 20G = ~2.2 s of compute — a two-second loop is already
-#: an error case at that point. The wall-clock leash is independent of it:
-#: timeout_seconds.
+#: Cap of one cell run. Fuel is an engine unit, not time: measured 11.0G fuel
+#: per guest CPU second on wasmtime 50.0.1 (wasi-sdk 24 / arm64, 2026-10-23;
+#: 0.4M/1.6M/3.2M loop iterations gave 10.2–11.0 G/s, and 6.4M exhausted 20G at
+#: 2.3 s wall). The 47.x engine measured 9.0G on the same loop. Bootstrap is
+#: ~1.4G, so 20G is about 1.7 s of guest compute; the wall-clock leash is
+#: independent of it: timeout_seconds.
 DEFAULT_MAX_FUEL = 20_000_000_000
 DEFAULT_MAX_MEMORY_MB = 256
 DEFAULT_TIMEOUT_SECONDS = 30
@@ -87,8 +89,8 @@ ENV_EXEC = "EPHE_CODE_EXEC"
 ENV_MAX_FUEL = "EPHE_CELL_MAX_FUEL"
 
 KERNEL_UNSANDBOXED_NOTE = (
-    "runtime=kernel UNSANDBOXED — Code laeuft im Ephe-Prozess mit vollem "
-    "Host-Zugriff (os, subprocess, Dateien, Netz)"
+    "runtime=kernel UNSANDBOXED - code runs in the Ephe process with full "
+    "host access (os, subprocess, files, network)"
 )
 
 
@@ -139,9 +141,9 @@ def exec_choice_error() -> str:
     choice = (os.environ.get(ENV_EXEC) or "").strip().lower()
     if choice and choice not in (RUNTIME_KERNEL, RUNTIME_CELL, "cell"):
         return (
-            f"{ENV_EXEC}={choice!r} ist unbekannt — gueltige Werte sind "
+            f"{ENV_EXEC}={choice!r} is unknown - valid values are "
             f"'{RUNTIME_CELL}' (WASI-Cell) und '{RUNTIME_KERNEL}' (In-Process, "
-            "ohne Sandbox). Nichts wurde ausgefuehrt."
+            "without sandbox). Nothing was executed."
         )
     return ""
 

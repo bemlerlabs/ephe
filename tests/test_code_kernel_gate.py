@@ -99,7 +99,7 @@ class TestComputeAffordanceBleibt:
 
     def test_unknown_tool_is_still_unknown(self, spies):
         out = _run("import ephe_tools\nprint(ephe_tools.tool_call('gibt_es_nicht'))")
-        assert "unbekanntes Tool" in out
+        assert "unknown tool" in out
 
     def test_unknown_attribute_raises_instead_of_returning_none(self, spies):
         # A silent None would be a phantom tool; AttributeError is the honest answer.

@@ -104,27 +104,10 @@ def _read_only_guard(action: str, plugin_id: str = "", scope: str = "") -> None:
 
 
 def _signature_gate(plugin_id: str) -> None:
-    """E4b drift gate: an enabled plugin with a signature record is verified."""
+    """E4b drift gate: the same check the lifecycle runs on the CLI path."""
     from core import plugin_signing
 
-    if not plugin_signing.signature_check_enabled():
-        return
-    from core.plugin_manifest import BUILTIN_PLUGINS_ROOT, SIG_FILENAME
-
-    sig_file = next(
-        (
-            base / plugin_id / SIG_FILENAME
-            for base in (config_root() / "plugins", BUILTIN_PLUGINS_ROOT)
-            if (base / plugin_id / SIG_FILENAME).is_file()
-        ),
-        None,
-    )
-    if sig_file is None:
-        return
-    record = json.loads(sig_file.read_text(encoding="utf-8"))
-    ok, reason = plugin_signing.verify_plugin_dir(
-        sig_file.parent, record, plugin_signing.load_trusted_public_keys()
-    )
+    ok, reason = plugin_signing.verify_enable(plugin_id)
     if ok:
         return
     from core.audit_log import audit_event
@@ -355,25 +338,36 @@ def get_plugin_icon(plugin_id: str):
     if not icon_path.is_file():
         raise HTTPException(status_code=404, detail="icon missing")
     data = icon_path.read_bytes()
+    icon_headers = {
+        "Cache-Control": "public, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": (
+            "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        ),
+    }
     if icon_path.suffix.lower() == ".svg":
-        lowered = data[:64_000].lower()
-        for bad in (
-            b"<script",
-            b"foreignobject",
-            b"onload",
-            b"onerror",
-            b"javascript:",
-        ):
-            if bad in lowered:
+        import html
+
+        text = html.unescape(data[:64_000].decode("utf-8", "replace")).lower()
+        for bad in ("<script", "foreignobject", "javascript:"):
+            if bad in text:
                 raise HTTPException(status_code=404, detail="unsafe icon")
+        if _re.search(r"\bon[a-z]+\s*=", text):
+            raise HTTPException(status_code=404, detail="unsafe icon")
+        if _re.search(
+            r"""(?:href|src|xlink:href)\s*=\s*['"]\s*(?:https?:|data:|javascript:)""",
+            text,
+        ):
+            raise HTTPException(status_code=404, detail="unsafe icon")
+        if _re.search(r"""url\(\s*['"]?\s*(?:https?:|data:|javascript:)""", text):
+            raise HTTPException(status_code=404, detail="unsafe icon")
         return Response(
             content=data,
             media_type="image/svg+xml",
-            headers={"Cache-Control": "public, max-age=3600"},
+            headers=icon_headers,
         )
-    media = "image/png"
     return Response(
         content=data,
-        media_type=media,
-        headers={"Cache-Control": "public, max-age=3600"},
+        media_type="image/png",
+        headers=icon_headers,
     )

@@ -28,6 +28,20 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def _boundary(monkeypatch):
+    """These tests drive the process lifecycle; bind a wrapper so the suite
+    behaves the same on a Linux host without bwrap."""
+    from core.tools import mcp_process
+
+    monkeypatch.setattr(mcp_process.mcp_sandbox, "platform_boundary", lambda: "seatbelt")
+    monkeypatch.setattr(
+        mcp_process.mcp_sandbox, "wrap",
+        lambda command, args, home: ["/usr/bin/true", command, *args],
+    )
+    monkeypatch.setattr(mcp_process.mcp_sandbox, "home_for", lambda name: "/tmp/mcp-home")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
