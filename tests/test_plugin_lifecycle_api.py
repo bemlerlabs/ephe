@@ -59,7 +59,7 @@ def test_put_disable_commits_and_returns_the_state(client) -> None:
     assert body["state"] == "disabled"
     assert body["enabled"] is False
     assert body["scope"] == "user"
-    assert body["version"] == "1.0.0"
+    assert body["version"] == "1.1.0"
     assert response.headers["etag"] == body["etag"]
 
     view = client.get("/api/plugins").json()

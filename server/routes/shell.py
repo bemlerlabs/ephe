@@ -136,12 +136,22 @@ async def _pump_output(ws: WebSocket, queue: asyncio.Queue) -> None:
 
 @router.websocket("/shell/term")
 async def shell_terminal(ws: WebSocket) -> None:
+    origin = ws.headers.get("origin") or "none"
+    host = ws.headers.get("host") or "none"
     if not ws_client_authorized(ws):
         # 1008 = policy violation; no accept() → the handshake is refused.
+        from server.middleware import audit_ws_refusal
+
+        audit_ws_refusal(ws, "interactive_pty_refused", path="/api/shell/term")
         await ws.close(code=1008)
         return
     await ws.accept()
-    audit_event("shell", tool="terminal", status="open", detail="interactive_pty_attached")
+    audit_event(
+        "shell",
+        tool="terminal",
+        status="open",
+        detail=f"interactive_pty_attached host={host} origin={origin}",
+    )
     session = get_pty_session()
     back = session.scrollback()
     if back:

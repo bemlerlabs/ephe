@@ -96,5 +96,5 @@ def test_a_disabled_plugin_command_does_not_expand(command_home) -> None:
 def test_every_registered_command_carries_its_template() -> None:
     registry = PluginRegistry.load(ROOT / "plugins", ROOT / "skills")
     commands = registry.capabilities(CapabilityKind.COMMAND)
-    assert len(commands) == 10
+    assert len(commands) == 32
     assert all(command.template for command in commands)

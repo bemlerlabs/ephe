@@ -179,7 +179,7 @@ async def create_xlsx(
     try:
         return await asyncio.to_thread(_build)
     except Exception as exc:
-        return f"[xlsx-Fehler: {exc}]"
+        return f"[xlsx error: {exc}]"
 
 
 def _markdown_to_docx(content: str, doc, heading_levels: dict[str, int]) -> None:
@@ -264,7 +264,7 @@ async def create_docx(
     try:
         return await asyncio.to_thread(_build)
     except Exception as exc:
-        return f"[docx-Fehler: {exc}]"
+        return f"[docx error: {exc}]"
 
 
 async def create_qrcode(
@@ -292,4 +292,4 @@ async def create_qrcode(
     try:
         return await asyncio.to_thread(_build)
     except Exception as exc:
-        return f"[QR-Fehler: {exc}]"
+        return f"[QR error: {exc}]"

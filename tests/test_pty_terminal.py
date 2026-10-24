@@ -183,3 +183,35 @@ def test_ws_terminal_lan_rejects_wrong_token(client):
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/api/shell/term?token=nope") as ws:
             ws.receive_json()
+
+
+def test_ws_terminal_rejects_a_foreign_origin(client):
+    """A browser page on another site must not get a PTY, token or not."""
+    from core import audit_log
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(
+            "/api/shell/term", headers={"origin": "http://attacker.example"}
+        ) as ws:
+            ws.receive_json()
+    text = audit_log.AUDIT_LOG_FILE.read_text(encoding="utf-8")
+    assert "interactive_pty_refused" in text
+    assert "origin=http://attacker.example" in text
+
+
+@requires_pty
+def test_ws_terminal_accepts_the_app_origin(client):
+    with client.websocket_connect(
+        "/api/shell/term", headers={"origin": "http://127.0.0.1:8765"}
+    ) as ws:
+        ws.send_json({"type": "input", "data": f"echo {MARK}\n"})
+        got = ""
+        for _ in range(200):
+            frame = ws.receive_json()
+            if frame.get("type") == "output":
+                got += frame.get("data", "")
+                if MARK in got:
+                    break
+            elif frame.get("type") == "exit":
+                break
+        assert MARK in got

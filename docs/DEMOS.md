@@ -1,7 +1,7 @@
 # Demos
 
 Recordings of the real product — the React PWA against the FastAPI backend, and the terminal
-against the same engine — captured with `scripts/create_demo_media.py`. The artifact clips drive
+against the same engine — captured by the maintainers' recorder, which is not in the public tree. The artifact clips drive
 the real local tools and need no network; the chat clips stream from the configured engine.
 
 | Onboarding | Chat & thinking | Artifacts (SVG + Excel) |
@@ -27,6 +27,5 @@ same web content the Tauri app embeds.
 Regenerate them with `./dev.sh` running, plus `ffmpeg`, `gif2webp`, `agg` and Python `playwright`:
 
 ```bash
-./.venv/bin/python scripts/create_demo_media.py
-./.venv/bin/python scripts/create_demo_media.py --only=tui
+# The recorder is maintainer-only; the published clips above are the artifact.
 ```

@@ -191,11 +191,16 @@ def _xml_escape(text: str) -> str:
     return html.escape(str(text or ""), quote=True)
 
 
-def _resolve_allowed_file(path: str) -> Path:
+def _resolve_allowed_file(path: str, *, allow_artifacts: bool = False) -> Path:
     candidate = Path(path).expanduser()
     if not candidate.exists():
         raise FileNotFoundError(f"File not found: {path}")
     if not _is_path_allowed(candidate):
+        if allow_artifacts:
+            from core.path_guard import verifiable_artifact
+
+            if verifiable_artifact(candidate):
+                return candidate.resolve()
         raise FileNotAllowedError(str(candidate))
     return candidate.resolve()
 

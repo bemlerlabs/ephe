@@ -128,9 +128,21 @@ class TestRendererOnTheRepository:
 
 class TestReleaseNotes:
     def test_the_block_of_a_published_version_is_printed(self):
-        done = run(NOTES, "0.1.0-beta.3")
-        assert done.returncode == 0, done.stdout + done.stderr
-        assert "### Security" in done.stdout, done.stdout
+        """The version is read from this tree's changelog: the publication ships the curated
+        notes, so a hardcoded historical section exists only in the workshop ledger."""
+        notes_source = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        published_version = next(
+            name
+            for name in re.findall(r"^## \[([^\]]+)\]", notes_source, re.M)
+            if name != "Unreleased"
+        )
+        notes_run = run(NOTES, published_version)
+        assert notes_run.returncode == 0, notes_run.stdout + notes_run.stderr
+        notes_section = notes_source.split(f"## [{published_version}]", 1)[1]
+        notes_heading = next(
+            line for line in notes_section.splitlines() if line.startswith("### ")
+        )
+        assert notes_heading in notes_run.stdout, notes_run.stdout
 
     def test_a_version_with_no_block_is_refused(self):
         done = run(NOTES, "9.9.9")

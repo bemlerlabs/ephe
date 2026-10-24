@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /translate Hello auf Deutsch
-2. ToolCall: {"name": "web_search", "arguments": {"query": "/translate Hello auf Deutsch", "max_results": 5}}
+1. Input: /translate Hello into German
+2. ToolCall: {"name": "web_search", "arguments": {"query": "/translate Hello into German", "max_results": 5}}
 3. Observation: Hallo
-4. Final: Hallo (belegt durch Tool-Output).
+4. Final: Hallo (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /translate Hello auf Deutsch (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "web_search", "arguments": {"query": "/translate Hello auf Deutsch", "max_results": 5}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: Hallo.
+## Trace 2 (Edge case: error path)
+1. Input: /translate Hello into German (source/path not found)
+2. ToolCall: {"name": "web_search", "arguments": {"query": "/translate Hello into German", "max_results": 5}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: Hallo.

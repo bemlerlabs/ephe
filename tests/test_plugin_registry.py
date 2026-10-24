@@ -1,6 +1,6 @@
 """P1 — one plugin/capability registry over the shipped portfolio.
 
-The registry is the first P1 slice: it reads the 14 manifests, the 51 built-in
+The registry is the first P1 slice: it reads the 16 manifests, the 51 built-in
 skills and the 7 curated MCP entries into descriptors without moving files or
 wiring the runtime. The five duplicate command/skill pairs are already dropped
 from the command side; the skill side keeps the native name.
@@ -39,10 +39,10 @@ def _registry() -> PluginRegistry:
 
 def test_registry_represents_the_whole_portfolio() -> None:
     registry = _registry()
-    assert len(registry.plugins) == 14
-    assert len(registry.capabilities(CapabilityKind.SKILL)) == 51
+    assert len(registry.plugins) == 16
+    assert len(registry.capabilities(CapabilityKind.SKILL)) == 60
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7
-    assert len(registry.capabilities(CapabilityKind.COMMAND)) == 10
+    assert len(registry.capabilities(CapabilityKind.COMMAND)) == 32
 
 
 def test_the_five_duplicate_commands_are_not_registered() -> None:
@@ -125,11 +125,12 @@ def test_builtin_tool_adapter_uses_the_kernel_owner() -> None:
 def test_every_declared_tool_has_one_activation_owner() -> None:
     registry = _registry()
     activations = dict(registry.tool_activations())
-    assert len(activations) == 46
+    assert len(activations) == 45
+    assert "delete_file" not in activations
     assert activations["web_search"] == "web-research"
     assert activations["read_file"] == "code-shell"
     assert activations["create_pdf"] == "documents"
-    assert len(registry.capabilities(CapabilityKind.BUILTIN_TOOL)) == 46
+    assert len(registry.capabilities(CapabilityKind.BUILTIN_TOOL)) == 45
     assert {
         cap.owner for cap in registry.capabilities(CapabilityKind.BUILTIN_TOOL)
     } == {"kernel"}

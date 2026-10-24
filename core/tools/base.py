@@ -82,7 +82,7 @@ class ShellTimeoutError(TimeoutError):
     def __init__(self, command: str, timeout: int) -> None:
         self.command = command
         self.timeout = timeout
-        super().__init__(f"Befehl '{command}' timed out after {timeout}s")
+        super().__init__(f"command '{command}' timed out after {timeout}s")
 
 
 # Shell Security Constants
@@ -213,14 +213,21 @@ def _get_allowed_roots() -> list[Path]:
         if not workspace:
             return []
         root = Path(workspace)
-        roots = [root]
+        resolved_root = root.resolve()
+        roots = [resolved_root]
         from core.capability_policy import declared_data_roots
 
         for declared in declared_data_roots(plugin):
             candidate = Path(declared).expanduser()
-            if not candidate.is_absolute():
-                candidate = root / candidate
-            roots.append(candidate.resolve())
+            if candidate.is_absolute():
+                roots.append(candidate.resolve())
+                continue
+            resolved = (resolved_root / candidate).resolve()
+            if not resolved.is_relative_to(resolved_root):
+                # A relative root is a name inside the workspace; a symlink that
+                # leaves it must not widen the file scope.
+                continue
+            roots.append(resolved)
         return roots
     home = Path.home()
     roots = [

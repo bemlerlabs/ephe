@@ -7,6 +7,8 @@ Usable by the agent.
 """
 import base64
 import json
+import math
+import os
 import asyncio
 from contextvars import ContextVar
 
@@ -62,6 +64,20 @@ def _take_screenshot() -> str:
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
+class VisionUnavailable(RuntimeError):
+    """No usable vision engine, or one that did not answer in time."""
+
+
+def _vision_timeout_s() -> float:
+    try:
+        value = float(os.environ.get("EPHE_VISION_TIMEOUT_S") or 30)
+    except (TypeError, ValueError):
+        return 30.0
+    if not math.isfinite(value) or value <= 0:
+        return 30.0
+    return max(1.0, value)
+
+
 async def _get_bounding_box(b64_image: str, target: str, reference_crop_b64: str | None = None) -> tuple[float, float, float, float] | str | None:
     """
     Asks Llama 3.2 Vision for the bounding box of the element.
@@ -80,16 +96,39 @@ async def _get_bounding_box(b64_image: str, target: str, reference_crop_b64: str
         images.append(reference_crop_b64)
 
     import os
+    # Resolution before the call: without a vision model the click path used to
+    # send the chosen chat model to a local Ollama and wait for a load that
+    # never happens. The refusal names the missing setting instead.
+    vision_model = (os.environ.get("EPHE_VISION_MODEL") or "").strip()
+    if not vision_model:
+        from core.model_provider import chosen_model, get_active_provider
+
+        try:
+            provider = get_active_provider().provider
+        except Exception:  # noqa: BLE001 — no engine means no vision model
+            provider = ""
+        if provider == "local_ollama":
+            try:
+                vision_model = str(chosen_model("the vision call") or "").strip()
+            except Exception:  # noqa: BLE001 — a missing role means "none"
+                vision_model = ""
+    if not vision_model:
+        raise VisionUnavailable(
+            "browser_click needs a vision engine: set EPHE_VISION_MODEL to a "
+            "local vision model"
+        )
+
     client = ollama.AsyncClient()
     try:
-        from core.model_provider import chosen_model
-
-        vision_model = (os.environ.get("EPHE_VISION_MODEL") or "").strip()
-        response = await client.generate(
-            model=vision_model or chosen_model("the vision call"),
-            prompt=system_prompt,
-            images=images,
-            options={"temperature": 0.0}
+        timeout = _vision_timeout_s()
+        response = await asyncio.wait_for(
+            client.generate(
+                model=vision_model,
+                prompt=system_prompt,
+                images=images,
+                options={"temperature": 0.0},
+            ),
+            timeout=timeout,
         )
 
         txt = response["response"].strip()
@@ -105,6 +144,11 @@ async def _get_bounding_box(b64_image: str, target: str, reference_crop_b64: str
         if isinstance(coords, list) and len(coords) == 4:
             return (float(coords[0]), float(coords[1]), float(coords[2]), float(coords[3]))
         return None
+    except (asyncio.TimeoutError, TimeoutError) as exc:
+        raise VisionUnavailable(
+            f"vision model did not answer within {timeout:.0f}s "
+            "(EPHE_VISION_TIMEOUT_S); browser_click cannot place the element"
+        ) from exc
     except Exception as e:
         import logging
         logging.error(f"Vision Parsing Error: {e}")

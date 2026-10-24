@@ -1,9 +1,9 @@
 # Rubric — Plugin `plugin-creator`
 
-Quality criteria for the golden matrix. Benchmark: **Opus 5.5 / GPT Astra 6** —
-the pass³ rate of this suite is measured, not asserted. A case counts only
-when ALL 3 runs pass (TAU reliability, as in evals/bench_option_b.py);
-gate: **pass³ ≥ 90 % per plugin** (`ephe bench --run plugin-creator`).
+Quality criteria for the golden matrix. Each case runs 3 times and counts
+only when all 3 runs pass (TAU reliability); target pass³ ≥ 90 %. The receipt
+names the engine, the model, the commit and n. A comparison against Opus 5.5 /
+GPT Astra 6 is only stated after those models have run the same cases.
 
 Criteria:
 1. **Schema-faithful**: manifest v1.1 with origin/permissions/components — valid against the loader.

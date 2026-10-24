@@ -11,6 +11,7 @@
     "process:allow-restart",
     "notification:default",
     "dialog:default",
+    "window-state:default",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister"
   ]

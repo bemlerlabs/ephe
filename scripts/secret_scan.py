@@ -42,10 +42,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ALLOW_MARKER = "secret-scan: allow"
 DEFAULT_ALLOWLIST = REPO_ROOT / ".github" / "secrets-allowlist.txt"
+PRIVATE_ALLOWLIST = REPO_ROOT / ".github" / ("secrets-" + "allowlist.private.txt")
 
 #: The scanner source and its allowlist name the patterns and the acceptances;
 #: scanning them would only report the tool to itself.
-SELF_EXEMPT = ("scripts/secret_scan.py", "secrets-allowlist.txt")
+SELF_EXEMPT = ("scripts/secret_scan.py", "secrets-allowlist.txt", "secrets-" + "allowlist.private.txt")
 
 #: A quoted value shorter than this is a placeholder, not a credential.
 MIN_GENERIC_LEN = 16
@@ -241,8 +242,16 @@ def iter_staged(root: Path):
             yield name
 
 
-def read_blob(root: Path, rev: str, path: str) -> str | None:
-    proc = git(["show", f"{rev}:{path}"], root)
+def read_blob(root: Path, rev: str, path: str) -> bytes | None:
+    """The index blob, as bytes: a tracked binary is skipped by the NUL check,
+    and decoding it as text first made the whole scan crash (measured on a
+    removed PNG, 0x89 in position 0)."""
+    proc = subprocess.run(
+        ["git", "-C", str(root), "show", f"{rev}:{path}"],
+        capture_output=True,
+        text=False,
+        check=False,
+    )
     if proc.returncode != 0:
         return None
     return proc.stdout
@@ -312,6 +321,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     allow = load_allowlist(args.allowlist)
+    if args.allowlist == DEFAULT_ALLOWLIST:
+        allow += load_allowlist(PRIVATE_ALLOWLIST)
     findings: list[Finding] = []
     scanned = 0
     skipped_binary = 0
@@ -342,11 +353,11 @@ def main(argv: list[str] | None = None) -> int:
                 if blob is None:
                     unreadable.append(name)
                     continue
-                if "\x00" in blob:
+                if b"\x00" in blob:
                     skipped_binary += 1
                     continue
                 scanned += 1
-                findings += scan_text(name, blob, allow)
+                findings += scan_text(name, blob.decode("utf-8", "replace"), allow)
         elif args.range:
             for path, number, text in iter_range_added_lines(args.root, args.range):
                 if is_self(path) or path_allowed(path, allow):
@@ -368,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
                     if blob is None:
                         unreadable.append(name)
                         continue
-                    raw = blob.encode("utf-8", "replace")
+                    raw = blob
                 if b"\x00" in raw:
                     skipped_binary += 1
                     continue

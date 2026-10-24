@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
+from core.path_guard import denied, secret_shaped
 from core.tools.base import _get_allowed_roots, allowed_root_of
 
 router = APIRouter()
@@ -113,6 +114,10 @@ async def get_file(
     if not probe.startswith(root + os.sep):
         raise HTTPException(status_code=403, detail="path not in allowed roots")
     resolved = Path(probe)
+    if denied(resolved) or secret_shaped(resolved):
+        # The tool path asks a human for a credential-shaped name; this HTTP
+        # route has no dialog, so it refuses the file instead.
+        raise HTTPException(status_code=403, detail="path is protected")
     if not _in_allowed_roots(resolved):
         raise HTTPException(status_code=403, detail="path not in allowed roots")
     if not resolved.is_file():

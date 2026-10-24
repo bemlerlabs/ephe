@@ -1,0 +1,1085 @@
+{
+  "version": 1,
+  "policy": "Tiering is a label, not a cut or merge (D8, owner decision 2026-10-22).",
+  "counts": {
+    "A": 19,
+    "B": 20,
+    "C": 12
+  },
+  "skills": {
+    "api-designer": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "file_search",
+        "edit_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "api-tester": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "fetch_url",
+        "execute_code",
+        "validate_json",
+        "write_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "business-plan": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "create_pdf",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "chart-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "generate_chart",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "checklist-maker": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_pdf",
+        "web_search",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "code-metrics": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "list_directory",
+        "file_search",
+        "read_file",
+        "execute_code",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "code-reviewer": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "load_workspace",
+        "file_search",
+        "run_shell",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "coding-agent": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "list_directory",
+        "edit_file",
+        "write_file",
+        "run_tests",
+        "file_search",
+        "run_shell",
+        "verify_artifact",
+        "execute_code",
+        "todo_list",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "competitor-analysis": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "create_pdf",
+        "create_xlsx",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "config-setup": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "write_file",
+        "get_datetime",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "cover-letter": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_pdf",
+        "web_search",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "writing-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "cv-helper": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_pdf",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "writing-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "data-analyst": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "generate_chart",
+        "create_xlsx",
+        "run_shell",
+        "read_file",
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "debugger": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "edit_file",
+        "run_shell",
+        "file_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "decision-matrix": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_xlsx",
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "deck-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_pitch_deck",
+        "create_pptx_deck",
+        "inspect_pptx_template",
+        "edit_pptx_template",
+        "qa_pptx_deck",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "diagram-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_diagram",
+        "web_search",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "document-factory": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "build_document",
+        "verify_artifact",
+        "web_search",
+        "read_file",
+        "list_directory",
+        "create_pdf",
+        "create_docx",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "docx-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_docx",
+        "web_search",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "email-writer": {
+      "tier": "C",
+      "examples": 2,
+      "inline_examples": 1,
+      "golden_traces": 1,
+      "tools": [
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack",
+        "writing-pack"
+      ],
+      "duplicate": true,
+      "reason": "Text-only helper duplicated across packs; experimental, no quality promise."
+    },
+    "ephe-agent": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "list_directory",
+        "edit_file",
+        "write_file",
+        "run_tests",
+        "verify_artifact",
+        "run_shell",
+        "file_search",
+        "execute_code",
+        "todo_list",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "explain-expert": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack",
+        "writing-pack"
+      ],
+      "duplicate": true,
+      "reason": "Text-only helper duplicated across packs; experimental, no quality promise."
+    },
+    "file-assistant": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "file_search",
+        "read_file",
+        "list_directory",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "help": {
+      "tier": "C",
+      "examples": 2,
+      "inline_examples": 1,
+      "golden_traces": 1,
+      "tools": [
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "image-creator": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "generate_image",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "json-helper": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "write_file",
+        "execute_code",
+        "validate_json",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "meeting-notes": {
+      "tier": "C",
+      "examples": 2,
+      "inline_examples": 1,
+      "golden_traces": 1,
+      "tools": [
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack",
+        "writing-pack"
+      ],
+      "duplicate": true,
+      "reason": "Text-only helper duplicated across packs; experimental, no quality promise."
+    },
+    "pdf-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_pdf",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "plan": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "file_search",
+        "list_directory",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "project-assistant": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "discover_projects",
+        "analyze_project",
+        "read_file",
+        "list_directory",
+        "file_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "project-factory": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "scaffold_project",
+        "verify_artifact",
+        "run_tests",
+        "write_file",
+        "edit_file",
+        "read_file",
+        "list_directory",
+        "run_shell",
+        "manage_tasks",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "qrcode-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_qrcode",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "quiz-maker": {
+      "tier": "C",
+      "examples": 2,
+      "inline_examples": 1,
+      "golden_traces": 1,
+      "tools": [
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "refactor-helper": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "edit_file",
+        "file_search",
+        "run_shell",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "regex-helper": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "run_shell",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "roadmap-planner": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_diagram",
+        "web_search",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "security-review": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "file_search",
+        "list_directory",
+        "run_shell",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "shell-helper": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "run_shell",
+        "get_datetime",
+        "process_manage",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "social-media": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "source-notebook": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_source_notebook",
+        "query_source_notebook",
+        "export_source_brief",
+        "create_pptx_deck",
+        "create_pitch_deck",
+        "read_file",
+        "file_search",
+        "list_directory",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "sql-helper": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "run_shell",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "summarizer": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "writing-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "svg-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_svg",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "swot-analyzer": {
+      "tier": "B",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "create_pdf",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "business-pack"
+      ],
+      "duplicate": false,
+      "reason": "Solid tool-assisted workflow with a contract and golden traces; no artifact proof yet."
+    },
+    "test-writer": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "read_file",
+        "edit_file",
+        "file_search",
+        "run_shell",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "dev-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "translator": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "writing-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "video-creator": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_video",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "vision-assistant": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "analyze_image",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "web-researcher": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "fetch_url",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "research-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    },
+    "writer": {
+      "tier": "C",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "web_search",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "writing-pack"
+      ],
+      "duplicate": false,
+      "reason": "Optional dependency or text-only surface; experimental, no quality promise."
+    },
+    "xlsx-creator": {
+      "tier": "A",
+      "examples": 3,
+      "inline_examples": 1,
+      "golden_traces": 2,
+      "tools": [
+        "create_xlsx",
+        "web_search",
+        "read_file",
+        "memory",
+        "skill_manage"
+      ],
+      "output_contract": true,
+      "quality_gate": true,
+      "test_section": true,
+      "packs": [
+        "office-pack"
+      ],
+      "duplicate": false,
+      "reason": "Artifact-producing, tool-backed workflow with two golden traces, output contract and quality gate."
+    }
+  }
+}

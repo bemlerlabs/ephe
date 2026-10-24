@@ -177,7 +177,7 @@ async def edit_pptx_template(
     filename: str = "ephe_template_edit.pptx",
 ) -> str:
     try:
-        src = _resolve_allowed_file(template_path)
+        src = _resolve_allowed_file(template_path, allow_artifacts=True)
         if src.suffix.lower() != ".pptx":
             raise ValueError("template_path must point to a .pptx file")
         mapping: dict[str, str] = {}
@@ -244,12 +244,12 @@ async def edit_pptx_template(
         contact_path.write_text(_render_pptx_contact_sheet(out, qa), encoding="utf-8")
         return f"PPTX_DECK_FILE:{out}\nSCORECARD_FILE:{score_path}\nMANIFEST_FILE:{manifest_path}\nQA_FILE:{qa_path}\nCONTACT_SHEET_FILE:{contact_path}"
     except Exception as exc:
-        return f"[pptx-edit-Fehler: {exc}]"
+        return f"[pptx-edit error: {exc}]"
 
 
 async def qa_pptx_deck(pptx_path: str) -> str:
     try:
-        src = _resolve_allowed_file(pptx_path)
+        src = _resolve_allowed_file(pptx_path, allow_artifacts=True)
         qa = _qa_pptx_deck_file(src)
         from core.deck_render import deck_bundle_dir
         bundle = deck_bundle_dir(src)
@@ -260,4 +260,4 @@ async def qa_pptx_deck(pptx_path: str) -> str:
         contact_out.write_text(_render_pptx_contact_sheet(src, qa), encoding="utf-8")
         return f"PPTX_QA_FILE:{qa_out}\nCONTACT_SHEET_FILE:{contact_out}"
     except Exception as exc:
-        return f"[pptx-qa-Fehler: {exc}]"
+        return f"[pptx-qa error: {exc}]"

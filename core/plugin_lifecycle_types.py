@@ -127,9 +127,10 @@ def _default_audit(entry: dict[str, Any]) -> None:
         decision=str(entry["action"]),
         status=str(entry["status"]),
         duration_ms=int(entry["duration_ms"]),
+        actor=str(entry.get("actor") or ""),
         detail=(
             f"scope={entry['scope']} previous={entry['previous_state']} "
             f"requested={entry['requested_state']} version={entry['version']} "
-            f"reason={entry['reason']}"
+            f"reason={entry['reason']!r}"
         ),
     )

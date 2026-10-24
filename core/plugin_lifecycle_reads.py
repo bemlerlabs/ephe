@@ -33,14 +33,11 @@ class LifecycleReads:
         elif self._unproven:
             state, enabled = PluginState.DISABLED, False
         elif entry is not None:
-            committed = str(
-                entry.get("committed")
-                or ("enabled" if self._default_on() else "disabled")
-            )
+            # An entry that exists but carries no committed value is a damaged
+            # or half-written record, not a fresh install: it reads off.
+            committed = str(entry.get("committed") or "")
             if committed == PluginState.FAILED.value:
                 state, enabled = PluginState.FAILED, False
-            elif committed == PluginState.DISABLED.value:
-                state, enabled = PluginState.DISABLED, False
             elif committed == PluginState.ENABLED.value:
                 state, enabled = PluginState.ENABLED, True
             else:

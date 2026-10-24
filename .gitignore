@@ -69,6 +69,8 @@ node_modules
 !.env.example.*
 *.key
 *.pem
+# The public half of the first-party signing pair is a verifier, not a secret.
+!plugins/first-party.pub.pem
 # Signing material: an Android keystore or a provisioning profile dropped into the tree
 # would otherwise be committed, and the secret scan does not read those formats.
 *.jks
@@ -165,3 +167,6 @@ out/**/*.webp
 out/**/*.webm
 out/**/*.json
 out/
+
+# Live-cell demo output (scripts/ephemeral_demo.py)
+.cell-demo/

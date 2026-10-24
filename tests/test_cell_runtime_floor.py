@@ -1,11 +1,10 @@
 """The cell runtime floor: a patched wasmtime, and a config that still builds.
 
 Ephemora Cell 1.1.0 declares ``wasmtime<48``. That bound predates the engine the
-advisories were patched in, and PyPI ships only 47.0.1, 48.0.0 and 49.0.0: OSV
-lists 23 open advisories for 47.0.1, 18 for 48.0.0 and 19 for 49.0.0 (measured
-2026-10-21), so 48.0.0 leaves the fewest. Ephe overrides the transitive bound in
-its own pyproject, and these tests hold the floor so a later ``uv lock`` cannot
-walk back into it.
+advisories were patched in. PyPI publishes 48.0.0 but not the 48.0.6 fix, and
+not the 49.0.3 fix; 50.0.1 is the first published release outside every affected
+range. Ephe overrides the transitive bound, and these tests read the floor from
+pyproject so a later ``uv lock`` cannot walk back into it.
 """
 from __future__ import annotations
 
@@ -17,7 +16,16 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
-FLOOR = (48, 0, 0)
+
+
+def _declared_floor() -> tuple[int, ...]:
+    text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'"wasmtime>=([0-9.]+),<', text)
+    assert match, "no wasmtime floor in the uv override block"
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+FLOOR = _declared_floor()
 
 
 def _locked_wasmtime() -> tuple[int, ...]:
@@ -37,11 +45,12 @@ def test_the_locked_wasmtime_is_at_or_above_the_patched_floor():
 
 def test_the_project_overrides_the_transitive_upper_bound():
     """GIVEN ephemora-cell declares ``wasmtime<48``
-    THEN Ephe overrides that bound in its own file, so the floor above is a
-    decision in the repository and not a one-off edit to the lock."""
+    THEN Ephe overrides that bound in its own file at or above 50.0.1, the first
+    published release outside every affected range."""
     text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
     assert "override-dependencies" in text, "no uv override block"
-    assert re.search(r'"wasmtime>=48\.0\.0', text), "the wasmtime floor is missing"
+    assert FLOOR >= (50, 0, 1), f"the declared wasmtime floor is {FLOOR}"
+    assert _locked_wasmtime() >= FLOOR, "uv.lock sits below the declared floor"
 
 
 def test_the_cell_config_still_builds_on_the_patched_engine():

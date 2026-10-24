@@ -17,8 +17,11 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 
 ## Windows PowerShell (One-Liner)
 
+This path has not been verified end to end on Windows for this revision.
+
 ```powershell
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -o install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 Or run it straight from a local checkout:
@@ -27,8 +30,8 @@ Or run it straight from a local checkout:
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Install mode is selectable: `--cli` (TUI/Textual only, minimal dependencies) or `--desktop`/`--gui`
-(default, PWA + gui/voice). Without a flag the installer asks interactively.
+On Windows, choose `-Cli` for the terminal interface or `-Desktop` for the web app and voice.
+On macOS and Linux, Bash defaults to Desktop; choose `--cli` or `EPHE_MODE=cli` for terminal-only use.
 
 ## Docker
 
@@ -91,17 +94,18 @@ pulled for you, and no model is treated as the default. A local Ollama tag needs
 size asks for — around 16 GB unified memory for a 12-billion-parameter model, less for a smaller one,
 none for a remote endpoint.
 
-**Supply-chain integrity:** every vendor download (uv) is verified against its pinned SHA256 before
-execution, and a mismatch never runs the fetched script. A rotated upstream hash is reported with
-both hashes and the install falls back to the distro interpreter instead. Rotation via
-`EPHE_UV_INSTALL_SHA256`.
+**Installer checks:** the Bash installer checks the downloaded uv installer against a pinned SHA256.
+A mismatch leaves it unexecuted and selects the distro interpreter fallback. Change
+`EPHE_UV_INSTALL_SHA256` only after independent verification; the observed hash alone is not trusted.
+This check does not cover every downstream download. Windows uses winget/pip; both installers
+separately hash-pin the pip bootstrap wheel.
 
 ## System Requirements
 
 | Component | Minimum | Recommended |
 |---|---|---|
 | OS | macOS 13+, Ubuntu 22+, Windows with the PowerShell path | macOS 14+ or recent Linux |
-| Python | 3.10 | 3.12+ |
+| Python | 3.11 | 3.12+ |
 | Ollama | User-managed (the installer only detects it) | Latest stable |
 | RAM | 8 GB for a small local tag | 16 GB+ for a local 12B-class tag — or a remote endpoint, which needs none |
 | Storage | 12 GB free | 20 GB+ |

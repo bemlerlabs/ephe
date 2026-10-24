@@ -83,3 +83,37 @@ class TestBenchGateSwitch:
         assert run.returncode == 0, run.stdout + run.stderr
         assert "4 skipped" in run.stdout, run.stdout[-800:]
         assert "EPHE_BENCH_GATE=0" in run.stdout, "the skip has to name the switch"
+
+
+@pytest.mark.parametrize("growth_mb", [29, 31])
+def test_memory_gate_separates_startup_but_still_rejects_turn_growth(tmp_path, monkeypatch, growth_mb):
+    import threading
+    from types import SimpleNamespace
+
+    import psutil
+    import core.transcribe as transcribe
+    import server.main as server
+
+    module = _gate_state(monkeypatch, "1")
+    warm_threads = []
+    create_app = server.create_app
+    readings = iter([100, 324, 325, 325 + growth_mb])
+
+    def warm():
+        warm_threads.append(threading.get_ident())
+        return True
+
+    def create_after_warmup():
+        assert warm_threads == [threading.get_ident()], "cached startup must finish before the turn window"
+        return create_app()
+
+    monkeypatch.setattr(transcribe, "warm_if_cached", warm)
+    monkeypatch.setattr(server, "create_app", create_after_warmup)
+    monkeypatch.setattr(psutil.Process, "memory_info", lambda self: SimpleNamespace(rss=next(readings) * 1048576))
+
+    if growth_mb > 30:
+        with pytest.raises(AssertionError, match="Long-session memory regression"):
+            module.test_long_session_memory_budget(tmp_path, monkeypatch)
+    else:
+        module.test_long_session_memory_budget(tmp_path, monkeypatch)
+    assert list(readings) == []

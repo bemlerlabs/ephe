@@ -44,7 +44,6 @@ EXPECTED_ACTIVATIONS = {
     "create_source_notebook": "documents",
     "create_svg": "presentations",
     "create_xlsx": "spreadsheets",
-    "delete_file": "code-shell",
     "edit_file": "code-shell",
     "edit_pptx_template": "presentations",
     "export_source_brief": "documents",

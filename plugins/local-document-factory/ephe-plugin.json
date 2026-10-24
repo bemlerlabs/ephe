@@ -1,0 +1,49 @@
+{
+  "manifest_version": 1,
+  "name": "local-document-factory",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "One fact pack, four formats, one evidence gate: verified PDF, DOCX, XLSX and PPTX documents built locally.",
+  "permissions": {
+    "tool_families": [
+      "docs",
+      "read",
+      "write"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [
+      "local-document-factory"
+    ],
+    "commands": [
+      {
+        "name": "doc-brief",
+        "description": "Build a verified report-grade PDF brief from supplied facts",
+        "template": "Build a report-grade PDF brief about: {input}. Use build_document or create_pdf, include the source line, and call verify_artifact before reporting done."
+      },
+      {
+        "name": "doc-editable",
+        "description": "Produce an editable DOCX from a brief or source notes",
+        "template": "Create an editable DOCX about: {input}. Use create_docx, preserve the source line, and verify the artifact."
+      },
+      {
+        "name": "doc-workbook",
+        "description": "Turn supplied facts into an XLSX with inputs, model and outputs",
+        "template": "Build an XLSX model for: {input}. Use create_xlsx with separate Inputs, Model and Output sheets, formulas over hardcoded totals, then verify_artifact."
+      },
+      {
+        "name": "doc-deck",
+        "description": "Turn a brief into a PPTX deck with speaker notes and QA",
+        "template": "Build a PPTX deck for: {input}. Use create_pptx_deck with one claim per slide and speaker notes, then call qa_pptx_deck and verify_artifact."
+      },
+      {
+        "name": "doc-qa",
+        "description": "Run the document QA checklist over produced artifacts",
+        "template": "Run the document QA checklist over: {input}. Check the artifact contract, source line, page count, placeholders and verification evidence; report PASS or FAIL per item."
+      }
+    ]
+  },
+  "icon": "icon.svg",
+  "changelog": "1.0.0 - Local Document Factory: five-command suite with artifact contract, QA checklist and evidence gate."
+}

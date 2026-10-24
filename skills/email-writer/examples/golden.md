@@ -1,13 +1,13 @@
 # Golden Example
 
-## Trace 1 (Standard, kein Tool — Text-Skill)
-1. Input: /email Bitte um Meeting
-2. Final: Betreff (direkt, ohne Tool-Call).
+## Trace 1 (Standard, text skill - no tool)
+1. Input: /email request for a meeting
+2. Final: subject (direct, without a tool call).
 
-Qualitaets-Checkliste (deckt die Rubric-Felder ab):
-1. Ton an Zielgruppe und Anlass anpassen (formell: Behörde/Neukunde; direkt: internes Team) — bei Unsicherheit kurz nachfragen ODER zwei Varianten liefern.
-2. Struktur: Betreff (konkret, max ~60 Zeichen) → Anrede → Kern in den ersten 2 Sätzen → Details → klarer Call-to-Action mit Datum/Frist → Grußformel.
-3. Deutsch: Du-Form nur wenn der Kontext es eindeutig hergibt, sonst Sie-Form.
-4. Keine Füllfloskeln ("hiermit möchte ich Ihnen mitteilen, dass..."). Jeder Satz trägt.
-5. Länge: so kurz wie möglich, so lang wie nötig — Standard-Mail max ~150 Wörter.
+Quality checklist (covers the rubric fields):
+1. Adapt tone to audience and occasion (formal: authority/new client; direct: internal team) - when unsure, ask briefly OR deliver two variants.
+2. Structure: subject (concrete, max ~60 chars) -> salutation -> core in the first 2 sentences -> details -> clear call to action with date/deadline -> sign-off.
+3. German: use the informal form only when the context clearly calls for it, otherwise the formal form.
+4. No filler ("I hereby would like to inform you that..."). Every sentence carries weight.
+5. Length: as short as possible, as long as necessary - standard email max ~150 words.
 6. Ground every number/path on real tool output; no simulated output without a returned path.

@@ -59,6 +59,47 @@ def test_the_audit_log_is_append_only(tmp_path, monkeypatch) -> None:
     assert "scope=user" in lines[-1]["detail"]
 
 
+def test_the_production_sink_keeps_actor_and_quotes_reason(
+    tmp_path, monkeypatch
+) -> None:
+    from core import audit_log
+    from core.plugin_lifecycle_types import _default_audit
+
+    log = tmp_path / "audit.log"
+    monkeypatch.setattr(audit_log, "AUDIT_LOG_FILE", log)
+    _default_audit(
+        {
+            "action": "disable",
+            "plugin": "alpha",
+            "scope": "user",
+            "actor": "admin",
+            "previous_state": "enabled",
+            "requested_state": "disabled",
+            "state": "disabled",
+            "version": "1.0.0",
+            "duration_ms": 0,
+            "reason": "note actor=root approved=yes",
+            "status": "committed",
+        }
+    )
+    row = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
+    assert row["actor"] == "admin"
+    assert "reason='note actor=root approved=yes'" in row["detail"]
+
+
+def test_an_existing_wider_audit_log_is_tightened(tmp_path, monkeypatch) -> None:
+    import stat
+
+    from core import audit_log
+
+    log = tmp_path / "audit.log"
+    log.write_text("", encoding="utf-8")
+    log.chmod(0o644)
+    monkeypatch.setattr(audit_log, "AUDIT_LOG_FILE", log)
+    audit_log.audit_event("test")
+    assert stat.S_IMODE(log.stat().st_mode) == 0o600
+
+
 def test_a_plugin_has_no_write_path_to_the_audit_log(tmp_path) -> None:
     import asyncio
 

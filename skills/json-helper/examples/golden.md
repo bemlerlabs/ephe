@@ -6,8 +6,8 @@
 3. Observation: {"id": 1, "name": "Test"}
 4. Final: JSON pretty-printed (2 spaces indent, 3 keys).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
+## Trace 2 (Edge case: error path)
 1. Input: /json nonexist.json
 2. ToolCall: {"name": "read_file", "arguments": {"path": "nonexist.json"}}
-3. Observation: [tool-error] Datei nicht gefunden
-4. Final: Fehler gemeldet, kein JSON ausgegeben.
+3. Observation: [tool-error] file not found
+4. Final: Error reported, no JSON output.

@@ -14,7 +14,7 @@ from core.tools._deck_common import _deck_palette, _resolve_allowed_file, _split
 
 
 def _inspect_pptx_template_file(path: str | Path) -> dict:
-    src = _resolve_allowed_file(str(path))
+    src = _resolve_allowed_file(str(path), allow_artifacts=True)
     if src.suffix.lower() != ".pptx":
         raise ValueError("Template must be a .pptx file")
     with zipfile.ZipFile(src) as pptx:

@@ -1,0 +1,295 @@
+{
+  "format": 1,
+  "plugins": [
+    {
+      "name": "browser-use",
+      "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+      "author": "Ephe",
+      "icon": "plugins/browser-use/icon.svg",
+      "category": "browser",
+      "keywords": [
+        "browser use",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
+    },
+    {
+      "name": "code-shell",
+      "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+      "author": "Ephe",
+      "icon": "plugins/code-shell/icon.svg",
+      "category": "code",
+      "keywords": [
+        "code shell",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "documents",
+      "description": "Real document production: PDF, DOCX, QR codes, notebooks, briefs.",
+      "author": "Ephe",
+      "icon": "plugins/documents/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "documents",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 10,
+        "runs": 3,
+        "pass3": "9/10",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "guide",
+      "description": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, doctor flows.",
+      "author": "Ephe",
+      "icon": "plugins/guide/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "guide",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "image-studio",
+      "description": "Image generation for posters, illustrations and concepts.",
+      "author": "Ephe",
+      "icon": "plugins/image-studio/icon.svg",
+      "category": "image",
+      "keywords": [
+        "image studio",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "local-document-factory",
+      "description": "One fact pack, four verified formats: PDF, DOCX, XLSX and PPTX documents built locally.",
+      "author": "Ephe",
+      "icon": "plugins/local-document-factory/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "document factory",
+        "pdf",
+        "docx",
+        "xlsx",
+        "pptx",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
+    },
+    {
+      "name": "mcp-connector",
+      "description": "External tools via Model Context Protocol servers.",
+      "author": "Ephe",
+      "icon": "plugins/mcp-connector/icon.svg",
+      "category": "mcp",
+      "keywords": [
+        "mcp connector",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "memory",
+      "description": "Short- and long-term memory across sessions.",
+      "author": "Ephe",
+      "icon": "plugins/memory/icon.svg",
+      "category": "memory",
+      "keywords": [
+        "memory",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "plugin-creator",
+      "description": "Create and validate Ephe plugins: scaffolds, permissions, signing.",
+      "author": "Ephe",
+      "icon": "plugins/plugin-creator/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "plugin creator",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "presentations",
+      "description": "Real deck production: PPTX presentations, pitch decks, diagrams.",
+      "author": "Ephe",
+      "icon": "plugins/presentations/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "presentations",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "private-research-notebook",
+      "description": "Private research notebook: cited answers, evidence briefs and decks from local sources.",
+      "author": "Ephe",
+      "icon": "plugins/private-research-notebook/icon.svg",
+      "category": "research",
+      "keywords": [
+        "research notebook",
+        "citations",
+        "evidence",
+        "local-first",
+        "private"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
+    },
+    {
+      "name": "skill-creator",
+      "description": "Create and grade Ephe skill packs with rubric and golden gates.",
+      "author": "Ephe",
+      "icon": "plugins/skill-creator/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "skill creator",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "spreadsheets",
+      "description": "Real spreadsheet production: formatted XLSX workbooks and charts.",
+      "author": "Ephe",
+      "icon": "plugins/spreadsheets/icon.svg",
+      "category": "documents",
+      "keywords": [
+        "spreadsheets",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    },
+    {
+      "name": "vision",
+      "description": "Vision-capable model reads screenshots and images.",
+      "author": "Ephe",
+      "icon": "plugins/vision/icon.svg",
+      "category": "vision",
+      "keywords": [
+        "vision",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "voice",
+      "description": "Text-to-speech for answers and read-aloud.",
+      "author": "Ephe",
+      "icon": "plugins/voice/icon.svg",
+      "category": "audio",
+      "keywords": [
+        "voice",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "capability-preset",
+      "quality_reason": "No 3-command workflow and no SKILL.md few-shot pack; it is a capability, not a plugin DoD."
+    },
+    {
+      "name": "web-research",
+      "description": "Live web research for the agent (opt-in, needs an API key).",
+      "author": "Ephe",
+      "icon": "plugins/web-research/icon.svg",
+      "category": "research",
+      "keywords": [
+        "web research",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin",
+      "measurement": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "cases": 11,
+        "runs": 3,
+        "pass3": "10/11",
+        "date": "2026-10-23",
+        "commit": "67b37bfc"
+      }
+    }
+  ]
+}

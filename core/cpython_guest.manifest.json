@@ -66,11 +66,20 @@
       "consequence": "Die gepinnten Hashes beschreiben den Installationsstand, gegen den bei jedem Load geprueft wird — nicht eine Erwartung an jede Neubau-Umgebung. Wer neu baut, laesst `record` laufen (genau das schreibt die Hashes zurueck), und `--stage-only` vergleicht gebaut gegen gepinnt, bevor irgendetwas installiert wird."
     },
     "measured": {
-      "boot_fuel": 1418393708,
-      "boot_wall_ms": 995,
-      "cpu_fuel_per_second": 9000000000,
-      "default_budget_guest_seconds": 2.2,
-      "note": "Gemessen mit ephemora-cell 1.0.4.3 / wasmtime 47.0.1 auf Darwin arm64: 1.418.393.708 Fuel und 995 ms Wall fuer `print(1+1)` (Prozess-Start und Modulinstantiierung inklusive). Eine Zaehlungsschleife mit 7.276.206 Durchlaeufen kostete 18,04 G Fuel ueber 2,0 s Gaeste-CPU, also ~9 G je CPU-Sekunde. Fuel ist eine Engine-Einheit, keine Zeit; die Wall-Peitsche bleibt timeout_seconds."
+      "boot_fuel": 1433763027,
+      "boot_wall_ms": 880,
+      "cpu_fuel_per_second": 11000000000,
+      "default_budget_guest_seconds": 1.7,
+      "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
+      "measured_at": "2026-10-23",
+      "note": "Measured on wasmtime 50.0.1: 1,433,763,027 fuel and 880 ms wall for `print(1+1)` (process start and module instantiation included). A counting loop of 0.4/1.6/3.2 M iterations cost 10.2-11.0 G fuel per guest CPU second (3.00/6.97/12.88 G fuel against 0.128/0.515/1.025 s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. Fuel is an engine unit, not time; the wall leash stays timeout_seconds.",
+      "previous": {
+        "engine": "ephemora-cell 1.0.4.3 / wasmtime 47.0.1 / Darwin arm64",
+        "boot_fuel": 1418393708,
+        "boot_wall_ms": 995,
+        "cpu_fuel_per_second": 9000000000,
+        "note": "A 7,276,206-iteration loop cost 18.04 G fuel over 2.0 s of guest CPU, about 9 G per CPU second."
+      }
     },
     "guest_gaps": [
       "_ssl/_hashlib (OpenSSL), zlib, bz2, lzma, _sqlite3, _ctypes und readline fehlen: das wasi-sysroot 24 bringt sie nicht — der Gast hat kein HTTPS und keinen Compressor",

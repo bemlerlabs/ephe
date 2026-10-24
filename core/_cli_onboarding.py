@@ -38,6 +38,7 @@ def _run_engine_onboarding(
     else:
         print("  ⚠ No local engine detected – please choose the engine and, if needed, the URL")
 
+    pending_key = ""
     while True:
         try:
             raw = (input_fn("Engine [1/2/3/4, no default]: ") or "").strip()
@@ -82,7 +83,7 @@ def _run_engine_onboarding(
                 key = (input_fn("API key (optional, kept in the OS keychain): ") or "").strip()
                 if key:
                     os.environ["EPHE_OPENAI_COMPAT_API_KEY"] = key
-                    store_engine_api_key(key)
+                    pending_key = key
             elif raw in ("4", "api", "cloud"):
                 provider = OPENAI_COMPAT
                 default_model = "custom-model"
@@ -94,7 +95,7 @@ def _run_engine_onboarding(
                 key = (input_fn("API key (optional, kept in the OS keychain): ") or "").strip()
                 if key:
                     os.environ["EPHE_OPENAI_COMPAT_API_KEY"] = key
-                    store_engine_api_key(key)
+                    pending_key = key
             else:
                 print(f"  Unknown choice: {raw!r} — enter 1/2/3/4.")
                 continue
@@ -121,6 +122,8 @@ def _run_engine_onboarding(
 
     choice = EngineChoice(provider=provider, model=model, api_url=api_url)
     saved = save_engine_config(choice, config_path)
+    if pending_key and provider == OPENAI_COMPAT:
+        store_engine_api_key(pending_key, engine=choice)
     print(f"  → Engine stored: {provider} / {model}"
           + (f" @ {api_url}" if api_url else ""))
     if not saved:

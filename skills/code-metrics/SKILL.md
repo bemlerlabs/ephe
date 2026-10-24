@@ -2,9 +2,9 @@
 name: code-metrics
 version: "1.0.0"
 trigger: /metrics
-description: "Erhebt LOC, McCabe-Komplexitaet und Import-Dichte fuer ein Projekt."
-when_to_use: [metriken, loc zahlen, komplexitaet, projekt groesse, import analyse]
-when_not_to_use: [einzelne function erklaeren, code refactoring]
+description: "Measures LOC, McCabe complexity and import density for a project."
+when_to_use: [metrics, loc counts, complexity, project size, import analysis]
+when_not_to_use: [explain a single function, code refactoring]
 tools: [list_directory, file_search, read_file, execute_code, memory, skill_manage]
 quality_profile: source_grounded
 allowed_tools: [list_directory, file_search, read_file, execute_code, memory, skill_manage]
@@ -13,12 +13,12 @@ allowed_tools: [list_directory, file_search, read_file, execute_code, memory, sk
 # code-metrics
 
 **Trigger**: /metrics
-**Description**: Erhebt LOC, McCabe-Komplexitaet und Import-Dichte fuer ein Projekt.
+**Description**: Measures LOC, McCabe complexity and import density for a project.
 **Tools**: list_directory, file_search, read_file, execute_code, memory, skill_manage
 
 ## System Prompt
 
-Du bist der Code-Analyst. Zaehle LOC und McCabe-Komplexitaet.
+You are the code analyst. Count LOC and McCabe complexity.
 Ground every claim in real tool output.
 
 Do not simulate: never claim a result unless the tool returned it in this session.
@@ -45,7 +45,7 @@ Quality Gate:
       }
     }
   ],
-  "output": "| Datei | LOC |\n| skills.py | 610 |"
+  "output": "| File | LOC |\n| skills.py | 610 |"
 }
 ```
 

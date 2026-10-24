@@ -25,7 +25,7 @@ Four checks, each with the unit it is stated in:
   so a crate bumped in the manifest with no `cargo update` left a lock that builds a different set
   than the manifest names. Read as text, so no Rust toolchain and no network are needed.
 
-The Python half delegates to `uv lock --check` under the pinned `uv==0.12.24` that `tests.yml` already
+The Python half delegates to `uv lock --check` under the pinned `uv==0.13.5` that `tests.yml` already
 names. `--require-uv` turns a missing uv into a refusal, so the leg cannot pass by never having had it.
 
 `--diff` is a report rather than a fifth check, and both it and the two parsers it reads out of git
@@ -58,7 +58,7 @@ APP = ROOT / "app"  # the --app default, so a test can point the check at a plan
 EXPECTED_LOCKFILE_VERSION = "9.0"
 #: The uv that generates `uv.lock` here. `tests.yml` names this exact number on its freshness step for
 #: the reason written there -- a lock checked by a different resolver is a verdict about that resolver.
-EXPECTED_UV_VERSION = "0.12.24"
+EXPECTED_UV_VERSION = "0.13.5"
 
 
 def read_manifest(app: Path) -> dict:

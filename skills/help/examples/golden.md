@@ -1,10 +1,10 @@
 # Golden Example
 
-## Trace 1 (Standard, kein Tool — Text-Skill)
-1. Input: Was kannst du alles?
-2. Final: Chat (direkt, ohne Tool-Call).
+## Trace 1 (Standard, text skill - no tool)
+1. Input: What can you do?
+2. Final: Chat (direct, without a tool call).
 
-Qualitaets-Checkliste (deckt die Rubric-Felder ab):
+Quality checklist (covers the rubric fields):
 1. Give a concise capability map grouped by user goal, not internal implementation.
 2. For risky features, mention whether approval, local files, internet, or macOS permissions are required.
 3. Include one concrete example command for the feature the user asked about.

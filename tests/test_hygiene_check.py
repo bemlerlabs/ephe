@@ -92,6 +92,15 @@ class TestPlantedFindings:
         assert done.returncode == 1, done.stdout
         assert done.stdout.count("dotenv:") == 2, done.stdout
 
+    def test_the_first_party_public_key_is_a_shipped_file(self, tmp_path):
+        repo = new_repo(tmp_path)
+        stage(repo, "plugins/first-party.pub.pem")
+        stage(repo, "plugins/other.pem")
+        done = run(repo)
+        assert done.returncode == 1, done.stdout + done.stderr
+        assert "plugins/first-party.pub.pem" not in done.stdout, done.stdout
+        assert "plugins/other.pem" in done.stdout, done.stdout
+
 
 class TestTooling:
     def test_a_check_without_a_rule_selected_is_refused_by_the_parser(self, tmp_path):

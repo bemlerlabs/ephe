@@ -96,7 +96,7 @@ def test_kernel_optout_is_explicit_and_names_its_consequence(monkeypatch):
     monkeypatch.setenv(cell.ENV_EXEC, cell.RUNTIME_KERNEL)
     out = _agent_code("print(1+1)")
     assert f"runtime={cell.RUNTIME_KERNEL}" in out
-    assert "UNSANDBOXED" in out and "Host-Zugriff" in out
+    assert "UNSANDBOXED" in out and "host access" in out
     assert "2" in out
 
 
@@ -104,7 +104,7 @@ def test_unknown_optout_refuses_instead_of_guessing(monkeypatch):
     """No silent default in either direction: an unclear value leads to nothing."""
     monkeypatch.setenv(cell.ENV_EXEC, "vielleicht-sandbox")
     out = _agent_code("print(1+1)")
-    assert cell.ENV_EXEC in out and "Nichts wurde ausgefuehrt" in out
+    assert cell.ENV_EXEC in out and "Nothing was executed" in out
     assert "2" not in out
 
 
@@ -857,5 +857,5 @@ def test_kernel_path_keeps_its_tail_too(monkeypatch):
     monkeypatch.setenv(cell.ENV_EXEC, cell.RUNTIME_KERNEL)
     out = _agent_code("print('K' * 30000)\nprint('Kernel-Ende')\n", session="kernel-tail")
     assert "Kernel-Ende" in out
-    assert "nicht uebergeben" in out
+    assert "characters not passed" in out
     assert len(out) < 30_000

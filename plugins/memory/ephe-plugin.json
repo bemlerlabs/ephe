@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "memory",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Short- and long-term memory across sessions.",
   "permissions": {
     "tool_families": [
@@ -10,12 +10,24 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "memory"
+    ],
     "commands": [
       {
         "name": "memorize",
         "description": "Store a durable fact",
         "template": "Store the following as a durable memory and confirm what you kept: {input}"
+      },
+      {
+        "name": "recall",
+        "description": "Recall a stored fact with its date",
+        "template": "Recall what you know about: {input}. Quote the stored entry and its date; say when nothing is stored."
+      },
+      {
+        "name": "forget",
+        "description": "Delete a memory with confirmation",
+        "template": "Delete the memory about: {input}. List exactly what will be removed, ask for confirmation, then report what was deleted."
       }
     ],
     "tools": [
@@ -23,5 +35,6 @@
     ]
   },
   "origin": "first-party",
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

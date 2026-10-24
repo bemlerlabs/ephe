@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /checklist Umzug
-2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Beispiel", "content": "# Beispiel\nx = 1", "filename": "out"}}
+1. Input: /checklist moving house
+2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Example", "content": "# Example\nx = 1", "filename": "out"}}
 3. Observation: 1.
-4. Final: 1. (belegt durch Tool-Output).
+4. Final: 1. (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /checklist Umzug (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Beispiel", "content": "# Beispiel\nx = 1", "filename": "out"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: 1..
+## Trace 2 (Edge case: error path)
+1. Input: /checklist moving house (source/path not found)
+2. ToolCall: {"name": "create_pdf", "arguments": {"title": "Example", "content": "# Example\nx = 1", "filename": "out"}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: 1.
