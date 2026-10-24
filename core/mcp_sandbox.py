@@ -113,18 +113,35 @@ def _runtime_prefixes(command: str | None, real_home: str) -> list[str]:
     roots: set[str] = set()
 
     def consider(prefix: str) -> None:
-        prefix = os.path.realpath(prefix)
-        if not _under(prefix, real_home) or prefix == real_home:
-            return
-        if any(_under(prefix, os.path.join(real_home, rel)) for rel in DENY_READ_SUBPATHS):
-            return
-        if not _looks_like_runtime(prefix):
-            return
-        roots.add(prefix)
+        # Resolve the parent but keep the final name: the final component may be a
+        # symlink whose own read must be allowed, and `/tmp` may stand for `/private/tmp`.
+        parent, name = os.path.split(os.path.abspath(prefix))
+        literal = os.path.join(os.path.realpath(parent), name)
+        # A symlinked prefix is read at its literal path and again after resolution;
+        # only the resolved tree is not enough. uv's `cpython-3.12-…` alias is one.
+        for candidate in (literal, os.path.realpath(literal)):
+            if not _under(candidate, real_home) or candidate == real_home:
+                continue
+            if any(_under(candidate, os.path.join(real_home, rel)) for rel in DENY_READ_SUBPATHS):
+                continue
+            if not _looks_like_runtime(candidate):
+                continue
+            roots.add(candidate)
 
     if command:
         for candidate in (os.path.abspath(command), os.path.realpath(command)):
             consider(os.path.dirname(os.path.dirname(candidate)))
+        # The executable can be a symlink to a path that is itself a symlink: `uv venv`
+        # names its unversioned alias, while `realpath` reports the versioned tree. The
+        # kernel reads the alias on the way, so its literal prefix needs its own allow.
+        try:
+            target = os.readlink(command)
+        except OSError:
+            target = ""
+        if target:
+            if not os.path.isabs(target):
+                target = os.path.join(os.path.dirname(command), target)
+            consider(os.path.dirname(os.path.dirname(target)))
     # The interpreter itself, through its symlink and its target: a venv's `bin/python`
     # points at the base installation, and the child has to execute both.
     for executable in (sys.executable, os.path.realpath(sys.executable or "")):

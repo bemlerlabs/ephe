@@ -204,6 +204,32 @@ def test_a_minor_python_under_a_secret_subtree_is_refused(monkeypatch, tmp_path)
     assert mcp_sandbox._runtime_prefixes(str(interpreter), real_home) == []
 
 
+def test_the_unversioned_alias_hop_is_reopened(monkeypatch, tmp_path):
+    """`uv venv` links to `cpython-3.12-…`, an alias symlink on the way to the tree.
+
+    The kernel reads that hop, so an allow on the resolved tree alone leaves the
+    interpreter unexecutable inside the sandbox.
+    """
+    fake_home = tmp_path / "user"
+    python_dir = fake_home / ".local" / "share" / "uv" / "python"
+    versioned = python_dir / "cpython-3.12.15-macos-aarch64-none"
+    interpreter = versioned / "bin" / "python3.12"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("", encoding="utf-8")
+    alias = python_dir / "cpython-3.12-macos-aarch64-none"
+    alias.symlink_to(versioned.name)
+    command = fake_home / "work" / "ephe" / ".venv" / "bin" / "python"
+    command.parent.mkdir(parents=True)
+    command.symlink_to(alias / "bin" / "python3.12")
+    monkeypatch.setenv("HOME", str(fake_home))
+    real_home = os.path.realpath(fake_home)
+
+    roots = mcp_sandbox._runtime_prefixes(str(command), real_home)
+
+    assert os.path.realpath(alias) in roots
+    assert str(alias) in roots
+
+
 def test_the_runtime_allow_follows_the_home_deny_and_the_child_home_is_last(
     monkeypatch, tmp_path
 ):
