@@ -46,12 +46,15 @@ def _register_floors() -> tuple[tuple[str, str], ...]:
     only speak for PyPI. The register carries two ecosystems since the npm rows landed, and a floor
     without its ecosystem is a floor looked up in the wrong lock: the katex row's `fixed_in=0.18.2`
     belongs to `pnpm-lock.yaml`, and asserting it against `uv.lock` fails on a correct tree.
+    CI-only uv is checked against the workflow pin by test_uv_advisories_are_fixed_by_the_build_tool_pin.
     """
     seen: list[tuple[str, str]] = []
     for m in _entries():
         if (m["state"] or "accepted") != "fixed":
             continue
         if (m["ecosystem"] or "PyPI") != "PyPI":
+            continue
+        if (m["package"], m["scope"]) == ("uv", "development"):
             continue
         pair = (m["package"], m["fixed_in"])
         if pair not in seen:
@@ -459,6 +462,18 @@ def _ver_ge(have: str, need: str) -> bool:
             return x > y
     return True
 
+
+def test_uv_advisories_are_fixed_by_the_build_tool_pin():
+    rows = [m for m in _entries() if m["package"] == "uv"]
+    assert {m["id"] for m in rows} == {"PYSEC-2026-4321", "GHSA-hq85-5cpj-mr62"}
+    pins = re.findall(r"uv==([0-9.]+)", WORKFLOW.read_text(encoding="utf-8"))
+    assert pins, "the audit workflow has no uv pin"
+    for m in rows:
+        assert (m["ecosystem"], m["scope"], m["state"]) == ("PyPI", "development", "fixed")
+        assert all(_at_least(pin, m["fixed_in"]) for pin in pins), (pins, m["fixed_in"])
+    assert "uv" not in {name for name, _ in _lock_packages()}, "uv is CI tooling, not a dependency"
+
+
 def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
     """GIVEN a register row in state=fixed THEN the committed uv.lock resolves that package at
     or above the `fixed_in` the row names, or the row fails.
@@ -481,6 +496,8 @@ def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
         # and a PyPI row asserted against the npm lock (or the reverse) fails on a correct tree.
         if (m["ecosystem"] or "PyPI") != "PyPI":
             continue
+        if (m["package"], m["scope"]) == ("uv", "development"):
+            continue  # held by test_uv_advisories_are_fixed_by_the_build_tool_pin
         versions = resolved.get(m["package"], [])
         assert versions, (
             f"{m['id']} is state=fixed for {m['package']} but uv.lock resolves no such "
@@ -568,7 +585,8 @@ RESOLVER = ROOT / "scripts" / "advisory_id_check.py"
 ENGINE_ENTRY = re.compile(
     r"^(?P<id>[A-Za-z]+-\d{4}-\d{3,7})\s+#\s+package=(?P<package>\S+)\s+ecosystem=(?P<ecosystem>\S+)\s+"
     r"probe=(?P<probe>\S+)\s+affected=(?P<affected>\S+)\s+fixed_in=(?P<fixed_in>\S+)\s+"
-    r"blocked_by=(?P<blocked_by>\S+)\s+(?:alias=(?P<alias>\S+)\s+)?"\
+    r"(?:state=(?P<state>accepted|fixed)\s+)?(?:blocked_by=(?P<blocked_by>\S+)\s+)?"\
+    r"(?:alias=(?P<alias>\S+)\s+)?"\
     r"recheck=(?P<recheck>\d{4}-\d{2}-\d{2})\s*$"
 )
 ANY_ID = re.compile(
@@ -612,10 +630,14 @@ def test_the_engine_register_exists_and_covers_what_the_pip_audit_cannot_see():
     assert ENGINE.is_file(), f"missing {ENGINE}"
     entries = _engine_entries()
     assert entries, f"no parseable entry in {ENGINE}"
-    for identifier, rationale in _engine_rationales():
-        assert "Exposure as measured" in rationale, f"{identifier} has no exposure read"
+    accepted = [entry for entry in entries if entry["state"] != "fixed"]
+    rationales = dict(_engine_rationales())
+    for entry in accepted:
+        rationale = rationales.get(entry["id"], "")
+        assert entry["blocked_by"], f"{entry['id']} is accepted without the constraint that blocks the fix"
+        assert "Exposure as measured" in rationale, f"{entry['id']} has no exposure read"
         assert "UNPROVEN" in rationale, (
-            f"{identifier} states its exposure as if nothing were unknown — a mitigation "
+            f"{entry['id']} states its exposure as if nothing were unknown — a mitigation "
             "claimed without its gap is a guess"
         )
     stale = [(m["id"], m["recheck"]) for m in entries
@@ -633,7 +655,22 @@ def test_an_engine_acceptance_names_the_constraint_that_keeps_the_fix_out_of_rea
             f"{m['id']}: a crates.io advisory with no release above it is a different claim; "
             "if that is truly the case, say so and re-check the database"
         )
-        assert m["blocked_by"], f"{m['id']} lacks blocked_by="
+        if m["state"] != "fixed":
+            assert m["blocked_by"], f"{m['id']} lacks blocked_by="
+
+
+def test_a_fixed_engine_advisory_is_below_the_locked_engine():
+    """GIVEN a row whose state says fixed THEN the lock must resolve wasmtime at or above
+    `fixed_in`, or the row would be a claim about a version we do not ship."""
+    locked = tuple(int(part) for part in re.search(
+        r'name = "wasmtime"\nversion = "([^"]+)"',
+        (ROOT / "uv.lock").read_text(encoding="utf-8"),
+    )[1].split(".") if part.isdigit())
+    for m in _engine_entries():
+        if m["state"] != "fixed":
+            continue
+        fixed = tuple(int(part) for part in m["fixed_in"].split(".") if part.isdigit())
+        assert locked >= fixed, f"{m['id']}: uv.lock wasmtime {locked} is below fixed_in {fixed}"
 
 
 def test_the_gate_resolves_every_accepted_id_instead_of_only_ignoring_it():

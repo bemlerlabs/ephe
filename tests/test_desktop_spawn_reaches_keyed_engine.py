@@ -72,9 +72,17 @@ def _const(name: str) -> str:
 def spawn_env_names() -> set[str]:
     """Every variable name `starten()` sets on the child, resolved through its consts."""
     body = _slice("starten", STARTEN)
-    by_const = {_const(name) for name in re.findall(r'\.env\(\s*([A-Z][A-Z0-9_]*)\s*,', body)}
-    by_literal = set(re.findall(r'\.env\(\s*"([^"]+)"\s*,', body))
-    return by_const | by_literal
+    by_env = {_const(name) for name in re.findall(r'\.env\(\s*([A-Z][A-Z0-9_]*)\s*,', body)}
+    by_envs = {
+        _const(name)
+        for name in re.findall(r'\.envs\(\s*\[\s*\(\s*([A-Z][A-Z0-9_]*)\s*,', body)
+    }
+    by_envs |= {
+        _const(name)
+        for name in re.findall(r'\)\s*,\s*\(\s*([A-Z][A-Z0-9_]*)\s*,', body)
+    }
+    by_literal = set(re.findall(r'\.envs?\(\s*"([^"]+)"\s*,', body))
+    return by_env | by_envs | by_literal
 
 
 def spawn_argv() -> list[str]:
@@ -163,15 +171,19 @@ def app_only_home(tmp_path: Path) -> Path:
     return home
 
 
-def test_the_spawn_hands_one_variable_and_no_credential_on_the_command_line():
+def test_the_spawn_hands_the_key_and_its_source_marker():
     """The measured shape, kept in the tree so the next assertion has a denominator.
 
-    `starten()` sets the token name and nothing else; the child then derives provider, model
-    and endpoint for itself from `~/.ephe/engine.json` (`run_server.py` bootstraps the engine
-    choice and `apply_env()` never sets a token). One name is the whole budget, and argv
-    carries no secret.
+    `starten()` sets the token name and its provenance marker, plus the backend
+    ownership names. The child derives provider, model and endpoint from
+    `~/.ephe/engine.json`; argv carries no secret. The marker carries no credential.
     """
-    assert spawn_env_names() == {KEY_ENV, "EPHE_BACKEND_OWNER", "EPHE_PARENT_PID"}
+    assert spawn_env_names() == {
+        KEY_ENV,
+        _const("KEY_SOURCE_ENV"),
+        "EPHE_BACKEND_OWNER",
+        "EPHE_PARENT_PID",
+    }
     assert spawn_argv() == ["run_server.py", "--port"]
 
 

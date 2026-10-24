@@ -144,11 +144,11 @@ class TestNormalWriteContract:
         assert entry["kind"] == "approval" and entry["decision"] == "denied"
         assert stat.S_IMODE(logfile.stat().st_mode) == 0o600
 
-    def test_chmod_runs_on_create_only(self, logfile):
+    def test_an_existing_wider_log_is_tightened_on_the_next_append(self, logfile):
         audit_log.audit_event("tool_exec", tool="shell")
         logfile.chmod(0o644)  # a later actor widens the mode
         audit_log.audit_event("tool_exec", tool="shell")
-        assert stat.S_IMODE(logfile.stat().st_mode) == 0o644
+        assert stat.S_IMODE(logfile.stat().st_mode) == 0o600
 
 
 class TestTornLineIsNotFatal:
@@ -160,3 +160,61 @@ class TestTornLineIsNotFatal:
         logfile.write_text(good + "\n" + '{"ts": "t2", "kind": "appro', encoding="utf-8")
         entries = audit_log.tail(limit=10)
         assert [e["tool"] for e in entries] == ["shell"]
+
+
+class TestChain:
+    """SC-07: the log carries a hash chain, so an edited or removed line shows."""
+
+    def _three(self, logfile):
+        for index in range(3):
+            audit_log.audit_event("tool_exec", tool=f"t{index}", status="ok")
+        return logfile.read_text().splitlines()
+
+    def test_a_fresh_chain_verifies(self, logfile):
+        self._three(logfile)
+        assert audit_log.verify_chain(logfile) == []
+
+    def test_an_edited_line_breaks_the_chain(self, logfile):
+        lines = self._three(logfile)
+        lines[1] = lines[1].replace('"status": "ok"', '"status": "blocked"')
+        logfile.write_text("\n".join(lines) + "\n")
+        assert any("chain mismatch" in problem for problem in audit_log.verify_chain(logfile))
+
+    def test_a_removed_middle_line_breaks_the_chain(self, logfile):
+        lines = self._three(logfile)
+        logfile.write_text("\n".join([lines[0], lines[2]]) + "\n")
+        assert any("chain mismatch" in problem for problem in audit_log.verify_chain(logfile))
+
+    def test_a_torn_line_is_named(self, logfile):
+        lines = self._three(logfile)
+        logfile.write_text("\n".join(lines) + '\n{"ts": "2026')
+        assert any("not JSON" in problem for problem in audit_log.verify_chain(logfile))
+
+    def test_every_entry_carries_its_predecessor(self, logfile):
+        self._three(logfile)
+        entries = audit_log.tail(limit=10)
+        assert all("prev" in entry for entry in entries)
+        assert entries[-1]["prev"] == ""
+
+    def test_a_legacy_prefix_is_not_reported_as_8959_breaks(self, logfile):
+        """The owner's log predates the chain. Lines without `prev` promise
+        nothing; the first chained line links to the legacy tail."""
+        import hashlib
+
+        legacy = json.dumps({"ts": "2026-01-01T00:00:00+00:00", "kind": "tool_exec"})
+        logfile.write_text(legacy + "\n", encoding="utf-8")
+        audit_log.audit_event("tool_exec", tool="after")
+
+        assert audit_log.verify_chain(logfile) == []
+
+    def test_a_stripped_link_after_the_chain_is_named(self, logfile):
+        lines = self._three(logfile)
+        entry = json.loads(lines[2])
+        entry.pop("prev")
+        lines[2] = json.dumps(entry)
+        logfile.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        assert any(
+            "missing chain link" in problem
+            for problem in audit_log.verify_chain(logfile)
+        )

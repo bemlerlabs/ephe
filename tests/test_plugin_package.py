@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core import plugin_market
+from core import plugin_install, plugin_market
 from core.plugin_store import sha256_hex
 
 MANIFEST = {
@@ -76,8 +76,55 @@ def test_member_containment_and_regular_files_only(tmp_path, monkeypatch) -> Non
     assert _install(tmp_path, monkeypatch, buf.getvalue())["status"] == "unsafe_archive"
 
 
+def test_an_install_and_a_refused_install_are_both_audited(tmp_path, monkeypatch) -> None:
+    from core import audit_log
+
+    result = _install(tmp_path, monkeypatch, _payload(_valid_members()))
+    assert result["status"] == "extracted"
+
+    def rows():
+        return [
+            json.loads(line)
+            for line in audit_log.AUDIT_LOG_FILE.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    installs = [row for row in rows() if row.get("kind") == "plugin_install"]
+    assert installs
+    assert installs[-1]["tool"] == "my-tool"
+    assert "version=1.2.3" in installs[-1]["detail"]
+    assert "artifact=" in installs[-1]["detail"]
+
+    refused = plugin_market.install_from_marketplace(
+        "unknown", marketplace={"plugins": []}, fetcher=lambda url: b""
+    )
+    assert refused["status"] == "unknown_plugin"
+    assert any(
+        row.get("kind") == "plugin_install"
+        and row.get("tool") == "unknown"
+        and row.get("decision") == "unknown_plugin"
+        for row in rows()
+    )
+
+
+def test_a_listing_name_must_be_a_slug() -> None:
+    entry = {
+        "name": "x/../web-research",
+        "version": "1.2.3",
+        "sha256": "0" * 64,
+        "url": "https://artifact.invalid/x.zip",
+        "trust": "official",
+    }
+    result = plugin_market.install_from_marketplace(
+        "x/../web-research",
+        marketplace={"plugins": [entry]},
+        fetcher=lambda url: (_ for _ in ()).throw(AssertionError("must not fetch")),
+    )
+    assert result["status"] == "invalid_name"
+
+
 def test_member_count_cap(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(plugin_market, "MAX_ARCHIVE_MEMBERS", 2)
+    monkeypatch.setattr(plugin_install, "MAX_ARCHIVE_MEMBERS", 2)
     members = {**_valid_members(), "my-tool/a": b"a", "my-tool/b": b"b"}
     status = _install(tmp_path, monkeypatch, _payload(members))
     assert status["status"] == "unsafe_archive"
@@ -85,7 +132,7 @@ def test_member_count_cap(tmp_path, monkeypatch) -> None:
 
 
 def test_uncompressed_bytes_and_ratio_caps(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(plugin_market, "MAX_ARCHIVE_BYTES", 200)
+    monkeypatch.setattr(plugin_install, "MAX_ARCHIVE_BYTES", 200)
     status = _install(
         tmp_path,
         monkeypatch,
@@ -94,8 +141,8 @@ def test_uncompressed_bytes_and_ratio_caps(tmp_path, monkeypatch) -> None:
     assert status["status"] == "unsafe_archive"
     assert "bytes" in status["error"]
 
-    monkeypatch.setattr(plugin_market, "MAX_ARCHIVE_BYTES", 10_000_000)
-    monkeypatch.setattr(plugin_market, "MAX_ARCHIVE_RATIO", 2)
+    monkeypatch.setattr(plugin_install, "MAX_ARCHIVE_BYTES", 10_000_000)
+    monkeypatch.setattr(plugin_install, "MAX_ARCHIVE_RATIO", 2)
     status = _install(
         tmp_path,
         monkeypatch,

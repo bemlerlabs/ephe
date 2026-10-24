@@ -729,12 +729,16 @@ def test_the_leg_ports_are_measured_not_assumed() -> None:
     )
     assert "tests/e2e_server.py" in web_server_command(config_text("playwright.real.config.ts"))
     assert not web_server_command(config_text("dogfood.config.ts"))
+    config = VITE_CONFIG.read_text(encoding="utf-8")
     assert re.search(
-        r"target:\s*process\.env\.EPHE_API_TARGET\s*\|\|\s*['\"]http://127\.0\.0\.1:8765['\"]",
-        VITE_CONFIG.read_text(encoding="utf-8"),
+        r"const API_TARGET = process\.env\.EPHE_API_TARGET \|\| 'http://127\.0\.0\.1:8765'",
+        config,
     ), (
         "the dev proxy no longer forwards /api to the product port, so the dogfood leg's "
         "reach into :8765 has to be re-read before a CI job is sized on it"
+    )
+    assert re.search(r"target:\s*API_TARGET", config), (
+        "the /api proxy no longer uses the measured product target"
     )
 
 

@@ -1218,6 +1218,23 @@ def ensure_provider_ready(config: ModelProviderConfig | None = None) -> None:
             "OpenAI-compatible API provider selected, but no base URL is configured. "
             "Set EPHE_OPENAI_COMPAT_BASE_URL or switch back to Local Ollama."
         )
+    if active.provider == "openai_compatible" and active.api_key_configured and active.model:
+        from core.engine_config import (
+            EngineChoice,
+            EngineKeyMismatch,
+            assert_engine_key_binding,
+        )
+
+        try:
+            assert_engine_key_binding(
+                EngineChoice(
+                    provider=active.provider,
+                    model=active.model,
+                    api_url=active.base_url,
+                )
+            )
+        except EngineKeyMismatch as exc:
+            raise ProviderSetupError(f"{exc} {exc.hint}") from exc
 
 
 def build_provider_client(config: ModelProviderConfig | None = None) -> Any:

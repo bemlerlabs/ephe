@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import os
+import urllib.parse
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, WebSocket
@@ -100,6 +101,9 @@ async def proxy_ws(websocket: WebSocket, port: str, full_path: str = "") -> None
     explicit gate this loopback tunnel would be unauthenticated in LAN mode
     (SSRF valve). Same trust logic as the rest of the API."""
     if not ws_client_authorized(websocket):
+        from server.middleware import audit_ws_refusal
+
+        audit_ws_refusal(websocket, "ws_refused", path=f"/proxy/{port}")
         await websocket.close(code=1008)
         return
     number = _validate_port(port)
@@ -179,6 +183,15 @@ async def _proxy(port: str, full_path: str, query: str = "") -> ProxyResponse:
     # preview loses its parameters (e.g. /api/file?path=… → "path required").
     if query:
         url += ("&" if "?" in url else "?") + query
+    # The authority is this loopback proxy's whole promise; a path that rewrote
+    # it (or a port that slipped in) is refused before a request exists.
+    target = urllib.parse.urlsplit(url)
+    if (
+        target.scheme != "http"
+        or target.hostname not in {"127.0.0.1", "::1"}
+        or target.port != number
+    ):
+        raise HTTPException(status_code=400, detail="bad upstream path")
     try:
         async with httpx.AsyncClient(timeout=PROXY_TIMEOUT_S) as client:
             resp = await client.get(url)

@@ -1,10 +1,10 @@
 """
-◑ Ephe – E4 golden tests per plugin (benchmark targets Opus 5.5 / GPT Astra 6)
+◑ Ephe – E4 golden tests per plugin (the matrix names its engine)
 tests/test_r74_plugin_golden.py
 
 Every production plugin carries prompts/golden.jsonl (≥ 6 mechanically gradable
 cases) and prompts/rubric.md (quality criteria). Output quality is MEASURED
-against the reference models (pass³ matrix), not claimed.
+by a pass³ matrix that names its engine and n.
 Pins:
 
 1. EVERY production plugin has a golden suite: ≥ 6 valid cases + rubric.md.
@@ -12,7 +12,7 @@ Pins:
    ValueError (rubbish never reaches the matrix).
 3. Case.command (when set) has to be a command in the manifest.
 4. Ids unique and carrying the plugin prefix.
-5. verify_all(): the CI gate — zero findings across all 14 plugins.
+5. verify_all(): the CI gate — zero findings across all 16 plugins.
 6. Every grader rule is mechanical (artifact→suffix, tool_use/contains/
    not_contains→any not empty).
 7. Anti-slop: every suite has at least one not_contains marker
@@ -40,7 +40,7 @@ PLUGINS = sorted(p for p in (ROOT / "plugins").iterdir() if (p / "ephe-plugin.js
 class TestSuites:
 
     def test_every_production_plugin_has_golden_suite(self):
-        assert len(PLUGINS) == 14
+        assert len(PLUGINS) == 16
         for pdir in PLUGINS:
             golden = pdir / "prompts" / "golden.jsonl"
             rubric = pdir / "prompts" / "rubric.md"
@@ -119,9 +119,9 @@ class TestVerifyAll:
         report = pg.verify_all(ROOT / "plugins")
         bad = [r for r in report if r["issues"]]
         assert not bad, json.dumps(bad, ensure_ascii=False)[:800]
-        assert len(report) == 14
+        assert len(report) == 16
         total = sum(r["cases"] for r in report)
-        assert total >= 84, f"Matrix zu klein: {total} < 84 (60-Task-Ziel übererfüllt sein)"
+        assert total >= 138, f"Matrix too small: {total} < 138"
 
     def test_ephe_bench_verify_gate_exits_zero(self, capsys):
         """The product command 'ephe bench' (verify path) is the CI gate."""
@@ -129,7 +129,7 @@ class TestVerifyAll:
 
         args = ephe_cli.build_parser().parse_args(["bench"])
         assert ephe_cli.cmd_bench(args) == 0
-        assert "92 cases" in capsys.readouterr().out
+        assert "143 cases" in capsys.readouterr().out
 
 
 class TestPass3Runner:
@@ -144,6 +144,10 @@ class TestPass3Runner:
         d = tmp_path / "plugins" / "t"
         d.mkdir(parents=True)
         (d / "prompts").mkdir()
+        (d / "ephe-plugin.json").write_text(
+            json.dumps({"manifest_version": 1, "name": "t", "version": "1.0.0", "components": {}}),
+            encoding="utf-8",
+        )
         (d / "prompts" / "golden.jsonl").write_text(
             "\n".join(json.dumps(c) for c in cases) + "\n", encoding="utf-8"
         )
@@ -152,7 +156,7 @@ class TestPass3Runner:
     def test_pass3_requires_all_runs(self, suite, monkeypatch):
         """Repo semantics (TAU): pass³ = ALL runs, a majority does not count."""
         answers = {"t-1": ["ok", "ok", "leider fail"], "t-2": ["x", "y", "z"], "t-3": ["ok", "ok", "ok"]}
-        monkeypatch.setattr(pg, "run_once", lambda case, engine=None: answers[case["id"]].pop(0))
+        monkeypatch.setattr(pg, "run_once", lambda case, engine=None, **_: answers[case["id"]].pop(0))
         rows = pg.pass3_matrix(suite, runs=["a", "b", "c"])
         by_id = {r["id"]: r for r in rows}
         assert by_id["t-1"]["passes"] == 2 and by_id["t-1"]["pass3"] is False  # 2/3 is not ENOUGH
@@ -160,7 +164,7 @@ class TestPass3Runner:
         assert by_id["t-3"]["passes"] == 3 and by_id["t-3"]["pass3"] is True
 
     def test_report_written(self, suite, tmp_path, monkeypatch):
-        monkeypatch.setattr(pg, "run_once", lambda case, engine=None: "ok")
+        monkeypatch.setattr(pg, "run_once", lambda case, engine=None, **_: "ok")
         out = tmp_path / "matrix.json"
         pg.pass3_matrix(suite, runs=["a", "b", "c"], report=out)
         data = json.loads(out.read_text(encoding="utf-8"))

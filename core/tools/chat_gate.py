@@ -141,9 +141,11 @@ async def confirm_for_chat(
     exception name reaches the engine instead of dying in this function.
     """
     from core.tools.approval import chat_tool_requires_confirm
-    from core.path_guard import deny_paths, secret_paths
+    from core.path_guard import deny_paths, secret_paths, verifiable_artifact
 
     denied_hits = deny_paths(args)
+    if denied_hits and name in {"verify_artifact", "qa_pptx_deck", "inspect_pptx_template"}:
+        denied_hits = [value for value in denied_hits if not verifiable_artifact(value)]
     if denied_hits:
         if audit:
             from core.audit_log import audit_event

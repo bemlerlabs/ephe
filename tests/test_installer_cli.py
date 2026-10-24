@@ -167,6 +167,18 @@ def test_given_install_scripts_when_parsed_then_shell_syntax_is_valid():
         )
 
 
+@pytest.mark.parametrize("version, exit_code", [((3, 10, 99), 1), ((3, 11, 0), 0), ((3, 13, 17), 0)])
+def test_windows_python_probe_rejects_unsupported_interpreters(monkeypatch, version, exit_code):
+    script = (ROOT / "install.ps1").read_text(encoding="utf-8")
+    probe = re.search(r'& \$Candidate\.Source -c "([^"]+)"', script)
+    assert probe is not None
+    with monkeypatch.context() as context:
+        context.setattr(sys, "version_info", version)
+        with pytest.raises(SystemExit) as result:
+            exec(probe.group(1), {})
+    assert result.value.code == exit_code
+
+
 def test_given_pyproject_when_loaded_then_ephe_cli_commands_are_exposed():
     """
     GIVEN the package metadata
@@ -570,12 +582,16 @@ def test_given_readme_quickstart_when_checked_then_first_path_is_one_command():
     THEN the first install path is exactly one terminal command.
     """
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    quickstart = readme.split("## ⚡ Quick Start", 1)[1].split("<details>", 1)[0]
+    quickstart = readme.split("## Quick start", 1)[1].split("## What you need", 1)[0]
     bash_blocks = re.findall(r"```bash\n(.*?)\n```", quickstart, flags=re.DOTALL)
 
     assert bash_blocks
     first_command = bash_blocks[0].strip()
-    assert first_command == "curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash"
+    assert re.fullmatch(
+        r"curl -fsSL https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
+        r"v\d+\.\d+\.\d+/install\.sh \| bash",
+        first_command,
+    )
     assert "\n" not in first_command
     assert "docker compose" not in quickstart.lower()
 
@@ -590,9 +606,13 @@ def test_given_readme_hero_when_checked_then_first_terminal_command_is_installer
     bash_blocks = re.findall(r"```bash\n(.*?)\n```", readme, flags=re.DOTALL)
 
     assert bash_blocks
-    assert bash_blocks[0].strip() == "curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash"
-    assert "ephemeral SI agent" in readme[:1500]
-    assert "Optional online/API features are always opt-in" in readme[:1500]
+    assert re.fullmatch(
+        r"curl -fsSL https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
+        r"v\d+\.\d+\.\d+/install\.sh \| bash",
+        bash_blocks[0].strip(),
+    )
+    assert "local-first workspace for an AI agent" in readme[:1500]
+    assert "Online paths are opt-in" in readme[:1500]
 
 
 def test_given_install_sh_when_cli_mode_then_minimal_tui_path_is_offered():
@@ -660,7 +680,11 @@ def test_given_readme_when_checked_then_windows_one_liner_and_cli_flags_are_docu
     """
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1" in readme
+    assert re.search(
+        r"irm https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
+        r"v\d+\.\d+\.\d+/install\.ps1",
+        readme,
+    )
     assert "powershell -ExecutionPolicy Bypass -File .\\install.ps1" in readme
     assert "ephe tui" in readme
     assert "--cli" in readme
@@ -1196,6 +1220,22 @@ def test_given_a_pip_less_existing_venv_when_the_installer_runs_then_it_seeds_pi
     assert '.venv/bin/python -m pip install -e ".[gui,voice]"' in sh
 
 
+def test_the_installers_bootstrap_pip_through_the_hash_pinned_wheel():
+    """A pip below 26.2.2 trusts the compromised eMudhra intermediates itself.
+
+    The fix is the advisory's direct wheel URL with its SHA-256, so the bootstrap
+    is verified before the new pip exists. A plain index upgrade would travel the
+    trust path the advisory says is broken.
+    """
+    sh = (ROOT / "install.sh").read_text(encoding="utf-8")
+    ps1 = (ROOT / "install.ps1").read_text(encoding="utf-8")
+    wheel = "pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
+    for text in (sh, ps1):
+        assert wheel in text
+        assert "pip install --upgrade pip" not in text
+        assert "pip bootstrap did not reach 26.2.2" in text
+
+
 @pytest.mark.parametrize("vendor_exit", [0, 3])
 def test_given_vendor_script_when_it_exits_then_status_returns_and_no_temp_file_survives(
     tmp_path, vendor_exit
@@ -1234,6 +1274,8 @@ def test_given_vendor_hash_mismatch_when_run_then_it_reports_both_hashes_and_doe
     assert "SHA256 integrity check FAILED" in result.stderr, result.stderr
     assert pinned in result.stderr, "the pinned hash is not named in the report"
     assert live in result.stderr, "the live hash is not named in the report"
+    assert "independently verified" in result.stderr.lower(), result.stderr
+    assert "to the live sha256" not in result.stderr.lower(), result.stderr
     assert "VENDOR_RAN" not in result.stdout, "the mismatching script was executed"
     assert list(tmpdir.iterdir()) == [], "the vendor temp file survived the refusal"
 

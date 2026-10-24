@@ -1,6 +1,6 @@
-{"id": "vision-1", "command": null, "input": "Beschreibe, was auf dem Bild /tmp/screenshot.png zu sehen ist.", "expect": {"kind": "tool_use", "any": ["analyze_image"]}}
-{"id": "vision-2", "command": null, "input": "Wo sitzt der 'Senden'-Button in /tmp/ui.png? Nenne ungefähre Koordinaten.", "expect": {"kind": "tool_use", "any": ["analyze_image", "vision_click"]}}
-{"id": "vision-3", "command": null, "input": "Klicke auf das Menü-Symbol oben rechts in der geöffneten App.", "expect": {"kind": "tool_use", "any": ["vision_click"]}}
-{"id": "vision-4", "command": null, "input": "Tippe 'Ephe' in das fokussierte Textfeld des Bildschirms.", "expect": {"kind": "tool_use", "any": ["vision_type"]}}
-{"id": "vision-5", "command": null, "input": "Die Datei /tmp/gibtsnicht.png — prüfe, ob sie existiert, bevor du sie analysierst.", "expect": {"kind": "not_contains", "any": ["auf dem Bild ist", "ich sehe"]}}
-{"id": "vision-6", "command": null, "input": "Vergleiche die zwei Diagramme in /tmp/a.png und /tmp/b.png in 3 Sätzen.", "expect": {"kind": "tool_use", "any": ["analyze_image"]}}
+{"id": "vision-1", "command": null, "input": "Describe what is visible in the image /tmp/screenshot.png.", "expect": {"kind": "tool_use", "any": ["analyze_image"]}}
+{"id": "vision-2", "command": null, "input": "Where is the 'Send' button in /tmp/ui.png? Give approximate coordinates.", "expect": {"kind": "tool_use", "any": ["analyze_image", "vision_click"]}}
+{"id": "vision-3", "command": null, "input": "Click the menu icon in the top right of the open app.", "expect": {"kind": "tool_use", "any": ["vision_click"]}}
+{"id": "vision-4", "command": null, "input": "Type 'Ephe' into the focused text field on the screen.", "expect": {"kind": "tool_use", "any": ["vision_type"]}}
+{"id": "vision-5", "command": null, "input": "The file /tmp/gibtsnicht.png - check whether it exists before analyzing it.", "expect": {"kind": "not_contains", "any": ["in the image is", "I can see"]}}
+{"id": "vision-6", "command": null, "input": "Compare the two diagrams in /tmp/a.png and /tmp/b.png in 3 sentences.", "expect": {"kind": "tool_use", "any": ["analyze_image"]}}

@@ -4,7 +4,7 @@ version: "1.0.0"
 trigger: /doc-factory
 description: "One request to a report-grade briefing PDF (NotebookLM-style): research, structured sections, source notes — the PDF is page-verified before it is called done."
 tools: [build_document, verify_artifact, web_search, read_file, list_directory, create_pdf, create_docx, memory, skill_manage]
-when_to_use: [briefing pdf, report erstellen, dokument als pdf, whitepaper, studienartige zusammenfassung, quellenbasiertes dokument, notebooklm pdf, source grounded pdf, research brief, report grade pdf, briefing document from sources, long form pdf report]
+when_to_use: [briefing pdf, create report, document as pdf, whitepaper, study-like summary, source-based document, notebooklm pdf, source grounded pdf, research brief, report grade pdf, briefing document from sources, long form pdf report, report erstellen, dokument als pdf, studienartige zusammenfassung, quellenbasiertes dokument]
 when_not_to_use: [slide deck or presentation, source notebook queries without export, plain text answer, edit existing pdf]
 quality_profile: source_grounded
 allowed_tools: [build_document, verify_artifact, web_search, read_file, list_directory, create_pdf, create_docx, memory, skill_manage]
@@ -66,5 +66,5 @@ Quality Gate (hard requirements before you write "done"):
 
 ## Test
 
-**Input**: /doc-factory Briefing Solar
+**Input**: /doc-factory Solar briefing
 **Expect Contains**: FILE

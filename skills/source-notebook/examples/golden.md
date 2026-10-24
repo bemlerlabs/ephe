@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /notebook Erstelle aus ~/Documents/company/strategy.pdf ein Quellen-Notebook und beantworte die wichtigsten Risiken
-2. ToolCall: {"name": "create_source_notebook", "arguments": {"title": "Beispiel"}}
+1. Input: /notebook Create a source notebook from ~/Documents/company/strategy.pdf and answer the most important risks
+2. ToolCall: {"name": "create_source_notebook", "arguments": {"title": "Example"}}
 3. Observation: SOURCE_NOTEBOOK_FILE
-4. Final: SOURCE_NOTEBOOK_FILE (belegt durch Tool-Output).
+4. Final: SOURCE_NOTEBOOK_FILE (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /notebook Erstelle aus ~/Documents/company/strategy.pdf ein Quellen-Notebook und beantworte die wichtigsten Risiken (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "create_source_notebook", "arguments": {"title": "Beispiel"}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: SOURCE_NOTEBOOK_FILE.
+## Trace 2 (Edge case: error path)
+1. Input: /notebook Create a source notebook from ~/Documents/company/strategy.pdf and answer the most important risks (source/path not found)
+2. ToolCall: {"name": "create_source_notebook", "arguments": {"title": "Example"}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: SOURCE_NOTEBOOK_FILE.

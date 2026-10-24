@@ -1,7 +1,7 @@
-{"id": "guide-1", "command": "howto", "input": "Wie starte ich Ephe zum ersten Mal? Schritte bis zum ersten Chat.", "expect": {"kind": "contains", "any": ["Schritt", "ephe start"]}}
-{"id": "guide-2", "command": "diagnose", "input": "Die PWA lädt, aber der Chat antwortet nicht. Diagnose-Anleitung.", "expect": {"kind": "contains", "any": ["Engine", "health"]}}
-{"id": "guide-3", "command": "howto", "input": "Wie binde ich einen OpenAI-kompatiblen Endpunkt als Engine ein?", "expect": {"kind": "contains", "any": ["engine.json", "openai"]}}
-{"id": "guide-4", "command": "diagnose", "input": "Ollama läuft, aber das Modell lädt nicht. Schritt-für-Schritt.", "expect": {"kind": "contains", "any": ["ollama", "pull"]}}
-{"id": "guide-5", "command": null, "input": "Erzeuge eine Markdown-Checkliste 'Desktop-Build prüfen' mit 6 Punkten.", "expect": {"kind": "artifact", "suffix": ".md"}}
-{"id": "guide-6", "command": "howto", "input": "Wie exportiere ich einen Monat als Bernstein? Nenne den Befehl.", "expect": {"kind": "contains", "any": ["ephe amber"]}}
-{"id": "guide-7", "command": null, "input": "Schreibe die Kurzfassung 'Ephe in 5 Sätzen' — ausformuliert.", "expect": {"kind": "not_contains", "any": ["Platzhalter", "TODO", "Lorem ipsum", "[...]"]}}
+{"id": "guide-1", "command": "howto", "input": "How do I start Ephe for the first time? Steps to the first chat.", "expect": {"kind": "contains", "any": ["step", "ephe start"]}}
+{"id": "guide-2", "command": "diagnose", "input": "The PWA loads, but chat does not answer. Diagnosis guide.", "expect": {"kind": "contains", "any": ["engine", "health"]}}
+{"id": "guide-3", "command": "howto", "input": "How do I connect an OpenAI-compatible endpoint as the engine?", "expect": {"kind": "contains", "any": ["engine.json", "openai"]}}
+{"id": "guide-4", "command": "diagnose", "input": "Ollama runs, but the model does not load. Step by step.", "expect": {"kind": "contains", "any": ["ollama", "pull"]}}
+{"id": "guide-5", "command": null, "input": "Create a Markdown checklist 'Verify desktop build' with 6 items.", "expect": {"kind": "artifact", "suffix": ".md"}}
+{"id": "guide-6", "command": "howto", "input": "How do I export a month as amber? Name the command.", "expect": {"kind": "contains", "any": ["ephe amber"]}}
+{"id": "guide-7", "command": null, "input": "Write the short summary 'Ephe in 5 sentences' - fully formulated.", "expect": {"kind": "not_contains", "any": ["placeholder", "TODO", "Lorem ipsum", "[...]"]}}

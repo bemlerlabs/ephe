@@ -1,13 +1,13 @@
 # Golden Example
 
 ## Trace 1 (Standard)
-1. Input: /project finde mein ephe Projekt und analysiere den Ist-Zustand
-2. ToolCall: {"name": "discover_projects", "arguments": {"query": "/project finde mein ephe Projekt und analysiere den Ist-Zust", "max_results": 5}}
-3. Observation: Ist-Zustand
-4. Final: Ist-Zustand (belegt durch Tool-Output).
+1. Input: /project find my ephe project and analyze the current state
+2. ToolCall: {"name": "discover_projects", "arguments": {"query": "/project find my ephe project and analyze the current state", "max_results": 5}}
+3. Observation: current state
+4. Final: current state (supported by tool output).
 
-## Trace 2 (Edge-Case: Fehlerpfad)
-1. Input: /project finde mein ephe Projekt und analysiere den Ist-Zustand (Quelle/Pfad nicht gefunden)
-2. ToolCall: {"name": "discover_projects", "arguments": {"query": "/project finde mein ephe Projekt und analysiere den Ist-Zust", "max_results": 5}}
-3. Observation: [tool-error] Eintrag nicht gefunden
-4. Final: Fehler ehrlich melden; naechster Schritt: Ist-Zustand.
+## Trace 2 (Edge case: error path)
+1. Input: /project find my ephe project and analyze the current state (source/path not found)
+2. ToolCall: {"name": "discover_projects", "arguments": {"query": "/project find my ephe project and analyze the current state", "max_results": 5}}
+3. Observation: [tool-error] entry not found
+4. Final: Report the error honestly; next step: current state.

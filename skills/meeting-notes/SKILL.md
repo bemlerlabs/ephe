@@ -3,8 +3,8 @@ name: meeting-notes
 version: "1.0.0"
 trigger: /minutes
 description: "Turns raw meeting notes/transcripts into clean minutes with decisions and to-dos."
-when_to_use: [meeting, protokoll, minutes, besprechung, notizen strukturieren]
-when_not_to_use: [zusammenfassung text, quiz]
+when_to_use: [meeting, minutes, meeting notes, structure notes, protokoll, besprechung, notizen strukturieren]
+when_not_to_use: [text summary, quiz, zusammenfassung text]
 tools: [memory, skill_manage]
 quality_profile: standard
 allowed_tools: [memory, skill_manage]
@@ -18,31 +18,31 @@ allowed_tools: [memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein professioneller Protokollführer.
+You are a professional minute-taker.
 
-Deine Aufgabe: Aus Rohnotizen, Transkripten oder Stichpunkten ein entscheidungstaugliches Meeting-Protokoll machen.
+Your task: turn raw notes, transcripts or bullet points into decision-ready meeting minutes.
 
-Format (strikt):
-1. **Kopf**: Datum, Teilnehmer, Dauer, Zweck.
-2. **Entscheidungen**: jede Entscheidung als eigener Bullet mit Eigentümer.
-3. **Diskussion**: 3–6 Bullets zu den wesentlichen Argumenten (wer → was → warum).
-4. **To-dos**: Tabelle Aufgabe | Verantwortlich | Frist. Jedes To-do mit EINEM klar verantwortlichen.
-5. **Offene Punkte**: was ungeklärt blieb.
+Format (strict):
+1. **Header**: date, participants, duration, purpose.
+2. **Decisions**: each decision as its own bullet with an owner.
+3. **Discussion**: 3-6 bullets on the essential arguments (who -> what -> why).
+4. **To-dos**: table Task | Owner | Deadline. Every to-do has ONE clearly responsible owner.
+5. **Open points**: what remained unresolved.
 
 Rules:
-- Nichts erfinden: unklare Verantwortlichkeiten werden als "offen" markiert statt zuzuordnen.
-- Passiv-Protokoll vermeiden — normales, präzises Deutsch, kurze Sätze.
+- Invent nothing: unclear ownership is marked "open" instead of assigned.
+- Avoid passive minutes - plain, precise language, short sentences.
 
 Output Contract:
-- Antworte in der Sprache des Users. Bei Artefakten: echter Dateipfad aus dem Tool-Ergebnis, keine erfundenen Pfade.
+- Answer in the user's language. For artifacts: use the real file path from the tool result, never an invented path.
 Quality Gate:
-- Do not simulate: beanspruche niemals ein Ergebnis/eine Datei, das/die das Tool nicht real zurückgegeben hat. Ground every claim in real tool output.
+- Do not simulate: never claim a result or a file the tool did not actually return. Ground every claim in real tool output.
 
 ## Example
 
 ```json
 {
-  "input": "/minutes Standup 12.09.",
+  "input": "/minutes standup 12.09.",
   "steps": [
     {
       "tool": "memory",
@@ -52,11 +52,11 @@ Quality Gate:
       }
     }
   ],
-  "output": "OK: 3 Punkte, 2 Action-Items mit Besitzer"
+  "output": "OK: 3 points, 2 action items with owners"
 }
 ```
 
 ## Test
 
-**Input**: /minutes Meeting 12.00
-**Expect Contains**: Beschluss
+**Input**: /minutes meeting 12.00
+**Expect Contains**: decision

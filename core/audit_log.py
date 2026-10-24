@@ -28,6 +28,7 @@ that is exactly the purpose of an audit log.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -39,8 +40,13 @@ from core.redact import args_hash, args_summary, redact
 
 logger = logging.getLogger(__name__)
 
+def _default_audit_file() -> Path:
+    base = os.environ.get("EPHE_CONFIG_DIR")
+    return (Path(base) if base else Path.home() / ".ephe") / "audit.log"
+
+
 AUDIT_LOG_FILE = Path(
-    os.environ.get("EPHE_AUDIT_LOG", str(Path.home() / ".ephe" / "audit.log"))
+    os.environ.get("EPHE_AUDIT_LOG", str(_default_audit_file()))
 )
 
 _lock = threading.Lock()
@@ -49,6 +55,68 @@ _lock = threading.Lock()
 #: first drop is logged (see `_note_drop`); the rest only move this counter.
 _dropped = 0
 _drop_warned = False
+#: sha256 of the last line this process wrote (or found on disk), so each record
+#: carries the digest of the one before it. A removed or edited line breaks the
+#: chain at that point; a removed tail needs an external anchor to be noticed.
+_last_line_sha: str | None = None
+_last_line_path: Path | None = None
+_TAIL_WINDOW = 1 << 20
+
+
+def _previous_line_sha() -> str:
+    global _last_line_sha, _last_line_path
+    if _last_line_sha is not None and _last_line_path == AUDIT_LOG_FILE:
+        return _last_line_sha
+    try:
+        with AUDIT_LOG_FILE.open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            fh.seek(max(0, size - _TAIL_WINDOW))
+            chunk = fh.read()
+    except OSError:
+        return ""
+    last = chunk.rstrip(b"\n").split(b"\n")[-1]
+    return hashlib.sha256(last).hexdigest() if last else ""
+
+
+def verify_chain(path: Path | None = None) -> list[str]:
+    """Problems in the hash chain, as `<line>: <reason>`; empty means intact.
+
+    Detects an edited line, a removed middle line and a torn record. A removed
+    last line is not detectable from the file alone.
+    """
+    target = Path(path) if path is not None else AUDIT_LOG_FILE
+    try:
+        lines = target.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        return [f"0: unreadable ({type(exc).__name__})"]
+    problems: list[str] = []
+    previous = ""
+    chained = False
+    for number, line in enumerate(lines, 1):
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            problems.append(f"{number}: not JSON (torn or truncated)")
+            previous = hashlib.sha256(line.encode()).hexdigest()
+            continue
+        if not isinstance(entry, dict):
+            problems.append(f"{number}: not an object")
+            previous = hashlib.sha256(line.encode()).hexdigest()
+            continue
+        # Lines from before the chain carry no `prev` and promise nothing. Once
+        # one chained line exists, a later line without the link is a finding:
+        # otherwise stripping the field would be a way to edit the log.
+        if "prev" in entry:
+            chained = True
+            if entry["prev"] != previous:
+                problems.append(f"{number}: chain mismatch")
+        elif chained:
+            problems.append(f"{number}: missing chain link")
+        previous = hashlib.sha256(line.encode()).hexdigest()
+    return problems
 
 
 def _current_turn() -> str:
@@ -67,6 +135,20 @@ def _current_turn() -> str:
 _MAX_LINE = 4096  # single-line cap (the detail is redacted + truncated)
 
 
+def _append_private(path: Path, payload: str) -> None:
+    """Append one already-redacted line to an owner-only file.
+
+    Every field in `payload` passed through core.redact and the mode is asserted
+    to 0600 by the caller; the query sees a write of a tainted string and cannot
+    model the masker, so the sink carries a named suppression.
+    """
+    with path.open("a", encoding="utf-8") as fh:
+        # codeql[py/clear-text-storage-sensitive-data]
+        fh.write(payload)
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
 def audit_event(
     kind: str,
     *,
@@ -79,6 +161,7 @@ def audit_event(
     session_id: str = "",
     turn_id: str = "",
     call_id: str = "",
+    actor: str = "",
 ) -> None:
     """Appends an audit entry. Never raises, by contract.
 
@@ -93,42 +176,53 @@ def audit_event(
     pinned by `tests/test_wb15_audit_write_contract.py`.
     """
     try:
+        # Metadata is not exempt from the masker: a tool name can carry a server
+        # URL, and an actor or id is a caller-supplied string.
+        turn = turn_id or _current_turn()
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
-            "kind": kind,
-            "tool": tool,
+            "kind": redact(kind)[:80],
+            "tool": redact(tool)[:200],
             "args_hash": args_hash(args) if args is not None else "",
             "args": args_summary(args),
-            "decision": decision,
-            "status": status,
+            "decision": redact(decision)[:80],
+            "status": redact(status)[:120],
             "duration_ms": duration_ms,
             "detail": redact((detail or ""))[:300],
+            # Taken under the lock below: two writers that read the same tail
+            # would fork the chain.
+            "prev": "",
             # R4/A3: the three axes of traceability. Only set when
             # known — a line without a turn is a line with an unknown turn, and
             # that should be visible in the line rather than left to guessing.
-            **({"session_id": session_id} if session_id else {}),
-            **({"turn_id": turn_id or _current_turn()} if (turn_id or _current_turn()) else {}),
-            **({"call_id": call_id} if call_id else {}),
+            **({"session_id": redact(session_id)[:200]} if session_id else {}),
+            **({"turn_id": redact(turn)[:200]} if turn else {}),
+            **({"call_id": redact(call_id)[:200]} if call_id else {}),
+            **({"actor": redact(actor)[:200]} if actor else {}),
         }
-        line = json.dumps(entry, ensure_ascii=False)
-        if len(line) > _MAX_LINE:
-            line = line[: _MAX_LINE - 3] + "..."
         with _lock:
+            global _last_line_sha, _last_line_path
+            entry["prev"] = _previous_line_sha()
+            line = json.dumps(entry, ensure_ascii=False)
+            size = len(line.encode("utf-8"))
+            if size > _MAX_LINE:
+                # A sliced line is not JSON, so the readers skip it and the chain
+                # breaks at a record that looks torn. The oversized entry says so
+                # and stays parseable; the detail and the argument text are what go.
+                entry["detail"] = f"[oversized entry: {size} bytes, detail dropped]"
+                entry["args"] = ""
+                line = json.dumps(entry, ensure_ascii=False)
             AUDIT_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-            existed = AUDIT_LOG_FILE.exists()
-            with AUDIT_LOG_FILE.open("a", encoding="utf-8") as fh:
-                # Every field in `line` passed through core.redact (detail, args_summary)
-                # and the file is created 0600 below; the query does not model the masker.
-                # codeql[py/clear-text-storage-sensitive-data]
-                fh.write(line + "\n")
-            if not existed:
-                # 0600 AFTER creating it (chmod on a missing file would be a no-op).
-                # Deliberately on create only: an existing file keeps whatever mode
-                # it was given, so this is not a re-assertion loop on every append.
-                try:
-                    AUDIT_LOG_FILE.chmod(0o600)
-                except OSError:
-                    pass
+            payload = line + "\n"
+            _append_private(AUDIT_LOG_FILE, payload)
+            _last_line_path = AUDIT_LOG_FILE
+            _last_line_sha = hashlib.sha256(payload.rstrip("\n").encode()).hexdigest()
+            # Re-assert on every append: an older or manually widened log must not
+            # stay world-readable just because it already existed.
+            try:
+                AUDIT_LOG_FILE.chmod(0o600)
+            except OSError:
+                pass
     except Exception as exc:  # noqa: BLE001 — fail-open by contract, see docstring
         _note_drop(exc)
 

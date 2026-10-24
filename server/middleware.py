@@ -4,10 +4,12 @@ Generates a random auth token and protects every API endpoint.
 """
 from __future__ import annotations
 
+import ipaddress
 import os
 import hmac
 import re
 import secrets
+import threading
 import time
 from collections import defaultdict
 
@@ -39,12 +41,69 @@ async def verify_auth(request: Request) -> None:
 
 _LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
 
+_TAURI_ORIGINS = frozenset({"tauri://localhost", "http://tauri.localhost"})
+
 
 def _host_without_port(host: str) -> str:
     """Host header without the port, IPv6-aware: '[::1]:8765' -> '::1', 'localhost:8765' -> 'localhost'."""
     if host.startswith("["):  # IPv6 bracket notation
         return host.split("]", 1)[0].lstrip("[")
     return host.rsplit(":", 1)[0] if ":" in host else host
+
+
+def _app_origins() -> set[str]:
+    """Origins this server serves, plus the operator's named dev origins.
+
+    The same list the CORS layer grants. `EPHE_PORT` is the port the product
+    started on; an unset value keeps the desktop default.
+    """
+    port = os.environ.get("EPHE_PORT") or "8765"
+    origins = {
+        f"http://127.0.0.1:{port}",
+        f"http://localhost:{port}",
+        f"http://[::1]:{port}",
+        *_TAURI_ORIGINS,
+    }
+    origins.update(
+        origin.strip()
+        for origin in os.environ.get("EPHE_DEV_ORIGINS", "").split(",")
+        if origin.strip()
+    )
+    return origins
+
+
+def origin_allowed(origin: str | None) -> bool:
+    """True for an absent origin (non-browser client) or one this app serves.
+
+    A browser sends Origin on every WebSocket handshake and on every mutation;
+    a page from another site cannot make its origin look like ours. This is the
+    control the XHR marker only pretended to be: after DNS rebinding the page is
+    same-origin, so it can set any header it likes.
+    """
+    if not origin:
+        return True
+    return origin.strip().lower() in {value.lower() for value in _app_origins()}
+
+
+def host_allowed(host: str | None) -> bool:
+    """Loopback authorities only, with the test client's synthetic host as a test seam."""
+    raw = (host or "").strip()
+    name = (
+        raw.lower()
+        if raw.count(":") > 1 and not raw.startswith("[")
+        else _host_without_port(raw).lower()
+    )
+    if not name:
+        return False
+    if name in _LOOPBACK_HOSTS:
+        return True
+    if name == "testserver" and os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        # A DNS name can begin with "127."; only a loopback address is trusted.
+        return False
 
 
 def _is_loopback_client(request: Request) -> bool:
@@ -70,21 +129,168 @@ def ws_client_authorized(websocket) -> bool:
     BaseHTTPMiddleware (AuthMiddleware) does NOT cover the 'websocket' scope —
     a WS upgrade bypasses the HTTP middleware completely. Without this explicit
     gate, every WS route would be reachable unauthenticated in LAN mode
-    (that also held for the proxy_ws HMR tunnel). Same trust logic as HTTP:
-    no LAN token set (desktop default) → open; otherwise loopback is trusted,
-    external clients need ?token=… (browser WebSockets cannot send
-    X-Auth-Token headers)."""
+    (that also held for the proxy_ws HMR tunnel).
+
+    The handshake carries an Origin; it is checked before the loopback shortcut.
+    The shortcut without a token is desktop-only. A rebinding page presents a
+    foreign Host and Origin even though the TCP peer is loopback, and it cannot
+    guess the LAN token; both paths fail closed.
+    """
+    origin = websocket.headers.get("origin")
+    host = websocket.headers.get("host", "")
+
     if LAN_AUTH_TOKEN is None:
-        return True
+        return host_allowed(host) and origin_allowed(origin)
+
     client_host = websocket.client.host if getattr(websocket, "client", None) else ""
-    host = _host_without_port(websocket.headers.get("host", "")).lower()
-    loopback = client_host in _LOOPBACK_HOSTS and (
-        host in _LOOPBACK_HOSTS or host.startswith("127.")
-    )
-    if loopback:
+    loopback = client_host in _LOOPBACK_HOSTS and host_allowed(host)
+    if loopback and origin_allowed(origin):
         return True
     offered = websocket.query_params.get("token") or ""
     return hmac.compare_digest(offered, LAN_AUTH_TOKEN)
+
+
+class LocalRequestGuardMiddleware(BaseHTTPMiddleware):
+    """Rejects a request that reached the loopback port under a foreign Host.
+
+    A DNS-rebinding page is same-origin with the address it typed, so its Host
+    and Origin name the attacker's domain while the TCP peer stays 127.0.0.1.
+    The peer address alone is therefore not a boundary. In LAN mode a
+    non-loopback client is authenticated by the token; that path is left to
+    AuthMiddleware.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        client_host = request.client.host if request.client else ""
+        loopback = client_host in _LOOPBACK_HOSTS
+        host = request.headers.get("host", "")
+        if LAN_AUTH_TOKEN is None:
+            if not host_allowed(host):
+                return self._refusal(request, "untrusted_host", host)
+        elif not loopback or not host_allowed(host):
+            # A tunnel forwards a public request with a loopback TCP peer but a
+            # public Host; that client authenticates with the token in
+            # AuthMiddleware. A genuine loopback client keeps the host check.
+            return await call_next(request)
+        origin = request.headers.get("origin")
+        if (
+            request.method not in {"GET", "HEAD", "OPTIONS"}
+            and origin is not None
+            and not origin_allowed(origin)
+        ):
+            return self._refusal(request, "untrusted_origin", host)
+        return await call_next(request)
+
+    def _refusal(self, request: Request, reason: str, host: str) -> JSONResponse:
+        origin = request.headers.get("origin")
+        self._audit(request, reason, host, origin)
+        rid = getattr(request.state, "rid", None)
+        body = error_payload(ErrorCode.AUTH, "request origin is not this application", rid)
+        body["error"]["detail"] = {"code": reason}
+        return JSONResponse(
+            body,
+            status_code=403,
+            headers={REQUEST_ID_HEADER: rid or ""},
+        )
+
+    @staticmethod
+    def _audit(request: Request, reason: str, host: str, origin: str | None) -> None:
+        try:
+            from core.audit_log import audit_event
+
+            audit_event(
+                "security",
+                tool="request",
+                decision=reason,
+                status="denied",
+                detail=(
+                    f"path={request.url.path} host={host or 'none'} "
+                    f"origin={origin or 'none'}"
+                ),
+            )
+        except Exception:
+            pass
+
+
+#: One refusal line per client+Host+reason per 60 s. Every audit append is an
+#: fsync, so an unauthenticated client on the LAN could otherwise turn a
+#: brute-force run into a disk-sync flood while the 240/min limiter still lets
+#: 240 of those through.
+_REFUSAL_AUDIT_WINDOW = 60.0
+_REFUSAL_AUDIT: dict[tuple[str, str, str], float] = {}
+_refusal_lock = threading.Lock()
+
+
+def _refusal_allowed(key: tuple[str, str, str]) -> bool:
+    """True at most once per key and window. The caller records the attempt
+    after the append call returns; a thrown write is retried, while a silent
+    write failure is not something `audit_event` reports."""
+    now = time.monotonic()
+    with _refusal_lock:
+        for stale in [
+            k for k, seen in _REFUSAL_AUDIT.items()
+            if now - seen >= _REFUSAL_AUDIT_WINDOW
+        ]:
+            _REFUSAL_AUDIT.pop(stale, None)
+        last = _REFUSAL_AUDIT.get(key)
+        return last is None or now - last >= _REFUSAL_AUDIT_WINDOW
+
+
+def _refusal_recorded(key: tuple[str, str, str]) -> None:
+    with _refusal_lock:
+        _REFUSAL_AUDIT[key] = time.monotonic()
+
+
+def _audit_token_refusal(request: Request, reason: str) -> None:
+    """A LAN token refusal is a line: without one, a brute-force run leaves the
+    log as quiet as a machine nobody touched."""
+    client = request.client.host if request.client else "unknown"
+    host = request.headers.get("host", "none")
+    # The Host belongs in the key: a tunnel delivers every client as 127.0.0.1.
+    key = (client, host, reason)
+    if not _refusal_allowed(key):
+        return
+    try:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "security",
+            tool="request",
+            decision=reason,
+            status="denied",
+            detail=f"path={request.url.path} client={client} host={host}",
+        )
+    except Exception:
+        return
+    _refusal_recorded(key)
+
+
+def audit_ws_refusal(websocket, marker: str, *, path: str = "") -> None:
+    """One throttled line for a refused WebSocket handshake (no HTTP middleware
+    covers the websocket scope, and every append fsyncs)."""
+    client = (
+        websocket.client.host
+        if getattr(websocket, "client", None)
+        else "unknown"
+    )
+    host = websocket.headers.get("host") or "none"
+    origin = websocket.headers.get("origin") or "none"
+    key = (client, host, marker)
+    if not _refusal_allowed(key):
+        return
+    try:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "security",
+            tool="websocket",
+            decision=marker,
+            status="denied",
+            detail=f"path={path or 'none'} client={client} host={host} origin={origin}",
+        )
+    except Exception:
+        return
+    _refusal_recorded(key)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -102,6 +308,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     token = request.query_params.get("token")
                 if token is None or not hmac.compare_digest(str(token), LAN_AUTH_TOKEN):
                     rid = getattr(request.state, "rid", None)
+                    _audit_token_refusal(request, "token_missing" if token is None else "token_invalid")
                     return JSONResponse(
                         error_payload(ErrorCode.AUTH, "Unauthorized — invalid or missing X-Auth-Token", rid),
                         status_code=401,
@@ -161,6 +368,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             csp = "frame-ancestors 'self'"
         if _is_framed_document(request.url.path, response):
             csp += "; sandbox allow-popups"
+        existing = response.headers.get("Content-Security-Policy")
+        if existing:
+            # A route that already narrowed its own response keeps that policy;
+            # the global layer only adds the framing rule.
+            csp = existing if "frame-ancestors" in existing else existing + "; " + csp
         response.headers["Content-Security-Policy"] = csp
         return response
 

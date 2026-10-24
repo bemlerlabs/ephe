@@ -28,6 +28,21 @@ _spec.loader.exec_module(lockfile_check)
 LOCK_HEADER = "lockfileVersion: '9.0'\nimporters:\n  .:\n"
 
 
+@pytest.mark.parametrize(("source", "pattern"), [
+    (".github/workflows/tests.yml", r"uv==([0-9.]+)"),
+    (".github/workflows/verify.yml", r"uv==([0-9.]+)"),
+    (".github/workflows/supply-chain.yml", r"uv==([0-9.]+)"),
+    (".github/workflows/lockfile.yml", r'EPHE_UV_VERSION: "([0-9.]+)"'),
+    ("scripts/clean_room_install.sh", r"EPHE_UV_VERSION:-([0-9.]+)"),
+    ("scripts/lockfile_check.py", r'EXPECTED_UV_VERSION = "([0-9.]+)"'),
+])
+def test_uv_version_contracts_use_the_approved_pin(source, pattern):
+    body = "\n".join(line for line in (ROOT / source).read_text(encoding="utf-8").splitlines()
+                     if not line.lstrip().startswith("#"))
+    pins = re.findall(pattern, body)
+    assert pins and set(pins) == {"0.13.5"}, f"{source}: uv pins {pins}"
+
+
 def write_pair(tmp_path: Path, manifest: dict, lock_body: str) -> Path:
     app = tmp_path / "app"
     app.mkdir(parents=True, exist_ok=True)

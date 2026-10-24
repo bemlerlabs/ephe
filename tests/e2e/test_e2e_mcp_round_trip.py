@@ -22,20 +22,48 @@ from __future__ import annotations
 import json
 import os
 import shlex
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 
+
+def _boundary_works() -> bool:
+    """One real spawn under the shipped boundary. Where it fails, the product
+    refuses the MCP server by design (SC-02), so the round trip cannot run."""
+    from core import mcp_sandbox
+    from core.secret_broker import child_env
+
+    home = tempfile.mkdtemp(prefix="ephe-e2e-mcp-home-")
+    argv = mcp_sandbox.wrap(sys.executable, ["-c", "pass"], home)
+    if argv is None:
+        return False
+    try:
+        run = subprocess.run(
+            argv, env=child_env(home=home), cwd=home, capture_output=True, timeout=20
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return run.returncode == 0
+
+
 # The MCP registry and the live-client table are module-global, and a stdio
 # client owns a child process. Eight workers sharing that state would clobber
 # one another, so this module runs on a serial leg and stands down under xdist.
-pytestmark = pytest.mark.skipif(
-    bool(os.environ.get("PYTEST_XDIST_WORKER")),
-    reason="serial leg only: the MCP registry and the stdio child are process-global",
-)
+pytestmark = [
+    pytest.mark.skipif(
+        bool(os.environ.get("PYTEST_XDIST_WORKER")),
+        reason="serial leg only: the MCP registry and the stdio child are process-global",
+    ),
+    pytest.mark.skipif(
+        not bool(os.environ.get("PYTEST_XDIST_WORKER")) and not _boundary_works(),
+        reason="no working OS boundary on this host: the MCP spawn is refused by design (SC-02)",
+    ),
+]
 
 TOOL_NAME = "mcp_echo"
 ECHO_TEXT = "round-trip-through-the-real-client"

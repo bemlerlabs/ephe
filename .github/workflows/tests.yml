@@ -46,7 +46,7 @@ jobs:
     # seen came from a fork, and `main` has no required status checks. Dependabot PRs are same-repo
     # branches, so they keep running.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -54,8 +54,8 @@ jobs:
         # The same four interpreters `integration` builds. CI Python parity
         # (test_sprint2_f2_pwa_hygiene.py): the lower bound is requires-python (>=3.11), the local
         # venv (3.13) is in the matrix, and every entry stays inside the pyproject classifiers. An
-        # unset `CI_LINUX_RUNNER` sends every leg to a label that matches no runner, so the job
-        # waits instead of quietly becoming a run somewhere else.
+        # unset `CI_LINUX_RUNNER` falls back to `ubuntu-latest`; the public checkout runs the
+        # same four legs instead of waiting on a label it never defined.
         python-version: ['3.11', '3.12', '3.13']
     steps:
       - name: Checkout
@@ -100,11 +100,10 @@ jobs:
 
       - name: Verify uv.lock is fresh (supply-chain guard)
         # Pinned, not `pip install uv`: an unpinned resolver makes the guard's verdict
-        # depend on which uv happened to ship that day. uv.lock is generated with this
-        # exact version — `python3 -m venv .uv && .uv/bin/pip install uv==0.12.24
-        # && .uv/bin/uv lock` — and 2026-10-09 is the first commit that says so.
+        # depend on which uv happened to ship that day. The freshness check, lockfile
+        # lane and scratch resolver must use the same pin.
         run: |
-          pip install "uv==0.12.24"
+          pip install "uv==0.13.5"
           uv lock --check
 
       - name: Install package (with dev tools)
@@ -176,6 +175,17 @@ jobs:
         # pins one through `NVM_BIN`, or the gate learns that a macOS Python leg has no provisioned
         # node directory to point at.
         run: bash scripts/ci_preflight.sh
+
+      - name: Enable user namespaces for the MCP sandbox
+        # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
+        # map a uid there and every stdio MCP server refuses to start. The product keeps that
+        # refusal; the test host provides the kernel setting the sandbox needs. Older images
+        # without the key stay green.
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
 
       # Timing gates run alone, ahead of the parallel legs. They measure a wall clock
       # (startup p90 < 150 ms, TTFB < 500 ms), and xdist workers share the machine while
@@ -283,7 +293,7 @@ jobs:
   pytest-macos:
     name: pytest-macos (py3.12)
     if: github.event_name != 'pull_request'
-    runs-on: ${{ vars.CI_MAC_RUNNER }}
+    runs-on: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -325,7 +335,7 @@ jobs:
         # have served 3.12.10); spell it `'3.12.15'` to freeze it.
         run: |
           python3 -m venv "${RUNNER_TEMP:?RUNNER_TEMP is set by the runner}/ephe-boot"
-          "${RUNNER_TEMP}/ephe-boot/bin/pip" install "uv==0.12.24"
+          "${RUNNER_TEMP}/ephe-boot/bin/pip" install "uv==0.13.5"
           "${RUNNER_TEMP}/ephe-boot/bin/uv" --version
           "${RUNNER_TEMP}/ephe-boot/bin/uv" python install '3.12'
           "${RUNNER_TEMP}/ephe-boot/bin/uv" venv --seed --python '3.12' .venv
@@ -337,7 +347,7 @@ jobs:
 
       - name: Verify uv.lock is fresh (supply-chain guard)
         run: |
-          pip install "uv==0.12.24"
+          pip install "uv==0.13.5"
           uv lock --check
 
       - name: Install package (with dev tools)
@@ -404,7 +414,7 @@ jobs:
     name: Integration checks
     # Fork PRs are excluded for the reason given on the pytest job.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       matrix:
@@ -493,7 +503,9 @@ jobs:
     name: Docker image build (release-bar)
     # Fork PRs are excluded for the reason given on the pytest job.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    # Docker is not granted to the self-hosted runner: a runner in the Docker
+    # group is root-equivalent. This job runs where Docker is provided.
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -522,7 +534,7 @@ jobs:
     if: >-
       always() && (github.event_name != 'pull_request'
       || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ${{ vars.CI_LINUX_RUNNER }}
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:
       contents: read

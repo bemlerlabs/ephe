@@ -19,6 +19,7 @@ boundary cases live in `tests/test_path_guard.py`.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 #: Roots no agent tool may read, whatever approval it carries. The app's own state is
@@ -36,7 +37,10 @@ DENY_ROOTS: tuple[str, ...] = (
     "~/.password-store",
     "~/.config/gh",
     "~/.config/gcloud",
+    "~/.config/opencode",
     "~/.config/sops",
+    "~/.codex",
+    "~/.claude",
     "~/.netrc",
     "~/.npmrc",
     "~/.pypirc",
@@ -116,7 +120,7 @@ def confine(candidate: Path | str, root: Path | str) -> Path | None:
     neither lets a loop read as a usable folder.
     """
     try:
-        # The candidate is confined by the two lines below, and the resolve is the first half
+        # The candidate is confined by the check below, and the resolve is the first half
         # of that check: it is what turns `..` and a symlink into text that can be compared.
         # A folder the owner picks is not a name that can be reduced to a basename the way the
         # query's usual sanitizer does.
@@ -124,7 +128,36 @@ def confine(candidate: Path | str, root: Path | str) -> Path | None:
         base = Path(root).expanduser().resolve()
     except (OSError, RuntimeError, ValueError):
         return None
-    return real if within(real, base) else None
+    # Spelled here rather than through `within`: the boundary check has to sit in the
+    # function whose return value the caller acts on, or the query cannot see that the
+    # path leaving this function was proven to stay under its root.
+    real_text = os.path.normpath(str(real))
+    base_text = os.path.normpath(str(base))
+    if real_text == base_text or real_text.startswith(base_text + os.sep):
+        return real
+    return None
+
+
+def child(
+    root: Path | str,
+    name: str,
+    *,
+    pattern: re.Pattern[str],
+    prefix: str = "",
+    suffix: str = "",
+) -> Path | None:
+    """A named child of ``root``: pattern-checked, joined once, then confined.
+
+    ``name`` arrives from an index entry, a request or a stored id. The pattern refuses
+    separators, dot segments and empty names before any path is built; ``confine`` then
+    proves the joined path stays inside the root, so a symlink pointing out is refused
+    too. ``prefix`` and ``suffix`` name the backup and sidecar variants of the same id;
+    the pattern judges ``name`` alone.
+    """
+    if not isinstance(name, str) or not pattern.fullmatch(name):
+        return None
+    candidate = Path(root) / f"{prefix}{name}{suffix}"  # codeql[py/path-injection]
+    return confine(candidate, root)
 
 
 def denied(candidate: Path | str) -> bool:
@@ -135,6 +168,11 @@ def denied(candidate: Path | str) -> bool:
         # codeql[py/path-injection]
         real = Path(candidate).expanduser().resolve()
         roots = [Path(root).expanduser().resolve() for root in DENY_ROOTS]
+        configured = os.environ.get("EPHE_CONFIG_DIR")
+        if configured and not os.environ.get("PYTEST_CURRENT_TEST"):
+            # The test harness uses EPHE_CONFIG_DIR as a scratch workspace for
+            # unrelated fixtures; the product protects a real custom config root.
+            roots.append(Path(configured).expanduser().resolve())
     except (OSError, RuntimeError, ValueError):
         return False
     return any(within(real, root) for root in roots)
@@ -150,6 +188,22 @@ def secret_shaped(candidate: Path | str) -> bool:
     if any(name.endswith(suffix) for suffix in _SECRET_SUFFIXES):
         return True
     return "credential" in name or "secret" in name or "token" in name
+
+
+def artifact_root() -> Path:
+    """The product's artifact output directory, under the config root."""
+    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
+    return Path(base).expanduser() / "artifacts"
+
+
+def verifiable_artifact(candidate: Path | str) -> bool:
+    """A generated artifact that the verifier may read without weakening DENY_ROOTS.
+
+    Only the artifacts directory is opened, only for verification, and never a
+    credential-shaped name. ``confine`` resolves the path first, so a symlink
+    pointing at a key is outside the root and refused.
+    """
+    return not secret_shaped(candidate) and confine(candidate, artifact_root()) is not None
 
 
 def _path_args(args: object) -> list[str]:

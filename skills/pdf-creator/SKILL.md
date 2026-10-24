@@ -3,8 +3,8 @@ name: pdf-creator
 version: "1.0.0"
 trigger: /pdf
 description: "Creates a formatted PDF document from your text (saved to ~/Downloads)."
-when_to_use: [pdf, pdf dokument, pdf briefing, als pdf, dokument, pdfs]
-when_not_to_use: [word docx, praesentation deck]
+when_to_use: [pdf, pdf document, pdf briefing, as pdf, document, pdfs, pdf dokument, als pdf, dokument]
+when_not_to_use: [word docx, presentation deck, praesentation deck]
 tools: [create_pdf, memory, skill_manage]
 quality_profile: artifact
 artifact_types: [pdf]
@@ -19,9 +19,9 @@ allowed_tools: [create_pdf, memory, skill_manage]
 
 ## System Prompt
 
-Du bist ein artifact-grade Dokumenten-Assistent für Ephe.
+You are an artifact-grade document assistant for Ephe.
 
-Deine Aufgabe: Erstelle professionelle PDF-Dokumente aus Nutzereingaben, auf veröffentlichungsreifem Niveau. Arbeite wie ein erfahrener Editorial-, Research- und Design-Reviewer: erst Inhalt klaeren, dann sauber strukturieren, dann das echte PDF erzeugen.
+Your task: create professional PDF documents from user input at publication-ready level. Work like an experienced editorial, research and design reviewer: clarify the content first, then structure it cleanly, then produce the real PDF.
 
 Rules:
 - Call create_pdf for every PDF request. Never answer with text only when the user asked for a PDF.
@@ -47,12 +47,12 @@ Quality Gate:
 
 ```json
 {
-  "input": "/pdf Briefing fuer Produkt X",
+  "input": "/pdf briefing for product X",
   "steps": [
     {
       "tool": "create_pdf",
       "args": {
-        "title": "Produkt X",
+        "title": "Product X",
         "content": "1. A\n2. B"
       }
     },
@@ -69,6 +69,6 @@ Quality Gate:
 
 ## Test
 
-**Input**: Erstell mir ein PDF über die Vorteile von KI
+**Input**: Create a PDF about the benefits of AI
 **Expect Tool**: create_pdf
 **Expect Contains**: Downloads

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextvars
 import itertools
+import time
 import uuid
 from collections.abc import Callable
 from typing import Any
@@ -66,6 +67,10 @@ async def spawn_agent(description: str, prompt: str, subagent_type: str = "") ->
     role = (subagent_type or "general-purpose").strip() or "general-purpose"
     allowed_tools: list[str] | None = None
     timeout: float | None = None
+    model: str | None = None
+    instructions = ""
+    max_iterations: int | None = None
+    profile_id = ""
     try:
         from core import agent_profiles
 
@@ -73,26 +78,53 @@ async def spawn_agent(description: str, prompt: str, subagent_type: str = "") ->
         if profile:
             allowed_tools = list(profile["tools"])
             timeout = float(profile["timeout"])
+            model = profile.get("model")
+            instructions = str(profile.get("instructions") or "")
+            max_iterations = profile.get("max_turns")
+            profile_id = str(profile.get("id") or "")
     except Exception:  # noqa: BLE001 — profile problems never block delegation
-        allowed_tools, timeout = None, None
+        allowed_tools, timeout, model = None, None, None
+        instructions, max_iterations, profile_id = "", None, ""
     # Steering: this turn's live channel, handed to the helper so a direction
     # change reaches the work the user is watching instead of waiting for the
     # parent's next round. Unset outside a chat turn (CLI, tests) — the helper
     # then runs exactly as before.
     _parent_channel = current_channel()
+    started = time.perf_counter()
     runner = Subagent(
         agent_id=agent_id,
         role=role,
         task=prompt,
+        model=model,
         context=description,
         on_event=_bridge(),
         allowed_tools=allowed_tools,
         timeout=timeout,
+        instructions=instructions,
+        max_iterations=max_iterations,
         chat_session_id=chat_session_id,
         parent_session=parent_session,
         steering=_parent_channel,
     )
     result = await runner.run()
+    try:
+        from core import agent_store
+
+        agent_store.record_run(
+            run_id=agent_id,
+            agent_id=profile_id,
+            agent_name=role,
+            model=model,
+            model_source="agent" if model else "global",
+            source="spawn",
+            status=result.status,
+            duration_ms=int((time.perf_counter() - started) * 1000),
+            tool_calls=len(result.tool_calls),
+            prompt_chars=len(prompt),
+            report_chars=len(result.report),
+        )
+    except Exception:  # noqa: BLE001 — a run record never fails the delegation
+        pass
     header = (
         f"Subagent {agent_id} (role: {role}) finished with status '{result.status}'. "
         f"Tool calls: {len(result.tool_calls)}.\n\n"

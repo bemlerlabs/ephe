@@ -17,12 +17,12 @@
       {
         "name": "newskill",
         "description": "Scaffold a new skill pack",
-        "template": "Erstelle ein SKILL.md-Pack zu: {input}. Struktur nach _TEMPLATE.md, 2+ Few-Shot-Beispiele, klare Werkzeug-Regeln."
+        "template": "Create a SKILL.md pack for: {input}. Follow _TEMPLATE.md, 2+ few-shot examples, clear tool rules."
       },
       {
         "name": "grade",
         "description": "Grade a skill against rubric and golden cases",
-        "template": "Benote das Skill-Pack {input} gegen seine Rubrik und Golden-Cases und liefere eine Verbesserungsliste."
+        "template": "Grade the skill pack {input} against its rubric and golden cases and return an improvement list."
       }
     ]
   },

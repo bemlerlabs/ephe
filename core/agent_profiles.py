@@ -61,8 +61,10 @@ def load_profiles(
     def _absorb(raw: Any, source: str) -> None:
         if not isinstance(raw, dict):
             return
+        if raw.get("archived") is True or raw.get("enabled") is False:
+            return  # the Agent Center can park an agent without deleting it
         name = str(raw.get("name") or "").strip()
-        if not name or not name.replace("-", "").isalnum():
+        if not name or len(name) > 80:
             quarantined[f"{source}:{name or '?'}"] = "bad name"
             return
         if name in profiles:
@@ -71,16 +73,27 @@ def load_profiles(
         if tools is None:
             quarantined[name] = "no valid tools (unknown or empty tool list)"
             return
+        limits = raw.get("limits") if isinstance(raw.get("limits"), dict) else {}
         try:
-            timeout = float(raw.get("timeout", TIMEOUT_DEFAULT_S))
+            timeout = float(limits.get("timeout", raw.get("timeout", TIMEOUT_DEFAULT_S)))
         except (TypeError, ValueError):
             timeout = TIMEOUT_DEFAULT_S
+        try:
+            max_turns = int(limits.get("max_turns", 8))
+        except (TypeError, ValueError):
+            max_turns = 8
+        model_raw = raw.get("model")
+        if isinstance(model_raw, dict):
+            model_raw = model_raw.get("model")
         profiles[name] = {
+            "id": str(raw.get("id") or name),
             "name": name,
             "description": str(raw.get("description") or ""),
+            "instructions": str(raw.get("instructions") or ""),
             "tools": tools,
-            "model": str(raw["model"]) if raw.get("model") else None,
+            "model": str(model_raw) if model_raw else None,
             "timeout": max(TIMEOUT_MIN_S, min(TIMEOUT_MAX_S, timeout)),
+            "max_turns": max(1, min(24, max_turns)),
         }
 
     # 1) user agents dir

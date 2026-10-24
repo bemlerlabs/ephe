@@ -1,7 +1,9 @@
-"""README.md is the first documentation a user reads, and every command it shows is a
-promise: typing `ephe <cmd>` must reach a real subparser, not an argparse usage error.
+"""The CLI reference is the documentation a user reads for every command, and every
+command it shows is a promise: typing `ephe <cmd>` must reach a real subparser, not an
+argparse usage error. The README links this reference; the landing page carries the
+first install path, the reference carries the command set.
 
-This gate reads README.md, extracts the commands it documents from its fenced blocks
+This gate reads docs/CLI.md, extracts the commands it documents from its fenced blocks
 and inline code spans (so prose that merely contains the word "ephe" is not mistaken
 for a command), builds the real parser with `ephe_cli.build_parser()` and asserts each
 documented command resolves — at the top level and, for the pipe-separated action
@@ -19,6 +21,7 @@ import ephe_cli
 
 REPO = Path(__file__).resolve().parent.parent
 README = REPO / "README.md"
+CLI_DOC = REPO / "docs" / "CLI.md"
 
 # The lifecycle commands a real README cannot be missing. These guard the extractor:
 # if the patterns below silently match nothing, this floor fails rather than passing
@@ -27,7 +30,7 @@ CORE_LIFECYCLE = {"start", "configure", "doctor", "update", "tui", "serve"}
 
 
 def _documented_code(readme: str) -> str:
-    """The README's fenced code blocks and inline code spans joined into one blob.
+    """The CLI reference's fenced code blocks and inline code spans joined into one blob.
 
     Command examples live in code; a prose mention of "ephe" must not be mistaken for
     a subcommand, so only the code regions are offered to the extractor.
@@ -79,34 +82,37 @@ def _child_names(parser: argparse.ArgumentParser) -> set[str]:
 
 
 def test_given_readme_when_scanned_then_it_documents_the_core_lifecycle_commands():
-    code = _documented_code(README.read_text(encoding="utf-8"))
+    code = _documented_code(CLI_DOC.read_text(encoding="utf-8"))
     documented = _documented_commands(code)
 
+    assert "docs/CLI.md" in README.read_text(encoding="utf-8"), "the README does not link the CLI reference"
     assert CORE_LIFECYCLE <= documented, (
-        "README no longer documents the core commands "
+        "the CLI reference no longer documents the core commands "
         f"{sorted(CORE_LIFECYCLE - documented)}; the extractor or the README is broken"
     )
 
 
 def test_given_readme_commands_when_resolved_then_every_command_exists_in_the_cli():
-    code = _documented_code(README.read_text(encoding="utf-8"))
+    code = _documented_code(CLI_DOC.read_text(encoding="utf-8"))
     documented = _documented_commands(code)
+    # The reference also documents the bare `ephe` entry point.
+    documented.discard("ephe")
     real = _child_names(_parser())
 
     missing = sorted(documented - real)
 
     assert missing == [], (
-        f"README documents commands the CLI does not have: {missing}. "
+        f"docs/CLI.md documents commands the CLI does not have: {missing}. "
         "Add the subparser in ephe_cli.build_parser() or fix the README."
     )
 
 
 def test_given_readme_action_lists_when_resolved_then_each_action_exists_under_its_parent():
-    code = _documented_code(README.read_text(encoding="utf-8"))
+    code = _documented_code(CLI_DOC.read_text(encoding="utf-8"))
     action_lists = _documented_action_lists(code)
     parser = _parser()
 
-    assert action_lists, "no `ephe <cmd> a|b|c` action lists found in README.md"
+    assert action_lists, "no `ephe <cmd> a|b|c` action lists found in docs/CLI.md"
 
     problems: list[str] = []
     for parent, actions in action_lists.items():

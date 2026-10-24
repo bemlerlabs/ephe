@@ -57,7 +57,7 @@ async def run_tests(command: str = "pytest -q", cwd: str | None = None) -> str:
     """
     command = (command or "").strip()
     if not command:
-        return "[run_tests] Leerer Befehl."
+        return "[run_tests] Empty command."
 
     rejection = validate_shell_command(command)
     if rejection is not None:
@@ -98,7 +98,7 @@ async def run_tests(command: str = "pytest -q", cwd: str | None = None) -> str:
             cwd=resolve_test_cwd(cwd),
         )
     except subprocess.TimeoutExpired:
-        return f"[run_tests] Timeout after {TEST_TIMEOUT_SECONDS}s — Befehl abgebrochen."
+        return f"[run_tests] Timeout after {TEST_TIMEOUT_SECONDS}s - command aborted."
 
     output = (result.stdout or "").strip()
     errors = (result.stderr or "").strip()

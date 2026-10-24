@@ -108,11 +108,18 @@ def plugins_root() -> Path:
 
 # Validation
 
-def _validate(manifest: Any, plugin_dir: Path) -> str | None:
+def _validate(
+    manifest: Any, plugin_dir: Path, *, require_dir_name: bool = True
+) -> str | None:
     """Full contract check. Returns an error string or None."""
     if not isinstance(manifest, dict):
         return "manifest: object expected"
-    if manifest.get("manifest_version") not in SUPPORTED_MANIFEST_VERSIONS:
+    manifest_version = manifest.get("manifest_version")
+    # `True == 1` and `1.0 == 1` in Python; the wire format is an integer.
+    if (
+        type(manifest_version) is not int
+        or manifest_version not in SUPPORTED_MANIFEST_VERSIONS
+    ):
         return (
             "manifest_version: must be one of "
             f"{sorted(SUPPORTED_MANIFEST_VERSIONS)}"
@@ -140,7 +147,7 @@ def _validate(manifest: Any, plugin_dir: Path) -> str | None:
     name = manifest.get("name")
     if not isinstance(name, str) or not _SLUG_RE.match(name or ""):
         return "name: lowercase slug expected (a-z0-9-)"
-    if name != plugin_dir.name:
+    if require_dir_name and name != plugin_dir.name:
         return f"name: {name!r} does not match directory {plugin_dir.name!r}"
     version = manifest.get("version")
     if not isinstance(version, str) or not _SEMVER_RE.match(version or ""):
@@ -149,23 +156,22 @@ def _validate(manifest: Any, plugin_dir: Path) -> str | None:
         return "description: non-empty string expected"
 
     perms = manifest.get("permissions", {})
-    if perms is not None:
-        if not isinstance(perms, dict):
-            return "permissions: object expected"
-        families = perms.get("tool_families", [])
-        if not isinstance(families, list):
-            return "permissions.tool_families: list expected"
-        for family in families:
-            if family not in KNOWN_TOOL_FAMILIES:
-                return f"permissions.tool_families: unknown family {family!r} (fail-closed quarantine)"
-        roots = perms.get("data_roots", [])
-        if not isinstance(roots, list) or any(not isinstance(r, str) for r in roots):
-            return "permissions.data_roots: list of strings expected"
-        from core.capability_policy import validate_data_roots
+    if not isinstance(perms, dict):
+        return "permissions: object expected"
+    families = perms.get("tool_families", [])
+    if not isinstance(families, list):
+        return "permissions.tool_families: list expected"
+    for family in families:
+        if family not in KNOWN_TOOL_FAMILIES:
+            return f"permissions.tool_families: unknown family {family!r} (fail-closed quarantine)"
+    roots = perms.get("data_roots", [])
+    if not isinstance(roots, list) or any(not isinstance(r, str) for r in roots):
+        return "permissions.data_roots: list of strings expected"
+    from core.capability_policy import validate_data_roots
 
-        root_error = validate_data_roots(roots)
-        if root_error:
-            return root_error
+    root_error = validate_data_roots(roots)
+    if root_error:
+        return root_error
 
     dependencies = manifest.get("dependencies", [])
     if dependencies is not None:
@@ -176,58 +182,61 @@ def _validate(manifest: Any, plugin_dir: Path) -> str | None:
                 return f"dependencies: bad plugin slug {dependency!r}"
 
     components = manifest.get("components", {})
-    if components is not None:
-        if not isinstance(components, dict):
-            return "components: object expected"
-        unknown_components = sorted(set(components) - KNOWN_COMPONENT_KEYS)
-        if unknown_components:
-            return f"components: unknown component(s): {', '.join(unknown_components)}"
-        skills = components.get("skills", [])
-        if not isinstance(skills, list):
-            return "components.skills: list expected"
-        for pack in skills:
-            if not isinstance(pack, str) or not _SLUG_RE.match(pack):
-                return f"components.skills: bad pack name {pack!r}"
-            pack_manifest = _under(plugin_dir, "skills", pack, "SKILL.md")
-            if pack_manifest is None or not pack_manifest.is_file():
-                return f"components.skills: declared pack {pack!r} does not ship a SKILL.md"
-        commands = components.get("commands", [])
-        if not isinstance(commands, list):
-            return "components.commands: list expected"
-        for cmd in commands:
-            if not isinstance(cmd, dict) or not isinstance(cmd.get("name"), str) or not _SLUG_RE.match(cmd.get("name", "")):
-                return f"components.commands: bad command name {cmd!r}"
-            if not isinstance(cmd.get("description"), str) or not cmd.get("description", "").strip():
-                return f"components.commands.{cmd.get('name')}: description required"
-        tools = components.get("tools", [])
-        if not isinstance(tools, list):
-            return "components.tools: list expected"
-        for tool in tools:
-            if not isinstance(tool, str) or not _TOOL_NAME_RE.match(tool):
-                return f"components.tools: bad tool name {tool!r}"
-        from core.capability_policy import validate_tool_permissions
+    if not isinstance(components, dict):
+        return "components: object expected"
+    unknown_components = sorted(set(components) - KNOWN_COMPONENT_KEYS)
+    if unknown_components:
+        return f"components: unknown component(s): {', '.join(unknown_components)}"
+    skills = components.get("skills", [])
+    if not isinstance(skills, list):
+        return "components.skills: list expected"
+    for pack in skills:
+        if not isinstance(pack, str) or not _SLUG_RE.match(pack):
+            return f"components.skills: bad pack name {pack!r}"
+        pack_manifest = _under(plugin_dir, "skills", pack, "SKILL.md")
+        if pack_manifest is None or not pack_manifest.is_file():
+            return f"components.skills: declared pack {pack!r} does not ship a SKILL.md"
+    commands = components.get("commands", [])
+    if not isinstance(commands, list):
+        return "components.commands: list expected"
+    command_names: set[str] = set()
+    for cmd in commands:
+        if not isinstance(cmd, dict) or not isinstance(cmd.get("name"), str) or not _SLUG_RE.match(cmd.get("name", "")):
+            return f"components.commands: bad command name {cmd!r}"
+        if cmd["name"] in command_names:
+            return f"components.commands: duplicate name {cmd['name']!r}"
+        command_names.add(cmd["name"])
+        if not isinstance(cmd.get("description"), str) or not cmd.get("description", "").strip():
+            return f"components.commands.{cmd.get('name')}: description required"
+    tools = components.get("tools", [])
+    if not isinstance(tools, list):
+        return "components.tools: list expected"
+    for tool in tools:
+        if not isinstance(tool, str) or not _TOOL_NAME_RE.match(tool):
+            return f"components.tools: bad tool name {tool!r}"
+    from core.capability_policy import validate_tool_permissions
 
-        permission_error = validate_tool_permissions(manifest)
-        if permission_error:
-            return permission_error
-        # agents / hooks / mcp and the later declarative components: accepted
-        # structurally, never executed by the P1 runtime.
-        for reserved in (
-            "agents",
-            "hooks",
-            "mcp",
-            "resources",
-            "prompts",
-            "instructions",
-            "rules",
-            "outputStyles",
-            "workflows",
-            "ui",
+    permission_error = validate_tool_permissions(manifest)
+    if permission_error:
+        return permission_error
+    # agents / hooks / mcp and the later declarative components: accepted
+    # structurally, never executed by the P1 runtime.
+    for reserved in (
+        "agents",
+        "hooks",
+        "mcp",
+        "resources",
+        "prompts",
+        "instructions",
+        "rules",
+        "outputStyles",
+        "workflows",
+        "ui",
+    ):
+        if reserved in components and not isinstance(
+            components[reserved], (dict, list)
         ):
-            if reserved in components and not isinstance(
-                components[reserved], (dict, list)
-            ):
-                return f"components.{reserved}: dict or list expected"
+            return f"components.{reserved}: dict or list expected"
     # Extensions v2 (E2): optional icon. Registered by path (no traversal, no
     # absolute paths), only .svg/.png, and it has to sit inside the plugin dir.
     icon = manifest.get("icon")
@@ -278,17 +287,24 @@ def dir_sha256(path: Path, exclude_names: frozenset[str] = frozenset({SIG_FILENA
     return digest.hexdigest()
 
 
-def load_manifest(plugin_dir: Path) -> tuple[dict | None, str | None]:
-    """Read + validate one plugin directory. Returns (manifest, error)."""
+def load_manifest(
+    plugin_dir: Path, *, require_dir_name: bool = True
+) -> tuple[dict | None, str | None]:
+    """Read + validate one plugin directory. Returns (manifest, error).
+
+    A one-slot rollback backup (`.previous-<name>`) cannot satisfy the
+    name-equals-directory rule; signature verification passes
+    `require_dir_name=False` and binds identity through the signed record
+    instead."""
     plugin_dir = Path(plugin_dir)
     mfile = _under(plugin_dir, MANIFEST_FILENAME)
     if mfile is None or not mfile.is_file():
         return None, f"{MANIFEST_FILENAME} missing"
     try:
         manifest = json.loads(mfile.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        return None, f"manifest unreadable: {exc}"
-    err = _validate(manifest, plugin_dir)
+    except (OSError, ValueError):
+        return None, "manifest unreadable"
+    err = _validate(manifest, plugin_dir, require_dir_name=require_dir_name)
     if err:
         return None, err
     return manifest, None

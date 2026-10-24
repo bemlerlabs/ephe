@@ -22,8 +22,8 @@ trusted-key loader; tests use ephemeral keys). Verify NEVER throws — any
 problem is `False` plus a reason.
 
 `kid` is signed, therefore unforgeable, but it is only what the signer called
-itself: the verifier tries every trusted key and never maps a key back to a
-`kid`. Nothing in this module treats `kid` as an authorization.
+itself: the verifier tries every key of the requested class and never maps a
+key back to a `kid`. Nothing in this module treats `kid` as an authorization.
 
 Ephe – Bad Liebenzell, Schwarzwald
 """
@@ -31,6 +31,8 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+import threading
 from pathlib import Path
 from typing import Any, Callable
 
@@ -41,9 +43,12 @@ from core.plugin_manifest import SIG_FILENAME  # noqa: F401 — re-exported sing
 from core.plugin_store import config_root
 
 SIG_ALG = "ES256"
+PINS_FILENAME = "plugin-signatures.json"
 
 #: Test/production seam for the enable gate: returns trusted public PEMs.
 TRUSTED_KEYS_LOADER: Callable[[], list[bytes]] | None = None
+
+_PINS_LOCK = threading.Lock()
 
 
 def canonical_json(payload: dict[str, Any]) -> bytes:
@@ -130,7 +135,42 @@ def sign_plugin_dir(plugin_dir: Path, private_pem: bytes, kid: str = "first-part
     return record
 
 
-def verify_plugin_dir(plugin_dir: Path, record: dict[str, Any], trusted_public_pems: list[bytes]) -> tuple[bool, str]:
+FIRST_PARTY = "first-party"
+USER = "user"
+
+
+def load_trusted_keys_with_class(extra_dir: Path | None = None) -> list[tuple[bytes, str]]:
+    """Trusted keys with the class they were installed as; the class is not a label
+    a signature can choose."""
+    if TRUSTED_KEYS_LOADER is not None:
+        loaded = list(TRUSTED_KEYS_LOADER())
+        return [tuple(item) if isinstance(item, tuple) else (item, USER) for item in loaded]
+    keys: list[tuple[bytes, str]] = []
+    first_party = Path(__file__).resolve().parent.parent / "plugins" / "first-party.pub.pem"
+    if first_party.is_file():
+        keys.append((first_party.read_bytes(), FIRST_PARTY))
+    base = Path(extra_dir) if extra_dir is not None else config_root() / "trusted-keys"
+    if base.is_dir():
+        for f in sorted(base.glob("*.pub.pem")):
+            keys.append((f.read_bytes(), USER))
+    return keys
+
+
+def trusted_pems_for_class(trust_class: str | None) -> list[bytes]:
+    """Keys of one class. A named class with no keys returns none: never all keys."""
+    if trust_class is None:
+        return load_trusted_public_keys()
+    return [pem for pem, cls in load_trusted_keys_with_class() if cls == trust_class]
+
+
+def verify_plugin_dir(
+    plugin_dir: Path,
+    record: dict[str, Any],
+    trusted_public_pems: list[bytes] | None = None,
+    *,
+    trust_class: str | None = None,
+    require_dir_name: bool = True,
+) -> tuple[bool, str]:
     """Verify a signature record against the CURRENT directory content.
 
     Returns (ok, reason). Reasons: drift (content changed), identity
@@ -141,7 +181,9 @@ def verify_plugin_dir(plugin_dir: Path, record: dict[str, Any], trusted_public_p
     plugin_dir = Path(plugin_dir)
     if not isinstance(record, dict) or not record.get("signature"):
         return False, "no signature record"
-    manifest, err = load_manifest(plugin_dir)
+    # A rollback backup is named `.previous-<name>`; only that caller may skip
+    # the directory-name rule, so the enable gate keeps it.
+    manifest, err = load_manifest(plugin_dir, require_dir_name=require_dir_name)
     if err or manifest is None:
         return False, f"invalid plugin: {err}"
     stray = _stray_signature_records(plugin_dir)
@@ -155,9 +197,12 @@ def verify_plugin_dir(plugin_dir: Path, record: dict[str, Any], trusted_public_p
     if record.get("sha256") != current:
         return False, f"drift: directory changed after signing (recorded {str(record.get('sha256'))[:12]}…, now {current[:12]}…)"
     payload = {k: record[k] for k in ("alg", "kid", "name", "version", "sha256") if k in record}
-    if not trusted_public_pems:
-        return False, "no_trusted_key"
-    for pem in trusted_public_pems:
+    keys = trusted_public_pems or []
+    if trust_class is not None:
+        keys = trusted_pems_for_class(trust_class)
+    if not keys:
+        return False, f"no_trusted_key for class {trust_class}" if trust_class else "no_trusted_key"
+    for pem in keys:
         if verify(payload, str(record["signature"]), pem):
             return True, ""
     return False, "signature not from a trusted key"
@@ -179,8 +224,141 @@ def load_trusted_public_keys(extra_dir: Path | None = None) -> list[bytes]:
     return pems
 
 
+def pins_path() -> Path:
+    return config_root() / PINS_FILENAME
+
+
+def _read_pins() -> dict[str, dict[str, Any]]:
+    try:
+        raw = json.loads(pins_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    plugins = raw.get("plugins") if isinstance(raw, dict) else None
+    if not isinstance(plugins, dict):
+        return {}
+    return {
+        str(name): dict(pin)
+        for name, pin in plugins.items()
+        if isinstance(pin, dict)
+    }
+
+
+def load_pin(name: str) -> dict[str, Any] | None:
+    """The last verified signature identity for `name`, or None."""
+    pin = _read_pins().get(str(name))
+    return dict(pin) if isinstance(pin, dict) else None
+
+
+def record_pin(
+    name: str, record: dict[str, Any], *, trust_class: str | None = None
+) -> None:
+    """Persist the identity a verified record carried.
+
+    The record lives inside the plugin directory and can be deleted by the same
+    user; the pin lives in the config directory and survives that deletion. It
+    is not a second signature check, it makes a lost record visible. The class
+    the artifact was verified under is part of that identity: a rollback later
+    verifies against that class alone.
+    """
+    if not isinstance(record, dict) or not record.get("sha256"):
+        return
+    pin = {
+        "name": str(record.get("name") or name),
+        "version": str(record.get("version") or ""),
+        "sha256": str(record.get("sha256")),
+        "kid": str(record.get("kid") or ""),
+    }
+    with _PINS_LOCK:
+        pins = _read_pins()
+        if trust_class:
+            pin["trust_class"] = str(trust_class)
+        pins[str(name)] = pin
+        _write_pins(pins)
+
+
+def clear_pin(name: str) -> None:
+    with _PINS_LOCK:
+        pins = _read_pins()
+        if str(name) in pins:
+            pins.pop(str(name), None)
+            _write_pins(pins)
+
+
+def _write_pins(pins: dict[str, dict[str, Any]]) -> None:
+    path = pins_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(
+                {"version": 1, "plugins": pins},
+                handle,
+                ensure_ascii=False,
+                indent=2,
+            )
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    os.replace(tmp, path)
+    os.chmod(path, 0o600)
+
+
 def signature_check_enabled() -> bool:
     """Deep setting `plugins.plugin_signature_check` (default True)."""
     from core.settings_schema import deep_bool
 
     return deep_bool("plugins.plugin_signature_check")
+
+
+def _signature_file(plugin_id: str) -> Path | None:
+    from core import path_guard
+    from core.plugin_manifest import BUILTIN_PLUGINS_ROOT, SIG_FILENAME
+    from core.plugin_store import PLUGIN_NAME_RE
+
+    for base in (config_root() / "plugins", BUILTIN_PLUGINS_ROOT):
+        directory = path_guard.child(base, plugin_id, pattern=PLUGIN_NAME_RE)
+        if directory is None:
+            continue
+        candidate = directory / SIG_FILENAME
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def verify_enable(plugin_id: str) -> tuple[bool, str]:
+    """The enable-time gate for every surface, HTTP and CLI alike.
+
+    Returns (ok, reason). A record that existed at install but is now missing is
+    refused through the pin written by the last successful verification; a
+    malformed record is a coded refusal, not an exception.
+    """
+    if not signature_check_enabled():
+        return True, ""
+    sig_file = _signature_file(plugin_id)
+    if sig_file is None:
+        if load_pin(plugin_id) is not None:
+            return False, "signature_record_missing"
+        return True, ""
+    try:
+        record = json.loads(sig_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return False, f"signature_invalid: record is not readable ({type(exc).__name__})"
+    from core.plugin_lockfile import trust_class_for
+
+    # Enabling is the other verification call site: without the recorded class,
+    # a user-class key could enable an artifact the pin calls first-party.
+    trust_class = trust_class_for(plugin_id, sig_file.parent)
+    ok, reason = verify_plugin_dir(
+        sig_file.parent, record, trust_class=trust_class
+    )
+    if not ok:
+        return False, reason
+    try:
+        record_pin(plugin_id, record, trust_class=trust_class)
+    except OSError:
+        pass
+    return True, ""

@@ -27,6 +27,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import zipfile
 from pathlib import Path
 from typing import Any, Callable
@@ -40,6 +41,10 @@ MIN_REFRESH_INTERVAL_S = 600
 # Catalogue filename in the repo root; registry filename in the device.
 CATALOG_FILENAME = "plugin-catalog.json"
 REGISTRY_FILENAME = "plugins.json"
+
+#: The one shape a plugin id may have before it becomes a directory name: a single
+#: lower-case slug segment. `plugin_versions.plugin_dir` is the only joiner.
+PLUGIN_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 # Path helpers
@@ -418,6 +423,17 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
                 if not found:
                     continue
                 entry["source"] = "builtin" if found["dir"].parent == plugin_manifest.BUILTIN_PLUGINS_ROOT else "user"
+                if entry["source"] == "user":
+                    # A user install that shadows a catalog identity must show
+                    # its own version, description and content hash.
+                    catalog_origin = entry.get("origin")
+                    manifest = found["manifest"]
+                    entry["version"] = str(manifest.get("version") or "")
+                    entry["description"] = str(manifest.get("description") or "")
+                    entry["sha256"] = plugin_manifest.dir_sha256(found["dir"])
+                    entry["origin"] = str(manifest.get("origin") or "user")
+                    if catalog_origin == "first-party":
+                        entry["shadowed_builtin"] = True
                 families = found["manifest"].get("permissions", {}).get("tool_families", [])
                 entry["permissions"] = [str(f) for f in families] if isinstance(families, list) else []
     except Exception:

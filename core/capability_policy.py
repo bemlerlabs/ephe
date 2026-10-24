@@ -110,8 +110,8 @@ def validate_data_roots(roots: list) -> str | None:
             continue
         try:
             validated = validate_workspace_dir(str(path))
-        except ValueError as exc:
-            return f"permissions.data_roots: {root!r}: {exc}"
+        except ValueError:
+            return f"permissions.data_roots: {root!r} is not a usable directory"
         if validated is None:
             return f"permissions.data_roots: {root!r} is not a directory"
         resolved = Path(validated)

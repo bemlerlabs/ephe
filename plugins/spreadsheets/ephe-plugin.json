@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "spreadsheets",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "origin": "first-party",
   "description": "Real spreadsheet production: formatted XLSX workbooks, charts and tabular evaluations.",
   "permissions": {
@@ -12,12 +12,24 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "spreadsheets"
+    ],
     "commands": [
       {
         "name": "xlsx",
         "description": "Produce a real Excel workbook",
         "template": "Create a real Excel workbook for: {input}. Use create_xlsx (and generate_chart where useful) with formatted headers and clear columns."
+      },
+      {
+        "name": "model",
+        "description": "Build a spreadsheet model",
+        "template": "Build a spreadsheet model for: {input}. Separate inputs, assumptions and outputs; show formulas and one sensitivity table; state every assumption."
+      },
+      {
+        "name": "clean",
+        "description": "Clean a table and keep the raw copy",
+        "template": "Clean the table described by: {input}. Normalize headers, types and dates, list every changed row and keep an untouched copy."
       }
     ],
     "tools": [
@@ -25,5 +37,6 @@
       "generate_chart"
     ]
   },
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

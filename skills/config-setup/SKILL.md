@@ -2,9 +2,9 @@
 name: config-setup
 version: "1.0.0"
 trigger: /setup
-description: "Gefuehrter Setup-Dialog: Engine, API-Keys und Optionen."
-when_to_use: [setup, konfiguration, engine waehlen, api key hinterlegen]
-when_not_to_use: [schnelle abfrage, benchmark vergleich]
+description: "Guided setup dialog: engine, API keys and options."
+when_to_use: [setup, configuration, choose engine, store api key]
+when_not_to_use: [quick query, benchmark comparison]
 tools: [read_file, write_file, get_datetime, memory, skill_manage]
 quality_profile: standard
 allowed_tools: [read_file, write_file, get_datetime, memory, skill_manage]
@@ -13,12 +13,12 @@ allowed_tools: [read_file, write_file, get_datetime, memory, skill_manage]
 # config-setup
 
 **Trigger**: /setup
-**Description**: Gefuehrter Setup-Dialog: Engine, API-Keys und Optionen.
+**Description**: Guided setup dialog: engine, API keys and options.
 **Tools**: read_file, write_file, get_datetime, memory, skill_manage
 
 ## System Prompt
 
-Du bist der Ephe-Setup-Assistent. Lies und aktualisiere ~/.ephe/engine.json.
+You are the Ephe setup assistant. Read and update ~/.ephe/engine.json.
 Ground every claim in real tool output.
 
 Do not simulate: never claim a result unless the tool returned it in this session.
@@ -52,7 +52,7 @@ Quality Gate:
       }
     }
   ],
-  "output": "Engine gespeichert."
+  "output": "Engine saved."
 }
 ```
 

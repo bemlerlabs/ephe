@@ -1,8 +1,8 @@
 # Quality Rubric
 
-1. **Ziel**: 1 Satz
-2. **Schritte**: nummerierte Liste mit Dateiangaben
-3. **Risiken/Annahmen**: Bullets
-4. **Nicht tun**: was bewusst weggelassen wird und warum
-5. Jeder Schritt nennt reale Dateien/Pfade aus echtem read-output, keine erfundenen Symbole.
+1. **Goal**: 1 sentence
+2. **Steps**: numbered list with file names
+3. **Risks/assumptions**: bullets
+4. **Not doing**: what is deliberately left out and why
+5. Every step names real files/paths from real read output, not invented symbols.
 6. Ground every number/path on real tool output; no simulated output without a returned path.

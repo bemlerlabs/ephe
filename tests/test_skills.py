@@ -126,7 +126,7 @@ class TestSkillLoader:
         # Empty builtin_dir so only our 2 skills are counted
         empty_builtin = tmp_path / "empty_builtin"
         empty_builtin.mkdir()
-        loader_isolated = SkillLoader(skills_dir=skills_dir, builtin_dir=empty_builtin)
+        loader_isolated = SkillLoader(skills_dir=skills_dir, builtin_dir=empty_builtin, plugin_root=tmp_path / "plugins")
 
         skills = loader_isolated.load_all()
 
@@ -143,7 +143,7 @@ class TestSkillLoader:
         empty_user.mkdir()
         empty_builtin = tmp_path / "builtin_skills"
         empty_builtin.mkdir()
-        loader_empty = SkillLoader(skills_dir=empty_user, builtin_dir=empty_builtin)
+        loader_empty = SkillLoader(skills_dir=empty_user, builtin_dir=empty_builtin, plugin_root=tmp_path / "plugins")
 
         result = loader_empty.load_all()
         assert result == []

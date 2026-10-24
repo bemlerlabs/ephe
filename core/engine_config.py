@@ -42,6 +42,8 @@ Ephe – Bad Liebenzell, Schwarzwald
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import stat
@@ -88,6 +90,18 @@ class EngineNotConfigured(RuntimeError):
     def __init__(self, message: str | None = None, hint: str | None = None) -> None:
         super().__init__(message or "No engine configured.")
         self.hint = ENGINE_SETUP_HINT if hint is None else hint
+
+
+class EngineKeyMismatch(RuntimeError):
+    """The stored key and the active engine were not configured together."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.hint = (
+            "Re-enter the key for this engine in the settings or run `ephe configure`. "
+            "The key binding must name the same provider, model and endpoint. "
+            "No request was sent."
+        )
 
 
 # Presets (onboarding templates)
@@ -254,6 +268,113 @@ def _key_file(home: "Path | None" = None) -> str:
     return "" if not text or "\n" in text else text
 
 
+def key_binding_path(home: "Path | None" = None) -> Path:
+    return Path(str(key_file_path(home)) + ".binding.json")
+
+
+_KEY_FINGERPRINT_CONTEXT = b"ephe-engine-key-fingerprint-v1"
+
+
+def engine_key_fingerprint(token: str) -> str:
+    """A one-way identifier of a key, safe to persist beside the engine choice.
+
+    HMAC-SHA256 with a fixed context rather than a bare digest: a plain hash of a
+    short secret is a password-hashing shape, and the context keeps this value
+    from matching the same token's digest elsewhere.
+    """
+    digest = hmac.new(
+        _KEY_FINGERPRINT_CONTEXT,
+        token.encode("utf-8"),
+        hashlib.sha256,  # codeql[py/weak-sensitive-data-hashing]
+    ).hexdigest()
+    return "hmac-sha256:" + digest
+
+
+def _legacy_key_fingerprint(token: str) -> str:
+    digest = hashlib.sha256(  # codeql[py/weak-sensitive-data-hashing]
+        token.encode("utf-8")
+    ).hexdigest()
+    return "sha256:" + digest
+
+
+def _normalised_api_url(value: object) -> str:
+    return str(value or "").strip().rstrip("/")
+
+
+def _load_key_binding(home: "Path | None" = None) -> dict | None:
+    path = key_binding_path(home)
+    try:
+        meta = os.lstat(path)
+    except OSError:
+        return None
+    if not stat.S_ISREG(meta.st_mode):
+        return None
+    if os.name != "nt" and stat.S_IMODE(meta.st_mode) & 0o077:
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    return raw if isinstance(raw, dict) and raw.get("version") == 1 else None
+
+
+def _write_key_binding(engine: object, token: str, home: "Path | None" = None) -> bool:
+    """Writes provider/model/api_url plus a SHA-256 of the key; never the key itself."""
+    path = key_binding_path(home)
+    payload = {
+        "version": 1,
+        "provider": str(getattr(engine, "provider", "") or ""),
+        "model": str(getattr(engine, "model", "") or ""),
+        "api_url": _normalised_api_url(getattr(engine, "api_url", "")),
+        "key_fingerprint": engine_key_fingerprint(token),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            path.parent.chmod(0o700)
+        except OSError:
+            pass
+        tmp = path.with_name(path.name + ".tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            os.write(
+                fd,
+                (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+            )
+        finally:
+            os.close(fd)
+        os.replace(tmp, path)
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
+        return True
+    except OSError:
+        return False
+
+
+def resolve_engine_api_key(
+    url: str | None, home: "Path | None" = None, *, env_is_stored: bool = False
+) -> tuple[str, str]:
+    """The effective token and its source: env, keyring, file or none.
+
+    ``env_is_stored`` marks the desktop spawn's injected file token as stored
+    rather than an inherited shell export. The readiness guard checks every stored
+    source against the binding; an explicit shell export stays the user's own
+    decision for this process.
+    """
+    key = (os.environ.get("EPHE_OPENAI_COMPAT_API_KEY") or "").strip()
+    if key:
+        return key, "file" if env_is_stored else "env"
+    key = _load_engine_keyring()
+    if key:
+        return key, "keyring"
+    key = _key_file(home=home)
+    if key:
+        return key, "file"
+    return "", "none"
+
+
 def engine_api_key_for(url: str | None, home: "Path | None" = None) -> str:
     """Effective access token of an engine: the env variable, else the keychain, else the key file.
 
@@ -276,16 +397,85 @@ def engine_api_key_for(url: str | None, home: "Path | None" = None) -> str:
     variable, one file, and the endpoint decides only whether a token is needed at all
     (`core/model_provider.py::endpoint_requires_api_key`).
     """
-    key = (os.environ.get("EPHE_OPENAI_COMPAT_API_KEY") or "").strip()
-    return key or _load_engine_keyring() or _key_file(home=home)
+    return resolve_engine_api_key(url, home=home)[0]
 
 
-def store_engine_api_key(token: str, home: "Path | None" = None) -> str:
+def engine_key_binding_problem(
+    choice: object,
+    key: str,
+    source: str,
+    home: "Path | None" = None,
+) -> str | None:
+    """Why a resolved key may not authenticate this engine, or None.
+
+    Only stored keys are bound. An explicit shell export names the user's own choice
+    for this process and is never replaced by a stored secret.
+    """
+    if getattr(choice, "provider", "") != OPENAI_COMPAT or not key:
+        return None
+    if source == "env":
+        return None
+    binding = _load_key_binding(home=home)
+    if binding is None:
+        return (
+            "The stored engine key is not bound to an engine identity "
+            "(engine.key.binding.json is missing). Re-enter the key for this engine."
+        )
+    stored = str(binding.get("key_fingerprint") or "")
+    if not hmac.compare_digest(stored, engine_key_fingerprint(key)):
+        # A binding written before the context was added carries a bare digest.
+        # It proves the same thing, so it is accepted once and rewritten.
+        if not hmac.compare_digest(stored, _legacy_key_fingerprint(key)):
+            return (
+                "The stored engine key does not match its binding. The key was replaced "
+                "without re-binding it. Re-enter the key for this engine."
+            )
+        _write_key_binding(choice, key, home=home)
+    bound = (
+        str(binding.get("provider") or ""),
+        str(binding.get("model") or ""),
+        _normalised_api_url(binding.get("api_url")),
+    )
+    expected = (
+        str(getattr(choice, "provider", "") or ""),
+        str(getattr(choice, "model", "") or ""),
+        _normalised_api_url(getattr(choice, "api_url", "")),
+    )
+    if bound != expected:
+        return (
+            f"The stored engine key is bound to {bound[0]}/{bound[1]} @ {bound[2]}, "
+            f"but the active engine is {expected[0]}/{expected[1]} @ {expected[2]}. "
+            "Re-enter the key for this engine or restore the engine."
+        )
+    return None
+
+
+def assert_engine_key_binding(choice: object, home: "Path | None" = None) -> None:
+    """Raises before a request can leave with a credential for another engine."""
+    if getattr(choice, "provider", "") != OPENAI_COMPAT:
+        return
+    key, source = resolve_engine_api_key(
+        getattr(choice, "api_url", ""),
+        home=home,
+        env_is_stored=os.environ.get("EPHE_ENGINE_KEY_SOURCE") == "file",
+    )
+    problem = engine_key_binding_problem(choice, key, source, home=home)
+    if problem is not None:
+        raise EngineKeyMismatch(problem)
+
+
+def store_engine_api_key(
+    token: str, home: "Path | None" = None, engine: object | None = None
+) -> str:
     """Stores the engine token: OS keychain preferred, else the 0600 key file.
 
     The return value is the storage mode used (``"keyring"`` / ``"file_0600"``).
     An empty token is refused, so no call clears a stored key by accident, and the
     file path written is the one ``_key_file`` reads back.
+
+    With ``engine`` the key is bound to that provider/model/endpoint in
+    ``engine.key.binding.json``; the sidecar carries a SHA-256 of the key, never
+    the key itself. The readiness guard refuses a stored key without that binding.
 
     A multi-line token is refused for the same reason: the reader refuses a
     two-line file (``_key_file``, matching the desktop spawn), so persisting one
@@ -299,6 +489,13 @@ def store_engine_api_key(token: str, home: "Path | None" = None) -> str:
             "engine API key must be one line — store refused (fail-closed)."
         )
     if _store_engine_keyring(value):
+        if engine is not None:
+            try:
+                _write_key_binding(engine, value, home=home)
+            except Exception:
+                _audit_key_event("store_binding_failed", "mode=keyring", engine)
+                raise
+        _audit_key_event("stored", "mode=keyring", engine)
         return "keyring"
     path = key_file_path(home)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -320,16 +517,52 @@ def store_engine_api_key(token: str, home: "Path | None" = None) -> str:
     # interpreter: pathlib's `Path.replace` goes through an accessor bound at import, and
     # the py3.10 leg reads this temporary file's mode through that watch.
     os.replace(tmp, path)
+    if engine is not None:
+        try:
+            _write_key_binding(engine, value, home=home)
+        except Exception:
+            _audit_key_event("store_binding_failed", "mode=file_0600", engine)
+            raise
+    _audit_key_event("stored", "mode=file_0600", engine)
     return "file_0600"
 
 
-def delete_engine_api_key(home: "Path | None" = None) -> None:
-    """Revokes the stored token: the keychain entry and the key file, both best effort."""
-    _delete_engine_keyring()
+def _audit_key_event(decision: str, detail: str, engine: object | None = None) -> None:
+    """A key write or delete is a line; the key itself never is.
+
+    What is recorded is the storage mode and, when bound, the engine identity
+    the key belongs to, so a later "why did the engine stop answering" has a
+    timestamp instead of a guess.
+    """
     try:
-        key_file_path(home).unlink(missing_ok=True)
-    except OSError:
-        pass
+        from core.audit_log import audit_event
+
+        identity = ""
+        if engine is not None:
+            provider = str(getattr(engine, "provider", "") or "")
+            model = str(getattr(engine, "model", "") or "")
+            identity = f" provider={provider} model={model}"
+        audit_event("engine_key", tool="engine", decision=decision, status="ok",
+                    detail=f"{detail}{identity}")
+    except Exception:  # noqa: BLE001 — an audit sink never blocks a key change
+        return
+
+
+def delete_engine_api_key(home: "Path | None" = None) -> None:
+    """Revokes the token and its binding: keychain, key file and sidecar, best effort."""
+    _delete_engine_keyring()
+    removed = 0
+    for path in (key_file_path(home), key_binding_path(home)):
+        try:
+            if path.exists():
+                removed += 1
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+    _audit_key_event(
+        "deleted" if removed else "delete_noop",
+        f"files_removed={removed} keyring=attempted",
+    )
 
 
 CONFIG_DIR = Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
@@ -887,7 +1120,8 @@ def validate_workspace_dir(path: str | None) -> str | None:
     # sit anywhere the user works, so there is no root to jail it to. The only caller is
     # the settings route (server/routes/settings.py:220), where the value arrives as the
     # owner's own folder choice.
-    p = Path(str(path).strip()).expanduser()
+    raw = str(path).strip()
+    p = Path(raw).expanduser()  # codeql[py/path-injection]
     if not p.is_absolute():
         raise ValueError("Workspace path must be absolute.")
     # The candidate is the owner's own folder pick, and the refusal list below is what keeps
@@ -980,7 +1214,8 @@ def validate_output_dir(path: str | None) -> str | None:
         return None
     # The output directory is the user's own engine setting, as above: the second
     # folder of the same POST (server/routes/settings.py:225).
-    p = Path(str(path).strip()).expanduser()
+    raw = str(path).strip()
+    p = Path(raw).expanduser()  # codeql[py/path-injection]
     if not p.is_absolute():
         raise ValueError("Output dir path must be absolute.")
     # The same folder choice, for the second field of the same POST.

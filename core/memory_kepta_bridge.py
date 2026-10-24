@@ -51,6 +51,8 @@ def _urllib_transport(base_url: str, timeout: float):
                 params: dict | None = None) -> Any:
         url = base_url + path + ("?" + urllib.parse.urlencode(params) if params else "")
         data = None if body is None else json.dumps(body).encode("utf-8")
+        # codeql[py/partial-ssrf]  (the instance URL comes from the operator's environment,
+        # not from a request; the path is this module's own constant)
         req = urllib.request.Request(url, data=data, method=method)  # nosec B310 — URL from env
         if data is not None:
             req.add_header("content-type", "application/json")

@@ -81,7 +81,7 @@ def test_an_invalid_manifest_is_not_locked(tmp_path) -> None:
     assert lock["plugins"] == []
     assert len(lock["quarantined"]) == 1
     assert lock["quarantined"][0]["name"] == "broken"
-    assert lock["quarantined"][0]["error"].startswith("manifest unreadable:")
+    assert lock["quarantined"][0]["error"] == "manifest unreadable"
 
 
 def test_a_declared_dependency_validates_and_a_bad_list_fails_closed(tmp_path) -> None:

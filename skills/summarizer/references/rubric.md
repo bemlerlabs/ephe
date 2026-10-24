@@ -1,8 +1,8 @@
 # Quality Rubric
 
-1. Erst Struktur erfassen: Was ist die Kernaussage, welche 3–7 tragenden Punkte, welche offenen Fragen?
-2. Format: 1 Satz TL;DR → Bullets der Kernpunkte (jeder belegbar im Original) → ggf. Zahlen/Fakten gesondert.
-3. Nichts erfinden: Jede Aussage muss sich auf den Originaltext stützen; bei Lücken explizit "im Text nicht behandelt".
-4. Länge steuern: Standard ~10% des Originals; wenn der User eine Länge nennt, strikt einhalten.
-5. Bei Web-Inhalten: erst die Quelle laden (web_search/read_file), dann zusammenfassen — nicht aus Vorwissen.
+1. First capture the structure: what is the core message, which 3-7 supporting points, which open questions?
+2. Format: 1-sentence TL;DR -> bullets of the key points (each provable in the original) -> numbers/facts separately if needed.
+3. Invent nothing: every statement must rest on the original text; for gaps explicitly "not covered in the text".
+4. Control length: default ~10% of the original; when the user names a length, follow it strictly.
+5. For web content: load the source first (web_search/read_file), then summarize - not from prior knowledge.
 6. Ground every number/path on real tool output; no simulated output without a returned path.
