@@ -73,7 +73,15 @@ def _run(probe: Path, home: Path, protected: list[str] | None = None) -> dict:
         home=str(home),
     )
     run = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=60)
-    assert run.returncode == 0, run.stderr
+    if run.returncode != 0:
+        real_home = os.path.realpath(os.path.expanduser("~"))
+        raise AssertionError(
+            f"{run.stderr}\nexecutable={sys.executable}"
+            f"\nrealpath={os.path.realpath(sys.executable)}"
+            f"\nprefix={sys.prefix}\nbase_prefix={sys.base_prefix}\nhome={real_home}"
+            f"\nruntime={mcp_sandbox._runtime_prefixes(sys.executable, real_home)}"
+            f"\nprofile={argv[2] if len(argv) > 2 else argv}"
+        )
     return json.loads(run.stdout.strip().splitlines()[-1])
 
 
