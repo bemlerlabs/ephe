@@ -4,6 +4,10 @@
   "version": "1.0.0",
   "origin": "third-party",
   "description": "Superpowers workflow skills (MIT) adapted for Ephe: planning, TDD, code review, worktrees, verification.",
+  "description_i18n": {
+    "en": "Superpowers workflow skills (MIT) adapted for Ephe: planning, TDD, code review, worktrees, verification.",
+    "de": "Superpowers-Arbeitsabläufe (MIT), für Ephe angepasst: Planung, TDD, Code-Review, Worktrees, Verifikation."
+  },
   "permissions": {
     "tool_families": [],
     "data_roots": []

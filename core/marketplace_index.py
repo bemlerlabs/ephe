@@ -20,6 +20,7 @@ SIGNED_TRUST = ("official", "verified", "community")
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
+_LICENSE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+-]*$")
 
 
 class IndexError(ValueError):
@@ -218,6 +219,14 @@ def validate_index(raw: Any, *, source_kind: str = "bundled") -> dict[str, Any]:
         categories = plugin.get("categories", [])
         if not isinstance(categories, list) or any(not isinstance(c, str) for c in categories):
             _fail("categories", f"{path}.categories")
+        license_id = plugin.get("license")
+        if license_id is not None and (
+            not isinstance(license_id, str) or not _LICENSE.match(license_id)
+        ):
+            _fail("license", f"{path}.license")
+        verification = plugin.get("verification")
+        if verification is not None and not isinstance(verification, dict):
+            _fail("verification", f"{path}.verification")
         out_plugins.append(
             {
                 "name": plugin_name,
@@ -234,22 +243,57 @@ def validate_index(raw: Any, *, source_kind: str = "bundled") -> dict[str, Any]:
                 "categories": list(categories),
                 "icon": plugin.get("icon") if isinstance(plugin.get("icon"), dict) else {},
                 "versions": versions,
+                **({"license": license_id} if license_id is not None else {}),
+                **({"verification": verification} if verification is not None else {}),
                 **({"measurement": measurement} if measurement is not None else {}),
                 **({"tiers": tiers} if tiers is not None else {}),
             }
         )
+    aliases = _aliases(raw.get("aliases"), seen)
     return {
         "format": FORMAT,
         "name": name,
         "owner": {"name": str(owner["name"])},
         "metadata": raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
+        "aliases": aliases,
         "plugins": out_plugins,
     }
 
 
+def _aliases(raw: Any, names: set[str]) -> dict[str, str]:
+    """Alias names resolve to exactly one canonical entry.
+
+    An alias that shadows a real entry, a canonical that does not exist, or a
+    second claim on the same alias makes the index ambiguous and is refused.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        _fail("aliases", "aliases", "an object is expected")
+    out: dict[str, str] = {}
+    for alias, canonical in raw.items():
+        alias_name = str(alias)
+        canonical_name = str(canonical)
+        if not _SLUG.match(alias_name):
+            _fail("alias", f"aliases.{alias_name}", "lowercase slug expected")
+        if alias_name in names:
+            _fail("alias_collision", f"aliases.{alias_name}", "the alias is a real entry")
+        if canonical_name not in names:
+            _fail("alias_target", f"aliases.{alias_name}", canonical_name)
+        out[alias_name] = canonical_name
+    return dict(sorted(out.items()))
+
+
+def canonical_name(index: dict[str, Any], name: str) -> str:
+    """Resolve a legacy alias to the entry it names; unknown names stay as given."""
+    aliases = index.get("aliases")
+    return str(aliases.get(name, name)) if isinstance(aliases, dict) else name
+
+
 def _find(index: dict[str, Any], name: str) -> dict[str, Any]:
+    wanted = canonical_name(index, name)
     for plugin in index.get("plugins", []):
-        if plugin.get("name") == name:
+        if plugin.get("name") == wanted:
             return plugin
     _fail("unknown_plugin", "plugins", name)
 

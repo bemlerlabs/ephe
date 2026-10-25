@@ -1,4 +1,9 @@
 {
+  "aliases": {
+    "coding-suite": "code-shell",
+    "document-factory": "local-document-factory",
+    "web-search": "web-research"
+  },
   "format": 2,
   "metadata": {
     "categories": {
@@ -122,6 +127,7 @@
         "browser"
       ],
       "description": {
+        "de": "Echte Browser-Automatisierung: navigieren, klicken, tippen, Screenshot — approval-gated.",
         "en": "Real browser automation: navigate, click, type, screenshot — approval-gated."
       },
       "displayName": "Browser Use",
@@ -130,6 +136,8 @@
         "dark": "icons/browser-use.svg",
         "light": "icons/browser-use.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "browser-use",
       "provenance": "first-party",
       "publisher": {
@@ -138,8 +146,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -156,6 +178,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "df01cd2b70e50eac8f3e0118f8c96b382f03986f530f698d898b90d1063840a1",
             "type": "zip",
@@ -173,7 +196,9 @@
         "en": "Business plans, competitor analysis, SWOT, decision matrices, roadmaps, meetings."
       },
       "displayName": "Business",
+      "icon": {},
       "kind": "skill-pack",
+      "license": "LicenseRef-Ephe",
       "name": "business-pack",
       "provenance": "first-party",
       "publisher": {
@@ -187,8 +212,22 @@
         "C": 12
       },
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills"
           ],
@@ -197,6 +236,7 @@
           },
           "permissions": {},
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "cc314cd5ed2455a9f36e3ef4877b65e415408f72208a1729f21d1912f4e32c4d",
             "type": "zip",
@@ -211,6 +251,7 @@
         "code"
       ],
       "description": {
+        "de": "Coding-Loop: lesen, editieren, patchen, Tests laufen lassen, formatieren, analysieren.",
         "en": "Coding loop: read, edit, patch, run tests, format and analyze code."
       },
       "displayName": "Code Shell",
@@ -219,6 +260,8 @@
         "dark": "icons/code-shell.svg",
         "light": "icons/code-shell.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "measurement": {
         "cases": 11,
         "commit": "67b37bfc",
@@ -236,8 +279,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -255,6 +312,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "f23bf84b0c11362e99c1916b84da2854ae389c94aaae4650f08ef74ff9207fa8",
             "type": "zip",
@@ -272,7 +330,9 @@
         "en": "Test writing, refactoring, debugging, API design, SQL, regex, code and security review."
       },
       "displayName": "Development",
+      "icon": {},
       "kind": "skill-pack",
+      "license": "LicenseRef-Ephe",
       "name": "dev-pack",
       "provenance": "first-party",
       "publisher": {
@@ -286,8 +346,22 @@
         "C": 12
       },
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills"
           ],
@@ -296,6 +370,7 @@
           },
           "permissions": {},
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "e36ada18c9e110a6a3b506e78c66f44fe611570dbf17e8fe9398818abed672b9",
             "type": "zip",
@@ -310,6 +385,7 @@
         "documents"
       ],
       "description": {
+        "de": "Echte Dokument-Produktion: PDF, DOCX, QR-Codes, Notebooks, Briefe.",
         "en": "Real document production: PDF, DOCX, QR codes, notebooks, briefs."
       },
       "displayName": "Documents",
@@ -318,6 +394,8 @@
         "dark": "icons/documents.svg",
         "light": "icons/documents.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "measurement": {
         "cases": 10,
         "commit": "67b37bfc",
@@ -335,8 +413,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -353,6 +445,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "260e5595769da4d5a0a8967524f99359044dc4fd260cc1ae76b537d29396b5c7",
             "type": "zip",
@@ -367,6 +460,7 @@
         "meta"
       ],
       "description": {
+        "de": "Ephe-Gebrauchs- und Diagnose-Guide: Engines, Plugins, Hooks, Doctor-Flows.",
         "en": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, doctor flows."
       },
       "displayName": "Guide",
@@ -375,6 +469,8 @@
         "dark": "icons/guide.svg",
         "light": "icons/guide.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "guide",
       "provenance": "first-party",
       "publisher": {
@@ -383,8 +479,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "commands"
           ],
@@ -398,6 +508,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "36d5bd4329a17dca837a9d61eea143ce0e184f10be1c00e1e036313f4b963034",
             "type": "zip",
@@ -412,6 +523,7 @@
         "image"
       ],
       "description": {
+        "de": "Bildgenerierung für Poster, Illustrationen und Konzepte.",
         "en": "Image generation for posters, illustrations and concepts."
       },
       "displayName": "Image Studio",
@@ -420,6 +532,8 @@
         "dark": "icons/image-studio.svg",
         "light": "icons/image-studio.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "image-studio",
       "provenance": "first-party",
       "publisher": {
@@ -428,8 +542,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "tools"
           ],
@@ -443,6 +571,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "d69121e1c79c15a330c1cd7c68da746098e922c5d73983de2db84ed29cbd8447",
             "type": "zip",
@@ -465,6 +594,8 @@
         "dark": "icons/local-document-factory.svg",
         "light": "icons/local-document-factory.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "local-document-factory",
       "provenance": "first-party",
       "publisher": {
@@ -473,8 +604,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands"
@@ -491,6 +636,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "d85c0a0473307427ce324bf2401c231fff62f88de995c8ab4f2ea86fe48fc0be",
             "type": "zip",
@@ -505,6 +651,7 @@
         "mcp"
       ],
       "description": {
+        "de": "Externe Werkzeuge über Model-Context-Protocol-Server.",
         "en": "External tools via Model Context Protocol servers."
       },
       "displayName": "Mcp Connector",
@@ -513,6 +660,8 @@
         "dark": "icons/mcp-connector.svg",
         "light": "icons/mcp-connector.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "mcp-connector",
       "provenance": "first-party",
       "publisher": {
@@ -521,8 +670,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [],
           "engines": {
             "ephe": ">=0.1.3"
@@ -535,6 +698,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "fb6a28a3c27292f2fff84d21ed685d51b3fb416a7476443e415ffed050f5810e",
             "type": "zip",
@@ -549,6 +713,7 @@
         "memory"
       ],
       "description": {
+        "de": "Kurz- und Langzeitgedächtnis über Sitzungen hinweg.",
         "en": "Short- and long-term memory across sessions."
       },
       "displayName": "Memory",
@@ -557,6 +722,8 @@
         "dark": "icons/memory.svg",
         "light": "icons/memory.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "measurement": {
         "cases": 11,
         "commit": "67b37bfc",
@@ -574,8 +741,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -591,6 +772,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "1c940fd21da71bc7bbb8d62202059b9692f113f6d6fe9809546eb415baccddd8",
             "type": "zip",
@@ -608,7 +790,9 @@
         "en": "Real local artifacts: PDFs, Excel sheets, Word documents, pitch decks, QR codes."
       },
       "displayName": "Office & Documents",
+      "icon": {},
       "kind": "skill-pack",
+      "license": "LicenseRef-Ephe",
       "name": "office-pack",
       "provenance": "first-party",
       "publisher": {
@@ -622,8 +806,22 @@
         "C": 12
       },
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills"
           ],
@@ -632,6 +830,7 @@
           },
           "permissions": {},
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "ff3cb8ac8aba1e69840350f46a604224cfc8a673fcf2e9f941c86b71ff316439",
             "type": "zip",
@@ -646,6 +845,7 @@
         "meta"
       ],
       "description": {
+        "de": "Ephe-Plugins erstellen und validieren: Gerüste, Permissions, Signierung.",
         "en": "Create and validate Ephe plugins: scaffolds, permissions, signing."
       },
       "displayName": "Plugin Creator",
@@ -654,6 +854,8 @@
         "dark": "icons/plugin-creator.svg",
         "light": "icons/plugin-creator.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "plugin-creator",
       "provenance": "first-party",
       "publisher": {
@@ -662,8 +864,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "commands"
           ],
@@ -678,6 +894,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "ca56d4fcad8df985b9662ca9f462868057d6d2ce426b89db028827f077622263",
             "type": "zip",
@@ -692,6 +909,7 @@
         "documents"
       ],
       "description": {
+        "de": "Echte Deck-Produktion: PPTX-Präsentationen, Pitch-Decks, Diagramme.",
         "en": "Real deck production: PPTX presentations, pitch decks, diagrams."
       },
       "displayName": "Presentations",
@@ -700,6 +918,8 @@
         "dark": "icons/presentations.svg",
         "light": "icons/presentations.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "measurement": {
         "cases": 11,
         "commit": "67b37bfc",
@@ -717,8 +937,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -735,6 +969,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "66b42da8670d79da17a5d0a0cbb379ba9800e1ee8893d63de0e150a794beaec5",
             "type": "zip",
@@ -757,6 +992,8 @@
         "dark": "icons/private-research-notebook.svg",
         "light": "icons/private-research-notebook.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "private-research-notebook",
       "provenance": "first-party",
       "publisher": {
@@ -765,8 +1002,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands"
@@ -783,6 +1034,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "a7cca637f7a82bde5795ded1b5bfd2d17895142b84660116f57246c9ac8d514f",
             "type": "zip",
@@ -800,7 +1052,9 @@
         "en": "Web research, source notebooks, data analysis, explanations, quizzes, checklists."
       },
       "displayName": "Research & Learning",
+      "icon": {},
       "kind": "skill-pack",
+      "license": "LicenseRef-Ephe",
       "name": "research-pack",
       "provenance": "first-party",
       "publisher": {
@@ -814,8 +1068,22 @@
         "C": 12
       },
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills"
           ],
@@ -824,6 +1092,7 @@
           },
           "permissions": {},
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "a99f8ac8a0d302f61a19c2fd906925e3d6ca27f72d494778279af7522e790f63",
             "type": "zip",
@@ -838,6 +1107,7 @@
         "meta"
       ],
       "description": {
+        "de": "Ephe-Skill-Packs erstellen und benoten — mit Rubrik und Golden-Gates.",
         "en": "Create and grade Ephe skill packs with rubric and golden gates."
       },
       "displayName": "Skill Creator",
@@ -846,6 +1116,8 @@
         "dark": "icons/skill-creator.svg",
         "light": "icons/skill-creator.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "skill-creator",
       "provenance": "first-party",
       "publisher": {
@@ -854,8 +1126,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "commands"
           ],
@@ -870,6 +1156,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "35af585d0e7bccd8803d33b412a9d098c89b66fc6d129cde835acf6a5b036cde",
             "type": "zip",
@@ -884,6 +1171,7 @@
         "documents"
       ],
       "description": {
+        "de": "Echte Tabellen-Produktion: formatierte XLSX-Arbeitsmappen und Charts.",
         "en": "Real spreadsheet production: formatted XLSX workbooks and charts."
       },
       "displayName": "Spreadsheets",
@@ -892,6 +1180,8 @@
         "dark": "icons/spreadsheets.svg",
         "light": "icons/spreadsheets.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "measurement": {
         "cases": 11,
         "commit": "67b37bfc",
@@ -909,8 +1199,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -927,6 +1231,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "22469558755d7b312adcf0f1f6e279fbc91d1a5b9012d1b73da50b3acf717afa",
             "type": "zip",
@@ -941,10 +1246,17 @@
         "skills"
       ],
       "description": {
+        "de": "Superpowers-Arbeitsabläufe (MIT), für Ephe angepasst: Planung, TDD, Code-Review, Worktrees, Verifikation.",
         "en": "Superpowers workflow skills (MIT), adapted for Ephe: planning, TDD, code review, worktrees, verification."
       },
       "displayName": "Superpowers",
+      "icon": {
+        "alt": "Superpowers",
+        "dark": "icons/superpowers.svg",
+        "light": "icons/superpowers.svg"
+      },
       "kind": "skill-pack",
+      "license": "MIT",
       "name": "superpowers",
       "provenance": "third-party",
       "publisher": {
@@ -953,8 +1265,22 @@
       },
       "quality_label": "bundled",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "reviewed",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills"
           ],
@@ -966,6 +1292,7 @@
             "tool_families": []
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "5e608a36fb15d98cb5ef3052fb7ec221e5d772bdd3c8043f530073fcdb9f1fc4",
             "type": "zip",
@@ -980,6 +1307,7 @@
         "vision"
       ],
       "description": {
+        "de": "Vision-fähiges Modell liest Screenshots und Bilder.",
         "en": "Vision-capable model reads screenshots and images."
       },
       "displayName": "Vision",
@@ -988,6 +1316,8 @@
         "dark": "icons/vision.svg",
         "light": "icons/vision.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "vision",
       "provenance": "first-party",
       "publisher": {
@@ -996,8 +1326,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "tools"
           ],
@@ -1011,6 +1355,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "a75c013801aa6f77f687a602ccfd31c91f3b7d44188b90b0c4a983a56ec58ef2",
             "type": "zip",
@@ -1025,6 +1370,7 @@
         "audio"
       ],
       "description": {
+        "de": "Sprachausgabe für Antworten und Vorlesen.",
         "en": "Text-to-speech for answers and read-aloud."
       },
       "displayName": "Voice",
@@ -1033,6 +1379,8 @@
         "dark": "icons/voice.svg",
         "light": "icons/voice.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "name": "voice",
       "provenance": "first-party",
       "publisher": {
@@ -1041,8 +1389,22 @@
       },
       "quality_label": "capability-preset",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [],
           "engines": {
             "ephe": ">=0.1.3"
@@ -1052,6 +1414,7 @@
             "tool_families": []
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "046210a89240f63f5763a11c6ab2e07581f04315767bd693a9f6955f379c1d0f",
             "type": "zip",
@@ -1066,6 +1429,7 @@
         "research"
       ],
       "description": {
+        "de": "Live-Websuche für den Agenten (Opt-in, braucht einen API-Key).",
         "en": "Live web research for the agent (opt-in, needs an API key)."
       },
       "displayName": "Web Research",
@@ -1074,6 +1438,8 @@
         "dark": "icons/web-research.svg",
         "light": "icons/web-research.svg"
       },
+      "kind": "plugin",
+      "license": "BUSL-1.1",
       "measurement": {
         "cases": 11,
         "commit": "67b37bfc",
@@ -1091,8 +1457,22 @@
       },
       "quality_label": "plugin",
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills",
             "commands",
@@ -1109,6 +1489,7 @@
             ]
           },
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "af0371dfea2f49ffc8767c94568ac309dbe11a1a7f589f2dc333529283ffe0d2",
             "type": "zip",
@@ -1126,7 +1507,9 @@
         "en": "Writing, summaries, translation, explanations, CVs and cover letters."
       },
       "displayName": "Writing",
+      "icon": {},
       "kind": "skill-pack",
+      "license": "LicenseRef-Ephe",
       "name": "writing-pack",
       "provenance": "first-party",
       "publisher": {
@@ -1140,8 +1523,22 @@
         "C": 12
       },
       "trust": "bundled",
+      "verification": {
+        "checks": {
+          "content": true,
+          "license": true,
+          "publisher": true,
+          "sha256": true,
+          "source": true,
+          "version": true
+        },
+        "content": "verified",
+        "publisher": "verified",
+        "signature": "unsigned"
+      },
       "versions": [
         {
+          "changelog": "",
           "components": [
             "skills"
           ],
@@ -1150,6 +1547,7 @@
           },
           "permissions": {},
           "publishTimestamp": 0,
+          "revoked": false,
           "source": {
             "sha256": "3fe5a249df302507fa43deff9dcf521c19ea2871c44120453f9d3bd6d3028f34",
             "type": "zip",

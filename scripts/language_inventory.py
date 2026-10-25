@@ -48,6 +48,10 @@ PROTECTED_PREFIXES = (
     "videos/",
     "out/",
     "docs/media/user-walkthrough-2026-10-12/",
+    # A pack's description is the copy its German user reads, the same class as
+    # the German skill packs above; the directory holds data and skill prompts,
+    # no developer module.
+    "marketplace/sources/",
 )
 
 #: A plugin rubric quotes the filler phrase the model must NOT emit. That quote is
@@ -61,6 +65,10 @@ PROTECTED_PATHS = re.compile(
     # evidence — the same reason the rubrics above are exempt.
     r"|^(?:\./)?(?:\.architecture-baseline\.json|tests/home-isolation-baseline\.json"
     r"|scripts/language-baseline\.json)$"
+    # The marketplace index is generated output: its German is the copy merged
+    # from the catalogs, and rewriting it here would be overwritten by the next
+    # migration. The catalog above is where the copy is authored.
+    r"|^marketplace/index\.json$"
 )
 
 EXTS = {
