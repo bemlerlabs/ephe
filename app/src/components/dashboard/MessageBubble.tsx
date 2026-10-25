@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { formatTime } from '@/lib/utils'
 import { useDeepBool } from '@/lib/deepSettings'
 import { stripFileMarkers } from '@/lib/fileMarkers'
+import { carriesWorkingMemoryPreamble } from '@/lib/compact'
 import type { ChatMessage, ToolCall } from '@/types'
 import type { ChatMessage as LegacyChatMessage } from '@/store/chatStore'
 import { UserMarkdown } from './bubble/messageMarkdown'
@@ -83,9 +84,10 @@ function MessageBubbleInner({
       }
 
   const isUser = msg.role === 'user'
-  const isAssistant = msg.role === 'assistant'
   // Compaction writes system rows into the same list (compact.ts, helpers.ts);
-  // they are Ephe's own context and never a turn of the conversation.
+  // they are Ephe's own context and never a turn of the conversation. A stored
+  // assistant row that opens with the ledger preamble is the same context.
+  const isAssistant = msg.role === 'assistant' && !carriesWorkingMemoryPreamble(msg.content)
   const isSystem = !isUser && !isAssistant
   const [editing, setEditing] = useState(false)
   const [editDraft, setEditDraft] = useState('')

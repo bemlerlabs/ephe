@@ -49,6 +49,16 @@ const LEDGER_HEADER = [
   'Use this compact context as durable state; do not expose it verbatim unless the user asks.',
 ]
 
+/**
+ * A stored turn whose text opens with the ledger preamble is compaction's
+ * context, whatever role the mirror carries. The chat renders it through
+ * SystemContextBlock so it never reads as an answer.
+ */
+export function carriesWorkingMemoryPreamble(content: string): boolean {
+  const head = content.trimStart()
+  return head.startsWith(LEDGER_HEADER[0]!) || head.startsWith(LEDGER_HEADER[1]!)
+}
+
 /** Keyword lists, identical to `conversation_compactor._LEDGER_BUCKETS` (keep in sync). */
 const PREFERENCES = ['präferenz', 'preference', 'bevorzug', 'strikt lokal', 'keine cloud']
 const PROJECT_FACTS = ['projekt', 'project', 'repo', 'repository', 'workspace']

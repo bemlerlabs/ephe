@@ -99,4 +99,32 @@ describe('MessageBubble with a system row', () => {
     expect(screen.queryByTestId('system-context-block')).toBeNull()
     expect(screen.getByTestId('markdown').textContent).toContain('Here is the answer.')
   })
+
+  it('does not show an assistant row that opens with the ledger preamble as the answer', () => {
+    render(
+      <MessageBubble
+        message={{ id: 'a2', role: 'assistant', content: LEDGER, timestamp: 0 } as ChatMessage}
+      />,
+    )
+    expect(bubble().getAttribute('data-role')).toBe('system')
+    expect(screen.getByTestId('system-context-block')).toBeTruthy()
+    expect(screen.queryByTestId('markdown')).toBeNull()
+  })
+
+  it('keeps an assistant answer that does not open with the preamble', () => {
+    render(
+      <MessageBubble
+        message={
+          {
+            id: 'a3',
+            role: 'assistant',
+            content: 'The ledger holds the older turns.',
+            timestamp: 0,
+          } as ChatMessage
+        }
+      />,
+    )
+    expect(bubble().getAttribute('data-role')).toBe('assistant')
+    expect(screen.getByTestId('markdown').textContent).toContain('The ledger holds')
+  })
 })
