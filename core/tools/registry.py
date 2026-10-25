@@ -1156,7 +1156,10 @@ async def _execute_tool_core(
 
     # A call that hangs or kills the worker writes no completion; the start line
     # is what makes its absence readable as "began and never returned".
-    audit_event("tool_start", tool=name, args=arguments)
+    from core.tools.session_ctx import get_current_session
+
+    _session = get_current_session()
+    audit_event("tool_start", tool=name, args=arguments, session_id=_session)
     _started = _time.monotonic()
     try:
         result = await func(**arguments)
@@ -1177,6 +1180,7 @@ async def _execute_tool_core(
             "tool_exec",
             tool=name,
             args=arguments,
+            session_id=_session,
             status="error" if is_error_result(result) else "ok",
             decision=result_decision(result),
             duration_ms=int((_time.monotonic() - _started) * 1000),
@@ -1192,6 +1196,7 @@ async def _execute_tool_core(
             "tool_exec",
             tool=name,
             args=arguments,
+            session_id=_session,
             status="error",
             duration_ms=int((_time.monotonic() - _started) * 1000),
             detail=str(exc)[:300],

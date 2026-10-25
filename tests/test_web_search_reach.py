@@ -114,8 +114,8 @@ def test_interner_Treffer_sagt_es_der_Zeile_statt_dem_Modell_zu_entscheiden(monk
         ],
         monkeypatch,
     )
-    assert out.count("Reichweite:") == 2
-    assert "fetch_url oeffnet dieses Ziel nicht" in out
+    assert out.count("Reach:") == 2
+    assert "fetch_url does not open this target" in out
 
 
 def test_oeffentlicher_Treffer_bekommt_keine_Warnung_aufgeklebt(monkeypatch):
@@ -123,7 +123,7 @@ def test_oeffentlicher_Treffer_bekommt_keine_Warnung_aufgeklebt(monkeypatch):
         [{"title": "Doku", "href": "https://docs.python.org/3/library/socket.html", "body": "b"}],
         monkeypatch,
     )
-    assert "Reichweite:" not in out
+    assert "Reach:" not in out
     assert "Source quality: official" in out
 
 
@@ -137,7 +137,7 @@ def test_die_Reichweite_Zeile_aendert_nichts_an_der_Reihenfolge(monkeypatch):
         monkeypatch,
     )
     assert out.index("Doku") < out.index("Blog") < out.index("Köder")
-    assert out.count("Reichweite:") == 1
+    assert out.count("Reach:") == 1
 
 
 def test_gesunder_Treffer_beruehrt_weder_Netz_noch_Namen(monkeypatch):
@@ -151,5 +151,5 @@ def test_gesunder_Treffer_beruehrt_weder_Netz_noch_Namen(monkeypatch):
     out = _search_with(
         [{"title": "x", "href": "https://example.com/a", "body": "b"}], monkeypatch
     )
-    assert "Reichweite:" not in out
+    assert "Reach:" not in out
     assert seen == []

@@ -8,6 +8,7 @@ _run_tool_loop and resolves the patched seams for this module.
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import Callable
 from dataclasses import replace
 
@@ -44,6 +45,7 @@ from core.loop_observability import (
 )
 from core.quality import normalize_tool_result
 from core.redact import redact
+from core.search_budget import SearchBudget
 
 
 def _redact_result(result: object) -> str:
@@ -208,6 +210,11 @@ async def _run_tool_loop(
     stalled: _Stall | None = None
     TOOL_DETECT_TIMEOUT = _tool_detection_timeout(model)
 
+    search_budget = SearchBudget()
+
+    def _search_gate(name: str, args: dict) -> str | None:
+        return search_budget.check(name, args)
+
     # Rounds run while there is work and no stop. Every pass re-checks the two
     # ends, because a steer taken up at the end of one adds a round to the next.
     steer_rounds = 0
@@ -247,10 +254,13 @@ async def _run_tool_loop(
                     on_phase(f"Executing {len(safe_calls)} read-only tool(s) in parallel…")
                 # P0-1: tuple-indexed assignment — the tuple index ``i`` is the
                 # only source of truth for the position in ``parsed``.
-                coros = [
-                    (i, execute_tool(n, a, policy=approval_policy))
-                    for i, n, a in safe_calls
-                ]
+                coros = []
+                for i, n, a in safe_calls:
+                    blocked = _search_gate(n, a)
+                    if blocked is not None:
+                        results[i] = blocked
+                    else:
+                        coros.append((i, execute_tool(n, a, policy=approval_policy)))
                 done = await asyncio.gather(*[c for _, c in coros], return_exceptions=True)
                 for (i, _), res in zip(coros, done):
                     if isinstance(res, Exception):
@@ -283,17 +293,21 @@ async def _run_tool_loop(
                         except Exception as tool_exc:
                             result = f"[TOOL-ERROR] {type(tool_exc).__name__}: {tool_exc}"
                 else:
-                    # approval_policy is None means: the gate sits here (it is not inside
-                    # execute_tool). The same gate applies in tool_call (chat_gate), so
-                    # the meta router is no shortcut past it.
-                    approved, denial = (
-                        await confirm_for_chat(name, args, on_confirm=on_tool_confirm)
-                        if approval_policy is None else (True, "")
-                    )
-                    if approved:
-                        result = await execute_tool(name, args, policy=approval_policy)
+                    blocked = _search_gate(name, args)
+                    if blocked is not None:
+                        result = blocked
                     else:
-                        result = denial
+                        # approval_policy is None means: the gate sits here (it is not inside
+                        # execute_tool). The same gate applies in tool_call (chat_gate), so
+                        # the meta router is no shortcut past it.
+                        approved, denial = (
+                            await confirm_for_chat(name, args, on_confirm=on_tool_confirm)
+                            if approval_policy is None else (True, "")
+                        )
+                        if approved:
+                            result = await execute_tool(name, args, policy=approval_policy)
+                        else:
+                            result = denial
                 results[idx] = result
 
             # 3) Append the results to the history in their original order.
@@ -463,7 +477,10 @@ async def _run_tool_loop(
                 round_had_error_n = False
                 round_stall_n: _Stall | None = None
                 for idx, name, args in parsed_n:
-                    if name in safe_names_n:
+                    blocked_n = _search_gate(name, args)
+                    if blocked_n is not None:
+                        results_n[idx] = blocked_n
+                    elif name in safe_names_n:
                         try:
                             results_n[idx] = await execute_tool(name, args, policy=approval_policy)
                         except Exception as tool_exc:

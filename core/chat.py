@@ -239,7 +239,7 @@ async def chat_with_tools(
     # tool loop and the window trims reach it without a parameter through every
     # signature. A caller may pass its own instance and read the counters after.
     budget_cap = clamp_tool_budget(max_tool_iterations)
-    observer = loop_observer if loop_observer is not None else LoopObserver()
+    observer = loop_observer if loop_observer is not None else LoopObserver(turn_id=turn_id)
     observer.set_budget_cap(budget_cap)
     observer_token = bind_observer(observer)
 

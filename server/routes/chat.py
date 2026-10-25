@@ -113,6 +113,10 @@ def _stream_heartbeat_s() -> float:
 
 STREAM_HEARTBEAT_S = _stream_heartbeat_s()
 
+#: S17: a running tool reports its place every 5 s, so a quiet search round is
+#: visibly working instead of looking like a hung turn.
+PROGRESS_HEARTBEAT_SECONDS = 5.0
+
 # I6 P2 (2026-09-08): SSE keepalive (s) while the server waits for a sandbox
 # approval. Without bytes the frontend idle timeout (app/src/lib/stream.ts, 90s)
 # would otherwise drop the stream as a misleading error.
@@ -1104,6 +1108,28 @@ SILENT_AFTER_TOOLS_TURN = (
 )
 
 
+def search_budget_answer(captured_tool_results: list) -> str:
+    """A mute turn that already searched ends with the sources, not with silence.
+
+    The results are in hand; the sentence names where they stop. A turn without
+    a search stays mute here and gets the silent-turn frame instead.
+    """
+    raws = [
+        row.raw
+        for row in captured_tool_results
+        if getattr(row, "tool", "") == "web_search"
+        and getattr(row, "status", "") != "error"
+        and getattr(row, "raw", "")
+    ]
+    if not raws:
+        return ""
+    return (
+        "The search budget for this turn is spent (4 searches or 60 s). "
+        "This is what the sources returned; anything past it is unverified, and "
+        "where nothing was found, not found.\n\n" + "\n\n".join(raws)[:4000]
+    )
+
+
 def silent_turn_message(answer: str, captured_tool_results: list) -> str | None:
     """Which honest message this turn needs — None when it has content.
 
@@ -1167,6 +1193,67 @@ def _make_stream_callbacks(
     # its full text body into the trajectory.
     _thinking_buf: list[str] = []
 
+    # S17: the live progress frame. `round` and `round_cap` come from the bound
+    # observer (the loop's own counters), the query from the call's arguments, and
+    # the heartbeat keeps a long tool from looking like a stalled turn.
+    _progress: dict[str, object] = {"tool": "", "started": 0.0, "task": None}
+
+    def _round_state() -> tuple[int, int]:
+        try:
+            from core.loop_observability import current_observer
+
+            observer = current_observer()
+            if observer is None:
+                return (0, 0)
+            return (observer.counters.tool_rounds, observer.counters.budget_cap)
+        except Exception:
+            return (0, 0)
+
+    def _progress_frame(phase: str, **extra: object) -> dict:
+        round_no, cap = _round_state()
+        started = float(_progress.get("started") or 0.0)
+        elapsed = round((time.perf_counter() - started) * 1000) if started else 0
+        return {
+            "type": "progress",
+            "turn_id": turn_id,
+            "round": round_no,
+            "round_cap": cap,
+            "tool": _progress.get("tool") or "",
+            "phase": phase,
+            "elapsed_ms": elapsed,
+            **{key: value for key, value in extra.items() if value not in (None, "")},
+        }
+
+    def _stop_beat() -> None:
+        task = _progress.get("task")
+        if task is not None:
+            try:
+                task.cancel()  # type: ignore[union-attr]
+            except Exception:
+                pass
+        _progress["task"] = None
+
+    def _start_beat() -> None:
+        _stop_beat()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+
+        async def _beat() -> None:
+            while True:
+                await asyncio.sleep(PROGRESS_HEARTBEAT_SECONDS)
+                emit(_progress_frame("tool_progress"))
+
+        _progress["task"] = loop.create_task(_beat())
+
+    def _providers_of(result: object) -> str:
+        text = str(result or "")
+        for line in text.splitlines()[:2]:
+            if line.startswith("Providers: "):
+                return line[len("Providers: "):][:160]
+        return ""
+
     def _flush_thinking() -> None:
         if _thinking_buf:
             emit({"type": "thinking", "text": "".join(_thinking_buf)})
@@ -1221,8 +1308,12 @@ def _make_stream_callbacks(
             _tool_args_hash[(name, call_id)] = args_hash(args)
         except Exception:
             pass
-        emit({"type": "tool_start", "tool": name, "call_id": call_id,
+        _query = str((args or {}).get("query") or "") if name == "web_search" else ""
+        _progress.update({"tool": name, "started": time.perf_counter(), "query": _query})
+        _start_beat()
+        emit({"type": "tool_start", "tool": name, "call_id": call_id, "turn_id": turn_id,
               "args": {k: _clip_tool_value(v) for k, v in (args or {}).items()}})
+        emit(_progress_frame("tool_start", query=_query))
         emit({"type": "activity", "cmd": f"{name}({json.dumps(args, ensure_ascii=False)[:60]})", "status": "running"})
 
     def on_tool_done(name: str, result: str, call_id: str = "") -> None:
@@ -1255,7 +1346,14 @@ def _make_stream_callbacks(
         _extra["status"] = (
             "failed" if (_code or _pending_refusal or _refused_result) else "completed"
         )
-        emit({"type": "tool_done", "tool": name, "call_id": call_id, "result": _txt, **_extra})
+        _stop_beat()
+        emit({"type": "tool_done", "tool": name, "call_id": call_id, "turn_id": turn_id, "result": _txt, **_extra})
+        emit(_progress_frame(
+            "tool_done",
+            status=_extra.get("status"),
+            providers=_providers_of(result),
+            query=str(_progress.get("query") or ""),
+        ))
         if name == "todo_list":
             # The ledger had no reader before #92: the plan card is how its four
             # statuses reach the user.
@@ -2071,6 +2169,11 @@ async def chat_stream(
                 )
 
                 first_answer = "".join(first_chunks)
+                if not first_answer.strip():
+                    _budget_answer = search_budget_answer(captured_tool_results)
+                    if _budget_answer:
+                        first_answer = _budget_answer
+                        emit({"type": "chunk", "data": _budget_answer})
                 if not first_answer.strip() and engine_answer and engine_answer.strip():
                     # W8, path 2: _emit_final_answer returns the text as
                     # a return value without streaming it (to avoid a double
@@ -2215,15 +2318,19 @@ async def chat_stream(
                     emit({"type": "assistant", "text": "".join(rev_chunks)})
 
             except ProviderSetupError as exc:
+                emit({"type": "progress", "phase": "engine_error", "tool": "", "turn_id": turn_id, "elapsed_ms": 0})
                 emit({"type": "error", "msg": _error_msg(exc)})
             except OllamaNotReachableError:
+                emit({"type": "progress", "phase": "engine_error", "tool": "", "turn_id": turn_id, "elapsed_ms": 0})
                 # The class is the transport-down bucket of every provider, so the
                 # sentence asks which engine this turn was pointed at (a remote
                 # engine named as Ollama sends the reader to the wrong machine).
                 emit({"type": "error", "msg": _unreachable_engine_message(active_provider)})
             except OllamaModelBusyError as exc:
+                emit({"type": "progress", "phase": "engine_error", "tool": "", "turn_id": turn_id, "elapsed_ms": 0})
                 emit({"type": "error", "msg": f"⏳ Model busy — please retry (timeout after {exc.timeout:.0f}s)"})
             except OllamaModelNotFoundError as exc:
+                emit({"type": "progress", "phase": "engine_error", "tool": "", "turn_id": turn_id, "elapsed_ms": 0})
                 emit({"type": "error", "msg": f"model '{exc.model}' is not installed"})
             except Exception as exc:
                 # W19 hardening: active_provider can be None (an error BEFORE the
