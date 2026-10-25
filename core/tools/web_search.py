@@ -17,9 +17,7 @@ from core.tools.base import WebSearchError
 # of silence in the middle of the search flow). A hard budget for the whole search call.
 WEB_SEARCH_TIMEOUT_SECONDS = 30.0
 
-#: One backend is tried at a time so the answer can say which one answered and
-#: which ones refused. The order starts with the engines that survive a
-#: datacenter address; the rotating default hid a 403 behind a 200 for minutes.
+#: Tried one at a time so the result can name the backend that answered.
 SEARCH_BACKENDS: tuple[str, ...] = (
     "startpage",
     "brave",
@@ -29,8 +27,7 @@ SEARCH_BACKENDS: tuple[str, ...] = (
     "yahoo",
 )
 
-#: A single backend may take this long; the whole call stops at
-#: WEB_SEARCH_TIMEOUT_SECONDS even when backends remain untried.
+#: Per-backend timeout; WEB_SEARCH_TIMEOUT_SECONDS caps the whole call.
 BACKEND_TIMEOUT_SECONDS = 8.0
 
 OFFICIAL_SOURCE_DOMAINS = (
@@ -82,7 +79,7 @@ async def _ask_backend(query: str, max_results: int, backend: str) -> list[dict]
         except Exception as exc:  # noqa: BLE001 - the call reports, it does not decide
             last = exc
             if _HTTP_CODE.search(str(exc)):
-                # A 403/429 is an answer about this address, not a flake.
+                # A 403/429 is not retried.
                 break
     assert last is not None
     raise last

@@ -113,8 +113,7 @@ def _stream_heartbeat_s() -> float:
 
 STREAM_HEARTBEAT_S = _stream_heartbeat_s()
 
-#: S17: a running tool reports its place every 5 s, so a quiet search round is
-#: visibly working instead of looking like a hung turn.
+#: A running tool reports its place every 5 s.
 PROGRESS_HEARTBEAT_SECONDS = 5.0
 
 # I6 P2 (2026-09-08): SSE keepalive (s) while the server waits for a sandbox
@@ -1109,11 +1108,7 @@ SILENT_AFTER_TOOLS_TURN = (
 
 
 def search_budget_answer(captured_tool_results: list) -> str:
-    """A mute turn that already searched ends with the sources, not with silence.
-
-    The results are in hand; the sentence names where they stop. A turn without
-    a search stays mute here and gets the silent-turn frame instead.
-    """
+    """The sources of a mute search turn, with the budget it spent."""
     raws = [
         row.raw
         for row in captured_tool_results
@@ -1193,9 +1188,7 @@ def _make_stream_callbacks(
     # its full text body into the trajectory.
     _thinking_buf: list[str] = []
 
-    # S17: the live progress frame. `round` and `round_cap` come from the bound
-    # observer (the loop's own counters), the query from the call's arguments, and
-    # the heartbeat keeps a long tool from looking like a stalled turn.
+    # Live progress: the round comes from the bound observer, the query from the call.
     _progress: dict[str, object] = {"tool": "", "started": 0.0, "task": None}
 
     def _round_state() -> tuple[int, int]:
