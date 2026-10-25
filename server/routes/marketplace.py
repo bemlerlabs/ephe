@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from core import marketplace_service, marketplace_sources, path_guard
+from core.marketplace_switch import switch as switch_plugin
 from core.marketplace_planner import ServiceError
 from core.marketplace_sources import REPO_ROOT
 
@@ -243,7 +244,7 @@ class MarketSwitchRequest(BaseModel):
 @router.post("/market/switch")
 async def market_switch(body: MarketSwitchRequest) -> dict:
     """The one gesture the card offers: on installs-if-needed and activates."""
-    result = marketplace_service.switch(
+    result = switch_plugin(
         body.name,
         enabled=body.enabled,
         source_id=body.source_id,
