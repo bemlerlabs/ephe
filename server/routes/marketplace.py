@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel
 
 from core import marketplace_service, marketplace_sources, path_guard
 from core.marketplace_planner import ServiceError
@@ -228,6 +229,44 @@ async def plan_install(body: dict) -> dict:
     if plan.get("status") == "refused" or plan.get("status") == "permission_review":
         _refusal(str(plan.get("status")), plan)
     return _public_plan(plan)
+
+
+class MarketSwitchRequest(BaseModel):
+    name: str
+    enabled: bool
+    source_id: str = marketplace_sources.BUNDLED_ID
+    version: str = ""
+    approve_permissions: bool = False
+    allow_local_trust: bool = False
+
+
+@router.post("/market/switch")
+async def market_switch(body: MarketSwitchRequest) -> dict:
+    """The one gesture the card offers: on installs-if-needed and activates."""
+    result = marketplace_service.switch(
+        body.name,
+        enabled=body.enabled,
+        source_id=body.source_id,
+        version=body.version,
+        approve_permissions=body.approve_permissions,
+        allow_local_trust=body.allow_local_trust,
+    )
+    status = str(result.get("status") or "")
+    if status in {"refused", "permission_review", "permission_delta"}:
+        _refusal(status, result)
+    if status == "not_installed":
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "not_installed", "detail": _REFUSED},
+        )
+    if status in {"unknown_plugin", "unknown_source", "unknown_version"}:
+        _refusal(status, result)
+    out = _public_result(result)
+    out["status"] = status
+    out["enabled"] = bool(result.get("enabled"))
+    if result.get("phase"):
+        out["phase"] = result["phase"]
+    return out
 
 
 @router.post("/market/install")

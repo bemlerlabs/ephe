@@ -260,3 +260,54 @@ class TestInstallFlow:
             headers=HEADERS,
         )
         assert response.status_code == 404
+
+    def test_switch_installs_then_toggles_off_and_on_idempotently(self, client):
+        source_id = provision_source(client)
+        body = {
+            "source_id": source_id,
+            "name": "alpha",
+            "version": "1.0.0",
+            "enabled": True,
+            "approve_permissions": True,
+            "allow_local_trust": True,
+        }
+        on = client.post("/api/market/switch", json=body, headers=HEADERS)
+        assert on.status_code == 200, on.text
+        assert on.json()["status"] == "enabled"
+        assert on.json()["enabled"] is True
+
+        off = client.post(
+            "/api/market/switch", json={**body, "enabled": False}, headers=HEADERS
+        )
+        assert off.status_code == 200, off.text
+        assert off.json()["status"] == "disabled"
+        assert off.json()["enabled"] is False
+
+        off_again = client.post(
+            "/api/market/switch", json={**body, "enabled": False}, headers=HEADERS
+        )
+        assert off_again.status_code == 200
+        assert off_again.json()["enabled"] is False
+
+        on_again = client.post("/api/market/switch", json=body, headers=HEADERS)
+        assert on_again.status_code == 200, on_again.text
+        assert on_again.json()["enabled"] is True
+
+    def test_switch_without_consent_answers_428_with_the_delta(self, client):
+        source_id = provision_source(client)
+        review = client.post(
+            "/api/market/switch",
+            json={"source_id": source_id, "name": "alpha", "version": "1.0.0", "enabled": True},
+            headers=HEADERS,
+        )
+        assert review.status_code == 428, review.text
+        detail = review.json()["error"]["detail"]
+        assert detail["code"] in {"permission_review", "local_trust_required"}
+
+    def test_switch_off_for_a_plugin_that_is_not_installed_is_404(self, client):
+        response = client.post(
+            "/api/market/switch",
+            json={"name": "never-installed", "enabled": False},
+            headers=HEADERS,
+        )
+        assert response.status_code == 404
