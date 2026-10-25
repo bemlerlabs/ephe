@@ -100,9 +100,23 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
   const inline =
     openable && (mode === 'image' || mode === 'frame' || mode === 'video' || mode === 'audio')
 
-  function failed(why: string) {
+  function failed(why = '') {
     setBroken(true)
     setReason(why)
+  }
+
+  /* An <img> reports failure without a status. One small request tells why, so
+     the card names the cause instead of repeating its own label. */
+  async function unreadableReason(url: string): Promise<string> {
+    try {
+      const res = await fetch(url, { headers: { Range: 'bytes=0-0' } })
+      if (res.ok) return ''
+      if (res.status === 403) return t('artifacts.reasonProtected')
+      if (res.status === 404) return t('artifacts.reasonMissing')
+      return String(res.status)
+    } catch {
+      return t('artifacts.reasonOffline')
+    }
   }
 
   function tryAgain() {
@@ -162,7 +176,9 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
           <img
             src={src}
             alt={file.name}
-            onError={() => failed(t('artifacts.imageUnavailable'))}
+            onError={() => {
+              void unreadableReason(src).then(failed)
+            }}
             className="max-h-72 max-w-full object-contain"
           />
         </button>
@@ -172,7 +188,9 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
           controls
           preload="metadata"
           src={src}
-          onError={() => failed(t('artifacts.mediaUnavailable'))}
+          onError={() => {
+            void unreadableReason(src).then(failed)
+          }}
           data-testid={`message-file-video-${file.key}`}
           className="mt-2 max-h-72 w-full rounded-md border border-hairline bg-black"
         />
@@ -182,7 +200,9 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
           controls
           preload="metadata"
           src={src}
-          onError={() => failed(t('artifacts.mediaUnavailable'))}
+          onError={() => {
+            void unreadableReason(src).then(failed)
+          }}
           data-testid={`message-file-audio-${file.key}`}
           className="mt-2 w-full"
         />

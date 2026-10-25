@@ -175,7 +175,6 @@
     "turnWorking": "Working for {{time}}",
     "turnWorked": "Worked for {{time}}",
     "turnFailed": "Stopped with an error",
-    "setupEngine": "Set up engine →",
     "errorEngineUnreachable": "The engine is not reachable. Start it, or point Ephe at another endpoint.",
     "errorEngineKey": "The engine refused the key this run carries.",
     "errorEngineTimeout": "The engine did not answer in time.",
@@ -439,7 +438,8 @@
     "modelGroupOther": "Other types (speech, image)",
     "modelGroupUnconfigured": "No endpoint — not configurable",
     "searchProgress": "Working for {{time}} · Web search {{round}}/{{cap}}",
-    "searchWaiting": "waiting for web search"
+    "searchWaiting": "waiting for web search",
+    "streamClosedBeforeDone": "The turn ended before it was complete."
   },
   "sidebar": {
     "navWorkspaces": "Workspaces",
@@ -1630,7 +1630,10 @@
     "previewRetry": "Try again",
     "previewOpen": "open larger",
     "lightboxClose": "Close image",
-    "claimWithoutArtifact": "The answer mentions an image, but this turn produced none. Treat that claim as unverified."
+    "claimWithoutArtifact": "The answer mentions an image, but this turn produced none. Treat that claim as unverified.",
+    "reasonProtected": "blocked",
+    "reasonMissing": "missing",
+    "reasonOffline": "offline"
   },
   "scheduler": {
     "title": "Recurring tasks",

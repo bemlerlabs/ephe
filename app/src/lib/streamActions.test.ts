@@ -163,7 +163,7 @@ describe('applyStreamEvent (Event → Store-Action Mapping)', () => {
 
   it('error → markStreamError (Nur die Message wird beendet — finishTurn erst bei done)', () => {
     applyStreamEvent({ type: 'error', msg: 'Ollama nicht erreichbar' }, store)
-    expect(store.markStreamError).toHaveBeenCalledWith('Ollama nicht erreichbar')
+    expect(store.markStreamError).toHaveBeenCalledWith('Ollama nicht erreichbar', undefined)
   })
 
   it('done → finishTurn', () => {

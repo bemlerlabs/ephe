@@ -208,6 +208,8 @@ export interface ChatMessage {
   ask?: AskMessageState
   streaming?: boolean
   error?: string | null
+  /** Stable reason behind `error`: a server reason code or a stream error code. */
+  errorCode?: string | null
   /** Transient UI phases (not persisted): reflecting / revising / quality-check running */
   streamMeta?: {
     reflecting?: boolean

@@ -1810,6 +1810,8 @@ async def chat_stream(
             except Exception:
                 pass
 
+        turn_failure: list[str] = []
+
         def emit(event: dict) -> None:
             _announce_failover()
             # SEC-1: redact the event before it leaves the process.
@@ -1817,6 +1819,8 @@ async def chat_stream(
 
             event = redact_deep(event)  # type: ignore[assignment]
             etype = event.get("type")
+            if etype == "error":
+                turn_failure.append(str(event.get("reason_code") or "error"))
             # RL-1: write the ledger line before the frame leaves the process.
             try:
                 from core.run import ledger as run_ledger
@@ -2435,7 +2439,10 @@ async def chat_stream(
             # The turn is over; a steer arriving now would change nothing.
             kill_run(turn_id)
             try:
-                run_ledger.finish("cancelled" if cancelled else "complete")
+                run_ledger.finish(
+                    "cancelled" if cancelled else ("error" if turn_failure else "complete"),
+                    turn_failure[0] if turn_failure else "",
+                )
             except Exception:
                 pass
             steer_channel.close()

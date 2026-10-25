@@ -141,11 +141,12 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
     setRevising: (on) => setTransientMeta('revising', on),
     setQualityCheck: (on) => setTransientMeta('qualityCheck', on),
 
-    markStreamError: (msg) => {
+    markStreamError: (msg, code) => {
       set((s) =>
         updateActiveMessage(s, (m) => ({
           ...m,
           error: msg,
+          errorCode: code ?? null,
           streaming: false,
           // P6-Timeline (ref-01): even a failed turn has a measured wall-time
           // ("Worked for …" — never an invented default).

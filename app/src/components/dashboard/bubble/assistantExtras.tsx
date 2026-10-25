@@ -2,7 +2,6 @@ import { AlertTriangle, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { fileUrl } from '@/lib/api'
 import { friendlyError } from '@/lib/errorText'
-import { markSetupIntent } from '@/lib/setupGate'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import type { ChatMessage as LegacyChatMessage } from '@/store/chatStore'
 import CodeBlock from '../CodeBlock'
@@ -191,17 +190,6 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
                 {t('chat.retry')}
               </button>
             )}
-            <button
-              type="button"
-              data-testid="error-setup-engine"
-              onClick={() => {
-                markSetupIntent()
-                window.location.hash = '#/setup'
-              }}
-              className="flex items-center gap-1 min-h-6 max-lg:min-h-11 rounded-md border border-status-danger/30 px-2 py-1 text-ui-xs text-red-200 hover:bg-status-danger/20 transition-colors"
-            >
-              {t('chat.setupEngine')}
-            </button>
           </div>
         </div>
       )}

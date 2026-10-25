@@ -21,14 +21,24 @@
  */
 import type { StreamChatRequest, StreamEvent } from '../types'
 
+export type StreamErrorCode =
+  | 'http_error'
+  | 'idle_timeout'
+  | 'network'
+  | 'stream_closed_before_done'
+
 export class StreamChatError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    code?: StreamErrorCode,
   ) {
     super(message)
     this.name = 'StreamChatError'
+    this.code = code ?? (status ? 'http_error' : 'stream_closed_before_done')
   }
+
+  readonly code: StreamErrorCode
 }
 
 export interface StreamChatOptions {
@@ -61,7 +71,7 @@ export function readWithIdle(
   let timer: ReturnType<typeof setTimeout>
   const idle = new Promise<never>((_, reject) => {
     timer = setTimeout(
-      () => reject(new StreamChatError('Zeitüberschreitung: keine Antwort der Engine')),
+      () => reject(new StreamChatError('idle timeout: no engine answer', undefined, 'idle_timeout')),
       ms,
     )
   })
@@ -96,12 +106,19 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
   if (!res.ok || !res.body) {
     // P9-F2 (round 14): the raw status code does not belong in the visible
     // error line — the diagnosis stays available via `status`.
-    throw new StreamChatError('Der Stream konnte nicht gestartet werden', res.status)
+    throw new StreamChatError('stream could not be started', res.status, 'http_error')
   }
 
   const reader = res.body.getReader()
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
+  // A terminal frame ends the turn. The server closes right after it; a read
+  // error past that point is a transport hiccup on an answered turn.
+  let sawTerminal = false
+  const dispatch = (event: StreamEvent) => {
+    if (event.type === 'done' || event.type === 'error') sawTerminal = true
+    opts.onEvent(event)
+  }
   const idleMs =
     opts.idleTimeoutMs ?? deepNumber('chat.stream_idle_seconds', IDLE_TIMEOUT_DEFAULT_S) * 1000
 
@@ -129,7 +146,7 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
         const raw = buffer.slice(0, sep)
         buffer = buffer.slice(sep + consumed)
         for (const event of parseSseBlock(raw)) {
-          opts.onEvent(event)
+          dispatch(event)
         }
       }
     }
@@ -139,7 +156,7 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
     // want to leave a last frame stuck in the buffer).
     if (buffer.trim()) {
       for (const event of parseSseBlock(buffer)) {
-        opts.onEvent(event)
+        dispatch(event)
       }
     }
   } catch (err) {
@@ -150,7 +167,7 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
     // (skips broken frames), so a partial flush here is safe.
     if (buffer.trim()) {
       for (const event of parseSseBlock(buffer)) {
-        opts.onEvent(event)
+        dispatch(event)
       }
     }
     await reader.cancel().catch(() => {})
@@ -161,7 +178,17 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
     if (err instanceof Error && err.name === 'AbortError') {
       return
     }
-    throw new StreamChatError('Streamabbruch vor dem done-Event')
+    if (sawTerminal) return
+    if (err instanceof StreamChatError) throw err
+    const network = err instanceof TypeError
+    throw new StreamChatError(
+      network ? 'network error while reading the stream' : 'stream closed before the terminal frame',
+      undefined,
+      network ? 'network' : 'stream_closed_before_done',
+    )
+  }
+  if (!sawTerminal && !opts.signal?.aborted) {
+    throw new StreamChatError('stream ended without a terminal frame', undefined, 'stream_closed_before_done')
   }
 }
 

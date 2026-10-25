@@ -382,7 +382,10 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
     case 'error':
       // A refusal that carries its reason is answered from the bundle, so the reader gets the
       // sentence in the language they set; `msg` stays the fallback for every older server.
-      store.markStreamError(serverErrorText(event.reason_code, event.reason_params, event.msg))
+      store.markStreamError(
+        serverErrorText(event.reason_code, event.reason_params, event.msg),
+        event.reason_code,
+      )
       break
 
     case 'usage': {

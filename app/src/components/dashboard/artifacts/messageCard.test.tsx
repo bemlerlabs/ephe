@@ -274,14 +274,27 @@ describe('S17: the bytes the card points at', () => {
     expect(img.getAttribute('src')).not.toContain('download=1')
   })
 
-  it('replaces a broken image with a reason and a retry that re-requests it', () => {
+  it('replaces a broken image with a concrete reason and a retry that re-requests it', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }))
     render(<MessageFileCard file={file()} />)
     fireEvent.error(screen.getByTestId('message-file-image-k1').querySelector('img')!)
-    expect(screen.getByTestId('message-file-unavailable-k1')).toBeTruthy()
+    const alert = await screen.findByTestId('message-file-unavailable-k1')
+    expect(alert.textContent).toContain('artifacts.reasonProtected')
+    expect(alert.textContent!.match(/artifacts\.imageUnavailable/g)).toHaveLength(1)
     expect(screen.queryByTestId('message-file-image-k1')).toBeNull()
     fireEvent.click(screen.getByTestId('message-file-retry-k1'))
     const img = screen.getByTestId('message-file-image-k1').querySelector('img')!
     expect(img.getAttribute('src')).toContain('retry=1')
+    vi.unstubAllGlobals()
+  })
+
+  it('names a missing file as missing, not as an unreadable image', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
+    render(<MessageFileCard file={file()} />)
+    fireEvent.error(screen.getByTestId('message-file-image-k1').querySelector('img')!)
+    const alert = await screen.findByTestId('message-file-unavailable-k1')
+    expect(alert.textContent).toContain('artifacts.reasonMissing')
+    vi.unstubAllGlobals()
   })
 
   it('renders a PDF in a sandboxed frame', () => {

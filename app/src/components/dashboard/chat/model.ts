@@ -22,7 +22,7 @@ import {
 } from '@/lib/api'
 import { streamChat } from '@/lib/stream'
 import { remeasureRows } from '@/lib/remeasureRows'
-import { humanizeStreamError, isNetworkLikeError } from '@/lib/streamErrors'
+import { humanizeStreamError, isNetworkLikeError, streamErrorCode } from '@/lib/streamErrors'
 import type { TabKey } from '@/components/dashboard/settings/types'
 import { applyStreamEvent } from '@/lib/streamActions'
 import { estimateContextUsage, WARN_THRESHOLD } from '@/lib/contextMeter'
@@ -954,7 +954,7 @@ export function useChatLayoutModel() {
             setBackendOnline(false)
             wasOnlineRef.current = false
           }
-          useChatStore.getState().markStreamError(msg)
+          useChatStore.getState().markStreamError(msg, streamErrorCode(err))
           // G1.2: remember the failed assistant message + payload for retry
           const cs = useChatStore.getState().currentSession
           const last = cs?.messages[cs.messages.length - 1]

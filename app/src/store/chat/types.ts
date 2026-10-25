@@ -212,7 +212,7 @@ export interface ChatState {
    *  wait had already ended and the run went on without it. */
   markAskExpired: (token: string) => void
   /** Error event: set the error text + end the stream state */
-  markStreamError: (msg: string) => void
+  markStreamError: (msg: string, code?: string) => void
   /** N7/N8a: the measured token balance of the last completed turn */
   lastTurnUsage: { in: number; out: number; cached?: number } | null
   /** The usage frame sets the balance (before done); starting a new turn clears it.

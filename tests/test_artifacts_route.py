@@ -233,6 +233,26 @@ class TestArtifactBytesGuard:
         assert r.content == PNG_BYTES
         assert r.headers["content-type"] == "image/png"
 
+    def test_a_screenshot_in_the_image_dir_is_served(self, client, tmp_path, monkeypatch):
+        """The 18:38 case: the screenshot tool writes outside the artifact root."""
+        from core import path_guard
+
+        root = tmp_path / "cfg"
+        images = root / "sessions" / "images"
+        images.mkdir(parents=True)
+        monkeypatch.setenv("EPHE_IMAGE_DIR", str(images))
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(root))
+        monkeypatch.setattr(path_guard, "DENY_ROOTS", (str(root),))
+        target = images / "browser_1.jpeg"
+        target.write_bytes(PNG_BYTES)
+        row = artifact_store.register_artifact(
+            path=str(target), kind="screenshot", session_id="s1"
+        )
+        r = client.get(f"/api/artifacts/{row['id']}/file")
+        assert r.status_code == 200
+        assert r.content == PNG_BYTES
+        assert "inline" in r.headers["content-disposition"]
+
     def test_a_registered_secret_under_a_deny_root_is_refused(self, client, tmp_path, monkeypatch):
         from core import path_guard
 

@@ -22,10 +22,24 @@ export function isNetworkLikeError(err: unknown): boolean {
 }
 
 export function humanizeStreamError(err: unknown, t: Translator): string {
+  const code = streamErrorCode(err)
+  if (code === 'idle_timeout') return t('chat.errorEngineTimeout')
+  if (code === 'network') return t('chat.offlineStreamError')
+  if (code === 'http_error') {
+    const raw = err instanceof Error ? err.message.trim() : ''
+    return t('chat.streamError', { message: raw || t('chat.streamErrorUnknown') })
+  }
+  if (code === 'stream_closed_before_done') return t('chat.streamClosedBeforeDone')
   if (isNetworkLikeError(err)) return t('chat.offlineStreamError')
   let raw = err instanceof Error ? err.message : String(err ?? '')
   // String({}) yields "[object Object]" — raw constructors never get shown.
   if (!raw.trim() || /^\[object /i.test(raw)) raw = ''
   const message = raw.trim() || t('chat.streamErrorUnknown')
   return t('chat.streamError', { message })
+}
+
+/** The stable code behind a stream failure, when the error carries one. */
+export function streamErrorCode(err: unknown): string | undefined {
+  const code = (err as { code?: unknown } | null)?.code
+  return typeof code === 'string' && code ? code : undefined
 }

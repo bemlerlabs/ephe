@@ -5,6 +5,17 @@ All notable changes to **Ephe** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [Unreleased]
+
+### Fixed
+- A turn that loses its terminal frame keeps its partial answer, reports a
+  reason code, and the next message goes out without a reload.
+- Screenshots the product wrote under `~/.ephe/sessions/images` are served by
+  the artifact route; the file card names the concrete cause instead of
+  repeating its own label.
+- The run ledger keeps one terminal line per turn, with the failure class when
+  the turn failed.
+
 ## [0.1.4] - 2026-10-25
 
 ### Added

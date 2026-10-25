@@ -79,6 +79,35 @@ class RunLedger:
         self.seq = 0
         self._lock = threading.Lock()
         self._path = _root() / f"{run_id}.jsonl"
+        self._finished = False
+        self._failure = ""
+
+    @property
+    def failure(self) -> str:
+        """The reason code of the first error frame, or an empty string."""
+        return self._failure
+
+    def note_failure(self, code: str) -> None:
+        """Remembers why the run failed; a terminal line already written wins."""
+        if not self._finished and not self._failure:
+            self._failure = code
+
+    @property
+    def finished(self) -> bool:
+        """Whether a terminal line (run_finished or done) already exists."""
+        return self._finished
+
+    def mark_terminal(self) -> bool:
+        """True for the caller that closes the run; False for every later one.
+
+        A cancelled generator and a producer that still emitted `done` both want
+        the last word. The ledger keeps one terminal line, so "cancelled" and
+        "complete" can no longer stand next to each other for one run.
+        """
+        if self._finished:
+            return False
+        self._finished = True
+        return True
 
     def append(self, phase: str, kind: str, **payload: Any) -> dict:
         if phase not in PHASES:
@@ -114,7 +143,9 @@ class RunLedger:
     def start(self, **payload: Any) -> dict:
         return self.append("now", "run_started", **payload)
 
-    def finish(self, finish_reason: str, failure_class: str = "") -> dict:
+    def finish(self, finish_reason: str, failure_class: str = "") -> dict | None:
+        if not self.mark_terminal():
+            return None
         return self.append(
             "next",
             "run_finished",
@@ -152,6 +183,12 @@ def record_event(event: dict) -> dict | None:
     phase = _PHASE_FOR_EVENT.get(kind)
     if phase is None:
         return None
+    if kind == "error":
+        ledger.note_failure(str(event.get("reason_code") or "engine_error"))
+    if kind == "done" and not ledger.mark_terminal():
+        # A cancelled generator already closed this run. The producer's late
+        # `done` must not append a second, contradictory terminal line.
+        return None
     payload: dict[str, Any] = {}
     if kind == "tool_start":
         payload = {
@@ -178,7 +215,11 @@ def record_event(event: dict) -> dict | None:
     elif kind == "error":
         payload = {"status": "error", "reason_code": str(event.get("reason_code") or "")}
     elif kind == "done":
-        payload = {"finish_reason": str(event.get("finish_reason") or "complete")}
+        payload = {
+            "finish_reason": "error" if ledger.failure else str(event.get("finish_reason") or "complete"),
+        }
+        if ledger.failure:
+            payload["failure_class"] = ledger.failure
     else:
         payload = {
             "status": str(event.get("status") or ""),

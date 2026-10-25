@@ -175,7 +175,6 @@
     "turnWorking": "Arbeitet seit {{time}}",
     "turnWorked": "Arbeitete {{time}}",
     "turnFailed": "Mit Fehler beendet",
-    "setupEngine": "Engine einrichten →",
     "errorEngineUnreachable": "Die Engine ist nicht erreichbar. Starte sie oder richte Ephe auf einen anderen Endpunkt aus.",
     "errorEngineKey": "Die Engine hat den Schlüssel dieses Laufs abgelehnt.",
     "errorEngineTimeout": "Die Engine hat nicht rechtzeitig geantwortet.",
@@ -439,7 +438,8 @@
     "modelGroupOther": "Andere Typen (Sprache, Bild)",
     "modelGroupUnconfigured": "Ohne Endpunkt — nicht konfigurierbar",
     "searchProgress": "Arbeitet seit {{time}} · Websuche {{round}}/{{cap}}",
-    "searchWaiting": "wartet auf Websuche"
+    "searchWaiting": "wartet auf Websuche",
+    "streamClosedBeforeDone": "Der Turn endete vor dem Abschluss."
   },
   "sidebar": {
     "navWorkspaces": "Arbeitsbereiche",
@@ -1630,7 +1630,10 @@
     "previewRetry": "Erneut versuchen",
     "previewOpen": "größer öffnen",
     "lightboxClose": "Bild schließen",
-    "claimWithoutArtifact": "Die Antwort nennt ein Bild, aber dieser Turn hat keines erzeugt. Die Aussage ist unbelegt."
+    "claimWithoutArtifact": "Die Antwort nennt ein Bild, aber dieser Turn hat keines erzeugt. Die Aussage ist unbelegt.",
+    "reasonProtected": "gesperrt",
+    "reasonMissing": "fehlt",
+    "reasonOffline": "nicht erreichbar"
   },
   "scheduler": {
     "title": "Wiederkehrende Aufgaben",

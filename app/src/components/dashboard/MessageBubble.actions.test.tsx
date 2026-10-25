@@ -103,24 +103,27 @@ describe('MessageBubble Actions (G1)', () => {
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
 
-  it('error bubble: offers engine setup and no "Worked for"', () => {
+  it('error bubble: a failed turn offers retry, not engine setup', () => {
     render(
       <MessageBubble
         message={assistantMsg({
           error: 'Failed to connect to Ollama at http://127.0.0.1:11434',
+          errorCode: 'stream_closed_before_done',
           streaming: false,
           durationMs: 1200,
         })}
         onRetry={vi.fn()}
       />,
     )
-    expect(screen.getByTestId('error-setup-engine').textContent).toBe('chat.setupEngine')
+    // S19: the engine answered this turn, so its absence is not the diagnosis.
+    expect(screen.queryByTestId('error-setup-engine')).toBeNull()
     // A known connection failure is rendered in the UI language, not as the
     // backend's English sentence.
     expect(screen.getByText('chat.errorEngineUnreachable')).toBeTruthy()
     expect(screen.getByText('chat.turnFailed')).toBeTruthy()
     expect(screen.queryByText(/chat.turnWorked/)).toBeNull()
   })
+
 
   it('Assistant-Bubble: Vorlesen-Knopf ruft synthesizeSpeech (G4)', async () => {
     const { synthesizeSpeech } = await import('@/lib/api')

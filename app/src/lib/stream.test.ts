@@ -71,12 +71,11 @@ describe('streamChat (SSE-Client)', () => {
       'data: ' + JSON.stringify({ type: 'chunk', data: 'halbes' }) + '\n\n',
     )
     const splitAt = 20 // in the middle of the JSON
-    const reader = fakeReader([full.slice(0, splitAt), full.slice(splitAt)])
+    const reader = fakeReader([full.slice(0, splitAt), full.slice(splitAt), frame({ type: 'done' })])
     vi.stubGlobal('fetch', mockFetch(reader))
 
     await streamChat({ message: 'Hi', history: [] }, { onEvent: (e) => collected.push(e) })
 
-    expect(collected).toHaveLength(1)
     expect(collected[0]).toEqual({ type: 'chunk', data: 'halbes' })
   })
 
@@ -200,5 +199,89 @@ describe('SSE keepalive comments (I6 P2)', () => {
     vi.stubGlobal('fetch', spy)
     await streamChat({ message: 'x', history: [] }, { onEvent: (e) => events.push(e) })
     expect(events.map((e) => e.type)).toEqual(['chunk', 'done'])
+  })
+})
+
+/* S19: the terminal frame decides the turn, not the transport. */
+function failingReader(chunks: Uint8Array[], err: unknown = new TypeError('network down')) {
+  let i = 0
+  return {
+    read: async () => {
+      if (i < chunks.length) return { done: false, value: chunks[i++] as Uint8Array }
+      throw err
+    },
+    cancel: async () => {},
+    closed: Promise.resolve(undefined),
+    releaseLock: () => {},
+  } as unknown as ReadableStreamDefaultReader<Uint8Array>
+}
+
+describe('S19 terminal handling', () => {
+  it('a read error after the done frame is not a failed turn', async () => {
+    vi.stubGlobal('fetch', mockFetch(failingReader([frame({ type: 'done' })])))
+    await expect(
+      streamChat({ message: 'Hi', history: [] }, { onEvent: () => {} }),
+    ).resolves.toBeUndefined()
+  })
+
+  it('a network read error is coded as network', async () => {
+    vi.stubGlobal('fetch', mockFetch(failingReader([frame({ type: 'chunk', data: 't' })])))
+    await expect(
+      streamChat({ message: 'Hi', history: [] }, { onEvent: () => {} }),
+    ).rejects.toMatchObject({ code: 'network' })
+  })
+
+  it('any other read error before a terminal frame carries stream_closed_before_done', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetch(failingReader([frame({ type: 'chunk', data: 't' })], new Error('boom'))),
+    )
+    await expect(
+      streamChat({ message: 'Hi', history: [] }, { onEvent: () => {} }),
+    ).rejects.toMatchObject({ code: 'stream_closed_before_done' })
+  })
+
+  it('a clean end without a terminal frame is a failed turn', async () => {
+    vi.stubGlobal('fetch', mockFetch(fakeReader([frame({ type: 'chunk', data: 't' })])))
+    await expect(
+      streamChat({ message: 'Hi', history: [] }, { onEvent: () => {} }),
+    ).rejects.toMatchObject({ code: 'stream_closed_before_done' })
+  })
+
+  it('an error frame ends the turn; a later read error adds nothing', async () => {
+    const events: StreamEvent[] = []
+    vi.stubGlobal(
+      'fetch',
+      mockFetch(failingReader([frame({ type: 'error', msg: 'nope', reason_code: 'engine_error' })])),
+    )
+    await expect(
+      streamChat({ message: 'Hi', history: [] }, { onEvent: (e) => events.push(e) }),
+    ).resolves.toBeUndefined()
+    expect(events.map((e) => e.type)).toEqual(['error'])
+  })
+
+  it('the HTTP error keeps its status and code', async () => {
+    vi.stubGlobal('fetch', mockFetch(fakeReader([]), false, 503))
+    const err = await streamChat({ message: 'Hi', history: [] }, { onEvent: () => {} }).catch(
+      (e) => e,
+    )
+    expect(err).toBeInstanceOf(StreamChatError)
+    expect(err.status).toBe(503)
+    expect(err.code).toBe('http_error')
+  })
+
+  it('an idle timeout keeps its own code', async () => {
+    const silent = {
+      read: () => new Promise(() => {}),
+      cancel: async () => {},
+      closed: Promise.resolve(undefined),
+      releaseLock: () => {},
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>
+    vi.stubGlobal('fetch', mockFetch(silent))
+    const err = await streamChat(
+      { message: 'Hi', history: [] },
+      { onEvent: () => {}, idleTimeoutMs: 10 },
+    ).catch((e) => e)
+    expect(err.code).toBe('idle_timeout')
   })
 })

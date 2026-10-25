@@ -196,14 +196,29 @@ def artifact_root() -> Path:
     return Path(base).expanduser() / "artifacts"
 
 
+def product_image_root() -> Path:
+    """Where the screenshot tools write: the product's own image directory."""
+    configured = os.environ.get("EPHE_IMAGE_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
+    return Path(base).expanduser() / "sessions" / "images"
+
+
 def verifiable_artifact(candidate: Path | str) -> bool:
     """A generated artifact that the verifier may read without weakening DENY_ROOTS.
 
-    Only the artifacts directory is opened, only for verification, and never a
-    credential-shaped name. ``confine`` resolves the path first, so a symlink
-    pointing at a key is outside the root and refused.
+    Two product-managed directories are opened: the artifact root and the image
+    directory the screenshot tools write to. A credential-shaped name stays
+    refused. ``confine`` resolves the path first, so a symlink pointing at a key
+    is outside both roots and refused.
     """
-    return not secret_shaped(candidate) and confine(candidate, artifact_root()) is not None
+    if secret_shaped(candidate):
+        return False
+    return (
+        confine(candidate, artifact_root()) is not None
+        or confine(candidate, product_image_root()) is not None
+    )
 
 
 def _path_args(args: object) -> list[str]:
