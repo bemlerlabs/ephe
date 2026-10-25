@@ -59,7 +59,7 @@ PROTECTED_PATHS = re.compile(
     # A baseline is measured data that quotes the tree; it is not developer prose.
     r"|^(?:\./)?(?:\.architecture-baseline\.json|tests/home-isolation-baseline\.json"
     r"|scripts/language-baseline\.json)$"
-    # Generated output: the copy is authored in the catalogs, not here.
+    # Generated output; the copy is authored in the catalogs.
     r"|^marketplace/index\.json$"
 )
 
