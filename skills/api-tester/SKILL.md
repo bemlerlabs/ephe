@@ -5,16 +5,16 @@ trigger: /api-test
 description: "Runs HTTP requests and checks status, latency and JSON schema."
 when_to_use: [test http request, verify api response, test endpoint, response time]
 when_not_to_use: [database query, static file]
-tools: [fetch_url, execute_code, validate_json, write_file, memory, skill_manage]
+tools: [fetch_url, execute_code, validate_json, read_file, write_file, memory, skill_manage]
 quality_profile: standard
-allowed_tools: [fetch_url, execute_code, validate_json, write_file, memory, skill_manage]
+allowed_tools: [fetch_url, execute_code, validate_json, read_file, write_file, memory, skill_manage]
 ---
 
 # api-tester
 
 **Trigger**: /api-test
 **Description**: Runs HTTP requests and checks status, latency and JSON schema.
-**Tools**: fetch_url, execute_code, validate_json, write_file, memory, skill_manage
+**Tools**: fetch_url, execute_code, validate_json, read_file, write_file, memory, skill_manage
 
 ## System Prompt
 
