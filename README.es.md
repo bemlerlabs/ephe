@@ -75,7 +75,7 @@ La terminal (`ephe tui`) utiliza el motor elegido en `~/.ephe/engine.json`. Un t
 #### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.5/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.6/install.sh | bash
 ```
 
 Para leer el script antes de ejecutarlo, usa una copia local del repositorio:
@@ -91,7 +91,7 @@ El instalador prepara Python y el entorno local, compila la aplicación web y la
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.5/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.6/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

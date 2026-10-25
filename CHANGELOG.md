@@ -7,7 +7,26 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-Nothing yet. The chat fix from `cbd5e7e` ships in 0.1.5.
+Nothing yet. The six 0.1.6 fixes are named below (`408d1e2`, `be4f90f`,
+`4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.1.6] - 2026-10-25
+
+### Fixed
+- On macOS the header menu no longer offers minimize and maximize over the
+  native traffic lights, so the window has exactly one button group; the
+  Windows and Linux menus are unchanged (`408d1e2`).
+- A restored transcript with no messages no longer appears as a sidebar row
+  (`be4f90f`).
+- A stored assistant row that opens with the working-memory preamble is shown
+  as context; it can no longer read as an answer (`4c85103`).
+- The side conversation has one name in each language: `Seitengespräch` in
+  German, `Side conversation` in English (`c8476be`).
+- The setup page announces progress in a status region and failures in an
+  alert region; the tools page labels its fields visibly and announces results.
+  Both pages carry axe checks (`a7930fa`).
+- A skill that can write files now declares a read tool: `api-tester` gains
+  `read_file`, and a contract test holds every skill to the rule (`86d933b`).
 
 ## [0.1.5] - 2026-10-25
 
