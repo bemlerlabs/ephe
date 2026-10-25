@@ -42,6 +42,9 @@ test.describe('Agent-Panel Toggles & Dock (Runde 5/7)', () => {
   test('Leerzustand mit Offnen-Karten, +-Menue mit Zuletzt geschlossen (Referenz-Paritaet)', async ({
     page,
   }) => {
+    // The close-to-empty-state wait below asks for 15 s while the config's per-test
+    // timeout is also 15 s, so that wait could never run to its end on a loaded runner.
+    test.setTimeout(30_000)
     await page.evaluate(() => localStorage.setItem('ephe.panel.tabs', '[]'))
     await page.reload()
     await page.waitForSelector('[data-testid="panel-chat"]')
