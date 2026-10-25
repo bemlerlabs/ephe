@@ -104,6 +104,19 @@ def test_deep_forward_to_local_result_passes_through():
     assert fence_tool_output("tool_call", nested_tool_call(4, "read_file"), local) == local
 
 
+def test_direct_fetch_result_is_fenced():
+    out = fence_tool_output("fetch_url", {"url": "https://example.test/docs"}, WEB_PAGE)
+    assert out.startswith(UNTRUSTED_DATA_OPEN)
+    assert out.count(UNTRUSTED_DATA_OPEN) == 1
+
+
+def test_fetch_failure_line_stays_verbatim():
+    from core.tool_markers import FETCH_FAILED_MARKER
+
+    line = f"{FETCH_FAILED_MARKER} HTTP 404 for https://example.test/missing"
+    assert fence_tool_output("fetch_url", {"url": "https://example.test/missing"}, line) == line
+
+
 # Loop integration
 
 class _FakeProvider:

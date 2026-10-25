@@ -28,6 +28,11 @@ BROWSER_DENIED_MARKER = "[browser denied]"
 #: `fetch_tools.fetch_url()` — `core.net_guard` refused the target (`FetchRefused`).
 FETCH_REFUSED_MARKER = "[fetch refused]"
 
+#: `fetch_tools.fetch_url()` — the fetch itself failed (HTTP status, timeout,
+#: unreachable host). A transport failure is not a blockade, so this marker is an
+#: error prefix in `core.quality` and deliberately not a refusal marker.
+FETCH_FAILED_MARKER = "[fetch failed]"
+
 #: What a refusal starts with today. The detector unpacks this tuple.
 CURRENT_REFUSAL_MARKERS: tuple[str, ...] = (
     BROWSER_DENIED_MARKER,

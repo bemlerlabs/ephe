@@ -1072,8 +1072,9 @@ BASE_TOOL_SCHEMAS = [
         "function": {
             "name": "fetch_url",
             "description": (
-                "Fetches one URL, converts the page to plain text and answers the given prompt against that document. "
-                "Uses a 15-minute response cache. Without a prompt it returns the extracted document text."
+                "Fetches one URL and converts the page to plain text. It returns the extracted text; "
+                "answer the user's question from it. Uses a 15-minute response cache. "
+                "A failed fetch starts with '[fetch failed]' and a refused target with '[fetch refused]'."
             ),
             "parameters": {
                 "type": "object",
@@ -1084,7 +1085,7 @@ BASE_TOOL_SCHEMAS = [
                     },
                     "prompt": {
                         "type": "string",
-                        "description": "Question the model answers against the fetched document. Empty = return the document text.",
+                        "description": "Accepted for older callers and ignored; the fetched text is returned either way.",
                     },
                 },
                 "required": ["url"],
