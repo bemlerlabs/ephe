@@ -9,6 +9,7 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import i18n from '@/i18n'
+import de from '@/locales/de.json'
 import ToolCallDisplay from './ToolCallDisplay'
 import type { ToolCall } from '@/store/chatStore'
 
@@ -67,9 +68,12 @@ describe('ToolCallDisplay — failed call in German', () => {
   it('translates the status and the reason', () => {
     render(<ToolCallDisplay tool_calls={[failedFetch()]} />)
 
-    expect(screen.getByText('fetch_url fehlgeschlagen')).toBeInTheDocument()
-    expect(screen.getByTestId('tool-failure-reason').textContent).toBe(
-      'https://example.test/missing antwortet mit HTTP 404.',
-    )
+    const status = de.chat.toolFailed.replace('{{tool}}', 'fetch_url')
+    const reason = de.reader.fetch_http_error
+      .replace('{{url}}', 'https://example.test/missing')
+      .replace('{{status}}', '404')
+
+    expect(screen.getByText(status)).toBeInTheDocument()
+    expect(screen.getByTestId('tool-failure-reason').textContent).toBe(reason)
   })
 })
