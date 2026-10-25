@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import axe from 'axe-core'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3', init: () => Promise.resolve() },
@@ -151,5 +152,21 @@ describe('ToolsPage (W4)', () => {
     expect((await screen.findByTestId('tools-vision-error-text')).textContent).toBe(
       'serverError.vision_failed:unsupported format: text/plain',
     )
+  })
+})
+
+describe('ToolsPage accessibility', () => {
+  it('names the question and base64 fields with visible labels', () => {
+    render(<ToolsPage />)
+    expect(screen.getByLabelText('tools.questionLabel')).toBe(screen.getByTestId('tools-question'))
+    expect(screen.getByLabelText('tools.base64Label')).toBe(screen.getByTestId('tools-base64'))
+  })
+
+  it('passes the WCAG rules axe checks', async () => {
+    const { container } = render(<ToolsPage />)
+    const results = await axe.run(container, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
+    })
+    expect(results.violations).toEqual([])
   })
 })

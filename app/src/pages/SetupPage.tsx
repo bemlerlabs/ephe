@@ -801,13 +801,18 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             {t('setup.rescan')}
           </button>
 
+          {/* Progress — an always-mounted live region: a status mounted together
+              with its text is not reliably announced. */}
+          <div role="status" aria-live="polite" className="sr-only" data-testid="setup-progress">
+            {probing ? t('setup.probing') : saving ? t('setup.saving') : ''}
+          </div>
+
           {/* Status — N1-CLS: a reserved plate (min-h) so that appearing
               asynchronously after the probe cannot shift the finish button. */}
-          <div className="min-h-[44px]">
+          <div className="min-h-[44px]" role="status" aria-live="polite">
             {probeState && (
               <div
                 data-testid="setup-status"
-                role="status"
                 data-engine-state={engineState}
                 className={`mb-5 flex items-start gap-2 rounded-xl px-4 py-3 text-ui-sm ${stateTone[engineState]}`}
               >

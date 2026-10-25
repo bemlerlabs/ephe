@@ -167,6 +167,7 @@ export default function ToolsPage() {
             type="file"
             accept="image/*"
             className="hidden"
+            aria-label={t('tools.chooseImage')}
             data-testid="tools-image-input"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
@@ -188,8 +189,12 @@ export default function ToolsPage() {
           </span>
         </div>
 
+        <label className="mt-3 block text-ui-xs text-ink-soft" htmlFor="tools-question">
+          {t('tools.questionLabel')}
+        </label>
         <input
-          className="glass-control focus-ring mt-3 w-full rounded-xl px-4 py-3 text-ui-sm text-foreground placeholder:text-ink-faint pointer-coarse:min-h-11 pointer-coarse:text-ui-input"
+          id="tools-question"
+          className="glass-control focus-ring mt-1.5 w-full rounded-xl px-4 py-3 text-ui-sm text-foreground placeholder:text-ink-faint pointer-coarse:min-h-11 pointer-coarse:text-ui-input"
           placeholder={t('tools.questionPlaceholder')}
           data-testid="tools-question"
           value={question}
@@ -210,8 +215,12 @@ export default function ToolsPage() {
         </div>
 
         <div className="mt-4 border-t border-hairline pt-4">
+          <label className="block text-ui-xs text-ink-soft" htmlFor="tools-base64">
+            {t('tools.base64Label')}
+          </label>
           <textarea
-            className="glass-control focus-ring w-full rounded-xl px-4 py-3 text-ui-sm text-foreground placeholder:text-ink-faint pointer-coarse:text-ui-input"
+            id="tools-base64"
+            className="glass-control focus-ring mt-1.5 w-full rounded-xl px-4 py-3 text-ui-sm text-foreground placeholder:text-ink-faint pointer-coarse:text-ui-input"
             rows={2}
             placeholder={t('tools.base64Placeholder')}
             data-testid="tools-base64"
@@ -266,6 +275,7 @@ export default function ToolsPage() {
             type="file"
             accept=".zip,.tgz,.gz"
             className="hidden"
+            aria-label={t('tools.importBundle')}
             data-testid="tools-bundle-input"
             onChange={(e) => {
               const picked = e.target.files?.[0]
