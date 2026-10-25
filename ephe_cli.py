@@ -117,12 +117,12 @@ def _run_doctor_repairs(args: argparse.Namespace) -> list[tuple[str, bool, str]]
         )
 
     pwa_ok = ensure_pwa_built()
-    repairs.append(("Repair PWA build", pwa_ok, "app/dist/index.html vorhanden" if pwa_ok else "PWA build not possible (see output)"))
+    repairs.append(("Repair PWA build", pwa_ok, "app/dist/index.html built" if pwa_ok else "PWA build not possible (see output)"))
     return repairs
 
 
 def cmd_voice(args: argparse.Namespace) -> int:
-    """R18: Piper-Stimmen verwalten (list/install) — lokale TTS opt-in."""
+    """R18: manage Piper voices (list/install) — local TTS, opt-in."""
     from core.voice_config import list_installed_piper_voices, piper_binary_available
 
     if args.voice_command == "list":
@@ -1226,10 +1226,17 @@ def cmd_bench(args: argparse.Namespace) -> int:
 
 
 def cmd_update(args: argparse.Namespace) -> int:
-    if args.json:
-        print(json.dumps({"ok": True, "message": "update gestartet"}, indent=2))
+    def step(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+        # --json owns stdout, so the children's prose is forwarded to stderr instead.
+        done = _run(cmd, capture_output=bool(args.json), **kwargs)
+        if args.json:
+            for text in (getattr(done, "stdout", "") or "", getattr(done, "stderr", "") or ""):
+                if text:
+                    sys.stderr.write(text)
+        return done
+
     if (PROJECT_ROOT / ".git").exists():
-        _run(["git", "pull", "--ff-only"])
+        step(["git", "pull", "--ff-only"])
 
     installer = PROJECT_ROOT / "install.sh"
     if not installer.exists():
@@ -1241,7 +1248,7 @@ def cmd_update(args: argparse.Namespace) -> int:
     if args.model:
         env["EPHE_MODEL"] = args.model
     env["EPHE_NO_START"] = "1"
-    rc = _run(["bash", str(installer), "--no-start"], env=env).returncode
+    rc = step(["bash", str(installer), "--no-start"], env=env).returncode
     if args.json:
         print(json.dumps({"ok": rc == 0, "exit_code": rc}, indent=2))
     return rc
@@ -1325,7 +1332,7 @@ def cmd_session(args: argparse.Namespace) -> int:
             print(json.dumps(sessions, ensure_ascii=False, indent=2))
             return 0
         if not sessions:
-            print("No sessions. Create one with `ephe session new <title>`.")
+            print("No sessions. Create one with `ephe session new --title 'My project'`.")
             return 0
         active_id = ms.get_active_id()
         print("Sessions (newest first):")
@@ -1344,7 +1351,7 @@ def cmd_session(args: argparse.Namespace) -> int:
             _emit_error(
                 args, 2,
                 "`ephe session new` expects a title.",
-                "Example: `ephe session new --title 'Projekt Alpha'`",
+                "Example: `ephe session new --title 'Project Alpha'`",
             )
             return 2
         entry = ms.create_session(args.title)
@@ -1447,6 +1454,19 @@ def cmd_plugin(args: argparse.Namespace) -> int:
                         entry.get("version", "-"),
                     )
                 )
+        if getattr(args, "json", False):
+            print(
+                json.dumps(
+                    {
+                        "plugins": [
+                            {"name": name, "enabled": state == "on", "version": version}
+                            for name, state, version in sorted(rows)
+                        ]
+                    },
+                    indent=2,
+                )
+            )
+            return 0
         print(f"{'PLUGIN':<22} STATE  VERSION")
         for name, state, version in sorted(rows):
             print(f"{name:<22} {state:<6} {version}")
@@ -1574,7 +1594,7 @@ def cmd_tool(args: argparse.Namespace) -> int:
     if result is None:
         _emit_error(
             args, 1,
-            f"Unbekanntes Tool: '{args.tool_name}'",
+            f"Unknown tool: '{args.tool_name}'",
             "Available tools: " + ", ".join(available),
         )
         return 1
@@ -2221,7 +2241,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="list: shows binary and voice status. install: downloads Piper voices from the model repo (opt-in, network).",
     )
     voice.add_argument("voice_command", choices=["list", "install"])
-    voice.add_argument("voices", nargs="*", help="Stimmen-Namen (locale-name-quality), z. B. en_US-amy-medium")
+    voice.add_argument("voices", nargs="*", help="Voice names (locale-name-quality), e.g. en_US-amy-medium")
     voice.set_defaults(func=cmd_voice)
 
     update = sub.add_parser("update", help="Update repo, dependencies and local model")
@@ -2429,6 +2449,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     psub = plugin.add_subparsers(dest="action", required=True)
     plist = psub.add_parser("list", help="List known plugins")
+    plist.add_argument("--json", action="store_true", help="Machine-readable output")
     plist.set_defaults(func=cmd_plugin)
     penable = psub.add_parser("enable", help="Enable a plugin")
     penable.add_argument("plugin_id", help="Plugin id from `ephe plugin list`")

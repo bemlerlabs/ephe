@@ -32,8 +32,9 @@ Diagnoses the local setup: Python, project files, Ollama CLI/service, model (ins
 The model line covers a tag that exists: `--model`, else `EPHE_MODEL`, else the persisted local-Ollama choice. With none of them it reports `no model chosen` and names the way out instead of probing a model nobody picked.
 `--fix` repairs the safe drift: repo fast-forward, dependencies (`.[gui,voice]`), Ollama service + model, PWA build. The model repair follows the same rule — no tag, nothing pulled.
 
-## `ephe update [--model <name>]`
+## `ephe update [--model <name>] [--json]`
 Repo fast-forward, dependencies, model pull (ollama), installer invocation. Without `--model` and without `EPHE_MODEL` no model is passed to the installer: `ephe update` names no tag on the user's behalf.
+`--json` writes one document to stdout (`{"ok": bool, "exit_code": n}`); the prose `git pull` and the installer print goes to stderr, so a consumer can pipe the output straight into a parser.
 
 ## `ephe voice list | install <voice>...`
 R18 — manage local Piper voices:
@@ -88,7 +89,10 @@ through is the chosen one — without a choice the server does not start (I2-2).
 Run a single tool directly (e.g. `ephe tool generate_image --arg prompt="…" --dry-run`). `generate_image` ships in the **image-studio** plugin: with that switch off (Settings → Plugins) the tool is not offered at all, `ephe tool generate_image` fails naming the tools that are, and `ephe tool --help` prints that same list.
 
 ## `ephe session`
-Manage sessions (list/show the local `~/.ephe/sessions/`).
+Manage sessions (list/show the local `~/.ephe/sessions/`). Creating one takes a flag: `ephe session new --title "My project"` — the parser accepts no positional title, and the hint an empty list prints names that form.
+
+## `ephe plugin list [--json] | enable <id> | disable <id> | install <id>`
+`ephe plugin list` prints the table of known plugins; `--json` emits `{"plugins": [{"name", "enabled", "version"}]}` instead, sorted by name.
 
 ## `ephe completion <shell>`
 Shell completion (bash/zsh/fish).
