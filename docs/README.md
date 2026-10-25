@@ -54,6 +54,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `benchmark-mapping.md` | Why Ephe measures its own harness instead of attaching to an external suite |
 | `DEMOS.md` | The demo clips |
 | `DEVELOPMENT.md` | Dev setup, project structure, the CI gates and repository hygiene |
+| `RELEASE_RUNBOOK.md` | Branch, required checks, fast-forward, tag and publish; no export or snapshot |
 | `AI_CONTRIBUTION_POLICY.md` | How AI-assisted contributions are reviewed here |
 
 ## Where the pictures live

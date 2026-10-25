@@ -57,7 +57,9 @@ request into `main`:
   dependency update alone
 - **Supply-chain audit** (`supply-chain.yml`): advisory checks, triggered by the dependency files
   (`pyproject.toml`, `uv.lock`, `app/package.json`, `app/pnpm-lock.yaml`) rather than by every push
-- **Release** (`release.yml`): only on a `v*` tag — the release-bar test gate, then the Tauri bundles
+- **Release** (`release.yml`): on a `v*` tag on `main` — the release-bar test gate, the frontend
+  gate, then the Tauri bundles as a draft release. The owner publishes the draft. See
+  [`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md); there is no export or snapshot step.
 - **Bench trend** (`bench-trend.yml`): manual (`workflow_dispatch`) — the offline pass^3 trend over
   tracked manifests
 
@@ -80,9 +82,9 @@ bash -n install.sh
 cd app && npx tsc --noEmit && pnpm run build
 ```
 
-> **Note:** The Python suite is tracked here (`git ls-files tests` counted 572 paths on 2026-10-16)
-> and CI runs it, so a change to it is reviewed like any other change. This repository is public,
-> which is what lets the install one-liner in the README be fetched anonymously.
+> **Note:** The Python suite is tracked here and CI runs it, so a change to it is reviewed like
+> any other change. This repository is public, which is what lets the install one-liner in the
+> README be fetched anonymously.
 
 ## Adding Features
 
@@ -148,11 +150,14 @@ disclosed, what is rejected, and which CI gate enforces each rule — is
 
 ## Pull Request Process
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Run the local validation commands above
-4. Commit with Conventional Commits
-5. Open a Pull Request using our PR template
+1. Create a feature branch from `main` (`git switch -c feat/my-feature`); external
+   contributors fork first.
+2. Run the local validation commands above.
+3. Commit with Conventional Commits and open a Pull Request into `main`.
+4. Wait for the required checks (currently 25 contexts, including the macOS leg and the
+   coverage floor).
+5. A maintainer lands it with a local fast-forward. The GitHub web merge, rebase and squash
+   actions rewrite authorship and are not used.
 
 ## License
 
