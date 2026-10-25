@@ -7,14 +7,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+Nothing yet. The chat fix from `cbd5e7e` ships in 0.1.5.
+
+## [0.1.5] - 2026-10-25
+
 ### Fixed
-- A turn that loses its terminal frame keeps its partial answer, reports a
-  reason code, and the next message goes out without a reload.
-- Screenshots the product wrote under `~/.ephe/sessions/images` are served by
-  the artifact route; the file card names the concrete cause instead of
-  repeating its own label.
-- The run ledger keeps one terminal line per turn, with the failure class when
-  the turn failed.
+- A turn whose stream loses its terminal frame keeps its partial answer, names
+  a stable reason code, and the next message goes out without a reload.
+- The artifact route serves the screenshots the product writes under
+  `~/.ephe/sessions/images`; a file card that cannot render names the concrete
+  cause and states it once.
+- The run ledger writes one terminal line per turn, carrying the failure class
+  when the turn failed.
+- The "Set up engine" action no longer appears on a turn that failed after the
+  engine answered; the composer chip already offers setup when no engine is
+  configured.
+
+All four in `cbd5e7e`.
 
 ## [0.1.4] - 2026-10-25
 
