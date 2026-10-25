@@ -64,6 +64,27 @@ describe('applyStreamEvent tool_done outcome', () => {
     })
   })
 
+  it('a failed fetch becomes failed with its reason, not denied', () => {
+    applyStreamEvent(
+      {
+        type: 'tool_done',
+        tool: 'fetch_url',
+        result: '[fetch failed] HTTP 404 for https://example.test/missing',
+        status: 'failed',
+        reason_code: 'fetch_http_error',
+        reason_params: { status: '404' },
+      },
+      store,
+    )
+    expect(store.upsertToolCall).toHaveBeenLastCalledWith({
+      name: 'fetch_url',
+      result: '[fetch failed] HTTP 404 for https://example.test/missing',
+      status: 'failed',
+      reasonCode: 'fetch_http_error',
+      reasonParams: { status: '404' },
+    })
+  })
+
   it('tool_done with status "completed" → upsertToolCall(completed)', () => {
     applyStreamEvent(
       { type: 'tool_done', tool: 'read_file', result: 'body', status: 'completed' },

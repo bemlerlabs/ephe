@@ -202,6 +202,7 @@
     "toolRunning": "Führt {{tool}} aus…",
     "toolCompleted": "{{tool}} abgeschlossen",
     "toolDenied": "{{tool}} abgelehnt",
+    "toolFailed": "{{tool}} fehlgeschlagen",
     "toolArgsLabel": "Parameter",
     "toolResultLabel": "Ergebnis",
     "toolVerbRun": "Führt aus",
@@ -1945,6 +1946,12 @@
     "publish_path_claimed": "{{paths}} ist von {{holders}} belegt — prüfe den anderen Lauf auf der Arbeitsbereiche-Seite und erzwinge dann die Veröffentlichung darüber"
   },
   "reader": {
+    "fetch_empty_url": "Die URL ist leer.",
+    "fetch_scheme_blocked": "{{scheme}} lässt sich nicht abrufen; gelesen werden nur http(s)-Seiten.",
+    "fetch_refused": "Der Abruf wurde abgelehnt.",
+    "fetch_http_error": "Die Seite antwortet mit HTTP {{status}}.",
+    "fetch_timeout": "Der Abruf ist in ein Zeitlimit gelaufen.",
+    "fetch_unreachable": "Der Host war nicht erreichbar.",
     "url_empty": "leere URL — fetch_url holt ins Nichts.",
     "url_without_scheme": "URL ohne Schema — bitte https:// (oder http://) voranstellen.",
     "scheme_blocked": "{{scheme}}: ist fetch_url gesperrt — das Werkzeug liest Web-Dokumente über http/https, keine Host-Dateien.",
@@ -2529,5 +2536,14 @@
     "pricePair": "{{in}} rein / {{out}} raus",
     "answerOnly": "antwortet nur, ohne Werkzeuge",
     "perMillion": "{{pair}} pro 1M"
+  },
+  "attachment": {
+    "list": "Anhänge",
+    "remove": "{{name}} entfernen",
+    "preview": "Vorschau von {{name}}",
+    "size": "Größe {{size}}",
+    "loading": "{{name}} wird gelesen …",
+    "readFailed": "{{name}} konnte nicht gelesen werden",
+    "close": "Vorschau schließen"
   }
 }

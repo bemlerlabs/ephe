@@ -103,12 +103,17 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       store.upsertToolCall({
         name: event.tool,
         result: event.result,
-        // w10-12: a refusal is an outcome, not a success. The server marks the frame
-        // 'failed' when the call never ran (a coded result — the gate's `Denied`); that
-        // maps onto the store's existing `denied` status, which the card already paints
-        // destructive with the localized `chat.toolDenied` sentence. A frame without the
-        // field (older backends, replays) stays 'completed' as before.
-        status: event.status === 'failed' ? 'denied' : 'completed',
+        // w10-12 + S21: 'failed' is the server's outcome for a call that did not
+        // succeed. The approval refusal keeps its own name — its result opens with
+        // DENIAL_PREFIX — while a failed fetch or a tool error shows as Failed with
+        // its reason. A frame without the field (older backends, replays) stays
+        // 'completed' as before.
+        status:
+          event.status === 'failed'
+            ? String(event.result ?? '').startsWith('[TOOL-DENIED]')
+              ? 'denied'
+              : 'failed'
+            : 'completed',
         ...(event.duration_ms !== undefined ? { durationMs: event.duration_ms } : {}),
         ...(event.reason_code !== undefined ? { reasonCode: event.reason_code } : {}),
         ...(event.reason_params !== undefined ? { reasonParams: event.reason_params } : {}),

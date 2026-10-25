@@ -8,10 +8,27 @@
 /** Maximum text bytes taken from a file into the prompt. */
 export const MAX_TEXT_ATTACHMENT_BYTES = 64 * 1024
 
+interface AttachmentBase {
+  path: string
+  name: string
+  /** Bytes as the picker reported them; absent for paths only (Tauri picker). */
+  size?: number
+  /** `loading` while the file is read, `error` when it could not be read. */
+  status?: 'loading' | 'ready' | 'error'
+}
+
 export type ChatAttachment =
-  | { kind: 'image'; path: string; name: string; dataUrl: string }
-  | { kind: 'text'; path: string; name: string; text: string; truncated: boolean }
-  | { kind: 'file'; path: string; name: string }
+  | (AttachmentBase & { kind: 'image'; dataUrl: string })
+  | (AttachmentBase & { kind: 'text'; text: string; truncated: boolean })
+  | (AttachmentBase & { kind: 'file' })
+
+/** Human size for the attachment card: B, KB, MB with one decimal. */
+export function formatBytes(bytes: number | undefined): string {
+  if (!bytes || bytes < 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 /** File extension → Markdown language short name for the code block. */
 const EXT_LANG: Record<string, string> = {
@@ -75,13 +92,20 @@ export function readTextAttachment(f: File): Promise<{ text: string; truncated: 
 export async function fileToAttachment(f: File): Promise<ChatAttachment> {
   const path = (f as File & { path?: string }).path || f.name
   if (isImageFile(f)) {
-    return { kind: 'image', path, name: f.name, dataUrl: await readImageAsDataUrl(f) }
+    return {
+      kind: 'image',
+      path,
+      name: f.name,
+      size: f.size,
+      status: 'ready',
+      dataUrl: await readImageAsDataUrl(f),
+    }
   }
   if (f.type.startsWith('text/') || EXT_LANG[f.name.split('.').pop()?.toLowerCase() ?? '']) {
     const { text, truncated } = await readTextAttachment(f)
-    return { kind: 'text', path, name: f.name, text, truncated }
+    return { kind: 'text', path, name: f.name, size: f.size, status: 'ready', text, truncated }
   }
-  return { kind: 'file', path, name: f.name }
+  return { kind: 'file', path, name: f.name, size: f.size, status: 'ready' }
 }
 
 /**

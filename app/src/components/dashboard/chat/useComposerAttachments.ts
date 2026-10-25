@@ -49,15 +49,25 @@ export function useComposerAttachments({
   const addFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     const list = Array.from(files)
-    const added: ChatAttachment[] = []
     for (const f of list) {
+      const placeholder: ChatAttachment = {
+        kind: 'file',
+        path: (f as File & { path?: string }).path || f.name,
+        name: f.name,
+        size: f.size,
+        status: 'loading',
+      }
+      setAttachments((prev) => [...prev, placeholder])
       try {
-        added.push(await fileToAttachment(f))
+        const ready = await fileToAttachment(f)
+        setAttachments((prev) => prev.map((a) => (a === placeholder ? ready : a)))
       } catch {
-        // unreadable file → skip it (no crash)
+        // The card says which file could not be read; the user can remove it.
+        setAttachments((prev) =>
+          prev.map((a) => (a === placeholder ? { ...placeholder, status: 'error' } : a)),
+        )
       }
     }
-    if (added.length > 0) setAttachments((prev) => [...prev, ...added])
   }
 
   // P1-4: full-surface drag and drop — files can be dropped ANYWHERE in the
