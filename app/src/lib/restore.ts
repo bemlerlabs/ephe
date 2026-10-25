@@ -54,8 +54,8 @@ function zuletztAktiv(messages: Array<{ timestamp?: number }>): number | null {
 
 /**
  * The server store's own tasks — sessions a CLI, the TUI or the HTTP API made,
- * not the `pwa-` mirror rows. A new empty task is listed on purpose: the CLI's
- * `ephe session new` must be visible here before its first turn.
+ * not the `pwa-` mirror rows. A transcript without messages is no history and
+ * gets no row; a task the CLI just created appears once its first turn exists.
  */
 export async function restoreServerStore(limit: number = RESTORE_LIMIT): Promise<DbSession[]> {
   const { sessions } = await getSessionStore()
@@ -66,16 +66,18 @@ export async function restoreServerStore(limit: number = RESTORE_LIMIT): Promise
   for (const row of tasks) {
     try {
       const transcript = await getServerSession(row.id)
+      const messages = transcript.messages ?? []
+      if (messages.length === 0) continue
       const created = Date.parse(String(transcript.created_at)) || Date.now()
       const updated = Date.parse(String(transcript.last_active)) || created
       out.push({
         id: transcript.id,
         title: transcript.title || 'New task',
-        messages: (transcript.messages ?? []).map((message, index) =>
+        messages: messages.map((message, index) =>
           withMessageId({ timestamp: updated, ...message }, transcript.id, index),
         ),
         createdAt: created,
-        updatedAt: zuletztAktiv(transcript.messages ?? []) ?? updated,
+        updatedAt: zuletztAktiv(messages) ?? updated,
       })
     } catch {
       /* one unreadable session does not hide the rest */

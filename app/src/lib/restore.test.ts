@@ -15,17 +15,25 @@ const apiMock = vi.hoisted(() => ({
         last_active: '2026-10-20T01:05:00+00:00',
         message_count: 1,
       },
+      {
+        id: 'srv-empty',
+        title: 'New task',
+        namespace: 'user',
+        created_at: '2026-10-20T01:06:00+00:00',
+        last_active: '2026-10-20T01:06:00+00:00',
+        message_count: 0,
+      },
       { id: 'pwa-1', title: 'Mirror row', namespace: 'pwa-' },
     ],
   })),
   getServerSession: vi.fn(async (id: string) => ({
     id,
-    title: 'CLI task',
+    title: id === 'srv-empty' ? 'New task' : 'CLI task',
     created_at: '2026-10-20T01:00:00+00:00',
     last_active: '2026-10-20T01:05:00+00:00',
-    message_count: 1,
+    message_count: id === 'srv-empty' ? 0 : 1,
     namespace: 'user',
-    messages: [{ role: 'user', content: 'from cli' }],
+    messages: id === 'srv-empty' ? [] : [{ role: 'user', content: 'from cli' }],
   })),
   restoreSessions: vi.fn(async () => ({
     sessions: [
@@ -85,6 +93,18 @@ describe('restoreServerStore — the CLI/TUI tasks, not the mirror', () => {
     expect(out[0]?.title).toBe('CLI task')
     expect((out[0]?.messages[0] as ChatMessage | undefined)?.content).toBe('from cli')
     expect(apiMock.getServerSession).toHaveBeenCalledWith('srv1')
+  })
+
+  it('gives a transcript with no messages no row', async () => {
+    const out = await restoreServerStore()
+    expect(out.find((s) => s.id === 'srv-empty')).toBeUndefined()
+    expect(out.map((s) => s.id)).not.toContain('srv-empty')
+  })
+
+  it('keeps the task that carries a turn', async () => {
+    const out = await restoreServerStore()
+    const filled = out.find((s) => s.id === 'srv1')
+    expect(filled?.messages).toHaveLength(1)
   })
 })
 
