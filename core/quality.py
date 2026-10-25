@@ -1,18 +1,22 @@
 """Local quality gates for Ephe skills and artifacts."""
 from __future__ import annotations
 
+import html as html_lib
+import json
+import re
 import shutil
 import subprocess
 import tempfile
 import zipfile
-import html as html_lib
-import json
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.artifact_markers import MARKER_BY_KIND
-from core.tool_markers import CURRENT_REFUSAL_MARKERS, LEGACY_REFUSAL_MARKERS
+from core.tool_markers import (
+    CURRENT_REFUSAL_MARKERS,
+    FETCH_FAILED_MARKER,
+    LEGACY_REFUSAL_MARKERS,
+)
 
 
 @dataclass
@@ -56,6 +60,7 @@ ERROR_RESULT_PREFIXES: tuple[str, ...] = (
     "[tool-error",
     "[MCP-tool-error",
     "ARTIFACT_FAILED:",
+    FETCH_FAILED_MARKER,
 )
 
 
@@ -529,8 +534,8 @@ def validate_pitch_deck_artifact(path: str) -> ArtifactValidationReport:
 
     try:
         import json as _json
-        from core.deck_quality import qa_pdf_render
 
+        from core.deck_quality import qa_pdf_render
         from core.deck_render import deck_bundle_dir
         bundle = deck_bundle_dir(pdf_path)
         spec_path = bundle / "deck-spec.json"

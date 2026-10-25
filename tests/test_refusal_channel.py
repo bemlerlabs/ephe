@@ -62,14 +62,14 @@ def test_the_guard_code_reaches_the_caller_through_the_registry(monkeypatch):
     assert dict(getattr(result, "params", {}) or {}) == {"host": "169.254.169.254"}
 
 
-def test_an_uncoded_refusal_stays_the_sentence_it_always_was(monkeypatch):
-    """The redirect paths hand over a plain string: no code, and nothing invented."""
+def test_an_uncoded_refusal_still_names_its_outcome(monkeypatch):
+    """The redirect paths hand over a plain string; the tool supplies the class."""
     url = "http://redirect-without-location.example/"
     result = _through_registry(monkeypatch, _plain, url)
 
     assert isinstance(result, str)
     assert "Redirect without a target." in result
-    assert getattr(result, "code", None) is None
+    assert getattr(result, "code", None) == "fetch_refused"
 
 
 def test_a_coded_exception_arrives_with_its_code_through_the_error_sink(monkeypatch):

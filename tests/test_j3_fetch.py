@@ -1,12 +1,11 @@
-"""J3 parity round: fetch_url (URL→text→prompt answer, TTL cache, caps).
-Hermetic: HTTP + model mocked through the module's own helpers."""
+"""J3 parity round: fetch_url (URL→text, TTL cache, caps).
+Hermetic: HTTP mocked through the module's own helper; no model is called."""
 from __future__ import annotations
 
 import pytest
 
 from core.tools import fetch_tools
 from core.tools.fetch_tools import _html_to_text, fetch_url
-
 
 # Conversion
 
@@ -35,16 +34,12 @@ async def test_cache_hit_avoids_second_http(monkeypatch):
         calls.append(url)
         return 200, "<h1>T</h1><p>inhalt</p>"
 
-    async def fake_chat(model, messages):
-        return "ANTWORT"
-
     monkeypatch.setattr(fetch_tools, "_http_get", fake_get)
-    monkeypatch.setattr(fetch_tools, "_chat_once", fake_chat)
     fetch_tools._FETCH_CACHE.clear()
 
     a = await fetch_url("https://example.org", "frage")
     b = await fetch_url("https://example.org", "frage")
-    assert a == "ANTWORT" and b == "ANTWORT"
+    assert a == b and "# T" in a and "inhalt" in a
     assert len(calls) == 1  # second call comes from the TTL cache
 
 
@@ -56,11 +51,7 @@ async def test_cache_expiry_triggers_refetch(monkeypatch):
         calls.append(url)
         return 200, "<p>x</p>"
 
-    async def fake_chat(model, messages):
-        return "A"
-
     monkeypatch.setattr(fetch_tools, "_http_get", fake_get)
-    monkeypatch.setattr(fetch_tools, "_chat_once", fake_chat)
     fetch_tools._FETCH_CACHE.clear()
 
     await fetch_url("https://example.org", "f")
