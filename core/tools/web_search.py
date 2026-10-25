@@ -61,7 +61,12 @@ def _status_token(exc: BaseException) -> str:
 
 def _one_backend(query: str, max_results: int, backend: str) -> list[dict]:
     with DDGS() as ddgs:
-        raw = ddgs.text(query, max_results=max_results, backend=backend)
+        try:
+            raw = ddgs.text(query, max_results=max_results, backend=backend)
+        except TypeError:
+            # A ddgs build without the per-backend switch: the call still works,
+            # the status line then names the rotation it actually got.
+            raw = ddgs.text(query, max_results=max_results)
     return raw or []
 
 
