@@ -7,7 +7,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-Nothing yet. The chat fix from `cbd5e7e` ships in 0.1.5.
+### Added
+- A stream that closes now writes one content-free `stream_closed` ledger line
+  with the close code, last frame type, elapsed and heartbeat ages and the
+  provider; the client writes the matching diagnostic with the turn id, so the
+  two can be joined (`13780f3`).
+- The marketplace catalogs merge into one index with a field contract
+  (publisher, licence, version, SHA-256, source, content), an alias map and a
+  verification record; the third-party Superpowers pack is complete with its
+  upstream MIT licence, German copy and an icon (`2b48a3f`).
+- A local decision layer reads a decision's distribution from one decoder
+  position, off by default, with a 60-case measurement harness (`f2fcea1`).
+
+### Changed
+- `ephe update --json` writes one document and sends the children's prose to
+  stderr; `ephe plugin list --json` is new; the empty-session hint names a
+  command the parser accepts (`a0a0e90`).
 
 ## [0.1.5] - 2026-10-25
 
