@@ -5,22 +5,16 @@ tests/test_r53_plugin_store.py
 RULE: tests written BEFORE the implementation.
 
 Pins (accepted against plan step 5):
-1. sha256 check path: hash mismatch → no unpacking (the target folder stays empty),
-   status 'hash_mismatch'. Hash match → unpacked, status 'extracted'.
-2. Manifest field `restorable: true` + a local edit (drift) → no silent
-   re-seed: the modified file stays, status 'drift'.
-3. Source removed from the catalog → status 'orphaned', the plugin stays loadable
-   (folder presence is enough, not catalog presence).
-4. Auto-refresh throttles (fake clock, min interval 600 s, single-flight);
+1. Orphan detection: a plugin whose source left the catalog is 'orphaned' and
+   stays loadable (folder presence is enough, not catalog presence).
+2. Auto-refresh throttles (fake clock, min interval 600 s, single-flight);
    a manual refresh (force=True) ignores the throttle.
-5. `example_prompts: [str]` from the manifest is passed through to the entry.
+3. `example_prompts: [str]` from the manifest is passed through to the entry.
 """
 from __future__ import annotations
 
 import hashlib
-import io
 import json
-import zipfile
 from pathlib import Path
 
 from core import plugin_store
@@ -29,7 +23,6 @@ from core.plugin_store import (
     MIN_REFRESH_INTERVAL_S,
     RefreshThrottle,
     detect_orphans,
-    install_package,
     load_catalog,
     load_registry,
     sha256_hex,
@@ -37,14 +30,6 @@ from core.plugin_store import (
 
 
 # Helpers
-
-def _make_zip(entries: dict[str, str]) -> bytes:
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w") as zf:
-        for name, text in entries.items():
-            zf.writestr(name, text)
-    return buf.getvalue()
-
 
 def _manifest(name: str, *, restorable: bool | None = None,
               example_prompts: list[str] | None = None) -> str:
@@ -56,54 +41,14 @@ def _manifest(name: str, *, restorable: bool | None = None,
     return json.dumps(payload)
 
 
-# 1 · sha256 check path
+# 1 · hash helper
 
 def test_sha256_hex_matches_hashlib():
     data = b"ephe"
     assert sha256_hex(data) == hashlib.sha256(data).hexdigest()
 
 
-def test_install_hash_mismatch_does_not_extract(tmp_path: Path) -> None:
-    payload = _make_zip({"demo/SKILL.md": _manifest("demo")})
-    dest = tmp_path / "skills"
-    res = install_package(payload, expected_sha256="0" * 64, dest_dir=dest)
-    assert res["status"] == "hash_mismatch"
-    # No unpacking: the folder does not exist or is empty.
-    assert not dest.exists() or list(dest.iterdir()) == []
-
-
-def test_install_hash_match_extracts_and_reports_name(tmp_path: Path) -> None:
-    payload = _make_zip({"demo/SKILL.md": _manifest("demo", example_prompts=["fasse 1 + 1"])})
-    expected = hashlib.sha256(payload).hexdigest()
-    dest = tmp_path / "skills"
-    res = install_package(payload, expected_sha256=expected, dest_dir=dest)
-    assert res["status"] == "extracted"
-    assert res["name"] == "demo"
-    assert res["example_prompts"] == ["fasse 1 + 1"]
-    assert (dest / "demo" / "SKILL.md").is_file()
-
-
-# 2 · Restorable-Drift
-
-def test_restorable_drift_keeps_local_edit(tmp_path: Path) -> None:
-    # Before: a locally installed, restorable plugin with content.
-    plugin_dir = tmp_path / "skills" / "demo"
-    plugin_dir.mkdir(parents=True)
-    skill_file = plugin_dir / "SKILL.md"
-    skill_file.write_text("LOCAL EDIT", encoding="utf-8")
-
-    payload = _make_zip({"demo/SKILL.md": _manifest("demo", restorable=True)})
-    expected = hashlib.sha256(payload).hexdigest()
-    res = install_package(
-        payload, expected_sha256=expected, dest_dir=tmp_path / "skills",
-        existing_dirs=("demo",),
-    )
-    assert res["status"] == "drift"
-    # The local edit is kept (no silent re-seed).
-    assert skill_file.read_text(encoding="utf-8") == "LOCAL EDIT"
-
-
-# 3 · Orphaned
+# 2 · Orphaned
 
 def test_detect_orphans_marks_removed_sources() -> None:
     catalog = {"public": [{"name": "alpha"}], "personal": [{"name": "beta"}]}

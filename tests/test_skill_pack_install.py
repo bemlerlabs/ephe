@@ -137,6 +137,23 @@ class TestInstallGuards:
         assert r.status_code == 422
         assert not (tmp_path / "skills" / "evil").exists()
 
+    def test_a_sibling_directory_sharing_the_prefix_is_outside_the_destination(
+        self, client, tmp_path
+    ):
+        """`/tmp/skills-evil` starts with `/tmp/skills` as text and is not inside it."""
+        from core import path_guard
+
+        dest = tmp_path / "skills"
+        assert path_guard.within(dest / "ok.md", dest)
+        assert not path_guard.within(tmp_path / "skills-evil" / "evil.md", dest)
+        archive = _zip({
+            "evil/SKILL.md": _skill_md("evil", "1.0.0").encode(),
+            "evil/../skills-evil/evil.txt": b"escape",
+        })
+        r = _install(client, archive)
+        assert r.status_code == 422
+        assert not (tmp_path / "skills-evil").exists()
+
     def test_given_absolute_entry_when_installed_then_rejected(self, client):
         r = _install(client, _zip({"/abs/evil.txt": b"x", "abs-tool/SKILL.md": _skill_md("abs-tool", "1.0.0").encode()}))
         assert r.status_code == 422

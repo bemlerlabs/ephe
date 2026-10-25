@@ -16,7 +16,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from core import skill_provenance, skill_signing
+from core import path_guard, skill_provenance, skill_signing
 from core.skills import SkillLoader, SkillLoadError, BUILTIN_SKILLS_DIR, _parse_skill
 
 router = APIRouter(tags=["Skills"])
@@ -410,7 +410,7 @@ def _extract_archive(data: bytes, dest: Path) -> None:
                 if info.file_size > MAX_ENTRY_BYTES:
                     raise _ArchiveRejected(f"single file too large: {rel!r}")
                 target = (dest / rel).resolve()
-                if not str(target).startswith(str(dest.resolve())):
+                if not path_guard.within(target, dest.resolve()):
                     raise _ArchiveRejected(f"Path traversal in archive: {rel!r}")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(info) as src, open(target, "wb") as out:
@@ -437,7 +437,7 @@ def _extract_archive(data: bytes, dest: Path) -> None:
                 if member.size > MAX_ENTRY_BYTES:
                     raise _ArchiveRejected(f"single file too large: {rel!r}")
                 target = (dest / rel).resolve()
-                if not str(target).startswith(str(dest.resolve())):
+                if not path_guard.within(target, dest.resolve()):
                     raise _ArchiveRejected(f"Path traversal in archive: {rel!r}")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 src = tf.extractfile(member)

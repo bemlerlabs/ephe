@@ -13,7 +13,6 @@ fail-soft (faulty entry → skip the entry, the rest stays readable).
 
 Core API (anchored in tests/test_r53_plugin_store.py):
 - `sha256_hex(data)`                         — hash helper
-- `install_package(...)`                    — sha256 check path + unpacking
 - `detect_orphans(catalog, installed)`      — catalogue vs. installed
 - `RefreshThrottle`                         — throttle (fake-clock capable)
 - `load_catalog(path)`                      — two-segment reader
@@ -24,11 +23,9 @@ Ephe – Bad Liebenzell, Black Forest
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import os
 import re
-import zipfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -227,64 +224,6 @@ def detect_orphans(
             if isinstance(entry, dict) and entry.get("name"):
                 known.add(str(entry["name"]))
     return sorted({str(n) for n in installed if str(n) not in known})
-
-
-# Unpacking with a sha256 check path
-
-def _manifest_of(zf: zipfile.ZipFile) -> dict[str, Any]:
-    """Read the first `SKILL.md` in the archive as a JSON manifest; otherwise {}."""
-    for member in zf.namelist():
-        if member.endswith("SKILL.md"):
-            try:
-                parsed = json.loads(zf.read(member).decode("utf-8"))
-            except (ValueError, KeyError, UnicodeDecodeError):
-                return {}
-            return parsed if isinstance(parsed, dict) else {}
-    return {}
-
-
-def _plugin_name(zf: zipfile.ZipFile, manifest: dict[str, Any]) -> str:
-    """Name from the manifest; fallback: top-level folder of the first member."""
-    name = manifest.get("name")
-    if isinstance(name, str) and name.strip():
-        return name.strip()
-    names = zf.namelist()
-    if not names:
-        return ""
-    return names[0].split("/", 1)[0]
-
-
-def install_package(
-    payload: bytes,
-    *,
-    expected_sha256: str,
-    dest_dir: Path,
-    existing_dirs: tuple[str, ...] | None = None,
-) -> dict[str, Any]:
-    """Install a plugin package (zip bytes) via a sha256 check path.
-
-    Status return (always a dict with `status`):
-    - `hash_mismatch`  — actual hash != expected; NOT unpacked (dest stays empty).
-    - `drift`          — `restorable: true` + local edit; no re-seed, the edit stays.
-    - `extracted`      — hash hit, unpacked; `name` + `example_prompts` set.
-    """
-    if sha256_hex(payload) != expected_sha256:
-        return {"status": "hash_mismatch", "name": "", "example_prompts": []}
-
-    with zipfile.ZipFile(io.BytesIO(payload)) as zf:
-        manifest = _manifest_of(zf)
-        name = _plugin_name(zf, manifest)
-        prompts = manifest.get("example_prompts")
-        example_prompts = [str(p) for p in prompts] if isinstance(prompts, list) else []
-
-        if manifest.get("restorable") is True and name in (existing_dirs or ()):
-            # Drift: the local edit has priority — no silent re-seed.
-            return {"status": "drift", "name": name, "example_prompts": example_prompts}
-
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        zf.extractall(path=str(dest_dir))
-
-    return {"status": "extracted", "name": name, "example_prompts": example_prompts}
 
 
 # Auto-refresh throttle
