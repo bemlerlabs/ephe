@@ -41,7 +41,7 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # 13.45 kB gzip; the row carries ~10% headroom.
     "SchedulerPanel.js": 14.8,
     "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
-    "motion.js": 30.8,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion)
+    "motion.js": 35.2,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion; 2026-10-25: 14.5 measures 31.99)
     "ui-vendor.js": 40.0,    # lucide-react, i18next
     # tailwind output (2026-10-15: 42.0 before the font subsets were named).
     # Raised on 2026-10-18 for the model picker: its panel, filter chips, capability
@@ -151,7 +151,10 @@ MEASURED_GZIP_KB: dict[str, float] = {
     # animated surface (the root mounts the feature set once, App.tsx) — the drag
     # controls and the layout projection engine the `motion` component carried went
     # with it: 40.99 -> 27.96 kB gzip.
-    "motion.js": 27.96,
+    # 2026-10-25: framer-motion 14.5 grew the same `m` + domAnimation root from
+    # 27.96 to 31.99 kB gzip. Measured from app/dist; the row keeps the ~10%
+    # headroom the others carry. The 50 ms frame budget is a separate instrument.
+    "motion.js": 31.99,
     "ui-vendor.js": 35.22,
     # 2026-10-15, same wave: the font imports name their subsets, so the entry CSS
     # no longer declares cyrillic/cyrillic-ext/greek/greek-ext/vietnamese faces for
