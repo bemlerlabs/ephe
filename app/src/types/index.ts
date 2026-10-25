@@ -45,7 +45,7 @@ export interface ToolCall {
    * stays the text a client that predates this field reads. */
   reason_code?: string
   reason_params?: Record<string, string | number>
-  status: 'pending' | 'approved' | 'denied' | 'completed' | 'waiting'
+  status: 'pending' | 'approved' | 'denied' | 'completed' | 'failed' | 'waiting'
   description?: string
   /** K3 Z08: run time of the call (from the tool_done frame, seconds) */
   duration_ms?: number

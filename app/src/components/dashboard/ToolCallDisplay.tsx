@@ -23,7 +23,6 @@ import {
 import { Badge } from '@/components/ui'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import SmartTip from './SmartTip'
 import type { ToolCall } from '@/store/chatStore'
 import {
   classifyToolCall,
@@ -33,6 +32,7 @@ import {
 } from '@/lib/toolCardModel'
 import { useTasks } from '@/hooks/useTasks'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import { readerText } from '@/lib/readerText'
 import './ToolCallDisplay.css'
 /**
  * Ephe — tool activities in the chat stream (reference-B parity Z01–Z06, round E).
@@ -65,6 +65,7 @@ function statusVariant(
     case 'approved':
       return 'success'
     case 'denied':
+    case 'failed':
       return 'destructive'
     case 'completed':
       return 'info'
@@ -106,13 +107,24 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
     model.family === 'write' &&
     typeof tool.args?.['content'] === 'string' &&
     (tool.args['content'] as string).trim() !== ''
-  // A failed run: a non-zero shell exit, or a call the guard refused outright.
+  // A failed run: a non-zero shell exit, an outright refusal, or a failure the
+  // backend named (a fetch that timed out, an HTTP error, a tool error).
   const isError =
     tool.status === 'denied' ||
+    tool.status === 'failed' ||
     (tool.status === 'completed' &&
       model.family === 'shell' &&
       model.exit !== null &&
       model.exit.code !== 0)
+  const reasonText =
+    tool.status === 'failed'
+      ? readerText(
+          t,
+          tool.reason_code,
+          tool.reason_params,
+          (result ?? '').split('\n')[0]?.replace(/^\[fetch failed\]\s*/, '') ?? '',
+        )
+      : ''
   // Compact pill default; the body opens on click, on a running call, on a
   // finished document, on a failed run, and on an approval the user must answer.
   const [open, setOpen] = useState(
@@ -137,7 +149,9 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
             ? t('chat.toolApproved', { tool: tool.name })
             : tool.status === 'denied'
               ? t('chat.toolDenied', { tool: tool.name })
-              : tool.status
+              : tool.status === 'failed'
+                ? t('chat.toolFailed', { tool: tool.name })
+                : tool.status
 
   const Icon = ICONS[model.icon]
   const monoTarget =
@@ -172,17 +186,13 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
         : 'is-done'
 
   return (
-    <SmartTip
-      testId="tool-card-tip"
-      block
-      tip={{ title: t(`${tipKey}.title`), body: t(`${tipKey}.body`) }}
+    <div
+      className="tool-pill rounded-lg px-2.5 py-1"
+      data-testid="tool-card"
+      data-family={model.family}
+      data-status={tool.status}
     >
-      <div
-        className="tool-pill rounded-lg px-2.5 py-1"
-        data-testid="tool-card"
-        data-family={model.family}
-      >
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
           <span className={`tool-status ${statusKind}`} aria-hidden="true">
             {statusKind === 'is-running' ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -212,7 +222,7 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
           </span>
           {model.target !== '' && (
             <span
-              className={`text-ui-xs text-foreground/80 truncate min-w-0 ${monoTarget ? 'font-mono' : ''}`}
+              className={`min-w-0 flex-1 break-words text-ui-xs text-foreground/80 ${monoTarget ? 'font-mono' : ''}`}
               title={model.target}
               data-testid="tool-target"
             >
@@ -292,17 +302,29 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
                 {(tool.duration_ms / 1000).toFixed(1)}s
               </span>
             )}
-            <Badge variant={statusVariant(tool.status)} className="shrink-0 hidden xl:inline-flex">
+            <Badge variant={statusVariant(tool.status)} className="shrink-0">
               {tool.name}
             </Badge>
-            <span className="text-ui-xs text-ink-faint truncate max-w-32" title={statusLabel}>
+            <span className="text-ui-xs text-ink-faint shrink-0" title={statusLabel}>
               {statusLabel}
             </span>
           </div>
         </div>
 
+        {reasonText !== '' && (
+          <div
+            data-testid="tool-failure-reason"
+            className="mt-1 break-words text-ui-xs text-status-danger"
+          >
+            {reasonText}
+          </div>
+        )}
+
         {open && hasContent && (
           <div className="tool-body mt-1.5 space-y-2" id={`tool-body-${tool.id ?? tool.name}`}>
+            <div data-testid="tool-card-hint" className="break-words text-ui-2xs text-ink-faint">
+              {t(`${tipKey}.title`)} — {t(`${tipKey}.body`)}
+            </div>
             {model.family === 'shell' && <ShellBody model={model} result={result} />}
             {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
             {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}
@@ -320,8 +342,7 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
             <TaskBody completed={tool.status === 'completed'} live={tool.status === 'pending'} />
           </div>
         )}
-      </div>
-    </SmartTip>
+    </div>
   )
 }
 

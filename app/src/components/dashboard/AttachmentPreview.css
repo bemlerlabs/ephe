@@ -1,0 +1,142 @@
+/* Attached files sit between the composer and the draft: a readable card with a
+   56 px image thumbnail, the name and the size. The thumbnail button and the
+   remove button are the two targets; on touch both reach 44 px. */
+
+.attachment-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 22rem;
+  padding: 0.375rem 0.5rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-decorative);
+  border-radius: var(--radius-md);
+  color: var(--color-ink-soft);
+}
+
+.attachment-card[data-state='error'] {
+  border-color: color-mix(in oklab, var(--color-signal-danger) 45%, transparent);
+}
+
+.attachment-thumb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-active);
+  border: 1px solid var(--border-decorative);
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+}
+
+.attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.attachment-icon-error {
+  color: var(--color-signal-danger);
+}
+
+.attachment-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-ui-xs);
+  color: var(--color-foreground);
+}
+
+.attachment-size,
+.attachment-state-error {
+  font-size: var(--text-ui-2xs);
+  color: var(--color-ink-faint);
+}
+
+.attachment-state-error {
+  color: var(--color-signal-danger);
+}
+
+.attachment-remove {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  margin-left: 0.125rem;
+  color: var(--color-ink-faint);
+  border-radius: var(--radius-sm);
+}
+
+.attachment-remove:hover {
+  color: var(--color-signal-danger);
+}
+
+@media (pointer: coarse) {
+  .attachment-remove,
+  .attachment-thumb {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+.attachment-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgb(0 0 0 / 0.78);
+  cursor: zoom-out;
+}
+
+.attachment-lightbox img {
+  max-width: min(90vw, 1200px);
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  cursor: default;
+}
+
+.attachment-lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-foreground);
+  background: var(--surface-active);
+  border: 1px solid var(--border-decorative);
+  border-radius: var(--radius-md);
+}
