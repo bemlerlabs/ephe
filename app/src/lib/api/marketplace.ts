@@ -183,6 +183,28 @@ export function installMarketPlan(plan: MarketPlan): Promise<MarketInstallResult
   })
 }
 
+export function switchMarketPlugin(body: {
+  name: string
+  enabled: boolean
+  sourceId?: string
+  version?: string
+  approvePermissions?: boolean
+  allowLocalTrust?: boolean
+}): Promise<MarketInstallResult & { phase?: string }> {
+  return request<MarketInstallResult & { phase?: string }>('/api/market/switch', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: body.name,
+      enabled: body.enabled,
+      source_id: body.sourceId ?? 'bundled',
+      version: body.version ?? '',
+      approve_permissions: Boolean(body.approvePermissions),
+      allow_local_trust: Boolean(body.allowLocalTrust),
+    }),
+    timeoutMs: 180_000,
+  })
+}
+
 export function rollbackMarketPlugin(name: string): Promise<MarketInstallResult> {
   return request<MarketInstallResult>('/api/market/rollback', {
     method: 'POST',

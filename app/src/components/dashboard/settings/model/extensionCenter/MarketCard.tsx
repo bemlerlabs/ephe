@@ -36,6 +36,11 @@ export function MarketCard({
   onInstall,
   onRemove,
   onRollback,
+  onSwitch,
+  switchBusy = false,
+  consent,
+  onConsentAllow,
+  onConsentCancel,
 }: {
   plugin: MarketPlugin
   installed?: MarketInstalledRow
@@ -46,6 +51,11 @@ export function MarketCard({
   onInstall: (version: MarketVersion) => void
   onRemove: () => void
   onRollback: () => void
+  onSwitch?: (enabled: boolean) => void
+  switchBusy?: boolean
+  consent?: { families: string[]; roots: string[] } | null
+  onConsentAllow?: () => void
+  onConsentCancel?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [iconOk, setIconOk] = useState(true)
@@ -143,7 +153,68 @@ export function MarketCard({
         </div>
       </div>
 
+      {consent && (
+        <div
+          data-testid={`market-consent-${plugin.name}`}
+          className="rounded-lg border border-status-warning/40 bg-status-warning/10 p-2 space-y-1"
+        >
+          <p className="text-ui-2xs font-medium text-foreground/85">
+            {t('settings.marketConsentTitle')}
+          </p>
+          {(consent.families.length > 0 || consent.roots.length > 0) && (
+            <p className="text-ui-2xs text-ink-soft">
+              {t('settings.marketConsentDelta')}: {[...consent.families, ...consent.roots].join(', ')}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={PRIMARY}
+              onClick={() => onConsentAllow?.()}
+              data-testid={`market-consent-allow-${plugin.name}`}
+            >
+              {t('settings.marketConsentAllow')}
+            </button>
+            <button
+              type="button"
+              className={BUTTON}
+              onClick={() => onConsentCancel?.()}
+              data-testid={`market-consent-cancel-${plugin.name}`}
+            >
+              {t('settings.marketConsentCancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-1.5">
+        {installed && onSwitch && (
+          <span className="flex items-center gap-1.5">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={installed.enabled}
+              aria-label={
+                installed.enabled ? t('settings.marketSwitchOff') : t('settings.marketSwitchOn')
+              }
+              data-testid={`market-switch-${plugin.name}`}
+              disabled={busy || switchBusy}
+              onClick={() => onSwitch(!installed.enabled)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${
+                installed.enabled ? 'bg-brand' : 'bg-control'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  installed.enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className="text-ui-2xs text-ink-soft">
+              {installed.enabled ? t('settings.marketOn') : t('settings.marketOff')}
+            </span>
+          </span>
+        )}
         {update && updateVersion && !notInstallable && (
           <button
             type="button"

@@ -17,6 +17,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
     installMarketPlan: vi.fn(),
     rollbackMarketPlugin: vi.fn(),
     removeMarketPlugin: vi.fn(),
+    switchMarketPlugin: vi.fn(),
   }
 })
 
@@ -79,6 +80,12 @@ beforeEach(() => {
     status: 'extracted',
     name: 'alpha',
     version: '1.0.0',
+  } as never)
+  vi.mocked(api.switchMarketPlugin).mockResolvedValue({
+    status: 'disabled',
+    name: 'alpha',
+    version: '1.0.0',
+    enabled: false,
   } as never)
 })
 
@@ -401,3 +408,67 @@ describe('Extension Center', () => {
     expect(screen.queryByText(/settings\.marketReport/)).not.toBeInTheDocument()
   })
 })
+
+  it('switches an installed plugin off with one click', async () => {
+    vi.mocked(api.getMarketInstalled).mockResolvedValue({
+      plugins: [
+        {
+          name: 'alpha',
+          version: '1.0.0',
+          description: 'Alpha',
+          enabled: true,
+          origin: 'user',
+          components: ['skills'],
+          permissions: { tool_families: ['read'], data_roots: [] },
+        },
+      ],
+    } as never)
+    render(<ExtensionCenter model={model()} view="discover" />)
+    const toggle = await screen.findByTestId('market-switch-alpha')
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(toggle)
+    await waitFor(() =>
+      expect(api.switchMarketPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'alpha', enabled: false }),
+      ),
+    )
+  })
+
+  it('shows one inline consent for an unsigned switch instead of a modal', async () => {
+    vi.mocked(api.getMarketInstalled).mockResolvedValue({
+      plugins: [
+        {
+          name: 'alpha',
+          version: '1.0.0',
+          description: 'Alpha',
+          enabled: false,
+          origin: 'user',
+          components: ['skills'],
+          permissions: { tool_families: ['read'], data_roots: [] },
+        },
+      ],
+    } as never)
+    vi.mocked(api.switchMarketPlugin).mockRejectedValueOnce(
+      new api.ApiError('permission review', 428, 'permission_review', {
+        code: 'permission_review',
+        delta: {
+          tool_families_added: ['network'],
+          tool_families_removed: [],
+          data_roots_added: [],
+          data_roots_removed: [],
+          digest: 'd1',
+        },
+      }),
+    )
+    render(<ExtensionCenter model={model()} view="discover" />)
+    fireEvent.click(await screen.findByTestId('market-switch-alpha'))
+    const consent = await screen.findByTestId('market-consent-alpha')
+    expect(consent.textContent).toContain('network')
+    expect(screen.queryByTestId('market-review')).toBeNull()
+    fireEvent.click(screen.getByTestId('market-consent-allow-alpha'))
+    await waitFor(() =>
+      expect(api.switchMarketPlugin).toHaveBeenLastCalledWith(
+        expect.objectContaining({ enabled: true, approvePermissions: true }),
+      ),
+    )
+  })

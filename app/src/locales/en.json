@@ -1288,7 +1288,18 @@
     "marketProvenanceFirstParty": "First-party",
     "marketMeasuredNo": "Measured: no",
     "marketMeasuredOn": "Measured on {{engine}} · {{cases}} cases · pass³ {{pass3}}",
-    "marketTiers": "Tiers"
+    "marketTiers": "Tiers",
+    "marketSwitchOn": "Turn on",
+    "marketSwitchOff": "Turn off",
+    "marketOn": "on",
+    "marketOff": "off",
+    "marketSwitchedOn": "Plugin is on",
+    "marketSwitchedOff": "Plugin is off",
+    "marketSwitchFailed": "The switch did not take",
+    "marketConsentTitle": "This package needs your consent before it may run.",
+    "marketConsentDelta": "It asks for",
+    "marketConsentAllow": "Allow",
+    "marketConsentCancel": "Cancel"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",

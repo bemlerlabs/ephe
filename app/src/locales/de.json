@@ -1288,7 +1288,18 @@
     "marketProvenanceFirstParty": "Erstanbieter",
     "marketMeasuredNo": "Gemessen: nein",
     "marketMeasuredOn": "Gemessen auf {{engine}} · {{cases}} Fälle · pass³ {{pass3}}",
-    "marketTiers": "Stufen"
+    "marketTiers": "Stufen",
+    "marketSwitchOn": "Einschalten",
+    "marketSwitchOff": "Ausschalten",
+    "marketOn": "an",
+    "marketOff": "aus",
+    "marketSwitchedOn": "Plugin ist an",
+    "marketSwitchedOff": "Plugin ist aus",
+    "marketSwitchFailed": "Der Schalter hat nicht gegriffen",
+    "marketConsentTitle": "Dieses Paket braucht deine Zustimmung, bevor es laufen darf.",
+    "marketConsentDelta": "Es verlangt",
+    "marketConsentAllow": "Erlauben",
+    "marketConsentCancel": "Abbrechen"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",

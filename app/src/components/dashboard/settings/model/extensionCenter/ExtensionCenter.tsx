@@ -14,6 +14,7 @@ import {
   getMarketUpdates,
   installMarketPlan,
   planMarketInstall,
+  switchMarketPlugin,
   removeMarketPlugin,
   rollbackMarketPlugin,
 } from '@/lib/api'
@@ -63,6 +64,13 @@ export function ExtensionCenter({
   const [category, setCategory] = useState('')
   const [busy, setBusy] = useState('')
   const [pending, setPending] = useState<PendingInstall | null>(null)
+  // The switch's inline consent: exactly one block for the card that asked.
+  const [consent, setConsent] = useState<{
+    plugin: MarketPlugin
+    enabled: boolean
+    families: string[]
+    roots: string[]
+  } | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -206,6 +214,51 @@ export function ExtensionCenter({
     await startInstall(current.sourceId, current.plugin, current.version, true)
   }
 
+  const toggle = async (plugin: MarketPlugin, enabled: boolean, approve = false) => {
+    setBusy(plugin.name)
+    try {
+      const version = plugin.versions[0]
+      const result = await switchMarketPlugin({
+        name: plugin.name,
+        enabled,
+        version: version?.version,
+        approvePermissions: approve,
+        allowLocalTrust: approve || !version?.source.signature,
+      })
+      if (result.status === 'installed_disabled') {
+        toastBus.error(t('settings.marketInstallNotEnabled'), result.activation_error)
+      } else {
+        toastBus.success(
+          enabled ? t('settings.marketSwitchedOn') : t('settings.marketSwitchedOff'),
+          plugin.displayName,
+        )
+      }
+      setConsent(null)
+      await load()
+    } catch (err) {
+      const detail = detailOf(err)
+      if (detail.code === 'permission_review' || detail.code === 'local_trust_required') {
+        const delta = (detail.delta ?? {}) as {
+          tool_families_added?: string[]
+          data_roots_added?: string[]
+        }
+        setConsent({
+          plugin,
+          enabled,
+          families: delta.tool_families_added ?? [],
+          roots: delta.data_roots_added ?? [],
+        })
+      } else {
+        toastBus.error(
+          t('settings.marketSwitchFailed'),
+          err instanceof Error ? err.message : undefined,
+        )
+      }
+    } finally {
+      setBusy('')
+    }
+  }
+
   const remove = async (name: string) => {
     setBusy(name)
     try {
@@ -307,6 +360,15 @@ export function ExtensionCenter({
                   onInstall={(version) => void startInstall('bundled', plugin, version, false)}
                   onRemove={() => void remove(plugin.name)}
                   onRollback={() => void rollback(plugin.name)}
+                  onSwitch={(enabled) => void toggle(plugin, enabled)}
+                  switchBusy={busy === plugin.name}
+                  consent={
+                    consent?.plugin.name === plugin.name
+                      ? { families: consent.families, roots: consent.roots }
+                      : null
+                  }
+                  onConsentAllow={() => void toggle(consent!.plugin, consent!.enabled, true)}
+                  onConsentCancel={() => setConsent(null)}
                 />
               ))}
             </div>
