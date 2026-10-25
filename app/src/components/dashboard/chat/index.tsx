@@ -52,6 +52,7 @@ import { EpheMark } from '@/components/shell/EpheMark'
 import { useChatLayoutModel } from './model'
 import { useChatReadingWidth } from '@/lib/deepSettings'
 import { useTaskDeepLink } from './useTaskDeepLink'
+import { isMacPlatform } from '@/lib/shortcuts'
 
 // W3-1: the two heavy panes are their own chunks. The agent panel drags in xterm
 // and every tab; the artifact rail is only needed once a turn produced a file.
@@ -532,7 +533,10 @@ export default function ChatLayout() {
                       {t('artifacts.library')}
                       {railLibraryOpen && <span className="ml-auto text-ui-xs">✓</span>}
                     </DropdownMenuItem>
-                    {isTauri && (
+                    {/* macOS draws the native traffic lights over this window
+                        (tauri.conf titleBarStyle Overlay); a second minimize/
+                        maximize pair in the menu would duplicate them. */}
+                    {isTauri && !isMacPlatform() && (
                       <>
                         <DropdownMenuItem
                           onSelect={minimize}
