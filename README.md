@@ -61,7 +61,7 @@ Every tool result stays attached to the turn that produced it. A claim about a f
 
 ## Desktop, terminal, phone
 
-The desktop and browser share an installable web app (PWA) and one Python backend. `ephe desktop` builds and installs the desktop shell; `ephe start --open` opens the browser app.
+The desktop and browser share an installable web app (PWA) and one Python backend. `ephe desktop` builds and installs the desktop shell; `ephe start --open` opens the browser app. A build writes `Ephe.app` under `app/src-tauri/target/`; that copy is not an install. `ephe desktop` puts the app in `/Applications` and removes the build copy, and the update button rewrites the installed bundle.
 
 The terminal (`ephe tui`) uses the engine choice from `~/.ephe/engine.json`. A phone on your local network can open the PWA after `ephe start --lan --open`; public access is a separate opt-in path.
 

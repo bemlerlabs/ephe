@@ -124,6 +124,8 @@ ephe session list|new|switch|rm|rename
 ephe completion                # shell completion
 ```
 
+A build writes `app/src-tauri/target/release/bundle/macos/Ephe.app`. That copy is not an install. `ephe desktop` moves the bundle to `/Applications` and deletes the build copy, and the update button rewrites the installed bundle in place. Start the app from `/Applications`; a copy under `target/` is build output.
+
 ## Engine choice (no silent default)
 
 `ephe configure` asks once which engine to use and stores the answer in `~/.ephe/engine.json`. `ephe start`, `ephe tui`, `ephe code`, `ephe goal`, `ephe run`, `ephe serve` and the server (`run_server.py`) all read that same choice — one source of truth. Without a saved choice and without an explicit engine env they never pick an engine in silence: the CLI paths stop with an actionable hint, the server starts in **setup mode on loopback** with the chat closed until a choice exists, and a LAN bind refuses to start outright. For scripted or headless setups use `EPHE_MODEL_PROVIDER=local_ollama|custom_ollama|openai_compatible` plus the matching `EPHE_LOCAL_OLLAMA_BASE_URL` / `EPHE_CUSTOM_OLLAMA_BASE_URL` / `EPHE_OPENAI_COMPAT_BASE_URL` (+ model); an explicit `EPHE_MODEL_PROVIDER` without `EPHE_MODEL` is a configuration error that names the missing variable, not a request to fill one in. Explicit `--api-url` selects the engine; `--model` names the tag inside the chosen engine and never selects one — `ephe start --model <tag>` without a saved engine still opens in setup mode. API keys are never stored; a key is only read from `EPHE_OPENAI_COMPAT_API_KEY`. Template for an OpenAI-compatible / vLLM endpoint: `engine.example.json`, `.env.example`.
