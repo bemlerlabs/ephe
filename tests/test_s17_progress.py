@@ -43,7 +43,7 @@ def test_start_and_done_frames_carry_round_query_and_providers():
 
 
 def test_the_heartbeat_is_shorter_than_ten_seconds():
-    assert 0 < PROGRESS_HEARTBEAT_SECONDS <= 10
+    assert PROGRESS_HEARTBEAT_SECONDS == 5.0
 
 
 def test_a_mute_search_turn_still_ends_with_its_sources():

@@ -274,14 +274,14 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
           aria-label={file.name}
           onClick={() => setLightbox(false)}
           data-testid={`message-file-lightbox-${file.key}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-surface/95 p-4"
         >
           <img src={src} alt={file.name} className="max-h-full max-w-full object-contain" />
           <button
             type="button"
             onClick={() => setLightbox(false)}
             aria-label={t('artifacts.lightboxClose')}
-            className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white"
+            className="absolute right-4 top-4 rounded-full bg-surface/90 p-2 text-white"
           >
             <X className="h-5 w-5" />
           </button>

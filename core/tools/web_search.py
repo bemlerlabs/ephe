@@ -8,6 +8,7 @@ import re
 from ddgs import DDGS
 
 from core.net_guard import reach_by_name
+from core.tools.base import WebSearchError
 
 
 # W19 bench finding: DDGS rotates across backends (primp) and occasionally hangs
@@ -120,6 +121,8 @@ async def web_search(query: str, max_results: int = 5) -> str:
     status_line = "Providers: " + (", ".join(statuses) or "none tried")
 
     if not raw:
+        if statuses and all(line.endswith(("timeout", "error", "deadline")) for line in statuses):
+            raise WebSearchError(status_line)
         return f"No results found. {status_line}"
 
     def _source_quality(url: str) -> tuple[int, str]:
