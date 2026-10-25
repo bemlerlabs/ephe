@@ -7,8 +7,30 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-Nothing yet. The six 0.1.6 fixes are named below (`408d1e2`, `be4f90f`,
+The 0.1.7 fixes are named below (`a02adcf`, `b831014`, `36640f5`, `8e0b7a1`).
+The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.1.7] - 2026-10-26
+
+### Fixed
+- `fetch_url` returns the page text and no longer answers a prompt through a
+  local model, so a hosted engine no longer fails a fetch behind a card that
+  said Completed (`a02adcf`).
+- A tool call the backend marks failed is shown as Failed with its reason; an
+  approval refusal keeps `denied`, and the card no longer turns one into the
+  other (`b831014`).
+- Tool names and statuses wrap instead of clipping, and the family hint lives
+  in the card body instead of a hover popup over it (`b831014`).
+- An attached image shows a thumbnail that opens a lightbox; text and binary
+  files show their name and size, removal names the file, and a file that is
+  being read or cannot be read says so (`b831014`).
+- Fetch failures and refusals carry reader codes in both languages, and the
+  English line of every code is the engine-facing entry (`36640f5`).
+
+### Added
+- `docs/WORKING_BACKWARDS.md`, `docs/COMPETITIVE_MATRIX.md` and
+  `docs/AGENTS_PROPOSAL.md` (`8e0b7a1`).
 
 ## [0.1.6] - 2026-10-25
 
