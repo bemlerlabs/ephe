@@ -111,6 +111,11 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
       persistActive()
     },
 
+    setProgress: (progress) => {
+      // Ephemeral: the live line is not part of the persisted transcript.
+      set((s) => updateActiveMessage(s, (m) => ({ ...m, progress })))
+    },
+
     upsertActivity: (activity: {
       label: string
       status: Activity['status']

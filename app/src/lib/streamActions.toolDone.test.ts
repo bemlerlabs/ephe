@@ -33,6 +33,7 @@ function mockStore() {
     finishTurn: vi.fn(),
     beginHelperChat: vi.fn(),
     stepHelperChat: vi.fn(),
+    setProgress: vi.fn(),
     endHelperChat: vi.fn(),
   }
 }

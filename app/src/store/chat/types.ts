@@ -152,6 +152,17 @@ export interface ChatState {
   /** Upsert an activity (in place, 1 entry per label; detail overrides) */
   /** A3: write the turn id onto the active assistant message. */
   setTurnId: (turnId: string) => void
+  /** S17: the live progress of the running tool on the active assistant message. */
+  setProgress: (progress: {
+    tool: string
+    round: number
+    roundCap: number
+    phase: string
+    elapsedMs: number
+    query?: string
+    providers?: string
+    status?: string
+  }) => void
   upsertActivity: (activity: {
     label: string
     status: Activity['status']

@@ -64,6 +64,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
     case 'usage':
     case 'vision_learning':
     case 'turn':
+    case 'progress':
     case 'vision_learned_success':
     case 'sandbox_confirm':
     case 'ask_user':

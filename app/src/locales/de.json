@@ -437,7 +437,9 @@
     "modelGroupSetup": "Engine einrichten",
     "modelGroupChat": "Chat-Modelle",
     "modelGroupOther": "Andere Typen (Sprache, Bild)",
-    "modelGroupUnconfigured": "Ohne Endpunkt — nicht konfigurierbar"
+    "modelGroupUnconfigured": "Ohne Endpunkt — nicht konfigurierbar",
+    "searchProgress": "Arbeitet seit {{time}} · Websuche {{round}}/{{cap}}",
+    "searchWaiting": "wartet auf Websuche"
   },
   "sidebar": {
     "navWorkspaces": "Arbeitsbereiche",

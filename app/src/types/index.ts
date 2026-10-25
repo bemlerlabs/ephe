@@ -181,6 +181,8 @@ export interface ChatMessage {
    * workbench card born from it — the chain runs in both directions because
    * both sides carry the same value. */
   turnId?: string
+  /** S17: the live `progress` frame of the running tool (round, query, elapsed). */
+  progress?: TurnProgress
   tool_calls?: ToolCall[]
   /** Chronological render plan (text/tool/thinking blocks); missing for legacy seeds → old fixed order */
   blocks?: MessageBlock[]
@@ -636,6 +638,30 @@ export interface StreamSwarmStatus {
   swarm_id?: string
 }
 
+export interface TurnProgress {
+  tool: string
+  round: number
+  roundCap: number
+  phase: string
+  elapsedMs: number
+  query?: string
+  providers?: string
+  status?: string
+}
+
+export interface StreamProgress {
+  type: 'progress'
+  turn_id?: string
+  round: number
+  round_cap: number
+  tool: string
+  phase: string
+  elapsed_ms: number
+  query?: string
+  providers?: string
+  status?: string
+}
+
 export interface StreamTurn {
   type: 'turn'
   turn_id: string
@@ -690,6 +716,7 @@ export interface StreamUsage {
 
 export type StreamEvent =
   | StreamTurn
+  | StreamProgress
   | StreamThinkingStart
   | StreamThinkingChunk
   | StreamChunk

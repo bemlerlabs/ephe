@@ -43,6 +43,7 @@ type Store = Pick<
   | 'upsertToolCall'
   | 'upsertActivity'
   | 'setTurnId'
+  | 'setProgress'
   | 'attachArtifact'
   | 'setPlan'
   | 'beginGoal'
@@ -211,6 +212,19 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       // A3: the id belongs on the message, so the workbench can show back
       // which request a file was born from.
       store.setTurnId(event.turn_id)
+      break
+
+    case 'progress':
+      store.setProgress({
+        tool: event.tool,
+        round: event.round,
+        roundCap: event.round_cap,
+        phase: event.phase,
+        elapsedMs: event.elapsed_ms,
+        query: event.query,
+        providers: event.providers,
+        status: event.status,
+      })
       break
 
     case 'file_result':

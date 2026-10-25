@@ -15,6 +15,7 @@ import { parsePlanCard } from '@/lib/planCardModel'
 import MessageFileCard from '../artifacts/messageCard'
 import { producedFiles } from '../artifacts/messageCard'
 import { claimsMissingImage } from '@/lib/artifactClaims'
+import TurnProgressLine from './turnProgress'
 import { summarizeToolDiff } from '@/lib/diffSummaryModel'
 import { useChatStore } from '@/store/chatStore'
 
@@ -31,6 +32,10 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
   const isAssistant = m.role === 'assistant'
   return (
     <>
+      {m.streaming && m.progress && !m.error && (
+        <TurnProgressLine progress={m.progress} />
+      )}
+
       {/* P3 : subagent/swarm rows stay visible even after
                   turn end ("Explore · Completed") — permanently below
                   the tool groups, a pure derivation from m.activities. */}
