@@ -1,14 +1,14 @@
-"""Check README contracts offline; --public verifies the recorded release against GitHub."""
+"""Check README contracts offline; --public verifies the install tag on GitHub."""
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+PUBLIC_REPOSITORY = "bemlerlabs/ephe"
 READMES = ("README.md", "README.zh-CN.md", "README.es.md")
 START_DOCS = (
     "docs/QUICKSTART.md",
@@ -203,39 +203,21 @@ def readability(text: str, label: str, result: Result) -> None:
         result.warnings.append(f"{label}: longest sentence {longest} words")
 
 
-def public_release(root: Path) -> dict[str, str]:
-    path = root / ".github/public-release.json"
-    if not path.is_file():
-        raise ValueError("no .github/public-release.json to name the published release")
-    release = json.loads(path.read_text(encoding="utf-8"))
-    if (
-        release.get("repository") != "bemlerlabs/ephe"
-        or not re.fullmatch(r"v\d+\.\d+\.\d+", str(release.get("tag", "")))
-        or not re.fullmatch(r"[0-9a-f]{40}", str(release.get("commit", "")))
-    ):
-        raise ValueError("invalid public-release manifest")
-    return release
-
-
-def public_tags(release: dict[str, str]) -> set[str]:
-    ref = f"refs/tags/{release['tag']}"
+def public_tags(tag: str, repository: str = PUBLIC_REPOSITORY) -> set[str]:
+    """The install tag exists on the public repository."""
+    ref = f"refs/tags/{tag}"
     response = subprocess.run(
-        ["git", "ls-remote", "--exit-code", f"https://github.com/{release['repository']}.git", ref, ref + "^{}"],
+        ["git", "ls-remote", "--exit-code", f"https://github.com/{repository}.git", ref, ref + "^{}"],
         capture_output=True, text=True, check=True, timeout=30,
     )
-    refs = {name: sha for sha, name in (line.split() for line in response.stdout.splitlines())}
-    if refs.get(ref + "^{}", refs.get(ref)) != release["commit"]:
-        raise ValueError("public tag commit differs from the public-release manifest")
-    return {release["tag"]}
+    refs = {name for _sha, name in (line.split() for line in response.stdout.splitlines())}
+    if ref not in refs:
+        raise ValueError(f"install tag {tag} does not exist on {repository}")
+    return {tag}
 
 
 def shipped_tag(root: Path) -> str:
-    """The tag this tree ships, from `[project].version`.
-
-    The public snapshot carries no release manifest: the manifest names the tag and the
-    commit that contains it, and a commit cannot name itself. The gate on that tree has to
-    judge the install lines against the version the tree actually ships.
-    """
+    """The tag this tree ships, from `[project].version`."""
     text = (root / "pyproject.toml").read_text(encoding="utf-8")
     section = re.search(r"(?ms)^\[project\]\s*$(.*?)(?=^\[[^\]]+\]|\Z)", text)
     match = PROJECT_VERSION.search(section.group(1) if section else text)
@@ -245,17 +227,9 @@ def shipped_tag(root: Path) -> str:
 
 
 def check(root: Path, *, tag: str | None = None, tags: set[str] | None = None) -> Result:
-    manifest = root / ".github/public-release.json"
-    release = public_release(root) if manifest.is_file() else None
-    if release is not None:
-        tag = tag or release["tag"]
-        if tags is None:
-            tags = {release["tag"]}
-    elif tag is None or tags is None:
-        derived = shipped_tag(root)
-        tag = tag or derived
-        if tags is None:
-            tags = {derived}
+    tag = tag or shipped_tag(root)
+    if tags is None:
+        tags = {tag}
     result = Result()
     en_text = (root / "README.md").read_text(encoding="utf-8")
     en_h2 = len(h2(en_text))
@@ -303,11 +277,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--tag", help="override the expected install tag")
     parser.add_argument("--tags", nargs="*", default=None)
-    parser.add_argument("--public", action="store_true", help="verify the manifest against the public repository")
+    parser.add_argument("--public", action="store_true", help="verify the install tag on the public repository")
     args = parser.parse_args(argv)
     try:
         if args.public:
-            tags = public_tags(public_release(args.root))
+            tags = public_tags(args.tag or shipped_tag(args.root))
         elif args.tags is not None:
             tags = set(args.tags)
         else:

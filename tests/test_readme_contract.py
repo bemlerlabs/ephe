@@ -7,7 +7,6 @@ turn the gate into prose.
 from __future__ import annotations
 
 import importlib.util
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -45,25 +44,21 @@ def _minimal_tree(tmp_path: Path) -> Path:
     return root
 
 
-def test_an_explicit_tag_needs_no_manifest(tmp_path):
-    """The public snapshot carries no release manifest, so the gate that judges it must run
-    on the tag being cut instead of resolving one from workshop state."""
+def test_an_explicit_tag_is_used_as_given(tmp_path):
     root = _minimal_tree(tmp_path)
-    assert not (root / ".github/public-release.json").exists()
-    result = readme.check(root, tag="v0.1.3", tags={"v0.1.3"})
+    result = readme.check(root, tag="v0.1.3")
     assert result.problems == [], "\n".join(result.problems)
 
 
-def test_no_manifest_falls_back_to_the_version_this_tree_ships(tmp_path):
-    """The public snapshot ships no manifest, so its own suite judges the install lines
-    against `[project].version` instead of failing on the absent workshop file."""
+def test_the_shipped_version_is_the_tag(tmp_path):
+    """The tree's own version is the only tag source; no release manifest exists."""
     root = _minimal_tree(tmp_path)
-    assert not (root / ".github/public-release.json").exists()
+    assert readme.shipped_tag(root) == "v0.1.3"
     result = readme.check(root)
     assert result.problems == [], "\n".join(result.problems)
 
 
-def test_no_manifest_and_no_concrete_version_is_refused(tmp_path):
+def test_no_concrete_version_is_refused(tmp_path):
     root = _minimal_tree(tmp_path)
     (root / "pyproject.toml").write_text(
         '[project]\nversion = "0.0.0+unknown"\n', encoding="utf-8"
@@ -72,22 +67,24 @@ def test_no_manifest_and_no_concrete_version_is_refused(tmp_path):
         readme.check(root)
 
 
-def test_offline_cli_uses_the_manifest_despite_unrelated_local_tags(monkeypatch):
+def test_offline_cli_derives_the_tag_from_the_version(monkeypatch):
     monkeypatch.setattr(readme.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a[0], 0, "v0.0.0\n", ""))
     assert readme.main(["--root", str(ROOT)]) == 0
 
 
-def test_a_later_release_uses_the_manifest_without_code_changes(tmp_path):
-    (tmp_path / ".github").mkdir()
-    metadata = {"repository": "bemlerlabs/ephe", "tag": "v9.8.7", "commit": "a" * 40}
-    (tmp_path / ".github/public-release.json").write_text(json.dumps(metadata))
-    release = readme.public_release(tmp_path)
-    result = readme.Result()
-    readme.check_install(
-        "https://raw.githubusercontent.com/bemlerlabs/ephe/v9.8.7/install.sh",
-        "README.md", release["tag"], {release["tag"]}, result,
+def test_a_later_version_needs_no_code_changes(tmp_path):
+    root = _minimal_tree(tmp_path)
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "ephe"\nversion = "9.8.7"\n', encoding="utf-8"
     )
-    assert result.problems == []
+    for rel in ("README.md", "README.zh-CN.md", "README.es.md", *readme.START_DOCS):
+        path = root / rel
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("/v0.1.3/", "/v9.8.7/"),
+            encoding="utf-8",
+        )
+    result = readme.check(root)
+    assert result.problems == [], "\n".join(result.problems)
 
 
 def test_no_tag_evidence_is_a_failure():
@@ -99,23 +96,26 @@ def test_no_tag_evidence_is_a_failure():
     assert any("does not exist" in problem for problem in result.problems)
 
 
-def test_public_tag_verification_checks_the_manifest_commit(monkeypatch):
-    release = {"repository": "bemlerlabs/ephe", "tag": "v9.8.7", "commit": "a" * 40}
+def test_a_missing_public_tag_is_refused(monkeypatch):
+    monkeypatch.setattr(
+        readme.subprocess, "run",
+        lambda *a, **k: subprocess.CompletedProcess(a[0], 0, "", ""),
+    )
+    with pytest.raises(ValueError, match="does not exist"):
+        readme.public_tags("v9.8.7")
 
-    def remote(*args, **kwargs):
-        assert "refs/tags/v9.8.7^{}" in args[0]
-        return subprocess.CompletedProcess(args[0], 0, "b" * 40 + "\trefs/tags/v9.8.7^{}\n", "")
+
+def test_public_tag_verification_uses_the_public_repository(monkeypatch):
+    seen: dict[str, list[str]] = {}
+
+    def remote(args, **kwargs):
+        seen["args"] = args
+        output = "b" * 40 + "\trefs/tags/v9.8.7\n" + "a" * 40 + "\trefs/tags/v9.8.7^{}\n"
+        return subprocess.CompletedProcess(args, 0, output, "")
 
     monkeypatch.setattr(readme.subprocess, "run", remote)
-    with pytest.raises(ValueError, match="commit"):
-        readme.public_tags(release)
-
-
-def test_public_tag_verification_accepts_a_matching_annotated_tag(monkeypatch):
-    release = {"repository": "bemlerlabs/ephe", "tag": "v9.8.7", "commit": "a" * 40}
-    output = "b" * 40 + "\trefs/tags/v9.8.7\n" + "a" * 40 + "\trefs/tags/v9.8.7^{}\n"
-    monkeypatch.setattr(readme.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a[0], 0, output, ""))
-    assert readme.public_tags(release) == {"v9.8.7"}
+    assert readme.public_tags("v9.8.7") == {"v9.8.7"}
+    assert any("github.com/bemlerlabs/ephe" in arg for arg in seen["args"])
 
 
 def test_a_foreign_install_tag_is_refused():

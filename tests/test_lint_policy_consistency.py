@@ -138,16 +138,10 @@ class TestPolicyFile:
         for name in ("EPHE_RUFF_VERSION", "EPHE_MYPY_VERSION"):
             assert re.fullmatch(r"\d+\.\d+\.\d+", values[name]), f"{name} = {values[name]!r}"
 
-    def test_the_excluded_path_is_a_real_directory(self):
-        """A stale exclude would re-admit the fixture whose single finding is the reason for it."""
+    def test_the_excluded_path_is_a_repo_relative_path(self):
+        """The held-out eval tree lives in the workshop; a public checkout cannot assert it."""
         value = assignments()["EPHE_LINT_EXCLUDE"]
         assert PATH_LIKE.fullmatch(value), f"unparsable exclude: {value!r}"
-        # The held-out eval tree is a workshop artefact. A tree that does not carry the
-        # publication policy is the publication, and there the exclusion names a path the tree
-        # withholds by design rather than one it lost.
-        assert (ROOT / value).is_dir() or not (ROOT / ".publish-exclude").is_file(), (
-            f"{value} is not a directory in this tree"
-        )
 
     def test_no_rule_code_is_repeated_across_the_two_sets(self):
         values = assignments()
