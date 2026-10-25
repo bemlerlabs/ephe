@@ -48,10 +48,7 @@ PROTECTED_PREFIXES = (
     "videos/",
     "out/",
     "docs/media/user-walkthrough-2026-10-12/",
-    # A pack's description is the copy its German user reads, the same class as
-    # the German skill packs above; the directory holds data and skill prompts,
-    # no developer module.
-    "marketplace/sources/",
+    "marketplace/sources/",  # pack copy for the German reader, like skills/
 )
 
 #: A plugin rubric quotes the filler phrase the model must NOT emit. That quote is
@@ -59,15 +56,10 @@ PROTECTED_PREFIXES = (
 #: example the rubric warns against.
 PROTECTED_PATHS = re.compile(
     r"^plugins/[^/]+/prompts/rubric\.md$"
-    # A baseline is measured data: it records the paths and test ids that still
-    # carry the thing being ratcheted, so its German quotes the tree and is not
-    # developer prose. Excluding it keeps the instrument from scoring its own
-    # evidence — the same reason the rubrics above are exempt.
+    # A baseline is measured data that quotes the tree; it is not developer prose.
     r"|^(?:\./)?(?:\.architecture-baseline\.json|tests/home-isolation-baseline\.json"
     r"|scripts/language-baseline\.json)$"
-    # The marketplace index is generated output: its German is the copy merged
-    # from the catalogs, and rewriting it here would be overwritten by the next
-    # migration. The catalog above is where the copy is authored.
+    # Generated output: the copy is authored in the catalogs, not here.
     r"|^marketplace/index\.json$"
 )
 
