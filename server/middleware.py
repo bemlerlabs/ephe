@@ -328,7 +328,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 # sad document, and only with no directive at all did the page render. So: dead
 # format without isolation (it executes nothing), script-capable format with it,
 # and imposed from here.
-_FRAMED_FILE_ROUTES = re.compile(r"^/api/(?:file|artifacts/[^/]+/file)$")
+_FRAMED_FILE_ROUTES = re.compile(r"^/api/(?:file|artifacts/(?:[^/]+/file|proxy))$")
 _SCRIPT_CAPABLE_TYPES = (
     "text/html",
     "application/xhtml+xml",

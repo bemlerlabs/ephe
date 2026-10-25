@@ -15,6 +15,8 @@ branch that deletes anything without that answer.
 """
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import io
 import mimetypes
 import os
@@ -25,7 +27,7 @@ from pathlib import Path
 from urllib.parse import quote
 from zipfile import ZipFile
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -33,6 +35,7 @@ from core import artifact_preview
 from core import audit_log
 from core import artifact_store
 from core import artifact_workbench as workbench
+from core import path_guard
 from core.engine_config import get_output_dir
 from server.routes.files import MAX_FILE_BYTES
 
@@ -41,6 +44,66 @@ router = APIRouter(tags=["Artifacts"])
 # Export ceiling (conservative): total size of the files in the zip + their count.
 MAX_EXPORT_TOTAL = 200 * 1024 * 1024
 MAX_EXPORT_FILES = 500
+
+#: Media types the chat may display inline. Anything else travels as a download:
+#: an unknown type with `inline` is how a browser gets asked to render a file the
+#: server never meant as a page.
+INLINE_MEDIA_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+    "image/avif",
+    "image/svg+xml",
+    "application/pdf",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+    "audio/mp4",
+    "text/plain",
+    "text/markdown",
+    "text/csv",
+    "application/json",
+    "text/html",
+}
+
+_IMAGE_SIGNATURES: tuple[tuple[bytes, str, str], ...] = (
+    (b"\x89PNG\r\n\x1a\n", "image/png", "png"),
+    (b"\xff\xd8\xff", "image/jpeg", "jpg"),
+    (b"GIF87a", "image/gif", "gif"),
+    (b"GIF89a", "image/gif", "gif"),
+)
+
+
+def _sniff_image(data: bytes) -> tuple[str, str] | None:
+    """(media type, extension) from the bytes, or None for anything else.
+
+    A remote server's Content-Type is not evidence: the proxy decides from the
+    first bytes, so an HTML page cannot arrive labelled `image/png`.
+    """
+    for prefix, media, ext in _IMAGE_SIGNATURES:
+        if data.startswith(prefix):
+            return media, ext
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", "webp"
+    head = data[:512].lstrip(b"\xef\xbb\xbf \t\r\n")
+    if head.startswith(b"<svg") or (head.startswith(b"<?xml") and b"<svg" in head):
+        return "image/svg+xml", "svg"
+    return None
+
+
+def _inline_response(path: Path, media: str, name: str) -> FileResponse:
+    return FileResponse(
+        str(path),
+        media_type=media,
+        headers={
+            "Content-Disposition": _disposition("inline", name),
+            "Cache-Control": "private, max-age=3600",
+        },
+    )
 
 
 def _in_adoptable_root(dest: Path) -> bool:
@@ -152,6 +215,58 @@ async def get_stats() -> dict:
     """Header of the storage: count, bytes and the next deadline — over all
     rows, not just the first page slice."""
     return artifact_store.stats()
+
+
+@router.get("/artifacts/proxy")
+async def proxy_remote_image(url: str = Query(...), session_id: str = ""):
+    """A remote image the answer names, fetched through the guard and kept.
+
+    The browser never loads a foreign host: the CSP allows `'self'` only, and a
+    remote URL in Markdown would otherwise sit there as a broken image. The
+    proxy pins and checks the address (`core.guarded_fetch`), decides the type
+    from the bytes, stores one copy per URL and answers it same-origin.
+    """
+    target = url.strip()
+    if not target.lower().startswith("https://"):
+        raise HTTPException(status_code=400, detail="only https image URLs are fetched")
+    digest = hashlib.sha256(target.encode("utf-8")).hexdigest()
+    cache = path_guard.artifact_root() / "remote"
+    for ext in ("png", "jpg", "gif", "webp", "svg"):
+        hit = cache / f"{digest}.{ext}"
+        if hit.is_file():
+            with hit.open("rb") as fh:
+                sniffed = _sniff_image(fh.read(512))
+            if sniffed is not None:
+                return _inline_response(hit, sniffed[0], f"remote-{digest[:8]}.{ext}")
+
+    from core.guarded_fetch import GuardedFetchError, fetch_https
+
+    try:
+        data = await asyncio.to_thread(
+            fetch_https,
+            target,
+            max_bytes=MAX_FILE_BYTES,
+            timeout=15.0,
+            accept="image/*",
+        )
+    except GuardedFetchError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"image could not be fetched ({exc.code})"
+        ) from exc
+    sniffed = _sniff_image(data)
+    if sniffed is None:
+        raise HTTPException(status_code=415, detail="the target is not a supported image")
+    media, ext = sniffed
+    cache.mkdir(parents=True, exist_ok=True)
+    path = cache / f"{digest}.{ext}"
+    await asyncio.to_thread(path.write_bytes, data)
+    try:
+        artifact_store.register_artifact(
+            path=str(path), kind=ext, session_id=session_id, topic="remote image"
+        )
+    except Exception:
+        pass
+    return _inline_response(path, media, f"remote-{digest[:8]}.{ext}")
 
 
 @router.get("/artifacts/expiry")
@@ -344,12 +459,21 @@ async def get_artifact_file(artifact_id: str, download: bool = False):
             status_code=404,
             detail=f"artifact '{artifact_id}' has no readable file at '{art.get('path')}'.",
         )
+    # A row is not a permission. The workbench target lives under HOME, so a
+    # forged or stale row could otherwise name `~/.ephe/engine.key` or an SSH
+    # key; only the artifact root is opened, and never a credential-shaped name.
+    if path_guard.secret_shaped(target) or (
+        path_guard.denied(target) and not path_guard.verifiable_artifact(target)
+    ):
+        raise HTTPException(status_code=403, detail="artifact bytes are protected")
     if target.stat().st_size > MAX_FILE_BYTES:
         raise HTTPException(status_code=413, detail="file too large to serve")
     if not download:
         workbench.mark_viewed(artifact_id)
-    disposition = "attachment" if download else "inline"
-    media_type = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+    guessed = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+    inline = guessed in INLINE_MEDIA_TYPES
+    disposition = "inline" if inline and not download else "attachment"
+    media_type = guessed if inline else "application/octet-stream"
     return FileResponse(
         str(target),
         media_type=media_type,

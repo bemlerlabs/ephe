@@ -173,7 +173,7 @@ class TestFileByIdentity:
         assert r.headers["content-type"] == "application/pdf"
         assert "inline" in r.headers["content-disposition"]
         assert "brief.pdf" in r.headers["content-disposition"]
-        assert artifact_store.get_artifact(row["id"])["viewed_at"], "ansehen zählt nur hier"
+        assert artifact_store.get_artifact(row["id"])["viewed_at"], "a view is recorded only here"
 
     def test_given_download_flag_when_fetched_then_attachment_and_no_view_record(self, client, tmp_path, monkeypatch):
         row = self._register(tmp_path, monkeypatch)
@@ -202,6 +202,111 @@ class TestFileByIdentity:
 
     def test_given_unknown_id_when_fetched_then_404(self, client):
         assert client.get("/api/artifacts/unknown-id/file").status_code == 404
+
+
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+
+
+class TestArtifactBytesGuard:
+    def _row(self, tmp_path, monkeypatch, name, content=PNG_BYTES, kind="png"):
+        import core.tools.base as base
+
+        monkeypatch.setattr(base, "_get_allowed_roots", lambda: [tmp_path])
+        return artifact_store.register_artifact(
+            path=_file(tmp_path, name, content), kind=kind, session_id="s1"
+        )
+
+    def test_an_artifact_under_the_artifact_root_is_served(self, client, tmp_path, monkeypatch):
+        from core import path_guard
+
+        root = tmp_path / "cfg"
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(root))
+        monkeypatch.setattr(path_guard, "DENY_ROOTS", (str(root),))
+        target = root / "artifacts" / "s1" / "pic.png"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(PNG_BYTES)
+        row = artifact_store.register_artifact(
+            path=str(target), kind="png", session_id="s1"
+        )
+        r = client.get(f"/api/artifacts/{row['id']}/file")
+        assert r.status_code == 200
+        assert r.content == PNG_BYTES
+        assert r.headers["content-type"] == "image/png"
+
+    def test_a_registered_secret_under_a_deny_root_is_refused(self, client, tmp_path, monkeypatch):
+        from core import path_guard
+
+        private = tmp_path / "private"
+        private.mkdir()
+        monkeypatch.setattr(path_guard, "DENY_ROOTS", (str(private),))
+        row = self._row(tmp_path / "private", monkeypatch, "engine.json", b"{}")
+        r = client.get(f"/api/artifacts/{row['id']}/file")
+        assert r.status_code == 403
+
+    def test_a_credential_shaped_name_is_refused_wherever_it_sits(self, client, tmp_path, monkeypatch):
+        row = self._row(tmp_path, monkeypatch, "id_rsa", b"key")
+        assert client.get(f"/api/artifacts/{row['id']}/file").status_code == 403
+
+    def test_an_unknown_type_travels_as_a_download(self, client, tmp_path, monkeypatch):
+        row = self._row(tmp_path, monkeypatch, "payload.bin", b"\x00\x01", kind="file")
+        r = client.get(f"/api/artifacts/{row['id']}/file")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "application/octet-stream"
+        assert "attachment" in r.headers["content-disposition"]
+
+    def test_a_range_request_answers_206_for_video_and_pdf(self, client, tmp_path, monkeypatch):
+        row = self._row(tmp_path, monkeypatch, "clip.mp4", b"0123456789", kind="video")
+        r = client.get(
+            f"/api/artifacts/{row['id']}/file", headers={"Range": "bytes=0-3"}
+        )
+        assert r.status_code == 206
+        assert r.content == b"0123"
+        assert r.headers["content-range"].startswith("bytes 0-3/")
+
+
+class TestRemoteImageProxy:
+    def test_a_non_https_url_is_refused(self, client):
+        r = client.get("/api/artifacts/proxy", params={"url": "http://example.test/a.png"})
+        assert r.status_code == 400
+
+    def test_a_private_target_is_refused_by_the_guard(self, client):
+        r = client.get(
+            "/api/artifacts/proxy", params={"url": "https://localhost/a.png"}
+        )
+        assert r.status_code == 502
+
+    def test_a_remote_png_is_stored_once_and_served_same_origin(
+        self, client, tmp_path, monkeypatch
+    ):
+        import core.guarded_fetch as guarded
+
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
+        calls = {"n": 0}
+
+        def _fetch(url, **kwargs):
+            calls["n"] += 1
+            return PNG_BYTES
+
+        monkeypatch.setattr(guarded, "fetch_https", _fetch)
+        url = "https://images.example.test/cat.png"
+        first = client.get("/api/artifacts/proxy", params={"url": url})
+        assert first.status_code == 200
+        assert first.headers["content-type"] == "image/png"
+        cached = list((tmp_path / "cfg" / "artifacts" / "remote").glob("*.png"))
+        assert len(cached) == 1
+        second = client.get("/api/artifacts/proxy", params={"url": url})
+        assert second.status_code == 200
+        assert calls["n"] == 1
+
+    def test_bytes_that_are_not_an_image_are_refused(self, client, tmp_path, monkeypatch):
+        import core.guarded_fetch as guarded
+
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
+        monkeypatch.setattr(guarded, "fetch_https", lambda url, **kw: b"<html>no</html>")
+        r = client.get(
+            "/api/artifacts/proxy", params={"url": "https://images.example.test/a.png"}
+        )
+        assert r.status_code == 415
 
 
 class TestExpiryQuestion:
@@ -256,7 +361,7 @@ class TestExpiryQuestion:
         self._due(tmp_path, monkeypatch, n=1)
         for _ in range(3):
             client.get("/api/artifacts/expiry")
-        assert client.get("/api/artifacts").json()["total"] == 1, "fragen löscht nicht"
+        assert client.get("/api/artifacts").json()["total"] == 1, "asking does not delete"
 
     def test_given_unknown_action_when_answered_then_422(self, client):
         assert client.post("/api/artifacts/expiry/answer", json={"ids": ["x"], "action": "drop"}).status_code == 422
@@ -349,10 +454,10 @@ class TestAdopt:
         root = tmp_path / "ephe-home"
         (root / "artifacts" / "s1").mkdir(parents=True)
         monkeypatch.setenv("EPHE_CONFIG_DIR", str(root))
-        p = root / "artifacts" / "s1" / "frisch.pdf"
+        p = root / "artifacts" / "s1" / "fresh.pdf"
         p.write_bytes(b"x" * 10)
         row = artifact_store.register_artifact(path=str(p), kind="pdf", session_id="s1")
-        assert row["expires_at"], "Werkbank-Kopien tragen eine Frist"
+        assert row["expires_at"], "workbench copies carry a deadline"
         body = client.get("/api/artifacts/stats").json()
         assert body["count"] == 1
         assert body["expiring_count"] == 0 and body["next_expiry"] is None
@@ -397,7 +502,7 @@ class TestCardDetail:
         assert client.get(f"/api/artifacts/{art['id']}").json()["adopted_state"] == "missing"
 
     def test_given_unknown_id_when_read_then_404(self, client):
-        assert client.get("/api/artifacts/keine-karte").status_code == 404
+        assert client.get("/api/artifacts/no-card").status_code == 404
 
 
 class TestContentPreview:
@@ -478,7 +583,7 @@ class TestStats:
         marker_file = _file(tmp_path, "kettenbrief.pdf", b"PDF")
 
         async def fake_chat_with_tools(**kwargs):
-            assert kwargs.get("turn_id"), "der Stream muss seinen Turn hineinreichen"
+            assert kwargs.get("turn_id"), "the stream has to pass its turn through"
             kwargs["on_tool_start"]("create_pdf", {"title": "Kette"}, f"{kwargs['turn_id'][:8]}-0")
             kwargs["on_tool_done"]("create_pdf", f"PDF_FILE:{marker_file}\nPDF_PAGES:1", f"{kwargs['turn_id'][:8]}-0")
             return "PDF erstellt"
@@ -498,9 +603,9 @@ class TestStats:
         rows = artifact_store.list_artifacts()
         assert len(rows) == 1
         art = rows[0]
-        assert art["turn_id"], "die Karte muss wissen, aus welchem Turn sie kommt"
+        assert art["turn_id"], "the card must know which turn it came from"
         assert art["call_id"].startswith(art["turn_id"][:8]), (art["turn_id"], art["call_id"])
-        assert art["args_hash"], "der Werkzeugruf ist mit seinen Argumenten belegt"
+        assert art["args_hash"], "the tool call is recorded with its arguments"
         # the file_result event carries the card id (A0) and its turn identifier
         event = [line for line in r.text.splitlines() if "file_result" in line][0]
         assert art["id"] in event and art["turn_id"] in event
@@ -540,7 +645,7 @@ class TestProvenance:
         body = client.get(f"/api/artifacts/{art['id']}/provenance").json()
         assert body["known"] is True
         assert body["call_id"] == "deadbe-0"
-        assert [c["tool"] for c in body["calls"]] == ["create_pdf"], "nur der eigene Turn"
+        assert [c["tool"] for c in body["calls"]] == ["create_pdf"], "only its own turn"
 
     def test_given_auto_turn_when_audited_then_the_line_carries_it_without_being_asked(self, tmp_path, monkeypatch):
         """The turn comes from the contextvar and never from the caller — otherwise

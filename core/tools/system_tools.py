@@ -213,11 +213,11 @@ async def take_screenshot() -> str:
     except subprocess.CalledProcessError as e:
         if sys.platform == "darwin":
             return (
-                "[Screenshot failed: macOS blocked screen recording. Allow the terminal process access in System Settings > Privacy & Security > Screen Recording, then restart Ephe.]"
+                "[Screenshot failed: macOS blocked screen recording. Allow the terminal process access in System Settings > Privacy & Security > Screen Recording, then restart Ephe. No screenshot was produced; do not claim one.]"
             )
-        return f"[Screenshot failed: {e}]"
+        return f"[Screenshot failed: {e}]. No screenshot was produced; do not claim one."
     except Exception as e:
-        return f"[Screenshot failed: {e}]"
+        return f"[Screenshot failed: {e}]. No screenshot was produced; do not claim one."
 
 
 async def create_svg(

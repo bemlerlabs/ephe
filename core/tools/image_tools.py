@@ -95,12 +95,12 @@ async def generate_image(
     """
     payload_prompt = (prompt or "").strip()
     if not payload_prompt:
-        return "[image error: empty description — pass a prompt]"
+        return "[image error: empty description — pass a prompt.] No image was produced; do not claim one."
 
     base, key, model = _image_endpoint()
     if not base:
         return (
-            "[image error: no image endpoint configured. Set EPHE_IMAGE_BASE_URL (+ optional EPHE_IMAGE_API_KEY / EPHE_IMAGE_MODEL) to an OpenAI-compatible /images/generations service — e.g. a local SD-WebUI (free) or a cloud API.]"
+            "[image error: no image endpoint configured. Set EPHE_IMAGE_BASE_URL (+ optional EPHE_IMAGE_API_KEY / EPHE_IMAGE_MODEL) to an OpenAI-compatible /images/generations service — e.g. a local SD-WebUI (free) or a cloud API.] No image was produced; do not claim one."
         )
 
     import httpx
@@ -118,11 +118,11 @@ async def generate_image(
             r.raise_for_status()
             data = r.json()
     except Exception as exc:
-        return f"[image error: endpoint unreachable or rejected — {exc}]"
+        return f"[image error: endpoint unreachable or rejected — {exc}]. No image was produced; do not claim one."
 
     items = (data or {}).get("data") or []
     if not items:
-        return f"[image error: endpoint returned no image — answer: {str(data)[:200]}]"
+        return f"[image error: endpoint returned no image — answer: {str(data)[:200]}]. No image was produced; do not claim one."
 
     item = items[0]
     out = _downloads() / _safe_filename(filename, "ephe_image.png", ".png")
@@ -136,8 +136,8 @@ async def generate_image(
                 img.raise_for_status()
                 out.write_bytes(img.content)
         else:
-            return "[image error: endpoint returned neither b64_json nor url]"
+            return "[image error: endpoint returned neither b64_json nor url]. No image was produced; do not claim one."
     except Exception as exc:
-        return f"[image error: image could not be stored — {exc}]"
+        return f"[image error: image could not be stored — {exc}]. No image was produced; do not claim one."
 
     return f"PNG_FILE:{out}"
