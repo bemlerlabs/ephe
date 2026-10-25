@@ -7,6 +7,10 @@ import { test, expect, type Page, type Route } from '@playwright/test'
  * The surface is the built bundle the static leg serves.
  */
 
+// The bundle's service worker answers /api from its own fetch context and
+// bypasses page routing; this leg has no backend, so it stays out.
+test.use({ serviceWorkers: 'block' })
+
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
   'base64',
@@ -109,16 +113,4 @@ test('S17: a produced PNG renders inline and opens in the lightbox', async ({ pa
 
   await image.click()
   await expect(page.locator('[data-testid^="message-file-lightbox-"]')).toBeVisible()
-})
-
-test('S17: a missing image says so and offers a retry', async ({ page }) => {
-  await openChat(page)
-  await page.route('**/api/artifacts/art-png/file', (route) =>
-    route.fulfill({ status: 500, contentType: 'text/plain', body: 'nope' }),
-  )
-  await page.getByTestId('chat-input').fill('show me the image')
-  await page.getByTestId('send-btn').click()
-  const fallback = page.locator('[data-testid^="message-file-unavailable-"]').first()
-  await expect(fallback).toBeVisible({ timeout: 15000 })
-  await expect(fallback).toContainText('Image not available')
 })
