@@ -14,6 +14,7 @@ import PlanCard from '../PlanCard'
 import { parsePlanCard } from '@/lib/planCardModel'
 import MessageFileCard from '../artifacts/messageCard'
 import { producedFiles } from '../artifacts/messageCard'
+import { claimsMissingImage } from '@/lib/artifactClaims'
 import { summarizeToolDiff } from '@/lib/diffSummaryModel'
 import { useChatStore } from '@/store/chatStore'
 
@@ -152,6 +153,20 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
       {producedFiles(m).map((f) => (
         <MessageFileCard key={f.key} file={f} />
       ))}
+
+      {/* A claim is not an artifact. When the answer says it made an image and
+                  the turn registered none, the message says so instead of letting the
+                  sentence stand on its own. */}
+      {!m.streaming && isAssistant && claimsMissingImage(m.content ?? '', producedFiles(m)) && (
+        <div
+          role="alert"
+          data-testid="artifact-claim-warning"
+          className="mt-2 flex items-center gap-2 rounded-md border border-status-warning/40 bg-status-warning/10 px-2 py-1.5 text-ui-xs text-foreground/85"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-status-warning" aria-hidden="true" />
+          {t('artifacts.claimWithoutArtifact')}
+        </div>
+      )}
 
       {/* 4. Error (+ G1.2 retry) */}
       {m.error && (

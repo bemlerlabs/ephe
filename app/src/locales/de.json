@@ -1611,7 +1611,13 @@
       "file": "Datei"
     },
     "downloadHint": "Die Datei aus der Werkbank holen",
-    "adoptHint": "Eine Kopie in deinen Übernahme-Ordner legen"
+    "adoptHint": "Eine Kopie in deinen Übernahme-Ordner legen",
+    "imageUnavailable": "Bild nicht verfügbar",
+    "mediaUnavailable": "Datei nicht verfügbar",
+    "previewRetry": "Erneut versuchen",
+    "previewOpen": "größer öffnen",
+    "lightboxClose": "Bild schließen",
+    "claimWithoutArtifact": "Die Antwort nennt ein Bild, aber dieser Turn hat keines erzeugt. Die Aussage ist unbelegt."
   },
   "scheduler": {
     "title": "Wiederkehrende Aufgaben",

@@ -1611,7 +1611,13 @@
       "file": "File"
     },
     "downloadHint": "Take this file out of the workbench",
-    "adoptHint": "Put a copy in your adopt folder"
+    "adoptHint": "Put a copy in your adopt folder",
+    "imageUnavailable": "Image not available",
+    "mediaUnavailable": "File not available",
+    "previewRetry": "Try again",
+    "previewOpen": "open larger",
+    "lightboxClose": "Close image",
+    "claimWithoutArtifact": "The answer mentions an image, but this turn produced none. Treat that claim as unverified."
   },
   "scheduler": {
     "title": "Recurring tasks",

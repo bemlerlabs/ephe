@@ -255,3 +255,54 @@ describe('the adopt failure names the next step', () => {
     expect(adopt).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('S17: the bytes the card points at', () => {
+  const file = (over = {}) => ({
+    key: 'k1',
+    name: 'cat.png',
+    path: '/tmp/ephe/cat.png',
+    kind: 'png',
+    artifactId: 'art-png',
+    ...over,
+  })
+
+  it('renders an image inline through the artifact route, not /api/file', () => {
+    render(<MessageFileCard file={file()} />)
+    const img = screen.getByTestId('message-file-image-k1').querySelector('img')!
+    expect(img.getAttribute('src')).toContain('/api/artifacts/art-png/file')
+    expect(img.getAttribute('src')).not.toContain('/api/file?')
+    expect(img.getAttribute('src')).not.toContain('download=1')
+  })
+
+  it('replaces a broken image with a reason and a retry that re-requests it', () => {
+    render(<MessageFileCard file={file()} />)
+    fireEvent.error(screen.getByTestId('message-file-image-k1').querySelector('img')!)
+    expect(screen.getByTestId('message-file-unavailable-k1')).toBeTruthy()
+    expect(screen.queryByTestId('message-file-image-k1')).toBeNull()
+    fireEvent.click(screen.getByTestId('message-file-retry-k1'))
+    const img = screen.getByTestId('message-file-image-k1').querySelector('img')!
+    expect(img.getAttribute('src')).toContain('retry=1')
+  })
+
+  it('renders a PDF in a sandboxed frame', () => {
+    render(<MessageFileCard file={file({ name: 'brief.pdf', kind: 'pdf', key: 'p1' })} />)
+    const frame = screen.getByTestId('message-file-frame-p1')
+    expect(frame.getAttribute('src')).toContain('/api/artifacts/art-png/file')
+    expect(frame.getAttribute('src')).toContain('view=FitH')
+    // A PDF stays unsandboxed: its viewer is an extension no sandboxed frame runs.
+    expect(frame.getAttribute('sandbox')).toBeNull()
+  })
+
+  it('renders a video with controls and a range-capable source', () => {
+    render(<MessageFileCard file={file({ name: 'clip.mp4', kind: 'video', key: 'v1' })} />)
+    const video = screen.getByTestId('message-file-video-v1') as HTMLVideoElement
+    expect(video.controls).toBe(true)
+    expect(video.getAttribute('src')).toContain('/api/artifacts/art-png/file')
+  })
+
+  it('renders audio with controls', () => {
+    render(<MessageFileCard file={file({ name: 'voice.mp3', kind: 'audio', key: 'a1' })} />)
+    const audio = screen.getByTestId('message-file-audio-a1') as HTMLAudioElement
+    expect(audio.controls).toBe(true)
+  })
+})

@@ -1,5 +1,8 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { AlertTriangle } from 'lucide-react'
 import { stripFileMarkers } from '@/lib/fileMarkers'
+import { artifactProxyUrl } from '@/lib/api'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { rehypeMathNodes } from '@/lib/richText/rehypeMathNodes'
 import ReactMarkdown, { type Components } from 'react-markdown'
@@ -122,9 +125,50 @@ function PreWithScroll(props: React.ComponentProps<'pre'>) {
 }
 
 /** Image: a width cap — a screenshot wider than the phone keeps its ratio
- *  instead of poking past the bubble (and being clipped by `overflow-x: hidden`). */
-function ImgWithCap(props: React.ComponentProps<'img'>) {
-  return <img {...props} className={cls('max-w-full h-auto', props.className)} />
+ *  instead of poking past the bubble (and being clipped by `overflow-x: hidden`).
+ *
+ *  A remote src goes through the server's guarded proxy: the CSP allows
+ *  `'self'` only, so loading it directly leaves an alt-text placeholder. When
+ *  the bytes do not arrive, the message says so and offers a retry instead of
+ *  showing the bare alt text. */
+function MarkdownImage(props: React.ComponentProps<'img'>) {
+  const { t } = useTranslation()
+  const [broken, setBroken] = useState(false)
+  const [retry, setRetry] = useState(0)
+  const raw = props.src ?? ''
+  const remote = /^https?:\/\//i.test(raw)
+  const base = remote ? artifactProxyUrl(raw) : raw
+  const src = retry ? `${base}${base.includes('?') ? '&' : '?'}retry=${retry}` : base
+  if (broken) {
+    return (
+      <span
+        role="alert"
+        data-testid="markdown-image-unavailable"
+        className="my-2 inline-flex items-center gap-2 rounded-md border border-status-warning/40 bg-status-warning/10 px-2 py-1.5 text-ui-xs text-foreground/85"
+      >
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-status-warning" aria-hidden="true" />
+        {t('artifacts.imageUnavailable')}
+        <button
+          type="button"
+          onClick={() => {
+            setBroken(false)
+            setRetry((value) => value + 1)
+          }}
+          className="rounded px-1 py-0.5 text-ui-2xs font-medium text-brand-deep hover:bg-brand/10"
+        >
+          {t('artifacts.previewRetry')}
+        </button>
+      </span>
+    )
+  }
+  return (
+    <img
+      {...props}
+      src={src}
+      onError={() => setBroken(true)}
+      className={cls('max-w-full h-auto', props.className)}
+    />
+  )
 }
 
 /** Inline code: a monospace run without break opportunities (hash, URL, path,
@@ -139,7 +183,7 @@ const USER_COMPONENTS = {
   ...MATH_COMPONENTS,
   table: TableWithScroll,
   pre: PreWithScroll,
-  img: ImgWithCap,
+  img: MarkdownImage,
   code: CodeWithWrap,
 }
 
@@ -186,7 +230,7 @@ export const MarkdownBody = memo(function MarkdownBody({
       // W3-49: wide markdown (table/code/image) stays reachable inside the
       // bubble — see the overrides above.
       table: TableWithScroll,
-      img: ImgWithCap,
+      img: MarkdownImage,
       code: CodeWithWrap,
     }),
     [detectA2UI, highlight],

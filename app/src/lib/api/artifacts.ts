@@ -53,6 +53,19 @@ export function artifactFileUrl(id: string, download = false): string {
 }
 
 /**
+ * A foreign image URL in an answer, fetched through the server's guard.
+ *
+ * The CSP allows `'self'` for images, so a remote URL can never load directly
+ * (it used to sit there as a broken image). The proxy resolves and checks the
+ * address, keeps one copy per URL and answers it same-origin.
+ */
+export function artifactProxyUrl(url: string, sessionId = ''): string {
+  const usp = new URLSearchParams({ url })
+  if (sessionId) usp.set('session_id', sessionId)
+  return apiUrl(`/api/artifacts/proxy?${usp.toString()}`)
+}
+
+/**
  * Bulk export URL (zip) — <a download> cannot send headers, hence the
  * LAN token as a query param (same convention as fileUrl).
  */

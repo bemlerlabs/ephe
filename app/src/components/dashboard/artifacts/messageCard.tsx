@@ -10,10 +10,24 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Download, FileCode, FileText, FolderDown, Image as ImageIcon } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  Download,
+  FileCode,
+  FileText,
+  FolderDown,
+  Image as ImageIcon,
+  X,
+} from 'lucide-react'
 import { ApiError, artifactFileUrl, fileUrl } from '@/lib/api'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
-import { artifactPreviewMode, previewShowsInFrame } from '@/lib/previewMode'
+import {
+  artifactPreviewMode,
+  previewSandbox,
+  previewShowsInFrame,
+  previewSrc,
+} from '@/lib/previewMode'
 import type { ChatMessage } from '@/types'
 import { adoptWithTarget } from './adoptFlow'
 
@@ -70,6 +84,10 @@ function CardIcon({ mode }: { mode: string }) {
 export default function MessageFileCard({ file }: { file: ProducedFile }) {
   const { t } = useTranslation()
   const [phase, setPhase] = useState<'idle' | 'busy' | 'done' | 'failed'>('idle')
+  const [broken, setBroken] = useState(false)
+  const [reason, setReason] = useState('')
+  const [retry, setRetry] = useState(0)
+  const [lightbox, setLightbox] = useState(false)
   const mode = artifactPreviewMode(file.name, file.kind)
   // The pane shows a frame for whatever the browser can present. A PDF on the
   // desktop shell has no viewer in a frame (measured 2026-10-07, recorded in
@@ -77,6 +95,21 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
   // there would deliver a white box or a download the user did not ask for.
   const openable = mode !== 'none' && previewShowsInFrame(file.name, file.kind)
   const view = fileUrl(file.path)
+  const bytes = file.artifactId ? artifactFileUrl(file.artifactId) : view
+  const src = retry ? `${bytes}${bytes.includes('?') ? '&' : '?'}retry=${retry}` : bytes
+  const inline =
+    openable && (mode === 'image' || mode === 'frame' || mode === 'video' || mode === 'audio')
+
+  function failed(why: string) {
+    setBroken(true)
+    setReason(why)
+  }
+
+  function tryAgain() {
+    setBroken(false)
+    setReason('')
+    setRetry((value) => value + 1)
+  }
 
   async function adopt() {
     if (!file.artifactId) return
@@ -96,76 +129,164 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
   }
 
   return (
-    <div
-      data-testid={`message-file-${file.key}`}
-      className="mt-2 flex items-center gap-2 rounded-md border border-hairline bg-surface/60 px-2 py-1.5"
-    >
-      <CardIcon mode={mode} />
-      <span className="min-w-0 flex-1 truncate text-ui-xs text-foreground/85" title={file.path}>
-        {file.name}
-      </span>
-      {phase === 'failed' && (
-        <>
-          <span role="alert" className="text-ui-2xs text-destructive">
-            {t('artifacts.adoptFailed')}
+    <>
+      {inline && broken && (
+        <div
+          role="alert"
+          data-testid={`message-file-unavailable-${file.key}`}
+          className="mt-2 flex items-center gap-2 rounded-md border border-status-warning/40 bg-status-warning/10 px-2 py-1.5 text-ui-xs text-foreground/85"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-status-warning" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            {t(mode === 'image' ? 'artifacts.imageUnavailable' : 'artifacts.mediaUnavailable')}
+            {reason ? ` — ${reason}` : ''}
           </span>
           <button
             type="button"
-            onClick={() => void adopt()}
-            data-testid={`message-file-adopt-retry-${file.key}`}
-            className="shrink-0 rounded px-1 py-0.5 text-ui-2xs font-medium text-brand-deep transition-colors hover:bg-brand/10"
+            onClick={tryAgain}
+            data-testid={`message-file-retry-${file.key}`}
+            className="shrink-0 rounded px-1.5 py-0.5 text-ui-2xs font-medium text-brand-deep hover:bg-brand/10"
           >
-            {t('agentPanel.retry')}
+            {t('artifacts.previewRetry')}
           </button>
-        </>
+        </div>
       )}
-      {openable && (
+      {inline && !broken && mode === 'image' && (
         <button
           type="button"
-          data-testid={`message-file-open-${file.key}`}
-          aria-label={`${t('chat.openInPanel')}: ${file.name}`}
-          title={t('chat.openInPanel')}
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'preview', url: view } }),
-            )
-          }
-          className="rounded-md px-1.5 py-1 text-ui-2xs font-medium text-brand-deep hover:bg-brand/10 transition-colors"
+          onClick={() => setLightbox(true)}
+          aria-label={`${file.name}: ${t('artifacts.previewOpen')}`}
+          data-testid={`message-file-image-${file.key}`}
+          className="mt-2 block max-w-full rounded-md border border-hairline bg-surface/40 p-1"
         >
-          {t('chat.openInPanel')}
+          <img
+            src={src}
+            alt={file.name}
+            onError={() => failed(t('artifacts.imageUnavailable'))}
+            className="max-h-72 max-w-full object-contain"
+          />
         </button>
       )}
-      {!openable && mode === 'frame' && (
-        <span className="text-ui-2xs text-ink-faint">{t('artifacts.preview.noViewer')}</span>
+      {inline && !broken && mode === 'video' && (
+        <video
+          controls
+          preload="metadata"
+          src={src}
+          onError={() => failed(t('artifacts.mediaUnavailable'))}
+          data-testid={`message-file-video-${file.key}`}
+          className="mt-2 max-h-72 w-full rounded-md border border-hairline bg-black"
+        />
       )}
-      {file.artifactId ? (
-        <button
-          type="button"
-          disabled={phase === 'busy' || phase === 'done'}
-          data-testid={`message-file-adopt-${file.key}`}
-          aria-label={`${t('artifacts.adopt')}: ${file.name}`}
-          title={t('artifacts.adoptHint')}
-          onClick={() => void adopt()}
-          className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 min-h-7 max-lg:min-h-11 text-ui-2xs font-medium text-ink-soft hover:text-foreground hover:bg-surface disabled:opacity-50"
-        >
-          {phase === 'done' ? (
-            <Check className="h-3.5 w-3.5 text-status-success" />
-          ) : (
-            <FolderDown className="h-3.5 w-3.5" />
-          )}
-          <span>{t('artifacts.adopt')}</span>
-        </button>
-      ) : null}
-      <a
-        href={file.artifactId ? artifactFileUrl(file.artifactId, true) : view}
-        download={file.name}
-        aria-label={`${t('artifacts.download')}: ${file.name}`}
-        title={t('artifacts.downloadHint')}
-        data-testid={`message-file-download-${file.key}`}
-        className="p-1.5 min-h-7 min-w-7 max-lg:min-h-11 max-lg:min-w-11 shrink-0 rounded hover:bg-surface text-ink-soft hover:text-foreground"
+      {inline && !broken && mode === 'audio' && (
+        <audio
+          controls
+          preload="metadata"
+          src={src}
+          onError={() => failed(t('artifacts.mediaUnavailable'))}
+          data-testid={`message-file-audio-${file.key}`}
+          className="mt-2 w-full"
+        />
+      )}
+      {inline && !broken && mode === 'frame' && (
+        <iframe
+          src={previewSrc(src, file.name, file.kind)}
+          sandbox={previewSandbox(file.name, file.kind)}
+          title={file.name}
+          data-testid={`message-file-frame-${file.key}`}
+          className="mt-2 h-72 w-full rounded-md border border-hairline bg-white"
+        />
+      )}
+      <div
+        data-testid={`message-file-${file.key}`}
+        className="mt-2 flex items-center gap-2 rounded-md border border-hairline bg-surface/60 px-2 py-1.5"
       >
-        <Download className="h-3.5 w-3.5" />
-      </a>
-    </div>
+        <CardIcon mode={mode} />
+        <span className="min-w-0 flex-1 truncate text-ui-xs text-foreground/85" title={file.path}>
+          {file.name}
+        </span>
+        {phase === 'failed' && (
+          <>
+            <span role="alert" className="text-ui-2xs text-destructive">
+              {t('artifacts.adoptFailed')}
+            </span>
+            <button
+              type="button"
+              onClick={() => void adopt()}
+              data-testid={`message-file-adopt-retry-${file.key}`}
+              className="shrink-0 rounded px-1 py-0.5 text-ui-2xs font-medium text-brand-deep transition-colors hover:bg-brand/10"
+            >
+              {t('agentPanel.retry')}
+            </button>
+          </>
+        )}
+        {openable && (
+          <button
+            type="button"
+            data-testid={`message-file-open-${file.key}`}
+            aria-label={`${t('chat.openInPanel')}: ${file.name}`}
+            title={t('chat.openInPanel')}
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'preview', url: view } }),
+              )
+            }
+            className="rounded-md px-1.5 py-1 text-ui-2xs font-medium text-brand-deep hover:bg-brand/10 transition-colors"
+          >
+            {t('chat.openInPanel')}
+          </button>
+        )}
+        {!openable && mode === 'frame' && (
+          <span className="text-ui-2xs text-ink-faint">{t('artifacts.preview.noViewer')}</span>
+        )}
+        {file.artifactId ? (
+          <button
+            type="button"
+            disabled={phase === 'busy' || phase === 'done'}
+            data-testid={`message-file-adopt-${file.key}`}
+            aria-label={`${t('artifacts.adopt')}: ${file.name}`}
+            title={t('artifacts.adoptHint')}
+            onClick={() => void adopt()}
+            className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 min-h-7 max-lg:min-h-11 text-ui-2xs font-medium text-ink-soft hover:text-foreground hover:bg-surface disabled:opacity-50"
+          >
+            {phase === 'done' ? (
+              <Check className="h-3.5 w-3.5 text-status-success" />
+            ) : (
+              <FolderDown className="h-3.5 w-3.5" />
+            )}
+            <span>{t('artifacts.adopt')}</span>
+          </button>
+        ) : null}
+        <a
+          href={file.artifactId ? artifactFileUrl(file.artifactId, true) : view}
+          download={file.name}
+          aria-label={`${t('artifacts.download')}: ${file.name}`}
+          title={t('artifacts.downloadHint')}
+          data-testid={`message-file-download-${file.key}`}
+          className="p-1.5 min-h-7 min-w-7 max-lg:min-h-11 max-lg:min-w-11 shrink-0 rounded hover:bg-surface text-ink-soft hover:text-foreground"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </a>
+      </div>
+      {lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={file.name}
+          onClick={() => setLightbox(false)}
+          data-testid={`message-file-lightbox-${file.key}`}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+        >
+          <img src={src} alt={file.name} className="max-h-full max-w-full object-contain" />
+          <button
+            type="button"
+            onClick={() => setLightbox(false)}
+            aria-label={t('artifacts.lightboxClose')}
+            className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+    </>
   )
 }
