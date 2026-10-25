@@ -2497,8 +2497,8 @@ async def approve_sandbox(req: ApproveRequest):
     """Takes sandbox confirmations (y/n) from the UI.
 
     This endpoint works with the app-wide _active_sandbox_events
-    registry, not with the request-scoped get_sandbox(). Tokens are registered
-    by _sandbox_cb() and resolved here. R23: `remember` marks
+    registry; the request-scoped get_sandbox() never sees these tokens.
+    Tokens are registered by _sandbox_cb() and resolved here. R23: `remember` marks
     „Für diese Sitzung merken“ (only in effect when the event is  # language-gate: ignore (quoted product label, app/src/locales/de.json:56 remember)
     rememberable — the decision is made by _sandbox_cb when it wakes up).
     """

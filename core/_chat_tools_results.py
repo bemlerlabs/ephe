@@ -29,7 +29,6 @@ from core.channels.injection_guard import (
     wrap_untrusted_data,
 )
 from core.loop_observability import note_stall
-from core.quality import is_error_result
 from core.steering import Steer
 
 # E2: external tool output enters the loop as untrusted data.
@@ -119,10 +118,13 @@ def fence_tool_output(name: str, args: object, result: object) -> str:
     Local output passes through unchanged. A result that already carries the
     fence (an MCP tool reached through tool_call, or a block whose tail the cap
     cut) is re-fenced once: the guard's wrap is idempotent and rebalances a
-    broken pair. Error lines stay verbatim — they carry the call's status.
+    broken pair. A failure from an external tool is fenced like its output:
+    the provider status line and the error text behind it came from outside,
+    so the engine must not read them as its own voice (owner decision
+    2026-10-25).
     """
     text = result if isinstance(result, str) else str(result)
-    if not text or is_error_result(text):
+    if not text:
         return text
     if untrusted_origin_tool(name, args) is None and UNTRUSTED_DATA_OPEN not in text:
         return text

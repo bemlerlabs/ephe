@@ -90,7 +90,7 @@ class _FakeDDGS:
     def __exit__(self, *exc):
         return False
 
-    def text(self, query, max_results=5):
+    def text(self, query, max_results=5, backend=None):
         return [{"title": "Hit", "href": "https://example.com/e2", "body": _threat()}]
 
 
@@ -124,6 +124,26 @@ class TestWebAndMcpOutputIsQuarantined:
         raw = await execute_tool("web_search", args)
         result = fence_tool_output("web_search", args, raw)
         assert _is_quarantined(result), "web_search output reached the engine unwrapped"
+
+    async def test_a_search_every_provider_refuses_is_fenced_too(self, monkeypatch):
+        """The failure line is provider status — external text like the hits are."""
+
+        class _RefusingDDGS:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def text(self, query, max_results=5, backend=None):
+                raise RuntimeError("503 service unavailable")
+
+        monkeypatch.setattr(_web_search_mod, "DDGS", _RefusingDDGS)
+        args = {"query": "e2 probe"}
+        raw = await execute_tool("web_search", args)
+        assert "Providers:" in raw, raw
+        result = fence_tool_output("web_search", args, raw)
+        assert _is_quarantined(result), "web_search failure reached the engine unwrapped"
 
     async def test_fetch_url_output_is_wrapped_as_untrusted(self, _no_network):
         args = {"url": "https://example.com/e2-probe", "prompt": ""}

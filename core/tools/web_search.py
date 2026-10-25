@@ -123,7 +123,14 @@ async def web_search(query: str, max_results: int = 5) -> str:
     status_line = "Providers: " + (", ".join(statuses) or "none tried")
 
     if not raw:
-        if statuses and all(line.endswith(("timeout", "error", "deadline")) for line in statuses):
+        # A refusal is not an empty result. A backend that answered 403/503
+        # found nothing because it would not search, and "No results found"
+        # would report that as the web's answer.
+        refused = statuses and all(
+            line.endswith(("timeout", "error", "deadline")) or _HTTP_CODE.search(line)
+            for line in statuses
+        )
+        if refused:
             raise WebSearchError(status_line)
         return f"No results found. {status_line}"
 
@@ -146,10 +153,8 @@ async def web_search(query: str, max_results: int = 5) -> str:
         url = r.get("href", "")
         body = r.get("body", "")
         _, quality = _source_quality(url)
-        # A result is only worth as much as the target behind it. fetch_url
-        # is walled (core/net_guard); a hit from an internal
-        # namespace is worthless as a link and effective as bait, so the
-        # line says that, instead of letting the model run into a blockade.
+        # A hit from an internal namespace is worthless as a link and works as
+        # bait; fetch_url (core/net_guard) refuses it, so the row says so.
         reachable, reason = reach_by_name(url)
         reach_line = "" if reachable else f"\n    Reach: {reason} — fetch_url does not open this target."
         formatted_parts.append(

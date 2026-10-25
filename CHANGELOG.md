@@ -5,9 +5,7 @@ All notable changes to **Ephe** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
-## [0.1.4] - candidate
-
-Prepared in the public trunk; not tagged and not published.
+## [0.1.4] - 2026-10-25
 
 ### Added
 - Chat artifacts render inline: images with a lightbox, PDF in a frame, video and
@@ -28,6 +26,11 @@ Prepared in the public trunk; not tagged and not published.
 - The hosted macOS runner's uv interpreter is recognised under the Seatbelt
   profile, and `ephe_cli.py` reaches its coverage floor; the PR gate no longer
   skips the required macOS check.
+- A failed search reaches the engine fenced as untrusted data like a successful
+  one, and an all-refused search is reported as a failure instead of "No results
+  found".
+- The cask, scoop and npm manifests name 0.1.4, so the release gate judges them
+  against the release it ships.
 - `generate_image` and `take_screenshot` say when they produced nothing, so the
   answer cannot claim an image the turn never registered.
 

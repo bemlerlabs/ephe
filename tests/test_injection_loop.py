@@ -109,10 +109,16 @@ def test_local_result_passes_through_unchanged():
     assert fence_tool_output("read_file", {"path": "x"}, result) == result
 
 
-def test_empty_and_error_results_are_not_fenced():
+def test_empty_and_local_error_results_are_not_fenced():
     assert fence_tool_output("fetch_url", {}, "") == ""
-    assert fence_tool_output("mcp_x", {}, "[MCP-tool-error] server refused") == "[MCP-tool-error] server refused"
     assert fence_tool_output("read_file", {}, "[TOOL-ERROR] boom") == "[TOOL-ERROR] boom"
+
+
+def test_an_external_error_is_fenced_like_its_output():
+    out = fence_tool_output("mcp_x", {}, "[MCP-tool-error] server refused")
+    assert out.startswith(UNTRUSTED_DATA_OPEN)
+    assert out.endswith(UNTRUSTED_DATA_CLOSE)
+    assert "[MCP-tool-error] server refused" in out
 
 
 def test_fence_is_idempotent_single_pair():
