@@ -76,7 +76,7 @@ async def test_offline_honest_error(monkeypatch):
 
     res = await fetch_url("https://example.org", "f")
     assert "failed" in res.lower()
-    assert "offline" in res
+    assert getattr(res, "code", "") == "fetch_unreachable"
 
 
 @pytest.mark.asyncio

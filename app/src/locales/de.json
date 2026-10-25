@@ -1948,8 +1948,8 @@
   "reader": {
     "fetch_empty_url": "Die URL ist leer.",
     "fetch_scheme_blocked": "{{scheme}} lässt sich nicht abrufen; gelesen werden nur http(s)-Seiten.",
-    "fetch_refused": "Der Abruf wurde abgelehnt.",
-    "fetch_http_error": "Die Seite antwortet mit HTTP {{status}}.",
+    "fetch_refused": "Der Abruf wurde abgelehnt: {{detail}}",
+    "fetch_http_error": "{{url}} antwortet mit HTTP {{status}}.",
     "fetch_timeout": "Der Abruf ist in ein Zeitlimit gelaufen.",
     "fetch_unreachable": "Der Host war nicht erreichbar.",
     "url_empty": "leere URL — fetch_url holt ins Nichts.",

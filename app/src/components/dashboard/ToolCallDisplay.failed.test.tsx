@@ -20,7 +20,7 @@ function failedFetch(): ToolCall {
     result: '[fetch failed] HTTP 404 for https://example.test/missing',
     status: 'failed',
     reason_code: 'fetch_http_error',
-    reason_params: { status: '404' },
+    reason_params: { status: '404', url: 'https://example.test/missing' },
   }
 }
 
@@ -37,7 +37,7 @@ describe('ToolCallDisplay — failed call', () => {
     expect(screen.getByTestId('tool-card')).toHaveAttribute('data-status', 'failed')
     expect(screen.getByText('fetch_url failed')).toBeInTheDocument()
     expect(screen.getByTestId('tool-failure-reason').textContent).toBe(
-      'The page answered HTTP 404.',
+      '[fetch failed] https://example.test/missing answered HTTP 404.',
     )
     expect(screen.queryByText('fetch_url completed')).not.toBeInTheDocument()
   })
@@ -69,7 +69,7 @@ describe('ToolCallDisplay — failed call in German', () => {
 
     expect(screen.getByText('fetch_url fehlgeschlagen')).toBeInTheDocument()
     expect(screen.getByTestId('tool-failure-reason').textContent).toBe(
-      'Die Seite antwortet mit HTTP 404.',
+      'https://example.test/missing antwortet mit HTTP 404.',
     )
   })
 })

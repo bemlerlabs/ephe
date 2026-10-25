@@ -75,19 +75,20 @@ def _refusal(note) -> Reason:
     original = str(getattr(note, "code", "") or "")
     params = dict(getattr(note, "params", {}) or {})
     mapped = _GUARD_CODES.get(original)
-    if mapped is not None:
-        params["guard_code"] = original
-    return Reason(
-        f"{FETCH_REFUSED_MARKER} {note}",
-        mapped or original or "fetch_refused",
-        params,
-    )
+    if mapped is None and not original:
+        return Reason(
+            f"{FETCH_REFUSED_MARKER} {note}",
+            "fetch_refused",
+            {"detail": str(note)},
+        )
+    return Reason(f"{FETCH_REFUSED_MARKER} {note}", mapped or original, params)
 
 
 def _transport_failure(detail: str) -> Reason:
     lowered = detail.lower()
-    code = "fetch_timeout" if "timeout" in lowered or "timed out" in lowered else "fetch_unreachable"
-    return _failure(code, detail)
+    if "timeout" in lowered or "timed out" in lowered:
+        return _failure("fetch_timeout", "The fetch ran into a timeout.")
+    return _failure("fetch_unreachable", "The host could not be reached.")
 
 
 async def _http_get(url: str) -> tuple[int, str]:
@@ -119,7 +120,7 @@ async def fetch_url(url: str, prompt: str = "") -> str:
     """
     url = (url or "").strip()
     if not url:
-        return _failure("fetch_empty_url", "empty url")
+        return _failure("fetch_empty_url", "The URL is empty.")
 
     cached = _FETCH_CACHE.get(url)
     if cached is not None and (_now() - cached[0]) < _FETCH_TTL_SECONDS:
@@ -136,7 +137,7 @@ async def fetch_url(url: str, prompt: str = "") -> str:
         if status >= 400:
             return _failure(
                 "fetch_http_error",
-                f"HTTP {status} for {url}",
+                f"{url} answered HTTP {status}.",
                 status=str(status),
                 url=url,
             )

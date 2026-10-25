@@ -28,7 +28,7 @@ from fastapi.testclient import TestClient
 from core.memory_kepta_bridge import KeptaBridgeProvider
 from core.net_guard import check_url, reach_by_name
 from core.reason import Reason
-from core.tools.fetch_tools import FetchRefused
+from core.tools.fetch_tools import FetchRefused, FetchTransport
 from server.main import create_app
 
 LOCALE_DIR = Path(__file__).resolve().parents[1] / "app" / "src" / "locales"
@@ -245,10 +245,37 @@ def _bg(monkeypatch, action: str, *, live: bool = False, status: str = "done", o
     return asyncio.run(run())
 
 
+def _fetch_call(monkeypatch, url: str, get) -> Reason:
+    import core.tools.fetch_tools as fetch_tools
+
+    fetch_tools._FETCH_CACHE.clear()
+    monkeypatch.setattr(fetch_tools, "_http_get", get)
+    return asyncio.run(fetch_tools.fetch_url(url))
+
+
+def _fetch_answers(monkeypatch, status: int, url: str = "https://example.test/missing"):
+    async def get(_url):
+        return status, ""
+
+    return _fetch_call(monkeypatch, url, get)
+
+
+def _fetch_raises(monkeypatch, exc: BaseException, url: str = "https://example.test/page"):
+    async def get(_url):
+        raise exc
+
+    return _fetch_call(monkeypatch, url, get)
+
+
+async def _no_http(_url):
+    raise AssertionError("an empty URL must not reach the network")
+
+
 #: The tool returns a card can show: `[memory]`, `[skill_manage]`, `[todo_list]`,
-#: `[process_manage]`. Two fallthrough lines of `state_tools` are missing here on purpose —
-#: the action guard above them admits exactly the branches that handle every action, so no
-#: emission reaches them and a locale entry for them would be a key nobody resolves.
+#: `[process_manage]`, `[fetch failed]`, `[fetch refused]`. Two fallthrough lines of
+#: `state_tools` are missing here on purpose — the action guard above them admits exactly
+#: the branches that handle every action, so no emission reaches them and a locale entry
+#: for them would be a key nobody resolves.
 TOOL_CASES = (
     ("memory_action_unknown", lambda mp: _mem_line(mp, {"action": "clear", "target": "memory"}), ()),
     ("memory_target_unknown", lambda mp: _mem_line(mp, {"action": "add", "target": "facts"}), ()),
@@ -348,6 +375,32 @@ TOOL_CASES = (
     ("process_already_state", lambda mp: _bg(mp, "kill"), ("task_id", "state")),
     ("process_output_pending", lambda mp: _bg(mp, "poll", status="running"), ("task_id",)),
     ("process_no_output", lambda mp: _bg(mp, "poll"), ("task_id", "status")),
+    ("fetch_empty_url", lambda mp: _fetch_call(mp, "", _no_http), ()),
+    (
+        "fetch_scheme_blocked",
+        lambda mp: _fetch_raises(
+            mp,
+            FetchRefused(check_url("file:///etc/passwd")[1]),
+            "file:///etc/passwd",
+        ),
+        ("scheme",),
+    ),
+    (
+        "fetch_refused",
+        lambda mp: _fetch_raises(mp, FetchRefused("Redirect without a target.")),
+        ("detail",),
+    ),
+    ("fetch_http_error", lambda mp: _fetch_answers(mp, 404), ("status", "url")),
+    (
+        "fetch_timeout",
+        lambda mp: _fetch_raises(mp, FetchTransport("example.test: TimeoutException")),
+        (),
+    ),
+    (
+        "fetch_unreachable",
+        lambda mp: _fetch_raises(mp, FetchTransport("example.test: ConnectError")),
+        (),
+    ),
 )
 
 class _UnresolvablePath:
@@ -488,12 +541,12 @@ def test_the_emitted_codes_are_the_documented_set():
     tools = {case[0] for case in TOOL_CASES}
     browser = {case[0] for case in BROWSER_CASES}
     assert len(guards) == 15, "two guard sites share a wording, every other one stands alone"
-    assert len(tools) == 34, "every tool line names one reason of its own"
+    assert len(tools) == 40, "every tool line names one reason of its own"
     assert len(browser) == 5, "the browser policy has five refusals and no more"
     bridge = {case[0] for case in BRIDGE_CASES}
     assert len(bridge) == 5, "the bridge refuses five things and says which"
     named = guards | tools | browser | bridge
-    assert len(named) == 59, "two surfaces share a code"
+    assert len(named) == 65, "two surfaces share a code"
     assert (guards & tools | guards & browser | guards & bridge
             | tools & browser | tools & bridge | browser & bridge) == set(), \
         "a code names two surfaces, so the card cannot tell them apart"
@@ -504,7 +557,7 @@ def test_the_emitted_codes_are_the_documented_set():
     for lng, bundle in BUNDLES.items():
         base = {plural.sub("", key) for key in bundle}
         assert base == named | set(OWNED_BY_THE_ROUTE), f"{lng}.json/reader drifted"
-        assert len(base) == 62
+        assert len(base) == 68
 
 
 @pytest.mark.parametrize(("code", "build", "param_names"), BRIDGE_CASES,
