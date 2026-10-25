@@ -151,7 +151,9 @@ describe('SetupPage Engine-Zustand (W18/A5)', () => {
     })
     fireEvent.click(screen.getByTestId('setup-probe'))
     const status = await screen.findByTestId('setup-status')
-    expect(status).toHaveAttribute('role', 'status')
+    // The live region is the always-mounted plate; a role only on the child that
+    // arrives with its text is not reliably announced.
+    expect(status.closest('[role="status"]')).not.toBeNull()
   })
 })
 
