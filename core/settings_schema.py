@@ -157,6 +157,10 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # Advanced
     "advanced.api_timeout": {"type": "number", "default": 120, "min": 10, "max": 1800,
                              "label": "API-Zeitüberschreitung (s)", "labelEn": "API timeout (s)"},
+    # S20: off by default; the reader is core/decision_provider.py::is_enabled.
+    "advanced.decision_layer": {"type": "bool", "default": False,
+                                "label": "Local decision layer",
+                                "labelEn": "Local decision layer"},
     # Plugins (catalog policy)
     "plugins.plugin_autorun": {"type": "bool", "default": False,
                                "label": "Plugins automatisch starten", "labelEn": "Autorun plugins"},

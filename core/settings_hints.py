@@ -22,6 +22,14 @@ from typing import Final
 #: tests/test_settings_hints.py: field wired, both languages different,
 #: no echo of the label, 24-240 characters, no claim without code.
 HINTS: Final[dict[str, tuple[str, str]]] = {
+    "advanced.decision_layer": (
+        "Lässt den konfigurierten Decoder eine Empfehlung samt Verteilung lesen. "  # language-gate: ignore
+        "Aus ist die Vorgabe. Ein Cloud-Engine sieht dabei den Zustandstext, ein "  # language-gate: ignore
+        "lokaler nicht; ohne Logprobs bleibt die Konfidenz leer statt geraten.",  # language-gate: ignore
+        "Lets the configured decoder read a recommendation and its distribution. "
+        "Off by default. A cloud engine sees the state text, a local one does not; "
+        "without logprobs the confidence stays empty rather than guessed.",
+    ),
     "shortcuts.global_enabled": (
         "Der einzige Schalter, der eine Taste außerhalb des Fensters belegt: "  # language-gate: ignore
         "Cmd+Shift+E auf macOS, sonst Ctrl+Shift+E, holt Ephe nach vorn. Aus ist "  # language-gate: ignore
