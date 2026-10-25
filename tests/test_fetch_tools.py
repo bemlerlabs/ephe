@@ -68,7 +68,7 @@ async def test_http_error_carries_status_and_code(monkeypatch):
 
     assert str(out).startswith(FETCH_FAILED_MARKER)
     assert out.code == "fetch_http_error"
-    assert out.params["status"] == "403"
+    assert out.params == {"status": "403", "url": "https://example.test/secret"}
     assert "403" in out
 
 
@@ -122,7 +122,7 @@ async def test_blocked_scheme_is_coded(monkeypatch):
     out = await fetch_url("file:///etc/passwd")
 
     assert out.code == "fetch_scheme_blocked"
-    assert out.params["guard_code"] == "scheme_blocked"
+    assert out.params["scheme"] == "file"
     assert str(out).startswith(FETCH_REFUSED_MARKER)
 
 

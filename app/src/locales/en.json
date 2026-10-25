@@ -1946,12 +1946,12 @@
     "publish_path_claimed": "{{paths}} is held by {{holders}} — check that run on the Workspaces page, then publish with force=True to write over it"
   },
   "reader": {
-    "fetch_empty_url": "The URL is empty.",
-    "fetch_scheme_blocked": "{{scheme}} cannot be fetched; only http(s) pages are read.",
-    "fetch_refused": "The fetch was refused.",
-    "fetch_http_error": "The page answered HTTP {{status}}.",
-    "fetch_timeout": "The fetch ran into a timeout.",
-    "fetch_unreachable": "The host could not be reached.",
+    "fetch_empty_url": "[fetch failed] The URL is empty.",
+    "fetch_scheme_blocked": "[fetch refused] {{scheme}}: is blocked for fetch_url — the tool reads web documents over http/https, not files on the host.",
+    "fetch_refused": "[fetch refused] {{detail}}",
+    "fetch_http_error": "[fetch failed] {{url}} answered HTTP {{status}}.",
+    "fetch_timeout": "[fetch failed] The fetch ran into a timeout.",
+    "fetch_unreachable": "[fetch failed] The host could not be reached.",
     "url_empty": "Empty URL — fetch_url reaches nothing.",
     "url_without_scheme": "URL without a scheme — put https:// (or http://) in front of it.",
     "scheme_blocked": "{{scheme}}: is blocked for fetch_url — the tool reads web documents over http/https, not files on the host.",

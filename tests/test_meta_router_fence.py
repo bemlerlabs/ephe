@@ -110,11 +110,13 @@ def test_direct_fetch_result_is_fenced():
     assert out.count(UNTRUSTED_DATA_OPEN) == 1
 
 
-def test_fetch_failure_line_stays_verbatim():
+def test_fetch_failure_line_arrives_as_untrusted_data():
     from core.tool_markers import FETCH_FAILED_MARKER
 
     line = f"{FETCH_FAILED_MARKER} HTTP 404 for https://example.test/missing"
-    assert fence_tool_output("fetch_url", {"url": "https://example.test/missing"}, line) == line
+    out = fence_tool_output("fetch_url", {"url": "https://example.test/missing"}, line)
+    assert out.startswith(UNTRUSTED_DATA_OPEN)
+    assert FETCH_FAILED_MARKER in out
 
 
 # Loop integration
