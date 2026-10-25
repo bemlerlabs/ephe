@@ -62,3 +62,40 @@ describe('the exit of a full-page surface', () => {
     }
   })
 })
+
+/**
+ * The side conversation is one thing with one name per language: the tab label
+ * and the tab's hover tip are read in the same panel, so two spellings read as
+ * two different places.
+ */
+const SIDE_KEYS = {
+  tab: (l: typeof en) => l.agentPanel.tabSide,
+  tip: (l: typeof en) => l.agentPanel.tabTipSide.title,
+}
+
+describe('the side conversation', () => {
+  it('uses one name in English', () => {
+    const values = Object.values(SIDE_KEYS).map((get) => get(en))
+    expect(new Set(values).size).toBe(1)
+    expect(values[0]).toBe('Side conversation')
+  })
+
+  it('uses one name in German', () => {
+    const values = Object.values(SIDE_KEYS).map((get) => get(de as typeof en))
+    expect(new Set(values).size).toBe(1)
+    expect(values[0]).toBe('Seitengespräch')
+  })
+
+  it('carries no second name in either language', () => {
+    for (const [lng, bundle] of [
+      ['en', en],
+      ['de', de as typeof en],
+    ] as const) {
+      for (const [name, get] of Object.entries(SIDE_KEYS)) {
+        expect(get(bundle), `${lng} ${name}`).not.toMatch(
+          /Side[- ]?chat|Seitenchat|Nebengespräch|Side-Gespräch/i,
+        )
+      }
+    }
+  })
+})
