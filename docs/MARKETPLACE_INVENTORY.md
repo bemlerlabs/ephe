@@ -1,4 +1,4 @@
-# Marketplace inventory — 2026-10-25 (S20)
+# Marketplace inventory
 
 Read-only survey of every catalog in the tree, the merged index, and the P1
 branch. Counts come from the files; every number below is reproducible with the

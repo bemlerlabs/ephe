@@ -1,4 +1,4 @@
-# Local decision layer — 2026-10-25 (S20)
+# Local decision layer
 
 `core/decision_provider.py` reads a decision from one decoder position: the
 request names the option set, the engine returns `top_logprobs` for the token

@@ -1,4 +1,4 @@
-# CLI inventory — 2026-10-25 (S20)
+# CLI inventory
 
 Scope: every subcommand `ephe --help` lists at this commit, its machine-readable
 surface, the exit codes the handlers return, and the non-interactive seams a

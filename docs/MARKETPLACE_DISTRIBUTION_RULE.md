@@ -1,4 +1,4 @@
-# Marketplace distribution rule — 2026-10-25
+# Marketplace distribution rule
 
 One page. What may enter `marketplace/index.json`, and what a user is owed
 before a package runs.
