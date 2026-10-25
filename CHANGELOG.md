@@ -5,6 +5,39 @@ All notable changes to **Ephe** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [0.1.4] - candidate
+
+Prepared in the public trunk; not tagged and not published.
+
+### Added
+- Chat artifacts render inline: images with a lightbox, PDF in a frame, video and
+  audio with controls, tables and Mermaid fences, and a file card for the rest.
+  A missing image now says so and offers a retry instead of leaving alt text.
+- A running turn reports its tool, round and search query, with a heartbeat;
+  the search call is bounded to four calls or 60 s and ends with an answer.
+- The marketplace card carries the on/off switch. A package that needs consent
+  shows one inline consent block instead of a modal.
+- A remote image in an answer is fetched through the guarded proxy and stored.
+
+### Security
+- The artifact route refuses deny roots and credential-shaped names, decides
+  inline media from an allowlist and supports range requests.
+- Skill archive paths go through `path_guard.within` instead of a string prefix.
+
+### Fixed
+- The hosted macOS runner's uv interpreter is recognised under the Seatbelt
+  profile, and `ephe_cli.py` reaches its coverage floor; the PR gate no longer
+  skips the required macOS check.
+- `generate_image` and `take_screenshot` say when they produced nothing, so the
+  answer cannot claim an image the turn never registered.
+
+### Removed
+- `plugin_store.install_package` and its tests; the live path is
+  `plugin_install._safe_extract`.
+
+### Dependencies
+- lucide-react 1.60, framer-motion 14.5.
+
 ## [0.1.3] - 2026-10-22
 
 The marketplace and its Extension Center, on top of the 0.1.2 security and
