@@ -53,6 +53,12 @@ PAYLOAD_KEYS = frozenset(
         "budget_cap",
         "wait_seconds",
         "activity",
+        "close_code",
+        "last_frame_type",
+        "elapsed_ms",
+        "last_heartbeat_ms",
+        "provider",
+        "cancelled",
     }
 )
 
@@ -66,6 +72,11 @@ _PHASE_FOR_EVENT = {
     "error": "result",
     "done": "next",
 }
+
+#: Kinds that describe the transport under a run. They are written to the file and
+#: stay out of the five-phase projection, so a close line cannot overwrite the
+#: `Next` the surface reads for how the run itself ended.
+TRANSPORT_KINDS = frozenset({"stream_closed"})
 
 
 def _root() -> Path:
@@ -174,6 +185,37 @@ def finish(finish_reason: str = "complete", failure_class: str = "") -> None:
         ledger.finish(finish_reason, failure_class)
 
 
+def record_stream_close(
+    *,
+    close_code: str,
+    last_frame_type: str,
+    elapsed_ms: int,
+    last_heartbeat_ms: int,
+    provider: str,
+    cancelled: bool,
+) -> dict | None:
+    """Writes the one line that says how the SSE stream ended.
+
+    Content-free by construction: the caller only has frame types, durations and
+    the provider's class name. A stream that closes is not a second terminal
+    line, so this appends past ``mark_terminal`` and leaves the run's ending as
+    the producer reported it.
+    """
+    ledger = _current()
+    if ledger is None:
+        return None
+    return ledger.append(
+        "next",
+        "stream_closed",
+        close_code=close_code,
+        last_frame_type=last_frame_type,
+        elapsed_ms=max(0, int(elapsed_ms)),
+        last_heartbeat_ms=max(0, int(last_heartbeat_ms)),
+        provider=provider,
+        cancelled=bool(cancelled),
+    )
+
+
 def record_event(event: dict) -> dict | None:
     """Records one SSE event as a ledger line, or None for content-bearing frames."""
     ledger = _current()
@@ -252,8 +294,9 @@ def snapshot(run_id: str) -> dict:
     client renders the same shape for a new run and a finished one.
     """
     rows = read_run(run_id)
+    projected = [row for row in rows if row.get("kind") not in TRANSPORT_KINDS]
     now = waiting = changed = result = next_ = None
-    for row in rows:
+    for row in projected:
         phase = row.get("phase")
         if phase == "now":
             now = row

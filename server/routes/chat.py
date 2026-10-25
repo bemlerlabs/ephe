@@ -1759,6 +1759,17 @@ async def chat_stream(
     hist = list(request.history) or _load_rest_history(request.session_id)
 
     async def event_generator() -> AsyncGenerator[str, None]:
+        # C1: the stream's own clock. `last_frame_type` names the frame the
+        # generator was on when it closed — the yield in flight is more useful
+        # for a drop than the last one that provably left the process.
+        _stream_t0 = time.perf_counter()
+        _last_keepalive = _stream_t0
+        _last_frame_type = ""
+        _saw_sentinel = False
+        try:
+            _provider_name = get_active_provider().provider
+        except Exception:
+            _provider_name = ""
         queue: asyncio.Queue[tuple[str, object] | None] = asyncio.Queue()
         # P5: one trajectory per turn — steps out of the SSE events (chunk detail
         # stays outside, only statuses/tools/usage become steps).
@@ -2421,14 +2432,21 @@ async def chat_stream(
                 try:
                     item = await asyncio.wait_for(queue.get(), timeout=STREAM_HEARTBEAT_S)
                 except asyncio.TimeoutError:
+                    _last_frame_type = "keepalive"
+                    _last_keepalive = time.perf_counter()
                     yield ": keepalive\n\n"
                     continue
                 if item is None:
+                    _saw_sentinel = True
                     break
                 kind, payload = item
                 if kind == "raw":
+                    _last_frame_type = "keepalive" if str(payload).startswith(": keepalive") else "comment"
+                    if _last_frame_type == "keepalive":
+                        _last_keepalive = time.perf_counter()
                     yield str(payload)
                 else:
+                    _last_frame_type = str(payload.get("type") or "") if isinstance(payload, dict) else ""
                     yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
         except asyncio.CancelledError:
             # the client dropped the connection (send button, label "Stopp")  # language-gate: ignore (quoted product label, app/src/locales/de.json:17 stop)
@@ -2442,6 +2460,25 @@ async def chat_stream(
                 run_ledger.finish(
                     "cancelled" if cancelled else ("error" if turn_failure else "complete"),
                     turn_failure[0] if turn_failure else "",
+                )
+            except Exception:
+                pass
+            # C1: one content-free line per stream close, before the await below —
+            # a generator closed by GeneratorExit never resumes past it.
+            try:
+                _close_ms = round((time.perf_counter() - _stream_t0) * 1000)
+                _heartbeat_ms = round((time.perf_counter() - _last_keepalive) * 1000)
+                run_ledger.record_stream_close(
+                    close_code=(
+                        "client_cancel" if cancelled
+                        else "stream_end" if _saw_sentinel
+                        else "client_gone"
+                    ),
+                    last_frame_type=_last_frame_type,
+                    elapsed_ms=_close_ms,
+                    last_heartbeat_ms=_heartbeat_ms,
+                    provider=_provider_name,
+                    cancelled=cancelled or not _saw_sentinel,
                 )
             except Exception:
                 pass

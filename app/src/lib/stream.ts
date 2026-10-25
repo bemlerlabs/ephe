@@ -27,6 +27,33 @@ export type StreamErrorCode =
   | 'network'
   | 'stream_closed_before_done'
 
+/** Why one streamChat() call ended. Every call ends with exactly one of these. */
+export type StreamCloseReason =
+  | 'terminal'
+  | 'abort'
+  | 'idle_timeout'
+  | 'network'
+  | 'read_error'
+  | 'eof_before_terminal'
+  | 'http_error'
+
+export interface StreamCloseDiagnostic {
+  close_reason: StreamCloseReason
+  /** The terminal frame type or the StreamErrorCode; empty when neither exists. */
+  close_code: string
+  last_frame_type: string
+  elapsed_ms: number
+  terminal_seen: boolean
+  /** The turn's own id, so this line and the server's `stream_closed` correlate. */
+  turn_id: string
+}
+
+/**
+ * No persisted client channel exists for stream transport facts (the run ledger is
+ * server-side), so the diagnostic goes to one console.debug line with this prefix.
+ */
+export const STREAM_DIAG_PREFIX = '[ephe:stream]'
+
 export class StreamChatError extends Error {
   constructor(
     message: string,
@@ -93,19 +120,50 @@ import { deepNumber } from './deepSettings'
  * @throws StreamChatError
  */
 export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/chat/stream`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-    },
-    body: JSON.stringify(req),
-    signal: opts.signal,
-  })
+  const startedAt = Date.now()
+  let lastFrameType = ''
+  let terminalType = ''
+  let turnId = ''
+  let reported = false
+  const report = (reason: StreamCloseReason, code: string) => {
+    if (reported) return
+    reported = true
+    const line: StreamCloseDiagnostic = {
+      close_reason: reason,
+      close_code: code,
+      last_frame_type: lastFrameType,
+      elapsed_ms: Date.now() - startedAt,
+      terminal_seen: terminalType !== '',
+      turn_id: turnId,
+    }
+    try {
+      console.debug(`${STREAM_DIAG_PREFIX} ${JSON.stringify(line)}`)
+    } catch {
+      // A host without a console must not turn a finished turn into a throw.
+    }
+  }
+
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}/api/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(req),
+      signal: opts.signal,
+    })
+  } catch (err) {
+    const aborted = opts.signal?.aborted || (err instanceof Error && err.name === 'AbortError')
+    report(aborted ? 'abort' : 'network', aborted ? 'aborted' : 'network')
+    throw err
+  }
 
   if (!res.ok || !res.body) {
     // P9-F2 (round 14): the raw status code does not belong in the visible
     // error line — the diagnosis stays available via `status`.
+    report('http_error', 'http_error')
     throw new StreamChatError('stream could not be started', res.status, 'http_error')
   }
 
@@ -116,7 +174,12 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
   // error past that point is a transport hiccup on an answered turn.
   let sawTerminal = false
   const dispatch = (event: StreamEvent) => {
-    if (event.type === 'done' || event.type === 'error') sawTerminal = true
+    lastFrameType = event.type
+    if (event.type === 'turn' && typeof event.turn_id === 'string') turnId = event.turn_id
+    if (event.type === 'done' || event.type === 'error') {
+      sawTerminal = true
+      terminalType = event.type
+    }
     opts.onEvent(event)
   }
   const idleMs =
@@ -145,7 +208,10 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
         if (sep === -1) break
         const raw = buffer.slice(0, sep)
         buffer = buffer.slice(sep + consumed)
-        for (const event of parseSseBlock(raw)) {
+        const events = parseSseBlock(raw)
+        // Keepalives reach the diagnostic as a frame type; the parser drops them.
+        if (events.length === 0 && raw.trimStart().startsWith(':')) lastFrameType = 'keepalive'
+        for (const event of events) {
           dispatch(event)
         }
       }
@@ -173,23 +239,38 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
     await reader.cancel().catch(() => {})
     if (opts.signal?.aborted) {
       // Producer abort (stop button): not an error, resolves cleanly.
+      report('abort', 'aborted')
       return
     }
     if (err instanceof Error && err.name === 'AbortError') {
+      report('abort', 'aborted')
       return
     }
-    if (sawTerminal) return
-    if (err instanceof StreamChatError) throw err
+    if (sawTerminal) {
+      report('terminal', terminalType)
+      return
+    }
+    if (err instanceof StreamChatError) {
+      report(err.code === 'idle_timeout' ? 'idle_timeout' : 'read_error', err.code)
+      throw err
+    }
     const network = err instanceof TypeError
+    report(network ? 'network' : 'read_error', network ? 'network' : 'stream_closed_before_done')
     throw new StreamChatError(
       network ? 'network error while reading the stream' : 'stream closed before the terminal frame',
       undefined,
       network ? 'network' : 'stream_closed_before_done',
     )
   }
-  if (!sawTerminal && !opts.signal?.aborted) {
+  if (sawTerminal) {
+    report('terminal', terminalType)
+    return
+  }
+  if (!opts.signal?.aborted) {
+    report('eof_before_terminal', 'stream_closed_before_done')
     throw new StreamChatError('stream ended without a terminal frame', undefined, 'stream_closed_before_done')
   }
+  report('abort', 'aborted')
 }
 
 /**
