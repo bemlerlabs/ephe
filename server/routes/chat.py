@@ -41,6 +41,7 @@ from core.commands import (
 from core.skills import SkillLoader, SkillLoadError
 from core.artifact_detector import ArtifactDetector
 from core.artifact_markers import ARTIFACT_MARKERS
+from core.search_budget import search_budget_answer
 from core.quality import (
     budget_note_is_unfinished,
     evaluate_quality,
@@ -1105,24 +1106,6 @@ SILENT_AFTER_TOOLS_TURN = (
     "mehr gesagt. Was erzeugt wurde, liegt in der Werkbank — die Antwort selbst "
     "ist ausgeblieben. Versuch es noch einmal."
 )
-
-
-def search_budget_answer(captured_tool_results: list) -> str:
-    """The sources of a mute search turn, with the budget it spent."""
-    raws = [
-        row.raw
-        for row in captured_tool_results
-        if getattr(row, "tool", "") == "web_search"
-        and getattr(row, "status", "") != "error"
-        and getattr(row, "raw", "")
-    ]
-    if not raws:
-        return ""
-    return (
-        "The search budget for this turn is spent (4 searches or 60 s). "
-        "This is what the sources returned; anything past it is unverified, and "
-        "where nothing was found, not found.\n\n" + "\n\n".join(raws)[:4000]
-    )
 
 
 def silent_turn_message(answer: str, captured_tool_results: list) -> str | None:
