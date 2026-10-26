@@ -119,8 +119,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // sentences and the tools page's two field labels added 4 keys per file, measured
 // as committed: en.json 129,049 B and de.json 139,895 B. Both halves move by
 // 1,000 B so the pair keeps its ratchet step.
-const EN_CEILING = 130_000
-const DE_CEILING = 141_000
+// Raised on 2026-10-26 for the engine-key repair: the setup page names the
+// mismatch, both engines, the key source and the four actions. Measured as
+// committed: en.json 130,623 B and de.json 141,551 B, +627 B / +733 B over the
+// numbers this lane inherited. Both halves move by 1,000 B, the same step the
+// earlier waves took.
+const EN_CEILING = 131_000
+const DE_CEILING = 142_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on
