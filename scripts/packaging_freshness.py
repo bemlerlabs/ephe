@@ -16,6 +16,13 @@ carriers (`pyproject.toml`, `app/package.json`, `app/src-tauri/tauri.conf.json`)
 number the next build ships. The fallback is printed, never silent, so a green run states which
 reference it judged against and a reader can tell the two apart.
 
+A pull request carries the release the tree is about to cut, so the feed would answer "not yet"
+for every manifest of that release. On the feed path the check therefore also accepts the tree's
+own stable version when it sits ahead of the published one; a third number still fails, and so
+does any manifest naming a pre-release the feed does not serve, because the beta cadence keeps
+the shipped manifests on the stable release while the carriers move. `--release` keeps the exact
+rule for the publish event, where the manifests must name the tag that was published.
+
 Exit codes follow the other gates in `scripts/`: 0 every manifest agrees with the reference, 1 a
 manifest names a version the reference does not, 2 a manifest or the reference cannot be read.
 """
@@ -115,10 +122,29 @@ def feed_release(timeout: float = 10.0) -> str:
     return tag[len(TAG_PREFIX):] if tag.startswith(TAG_PREFIX) else tag
 
 
-def resolve_reference(root: Path, release: str | None, offline: bool) -> tuple[str, str]:
+def stable_candidate(root: Path, published: str) -> str | None:
+    """The stable release this tree is cutting, when it sits ahead of the published one.
+
+    A pre-release carrier does not qualify: during the beta cadence the carriers move to
+    0.2.0-alpha.N while the shipped manifests stay on the stable release.
+    """
+    try:
+        candidate = carrier_version(root)
+    except (OSError, ValueError, KeyError):
+        return None
+    if "-" in candidate or candidate == published:
+        return None
+    return candidate
+
+
+def resolve_reference(
+    root: Path, release: str | None, offline: bool, published: str | None
+) -> tuple[str, str]:
     """(version, source) the manifests are judged against, the published release when reachable."""
     if release:
         return release, "--release"
+    if published:
+        return published, "--published"
     if offline:
         return carrier_version(root), "the tree carriers (--offline)"
     try:
@@ -138,32 +164,41 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="checkout to judge")
     parser.add_argument("--release", help="judge against this version instead of the feed")
+    parser.add_argument("--published", help="judge as if the feed served this version, no network")
     parser.add_argument("--offline", action="store_true", help="judge against the tree carriers, no network")
     args = parser.parse_args(argv)
 
     try:
         versions = manifest_versions(args.root)
-        reference, source = resolve_reference(args.root, args.release, args.offline)
+        reference, source = resolve_reference(args.root, args.release, args.offline, args.published)
     except (OSError, ValueError, KeyError) as exc:
         print(f"packaging-freshness: cannot decide the reference or a manifest: {exc}")
         return 2
 
+    candidate = None
+    if args.release is None and not args.offline:
+        candidate = stable_candidate(args.root, reference)
+    accepted = {reference} | ({candidate} if candidate else set())
+    expected = f"release {reference}" + (f" or the candidate {candidate}" if candidate else "")
+
     print(f"packaging-freshness: reference release {reference} ({source})")
+    if candidate:
+        print(f"packaging-freshness: candidate release {candidate} (the stable version this tree carries)")
     stale = []
     for label, version in versions.items():
-        agrees = version == reference
+        agrees = version in accepted
         if not agrees:
-            stale.append(f"{label} {version} vs release {reference}")
-        print(f"packaging-freshness: {'ok   ' if agrees else 'STALE'} {label} {version} vs release {reference}")
+            stale.append(f"{label} {version} vs {expected}")
+        print(f"packaging-freshness: {'ok   ' if agrees else 'STALE'} {label} {version} vs {expected}")
 
     if stale:
         print(
-            f"packaging-freshness: FAIL — {len(stale)} manifest(s) name a version the release does "
-            "not; point them at the published tag with its measured hash, or cut the release they "
-            "name: " + "; ".join(stale)
+            f"packaging-freshness: FAIL — {len(stale)} manifest(s) name a version neither the feed "
+            "nor the tree's candidate names; point them at the published tag with its measured "
+            "hash, or cut the release they name: " + "; ".join(stale)
         )
         return 1
-    print(f"packaging-freshness: PASS — {len(versions)} manifest(s) name release {reference}")
+    print(f"packaging-freshness: PASS — {len(versions)} manifest(s) name {expected}")
     return 0
 
 

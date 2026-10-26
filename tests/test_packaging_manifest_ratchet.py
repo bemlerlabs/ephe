@@ -65,6 +65,43 @@ class TestRatchetOnAPlant:
         assert done.returncode == 1, done.stdout
         assert "vs release 1.2.5" in done.stdout, done.stdout
 
+    def test_a_stable_candidate_ahead_of_the_feed_is_accepted(self, tmp_path):
+        """GIVEN the release a pull request is cutting THEN the feed still serves the previous
+        one; the manifests name the candidate, which is the state the pull request is in.
+        """
+        root = plant_tree(tmp_path, release="1.2.4", cask="1.2.4", scoop="1.2.4", npm="1.2.4")
+        done = run(RATCHET, "--root", str(root), "--published", "1.2.3")
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "candidate release 1.2.4" in done.stdout, done.stdout
+
+    def test_a_third_number_is_still_refused_beside_the_candidate(self, tmp_path):
+        root = plant_tree(tmp_path, release="1.2.4", cask="1.2.5", scoop="1.2.4", npm="1.2.4")
+        done = run(RATCHET, "--root", str(root), "--published", "1.2.3")
+        assert done.returncode == 1, done.stdout
+        assert "STALE cask 1.2.5" in done.stdout, done.stdout
+
+    def test_a_prerelease_carrier_does_not_license_an_ahead_manifest(self, tmp_path):
+        """During the beta cadence the carriers move ahead while the shipped manifests stay on
+        the stable release the feed serves, so that release stays the reference.
+        """
+        root = plant_tree(tmp_path, release="2.0.0-alpha.1", cask="1.2.3", scoop="1.2.3", npm="1.2.3")
+        done = run(RATCHET, "--root", str(root), "--published", "1.2.3")
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "candidate release" not in done.stdout, done.stdout
+
+    def test_a_manifest_may_not_name_the_prerelease_the_feed_does_not_serve(self, tmp_path):
+        root = plant_tree(tmp_path, release="2.0.0-alpha.1", cask="2.0.0-alpha.1",
+                          scoop="2.0.0-alpha.1", npm="2.0.0-alpha.1")
+        done = run(RATCHET, "--root", str(root), "--published", "1.2.3")
+        assert done.returncode == 1, done.stdout
+        assert "STALE" in done.stdout, done.stdout
+
+    def test_the_publish_event_accepts_only_the_tag_it_published(self, tmp_path):
+        root = plant_tree(tmp_path, release="1.2.4", cask="1.2.4", scoop="1.2.4", npm="1.2.4")
+        done = run(RATCHET, "--root", str(root), "--release", "1.2.3")
+        assert done.returncode == 1, done.stdout
+        assert "candidate release" not in done.stdout, done.stdout
+
     def test_carriers_that_disagree_are_a_reference_the_check_declines(self, tmp_path):
         root = plant_tree(tmp_path)
         write(root / "app" / "package.json", json.dumps({"version": "9.9.9"}) + "\n")
