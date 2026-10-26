@@ -1,0 +1,7 @@
+{
+ "instrument": "scripts/provenance_check.py",
+ "known_diverged": [
+  "v0.1.7"
+ ],
+ "why": "v0.1.7 was landed by a rebase merge on 2026-10-26 before this gate existed. The tag names db1c0ba4, whose tree equals main's 5d67f19; the artifacts and main hold the same content, only the tag lineage diverged. The list may only shrink."
+}

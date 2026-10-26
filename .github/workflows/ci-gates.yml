@@ -113,6 +113,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The provenance gate asks whether a tag's commit sits on main, which
+          # needs the history a shallow checkout drops.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -145,6 +148,13 @@ jobs:
         # scripts/prose-tells-baseline.json, which only ever lowers, so a new file
         # cannot bring such a tell along unnoticed.
         run: python3 scripts/prose_tells.py --strict
+
+      - name: Released tags sit on main
+        # A tag that names a commit main does not contain is the v0.1.7 defect the
+        # receipt records. A pull request cannot move a tag, so the step runs where
+        # a tag can come from the trunk and the history is complete.
+        if: github.event_name != 'pull_request'
+        run: python3 scripts/provenance_check.py --base origin/main
 
   coverage-floor:
     name: Coverage floor (per-module ratchet)

@@ -275,6 +275,7 @@ else
   run_gate "changelog [Unreleased]" "$PY" "$ROOT/scripts/changelog_unreleased.py" --check
   run_gate "language ratchet"       "$PY" "$ROOT/scripts/language_gate.py"
   run_gate "architecture ratchet"   node  "$ROOT/scripts/architecture_check.mjs" check
+  run_gate "provenance"             "$PY" "$ROOT/scripts/provenance_check.py" --base "origin/$BRANCH"
   if [ "$FULL_GATES" = 1 ]; then
     run_gate "pytest release bar"   gate_pytest
     run_gate "typescript"           gate_tsc
