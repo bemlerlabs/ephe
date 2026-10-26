@@ -9,7 +9,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.1.9 parcels so far: the parity wait (`f16963e`, kept off the UI thread in
 `278d717`), the apt retry (`7c468f3`) and the provenance gate (`e629e6c`,
-hardened in `afadd56`).
+hardened in `afadd56`). The shell now reads a picked attachment itself
+(`0d251e2`) and the composer renders it again (`c9f0591`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
 and the packaging gate's `6d0d7ba`).
 The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
