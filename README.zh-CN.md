@@ -75,7 +75,7 @@ Ephe 将一次运行称为一个单元（cell）。单元是会话期间使用�
 #### macOS 和 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.10/install.sh | bash
 ```
 
 若想在运行前阅读脚本，可使用本地仓库副本：
@@ -91,7 +91,7 @@ cd ephe
 #### Windows（PowerShell）
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.10/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

@@ -6,13 +6,13 @@ clean machine, is [FIRST_RUN.md](FIRST_RUN.md).
 ## 1 · Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.10/install.sh | bash
 ```
 
 On Windows, use PowerShell. This installation path is not yet verified end to end for this revision:
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.10/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

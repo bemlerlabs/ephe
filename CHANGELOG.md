@@ -7,8 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.1.9 changes are named below (`f16963e`, `278d717`, `7c468f3`, `e629e6c`,
-`afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`).
+The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
+`e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
 and the packaging gate's `6d0d7ba`).
 The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
@@ -17,7 +17,7 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
 
-## [0.1.9] - 2026-10-26
+## [0.1.10] - 2026-10-26
 
 ### Added
 - An attachment picked through the desktop's native dialog arrives as a data
@@ -36,10 +36,20 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   with an 8 s deadline (`f16963e`, `278d717`).
 - The e2e boot set counts the health heartbeat once, so a late poll no longer
   reads as a second boot request (`9242ba4`).
+- The provenance gate answers "cannot decide" in a shallow checkout instead of
+  reading older tags as diverged, and the release test gate fetches the full
+  history (`38a9640`). The v0.1.9 run failed on exactly that shallow read.
 
 ### Changed
 - The Rust shell job bounds each apt acquire and retries the install once,
   instead of hanging for up to 19 minutes on an unresponsive mirror (`7c468f3`).
+
+## [0.1.9] - 2026-10-26
+
+Tagged on `main` as `4c76d46` and never published: its release test gate
+checked out a shallow clone, read every older tag as diverged and failed the
+suite, so no artifact was served. The work above ships in 0.1.10 with that gate
+fixed (`38a9640`).
 
 ## [0.1.8] - 2026-10-26
 
