@@ -222,8 +222,54 @@ pub struct Status {
 mod runtime {
     use super::*;
     use std::sync::Mutex;
+    use std::time::{Duration, Instant};
 
     static LAST: Mutex<Option<Status>> = Mutex::new(None);
+
+    /// One heal at a time. The start thread and the surface command can both ask
+    /// for a check, and two `git` runs in one checkout must not overlap.
+    static HEAL: Mutex<()> = Mutex::new(());
+
+    /// The root this machine configured, remembered at start so the command can
+    /// ask again later without rereading `~/.ephe/desktop.json`.
+    static PROJECT: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);
+
+    /// How long a cold start may take before the check stops asking. Measured
+    /// 2026-10-26: the Python backend needs seconds, and the old single 400 ms
+    /// probe ran before the port existed on every launch after an update.
+    const WAIT_MS: u64 = 30_000;
+    const POLL_MS: u64 = 250;
+
+    /// Ask a probe until it answers or the deadline passes.
+    pub(super) fn wait_for<T>(timeout_ms: u64, poll_ms: u64, mut probe: impl FnMut() -> Option<T>) -> Option<T> {
+        let deadline = Instant::now() + Duration::from_millis(timeout_ms);
+        loop {
+            if let Some(value) = probe() {
+                return Some(value);
+            }
+            if Instant::now() >= deadline {
+                return None;
+            }
+            std::thread::sleep(Duration::from_millis(poll_ms));
+        }
+    }
+
+    /// Whether a remembered verdict is worth a fresh look. A backend that had not
+    /// answered, or answered without a version, can be the first second of a
+    /// start; a measured mismatch or agreement cannot.
+    pub fn should_refresh(status: &Status) -> bool {
+        matches!(status.verdict, "no_backend" | "unknown")
+    }
+
+    pub fn remember_project(path: &std::path::Path) {
+        if let Ok(mut guard) = PROJECT.lock() {
+            *guard = Some(path.to_path_buf());
+        }
+    }
+
+    pub fn configured_project() -> Option<std::path::PathBuf> {
+        PROJECT.lock().ok().and_then(|g| g.clone())
+    }
 
     /// Run git with the backend root as the working directory. The path is never
     /// an argument: it comes from `~/.ephe/desktop.json`, and a directory the OS
@@ -257,8 +303,14 @@ mod runtime {
     /// shell, so the new code is loaded by the next start and the verdict says so.
     pub fn check_and_heal(port: u16, project: &std::path::Path) -> Status {
         let shell = env!("CARGO_PKG_VERSION");
-        let Some(peer) = crate::backend::statement(port) else {
-            return remember(make_status("no_backend", shell, "", "no backend answered"));
+        let _serial = HEAL.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(peer) = wait_for(WAIT_MS, POLL_MS, || crate::backend::statement(port)) else {
+            return remember(make_status(
+                "no_backend",
+                shell,
+                "",
+                "no backend answered within 30 s",
+            ));
         };
         // The path a command may run in is the one this machine configured, never
         // the one a socket answered with: the answer is only compared against it.
@@ -329,7 +381,20 @@ mod runtime {
 }
 
 #[cfg(unix)]
-pub use runtime::{last_status, check_and_heal};
+pub use runtime::{check_and_heal, configured_project, last_status, remember_project, should_refresh};
+
+#[cfg(not(unix))]
+pub fn remember_project(_path: &std::path::Path) {}
+
+#[cfg(not(unix))]
+pub fn configured_project() -> Option<std::path::PathBuf> {
+    None
+}
+
+#[cfg(not(unix))]
+pub fn should_refresh(_status: &Status) -> bool {
+    false
+}
 
 #[cfg(not(unix))]
 pub fn check_and_heal(_port: u16) -> Status {
@@ -344,4 +409,48 @@ pub fn check_and_heal(_port: u16) -> Status {
 #[cfg(not(unix))]
 pub fn last_status() -> Status {
     check_and_heal(0)
+}
+
+#[cfg(all(test, unix))]
+mod runtime_tests {
+    use super::runtime::{should_refresh, wait_for};
+
+    #[test]
+    fn a_probe_that_answers_late_is_still_read() {
+        let mut asked = 0;
+        let answer = wait_for(2_000, 1, || {
+            asked += 1;
+            if asked < 3 {
+                None
+            } else {
+                Some(asked)
+            }
+        });
+        assert_eq!(answer, Some(3), "the third ask is the answer");
+    }
+
+    #[test]
+    fn a_probe_that_never_answers_gives_up_at_the_deadline() {
+        let started = std::time::Instant::now();
+        let answer: Option<u8> = wait_for(0, 1, || None);
+        assert_eq!(answer, None);
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
+    }
+
+    #[test]
+    fn only_a_missing_answer_is_worth_asking_again() {
+        let mut status = super::Status {
+            verdict: "no_backend",
+            shell: "0.1.9".into(),
+            backend: String::new(),
+            note: String::new(),
+        };
+        assert!(should_refresh(&status), "a cold start asks again");
+        status.verdict = "unknown";
+        assert!(should_refresh(&status), "a missing version asks again");
+        status.verdict = "mismatch";
+        assert!(!should_refresh(&status), "a measured mismatch stands");
+        status.verdict = "current";
+        assert!(!should_refresh(&status), "agreement stands");
+    }
 }

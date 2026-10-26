@@ -100,7 +100,13 @@ async fn pick_folder(app: tauri::AppHandle) -> Option<String> {
 /// last verdict it wrote.
 #[tauri::command]
 fn backend_parity() -> parity::Status {
-    parity::last_status()
+    let status = parity::last_status();
+    match parity::configured_project() {
+        Some(project) if parity::should_refresh(&status) => {
+            parity::check_and_heal(crate::backend::PORT, &project)
+        }
+        _ => status,
+    }
 }
 
 /// Writes the native selection where the backend alone reads it. The token is
@@ -429,6 +435,7 @@ pub fn run() {
                         let Some(project) = project else {
                             return;
                         };
+                        parity::remember_project(&project);
                         let status = parity::check_and_heal(backend::PORT, &project);
                         if status.verdict != "current" {
                             log::warn!(
