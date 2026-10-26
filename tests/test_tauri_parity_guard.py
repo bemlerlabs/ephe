@@ -202,21 +202,21 @@ def test_a_platform_read_outside_the_manifest_is_refused(tmp_path):
     data["platform_branches"] = [
         entry
         for entry in data["platform_branches"]
-        if entry["file"] != "app/src/components/dashboard/chat/useComposerAttachments.ts"
+        if entry["file"] != "app/src/lib/tauriBridge.ts"
     ]
     result = run_guard("--manifest", write_manifest(tmp_path, data))
     assert result.returncode == 1, result.stdout
-    assert "reads __TAURI__ 1 time(s), the manifest does not list it" in result.stdout
+    assert "reads __TAURI__ 2 time(s), the manifest does not list it" in result.stdout
 
 
 def test_a_branch_that_gained_a_read_is_refused(tmp_path):
     data = manifest_data()
     for entry in data["platform_branches"]:
-        if entry["file"] == "app/src/components/dashboard/chat/useComposerAttachments.ts":
-            entry["count"] = 2
+        if entry["file"] == "app/src/lib/tauriBridge.ts" and entry["marker"] == "__TAURI__":
+            entry["count"] = 3
     result = run_guard("--manifest", write_manifest(tmp_path, data))
     assert result.returncode == 1, result.stdout
-    assert "the manifest declares 2" in result.stdout
+    assert "the manifest declares 3" in result.stdout
 
 
 def test_a_manifest_that_cannot_be_read_refuses_a_pass(tmp_path):

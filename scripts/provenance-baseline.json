@@ -1,7 +1,13 @@
 {
  "instrument": "scripts/provenance_check.py",
  "known_diverged": [
+  "v0.1.0-beta.3",
+  "v0.1.0-beta.4",
+  "v0.1.0-beta.5",
+  "v0.1.0-beta.6",
+  "v0.1.0-beta.7",
+  "v0.1.0-beta.8",
   "v0.1.7"
  ],
- "why": "v0.1.7 was landed by a rebase merge on 2026-10-26 before this gate existed. The tag names db1c0ba4, whose tree equals main's 5d67f19; the artifacts and main hold the same content, only the tag lineage diverged. The list may only shrink."
+ "why": "v0.1.0-beta.3 to beta.8 were cut from feature branches before the fast-forward rule (2026-10-10) and name commits main does not contain. v0.1.7 was landed by a rebase merge on 2026-10-26 before this gate existed: the tag names db1c0ba4, whose tree equals main's 5d67f19. The list may only shrink and no new entry is accepted against the base ref."
 }
