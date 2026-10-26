@@ -8,13 +8,15 @@ checkout.
 
 ```json
 {
-  "python": "/Users/sanji/.local/share/ephe/current/.venv/bin/python",
-  "project_root": "/Users/sanji/.local/share/ephe/current",
+  "python": "<home>/.local/share/ephe/current/.venv/bin/python",
+  "project_root": "<home>/.local/share/ephe/current",
   "port": 8765
 }
 ```
 
-`current` is a symlink to `0.1.4`, and the checkout inside it runs `main`:
+`<home>` stands for the user's home directory; the file holds the absolute
+paths, and `<home>` is the only part that differs between machines. `current`
+is a symlink to `0.1.4`, and the checkout inside it runs `main`:
 measured at `64f8763` on 2026-10-26 after the 0.1.8 update. The name of the
 physical directory is the residue of the first install; the symlink is what the
 shell and the parity check use, and `/api/health` reports the resolved path.
