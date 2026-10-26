@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import ast
 import re
-import tomllib
 from collections.abc import Iterable
 from pathlib import Path
+
+from tests.toml_compat import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGES = ("core", "server")
