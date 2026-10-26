@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged into the generated bundle Info.plist (Tauri reads this file beside tauri.conf.json).
+     WKWebView terminates the host process when a page asks for a protected resource and the
+     bundle carries no usage description, so every request the app can make is declared here. -->
+<plist version="1.0">
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ephe records a voice message with the microphone while you hold its button.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Ephe reads and writes the files you pick from your Desktop.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Ephe reads and writes the files you pick from your Documents folder.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Ephe reads and writes the files you pick from your Downloads folder.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Ephe reads the files you pick from an external volume.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>Ephe reads the files you pick from a network volume.</string>
+</dict>
+</plist>
