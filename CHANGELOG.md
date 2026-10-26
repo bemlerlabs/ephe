@@ -7,7 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`).
+The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
+and the packaging gate's `6d0d7ba`).
 The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `7f793d0` and `5d67f19`; the tag names the same work as `a02adcf`, `b831014`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
