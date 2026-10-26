@@ -96,17 +96,23 @@ async fn pick_folder(app: tauri::AppHandle) -> Option<String> {
 }
 
 /// What the shell and the backend reported about their versions, for the
-/// surface to say out loud. The check runs on the start thread; this reads the
-/// last verdict it wrote.
+/// surface to say out loud. The start thread runs the full check; a cached
+/// "no backend" is re-asked here on a worker thread, because a synchronous
+/// command body would hold the window for the length of the wait.
 #[tauri::command]
-fn backend_parity() -> parity::Status {
+async fn backend_parity() -> parity::Status {
     let status = parity::last_status();
-    match parity::configured_project() {
-        Some(project) if parity::should_refresh(&status) => {
-            parity::check_and_heal(crate::backend::PORT, &project)
-        }
-        _ => status,
+    let Some(project) = parity::configured_project() else {
+        return status;
+    };
+    if !parity::should_refresh(&status) {
+        return status;
     }
+    tauri::async_runtime::spawn_blocking(move || {
+        parity::check_and_heal_with(crate::backend::PORT, &project, 8_000)
+    })
+    .await
+    .unwrap_or(status)
 }
 
 /// Writes the native selection where the backend alone reads it. The token is
@@ -424,18 +430,23 @@ pub fn run() {
             {
                 let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
                 if let Some(home) = home {
+                    // The root is read before the window can ask for a verdict, so the
+                    // surface's command never sees "not run yet" because this thread
+                    // has not reached its own read.
+                    let project = std::fs::read_to_string(backend::konfig_pfad(&home))
+                        .ok()
+                        .and_then(|text| backend::befehl_aus(&text, &home))
+                        .map(|cmd| cmd.projekt);
+                    if let Some(project) = project.as_deref() {
+                        parity::remember_project(project);
+                    }
                     std::thread::spawn(move || {
                         let _ = backend::sicherstellen(&home, backend::PORT);
                         // The updater replaces the shell and nothing else, so the
                         // backend has to be asked what version it actually runs.
-                        let project = std::fs::read_to_string(backend::konfig_pfad(&home))
-                            .ok()
-                            .and_then(|text| backend::befehl_aus(&text, &home))
-                            .map(|cmd| cmd.projekt);
                         let Some(project) = project else {
                             return;
                         };
-                        parity::remember_project(&project);
                         let status = parity::check_and_heal(backend::PORT, &project);
                         if status.verdict != "current" {
                             log::warn!(

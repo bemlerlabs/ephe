@@ -302,14 +302,21 @@ mod runtime {
     /// never followed by a kill: the process on the port may belong to another
     /// shell, so the new code is loaded by the next start and the verdict says so.
     pub fn check_and_heal(port: u16, project: &std::path::Path) -> Status {
+        check_and_heal_with(port, project, WAIT_MS)
+    }
+
+    /// The same check with a caller-chosen deadline. The start thread can spend the
+    /// full 30 s; a surface command that only repeats a cached "no backend" answers
+    /// with a shorter clock so nobody waits on it.
+    pub fn check_and_heal_with(port: u16, project: &std::path::Path, wait_ms: u64) -> Status {
         let shell = env!("CARGO_PKG_VERSION");
         let _serial = HEAL.lock().unwrap_or_else(|e| e.into_inner());
-        let Some(peer) = wait_for(WAIT_MS, POLL_MS, || crate::backend::statement(port)) else {
+        let Some(peer) = wait_for(wait_ms, POLL_MS, || crate::backend::statement(port)) else {
             return remember(make_status(
                 "no_backend",
                 shell,
                 "",
-                "no backend answered within 30 s",
+                "no backend answered within the wait",
             ));
         };
         // The path a command may run in is the one this machine configured, never
@@ -381,7 +388,15 @@ mod runtime {
 }
 
 #[cfg(unix)]
-pub use runtime::{check_and_heal, configured_project, last_status, remember_project, should_refresh};
+pub use runtime::{
+    check_and_heal, check_and_heal_with, configured_project, last_status, remember_project,
+    should_refresh,
+};
+
+#[cfg(not(unix))]
+pub fn check_and_heal_with(_port: u16, _project: &std::path::Path, _wait_ms: u64) -> Status {
+    check_and_heal(_port)
+}
 
 #[cfg(not(unix))]
 pub fn remember_project(_path: &std::path::Path) {}
