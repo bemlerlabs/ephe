@@ -103,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 Docker 和所有安装器参数的说明见 [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md)。
 
-上述命令指向当前公开发布的版本 `v0.1.3`。Bash 安装器默认使用 `--desktop`；如需仅安装终端界面，请传入 `--cli` 或设置 `EPHE_MODE=cli`。
+上述命令指向当前公开发布的版本 `v0.1.10`。Bash 安装器默认使用 `--desktop`；如需仅安装终端界面，请传入 `--cli` 或设置 `EPHE_MODE=cli`。
 
 在新终端中使用 `ephe` 前，请先激活已安装的环境。
 对于 macOS 或 Linux 上的默认安装位置：
@@ -124,7 +124,7 @@ source "$HOME/Documents/Ephe/.venv/bin/activate"
 
 应用会打开初始设置（Setup）页面。选择本地 Ollama 模型、远程 Ollama 或兼容 OpenAI 的端点。在终端中，`ephe configure` 会将同样的选择写入 `~/.ephe/engine.json`。未选择引擎时，Ephe 拒绝启动；没有隐藏的默认选项。
 
-如果使用托管端点，请在同一页面输入密钥。应用将其保存在操作系统钥匙串中，或保存在仅所有者可访问的 `~/.ephe/engine.key` 文件中。密钥绝不会写入 `engine.json`，也不会输出到对话中。
+如果使用托管端点，请在同一页面输入密钥。应用将其保存在操作系统钥匙串中，或保存在仅所有者可访问的 `~/.ephe/engine.key` 文件中。密钥绝不会写入 `engine.json`，也不会输出到对话中。存储的密钥会在 `~/.ephe/engine.key.binding.json` 中绑定到该引擎，该伴生文件只保存密钥的 SHA-256，不保存密钥本身。缺少该绑定时，应用拒绝使用已存储的密钥。
 
 ### 3. 提出任务
 

@@ -42,7 +42,7 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.1.3` tag. The fetch answers HTTP 200; the
+The one-liner fetches `install.sh` from the public `v0.1.10` tag. The fetch answers HTTP 200; the
 checkout path above is the alternative for reading the script before it runs.
 
 For the end-to-end first-run walkthrough — install, the engine choice (hosted API key or local
@@ -214,7 +214,7 @@ the checkout in `EPHE_INSTALL_DIR` (default `~/Documents/Ephe`) and the state tr
 ```
 
 The checkout is reconstructible from git; `~/.ephe` is not. It holds `engine.json` and
-`engine.key` (the engine choice and its key), `memory/`, `sessions/`, `artifacts/`, `changesets/`,
+`engine.key` (the engine choice and its key, bound by `engine.key.binding.json`), `memory/`, `sessions/`, `artifacts/`, `changesets/`,
 `workspaces/` and `bench/`, so without `--yes` the data tree is removed only after a prompt, and a
 non-interactive run without `--yes` keeps it and prints the command that removes it. A run always
 ends by naming what it left behind, the engine key inside the OS keychain and an `ephe` that came

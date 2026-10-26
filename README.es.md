@@ -103,7 +103,7 @@ La instalación en Windows aún no se ha verificado de principio a fin para esta
 
 Docker y todas las opciones del instalador se describen en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-El comando apunta a la versión pública actual, `v0.1.3`. El instalador Bash usa `--desktop` por defecto; pasa `--cli` o establece `EPHE_MODE=cli` para instalar solo la interfaz de terminal.
+El comando apunta a la versión pública actual, `v0.1.10`. El instalador Bash usa `--desktop` por defecto; pasa `--cli` o establece `EPHE_MODE=cli` para instalar solo la interfaz de terminal.
 
 Antes de usar `ephe` en una terminal nueva, activa el entorno instalado.
 Para la instalación predeterminada en macOS o Linux:
@@ -124,7 +124,7 @@ Si usas una copia del repositorio o una ubicación personalizada, utiliza la `.v
 
 La aplicación abre la página de configuración inicial (Setup). Elige un modelo local de Ollama, un Ollama remoto o un endpoint compatible con OpenAI. En la terminal, `ephe configure` guarda la misma elección en `~/.ephe/engine.json`. Ephe se niega a arrancar sin una elección; no hay una opción predeterminada oculta.
 
-Si usas un endpoint alojado, introduce su clave en la misma página. La aplicación la guarda en el llavero del sistema operativo o en `~/.ephe/engine.key`, con permisos exclusivos para su propietario. Nunca se escribe en `engine.json` ni se muestra en el chat.
+Si usas un endpoint alojado, introduce su clave en la misma página. La aplicación la guarda en el llavero del sistema operativo o en `~/.ephe/engine.key`, con permisos exclusivos para su propietario. Nunca se escribe en `engine.json` ni se muestra en el chat. La clave guardada queda vinculada a este motor en `~/.ephe/engine.key.binding.json`, que guarda un SHA-256 de la clave, no la clave. La aplicación se niega a usar una clave guardada sin ese vínculo.
 
 ### 3. Pedir una tarea
 

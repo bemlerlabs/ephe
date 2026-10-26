@@ -1,12 +1,11 @@
 # Development
 
-Set up the backend in a venv:
+Set up the backend in a venv (Python 3.11 or newer; `.python-version` pins the 3.13 series):
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-pip install openpyxl   # Xlsx support (missing in the Miniconda env otherwise)
 ```
 
 Run the app locally:
