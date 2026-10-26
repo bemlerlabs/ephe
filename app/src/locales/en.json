@@ -1435,6 +1435,7 @@
     "kicker": "First Run · Engine Selection",
     "title": "Which engine does Ephe use?",
     "subtitle": "Ephe installs nothing and pulls no models — just pick your existing engine and model.",
+    "repairEngineKeyMismatch": "The stored key belongs to another engine. Re-enter the key for this engine so Ephe can answer again.",
     "option": {
       "local_ollama": "Local Ollama (this device)",
       "custom_ollama": "Remote Ollama (e.g. DGX / LAN)",

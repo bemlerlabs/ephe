@@ -156,6 +156,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [model, setModel] = useState('')
+  // T2: the backend refused this start because the stored key belongs to another
+  // engine. Put the reason on the screen that repairs it.
+  const [repair, setRepair] = useState<'engine_key_mismatch' | null>(null)
   // W19: optional authentication for OpenAI-compatible providers — the key stays
   // on this device (server env); Ephe never presets a provider for the user.
   const [apiKey, setApiKey] = useState('')
@@ -420,6 +423,24 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     await runProbe(k, k === 'local_ollama' ? undefined : url)
   }
 
+  // T2: one status read names why this screen is shown at all. A refused key is a
+  // different instruction ("re-enter it") than a first start ("pick an engine").
+  useEffect(() => {
+    let cancelled = false
+    void getSetupStatus()
+      .then((status) => {
+        if (!cancelled && status.repair?.code === 'engine_key_mismatch') {
+          setRepair('engine_key_mismatch')
+        }
+      })
+      .catch(() => {
+        /* the choice still works; the banner is the only loss */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // P0-A/P3: auto-scan on mount — parallel multi-engine detection (Ollama +
   // DGX/vLLM). The first reachable candidate with >= 1 model is offered (W3-26).
   useEffect(() => {
@@ -558,6 +579,17 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             <h1 className="text-3xl font-medium text-foreground">{t('setup.title')}</h1>
             <p className="mt-2 text-ui-sm text-ink-soft">{t('setup.subtitle')}</p>
           </div>
+
+          {repair === 'engine_key_mismatch' && (
+            <div
+              role="status"
+              data-testid="setup-repair"
+              className="mb-5 flex gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3"
+            >
+              <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
+              <p className="text-ui-sm text-foreground">{t('setup.repairEngineKeyMismatch')}</p>
+            </div>
+          )}
 
           {/* W3-26: the scan names what it found and asks. The click is the consent;
               nothing is selected before it. */}

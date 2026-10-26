@@ -930,7 +930,16 @@ def _ensure_engine_ready() -> None:
     a cryptic connection error instead of a clear hint. As soon as
     the user has chosen (the setup UI persists engine.json / env /
     session override), the chat is open again.
+
+    T2: a start the stored key refused is answered before this switch. The question
+    is asked live, so the key entered on the setup page opens the chat for the
+    running process without a restart.
     """
+    from core.engine_config import live_engine_key_repair
+
+    problem = live_engine_key_repair()
+    if problem is not None:
+        raise HTTPException(status_code=409, detail=problem)
     if (os.environ.get("EPHE_SETUP_MODE")) != "1":
         return
     from core.engine_config import load_engine_config

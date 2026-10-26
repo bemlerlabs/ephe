@@ -638,6 +638,13 @@ def _setup_provider_dict() -> dict:
     url = persisted.api_url if persisted else (active.base_url if active.provider == "openai_compatible" else None)
     reachable, available_models = _probe_memoised(provider, url)
     complete = _engine_choice_is_complete(persisted)
+    # T2: a stored key for another engine keeps the setup screen open. The problem
+    # is re-read on every call, so re-entering the key clears it here.
+    from core.engine_config import REPAIR_ENGINE_KEY_MISMATCH, live_engine_key_repair
+
+    repair = live_engine_key_repair()
+    if repair is not None:
+        complete = False
     incomplete = persisted is not None and not complete
     return {
         "configured": complete,
@@ -651,6 +658,11 @@ def _setup_provider_dict() -> dict:
         "reachable": reachable,
         "available_models": available_models,
         "candidates": _setup_candidates(),
+        "repair": (
+            {"code": REPAIR_ENGINE_KEY_MISMATCH, "detail": repair}
+            if repair is not None
+            else None
+        ),
     }
 
 

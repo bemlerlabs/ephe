@@ -41,6 +41,20 @@ def _is_wildcard(host: str) -> bool:
     return (host or "").strip().lower() in ("0.0.0.0", "::", "")
 
 
+def _lan_requested() -> bool:
+    """Whether this start may answer beyond this machine.
+
+    Both fail-closed branches ask this one question: a reply-off surface is fine on
+    loopback and refused on anything that reaches the network.
+    """
+    return (
+        "--lan" in sys.argv
+        or any(_is_wildcard(part) for part in sys.argv[1:])
+        or os.environ.get("EPHE_LAN") == "1"
+        or (os.environ.get("EPHE_HOST") is not None and _is_wildcard(os.environ["EPHE_HOST"]))
+    )
+
+
 def select_free_port(host: str, port: int, max_tries: int = 20) -> int:
     """W4 S1: free-port selection with sequential retry starting at the intended port.
 
@@ -126,14 +140,31 @@ def _bootstrap_engine_choice():
             prompt_fn=prompt_fn,
         )
         choice.apply_env()
-        from core.engine_config import EngineKeyMismatch, assert_engine_key_binding
+        from core.engine_config import (
+            ENV_ENGINE_KEY_REPAIR,
+            REPAIR_ENGINE_KEY_MISMATCH,
+            EngineKeyMismatch,
+            assert_engine_key_binding,
+        )
 
         try:
             assert_engine_key_binding(choice)
         except EngineKeyMismatch as exc:
-            print(f"\n  ✗ {exc}", file=sys.stderr)
-            print(f"  Fix: {exc.hint}\n", file=sys.stderr)
-            raise SystemExit(1) from exc
+            # T2: exiting here is a silent start failure on the desktop — the shell can
+            # only report "backend unreachable" and the window offers no repair. The
+            # loopback start enters setup mode and names the mismatch instead; the chat
+            # guard refuses until the binding is rewritten. LAN still exits: an
+            # unconfigured network surface is not a repair.
+            if _lan_requested():
+                print(f"\n  ✗ {exc}", file=sys.stderr)
+                print(f"  Fix: {exc.hint}\n", file=sys.stderr)
+                raise SystemExit(1) from exc
+            print(f"\n  ◐ {exc}")
+            print("  Starting SETUP MODE (localhost only): re-enter the key for this engine.")
+            print(f"  Hint: {exc.hint}\n")
+            os.environ["EPHE_SETUP_MODE"] = "1"
+            os.environ[ENV_ENGINE_KEY_REPAIR] = REPAIR_ENGINE_KEY_MISMATCH
+            return None
     except EngineNotConfigured as exc:
         # W19 (live audit P1): a complete newcomer with no terminal experience NEVER
         # saw the UI — the start aborted before there was any setup page. On
@@ -145,15 +176,7 @@ def _bootstrap_engine_choice():
         # Defence-in-depth: also `--host 0.0.0.0` (directly, or as an ephe spawn
         # that never passes `--lan`) and the env mirrors of it count as a LAN start
         # — setup mode binds exclusively on loopback.
-        if (
-            "--lan" in sys.argv
-            or any(_is_wildcard(part) for part in sys.argv[1:])
-            or (os.environ.get("EPHE_LAN")) == "1"
-            or (
-                os.environ.get("EPHE_HOST") is not None
-                and _is_wildcard(os.environ["EPHE_HOST"])
-            )
-        ):
+        if _lan_requested():
             print(f"\n  ✗ {exc}", file=sys.stderr)
             print(f"  Fix: {getattr(exc, 'hint', '')}\n", file=sys.stderr)
             raise SystemExit(1) from exc

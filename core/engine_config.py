@@ -72,6 +72,12 @@ ENV_MODEL = {
     OPENAI_COMPAT: "EPHE_OPENAI_COMPAT_MODEL",
 }
 
+#: Set by the loopback start when the stored key belongs to another engine. The setup
+#: status and the chat guard re-read the binding instead of trusting the mark, so a key
+#: entered on the setup page clears the refusal for the running process.
+ENV_ENGINE_KEY_REPAIR = "EPHE_ENGINE_KEY_REPAIR"
+REPAIR_ENGINE_KEY_MISMATCH = "engine_key_mismatch"
+
 # Fixed line for every fail-closed path (identical in CLI and server).
 ENGINE_SETUP_HINT = (
     "Run `ephe configure` and pick your engine (saved to ~/.ephe/engine.json), "
@@ -462,6 +468,27 @@ def assert_engine_key_binding(choice: object, home: "Path | None" = None) -> Non
     problem = engine_key_binding_problem(choice, key, source, home=home)
     if problem is not None:
         raise EngineKeyMismatch(problem)
+
+
+def live_engine_key_repair(home: "Path | None" = None) -> str | None:
+    """The binding problem that stopped this start, or None once a fresh binding exists.
+
+    ``run_server`` records a refused start in ``EPHE_ENGINE_KEY_REPAIR`` instead of
+    exiting, and the setup status and the chat guard ask here. Re-reading the binding —
+    rather than trusting the mark — is what lets the key a user enters on the setup page
+    clear the refusal without a restart.
+    """
+    if os.environ.get(ENV_ENGINE_KEY_REPAIR) != REPAIR_ENGINE_KEY_MISMATCH:
+        return None
+    choice = load_engine_config()
+    if choice is None:
+        return None
+    key, source = resolve_engine_api_key(
+        getattr(choice, "api_url", ""),
+        home=home,
+        env_is_stored=os.environ.get("EPHE_ENGINE_KEY_SOURCE") == "file",
+    )
+    return engine_key_binding_problem(choice, key, source, home=home)
 
 
 def store_engine_api_key(

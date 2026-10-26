@@ -203,6 +203,11 @@ export interface SetupStatus {
   available_models: string[]
   /** P3: all candidates due for the auto-scan (persisted + env + default). */
   candidates?: EngineCandidate[]
+  /**
+   * T2: the start was refused because the stored key belongs to another engine.
+   * The backend re-reads the binding on every call, so re-entering the key clears it.
+   */
+  repair?: { code: 'engine_key_mismatch'; detail: string } | null
 }
 
 export interface ScheduleJob {

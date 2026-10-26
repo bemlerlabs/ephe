@@ -170,10 +170,24 @@ def _isolate_provider_state(monkeypatch: pytest.MonkeyPatch):
     # "whoever names persist_dir gets Chroma" also applies to this env path, and a
     # leaked value would have run the memory tests against Chroma while they
     # assert Kepta behaviour.
-    for _k in ("EPHE_SETUP_MODE", "EPHE_LAN", "EPHE_HOST", "EPHE_PORT", "EPHE_MEMORY_DIR"):
+    for _k in (
+        "EPHE_SETUP_MODE",
+        "EPHE_ENGINE_KEY_REPAIR",
+        "EPHE_LAN",
+        "EPHE_HOST",
+        "EPHE_PORT",
+        "EPHE_MEMORY_DIR",
+    ):
         os.environ.pop(_k, None)
     yield
-    for _k in ("EPHE_SETUP_MODE", "EPHE_LAN", "EPHE_HOST", "EPHE_PORT", "EPHE_MEMORY_DIR"):
+    for _k in (
+        "EPHE_SETUP_MODE",
+        "EPHE_ENGINE_KEY_REPAIR",
+        "EPHE_LAN",
+        "EPHE_HOST",
+        "EPHE_PORT",
+        "EPHE_MEMORY_DIR",
+    ):
         os.environ.pop(_k, None)
 
 
