@@ -91,7 +91,11 @@ jobs:
           if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
+          command -v bwrap >/dev/null || {
+            sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 update &&
+            sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+              install -y bubblewrap
+          }
       - name: Run tracked pytest suite
         run: python -m pytest tests/ -q
       - name: pass^3 release gate
@@ -223,9 +227,22 @@ jobs:
 
       - name: Linux system deps (webkit2gtk)
         if: runner.os == 'Linux'
+        # The same apt step that stalled twice on 2026-10-26 (19 and 8 minutes against
+        # a 25-second baseline) runs here for every tag. Two bounded attempts keep a
+        # stalled mirror from holding a release build open.
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          set +e
+          ok=0
+          for attempt in 1 2; do
+            sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 install -y libwebkit2gtk-4.1-dev \
+              libappindicator3-dev librsvg2-dev patchelf && { ok=1; break; }
+            echo "apt attempt $attempt did not finish; retrying" >&2
+            sleep 5
+          done
+          [ "$ok" = 1 ]
 
       - name: Build PWA (vite dist)
         working-directory: app
