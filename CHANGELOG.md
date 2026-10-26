@@ -8,7 +8,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
-`2aa10a5`, `fef5644`, `38923b9`).
+`2aa10a5`, `fef5644`, `38923b9`, `c4550c2`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -52,6 +52,8 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - The READMEs and the start docs name `v0.1.11`, drop the stale `v0.1.3`
   prose, document the engine-key binding sidecar, and name the tested Node
   runtime (`38923b9`).
+- The README contract reads every release tag named in prose, so a stale
+  `v0.1.x` fails the same way a stale install URL does (`c4550c2`).
 
 ## [0.1.10] - 2026-10-26
 
