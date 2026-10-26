@@ -41,9 +41,16 @@ jobs:
         uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
 
       - name: Linux system deps (webkit2gtk)
+        # Measured 2026-10-26: this step takes 25 s on a healthy runner, and two attempts
+        # sat in it for 19 and 8 minutes without finishing. Bounded acquires turn a stalled
+        # mirror into a fast failure the runner can retry; `timeout` keeps one hung command
+        # from holding the 30-minute job.
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 update
+          sudo timeout 600 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 install -y libwebkit2gtk-4.1-dev \
+            libappindicator3-dev librsvg2-dev patchelf
 
       - name: Frontend dist placeholder
         # tauri-build validates frontendDist; the check compiles no bundle, so an
