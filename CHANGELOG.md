@@ -7,11 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.1.9 parcels so far: the parity wait (`f16963e`, kept off the UI thread in
-`278d717`), the apt retry (`7c468f3`) and the provenance gate (`e629e6c`,
-hardened in `afadd56`). The shell now reads a picked attachment itself
-(`0d251e2`) and the composer renders it again (`c9f0591`); the provenance
-baseline records the pre-publication tags (`fb85bb9`).
+The 0.1.9 changes are named below (`f16963e`, `278d717`, `7c468f3`, `e629e6c`,
+`afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
 and the packaging gate's `6d0d7ba`).
 The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
@@ -19,6 +16,30 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.1.9] - 2026-10-26
+
+### Added
+- An attachment picked through the desktop's native dialog arrives as a data
+  URL or text and never as a path, so the composer shows its thumbnail, its
+  name and its lightbox again (`0d251e2`, `c9f0591`).
+- A release gate refuses a tag that does not sit on `main`: every `v*` tag is
+  checked for ancestry against the trunk, and the pre-publication tags that
+  cannot carry one are recorded in a baseline (`e629e6c`, `afadd56`,
+  `fb85bb9`).
+- `docs/BACKEND_PATH.md` names the backend root this machine configured, the
+  `current` symlink and the versioned sidecar that replaces it (`60ce39e`).
+
+### Fixed
+- The desktop version check waits for a cold backend instead of reading
+  "unknown" from its first empty answer, and the refresh runs off the UI thread
+  with an 8 s deadline (`f16963e`, `278d717`).
+- The e2e boot set counts the health heartbeat once, so a late poll no longer
+  reads as a second boot request (`9242ba4`).
+
+### Changed
+- The Rust shell job bounds each apt acquire and retries the install once,
+  instead of hanging for up to 19 minutes on an unresponsive mirror (`7c468f3`).
 
 ## [0.1.8] - 2026-10-26
 

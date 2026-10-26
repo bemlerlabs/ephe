@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.8/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -52,13 +52,13 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.8/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.8/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

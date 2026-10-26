@@ -72,7 +72,7 @@ The terminal (`ephe tui`) uses the engine choice from `~/.ephe/engine.json`. A p
 #### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.8/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.sh | bash
 ```
 
 To read the script before it runs, use the checkout:
@@ -88,7 +88,7 @@ The installer prepares Python and the local environment, builds the web app, and
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.8/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.9/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

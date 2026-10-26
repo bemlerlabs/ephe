@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.8"
+version = "0.1.9"
 description = "Ephe — the ephemeral local AI agent"
 authors = ["Ephe"]
 license = "BUSL-1.1"
