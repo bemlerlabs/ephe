@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
+`2aa10a5`, `fef5644`, `38923b9`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -16,6 +18,40 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.1.11] - 2026-10-27
+
+### Added
+- The setup screen repairs a stored key that belongs to another engine: it
+  names the active engine, the engine the key is bound to and where the key
+  came from, and offers keep, re-enter the key, pick another engine or cancel.
+  A loopback start enters setup mode instead of exiting, and chat answers 409
+  until the binding is rewritten (`337903e`, `0f02bc6`).
+- The desktop bundle declares the six privacy purposes it can request
+  (microphone, Desktop, Documents, Downloads, removable and network volumes),
+  and `docs/TCC.md` records the signing identity, the TCC diagnosis and the
+  rebuild test (`043ee1e`).
+- A boundary test keeps `core/` and `server/` free of AppKit, Cocoa,
+  Foundation, Quartz, WebKit, objc and pyobjc imports and dependencies
+  (`e0ce875`, `a9392e9`).
+- The README contract runs as a CI Gates step and as a dedicated offline job,
+  so a stale install tag or a dropped section fails a check (`fef5644`).
+
+### Fixed
+- A key file replaced without re-binding no longer offers "keep the key": that
+  repair requires a key whose fingerprint matches `engine.key.binding.json`
+  (`976ee78`).
+- The e2e boot set closes at the panel-ready boundary, so a polling tick that
+  fires while a slow runner reads the DOM no longer counts as a boot request
+  (`04048ba`).
+
+### Changed
+- CI: PR-only `cancel-in-progress` across the dual-trigger workflows, bounded
+  `verify.yml` timeouts, and a concurrency group on `bench-trend.yml`
+  (`2aa10a5`).
+- The READMEs and the start docs name `v0.1.11`, drop the stale `v0.1.3`
+  prose, document the engine-key binding sidecar, and name the tested Node
+  runtime (`38923b9`).
 
 ## [0.1.10] - 2026-10-26
 
