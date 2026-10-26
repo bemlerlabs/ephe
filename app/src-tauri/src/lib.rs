@@ -100,7 +100,7 @@ async fn pick_folder(app: tauri::AppHandle) -> Option<String> {
 /// last verdict it wrote.
 #[tauri::command]
 fn backend_parity() -> parity::Status {
-    parity::letzter_status()
+    parity::last_status()
 }
 
 /// Writes the native selection where the backend alone reads it. The token is
@@ -422,7 +422,7 @@ pub fn run() {
                         let _ = backend::sicherstellen(&home, backend::PORT);
                         // The updater replaces the shell and nothing else, so the
                         // backend has to be asked what version it actually runs.
-                        let status = parity::pruefen_und_heilen(backend::PORT);
+                        let status = parity::check_and_heal(backend::PORT);
                         if status.verdict != "current" {
                             log::warn!(
                                 "backend parity {}: shell {}, backend {} — {}",

@@ -131,7 +131,7 @@ def test_desktop_bundle_exists_and_matches_tauri_conf():
         )
 
 
-def _fremde_shell() -> str:
+def _foreign_shell() -> str:
     """PIDs of an Ephe shell this run does not own.
 
     The single-instance guard is global to the app identifier, so a shell the
@@ -153,9 +153,9 @@ def _fremde_shell() -> str:
 
 def test_desktop_executable_starts_and_holds_its_instance():
     _app, executable, _meta, cfg = _bundle_or_skip()
-    fremde = _fremde_shell()
-    if fremde:
-        pytest.skip(f"another Ephe shell holds the single-instance lock (pid {fremde})")
+    foreign = _foreign_shell()
+    if foreign:
+        pytest.skip(f"another Ephe shell holds the single-instance lock (pid {foreign})")
     if not _gui_session_available():
         pytest.skip("no Aqua session; the shell opens a window and cannot start headless")
 
