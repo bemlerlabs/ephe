@@ -422,7 +422,14 @@ pub fn run() {
                         let _ = backend::sicherstellen(&home, backend::PORT);
                         // The updater replaces the shell and nothing else, so the
                         // backend has to be asked what version it actually runs.
-                        let status = parity::check_and_heal(backend::PORT);
+                        let project = std::fs::read_to_string(backend::konfig_pfad(&home))
+                            .ok()
+                            .and_then(|text| backend::befehl_aus(&text, &home))
+                            .map(|cmd| cmd.projekt);
+                        let Some(project) = project else {
+                            return;
+                        };
+                        let status = parity::check_and_heal(backend::PORT, &project);
                         if status.verdict != "current" {
                             log::warn!(
                                 "backend parity {}: shell {}, backend {} — {}",

@@ -77,6 +77,15 @@ pub fn is_product_remote(url: &str) -> bool {
     host.ends_with("github.com") && path == "bemlerlabs/ephe"
 }
 
+/// Whether two spellings name the same directory. A path that does not resolve is
+/// only equal to itself, so a missing root never passes as the configured one.
+pub fn same_root(configured: &std::path::Path, reported: &std::path::Path) -> bool {
+    match (configured.canonicalize(), reported.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => configured == reported,
+    }
+}
+
 /// Whether `git status --porcelain` output means a clean tree.
 pub fn is_clean(porcelain: &str) -> bool {
     porcelain.trim().is_empty()
@@ -164,6 +173,19 @@ mod tests {
     }
 
     #[test]
+    fn only_the_configured_root_may_be_moved() {
+        assert!(same_root(std::path::Path::new("/tmp"), std::path::Path::new("/tmp")));
+        assert!(!same_root(
+            std::path::Path::new("/tmp"),
+            std::path::Path::new("/var")
+        ));
+        assert!(!same_root(
+            std::path::Path::new("/nonexistent-a"),
+            std::path::Path::new("/nonexistent-b")
+        ));
+    }
+
+    #[test]
     fn porcelain_decides_the_local_state() {
         assert!(is_clean(""));
         assert!(is_clean("  \n"));
@@ -233,11 +255,21 @@ mod runtime {
     /// Compare, move when that is allowed, and remember what happened. A move is
     /// never followed by a kill: the process on the port may belong to another
     /// shell, so the new code is loaded by the next start and the verdict says so.
-    pub fn check_and_heal(port: u16) -> Status {
+    pub fn check_and_heal(port: u16, project: &std::path::Path) -> Status {
         let shell = env!("CARGO_PKG_VERSION");
         let Some(peer) = crate::backend::statement(port) else {
             return remember(make_status("no_backend", shell, "", "no backend answered"));
         };
+        // The path a command may run in is the one this machine configured, never
+        // the one a socket answered with: the answer is only compared against it.
+        if !same_root(project, std::path::Path::new(&peer.root)) {
+            return remember(make_status(
+                "mismatch",
+                shell,
+                &peer.version,
+                "the backend runs from another root than the configured one; nothing is moved",
+            ));
+        }
         match compare(shell, &peer.version) {
             Parity::Agreement => remember(make_status("current", shell, &peer.version, "")),
             Parity::Unknown => remember(make_status(
@@ -247,7 +279,7 @@ mod runtime {
                 "the backend reported no version",
             )),
             Parity::Mismatch { backend, .. } => {
-                let root = std::path::Path::new(&peer.root);
+                let root = project;
                 let inside = git_in(root, &["rev-parse", "--is-inside-work-tree"])
                     .map(|o| o.trim() == "true")
                     .unwrap_or(false);
