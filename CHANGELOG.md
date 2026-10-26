@@ -7,12 +7,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-A tool_done without a call id keeps its result and reason again (`c2f49ab7`).
-
-The desktop version-parity check is `7ae19bd`; it rides the next patch.
-The 0.1.7 fixes are named below (`a02adcf`, `b831014`, `36640f5`, `8e0b7a1`).
+The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`).
+The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
+`7f793d0` and `5d67f19`; the tag names the same work as `a02adcf`, `b831014`,
+`36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.1.8] - 2026-10-26
+
+### Fixed
+- After the desktop app itself is replaced, the shell compares its own version
+  with the backend's, updates the backend along the root this machine
+  configured, and re-reads it. A version that still differs is named with both
+  figures, so the two halves cannot sit on different releases unnoticed
+  (`999d75c`, `ece2522`).
+- A `tool_done` frame that names no call id keeps its result and its reader
+  reason, so a failed tool shows its reason line again (`c2f49ab`).
 
 ## [0.1.7] - 2026-10-26
 
