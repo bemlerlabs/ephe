@@ -21,6 +21,7 @@ mod browser;
 #[cfg(unix)]
 mod backend;
 mod instance;
+mod parity;
 
 /// Keep-awake (P2-B Automations): the `caffeinate` child process (macOS) that
 /// `set_keep_awake(true)` starts. Held statically so the command itself stays
@@ -92,6 +93,14 @@ async fn pick_folder(app: tauri::AppHandle) -> Option<String> {
     use tauri_plugin_dialog::DialogExt;
     let chosen = app.dialog().file().blocking_pick_folder()?;
     record_import_source(&chosen.to_string())
+}
+
+/// What the shell and the backend reported about their versions, for the
+/// surface to say out loud. The check runs on the start thread; this reads the
+/// last verdict it wrote.
+#[tauri::command]
+fn backend_parity() -> parity::Status {
+    parity::letzter_status()
 }
 
 /// Writes the native selection where the backend alone reads it. The token is
@@ -375,6 +384,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             quit_app,
             stop_backend,
+            backend_parity,
             pick_folder,
             set_keep_awake,
             save_engine_key,
@@ -410,6 +420,18 @@ pub fn run() {
                 if let Some(home) = home {
                     std::thread::spawn(move || {
                         let _ = backend::sicherstellen(&home, backend::PORT);
+                        // The updater replaces the shell and nothing else, so the
+                        // backend has to be asked what version it actually runs.
+                        let status = parity::pruefen_und_heilen(backend::PORT);
+                        if status.verdict != "current" {
+                            log::warn!(
+                                "backend parity {}: shell {}, backend {} — {}",
+                                status.verdict,
+                                status.shell,
+                                status.backend,
+                                status.note
+                            );
+                        }
                     });
                 }
             }

@@ -131,8 +131,31 @@ def test_desktop_bundle_exists_and_matches_tauri_conf():
         )
 
 
+def _fremde_shell() -> str:
+    """PIDs of an Ephe shell this run does not own.
+
+    The single-instance guard is global to the app identifier, so a shell the
+    owner left running answers for it: the executable under test wakes that one
+    and exits 0. That is the product behaving correctly and the test losing its
+    subject, so it names the holder and skips.
+    """
+    try:
+        out = subprocess.run(
+            ["pgrep", "-f", "Ephe.app/Contents/MacOS"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return " ".join(pid for pid in out.split()[:4] if pid and pid != str(os.getpid()))
+
+
 def test_desktop_executable_starts_and_holds_its_instance():
     _app, executable, _meta, cfg = _bundle_or_skip()
+    fremde = _fremde_shell()
+    if fremde:
+        pytest.skip(f"another Ephe shell holds the single-instance lock (pid {fremde})")
     if not _gui_session_available():
         pytest.skip("no Aqua session; the shell opens a window and cannot start headless")
 
