@@ -17,6 +17,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: bench-trend-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   trend:
     name: pass^3 trend (offline, tracked manifests)
