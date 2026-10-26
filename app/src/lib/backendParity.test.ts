@@ -31,7 +31,12 @@ afterEach(() => {
 
 describe('announceBackendParity', () => {
   it('names both versions when they disagree', async () => {
-    invoke.mockResolvedValue({ verdict: 'mismatch', shell: '0.1.8', backend: '0.1.7', note: 'dirty tree' })
+    invoke.mockResolvedValue({
+      verdict: 'mismatch',
+      shell: '0.1.8',
+      backend: '0.1.7',
+      note: 'dirty tree',
+    })
 
     await expect(announceBackendParity(t)).resolves.toMatchObject({ verdict: 'mismatch' })
 
@@ -39,7 +44,12 @@ describe('announceBackendParity', () => {
   })
 
   it('asks for a restart after it moved the backend', async () => {
-    invoke.mockResolvedValue({ verdict: 'updated_restart', shell: '0.1.8', backend: '0.1.7', note: '' })
+    invoke.mockResolvedValue({
+      verdict: 'updated_restart',
+      shell: '0.1.8',
+      backend: '0.1.7',
+      note: '',
+    })
 
     await announceBackendParity(t)
 

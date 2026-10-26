@@ -10,7 +10,9 @@ export interface BackendParity {
 type Translate = (key: string, options?: Record<string, unknown>) => string
 
 /** The shell's command channel, reachable while the app runs with `withGlobalTauri`. */
-type TauriBridge = { core?: { invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } }
+type TauriBridge = {
+  core?: { invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> }
+}
 
 async function invokeParity(): Promise<BackendParity> {
   const bridge = (window as unknown as { __TAURI__?: TauriBridge }).__TAURI__
