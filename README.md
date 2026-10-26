@@ -100,7 +100,7 @@ Windows installation is not yet verified end to end for this revision. The comma
 
 Docker and every installer flag are described in [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-The command points to the current public release, `v0.1.3`. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
+The command points to the current public release, `v0.1.10`. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
 
 Before using `ephe` in a new terminal, activate the installed environment.
 For the default installation on macOS or Linux:
@@ -121,7 +121,7 @@ For a checkout or custom location, use the `.venv` inside that folder instead.
 
 The app opens the Setup page. Pick a local Ollama model, a remote Ollama, or an OpenAI-compatible endpoint. For the terminal, `ephe configure` writes the same choice to `~/.ephe/engine.json`. Ephe refuses to start without a choice; there is no hidden default.
 
-For a hosted endpoint, enter its key on the same page. The app keeps it in the OS keychain or in `~/.ephe/engine.key` with owner-only permissions. It is never written to `engine.json` or printed in the chat.
+For a hosted endpoint, enter its key on the same page. The app keeps it in the OS keychain or in `~/.ephe/engine.key` with owner-only permissions. It is never written to `engine.json` or printed in the chat. The stored key is bound to this engine in a sidecar, `~/.ephe/engine.key.binding.json`, which carries a SHA-256 of the key, not the key. The app refuses a stored key without that binding.
 
 ### 3. Ask
 

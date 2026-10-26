@@ -56,7 +56,7 @@ Requirements, all of them ordinary:
 | Component | Needed for | Minimum |
 |---|---|---|
 | Python | everything | 3.11 (the installer will provision one via `uv` if the machine has none) |
-| Node.js + npm/pnpm | the desktop/PWA build | 20 LTS |
+| Node.js + npm/pnpm | the desktop/PWA build | 20+; 22.23.4 is the tested build runtime |
 | Ollama | only the local-runtime engine path | any recent version, installed by you |
 
 Disk: the install wants roughly 4 GB (product, dependencies, PWA build). A model
@@ -125,6 +125,8 @@ This is the fastest first answer: nothing to install, nothing to run locally.
 3. Paste the key into **API key**. The settings page stores it in the OS keychain
    or in `~/.ephe/engine.key` with owner-only permissions; a shell export stays in
    the running process. Ephe never writes the key to `engine.json` or the chat.
+   The stored key is bound to this engine in `~/.ephe/engine.key.binding.json`;
+   the sidecar carries a SHA-256 of the key, not the key.
 4. Click **Probe endpoint**. The screen lists the models the endpoint reports;
    pick one and click **Save**.
 
