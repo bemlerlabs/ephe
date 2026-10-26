@@ -34,6 +34,7 @@ CANONICAL_MARKER = "canonical: README.md is authoritative"
 INSTALL = re.compile(
     r"raw\.githubusercontent\.com/bemlerlabs/ephe/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.(sh|ps1)"
 )
+VERSION_TAG = re.compile(r"\bv([0-9]+\.[0-9]+\.[0-9]+)\b")
 MD_LINK = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 MD_IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)")
 HTML_IMG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
@@ -83,6 +84,20 @@ def check_install(text: str, label: str, expected: str, tags: set[str], result: 
             )
         if tag not in tags:
             result.problems.append(f"{label}: install tag {tag} does not exist")
+
+
+def check_version_tags(text: str, label: str, expected: str, result: Result) -> None:
+    """A release tag named in prose is the tag this tree ships.
+
+    The install tarball once carried one tag in its URL and another in the
+    sentence under it, and only the URL was checked.
+    """
+    body = INSTALL.sub("", text)
+    for match in VERSION_TAG.finditer(body):
+        named = f"v{match.group(1)}"
+        if named != expected:
+            line = body.count("\n", 0, match.start()) + 1
+            result.problems.append(f"{label}:{line}: prose names {named}, expected {expected}")
 
 
 def check_powershell(text: str, label: str, result: Result) -> None:
@@ -242,6 +257,7 @@ def check(root: Path, *, tag: str | None = None, tags: set[str] | None = None) -
             continue
         text = path.read_text(encoding="utf-8")
         check_install(text, label, tag, tags, result)
+        check_version_tags(text, label, tag, result)
         check_powershell(text, label, result)
         check_macos(text, label, result)
         check_emoji(text, label, result)
@@ -262,6 +278,7 @@ def check(root: Path, *, tag: str | None = None, tags: set[str] | None = None) -
             continue
         text = path.read_text(encoding="utf-8")
         check_install(text, label, tag, tags, result)
+        check_version_tags(text, label, tag, result)
         check_powershell(text, label, result)
         check_macos(text, label, result)
         check_claims(text, label, result)

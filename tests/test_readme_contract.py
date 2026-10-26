@@ -96,6 +96,34 @@ def test_no_tag_evidence_is_a_failure():
     assert any("does not exist" in problem for problem in result.problems)
 
 
+def test_a_stale_prose_tag_is_refused(tmp_path):
+    """The sentence under the URL carried v0.1.3 while the URL carried v0.1.10."""
+    root = _minimal_tree(tmp_path)
+    path = root / "README.md"
+    path.write_text(
+        path.read_text(encoding="utf-8")
+        + "\nThe command points to the current public release, `v0.1.2`.\n",
+        encoding="utf-8",
+    )
+    result = readme.check(root)
+    assert any("prose names v0.1.2" in problem for problem in result.problems), result.problems
+
+
+def test_a_stale_prose_tag_in_a_start_doc_is_refused(tmp_path):
+    root = _minimal_tree(tmp_path)
+    path = root / "docs" / "INSTALL.md"
+    path.write_text(
+        path.read_text(encoding="utf-8")
+        + "\nThe one-liner fetches `install.sh` from the `v0.1.2` tag.\n",
+        encoding="utf-8",
+    )
+    result = readme.check(root)
+    assert any(
+        "docs/INSTALL.md" in problem and "v0.1.2" in problem
+        for problem in result.problems
+    ), result.problems
+
+
 def test_a_missing_public_tag_is_refused(monkeypatch):
     monkeypatch.setattr(
         readme.subprocess, "run",
