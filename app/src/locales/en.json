@@ -1435,7 +1435,21 @@
     "kicker": "First Run · Engine Selection",
     "title": "Which engine does Ephe use?",
     "subtitle": "Ephe installs nothing and pulls no models — just pick your existing engine and model.",
-    "repairEngineKeyMismatch": "The stored key belongs to another engine. Re-enter the key for this engine so Ephe can answer again.",
+    "repairEngineKeyMismatch": "The stored key belongs to another engine. Ephe sends nothing until the key and the engine match.",
+    "repairActiveEngine": "Chosen engine",
+    "repairBoundEngine": "Engine the key belongs to",
+    "repairKeySource": "Key source",
+    "repairSource": {
+      "file": "key file",
+      "keyring": "Keychain",
+      "env": "shell environment",
+      "none": "no key"
+    },
+    "repairKeep": "Keep the key: use {{engine}}",
+    "repairReplace": "Enter a new key",
+    "repairSave": "Save key",
+    "repairCancel": "Cancel",
+    "repairChoose": "Or pick another engine below and enter its key.",
     "option": {
       "local_ollama": "Local Ollama (this device)",
       "custom_ollama": "Remote Ollama (e.g. DGX / LAN)",

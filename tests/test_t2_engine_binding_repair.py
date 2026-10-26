@@ -13,17 +13,21 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace
 
 import pytest
 
 from core import engine_config as ec
 
 
+#: The engine the stored key was entered for (and is bound to).
 CHOICE = ec.EngineChoice(
     provider="openai_compatible",
     model="deepseek-chat",
     api_url="https://api.deepseek.com/v1",
 )
+#: The engine engine.json names now — same key file, different engine.
+ACTIVE = replace(CHOICE, model="another-model")
 
 #: Everything `EngineChoice.apply_env` writes plus the flags this module reads.
 #: The values are restored by hand because apply_env writes to os.environ directly.
@@ -56,7 +60,11 @@ def _clean_engine_env():
 
 @pytest.fixture
 def mismatched_key(monkeypatch, empty_ephe_home):
-    """A stored key rebound to another key: the file says key-b, the binding key-a."""
+    """The key belongs to CHOICE; engine.json names ACTIVE.
+
+    One key file, one valid binding, two engines — the state a user reaches by
+    switching the model after entering the key.
+    """
     monkeypatch.setattr(ec, "_load_engine_keyring", lambda: "")
     key_path = ec.key_file_path()
     key_path.parent.mkdir(parents=True, exist_ok=True)
@@ -70,15 +78,15 @@ def mismatched_key(monkeypatch, empty_ephe_home):
                 "provider": CHOICE.provider,
                 "model": CHOICE.model,
                 "api_url": CHOICE.api_url,
-                "key_fingerprint": ec.engine_key_fingerprint("key-a"),
+                "key_fingerprint": ec.engine_key_fingerprint("key-b"),
             }
         ),
         encoding="utf-8",
     )
     binding.chmod(0o600)
-    ec.save_engine_config(CHOICE)
-    monkeypatch.setattr(ec, "resolve_engine_choice", lambda **_kw: CHOICE)
-    return CHOICE
+    ec.save_engine_config(ACTIVE)
+    monkeypatch.setattr(ec, "resolve_engine_choice", lambda **_kw: ACTIVE)
+    return ACTIVE
 
 
 def _argv(monkeypatch, *args: str) -> None:
@@ -134,14 +142,69 @@ def test_setup_status_names_the_repair_and_clears_after_a_rebind(mismatched_key,
 
     payload = setup_settings._setup_provider_dict()
     assert payload["configured"] is False
-    assert payload["repair"]["code"] == ec.REPAIR_ENGINE_KEY_MISMATCH
+    repair = payload["repair"]
+    assert repair["code"] == ec.REPAIR_ENGINE_KEY_MISMATCH
+    assert repair["active"] == {
+        "provider": ACTIVE.provider,
+        "model": ACTIVE.model,
+        "url": ACTIVE.api_url,
+    }
+    assert repair["bound"] == {
+        "provider": CHOICE.provider,
+        "model": CHOICE.model,
+        "url": CHOICE.api_url,
+    }
+    assert repair["key_source"] == "file"
+    assert repair["choices"] == ["keep_bound_engine", "replace_key", "choose_provider", "cancel"]
     assert "key-b" not in json.dumps(payload)
 
-    ec.store_engine_api_key("key-b", engine=CHOICE)
+    # Choice 2: keep the active engine and re-enter the key for it.
+    ec.store_engine_api_key("key-b", engine=ACTIVE)
 
     payload = setup_settings._setup_provider_dict()
     assert payload["repair"] is None
     assert payload["configured"] is True
+
+
+def test_restoring_the_bound_engine_clears_the_repair(mismatched_key, monkeypatch):
+    """Choice 1 of four: keep the key and go back to the engine it was entered for."""
+    monkeypatch.setenv("EPHE_ENGINE_KEY_REPAIR", ec.REPAIR_ENGINE_KEY_MISMATCH)
+    from server.routes import settings as setup_settings
+
+    monkeypatch.setattr(setup_settings, "_probe_memoised", lambda provider, url: (False, []))
+    assert setup_settings._setup_provider_dict()["repair"] is not None
+
+    import asyncio
+
+    request = setup_settings.SettingsRequest(
+        provider=setup_settings.ProviderSettings(
+            type=CHOICE.provider,
+            model=CHOICE.model,
+            endpoint=CHOICE.api_url,
+        )
+    )
+    # Choice 1: the engine the key is bound to, and no key in the request.
+    asyncio.run(setup_settings.update_settings(request))
+
+    payload = setup_settings._setup_provider_dict()
+    assert payload["repair"] is None
+    assert payload["configured"] is True
+
+
+def test_the_cli_verdict_names_the_key_source_and_the_choices(mismatched_key):
+    """The CLI/TUI print the exception and its hint; both are the same verdict the page
+    shows, with the source named and no key material."""
+    with pytest.raises(ec.EngineKeyMismatch) as excinfo:
+        ec.assert_engine_key_binding(ACTIVE)
+
+    message = str(excinfo.value)
+    hint = excinfo.value.hint
+    assert "bound to" in message and "active engine is" in message
+    assert "the stored key file" in hint
+    assert "restore the engine it is bound to" in hint
+    assert "re-enter the key" in hint
+    assert "pick another engine" in hint
+    assert "key-b" not in message and "key-b" not in hint
 
 
 def test_chat_refuses_until_the_binding_is_rewritten(mismatched_key, monkeypatch):
@@ -154,8 +217,8 @@ def test_chat_refuses_until_the_binding_is_rewritten(mismatched_key, monkeypatch
         chat._ensure_engine_ready()
 
     assert excinfo.value.status_code == 409
-    assert "Re-enter the key" in str(excinfo.value.detail)
+    assert "bound to" in str(excinfo.value.detail)
 
-    ec.store_engine_api_key("key-b", engine=CHOICE)
+    ec.store_engine_api_key("key-b", engine=ACTIVE)
 
     assert chat._ensure_engine_ready() is None

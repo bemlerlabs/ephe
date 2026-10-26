@@ -205,9 +205,29 @@ export interface SetupStatus {
   candidates?: EngineCandidate[]
   /**
    * T2: the start was refused because the stored key belongs to another engine.
-   * The backend re-reads the binding on every call, so re-entering the key clears it.
+   * The backend re-reads the binding on every call, so re-entering the key or
+   * restoring the bound engine clears it. No key value appears in this shape.
    */
-  repair?: { code: 'engine_key_mismatch'; detail: string } | null
+  repair?: SetupRepair | null
+}
+
+export interface SetupRepairEngine {
+  provider: string
+  model: string
+  url?: string | null
+}
+
+export interface SetupRepair {
+  code: 'engine_key_mismatch'
+  /** English engine-facing cause; the page renders its own localized sentence. */
+  problem: string
+  /** The engine the configuration names now. */
+  active: SetupRepairEngine
+  /** The engine the stored key is bound to; null when the binding is unreadable. */
+  bound: SetupRepairEngine | null
+  /** Where the key came from: file, keyring, env or none. Never the key itself. */
+  key_source: string
+  choices: string[]
 }
 
 export interface ScheduleJob {

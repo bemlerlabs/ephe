@@ -30,6 +30,7 @@ import {
   type EngineState,
   type ProbeKeySource,
   type ProviderProbeResponse,
+  type SetupRepair,
 } from '@/lib/api'
 import { forgetSetupGate } from '@/lib/setupGate'
 
@@ -157,8 +158,12 @@ export default function SetupPage({ onDone }: SetupPageProps) {
   const [error, setError] = useState('')
   const [model, setModel] = useState('')
   // T2: the backend refused this start because the stored key belongs to another
-  // engine. Put the reason on the screen that repairs it.
-  const [repair, setRepair] = useState<'engine_key_mismatch' | null>(null)
+  // engine. Put the reason and the four ways out on the screen that repairs it.
+  const [repair, setRepair] = useState<SetupRepair | null>(null)
+  // The replacement key is typed here: the probe cannot pass while the stored key is
+  // wrong, and the repair must not depend on it passing.
+  const [repairKey, setRepairKey] = useState('')
+  const [repairReplacing, setRepairReplacing] = useState(false)
   // W19: optional authentication for OpenAI-compatible providers — the key stays
   // on this device (server env); Ephe never presets a provider for the user.
   const [apiKey, setApiKey] = useState('')
@@ -429,8 +434,16 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     let cancelled = false
     void getSetupStatus()
       .then((status) => {
-        if (!cancelled && status.repair?.code === 'engine_key_mismatch') {
-          setRepair('engine_key_mismatch')
+        const found = status.repair
+        if (cancelled || found?.code !== 'engine_key_mismatch') return
+        setRepair(found)
+        // The engine below is the one the configuration already names; the repair
+        // form stays on the engine that has to change.
+        const activeKind = found.active.provider as ProviderKind
+        if (OPTIONS.some((option) => option.kind === activeKind)) {
+          choose(activeKind)
+          if (found.active.url) applyEndpoint(found.active.url)
+          if (found.active.model) setModel(found.active.model)
         }
       })
       .catch(() => {
@@ -499,6 +512,55 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     }
   }
 
+  /** T2 choice 1: keep the stored key and restore the engine it is bound to. */
+  async function handleKeepBoundEngine() {
+    if (!repair?.bound) return
+    const boundKind = repair.bound.provider as ProviderKind
+    if (!OPTIONS.some((option) => option.kind === boundKind)) return
+    setSaving(true)
+    setError('')
+    try {
+      await updateSettings({
+        provider: {
+          type: boundKind,
+          model: repair.bound.model,
+          endpoint: repair.bound.url ?? undefined,
+        },
+      })
+      onDone()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setSaving(false)
+    }
+  }
+
+  /** T2 choice 2: keep the engine and enter the key it needs. */
+  async function handleRepairKey() {
+    if (!repair || !repairKey.trim()) return
+    const activeKind = repair.active.provider as ProviderKind
+    if (!OPTIONS.some((option) => option.kind === activeKind)) return
+    setSaving(true)
+    setError('')
+    try {
+      const key = repairKey.trim()
+      // The desktop spawn reads the key file, so the token goes to the shell first;
+      // the POST binds it to the engine named here.
+      await storeEngineKey(key)
+      await updateSettings({
+        provider: {
+          type: activeKind,
+          model: repair.active.model,
+          endpoint: repair.active.url ?? undefined,
+          api_key: key,
+        },
+      })
+      onDone()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setSaving(false)
+    }
+  }
+
   async function handleSkip() {
     // W19: skip onboarding — a deliberate choice, not a silent default. The chat
     // stays fail-closed until an engine is chosen; the engine chip in the composer
@@ -525,6 +587,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     window.location.reload()
   }
 
+  const repairBoundKind = repair?.bound ? (repair.bound.provider as ProviderKind) : null
+  const canKeepBound =
+    repairBoundKind !== null && OPTIONS.some((option) => option.kind === repairBoundKind)
   const reachable = probeState?.reachable === true
   // W18/A5: the probe's three-valued result (ok | busy | unreachable). Without a
   // backend state (older server) the display falls back to reachable/unreachable.
@@ -580,14 +645,101 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             <p className="mt-2 text-ui-sm text-ink-soft">{t('setup.subtitle')}</p>
           </div>
 
-          {repair === 'engine_key_mismatch' && (
+          {repair && (
             <div
-              role="status"
+              role="alert"
               data-testid="setup-repair"
-              className="mb-5 flex gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3"
+              className="mb-5 rounded-xl border border-warning/40 bg-warning/10 p-3"
             >
-              <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
-              <p className="text-ui-sm text-foreground">{t('setup.repairEngineKeyMismatch')}</p>
+              <div className="flex gap-2">
+                <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
+                <div className="min-w-0">
+                  <p className="text-ui-sm text-foreground">
+                    {t('setup.repairEngineKeyMismatch')}
+                  </p>
+                  <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-ui-xs">
+                    <dt className="text-ink-soft">{t('setup.repairActiveEngine')}</dt>
+                    <dd
+                      className="truncate font-mono text-foreground"
+                      data-testid="setup-repair-active"
+                    >
+                      {repair.active.provider}/{repair.active.model}
+                    </dd>
+                    {repair.bound && (
+                      <>
+                        <dt className="text-ink-soft">{t('setup.repairBoundEngine')}</dt>
+                        <dd
+                          className="truncate font-mono text-foreground"
+                          data-testid="setup-repair-bound"
+                        >
+                          {repair.bound.provider}/{repair.bound.model}
+                        </dd>
+                      </>
+                    )}
+                    <dt className="text-ink-soft">{t('setup.repairKeySource')}</dt>
+                    <dd className="text-foreground" data-testid="setup-repair-source">
+                      {t(`setup.repairSource.${repair.key_source}`)}
+                    </dd>
+                  </dl>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {canKeepBound && repair.bound && (
+                      <button
+                        type="button"
+                        data-testid="setup-repair-keep"
+                        disabled={saving}
+                        onClick={() => void handleKeepBoundEngine()}
+                        className="rounded-lg border border-brand/50 bg-brand/15 px-3 py-1.5 text-ui-xs text-foreground hover:bg-brand/25 disabled:opacity-50"
+                      >
+                        {t('setup.repairKeep', {
+                          engine: `${repair.bound.provider}/${repair.bound.model}`,
+                        })}
+                      </button>
+                    )}
+                    {repair.active.provider === 'openai_compatible' && (
+                      <button
+                        type="button"
+                        data-testid="setup-repair-replace"
+                        aria-expanded={repairReplacing}
+                        onClick={() => setRepairReplacing((open) => !open)}
+                        className="rounded-lg border border-hairline px-3 py-1.5 text-ui-xs text-foreground hover:bg-surface-raised"
+                      >
+                        {t('setup.repairReplace')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      data-testid="setup-repair-cancel"
+                      onClick={() => setRepair(null)}
+                      className="rounded-lg px-3 py-1.5 text-ui-xs text-ink-soft hover:text-foreground"
+                    >
+                      {t('setup.repairCancel')}
+                    </button>
+                  </div>
+                  {repairReplacing && repair.active.provider === 'openai_compatible' && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        data-testid="setup-repair-key"
+                        aria-label={t('setup.repairReplace')}
+                        value={repairKey}
+                        onChange={(event) => setRepairKey(event.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-3 py-1.5 font-mono text-ui-xs text-foreground"
+                      />
+                      <button
+                        type="button"
+                        data-testid="setup-repair-save"
+                        disabled={saving || !repairKey.trim()}
+                        onClick={() => void handleRepairKey()}
+                        className="rounded-lg border border-brand/50 bg-brand/15 px-3 py-1.5 text-ui-xs text-foreground hover:bg-brand/25 disabled:opacity-50"
+                      >
+                        {t('setup.repairSave')}
+                      </button>
+                    </div>
+                  )}
+                  <p className="mt-2 text-ui-xs text-ink-soft">{t('setup.repairChoose')}</p>
+                </div>
+              </div>
             </div>
           )}
 

@@ -1435,7 +1435,21 @@
     "kicker": "First Run · Engine-Auswahl",
     "title": "Welche Engine nutzt Ephe?",
     "subtitle": "Ephe installiert nichts und lädt keine Modelle — wähle einfach deine vorhandene Engine und das Modell.",
-    "repairEngineKeyMismatch": "Der gespeicherte Schlüssel gehört zu einer anderen Engine. Gib den Schlüssel für diese Engine erneut ein, damit Ephe wieder antworten kann.",
+    "repairEngineKeyMismatch": "Der gespeicherte Schlüssel gehört zu einer anderen Engine. Ephe sendet nichts, bis Schlüssel und Engine zusammenpassen.",
+    "repairActiveEngine": "Gewählte Engine",
+    "repairBoundEngine": "Engine des Schlüssels",
+    "repairKeySource": "Schlüsselquelle",
+    "repairSource": {
+      "file": "Schlüsseldatei",
+      "keyring": "Schlüsselbund",
+      "env": "Shell-Umgebung",
+      "none": "kein Schlüssel"
+    },
+    "repairKeep": "Schlüssel behalten: {{engine}} verwenden",
+    "repairReplace": "Schlüssel neu eingeben",
+    "repairSave": "Schlüssel speichern",
+    "repairCancel": "Abbrechen",
+    "repairChoose": "Oder wähle unten eine andere Engine und gib deren Schlüssel ein.",
     "option": {
       "local_ollama": "Ollama lokal (dieses Gerät)",
       "custom_ollama": "Ollama remote (z. B. DGX / LAN)",

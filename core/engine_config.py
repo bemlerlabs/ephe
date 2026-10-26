@@ -101,12 +101,12 @@ class EngineNotConfigured(RuntimeError):
 class EngineKeyMismatch(RuntimeError):
     """The stored key and the active engine were not configured together."""
 
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str, hint: str | None = None) -> None:
         super().__init__(message)
-        self.hint = (
-            "Re-enter the key for this engine in the settings or run `ephe configure`. "
-            "The key binding must name the same provider, model and endpoint. "
-            "No request was sent."
+        self.hint = hint or (
+            "Re-enter the key for this engine, or keep the key and restore the engine it "
+            "is bound to; pick another engine with `ephe configure`, or cancel. The key "
+            "binding must name the same provider, model and endpoint. No request was sent."
         )
 
 
@@ -467,16 +467,37 @@ def assert_engine_key_binding(choice: object, home: "Path | None" = None) -> Non
     )
     problem = engine_key_binding_problem(choice, key, source, home=home)
     if problem is not None:
-        raise EngineKeyMismatch(problem)
+        raise EngineKeyMismatch(problem, hint=engine_key_repair_hint(choice, source))
 
 
-def live_engine_key_repair(home: "Path | None" = None) -> str | None:
-    """The binding problem that stopped this start, or None once a fresh binding exists.
+#: How a repair line names where the key came from, in the CLI's words. The setup page
+#: carries its own localized labels; this map only feeds the engine-facing hint.
+_KEY_SOURCE_TEXT = {
+    "file": "the stored key file",
+    "keyring": "the OS keychain",
+    "env": "the shell environment",
+    "none": "no stored key",
+}
 
-    ``run_server`` records a refused start in ``EPHE_ENGINE_KEY_REPAIR`` instead of
-    exiting, and the setup status and the chat guard ask here. Re-reading the binding —
-    rather than trusting the mark — is what lets the key a user enters on the setup page
-    clear the refusal without a restart.
+
+def engine_key_repair_hint(choice: object, source: str) -> str:
+    """The four ways out of a key mismatch, in one sentence the CLI/TUI can print."""
+    where = _KEY_SOURCE_TEXT.get(source, source)
+    engine = f"{getattr(choice, 'provider', '')}/{getattr(choice, 'model', '')}"
+    return (
+        f"The key came from {where}. Keep it and restore the engine it is bound to, "
+        f"re-enter the key for {engine}, pick another engine, or cancel. No request is "
+        "sent until the key and the engine match."
+    )
+
+
+def engine_key_repair_state(home: "Path | None" = None) -> dict | None:
+    """The key mismatch that stopped this start, as data the surfaces can render.
+
+    ``None`` when this start was not stopped for a mismatch, or when the binding has
+    been repaired since it was. The answer names the active engine, the engine the key
+    is bound to, the source the key came from and the repairs offered; it never carries
+    the key itself.
     """
     if os.environ.get(ENV_ENGINE_KEY_REPAIR) != REPAIR_ENGINE_KEY_MISMATCH:
         return None
@@ -488,7 +509,41 @@ def live_engine_key_repair(home: "Path | None" = None) -> str | None:
         home=home,
         env_is_stored=os.environ.get("EPHE_ENGINE_KEY_SOURCE") == "file",
     )
-    return engine_key_binding_problem(choice, key, source, home=home)
+    problem = engine_key_binding_problem(choice, key, source, home=home)
+    if problem is None:
+        return None
+    binding = _load_key_binding(home=home) or {}
+    bound = None
+    if str(binding.get("provider") or "") and str(binding.get("model") or ""):
+        bound = {
+            "provider": str(binding.get("provider")),
+            "model": str(binding.get("model")),
+            "url": str(binding.get("api_url") or "") or None,
+        }
+    return {
+        "code": REPAIR_ENGINE_KEY_MISMATCH,
+        "problem": problem,
+        "active": {
+            "provider": str(getattr(choice, "provider", "")),
+            "model": str(getattr(choice, "model", "")),
+            "url": getattr(choice, "api_url", None),
+        },
+        "bound": bound,
+        "key_source": source,
+        "choices": ["keep_bound_engine", "replace_key", "choose_provider", "cancel"],
+    }
+
+
+def live_engine_key_repair(home: "Path | None" = None) -> str | None:
+    """The binding problem that stopped this start, or None once a fresh binding exists.
+
+    ``run_server`` records a refused start in ``EPHE_ENGINE_KEY_REPAIR`` instead of
+    exiting, and the setup status and the chat guard ask here. Re-reading the binding —
+    rather than trusting the mark — is what lets the key a user enters on the setup page
+    clear the refusal without a restart.
+    """
+    state = engine_key_repair_state(home=home)
+    return None if state is None else str(state["problem"])
 
 
 def store_engine_api_key(
