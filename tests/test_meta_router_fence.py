@@ -248,3 +248,40 @@ async def test_loop_does_not_fence_local_delegation(monkeypatch):
     content = _tool_messages(messages)[0]["content"]
     assert content == "plain local text"
     assert UNTRUSTED_DATA_OPEN not in content
+
+
+@pytest.mark.asyncio
+async def test_parallel_read_only_result_keeps_its_reason_code(monkeypatch):
+    from core.reason import Reason
+
+    captured = []
+
+    async def executor(name, args, policy=None):
+        return Reason(
+            "[fetch failed] HTTP 404", "fetch_http_error", {"status": "404"}
+        )
+
+    monkeypatch.setattr("core.chat.execute_tool", executor)
+    client = _ScriptedClient([_final_response()])
+    await _run_tool_loop(
+        client=client,
+        provider=_FakeProvider(),
+        model="m",
+        messages=[],
+        tools=[],
+        response=_call_response("fetch_url", {"url": "https://example.test/x"}),
+        detection_streamed=False,
+        on_chunk=lambda *_: None,
+        on_thinking=None,
+        on_tool_start=None,
+        on_tool_done=lambda name, result, cid="": captured.append(result),
+        on_phase=None,
+        on_shell_confirm=None,
+        on_tool_confirm=None,
+        approval_policy=None,
+        budget_cap=4,
+        turn_id="t",
+    )
+
+    assert captured, "the loop never reported the call"
+    assert getattr(captured[0], "code", "") == "fetch_http_error"

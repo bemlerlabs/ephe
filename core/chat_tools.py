@@ -266,7 +266,9 @@ async def _run_tool_loop(
                     if isinstance(res, Exception):
                         results[i] = f"[TOOL-ERROR] {type(res).__name__}: {res}"
                     else:
-                        results[i] = str(res)
+                        # A coded result is a str subclass; str() would drop the code
+                        # the tool_done frame carries to the card.
+                        results[i] = res
 
             for idx, name, args in other_calls:
                 if name == "run_shell":
