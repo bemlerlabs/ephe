@@ -9,7 +9,6 @@
 //! Moving a checkout is a write to the owner's machine. It happens only where the
 //! facts below allow it, and a refused move names its reason.
 
-use std::path::Path;
 
 /// What the two versions say about each other.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,28 +82,15 @@ pub fn is_clean(porcelain: &str) -> bool {
     porcelain.trim().is_empty()
 }
 
-/// The command the shell runs to move a permitted checkout onto the release.
-pub fn move_commands(root: &Path) -> [Vec<String>; 2] {
-    let root = root.display().to_string();
-    [
-        vec![
-            "git".into(),
-            "-C".into(),
-            root.clone(),
-            "fetch".into(),
-            "origin".into(),
-            "main:refs/remotes/origin/main".into(),
-        ],
-        vec![
-            "git".into(),
-            "-C".into(),
-            root,
-            "checkout".into(),
-            "-B".into(),
-            "main".into(),
-            "origin/main".into(),
-        ],
-    ]
+/// The arguments of the two commands that move a permitted checkout onto the
+/// release. The root is never one of them: it is the process's working
+/// directory, so a path read from `~/.ephe/desktop.json` cannot become part of
+/// a command line.
+const FETCH: [&str; 3] = ["fetch", "origin", "main:refs/remotes/origin/main"];
+const CHECKOUT: [&str; 4] = ["checkout", "-B", "main", "origin/main"];
+
+pub fn move_commands() -> [&'static [&'static str]; 2] {
+    [&FETCH[..], &CHECKOUT[..]]
 }
 
 #[cfg(test)]
@@ -185,13 +171,16 @@ mod tests {
     }
 
     #[test]
-    fn the_move_commands_work_in_the_root_and_touch_no_branch() {
-        let befehle = move_commands(Path::new("/srv/ephe"));
-        assert_eq!(befehle[0][..4], ["git", "-C", "/srv/ephe", "fetch"]);
-        assert_eq!(befehle[0][4], "origin");
-        assert_eq!(befehle[0][5], "main:refs/remotes/origin/main");
-        assert_eq!(befehle[1][..4], ["git", "-C", "/srv/ephe", "checkout"]);
-        assert_eq!(befehle[1][6], "origin/main");
+    fn the_move_commands_carry_no_path_at_all() {
+        let [fetch, checkout] = move_commands();
+        assert_eq!(fetch, FETCH.as_slice());
+        assert_eq!(checkout, CHECKOUT.as_slice());
+        for args in move_commands() {
+            assert!(
+                !args.iter().any(|a| *a == "-C" || a.starts_with('/')),
+                "a command line must not carry the backend's path: {args:?}"
+            );
+        }
     }
 }
 
@@ -214,8 +203,18 @@ mod runtime {
 
     static LAST: Mutex<Option<Status>> = Mutex::new(None);
 
-    fn git(args: &[&str]) -> Option<String> {
-        let out = std::process::Command::new("git").args(args).output().ok()?;
+    /// Run git with the backend root as the working directory. The path is never
+    /// an argument: it comes from `~/.ephe/desktop.json`, and a directory the OS
+    /// resolves is not a value a command line has to carry.
+    fn git_in(dir: &std::path::Path, args: &[&str]) -> Option<String> {
+        if !dir.is_dir() {
+            return None;
+        }
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .args(args)
+            .output()
+            .ok()?;
         if !out.status.success() {
             return None;
         }
@@ -249,11 +248,11 @@ mod runtime {
             )),
             Parity::Mismatch { backend, .. } => {
                 let root = std::path::Path::new(&peer.root);
-                let inside = git(&["-C", &peer.root, "rev-parse", "--is-inside-work-tree"])
+                let inside = git_in(root, &["rev-parse", "--is-inside-work-tree"])
                     .map(|o| o.trim() == "true")
                     .unwrap_or(false);
-                let url = git(&["-C", &peer.root, "remote", "get-url", "origin"]).unwrap_or_default();
-                let dirt = git(&["-C", &peer.root, "status", "--porcelain"]).unwrap_or_default();
+                let url = git_in(root, &["remote", "get-url", "origin"]).unwrap_or_default();
+                let dirt = git_in(root, &["status", "--porcelain"]).unwrap_or_default();
                 let facts = RootFacts {
                     product_checkout: inside && is_product_remote(&url),
                     clean: is_clean(&dirt),
@@ -261,11 +260,9 @@ mod runtime {
                 if let Err(grund) = permission(&facts) {
                     return remember(make_status("mismatch", shell, &backend, grund));
                 }
-                let [fetch, checkout] = move_commands(root);
-                let ran = |args: &Vec<String>| {
-                    git(args.iter().map(String::as_str).collect::<Vec<_>>().as_slice()).is_some()
-                };
-                if ran(&fetch) && ran(&checkout) {
+                let [fetch, checkout] = move_commands();
+                let ran = |args: &[&str]| git_in(root, args).is_some();
+                if ran(fetch) && ran(checkout) {
                     remember(make_status(
                         "updated_restart",
                         shell,
