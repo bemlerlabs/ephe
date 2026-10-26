@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+A tool_done without a call id keeps its result and reason again (`c2f49ab7`).
+
 The desktop version-parity check is `7ae19bd`; it rides the next patch.
 The 0.1.7 fixes are named below (`a02adcf`, `b831014`, `36640f5`, `8e0b7a1`).
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
