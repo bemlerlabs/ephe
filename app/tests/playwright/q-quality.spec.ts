@@ -106,7 +106,13 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     const t0 = Date.now()
     await page.goto('/#/chat', { waitUntil: 'load' })
     await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 15000 })
-    const bootApiCalls = [...apiCalls]
+    // A heartbeat can tick once more while a slow runner paints the panel. The
+    // ceiling counts the boot reads; the first health probe is one of them, and a
+    // later tick of the same URL is the interval, which the comment above already
+    // excludes from the boot set.
+    const bootApiCalls = apiCalls.filter(
+      (url, index) => !/\/api\/health$/.test(url) || apiCalls.indexOf(url) === index,
+    )
     const bootMs = Date.now() - t0
 
     const ids: string[] = await page.evaluate(() =>
