@@ -95,24 +95,86 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
   }) => {
     const errors: string[] = []
     const requests: string[] = []
-    const apiCalls: string[] = []
     page.on('console', (m) => {
       if (m.type() === 'error') errors.push(m.text())
     })
     page.on('request', (r) => {
       requests.push(r.url())
-      if (/\/api\//.test(r.url())) apiCalls.push(r.url())
+    })
+    // The boot set closes inside the page, on the mutation that mounts the chat panel
+    // after the document has loaded. A runner slow between that paint and the evaluate
+    // below used to append a polling tick to a set the budget had already read.
+    await page.addInitScript(() => {
+      const boot: string[] = []
+      const boundary = window as unknown as {
+        __epheBootApiCalls?: string[]
+        __epheBootClosed?: boolean
+      }
+      const record = (target: string | URL) => {
+        if (boundary.__epheBootClosed) return
+        try {
+          const url = new URL(String(target), location.href).href
+          if (/\/api\//.test(url)) boot.push(url)
+        } catch {
+          // A target the URL parser refuses never reaches the API.
+        }
+      }
+      const fetchOriginal = window.fetch
+      window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+        record(input instanceof Request ? input.url : String(input))
+        return fetchOriginal.call(window, input as RequestInfo, init)
+      }) as typeof window.fetch
+      const openOriginal = XMLHttpRequest.prototype.open
+      XMLHttpRequest.prototype.open = function (
+        this: XMLHttpRequest,
+        ...args: Parameters<XMLHttpRequest['open']>
+      ) {
+        record(String(args[1]))
+        return openOriginal.apply(this, args)
+      } as typeof XMLHttpRequest.prototype.open
+      const SocketOriginal = window.WebSocket
+      window.WebSocket = class extends SocketOriginal {
+        constructor(url: string | URL, protocols?: string | string[]) {
+          record(String(url))
+          super(url, protocols)
+        }
+      }
+      function finalize() {
+        boundary.__epheBootClosed = true
+        boundary.__epheBootApiCalls = boot.slice()
+        observer.disconnect()
+      }
+      function close() {
+        if (boundary.__epheBootClosed) return
+        if (document.readyState !== 'complete') return
+        if (!document.querySelector('[data-testid="panel-chat"]')) return
+        // One task later: React flushes the mount effects before this runs, so the
+        // requests those effects start are already counted.
+        setTimeout(finalize, 0)
+      }
+      const observer = new MutationObserver(close)
+      observer.observe(document, { childList: true, subtree: true })
+      window.addEventListener('load', close)
     })
     const t0 = Date.now()
     await page.goto('/#/chat', { waitUntil: 'load' })
     await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 15000 })
-    // A heartbeat can tick once more while a slow runner paints the panel. The
-    // ceiling counts the boot reads; the first health probe is one of them, and a
-    // later tick of the same URL is the interval, which the comment above already
-    // excludes from the boot set.
-    const bootApiCalls = apiCalls.filter(
-      (url, index) => !/\/api\/health$/.test(url) || apiCalls.indexOf(url) === index,
+    // The ceiling counts the boot reads; the first health probe is one of them, and a
+    // later tick of the same URL is the interval, which the boundary above excludes
+    // from the boot set.
+    const bootSnapshot = await page.evaluate(() => {
+      const calls = (window as unknown as { __epheBootApiCalls?: string[] })
+        .__epheBootApiCalls
+      if (!calls) throw new Error('the boot boundary was not reached')
+      return calls
+    })
+    const bootApiCalls = bootSnapshot.filter(
+      (url, index) => !/\/api\/health$/.test(url) || bootSnapshot.indexOf(url) === index,
     )
+    test.info().annotations.push({
+      type: 'boot set',
+      description: `${bootApiCalls.length} API calls before the panel-ready boundary`,
+    })
     const bootMs = Date.now() - t0
 
     const ids: string[] = await page.evaluate(() =>
@@ -161,6 +223,16 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
       bootApiCalls.length,
       `API-Anzahl ${bootApiCalls.length}: ${bootApiCalls.join(' ')}`,
     ).toBeLessThanOrEqual(26)
+    // The set is closed at the panel mount: a request that starts afterwards stays out,
+    // however late the runner gets to read it.
+    const frozenAt = await page.evaluate(async () => {
+      await fetch('/api/settings')
+      return (window as unknown as { __epheBootApiCalls?: string[] }).__epheBootApiCalls
+        ?.length
+    })
+    expect(frozenAt, 'boot set stayed closed after a post-boot request').toBe(
+      bootSnapshot.length,
+    )
     expect(requests.length, `Total-Anzahl ${requests.length}`).toBeLessThanOrEqual(400)
     // UI errors: favicon/connection are expected offline paths; the rest must be 0
     const uiErrors = errors.filter(
