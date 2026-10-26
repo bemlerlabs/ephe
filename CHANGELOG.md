@@ -32,6 +32,14 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - `docs/WORKING_BACKWARDS.md`, `docs/COMPETITIVE_MATRIX.md` and
   `docs/AGENTS_PROPOSAL.md` (`8e0b7a1`).
 
+### Security
+- The `pnpm` pin moves to 11.11.0 (`GHSA-vx52-2968-3vc6` covers 11.10.0). The
+  lockfile is byte-identical after `pnpm install --frozen-lockfile`, the audit
+  answers "No known vulnerabilities found", and `lockfile_check.py` passes.
+- The advisory note for `zip` now states what was measured: the macOS and Linux
+  targets do not carry the crate, the Windows target does, and no Windows asset
+  has been published. The three RustSec lines and their recheck date stand.
+
 ## [0.1.6] - 2026-10-25
 
 ### Fixed

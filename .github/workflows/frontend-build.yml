@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       # corepack, not a third-party action: app/package.json already pins
-      # `packageManager: pnpm@11.10.0`, and setup.sh/install.sh activate it the same
+      # `packageManager: pnpm@11.11.0`, and setup.sh/install.sh activate it the same
       # way. This must run BEFORE setup-node, whose `cache: pnpm` step shells out to
       # `pnpm store path` — without a pnpm on PATH that step is the whole failure
       # ("Unable to locate executable file: pnpm", every run since 2026-09-07).
