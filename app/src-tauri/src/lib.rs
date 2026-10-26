@@ -17,6 +17,7 @@ use std::sync::Mutex;
 
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
+mod attachment;
 mod browser;
 #[cfg(unix)]
 mod backend;
@@ -93,6 +94,19 @@ async fn pick_folder(app: tauri::AppHandle) -> Option<String> {
     use tauri_plugin_dialog::DialogExt;
     let chosen = app.dialog().file().blocking_pick_folder()?;
     record_import_source(&chosen.to_string())
+}
+
+/// Opens the native picker and returns the file the user chose, read and
+/// capped in the shell. The path stays here; the surface receives content.
+#[cfg(desktop)]
+#[tauri::command]
+async fn pick_attachment(
+    app: tauri::AppHandle,
+    accept: Option<String>,
+) -> Result<Option<attachment::Attachment>, String> {
+    tauri::async_runtime::spawn_blocking(move || attachment::pick_and_read(&app, accept.as_deref()))
+        .await
+        .map_err(|err| err.to_string())?
 }
 
 /// What the shell and the backend reported about their versions, for the
@@ -397,6 +411,7 @@ pub fn run() {
             quit_app,
             stop_backend,
             backend_parity,
+            pick_attachment,
             pick_folder,
             set_keep_awake,
             save_engine_key,
