@@ -68,11 +68,32 @@ def read_baseline(path: Path) -> list[str]:
     return known
 
 
+def baseline_at(root: Path, ref: str, path: Path) -> list[str] | None:
+    """The baseline as the base ref carries it; None when that ref has no file yet."""
+    try:
+        rel = path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError as exc:
+        raise ValueError(f"{path.name} sits outside the checkout; --baseline-at needs a tracked file") from exc
+    done = git("show", f"{ref}:{rel}", cwd=root)
+    if done.returncode != 0:
+        return None
+    try:
+        payload = json.loads(done.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"cannot read {path.name} at {ref}: {exc}") from exc
+    known = payload.get("known_diverged") or []
+    return [item for item in known if isinstance(item, str)]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="checkout to judge")
     parser.add_argument("--base", default="origin/main", help="trunk ref the tags must sit on")
     parser.add_argument("--baseline", type=Path, default=BASELINE_DEFAULT)
+    parser.add_argument(
+        "--baseline-at",
+        help="reject an entry this baseline adds over the one at this ref (CI passes the base)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -82,20 +103,52 @@ def main(argv: list[str] | None = None) -> int:
         print(f"provenance: cannot decide: {exc}")
         return 2
 
+    if not names:
+        print("provenance: cannot decide: the checkout lists no v* tag")
+        return 2
     if git("rev-parse", "--verify", args.base, cwd=args.root).returncode != 0:
         print(f"provenance: cannot decide: base ref {args.base} does not resolve")
         return 2
 
+    if args.baseline_at:
+        try:
+            previous = baseline_at(args.root, args.baseline_at, args.baseline)
+        except ValueError as exc:
+            print(f"provenance: cannot decide: {exc}")
+            return 2
+        if previous is None:
+            print(
+                f"provenance: note: {args.baseline_at} carries no baseline yet; "
+                "this commit introduces it"
+            )
+        else:
+            added = sorted(known - set(previous))
+            if added:
+                print(
+                    "provenance: FAIL — the baseline adds "
+                    + ", ".join(added)
+                    + f" over {args.baseline_at}; a new entry is a decision the owner records "
+                    "in its own commit before the tag exists"
+                )
+                return 1
+
     diverged: list[tuple[str, str]] = []
     healed: list[str] = []
     for tag in names:
-        commit = commit_of(args.root, tag)
-        on_trunk = is_ancestor(args.root, commit, args.base)
+        try:
+            commit = commit_of(args.root, tag)
+            on_trunk = is_ancestor(args.root, commit, args.base)
+        except ValueError as exc:
+            print(f"provenance: cannot decide: {exc}")
+            return 2
         if on_trunk and tag in known:
             healed.append(tag)
         if not on_trunk and tag not in known:
             diverged.append((tag, commit))
-        mark = "on base" if on_trunk else "DIVERGED"
+        if on_trunk:
+            mark = "on base"
+        else:
+            mark = "DIVERGED (recorded)" if tag in known else "DIVERGED"
         print(f"provenance: {tag:>14} {commit[:8]} {mark}")
 
     for tag in healed:

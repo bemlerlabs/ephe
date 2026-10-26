@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "provenance_check.py"
 
@@ -95,9 +97,53 @@ class TestOnAPlant:
         assert done.returncode == 2, done.stdout
         assert "does not resolve" in done.stdout, done.stdout
 
+    def test_a_checkout_without_tags_is_not_a_silent_pass(self, tmp_path):
+        repo = make_repo(tmp_path)
+        done = run(repo, "--base", "main", "--baseline", str(baseline(tmp_path, [])))
+        assert done.returncode == 2, done.stdout
+        assert "no v* tag" in done.stdout, done.stdout
+
+    def test_a_recorded_tag_says_so_on_its_line(self, tmp_path):
+        repo = make_repo(tmp_path)
+        git(repo, "switch", "-q", "-c", "side")
+        (repo / "b.txt").write_text("two\n", encoding="utf-8")
+        git(repo, "add", "b.txt")
+        git(repo, "commit", "-qm", "two")
+        git(repo, "tag", "-a", "v0.2.0", "-m", "cut")
+        git(repo, "switch", "-q", "main")
+        done = run(repo, "--base", "main", "--baseline", str(baseline(tmp_path, ["v0.2.0"])))
+        assert done.returncode == 0, done.stdout
+        assert "DIVERGED (recorded)" in done.stdout, done.stdout
+
+    def test_a_new_baseline_entry_is_refused_against_the_base(self, tmp_path):
+        repo = make_repo(tmp_path)
+        tracked = repo / "provenance-baseline.json"
+        tracked.write_text(json.dumps({"known_diverged": []}), encoding="utf-8")
+        git(repo, "add", "provenance-baseline.json")
+        git(repo, "commit", "-qm", "baseline")
+        git(repo, "switch", "-q", "-c", "side")
+        (repo / "b.txt").write_text("two\n", encoding="utf-8")
+        git(repo, "add", "b.txt")
+        git(repo, "commit", "-qm", "two")
+        git(repo, "tag", "-a", "v0.2.0", "-m", "cut")
+        git(repo, "switch", "-q", "main")
+        tracked.write_text(json.dumps({"known_diverged": ["v0.2.0"]}), encoding="utf-8")
+        done = run(repo, "--base", "main", "--baseline", str(tracked), "--baseline-at", "main")
+        assert done.returncode == 1, done.stdout
+        assert "adds v0.2.0" in done.stdout, done.stdout
+
 
 class TestOnThisRepository:
     def test_every_tag_is_on_main_or_recorded(self):
+        base = subprocess.run(
+            ("git", "rev-parse", "--verify", "origin/main"),
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if base.returncode != 0:
+            pytest.skip("this checkout has no origin/main (shallow clone)")
         done = subprocess.run(
             [sys.executable, str(SCRIPT), "--base", "origin/main"],
             cwd=str(ROOT),

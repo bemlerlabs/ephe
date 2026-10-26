@@ -45,5 +45,5 @@ The checkout, the venv and the PWA build become one versioned bundle under
 `~/.local/share/ephe/<version>/`, addressed through `current`, with a manifest
 that names the Python, the dist stamp and the schema. The update writes a new
 directory, flips `current`, and restarts the backend; a rollback flips it back.
-Until then the checkout stays, and the two gaps above are named in the receipt
-rather than hidden.
+Until then the checkout stays, and the two gaps above are recorded with each
+release instead of being hidden.

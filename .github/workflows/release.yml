@@ -92,9 +92,10 @@ jobs:
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
           command -v bwrap >/dev/null || {
-            sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 update &&
+            sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 update &&
             sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
-              install -y bubblewrap
+              -o Acquire::https::Timeout=20 install -y bubblewrap
           }
       - name: Run tracked pytest suite
         run: python -m pytest tests/ -q

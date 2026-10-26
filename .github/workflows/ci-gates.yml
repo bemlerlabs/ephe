@@ -151,10 +151,9 @@ jobs:
 
       - name: Released tags sit on main
         # A tag that names a commit main does not contain is the v0.1.7 defect the
-        # receipt records. A pull request cannot move a tag, so the step runs where
-        # a tag can come from the trunk and the history is complete.
-        if: github.event_name != 'pull_request'
-        run: python3 scripts/provenance_check.py --base origin/main
+        # receipt records. The baseline is compared with the base commit as well,
+        # so a pull request cannot pre-record a divergence for a tag it will cut.
+        run: python3 scripts/provenance_check.py --base origin/main --baseline-at origin/main
 
   coverage-floor:
     name: Coverage floor (per-module ratchet)
