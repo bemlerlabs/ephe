@@ -133,8 +133,58 @@ class TestOnAPlant:
         assert "adds v0.2.0" in done.stdout, done.stdout
 
 
+class TestOnAShallowCopy:
+    def test_a_shallow_checkout_is_refused_not_read_as_diverged(self, tmp_path):
+        """A depth-1 clone carries every tag but no history, so an older tag's commit
+        reads as diverged. The gate has to say it cannot judge, not fail the tag."""
+        source = make_repo(tmp_path)
+        git(source, "tag", "-a", "v0.1.0", "-m", "cut")
+        (source / "b.txt").write_text("two\n", encoding="utf-8")
+        git(source, "add", "b.txt")
+        git(source, "commit", "-qm", "two")
+
+        clone = tmp_path / "clone"
+        clone.mkdir()
+        git(clone, "init", "-q", "-b", "main")
+        git(clone, "remote", "add", "origin", source.as_uri())
+        git(
+            clone,
+            "fetch",
+            "-q",
+            "--depth",
+            "1",
+            "origin",
+            "+refs/tags/*:refs/tags/*",
+            "refs/heads/main:refs/remotes/origin/main",
+        )
+        git(clone, "checkout", "-q", "main")
+
+        # The state is misleading on purpose: the tag is on the trunk, yet the
+        # grafted history puts its commit outside the base.
+        misleading = subprocess.run(
+            ("git", "merge-base", "--is-ancestor", "v0.1.0^{commit}", "origin/main"),
+            cwd=str(clone),
+            capture_output=True,
+            check=False,
+        )
+        assert misleading.returncode == 1, "the planted clone is not shallow in the expected shape"
+
+        done = run(clone, "--base", "origin/main", "--baseline", str(baseline(tmp_path, [])))
+        assert done.returncode == 2, done.stdout + done.stderr
+        assert "shallow" in done.stdout, done.stdout
+
+
 class TestOnThisRepository:
     def test_every_tag_is_on_main_or_recorded(self):
+        shallow = subprocess.run(
+            ("git", "rev-parse", "--is-shallow-repository"),
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if shallow.stdout.strip() == "true":
+            pytest.skip("a shallow checkout cannot judge tag ancestry")
         base = subprocess.run(
             ("git", "rev-parse", "--verify", "origin/main"),
             cwd=str(ROOT),

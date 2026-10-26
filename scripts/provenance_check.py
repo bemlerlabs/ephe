@@ -15,7 +15,13 @@ moved — the fix for a new one is to land by fast-forward and re-cut, and the
 fix for an old one is a recorded entry.
 
 Exit codes: 0 every tag is on the base or recorded, 1 an unrecorded divergence,
-2 the repository or the baseline cannot be read.
+2 the repository or the baseline cannot be read, or the checkout is shallow.
+
+A shallow checkout cannot answer the question: it carries the tags but not the
+commits behind them, so `merge-base` reports every older tag as diverged. The
+v0.1.9 release run failed this way (depth-1 checkout in the release gate) while
+the same tree passed on a full clone. The gate names the shallow state instead of
+failing a tag that sits on the trunk.
 """
 from __future__ import annotations
 
@@ -95,6 +101,15 @@ def main(argv: list[str] | None = None) -> int:
         help="reject an entry this baseline adds over the one at this ref (CI passes the base)",
     )
     args = parser.parse_args(argv)
+
+    shallow = git("rev-parse", "--is-shallow-repository", cwd=args.root)
+    if shallow.returncode == 0 and shallow.stdout.strip() == "true":
+        print(
+            "provenance: cannot decide: the checkout is shallow, so an older tag's commit is "
+            "absent and would read as diverged; fetch the full history "
+            "(actions/checkout fetch-depth: 0)"
+        )
+        return 2
 
     try:
         known = set(read_baseline(args.baseline))

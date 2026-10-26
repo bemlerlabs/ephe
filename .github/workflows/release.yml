@@ -69,6 +69,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # The provenance test asks whether every released tag sits on the trunk, and a
+          # depth-1 checkout carries the tag refs without the commits behind them: every
+          # older tag then reads as diverged. v0.1.9's release run failed exactly there.
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Python
         # No pip cache here either: this job stands between a tag and a published
