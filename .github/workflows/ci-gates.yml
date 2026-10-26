@@ -29,7 +29,7 @@ permissions:
 
 concurrency:
   group: ci-gates-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -149,11 +149,50 @@ jobs:
         # cannot bring such a tell along unnoticed.
         run: python3 scripts/prose_tells.py --strict
 
+      - name: README contract
+        # Stdlib-only and offline: the expected install tag is derived from
+        # pyproject.toml, so a tree without a concrete version exits 1 instead of
+        # judging against nothing.
+        run: python3 scripts/readme_check.py
+
       - name: Released tags sit on main
         # A tag that names a commit main does not contain is the v0.1.7 defect the
         # receipt records. The baseline is compared with the base commit as well,
         # so a pull request cannot pre-record a divergence for a tag it will cut.
         run: python3 scripts/provenance_check.py --base origin/main --baseline-at origin/main
+
+  readme-contract:
+    name: README contract suite (offline)
+    # Fork PRs are excluded for the reason given on the workflow-audit job.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install the package
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev,tui]"
+
+      - name: README contract gate
+        # No --public here: that flag verifies the manifest against GitHub over the
+        # network, and this job has to judge the tree it checked out, offline.
+        run: python3 scripts/readme_check.py
+
+      - name: README and installer suite
+        run: >
+          python -m pytest tests/test_readme_contract.py tests/test_readme_claims.py
+          tests/test_doc_readme_cli_commands.py tests/test_doc_readme_mobile_label.py
+          tests/test_installer_cli.py -q
 
   coverage-floor:
     name: Coverage floor (per-module ratchet)
