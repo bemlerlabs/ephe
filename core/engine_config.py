@@ -497,7 +497,8 @@ def engine_key_repair_state(home: "Path | None" = None) -> dict | None:
     ``None`` when this start was not stopped for a mismatch, or when the binding has
     been repaired since it was. The answer names the active engine, the engine the key
     is bound to, the source the key came from and the repairs offered; it never carries
-    the key itself.
+    the key itself. A key file replaced after its binding no longer names a usable
+    engine, so ``bound`` stays ``None`` and the keep option drops out.
     """
     if os.environ.get(ENV_ENGINE_KEY_REPAIR) != REPAIR_ENGINE_KEY_MISMATCH:
         return None
@@ -513,13 +514,24 @@ def engine_key_repair_state(home: "Path | None" = None) -> dict | None:
     if problem is None:
         return None
     binding = _load_key_binding(home=home) or {}
+    # Restoring the bound engine only repairs a key that still matches its binding.
+    key_matches_binding = bool(key) and hmac.compare_digest(
+        str(binding.get("key_fingerprint") or ""), engine_key_fingerprint(key)
+    )
     bound = None
-    if str(binding.get("provider") or "") and str(binding.get("model") or ""):
+    if (
+        key_matches_binding
+        and str(binding.get("provider") or "")
+        and str(binding.get("model") or "")
+    ):
         bound = {
             "provider": str(binding.get("provider")),
             "model": str(binding.get("model")),
             "url": str(binding.get("api_url") or "") or None,
         }
+    choices = ["replace_key", "choose_provider", "cancel"]
+    if bound is not None:
+        choices.insert(0, "keep_bound_engine")
     return {
         "code": REPAIR_ENGINE_KEY_MISMATCH,
         "problem": problem,
@@ -530,7 +542,7 @@ def engine_key_repair_state(home: "Path | None" = None) -> dict | None:
         },
         "bound": bound,
         "key_source": source,
-        "choices": ["keep_bound_engine", "replace_key", "choose_provider", "cancel"],
+        "choices": choices,
     }
 
 

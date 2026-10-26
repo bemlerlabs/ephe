@@ -191,6 +191,23 @@ def test_restoring_the_bound_engine_clears_the_repair(mismatched_key, monkeypatc
     assert payload["configured"] is True
 
 
+def test_a_replaced_key_file_drops_the_keep_option(mismatched_key, monkeypatch):
+    """A key written after its binding: restoring the bound engine cannot repair it."""
+    monkeypatch.setenv("EPHE_ENGINE_KEY_REPAIR", ec.REPAIR_ENGINE_KEY_MISMATCH)
+    key_path = ec.key_file_path()
+    key_path.write_text("key-replaced\n", encoding="utf-8")
+    key_path.chmod(0o600)
+
+    state = ec.engine_key_repair_state()
+
+    assert state is not None
+    assert "does not match its binding" in state["problem"]
+    assert state["active"]["model"] == ACTIVE.model
+    assert state["bound"] is None
+    assert state["choices"] == ["replace_key", "choose_provider", "cancel"]
+    assert "key-replaced" not in json.dumps(state)
+
+
 def test_the_cli_verdict_names_the_key_source_and_the_choices(mismatched_key):
     """The CLI/TUI print the exception and its hint; both are the same verdict the page
     shows, with the source named and no key material."""

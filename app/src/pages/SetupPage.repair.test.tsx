@@ -104,6 +104,26 @@ describe('SetupPage engine-key repair (T2)', () => {
     await waitFor(() => expect(onDone).toHaveBeenCalled())
   })
 
+  it('drops the keep option when the stored key no longer matches its binding', async () => {
+    getSetupStatus.mockResolvedValue({
+      ...STATUS,
+      repair: {
+        ...REPAIR,
+        problem:
+          'The stored engine key does not match its binding. The key was replaced without re-binding it. Re-enter the key for this engine.',
+        bound: null,
+        choices: ['replace_key', 'choose_provider', 'cancel'],
+      },
+    })
+
+    render(<SetupPage onDone={vi.fn()} />)
+
+    await screen.findByTestId('setup-repair')
+    expect(screen.queryByTestId('setup-repair-keep')).toBeNull()
+    expect(screen.queryByTestId('setup-repair-bound')).toBeNull()
+    expect(screen.getByTestId('setup-repair-replace')).toBeTruthy()
+  })
+
   it('replaces the key for the engine the configuration names', async () => {
     getSetupStatus.mockResolvedValue(STATUS)
     const onDone = vi.fn()
