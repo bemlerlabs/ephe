@@ -229,10 +229,12 @@ RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime s
 # 2026-10-18), while OSV resolves each alias to the RustSec record it shares.
 # Why it is not fixed yet: the updater's manifest pins the 4.x line, so the lock cannot
 # move to 9.0.0 without the plugin moving first; that is upstream's open work.
-# Exposure as measured: `cargo tree -i zip` on the host target prints nothing, so the
-# macOS build does not carry it; the Linux updater does, and it extracts the release
-# archive it has just verified against the signature in latest.json. The attack needs a
-# crafted archive that passes that signature; a hostile network response alone does not.
+# Exposure as measured on 2026-10-26, with `cargo tree --target <triple> -i zip` run in
+# app/src-tauri: `aarch64-apple-darwin` and `x86_64-unknown-linux-gnu` each answer
+# "warning: nothing to print.", so neither shipped build carries the crate. Only
+# `x86_64-pc-windows-msvc` resolves it (`zip v4.6.1` under `tauri-plugin-updater v2.14.0`),
+# and no release has published a Windows asset. The attack needs a crafted archive that
+# passes the signature check in latest.json; a hostile network response alone does not.
 RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
 RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
