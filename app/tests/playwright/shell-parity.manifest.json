@@ -93,10 +93,10 @@
     {
       "file": "app/src/components/dashboard/chat/index.tsx",
       "marker": "isTauri",
-      "count": 3,
-      "surface": "chat header: window controls and the traffic-light clearance",
-      "web": "no controls and no left inset; the browser draws the window chrome",
-      "desktop": "minimize and maximize at the header's right edge, and an extra left inset when the sidebar is a rail so the first header control clears the overlaid traffic lights"
+      "count": 5,
+      "surface": "chat header: window controls, the traffic-light clearance, and the backend version message",
+      "web": "no controls, no left inset and no version message: the browser draws the window chrome and has no shell to ask",
+      "desktop": "minimize and maximize at the header's right edge, an extra left inset when the sidebar is a rail so the first control clears the overlaid traffic lights, and one read of the shell's backend-parity verdict at boot"
     },
     {
       "file": "app/src/components/dashboard/chat/model.ts",
@@ -249,6 +249,14 @@
       "surface": "global shortcut row",
       "web": "a disabled row names the desktop app and the chord it offers",
       "desktop": "a switch writes the opt-in; a saved value registers the chord"
+    },
+    {
+      "file": "app/src/lib/backendParity.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "the backend version the shell started",
+      "web": "no command channel, so nothing is claimed and no message appears",
+      "desktop": "invoke('backend_parity') through window.__TAURI__.core.invoke, and a named message when shell and backend disagree"
     }
   ],
   "platform_only": [
@@ -268,7 +276,11 @@
     }
   ],
   "mobile": {
-    "widths": [320, 375, 390],
+    "widths": [
+      320,
+      375,
+      390
+    ],
     "surfaces": [
       {
         "path": "/chat",
