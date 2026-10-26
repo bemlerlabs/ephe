@@ -6,8 +6,14 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react'
-import { captureScreenAsAttachment, fileToAttachment, type ChatAttachment } from '@/lib/attachments'
-import { pickOpenPath } from '@/lib/nativeDialog'
+import {
+  attachmentFromPick,
+  captureScreenAsAttachment,
+  fileToAttachment,
+  type ChatAttachment,
+  type PickedAttachment,
+} from '@/lib/attachments'
+import { tauriInvoke } from '@/lib/tauriBridge'
 
 /**
  * G3/P10-F1/P1-4: composer attachments — paste, drag & drop anywhere in the
@@ -120,11 +126,17 @@ export function useComposerAttachments({
   // Desktop: the shell's real «Open» dialog. PWA: the browser file input
   // (depending on accept) — that delivers the file itself, never a path.
   const handleAttach = async (accept?: string) => {
-    if (window.__TAURI__?.core?.invoke) {
-      const path = await pickOpenPath()
-      if (!path) return
-      const name = path.split(/[\\/]/).pop() || path
-      setAttachments((prev) => [...prev, { kind: 'file', path, name } as ChatAttachment])
+    const invoke = tauriInvoke()
+    if (invoke) {
+      try {
+        const picked = (await invoke('pick_attachment', {
+          accept: accept === 'image' ? 'image' : null,
+        })) as PickedAttachment | null
+        if (picked) setAttachments((prev) => [...prev, attachmentFromPick(picked)])
+      } catch {
+        // A cancelled dialog says nothing; a file the shell could not read is
+        // reported by the command and leaves the composer untouched.
+      }
       return
     }
     if (accept === 'image') {

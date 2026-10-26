@@ -171,3 +171,30 @@ export async function captureScreenAsAttachment(): Promise<ChatAttachment | null
     stream.getTracks().forEach((t) => t.stop())
   }
 }
+
+/** What the shell's picker returns for a file it read. */
+export interface PickedAttachment {
+  name: string
+  size: number
+  kind: 'image' | 'text' | 'file'
+  dataUrl?: string | null
+  text?: string | null
+  truncated?: boolean
+}
+
+/** The composer's shape for a file the shell read, with no path to carry. */
+export function attachmentFromPick(picked: PickedAttachment): ChatAttachment {
+  const base = {
+    path: picked.name,
+    name: picked.name,
+    size: picked.size,
+    status: 'ready' as const,
+  }
+  if (picked.kind === 'image' && picked.dataUrl) {
+    return { ...base, kind: 'image', dataUrl: picked.dataUrl }
+  }
+  if (picked.kind === 'text' && picked.text != null) {
+    return { ...base, kind: 'text', text: picked.text, truncated: Boolean(picked.truncated) }
+  }
+  return { ...base, kind: 'file' }
+}

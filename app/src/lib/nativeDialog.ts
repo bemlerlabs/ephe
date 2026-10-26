@@ -55,20 +55,3 @@ export async function pickSaveTarget(
     return null
   }
 }
-
-/**
- * The native "open" dialog: the user points Ephe at a file, a path comes back.
- * Null means cancelled or no shell — neither is an error.
- */
-export async function pickOpenPath(title = 'Datei anhängen'): Promise<string | null> {
-  const invoke = tauriInvoke()
-  if (!invoke) return null
-  try {
-    const chosen = await invoke('plugin:dialog|open', {
-      options: { title, multiple: false, directory: false },
-    })
-    return asPath(Array.isArray(chosen) ? chosen[0] : chosen)
-  } catch {
-    return null
-  }
-}

@@ -107,14 +107,6 @@
       "desktop": "true, from useTauriWindow"
     },
     {
-      "file": "app/src/components/dashboard/chat/useComposerAttachments.ts",
-      "marker": "__TAURI__",
-      "count": 1,
-      "surface": "composer attachments",
-      "web": "the browser file picker",
-      "desktop": "the shell's native open dialog (pickOpenPath)"
-    },
-    {
       "file": "app/src/components/onboarding/FirstRunTour.tsx",
       "marker": "__TAURI__",
       "count": 4,
