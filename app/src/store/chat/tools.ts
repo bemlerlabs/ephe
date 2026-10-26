@@ -76,9 +76,12 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
             next[idx] = {
               ...open,
               args: tool.args ?? open.args,
+              result: tool.result ?? open.result,
               status: tool.status,
               ...(tool.durationMs !== undefined ? { duration_ms: tool.durationMs } : {}),
               ...(tool.stdout !== undefined ? { stdout: (open.stdout ?? '') + tool.stdout } : {}),
+              ...(tool.reasonCode !== undefined ? { reason_code: tool.reasonCode } : {}),
+              ...(tool.reasonParams !== undefined ? { reason_params: tool.reasonParams } : {}),
             }
             return { ...m, tool_calls: next }
           }
@@ -91,9 +94,12 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
                 id: newId,
                 name: tool.name,
                 args: tool.args ?? {},
+                result: tool.result,
                 status: tool.status,
                 ...(tool.durationMs !== undefined ? { duration_ms: tool.durationMs } : {}),
                 ...(tool.stdout !== undefined ? { stdout: tool.stdout } : {}),
+                ...(tool.reasonCode !== undefined ? { reason_code: tool.reasonCode } : {}),
+                ...(tool.reasonParams !== undefined ? { reason_params: tool.reasonParams } : {}),
               },
             ],
             ...(m.blocks !== undefined
