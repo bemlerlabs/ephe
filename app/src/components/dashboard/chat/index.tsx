@@ -18,6 +18,7 @@ import {
 import WelcomeEmptyState from '../WelcomeEmptyState'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
+import { announceBackendParity } from '@/lib/backendParity'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { useUpdateCheck } from '@/lib/useUpdateCheck'
 import Sidebar from '../Sidebar'
@@ -167,6 +168,17 @@ export default function ChatLayout() {
     denySandboxForTool,
     handleAnswerAsk,
   } = useChatLayoutModel()
+  // The updater replaces the shell and not the backend it starts; the two are
+  // allowed to disagree for exactly one reason — nobody told the user. The
+  // shell's own comparison runs on the start thread, so this reads after it.
+  useEffect(() => {
+    if (!isTauri) return
+    const timer = setTimeout(() => {
+      void announceBackendParity(t)
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [isTauri, t])
+
   const readingWidth = useChatReadingWidth()
 
   // The command/state bar and the run rail read the same status surface the agent
