@@ -146,3 +146,22 @@ def test_token_schwelle_kompaktiert_vor_nachrichtengrenze():
     assert out[0] == msgs[0]
     assert out[1]["role"] == "system"  # the ledger
     assert out[-1] == msgs[-1]
+
+
+def test_prose_step_title_is_one_sentence(tmp_path, monkeypatch):
+    """F5: a narration step's title is the first sentence, not 160 characters
+    of running prose with the next sentence welded on."""
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    trajectory.begin_turn("s-prose", model="m")
+    trajectory.record(
+        "s-prose",
+        {
+            "type": "text",
+            "text": "Verify the file exists and check its content. Workspace is empty — no suite.",
+        },
+    )
+    trajectory.end_turn("s-prose")
+
+    steps = trajectory.get_turns("s-prose")[0]["steps"]
+    assert steps[0]["title"] == "Verify the file exists and check its content."
+    assert "Workspace is empty" not in steps[0]["title"]

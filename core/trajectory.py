@@ -26,6 +26,8 @@ from typing import Any
 MAX_TURNS_PER_SESSION = 20
 MAX_STEPS_PER_TURN = 60
 MAX_TITLE_CHARS = 160
+#: Prose gets a shorter title: the first sentence, not the paragraph.
+MAX_PROSE_TITLE_CHARS = 80
 MAX_TEXT_CHARS = 4000
 #: G7: how many injected facts a single turn may carry. The injection is already
 #: bounded by `memory.inject_max_entries`; this is the second lock, so a turn that
@@ -122,8 +124,33 @@ def record_memories(session_id: str, entries: list[dict[str, Any]]) -> None:
         del memories[MAX_MEMORIES_PER_TURN:]
 
 
+def _prose_title(text: str) -> str:
+    """The first line or sentence of a narration event.
+
+    The narration event used to hand its first 160 characters to the step title,
+    so a row read `Verify the file exists and check its content` with the next
+    sentence welded to it (QA-0.1.11, F5). A title is a line; the paragraph is
+    the step's body.
+    """
+    line = text.strip().split("\n", 1)[0].strip()
+    cut = len(line)
+    for mark in (". ", "! ", "? "):
+        at = line.find(mark)
+        if 0 <= at < cut:
+            cut = at + 1
+    return line[:cut].strip()[:MAX_PROSE_TITLE_CHARS]
+
+
 def _title(event: dict) -> str:
-    for key in ("cmd", "msg", "reason", "summary", "text", "message", "topic", "target"):
+    for key in ("cmd", "msg", "reason", "summary"):
+        val = event.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()[:MAX_TITLE_CHARS]
+    for key in ("text", "message"):
+        val = event.get(key)
+        if isinstance(val, str) and val.strip():
+            return _prose_title(val)
+    for key in ("topic", "target"):
         val = event.get(key)
         if isinstance(val, str) and val.strip():
             return val.strip()[:MAX_TITLE_CHARS]

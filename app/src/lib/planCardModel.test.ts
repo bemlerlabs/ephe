@@ -78,3 +78,32 @@ describe('the accept contract — what the gate hands to the engine', () => {
     expect(back!.items.map((i) => i.text)).toEqual(titles)
   })
 })
+
+describe('parsePlanCard survives a re-printed and flattened plan (F5)', () => {
+  it('counts a step once when the answer printed its plan twice', () => {
+    const text = [
+      '## Plan',
+      '- [x] Inspect the workspace',
+      '- [x] Verify the file exists',
+      '- [>] Write the note',
+      '- [ ] Report back',
+      '',
+      'Halfway through. Here is the plan again:',
+      '- [x] Inspect the workspace',
+      '- [x] Verify the file exists',
+      '- [x] Write the note',
+      '- [ ] Report back',
+    ].join('\n')
+    const spec = parsePlanCard(text)!
+    expect(spec.total).toBe(4)
+    expect(spec.done).toBe(3)
+    expect(spec.items.map((i) => i.status)).toEqual(['done', 'done', 'done', 'pending'])
+  })
+
+  it('splits a checklist the writer flattened onto one line', () => {
+    const text = '## Plan\n- [x] first step - [x] second step - [ ] third step'
+    const spec = parsePlanCard(text)!
+    expect(spec.items.map((i) => i.text)).toEqual(['first step', 'second step', 'third step'])
+    expect(spec.total).toBe(3)
+  })
+})

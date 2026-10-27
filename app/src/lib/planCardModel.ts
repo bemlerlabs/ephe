@@ -27,9 +27,15 @@ const STATUS_OF: Record<string, PlanItemStatus> = {
   '-': 'cancelled',
 }
 
+/** A plan flattened onto one line arrives as `… - [ ] a - [x] b`; cut it back. */
+const INLINE_ITEM_SPLIT = /(?=\s[-*+]\s?\[[ >xX!-]\]\s)/
+
 export function parsePlanCard(text: string): PlanCardSpec | null {
   if (!text) return null
-  const items: PlanCardItem[] = []
+  // Keyed by the step's text: an answer that re-printed its plan mid-run used to
+  // count every print, so `Plan 9/18` stood beside four real steps with the same
+  // entry four times (QA-0.1.11, F5). The last print carries the state.
+  const byText = new Map<string, PlanCardItem>()
   let headed = false
   for (const raw of text.split('\n')) {
     const line = raw.trim()
@@ -37,12 +43,19 @@ export function parsePlanCard(text: string): PlanCardSpec | null {
       headed = true
       continue
     }
-    const m = ITEM_RE.exec(line)
-    if (!m) continue
-    const title = (m[2] ?? '').replace(STEP_ID_RE, '').trim()
-    if (!title) continue
-    items.push({ status: STATUS_OF[m[1] ?? ' '] ?? 'pending', text: title })
+    for (const part of line.split(INLINE_ITEM_SPLIT)) {
+      const m = ITEM_RE.exec(part.trim())
+      if (!m) continue
+      const title = (m[2] ?? '').replace(STEP_ID_RE, '').trim()
+      if (!title) continue
+      const status = STATUS_OF[m[1] ?? ' '] ?? 'pending'
+      const key = title.toLowerCase().replace(/\s+/g, ' ')
+      const seen = byText.get(key)
+      if (seen) seen.status = status
+      else byText.set(key, { status, text: title })
+    }
   }
+  const items = [...byText.values()]
   // Two checklist lines without the heading still render: an answer that forgot the marker
   // is a bad heading, and the reader should not be the one to lose the plan.
   if (!items.length || (!headed && items.length < 2)) return null
