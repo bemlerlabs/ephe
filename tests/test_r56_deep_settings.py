@@ -214,7 +214,7 @@ def _non_default(field_key: str):
 
 
 def test_a_partial_section_write_keeps_every_field_it_did_not_send(tmp_path, monkeypatch):
-    """One field in, twelve kept: a section write is a merge, not a replace.
+    """One field in, twelve kept: the write merges into the stored section.
 
     Measured before the fix: the omitted fields fell back to their defaults and
     whole sections vanished, while the answer stayed 200.

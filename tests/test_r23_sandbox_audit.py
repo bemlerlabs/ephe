@@ -233,14 +233,14 @@ class TestSeatbelt:
 
     @pytest.mark.skipif(not Path("/usr/bin/sandbox-exec").exists() and not Path("/bin/sandbox-exec").exists()
                         and os.environ.get("CI") == "1",
-                        reason="sandbox-exec auf CI-Runnern nicht vorhanden")
+                        reason="sandbox-exec is not on the CI runners")
     def test_given_sandbox_when_git_runs_then_it_can_open_dev_null(self, tmp_path):
         """git probes /dev/null for read+write; denying it failed every git call
         inside the sandbox with exit 128 before the device nodes were allowed."""
         from core.shell_sandbox import is_available, wrap_command
 
         if not is_available():
-            pytest.skip("sandbox-exec nicht verfügbar (macOS-only Feature)")
+            pytest.skip("sandbox-exec is not available (macOS-only feature)")
         workspace = tmp_path / "repo"
         workspace.mkdir()
         subprocess.run(["git", "init", "-q", "."], cwd=workspace, check=True)
