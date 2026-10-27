@@ -328,3 +328,29 @@ class TestSchema:
         doc_id = kp.store("Ein Fakt", memory_type="quatsch")
         row = kp._db.execute("SELECT type FROM memories WHERE id = ?", (doc_id,)).fetchone()
         assert row["type"] == "semantic"
+
+
+class TestFtsLimitBinding:
+    def test_leg_fts_binds_the_limit_instead_of_pasting_it_into_the_sql(self):
+        """Given a query that reaches FTS5, when leg_fts runs, then LIMIT is a
+        bound parameter — an interpolated integer would sit next to text the
+        caller controlled, and SQLite would silently accept the string."""
+        import sqlite3
+
+        from core.memory_kepta_ranking import LEG_LIMIT, leg_fts
+
+        class RecordingConnection:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, tuple]] = []
+
+            def execute(self, sql, params=()):
+                self.calls.append((sql, tuple(params)))
+                raise sqlite3.OperationalError("no such table: memories_fts")
+
+        db = RecordingConnection()
+        assert leg_fts(db, "scope-a", "alpha beta", {}, fts_enabled=True) == []
+
+        sql, params = db.calls[0]
+        assert "LIMIT ?" in sql
+        assert f"LIMIT {LEG_LIMIT}" not in sql
+        assert params == ('"alpha" OR "beta"', "scope-a", LEG_LIMIT)
