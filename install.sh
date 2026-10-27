@@ -414,9 +414,15 @@ if [[ "$DRY_RUN" != "1" ]] && ! .venv/bin/python -m pip --version | grep -q '^pi
 fi
 if [[ "$INSTALL_MODE" == "cli" ]]; then
   info "CLI mode: installing minimal dependencies (tui) only"
-  run .venv/bin/python -m pip install -e ".[tui]"
+  if ! run .venv/bin/python -m pip install -e ".[tui,sandbox]"; then
+    warn "ephemora-cell is not installable on this platform; continuing without the sandbox extra"
+    run .venv/bin/python -m pip install -e ".[tui]"
+  fi
 else
-  run .venv/bin/python -m pip install -e ".[gui,voice]"
+  if ! run .venv/bin/python -m pip install -e ".[gui,voice,sandbox]"; then
+    warn "ephemora-cell is not installable on this platform; continuing without the sandbox extra"
+    run .venv/bin/python -m pip install -e ".[gui,voice]"
+  fi
 fi
 # openpyxl: xlsx support (otherwise missing from a Miniconda env, and it costs 10 tests)
 run .venv/bin/python -m pip install openpyxl

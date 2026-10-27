@@ -626,6 +626,10 @@ def test_given_install_sh_when_cli_mode_then_minimal_tui_path_is_offered():
     assert "--cli|--headless|--tui) INSTALL_MODE=\"cli\"" in script
     assert "--desktop|--gui|--web|--pwa) INSTALL_MODE=\"desktop\"" in script
     assert 'INSTALL_MODE="$EPHE_MODE"' in script
+    assert 'pip install -e ".[tui,sandbox]"' in script
+    assert 'pip install -e ".[gui,voice,sandbox]"' in script
+    # The sandbox extra carries the cell runtime; a platform without its wheel
+    # must still get a working install.
     assert 'pip install -e ".[tui]"' in script
     assert 'pip install -e ".[gui,voice]"' in script
     # Start WITHOUT --model: the engine is chosen in the app (mandate 2026-08-21)
@@ -1216,6 +1220,8 @@ def test_given_a_pip_less_existing_venv_when_the_installer_runs_then_it_seeds_pi
     assert ".venv/bin/pip" not in sh, (
         "install.sh still calls `.venv/bin/pip`, which a uv-created venv does not ship"
     )
+    assert '.venv/bin/python -m pip install -e ".[tui,sandbox]"' in sh
+    assert '.venv/bin/python -m pip install -e ".[gui,voice,sandbox]"' in sh
     assert '.venv/bin/python -m pip install -e ".[tui]"' in sh
     assert '.venv/bin/python -m pip install -e ".[gui,voice]"' in sh
 
