@@ -300,6 +300,7 @@ export function CompanionQuickPanel({
                   {t(finding.reasonKey, { param: finding.reasonParam ?? '' })}
                 </p>
                 {finding.target === 'tool_approval' &&
+                  finding.verdict === 'warn_only' &&
                   canRememberShape(finding.reasonParam ?? '') && (
                     <button
                       type="button"

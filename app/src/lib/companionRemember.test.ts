@@ -40,4 +40,29 @@ describe('remember this command shape', () => {
     forgetShellShapes()
     expect(rememberedShellVerbs()).toHaveLength(0)
   })
+
+  it('refuses a bare interpreter, which would remember the runner and not a shape', () => {
+    for (const command of [
+      'bash script.sh',
+      'sh -c ls',
+      'zsh -l',
+      'fish script.fish',
+      'dash script.sh',
+      'python tool.py',
+      'python3 tool.py',
+      'node app.js',
+      'deno run app.ts',
+      'bun app.ts',
+      'ruby app.rb',
+      'perl app.pl',
+      'php app.php',
+      'env FOO=1 ls',
+      'xargs rm',
+      'nohup sleep 1',
+    ]) {
+      expect(canRememberShape(command)).toBe(false)
+      expect(rememberShellShape(command)).toBe(false)
+    }
+    expect(rememberedShellVerbs()).toHaveLength(0)
+  })
 })

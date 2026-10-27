@@ -221,6 +221,9 @@ describe('findCopilotTarget — the five targets through the three modes', () =>
     const other = { name: 'execute_code', args: { command: 'pytest' }, description: 't' }
     const finding = findCopilotTarget(snap({ waitingTool: other }), 'copilot')
     expect(finding).toMatchObject({ verdict: 'warn_only', actionKey: 'copilot.action.noApprove' })
+    // A `command` argument on another tool is not a shell line: it never reaches
+    // the reason line, so the panel has nothing to offer "remember this shape" for.
+    expect(finding?.reasonParam).toBeUndefined()
   })
 
   it('scout reads a non-shell tool as a risk it would not approve', () => {

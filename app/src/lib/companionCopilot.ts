@@ -188,13 +188,14 @@ export function findCopilotTarget(
   if (mode === 'perch') return null
 
   if (snapshot.waitingTool) {
-    const command = shellCommandOf(snapshot.waitingTool)
+    const shellTool = snapshot.waitingTool.name === SHELL_TOOL
     // The allowlist describes a shell command line, so only the shell tool can
     // earn its benefit of the doubt. A tool that carries a `command` arg under
-    // another name is a tool the co-pilot does not act on.
-    const safe =
-      snapshot.waitingTool.name === SHELL_TOOL &&
-      classifyShellCommand(command, snapshot.remembered ?? []) === 'auto_act'
+    // another name is a tool the co-pilot does not act on — and its argument is
+    // not a shell command either, so it must not reach `reasonParam`, where the
+    // panel would offer to remember a verb the classifier never judged.
+    const command = shellTool ? shellCommandOf(snapshot.waitingTool) : ''
+    const safe = shellTool && classifyShellCommand(command, snapshot.remembered ?? []) === 'auto_act'
     const selector = '[role="alertdialog"]'
     const reasonKey = command
       ? safe

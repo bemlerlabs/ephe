@@ -48,9 +48,35 @@ export function subscribeRemembered(listener: () => void): () => void {
   }
 }
 
+/**
+ * Verbs that take a program as their argument. Remembering one would not teach the
+ * co-pilot a shape — it would hand it the interpreter, and `bash script.sh` is the
+ * whole command line the classifier ever sees. The user can still teach the script's
+ * own verb; the generic runner stays behind the approval it always had.
+ */
+const INTERPRETER_VERBS = new Set([
+  'sh',
+  'bash',
+  'zsh',
+  'fish',
+  'dash',
+  'python',
+  'python3',
+  'node',
+  'deno',
+  'bun',
+  'ruby',
+  'perl',
+  'php',
+  'env',
+  'xargs',
+  'nohup',
+])
+
 /** A plain verb with no fail-closed marker anywhere in the command line. */
 export function canRememberShape(command: string): boolean {
-  return Boolean(shellVerb(command)) && !isShellForbidden(command)
+  const verb = shellVerb(command)
+  return Boolean(verb) && !INTERPRETER_VERBS.has(String(verb).toLowerCase()) && !isShellForbidden(command)
 }
 
 export function rememberShellShape(command: string): boolean {
