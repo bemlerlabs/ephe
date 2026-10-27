@@ -8,7 +8,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
-`2aa10a5`, `fef5644`, `38923b9`, `c4550c2`).
+`2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -36,6 +36,11 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   (`e0ce875`, `a9392e9`).
 - The README contract runs as a CI Gates step and as a dedicated offline job,
   so a stale install tag or a dropped section fails a check (`fef5644`).
+- The desktop shell carries the menu bar macOS users look for: Ephe, File, Edit,
+  View, Window and Help, with New Session (⌘N), Settings… (⌘,), Check for
+  Updates…, Close Window (⌘W), Quit Ephe (⌘Q) and the standard Edit entries. The
+  tray menu and the bar share one route table, and the surface answers Settings
+  and Documentation (`721fe91`).
 
 ### Fixed
 - A key file replaced without re-binding no longer offers "keep the key": that
@@ -44,6 +49,12 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - The e2e boot set closes at the panel-ready boundary, so a polling tick that
   fires while a slow runner reads the DOM no longer counts as a boot request
   (`04048ba`).
+- ⌘W and the red button hide the main window instead of destroying it, so a Dock
+  click or the tray icon can bring it back; a quit that ends through the run loop
+  now stops `caffeinate` too (`721fe91`).
+- The timing report reads the workflow matrix before judging a leg, so a dropped
+  Python version is named by the offline test that guards it rather than by the
+  nightly report that noticed it first (`5af85c2`).
 
 ### Changed
 - CI: PR-only `cancel-in-progress` across the dual-trigger workflows, bounded
@@ -54,6 +65,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   runtime (`38923b9`).
 - The README contract reads every release tag named in prose, so a stale
   `v0.1.x` fails the same way a stale install URL does (`c4550c2`).
+- CI installs Python 3.13.18 where the interpreter comes from `actions/setup-python`,
+  while the matrix keeps naming the leg `py3.13` so the required check names and
+  the timing budgets stay what they are (`fb8593e`).
 
 ## [0.1.10] - 2026-10-26
 
