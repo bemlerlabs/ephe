@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDeepBool, useDeepSelect } from '@/lib/deepSettings'
 import { synthesizeSpeech } from '@/lib/api'
 import { isAutospeakActive } from '@/lib/autospeak'
+import { copyTypedText } from '@/lib/clipboard'
 import type { ToolCall } from '@/types'
 import type { ChatMessage as LegacyChatMessage } from '@/store/chatStore'
 import { MarkdownBody } from './messageMarkdown'
@@ -121,7 +122,10 @@ export function AssistantBubble({
   }, [])
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(m.content).then(() => {
+    // The answer is markdown, not HTML, so only its plain face is copied: a
+    // half-rendered HTML face would be a second markdown parser at the button.
+    void copyTypedText(m.content).then((ok) => {
+      if (!ok) return
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })

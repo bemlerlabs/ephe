@@ -249,6 +249,14 @@
       "surface": "the backend version the shell started",
       "web": "no command channel, so nothing is claimed and no message appears",
       "desktop": "invoke('backend_parity') through window.__TAURI__.core.invoke, and a named message when shell and backend disagree"
+    },
+    {
+      "file": "app/src/lib/fileActions.ts",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "artifact row: reveal and open in Finder (N4)",
+      "web": "both verbs are absent; the browser offers the download instead",
+      "desktop": "reveal_file_in_finder and open_file_in_default_app, fenced to the workbench, the project and the usual save folders"
     }
   ],
   "platform_only": [

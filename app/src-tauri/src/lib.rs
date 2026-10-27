@@ -22,6 +22,7 @@ mod attachment;
 mod browser;
 #[cfg(unix)]
 mod backend;
+mod desktop;
 mod instance;
 mod parity;
 
@@ -440,6 +441,30 @@ fn quit_from_shell(app: &tauri::AppHandle) {
     app.exit(0);
 }
 
+/// N3: the page hands over both faces of a copy; the shell owns the pasteboard.
+/// The cap is checked before anything is written, so a refusal leaves the old
+/// clipboard contents intact.
+#[tauri::command]
+fn write_rich_clipboard(plain: String, html: Option<String>) -> Result<(), String> {
+    desktop::clipboard_bytes(&plain, html.as_deref())?;
+    desktop::write_clipboard(&plain, html.as_deref())
+}
+
+/// N4: show a file in its folder. Only files inside the roots from
+/// `desktop::allowed_roots` are accepted — the page never names a path we open.
+#[tauri::command]
+fn reveal_file_in_finder(path: String) -> Result<(), String> {
+    let file = desktop::resolve_allowed_file(&path, &desktop::default_roots())?;
+    desktop::reveal(&file)
+}
+
+/// N4: the same fence, then the file's default application.
+#[tauri::command]
+fn open_file_in_default_app(path: String) -> Result<(), String> {
+    let file = desktop::resolve_allowed_file(&path, &desktop::default_roots())?;
+    desktop::open_default(&file)
+}
+
 fn handle_menu_id(app: &tauri::AppHandle, id: &str) {
     let Some(action) = menu_action(id) else {
         return;
@@ -646,6 +671,9 @@ pub fn run() {
             quit_app,
             stop_backend,
             backend_parity,
+            write_rich_clipboard,
+            reveal_file_in_finder,
+            open_file_in_default_app,
             pick_attachment,
             pick_folder,
             set_keep_awake,

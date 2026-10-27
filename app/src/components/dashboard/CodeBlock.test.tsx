@@ -8,11 +8,18 @@
  */
 import { createElement } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import CodeBlock from '@/components/dashboard/CodeBlock'
 
-const { highlightFence } = vi.hoisted(() => ({ highlightFence: vi.fn() }))
+const { highlightFence, copyTyped } = vi.hoisted(() => ({
+  highlightFence: vi.fn(),
+  copyTyped: vi.fn(async () => true),
+}))
 vi.mock('@/lib/syntaxHighlighter', () => ({ highlightFence }))
+vi.mock('@/lib/clipboard', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/clipboard')>()
+  return { ...actual, copyTypedText: copyTyped }
+})
 vi.mock('react-i18next', () => ({
   useTranslation: (() => ({ t: (key: string) => key })) as never,
 }))
@@ -25,6 +32,23 @@ const fence = () => createElement('code', { className: 'language-ts' }, SOURCE)
 
 beforeEach(() => {
   highlightFence.mockReset()
+  copyTyped.mockClear()
+})
+
+describe('CodeBlock — the copy button', () => {
+  it('hands the fence to the typed clipboard, plain and HTML', async () => {
+    render(<CodeBlock>{fence()}</CodeBlock>)
+
+    fireEvent.click(screen.getByLabelText('codeBlock.copy'))
+
+    await waitFor(() =>
+      expect(copyTyped).toHaveBeenCalledWith(
+        SOURCE,
+        '<pre><code class="language-ts">const n = 1</code></pre>',
+      ),
+    )
+    expect(await screen.findByLabelText('codeBlock.copied')).toBeTruthy()
+  })
 })
 
 describe('CodeBlock — the on-demand highlighter', () => {
@@ -55,13 +79,11 @@ describe('CodeBlock — the on-demand highlighter', () => {
   })
 
   it('copy takes the source text, not the swapped-in token DOM', async () => {
-    const writeText = vi.fn(async () => {})
-    Object.assign(navigator, { clipboard: { writeText } })
     highlightFence.mockResolvedValue(TOKENS)
     const { container } = render(<CodeBlock highlight>{fence()}</CodeBlock>)
     await waitFor(() => expect(container.querySelector('code span')).not.toBeNull())
     screen.getByRole('button').click()
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(SOURCE))
+    await waitFor(() => expect(copyTyped).toHaveBeenCalledWith(SOURCE, expect.any(String)))
   })
 
   it('the direct-code path (no Markdown AST) highlights nothing on its own', () => {

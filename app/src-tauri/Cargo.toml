@@ -38,3 +38,10 @@ tauri-plugin-single-instance = "2"
 # Wave 6: the opt-in global chord. One command, one chord; the review note is
 # docs/DEPENDENCY_GLOBAL_SHORTCUT_2026-10-20.md.
 tauri-plugin-global-shortcut = "2"
+
+# N3: the native pasteboard write. Both crates are already in the tree through
+# Tauri; naming them here adds the classes this crate calls, not a new version.
+# Default features stay off — the full class set is not what a two-item copy needs.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard"] }

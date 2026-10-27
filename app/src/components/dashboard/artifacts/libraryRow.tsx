@@ -13,9 +13,11 @@ import { formatDistanceToNow } from 'date-fns'
 import {
   Check,
   Download,
+  ExternalLink,
   FileCode,
   FileText,
   FolderDown,
+  FolderOpen,
   Image as ImageIcon,
   Star,
 } from 'lucide-react'
@@ -27,6 +29,7 @@ import {
   type ArtifactEntry,
 } from '@/lib/api'
 import { dateLocaleFor } from '@/lib/dateLocale'
+import { canUseNativeFileActions, openInDefaultApp, revealInFinder } from '@/lib/fileActions'
 import { adoptWithTarget } from './adoptFlow'
 
 const IMG = new Set(['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'chart', 'image'])
@@ -87,6 +90,17 @@ export default function ArtifactLibraryRow({
   const { t, i18n } = useTranslation()
   const [phase, setPhase] = useState<'idle' | 'asking' | 'busy' | 'done' | 'failed'>('idle')
   const [detail, setDetail] = useState('')
+  // N4: the Finder verbs exist in the shell only. A refusal (a path outside the
+  // folders Ephe may act on) gets one sentence beside the row; no toast.
+  const nativeFiles = canUseNativeFileActions()
+  const filePath = art.adopted_path || art.path
+  const [fileNote, setFileNote] = useState('')
+  const runFileAction = (action: (path: string) => Promise<boolean>) => {
+    setFileNote('')
+    void action(filePath).then((ok) => {
+      if (!ok) setFileNote(t('artifacts.fileActionFailed'))
+    })
+  }
   // The assignment, not the directory: the same short tag that the provenance on
   // the right spells out — two rows, one way to recognise it.
   const herkunft = originOf(art)
@@ -183,7 +197,43 @@ export default function ArtifactLibraryRow({
         >
           <Download className="h-3.5 w-3.5" />
         </a>
+        {nativeFiles && filePath && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                runFileAction(revealInFinder)
+              }}
+              aria-label={`${t('artifacts.revealInFinder')}: ${art.name}`}
+              title={t('artifacts.revealInFinder')}
+              data-testid="artifact-reveal-in-finder"
+              className="p-1.5 min-h-7 min-w-7 max-lg:min-h-11 max-lg:min-w-11 shrink-0 rounded hover:bg-surface text-ink-soft hover:text-foreground"
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                runFileAction(openInDefaultApp)
+              }}
+              aria-label={`${t('artifacts.openDefault')}: ${art.name}`}
+              title={t('artifacts.openDefault')}
+              data-testid="artifact-open-default"
+              className="p-1.5 min-h-7 min-w-7 max-lg:min-h-11 max-lg:min-w-11 shrink-0 rounded hover:bg-surface text-ink-soft hover:text-foreground"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
       </div>
+
+      {fileNote && (
+        <p role="alert" className="px-2 pb-1 text-ui-2xs text-status-warning">
+          {fileNote}
+        </p>
+      )}
 
       <div className="flex items-center gap-1.5 px-2 pb-1.5 text-ui-2xs text-ink-faint">
         {art.topic && art.topic !== art.name && <span className="truncate">{art.topic}</span>}

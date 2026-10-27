@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Copy } from 'lucide-react'
+import { codeFenceHtml, copyTypedText } from '@/lib/clipboard'
 import { highlightFence } from '@/lib/syntaxHighlighter'
 
 /** Extracts the raw text out of React children (for the copy button) */
@@ -64,11 +65,14 @@ export default function CodeBlock({ children, code, language, highlight }: CodeB
   }, [highlight, source, lang])
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(source).then(() => {
+    // Plain for a terminal, the fence as HTML for a note or a mail: the shell
+    // writes both, a browser keeps the plain face (lib/clipboard.ts).
+    void copyTypedText(source, codeFenceHtml(source, lang)).then((ok) => {
+      if (!ok) return
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
-  }, [source])
+  }, [source, lang])
 
   const fence =
     tokens != null ? (
