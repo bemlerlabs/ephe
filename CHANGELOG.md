@@ -9,7 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
 `2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`,
-`3902468`).
+`3902468`, `ede0927`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -65,8 +65,23 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - The timing report reads the workflow matrix before judging a leg, so a dropped
   Python version is named by the offline test that guards it rather than by the
   nightly report that noticed it first (`5af85c2`).
+- A co-pilot countdown the user stopped stays stopped: the dismissal is recorded
+  against the prompt token it was counting for, so a re-render of the same
+  waiting approval cannot offer the act again, while the next run of the same
+  command — a new token — is still served (`ede0927`).
+- Only `run_shell` can earn an automatic approval now, and a command that names
+  an absolute or home path, expands `${VAR}`, or passes a writing or
+  reconfiguring flag to an allowlisted program (`--output`, `--config`, `-c`,
+  `-o`, `--rootdir`, `--override-ini`) stays a warning (`ede0927`).
+- The setup repair becomes a target the companion can actually see: the setup
+  screen announces the card while it is up, and pointing at a repair the chat
+  cannot show marks the setup intent and takes the user to the screen that can
+  (`ede0927`).
 
 ### Changed
+- The header perch carries the co-pilot as the composer does — mode row,
+  finding, countdown, cancel and receipts — and the loop runs in whichever
+  surface the behavior chose, so one prompt is never approved twice (`ede0927`).
 - CI: PR-only `cancel-in-progress` across the dual-trigger workflows, bounded
   `verify.yml` timeouts, and a concurrency group on `bench-trend.yml`
   (`2aa10a5`).
