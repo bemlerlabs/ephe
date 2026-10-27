@@ -283,7 +283,13 @@ def agent_runs(
         finished: float | None = None
         if isinstance(started, (int, float)) and isinstance(duration_ms, (int, float)):
             finished = float(started) + float(duration_ms) / 1000.0
-        if status != "running" and finished is not None and moment - finished > recent_seconds:
+        # A run that stopped without a recorded finish (a snapshot reloaded as
+        # `interrupted`) still ages off the board: its start is the last evidence
+        # there is, and a fleet that kept it would show day-old work as current.
+        last_evidence = finished
+        if last_evidence is None and isinstance(started, (int, float)):
+            last_evidence = float(started)
+        if status != "running" and last_evidence is not None and moment - last_evidence > recent_seconds:
             continue
         state = run_state(status=status)
         record = subagent_history.get(agent_id) or {}

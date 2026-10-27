@@ -12,7 +12,9 @@ Pins:
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -149,6 +151,34 @@ def test_run_timeout_pfad_erhält_error_record(active_model, monkeypatch, isolat
     assert rec["status"] == "timeout" and rec["duration_ms"] >= 0
 
 
+def test_cancellation_finishes_the_record(active_model, monkeypatch, isolated_registry):
+    """Given a helper the parent cancelled; Then its record stops claiming to run."""
+
+    class HangingClient:
+        async def chat(self, **_):
+            await asyncio.sleep(30)
+            return _msg(content="never")
+
+    monkeypatch.setattr("core.model_provider.build_provider_client", lambda: HangingClient())
+    sub = Subagent(agent_id="sub-hist-cancel", role="r", task="t", timeout=60)
+
+    async def drive() -> None:
+        task = asyncio.create_task(sub.run())
+        for _ in range(200):
+            if subagent_history.get("sub-hist-cancel") is not None:
+                break
+            await asyncio.sleep(0.005)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(drive())
+
+    rec = subagent_history.get("sub-hist-cancel")
+    assert rec is not None
+    assert rec["status"] == "interrupted"
+
+
 # 3. Persistence / restart
 
 def test_finish_persistiert_und_neustart_lädt_snapshot(isolated_registry):
@@ -163,6 +193,42 @@ def test_finish_persistiert_und_neustart_lädt_snapshot(isolated_registry):
     rec = subagent_history.summaries()["agents"]
     assert [s["agent_id"] for s in rec] == ["sub-p"]
     assert subagent_history.get("sub-p")["report"] == "R"
+
+
+def test_a_snapshot_that_says_running_reloads_as_interrupted(isolated_registry):
+    """Given a record persisted as running; Then the restart proves it was not.
+
+    The file only outlives the process that wrote it, so a reloaded "running"
+    record is a helper whose task died with that process. Read back as running it
+    was shown as live work on the fleet board the next day.
+    """
+    snapshot = isolated_registry / "subagent_history.json"
+    snapshot.write_text(
+        json.dumps(
+            [
+                {
+                    "agent_id": "subagent-ghost",
+                    "role": "general-purpose",
+                    "description": "",
+                    "task": "",
+                    "model": "",
+                    "status": "running",
+                    "started_ts": time.time() - 86400,
+                    "finished_ts": None,
+                    "duration_ms": None,
+                    "report": "",
+                    "tool_calls": [],
+                    "transcript": [],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    subagent_history.reset_for_test()
+    out = subagent_history.summaries()["agents"]
+    assert [s["agent_id"] for s in out] == ["subagent-ghost"]
+    assert out[0]["status"] == "interrupted"
 
 
 # 4. REST endpoints

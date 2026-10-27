@@ -152,6 +152,7 @@ class Subagent:
         client = build_provider_client()
         report = ""
         status = "ok"
+        cancelled = False
 
         # Held for the whole run: see the constructor. A helper that dies still
         # releases it, or the parent turn would take no steer for the rest of it.
@@ -235,6 +236,13 @@ class Subagent:
             else:
                 status = "step_limit"
                 report = report or "[subagent reached its step limit without a final report]"
+        except asyncio.CancelledError:
+            # A stopped parent turn cancels its helpers. Without a record here the
+            # entry stays "running" in the live registry for the rest of the
+            # process, and the fleet paints a dead run as busy.
+            cancelled = True
+            status = "interrupted"
+            report = "[subagent was cancelled before it finished]"
         except asyncio.TimeoutError:
             status = "timeout"
             report = f"[subagent timeout after {effective_timeout:.0f}s]"
@@ -267,6 +275,8 @@ class Subagent:
             # ledger record); `summary` stays the short form of the activity.
             "report": report[: subagent_history.MAX_REPORT_CHARS],
         })
+        if cancelled:
+            raise asyncio.CancelledError()
         return SubagentResult(
             agent_id=self.agent_id, role=self.role, task=self.task,
             report=report or "[no report]", status=status, tool_calls=self.tool_calls,

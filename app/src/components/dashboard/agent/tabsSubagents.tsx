@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, XCircle, Bot, Loader2 } from 'lucide-react'
+import { CheckCircle2, PauseCircle, XCircle, Bot, Loader2 } from 'lucide-react'
 import { ChatMessage } from '@/types'
 import { getSubagent, listSubagents } from '@/lib/api'
 import type { SubagentDetail, SubagentSummary } from '@/lib/api'
@@ -213,6 +213,8 @@ export function SubagentsTab({ messages }: { messages: ChatMessage[] }) {
         <span className="text-ui-xs font-mono text-ink-faint shrink-0 tabular-nums">#{n}</span>
         {d.status === 'running' ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-brand/80 shrink-0" />
+        ) : d.status === 'interrupted' ? (
+          <PauseCircle className="h-3.5 w-3.5 text-status-warning/80 shrink-0" />
         ) : d.status === 'error' || d.status === 'failed' ? (
           <XCircle className="h-3.5 w-3.5 text-status-danger/80 shrink-0" />
         ) : (
@@ -224,9 +226,11 @@ export function SubagentsTab({ messages }: { messages: ChatMessage[] }) {
         <span className="text-ui-xs text-ink-faint shrink-0">
           {d.status === 'running'
             ? t('agentPanel.subagentRunning')
-            : d.status === 'error' || d.status === 'failed'
-              ? t('agentPanel.subagentFailed')
-              : t('agentPanel.subagentCompleted')}
+            : d.status === 'interrupted'
+              ? t('agentPanel.subagentInterrupted')
+              : d.status === 'error' || d.status === 'failed'
+                ? t('agentPanel.subagentFailed')
+                : t('agentPanel.subagentCompleted')}
         </span>
         {d.duration_ms != null && (
           <span className="text-ui-xs font-mono text-ink-faint shrink-0 tabular-nums">

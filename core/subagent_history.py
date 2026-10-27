@@ -68,6 +68,12 @@ def _ensure_loaded() -> None:
             # so it is filled in once here, deterministically.
             rec.setdefault("chat_session_id", chat_session_id_for(rec["agent_id"]))
             rec.setdefault("parent_session", "")
+            # A snapshot only outlives the process that wrote it, so a record on
+            # disk that says "running" cannot be: that helper's task died with the
+            # process. Reloaded as running it painted day-old runs as live work on
+            # the fleet board; `interrupted` is what actually happened.
+            if rec.get("status") == "running":
+                rec["status"] = "interrupted"
             _mem.setdefault(rec["agent_id"], rec)
 
 

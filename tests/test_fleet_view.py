@@ -18,6 +18,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -270,6 +271,47 @@ def test_a_run_that_failed_is_blocked_and_sorts_above_the_busy_ones(client):
     assert board[0]["state"] == "blocked"
     assert board[0]["needs_you"] is True
     assert board[1]["state"] == "running", board
+
+
+def test_a_just_interrupted_helper_asks_for_a_restart(client):
+    """Given a helper that stopped without finishing; Then the board reads it as blocked."""
+    from core import subagent_history
+
+    subagent_history.begin(
+        "subagent-cancelled",
+        role="general-purpose",
+        task="check the tree",
+        description="the tree check",
+        model="test",
+        chat_session_id="helper-subagent-cancelled",
+    )
+    subagent_history.get("subagent-cancelled")["status"] = "interrupted"
+
+    row = _row(client, "agent:subagent-cancelled")
+    assert row["state"] == "blocked"
+    assert row["needs_you"] is True
+
+
+def test_an_interrupted_helper_ages_off_the_board(client):
+    """Given a run that stopped a day ago; Then the fleet does not present it as work.
+
+    The ledger keeps it (the subagent directory is a history); the board is not.
+    """
+    from core import subagent_history
+
+    subagent_history.begin(
+        "subagent-yesterday",
+        role="general-purpose",
+        task="check the tree",
+        description="the tree check",
+        model="test",
+        chat_session_id="helper-subagent-yesterday",
+    )
+    record = subagent_history.get("subagent-yesterday")
+    record["status"] = "interrupted"
+    record["started_ts"] = time.time() - 86400
+
+    assert all(run["run_id"] != "agent:subagent-yesterday" for run in _board(client))
 
 
 def test_the_last_change_set_is_what_the_run_touched(client):
