@@ -53,10 +53,16 @@ describe('WorkspaceCompanion', () => {
     expect(companion.querySelector('.companion-flame')).toBeTruthy()
   })
 
-  it('shows nothing before the first message', () => {
+  it('appears on the welcome screen too, so the summon switch answers visibly', () => {
     seed({ 'appearance.companion_enabled': true })
     render(<WorkspaceCompanion runState="ready" hasMessages={false} />)
-    expect(screen.queryByTestId('workspace-companion')).toBeNull()
+    expect(screen.getByTestId('workspace-companion')).toBeTruthy()
+  })
+
+  it('welcome_only now means the welcome screen', () => {
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'welcome_only' })
+    render(<WorkspaceCompanion runState="ready" hasMessages={false} />)
+    expect(screen.getByTestId('workspace-companion')).toBeTruthy()
   })
 
   it('retires on welcome_only once the chat has messages', () => {

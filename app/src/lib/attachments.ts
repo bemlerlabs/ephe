@@ -123,7 +123,9 @@ export function compositePayload(message: string, attachments: ChatAttachment[])
         `\n**${a.name}**${a.truncated ? ' (gekürzt)' : ''}:\n\`\`\`${lang}\n${a.text}\n\`\`\``,
       )
     } else {
-      parts.push(`\n[Anhang: ${a.name} — ${a.path}]`)
+      // A path that IS the name added nothing but a second copy of it.
+      const hint = a.path && a.path !== a.name ? `${a.name} — ${a.path}` : a.name
+      parts.push(`\n[Anhang: ${hint}]`)
     }
   }
   return parts.join('')

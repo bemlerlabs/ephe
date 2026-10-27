@@ -39,7 +39,7 @@ from core.commands import (
     parse_goal_command,
 )
 from core.skills import SkillLoader, SkillLoadError
-from core.artifact_detector import ArtifactDetector
+from core.artifact_detector import ArtifactDetector, looks_like_ask_payload
 from core.artifact_markers import ARTIFACT_MARKERS
 from core.search_budget import search_budget_answer
 from core.quality import (
@@ -2015,6 +2015,8 @@ async def chat_stream(
                 # without a stream (CLI, cron) simply gets no dialog.
                 from core.tools.ask_gate import set_ask_cb
 
+                _asked_in_turn = False
+
                 async def _ask_cb(
                     *,
                     question: str,
@@ -2024,6 +2026,8 @@ async def chat_stream(
                     multi_select: bool,
                     timeout_seconds: float,
                 ) -> str:
+                    nonlocal _asked_in_turn
+                    _asked_in_turn = True
                     return await _ask_confirm(
                         question=question,
                         options=options,
@@ -2212,6 +2216,10 @@ async def chat_stream(
                 # Artifact detection
                 _detector    = ArtifactDetector()
                 _artifacts   = _detector.detect(first_answer)
+                if _asked_in_turn:
+                    # F6: the ask payload is a dialog the surface already shows,
+                    # not a file this turn wrote.
+                    _artifacts = [a for a in _artifacts if not looks_like_ask_payload(a)]
                 if _artifacts:
                     # Bubble text without code (a placeholder instead)
                     clean_text = _detector.extract_text(first_answer)

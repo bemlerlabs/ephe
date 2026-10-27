@@ -70,3 +70,21 @@ describe('attachments (G3)', () => {
     expect(compositeImages([])).toEqual([])
   })
 })
+
+describe('compositePayload names a file once', () => {
+  it('drops the path when it repeats the name', () => {
+    const atts: ChatAttachment[] = [
+      { kind: 'file', path: 'photo.jpg', name: 'photo.jpg', size: 3, status: 'ready' },
+    ]
+    const payload = compositePayload('x', atts)
+    expect(payload).toContain('[Anhang: photo.jpg]')
+    expect(payload).not.toContain('photo.jpg — photo.jpg')
+  })
+
+  it('keeps the path when it adds information', () => {
+    const atts: ChatAttachment[] = [
+      { kind: 'file', path: '/tmp/b.png', name: 'b.png', size: 3, status: 'ready' },
+    ]
+    expect(compositePayload('x', atts)).toContain('[Anhang: b.png — /tmp/b.png]')
+  })
+})

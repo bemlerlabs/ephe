@@ -447,6 +447,11 @@ export default function ChatInput({
           readOnly={streaming && !allowInputWhileStreaming}
           id="ephe-chat-input"
           data-testid="chat-input"
+          // A dash the user typed is a dash: WKWebView's smart substitution
+          // turned `--flag` into an em dash before the model ever saw it.
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
           aria-expanded={slashOpen || mentionOpen}
           aria-controls={mentionOpen ? 'mention-listbox' : 'slash-menu'}
           aria-activedescendant={

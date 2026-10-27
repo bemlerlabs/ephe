@@ -153,3 +153,46 @@ class TestChatTextReplacement:
         plain = "Das ist eine normale Antwort ohne Code."
         text = ArtifactDetector().extract_text(plain)
         assert text == plain
+
+
+class TestAskPayloadIsNotAFile:
+    """QA-0.1.11 F6: an echoed ask_user payload drew a `data.json` card."""
+
+    def _json_artifact(self, content: str):
+        from core.artifact_detector import Artifact, ArtifactType
+
+        return Artifact(
+            artifact_type=ArtifactType.JSON,
+            content=content,
+            language="json",
+            title="data.json",
+            filename="data.json",
+        )
+
+    def test_a_question_payload_is_recognised(self):
+        from core.artifact_detector import looks_like_ask_payload
+
+        art = self._json_artifact('{"question": "Which file?", "options": ["a", "b"]}')
+        assert looks_like_ask_payload(art) is True
+
+    def test_an_ordinary_json_block_stays_an_artifact(self):
+        from core.artifact_detector import looks_like_ask_payload
+
+        assert looks_like_ask_payload(self._json_artifact('{"items": [1, 2, 3]}')) is False
+
+    def test_invalid_json_is_not_mistaken_for_a_question(self):
+        from core.artifact_detector import looks_like_ask_payload
+
+        assert looks_like_ask_payload(self._json_artifact("{not: json")) is False
+
+    def test_a_code_block_never_counts(self):
+        from core.artifact_detector import Artifact, ArtifactType, looks_like_ask_payload
+
+        art = Artifact(
+            artifact_type=ArtifactType.CODE_OTHER,
+            content='{"question": "x"}',
+            language="text",
+            title="t",
+            filename="t.txt",
+        )
+        assert looks_like_ask_payload(art) is False

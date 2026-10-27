@@ -7,6 +7,7 @@ Specified through TDD in tests/test_artifact_detector.py
 """
 from __future__ import annotations
 
+import json
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -99,6 +100,25 @@ class Artifact:
             "title":         self.title,
             "filename":      self.filename,
         }
+
+
+def looks_like_ask_payload(artifact: Artifact) -> bool:
+    """Is this JSON block the turn's own question rather than a file?
+
+    An answer that explains an `ask_user` call can echo the payload as a fenced
+    JSON block; the reader then showed a `data.json` artifact card for a file
+    that was never written (QA-0.1.11, F6). Only the two keys that mark a
+    question count, so an ordinary JSON artifact stays what it is.
+    """
+    if artifact.artifact_type is not ArtifactType.JSON:
+        return False
+    try:
+        data = json.loads(artifact.content)
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    return "question" in data or "options" in data
 
 
 # ArtifactDetector

@@ -531,3 +531,14 @@ describe('P3-8 Microcopy: Zähler nur mit Leser, Badge-Namen', () => {
     expect(badge.getAttribute('aria-label')).toContain('Manuell')
   })
 })
+
+// ── 2 · typed dashes survive the shell ─────────────────────────────────────
+describe('QD-008 the composer does not rewrite typed dashes', () => {
+  it('turns off the substitutions WKWebView applies to a text field', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const input = ta()
+    expect(input.getAttribute('autocorrect')).toBe('off')
+    expect(input.getAttribute('autocapitalize')).toBe('off')
+    expect(input.getAttribute('spellcheck')).toBe('false')
+  })
+})

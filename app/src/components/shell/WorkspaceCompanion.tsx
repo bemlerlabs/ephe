@@ -43,13 +43,20 @@ export default function WorkspaceCompanion({
   const mood = companionMood(runState)
   const still = Boolean(reduced) || !animationsEnabled || mood === 'still' || mood === 'settle'
   const repairVisible = useSetupRepair()
-  // The co-pilot loop runs in exactly one surface: the perch the register chose,
-  // and only once the chat has something to crawl. A second instance would
-  // approve the same prompt twice.
-  const shows = enabled && hasMessages && behavior !== 'welcome_only' && behavior !== 'header'
+  // The co-pilot loop runs in exactly one surface: the perch the register chose.
+  // A second instance would approve the same prompt twice. The creature itself
+  // is also on the welcome screen — the header switch refused to show anything
+  // there, so clicking it looked broken (QA-0.1.11, R1) — and `welcome_only`
+  // now means what its label says instead of hiding the figure everywhere.
+  const onWelcome = !hasMessages
+  const shows =
+    enabled &&
+    behavior !== 'header' &&
+    (behavior === 'welcome_only' ? onWelcome : true)
 
   const copilot = useCompanionCopilot({
-    enabled: shows,
+    // The crawl needs a turn to read; on the welcome screen only the figure shows.
+    enabled: shows && hasMessages,
     mode: mode as CopilotMode,
     runState,
     contextPercent: contextPercent ?? null,
