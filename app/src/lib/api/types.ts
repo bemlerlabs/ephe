@@ -352,6 +352,10 @@ export interface VoiceSettings {
   edge_voice: string
   stt_model: 'tiny' | 'base' | 'small'
   stt_language: 'auto' | 'de' | 'en'
+  /** Consent to fetch the speech model once (voice.json); recognition stays local. */
+  stt_allow_download: boolean
+  /** Is the selected model already in the local hub cache? */
+  stt_model_cached: boolean
   piper_available: boolean
   installed_piper_voices: string[]
 }

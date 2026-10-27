@@ -52,6 +52,7 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   { tab: 'voice', key: 'settings.autoSpeak' },
   { tab: 'voice', key: 'settings.voiceTest' },
   { tab: 'voice', key: 'settings.sttModel' },
+  { tab: 'voice', key: 'settings.sttDownload' },
   { tab: 'voice', key: 'settings.sttLanguage' },
   // Mobile
   { tab: 'mobile', key: 'settings.telegramTitle' },

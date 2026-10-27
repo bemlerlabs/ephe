@@ -32,6 +32,8 @@ const api = vi.hoisted(() => ({
     edge_voice: 'de-DE-KatjaNeural',
     stt_model: 'base',
     stt_language: 'de',
+    stt_allow_download: false,
+    stt_model_cached: false,
     piper_available: false,
     installed_piper_voices: ['de_DE-thorsten-medium', 'en_US-amy-medium'],
   })),
@@ -41,6 +43,8 @@ const api = vi.hoisted(() => ({
     edge_voice: 'de-DE-KatjaNeural',
     stt_model: 'base',
     stt_language: 'de',
+    stt_allow_download: false,
+    stt_model_cached: false,
     piper_available: false,
     installed_piper_voices: ['de_DE-thorsten-medium', 'en_US-amy-medium'],
     ...patch,
@@ -84,6 +88,7 @@ describe('SettingsPanel Audio (I7-2)', () => {
       'voice-row-autospeak',
       'voice-row-test',
       'voice-row-stt-model',
+      'voice-row-stt-download',
       'voice-row-stt-language',
     ]) {
       expect(screen.getByTestId(id)).toBeTruthy()
@@ -131,5 +136,37 @@ describe('SettingsPanel Audio (I7-2)', () => {
     await waitFor(() =>
       expect(api.saveVoiceSettings).toHaveBeenCalledWith({ piper_voice: 'en_US-amy-medium' }),
     )
+  })
+
+  it('the download switch reports a missing model and writes the consent', async () => {
+    await openVoice()
+    expect(screen.getByTestId('voice-row-stt-download-desc').textContent).toContain(
+      'settings.sttDownloadHint',
+    )
+    const toggle = screen.getByTestId('voice-stt-allow-download')
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(toggle)
+    await waitFor(() =>
+      expect(api.saveVoiceSettings).toHaveBeenCalledWith({ stt_allow_download: true }),
+    )
+  })
+
+  it('a cached model is reported as present', async () => {
+    api.getVoiceSettings.mockResolvedValueOnce({
+      tts_engine: 'auto',
+      piper_voice: 'de_DE-thorsten-medium',
+      edge_voice: 'de-DE-KatjaNeural',
+      stt_model: 'base',
+      stt_language: 'de',
+      stt_allow_download: true,
+      stt_model_cached: true,
+      piper_available: false,
+      installed_piper_voices: [],
+    })
+    await openVoice()
+    expect(screen.getByTestId('voice-row-stt-download-desc').textContent).toContain(
+      'settings.sttDownloadCached',
+    )
+    expect(screen.getByTestId('voice-stt-allow-download')).toHaveAttribute('aria-checked', 'true')
   })
 })

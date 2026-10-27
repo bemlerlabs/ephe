@@ -12,7 +12,7 @@
  * setting, and its switch now writes through `setAutospeak`, which
  * notifies every open tab (the old direct-write path left them silent).
  */
-import { Check, Cpu, Gauge, Languages, Mic, Play, Volume2, Wifi } from 'lucide-react'
+import { Check, Cpu, Gauge, HardDrive, Languages, Mic, Play, Volume2, Wifi } from 'lucide-react'
 import PageHeader from '@/components/shell/PageHeader'
 import { LoadingRow } from '@/components/ui'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
@@ -216,6 +216,23 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
                   </option>
                 ))}
               </select>
+            </SettingsRow>
+            <SettingsRow
+              icon={HardDrive}
+              title={t('settings.sttDownload')}
+              description={
+                voiceCfg.stt_model_cached
+                  ? t('settings.sttDownloadCached', { model: voiceCfg.stt_model })
+                  : t('settings.sttDownloadHint', { model: voiceCfg.stt_model })
+              }
+              testid="voice-row-stt-download"
+            >
+              <Switch
+                checked={voiceCfg.stt_allow_download}
+                onChange={(next) => void handleVoiceSave({ stt_allow_download: next })}
+                label={t('settings.sttDownload')}
+                testid="voice-stt-allow-download"
+              />
             </SettingsRow>
             <SettingsRow
               icon={Languages}

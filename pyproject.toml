@@ -87,6 +87,10 @@ gui = [
 voice = [
     "edge-tts>=7.0.0",  # R18: the cloud fallback is the last resort: it answers only when no local voice is installed
     "faster-whisper>=1.0.0",
+    # PyAV 19 removed the `metadata_errors` argument that faster-whisper 1.2.1
+    # still passes to av.open (decoding every uploads fails without it); 14
+    # introduced it. Without this ceiling a fresh pip install resolves 19.
+    "av>=14,<19",
 ]
 sandbox = [
     # Ephemora Cell (WASI sandbox) — opt-in execution layer for LLM-generated

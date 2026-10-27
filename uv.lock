@@ -720,6 +720,7 @@ tui = [
     { name = "textual" },
 ]
 voice = [
+    { name = "av" },
     { name = "edge-tts" },
     { name = "faster-whisper" },
 ]
@@ -727,6 +728,7 @@ voice = [
 [package.metadata]
 requires-dist = [
     { name = "apscheduler", specifier = ">=3.10.0" },
+    { name = "av", marker = "extra == 'voice'", specifier = ">=14,<19" },
     { name = "ddgs", specifier = ">=2.0.0" },
     { name = "edge-tts", marker = "extra == 'voice'", specifier = ">=7.0.0" },
     { name = "ephemora-cell", marker = "extra == 'sandbox'", specifier = ">=1.1.0,<1.2" },
