@@ -44,7 +44,7 @@ tauri-plugin-global-shortcut = "2"
 # Tauri; naming them here adds the classes this crate calls, not a new version.
 # Default features stay off — the full class set is not what a two-item copy needs.
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSURL", "NSBundle"] }
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard"] }
 objc2 = { version = "0.6", default-features = false, features = ["std"] }
 objc2-vision = { version = "0.3", default-features = false, features = ["std", "VNRecognizeTextRequest", "VNRequestHandler", "VNRequest", "VNObservation"] }

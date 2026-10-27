@@ -146,26 +146,6 @@ pub fn dock_progress(percent: Option<f64>) -> Result<Option<u64>, String> {
     }
 }
 
-/// N5: open the file in the Quick Look panel. `qlmanage -p` runs detached: the
-/// command returns once the panel process exists, so the event loop is never
-/// held while a person reads the preview.
-#[cfg(target_os = "macos")]
-pub fn quick_look(path: &Path) -> Result<(), String> {
-    std::process::Command::new("/usr/bin/qlmanage")
-        .arg("-p")
-        .arg(path)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map(|_child| ())
-        .map_err(|error| format!("Quick Look was not reachable: {error}"))
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn quick_look(_path: &Path) -> Result<(), String> {
-    Err("Quick Look is a macOS feature in this build".to_string())
-}
-
 /// Show the file in its folder. `-R` selects rather than launches it.
 #[cfg(target_os = "macos")]
 pub fn reveal(path: &Path) -> Result<(), String> {

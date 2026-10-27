@@ -26,6 +26,7 @@ mod desktop;
 mod vision;
 mod instance;
 mod parity;
+mod quicklook;
 
 /// Keep-awake (P2-B Automations): the `caffeinate` child process (macOS) that
 /// `set_keep_awake(true)` starts. Held statically so the command itself stays
@@ -466,11 +467,19 @@ fn open_file_in_default_app(path: String) -> Result<(), String> {
     desktop::open_default(&file)
 }
 
-/// N5: preview the file in Quick Look, behind the same path fence.
+/// N5: preview the file in the Quick Look panel, behind the same path fence.
+/// The panel is AppKit state and only accepts work on the main thread.
 #[tauri::command]
-fn quick_look_file(path: String) -> Result<(), String> {
+fn quick_look_file(app: tauri::AppHandle, path: String) -> Result<(), String> {
     let file = desktop::resolve_allowed_file(&path, &desktop::default_roots())?;
-    desktop::quick_look(&file)
+    let (sender, receiver) = std::sync::mpsc::channel();
+    app.run_on_main_thread(move || {
+        let _ = sender.send(quicklook::show(&file));
+    })
+    .map_err(|error| error.to_string())?;
+    receiver
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .map_err(|_| "Quick Look did not answer on the main thread".to_string())?
 }
 
 /// N7: text from an attached image, read on the Neural Engine. `image` is a data
