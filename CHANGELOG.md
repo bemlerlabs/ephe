@@ -9,7 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
 `2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`,
-`3902468`, `ede0927`).
+`3902468`, `ede0927`, `3ad5cd6`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -81,7 +81,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 ### Changed
 - The header perch carries the co-pilot as the composer does — mode row,
   finding, countdown, cancel and receipts — and the loop runs in whichever
-  surface the behavior chose, so one prompt is never approved twice (`ede0927`).
+  surface the behavior chose, so a prompt is never approved twice and the
+  dormant surface no longer sweeps the highlight the live one set (`ede0927`,
+  `3ad5cd6`).
 - CI: PR-only `cancel-in-progress` across the dual-trigger workflows, bounded
   `verify.yml` timeouts, and a concurrency group on `bench-trend.yml`
   (`2aa10a5`).
