@@ -87,6 +87,24 @@ else
   diff -rq "$BUNDLE" "$INSTALL_TO" | head -5 >&2
 fi
 echo
+# A backend tree that lags the app is invisible to the version string: both can
+# say 0.1.11 while the tree is nine commits behind. Compare the commits and say
+# so, without moving anything on the owner's machine.
+REPO_ROOT="$(cd "$APP_DIR/.." && pwd)"
+BACKEND_JSON="$HOME/.ephe/desktop.json"
+if [[ -f "$BACKEND_JSON" ]] && command -v python3 >/dev/null 2>&1; then
+  BACKEND_ROOT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("project_root",""))' "$BACKEND_JSON" 2>/dev/null || true)"
+  if [[ -n "${BACKEND_ROOT:-}" && -d "$BACKEND_ROOT" ]]; then
+    APP_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || true)"
+    BACKEND_SHA="$(git -C "$BACKEND_ROOT" rev-parse --short=12 HEAD 2>/dev/null || true)"
+    if [[ -n "$APP_SHA" && -n "$BACKEND_SHA" && "$APP_SHA" != "$BACKEND_SHA" ]]; then
+      echo "  ⚠ the backend runs $BACKEND_SHA, this app was built from $APP_SHA" >&2
+      echo "    sync it: git -C \"$BACKEND_ROOT\" merge --ff-only && (cd \"$BACKEND_ROOT/app\" && npm run build)" >&2
+    elif [[ -n "$APP_SHA" ]]; then
+      echo "  backend tree matches the app build ($APP_SHA)"
+    fi
+  fi
+fi
 echo "Undo:  mv \"$HOME/.Trash/Ephe-$STAMP.app\" $INSTALL_TO"
 [[ "$LAUNCH" == 1 ]] && open "$INSTALL_TO" && echo "… started"
 exit 0

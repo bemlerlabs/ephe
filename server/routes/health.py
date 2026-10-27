@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -32,6 +33,29 @@ router = APIRouter(tags=["Health"])
 _INSTANCE_ID = uuid.uuid4().hex
 _ROOT = str(Path(__file__).resolve().parents[2])
 
+
+def _read_git_sha(root: str) -> str:
+    """Commit the serving tree is on, or "" outside a checkout.
+
+    The version string cannot tell two builds of the same number apart, and a
+    backend nine commits behind posed as current exactly that way; the shell
+    and the installer compare this value instead.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", root, "rev-parse", "--short=12", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return out.stdout.strip() if out.returncode == 0 else ""
+
+
+_GIT_SHA = _read_git_sha(_ROOT)
+
 # Browser-typical user agent for engine probes: WAFs/Cloudflare block
 # python default UAs with 403 (finding 2026-10-01: opencode.ai/zen answered the
 # urllib probe with 403 while the httpx chat stream ran over the same endpoint
@@ -52,6 +76,7 @@ class HealthResponse(BaseModel):
     instance_id: str = ""
     pid: int = 0
     root: str = ""
+    git_sha: str = ""
     api_contract: int = 0
     owner: str = ""
     ollama: bool
@@ -249,6 +274,7 @@ async def health_check() -> HealthResponse:
         instance_id=_INSTANCE_ID,
         pid=os.getpid(),
         root=_ROOT,
+        git_sha=_GIT_SHA,
         api_contract=API_CONTRACT,
         owner=os.environ.get("EPHE_BACKEND_OWNER", ""),
         ollama=connected,
