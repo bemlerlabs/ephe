@@ -273,6 +273,7 @@
     "cellLife": "Zelle {{ordinal}} · {{ms}} ms/Aufruf",
     "cellRunning": "läuft",
     "cellResting": "ruht",
+    "cellUncontained": "Zelle {{ordinal}} · Sandbox aus",
     "cellEvaporated": "Zelle verdunstet",
     "cellLeft": "noch {{left}}",
     "offline": "Verbindung zum Backend verloren",

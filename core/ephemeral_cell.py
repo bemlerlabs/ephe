@@ -175,6 +175,23 @@ def record_call(session_id: str, elapsed_ms: float, *,
     cell.total_ms += max(0.0, float(elapsed_ms))
 
 
+def _containment_available() -> bool:
+    """Would an executing turn run inside a guest rather than on the host?
+
+    The life line used to report a cell's call count and idle time even when no
+    guest existed on the machine — the surface then read "cell 1 · 0 ms/call ·
+    idle" next to an `execute_code` that could only run on the host. The cheap
+    predicate is the one the approval gate already uses (env choice plus a stat),
+    so the five-second poll does not hash the guest image.
+    """
+    try:
+        from core.cpython_cell import code_runs_uncontained
+
+        return not code_runs_uncontained()
+    except Exception:
+        return False
+
+
 def cell_life(session_id: str) -> dict[str, Any]:
     """What the registry knows about the life of this session cell.
 
@@ -183,9 +200,10 @@ def cell_life(session_id: str) -> dict[str, Any]:
     reap boundary — a glance from the interface is not use.
     """
     reap_idle()
+    contained = _containment_available()
     cell = _CELLS.get(session_id)
     if cell is None:
-        return {"alive": False, "calls": 0, "avg_ms": None}
+        return {"alive": False, "calls": 0, "avg_ms": None, "contained": contained}
     now = time.monotonic()
     idle = now - cell.last_active_at
     return {
@@ -198,6 +216,7 @@ def cell_life(session_id: str) -> dict[str, Any]:
         "idle_seconds": round(idle, 1),
         "ttl_seconds": cell.ttl_seconds,
         "seconds_left": round(cell.ttl_seconds - idle, 1),
+        "contained": contained,
     }
 
 

@@ -90,6 +90,20 @@ describe('CellLifeLine — nur Zahlen aus der Cell-Registry', () => {
     expect(screen.getByTestId('cell-life-state').textContent).toContain('chat.cellResting')
   })
 
+  it('says sandbox off when no guest can carry a call', async () => {
+    ;(getCellLife as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      alive({ contained: false, calls: 0, avg_ms: null }),
+    )
+    render(<CellLifeLine sessionId="s" />)
+    await settled()
+    const line = screen.getByTestId('cell-life-line')
+    expect(line.textContent).toContain('chat.cellUncontained')
+    // The numbers a cell without a guest cannot have are gone, not zeroed.
+    expect(screen.queryByTestId('cell-life-state')).toBeNull()
+    expect(screen.queryByTestId('cell-life-left')).toBeNull()
+    expect(line.textContent).not.toContain('chat.cellLife')
+  })
+
   it('lässt die Zeile zerfallen und nennt dann die Verdunstung', async () => {
     const mock = getCellLife as unknown as ReturnType<typeof vi.fn>
     mock.mockResolvedValueOnce(alive())

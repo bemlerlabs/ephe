@@ -273,6 +273,7 @@
     "cellLife": "cell {{ordinal}} · {{ms}} ms/call",
     "cellRunning": "running",
     "cellResting": "idle",
+    "cellUncontained": "cell {{ordinal}} · sandbox off",
     "cellEvaporated": "Cell evaporated",
     "cellLeft": "{{left}} left",
     "offline": "Lost connection to backend",

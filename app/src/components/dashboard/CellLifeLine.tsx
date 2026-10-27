@@ -89,6 +89,23 @@ export function CellLifeLine({ sessionId }: { sessionId: string }) {
   const secs = left % 60
   const leftText = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`
 
+  // A cell without a guest cannot carry a call. Reporting "0 ms/call · idle"
+  // there was the false claim the QA pass found; the state is the whole answer.
+  if (life.contained === false) {
+    return (
+      <span
+        data-testid="cell-life-line"
+        className={`text-ui-xs text-ink-faint font-mono truncate ${
+          phase === 'dying' ? 'ephe-decay' : 'ephe-condense'
+        }`}
+      >
+        <span data-testid="cell-life-sandbox-off">
+          {t('chat.cellUncontained', { ordinal: life.ordinal ?? 0 })}
+        </span>
+      </span>
+    )
+  }
+
   return (
     <span
       data-testid="cell-life-line"

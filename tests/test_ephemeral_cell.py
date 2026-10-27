@@ -173,8 +173,30 @@ def test_cell_life_liest_ohne_zu_verlaengern():
 def test_cell_life_nennt_abgelaufenes_als_tot():
     create_cell("s", ttl_seconds=0.0)
     life = cell_life("s")
-    assert life == {"alive": False, "calls": 0, "avg_ms": None}
+    assert life["alive"] is False and life["calls"] == 0 and life["avg_ms"] is None
+    assert isinstance(life["contained"], bool)
     assert cell_count() == 0          # the read pass really does remove them
+
+
+def test_cell_life_says_whether_a_turn_would_be_contained(monkeypatch):
+    """The line may not report calls and idle time beside a guest that is absent:
+    the flag is what lets the surface say "sandbox off" instead."""
+    from core import ephemeral_cell
+
+    monkeypatch.setattr(ephemeral_cell, "_containment_available", lambda: False)
+    create_cell("s")
+    assert cell_life("s")["contained"] is False
+    monkeypatch.setattr(ephemeral_cell, "_containment_available", lambda: True)
+    assert cell_life("s")["contained"] is True
+
+
+def test_containment_flag_mirrors_the_approval_gate(monkeypatch):
+    from core import cpython_cell, ephemeral_cell
+
+    monkeypatch.setattr(cpython_cell, "code_runs_uncontained", lambda: True)
+    assert ephemeral_cell._containment_available() is False
+    monkeypatch.setattr(cpython_cell, "code_runs_uncontained", lambda: False)
+    assert ephemeral_cell._containment_available() is True
 
 
 def test_ordinal_zaehlt_prozessweit_und_resetzt():

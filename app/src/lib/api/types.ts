@@ -387,6 +387,8 @@ export interface CellLife {
   alive: boolean
   calls: number
   avg_ms: number | null
+  /** Would an executing turn run inside a guest? False = sandbox off (host kernel). */
+  contained?: boolean
   ordinal?: number
   kind?: string
   age_seconds?: number
