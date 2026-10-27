@@ -11,7 +11,8 @@ parallel sessions:
 
 Design decisions:
 - The store decision for the 0.1 line (JSON transcripts, SQLite as derived index, and
-  the 0.2.0 triggers) is written down in `docs/SESSION_STORE_DECISION.md`.
+  the triggers for the next major line) is written down in
+  `docs/SESSION_STORE_DECISION.md`.
 - Backward compat: the existing `default.json` is migrated into the registry on
   the first call (no data loss, idempotent).
 - Atomic writes: tmp + rename (POSIX-atomic), identical to core/session.py.
