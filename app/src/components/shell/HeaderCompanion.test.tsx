@@ -22,7 +22,7 @@ afterEach(() => seedDeepSettings(null))
 
 describe('HeaderCompanion', () => {
   it('reserves the slot and renders the actor at the perch', () => {
-    seed({ 'appearance.companion_behavior': 'header' })
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'header' })
     render(<HeaderCompanion runState="ready" hasMessages />)
     expect(screen.getByTestId('header-companion-slot')).toBeTruthy()
     const companion = screen.getByTestId('header-companion')
@@ -32,7 +32,7 @@ describe('HeaderCompanion', () => {
   })
 
   it('keeps the slot before the first message without a second actor', () => {
-    seed({ 'appearance.companion_behavior': 'header' })
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'header' })
     render(<HeaderCompanion runState="ready" hasMessages={false} />)
     expect(screen.getByTestId('header-companion-slot')).toBeTruthy()
     expect(screen.queryByTestId('header-companion')).toBeNull()
@@ -44,7 +44,7 @@ describe('HeaderCompanion', () => {
   })
 
   it('maps the one run state to the actor mood', () => {
-    seed({ 'appearance.companion_behavior': 'header' })
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'header' })
     const { rerender } = render(<HeaderCompanion runState="working" hasMessages />)
     expect(screen.getByTestId('header-companion').dataset.mood).toBe('moving')
     rerender(<HeaderCompanion runState="waiting" hasMessages />)

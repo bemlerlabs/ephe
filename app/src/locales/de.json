@@ -1302,7 +1302,11 @@
     "marketConsentTitle": "Dieses Paket braucht deine Zustimmung, bevor es laufen darf.",
     "marketConsentDelta": "Es verlangt",
     "marketConsentAllow": "Erlauben",
-    "marketConsentCancel": "Abbrechen"
+    "marketConsentCancel": "Abbrechen",
+    "companionMode": "Modus",
+    "companionModePerch": "Perch — sitzt ruhig am Rand, greift nie ein",
+    "companionModeScout": "Scout — zeigt den nächsten Schritt, klickt nie",
+    "companionModeCopilot": "Co-Pilot — handelt nach Countdown bei sicheren Schritten"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",
@@ -2080,7 +2084,8 @@
     "toggleFiles": "Dateien in Ephes Computer umschalten",
     "hint": "Tipp: '?' funktioniert überall außerhalb von Textfeldern.",
     "panelToggle": "Ephes Computer ein-/ausklappen",
-    "panelFocus": "Ephes Computer fokussieren"
+    "panelFocus": "Ephes Computer fokussieren",
+    "companion": "Begleiter herbeirufen"
   },
   "statusBar": {
     "contextWindowTitle": "Kontext-Fenster",
@@ -2265,7 +2270,8 @@
       "dismiss": "Lernvorschlag ignorieren: /dismiss <id>",
       "help": "Verfügbare Befehle anzeigen",
       "swarm": "Multi-Agent-Pipeline (parallele Helfer)",
-      "learn": "Muster lernen und neuen Skill anlegen"
+      "learn": "Muster lernen und neuen Skill anlegen",
+      "companion": "Begleiter herbeirufen oder schlafen legen"
     }
   },
   "skills": {
@@ -2562,5 +2568,39 @@
     "loading": "{{name}} wird gelesen …",
     "readFailed": "{{name}} konnte nicht gelesen werden",
     "close": "Vorschau schließen"
+  },
+  "copilot": {
+    "countdown": "Handelt in {{seconds}} s",
+    "cancel": "Abbrechen",
+    "receiptsTitle": "Co-Pilot-Protokoll",
+    "empty": "Gerade nichts zu empfehlen",
+    "focus": "Anzeigen",
+    "warn": "Braucht deine Prüfung",
+    "action": {
+      "approve": "Freigeben: {{param}}",
+      "noApprove": "Keine automatische Freigabe",
+      "reviewRisk": "Riskanten Befehl prüfen",
+      "approveYourself": "Die wartende Prüfung selbst freigeben",
+      "answer": "Antworten: {{param}}",
+      "noAnswer": "Keine automatische Antwort",
+      "questionSuggests": "Die Frage schlägt „{{param}}“ vor",
+      "questionWaits": "Die Frage wartet auf dich",
+      "compact": "Sitzung komprimieren",
+      "contextLimit": "Kontext ist am Limit",
+      "openReview": "Review / Artefakte öffnen",
+      "focusRepair": "Reparatur-Element anzeigen"
+    },
+    "reason": {
+      "safeCheck": "Einzelner Prüfbefehl aus der Freigabeliste",
+      "needsReview": "Braucht deine Prüfung: {{param}}",
+      "commandUnreadable": "Der Befehl war nicht lesbar",
+      "recommendation": "Die Empfehlung nennt genau eine Option",
+      "noRecommendation": "Keine Empfehlung, oder sie nennt keine Option",
+      "safeQuestion": "Eine Antwort passt zur Empfehlung",
+      "contextAfterTurn": "Kontext {{param}}% nach der Runde",
+      "newFiles": "Die letzte Runde hat Dateien erzeugt",
+      "repair": "Die Einrichtung braucht eine reparierte Schlüsselbindung",
+      "toolFailed": "Ein Werkzeugaufruf ist fehlgeschlagen"
+    }
   }
 }

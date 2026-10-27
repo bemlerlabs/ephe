@@ -30,7 +30,7 @@ export function CompanionStudioCard({ model }: { model: SettingsModel }) {
   const reduced = useReducedMotion()
   const species = String(valueOf(model, 'appearance.companion_species', 'fire_bee'))
   const scale = Number(valueOf(model, 'appearance.companion_scale', 100))
-  const enabled = Boolean(valueOf(model, 'appearance.companion_enabled', true))
+  const enabled = Boolean(valueOf(model, 'appearance.companion_enabled', false))
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)
     : 'fire_bee'

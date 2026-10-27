@@ -19,7 +19,7 @@ export default function HeaderCompanion({
   runState: RunState
   hasMessages: boolean
 }) {
-  const enabled = useDeepBool('appearance.companion_enabled', true)
+  const enabled = useDeepBool('appearance.companion_enabled', false)
   const species = useDeepSelect('appearance.companion_species', 'fire_bee')
   const behavior = useDeepSelect('appearance.companion_behavior', 'interactive')
   const scale = useDeepNumber('appearance.companion_scale', 100)

@@ -100,8 +100,13 @@ describe('parseSlashCommand', () => {
 })
 
 describe('filterCommands', () => {
-  it('GIVEN "/c" WHEN filter THEN compact+clear+context', () => {
-    expect(filterCommands('/c').map((c) => c.cmd)).toEqual(['compact', 'clear', 'context'])
+  it('GIVEN "/c" WHEN filter THEN the four c-commands in table order', () => {
+    expect(filterCommands('/c').map((c) => c.cmd)).toEqual([
+      'compact',
+      'clear',
+      'context',
+      'companion',
+    ])
   })
 
   it('GIVEN "/" WHEN filter THEN alle Client- + Passthrough-Commands', () => {

@@ -30,31 +30,39 @@ function seed(entries: Record<string, string | number | boolean>) {
 afterEach(() => seedDeepSettings(null))
 
 describe('WorkspaceCompanion', () => {
-  it('shows the bee in the active chat by default', () => {
+  it('a fresh boot stays calm until the companion is summoned', () => {
+    render(<WorkspaceCompanion runState="ready" hasMessages />)
+    expect(screen.queryByTestId('workspace-companion')).toBeNull()
+  })
+
+  it('shows the bee in the active chat once it is switched on', () => {
+    seed({ 'appearance.companion_enabled': true })
     render(<WorkspaceCompanion runState="ready" hasMessages />)
     const companion = screen.getByTestId('workspace-companion')
     expect(companion.dataset.behavior).toBe('interactive')
     expect(companion.dataset.species).toBe('fire_bee')
     expect(companion.dataset.state).toBe('ready')
     expect(companion.dataset.mood).toBe('rest')
+    expect(companion.dataset['copilotMode']).toBe('copilot')
     expect(companion.querySelector('.companion-body')).toBeTruthy()
     expect(companion.querySelectorAll('.companion-wing')).toHaveLength(2)
     expect(companion.querySelector('.companion-flame')).toBeTruthy()
   })
 
   it('shows nothing before the first message', () => {
+    seed({ 'appearance.companion_enabled': true })
     render(<WorkspaceCompanion runState="ready" hasMessages={false} />)
     expect(screen.queryByTestId('workspace-companion')).toBeNull()
   })
 
   it('retires on welcome_only once the chat has messages', () => {
-    seed({ 'appearance.companion_behavior': 'welcome_only' })
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'welcome_only' })
     render(<WorkspaceCompanion runState="ready" hasMessages />)
     expect(screen.queryByTestId('workspace-companion')).toBeNull()
   })
 
   it('stays out of the header perch', () => {
-    seed({ 'appearance.companion_behavior': 'header' })
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'header' })
     render(<WorkspaceCompanion runState="ready" hasMessages />)
     expect(screen.queryByTestId('workspace-companion')).toBeNull()
   })
@@ -66,7 +74,11 @@ describe('WorkspaceCompanion', () => {
   })
 
   it('takes the spark form and the saved scale', () => {
-    seed({ 'appearance.companion_species': 'ember_spark', 'appearance.companion_scale': 120 })
+    seed({
+      'appearance.companion_enabled': true,
+      'appearance.companion_species': 'ember_spark',
+      'appearance.companion_scale': 120,
+    })
     render(<WorkspaceCompanion runState="ready" hasMessages />)
     const companion = screen.getByTestId('workspace-companion')
     expect(companion.dataset.species).toBe('ember_spark')
@@ -76,6 +88,7 @@ describe('WorkspaceCompanion', () => {
   })
 
   it('takes its mood from the one run state the bar shows', () => {
+    seed({ 'appearance.companion_enabled': true })
     const { rerender } = render(<WorkspaceCompanion runState="working" hasMessages />)
     const companion = screen.getByTestId('workspace-companion')
     expect(companion.dataset.state).toBe('working')

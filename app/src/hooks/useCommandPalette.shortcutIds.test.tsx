@@ -61,6 +61,7 @@ const KEYED = [
  *  stays a decision. */
 const ROWS_WITHOUT_COMMAND = [
   'close',
+  'companion',
   'focusComposer',
   'palette',
   'panelFocus',

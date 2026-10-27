@@ -42,6 +42,7 @@ import {
 } from '@/lib/slashCommands'
 import { compositePayload, compositeImages, type ChatAttachment } from '@/lib/attachments'
 import { toastBus } from '@/lib/toast'
+import { toggleCompanionEnabled } from '@/lib/companionToggle'
 import { SHORTCUTS_EVENT } from '../ShortcutOverlay'
 import { apiUrl } from '@/lib/api/http'
 
@@ -321,6 +322,7 @@ export function useChatLayoutModel() {
       ),
     thisOverlay: () => setShortcutsOpen((v) => !v),
     panelDock: () => window.dispatchEvent(new CustomEvent('ephe:panel-dock-toggle')),
+    companion: () => void toggleCompanionEnabled(),
   })
 
   // The composer's hint chip opens the same overlay without a key.
@@ -826,6 +828,10 @@ export function useChatLayoutModel() {
         case 'settings':
           // G6: open the settings panel
           setSettingsOpen(true)
+          break
+        case 'companion':
+          // QD-005: the same switch the header toggle and the chord flip.
+          void toggleCompanionEnabled()
           break
         case 'personality':
           // R28: open the persona editor directly (settings panel + tab deep link)

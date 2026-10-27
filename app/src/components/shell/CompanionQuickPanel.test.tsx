@@ -9,6 +9,9 @@ const { getSettings, saveSections } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/api', () => ({ getSettings, saveSections }))
+vi.mock('@/store/chatStore', () => ({
+  useChatStore: (selector: (s: unknown) => unknown) => selector({ currentSession: null }),
+}))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'de' } }),
 }))
@@ -23,6 +26,22 @@ const DEEP: DeepSection[] = [
   {
     key: 'appearance',
     fields: [
+      {
+        key: 'appearance.companion_enabled',
+        type: 'bool',
+        label: 'Begleiter',
+        labelEn: 'Companion',
+        default: false,
+        value: true,
+      },
+      {
+        key: 'appearance.companion_mode',
+        type: 'select',
+        label: 'Modus',
+        labelEn: 'Mode',
+        default: 'copilot',
+        value: 'copilot',
+      },
       {
         key: 'appearance.companion_sound',
         type: 'bool',
@@ -77,7 +96,28 @@ describe('companion quick panel', () => {
     expect(saveSections).toHaveBeenCalledTimes(1)
     expect(saveSections).toHaveBeenCalledWith({
       appearance: {
+        'appearance.companion_enabled': true,
+        'appearance.companion_mode': 'copilot',
         'appearance.companion_sound': false,
+        'appearance.font_scale': 100,
+      },
+    })
+  })
+
+  it('lists the three co-pilot modes and writes the chosen one', async () => {
+    await openPanel()
+    expect(screen.getByTestId('companion-mode-perch')).toBeTruthy()
+    expect(screen.getByTestId('companion-mode-scout')).toBeTruthy()
+    expect(screen.getByTestId('companion-mode-copilot')).toBeTruthy()
+    expect(screen.getByTestId('companion-mode-copilot').getAttribute('aria-pressed')).toBe('true')
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('companion-mode-scout'))
+    })
+    expect(saveSections).toHaveBeenCalledWith({
+      appearance: {
+        'appearance.companion_enabled': true,
+        'appearance.companion_mode': 'scout',
+        'appearance.companion_sound': true,
         'appearance.font_scale': 100,
       },
     })

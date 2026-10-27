@@ -1302,7 +1302,11 @@
     "marketConsentTitle": "This package needs your consent before it may run.",
     "marketConsentDelta": "It asks for",
     "marketConsentAllow": "Allow",
-    "marketConsentCancel": "Cancel"
+    "marketConsentCancel": "Cancel",
+    "companionMode": "Mode",
+    "companionModePerch": "Perch — sits at the edge, never interferes",
+    "companionModeScout": "Scout — points at the next step, never clicks",
+    "companionModeCopilot": "Co-pilot — acts on safe steps after a countdown"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",
@@ -2080,7 +2084,8 @@
     "toggleFiles": "Toggle files in Ephe's Computer",
     "hint": "Tip: '?' works anywhere outside a text field.",
     "panelToggle": "Toggle Ephe's Computer",
-    "panelFocus": "Focus Ephe's Computer"
+    "panelFocus": "Focus Ephe's Computer",
+    "companion": "Summon the companion"
   },
   "statusBar": {
     "contextWindowTitle": "Context windows",
@@ -2265,7 +2270,8 @@
       "dismiss": "Ignore a learning proposal: /dismiss <id>",
       "help": "Show available commands",
       "swarm": "Multi-agent pipeline (parallel helpers)",
-      "learn": "Learn patterns and create a new skill"
+      "learn": "Learn patterns and create a new skill",
+      "companion": "Summon or rest the companion"
     }
   },
   "skills": {
@@ -2562,5 +2568,39 @@
     "loading": "Reading {{name}}…",
     "readFailed": "{{name}} could not be read",
     "close": "Close preview"
+  },
+  "copilot": {
+    "countdown": "Acts in {{seconds}} s",
+    "cancel": "Cancel",
+    "receiptsTitle": "Co-Pilot receipts",
+    "empty": "Nothing to recommend right now",
+    "focus": "Show",
+    "warn": "Needs your review",
+    "action": {
+      "approve": "Approve: {{param}}",
+      "noApprove": "No auto-approve",
+      "reviewRisk": "Review the risky command",
+      "approveYourself": "Approve the waiting check yourself",
+      "answer": "Answer: {{param}}",
+      "noAnswer": "No auto-answer",
+      "questionSuggests": "The question suggests “{{param}}”",
+      "questionWaits": "The question waits for you",
+      "compact": "Compact the session",
+      "contextLimit": "Context is at the limit",
+      "openReview": "Open Review / Artifacts",
+      "focusRepair": "Focus the repair control"
+    },
+    "reason": {
+      "safeCheck": "Allowlisted single check command",
+      "needsReview": "Needs your review: {{param}}",
+      "commandUnreadable": "The command was not readable",
+      "recommendation": "The recommendation names one existing option",
+      "noRecommendation": "No recommendation, or it names no offered option",
+      "safeQuestion": "One answer matches the recommendation",
+      "contextAfterTurn": "Context {{param}}% after the turn",
+      "newFiles": "The turn that just ended produced files",
+      "repair": "The setup needs its key binding repaired",
+      "toolFailed": "A tool call failed"
+    }
   }
 }

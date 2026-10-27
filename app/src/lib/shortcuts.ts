@@ -145,6 +145,14 @@ const ROWS = [
   },
   { id: 'close', key: 'escape', labelKey: 'shortcuts.close', group: 'global', scope: 'field' },
   {
+    id: 'companion',
+    key: 'c',
+    mod: true,
+    shift: true,
+    labelKey: 'shortcuts.companion',
+    group: 'global',
+  },
+  {
     id: 'thisOverlay',
     key: '/',
     mod: true,

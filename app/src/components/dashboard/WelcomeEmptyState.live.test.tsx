@@ -8,8 +8,10 @@
  *      via onFillComposer (the duplicate Smart-Suggestions input box was
  *      removed on owner request — this file locks that in).
  */
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { seedDeepSettings } from '@/lib/deepSettings'
+import type { DeepSection } from '@/types'
 
 const api = vi.hoisted(() => ({
   listProjects: vi.fn(),
@@ -27,6 +29,8 @@ vi.mock('@/lib/api', () => ({
   healthCheck: api.healthCheck,
   getSky: api.getSky,
 }))
+
+afterEach(() => seedDeepSettings(null))
 
 vi.mock('framer-motion', async (importOriginal) => {
   const orig = await importOriginal<typeof import('framer-motion')>()
@@ -75,6 +79,23 @@ describe('WelcomeEmptyState (R26)', () => {
       dgx_online: true,
     })
 
+    // QD-005: the fresh boot leaves the companion off, so this file summons it
+    // before asserting the living hero.
+    seedDeepSettings([
+      {
+        key: 'appearance',
+        fields: [
+          {
+            key: 'appearance.companion_enabled',
+            type: 'bool',
+            label: 'Begleiter',
+            labelEn: 'Companion',
+            default: false,
+            value: true,
+          },
+        ],
+      },
+    ] as unknown as DeepSection[])
     render(<WelcomeEmptyState onFillComposer={vi.fn()} />)
 
     expect(screen.getByTestId('welcome-card-0')).toBeTruthy()

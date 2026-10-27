@@ -95,6 +95,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Show available commands',
     descKey: 'slash.desc.help',
   },
+  {
+    cmd: 'companion',
+    label: '/companion',
+    description: 'Summon or rest the companion',
+    descKey: 'slash.desc.companion',
+  },
 ]
 
 /**
@@ -211,6 +217,7 @@ export type SlashAction =
   | 'accept'
   | 'dismiss'
   | 'help'
+  | 'companion'
 
 export interface SlashParseResult {
   matched: boolean

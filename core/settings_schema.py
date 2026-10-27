@@ -122,7 +122,8 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                  "labelEn": "Global shortcut (desktop)"},
     # The companion (owner order 2026-10-17): the bee outlives the onboarding.
     # Every field is read by WorkspaceCompanion / WelcomeEmptyState / spiritAudio.
-    "appearance.companion_enabled": {"type": "bool", "default": True,
+    # QD-005: default False — a fresh install stays calm until the user summons it.
+    "appearance.companion_enabled": {"type": "bool", "default": False,
                                      "label": "Begleiter (Pet) im Arbeitsbereich",
                                      "labelEn": "Workspace companion (pet)"},
     "appearance.companion_species": {"type": "select", "default": "fire_bee",
@@ -145,6 +146,16 @@ SCHEMA: dict[str, dict[str, Any]] = {
     "appearance.companion_sound": {"type": "bool", "default": True,
                                    "label": "Begleiter- & Funken-Klänge",
                                    "labelEn": "Companion & spark sounds"},
+    # QD-005: the co-pilot work mode. perch watches nothing, scout points,
+    # copilot acts on safe targets after the visible countdown.
+    "appearance.companion_mode": {"type": "select", "default": "copilot",
+                                  "options": ["perch", "scout", "copilot"],
+                                  "optionLabels": {
+                                      "perch": ["Ruhiger Sitzplatz ohne Eingriffe", "Calm perch, no interference"],  # language-gate: ignore
+                                      "scout": ["Zeigt Empfehlungen, klickt nie", "Points at targets, never clicks"],
+                                      "copilot": ["Co-Pilot mit Rückfrage-Countdown", "Co-pilot with a visible countdown"],  # language-gate: ignore
+                                  },
+                                  "label": "Begleiter-Modus", "labelEn": "Companion mode"},
     "appearance.companion_scale": {"type": "number", "default": 100, "min": 70, "max": 140,
                                    "label": "Begleiter-Größe (%)", "labelEn": "Companion size (%)"},
     # I3-4: default True — the time always stood under the message. A

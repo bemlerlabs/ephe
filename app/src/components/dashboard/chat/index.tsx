@@ -14,12 +14,15 @@ import {
   Plus,
   HelpCircle,
   MoreHorizontal,
+  Sparkles,
 } from 'lucide-react'
 import WelcomeEmptyState from '../WelcomeEmptyState'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity } from '@/lib/backendParity'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import { useDeepBool } from '@/lib/deepSettings'
+import { toggleCompanionEnabled } from '@/lib/companionToggle'
 import { useUpdateCheck } from '@/lib/useUpdateCheck'
 import Sidebar from '../Sidebar'
 import WorkspaceBar from '../WorkspaceBar'
@@ -168,6 +171,16 @@ export default function ChatLayout() {
     denySandboxForTool,
     handleAnswerAsk,
   } = useChatLayoutModel()
+  const companionEnabled = useDeepBool('appearance.companion_enabled', false)
+  const contextPercent =
+    (currentSession?.messages.length ?? 0) > 0
+      ? Math.min(
+          100,
+          (estimateContextUsage(currentSession?.messages ?? [], contextWindow).tokens.total /
+            Math.max(1, contextWindow ?? 32768)) *
+            100,
+        )
+      : null
   // The updater replaces the shell and not the backend it starts; the two are
   // allowed to disagree for exactly one reason — nobody told the user. The
   // shell's own comparison runs on the start thread, so this reads after it.
@@ -348,6 +361,20 @@ export default function ChatLayout() {
                     runState={runState}
                     hasMessages={(currentSession?.messages.length ?? 0) > 0}
                   />
+                  {/* QD-005: the summon switch that works whatever the behavior is. */}
+                  <button
+                    type="button"
+                    data-testid="header-companion-toggle"
+                    aria-pressed={companionEnabled}
+                    aria-label={t('settings.companionQuickLabel')}
+                    title={t('settings.companionQuickLabel')}
+                    onClick={() => void toggleCompanionEnabled()}
+                    className="header-companion-toggle focus-ring"
+                  >
+                    <Sparkles
+                      className={`h-4 w-4 ${companionEnabled ? 'text-brand' : 'text-ink-faint'}`}
+                    />
+                  </button>
                   {/* WP5: under the title sits the life of the cell — not the
                       progress of an animation, but its elapsed time. */}
                   <div className="flex flex-col min-w-0 leading-tight">
@@ -774,6 +801,7 @@ export default function ChatLayout() {
               <WorkspaceCompanion
                 runState={runState}
                 hasMessages={(currentSession?.messages.length ?? 0) > 0}
+                contextPercent={contextPercent}
               />
               <ChatInput
                 onSend={(msg, att) => void handleSend(msg, att)}
@@ -781,17 +809,7 @@ export default function ChatLayout() {
                 onStop={handleStop}
                 onSlashCommand={handleSlashCommand}
                 draftSeed={composerSeed}
-                contextPercent={
-                  (currentSession?.messages.length ?? 0) > 0
-                    ? Math.min(
-                        100,
-                        (estimateContextUsage(currentSession?.messages ?? [], contextWindow).tokens
-                          .total /
-                          Math.max(1, contextWindow ?? 32768)) *
-                          100,
-                      )
-                    : null
-                }
+                contextPercent={contextPercent}
               />
             </div>
             {/* Minimal footer (E-UX): agent status + live tok/s + context meter.

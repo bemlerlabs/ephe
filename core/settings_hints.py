@@ -171,6 +171,15 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "system's reduced-motion setting and the animations switch keep the "
         "synthesizer silent as well, whatever this switch says.",
     ),
+    "appearance.companion_mode": (
+        "Wählt die Arbeit des Begleiters: ruhig am Rand sitzen, Ziele auf der "  # language-gate: ignore
+        "Oberfläche zeigen, oder als Co-Pilot sichere Aktionen nach einem "  # language-gate: ignore
+        "sichtbaren Countdown selbst auslösen. Riskantere Aktionen bleiben "  # language-gate: ignore
+        "immer beim Nutzer.",  # language-gate: ignore
+        "Chooses the companion's work: sit quietly at the edge, point at targets "
+        "on the surface, or act as a co-pilot that runs safe actions itself after "
+        "a visible countdown. Riskier actions always stay with the user.",
+    ),
     "appearance.companion_scale": (
         "Skaliert nur den Begleiter zwischen 70 und 140 Prozent; Typografie, "  # language-gate: ignore
         "Abstände und die Touch-Flächen der übrigen Bedienelemente bleiben "  # language-gate: ignore

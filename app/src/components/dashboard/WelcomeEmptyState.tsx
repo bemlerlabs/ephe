@@ -48,7 +48,7 @@ const STARTER_CARD_BY_USAGE: Record<string, number> = { code: 0, documents: 1, r
 export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateProps) {
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
-  const companionEnabled = useDeepBool('appearance.companion_enabled', true)
+  const companionEnabled = useDeepBool('appearance.companion_enabled', false)
   const companionSpecies = useDeepSelect('appearance.companion_species', 'fire_bee')
   const companionScale = useDeepNumber('appearance.companion_scale', 100)
   const animationsEnabled = useDeepBool('appearance.animations_enabled', true)

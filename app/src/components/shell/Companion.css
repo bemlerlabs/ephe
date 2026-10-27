@@ -225,11 +225,11 @@ html.no-motion .header-companion .companion-turn {
 }
 
 /* The composer companion: a small guard above the input, closer to the answer
-   while the engine works. Positioned by its wrapper so the chat layout stays
-   untouched. */
+   while the engine works. QD-005: parked in the right outer gutter, clear of the
+   reading column, and the streaming state no longer pulls it into the text. */
 .workspace-companion {
   position: absolute;
-  right: clamp(1.2rem, 30vw, 26rem);
+  right: clamp(0.75rem, 1.8vw, 1.5rem);
   bottom: calc(100% + 0.2rem);
   z-index: 20;
   pointer-events: auto;
@@ -238,10 +238,7 @@ html.no-motion .header-companion .companion-turn {
     right 620ms var(--ease-out-soft);
 }
 .workspace-companion.is-perch {
-  right: clamp(1.2rem, 30vw, 26rem);
-}
-.workspace-companion.is-interactive.is-streaming {
-  transform: translate(-4.5rem, -2.4rem) scale(1.07);
+  right: clamp(0.75rem, 1.8vw, 1.5rem);
 }
 .workspace-companion.is-quiet,
 .header-companion.is-quiet {
@@ -398,4 +395,35 @@ body.ephe-tour-open [data-testid='ephe-mark-hero'] {
   to {
     transform: rotate(-2.4deg) translateY(1px);
   }
+}
+
+/* QD-005: the co-pilot chip (countdown / warning / pointer) and the header
+   summon switch. Colours come from the utility classes on the elements; this
+   block only places them. */
+.companion-copilot-chip {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 22rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.75rem;
+}
+
+.header-companion-toggle {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  flex: none;
+}
+
+[data-copilot-highlight='true'] {
+  outline: 2px dashed rgb(124 159 240 / 0.8);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
 }
