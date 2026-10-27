@@ -2084,6 +2084,10 @@ async def chat_stream(
 
                 # Phase 1: stream the first answer immediately
                 first_chunks: list[str] = []
+                # M3: a turn owns one verification budget for its self-repairs.
+                from core import coding_loop
+
+                coding_loop.reset_turn()
                 captured_tool_results = []
 
                 # The `turn` event carries the same id, so surface and index

@@ -192,7 +192,9 @@ async def edit_file(path: str, old_string: str, new_string: str, replace_all: bo
         # a non-empty old_string the loop otherwise broke on FileNotFound).
         resolved.parent.mkdir(parents=True, exist_ok=True)
         resolved.write_text(new_string, encoding="utf-8")
-        return f"created '{resolved}' ({len(new_string)} chars)."
+        from core import coding_loop
+
+        return f"created '{resolved}' ({len(new_string)} chars)." + coding_loop.annotation(resolved)
 
     if old_string == new_string:
         return "old_string and new_string are identical — nothing to do."
@@ -220,7 +222,9 @@ async def edit_file(path: str, old_string: str, new_string: str, replace_all: bo
             n=2,
         )
     )
-    return diff if diff else "File changed (no text diff possible)."
+    from core import coding_loop
+
+    return (diff if diff else "File changed (no text diff possible).") + coding_loop.annotation(resolved)
 
 
 def _extract_pdf_text(path: Path) -> str:
@@ -322,6 +326,9 @@ async def write_file(path: str, content: str) -> str:
             n=2,
         )
     )
+    from core import coding_loop
+
+    diff += coding_loop.annotation(resolved)
     header = f"WRITE_FILE:{resolved}"
     detail = (
         f"({len(content)} characters written"
