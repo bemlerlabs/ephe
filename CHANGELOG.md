@@ -7,6 +7,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The QD-009 changes are named below (`8928483`, `a6ba822`, `bca257a`, `62bed3e`,
+`3155870`): the setup screen's repair announcement is reset between cases, so the
+gate no longer depends on suite order; the bundle carries its build commit and the
+chat compares it with the backend's `/api/health.git_sha`; only `run_shell` may be
+taught a remembered command shape, and a bare interpreter is refused; a helper that
+was cancelled, or whose process ended, reads as interrupted and ages off the fleet
+board instead of showing as live work; copying a code fence writes plain text and
+HTML into the native pasteboard, and an artifact row in the desktop shell can
+reveal or open its file behind a canonicalized path fence.
 The 0.1.12 changes are named below (`1f823cb`, `3374a70`, `105700d`, `8a5d3a6`,
 `8935b9f`, `2ec63d4`, `4690a19`, `9fee126`, `80e6590`, `038c1d0`, `15233c1`,
 `2ef9745`, `5f1d8a5`, `50bcb8f`, `c4c2fad`): a settings write merges instead of replacing a section
