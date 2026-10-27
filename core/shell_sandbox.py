@@ -24,7 +24,8 @@ def is_available() -> bool:
 
 
 def build_profile(workspace: str) -> str:
-    """SBPL profile: writing only workspace/TMP/HOME, network off."""
+    """SBPL profile: writing only workspace/TMP/HOME plus the device nodes a
+    toolchain needs, network off."""
     tmp = tempfile.gettempdir()
     darwin_tmp = "/private" + tmp if not tmp.startswith("/private") else tmp
     ws = os.path.realpath(workspace) if workspace else os.getcwd()
@@ -40,6 +41,9 @@ def build_profile(workspace: str) -> str:
         f"  (subpath \"{darwin_tmp}\")\n"
         f"  (subpath \"{home}\")\n"
         f"  (regex #\"^/private/var/folders/.*\")\n"
+        f"  (literal \"/dev/null\")\n"
+        f"  (literal \"/dev/tty\")\n"
+        f"  (subpath \"/dev/fd\")\n"
         f")\n"
     )
 
@@ -49,9 +53,7 @@ def wrap_command(command: str, workspace: str) -> list[str] | None:
     if not is_available():
         return None
     profile = build_profile(workspace)
-    # R45: git fallback — the pager (less) writes onto /dev/null-like
-    # redirections and fails inside the sandbox with exit 128. GIT_PAGER=cat
-    # + --no-pager avoids that deterministically, without the user having to
-    # adjust the command. The export holds for the whole sh line.
+    # A pager has no tty here and would hang or fail; the /dev/null probe git
+    # itself makes is covered by the device nodes in the profile above.
     sh_cmd = f"export GIT_PAGER=cat GIT_PAGER_NO_COLOR=1; {command}"
     return ["sandbox-exec", "-p", profile, "/bin/sh", "-c", sh_cmd]

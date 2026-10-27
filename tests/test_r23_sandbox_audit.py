@@ -229,3 +229,24 @@ class TestSeatbelt:
         assert entries and entries[0]["status"] == "executed"
         assert entries[0]["args_hash"], "THEN: Befehl als Hash referenziert"
         assert "echo plain-ok" in entries[0]["args"], "THEN: redigierte Kurzform enthält den Befehl"
+
+
+    @pytest.mark.skipif(not Path("/usr/bin/sandbox-exec").exists() and not Path("/bin/sandbox-exec").exists()
+                        and os.environ.get("CI") == "1",
+                        reason="sandbox-exec auf CI-Runnern nicht vorhanden")
+    def test_given_sandbox_when_git_runs_then_it_can_open_dev_null(self, tmp_path):
+        """git probes /dev/null for read+write; denying it failed every git call
+        inside the sandbox with exit 128 before the device nodes were allowed."""
+        from core.shell_sandbox import is_available, wrap_command
+
+        if not is_available():
+            pytest.skip("sandbox-exec nicht verfügbar (macOS-only Feature)")
+        workspace = tmp_path / "repo"
+        workspace.mkdir()
+        subprocess.run(["git", "init", "-q", "."], cwd=workspace, check=True)
+        (workspace / "a.txt").write_text("one\n")
+
+        args = wrap_command("git status --short", str(workspace))
+        result = subprocess.run(args, capture_output=True, text=True, timeout=60, cwd=workspace)
+        assert result.returncode == 0, result.stderr
+        assert "?? a.txt" in result.stdout
