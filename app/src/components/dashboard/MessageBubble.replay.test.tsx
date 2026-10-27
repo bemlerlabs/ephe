@@ -6,8 +6,17 @@ import MessageBubble from './MessageBubble'
 import { useChatStore } from '@/store/chatStore'
 import type { ChatMessage } from '@/types'
 
+// GET /api/trajectory answers newest-first (core/trajectory.py prepends the
+// finished turn), so the later answer's turn stands at index 0.
 function fixtureTurns() {
   return [
+    {
+      sid: 's1',
+      model: 'm',
+      ts: 1761806359,
+      duration_ms: 2100,
+      steps: [{ n: 1, type: 'message', title: 'answer', ms: 2000, state: 'ok' }],
+    },
     {
       sid: 's1',
       model: 'm',
@@ -17,13 +26,6 @@ function fixtureTurns() {
         { n: 1, type: 'user', title: 'prompt text', ms: 120, state: 'ok' },
         { n: 2, type: 'tool_call', title: 'run_shell ls', ms: 450, state: 'ok', text: 'OUT-TEXT' },
       ],
-    },
-    {
-      sid: 's1',
-      model: 'm',
-      ts: 1761806359,
-      duration_ms: 2100,
-      steps: [{ n: 1, type: 'message', title: 'answer', ms: 2000, state: 'ok' }],
     },
   ]
 }

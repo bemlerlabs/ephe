@@ -149,8 +149,8 @@ def test_token_schwelle_kompaktiert_vor_nachrichtengrenze():
 
 
 def test_prose_step_title_is_one_sentence(tmp_path, monkeypatch):
-    """F5: a narration step's title is the first sentence, not 160 characters
-    of running prose with the next sentence welded on."""
+    """F5: a narration step is titled by its first sentence; the paragraph
+    stays the step body."""
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
     trajectory.begin_turn("s-prose", model="m")
     trajectory.record(

@@ -532,8 +532,7 @@ describe('P3-8 Microcopy: Zähler nur mit Leser, Badge-Namen', () => {
   })
 })
 
-// ── 2 · typed dashes survive the shell ─────────────────────────────────────
-describe('QD-008 the composer does not rewrite typed dashes', () => {
+describe('QD-008 the composer keeps typed dashes', () => {
   it('turns off the substitutions WKWebView applies to a text field', () => {
     render(<ChatInput onSend={vi.fn()} />)
     const input = ta()

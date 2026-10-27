@@ -48,8 +48,8 @@ echo "  … building Ephe ${VERSION} with update artifacts"
 (cd app && npx tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}')
 
 BUNDLE="app/src-tauri/target/release/bundle"
-# Tauri writes `<product>_<arch>.app.tar.gz` (Ephe_aarch64 on this Mac), not the
-# bare `<product>.app.tar.gz` this script named in four places — so the feed
+# Tauri writes `<product>_<arch>.app.tar.gz` (Ephe_aarch64 on this Mac); the
+# bare name this script used in four places does not exist anywhere, so the feed
 # pointed at a URL that 404s and --publish could not upload what it built.
 ARTIFACT="$(find "${BUNDLE}/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit 2>/dev/null || true)"
 if [[ -z "$ARTIFACT" ]]; then
