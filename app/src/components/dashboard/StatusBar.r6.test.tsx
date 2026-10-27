@@ -47,7 +47,10 @@ describe('StatusBar R6 — benutzt und frei aus derselben Zählung', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msgs} />)
-    const frei = await screen.findByText(/statusBar.contextFree/)
+    // The label exists on the first render, carrying the offline estimate; the
+    // mirror arrives one tick later. Matching the label would pass on either
+    // number and lose the race in CI, so the wait is for the mirror's own value.
+    const frei = await screen.findByText(/4,057/)
     // Pinned to the app language, not to (8192 - 4135).toLocaleString(): the
     // self-referential form follows the machine and can never see the defect.
     expect(frei.textContent).toContain('4,057')
@@ -65,7 +68,7 @@ describe('StatusBar R6 — benutzt und frei aus derselben Zählung', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msgs} />)
-    const frei = await screen.findByText(/statusBar.contextFree/)
+    const frei = await screen.findByText(/4\.057/)
     expect(frei.textContent).toContain('4.057')
     sprache.current = 'en'
   })
