@@ -37,7 +37,17 @@ export function ToolReplayKader({ message }: { message: ChatMessage }) {
     let cancelled = false
     getTrajectory(sessionId)
       .then((r) => {
-        if (!cancelled) setTurn(r.turns[ti] ?? null)
+        if (cancelled) return
+        // The route answers newest-first, and the card belongs to exactly one
+        // turn: the chain id decides it. The position is the legacy fallback
+        // (messages from before the chain carry no id), and only then in
+        // chronological order — indexing the newest-first list showed the
+        // steps and the duration of another run (QA-0.1.11, F7).
+        const chronological = [...r.turns].reverse()
+        const byId = message.turnId
+          ? chronological.find((tt) => tt.turn_id === message.turnId)
+          : undefined
+        setTurn(byId ?? chronological[ti] ?? null)
       })
       .catch(() => {
         if (!cancelled) setTurn(null)
@@ -45,7 +55,7 @@ export function ToolReplayKader({ message }: { message: ChatMessage }) {
     return () => {
       cancelled = true
     }
-  }, [sessionId, ti])
+  }, [sessionId, ti, message.turnId])
   const [open, setOpen] = useState(false)
   if (ti < 0 || !turn || turn.steps.length === 0) return null
   const total = turn.steps.reduce((a, s) => a + s.ms, 0)

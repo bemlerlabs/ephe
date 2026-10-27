@@ -33,7 +33,7 @@ import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
 import HeaderCompanion from '@/components/shell/HeaderCompanion'
 import { TaskDock } from '../TaskDock'
 import { CellLifeLine } from '../CellLifeLine'
-import { estimateContextUsage } from '@/lib/contextMeter'
+import { useContextOccupancy } from '@/lib/useContextOccupancy'
 import MessageBubble from '../MessageBubble'
 import StatusBar from '../StatusBar'
 import TimelineRail from '../TimelineRail'
@@ -172,15 +172,11 @@ export default function ChatLayout() {
     handleAnswerAsk,
   } = useChatLayoutModel()
   const companionEnabled = useDeepBool('appearance.companion_enabled', false)
+  // F8: the ring reads the same occupancy as the status bar — one numerator,
+  // one denominator, so the two cannot contradict each other.
+  const occupancy = useContextOccupancy(currentSession?.messages, contextWindow, currentSession?.id)
   const contextPercent =
-    (currentSession?.messages.length ?? 0) > 0
-      ? Math.min(
-          100,
-          (estimateContextUsage(currentSession?.messages ?? [], contextWindow).tokens.total /
-            Math.max(1, contextWindow ?? 32768)) *
-            100,
-        )
-      : null
+    (currentSession?.messages.length ?? 0) > 0 ? occupancy.percent : null
   // The updater replaces the shell and not the backend it starts; the two are
   // allowed to disagree for exactly one reason — nobody told the user. The
   // shell's own comparison runs on the start thread, so this reads after it.

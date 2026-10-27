@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChatMessage } from '@/types'
-import {
-  estimateContextUsage,
-  estimateTokens,
-  formatPercent,
-  WARN_THRESHOLD,
-} from '@/lib/contextMeter'
-import { getContextBudget } from '@/lib/api'
-import type { ContextBudget } from '@/lib/api'
+import { estimateTokens, formatPercent, WARN_THRESHOLD } from '@/lib/contextMeter'
+import { useContextOccupancy } from '@/lib/useContextOccupancy'
 import { formatNumber, formatRate } from '@/lib/dateLocale'
 import { useChatStore } from '@/store/chatStore'
 import { Zap, Shrink } from 'lucide-react'
@@ -55,58 +49,18 @@ export default function StatusBar({
   const { t, i18n } = useTranslation()
   // P0-1: the effective window follows the active provider — the backend value
   // (env override > engine probe > tier table) beats the frontend default 8192.
-  const [budget, setBudget] = useState<ContextBudget | null>(null)
-  const effectiveWindow = budget?.window_tokens || windowTokens
-  const usage = useMemo(
-    () => estimateContextUsage(messages || [], effectiveWindow),
-    [messages, effectiveWindow],
-  )
+  // One derivation, shared with the composer's ring (F8).
+  const {
+    budget,
+    window: effectiveWindow,
+    usage,
+    percent: effectivePercent,
+    tokens: effectiveTokens,
+    remaining: effectiveRemaining,
+    tokenizer,
+  } = useContextOccupancy(messages, windowTokens, sessionId)
 
-  // R25: honest budget readout — the real backend count (same 4.2 chars/token
-  // ratio) beats the pure frontend estimate; on error the offline estimate stays
-  // in force (offline-first fallback).
-  useEffect(() => {
-    let cancelled = false
-    getContextBudget(sessionId)
-      .then((b) => {
-        if (!cancelled) setBudget(b)
-      })
-      .catch(() => {
-        if (!cancelled) setBudget(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [sessionId, messages?.length])
-
-  // P5-1 measurement order: 1) the real server count (rest mirror filled),
-  // 2) the measured usage balance of the last turn, 3) the offline estimate.
-  // This closes the gap where the PWA chip stuck at 0 while the browser history
-  // was already long (the mirror only writes from this cut onward).
   const turnUsage = useChatStore((s) => s.lastTurnUsage)
-  const measuredTotal = (turnUsage?.in ?? 0) + (turnUsage?.out ?? 0)
-  const mirrorLive = budget != null && budget.message_count > 0
-  const effectivePercent = Math.min(
-    mirrorLive
-      ? budget.percent
-      : measuredTotal > 0 && effectiveWindow
-        ? Math.round((measuredTotal / effectiveWindow) * 100)
-        : usage.percent,
-    100,
-  )
-  const effectiveTokens = mirrorLive
-    ? budget.estimated_tokens
-    : measuredTotal > 0
-      ? measuredTotal
-      : usage.tokens.total
-  // R6/S2: "free" has to come from the same count as the percent and the used figure.
-  // Before, the frontend estimate sat next to the server mirror: 4.135 tok +
-  // 5.424 free beside a window of 8.192 — measured 2026-10-07, two
-  // estimators in one row.
-  const effectiveRemaining =
-    mirrorLive && effectiveWindow ? Math.max(0, effectiveWindow - effectiveTokens) : usage.remaining
-  // W16: exactness mirror of the backend counter — only with a real BPE backend.
-  const tokenizer = budget?.tokenizer
 
   // Wave 3 (cost monitor & cache chip): both chips come ONLY from measured values —
   // pricing from engine.json (via /api/model/providers), totals from usage frames.
