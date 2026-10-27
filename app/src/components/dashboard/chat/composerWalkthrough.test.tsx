@@ -78,7 +78,8 @@ const ta = () => screen.getByTestId('chat-input') as HTMLTextAreaElement
 // jsdom ships no MediaRecorder; the component only needs start()/stop() and the
 // onstop callback, so a recorder that records its instances and lets the test
 // fire the browser's stop signal stands in. MediaRecorder.stop() is what a real
-// hold-to-talk release triggers — calling it here is the same event.
+// hold-to-talk release triggers — calling it here is the same event, and like
+// the real one it hands the buffered audio over before onstop runs.
 class FakeRecorder {
   ondataavailable: ((e: { data: Blob }) => void) | null = null
   onstop: (() => void) | null = null
@@ -87,6 +88,7 @@ class FakeRecorder {
   }
   start() {}
   stop() {
+    this.ondataavailable?.({ data: new Blob(['pcm'], { type: 'audio/webm' }) })
     this.onstop?.()
   }
 }

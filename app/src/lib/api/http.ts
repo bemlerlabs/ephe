@@ -109,6 +109,43 @@ export class ApiError extends Error {
 }
 
 /**
+ * The error a non-ok response stands for, in the reader's language.
+ *
+ * A refusal that names its reason is answered from the bundle, so the reader
+ * gets the sentence in the language they set; the server's own text stays the
+ * fallback. Shared by `request()` and the multipart callers that cannot use it
+ * (FormData must set its own Content-Type boundary), so both read the envelope
+ * the same way.
+ */
+export async function apiErrorFromResponse(res: Response): Promise<ApiError> {
+  let detail = `API ${res.status}: ${res.statusText}`
+  let reasonCode = ''
+  let payload: unknown = null
+  try {
+    const body = (await res.json()) as {
+      error?: {
+        message?: string
+        reason_code?: string
+        reason_params?: Record<string, string | number>
+        detail?: { code?: string }
+      }
+      detail?: string
+    }
+    const code = body.error?.reason_code ?? body.error?.detail?.code ?? ''
+    reasonCode = code
+    payload = body.error?.detail ?? body.detail ?? null
+    // Loaded here rather than at the top: the i18n instance initialises react-i18next, and
+    // a module-level import would pull that into every file that mocks it.
+    const { serverErrorText } = await import('../serverError')
+    detail =
+      serverErrorText(code, body.error?.reason_params) || body.error?.message || body.detail || detail
+  } catch {
+    /* Body is not JSON → generic message */
+  }
+  return new ApiError(detail, res.status, reasonCode, payload)
+}
+
+/**
  * R36: a bound the caller can name per call, next to the register's own.
  *
  * `request()` waits at most `advanced.api_timeout` — the field the register
@@ -183,37 +220,7 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
       signal: controller.signal,
     })
     if (!res.ok) {
-      // Pass the backend error detail through (middleware shape: {error:{message}}). A refusal
-      // that names its reason is answered from the bundle instead, so the reader gets the
-      // sentence in the language they set; the server's own text stays the fallback.
-      let detail = `API ${res.status}: ${res.statusText}`
-      let reasonCode = ''
-      let payload: unknown = null
-      try {
-        const body = (await res.json()) as {
-          error?: {
-            message?: string
-            reason_code?: string
-            reason_params?: Record<string, string | number>
-            detail?: { code?: string }
-          }
-          detail?: string
-        }
-        const code = body.error?.reason_code ?? body.error?.detail?.code ?? ''
-        reasonCode = code
-        payload = body.error?.detail ?? body.detail ?? null
-        // Loaded here rather than at the top: the i18n instance initialises react-i18next, and
-        // a module-level import would pull that into every file that mocks it.
-        const { serverErrorText } = await import('../serverError')
-        detail =
-          serverErrorText(code, body.error?.reason_params) ||
-          body.error?.message ||
-          body.detail ||
-          detail
-      } catch {
-        /* Body is not JSON → generic message */
-      }
-      throw new ApiError(detail, res.status, reasonCode, payload)
+      throw await apiErrorFromResponse(res)
     }
     return res.json() as Promise<T>
   } catch (err) {

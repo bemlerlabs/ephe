@@ -3,7 +3,7 @@
  * context budget, voice, pack index, audit, security, export/feedback, provider.
  * Moved 1:1 out of lib/api.ts (lines 842–1185) — relocation only, no logic change.
  */
-import { BASE_URL, LAN_TOKEN, apiUrl, request } from './http'
+import { BASE_URL, LAN_TOKEN, apiErrorFromResponse, apiUrl, request } from './http'
 import type {
   AuditEntry,
   CellLife,
@@ -28,14 +28,30 @@ import type { ProviderSettings } from '@/types'
 
 // ── Audio: transcription + TTS (the backend lives in routes/audio.py) ─────────
 
+/** Upload name matching the recording's own container — the server whitelists by type. */
+function audioUploadName(type: string): string {
+  const base = (type.split(';')[0] ?? '').trim().toLowerCase()
+  const ext =
+    base === 'audio/mp4' || base === 'audio/m4a' || base === 'audio/x-m4a'
+      ? 'mp4'
+      : base === 'audio/ogg'
+        ? 'ogg'
+        : base === 'audio/wav' || base === 'audio/x-wav'
+          ? 'wav'
+          : base === 'audio/mpeg'
+            ? 'mp3'
+            : 'webm'
+  return `recording.${ext}`
+}
+
 /** Upload an audio blob and have it transcribed (whisper.cpp, local). */
 export async function transcribeAudio(blob: Blob): Promise<string> {
   const fd = new FormData()
-  fd.append('file', blob, 'recording.webm')
+  fd.append('file', blob, audioUploadName(blob.type))
   const headers: Record<string, string> = {}
   if (LAN_TOKEN) headers['X-Auth-Token'] = LAN_TOKEN
   const res = await fetch(`${BASE_URL}/api/audio/transcribe`, { method: 'POST', headers, body: fd })
-  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`)
+  if (!res.ok) throw await apiErrorFromResponse(res)
   const data = (await res.json()) as { text: string }
   return data.text
 }
@@ -90,7 +106,7 @@ export function getVoiceSettings(): Promise<VoiceSettings> {
 }
 
 export function saveVoiceSettings(
-  payload: Partial<Omit<VoiceSettings, 'piper_available' | 'installed_piper_voices'>>,
+  payload: Partial<Omit<VoiceSettings, 'piper_available' | 'installed_piper_voices' | 'stt_model_cached'>>,
 ): Promise<VoiceSettings> {
   return request('/api/settings/voice', { method: 'PUT', body: JSON.stringify(payload) })
 }
