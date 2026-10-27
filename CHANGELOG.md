@@ -7,6 +7,11 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.2.0 changes are named below (`0f7093d`, `1d175b7`, `2761c4a`): Quick Look
+and the dock run live in the shell, Apple Vision reads the text off an attached
+image on this machine, and a written file is checked in the Seatbelt sandbox
+before its result returns, with two repairs per turn before the model has to
+report the failure.
 The QD-009 changes are named below (`8928483`, `a6ba822`, `bca257a`, `62bed3e`,
 `3155870`): the setup screen's repair announcement is reset between cases, so the
 gate no longer depends on suite order; the bundle carries its build commit and the
@@ -44,6 +49,30 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.2.0] - 2026-10-28
+
+### Added
+- **Quick Look.** An artifact row in the desktop shell previews its file in the
+  native panel with the space bar or the eye button. The path passes the same
+  canonicalized root fence as every other file verb, and a browser keeps its
+  inline preview (`0f7093d`).
+- **Dock status.** While a turn streams the dock icon carries the plan's ratio
+  as a badge and a progress bar, both cleared when the turn ends
+  (`0f7093d`).
+- **Apple Vision OCR.** An attached image's text is read by
+  `VNRecognizeTextRequest` on the Neural Engine — no tokens, no upload — and
+  appended to the outgoing turn as a named block, so a text-only engine still
+  knows what a screenshot says (`1d175b7`).
+- **Self-repair after an edit.** `write_file` and `edit_file` check the written
+  Python, JavaScript or JSON in the Seatbelt sandbox before their result
+  returns. A failure comes back with the checker's own output and the directive
+  to repair it in the same turn; two repairs per turn, then the model reports
+  what still fails (`2761c4a`).
+
+### Changed
+- The install URLs and release prose move to `v0.2.0` in all three READMEs and
+  the start docs.
 
 ## [0.1.13] - 2026-10-27
 
