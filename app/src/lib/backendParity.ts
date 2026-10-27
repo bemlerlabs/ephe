@@ -1,3 +1,4 @@
+import { healthCheck } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
 
 export interface BackendParity {
@@ -5,6 +6,12 @@ export interface BackendParity {
   shell: string
   backend: string
   note: string
+}
+
+export interface BuildParity {
+  verdict: 'match' | 'mismatch' | 'unknown'
+  build: string
+  backend: string
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string
@@ -46,4 +53,41 @@ export async function announceBackendParity(t: Translate): Promise<BackendParity
     toastBus.info(t('chat.backendUpdated'), undefined, undefined, 'backend-parity')
   }
   return status
+}
+
+/** The commit this bundle was built from. Empty in a development build whose define
+ * was not stamped, which reads as "nothing measured" rather than as a match. */
+export function frontendBuildSha(): string {
+  return typeof __EPHE_BUILD_SHA__ === 'string' ? __EPHE_BUILD_SHA__ : ''
+}
+
+/**
+ * F10, second half: the shell and the backend are shipped by different mechanisms,
+ * so the *bundle* has to know its own commit. The version string cannot separate two
+ * builds of one number — a `dist` a day older than the tree serving it looks current
+ * and quietly lacks the new UI. The build SHA is stamped by `vite.config.ts` and
+ * compared with the backend's `git_sha`; only a measured disagreement is reported,
+ * and `unknown` on either side stays silent because there is nothing to name.
+ */
+export async function announceBuildParity(
+  t: Translate,
+  health?: { git_sha?: string } | null,
+  build: string = frontendBuildSha(),
+): Promise<BuildParity | null> {
+  let info = health
+  if (info === undefined) {
+    try {
+      info = await healthCheck()
+    } catch {
+      return null
+    }
+  }
+  const mine = build.trim()
+  const backend = String(info?.git_sha ?? '').trim()
+  if (!mine || mine === 'unknown' || !backend) {
+    return { verdict: 'unknown', build: mine, backend }
+  }
+  if (mine === backend) return { verdict: 'match', build: mine, backend }
+  toastBus.error(t('chat.buildMismatch', { build: mine, backend }))
+  return { verdict: 'mismatch', build: mine, backend }
 }

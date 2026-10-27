@@ -164,6 +164,8 @@ export interface HealthInfo {
   requires_internet: boolean
   model_installed?: boolean
   detail?: string
+  /** Serving tree's commit (`server/routes/health.py`), the build SHA's counterpart. */
+  git_sha?: string
   /** F-02: real engine reachability (for openai_compatible via the /models probe) */
   engine_online?: boolean
   /**

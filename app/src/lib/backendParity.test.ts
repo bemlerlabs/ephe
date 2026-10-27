@@ -5,19 +5,21 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { invoke, toast } = vi.hoisted(() => ({
+const { invoke, toast, health } = vi.hoisted(() => ({
   invoke: vi.fn(),
   toast: { error: vi.fn(), info: vi.fn() },
+  health: vi.fn(),
 }))
 
 vi.mock('@/lib/toast', () => ({ toastBus: toast }))
+vi.mock('@/lib/api', () => ({ healthCheck: health }))
 
 const bridge = { core: { invoke: (cmd: string) => invoke(cmd) } }
 
-import { announceBackendParity } from './backendParity'
+import { announceBackendParity, announceBuildParity } from './backendParity'
 
 const t = (key: string, opts?: Record<string, unknown>) =>
-  opts ? `${key}:${String(opts.shell)}/${String(opts.backend)}` : key
+  opts ? `${key}:${String(opts.shell ?? opts.build)}/${String(opts.backend)}` : key
 
 beforeEach(() => {
   ;(window as unknown as { __TAURI__?: unknown }).__TAURI__ = bridge
@@ -25,6 +27,7 @@ beforeEach(() => {
 
 afterEach(() => {
   invoke.mockReset()
+  health.mockReset()
   toast.error.mockReset()
   toast.info.mockReset()
 })
@@ -78,5 +81,60 @@ describe('announceBackendParity', () => {
     await expect(announceBackendParity(t)).resolves.toBeNull()
 
     expect(toast.error).not.toHaveBeenCalled()
+  })
+})
+
+describe('announceBuildParity', () => {
+  it('names the two commits when the window is older than the backend', async () => {
+    health.mockResolvedValue({ git_sha: 'bbbbbbbbbbbb' })
+
+    await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa')).resolves.toEqual({
+      verdict: 'mismatch',
+      build: 'aaaaaaaaaaaa',
+      backend: 'bbbbbbbbbbbb',
+    })
+
+    expect(toast.error).toHaveBeenCalledWith(
+      'chat.buildMismatch:aaaaaaaaaaaa/bbbbbbbbbbbb',
+    )
+  })
+
+  it('stays quiet when the bundle was built from the commit that serves it', async () => {
+    health.mockResolvedValue({ git_sha: '76c4223ad094' })
+
+    await expect(announceBuildParity(t, undefined, '76c4223ad094')).resolves.toMatchObject({
+      verdict: 'match',
+    })
+
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('stays quiet when either side has no commit to compare', async () => {
+    health.mockResolvedValue({ git_sha: '' })
+    await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa')).resolves.toMatchObject({
+      verdict: 'unknown',
+    })
+
+    health.mockResolvedValue({ git_sha: 'bbbbbbbbbbbb' })
+    await expect(announceBuildParity(t, undefined, 'unknown')).resolves.toMatchObject({
+      verdict: 'unknown',
+    })
+
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('returns null when the backend cannot be read', async () => {
+    health.mockRejectedValue(new Error('offline'))
+
+    await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa')).resolves.toBeNull()
+
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('reads the health answer once when the caller already has it', async () => {
+    await announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'aaaaaaaaaaaa')
+
+    expect(health).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledTimes(1)
   })
 })

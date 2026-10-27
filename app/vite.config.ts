@@ -1,8 +1,28 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { execFileSync } from 'node:child_process'
 import { resolve } from 'path'
 import pkg from './package.json'
+
+/**
+ * The commit this bundle was built from. The backend answers with its own
+ * (`/api/health.git_sha`, twelve characters as well), so a window whose `dist`
+ * is older than the tree serving it can say so instead of pretending the new
+ * behaviour is simply absent. A source tarball has no `.git`: `unknown` keeps
+ * the comparison silent rather than inventing a mismatch.
+ */
+function buildSha(): string {
+  try {
+    return execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return 'unknown'
+  }
+}
 
 // The Radix overlay stack: the `@radix-ui/*` packages plus the dependency tail they
 // drag in (`@floating-ui/*`, `react-remove-scroll*`, `react-style-singleton`,
@@ -31,7 +51,10 @@ const RADIX_VENDOR = [
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   // One version source: package.json (the UI reads __APP_VERSION__).
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __EPHE_BUILD_SHA__: JSON.stringify(buildSha()),
+  },
   test: {
     globals: true,
     environment: 'jsdom',

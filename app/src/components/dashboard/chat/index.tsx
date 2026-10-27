@@ -19,7 +19,7 @@ import {
 import WelcomeEmptyState from '../WelcomeEmptyState'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
-import { announceBackendParity } from '@/lib/backendParity'
+import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { useDeepBool } from '@/lib/deepSettings'
 import { toggleCompanionEnabled } from '@/lib/companionToggle'
@@ -180,10 +180,12 @@ export default function ChatLayout() {
   // The updater replaces the shell and not the backend it starts; the two are
   // allowed to disagree for exactly one reason — nobody told the user. The
   // shell's own comparison runs on the start thread, so this reads after it.
+  // The bundle's build SHA is compared in both surfaces: the PWA is served from
+  // the same tree, and an older `dist` is the same disagreement one layer up.
   useEffect(() => {
-    if (!isTauri) return
     const timer = setTimeout(() => {
-      void announceBackendParity(t)
+      if (isTauri) void announceBackendParity(t)
+      void announceBuildParity(t)
     }, 5000)
     return () => clearTimeout(timer)
   }, [isTauri, t])

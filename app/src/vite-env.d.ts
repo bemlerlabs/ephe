@@ -2,6 +2,8 @@
 
 /** Build constant from vite.config.ts (source: package.json). */
 declare const __APP_VERSION__: string
+/** Commit the bundle was built from (vite.config.ts); `unknown` outside a checkout. */
+declare const __EPHE_BUILD_SHA__: string
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
