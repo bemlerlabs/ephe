@@ -13,9 +13,11 @@ it in so many words.
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -23,6 +25,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "uninstall.sh"
 README = ROOT / "README.md"
+
+# The tag rule has one home: scripts/readme_check.py decides which release tag this
+# tree ships, and the reinstall hint has to agree with that same answer.
+_README_SPEC = importlib.util.spec_from_file_location(
+    "readme_check_for_uninstall", ROOT / "scripts" / "readme_check.py"
+)
+_readme_check = importlib.util.module_from_spec(_README_SPEC)
+sys.modules[_README_SPEC.name] = _readme_check
+_README_SPEC.loader.exec_module(_readme_check)
 
 # The script is bash-only (same posture as install.sh: `set -euo pipefail`, the
 # `[[ ]]` guards, the ERR trap). On a host where /bin/sh IS bash — macOS — the
@@ -274,3 +285,20 @@ def test_given_the_readme_when_read_then_the_way_out_is_documented():
     assert "--keep-data" in readme
     # The project-structure block lists the root scripts next to each other.
     assert "install.sh" in readme and "install.ps1" in readme
+
+
+def test_given_the_reinstall_hint_when_read_then_it_names_the_tag_this_tree_ships():
+    """
+    GIVEN the last line a user reads after removing the product is a curl command
+      that names a release tag
+    WHEN that text is compared with the tag `scripts/readme_check.py` says this
+      tree ships
+    THEN the two agree, because the reinstall hint is the one instruction the
+      user still has after the checkout is gone, and a tag left behind in it
+      would install an older product than the one that was just removed
+    """
+    script = SCRIPT.read_text(encoding="utf-8")
+    shipped = _readme_check.shipped_tag(ROOT)
+
+    found = sorted(set(re.findall(r"v\d+\.\d+\.\d+", script)))
+    assert found == [shipped], f"uninstall.sh names {found}, this tree ships {shipped}"

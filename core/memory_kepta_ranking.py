@@ -118,8 +118,8 @@ def leg_fts(
             "SELECT m.id AS id, bm25(memories_fts) AS s FROM memories_fts "
             "JOIN memories m ON m.rid = memories_fts.rowid "
             "WHERE memories_fts MATCH ? AND m.scope = ? AND m.deleted_at IS NULL "
-            f"ORDER BY s ASC LIMIT {LEG_LIMIT}",
-            (match, scope),
+            "ORDER BY s ASC LIMIT ?",
+            (match, scope, LEG_LIMIT),
         ).fetchall()
     except sqlite3.OperationalError as exc:
         logger.debug("kepta: FTS query failed (%s)", exc)

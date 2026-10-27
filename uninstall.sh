@@ -304,6 +304,6 @@ elif [[ -e "$DATA_DIR" || -L "$DATA_DIR" ]]; then
   printf '%s\n' "Remove it too with: ./uninstall.sh --yes    (or: rm -rf \"$DATA_DIR\")"
 else
   printf '%b\n' "${GREEN}${BOLD}Ephe is gone from this machine.${NC}"
-  printf '%s\n' "Reinstall at any time with: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.3/install.sh | bash"
+  printf '%s\n' "Reinstall at any time with: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.11/install.sh | bash"
 fi
 printf '%s\n' ""

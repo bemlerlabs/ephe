@@ -48,8 +48,12 @@ def _configured_mobile_base_url(port: int) -> str | None:
         return None
     if "://" in host:
         parsed = urlparse(host)
-        if parsed.scheme and parsed.netloc:
+        # The probe below calls urllib.request.urlopen with what this returns, so
+        # a host written as ftp:// or file:// would be fetched on that protocol
+        # while the QR still says http. Only the family the surface advertises.
+        if parsed.scheme in ("http", "https") and parsed.netloc:
             return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        return None
     return f"http://{host}:{port}".rstrip("/")
 
 

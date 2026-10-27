@@ -240,3 +240,45 @@ def test_mobile_qr_lan_mode_uses_configured_mobile_host_in_docker(client, monkey
         assert data["lan_reachable"] is True
         assert "172.19.0.3" not in data["url"]
         mock_tunnel.start_tunnel.assert_not_called()
+
+# EPHE_MOBILE_HOST is configuration a user writes by hand, and one of its forms
+# reaches urllib.request.urlopen inside _lan_probe_succeeds. A host that names
+# another protocol is therefore not a typo to be passed along.
+
+@pytest.mark.parametrize(
+    "value", ["ftp://192.168.1.10:8765", "gopher://x:1", "file:///etc/passwd"],
+)
+def test_mobile_host_of_another_protocol_is_refused(monkeypatch, value):
+    """Given EPHE_MOBILE_HOST names a non-HTTP protocol, when the base URL is built,
+    then it answers None so no probe leaves the HTTP family."""
+    from server.routes import mobile
+
+    monkeypatch.setenv("EPHE_MOBILE_HOST", value)
+    assert mobile._configured_mobile_base_url(8765) is None
+
+
+def test_mobile_host_without_an_authority_is_refused_too(monkeypatch):
+    """Given a scheme with nothing after the slashes, when the base URL is built,
+    then the answer is None rather than a URL that only looks like http."""
+    from server.routes import mobile
+
+    monkeypatch.setenv("EPHE_MOBILE_HOST", "http://")
+    assert mobile._configured_mobile_base_url(8765) is None
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("http://192.168.1.10:8765", "http://192.168.1.10:8765"),
+        ("https://ephe.example", "https://ephe.example"),
+        ("https://ephe.example:8765/", "https://ephe.example:8765"),
+        ("192.168.1.10", "http://192.168.1.10:8765"),
+    ],
+)
+def test_mobile_host_in_the_http_family_still_answers(monkeypatch, value, expected):
+    """Given a host a user means literally, when the base URL is built, then the
+    address is handed back unchanged apart from the scheme and port it lacks."""
+    from server.routes import mobile
+
+    monkeypatch.setenv("EPHE_MOBILE_HOST", value)
+    assert mobile._configured_mobile_base_url(8765) == expected
