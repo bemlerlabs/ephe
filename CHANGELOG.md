@@ -36,6 +36,52 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
 
+## [0.1.12] - 2026-10-27
+
+### Added
+- The co-pilot reads a workspace: `ls`, `cat`, `head`, `tail`, `wc`, `stat`,
+  `du`, `pwd`, `which`, `file`, `rg`, `grep` and `find` without a destructive
+  predicate are classified for itself, still behind the forbidden tokens,
+  operators and path escapes. A command shape the user vouches for can be
+  remembered on the panel (`3374a70`).
+- The installer ships the sandbox extra (`ephemora-cell`) and falls back with a
+  visible notice when a platform has no wheel for it (`8a5d3a6`).
+- `/api/health` names the commit the backend runs, and the desktop installer
+  warns when the backend tree lags behind `HEAD` (`8935b9f`).
+- Settings → Audio carries the speech-model consent, next to whether the model
+  is already on disk (`4690a19`).
+
+### Changed
+- A settings write merges into the stored section and refuses unknown section
+  or field names with 400 (`1f823cb`).
+- The status bar and the composer's ring read one context derivation, so used
+  and free keep the same denominator (`038c1d0`).
+- The plan block counts a step once, splits a checklist the writer flattened
+  onto one line, and titles a narration step by its first sentence (`5f1d8a5`).
+- The cell life line says "sandbox off" instead of "0 ms/call · idle" when no
+  guest can carry a call (`80e6590`).
+- The companion is visible on the welcome screen, and `welcome_only` means the
+  welcome screen (`15233c1`).
+
+### Fixed
+- Dictation ends on the second click, latches a short tap even when the
+  microphone grant arrives late, and records a container the shell can actually
+  produce (webm/opus, webm, mp4, ogg, wav). A failed start releases the stream,
+  and a refused transcription reaches a toast (`2ec63d4`).
+- The voice extra pins PyAV below 19, whose release removed the
+  `metadata_errors` argument faster-whisper still passes — a fresh install
+  decoded every upload into an error (`4690a19`).
+- A replay card shows the steps of its own turn; the trajectory route answers
+  newest-first and the card indexed it as if oldest-first (`038c1d0`).
+- An echoed `ask_user` payload no longer becomes a `data.json` artifact card
+  (`15233c1`).
+- The composer hint names an attachment once, and typed dashes survive the
+  WebView's substitutions (`15233c1`).
+- `EPHE_MOBILE_HOST` written with a scheme-like colon is refused, and a host
+  that names its own port keeps it (`9fee126`).
+- The updater manifest and both upload paths name the artifact the bundle
+  writes (`Ephe_aarch64.app.tar.gz`) (`2ef9745`).
+
 ## [0.1.11] - 2026-10-27
 
 ### Added

@@ -75,7 +75,7 @@ Ephe 将一次运行称为一个单元（cell）。单元是会话期间使用�
 #### macOS 和 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.11/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.12/install.sh | bash
 ```
 
 若想在运行前阅读脚本，可使用本地仓库副本：
@@ -91,7 +91,7 @@ cd ephe
 #### Windows（PowerShell）
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.11/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.12/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -103,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 Docker 和所有安装器参数的说明见 [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md)。
 
-上述命令指向当前公开发布的版本 `v0.1.11`。Bash 安装器默认使用 `--desktop`；如需仅安装终端界面，请传入 `--cli` 或设置 `EPHE_MODE=cli`。
+上述命令指向当前公开发布的版本 `v0.1.12`。Bash 安装器默认使用 `--desktop`；如需仅安装终端界面，请传入 `--cli` 或设置 `EPHE_MODE=cli`。
 
 在新终端中使用 `ephe` 前，请先激活已安装的环境。
 对于 macOS 或 Linux 上的默认安装位置：

@@ -11,11 +11,12 @@ declares `metadata_errors="strict"` in its open(), 19.0.0 removes it.
 from __future__ import annotations
 
 import re
-import tomllib
 import wave
 from pathlib import Path
 
 import pytest
+
+from tests.toml_compat import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
