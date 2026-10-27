@@ -45,6 +45,37 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
 
+## [0.1.13] - 2026-10-27
+
+### Added
+- Copying a fenced code block in the desktop app writes `text/plain` and
+  `text/html` into the native pasteboard, so a paste into Notes or Mail keeps
+  the formatting while a terminal receives clean text. A browser keeps its
+  `navigator.clipboard` path, and an older shell falls through to it
+  (`62bed3e`).
+- Workbench artifact rows in the desktop shell offer **Reveal in Finder** and
+  **Open with the default app**. Both commands canonicalize the path and accept
+  only a regular file inside the workbench, the configured project or the usual
+  save folders; a refusal is one sentence beside the row (`62bed3e`).
+
+### Changed
+- The running window knows the commit it was built from: Vite stamps
+  `__EPHE_BUILD_SHA__` and the chat compares it with `/api/health.git_sha`, so a
+  `dist` older than the tree serving it says so instead of passing for current
+  (`8928483`).
+- The co-pilot offers "remember this command shape" only for `run_shell` and
+  only after a `warn_only` finding; bare interpreters (`sh`, `bash`, `python`,
+  `node`, …) can no longer be remembered (`a6ba822`).
+
+### Fixed
+- A helper run that stopped no longer reads as running: a snapshot reloaded
+  after a restart is `interrupted`, a cancelled helper finishes its own record,
+  and the fleet ages a run without a recorded finish off the board. The helper
+  directory keeps the history and names the state (`bca257a`).
+- The setup screen's repair announcement is reset between test cases and the
+  assertion waits for the store, so the release gate no longer depends on suite
+  order (`cf07347`).
+
 ## [0.1.12] - 2026-10-27
 
 ### Added
