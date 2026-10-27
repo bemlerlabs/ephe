@@ -8,7 +8,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
-`2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`).
+`2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`,
+`3902468`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -41,6 +42,15 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   Updates…, Close Window (⌘W), Quit Ephe (⌘Q) and the standard Edit entries. The
   tray menu and the bar share one route table, and the surface answers Settings
   and Documentation (`721fe91`).
+- The companion works as a co-pilot over five surface targets: a waiting tool
+  approval, an open question, a context past 90 %, files a turn just wrote, and
+  a failed call. Three modes choose how much it does (`perch`, `scout`,
+  `copilot`), a visible 2.5 s countdown precedes every act it takes by itself,
+  Escape or Cancel stops it, and the last ten acts stay readable in its popover
+  with the reason each one was taken. Risky commands are never approved for the
+  user, and the crawl costs no engine tokens (`3902468`).
+- The companion can be summoned from anywhere: the header switch, the
+  `/companion` command and ⌘⇧C flip the same register key (`3902468`).
 
 ### Fixed
 - A key file replaced without re-binding no longer offers "keep the key": that
@@ -68,6 +78,10 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - CI installs Python 3.13.18 where the interpreter comes from `actions/setup-python`,
   while the matrix keeps naming the leg `py3.13` so the required check names and
   the timing budgets stay what they are (`fb8593e`).
+- A fresh install starts without the companion (`appearance.companion_enabled`
+  defaults to false), and when it is summoned it parks in the right outer gutter
+  instead of leaning into the reading column while the engine writes
+  (`3902468`).
 
 ## [0.1.10] - 2026-10-26
 
