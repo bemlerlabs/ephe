@@ -56,9 +56,13 @@ export interface CopilotSnapshot {
   newEdits: number
   toolError: boolean
   repairVisible: boolean
+  /** Verbs the user taught it through "Remember this command shape". */
+  remembered?: readonly string[]
 }
 
-/** The exact command prefixes a co-pilot may approve. Nothing else, ever. */
+/** The exact command prefixes a co-pilot may approve without being taught.
+ * The CI verbs came first; the read-only inspection verbs are what an agent
+ * actually runs in a user's folder, so they moved in under the same fence. */
 const SAFE_PREFIXES = [
   'pytest',
   'python -m pytest',
@@ -74,6 +78,19 @@ const SAFE_PREFIXES = [
   'git diff',
   'git log',
   'ruff check',
+  'ls',
+  'cat',
+  'head',
+  'tail',
+  'wc',
+  'stat',
+  'du',
+  'pwd',
+  'which',
+  'file',
+  'rg',
+  'grep',
+  'find',
 ]
 
 /**
@@ -87,7 +104,7 @@ const SAFE_PREFIXES = [
  * else. A prefix that still matches after any of these fire is refused.
  */
 const FORBIDDEN =
-  /(?:^|\s)(?:rm|mv|dd|chmod|chown|sudo|su|kill|pkill)(?:\s|$)|git\s+(?:push|reset|clean)|git\s+checkout\s+--|\b(?:curl|wget|ssh|scp)\b|[;&|><`]|\$\(|\$\{|\.\.|~\/\.ephe|\.ephe\/|\.env|\n|(?:^|\s)[/~]|(?:^|\s)-[co]\b|(?:^|\s)--(?:output|config|override-ini|rootdir|git-dir|work-tree)\b/i
+  /(?:^|\s)(?:rm|mv|dd|chmod|chown|sudo|su|kill|pkill)(?:\s|$)|git\s+(?:push|reset|clean)|git\s+checkout\s+--|\b(?:curl|wget|ssh|scp)\b|[;&|><`]|\$\(|\$\{|\.\.|~\/\.ephe|\.ephe\/|\.env|\n|(?:^|\s)[/~]|(?:^|\s)-[co]\b|(?:^|\s)--(?:output|config|override-ini|rootdir|git-dir|work-tree|in-place)\b|\bsed\s+-[a-z]*i\b|(?:^|\s)-(?:delete|exec|execdir|ok|okdir|fprint|fls)\b/i
 
 /** The one tool whose args are a shell command line. */
 const SHELL_TOOL = 'run_shell'
@@ -99,11 +116,29 @@ export function shellCommandOf(tool: { name: string; args?: Record<string, unkno
   return ''
 }
 
-export function classifyShellCommand(command: string): 'auto_act' | 'warn_only' {
-  const normalized = command.trim().replace(/[ \t]+/g, ' ')
+function normalize(command: string): string {
+  return command.trim().replace(/[ \t]+/g, ' ')
+}
+
+/** True when the command carries any fail-closed marker. Nothing overrides this. */
+export function isShellForbidden(command: string): boolean {
+  return FORBIDDEN.test(normalize(command))
+}
+
+/** The leading word of a command line, when it is a plain program name. */
+export function shellVerb(command: string): string | null {
+  const verb = normalize(command).split(' ')[0] ?? ''
+  return /^[a-z][a-z0-9._-]*$/i.test(verb) ? verb : null
+}
+
+export function classifyShellCommand(
+  command: string,
+  remembered: readonly string[] = [],
+): 'auto_act' | 'warn_only' {
+  const normalized = normalize(command)
   if (!normalized) return 'warn_only'
   if (FORBIDDEN.test(normalized)) return 'warn_only'
-  const allowed = SAFE_PREFIXES.some(
+  const allowed = [...SAFE_PREFIXES, ...remembered].some(
     (prefix) => normalized === prefix || normalized.startsWith(`${prefix} `),
   )
   return allowed ? 'auto_act' : 'warn_only'
@@ -158,7 +193,8 @@ export function findCopilotTarget(
     // earn its benefit of the doubt. A tool that carries a `command` arg under
     // another name is a tool the co-pilot does not act on.
     const safe =
-      snapshot.waitingTool.name === SHELL_TOOL && classifyShellCommand(command) === 'auto_act'
+      snapshot.waitingTool.name === SHELL_TOOL &&
+      classifyShellCommand(command, snapshot.remembered ?? []) === 'auto_act'
     const selector = '[role="alertdialog"]'
     const reasonKey = command
       ? safe

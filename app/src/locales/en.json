@@ -2576,6 +2576,7 @@
     "empty": "Nothing to recommend right now",
     "focus": "Show",
     "warn": "Needs your review",
+    "rememberShape": "Remember this command shape",
     "action": {
       "approve": "Approve: {{param}}",
       "noApprove": "No auto-approve",

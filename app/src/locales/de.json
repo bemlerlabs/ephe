@@ -2576,6 +2576,7 @@
     "empty": "Gerade nichts zu empfehlen",
     "focus": "Anzeigen",
     "warn": "Braucht deine Prüfung",
+    "rememberShape": "Diese Befehlsform merken",
     "action": {
       "approve": "Freigeben: {{param}}",
       "noApprove": "Keine automatische Freigabe",

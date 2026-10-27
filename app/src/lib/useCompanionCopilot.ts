@@ -11,6 +11,7 @@
  * never talks to the engine: the crawl is a store read plus pure classification.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRememberedShellVerbs } from './companionRemember'
 import { useChatStore } from '@/store/chatStore'
 import { approveSandbox } from '@/lib/api/endpoints'
 import { answerAsk } from '@/lib/api/endpoints'
@@ -46,6 +47,7 @@ export function useCompanionCopilot(args: {
 }): CopilotUi {
   const { enabled, mode, runState, contextPercent, repairVisible } = args
   const session = useChatStore((s) => s.currentSession)
+  const remembered = useRememberedShellVerbs()
   const [finding, setFinding] = useState<CopilotFinding | null>(null)
   const [receipts, setReceipts] = useState<CopilotReceipt[]>([])
   const [deadline, setDeadline] = useState<number | null>(null)
@@ -133,6 +135,7 @@ export function useCompanionCopilot(args: {
     prevRunState.current = runState
 
     const snapshot: CopilotSnapshot = {
+      remembered,
       waitingTool: waiting
         ? { name: waiting.name, args: waiting.args, description: waiting.description }
         : null,
@@ -238,6 +241,7 @@ export function useCompanionCopilot(args: {
     runState,
     contextPercent,
     repairVisible,
+    remembered,
     session,
     cancel,
     highlight,

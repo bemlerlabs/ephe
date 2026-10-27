@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSettings, saveSections } from '@/lib/api'
 import { seedDeepSettings, useDeepBool } from '@/lib/deepSettings'
+import { canRememberShape, rememberShellShape } from '@/lib/companionRemember'
 import type { RunState } from '@/components/shell/AgenticBar'
 import {
   CompanionActor,
@@ -141,6 +142,14 @@ export function CompanionQuickPanel({
     close()
     window.dispatchEvent(new CustomEvent('ephe:open-settings'))
     window.dispatchEvent(new CustomEvent('ephe:settings-tab', { detail: { tab: 'appearance' } }))
+  }
+
+  async function rememberShape(command: string) {
+    if (!rememberShellShape(command)) {
+      setError('that command cannot be remembered')
+      return
+    }
+    setError('')
   }
 
   async function saveMode(next: CopilotMode) {
@@ -290,6 +299,17 @@ export function CompanionQuickPanel({
                 <p className="pt-0.5 text-scale-data text-ink-faint">
                   {t(finding.reasonKey, { param: finding.reasonParam ?? '' })}
                 </p>
+                {finding.target === 'tool_approval' &&
+                  canRememberShape(finding.reasonParam ?? '') && (
+                    <button
+                      type="button"
+                      data-testid="companion-remember-shape"
+                      onClick={() => void rememberShape(finding.reasonParam ?? '')}
+                      className="mt-1 ml-1 focus-ring rounded-md border border-line px-2 py-1 text-ui-xs text-ink-soft hover:bg-surface-interactive"
+                    >
+                      {t('copilot.rememberShape')}
+                    </button>
+                  )}
                 {(countdownRemaining != null || finding.verdict === 'focus') && (
                   <button
                     type="button"
