@@ -465,6 +465,37 @@ fn open_file_in_default_app(path: String) -> Result<(), String> {
     desktop::open_default(&file)
 }
 
+/// N5: preview the file in Quick Look, behind the same path fence.
+#[tauri::command]
+fn quick_look_file(path: String) -> Result<(), String> {
+    let file = desktop::resolve_allowed_file(&path, &desktop::default_roots())?;
+    desktop::quick_look(&file)
+}
+
+/// N8: the dock badge, a short label beside the icon.
+#[tauri::command]
+fn set_dock_badge(window: tauri::WebviewWindow, badge: String) -> Result<(), String> {
+    let label = desktop::dock_badge(&badge)?;
+    #[cfg(target_os = "macos")]
+    window.set_badge_label(label).map_err(|error| error.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    let _ = (window, label);
+    Ok(())
+}
+
+/// N8: the dock progress bar; `percent` missing clears it.
+#[tauri::command]
+fn set_dock_progress(window: tauri::WebviewWindow, percent: Option<f64>) -> Result<(), String> {
+    let progress = desktop::dock_progress(percent)?;
+    use tauri::window::{ProgressBarState, ProgressBarStatus};
+    window
+        .set_progress_bar(ProgressBarState {
+            status: Some(ProgressBarStatus::Normal),
+            progress,
+        })
+        .map_err(|error| error.to_string())
+}
+
 fn handle_menu_id(app: &tauri::AppHandle, id: &str) {
     let Some(action) = menu_action(id) else {
         return;
@@ -674,6 +705,9 @@ pub fn run() {
             write_rich_clipboard,
             reveal_file_in_finder,
             open_file_in_default_app,
+            quick_look_file,
+            set_dock_badge,
+            set_dock_progress,
             pick_attachment,
             pick_folder,
             set_keep_awake,

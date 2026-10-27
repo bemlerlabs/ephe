@@ -20,6 +20,7 @@ import WelcomeEmptyState from '../WelcomeEmptyState'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
+import { syncDockStatus } from '@/lib/dockStatus'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { useDeepBool } from '@/lib/deepSettings'
 import { toggleCompanionEnabled } from '@/lib/companionToggle'
@@ -202,6 +203,15 @@ export default function ChatLayout() {
     askWaiting: runData.activeTurn?.ask?.status === 'waiting',
     plan: runData.plan,
   })
+
+  // N8: the dock icon carries this run — the plan's own ratio while a turn
+  // streams, cleared when it ends. `syncDockStatus` returns before it asks for a
+  // bridge, so the browser path costs nothing.
+  const planDone = runData.plan?.done ?? 0
+  const planTotal = runData.plan?.total ?? 0
+  useEffect(() => {
+    void syncDockStatus({ busy: isTyping, done: planDone, total: planTotal })
+  }, [isTyping, planDone, planTotal])
 
   // A file that lands while another window has the focus is announced by a toast
   // with a way in. The pane itself stays put (docs/AGENT_PANEL_CONDUCT_2026-10-11.md).

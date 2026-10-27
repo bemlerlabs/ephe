@@ -116,6 +116,56 @@ pub fn write_clipboard(_plain: &str, _html: Option<&str>) -> Result<(), String> 
     Err("the typed clipboard is a macOS feature in this build".to_string())
 }
 
+/// The dock badge is a short label beside the icon; a page cannot write more.
+pub const MAX_BADGE_CHARS: usize = 12;
+
+/// `None` clears the badge, a short label sets it, anything longer is refused.
+pub fn dock_badge(label: &str) -> Result<Option<String>, String> {
+    let trimmed = label.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    if trimmed.chars().count() > MAX_BADGE_CHARS {
+        return Err(format!(
+            "badge label is longer than {MAX_BADGE_CHARS} characters"
+        ));
+    }
+    Ok(Some(trimmed.to_string()))
+}
+
+/// A dock progress value in 0..=100, rounded; `None` clears the bar. A value
+/// outside the range is a caller bug and comes back as a refusal, not a clamp:
+/// a bar that quietly shows 100 % for 180 % is a measurement nobody can trust.
+pub fn dock_progress(percent: Option<f64>) -> Result<Option<u64>, String> {
+    match percent {
+        None => Ok(None),
+        Some(value) if value.is_finite() && (0.0..=100.0).contains(&value) => {
+            Ok(Some(value.round() as u64))
+        }
+        Some(_) => Err("dock progress must be between 0 and 100".to_string()),
+    }
+}
+
+/// N5: open the file in the Quick Look panel. `qlmanage -p` runs detached: the
+/// command returns once the panel process exists, so the event loop is never
+/// held while a person reads the preview.
+#[cfg(target_os = "macos")]
+pub fn quick_look(path: &Path) -> Result<(), String> {
+    std::process::Command::new("/usr/bin/qlmanage")
+        .arg("-p")
+        .arg(path)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map(|_child| ())
+        .map_err(|error| format!("Quick Look was not reachable: {error}"))
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn quick_look(_path: &Path) -> Result<(), String> {
+    Err("Quick Look is a macOS feature in this build".to_string())
+}
+
 /// Show the file in its folder. `-R` selects rather than launches it.
 #[cfg(target_os = "macos")]
 pub fn reveal(path: &Path) -> Result<(), String> {
@@ -260,6 +310,36 @@ mod tests {
 
         assert!(resolve_allowed_file(missing.to_str().unwrap(), &[root]).is_err());
         assert!(resolve_allowed_file("   ", &[]).is_err());
+    }
+
+    #[test]
+    fn dock_badge_takes_a_short_label_and_clears_on_empty() {
+        assert_eq!(dock_badge("").unwrap(), None);
+        assert_eq!(dock_badge("   ").unwrap(), None);
+        assert_eq!(dock_badge(" 2/5 ").unwrap().as_deref(), Some("2/5"));
+        assert_eq!(dock_badge("●").unwrap().as_deref(), Some("●"));
+        assert!(dock_badge(&"x".repeat(MAX_BADGE_CHARS + 1)).is_err());
+    }
+
+    #[test]
+    fn dock_progress_refuses_values_outside_the_scale() {
+        assert_eq!(dock_progress(None).unwrap(), None);
+        assert_eq!(dock_progress(Some(0.0)).unwrap(), Some(0));
+        assert_eq!(dock_progress(Some(42.6)).unwrap(), Some(43));
+        assert_eq!(dock_progress(Some(100.0)).unwrap(), Some(100));
+        assert!(dock_progress(Some(100.5)).is_err());
+        assert!(dock_progress(Some(-1.0)).is_err());
+        assert!(dock_progress(Some(f64::NAN)).is_err());
+        assert!(dock_progress(Some(f64::INFINITY)).is_err());
+    }
+
+    #[test]
+    fn quick_look_is_fenced_like_every_other_file_verb() {
+        let scratch = Scratch::new();
+        let root = scratch.0.join("artifacts");
+        std::fs::create_dir_all(&root).unwrap();
+        let outside = scratch.file("elsewhere/secret.txt");
+        assert!(resolve_allowed_file(outside.to_str().unwrap(), &[root]).is_err());
     }
 
     #[test]

@@ -1657,6 +1657,7 @@
     "adoptHint": "Put a copy in your adopt folder",
     "revealInFinder": "Reveal in Finder",
     "openDefault": "Open with the default app",
+    "quickLook": "Quick Look",
     "fileActionFailed": "Ephe may only reveal files in its workbench, its project or your usual save folders.",
     "imageUnavailable": "Image not available",
     "mediaUnavailable": "File not available",

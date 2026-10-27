@@ -34,3 +34,8 @@ export function revealInFinder(path: string): Promise<boolean> {
 export function openInDefaultApp(path: string): Promise<boolean> {
   return invokePath('open_file_in_default_app', path)
 }
+
+/** N5: the native preview panel, behind the same path fence. */
+export function quickLook(path: string): Promise<boolean> {
+  return invokePath('quick_look_file', path)
+}

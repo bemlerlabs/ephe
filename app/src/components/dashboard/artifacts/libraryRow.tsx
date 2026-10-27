@@ -14,6 +14,7 @@ import {
   Check,
   Download,
   ExternalLink,
+  Eye,
   FileCode,
   FileText,
   FolderDown,
@@ -29,7 +30,12 @@ import {
   type ArtifactEntry,
 } from '@/lib/api'
 import { dateLocaleFor } from '@/lib/dateLocale'
-import { canUseNativeFileActions, openInDefaultApp, revealInFinder } from '@/lib/fileActions'
+import {
+  canUseNativeFileActions,
+  openInDefaultApp,
+  quickLook,
+  revealInFinder,
+} from '@/lib/fileActions'
 import { adoptWithTarget } from './adoptFlow'
 
 const IMG = new Set(['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'chart', 'image'])
@@ -143,6 +149,13 @@ export default function ArtifactLibraryRow({
           type="button"
           onClick={onSelect}
           aria-pressed={selected}
+          // N5: a focused row previews with the space bar, the gesture a Mac user
+          // already knows from Finder. Without a shell the key keeps its default.
+          onKeyDown={(e) => {
+            if (e.key !== ' ' || !nativeFiles || !filePath) return
+            e.preventDefault()
+            runFileAction(quickLook)
+          }}
           className="flex min-h-9 max-lg:min-h-11 min-w-0 flex-1 items-center gap-2 rounded text-left focus-visible:outline-ring"
           data-testid={`artifact-select-${art.id}`}
         >
@@ -199,6 +212,19 @@ export default function ArtifactLibraryRow({
         </a>
         {nativeFiles && filePath && (
           <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                runFileAction(quickLook)
+              }}
+              aria-label={`${t('artifacts.quickLook')}: ${art.name}`}
+              title={t('artifacts.quickLook')}
+              data-testid="artifact-quick-look"
+              className="p-1.5 min-h-7 min-w-7 max-lg:min-h-11 max-lg:min-w-11 shrink-0 rounded hover:bg-surface text-ink-soft hover:text-foreground"
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </button>
             <button
               type="button"
               onClick={(e) => {
