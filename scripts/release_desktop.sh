@@ -48,7 +48,16 @@ echo "  … building Ephe ${VERSION} with update artifacts"
 (cd app && npx tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}')
 
 BUNDLE="app/src-tauri/target/release/bundle"
-SIG="${BUNDLE}/macos/Ephe.app.tar.gz.sig"
+# Tauri writes `<product>_<arch>.app.tar.gz` (Ephe_aarch64 on this Mac), not the
+# bare `<product>.app.tar.gz` this script named in four places — so the feed
+# pointed at a URL that 404s and --publish could not upload what it built.
+ARTIFACT="$(find "${BUNDLE}/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit 2>/dev/null || true)"
+if [[ -z "$ARTIFACT" ]]; then
+  echo "  ✗ the build ran through, but the updater artifact is missing under ${BUNDLE}/macos" >&2
+  echo "    without it the updater has nothing to install." >&2
+  exit 1
+fi
+SIG="${ARTIFACT}.sig"
 if [[ ! -f "$SIG" ]]; then
   echo "  ✗ the build ran through, but the signature is missing: $SIG" >&2
   echo "    without it the updater will not accept the artifact." >&2
@@ -56,8 +65,8 @@ if [[ ! -f "$SIG" ]]; then
 fi
 
 FEED="${BUNDLE}/macos/latest.json"
-node - "$VERSION" "$SIG" "$FEED" <<'NODE'
-const [version, sigPath, out] = process.argv.slice(2)
+node - "$VERSION" "$SIG" "$FEED" "$(basename "$ARTIFACT")" <<'NODE'
+const [version, sigPath, out, assetName] = process.argv.slice(2)
 const fs = require('fs')
 const feed = {
   version,
@@ -68,7 +77,7 @@ const feed = {
   platforms: {
     'darwin-aarch64': {
       signature: fs.readFileSync(sigPath, 'utf8').trim(),
-      url: `https://github.com/bemlerlabs/ephe/releases/download/v${version}/Ephe.app.tar.gz`,
+      url: `https://github.com/bemlerlabs/ephe/releases/download/v${version}/${assetName}`,
     },
   },
 }
@@ -83,15 +92,15 @@ if [[ "${1:-}" == "--publish" ]]; then
   TAG="v${VERSION}"
   if gh release view "$TAG" >/dev/null 2>&1; then
     echo "  ⚠ $TAG already exists — nothing created. Upload the artifacts again:"
-    echo "    gh release upload $TAG --clobber ${BUNDLE}/macos/Ephe.app.tar.gz ${BUNDLE}/macos/Ephe.app.tar.gz.sig ${BUNDLE}/macos/latest.json ${BUNDLE}/dmg/Ephe_${VERSION}_aarch64.dmg"
+    echo "    gh release upload $TAG --clobber $ARTIFACT $SIG ${BUNDLE}/macos/latest.json ${BUNDLE}/dmg/Ephe_${VERSION}_aarch64.dmg"
     exit 0
   fi
   # The updater hangs on two things: the artifact AND the feed in the same
   # release. If either is missing, the endpoint answers 404 and the surface
   # says "check not possible" — which is then rightly what it says.
   gh release create "$TAG" \
-    "${BUNDLE}/macos/Ephe.app.tar.gz" \
-    "${BUNDLE}/macos/Ephe.app.tar.gz.sig" \
+    "$ARTIFACT" \
+    "$SIG" \
     "${BUNDLE}/macos/latest.json" \
     "${BUNDLE}/dmg/Ephe_${VERSION}_aarch64.dmg" \
     --title "Ephe ${VERSION}" \
