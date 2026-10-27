@@ -78,11 +78,19 @@ const SAFE_PREFIXES = [
 
 /**
  * Fail-closed patterns. Destructive verbs, state-changing git verbs, network
- * tools, chaining and redirection operators, command substitution, path
- * escapes, the home directory, credential-shaped paths, and multi-line input.
+ * tools, chaining and redirection operators, command substitution, absolute or
+ * home paths, credential-shaped paths, the flags that turn a read-only program
+ * into a writer, and multi-line input.
+ *
+ * The path and flag rows exist because the allowlist is a prefix test: `pytest`
+ * is safe, and `pytest --rootdir /` is the same prefix asking for something
+ * else. A prefix that still matches after any of these fire is refused.
  */
 const FORBIDDEN =
-  /(?:^|\s)(?:rm|mv|dd|chmod|chown|sudo|su|kill|pkill)(?:\s|$)|git\s+(?:push|reset|clean)|git\s+checkout\s+--|\b(?:curl|wget|ssh|scp)\b|[;&|><`]|\$\(|\.\.|~\/\.ephe|\.ephe\/|\.env|\n/i
+  /(?:^|\s)(?:rm|mv|dd|chmod|chown|sudo|su|kill|pkill)(?:\s|$)|git\s+(?:push|reset|clean)|git\s+checkout\s+--|\b(?:curl|wget|ssh|scp)\b|[;&|><`]|\$\(|\$\{|\.\.|~\/\.ephe|\.ephe\/|\.env|\n|(?:^|\s)[/~]|(?:^|\s)-[co]\b|(?:^|\s)--(?:output|config|override-ini|rootdir|git-dir|work-tree)\b/i
+
+/** The one tool whose args are a shell command line. */
+const SHELL_TOOL = 'run_shell'
 
 export function shellCommandOf(tool: { name: string; args?: Record<string, unknown> }): string {
   const args = tool.args ?? {}
@@ -146,7 +154,11 @@ export function findCopilotTarget(
 
   if (snapshot.waitingTool) {
     const command = shellCommandOf(snapshot.waitingTool)
-    const safe = classifyShellCommand(command) === 'auto_act'
+    // The allowlist describes a shell command line, so only the shell tool can
+    // earn its benefit of the doubt. A tool that carries a `command` arg under
+    // another name is a tool the co-pilot does not act on.
+    const safe =
+      snapshot.waitingTool.name === SHELL_TOOL && classifyShellCommand(command) === 'auto_act'
     const selector = '[role="alertdialog"]'
     const reasonKey = command
       ? safe

@@ -33,6 +33,7 @@ import {
   type SetupRepair,
 } from '@/lib/api'
 import { forgetSetupGate } from '@/lib/setupGate'
+import { announceSetupRepair } from '@/lib/companionRepair'
 
 type ProviderKind = 'local_ollama' | 'custom_ollama' | 'openai_compatible'
 
@@ -453,6 +454,13 @@ export default function SetupPage({ onDone }: SetupPageProps) {
       cancelled = true
     }
   }, [])
+
+  // QD-005B: the companion points at this card, so this screen is the one that
+  // says whether it is up. The fact outlives the route — a binding that needs
+  // repair does not stop needing one because the user went back to the chat.
+  useEffect(() => {
+    announceSetupRepair(repair !== null)
+  }, [repair])
 
   // P0-A/P3: auto-scan on mount — parallel multi-engine detection (Ollama +
   // DGX/vLLM). The first reachable candidate with >= 1 model is offered (W3-26).

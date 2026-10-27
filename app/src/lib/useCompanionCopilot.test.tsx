@@ -6,13 +6,18 @@
  * after the full 2500 ms, that Escape and Cancel stop it, and that every
  * executed act leaves a receipt. Nothing here talks to the engine — the
  * endpoint mocks record what the co-pilot would have sent.
+ *
+ * QD-005B adds the two precision edges: a cancel belongs to the token it was
+ * counting for (so a re-render cannot resurrect it, and a fresh token is served
+ * again), and the repair pointer has to land somewhere real.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 
-const { approveSandbox, answerAsk, storeApprovals, state } = vi.hoisted(() => ({
+const { approveSandbox, answerAsk, markSetupIntent, storeApprovals, state } = vi.hoisted(() => ({
   approveSandbox: vi.fn(async () => ({ status: 'ok' })),
   answerAsk: vi.fn(async () => ({ status: 'ok' as const })),
+  markSetupIntent: vi.fn(),
   storeApprovals: {
     approveSandbox: vi.fn(),
     markAskAnswered: vi.fn(),
@@ -21,6 +26,7 @@ const { approveSandbox, answerAsk, storeApprovals, state } = vi.hoisted(() => ({
   state: { currentSession: null as unknown },
 }))
 vi.mock('@/lib/api/endpoints', () => ({ approveSandbox, answerAsk }))
+vi.mock('@/lib/setupGate', () => ({ markSetupIntent }))
 
 vi.mock('@/store/chatStore', () => ({
   useChatStore: (selector: (s: unknown) => unknown) => selector(state),
@@ -69,6 +75,7 @@ function hookArgs(overrides: Partial<Parameters<typeof useCompanionCopilot>[0]> 
 }
 
 let seenEvents: Array<{ type: string; tab?: string }> = []
+Element.prototype.scrollIntoView = vi.fn() as unknown as typeof Element.prototype.scrollIntoView
 const recordPreview = (event: Event) => {
   const detail = (event as CustomEvent<{ tab?: string }>).detail ?? {}
   seenEvents.push({ type: event.type, tab: detail.tab })
@@ -78,11 +85,13 @@ beforeEach(() => {
   vi.useFakeTimers()
   approveSandbox.mockClear()
   answerAsk.mockClear()
+  markSetupIntent.mockClear()
   storeApprovals.approveSandbox.mockClear()
   storeApprovals.markAskAnswered.mockClear()
   storeApprovals.compactSession.mockClear()
   state.currentSession = null
   seenEvents = []
+  window.location.hash = ''
   window.addEventListener('ephe:preview-open', recordPreview)
 })
 
@@ -94,7 +103,7 @@ afterEach(() => {
 describe('useCompanionCopilot — the loop', () => {
   it('a safe waiting check counts down and approves after the full 2500 ms', async () => {
     state.currentSession = sessionWith([
-      assistant({ id: 't1', name: 'execute_code', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
     ])
     const { result } = renderHook(() => useCompanionCopilot(hookArgs()))
     expect(result.current.finding?.verdict).toBe('auto_act')
@@ -113,7 +122,7 @@ describe('useCompanionCopilot — the loop', () => {
 
   it('a risky command never starts a countdown and never approves', () => {
     state.currentSession = sessionWith([
-      assistant({ id: 't1', name: 'execute_code', args: { command: 'rm -rf .' }, status: 'waiting', description: 'token-1' }),
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'rm -rf .' }, status: 'waiting', description: 'token-1' }),
     ])
     const { result } = renderHook(() => useCompanionCopilot(hookArgs()))
     expect(result.current.finding?.verdict).toBe('warn_only')
@@ -124,7 +133,7 @@ describe('useCompanionCopilot — the loop', () => {
 
   it('Cancel stops the act and leaves no receipt', () => {
     state.currentSession = sessionWith([
-      assistant({ id: 't1', name: 'execute_code', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
     ])
     const { result } = renderHook(() => useCompanionCopilot(hookArgs()))
     act(() => result.current.cancel())
@@ -135,12 +144,63 @@ describe('useCompanionCopilot — the loop', () => {
 
   it('Escape stops the countdown like Cancel does', () => {
     state.currentSession = sessionWith([
-      assistant({ id: 't1', name: 'execute_code', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
     ])
     renderHook(() => useCompanionCopilot(hookArgs()))
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     vi.advanceTimersByTime(3000)
     expect(approveSandbox).not.toHaveBeenCalled()
+  })
+
+  it('a canceled prompt stays canceled through a re-render of the same token', () => {
+    state.currentSession = sessionWith([
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'tok-1' }),
+    ])
+    const { rerender, result } = renderHook((props) => useCompanionCopilot(props), {
+      initialProps: hookArgs(),
+    })
+    act(() => result.current.cancel())
+    expect(result.current.countdownRemaining).toBeNull()
+
+    rerender(hookArgs({ contextPercent: 41 }))
+    expect(result.current.countdownRemaining).toBeNull()
+    vi.advanceTimersByTime(3000)
+    expect(approveSandbox).not.toHaveBeenCalled()
+    expect(result.current.receipts).toHaveLength(0)
+  })
+
+  it('Escape is sticky too: the same token never counts down twice', () => {
+    state.currentSession = sessionWith([
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'tok-1' }),
+    ])
+    const { rerender, result } = renderHook((props) => useCompanionCopilot(props), {
+      initialProps: hookArgs(),
+    })
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    rerender(hookArgs({ runState: 'waiting' }))
+    expect(result.current.countdownRemaining).toBeNull()
+    vi.advanceTimersByTime(3000)
+    expect(approveSandbox).not.toHaveBeenCalled()
+  })
+
+  it('the same command a second time has a new token and is served again', async () => {
+    state.currentSession = sessionWith([
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'tok-1' }),
+    ])
+    const { rerender, result } = renderHook((props) => useCompanionCopilot(props), {
+      initialProps: hookArgs(),
+    })
+    await vi.advanceTimersByTimeAsync(2500)
+    expect(approveSandbox).toHaveBeenCalledWith('tok-1', true, false)
+
+    state.currentSession = sessionWith([
+      assistant({ id: 't2', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'tok-2' }),
+    ])
+    rerender(hookArgs())
+    expect(result.current.countdownRemaining).not.toBeNull()
+    await vi.advanceTimersByTimeAsync(2500)
+    expect(approveSandbox).toHaveBeenLastCalledWith('tok-2', true, false)
+    expect(result.current.receipts).toHaveLength(2)
   })
 
   it('a question with one matching recommendation answers itself', async () => {
@@ -200,7 +260,7 @@ describe('useCompanionCopilot — the loop', () => {
 
   it('perch crawls nothing, scout points without acting', () => {
     state.currentSession = sessionWith([
-      assistant({ id: 't1', name: 'execute_code', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'token-1' }),
     ])
     const perch = renderHook(() => useCompanionCopilot(hookArgs({ mode: 'perch' })))
     expect(perch.result.current.finding).toBeNull()
@@ -209,5 +269,32 @@ describe('useCompanionCopilot — the loop', () => {
     expect(scout.result.current.finding?.verdict).toBe('focus')
     vi.advanceTimersByTime(3000)
     expect(approveSandbox).not.toHaveBeenCalled()
+  })
+
+  it('a repair the chat cannot show takes the user to the screen that can', () => {
+    state.currentSession = sessionWith([{ id: 'm1', role: 'user', content: 'hi', timestamp: 1 }])
+    const { result } = renderHook(() => useCompanionCopilot(hookArgs({ repairVisible: true })))
+    expect(result.current.finding).toMatchObject({
+      target: 'error_or_setup_repair',
+      verdict: 'focus',
+    })
+    act(() => result.current.focus())
+    expect(markSetupIntent).toHaveBeenCalledTimes(1)
+    expect(window.location.hash).toBe('#/setup')
+  })
+
+  it('a repair card already on screen is highlighted, not re-routed', () => {
+    state.currentSession = sessionWith([{ id: 'm1', role: 'user', content: 'hi', timestamp: 1 }])
+    const card = document.createElement('div')
+    card.dataset.testid = 'setup-repair'
+    document.body.appendChild(card)
+    try {
+      const { result } = renderHook(() => useCompanionCopilot(hookArgs({ repairVisible: true })))
+      act(() => result.current.focus())
+      expect(card.dataset.copilotHighlight).toBe('true')
+      expect(markSetupIntent).not.toHaveBeenCalled()
+    } finally {
+      card.remove()
+    }
   })
 })

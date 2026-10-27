@@ -33,6 +33,7 @@ vi.mock('@/lib/engineKey', () => ({
 }))
 
 import SetupPage from './SetupPage'
+import { announceSetupRepair, setupRepairSnapshot } from '@/lib/companionRepair'
 
 const REPAIR = {
   code: 'engine_key_mismatch',
@@ -67,6 +68,7 @@ beforeEach(() => {
   updateSettings.mockClear()
   storeEngineKey.mockClear()
   getSetupStatus.mockReset()
+  announceSetupRepair(false)
 })
 
 describe('SetupPage engine-key repair (T2)', () => {
@@ -168,5 +170,32 @@ describe('SetupPage engine-key repair (T2)', () => {
 
     await waitFor(() => expect(getSetupStatus).toHaveBeenCalled())
     expect(screen.queryByTestId('setup-repair')).toBeNull()
+  })
+
+  it('announces the repair it renders, so the companion can point at it', async () => {
+    getSetupStatus.mockResolvedValue(STATUS)
+
+    render(<SetupPage onDone={vi.fn()} />)
+
+    await screen.findByTestId('setup-repair')
+    expect(setupRepairSnapshot()).toBe(true)
+  })
+
+  it('stops announcing a repair the user dismissed', async () => {
+    getSetupStatus.mockResolvedValue(STATUS)
+
+    render(<SetupPage onDone={vi.fn()} />)
+
+    fireEvent.click(await screen.findByTestId('setup-repair-cancel'))
+    expect(setupRepairSnapshot()).toBe(false)
+  })
+
+  it('a plain first start announces nothing', async () => {
+    getSetupStatus.mockResolvedValue({ ...STATUS, repair: null })
+
+    render(<SetupPage onDone={vi.fn()} />)
+
+    await waitFor(() => expect(getSetupStatus).toHaveBeenCalled())
+    expect(setupRepairSnapshot()).toBe(false)
   })
 })

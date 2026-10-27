@@ -360,6 +360,7 @@ export default function ChatLayout() {
                   <HeaderCompanion
                     runState={runState}
                     hasMessages={(currentSession?.messages.length ?? 0) > 0}
+                    contextPercent={contextPercent}
                   />
                   {/* QD-005: the summon switch that works whatever the behavior is. */}
                   <button

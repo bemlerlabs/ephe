@@ -1,7 +1,22 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { seedDeepSettings } from '@/lib/deepSettings'
 import type { DeepSection } from '@/types'
+
+const { state, approveSandbox } = vi.hoisted(() => ({
+  state: { currentSession: null as unknown },
+  approveSandbox: vi.fn(async () => ({ status: 'ok' })),
+}))
+vi.mock('@/store/chatStore', () => ({
+  useChatStore: Object.assign(
+    (selector: (s: unknown) => unknown) => selector(state),
+    { getState: () => ({ approveSandbox: vi.fn(), markAskAnswered: vi.fn(), compactSession: vi.fn() }) },
+  ),
+}))
+vi.mock('@/lib/api/endpoints', () => ({
+  approveSandbox,
+  answerAsk: vi.fn(async () => ({ status: 'ok' })),
+}))
 
 vi.mock('framer-motion', async (importOriginal) => {
   const orig = await importOriginal<typeof import('framer-motion')>()
@@ -9,6 +24,7 @@ vi.mock('framer-motion', async (importOriginal) => {
 })
 
 import HeaderCompanion from './HeaderCompanion'
+import WorkspaceCompanion from './WorkspaceCompanion'
 
 function seed(entries: Record<string, string | number | boolean>) {
   seedDeepSettings([
@@ -17,6 +33,38 @@ function seed(entries: Record<string, string | number | boolean>) {
     },
   ] as unknown as DeepSection[])
 }
+
+/** A session with one waiting shell check the co-pilot would classify as safe. */
+function waitingSession(): unknown {
+  return {
+    id: 's1',
+    title: 't',
+    createdAt: 1,
+    updatedAt: 1,
+    messages: [
+      {
+        id: 'm1',
+        role: 'assistant',
+        content: '',
+        timestamp: 1,
+        tool_calls: [
+          {
+            id: 't1',
+            name: 'run_shell',
+            args: { command: 'pytest' },
+            status: 'waiting',
+            description: 'tok-1',
+          },
+        ],
+      },
+    ],
+  }
+}
+
+beforeEach(() => {
+  approveSandbox.mockClear()
+  state.currentSession = null
+})
 
 afterEach(() => seedDeepSettings(null))
 
@@ -51,5 +99,35 @@ describe('HeaderCompanion', () => {
     expect(screen.getByTestId('header-companion').dataset.mood).toBe('still')
     rerender(<HeaderCompanion runState="done" hasMessages />)
     expect(screen.getByTestId('header-companion').dataset.mood).toBe('settle')
+  })
+
+  it('carries the co-pilot into the perch popover', () => {
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'header' })
+    state.currentSession = waitingSession()
+    render(<HeaderCompanion runState="ready" hasMessages />)
+    fireEvent.click(screen.getByTestId('companion-trigger'))
+    expect(screen.getByTestId('companion-mode-row')).toBeTruthy()
+    expect(screen.getByTestId('companion-copilot-row')).toBeTruthy()
+    // The act button is the cancel one only while a countdown is actually running.
+    expect(screen.getByTestId('companion-popover-copilot-act')).toBeTruthy()
+  })
+
+  it('the perch the behavior chose runs the loop once, whatever else is mounted', async () => {
+    vi.useFakeTimers()
+    try {
+      seed({ 'appearance.companion_enabled': true, 'appearance.companion_behavior': 'header' })
+      state.currentSession = waitingSession()
+      render(
+        <>
+          <HeaderCompanion runState="ready" hasMessages />
+          <WorkspaceCompanion runState="ready" hasMessages />
+        </>,
+      )
+      await vi.advanceTimersByTimeAsync(2500)
+      expect(approveSandbox).toHaveBeenCalledTimes(1)
+      expect(approveSandbox).toHaveBeenCalledWith('tok-1', true, false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

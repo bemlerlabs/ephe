@@ -10,6 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { seedDeepSettings } from '@/lib/deepSettings'
+import { announceSetupRepair } from '@/lib/companionRepair'
 import type { DeepSection } from '@/types'
 
 vi.mock('framer-motion', async (importOriginal) => {
@@ -27,7 +28,10 @@ function seed(entries: Record<string, string | number | boolean>) {
   ] as unknown as DeepSection[])
 }
 
-afterEach(() => seedDeepSettings(null))
+afterEach(() => {
+  seedDeepSettings(null)
+  announceSetupRepair(false)
+})
 
 describe('WorkspaceCompanion', () => {
   it('a fresh boot stays calm until the companion is summoned', () => {
@@ -85,6 +89,13 @@ describe('WorkspaceCompanion', () => {
     expect(companion.querySelector('.companion-spark-eyes')).toBeTruthy()
     const actor = companion.querySelector<HTMLElement>('.companion-actor')
     expect(actor?.style.getPropertyValue('--companion-scale')).toBe('1.2')
+  })
+
+  it('points at the repair the setup screen announced', () => {
+    seed({ 'appearance.companion_enabled': true })
+    announceSetupRepair(true)
+    render(<WorkspaceCompanion runState="ready" hasMessages />)
+    expect(screen.getByTestId('companion-copilot-chip').dataset.verdict).toBe('focus')
   })
 
   it('takes its mood from the one run state the bar shows', () => {

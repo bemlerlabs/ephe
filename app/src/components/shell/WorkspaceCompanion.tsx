@@ -17,6 +17,7 @@ import { CompanionQuickPanel } from './CompanionQuickPanel'
 import type { CompanionSpecies } from './CompanionActor'
 import { companionMood } from './companionState'
 import { useCompanionCopilot } from '@/lib/useCompanionCopilot'
+import { useSetupRepair } from '@/lib/companionRepair'
 import type { CopilotMode } from '@/lib/companionCopilot'
 import { useTranslation } from 'react-i18next'
 
@@ -41,16 +42,21 @@ export default function WorkspaceCompanion({
   const reduced = useReducedMotion()
   const mood = companionMood(runState)
   const still = Boolean(reduced) || !animationsEnabled || mood === 'still' || mood === 'settle'
+  const repairVisible = useSetupRepair()
+  // The co-pilot loop runs in exactly one surface: the perch the register chose,
+  // and only once the chat has something to crawl. A second instance would
+  // approve the same prompt twice.
+  const shows = enabled && hasMessages && behavior !== 'welcome_only' && behavior !== 'header'
 
   const copilot = useCompanionCopilot({
-    enabled,
+    enabled: shows,
     mode: mode as CopilotMode,
     runState,
     contextPercent: contextPercent ?? null,
-    repairVisible: false,
+    repairVisible,
   })
 
-  if (!enabled || !hasMessages || behavior === 'welcome_only' || behavior === 'header') return null
+  if (!shows) return null
 
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)

@@ -41,8 +41,9 @@ function snap(overrides: Partial<CopilotSnapshot> = {}): CopilotSnapshot {
   }
 }
 
+/** The shell tool is the one that carries a command; the co-pilot knows no other. */
 function waitingTool(command: string) {
-  return { name: 'execute_code', args: { command }, description: 'token-1' }
+  return { name: 'run_shell', args: { command }, description: 'token-1' }
 }
 
 describe('classifyShellCommand — the allowlist is the whole security boundary', () => {
@@ -103,6 +104,16 @@ describe('classifyShellCommand — the allowlist is the whole security boundary'
     '',
     'pytest;',
     'echo hello',
+    'pytest /tmp/a',
+    'pytest ~/a',
+    'git diff ~/a',
+    'echo ${HOME}',
+    'git diff --output=x',
+    'git -c a=b status',
+    'pytest -o a=b',
+    'pytest --override-ini=a=b',
+    'pytest --rootdir /tmp/a',
+    'cargo test --config a=b',
   ])('refuses %j, chained or out of the workspace', (command) => {
     expect(classifyShellCommand(command)).toBe('warn_only')
   })
@@ -204,6 +215,18 @@ describe('findCopilotTarget — the five targets through the three modes', () =>
     )
     expect(finding?.verdict).toBe('warn_only')
     expect(finding?.reasonKey).toBe('copilot.reason.commandUnreadable')
+  })
+
+  it('only the shell tool can earn an automatic approval', () => {
+    const other = { name: 'execute_code', args: { command: 'pytest' }, description: 't' }
+    const finding = findCopilotTarget(snap({ waitingTool: other }), 'copilot')
+    expect(finding).toMatchObject({ verdict: 'warn_only', actionKey: 'copilot.action.noApprove' })
+  })
+
+  it('scout reads a non-shell tool as a risk it would not approve', () => {
+    const other = { name: 'write_file', args: { command: 'pytest' }, description: 't' }
+    const finding = findCopilotTarget(snap({ waitingTool: other }), 'scout')
+    expect(finding).toMatchObject({ verdict: 'focus', actionKey: 'copilot.action.reviewRisk' })
   })
 
   it('scout points at the approval dialog but never acts', () => {

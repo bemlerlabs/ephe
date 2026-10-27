@@ -15,6 +15,7 @@ import { useChatStore } from '@/store/chatStore'
 import { approveSandbox } from '@/lib/api/endpoints'
 import { answerAsk } from '@/lib/api/endpoints'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import { markSetupIntent } from '@/lib/setupGate'
 import {
   bindEscapeCancel,
   COUNTDOWN_MS,
@@ -53,6 +54,7 @@ export function useCompanionCopilot(args: {
   const countdown = useRef<CopilotCountdown | null>(null)
   const escapeRelease = useRef<(() => void) | null>(null)
   const executedKey = useRef<string | null>(null)
+  const activeKey = useRef<string | null>(null)
   const prevRunState = useRef(args.runState)
   const compactedSession = useRef<string | null>(null)
 
@@ -65,6 +67,11 @@ export function useCompanionCopilot(args: {
     countdown.current = null
     escapeRelease.current?.()
     escapeRelease.current = null
+    // A countdown the user stopped belongs to the prompt it was counting for.
+    // Remembering that key is what keeps a later re-render of the same waiting
+    // tool from offering the act again.
+    if (activeKey.current) executedKey.current = activeKey.current
+    activeKey.current = null
     setDeadline(null)
     setRemaining(null)
   }, [])
@@ -81,11 +88,19 @@ export function useCompanionCopilot(args: {
 
   const focus = useCallback(() => {
     const selector = finding?.selector ?? null
+    const onScreen = selector !== null && document.querySelector(selector) !== null
     highlight(selector)
     if (selector) {
       const el = document.querySelector<HTMLElement>(selector)
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       el?.focus({ preventScroll: true })
+    }
+    // The repair card is drawn on the setup route, so a repair the chat cannot
+    // show is a repair the pointer has to walk the user to. Same hand-off the
+    // engine chip uses: mark the intent, then the hash.
+    if (!onScreen && repairVisible && finding?.target === 'error_or_setup_repair') {
+      markSetupIntent()
+      window.location.hash = '#/setup'
     }
     if (finding) {
       log({
@@ -96,7 +111,7 @@ export function useCompanionCopilot(args: {
         reasonKey: finding.reasonKey,
       })
     }
-  }, [finding, highlight, log])
+  }, [finding, highlight, log, repairVisible])
 
   useEffect(() => {
     if (!enabled || mode === 'perch') {
@@ -155,12 +170,18 @@ export function useCompanionCopilot(args: {
       return
     }
 
-    const key = `${session?.id ?? '?'}:${next.target}:${next.actionKey}:${next.actionParam ?? ''}`
+    // The token is what makes two runs of the same command two prompts: the
+    // key has to name the call, not only the session and the verb.
+    const token = snapshot.waitingTool?.description ?? snapshot.ask?.token ?? ''
+    const key = `${session?.id ?? '?'}:${next.target}:${next.actionKey}:${
+      next.actionParam ?? ''
+    }:${token}`
     if (executedKey.current === key) return
     if (countdown.current) return
 
     const count = new CopilotCountdown(COUNTDOWN_MS)
     countdown.current = count
+    activeKey.current = key
     setDeadline(Date.now() + COUNTDOWN_MS)
     setRemaining(COUNTDOWN_MS)
     escapeRelease.current = bindEscapeCancel(cancel)
@@ -171,6 +192,7 @@ export function useCompanionCopilot(args: {
       setDeadline(null)
       setRemaining(null)
       executedKey.current = key
+      activeKey.current = null
 
       const entry = {
         target: next.target,
