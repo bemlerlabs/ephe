@@ -11,7 +11,9 @@ ten values 1..10 put p90 at 9 and p95 at 10.
 """
 from __future__ import annotations
 
+import itertools
 import json
+import re
 import subprocess
 import sys
 
@@ -29,6 +31,11 @@ LEG = "pytest-linux (py3.10)"
 
 
 BASE = datetime(2026, 10, 11, 0, 0, 0, tzinfo=timezone.utc)
+
+
+def matrix_axis(axis: str) -> re.Pattern[str]:
+    """The GitHub expression naming one matrix axis, whatever the inner spacing."""
+    return re.compile(r"\$\{\{\s*matrix\." + re.escape(axis) + r"\s*\}\}")
 
 
 def stamp(hour: int, minute: int, second: int) -> str:
@@ -237,12 +244,54 @@ class TestBudgetFileAgreesWithTheWorkflows:
             if isinstance(step, dict) and "name" in step
         }
 
-    def job_name_prefixes(self) -> list[str]:
-        """The static part of each job display name, with any matrix expression cut off."""
-        return [
-            job.get("name", "").split("${{", 1)[0].strip()
-            for job in self.tests_yml["jobs"].values()
+    def expanded_job_names(self) -> list[str]:
+        """Every job display name GitHub renders, one per matrix combination.
+
+        A `${{ matrix.x }}` inside a custom name is substituted per combination, and a
+        static name on a matrix job gets the combination appended. The prefix this
+        replaces could not see a dropped leg: after the matrix lost `'3.10'` it still
+        answered `"pytest-linux (py"` for every leg that ever existed.
+        """
+        names: list[str] = []
+        for job in self.tests_yml["jobs"].values():
+            name = job.get("name", "")
+            matrix = job.get("strategy", {}).get("matrix", {})
+            if not name:
+                continue
+            if not matrix:
+                names.append(name)
+                continue
+            keys = list(matrix)
+            for combo in itertools.product(*(matrix[key] for key in keys)):
+                rendered = name
+                for axis, value in zip(keys, combo):
+                    rendered = matrix_axis(axis).sub(str(value), rendered)
+                if rendered == name:
+                    rendered = f"{name} ({', '.join(map(str, combo))})"
+                names.append(rendered)
+        return names
+
+    def _missing_legs(self, legs: list[str]) -> list[str]:
+        known = set(self.expanded_job_names())
+        return [leg for leg in legs if leg not in known]
+
+    def test_every_required_leg_matches_a_job_name_in_the_workflow(self):
+        unmatched = self._missing_legs(self.data["required_legs"])
+        assert not unmatched, f"required legs no workflow declares: {unmatched}"
+
+    def test_every_budgeted_entry_names_a_job_in_the_workflow(self):
+        entries = [
+            entry["measured_as"].split(" :: ", 1)[0]
+            for entry in self.data["entries"]
+            if " :: " in entry["measured_as"]
         ]
+        unmatched = self._missing_legs(entries)
+        assert not unmatched, f"budgeted jobs no workflow declares: {sorted(set(unmatched))}"
+
+    def test_a_nonexistent_matrix_leg_is_refused(self):
+        """The negative path: a leg the matrix never renders has to fail, not prefix-match."""
+        missing = self._missing_legs(["pytest-linux (py3.99)", "Integration checks (3.99)"])
+        assert missing == ["pytest-linux (py3.99)", "Integration checks (3.99)"]
 
     def test_the_file_is_a_versioned_ratchet_like_the_other_baselines(self):
         assert self.data["policy"] == "runner-timing-budget"
@@ -258,14 +307,6 @@ class TestBudgetFileAgreesWithTheWorkflows:
             if entry["measured_as"].split(" :: ", 1)[1] not in known
         ]
         assert not missing, f"budgeted steps absent from tests.yml: {sorted(set(missing))}"
-
-    def test_every_required_leg_matches_a_job_name_in_the_workflow(self):
-        prefixes = [p for p in self.job_name_prefixes() if p]
-        unmatched = [
-            leg for leg in self.data["required_legs"]
-            if not any(leg.startswith(prefix) or prefix.startswith(leg) for prefix in prefixes)
-        ]
-        assert not unmatched, f"required legs no workflow declares: {unmatched}"
 
     def test_a_budget_sits_above_its_own_measured_p90(self):
         """A budget below the number it was written from is a red the moment it lands."""
