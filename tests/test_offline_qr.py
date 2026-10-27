@@ -267,6 +267,35 @@ def test_mobile_host_without_an_authority_is_refused_too(monkeypatch):
 
 
 @pytest.mark.parametrize(
+    "value", ["data:text/html,x", "javascript:alert(1)", "mailto:someone@example.com"],
+)
+def test_mobile_host_with_a_bare_scheme_colon_is_refused(monkeypatch, value):
+    """Given a scheme written without its slashes, when the base URL is built,
+    then the answer is None instead of an http:// URL around that text."""
+    from server.routes import mobile
+
+    monkeypatch.setenv("EPHE_MOBILE_HOST", value)
+    assert mobile._configured_mobile_base_url(8765) is None
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("192.168.1.10:9000", "http://192.168.1.10:9000"),
+        ("[fe80::1]:9000", "http://[fe80::1]:9000"),
+        ("[fe80::1]", "http://[fe80::1]:8765"),
+    ],
+)
+def test_mobile_host_with_its_own_port_keeps_it(monkeypatch, value, expected):
+    """Given a host that already names a port, when the base URL is built, then
+    the route's default port is not appended a second time."""
+    from server.routes import mobile
+
+    monkeypatch.setenv("EPHE_MOBILE_HOST", value)
+    assert mobile._configured_mobile_base_url(8765) == expected
+
+
+@pytest.mark.parametrize(
     "value,expected",
     [
         ("http://192.168.1.10:8765", "http://192.168.1.10:8765"),

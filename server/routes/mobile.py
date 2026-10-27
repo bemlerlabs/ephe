@@ -42,6 +42,31 @@ def _is_docker_runtime() -> bool:
     return (os.environ.get("EPHE_DOCKER")) == "1" or os.path.exists("/.dockerenv")
 
 
+def _split_host_port(host: str) -> tuple[str, str] | None:
+    """(host, port | "") for a scheme-less authority, or None when it is not one.
+
+    A colon without a numeric port is the shape of another scheme written without
+    its slashes (`data:text/html,x`, `javascript:alert(1)`), and handing that to
+    `urlopen` as `http://…` is the same escape the scheme check above closes.
+    """
+    if host.startswith("["):
+        end = host.find("]")
+        if end < 0:
+            return None
+        rest = host[end + 1 :]
+        if rest == "":
+            return host[: end + 1], ""
+        if rest.startswith(":") and rest[1:].isdigit():
+            return host[: end + 1], rest[1:]
+        return None
+    if ":" not in host:
+        return host, ""
+    name, _, own_port = host.rpartition(":")
+    if not name or not own_port.isdigit():
+        return None
+    return name, own_port
+
+
 def _configured_mobile_base_url(port: int) -> str | None:
     host = (os.environ.get("EPHE_MOBILE_HOST") or "").strip()
     if not host:
@@ -54,7 +79,11 @@ def _configured_mobile_base_url(port: int) -> str | None:
         if parsed.scheme in ("http", "https") and parsed.netloc:
             return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
         return None
-    return f"http://{host}:{port}".rstrip("/")
+    authority = _split_host_port(host)
+    if authority is None:
+        return None
+    name, own_port = authority
+    return f"http://{name}:{own_port or port}".rstrip("/")
 
 
 def _lan_probe_succeeds(base_url: str) -> bool:
