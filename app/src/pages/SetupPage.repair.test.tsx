@@ -1,5 +1,5 @@
 // T2 — a start the stored key refused lands here, and the screen names the ways out.
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -68,6 +68,13 @@ beforeEach(() => {
   updateSettings.mockClear()
   storeEngineKey.mockClear()
   getSetupStatus.mockReset()
+  announceSetupRepair(false)
+})
+
+// The store is module-wide, so a case that leaves it announced for the next one turns
+// the file order into an input. Both edges reset it: the mount effect is not the only
+// writer, and a red assertion has to mean the screen, not the suite.
+afterEach(() => {
   announceSetupRepair(false)
 })
 
@@ -178,7 +185,9 @@ describe('SetupPage engine-key repair (T2)', () => {
     render(<SetupPage onDone={vi.fn()} />)
 
     await screen.findByTestId('setup-repair')
-    expect(setupRepairSnapshot()).toBe(true)
+    // The announce is the effect that follows the card's commit; under load the two can
+    // land in either order, so the assertion waits for the store instead of racing it.
+    await waitFor(() => expect(setupRepairSnapshot()).toBe(true))
   })
 
   it('stops announcing a repair the user dismissed', async () => {
@@ -187,7 +196,7 @@ describe('SetupPage engine-key repair (T2)', () => {
     render(<SetupPage onDone={vi.fn()} />)
 
     fireEvent.click(await screen.findByTestId('setup-repair-cancel'))
-    expect(setupRepairSnapshot()).toBe(false)
+    await waitFor(() => expect(setupRepairSnapshot()).toBe(false))
   })
 
   it('a plain first start announces nothing', async () => {
@@ -196,6 +205,7 @@ describe('SetupPage engine-key repair (T2)', () => {
     render(<SetupPage onDone={vi.fn()} />)
 
     await waitFor(() => expect(getSetupStatus).toHaveBeenCalled())
+    await waitFor(() => expect(screen.queryByTestId('setup-repair')).toBeNull())
     expect(setupRepairSnapshot()).toBe(false)
   })
 })
