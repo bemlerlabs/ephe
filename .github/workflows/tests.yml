@@ -67,7 +67,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          # CI-5: the patch lives here because the job name, and with it the required
+          # check-run name, reads the matrix label.
+          python-version: ${{ matrix.python-version == '3.13' && '3.13.18' || matrix.python-version }}
           cache: 'pip'
 
       - name: Move a pull request's install out of the shared interpreter
@@ -423,7 +425,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          # CI-5: the patch lives here because the job name, and with it the required
+          # check-run name, reads the matrix label.
+          python-version: ${{ matrix.python-version == '3.13' && '3.13.18' || matrix.python-version }}
           cache: 'pip'
 
       - name: Move a pull request's install out of the shared interpreter

@@ -70,6 +70,10 @@ jobs:
         env:
           EPHE_CLEAN_ROOM_ROOT: ${{ runner.temp }}/clean-room
           EPHE_CLEAN_ROOM_SOURCE: ${{ github.workspace }}
+          # CI-5 stays at the minor here on purpose: these legs fetch their interpreter with uv,
+          # and uv 0.13.5's index ends at cpython-3.13.17 (measured `uv python list
+          # --all-versions` on 2026-10-27), so a 3.13.18 request would refuse to install. The two
+          # legs whose interpreter comes from actions/setup-python carry the patch pin.
           EPHE_CLEAN_ROOM_PYTHONS: ${{ matrix.python-version }}
           EPHE_CLEAN_ROOM_TARGETS: py,js
         run: bash scripts/clean_room_install.sh
