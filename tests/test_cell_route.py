@@ -28,7 +28,11 @@ def _clean_cells():
 def test_unbekannte_session_antwortet_leer_statt_null(tmp_path, monkeypatch):
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
     body = _client().get("/api/cell", params={"session": "nie-geboren"}).json()
-    assert body["cell"] == {"alive": False, "calls": 0, "avg_ms": None}
+    assert body["cell"]["alive"] is False
+    assert body["cell"]["calls"] == 0
+    assert body["cell"]["avg_ms"] is None
+    # The line needs the containment fact even before a cell exists (F9).
+    assert isinstance(body["cell"]["contained"], bool)
 
 
 def test_lauf_erscheint_in_der_zeile_mit_seinen_echten_zahlen(tmp_path, monkeypatch):
