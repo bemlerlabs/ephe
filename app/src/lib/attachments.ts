@@ -15,6 +15,8 @@ interface AttachmentBase {
   size?: number
   /** `loading` while the file is read, `error` when it could not be read. */
   status?: 'loading' | 'ready' | 'error'
+  /** N7: text Vision read off an image attachment, cached before the send. */
+  ocrText?: string
 }
 
 export type ChatAttachment =

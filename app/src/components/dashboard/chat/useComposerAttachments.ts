@@ -14,6 +14,7 @@ import {
   type PickedAttachment,
 } from '@/lib/attachments'
 import { tauriInvoke } from '@/lib/tauriBridge'
+import { ocrImageText } from '@/lib/visionOcr'
 
 /**
  * G3/P10-F1/P1-4: composer attachments — paste, drag & drop anywhere in the
@@ -67,6 +68,16 @@ export function useComposerAttachments({
       try {
         const ready = await fileToAttachment(f)
         setAttachments((prev) => prev.map((a) => (a === placeholder ? ready : a)))
+        // N7: the text comes off the picture on this machine, before any engine
+        // sees it — a text-only model then still knows what the screenshot says.
+        if (ready.kind === 'image') {
+          void ocrImageText(ready.dataUrl).then((text) => {
+            if (!text) return
+            setAttachments((prev) =>
+              prev.map((a) => (a.path === ready.path && a.kind === 'image' ? { ...a, ocrText: text } : a)),
+            )
+          })
+        }
       } catch {
         // The card says which file could not be read; the user can remove it.
         setAttachments((prev) =>

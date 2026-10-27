@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { ChatAttachment } from '@/lib/attachments'
 import { ComposerHistory } from '@/lib/composerHistory'
+import { annotateWithOcr } from '@/lib/ocrAnnotation'
 
 /**
  * G1.3/DD-01 + queue editing: the composer send pipeline — draft history and
@@ -50,7 +51,7 @@ export function useComposerSendPipeline({
     if (streaming) {
       if (!allowInputWhileStreaming) return
       if (message.trim()) {
-        history.enqueue(message.trim(), attachments.length > 0 ? attachments : undefined)
+        history.enqueue(annotateWithOcr(message.trim(), attachments), attachments.length > 0 ? attachments : undefined)
         setMessage('')
         setAttachments([])
         refreshUi()
@@ -75,7 +76,7 @@ export function useComposerSendPipeline({
       return
     }
     if (message.trim()) {
-      onSend(message.trim(), attachments.length > 0 ? attachments : undefined)
+      onSend(annotateWithOcr(message.trim(), attachments), attachments.length > 0 ? attachments : undefined)
       history.add(message.trim())
       setMessage('')
       setAttachments([])

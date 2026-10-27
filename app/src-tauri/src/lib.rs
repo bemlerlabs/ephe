@@ -23,6 +23,7 @@ mod browser;
 #[cfg(unix)]
 mod backend;
 mod desktop;
+mod vision;
 mod instance;
 mod parity;
 
@@ -472,6 +473,25 @@ fn quick_look_file(path: String) -> Result<(), String> {
     desktop::quick_look(&file)
 }
 
+/// N7: text from an attached image, read on the Neural Engine. `image` is a data
+/// URL from a paste or a fenced path from the dialog; both reach Vision locally.
+#[tauri::command]
+fn extract_image_text(image: String) -> Result<String, String> {
+    use base64::Engine;
+    let trimmed = image.trim();
+    if let Some(payload) = trimmed.strip_prefix("data:") {
+        let (_, body) = payload
+            .split_once(',')
+            .ok_or_else(|| "image data URL carries no payload".to_string())?;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(body)
+            .map_err(|_| "image data URL is not base64".to_string())?;
+        return vision::extract_bytes(&bytes);
+    }
+    let file = desktop::resolve_allowed_file(trimmed, &desktop::default_roots())?;
+    vision::extract(&file)
+}
+
 /// N8: the dock badge, a short label beside the icon.
 #[tauri::command]
 fn set_dock_badge(window: tauri::WebviewWindow, badge: String) -> Result<(), String> {
@@ -706,6 +726,7 @@ pub fn run() {
             reveal_file_in_finder,
             open_file_in_default_app,
             quick_look_file,
+            extract_image_text,
             set_dock_badge,
             set_dock_progress,
             pick_attachment,
