@@ -9,7 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.1.12 changes are named below (`1f823cb`, `3374a70`, `105700d`, `8a5d3a6`,
 `8935b9f`, `2ec63d4`, `4690a19`, `9fee126`, `80e6590`, `038c1d0`, `15233c1`,
-`2ef9745`, `5f1d8a5`): a settings write merges instead of replacing a section
+`2ef9745`, `5f1d8a5`, `50bcb8f`, `c4c2fad`): a settings write merges instead of replacing a section
 and refuses unknown keys, the co-pilot reads a workspace and can be taught a
 command shape, git runs inside the shell sandbox, the installer ships the cell
 runtime, and /api/health names the commit the backend runs. Dictation stops on
