@@ -297,4 +297,23 @@ describe('useCompanionCopilot — the loop', () => {
       card.remove()
     }
   })
+
+  it('the dormant surface leaves the live surface pointer alone', () => {
+    state.currentSession = sessionWith([
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'tok-1' }),
+    ])
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'alertdialog')
+    document.body.appendChild(dialog)
+    try {
+      const live = renderHook(() => useCompanionCopilot(hookArgs({ mode: 'scout' })))
+      expect(dialog.dataset.copilotHighlight).toBe('true')
+      // The other companion surface is mounted here too and crawls nothing.
+      renderHook(() => useCompanionCopilot(hookArgs({ enabled: false })))
+      expect(dialog.dataset.copilotHighlight).toBe('true')
+      live.unmount()
+    } finally {
+      dialog.remove()
+    }
+  })
 })

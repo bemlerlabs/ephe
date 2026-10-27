@@ -76,14 +76,17 @@ export function useCompanionCopilot(args: {
     setRemaining(null)
   }, [])
 
+  // Only this instance's marks: both companion surfaces stay mounted and the
+  // dormant one crawls nothing, so a global sweep would erase the pointer the
+  // live surface just set.
+  const marked = useRef<Element[]>([])
   const highlight = useCallback((selector: string | null) => {
-    for (const el of document.querySelectorAll('[data-copilot-highlight="true"]')) {
-      el.removeAttribute('data-copilot-highlight')
-    }
+    for (const el of marked.current) el.removeAttribute('data-copilot-highlight')
+    marked.current = []
     if (!selector) return
-    for (const el of document.querySelectorAll(selector)) {
-      el.setAttribute('data-copilot-highlight', 'true')
-    }
+    const found = Array.from(document.querySelectorAll(selector))
+    for (const el of found) el.setAttribute('data-copilot-highlight', 'true')
+    marked.current = found
   }, [])
 
   const focus = useCallback(() => {
