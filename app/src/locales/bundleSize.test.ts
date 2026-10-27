@@ -129,8 +129,12 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // reason strings of the five surface targets. Measured as committed: en.json
 // 132,420 B and de.json 143,458 B, +1,371 B / +1,458 B over the inherited
 // numbers. Both halves move by 1,000 B, the same step the earlier waves took.
-const EN_CEILING = 133_000
-const DE_CEILING = 144_000
+// Raised on 2026-10-27 for QD-009: one build-parity sentence, the artifact row's
+// reveal/open verbs and their refusal line, and the interrupted word the helper
+// directory needs. Measured as committed: en.json 133,274 B and de.json 144,383 B,
+// +371 B / +414 B over the inherited numbers. Both halves move by 500 B.
+const EN_CEILING = 133_500
+const DE_CEILING = 144_500
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on
