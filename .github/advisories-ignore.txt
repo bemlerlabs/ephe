@@ -172,6 +172,12 @@ GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development sta
 # and DoubleEndedIterator implementations for glib::VariantStrIter (CVSS:4.0 AV:N/AC:L
 # PR:N/UI:N/VI:L) — a soundness defect, medium severity, no code-execution path claimed.
 GHSA-wrw7-89jp-8q8g  # package=glib ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.15.0,<0.20.0 fixed_in=0.20.0 blocked_by=tauri-pins-gtk-0.18 recheck=2026-11-06
+# Exposure as measured: `cargo tree -i block-buffer@0.10.4` reaches it only through
+# tauri-codegen -> sha2 0.10 -> digest 0.10, the proc macro that hashes while the app is
+# compiled. No shipped binary carries the crate, so the panic path is a build-host path.
+# Why it is not fixed yet: block-buffer 0.12.1 needs digest 0.11 / sha2 0.11, and the
+# version that pulls the 0.10 chain is tauri's own codegen crate.
+GHSA-qwgh-2vcv-g2f7  # package=block_buffer ecosystem=crates.io scope=development state=pending-fix affected=>=0.10.0,<0.12.1 fixed_in=0.12.1 blocked_by=tauri-codegen-pins-sha2-0.10 recheck=2026-11-27
 
 # --- The fixed rows. A finding whose release landed, kept as the floor that holds it. ---
 
