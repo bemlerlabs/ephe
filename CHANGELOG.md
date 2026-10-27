@@ -9,7 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
 `2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`,
-`3902468`, `ede0927`, `3ad5cd6`).
+`3902468`, `ede0927`, `3ad5cd6`, `0968644`).
 The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 `e629e6c`, `afadd56`, `0d251e2`, `c9f0591`, `fb85bb9`, `9242ba4`, `38a9640`).
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
@@ -77,6 +77,17 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   screen announces the card while it is up, and pointing at a repair the chat
   cannot show marks the setup intent and takes the user to the screen that can
   (`ede0927`).
+- The way out names the way back in: `uninstall.sh` closed with a reinstall URL
+  pinned to `v0.1.3`, eight releases behind the product it had just removed, and
+  now names the tag this tree ships — the same answer `scripts/readme_check.py`
+  gives, so a release bump that forgets the script fails a test (`0968644`).
+- A mobile host that names another protocol is refused instead of fetched:
+  `EPHE_MOBILE_HOST=ftp://…` or `gopher://…` reached the LAN probe's
+  `urlopen` with that scheme, and a scheme without an authority came back as a
+  malformed http URL. Only `http` and `https` with a host answer now
+  (`0968644`).
+- The memory ranking's full-text leg binds its row limit as a parameter rather
+  than writing the number into the SQL (`0968644`).
 
 ### Changed
 - The header perch carries the co-pilot as the composer does — mode row,
