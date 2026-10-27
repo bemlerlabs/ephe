@@ -7,7 +7,6 @@
   "app/src-tauri/src/backend.rs": 9,
   "app/src-tauri/src/browser.rs": 5,
   "app/src-tauri/src/instance.rs": 5,
-  "app/src-tauri/src/lib.rs": 1,
   "app/src/components/dashboard/ActivityFeed.test.tsx": 2,
   "app/src/components/dashboard/AgentPanel.addmenu.a11y.test.tsx": 9,
   "app/src/components/dashboard/AgentPanel.audit.i9.test.tsx": 27,
@@ -518,6 +517,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 2108,
+ "total": 2107,
  "version": 1
 }

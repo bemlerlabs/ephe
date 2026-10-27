@@ -1,18 +1,19 @@
-// Ephe — Tauri shell (R20): the tray plus the commands the PWA frontend
-// (useTauriTray.ts: show/hide/quit/create-session) expects. Before this, those
-// events were dead code — the tray protocol only existed inside the frontend.
+// Ephe — Tauri shell (R20): the tray, the N2 menu bar and the commands the PWA
+// frontend (useTauriTray.ts: show/hide/quit/create-session) expects. Before this,
+// those events were dead code — the tray protocol only existed inside the frontend.
 // Update experience: tauri_plugin_updater + process wire the signed updater
 // into the frontend (useUpdateCheck.ts).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{
-    menu::{Menu, MenuItem, MenuItemKind},
+    menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     Emitter, Manager,
 };
 
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -28,6 +29,11 @@ mod parity;
 /// `set_keep_awake(true)` starts. Held statically so the command itself stays
 /// stateless and `quit_app` can clean it up.
 static KEEP_AWAKE_CHILD: Mutex<Option<Child>> = Mutex::new(None);
+
+/// Set once a quit really started. macOS asks every window `windowShouldClose`
+/// before it ends the app, and the guard that keeps ⌘W from destroying `main`
+/// would otherwise veto the quit and leave a hidden window with no way back.
+static QUITTING: AtomicBool = AtomicBool::new(false);
 
 /// Terminate the child process cleanly (kill + wait, no zombie).
 fn keep_awake_stop() {
@@ -157,6 +163,7 @@ fn record_import_source_in(dir: &Path, path: &str) -> Option<String> {
 /// Frontend invoke('quit_app') — tray quit (useTauriTray.ts).
 #[tauri::command]
 fn quit_app(app: tauri::AppHandle) {
+    QUITTING.store(true, Ordering::Relaxed);
     keep_awake_stop();
     backend::stop_backend();
     app.exit(0);
@@ -224,6 +231,59 @@ mod tests {
         }
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn every_native_id_routes_to_one_action() {
+        // The tray and the menu bar are built from these ids. An id the handler
+        // does not know fires nothing, which is what N2's gate refuses.
+        let routed = [
+            (super::ID_SHOW, super::MenuAction::Show),
+            (super::ID_HIDE, super::MenuAction::Hide),
+            (
+                super::ID_NEW_SESSION,
+                super::MenuAction::NewSession,
+            ),
+            (
+                super::ID_CHECK_UPDATES,
+                super::MenuAction::CheckUpdates,
+            ),
+            (
+                super::ID_OPEN_SETTINGS,
+                super::MenuAction::OpenSettings,
+            ),
+            (super::ID_OPEN_DOCS, super::MenuAction::OpenDocs),
+            (super::ID_QUIT, super::MenuAction::Quit),
+        ];
+        for (id, action) in routed {
+            assert_eq!(super::menu_action(id), Some(action), "{id} routes wrong");
+        }
+        assert_eq!(super::menu_action("close-window"), None);
+    }
+
+    #[test]
+    fn the_events_are_the_names_the_surface_listens_for() {
+        // useTauriTray.ts and useUpdateCheck.ts subscribe by string. If the shell
+        // renames an event, the menu item fires into a void.
+        use super::MenuAction::*;
+        assert_eq!(NewSession.event(), Some("create-session"));
+        assert_eq!(CheckUpdates.event(), Some("update:check"));
+        assert_eq!(OpenSettings.event(), Some("open-settings"));
+        assert_eq!(OpenDocs.event(), Some("open-docs"));
+        for action in [Show, Hide, Quit] {
+            assert_eq!(action.event(), None, "{action:?} emits on its own");
+        }
+    }
+
+    #[test]
+    fn an_item_that_answers_in_the_window_wakes_it_first() {
+        use super::MenuAction::*;
+        for action in [Show, NewSession, CheckUpdates, OpenSettings] {
+            assert!(action.reveals_window(), "{action:?} would answer a hidden window");
+        }
+        for action in [Hide, OpenDocs, Quit] {
+            assert!(!action.reveals_window(), "{action:?} would fight the user");
+        }
+    }
 }
 
 fn main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
@@ -288,7 +348,7 @@ fn set_keep_awake(enabled: bool) -> Result<bool, String> {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .map_err(|e| format!("caffeinate konnte nicht gestartet werden: {e}"))?;
+            .map_err(|e| format!("failed to start caffeinate: {e}"))?;
         *guard = Some(child);
         Ok(true)
     } else {
@@ -314,6 +374,186 @@ fn hide_main_window(app: &tauri::AppHandle) {
         let _ = window.hide();
     }
     let _ = app.emit("hide", ());
+}
+
+/// N2: the ids the tray menu and the macOS menu bar hand to the same handler.
+/// Both surfaces are built from this list, so an entry cannot exist in one and
+/// sit dead in the other — the failure the tray protocol had before R20.
+const ID_SHOW: &str = "show";
+const ID_HIDE: &str = "hide";
+const ID_NEW_SESSION: &str = "create-session";
+const ID_CHECK_UPDATES: &str = "check-updates";
+const ID_OPEN_SETTINGS: &str = "open-settings";
+const ID_OPEN_DOCS: &str = "open-docs";
+const ID_QUIT: &str = "quit";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MenuAction {
+    Show,
+    Hide,
+    NewSession,
+    CheckUpdates,
+    OpenSettings,
+    OpenDocs,
+    Quit,
+}
+
+impl MenuAction {
+    /// The event the surface listens for. `Show`, `Hide` and `Quit` answer none:
+    /// the window helpers below already emit them, and `Quit` is answered here.
+    fn event(self) -> Option<&'static str> {
+        match self {
+            Self::NewSession => Some("create-session"),
+            Self::CheckUpdates => Some("update:check"),
+            Self::OpenSettings => Some("open-settings"),
+            Self::OpenDocs => Some("open-docs"),
+            Self::Show | Self::Hide | Self::Quit => None,
+        }
+    }
+
+    /// An entry the user reaches while the window sits hidden in the tray has to
+    /// bring it back before anything can happen in it.
+    fn reveals_window(self) -> bool {
+        matches!(self, Self::Show | Self::NewSession | Self::CheckUpdates | Self::OpenSettings)
+    }
+}
+
+fn menu_action(id: &str) -> Option<MenuAction> {
+    match id {
+        ID_SHOW => Some(MenuAction::Show),
+        ID_HIDE => Some(MenuAction::Hide),
+        ID_NEW_SESSION => Some(MenuAction::NewSession),
+        ID_CHECK_UPDATES => Some(MenuAction::CheckUpdates),
+        ID_OPEN_SETTINGS => Some(MenuAction::OpenSettings),
+        ID_OPEN_DOCS => Some(MenuAction::OpenDocs),
+        ID_QUIT => Some(MenuAction::Quit),
+        _ => None,
+    }
+}
+
+/// The quit path both native surfaces share. `caffeinate` survived this call
+/// once already (R3), so it stays in one place instead of per caller.
+fn quit_from_shell(app: &tauri::AppHandle) {
+    QUITTING.store(true, Ordering::Relaxed);
+    keep_awake_stop();
+    let _ = app.emit("quit", ());
+    app.exit(0);
+}
+
+fn handle_menu_id(app: &tauri::AppHandle, id: &str) {
+    let Some(action) = menu_action(id) else {
+        return;
+    };
+    match action {
+        MenuAction::Show => show_main_window(app),
+        MenuAction::Hide => hide_main_window(app),
+        MenuAction::Quit => quit_from_shell(app),
+        action => {
+            if action.reveals_window() {
+                show_main_window(app);
+            }
+            if let Some(event) = action.event() {
+                let _ = app.emit(event, ());
+            }
+        }
+    }
+}
+
+/// N2: the bar itself, hand-built instead of `Menu::default` — the default
+/// template has no New Session, no Settings and no route into the surface, and
+/// an item that does not fire is worse than one that is absent. Linux and
+/// Windows render the macOS-only entries disabled, so the bar lives where every
+/// entry works.
+#[cfg(target_os = "macos")]
+fn build_menu_bar(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    use tauri::menu::{AboutMetadata, PredefinedMenuItem, Submenu};
+
+    let package = app.package_info();
+    let name = package.name.clone();
+    let about = AboutMetadata {
+        name: Some(name.clone()),
+        version: Some(package.version.to_string()),
+        copyright: app.config().bundle.copyright.clone(),
+        authors: app.config().bundle.publisher.clone().map(|publisher| vec![publisher]),
+        ..Default::default()
+    };
+    let item = |id: &str, text: &str, accelerator: Option<&str>| {
+        MenuItem::with_id(app, id, text, true, accelerator)
+    };
+
+    let ephe = Submenu::with_items(
+        app,
+        name.as_str(),
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, Some(about))?,
+            &PredefinedMenuItem::separator(app)?,
+            &item(ID_CHECK_UPDATES, "Check for Updates…", None)?,
+            &item(ID_OPEN_SETTINGS, "Settings…", Some("CmdOrCtrl+,"))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            // Our own Quit, not `PredefinedMenuItem::quit`: the predefined item
+            // ends the app through AppKit, which never reaches `RunEvent::Exit`
+            // and leaves both the backend and `caffeinate` behind.
+            &item(ID_QUIT, format!("Quit {name}").as_str(), Some("CmdOrCtrl+Q"))?,
+        ],
+    )?;
+    let file = Submenu::with_items(
+        app,
+        "File",
+        true,
+        &[
+            &item(ID_NEW_SESSION, "New Session", Some("CmdOrCtrl+N"))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    let view = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[&PredefinedMenuItem::fullscreen(app, None)?],
+    )?;
+    let window = Submenu::with_id_and_items(
+        app,
+        tauri::menu::WINDOW_SUBMENU_ID,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &item(ID_SHOW, "Show Ephe", None)?,
+        ],
+    )?;
+    let help = Submenu::with_id_and_items(
+        app,
+        tauri::menu::HELP_SUBMENU_ID,
+        "Help",
+        true,
+        &[&item(ID_OPEN_DOCS, "Ephe Documentation", None)?],
+    )?;
+
+    Menu::with_items(app, &[&ephe, &file, &edit, &view, &window, &help])
 }
 
 fn shell_home() -> Result<std::path::PathBuf, String> {
@@ -401,12 +641,7 @@ pub fn run() {
                 })
                 .build(),
         )
-        .on_menu_event(|app, event| {
-            if event.id.as_ref() == "check-updates" {
-                show_main_window(app);
-                let _ = app.emit("update:check", ());
-            }
-        })
+        .on_menu_event(|app, event| handle_menu_id(app, event.id.as_ref()))
         .invoke_handler(tauri::generate_handler![
             quit_app,
             stop_backend,
@@ -478,12 +713,13 @@ pub fn run() {
 
             // Tray menu: Show / Hide / New Session / Quit — the IDs emit the
             // same events useTauriTray.ts already consumes.
-            let show = MenuItem::with_id(app, "show", "Show Ephe", true, None::<&str>)?;
-            let hide = MenuItem::with_id(app, "hide", "Hide", true, None::<&str>)?;
-            let new_session = MenuItem::with_id(app, "create-session", "New Session", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let show = MenuItem::with_id(app, ID_SHOW, "Show Ephe", true, None::<&str>)?;
+            let hide = MenuItem::with_id(app, ID_HIDE, "Hide", true, None::<&str>)?;
+            let new_session =
+                MenuItem::with_id(app, ID_NEW_SESSION, "New Session", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, ID_QUIT, "Quit", true, None::<&str>)?;
             let check_updates_tray =
-                MenuItem::with_id(app, "check-updates", "Check for Updates…", true, None::<&str>)?;
+                MenuItem::with_id(app, ID_CHECK_UPDATES, "Check for Updates…", true, None::<&str>)?;
             let menu = Menu::with_items(
                 app,
                 &[&show, &hide, &new_session, &check_updates_tray, &quit],
@@ -542,27 +778,12 @@ pub fn run() {
                 );
             }
 
-            // R2-U: "Check for Updates…" belongs in the menu next to the Apple
-            // logo — that is where macOS looks for exactly such an entry. The
-            // item fires the same event as the surface's header button, so both
-            // show one state instead of two half-truths.
+            // N2: the menu bar. R2-U put "Check for Updates…" next to the Apple
+            // logo because that is where macOS looks for such an entry; the bar
+            // now carries it inside a full template that also answers ⌘N and ⌘,.
             #[cfg(target_os = "macos")]
-            {
-                if let Ok(app_menu) = Menu::default(app.handle()) {
-                    let check = MenuItem::with_id(
-                        app.handle(),
-                        "check-updates",
-                        "Check for Updates…",
-                        true,
-                        None::<&str>,
-                    )?;
-                    if let Ok(items) = app_menu.items() {
-                        if let Some(MenuItemKind::Submenu(sub)) = items.first() {
-                            let _ = sub.append(&check);
-                        }
-                    }
-                    let _ = app.set_menu(app_menu);
-                }
+            if let Err(error) = build_menu_bar(app.handle()).and_then(|bar| app.set_menu(bar)) {
+                log::warn!("menu bar not installed: {error}");
             }
 
             // The menu-bar glyph is the mono cut: macOS renders it as a template,
@@ -575,26 +796,7 @@ pub fn run() {
                 .icon_as_template(true)
                 .tooltip("Ephe — local & private")
                 .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => show_main_window(app),
-                    "hide" => hide_main_window(app),
-                    "quit" => {
-                        // R3 finding: this path left keep_awake_stop() out — the
-                        // caffeinate child process survived the quit.
-                        keep_awake_stop();
-                        let _ = app.emit("quit", ());
-                        app.exit(0);
-                    }
-                    "create-session" => {
-                        show_main_window(app);
-                        let _ = app.emit("create-session", ());
-                    }
-                    "check-updates" => {
-                        show_main_window(app);
-                        let _ = app.emit("update:check", ());
-                    }
-                    _ => {}
-                })
+                .on_menu_event(|app, event| handle_menu_id(app, event.id.as_ref()))
                 .on_tray_icon_event(|tray, event| {
                     // Click on the tray icon: hide or reveal the window
                     if let tauri::tray::TrayIconEvent::Click {
@@ -632,7 +834,25 @@ pub fn run() {
     // Without a handler here, a window hidden from the tray never comes back.
     app.run(|app_handle, event| {
         if matches!(&event, tauri::RunEvent::Exit) {
+            // An exit that arrives through AppKit rather than one of our quit
+            // calls would otherwise leave `caffeinate` running after the shell.
+            keep_awake_stop();
             backend::stop_backend();
+        }
+        // ⌘W and the red button both end here. Letting Tauri destroy `main` left
+        // `get_webview_window("main")` empty, and no Dock reopen and no tray click
+        // can bring a destroyed window back — so a close hides it instead.
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::WindowEvent {
+            ref label,
+            event: tauri::WindowEvent::CloseRequested { ref api, .. },
+            ..
+        } = event
+        {
+            if label == "main" && !QUITTING.load(Ordering::Relaxed) {
+                api.prevent_close();
+                hide_main_window(app_handle);
+            }
         }
         // R6/S4, second look: the clamp inside setup alone was not enough — live
         // measurement still saw the window come back at 134×143. macOS restores
@@ -646,7 +866,7 @@ pub fn run() {
         {
             let (w, h) = clamp_window_size(size.width, size.height);
             if w != size.width || h != size.height {
-                if let Some(win) = app_handle.get_webview_window(&label) {
+                if let Some(win) = app_handle.get_webview_window(label) {
                     let _ = win.set_size(tauri::Size::Physical(tauri::PhysicalSize::new(w, h)));
                 }
             }

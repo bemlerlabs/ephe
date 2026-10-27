@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useChatStore } from '@/store/chatStore'
+import { openExternally } from '@/lib/nativeBrowser'
 
 // Tauri 2.x event system — graceful fallback in the browser/dev mode
 interface TauriBridge {
@@ -47,6 +48,24 @@ export function useTauriTray(): TauriTray {
     const sessionSub = listen('create-session', () => {
       useChatStore.getState().createSession()
     })
+    // N2: the macOS menu bar's Settings… (⌘,) and the tray share this hook. The
+    // shell has already raised the window; `ephe:open-settings` is the event the
+    // chat layout listens for, so the menu opens the same panel the palette does.
+    // That panel belongs to the chat surface, and the menu bar is global, so a
+    // page without it takes the settings route instead of firing into a void.
+    const settingsSub = listen('open-settings', () => {
+      const hash = window.location.hash
+      if (hash === '' || hash === '#/' || hash.startsWith('#/chat')) {
+        window.dispatchEvent(new CustomEvent('ephe:open-settings'))
+      } else {
+        window.location.hash = '#/settings'
+      }
+    })
+    // Help -> Documentation. window.open is a no-op inside the shell, so the
+    // address leaves through the native opener, as the palette's entry does.
+    const docsSub = listen('open-docs', () => {
+      void openExternally('https://ephe.app/docs')
+    })
 
     if (showSub)
       unlistenFns.push(() => {
@@ -63,6 +82,14 @@ export function useTauriTray(): TauriTray {
     if (sessionSub)
       unlistenFns.push(() => {
         void sessionSub.then((f) => f())
+      })
+    if (settingsSub)
+      unlistenFns.push(() => {
+        void settingsSub.then((f) => f())
+      })
+    if (docsSub)
+      unlistenFns.push(() => {
+        void docsSub.then((f) => f())
       })
 
     return () => {

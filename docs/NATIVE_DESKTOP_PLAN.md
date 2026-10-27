@@ -49,7 +49,7 @@ product image enters the tree (AGENTS.md).
 | Dialog | present | `tauri-plugin-dialog`, attachment picker |
 | Notification | present | `tauri-plugin-notification` |
 | Global shortcut | present | `tauri-plugin-global-shortcut` |
-| Full menu bar | missing | only a default app menu with “Check for Updates…” |
+| Full menu bar | present | `build_menu_bar` in `lib.rs` — Ephe, File, Edit, View, Window, Help; the bar and its accelerators were read off the built bundle on 2026-10-27 |
 | Typed pasteboard | missing | no `NSPasteboard` call in the tree |
 | Finder integration | missing | no `NSWorkspace` icon or reveal |
 | Quick Look | missing | no `QLPreviewPanel` |
@@ -63,7 +63,7 @@ product image enters the tree (AGENTS.md).
 | Slice | Content | Version | Gate |
 |---|---|---|---|
 | N1 | stable signing identity, entitlements and purpose strings as files, TCC diagnostic path | 0.1.9 | rebuild twice, TCC grant survives, `codesign -dv` names one identity |
-| N2 | full menu bar: App/File/Edit/View/Window/Help with standard shortcuts and Check for Updates | 0.2.0-alpha.2 | every menu item fires, ⌘W/⌘,/Esc/⏎ behave |
+| N2 | full menu bar: App/File/Edit/View/Window/Help with standard shortcuts and Check for Updates | 0.1.11 | every menu item fires, ⌘W/⌘,/Esc/⏎ behave |
 | N3 | typed clipboard through a capability-gated command; copy image, file, RTF; paste from Finder; web fallback | 0.2.0-alpha.2 | paste an image from Finder into the composer |
 | N4 | Finder: `NSWorkspace` icon, reveal, open with default, drag an artifact to Finder | 0.2.0-alpha.2 | reveal and icon in a screenshot; drag produces a file |
 | N5 | Quick Look for artifacts, spacebar and ⌘Y, web fallback | 0.2.0-beta.2 | spacebar opens the panel on a PDF and a PNG |
