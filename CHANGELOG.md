@@ -8,10 +8,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.1.12 changes are named below (`1f823cb`, `3374a70`, `105700d`, `8a5d3a6`,
-`8935b9f`): a settings write merges instead of replacing a section and refuses
-unknown keys, the co-pilot reads a workspace and can be taught a command shape,
-git runs inside the shell sandbox, the installer ships the cell runtime, and
-/api/health names the commit the backend runs.
+`8935b9f`, `2ec63d4`, `4690a19`): a settings write merges instead of replacing a
+section and refuses unknown keys, the co-pilot reads a workspace and can be
+taught a command shape, git runs inside the shell sandbox, the installer ships
+the cell runtime, and /api/health names the commit the backend runs. Dictation
+stops on the second click, records the container the shell can actually record
+and says why a transcription failed; the speech-model consent sits in
+Settings → Audio, and the voice extra keeps PyAV below the release that broke
+faster-whisper's decode.
 The 0.1.11 changes are named below (`337903e`, `0f02bc6`, `043ee1e`, `976ee78`,
 `2aa10a5`, `fef5644`, `38923b9`, `c4550c2`, `5af85c2`, `fb8593e`, `721fe91`,
 `3902468`, `ede0927`, `3ad5cd6`, `0968644`).
