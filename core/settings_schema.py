@@ -478,24 +478,33 @@ def deep_view() -> list[dict[str, Any]]:
     return out
 
 
-def validate_sections(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+class UnknownKey(ValueError):
+    """A section or field key the register does not know (POST answers 400)."""
+
+
+def validate_sections(
+    payload: dict[str, Any], *, stored: dict[str, dict[str, Any]] | None = None
+) -> dict[str, dict[str, Any]]:
     """Hard validation for POST: range violation/option → ValueError.
 
     Unlike normalize_deep (which clamps) this aborts: a value
     outside the bounds is a 422 value, not a clamping candidate.
+    A write is a merge over `stored`: a field the caller did not send keeps
+    its value, and a key the register does not know is refused instead of
+    ignored — silently dropping either one lost stored settings.
     """
     section_keys = {s["key"] for s in SECTIONS}
     result: dict[str, dict[str, Any]] = {}
     for sec_key, fields in (payload or {}).items():
         if sec_key not in section_keys:
-            continue
+            raise UnknownKey(f"section {sec_key}: unknown")
         if not isinstance(fields, dict):
             raise ValueError(f"section {sec_key}: object expected")
-        sec: dict[str, Any] = {}
+        sec: dict[str, Any] = dict((stored or {}).get(sec_key) or {})
         for field_key, value in fields.items():
             meta = SCHEMA.get(field_key)
             if meta is None:
-                continue
+                raise UnknownKey(f"{field_key}: unknown")
             if meta["type"] == "number":
                 try:
                     num = float(value)

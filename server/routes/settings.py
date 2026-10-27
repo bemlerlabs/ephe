@@ -295,14 +295,26 @@ async def update_settings(req: SettingsRequest) -> dict:
         ))
 
     # Wave 6: persist the deep section register (settings.json).
-    # Hard validated — range violation / bad toggle choice → 422.
+    # Hard validated — range violation / bad toggle choice → 422, a key the
+    # register does not know → 400. The write merges over what is stored, so a
+    # caller that sends one field neither resets its neighbours nor drops a
+    # section it did not mention.
     if req.sections is not None:
-        from core.settings_schema import validate_sections, save_deep_settings
+        from core.settings_schema import (
+            UnknownKey,
+            load_deep_settings,
+            save_deep_settings,
+            validate_sections,
+        )
+
+        stored = load_deep_settings()
         try:
-            merged = validate_sections(req.sections)
+            merged = validate_sections(req.sections, stored=stored)
+        except UnknownKey as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        if not save_deep_settings(merged):
+        if not save_deep_settings({**stored, **merged}):
             raise Refused("settings_register_unwritable")
 
     # Persistence: engine.json is the shared source for CLI + PWA.

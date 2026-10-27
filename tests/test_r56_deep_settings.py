@@ -196,3 +196,61 @@ def test_plugins_route_liefert_katalog():
     assert "public" in body and "personal" in body
     ids = {p["id"] for p in body["public"]}
     assert "web/crawl4ai" in ids or len(ids) >= 1
+
+
+# 6. POST merges: a write carries the fields it did not send (QD-008, F1)
+
+def _non_default(field_key: str):
+    """A value the schema accepts that differs from the field's default."""
+    meta = SCHEMA[field_key]
+    if meta["type"] == "bool":
+        return not meta["default"]
+    if meta["type"] == "select":
+        others = [o for o in meta["options"] if o != meta["default"]]
+        return others[0] if others else meta["default"]
+    if meta["type"] == "number":
+        return meta["min"] if meta["default"] != meta["min"] else meta["max"]
+    return f"{meta['default']}-kept"
+
+
+def test_a_partial_section_write_keeps_every_field_it_did_not_send(tmp_path, monkeypatch):
+    """One field in, twelve kept: a section write is a merge, not a replace.
+
+    Measured before the fix: the omitted fields fell back to their defaults and
+    whole sections vanished, while the answer stayed 200.
+    """
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    client = _client()
+    appearance = [s for s in SECTIONS if s["key"] == "appearance"][0]["fields"]
+    memory = [s for s in SECTIONS if s["key"] == "memory"][0]["fields"]
+    seeded = {k: _non_default(k) for k in appearance[:3]}
+    seeded_memory = {memory[0]: _non_default(memory[0])}
+
+    first = client.post("/api/settings", json={
+        "sections": {"appearance": seeded, "memory": seeded_memory},
+    })
+    assert first.status_code == 200
+
+    touched = next(k for k in appearance if k not in seeded)
+    second = client.post("/api/settings", json={"sections": {"appearance": {touched: _non_default(touched)}}})
+    assert second.status_code == 200
+
+    stored = json.loads((tmp_path / "settings.json").read_text())["sections"]
+    for key, value in seeded.items():
+        assert stored["appearance"].get(key) == value, f"{key} was dropped by a partial write"
+    assert stored["appearance"][touched] == _non_default(touched)
+    assert stored.get("memory", {}).get(memory[0]) == seeded_memory[memory[0]], "a write dropped another section"
+
+
+def test_an_unknown_field_key_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    res = _client().post("/api/settings", json={
+        "sections": {"appearance": {"appearance.zzz_bogus_key": "x"}},
+    })
+    assert res.status_code == 400, res.text
+
+
+def test_an_unknown_section_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    res = _client().post("/api/settings", json={"sections": {"nonsense": {"nonsense.key": 1}}})
+    assert res.status_code == 400, res.text
