@@ -136,13 +136,14 @@ describe('StatusBar', () => {
     expect(btn.getAttribute('title')).toBe('Token breakdown')
   })
 
-  it('DD-10: kompakter tok-Chip ist auch auf Mobile da (md:hidden Gegenstueck zum Breakdown-Button)', () => {
+  it('DD-10: kompakter tok-Chip ist auch auf Mobile da (lg:hidden Gegenstueck zum Breakdown-Button)', () => {
     render(<StatusBar messages={makeMsgs('user', 'x'.repeat(420))} />)
     const chip = screen.getByTestId('statusbar-tok-chip')
     expect(chip.textContent).toMatch(/\d[\d,.]* tok/)
-    expect(chip.className).toContain('md:hidden')
-    // the desktop breakdown stays the expanded path (md:flex)
-    expect(screen.getByTitle(/token breakdown/i).className).toContain('md:flex')
+    // QD-015 V1: the pair moved to lg — md belongs to the free-token figure now,
+    // so the compact chip still covers the whole range below the breakdown.
+    expect(chip.className).toContain('lg:hidden')
+    expect(screen.getByTitle(/token breakdown/i).className).toContain('lg:flex')
   })
 
   it('DD-10b: ein Klick auf den Chip oeffnet das Rollen-Breakdown (U/A/S)', () => {
