@@ -52,9 +52,18 @@ export function steerTurn(input: {
   })
 }
 
+export interface McpSandboxView {
+  platform: 'seatbelt' | 'bubblewrap' | 'unavailable'
+  available: boolean
+  home_root: string
+  network_isolated: boolean
+  pid_isolated: boolean
+}
+
 export interface CapabilitiesView {
   subagent: { tools: string[]; tool_count: number; max_iterations: number; read_only: boolean }
   main_agent: { read_only: boolean; note: string }
+  mcp_sandbox?: McpSandboxView
 }
 
 /** What each agent kind may do, read from the guard rather than a copy. */

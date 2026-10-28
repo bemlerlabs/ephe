@@ -6,11 +6,34 @@ letting a view carry a copy that can drift from the guard that enforces it.
 """
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from fastapi import APIRouter
 
 from core.subagent import SUBAGENT_MAX_ITERATIONS, SUBAGENT_TOOL_WHITELIST
+from core.mcp_sandbox import platform_boundary
 
 router = APIRouter(tags=["Agents"])
+
+
+def _mcp_sandbox() -> dict:
+    """The boundary an MCP server runs under, read from the module that builds it.
+
+    `network_isolated` is False because `build_bwrap` deliberately omits
+    `--unshare-net` (an MCP server may legitimately be a network client), and
+    `pid_isolated` follows the same argv: only bubblewrap carries `--unshare-pid`.
+    """
+    platform = platform_boundary()
+    base = os.environ.get("EPHE_CONFIG_DIR")
+    homes = (Path(base) if base else Path.home() / ".ephe") / "mcp" / "homes"
+    return {
+        "platform": platform,
+        "available": platform != "unavailable",
+        "home_root": str(homes),
+        "network_isolated": False,
+        "pid_isolated": platform == "bubblewrap",
+    }
 
 
 @router.get("/capabilities")
@@ -26,4 +49,5 @@ def capabilities() -> dict:
             "read_only": False,
             "note": "every registered tool; each write passes the approval gate",
         },
+        "mcp_sandbox": _mcp_sandbox(),
     }

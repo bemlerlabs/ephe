@@ -31,6 +31,17 @@ vi.mock('@/lib/api', () => ({
     local_model_options: [],
   })),
   getMemoryStats: vi.fn(async () => ({ total: 0 })),
+  getCapabilities: vi.fn(async () => ({
+    subagent: { tools: [], tool_count: 9, max_iterations: 8, read_only: true },
+    main_agent: { read_only: false, note: '' },
+    mcp_sandbox: {
+      platform: 'seatbelt',
+      available: true,
+      home_root: '/tmp/.ephe/mcp/homes',
+      network_isolated: false,
+      pid_isolated: false,
+    },
+  })),
   clearMemory: vi.fn(async () => ({ cleared: true })),
   getMobileQR: vi.fn(async () => ({
     url: '',

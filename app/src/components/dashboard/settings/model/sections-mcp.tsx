@@ -8,6 +8,7 @@ import PageHeader from '@/components/shell/PageHeader'
 import { LoadingRow } from '@/components/ui'
 import { SettingsGroup } from '@/components/shell/SettingsRow'
 import SearchInput from '@/components/shell/SearchInput'
+import { McpSandboxStrip } from './McpSandboxStrip'
 import type { SettingsModel } from './types'
 
 export function renderMcp(model: SettingsModel) {
@@ -135,6 +136,7 @@ export function renderMcp(model: SettingsModel) {
                       : h.error || t('settings.mcpHealthFail')}
                   </p>
                 )}
+                <McpSandboxStrip server={spec || `#${i + 1}`} />
               </div>
             )
           })}
