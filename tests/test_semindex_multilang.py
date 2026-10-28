@@ -252,3 +252,53 @@ def test_iter_source_files_is_stable(workspace: Path) -> None:
     first = [p.relative_to(workspace).as_posix() for p in iter_source_files(workspace)]
     second = [p.relative_to(workspace).as_posix() for p in iter_source_files(workspace)]
     assert first == second == ["pkg/mod.py", "src/index.ts", "src/main.rs"]
+
+
+def test_status_is_idle_before_the_first_index(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from server.routes import project
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+    project._jobs.clear()
+    status = asyncio.run(project.index_status())
+    assert status["state"] == "idle"
+    assert status["files"] == 0 and status["symbols"] == 0
+
+
+def test_search_before_the_first_index_says_so(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from server.routes import project
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+    found = asyncio.run(project.search_index(project.SearchRequest(query="Widget")))
+    assert found["status"] == "not_indexed"
+    assert found["hits"] == []
+
+
+def test_search_carries_the_relative_path_and_source(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from server.routes import project
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+    index_workspace(workspace)
+    found = asyncio.run(project.search_index(project.SearchRequest(query="WidgetStore")))
+    hit = next(entry for entry in found["hits"] if entry["name"] == "WidgetStore")
+    assert hit["relative"] == "src/index.ts"
+    assert "class WidgetStore" in hit["source"]
+
+
+def test_status_from_disk_carries_language_and_kind_counts(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from server.routes import project
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+    project._jobs.clear()
+    index_workspace(workspace)
+    status = asyncio.run(project.index_status())
+    assert status["state"] == "ready"
+    assert status["languages"]["typescript"] == 1
+    assert status["kinds"]["class"] >= 1
