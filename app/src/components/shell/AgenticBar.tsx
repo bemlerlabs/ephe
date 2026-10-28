@@ -56,7 +56,7 @@ export default function AgenticBar({
       data-state={state}
       className={
         inline
-          ? 'ephe-run relative flex h-full min-w-0 flex-1 items-center gap-2 select-none'
+          ? 'ephe-run relative flex h-full min-w-0 flex-1 items-center gap-2 overflow-hidden select-none'
           : 'workbench-bar ephe-run relative flex h-8 flex-shrink-0 items-center gap-3 px-4 max-lg:h-10 select-none'
       }
     >
