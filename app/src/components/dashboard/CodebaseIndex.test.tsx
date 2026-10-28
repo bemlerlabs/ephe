@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import CodebaseStatusBarPill from './CodebaseStatusBarPill'
 import CodebaseIndexDialog from './CodebaseIndexDialog'
 import { indexProgress, type CodebaseIndexStatus } from '@/lib/codebaseIndex'
@@ -52,14 +52,6 @@ describe('CodebaseStatusBarPill', () => {
     render(<CodebaseStatusBarPill onOpen={onOpen} />)
     fireEvent.click(await screen.findByTestId('codebase-pill'))
     expect(onOpen).toHaveBeenCalledTimes(1)
-  })
-
-  it('reports an idle workspace so the status bar can offer indexing', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => statusResponse(idle)))
-    const onStatus = vi.fn()
-    render(<CodebaseStatusBarPill onStatus={onStatus} />)
-    await screen.findByTestId('codebase-pill')
-    await waitFor(() => expect(onStatus).toHaveBeenCalledWith(idle))
   })
 })
 

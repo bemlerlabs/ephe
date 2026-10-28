@@ -5,10 +5,9 @@ import { fetchIndexStatus, type CodebaseIndexStatus } from '@/lib/codebaseIndex'
 
 interface Props {
   onOpen?: () => void
-  onStatus?: (status: CodebaseIndexStatus) => void
 }
 
-export default function CodebaseStatusBarPill({ onOpen, onStatus }: Props) {
+export default function CodebaseStatusBarPill({ onOpen }: Props) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<CodebaseIndexStatus | null>(null)
 
@@ -16,9 +15,7 @@ export default function CodebaseStatusBarPill({ onOpen, onStatus }: Props) {
     let alive = true
     fetchIndexStatus()
       .then((next) => {
-        if (!alive) return
-        setStatus(next)
-        onStatus?.(next)
+        if (alive) setStatus(next)
       })
       .catch(() => {
         if (alive) setStatus({ state: 'error', files: 0, symbols: 0, indexed: 0, total: 0 })
@@ -26,7 +23,7 @@ export default function CodebaseStatusBarPill({ onOpen, onStatus }: Props) {
     return () => {
       alive = false
     }
-  }, [onStatus])
+  }, [])
 
   if (!status) return null
 

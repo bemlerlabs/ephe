@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ChatMessage } from '@/types'
 import { estimateTokens, formatPercent, WARN_THRESHOLD } from '@/lib/contextMeter'
 import { useContextOccupancy } from '@/lib/useContextOccupancy'
@@ -82,18 +82,6 @@ export default function StatusBar({
   const [expanded, setExpanded] = useState(false)
   const [codebaseOpen, setCodebaseOpen] = useState(false)
 
-  // An unindexed workspace asks once per session; the pill stays the way back in.
-  const handleCodebaseStatus = useCallback((status: CodebaseIndexStatus) => {
-    if (status.state !== 'idle') return
-    try {
-      if (sessionStorage.getItem('codebase.index.prompted')) return
-      sessionStorage.setItem('codebase.index.prompted', '1')
-    } catch {
-      return
-    }
-    setCodebaseOpen(true)
-  }, [])
-
   // R25: compaction status as an honest hint (the backend counts, not a feeling)
   const compactionActive = budget?.compaction_active ?? false
 
@@ -168,10 +156,7 @@ export default function StatusBar({
           the agent-status popover („Status aufklappen") — the visible row stays
           minimal: one pill per fact, nothing more. */}
       <ConnectionPill backendOnline={backendOnline} engineOnline={engineOnline} />
-      <CodebaseStatusBarPill
-        onOpen={() => setCodebaseOpen(true)}
-        onStatus={handleCodebaseStatus}
-      />
+      <CodebaseStatusBarPill onOpen={() => setCodebaseOpen(true)} />
       {/* Live %-full Meter. R36 (Judge R2): percent lives OUTSIDE the meter
           div — as a squeezed flex-1 child it painted over the neighboring tok
           pill (overflow visible). Both are root children with gap + shrink-0

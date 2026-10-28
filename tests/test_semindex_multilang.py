@@ -302,3 +302,49 @@ def test_status_from_disk_carries_language_and_kind_counts(
     assert status["state"] == "ready"
     assert status["languages"]["typescript"] == 1
     assert status["kinds"]["class"] >= 1
+
+
+def test_start_index_reuses_a_running_job(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from server.routes import project
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+    project._jobs.clear()
+    key = str(workspace.resolve())
+    running = project._Job(root=key, state="indexing", indexed=3, total=9)
+    project._jobs[key] = running
+
+    returned = asyncio.run(project.start_index(project.IndexRequest()))
+    assert returned["state"] == "indexing" and returned["indexed"] == 3
+
+
+def test_a_worker_that_raises_lands_in_the_job_record(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from server.routes import project
+
+    def explode(root, job):
+        raise OSError("disk went away")
+
+    monkeypatch.setattr(project, "_index_sync", explode)
+    job = project._Job(root=str(workspace))
+    project._start_thread(workspace, job)
+
+    assert job.state == "error"
+    assert "disk went away" in (job.error or "")
+    assert job.finished_at is not None
+
+
+def test_a_span_of_a_vanished_file_is_empty() -> None:
+    from server.routes import project
+
+    assert project._read_span("/nonexistent/ephe-missing.ts", 1, 4) == ""
+
+
+def test_search_limit_is_bounded() -> None:
+    from pydantic import ValidationError
+    from server.routes import project
+
+    with pytest.raises(ValidationError):
+        project.SearchRequest(query="x", limit=project.MAX_SEARCH_LIMIT + 1)
