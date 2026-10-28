@@ -186,6 +186,32 @@ test.describe('R33 Keyboard-Only + A11y-Budgets', () => {
         `perRule=${JSON.stringify(atRest.perRule)}`,
     )
 
+    // QD-014 B3 removed the brand's breathing dots, so the surface ships no loop at
+    // rest. The instrument still has to see one: a synthetic loop the page never
+    // shipped is injected, counted and taken out again while the media is still
+    // no-preference, which keeps the zero below a measurement.
+    const probeSeen = await page.evaluate(() => {
+      const style = document.createElement('style')
+      style.textContent =
+        '@keyframes r33-probe{from{opacity:0}to{opacity:1}}.r33-probe{animation:r33-probe 1s infinite}'
+      document.head.appendChild(style)
+      const el = document.createElement('div')
+      el.className = 'r33-probe'
+      el.setAttribute('aria-hidden', 'true')
+      document.body.appendChild(el)
+      const seen = document
+        .getAnimations()
+        .some(
+          (animation) =>
+            animation.playState === 'running' &&
+            animation.effect?.getComputedTiming().iterations === Infinity,
+        )
+      el.remove()
+      style.remove()
+      return seen
+    })
+    expect(probeSeen).toBe(true)
+
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.waitForTimeout(800)
     const reduced = await inventory()
@@ -198,12 +224,7 @@ test.describe('R33 Keyboard-Only + A11y-Budgets', () => {
     // nothing running.
     expect(reduced.declaredInfinite).toBeGreaterThan(0)
     expect(reduced.runningInfinite).toBe(0)
-    expect(atRest.runningInfinite).toBeGreaterThan(0)
-    // An instance can only run if its animation name is one the stylesheet declares; the
-    // multiplicity (dots per welcome card, one pulse per finished bubble) is the number the
-    // next wave has to price, so it is reported above rather than asserted here.
-    expect(Object.keys(atRest.perRule).length).toBeGreaterThan(0)
-    expect(atRest.runningInfinite).toBeGreaterThanOrEqual(Object.keys(atRest.perRule).length)
+    expect(atRest.runningInfinite).toBe(0)
   })
 
   test('frame budget: no pathological rAF loops while idle on /chat', async ({ page }) => {
