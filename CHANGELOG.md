@@ -7,6 +7,12 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.5.1 repair wave is named below (`c655497`, `1383522`, `b1edb54`, `295a7b7`,
+`a32c997`, `1283589`, `19851ea`): the status row keeps one line at every width, a
+card's own JSON block is cut from the answer text, DeepSeek DSML tokens become real
+tool calls, the child PATH gains the Homebrew binaries, the tool dial ships 25 rounds
+with a one-click continuation, and the system prompt names the active workspace.
+
 The 0.3.0 typecheck fix is named below (`0486444`): the status bar drops the
 CodebaseIndexStatus import it no longer reads, which tsc refused as unused.
 The 0.3.0 index-dialog fix is named below (`7214003`): the dialog opens only from
@@ -133,6 +139,38 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - settings: The behaviour tab survives an answer without a subagent (`ee2f911`)
 - shell: The chrome row fits a 320 px phone again (`5d75d4c`)
 - build: Budget the chat seed chunk (`d45cd62`)
+## [0.5.1] - 2026-10-29
+
+The repair wave from the live session: the status row stops colliding, a card stops
+printing its own source, DeepSeek writes tool calls the loop can run, the shell finds
+the user's own tools, and a capped turn offers the next ten rounds.
+
+### Added
+
+- **Continue after the budget.** When a turn uses up its tool rounds the server sends
+  a `budget` frame with the cap it counted and the ten rounds one click adds; the
+  transcript shows a Continue card and the click runs a normal turn with the larger
+  budget.
+- **Active workspace anchor.** The system prompt names the project (name and absolute
+  path) up front, so the model starts in the right tree instead of searching for it.
+
+### Changed
+
+- The generation dial's default is 25 rounds, matching the chat class default.
+- An image or link that points at a workspace file resolves through the guarded
+  preview route instead of 404ing on the app origin.
+- The status row hides its secondary figures in steps (md, lg, xl) instead of wrapping
+  to a second line under a squeezed column.
+
+### Fixed
+
+- The status bar no longer paints "pricing not set" over the remaining-token figure.
+- An AskUserQuestion or plan block no longer appears as raw JSON above its own card.
+- DeepSeek deployments that write DSML tokens into the content now run the tool call
+  and stream only the prose.
+- A Finder-launched app finds node, npm, git and pnpm again: the child PATH gets the
+  Homebrew bin dirs in front, and no inherited entry is dropped.
+
 ## [0.5.0] - 2026-10-28
 
 The market and studio wave: every plugin wears its own icon, the settings screen spends
