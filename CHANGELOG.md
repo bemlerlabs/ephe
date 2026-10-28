@@ -7,6 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 index-scope fix is named below (`b16b7fd`): the index routes take no
+directory from the request and cover only the configured workspace, and `/project`
+matches its plan name against the workspace listing, so no request string becomes
+a filesystem path.
 The 0.3.0 security fix is named below (`7826a96`): the py/path-injection markers sit
 on the three lines that build the candidate path from the workspace argument, which
 is where the analyser anchors them; the containment checks are unchanged.
