@@ -144,9 +144,10 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     for (const n of NAV) {
       const row = screen.getByTestId(`settings-nav-${n.key}`)
       expect(row).toBeInTheDocument()
-      // One 12 px glyph per row; a group head carries none.
+      // One 16 px glyph per row on the 1.5 px stroke raster; a group head carries none.
       expect(row.querySelectorAll('svg')).toHaveLength(1)
-      expect(row.querySelector('svg')?.getAttribute('class')).toContain('h-3')
+      expect(row.querySelector('svg')?.getAttribute('class')).toContain('h-4')
+      expect(row.querySelector('svg')?.getAttribute('stroke-width')).toBe('1.5')
     }
     for (const group of NAV_GROUPS) {
       const id = `settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`

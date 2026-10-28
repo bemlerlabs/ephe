@@ -84,7 +84,7 @@ export function RegisterNav({
                     onClick={() => onJump(hit.key)}
                     className={`${HIT_ROW} border-l-2 border-transparent text-ink-soft hover:text-ink`}
                   >
-                    <Icon className="h-3 w-3 shrink-0" />
+                    <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                     <span className="truncate">{t(`settings.${hit.key}`)}</span>
                   </button>
                 )
@@ -162,7 +162,7 @@ export function RegisterNav({
                         : 'border-l-transparent text-ink-soft hover:text-ink'
                     }`}
                   >
-                    <Icon className="h-3 w-3 shrink-0" />
+                    <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                     <span className="truncate">{t(`settings.${key}`)}</span>
                   </button>
                 )
@@ -189,7 +189,7 @@ export function RegisterNav({
                       : 'border-l-transparent text-ink-soft hover:text-ink'
                   }`}
                 >
-                  <Icon className="h-3 w-3 shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                   <span className="truncate">{t(`settings.${key}`)}</span>
                 </button>
               )

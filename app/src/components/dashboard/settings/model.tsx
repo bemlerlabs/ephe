@@ -36,6 +36,7 @@ import {
   Bot,
   UsersRound,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { TabKey } from './types'
 import type { SettingsPanelProps } from './types'
 import { NAV_KEYS } from './types'
@@ -81,7 +82,7 @@ export type { SettingsModel } from './model/buildModel'
 
 // W10: the keys are the one list (NAV_KEYS in ./types) — the same rows the command
 // palette offers. Only the icons live here, so the order and the set cannot diverge.
-const NAV_ICON: Record<TabKey, React.ComponentType<{ className?: string }>> = {
+const NAV_ICON: Record<TabKey, LucideIcon> = {
   engine: Zap,
   appearance: Palette,
   behaviour: Activity,
@@ -146,7 +147,7 @@ export const NAV_GROUPS: { groupKey: string; keys: TabKey[] }[] = [
 export const ABOUT_KEYS: TabKey[] = ['about']
 
 // IcoEphemora lookup for the group nav (one icon per row, no rows without an icon).
-export function navIcon(key: TabKey): React.ComponentType<{ className?: string }> {
+export function navIcon(key: TabKey): LucideIcon {
   return NAV_ICON[key] ?? Info
 }
 

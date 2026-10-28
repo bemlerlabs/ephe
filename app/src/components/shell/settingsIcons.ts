@@ -13,10 +13,12 @@ import {
   AlarmClock,
   Archive,
   Brain,
+  Cable,
   CalendarClock,
   ChevronsUpDown,
   Clock,
   Clock3,
+  Coins,
   Copy,
   DatabaseZap,
   Eye,
@@ -27,6 +29,8 @@ import {
   History,
   Hourglass,
   Keyboard,
+  Library,
+  ListOrdered,
   LoaderCircle,
   Maximize2,
   MessagesSquare,
@@ -40,6 +44,7 @@ import {
   Ruler,
   ScrollText,
   ShieldCheck,
+  SlidersHorizontal,
   Target,
   TextCursorInput,
   TextSelect,
@@ -47,6 +52,7 @@ import {
   Timer,
   ToggleLeft,
   Type,
+  Variable,
   Webhook,
   Wrench,
   BrainCircuit,
@@ -93,29 +99,29 @@ export const FIELD_ICONS: Record<string, IconComponent> = {
 export const SECTION_ICONS: Record<string, IconComponent> = {
   chat: MessagesSquare,
   appearance: Palette,
-  advanced: Gauge,
+  advanced: Wrench,
   plugins: Puzzle,
-  memory: Brain,
+  memory: Library,
   ephemera: Orbit,
   cron: CalendarClock,
-  hooks: Webhook,
+  hooks: Cable,
 }
 
 /** The six generation levers on the engine card. */
 export const GENERATION_ICONS: Record<string, IconComponent> = {
   temperature: Thermometer,
   top_p: Target,
-  max_tokens: Hash,
-  tool_budget: Wrench,
+  max_tokens: Coins,
+  tool_budget: SlidersHorizontal,
   context_window: Maximize2,
-  memory_max_entries: Brain,
+  memory_max_entries: ListOrdered,
 }
 
 export function generationIcon(key: string): IconComponent {
-  return GENERATION_ICONS[key] ?? Hash
+  return GENERATION_ICONS[key] ?? Variable
 }
 
-const TYPE_ICONS: Record<string, IconComponent> = {
+export const TYPE_ICONS: Record<string, IconComponent> = {
   bool: ToggleLeft,
   number: Gauge,
   select: ChevronsUpDown,
@@ -136,13 +142,20 @@ export interface IconCollision {
 }
 
 /**
- * Two rows wearing the same glyph. Field keys and type fallbacks share one
- * namespace because they share one list; section headers are a different surface
- * and are not counted here.
+ * Two rows wearing the same glyph. Field keys, type fallbacks, section headers and
+ * the generation levers all meet on one settings screen, so all four namespaces are
+ * audited together; a glyph may be spent exactly once.
  */
 export function auditSettingsIconCollisions(): IconCollision[] {
   const byIcon = new Map<string, string[]>()
-  const rows = [...Object.entries(FIELD_ICONS), ...Object.entries(TYPE_ICONS)]
+  const prefixed = (prefix: string, map: Record<string, IconComponent>) =>
+    Object.entries(map).map(([key, icon]) => [`${prefix}:${key}`, icon] as [string, IconComponent])
+  const rows = [
+    ...prefixed('field', FIELD_ICONS),
+    ...prefixed('type', TYPE_ICONS),
+    ...prefixed('section', SECTION_ICONS),
+    ...prefixed('generation', GENERATION_ICONS),
+  ]
   for (const [key, icon] of rows) {
     const name = icon.displayName ?? 'anonymous'
     const keys = byIcon.get(name)
