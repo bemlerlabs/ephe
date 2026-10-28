@@ -7,6 +7,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 changes are named below (`bd27cd6`): a workspace is indexed locally into
+SQLite from Python, TypeScript, JavaScript and Rust declarations with ignore rules
+and mtime-only re-parsing, a status pill and dialog show the index, `query_codebase`
+answers symbol questions with spans and source, any Markdown plan whose phases are
+headings and tasks are boxes runs phase by phase with sandbox gates and atomic
+markers, the coding loop checks `.ts`/`.tsx` and `.rs` as well, and a failed shell
+result names its cause with the next step.
+
 The 0.2.1 fix is named below (`2542d57`): Quick Look opens through
 `QLPreviewPanel` in-process, because `qlmanage -p` started a process that opened
 no window on macOS 26.
@@ -52,6 +60,36 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.3.0] - 2026-10-28
+
+Phase 1 of the sovereign software factory: the workspace is indexed locally, any
+Markdown plan runs phase by phase, and the self-repair loop covers the languages
+the shell itself is written in.
+
+### Added
+
+- **Local codebase index.** `core/semindex/` extracts Python (AST), TypeScript,
+  JavaScript and Rust declarations into SQLite (`.ephe/index.db`), skips build
+  trees and `.gitignore`/`.epheignore` paths, and re-parses only files whose mtime
+  changed. `project_map.py` renders a compact architecture summary, `query_codebase`
+  answers symbol questions with file, line span and source, and
+  `POST /api/project/index`, `GET /api/project/index/status` and
+  `POST /api/project/search` are the routes behind the dialog.
+- **Indexing dialog and status pill.** The status bar reads
+  `Indexiert (N Symbole)` and opens a dialog with the file progress while the index
+  builds; an unindexed workspace asks once per session.
+- **Generic phase engine.** `core/project_runner.py` runs any Markdown plan whose
+  phases are headings (`## Phase 1:`, `## Stage 2`, `## Step 3`, `## Milestone 4`)
+  and whose tasks are `- [ ]` boxes: gates run in the Seatbelt, every marker is
+  written atomically and line-exact, `[ ]` becomes `[>]`, then `[x]` or `[!]` with a
+  failure line, and the macOS dock shows the phase progress. `/project <file>` and
+  `ephe project <file>` are the entry points.
+- **TypeScript and Rust checks.** Edits to `.ts`/`.tsx` go through esbuild and edits
+  to `.rs` through `rustc --emit=metadata`, so the self-repair loop covers the
+  languages the desktop shell is written in.
+- **Shell diagnosis.** A failed `run_shell` result names a missing package, a missing
+  binary, a taken port or a sandbox refusal, and appends the next step.
 
 ## [0.2.1] - 2026-10-28
 
