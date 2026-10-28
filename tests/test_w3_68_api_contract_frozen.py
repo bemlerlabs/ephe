@@ -89,6 +89,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/artifacts/{artifact_id}/provenance",
     "GET /api/artifacts/{artifact_id}/versions",
     "GET /api/audit",
+    "GET /api/capabilities",
     "GET /api/cell",
     "GET /api/change-sets",
     "GET /api/change-sets/claims",
@@ -271,7 +272,6 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "PUT /api/settings/voice",
     "PUT /api/skills/{name}",
     "PUT /api/tasks/{task_id}",
-
 )
 
 

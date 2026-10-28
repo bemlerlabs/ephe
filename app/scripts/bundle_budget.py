@@ -33,9 +33,11 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     "ChatPage.js": 112.0,    # chat shell only — wave-3 split moved the panes out
     "AgentPanel.js": 118.0,  # W3-1: agent panel + xterm, its own lazy chunk
     # 2026-10-20: the settings register left ChatPage (112.1 kB, 0.1 over) and
-    # became its own lazy chunk, opened rather than painted. Measured 29.48 kB
-    # gzip; the row carries ~10% headroom. ChatPage now measures 83.82 kB.
-    "SettingsPanel.js": 32.5,
+    # became its own lazy chunk, opened rather than painted. ChatPage now
+    # measures 83.82 kB. 2026-10-28: the capability matrix, the stage switch and
+    # the model matrix brought it to 32.97 kB; the ~10% headroom rule gives the
+    # row 36.3.
+    "SettingsPanel.js": 36.3,
     # 2026-10-22: the scheduler panel crossed the 12 kB small ceiling after the
     # Agent Center and Teams sections moved into their own lazy chunks. Measured
     # 13.45 kB gzip; the row carries ~10% headroom.
@@ -169,7 +171,7 @@ MEASURED_GZIP_KB: dict[str, float] = {
     "dates-format.js": 3.63,
     "de.js": 40.58,
     "en.js": 36.71,
-    "SettingsPanel.js": 31.94,
+    "SettingsPanel.js": 32.97,
     "SchedulerPanel.js": 13.45,
     # 2026-10-14, same instrument and day as the budgets above.
     "core.js": 24.01,

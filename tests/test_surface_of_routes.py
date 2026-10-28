@@ -57,7 +57,6 @@ SURFACES: dict[str, tuple[str, list[str]]] = {
         [
             "components/dashboard/Sidebar.tsx",
             "components/dashboard/WorkspaceBar.tsx",
-            "components/dashboard/WelcomeEmptyState.tsx",
         ],
     ),
     "GET /api/learning/proposals": (
