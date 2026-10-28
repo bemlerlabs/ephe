@@ -30,9 +30,12 @@ export function CapabilityMatrix({
     }
   }, [])
 
-  const subDescription = caps
-    ? caps.subagent.tools.join(' · ')
-    : failed
+  // A backend that answers with nothing useful is not an answer: a stub page or a
+  // version skew must not take the whole Behaviour tab down with it.
+  const tools = caps?.subagent?.tools
+  const subDescription = Array.isArray(tools) && tools.length
+    ? tools.join(' · ')
+    : failed || caps
       ? t('settings.capabilityUnknown')
       : '…'
 
@@ -61,9 +64,9 @@ export function CapabilityMatrix({
           data-testid="capability-sub-count"
           className="tabular-nums font-mono text-ui-xs text-ink-faint"
         >
-          {caps
+          {typeof caps?.subagent?.tool_count === 'number'
             ? `${caps.subagent.tool_count} ${t('settings.capabilityTools')}`
-            : failed
+            : failed || caps
               ? '—'
               : '…'}
         </span>
@@ -105,7 +108,7 @@ export function DetailsModeSwitch({
             className={`rounded-md border px-2.5 py-1 text-ui-xs transition-colors pointer-coarse:min-h-11 ${
               option.on
                 ? 'border-brand/40 bg-brand/10 text-brand'
-                : 'border-hairline text-ink-soft hover:text-foreground'
+                : 'border-ink-faint/50 text-ink-soft hover:text-foreground'
             }`}
           >
             {option.label}

@@ -60,3 +60,12 @@ describe('the details switch', () => {
     expect(screen.getByTestId('details-mode-collapsed').getAttribute('aria-pressed')).toBe('true')
   })
 })
+
+describe('a backend that answers with nothing useful', () => {
+  it('keeps the tab alive and says the count is unknown', async () => {
+    api.getCapabilities.mockResolvedValue({} as never)
+    render(<CapabilityMatrix t={(k) => k} />)
+    expect(await screen.findByTestId('capability-sub')).toBeTruthy()
+    expect(screen.getByTestId('capability-sub-count').textContent).toBe('—')
+  })
+})
