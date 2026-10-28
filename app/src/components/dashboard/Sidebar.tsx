@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import {
   Sparkles,
+  Bot,
   Plus,
   X,
   Trash2,
@@ -671,6 +672,15 @@ export default function Sidebar({
       label: t('sidebar.navHelpers'),
       hint: '',
       run: () => openPanelTab('subagents'),
+    },
+    agents: {
+      // The swarm's own surface: the helper runs above produce them, this is
+      // where a team is shaped (roles and their models).
+      testid: 'sidebar-action-agents',
+      Icon: Bot,
+      label: t('sidebar.navAgents'),
+      hint: '',
+      run: () => onOpenSettings('agents'),
     },
     marketplace: {
       // P6 B7 (ref-01): the skill store as its own nav row —

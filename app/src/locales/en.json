@@ -449,7 +449,8 @@
     "streamClosedBeforeDone": "The turn ended before it was complete."
   },
   "sidebar": {
-    "navWorkspaces": "Workspaces",
+    "navAgents": "Sub-Agents & Swarms",
+    "navWorkspaces": "Custody & Workspaces",
     "newChat": "New task",
     "searchPlaceholder": "Search tasks...",
     "today": "Today",
@@ -513,12 +514,12 @@
     "navFiles": "Files",
     "navLibrary": "Library",
     "navTasks": "Steps",
-    "navKnowledge": "Knowledge",
+    "navKnowledge": "Knowledge & Kepta Memory",
     "navArtifacts": "Workbench",
     "navTools": "Tools",
-    "navConnectors": "Connectors",
+    "navConnectors": "Plugins & MCP",
     "groupTools": "Tools & Capabilities",
-    "groupMore": "Knowledge, Library, Automations, Connectors"
+    "groupMore": "More surfaces"
   },
   "settings": {
     "agents": "Agents",

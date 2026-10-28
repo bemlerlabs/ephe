@@ -109,10 +109,10 @@ test.describe('Steuerzeilen mit offenem Agent-Pane', () => {
   })
 })
 
-test.describe('Composer auf 390 px', () => {
+test.describe('composer at 390 px', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('die Steuerzeile bleibt einzeilig und nichts ueberlappt', async ({ page }) => {
+  test('the action row stays on one line and nothing overlaps', async ({ page }) => {
     await ensureOnboarded(page)
     await gotoHash(page, '/chat', '[data-testid="chat-input"]')
     const row = page.locator('[data-testid="composer-actions-row"]')

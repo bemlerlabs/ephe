@@ -100,11 +100,12 @@ const TIERS: Record<string, string[]> = {
     'sidebar-action-skills',
     'sidebar-action-tools',
     'sidebar-action-helpers',
+    'sidebar-action-agents',
     'sidebar-action-marketplace',
     'sidebar-action-files',
     'sidebar-action-workspaces',
   ],
-  // "Knowledge, Library, Automations, Connectors" — collapsible.
+  // "More surfaces" — collapsible, four named rows instead of one catch-all.
   more: [
     'sidebar-action-knowledge',
     'sidebar-action-library',
@@ -206,7 +207,7 @@ describe('Sidebar Aktionszeilen + Ansichtsumschalter (Runden-G3)', () => {
         expect(screen.getByTestId(`sidebar-tier-${tier}-rows`)).toHaveAttribute('hidden')
       }
       // The heads keep the member count, so a closed tier still says what is in it.
-      expect(screen.getByTestId('sidebar-tier-tools-count').textContent).toBe('6')
+      expect(screen.getByTestId('sidebar-tier-tools-count').textContent).toBe('7')
       expect(screen.getByTestId('sidebar-tier-more-count').textContent).toBe('5')
     })
 

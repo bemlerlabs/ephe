@@ -449,7 +449,8 @@
     "streamClosedBeforeDone": "Der Turn endete vor dem Abschluss."
   },
   "sidebar": {
-    "navWorkspaces": "Arbeitsbereiche",
+    "navAgents": "Sub-Agenten & Schwärme",
+    "navWorkspaces": "Custody & Arbeitsbereiche",
     "newChat": "Neue Aufgabe",
     "searchPlaceholder": "Aufgaben durchsuchen...",
     "today": "Heute",
@@ -513,12 +514,12 @@
     "navFiles": "Dateien",
     "navLibrary": "Artefakte",
     "navTasks": "Schritte",
-    "navKnowledge": "Wissen",
+    "navKnowledge": "Wissen & Kepta Memory",
     "navArtifacts": "Werkbank",
     "navTools": "Werkzeuge",
-    "navConnectors": "Verbindungen",
+    "navConnectors": "Erweiterungen & MCP",
     "groupTools": "Werkzeuge & Fähigkeiten",
-    "groupMore": "Wissen, Bibliothek, Automationen, Verbindungen"
+    "groupMore": "Weitere Flächen"
   },
   "settings": {
     "agents": "Agenten",

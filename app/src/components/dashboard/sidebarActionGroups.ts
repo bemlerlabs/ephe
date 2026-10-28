@@ -13,7 +13,7 @@
  *
  * Every row that stood flat here keeps its `data-testid`, its icon and its
  * target; the grouping adds one level above the list it already was. Nothing was
- * dropped: 2 + 6 + 5 = the thirteen rows that stood here before.
+ * dropped: 2 + 7 + 5 = the fourteen rows the sidebar carries.
  *
  * Import-free on purpose: a hook importing it must not close an import cycle.
  */
@@ -28,6 +28,7 @@ export type SidebarActionEntryId =
   | 'skills'
   | 'tools'
   | 'helpers'
+  | 'agents'
   | 'marketplace'
   | 'files'
   | 'workspaces'
@@ -62,17 +63,17 @@ export const SIDEBAR_ACTION_TIERS: readonly SidebarActionTier[] = [
     entries: ['search', 'tasks'],
   },
   {
-    // What the agent can do, and where it works: the two capabilities first
-    // (the tier's own name), then the helper runs, the store that adds more,
-    // then the two folder surfaces.
+    // What the agent can do, and where it works: the capabilities first, then
+    // the runs, the helpers and the swarm those helpers form, the store that
+    // adds more, then the two folder surfaces.
     id: 'tools',
     labelKey: 'sidebar.groupTools',
     collapsible: true,
-    entries: ['skills', 'tools', 'helpers', 'marketplace', 'files', 'workspaces'],
+    entries: ['skills', 'tools', 'helpers', 'agents', 'marketplace', 'files', 'workspaces'],
   },
   {
-    // The owner's third tier, in their order — Knowledge, Library, Automations,
-    // Connectors — plus the workbench, which is the library's own full page.
+    // Four named surfaces instead of one catch-all head: memory, the workbench,
+    // the schedules and the connector shelf each say what they are.
     id: 'more',
     labelKey: 'sidebar.groupMore',
     collapsible: true,
