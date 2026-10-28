@@ -99,10 +99,10 @@ class TestToolMap:
         """
         GIVEN  TOOL_MAP
         WHEN   checked for completeness
-        THEN   it holds all 72 expected entries
+        THEN   it holds all 75 expected entries
         """
         expected_tools = {
-            "manage_tasks", "web_search", "file_search",
+            "manage_tasks", "web_search", "query_codebase", "file_search",
             "discover_projects", "analyze_project",
             "create_source_notebook", "query_source_notebook", "export_source_brief",
             "read_file", "edit_file", "list_directory",

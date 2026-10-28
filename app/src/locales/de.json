@@ -2614,5 +2614,19 @@
       "repair": "Die Einrichtung braucht eine reparierte Schlüsselbindung",
       "toolFailed": "Ein Werkzeugaufruf ist fehlgeschlagen"
     }
+  },
+  "codebase": {
+    "pillIdle": "Codebasis indexieren",
+    "pillIndexing": "Indexiere: {{done}} / {{total}} Dateien",
+    "pillReady": "Indexiert ({{count}} Symbole)",
+    "pillError": "Indexierung fehlgeschlagen",
+    "title": "Diese Codebasis indexieren",
+    "body": "Ephe liest die Syntaxbäume lokal und legt die Symbole in .ephe/index.db ab. Nichts verlässt diesen Mac.",
+    "start": "Jetzt indexieren",
+    "retry": "Erneut indexieren",
+    "running": "Indexiere: {{done}} / {{total}} Dateien…",
+    "done": "{{count}} Symbole indexiert",
+    "error": "Indexierung fehlgeschlagen: {{message}}",
+    "close": "Schließen"
   }
 }

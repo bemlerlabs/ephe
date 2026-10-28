@@ -206,6 +206,7 @@ _COMMAND_DESCRIPTIONS: dict[str, str] = {
 SWARM_COMMANDS: frozenset[str] = frozenset({"/swarm"})
 LEARN_COMMANDS: frozenset[str] = frozenset({"/learn"})
 GOAL_COMMANDS: frozenset[str] = frozenset({"/goal"})
+PROJECT_COMMANDS: frozenset[str] = frozenset({"/project"})
 
 
 class GoalCommandSpec(NamedTuple):
@@ -325,6 +326,23 @@ def is_goal_command(text: str) -> bool:
     """Return True if text is a /goal command (handled by the goal loop)."""
     parts = text.strip().split(maxsplit=1)
     return bool(parts) and parts[0].lower() in GOAL_COMMANDS
+
+
+def is_project_command(text: str) -> bool:
+    """Return True if text is a /project command (handled by the phase runner)."""
+    parts = text.strip().split(maxsplit=1)
+    return bool(parts) and parts[0].lower() in PROJECT_COMMANDS
+
+
+def parse_project_command(text: str) -> str:
+    """The plan path after `/project`; empty when the message names none."""
+    parts = text.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        return ""
+    body = parts[1].strip()
+    if body.startswith("`") and body.endswith("`") and len(body) > 1:
+        body = body[1:-1].strip()
+    return body
 
 
 def parse_goal_command(text: str) -> GoalCommandSpec:

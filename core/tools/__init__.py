@@ -106,6 +106,8 @@ from core.tools.chart_tools import (
     _generate_svg_chart,
 )
 
+from core.tools.codebase_tools import query_codebase
+
 from core.tools.pdf_tools import (
     create_pdf,
     _apply_pdf_template,
@@ -244,6 +246,7 @@ __all__ = [
     "memory", "skill_manage",
     "spawn_agent", "SPAWN_AGENT_SCHEMA",
     "TOOL_MAP", "execute_tool", "get_tool_schemas", "get_filtered_tool_schemas", "invalidate_tool_schema_cache",
+    "query_codebase",
     "register_tool_hook", "clear_tool_hooks", "get_assertions", "reset_assertion_ledger",
     "MCPClient", "MCPServerSpec", "parse_server_spec", "set_mcp_servers",
     "sync_mcp_tools", "register_mcp_tool", "unregister_mcp_tools",

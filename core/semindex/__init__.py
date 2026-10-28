@@ -8,19 +8,38 @@ Retrieval walks the tree (exact, deterministic), not vector embeddings.
 from __future__ import annotations
 
 from core.semindex.tree import (
+    LANGUAGE_BY_SUFFIX,
+    SUPPORTED_SUFFIXES,
     Node,
     SemanticTree,
+    build_tree_from_language,
     build_tree_from_source,
     build_tree_for_file,
 )
-from core.semindex.store import SemanticStore
+from core.semindex.store import (
+    IndexResult,
+    SemanticStore,
+    index_database,
+    index_workspace,
+    iter_source_files,
+)
+from core.semindex.project_map import build_project_map, project_map_for_workspace
 from core.semindex.retrieval import semantic_tree_search
 
 __all__ = [
+    "IndexResult",
+    "LANGUAGE_BY_SUFFIX",
     "Node",
-    "SemanticTree",
+    "SUPPORTED_SUFFIXES",
     "SemanticStore",
-    "semantic_tree_search",
+    "SemanticTree",
+    "build_project_map",
+    "build_tree_from_language",
     "build_tree_from_source",
     "build_tree_for_file",
+    "index_database",
+    "index_workspace",
+    "iter_source_files",
+    "project_map_for_workspace",
+    "semantic_tree_search",
 ]

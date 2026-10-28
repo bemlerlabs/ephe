@@ -70,7 +70,7 @@ def test_tools_count_matches_registry(client):
     from core.tools.registry import TOOL_MAP
     from core.tools import TOOL_MAP as TOOLS
 
-    assert len(TOOL_MAP) == 74
+    assert len(TOOL_MAP) == 75
     assert len(TOOLS) == len(TOOL_MAP)
 
 

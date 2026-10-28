@@ -35,8 +35,10 @@ from core.commands import (
     extract_swarm_task,
     is_goal_command,
     is_learn_command,
+    is_project_command,
     is_swarm_command,
     parse_goal_command,
+    parse_project_command,
 )
 from core.skills import SkillLoader, SkillLoadError
 from core.artifact_detector import ArtifactDetector, looks_like_ask_payload
@@ -1410,6 +1412,136 @@ async def _run_swarm_command(message: str, model: str, emit: Callable[[dict], No
     return True
 
 
+def _project_plan_path(message: str) -> "Path | None":
+    """The plan a `/project` message names, if it is a file inside the workspace.
+
+    Without such a file the message keeps its earlier meaning (a normal prompt the
+    project skill may answer), so the new command only claims what it can run.
+    """
+    from pathlib import Path
+
+    from core.workspace_rules import resolve_workspace_dir
+
+    raw = parse_project_command(message)
+    if not raw:
+        return None
+    workspace = Path(resolve_workspace_dir()).resolve()
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = workspace / candidate
+    try:
+        plan = candidate.resolve()
+    except OSError:
+        return None
+    if plan.is_file() and plan.is_relative_to(workspace):
+        return plan
+    return None
+
+
+async def _run_project_command(
+    message: str,
+    model: str,
+    emit: Callable[[dict], None],
+    confirm: Callable[[str, dict], Awaitable[bool]],
+) -> bool:
+    """/project <file>: run a Markdown phase plan. True = the turn ends here.
+
+    The plan path resolves inside the workspace only. Phase and progress frames
+    come from the runner's own events, so the surface shows the state the file
+    is in rather than a reconstruction of it.
+    """
+    raw = parse_project_command(message)
+    emit({"type": "thinking_start"})
+    if not raw:
+        emit({
+            "type": "chunk",
+            "data": (
+                "💡 Usage: `/project <file.md>` — any Markdown plan whose phases are "
+                "headings (`## Phase 1: ...`) and whose tasks are `- [ ]` boxes."
+            ),
+        })
+        emit({"type": "done"})
+        return True
+
+    from pathlib import Path
+
+    from core.workspace_rules import resolve_workspace_dir
+
+    workspace = Path(resolve_workspace_dir()).resolve()
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = workspace / candidate
+    try:
+        plan = candidate.resolve()
+    except OSError:
+        plan = candidate
+    if not plan.is_file() or not plan.is_relative_to(workspace):
+        emit({
+            "type": "chunk",
+            "data": (
+                f"⚠️ `{raw}` is not a file inside the workspace "
+                f"({workspace}). Give a path relative to it."
+            ),
+        })
+        emit({"type": "done"})
+        return True
+
+    from core.project_runner import parse_project_file, run_project_file
+    from core.tools.approval import ApprovalPolicy
+
+    phases = parse_project_file(plan)
+    if not phases:
+        emit({
+            "type": "chunk",
+            "data": (
+                f"⚠️ `{plan.name}` has no phase headings. Expected forms are "
+                "`## Phase 1: ...`, `## Stage 2`, `## Step 3`, `## Milestone 4`."
+            ),
+        })
+        emit({"type": "done"})
+        return True
+
+    def relay(kind: str, **payload) -> None:
+        emit({"type": kind, **payload})
+
+    def progress(percent: int) -> None:
+        emit({"type": "project_progress", "percent": percent})
+
+    policy = ApprovalPolicy(auto_approve=False, interactive=False, on_confirm=confirm)
+    try:
+        results = await run_project_file(
+            plan,
+            model=model,
+            policy=policy,
+            workspace=workspace,
+            on_event=relay,
+            progress=progress,
+        )
+    except OllamaNotReachableError:
+        emit({"type": "error", "msg": _unreachable_engine_message()})
+        emit({"type": "done"})
+        return True
+    except Exception as exc:
+        emit({"type": "error", "msg": f"Project run failed: {exc}"})
+        emit({"type": "done"})
+        return True
+
+    finished = sum(1 for result in results if result.ok)
+    failed = [result for result in results if not result.ok]
+    lines = [
+        f"Project run on `{plan.name}`: {finished}/{len(phases)} phase(s) finished."
+    ]
+    if failed:
+        phase = failed[0].phase
+        lines.append(
+            f"Stopped at `{phase.title}` after {failed[0].attempts} attempt(s); "
+            "the tasks are marked [!] and the plan file carries the failure line."
+        )
+    emit({"type": "chunk", "data": "\n".join(lines)})
+    emit({"type": "done"})
+    return True
+
+
 async def _run_goal_command(
     message: str,
     model: str,
@@ -2055,24 +2187,32 @@ async def chat_stream(
                 # deferred bridge (tool_search + tool_call) never consults it.
                 _mode_token = _publish_tool_mode(request.mode)
 
-                # /goal: the autonomous goal loop. It runs tools (the check command),
-                # so it refuses in ask and plan mode rather than acting behind a mode
-                # that promises no tool run, and its calls go through _sandbox_cb —
-                # the same gate every other call in this turn passes.
-                if is_goal_command(request.message):
+                # /goal and /project run tools (checks, gates), so both refuse in
+                # ask and plan mode rather than acting behind a mode that promises
+                # no tool run, and their calls go through _sandbox_cb — the same
+                # gate every other call in this turn passes.
+                project_command = _project_plan_path(request.message) is not None
+                if is_goal_command(request.message) or project_command:
                     if ask_mode or plan_mode:
+                        command_name = "/project" if project_command else "/goal"
                         emit({
                             "type": "chunk",
                             "data": (
-                                "⚠️ `/goal` runs tools, so it does not start in ask or "
-                                "plan mode. Switch the composer to a mode that may act "
-                                "and send it again."
+                                f"⚠️ `{command_name}` runs tools, so it does not start "
+                                "in ask or plan mode. Switch the composer to a mode that "
+                                "may act and send it again."
                             ),
                         })
                         emit({"type": "done"})
                         _done_sent = True
                         return
-                    if await _run_goal_command(request.message, model, emit, _sandbox_cb):
+                    if project_command:
+                        if await _run_project_command(
+                            request.message, model, emit, _sandbox_cb
+                        ):
+                            _done_sent = True
+                            return
+                    elif await _run_goal_command(request.message, model, emit, _sandbox_cb):
                         _done_sent = True
                         return
 

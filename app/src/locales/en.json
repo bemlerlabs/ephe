@@ -2614,5 +2614,19 @@
       "repair": "The setup needs its key binding repaired",
       "toolFailed": "A tool call failed"
     }
+  },
+  "codebase": {
+    "pillIdle": "Index codebase",
+    "pillIndexing": "Indexing: {{done}} / {{total}} files",
+    "pillReady": "Indexed ({{count}} symbols)",
+    "pillError": "Index failed",
+    "title": "Index this codebase",
+    "body": "Ephe reads the syntax trees locally and keeps the symbols in .ephe/index.db. Nothing leaves this Mac.",
+    "start": "Index now",
+    "retry": "Index again",
+    "running": "Indexing: {{done}} / {{total}} files…",
+    "done": "{{count}} symbols indexed",
+    "error": "Index failed: {{message}}",
+    "close": "Close"
   }
 }

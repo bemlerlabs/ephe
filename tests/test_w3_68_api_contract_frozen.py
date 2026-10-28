@@ -131,6 +131,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/plugins/icon/{plugin_id}",
     "GET /api/profile",
     "GET /api/profile/export",
+    "GET /api/project/index/status",
     "GET /api/projects",
     "GET /api/proxy/{port}",
     "GET /api/proxy/{port}/{full_path}",
@@ -226,6 +227,8 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/plugins/master",
     "POST /api/plugins/{plugin_id}/cancel",
     "POST /api/plugins/{plugin_id}/enable",
+    "POST /api/project/index",
+    "POST /api/project/search",
     "POST /api/sandbox/approve",
     "POST /api/schedule",
     "POST /api/schedule/{job_id}/run",
@@ -268,6 +271,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "PUT /api/settings/voice",
     "PUT /api/skills/{name}",
     "PUT /api/tasks/{task_id}",
+
 )
 
 

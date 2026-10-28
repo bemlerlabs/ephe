@@ -9,7 +9,9 @@ report the failure instead of editing in circles.
 """
 from __future__ import annotations
 
+import os
 import shlex
+import shutil
 import subprocess
 import sys
 from contextvars import ContextVar
@@ -44,6 +46,17 @@ def repairs_used() -> int:
     return _used.get()
 
 
+def _esbuild(path: Path) -> str | None:
+    found = shutil.which("esbuild")
+    if found:
+        return found
+    for parent in [path.parent, *path.parent.parents][:4]:
+        candidate = parent / "node_modules" / ".bin" / "esbuild"
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
 def verification_command(path: Path) -> list[str] | None:
     """The cheapest checker this file type has, or None where there is none."""
     suffix = path.suffix.lower()
@@ -53,6 +66,18 @@ def verification_command(path: Path) -> list[str] | None:
         return ["node", "--check", str(path)]
     if suffix == ".json":
         return [sys.executable, "-c", "import json,sys;json.load(open(sys.argv[1]))", str(path)]
+    if suffix in {".ts", ".tsx"}:
+        esbuild = _esbuild(path)
+        if esbuild is None:
+            return None
+        loader = "tsx" if suffix == ".tsx" else "ts"
+        return [esbuild, str(path), f"--loader={loader}", "--log-level=silent"]
+    if suffix == ".rs":
+        rustc = shutil.which("rustc")
+        if rustc is None:
+            return None
+        rmeta = path.parent / f".{path.stem}.check.rmeta"
+        return [rustc, "--emit=metadata", "--crate-type=lib", str(path), "-o", str(rmeta)]
     return None
 
 
@@ -74,6 +99,8 @@ def verify(path: Path, *, timeout: float = TIMEOUT_SECONDS) -> Verdict | None:
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return Verdict(False, line, f"checker could not run: {exc}")
+    if path.suffix.lower() == ".rs":
+        path.parent.joinpath(f".{path.stem}.check.rmeta").unlink(missing_ok=True)
     output = f"{done.stdout}{done.stderr}".strip()
     return Verdict(done.returncode == 0, line, output[-MAX_OUTPUT_CHARS:])
 

@@ -58,6 +58,7 @@ from server.routes import (
     mcp,
     plugins,
     profile,
+    project,
     proxy,
     schedule,
     search,
@@ -398,6 +399,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(export.router, prefix="/api")
     app.include_router(model_provider.router, prefix="/api")
     app.include_router(marketplace.router, prefix="/api")
+    app.include_router(project.router, prefix="/api")
     app.include_router(fs.router, prefix="/api")
     app.include_router(git_info.router, prefix="/api")
     app.include_router(proxy.router, prefix="/api")

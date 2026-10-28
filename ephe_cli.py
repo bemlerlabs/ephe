@@ -530,6 +530,68 @@ def cmd_goal(args: argparse.Namespace) -> int:
     return 0 if result.success else 1
 
 
+def cmd_project(args: argparse.Namespace) -> int:
+    """`ephe project <file>` — run every phase of a Markdown plan in order."""
+    import asyncio
+    from pathlib import Path
+
+    from core.project_runner import parse_project_file, run_project_file
+
+    as_json = bool(getattr(args, "json", False))
+    raw = (getattr(args, "project_file", None) or "").strip()
+    if not raw:
+        _progress("Usage: ephe project <file.md> [--dry-run]", as_json=as_json)
+        return 2
+    plan = Path(raw).expanduser().resolve()
+    if not plan.is_file():
+        _progress(f"no such plan file: {plan}", as_json=as_json)
+        return 2
+    phases = parse_project_file(plan)
+    if not phases:
+        _progress(
+            f"{plan.name} has no phase headings (## Phase 1: ..., ## Stage 2, ...)",
+            as_json=as_json,
+        )
+        return 2
+    if getattr(args, "dry_run", False):
+        for phase in phases:
+            boxes = sum(1 for task in phase.tasks if task.status == "done")
+            gate = f" — gate: {phase.gate}" if phase.gate else ""
+            _progress(
+                f"{phase.title}: {boxes}/{len(phase.tasks)} done{gate}", as_json=as_json
+            )
+        return 0
+
+    choice = engine_for_headless_run(args, getattr(args, "model", None))
+
+    def relay(kind: str, **payload) -> None:
+        phase = payload.get("phase") or payload.get("ok", "")
+        _progress(f"{kind}: {phase}", as_json=as_json)
+
+    def progress(percent: int) -> None:
+        _progress(f"progress: {percent}%", as_json=as_json)
+
+    async def _run():
+        await _init_cli_mcp()
+        return await run_project_file(
+            plan, model=choice.model, on_event=relay, progress=progress
+        )
+
+    results = asyncio.run(_run())
+    finished = sum(1 for result in results if result.ok)
+    failed = [result for result in results if not result.ok]
+    _progress(
+        f"{finished}/{len(phases)} phase(s) finished in {plan.name}", as_json=as_json
+    )
+    for result in failed:
+        _progress(
+            f"stopped at {result.phase.title} after {result.attempts} attempt(s); "
+            "the plan file carries the failure line",
+            as_json=as_json,
+        )
+    return 0 if not failed else 1
+
+
 def _version_tuple(value: str) -> tuple[int, ...]:
     """The first three number blocks of a version string, without an extra dependency.
 
@@ -2214,6 +2276,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     goal.add_argument("--rep", type=int, default=0, help="repetition index for pass^k grouping (B1)")
     goal.set_defaults(func=cmd_goal)
+
+    project = sub.add_parser(
+        "project",
+        help="run a Markdown phase plan (any plan file, phase by phase)",
+        description=(
+            "Reads a plan file whose phases are headings (# Phase 1: ..., ## Stage 2, "
+            "## Step 3, ## Milestone 4) and whose tasks are '- [ ]' boxes, then runs "
+            "each phase in order. Each phase's gate command runs in the sandbox; a "
+            "failing phase is marked '[!]' with its output written below the tasks, "
+            "and the run stops there. Re-running resumes from the boxes on disk."
+        ),
+    )
+    project.add_argument("project_file", help="Path to the Markdown plan")
+    project.add_argument(
+        "--model", default=os.environ.get("EPHE_MODEL") or None, help=MODEL_FLAG_HELP
+    )
+    project.add_argument(
+        "--dry-run", action="store_true",
+        help="List the phases, task counts and gate commands without running anything",
+    )
+    project.add_argument("--json", action="store_true", help="Machine-readable output")
+    project.set_defaults(func=cmd_project)
 
     voice = sub.add_parser(
         "voice",

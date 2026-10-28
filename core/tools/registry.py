@@ -121,6 +121,7 @@ from core.tools.sandbox_tools import (
     run_sandboxed_code,
 )
 from core.tools.mcp_client import get_mcp_tools, call_registered_mcp_tool
+from core.tools.codebase_tools import CODEBASE_TOOL_SCHEMAS, query_codebase
 from core.tools._schemas import BASE_TOOL_SCHEMAS
 
 # ── R40b (Z43): Pre/Post-tool hooks ─────────────────────────────────────────
@@ -564,6 +565,7 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
 TOOL_MAP: dict[str, object] = {
     "manage_tasks": manage_tasks,
     "web_search": web_search,
+    "query_codebase": query_codebase,
     "fetch_url": fetch_url,
     "file_search": file_search,
     "discover_projects": discover_projects,
@@ -1165,6 +1167,12 @@ async def _execute_tool_core(
         result = await func(**arguments)
         if isinstance(result, list):
             result = "\n".join(str(r) for r in result)
+        try:
+            from core.terminal_diagnostics import annotate_tool_result
+
+            result = annotate_tool_result(name, arguments, result)
+        except Exception:
+            pass
         # A str subclass is kept as it is: core.reason.Reason IS its sentence and
         # carries the reason code beside it. Flattening it here is where that code
         # used to be lost on its way to the tool_done frame.
@@ -1357,6 +1365,8 @@ def get_tool_schemas() -> list[dict]:
     if sandbox_is_available():
         schemas.extend(SANDBOX_TOOL_SCHEMAS)
     schemas.extend(_UTILITY_TOOL_SCHEMAS)
+    # QD-012: the workspace index reader (always visible; it answers from local rows)
+    schemas.extend(CODEBASE_TOOL_SCHEMAS)
     # G1: the ask gate — a tool the model calls to pause the run on a question.
     schemas.extend(ASK_TOOL_SCHEMAS)
     # R36-S: sub-agent delegation — one schema, the main agent decides on its own.
