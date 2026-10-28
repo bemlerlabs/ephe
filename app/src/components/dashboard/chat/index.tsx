@@ -325,7 +325,7 @@ export default function ChatLayout() {
               every desktop browser. */}
             <header
               data-tauri-drag-region
-              className={`relative z-sticky border-b border-hairline px-4 h-11 flex items-center justify-between gap-x-2 pt-[calc(0.25rem+env(safe-area-inset-top))] flex-shrink-0${
+              className={`relative z-sticky border-b border-hairline px-4 h-10 flex items-center justify-between gap-x-2 pt-[calc(0.25rem+env(safe-area-inset-top))] flex-shrink-0${
                 isTauri && sidebarCollapsed ? ' md:pl-8' : ''
               }`}
             >
@@ -618,6 +618,15 @@ export default function ChatLayout() {
                   restartBlocked={update.restartBlocked}
                 />
               </div>
+              {/* B1: the run line sits in the header now — one chrome row states
+                  the run, names the engine and holds the panel controls. */}
+              <AgenticBar
+                inline
+                state={runState}
+                plan={runData.plan}
+                goal={runData.goal}
+                onOpenPalette={openPaletteFromHeader}
+              />
               <div className="flex items-center gap-2 shrink-0 ml-auto">
                 <EngineStatusPill
                   state={engineOnline === null ? 'checking' : engineOnline ? 'online' : 'offline'}
@@ -645,15 +654,6 @@ export default function ChatLayout() {
                 </button>
               </div>
             </header>
-
-            {/* The agentic workbench: one chrome line states the run (state, goal,
-                plan progress, commands) before the tools and the transcript. */}
-            <AgenticBar
-              state={runState}
-              plan={runData.plan}
-              goal={runData.goal}
-              onOpenPalette={openPaletteFromHeader}
-            />
 
             {/* E-UX: the status row moved BELOW the composer (minimal footer in the
             terminal-harness style); the context ring sits right at the send button. */}

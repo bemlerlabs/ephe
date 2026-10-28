@@ -39,11 +39,14 @@ export default function AgenticBar({
   plan,
   goal,
   onOpenPalette,
+  inline = false,
 }: {
   state: RunState
   plan?: PlanCardSpec | null
   goal?: string | null
   onOpenPalette: () => void
+  /** B1: rendered inside the chat header instead of as a row of its own. */
+  inline?: boolean
 }) {
   const { t } = useTranslation()
   const progress = plan && plan.total > 0 ? plan.done / plan.total : null
@@ -51,7 +54,11 @@ export default function AgenticBar({
     <div
       data-testid="agentic-bar"
       data-state={state}
-      className="workbench-bar ephe-run relative flex h-8 flex-shrink-0 items-center gap-3 px-4 max-lg:h-10 select-none"
+      className={
+        inline
+          ? 'ephe-run relative flex h-full min-w-0 flex-1 items-center gap-2 select-none'
+          : 'workbench-bar ephe-run relative flex h-8 flex-shrink-0 items-center gap-3 px-4 max-lg:h-10 select-none'
+      }
     >
       <span
         data-testid="workbench-state"
@@ -63,7 +70,7 @@ export default function AgenticBar({
       {goal && (
         <span
           data-testid="workbench-goal"
-          className="min-w-0 flex-1 truncate text-ui-xs text-ink-faint"
+          className="min-w-0 flex-1 truncate text-ui-xs text-ink-faint max-md:hidden"
           title={goal}
         >
           {goal}
@@ -72,7 +79,7 @@ export default function AgenticBar({
       {plan && plan.total > 0 && (
         <span
           data-testid="workbench-plan"
-          className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
+          className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint max-sm:hidden"
         >
           {t('workbench.steps', { done: plan.done, total: plan.total })}
         </span>

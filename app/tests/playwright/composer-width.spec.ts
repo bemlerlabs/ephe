@@ -128,3 +128,19 @@ test.describe('composer at 390 px', () => {
     expect(probe.hits).toEqual([])
   })
 })
+
+test.describe('B1: one chrome row', () => {
+  test.use({ viewport: { width: 1280, height: 900 } })
+
+  test('the header is 40 px and carries the run line and the engine state', async ({ page }) => {
+    await ensureOnboarded(page)
+    await gotoHash(page, '/chat', '[data-testid="chat-input"]')
+    const header = page.locator('main > div > header')
+    await expect(header).toBeVisible()
+    const box = await header.boundingBox()
+    expect(Math.round(box?.height ?? 0)).toBe(40)
+    await expect(header.locator('[data-testid="agentic-bar"]')).toHaveCount(1)
+    await expect(header.locator('[data-testid="workbench-state"]')).toHaveCount(1)
+    await expect(header.locator('[data-testid="engine-status-pill"]')).toHaveCount(1)
+  })
+})
