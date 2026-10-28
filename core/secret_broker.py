@@ -13,7 +13,8 @@ Values are never logged here.
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
+import sys
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 #: Credential-shaped fragments, matched against the upper-cased name.
@@ -113,6 +114,7 @@ def child_env(
         if str(name).upper() in _CHILD_ENV_NAMES
         or any(str(name).upper().startswith(prefix) for prefix in _CHILD_ENV_PREFIXES)
     }
+    env["PATH"] = hydrate_path(env.get("PATH"))
     if home is not None:
         root = str(home)
         env["HOME"] = root
@@ -120,3 +122,35 @@ def child_env(
     for name, value in (extra or {}).items():
         env[str(name)] = str(value)
     return env
+
+
+# A Finder-launched app inherits launchd's minimal PATH, which never contains
+# Homebrew: the shell tool answered "command not found" for node, npm and pnpm
+# while the same user's terminal had them. The heads below go in front when
+# they exist on disk; the POSIX core stays at the end so a child never runs
+# with a PATH that cannot find `sh` at all.
+_MACOS_TOOL_PATH = ("/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin")
+_POSIX_CORE_PATH = ("/usr/bin", "/bin", "/usr/sbin", "/sbin")
+
+
+def hydrate_path(
+    value: "str | None",
+    *,
+    platform: str | None = None,
+    exists: "Callable[[str], bool] | None" = None,
+) -> str:
+    """The PATH a child gets: tool heads first, then what was inherited."""
+    current = [entry for entry in (value or "").split(os.pathsep) if entry]
+    head: list[str] = []
+    if (platform or sys.platform) == "darwin":
+        is_dir = exists or os.path.isdir
+        head = [entry for entry in _MACOS_TOOL_PATH if is_dir(entry)]
+    tail = list(_POSIX_CORE_PATH) if (platform or sys.platform) != "win32" else []
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for entry in [*head, *current, *tail]:
+        if entry in seen:
+            continue
+        seen.add(entry)
+        ordered.append(entry)
+    return os.pathsep.join(ordered)

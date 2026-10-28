@@ -56,6 +56,17 @@ BASE = {
 # Dynamic-loader variables are code-loading channels and are not inherited.
 
 
+def _assert_child_path(child_path: str) -> None:
+    """QD-015 Y: the child keeps every inherited entry; macOS tool heads lead."""
+    inherited = [p for p in BASE["PATH"].split(os.pathsep) if p]
+    child = [p for p in child_path.split(os.pathsep) if p]
+    assert set(inherited) <= set(child), "an inherited PATH entry was dropped"
+    assert len(child) == len(set(child)), "a PATH entry is duplicated"
+    if sys.platform == "darwin" and os.path.isdir("/opt/homebrew/bin"):
+        assert child[0] == "/opt/homebrew/bin"
+# Dynamic-loader variables are code-loading channels and are not inherited.
+
+
 @pytest.fixture()
 def secrets_env(monkeypatch):
     for name, value in {**SECRETS, **BASE}.items():
@@ -69,7 +80,9 @@ def test_the_child_environment_keeps_basics_and_drops_credentials(secrets_env) -
     for name in SECRETS:
         assert name not in env, name
     for name in BASE:
-        assert env[name] == BASE[name], name
+        if name != "PATH":
+            assert env[name] == BASE[name], name
+    _assert_child_path(env["PATH"])
     assert env.get("TOKENIZERS_PARALLELISM") is None
 
 
@@ -98,7 +111,7 @@ async def test_mcp_stdio_does_not_inherit_host_secrets(secrets_env) -> None:
     seen = response["result"]["env"]
     assert seen["OPENAI_API_KEY"] is None
     assert seen["GITHUB_TOKEN"] is None
-    assert seen["PATH"] == BASE["PATH"]
+    _assert_child_path(seen["PATH"])
     assert seen["HOME"] != BASE["HOME"], "the child must not inherit the user's HOME"
     assert "mcp" in seen["HOME"] and "homes" in seen["HOME"]
 
@@ -117,7 +130,7 @@ def test_user_hook_does_not_inherit_host_secrets(secrets_env) -> None:
     seen = result["env"]
     assert seen["OPENAI_API_KEY"] is None
     assert seen["GITHUB_TOKEN"] is None
-    assert seen["PATH"] == BASE["PATH"]
+    _assert_child_path(seen["PATH"])
 
 
 def test_shell_child_does_not_inherit_host_secrets(secrets_env) -> None:
@@ -133,7 +146,7 @@ def test_shell_child_does_not_inherit_host_secrets(secrets_env) -> None:
     seen = json.loads(proc.stdout)
     assert seen["OPENAI_API_KEY"] is None
     assert seen["GITHUB_TOKEN"] is None
-    assert seen["PATH"] == BASE["PATH"]
+    _assert_child_path(seen["PATH"])
     assert seen["HOME"] == BASE["HOME"]
     assert "sk-secret" not in proc.stdout
     assert "ghp_secret" not in proc.stdout
