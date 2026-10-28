@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useDeepBool, useDeepSelect } from '@/lib/deepSettings'
 import { synthesizeSpeech } from '@/lib/api'
 import { isAutospeakActive } from '@/lib/autospeak'
 import { copyTypedText } from '@/lib/clipboard'
+import { stripRenderedCards } from '@/lib/cardText'
 import type { ToolCall } from '@/types'
 import type { ChatMessage as LegacyChatMessage } from '@/store/chatStore'
 import { MarkdownBody } from './messageMarkdown'
@@ -49,6 +50,9 @@ export function AssistantBubble({
   const showReasoning = useDeepBool('chat.show_reasoning', true)
   const isAssistant = m.role === 'assistant'
   const detailsMode = useDeepSelect('chat.details_mode', 'expanded')
+  // QD-015 W1: the card reads the raw block; the prose path must not repeat it.
+  // Memoized on the source string, so a finished bubble still skips re-parsing.
+  const answerText = useMemo(() => stripRenderedCards(m.content ?? ''), [m.content])
   const [copied, setCopied] = useState(false)
   const [fb, setFb] = useState<'up' | 'down' | null>(null)
   // P6 timeline (ref-01): event rows of a finished turn collapse;
@@ -196,7 +200,7 @@ export function AssistantBubble({
               aria-live={m.streaming ? 'polite' : undefined}
               aria-atomic={false}
             >
-              <MarkdownBody text={m.content} highlight={!m.streaming} detectA2UI />
+              <MarkdownBody text={answerText} highlight={!m.streaming} detectA2UI />
               {m.streaming && (
                 <span className="inline-block h-3.5 w-1.5 ml-0.5 bg-brand animate-pulse align-text-bottom" />
               )}

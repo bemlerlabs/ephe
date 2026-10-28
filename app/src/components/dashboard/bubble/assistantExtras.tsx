@@ -10,7 +10,7 @@ import { AgentActivityRows } from '../ActivityFeed'
 import AskUserQuestionCard from '../AskUserQuestionCard'
 import { parseAskUserQuestion } from '@/lib/askUserQuestion'
 import PlanCard from '../PlanCard'
-import { parsePlanCard } from '@/lib/planCardModel'
+import { parsePlanCard, parsePlanJson } from '@/lib/planCardModel'
 import MessageFileCard from '../artifacts/messageCard'
 import { producedFiles } from '../artifacts/messageCard'
 import { claimsMissingImage } from '@/lib/artifactClaims'
@@ -59,7 +59,7 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
                   shown while the answer streams so the steps are readable as they arrive. */}
       {isAssistant && onPickOption
         ? (() => {
-            const planSpec = parsePlanCard(m.content ?? '')
+            const planSpec = parsePlanCard(m.content ?? '') ?? parsePlanJson(m.content ?? '')
             return planSpec ? (
               <PlanCard spec={planSpec} onPick={onPickOption} streaming={m.streaming} />
             ) : null

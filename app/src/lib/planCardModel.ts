@@ -99,6 +99,43 @@ const EVENT_STATUS: Record<string, PlanItemStatus> = {
   cancelled: 'cancelled',
 }
 
+/** QD-015 W2: some engines print the plan as the JSON that the SSE frame carries
+ *  (`{"steps":[{title,status}]}`) instead of the `## Plan` checklist. Same card,
+ *  so both shapes parse into one spec — otherwise the block stayed raw text while
+ *  the renderer waited for a checklist that never came. */
+export function parsePlanJson(raw: string): PlanCardSpec | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    try {
+      parsed = JSON.parse(raw.replace(/,(\s*[}\]])/g, '$1'))
+    } catch {
+      return null
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') return null
+  const rec = parsed as Record<string, unknown>
+  const list = Array.isArray(rec.steps) ? rec.steps : Array.isArray(rec.plan) ? rec.plan : null
+  if (!list || !list.length) return null
+  const items: PlanCardItem[] = []
+  for (const entry of list) {
+    if (typeof entry === 'string') {
+      if (entry.trim()) items.push({ status: 'pending', text: entry.trim() })
+      continue
+    }
+    if (!entry || typeof entry !== 'object') continue
+    const row = entry as Record<string, unknown>
+    const label = typeof row.title === 'string' ? row.title : typeof row.text === 'string' ? row.text : ''
+    if (!label.trim()) continue
+    const status =
+      typeof row.status === 'string' ? (EVENT_STATUS[row.status] ?? 'pending') : 'pending'
+    items.push({ status, text: label.trim() })
+  }
+  if (!items.length) return null
+  return { items, done: items.filter((i) => i.status === 'done').length, total: items.length }
+}
+
 /** The `plan` frame of the stream, in the shape the renderer takes. The frame and the text
  *  block carry the same four statuses, so both paths land on one card. */
 export function planFromEvent(steps: { title: string; status: string }[]): PlanCardSpec | null {

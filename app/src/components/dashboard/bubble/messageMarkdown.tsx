@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle } from 'lucide-react'
 import { stripFileMarkers } from '@/lib/fileMarkers'
-import { artifactProxyUrl } from '@/lib/api'
+import { artifactProxyUrl, fileUrl } from '@/lib/api'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { rehypeMathNodes } from '@/lib/richText/rehypeMathNodes'
 import ReactMarkdown, { type Components } from 'react-markdown'
@@ -59,6 +59,24 @@ function declaresSurface(txt: string): boolean {
  *  of a foreign tab — http(s) and internal /-paths are intercepted,
  *  other schemes (mailto: …) are left to the browser default. */
 const PANEL_LINK_TARGET = /^(https?:\/\/|\/)/i
+
+/** QD-015 W3: an answer links to the file it just wrote. `docs/report.pdf`,
+ *  `/Users/…/shot.png` and `file:///…` are workspace paths, not app routes —
+ *  the browser answered them with a 404 on the app origin. They resolve through
+ *  the guarded preview route instead, which owns the allowed-roots check. */
+const FILE_LIKE = /\.[a-z0-9]{1,8}(?:[?#].*)?$/i
+const FOREIGN_SCHEME = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
+
+function resolveReference(raw: string): string | null {
+  const value = raw.trim()
+  if (!value) return null
+  if (/^(?:https?:|data:|blob:|#|\/api\/)/i.test(value)) return null
+  if (/^file:\/\//i.test(value)) return fileUrl(decodeURIComponent(value.replace(/^file:\/\//i, '')))
+  if (value.startsWith('/')) return FILE_LIKE.test(value) ? fileUrl(value) : null
+  if (FOREIGN_SCHEME.test(value)) return null
+  return FILE_LIKE.test(value) ? fileUrl(value) : null
+}
+
 function panelLinkComponents() {
   return {
     a: (props: React.ComponentProps<'a'>) => (
@@ -70,6 +88,12 @@ function panelLinkComponents() {
           if (PANEL_LINK_TARGET.test(href)) {
             e.preventDefault()
             window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: href } }))
+            return
+          }
+          const local = resolveReference(href)
+          if (local) {
+            e.preventDefault()
+            window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: local } }))
           }
         }}
       />
@@ -137,7 +161,9 @@ function MarkdownImage(props: React.ComponentProps<'img'>) {
   const [retry, setRetry] = useState(0)
   const raw = props.src ?? ''
   const remote = /^https?:\/\//i.test(raw)
-  const base = remote ? artifactProxyUrl(raw) : raw
+  // QD-015 W3: a workspace path (`docs/shot.png`, `file:///…`) is served by the
+  // guarded preview route; on the app origin it used to render as a broken image.
+  const base = remote ? artifactProxyUrl(raw) : (resolveReference(raw) ?? raw)
   const src = retry ? `${base}${base.includes('?') ? '&' : '?'}retry=${retry}` : base
   if (broken) {
     return (

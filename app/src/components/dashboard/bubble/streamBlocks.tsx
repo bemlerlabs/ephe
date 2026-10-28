@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useDeepBool } from '@/lib/deepSettings'
+import { stripRenderedCards } from '@/lib/cardText'
 import type { MessageBlock, ThinkingPhase, ToolCall } from '@/types'
 import { MarkdownBody } from './messageMarkdown'
 import ThinkingBlock from '../ThinkingBlock'
@@ -11,6 +12,9 @@ import { SourcesBar } from './sourcesBar'
  * markup shape as the previous content block, so pins/styling stay the same).
  */
 function TextBlockView({ text, streaming }: { text: string; streaming?: boolean }) {
+  // QD-015 W1: a card block arriving inside a text segment is the card's source,
+  // not prose — cut it here so the live stream does not type the JSON out.
+  const prose = useMemo(() => stripRenderedCards(text), [text])
   return (
     <div
       className="text-ui-sm text-foreground/90 prose prose-invert max-w-none prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground prose-em:text-foreground/90"
@@ -19,7 +23,7 @@ function TextBlockView({ text, streaming }: { text: string; streaming?: boolean 
     >
       {/* P1-6: memoized — finished text segments do not re-parse on stream ticks;
           highlighting arrives once, at finalize. */}
-      <MarkdownBody text={text} highlight={!streaming} />
+      <MarkdownBody text={prose} highlight={!streaming} />
     </div>
   )
 }
