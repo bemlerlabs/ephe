@@ -9,37 +9,21 @@
  * Offline-first: every fetch fails silently into an honest static
  * fallback text — the cards never render fabricated numbers.
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { m, useReducedMotion } from 'framer-motion'
-import { Sparkles, Mail, Image as ImageIcon, Globe, ArrowRight } from 'lucide-react'
+import { Sparkles, Mail, Image as ImageIcon, Globe } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { markSetupIntent } from '@/lib/setupGate'
 import { subscribeTourMarker, tourMarkerSnapshot } from '@/lib/firstRunTour'
 import './WelcomeEmptyState.css'
 import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
-import { engineStateOf, type EngineState } from '@/lib/engineState'
 import EphemeralWordmark from './EphemeralWordmark'
 import { EpheMark } from '@/components/shell/EpheMark'
 import { HeroMark } from '@/components/shell/HeroMark'
 import { CompanionActor, type CompanionHandle } from '@/components/shell/CompanionActor'
-import {
-  listProjects,
-  listArtifacts,
-  healthCheck,
-  type ProjectSummary,
-  type ArtifactEntry,
-  type HealthInfo,
-} from '@/lib/api'
 
 interface WelcomeEmptyStateProps {
   /** Fills the main chat composer (bottom ChatInput) — cards never auto-send. */
   onFillComposer: (text: string) => void
-}
-
-interface LiveData {
-  projects: ProjectSummary[] | null
-  artifacts: ArtifactEntry[] | null
-  health: HealthInfo | null
 }
 
 const CARD_ICONS = [Sparkles, Mail, ImageIcon, Globe] as const
@@ -54,7 +38,6 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
   const animationsEnabled = useDeepBool('appearance.animations_enabled', true)
   const still = Boolean(reduceMotion) || !animationsEnabled
   const companionRef = useRef<CompanionHandle>(null)
-  const [live, setLive] = useState<LiveData>({ projects: null, artifacts: null, health: null })
   // The tour's first answer decides which starter fits: code → the project card,
   // documents → the email card, research → the web card. A mix recommends nothing.
   // FirstRunTour owns the request; this surface only reads the answer it publishes.
@@ -73,36 +56,6 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
     [onFillComposer, t],
   )
 
-  const loadHealth = useCallback(() => {
-    healthCheck()
-      .then((h) => setLive((s) => ({ ...s, health: h })))
-      .catch(() => {
-        /* offline → toast hidden */
-      })
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    listProjects()
-      .then((r) => {
-        if (!cancelled) setLive((s) => ({ ...s, projects: r.projects }))
-      })
-      .catch(() => {
-        /* offline → fallback desc */
-      })
-    listArtifacts({ limit: 12 })
-      .then((r) => {
-        if (!cancelled) setLive((s) => ({ ...s, artifacts: r.artifacts }))
-      })
-      .catch(() => {
-        /* offline → fallback desc */
-      })
-    loadHealth()
-    return () => {
-      cancelled = true
-    }
-  }, [loadHealth])
-
   // I2: time-of-day greeting for the clean empty state (reference look).
   const hour = new Date().getHours()
   const greetingKey =
@@ -114,18 +67,6 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
           ? 'welcome.greetingEvening'
           : 'welcome.greetingNight'
 
-  // DD-06: the pill reflects one named engine state — a reachable engine without a
-  // model is not "ready", and a refused key is not "offline".
-  const engineState = engineStateOf(live.health)
-  const pillText: Record<EngineState, string> = {
-    checking: t('welcome.modelOffline'),
-    unconfigured: t('welcome.modelOffline'),
-    unreachable: t('welcome.modelOffline'),
-    'key-refused': t('welcome.modelKeyRefused'),
-    'no-model': t('welcome.modelNoModel'),
-    ready: t('welcome.modelOnline'),
-  }
-
   return (
     <m.div
       data-testid="panel-chat"
@@ -134,68 +75,6 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
       transition={{ duration: reduceMotion ? 0.15 : 0.35 }}
       className="relative flex flex-col items-center flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:py-5 text-center"
     >
-      {/* AI model-status toast. On sm+ it floats top-right as in the mockup;
-          below sm it sits inline at the top so the engine state — and its next
-          step — is not invisible on a phone (DD-10 parity). */}
-      {live.health && (
-        <m.div
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          data-testid="model-status-toast"
-          className="mb-2 w-fit max-w-[calc(100%-2rem)] sm:mb-0 static sm:absolute sm:top-4 sm:right-4 float-surface px-3 py-2 text-left"
-        >
-          <p
-            className={`text-ui-xs font-medium ${engineState === 'ready' ? 'text-status-success/90' : 'text-status-warning/90'}`}
-            data-model-status={
-              engineState === 'ready' ? 'up' : engineState === 'key-refused' ? 'refused' : 'down'
-            }
-            data-engine-state={engineState}
-          >
-            {pillText[engineState]}
-          </p>
-          <p className="text-ui-xs text-ink-soft" data-testid="model-status-line">
-            {t('welcome.modelLabel')}:{' '}
-            {/* An engine that named nothing has no model to print and no tier to put in
-                parentheses; the em dash is the house mark for a fact the engine did
-                not state, and the empty pair read as a malformed value. */}
-            <span className="text-foreground/80">{live.health.active_model || '—'}</span>
-            {live.health.active_tier ? ` (${live.health.active_tier})` : ''}
-          </p>
-          {/* First-run path: the state names its next step right here, so the
-              welcome screen is never a dead end. One primary action per state. */}
-          {engineState !== 'ready' && (
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-              {engineState === 'unreachable' && (
-                <button
-                  type="button"
-                  data-testid="welcome-engine-retry"
-                  onClick={() => loadHealth()}
-                  className="rounded inline-flex items-center text-ui-xs font-medium text-ink-soft hover:text-foreground transition-colors max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
-                >
-                  {t('welcome.retry')}
-                </button>
-              )}
-              <button
-                type="button"
-                data-testid="welcome-engine-setup"
-                onClick={() => {
-                  markSetupIntent()
-                  window.location.hash = '#/setup'
-                }}
-                className="rounded inline-flex items-center gap-1 text-ui-xs font-medium text-brand hover:opacity-80 transition-opacity max-lg:min-h-11 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
-              >
-                {engineState === 'key-refused'
-                  ? t('welcome.fixKey')
-                  : engineState === 'no-model'
-                    ? t('welcome.chooseModel')
-                    : t('welcome.openSetup')}
-                <ArrowRight className="h-3 w-3" aria-hidden="true" />
-              </button>
-            </div>
-          )}
-        </m.div>
-      )}
-
       {/* my-auto wrapper: centres while there is room; on overflow the auto
           margins collapse → clean scrolling starting at the top (justify-center
           would push the hero past the top edge, where it cannot be scrolled to). */}

@@ -40,6 +40,7 @@ import StatusBar from '../StatusBar'
 import TimelineRail from '../TimelineRail'
 import { useStatusPanelData } from '../AgentStatusSections'
 import AgenticBar, { runStateOf } from '@/components/shell/AgenticBar'
+import EngineStatusPill from '@/components/shell/EngineStatusPill'
 import RunRail from '@/components/shell/RunRail'
 import CheckpointControls from '../CheckpointControls'
 import SchedulerPanel, { SchedulerMobilePill } from '../SchedulerPanel'
@@ -618,6 +619,13 @@ export default function ChatLayout() {
                 />
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-auto">
+                <EngineStatusPill
+                  state={engineOnline === null ? 'checking' : engineOnline ? 'online' : 'offline'}
+                  onClick={() => {
+                    setSettingsTab('engine')
+                    setSettingsOpen(true)
+                  }}
+                />
                 {/* Exactly one side-panel toggle; the library and the window
                     controls live in the overflow menu above. */}
                 <button
