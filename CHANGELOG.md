@@ -8,12 +8,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.5.1 repair wave is named below (`6e50458`, `2f2d59d`, `c655497`, `1383522`,
-`b1edb54`, `295a7b7`, `a32c997`, `1283589`, `19851ea`): every Lucide glyph sits on the
-1.5 px raster, the fleet and the cell share one multiplexed stream, the status row keeps
-one line at every width, a card's own JSON block is cut from the answer text, DeepSeek
-DSML tokens become real tool calls, the child PATH gains the Homebrew binaries, the tool
-dial ships 25 rounds with a one-click continuation, and the system prompt names the
-active workspace.
+`b1edb54`, `295a7b7`, `a32c997`, `1283589`, `19851ea`, `f5e97d2`): every Lucide
+glyph sits on the 1.5 px raster, the fleet and the cell share one multiplexed
+stream, the status row keeps one line at every width, a card's own JSON block is
+cut from the answer text, DeepSeek DSML tokens become real tool calls, the child
+PATH gains the Homebrew binaries, the tool dial ships 25 rounds with a one-click
+continuation, the system prompt names the active workspace, and the brand's
+breathing dot trail is gone from the empty state.
 
 The 0.3.0 typecheck fix is named below (`0486444`): the status bar drops the
 CodebaseIndexStatus import it no longer reads, which tsc refused as unused.
@@ -172,6 +173,8 @@ the user's own tools, and a capped turn offers the next ten rounds.
   and stream only the prose.
 - A Finder-launched app finds node, npm, git and pnpm again: the child PATH gets the
   Homebrew bin dirs in front, and no inherited entry is dropped.
+- The empty state no longer looks like it is loading: the four breathing dots beside
+  the brand name are gone.
 
 ## [0.5.0] - 2026-10-28
 
