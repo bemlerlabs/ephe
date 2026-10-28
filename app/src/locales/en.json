@@ -401,7 +401,6 @@
     "contextRing": "Context used: {{percent}}%",
     "queuePlaceholder": "Queue your next task — Ephe works through it after the current one",
     "busyPlaceholder": "Ephe is working — typing is disabled during the answer",
-    "emptySendHint": "Type a message first — sending stays off while the draft is empty",
     "rowWorking": "Working",
     "rowCompleted": "Completed",
     "rowFailed": "Failed",

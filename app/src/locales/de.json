@@ -401,7 +401,6 @@
     "contextRing": "Kontext belegt: {{percent}}%",
     "queuePlaceholder": "Nächste Aufgabe anstellen — Ephe arbeitet sie nach der aktuellen ab",
     "busyPlaceholder": "Ephe arbeitet — Eingabe ist während der Antwort deaktiviert",
-    "emptySendHint": "Erst eine Nachricht eingeben — Senden bleibt aus, solange der Entwurf leer ist",
     "rowWorking": "Läuft",
     "rowCompleted": "Abgeschlossen",
     "rowFailed": "Fehlgeschlagen",

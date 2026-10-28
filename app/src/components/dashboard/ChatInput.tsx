@@ -89,11 +89,8 @@ export default function ChatInput({
       ? t('chat.queuePlaceholder')
       : t('chat.busyPlaceholder')
   const [message, setMessage] = useState('')
-  // D1 (walkthrough): a blank draft turned the send button off with nothing on
-  // screen to explain it. The status line names the blank draft as the reason.
-  // During a turn the placeholder already carries the reason, and a composer
-  // blocked for another reason must not invite typing.
-  const showEmptySendHint = !disabled && !streaming && !message.trim()
+  // F1: the composer states no rule. A blank draft disables send; the field's
+  // own label and the button's label still name the controls for a reader.
   // M3 (reference pattern): amber permission badge driven by the security profile.
   const [perm, setPerm] = useState('strict')
   // G-A (reference parity): interactive mode selector — Ask / Edit auto / Plan / Full access.
@@ -464,15 +461,6 @@ export default function ChatInput({
           className="w-full bg-transparent text-foreground placeholder:text-ink-faint resize-none outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 text-ui-input min-h-[48px] max-h-32"
           rows={1}
         />
-        {showEmptySendHint && (
-          <p
-            role="status"
-            data-testid="composer-empty-send-hint"
-            className="mt-1 text-ui-xs text-ink-faint"
-          >
-            {t('chat.emptySendHint')}
-          </p>
-        )}
         <div
           className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mt-2"
           data-testid="composer-actions-row"
