@@ -66,3 +66,33 @@ describe('Bereichs-Suche findet Zeilen ausserhalb des Registers (I7-5)', () => {
     expect(await screen.findByTestId('settings-search-empty')).toBeTruthy()
   })
 })
+
+// G11: the register filter answers the platform's find gesture inside the panel.
+describe('G11: the find shortcut lands in the register filter', () => {
+  async function open() {
+    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="about" />)
+    const page = await screen.findByTestId('settings-page')
+    const box = (await screen.findByTestId('settings-search')) as HTMLInputElement
+    return { page, box }
+  }
+
+  it('focuses the filter on Command-F', async () => {
+    const { page, box } = await open()
+    fireEvent.keyDown(page, { key: 'f', metaKey: true })
+    expect(document.activeElement).toBe(box)
+  })
+
+  it('focuses the filter on Control-F as well', async () => {
+    const { page, box } = await open()
+    fireEvent.keyDown(page, { key: 'f', ctrlKey: true })
+    expect(document.activeElement).toBe(box)
+  })
+
+  it('leaves a bare f to the field that has the focus', async () => {
+    const { page, box } = await open()
+    const back = screen.getByTestId('settings-back')
+    back.focus()
+    fireEvent.keyDown(page, { key: 'f' })
+    expect(document.activeElement).not.toBe(box)
+  })
+})

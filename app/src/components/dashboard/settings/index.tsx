@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { m, AnimatePresence } from 'framer-motion'
 import { Check, Loader2 } from 'lucide-react'
 
@@ -88,6 +89,26 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
   // in, so that group is scrolled into view once its tab has mounted; a tab or row
   // hit only needs the content column at its top. `revealTick` re-runs the reveal
   // when the user clicks the same hit again.
+  // G11: inside the open panel, ⌘F / Ctrl+F filters the register. The app's own
+  // ⌘F focuses the composer, so this handler takes the event off the window
+  // listener before it can fire — otherwise the panel would lose the focus it
+  // just set.
+  const panelKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f') {
+      const input = panelRef.current?.querySelector<HTMLInputElement>(
+        '[data-testid="settings-search"]',
+      )
+      if (input) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.nativeEvent.stopImmediatePropagation()
+        input.focus()
+        return
+      }
+    }
+    trapPanelFocus(e)
+  }
+
   const [revealTarget, setRevealTarget] = useState<string | null>(null)
   const [revealTick, setRevealTick] = useState(0)
   const jumpTo = (tab: TabKey, secKey?: string) => {
@@ -183,7 +204,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
           aria-label={t('chat.settings')}
           ref={panelRef}
           tabIndex={-1}
-          onKeyDown={trapPanelFocus}
+          onKeyDown={panelKeyDown}
           className="fixed inset-0 z-modal bg-background flex flex-col outline-none"
         >
           {/* Header row: ← Back to the task | H1 + language pill | ? icon (ref-16/21).
