@@ -108,3 +108,23 @@ test.describe('Steuerzeilen mit offenem Agent-Pane', () => {
     expect(h).toBeGreaterThan(48)
   })
 })
+
+test.describe('Composer auf 390 px', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('die Steuerzeile bleibt einzeilig und nichts ueberlappt', async ({ page }) => {
+    await ensureOnboarded(page)
+    await gotoHash(page, '/chat', '[data-testid="chat-input"]')
+    const row = page.locator('[data-testid="composer-actions-row"]')
+    await expect(row).toBeVisible()
+    const cls = await row.getAttribute('class')
+    expect(cls).toContain('max-sm:flex-nowrap')
+
+    const box = await row.boundingBox()
+    expect(box?.height ?? 0).toBeLessThan(60)
+
+    const probe = await page.evaluate(collisionProbe, '[data-testid="composer-actions-row"]')
+    expect(probe.missing).toBe(false)
+    expect(probe.hits).toEqual([])
+  })
+})

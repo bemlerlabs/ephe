@@ -462,7 +462,7 @@ export default function ChatInput({
           rows={1}
         />
         <div
-          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mt-2"
+          className="flex flex-wrap max-sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2 max-sm:gap-x-1 mt-2"
           data-testid="composer-actions-row"
         >
           {/* G3: hidden file inputs (browser path; Tauri uses the native picker) */}
@@ -487,7 +487,7 @@ export default function ChatInput({
               e.target.value = ''
             }}
           />
-          <div className="flex min-w-0 flex-wrap items-center gap-1 max-lg:gap-2">
+          <div className="flex min-w-0 flex-wrap max-sm:flex-nowrap items-center gap-1 max-lg:gap-2">
             {/* P6 (ref-23): ONE plus for all attachments — file/image/screenshot
                 live in the menu, the main row stays narrow. */}
             <ComposerAttachButton
@@ -544,7 +544,7 @@ export default function ChatInput({
               role="status"
               aria-label={`${t('chat.permissionAria', { defaultValue: 'Approvals' })}: ${String(t(`chat.perm.${perm}`))}`}
               title={t(`chat.perm.${perm}`)}
-              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-ui-xs text-status-warning shrink-0 max-lg:min-h-11 max-lg:max-w-20 overflow-hidden"
+              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-ui-xs text-status-warning shrink-0 max-lg:min-h-11 max-lg:max-w-20 max-sm:hidden overflow-hidden"
             >
               <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden="true" />
               <span className="truncate min-w-0">{t(`chat.perm.${perm}`)}</span>
@@ -564,14 +564,16 @@ export default function ChatInput({
             {/* P6 (ref-23): the image/screenshot/file buttons live in the plus menu —
                 the main row stays reduced to the slim anatomy. */}
             {typeof navigator.mediaDevices?.getUserMedia === 'function' && (
-              <ComposerMicButton
-                recording={recording}
-                transcribing={transcribing}
-                micFrame={micFrame}
-                micLevelsRef={micLevelsRef}
-                onPointerDown={onMicPointerDown}
-                onPointerUp={onMicPointerUp}
-              />
+              <span className="inline-flex max-sm:hidden">
+                <ComposerMicButton
+                  recording={recording}
+                  transcribing={transcribing}
+                  micFrame={micFrame}
+                  micLevelsRef={micLevelsRef}
+                  onPointerDown={onMicPointerDown}
+                  onPointerUp={onMicPointerUp}
+                />
+              </span>
             )}
             <button
               onClick={openPalette}
@@ -583,7 +585,7 @@ export default function ChatInput({
           </div>
           {/* M3 (reference pattern): model chip + thinking chip + send in one
               right-hand group — like the reference composer pattern. */}
-          <div className="relative flex min-w-0 shrink-0 items-center gap-2 ml-auto">
+          <div className="relative flex min-w-0 shrink-0 items-center gap-2 ml-auto max-sm:max-w-[8rem] max-sm:overflow-hidden">
             <ComposerModelChip
               open={chipOpen}
               anchorRef={modelChipRef}
@@ -616,7 +618,7 @@ export default function ChatInput({
                 defaultValue:
                   'Shows whether Ephe already thought along in this task — status only, not a switch',
               })}
-              className="inline-flex items-center gap-1 px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 max-lg:min-h-11 max-lg:px-1"
+              className="inline-flex items-center gap-1 px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 max-lg:min-h-11 max-lg:px-1 max-sm:hidden"
             >
               <Brain className="h-3 w-3 shrink-0" aria-hidden="true" />
               <span>{t(thinkingChipKey)}</span>
