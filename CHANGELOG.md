@@ -119,6 +119,10 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - index: A write refreshes its own file, nothing else (`1fb72b0`)
 - custody: One gate for who may sign, one rule for path conflicts (`daea998`)
 - shell: The window buttons keep their corner, and give it back in fullscreen (`0517dfa`)
+- plugins: Give every first-party plugin its own warm-ink icon (`31e21a7`)
+- settings: Audit all four icon maps and render 16px nav glyphs (`e0e8560`)
+- marketplace: Guarantee the tile, share the switch and add one-click probes (`c4f7119`)
+- skills: Expandable packs, a run chip, a provenance seal and a builder (`7b14585`)
 
 ### Fixed
 
