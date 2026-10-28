@@ -1321,7 +1321,8 @@
     "companionMode": "Modus",
     "companionModePerch": "Perch — sitzt ruhig am Rand, greift nie ein",
     "companionModeScout": "Scout — zeigt den nächsten Schritt, klickt nie",
-    "companionModeCopilot": "Co-Pilot — handelt nach Countdown bei sicheren Schritten"
+    "companionModeCopilot": "Co-Pilot — handelt nach Countdown bei sicheren Schritten",
+    "modelSizeUnknown": "Größe unbekannt"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",

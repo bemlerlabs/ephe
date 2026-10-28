@@ -13,11 +13,8 @@
  * `engineNotConfigured` remains, and the endpoint is what the user stored —
  * the surface does not guess.
  */
-import { useMemo, useState } from 'react'
 import { KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
-import { ModelPicker } from '@/components/model/ModelPicker'
-import { estimateModelGb } from '@/lib/modelMatrix'
-import { rowsFromOptions } from '@/components/model/modelPickerTypes'
+import { deduplicateEngineModels, estimateModelGb } from '@/lib/modelMatrix'
 import PageHeader from '@/components/shell/PageHeader'
 import {
   FIELD_COL,
@@ -59,16 +56,9 @@ export function EngineSection({ model }: { model: SettingsModel }) {
   } = model
 
   const active = settings?.provider
-  // S2: the picker's choice is pending until "Use" writes it, so the row that carries
   // `engine-row-model-*` always names a model the user actually picked — never one the
   // list happened to start with.
-  const [pending, setPending] = useState('')
-  const modelRows = useMemo(
-    () => rowsFromOptions(liveModels, active ? providerLabel(active.type, t) : ''),
-    [liveModels, active, t],
-  )
   const activeModel = settings?.provider.model ?? ''
-  const shownModel = pending || activeModel
   // The row states a condition, so it reads what the backend says about itself: the
   // three engine states, plus the fourth fact they cannot carry — an engine that
   // answered and refused this start's credential.
@@ -123,68 +113,59 @@ export function EngineSection({ model }: { model: SettingsModel }) {
         description={t('settings.modelListHint')}
         testid="engine-group-model"
       >
-        <div className="px-3 pb-1.5">
-          <ModelPicker
-            id="engine-model-picker"
-            testId="engine-model-picker"
-            label={t('settings.chooseModel')}
-            placeholder={t('modelPicker.choose')}
-            rows={modelRows}
-            value={pending || activeModel}
-            onChange={setPending}
-          />
-        </div>
-        {shownModel &&
-          (() => {
-            const chip = displayModels.find((opt) => opt.id === shownModel)
-            const stated = liveModels.find((opt) => opt.name === shownModel)
-            return (
-              <SettingsRow
-                icon={Cpu}
-                title={chip?.label ?? shownModel}
-                description={
-                  stated?.supports_tools === false
-                    ? t('modelPicker.answerOnly')
-                    : chip && 'descKey' in chip && chip.descKey
-                      ? t(chip.descKey)
-                      : chip?.desc
-                }
-                testid={`engine-row-model-${shownModel}`}
-              >
-                {/* The stored model is a state, so it wears the data column and no
-                    accent: the accent marks what is running at this moment. */}
-                <SettingValue>
-                  {shownModel === activeModel ? t('settings.modelInUse') : ''}
-                  {/* G1: what the model costs in memory. The estimate is the
-                      identifier's parameter count at its quantisation; a name
-                      that states no size gets no number. */}
-                  {(() => {
-                    const gb = estimateModelGb(shownModel)
-                    return gb == null ? null : (
-                      <span className="tabular text-ink-faint ml-2">{`≈ ${gb} GB`}</span>
-                    )
-                  })()}
-                </SettingValue>
+        {/* G1: one row per model, and the row is where it is chosen. The size is the
+            identifier's parameter count at its quantisation; a name that states no
+            size says so instead of borrowing one. Picking still writes nothing —
+            Use is the consent step, as it was when this was a picker. */}
+        {deduplicateEngineModels(displayModels).map((opt) => {
+          const stated = liveModels.find((m) => m.name === opt.id)
+          const gb = estimateModelGb(opt.id)
+          const inUse = opt.id === activeModel
+          return (
+            <SettingsRow
+              key={opt.id}
+              icon={Cpu}
+              title={opt.label}
+              description={
+                stated?.supports_tools === false
+                  ? t('modelPicker.answerOnly')
+                  : 'descKey' in opt && opt.descKey
+                    ? t(opt.descKey)
+                    : opt.desc
+              }
+              testid={`engine-matrix-${opt.id}`}
+            >
+              <SettingValue>
+                {inUse ? (
+                  <span data-testid={`engine-matrix-inuse-${opt.id}`}>
+                    {t('settings.modelInUse')}
+                  </span>
+                ) : null}
+                <span className="tabular text-ink-faint ml-2">
+                  {gb == null ? t('settings.modelSizeUnknown') : `≈ ${gb} GB`}
+                </span>
+              </SettingValue>
+              {!inUse && (
                 <SettingVerb>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={() =>
                       setSettings((prev) =>
                         prev
-                          ? { ...prev, provider: { ...prev.provider, model: shownModel } }
+                          ? { ...prev, provider: { ...prev.provider, model: opt.id } }
                           : prev!,
                       )
-                      setPending('')
-                    }}
-                    data-testid={`engine-model-${shownModel}`}
+                    }
+                    data-testid={`engine-matrix-use-${opt.id}`}
                     className={VERB_BUTTON}
                   >
                     {t('settings.modelUse')}
                   </button>
                 </SettingVerb>
-              </SettingsRow>
-            )
-          })()}
+              )}
+            </SettingsRow>
+          )
+        })}
         {isOllamaFamily && (
           <SettingsRow
             icon={Cpu}

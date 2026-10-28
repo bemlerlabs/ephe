@@ -2,7 +2,7 @@
 // model on the user's behalf. A read that failed, an engine that did not answer, and a save
 // with nothing chosen each used to end in a shipped tag reaching the wire.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen, fireEvent, within } from '@testing-library/react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
 
 const { api, toastError, toastSuccess } = vi.hoisted(() => {
   const api = {
@@ -107,31 +107,29 @@ describe('the engine area chooses through the picker', () => {
     await screen.findByTestId('engine-group-model')
   }
 
-  it('lists nothing as chosen while the engine has no model', async () => {
+  it('lists every model once and marks none as chosen', async () => {
     await withThreeModels()
+    const rows = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid^="engine-matrix-m"]'),
+    ).filter((row) => /^engine-matrix-m\d+$/.test(row.getAttribute('data-testid') ?? ''))
+    expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
+      'engine-matrix-m1',
+      'engine-matrix-m2',
+      'engine-matrix-m3',
+    ])
     for (const tag of ['m1', 'm2', 'm3']) {
-      expect(screen.queryByTestId(`engine-row-model-${tag}`), tag).toBeNull()
+      expect(screen.queryByTestId(`engine-matrix-inuse-${tag}`), tag).toBeNull()
     }
-    fireEvent.click(screen.getByTestId('engine-model-picker'))
-    const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-model-id]'))
-    expect(rows.map((row) => row.getAttribute('data-model-id'))).toEqual(['m1', 'm2', 'm3'])
-    fireEvent.keyDown(screen.getByTestId('engine-model-picker-search'), { key: 'Escape' })
   })
 
-  it('writes only the model the user clicked, and only once Use was pressed', async () => {
+  it('writes only the model whose Use was pressed, and only on save', async () => {
     await withThreeModels()
-    fireEvent.click(await screen.findByTestId('engine-model-picker'))
-    const search = await screen.findByTestId('engine-model-picker-search')
-    fireEvent.change(search, { target: { value: 'm2' } })
-    const row = screen.getByTestId('engine-model-picker-row-m2')
-    // Choosing closes the panel, so the row is the last gesture this test needs.
-    fireEvent.click(within(row).getByTitle(/m2/))
-    const shown = await screen.findByTestId('engine-row-model-m2')
-    expect(shown.textContent).toContain('m2')
-    // Picking a row is not choosing an engine: nothing reaches the wire until Use,
-    // and the write itself is the save at the bottom of the panel.
+    const row = await screen.findByTestId('engine-matrix-m2')
+    expect(row.textContent).toContain('m2')
+    // A row is not a choice: nothing reaches the wire until Use, and the write
+    // itself is the save at the bottom of the panel.
     expect(api.updateSettings).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByTestId('engine-model-m2'))
+    fireEvent.click(screen.getByTestId('engine-matrix-use-m2'))
     await act(async () => {
       fireEvent.click(screen.getByTestId('settings-save'))
     })
@@ -140,19 +138,15 @@ describe('the engine area chooses through the picker', () => {
 
   it('says what a stated no from the engine means on the row', async () => {
     // S3 capability messaging: m3 answers and refuses the tool array, and the row
-    // the model is shown on is where the surface has to say that.
+    // the model sits on is where the surface has to say that.
     await withThreeModels()
-    fireEvent.click(await screen.findByTestId('engine-model-picker'))
-    fireEvent.click(within(screen.getByTestId('engine-model-picker-row-m3')).getByTitle(/m3/))
-    const shown = await screen.findByTestId('engine-row-model-m3')
+    const shown = await screen.findByTestId('engine-matrix-m3')
     expect(shown.textContent).toContain('modelPicker.answerOnly')
   })
 
   it('keeps the row silent about tools for a model the engine described as able', async () => {
     await withThreeModels()
-    fireEvent.click(await screen.findByTestId('engine-model-picker'))
-    fireEvent.click(within(screen.getByTestId('engine-model-picker-row-m1')).getByTitle(/m1/))
-    const shown = await screen.findByTestId('engine-row-model-m1')
+    const shown = await screen.findByTestId('engine-matrix-m1')
     expect(shown.textContent).not.toContain('modelPicker.answerOnly')
   })
 })

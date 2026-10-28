@@ -1321,7 +1321,8 @@
     "companionMode": "Mode",
     "companionModePerch": "Perch — sits at the edge, never interferes",
     "companionModeScout": "Scout — points at the next step, never clicks",
-    "companionModeCopilot": "Co-pilot — acts on safe steps after a countdown"
+    "companionModeCopilot": "Co-pilot — acts on safe steps after a countdown",
+    "modelSizeUnknown": "size unknown"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",
