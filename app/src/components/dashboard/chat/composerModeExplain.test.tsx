@@ -57,7 +57,8 @@ function OpenMenu({ mode }: { mode: string }) {
   return (
     <ComposerModeChip
       open
-      mode={mode}
+      approval="strict"
+        mode={mode}
       anchorRef={ref}
       menuPos={{ left: 120, bottom: 120 }}
       onToggle={() => undefined}

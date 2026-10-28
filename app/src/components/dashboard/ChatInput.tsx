@@ -516,6 +516,7 @@ export default function ChatInput({
             <ComposerModeChip
               open={modeOpen}
               mode={mode}
+              approval={perm}
               anchorRef={modeChipRef}
               menuPos={modeMenuPos}
               onToggle={() => {
@@ -543,6 +544,7 @@ export default function ChatInput({
                 {t('chat.askNoTools')}
               </span>
             )}
+            {/* F2: the chip above states the mode; this states who approves. */}
             <span
               data-testid="composer-permission-badge"
               role="status"

@@ -31,6 +31,7 @@ function renderChip() {
       <ComposerModeChip
         open={false}
         mode="plan"
+        approval="strict"
         anchorRef={ref}
         menuPos={null}
         onToggle={() => undefined}
