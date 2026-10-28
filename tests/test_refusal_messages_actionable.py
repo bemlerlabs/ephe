@@ -41,6 +41,7 @@ ENV_ASSIGNMENT = re.compile(r"\b[A-Z][A-Z0-9_]{2,}=")
 
 #: the slots each HTTP template fills (the same values `test_server_refusal_codes` uses)
 HTTP_PARAMS = {
+    "self_sign_forbidden": {},
     "audio_empty": {},
     "audio_model_download_required": {"model": "tiny", "size_mb": 78, "host": "huggingface.co"},
     "audio_model_fetch_failed": {"model": "tiny", "size_mb": 78, "host": "huggingface.co"},

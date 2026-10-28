@@ -376,8 +376,9 @@ def test_a_review_refuses_the_author_and_a_reason_outside_the_set(client):
 
     own = review("approve", "agent-a", [_reason(path)])
     assert own.status_code == 422, own.text
-    assert "cannot approve it" in _message(own)
-    assert _code(own) == "review_refused"
+    assert "cannot sign its own change set" in _message(own)
+    # J2: the four-eyes refusal names itself, so a surface can translate it.
+    assert _code(own) == "self_sign_forbidden"
 
     outside = review("approve", "agent-b", [_reason("somewhere/else.txt")])
     assert outside.status_code == 422, outside.text

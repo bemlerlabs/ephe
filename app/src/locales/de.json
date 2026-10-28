@@ -2011,7 +2011,7 @@
     "change_set_approval_superseded": "Änderungssatz '{{change_set}}' trägt eine Freigabe, die für Bytes abgegeben wurde, die eine Neuaufzeichnung ersetzt hat — prüfe den Satz, wie er jetzt steht, und zeichne das Votum erneut auf",
     "change_set_unpublish_refused": "{{reason}} — prüfe die Stufe des Satzes auf der Arbeitsbereiche-Seite",
     "publish_path_claimed": "{{paths}} ist von {{holders}} belegt — prüfe den anderen Lauf auf der Arbeitsbereiche-Seite und erzwinge dann die Veröffentlichung darüber",
-    "self_sign_forbidden": "Der Autor kann den eigenen Änderungssatz nicht zeichnen. An eine unabhängige Prüfung weiterreichen."
+    "self_sign_forbidden": "Der Autor kann den eigenen Änderungssatz nicht zeichnen. Wähle eine unabhängige Prüfung für die Zeichnung."
   },
   "reader": {
     "fetch_empty_url": "Die URL ist leer.",

@@ -103,6 +103,12 @@ REASONS: dict[str, tuple[int, str]] = {
     "workspace_remove_refused": (409, "{reason} — retry with force=True"),
     "change_set_build_refused": (422, "{reason} — check what it names and record it again"),
     "review_refused": (422, "{reason} — check the reviewer and the reasons, then retry"),
+    # J2: the four-eyes rule. The author of a change set may not be its signer, and the
+    # route says so with a code instead of a sentence only a German reader can parse.
+    "self_sign_forbidden": (
+        422,
+        "An author cannot sign its own change set. Route it to an independent reviewer.",
+    ),
     "agent_limit_reached": (429, "{reason} — reduce the wave, then retry"),
     "publish_without_approval": (
         409,
