@@ -1,4 +1,4 @@
-import { isDesktopShell } from '@/lib/tauriBridge'
+import { isDesktopShell, windowIsFullscreen } from '@/lib/tauriBridge'
 
 export interface PlatformChromeSpec {
   /** Room for the macOS window buttons, which sit over the top-left corner. */
@@ -26,9 +26,19 @@ export function currentPlatform(): string {
   return uaData?.platform || navigator.platform || 'other'
 }
 
+/**
+ * The same spec, minus the corners a fullscreen window does not paint: macOS hides
+ * the traffic lights there, so an inset would be dead space (measured 2026-10-28).
+ */
+export function resolveEffectiveSpec(platform: string, desktop: boolean, fullscreen: boolean | null): PlatformChromeSpec {
+  const spec = resolvePlatformChromeSpec(platform, desktop)
+  return fullscreen ? { insetLeft: 0, insetRight: 0 } : spec
+}
+
 /** Put the insets on the root as custom properties; idempotent, like the type scale. */
-export function applyPlatformChrome(platform = currentPlatform()): PlatformChromeSpec {
-  const spec = resolvePlatformChromeSpec(platform, isDesktopShell())
+export async function applyPlatformChrome(platform = currentPlatform()): Promise<PlatformChromeSpec> {
+  const desktop = isDesktopShell()
+  const spec = resolveEffectiveSpec(platform, desktop, desktop ? await windowIsFullscreen() : null)
   if (typeof document !== 'undefined') {
     document.documentElement.style.setProperty('--chrome-inset-left', `${spec.insetLeft}px`)
     document.documentElement.style.setProperty('--chrome-inset-right', `${spec.insetRight}px`)

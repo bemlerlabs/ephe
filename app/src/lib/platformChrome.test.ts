@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const desk = vi.hoisted(() => ({ value: false }))
-vi.mock('@/lib/tauriBridge', () => ({ isDesktopShell: () => desk.value }))
+const full = vi.hoisted(() => ({ value: null as boolean | null }))
+vi.mock('@/lib/tauriBridge', () => ({
+  isDesktopShell: () => desk.value,
+  windowIsFullscreen: async () => full.value,
+}))
 
-import { applyPlatformChrome, resolvePlatformChromeSpec } from './platformChrome'
+import { applyPlatformChrome, resolveEffectiveSpec, resolvePlatformChromeSpec } from './platformChrome'
 
 beforeEach(() => {
   desk.value = false
+  full.value = null
   document.documentElement.style.removeProperty('--chrome-inset-left')
   document.documentElement.style.removeProperty('--chrome-inset-right')
 })
@@ -29,13 +34,24 @@ describe('the platform chrome spec (I1/I2)', () => {
     expect(resolvePlatformChromeSpec('linux', true)).toEqual({ insetLeft: 0, insetRight: 0 })
   })
 
-  it('writes both insets onto the root element', () => {
+  it('writes both insets onto the root element', async () => {
     desk.value = true
-    applyPlatformChrome('darwin')
+    await applyPlatformChrome('darwin')
     expect(document.documentElement.style.getPropertyValue('--chrome-inset-left')).toBe('76px')
     expect(document.documentElement.style.getPropertyValue('--chrome-inset-right')).toBe('0px')
-    applyPlatformChrome('win32')
+    await applyPlatformChrome('win32')
     expect(document.documentElement.style.getPropertyValue('--chrome-inset-left')).toBe('0px')
     expect(document.documentElement.style.getPropertyValue('--chrome-inset-right')).toBe('138px')
+  })
+})
+
+describe('fullscreen takes the corners back (I1)', () => {
+  it('reports no inset when the window paints no buttons', () => {
+    expect(resolveEffectiveSpec('darwin', true, true)).toEqual({ insetLeft: 0, insetRight: 0 })
+    expect(resolveEffectiveSpec('darwin', true, false)).toEqual({ insetLeft: 76, insetRight: 0 })
+    // Unknown (no bridge answer) keeps the safe side.
+    expect(resolveEffectiveSpec('darwin', true, null)).toEqual({ insetLeft: 76, insetRight: 0 })
+    // A browser never reserves anything, whatever the answer.
+    expect(resolveEffectiveSpec('darwin', false, false)).toEqual({ insetLeft: 0, insetRight: 0 })
   })
 })

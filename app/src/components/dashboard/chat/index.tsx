@@ -328,6 +328,14 @@ export default function ChatLayout() {
               className={`relative z-sticky border-b border-hairline px-4 h-10 flex items-center justify-between gap-x-2 pt-[calc(0.25rem+env(safe-area-inset-top))] flex-shrink-0${
                 isTauri && sidebarCollapsed ? ' md:pl-8' : ''
               }`}
+              // I1: with the sidebar folded away the header's own controls sit in the
+              // corner the macOS window buttons own, so it takes their width. The
+              // variable is 0 in a browser, on other platforms, and in fullscreen.
+              style={
+                sidebarCollapsed
+                  ? { paddingLeft: 'calc(var(--chrome-inset-left, 0px) + 2rem)' }
+                  : undefined
+              }
             >
               {/* DD-27: the left group is the interactive column (nav arrows, title).
               R2-I: the title truncates at the column, not at the window (min-w-0

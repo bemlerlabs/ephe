@@ -20,3 +20,20 @@ export function tauriInvoke(): Invoke | null {
 export function isDesktopShell(): boolean {
   return tauriInvoke() !== null
 }
+
+/** Whether the shell window is fullscreen, or null where the bridge cannot say. */
+export async function windowIsFullscreen(): Promise<boolean | null> {
+  if (typeof window === 'undefined') return null
+  const api = (
+    window as unknown as {
+      __TAURI__?: { window?: { getCurrentWindow?: () => { isFullscreen?: () => Promise<boolean> } } }
+    }
+  ).__TAURI__?.window
+  try {
+    const current = api?.getCurrentWindow?.()
+    if (!current?.isFullscreen) return null
+    return await current.isFullscreen()
+  } catch {
+    return null
+  }
+}

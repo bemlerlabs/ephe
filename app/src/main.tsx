@@ -132,7 +132,9 @@ function Boot() {
 
 // `?film=capture` mounts the first-open choreography alone; the render script seeks it
 // frame by frame at 60 fps. Development only, so the production entry keeps one branch.
-applyPlatformChrome()
+void applyPlatformChrome()
+// Entering or leaving fullscreen repaints the window buttons, so the inset is re-asked.
+window.addEventListener('resize', () => void applyPlatformChrome())
 
 const captureFilm =
   import.meta.env.DEV && new URLSearchParams(window.location.search).get('film') === 'capture'
