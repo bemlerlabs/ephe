@@ -108,6 +108,9 @@ def token_report(css_path: Path, tui_path: Path) -> list[dict[str, object]]:
                 "expected": expected,
                 "css_hex": css_hex,
                 "tui_hex": tui_hex,
+                # A role the TUI palette does not carry is CSS-only, not missing: the
+                # terminal declares ten tokens on purpose (ui/palette.py is its source).
+                "css_only": css_hex is not None and tui_hex is None and tui_name not in tui,
                 "present": css_hex is not None and tui_hex is not None,
                 "drift": [
                     surface
@@ -161,7 +164,9 @@ def main(argv: list[str] | None = None) -> int:
         args.root / "ui/ephe.tcss",
     )
     micro = scan_micro_text(args.root / "app/src")
-    missing = [entry["role"] for entry in report if not entry["present"]]
+    missing = [
+        entry["role"] for entry in report if not entry["present"] and not entry["css_only"]
+    ]
     drift = [entry["role"] for entry in report if entry["drift"]]
 
     if args.json:
@@ -170,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"design constitution — {args.root}")
         for entry in report:
-            mark = "ok  " if entry["present"] else "MISS"
+            mark = "ok  " if entry["present"] else ("css " if entry["css_only"] else "MISS")
             drift_note = f" drift: {', '.join(entry['drift'])}" if entry["drift"] else ""
             print(
                 f"  {mark} {entry['role']:<10} {entry['css']:<18} {entry['tui']:<15}"
