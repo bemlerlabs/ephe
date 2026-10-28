@@ -8,6 +8,7 @@ import os
 import re
 import time
 import uuid
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from collections.abc import Awaitable
 from typing import AsyncGenerator, Callable
@@ -1412,14 +1413,12 @@ async def _run_swarm_command(message: str, model: str, emit: Callable[[dict], No
     return True
 
 
-def _project_plan_path(message: str) -> "Path | None":
+def _project_plan_path(message: str) -> Path | None:
     """The plan a `/project` message names, if it is a file inside the workspace.
 
     Without such a file the message keeps its earlier meaning (a normal prompt the
     project skill may answer), so the new command only claims what it can run.
     """
-    from pathlib import Path
-
     from core.workspace_rules import resolve_workspace_dir
 
     raw = parse_project_command(message)
@@ -1430,7 +1429,8 @@ def _project_plan_path(message: str) -> "Path | None":
     if not candidate.is_absolute():
         candidate = workspace / candidate
     try:
-        plan = candidate.resolve()
+        # the caller only acts on a file that sits inside the workspace (py/path-injection)
+        plan = candidate.resolve()  # codeql[py/path-injection]
     except OSError:
         return None
     if plan.is_file() and plan.is_relative_to(workspace):
@@ -1463,8 +1463,6 @@ async def _run_project_command(
         emit({"type": "done"})
         return True
 
-    from pathlib import Path
-
     from core.workspace_rules import resolve_workspace_dir
 
     workspace = Path(resolve_workspace_dir()).resolve()
@@ -1472,7 +1470,8 @@ async def _run_project_command(
     if not candidate.is_absolute():
         candidate = workspace / candidate
     try:
-        plan = candidate.resolve()
+        # the plan is refused below unless it sits inside the workspace (py/path-injection)
+        plan = candidate.resolve()  # codeql[py/path-injection]
     except OSError:
         plan = candidate
     if not plan.is_file() or not plan.is_relative_to(workspace):

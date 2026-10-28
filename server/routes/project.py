@@ -85,7 +85,8 @@ def _allowed_root(raw: str | None) -> Path:
     """Resolve the requested directory against the same roots the tools may read."""
     candidate = Path(raw).expanduser() if raw else _workspace_root()
     try:
-        resolved = candidate.resolve()
+        # the containment check below is what lets this value out (py/path-injection)
+        resolved = candidate.resolve()  # codeql[py/path-injection]
     except OSError as exc:
         raise HTTPException(status_code=400, detail=f"path cannot be resolved: {exc}")
     if not resolved.is_dir():
