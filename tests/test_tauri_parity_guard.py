@@ -206,7 +206,8 @@ def test_a_platform_read_outside_the_manifest_is_refused(tmp_path):
     ]
     result = run_guard("--manifest", write_manifest(tmp_path, data))
     assert result.returncode == 1, result.stdout
-    assert "reads __TAURI__ 2 time(s), the manifest does not list it" in result.stdout
+    reads = (ROOT / "app/src/lib/tauriBridge.ts").read_text(encoding="utf-8").count("__TAURI__")
+    assert f"reads __TAURI__ {reads} time(s), the manifest does not list it" in result.stdout
 
 
 def test_a_branch_that_gained_a_read_is_refused(tmp_path):

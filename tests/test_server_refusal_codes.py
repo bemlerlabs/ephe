@@ -87,6 +87,9 @@ SERVER_SENTENCES = {
     "change_set_build_refused": (
         "provenance needs a non-empty why — check what it names and record it again"
     ),
+    "self_sign_forbidden": (
+        "An author cannot sign its own change set. Route it to an independent reviewer."
+    ),
     "review_refused": (
         "a reason needs a why for README.md:1 — check the reviewer and the reasons, then retry"
     ),
@@ -125,6 +128,7 @@ SERVER_SENTENCES = {
 
 #: the slots each template fills, and therefore the keys `reason_params` has to carry
 PARAMS = {
+    "self_sign_forbidden": {},
     "audio_empty": {},
     "audio_model_download_required": {"model": "tiny", "size_mb": 78, "host": "huggingface.co"},
     "audio_model_fetch_failed": {"model": "tiny", "size_mb": 78, "host": "huggingface.co"},
@@ -183,6 +187,7 @@ STATUSES = {
     "workspace_create_refused": 409,
     "workspace_remove_refused": 409,
     "change_set_build_refused": 422,
+    "self_sign_forbidden": 422,
     "review_refused": 422,
     "agent_limit_reached": 429,
     "publish_without_approval": 409,

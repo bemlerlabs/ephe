@@ -38,8 +38,12 @@ def test_the_ten_roles_exist_in_both_surfaces():
         "warn",
         "error",
     ]
-    missing = [entry["role"] for entry in report if not entry["present"]]
+    # `elevated` is a CSS-only role: the terminal palette holds ten tokens on purpose.
+    missing = [
+        entry["role"] for entry in report if not entry["present"] and not entry["css_only"]
+    ]
     assert missing == []
+    assert [entry["role"] for entry in report if entry["css_only"]] == ["elevated"]
 
 
 def test_nine_of_ten_pairs_carry_the_constitution_hex():
@@ -101,7 +105,10 @@ def test_a_vanished_role_is_a_finding_and_fails_the_run(tmp_path):
     css.write_text(":root {\n  --color-canvas: #15120F;\n}\n")
     tui.write_text("$ink-ground: #15120F;\n")
     report = constitution.token_report(css, tui)
-    missing = [entry["role"] for entry in report if not entry["present"]]
+    missing = [
+        entry["role"] for entry in report if not entry["present"] and not entry["css_only"]
+    ]
+    # The whole CSS side is gone here, so even the CSS-only role is a finding.
     assert "elevated" in missing
     assert constitution.main(["--root", str(tmp_path)]) == 1
 

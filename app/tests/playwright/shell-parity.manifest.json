@@ -197,10 +197,10 @@
     {
       "file": "app/src/lib/tauriBridge.ts",
       "marker": "__TAURI__",
-      "count": 2,
-      "surface": "the shell bridge itself",
+      "count": 4,
+      "surface": "the one bridge lookup: invoke and the window handle (fullscreen state)",
       "web": "absent",
-      "desktop": "present; the one place that answers whether a shell exists"
+      "desktop": "the injected global is present; invoke reaches the shell and the window answers isFullscreen"
     },
     {
       "file": "app/src/lib/tauriBridge.ts",
@@ -257,6 +257,22 @@
       "surface": "artifact row: reveal and open in Finder (N4)",
       "web": "both verbs are absent; the browser offers the download instead",
       "desktop": "reveal_file_in_finder and open_file_in_default_app, fenced to the workbench, the project and the usual save folders"
+    },
+    {
+      "file": "app/src/lib/platformChrome.ts",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "top-row inset for the native window buttons",
+      "web": "no inset: the browser draws its own chrome and has no buttons to clear",
+      "desktop": "76 px on macOS and 138 px on Windows, zero while the window is fullscreen"
+    },
+    {
+      "file": "app/src/components/dashboard/settings/model/sections-agents.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "the agents header's import action",
+      "web": "no import button: a browser tab has no folder picker",
+      "desktop": "one button that runs pick_folder, then the same /api/import the tour uses"
     }
   ],
   "platform_only": [
