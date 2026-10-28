@@ -2649,7 +2649,7 @@
       "synthesizing": "Berichte werden zusammengeführt",
       "done": "Fertig"
     },
-    "seal": "NUR LESEND",
+    "seal": "NUR-LESEN-SANDBOX ({{n}} Tools)",
     "agent": {
       "running": "läuft",
       "done": "fertig",

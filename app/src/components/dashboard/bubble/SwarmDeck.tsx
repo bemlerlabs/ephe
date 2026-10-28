@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronRight, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { steerTurn } from '@/lib/api'
+import { getCapabilities, steerTurn } from '@/lib/api'
 import { useDeepSelect } from '@/lib/deepSettings'
 import { deckDone, deckFromActivities, deckPhase, type DeckActivity } from '@/lib/swarmDeck'
 
@@ -26,6 +26,20 @@ export function SwarmDeck({
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [steered, setSteered] = useState<Record<string, string>>({})
   const [steerError, setSteerError] = useState<string | null>(null)
+  // The seal counts the tools the guard actually grants.
+  const [toolCount, setToolCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    getCapabilities()
+      .then((view) => {
+        if (alive) setToolCount(view.subagent?.tool_count ?? null)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   async function steer(agentId: string) {
     const text = (draft[agentId] ?? '').trim()
@@ -72,7 +86,7 @@ export function SwarmDeck({
           className="ml-auto inline-flex shrink-0 items-center gap-1 text-ui-2xs text-status-success/90"
         >
           <ShieldCheck className="h-3 w-3" aria-hidden="true" />
-          {t('swarm.seal')}
+          {t('swarm.seal', { n: toolCount ?? '—' })}
         </span>
       </button>
       {open && (

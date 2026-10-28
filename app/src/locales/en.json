@@ -2649,7 +2649,7 @@
       "synthesizing": "Merging the reports",
       "done": "Done"
     },
-    "seal": "READ-ONLY HELPERS",
+    "seal": "READ-ONLY SANDBOX ({{n}} tools)",
     "agent": {
       "running": "running",
       "done": "done",
