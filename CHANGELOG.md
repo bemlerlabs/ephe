@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 typecheck fix is named below (`0486444`): the status bar drops the
+CodebaseIndexStatus import it no longer reads, which tsc refused as unused.
 The 0.3.0 index-dialog fix is named below (`7214003`): the dialog opens only from
 the status pill, so no unsolicited modal covers the workspace on load; the index
 routes gain tests for a reentrant job, a raising worker, a vanished span and the
