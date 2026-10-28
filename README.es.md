@@ -75,7 +75,7 @@ La terminal (`ephe tui`) utiliza el motor elegido en `~/.ephe/engine.json`. Un t
 #### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.3.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.4.0/install.sh | bash
 ```
 
 Para leer el script antes de ejecutarlo, usa una copia local del repositorio:
@@ -91,7 +91,7 @@ El instalador prepara Python y el entorno local, compila la aplicación web y la
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.3.0/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.4.0/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -103,7 +103,7 @@ La instalación en Windows aún no se ha verificado de principio a fin para esta
 
 Docker y todas las opciones del instalador se describen en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-El comando apunta a la versión pública actual, `v0.3.0`. El instalador Bash usa `--desktop` por defecto; pasa `--cli` o establece `EPHE_MODE=cli` para instalar solo la interfaz de terminal.
+El comando apunta a la versión pública actual, `v0.4.0`. El instalador Bash usa `--desktop` por defecto; pasa `--cli` o establece `EPHE_MODE=cli` para instalar solo la interfaz de terminal.
 
 Antes de usar `ephe` en una terminal nueva, activa el entorno instalado.
 Para la instalación predeterminada en macOS o Linux:
