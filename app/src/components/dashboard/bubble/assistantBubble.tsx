@@ -16,6 +16,7 @@ import { StreamBlocks } from './streamBlocks'
 import { SourcesBar } from './sourcesBar'
 import { ToolStreamRows } from './toolStreamRows'
 import { SwarmDeck } from './SwarmDeck'
+import { ProofLedger } from './ProofLedger'
 import LiveAskCard from './liveAskCard'
 
 interface AssistantBubbleProps {
@@ -163,14 +164,18 @@ export function AssistantBubble({
                   its own position, exactly like the reference pattern.
                   Without blocks (legacy/seed messages) the old fixed sequence applies. */}
       {m.blocks && m.blocks.length > 0 ? (
-        <div data-testid="bubble-timeline" className={timelineCollapsed ? 'hidden' : undefined}>
-          <StreamBlocks
-            blocks={m.blocks}
-            tool_calls={m.tool_calls ?? []}
-            thinkingPhases={m.thinkingPhases ?? []}
-            streaming={m.streaming}
-          />
-        </div>
+        <>
+          {/* E1: the proof sits above the chronology, which ends in the answer text. */}
+          <ProofLedger tools={m.tool_calls ?? []} />
+          <div data-testid="bubble-timeline" className={timelineCollapsed ? 'hidden' : undefined}>
+            <StreamBlocks
+              blocks={m.blocks}
+              tool_calls={m.tool_calls ?? []}
+              thinkingPhases={m.thinkingPhases ?? []}
+              streaming={m.streaming}
+            />
+          </div>
+        </>
       ) : (
         <>
           <div data-testid="bubble-timeline" className={timelineCollapsed ? 'hidden' : undefined}>
@@ -184,6 +189,7 @@ export function AssistantBubble({
           </div>
 
           {/* 3. Content (+ streaming cursor) */}
+          <ProofLedger tools={m.tool_calls ?? []} />
           {(m.content || m.streaming) && (
             <div
               className="chat-reading-type text-foreground/90 prose prose-invert max-w-none break-words prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground prose-em:text-foreground/90"

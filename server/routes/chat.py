@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -1335,6 +1336,9 @@ def _make_stream_callbacks(
             "failed" if (_code or _pending_refusal or _refused_result) else "completed"
         )
         _stop_beat()
+        # E1: the digest of what this frame delivers, so the proof ledger's sha256 can
+        # be re-computed by a reader from the bytes the reader actually holds.
+        _extra["sha256"] = hashlib.sha256(_txt.encode("utf-8", "replace")).hexdigest()
         emit({"type": "tool_done", "tool": name, "call_id": call_id, "turn_id": turn_id, "result": _txt, **_extra})
         emit(_progress_frame(
             "tool_done",

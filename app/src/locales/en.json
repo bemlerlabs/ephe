@@ -453,7 +453,12 @@
     "modelGroupUnconfigured": "No endpoint — not configurable",
     "searchProgress": "Working for {{time}} · Web search {{round}}/{{cap}}",
     "searchWaiting": "waiting for web search",
-    "streamClosedBeforeDone": "The turn ended before it was complete."
+    "streamClosedBeforeDone": "The turn ended before it was complete.",
+    "ledger": {
+      "run": "[{{tool}}] {{args}} · {{state}} · {{ms}} ms · sha256:{{digest}}",
+      "passed": "passed",
+      "failed": "failed"
+    }
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",

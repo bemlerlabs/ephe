@@ -17,9 +17,9 @@ Covers the I6 findings P1-2 (+ route wiring pins for P1-4):
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -112,6 +112,34 @@ class TestToolStreamEvents:
         assert starts[0]["args"]["path"] == "a.txt"
         assert dones[0]["tool"] == "read_file"
         assert "DER-INHALT" in dones[0]["result"]
+
+    def test_tool_done_carries_the_digest_of_its_payload(self, client):
+        """E1: the proof ledger's sha256 has to match the bytes the client holds."""
+        async def fake_chat_with_tools(**kwargs):
+            kwargs["on_tool_start"]("read_file", {"path": "a.txt"})
+            kwargs["on_tool_done"]("read_file", "DER-INHALT")
+            kwargs["on_chunk"]("Inhalt ist da.")
+            return "Inhalt ist da."
+
+        with patch("server.routes.chat.chat_with_tools", new=fake_chat_with_tools):
+            body = _stream(client, {"message": "lies a.txt", "session_id": "tse-digest"})
+
+        done = [e for e in _events(body) if e.get("type") == "tool_done"][0]
+        assert done["sha256"] == hashlib.sha256("DER-INHALT".encode()).hexdigest()
+
+    def test_tool_done_digest_covers_the_capped_payload(self, client):
+        """A capped frame is hashed after the cut, so the reader's own re-hash agrees."""
+        async def fake_chat_with_tools(**kwargs):
+            kwargs["on_tool_start"]("read_file", {"path": "big.txt"})
+            kwargs["on_tool_done"]("read_file", "X" * 50_000)
+            kwargs["on_chunk"]("Fertig.")
+            return "Fertig."
+
+        with patch("server.routes.chat.chat_with_tools", new=fake_chat_with_tools):
+            body = _stream(client, {"message": "lies big.txt", "session_id": "tse-digest-cap"})
+
+        done = [e for e in _events(body) if e.get("type") == "tool_done"][0]
+        assert done["sha256"] == hashlib.sha256(done["result"].encode()).hexdigest()
 
     def test_pdf_deliver_pages_marker_keeps_path_clean(self, client):
         """B3 deliver 'PDF_FILE:<path>\\nPDF_PAGES:<n>': the file_result event

@@ -117,6 +117,7 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
         ...(event.duration_ms !== undefined ? { durationMs: event.duration_ms } : {}),
         ...(event.reason_code !== undefined ? { reasonCode: event.reason_code } : {}),
         ...(event.reason_params !== undefined ? { reasonParams: event.reason_params } : {}),
+        ...(event.sha256 !== undefined ? { sha256: event.sha256 } : {}),
       })
       break
 

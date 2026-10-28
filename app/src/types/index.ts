@@ -55,6 +55,8 @@ export interface ToolCall {
   rememberable?: boolean
   /** Wave B1: the real unified-diff preview (edit_file/write_file) for the approval dialog. */
   approval_diff?: string
+  /** E1: sha256 of the result payload as delivered, so the proof ledger's digest can be re-hashed. */
+  sha256?: string
 }
 
 /** Pending tool call until the user approves or denies it (local + WS payload) */
@@ -425,6 +427,8 @@ export interface StreamToolDone {
    * maps it onto the store's `denied`. Absent on frames from an older backend.
    */
   status?: 'completed' | 'failed'
+  /** E1: sha256 of `result` as sent (computed after the size cap). */
+  sha256?: string
 }
 
 /** K3 Z07: stdout chunk as an optional frame on the activity channel */

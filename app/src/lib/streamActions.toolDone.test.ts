@@ -64,6 +64,24 @@ describe('applyStreamEvent tool_done outcome', () => {
     })
   })
 
+  it('forwards the frame digest so the proof ledger can show it', () => {
+    applyStreamEvent(
+      {
+        type: 'tool_done',
+        tool: 'run_shell',
+        result: 'ok',
+        sha256: '9f86d0818c0f2f4d',
+      },
+      store,
+    )
+    expect(store.upsertToolCall).toHaveBeenLastCalledWith({
+      name: 'run_shell',
+      result: 'ok',
+      status: 'completed',
+      sha256: '9f86d0818c0f2f4d',
+    })
+  })
+
   it('a failed fetch becomes failed with its reason, not denied', () => {
     applyStreamEvent(
       {

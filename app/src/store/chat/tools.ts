@@ -19,6 +19,7 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
       stdout?: string
       reasonCode?: string
       reasonParams?: Record<string, string | number>
+      sha256?: string
     }) => {
       set((s) =>
         updateActiveMessage(s, (m) => {
@@ -40,6 +41,7 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
                   : {}),
                 ...(tool.reasonCode !== undefined ? { reason_code: tool.reasonCode } : {}),
                 ...(tool.reasonParams !== undefined ? { reason_params: tool.reasonParams } : {}),
+                ...(tool.sha256 !== undefined ? { sha256: tool.sha256 } : {}),
               }
               return { ...m, tool_calls: next }
             }
@@ -58,6 +60,7 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
                   ...(tool.stdout !== undefined ? { stdout: tool.stdout } : {}),
                   ...(tool.reasonCode !== undefined ? { reason_code: tool.reasonCode } : {}),
                   ...(tool.reasonParams !== undefined ? { reason_params: tool.reasonParams } : {}),
+                  ...(tool.sha256 !== undefined ? { sha256: tool.sha256 } : {}),
                 },
               ],
               ...(m.blocks !== undefined
@@ -82,6 +85,7 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
               ...(tool.stdout !== undefined ? { stdout: (open.stdout ?? '') + tool.stdout } : {}),
               ...(tool.reasonCode !== undefined ? { reason_code: tool.reasonCode } : {}),
               ...(tool.reasonParams !== undefined ? { reason_params: tool.reasonParams } : {}),
+              ...(tool.sha256 !== undefined ? { sha256: tool.sha256 } : {}),
             }
             return { ...m, tool_calls: next }
           }
@@ -100,6 +104,7 @@ export function makeToolActions(ctx: StoreCtx): Partial<ChatState> {
                 ...(tool.stdout !== undefined ? { stdout: tool.stdout } : {}),
                 ...(tool.reasonCode !== undefined ? { reason_code: tool.reasonCode } : {}),
                 ...(tool.reasonParams !== undefined ? { reason_params: tool.reasonParams } : {}),
+                ...(tool.sha256 !== undefined ? { sha256: tool.sha256 } : {}),
               },
             ],
             ...(m.blocks !== undefined

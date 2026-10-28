@@ -453,7 +453,12 @@
     "modelGroupUnconfigured": "Ohne Endpunkt — nicht konfigurierbar",
     "searchProgress": "Arbeitet seit {{time}} · Websuche {{round}}/{{cap}}",
     "searchWaiting": "wartet auf Websuche",
-    "streamClosedBeforeDone": "Der Turn endete vor dem Abschluss."
+    "streamClosedBeforeDone": "Der Turn endete vor dem Abschluss.",
+    "ledger": {
+      "run": "[{{tool}}] {{args}} · {{state}} · {{ms}} ms Laufzeit · sha256:{{digest}}",
+      "passed": "bestanden",
+      "failed": "fehlgeschlagen"
+    }
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
