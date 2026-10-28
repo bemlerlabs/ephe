@@ -14,6 +14,12 @@ describe('the composer context meter', () => {
     expect(meter.className).toContain('tabular')
   })
 
+  it('says "<1 %" while the fill is real but rounds to zero', () => {
+    render(<ComposerContextMeter percent={0.09} used={955} window={1048576} onCompact={vi.fn()} />)
+    expect(screen.getByTestId('composer-context-numbers').textContent).toContain('<1%')
+    expect(screen.getByTestId('composer-context-numbers').textContent).not.toContain('0%')
+  })
+
   it('sends /compact through the slash channel', () => {
     const onCompact = vi.fn()
     render(<ComposerContextMeter percent={22} used={1840} window={8192} onCompact={onCompact} />)

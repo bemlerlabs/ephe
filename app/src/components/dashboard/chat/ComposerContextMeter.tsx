@@ -22,8 +22,11 @@ export default function ComposerContextMeter({
 }) {
   const { t, i18n } = useTranslation()
   if (percent == null || used == null || window == null) return null
+  // One thousandth of a window is not zero: below one percent the round number
+  // reads as "nothing used" while tokens are plainly there.
+  const shown = percent > 0 && percent < 1 ? '<1' : formatNumber(Math.round(percent), i18n.language)
   const numbers = t('chat.contextMeter', {
-    percent: formatNumber(Math.round(percent), i18n.language),
+    percent: shown,
     used: formatNumber(used, i18n.language),
     window: formatNumber(window, i18n.language),
   })
