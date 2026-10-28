@@ -16,7 +16,6 @@ import { StorageFootprint } from './statusBar/StorageFootprint'
 import { CostChips } from './statusBar/CostChips'
 import CodebaseStatusBarPill from './CodebaseStatusBarPill'
 import CodebaseIndexDialog from './CodebaseIndexDialog'
-import type { CodebaseIndexStatus } from '@/lib/codebaseIndex'
 
 /**
  * Ephe — context meter + status bar (P2-5)
