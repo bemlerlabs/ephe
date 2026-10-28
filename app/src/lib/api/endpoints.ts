@@ -27,6 +27,31 @@ import type {
   SyncSession,
 } from './types_sessions'
 import type { AppSettings, AskAnswerResponse } from '@/types'
+/**
+ * D1: a direction change for a turn that is already running. `queued` means the
+ * loop holds it at its next round boundary; 404 means no turn of this session is
+ * running, and that answer must reach the surface rather than look like success.
+ */
+export function steerTurn(input: {
+  sessionId: string
+  turnId?: string | null
+  text?: string
+  agentId?: string | null
+  stop?: boolean
+}): Promise<{ queued?: boolean; [key: string]: unknown }> {
+  return request('/api/chat/steer', {
+    method: 'POST',
+    body: JSON.stringify({
+      session_id: input.sessionId,
+      turn_id: input.turnId ?? undefined,
+      text: input.text ?? '',
+      actor: 'user',
+      agent_id: input.agentId ?? undefined,
+      stop: input.stop ?? false,
+    }),
+  })
+}
+
 export interface CapabilitiesView {
   subagent: { tools: string[]; tool_count: number; max_iterations: number; read_only: boolean }
   main_agent: { read_only: boolean; note: string }

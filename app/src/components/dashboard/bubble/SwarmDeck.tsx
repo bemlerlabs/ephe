@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ChevronRight, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { steerTurn } from '@/lib/api'
+import { useDeepSelect } from '@/lib/deepSettings'
 import { deckDone, deckFromActivities, deckPhase, type DeckActivity } from '@/lib/swarmDeck'
 
 /**
@@ -8,9 +10,35 @@ import { deckDone, deckFromActivities, deckPhase, type DeckActivity } from '@/li
  * when the turn actually spawned agents, states the phase, and shows one card per
  * helper with the read-only seal.
  */
-export function SwarmDeck({ activities }: { activities: readonly DeckActivity[] }) {
+export function SwarmDeck({
+  activities,
+  sessionId,
+  turnId,
+}: {
+  activities: readonly DeckActivity[]
+  sessionId?: string
+  turnId?: string | null
+}) {
   const { t } = useTranslation()
+  // D1: the same register switch picks the wording of the steer field.
+  const detailsMode = useDeepSelect('chat.details_mode', 'expanded')
   const [open, setOpen] = useState(true)
+  const [draft, setDraft] = useState<Record<string, string>>({})
+  const [steered, setSteered] = useState<Record<string, string>>({})
+  const [steerError, setSteerError] = useState<string | null>(null)
+
+  async function steer(agentId: string) {
+    const text = (draft[agentId] ?? '').trim()
+    if (!text || !sessionId) return
+    setSteerError(null)
+    try {
+      await steerTurn({ sessionId, turnId, text, agentId })
+      setSteered((prev) => ({ ...prev, [agentId]: text }))
+      setDraft((prev) => ({ ...prev, [agentId]: '' }))
+    } catch (error) {
+      setSteerError(error instanceof Error ? error.message : String(error))
+    }
+  }
   const state = deckFromActivities(activities)
   const phase = deckPhase(state)
   if (phase == null) return null
@@ -59,16 +87,56 @@ export function SwarmDeck({ activities }: { activities: readonly DeckActivity[] 
               <span className="font-mono text-ink-faint">{agent.id}</span>
               {agent.role && <span className="text-ink-soft">{agent.role}</span>}
               {agent.task && <span className="truncate text-ink-faint">{agent.task}</span>}
-              <span
-                className={`ml-auto shrink-0 ${
-                  agent.status === 'failed' ? 'text-status-danger' : 'text-ink-faint'
-                }`}
-              >
-                {t(`swarm.agent.${agent.status}`)}
-              </span>
+              {agent.status === 'running' && sessionId && (
+                <span className="ml-auto inline-flex shrink-0 items-center gap-1">
+                  <input
+                    value={draft[agent.id] ?? ''}
+                    onChange={(event) =>
+                      setDraft((prev) => ({ ...prev, [agent.id]: event.target.value }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') void steer(agent.id)
+                    }}
+                    placeholder={
+                      detailsMode === 'expanded' ? t('swarm.steerExpert') : t('swarm.steerEveryday')
+                    }
+                    aria-label={t('swarm.steerAria', { id: agent.id })}
+                    data-testid={`swarm-steer-${agent.id}`}
+                    className="w-28 rounded border border-hairline bg-surface px-1 py-0.5 text-ui-2xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void steer(agent.id)}
+                    data-testid={`swarm-steer-send-${agent.id}`}
+                    className="rounded px-1 text-ui-2xs text-brand"
+                  >
+                    →
+                  </button>
+                </span>
+              )}
+              {(steered[agent.id] || agent.status !== 'running') && (
+                <span
+                  className={`ml-auto shrink-0 ${
+                    steered[agent.id]
+                      ? 'text-status-warning'
+                      : agent.status === 'failed'
+                        ? 'text-status-danger'
+                        : 'text-ink-faint'
+                  }`}
+                  data-testid={`swarm-agent-state-${agent.id}`}
+                  title={steered[agent.id]}
+                >
+                  {steered[agent.id] ? t('swarm.agent.steered') : t(`swarm.agent.${agent.status}`)}
+                </span>
+              )}
             </li>
           ))}
         </ul>
+      )}
+      {steerError && (
+        <p className="pl-5 text-ui-2xs text-status-danger" role="alert">
+          {steerError}
+        </p>
       )}
     </div>
   )

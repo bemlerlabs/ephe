@@ -2651,7 +2651,11 @@
     "agent": {
       "running": "läuft",
       "done": "fertig",
-      "failed": "fehlgeschlagen"
-    }
+      "failed": "fehlgeschlagen",
+      "steered": "neu ausgerichtet"
+    },
+    "steerEveryday": "Zwischenruf an Helfer",
+    "steerExpert": "Live-Steer via SteeringChannel",
+    "steerAria": "Helfer {{id}} steuern"
   }
 }

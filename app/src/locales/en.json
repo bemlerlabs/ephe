@@ -2651,7 +2651,11 @@
     "agent": {
       "running": "running",
       "done": "done",
-      "failed": "failed"
-    }
+      "failed": "failed",
+      "steered": "steered"
+    },
+    "steerEveryday": "Pass a note to this helper",
+    "steerExpert": "Steer via SteeringChannel",
+    "steerAria": "Steer helper {{id}}"
   }
 }

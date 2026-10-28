@@ -152,7 +152,9 @@ export function AssistantBubble({
       {/* 2. Activities (phase transitions inline) — transient: only
                   while streaming, otherwise "Analyzing request…" lingers in
                   finished bubbles forever (deploy polish P2-6). */}
-      {m.activities && m.activities.length > 0 && <SwarmDeck activities={m.activities} />}
+      {m.activities && m.activities.length > 0 && (
+        <SwarmDeck activities={m.activities} sessionId={sessionId} turnId={m.turnId} />
+      )}
       {m.streaming && <ActivityFeed activities={m.activities} />}
 
       {/* R1 (reference parity): ordered chronology plan — thinking,

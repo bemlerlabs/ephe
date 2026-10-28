@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@/i18n'
+
+const api = vi.hoisted(() => ({ steerTurn: vi.fn() }))
+vi.mock('@/lib/api', () => ({ steerTurn: api.steerTurn, getCapabilities: vi.fn() }))
 import { SwarmDeck } from './SwarmDeck'
 import { deckDone, deckFromActivities, deckPhase } from '@/lib/swarmDeck'
 
@@ -41,6 +44,10 @@ describe('the swarm deck model', () => {
   })
 })
 
+beforeEach(() => {
+  api.steerTurn.mockReset()
+})
+
 describe('the swarm deck', () => {
   it('names the phase and seals the helpers read-only', () => {
     render(<SwarmDeck activities={swarm} />)
@@ -56,6 +63,35 @@ describe('the swarm deck', () => {
     render(<SwarmDeck activities={swarm} />)
     fireEvent.click(screen.getByTestId('swarm-deck-toggle'))
     expect(screen.queryByTestId('swarm-deck-agents')).toBeNull()
+  })
+
+  it('carries a steer field on a running helper', async () => {
+    api.steerTurn.mockResolvedValue({ queued: true })
+    render(<SwarmDeck activities={swarm} sessionId="s1" turnId="t1" />)
+    const field = screen.getByTestId('swarm-steer-a')
+    fireEvent.change(field, { target: { value: 'look at the tests first' } })
+    fireEvent.click(screen.getByTestId('swarm-steer-send-a'))
+    await waitFor(() => {
+      expect(api.steerTurn).toHaveBeenCalledWith({
+        sessionId: 's1',
+        turnId: 't1',
+        text: 'look at the tests first',
+        agentId: 'a',
+      })
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId('swarm-agent-state-a').textContent).toBe('steered')
+    })
+  })
+
+  it('reports a steer that found no running turn', async () => {
+    api.steerTurn.mockRejectedValue(new Error('no running turn for this session'))
+    render(<SwarmDeck activities={swarm} sessionId="s1" turnId="t1" />)
+    fireEvent.change(screen.getByTestId('swarm-steer-b'), { target: { value: 'stop that' } })
+    fireEvent.click(screen.getByTestId('swarm-steer-send-b'))
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('no running turn')
+    })
   })
 
   it('stays out of the way when no agent ran', () => {
