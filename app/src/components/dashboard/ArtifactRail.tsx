@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { RailAdoptAction } from './artifacts/RailAdoptAction'
 import { Download, FileCode, FileText, FolderOpen, Image as ImageIcon, Library } from 'lucide-react'
 import type { Activity, ChatMessage } from '@/types'
 import { artifactFileUrl, fileUrl } from '@/lib/api'
@@ -308,6 +309,9 @@ export default function ArtifactRail({
                 >
                   <Library className="h-3.5 w-3.5" />
                 </a>
+                {a.artifactId ? (
+                  <RailAdoptAction id={a.artifactId} name={a.path.split('/').pop() ?? a.path} />
+                ) : null}
                 <a
                   href={hrefFor(a.artifactId, a.path, true)}
                   download
