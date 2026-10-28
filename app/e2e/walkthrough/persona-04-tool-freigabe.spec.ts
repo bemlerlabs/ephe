@@ -37,9 +37,10 @@
  *   mode selector     .../dashboard/chat/ComposerModeChip.tsx:41           data-testid="composer-mode-selector"
  *   mode option       .../dashboard/chat/ComposerModeMenu.tsx:160          data-testid="composer-mode-<key>"
  *   permission badge  .../dashboard/ChatInput.tsx:525                      data-testid="composer-permission-badge"
- *   approval dialog   .../dashboard/ToolApprovalPrompt.tsx:90             role="alertdialog"
- *   approve / deny    .../dashboard/ToolApprovalPrompt.tsx:132,142        role="button" name="Approve" | "Deny"
- *   remember box      .../dashboard/ToolApprovalPrompt.tsx:121            role="checkbox"
+ *   approval dialog   .../dashboard/ToolApprovalPrompt.tsx:88             role="alertdialog"
+ *   allow once        .../dashboard/ToolApprovalPrompt.tsx:123            data-testid="approval-once" (name "Allow once")
+ *   remember action   .../dashboard/ToolApprovalPrompt.tsx:134            data-testid="approval-remember" (only when rememberable)
+ *   deny              .../dashboard/ToolApprovalPrompt.tsx:147            data-testid="approval-deny" (name "Deny")
  *   diff preview      .../dashboard/ToolApprovalPrompt.tsx:104            data-testid="approval-diff"
  *   blast radius      .../dashboard/ToolApprovalPrompt.tsx:112            data-testid="approval-blast-radius"
  *   tool card         .../dashboard/ToolCallDisplay.tsx:164               data-testid="tool-card"
@@ -325,9 +326,9 @@ async function readGate(page: Page): Promise<Record<string, unknown>> {
       const dlg = document.querySelector('[role="alertdialog"]') as HTMLElement | null
       const blast = document.querySelector(sel.blast) as HTMLElement | null
       const diff = document.querySelector(sel.diff) as HTMLElement | null
-      const box = document.querySelector(
-        '[role="alertdialog"] input[type="checkbox"]',
-      ) as HTMLInputElement | null
+      const remember = document.querySelector(
+        '[role="alertdialog"] [data-testid="approval-remember"]',
+      ) as HTMLButtonElement | null
       return {
         present: !!dlg,
         ariaLabel: dlg?.getAttribute('aria-label') ?? null,
@@ -335,8 +336,8 @@ async function readGate(page: Page): Promise<Record<string, unknown>> {
         hasBlastRadius: !!blast,
         blastText: (blast?.innerText ?? '').trim(),
         hasDiff: !!diff,
-        rememberCheckboxPresent: !!box,
-        rememberChecked: box ? box.checked : null,
+        rememberActionPresent: !!remember,
+        rememberActionLabel: remember?.textContent?.trim() ?? null,
         focusTag: document.activeElement
           ? (document.activeElement as HTMLElement).tagName.toLowerCase()
           : null,
@@ -349,7 +350,7 @@ async function readGate(page: Page): Promise<Record<string, unknown>> {
   )
 }
 
-async function clickGateButton(page: Page, name: 'Approve' | 'Deny'): Promise<boolean> {
+async function clickGateButton(page: Page, name: string): Promise<boolean> {
   try {
     await page.getByRole('button', { name, exact: true }).first().click({ timeout: 10_000 })
     return true
@@ -508,21 +509,21 @@ test.describe('persona-04 — the tool-approval gate', () => {
     let gate = await readGate(page)
     await shoot(page, 'arc-b-gate-open')
 
-    // Exercise the "Remember for this session" box so its effect on the POST is observable.
-    let rememberBoxClicked = false
-    const box = page.getByRole('alertdialog').getByRole('checkbox')
-    if ((await box.count()) > 0) {
-      await box
+    // Exercise the "Remember for this session" action so its effect on the POST is observable.
+    let rememberActionClicked = false
+    const rememberAction = page.getByRole('alertdialog').getByTestId('approval-remember')
+    if ((await rememberAction.count()) > 0) {
+      await rememberAction
         .first()
-        .check({ timeout: 5000 })
+        .click({ timeout: 5000 })
         .catch(() => {})
-      rememberBoxClicked = true
+      rememberActionClicked = true
       await page.waitForTimeout(200)
       gate = await readGate(page)
-      await shoot(page, 'arc-b-remember-checked')
+      await shoot(page, 'arc-b-remember-clicked')
     }
 
-    const approved = await clickGateButton(page, 'Approve')
+    const approved = await clickGateButton(page, 'Allow once')
     await settled(page, 180_000)
     await shoot(page, 'arc-b-after-approve')
 
@@ -544,13 +545,13 @@ test.describe('persona-04 — the tool-approval gate', () => {
       blastText: gate.blastText,
       blastTextIsGerman: String(gate.blastText).includes(STR_GERMAN_BLAST),
       hasDiffPreview: gate.hasDiff,
-      rememberCheckboxPresent: gate.rememberCheckboxPresent,
-      rememberBoxClicked,
+      rememberActionPresent: gate.rememberActionPresent,
+      rememberActionLabel: gate.rememberActionLabel,
+      rememberActionClicked,
       initialFocus: { tag: gate.focusTag, label: gate.focusLabel },
       approved,
       approveRequest: approveReq,
       approveSentRemember: approveReq?.remember ?? null,
-      rememberCheckboxShown: gate.rememberCheckboxPresent,
       toolRows: rows,
       toolRowStatuses: statuses,
       toolCards: cards,
@@ -559,12 +560,12 @@ test.describe('persona-04 — the tool-approval gate', () => {
         rows.join(' ').toLowerCase().includes('ephe-approval-probe'),
       assistantReplySnippet: reply.slice(0, 400),
       note:
-        'Approve works: the tool runs, its stdout appears, the turn continues. For ' +
-        'run_shell the backend sends rememberable=false, so no checkbox is rendered ' +
-        'at all (the "checkbox forwarded but dropped" claim does not reproduce here).',
+        'Allow once works: the tool runs, its stdout appears, the turn continues. For ' +
+        'run_shell the backend sends rememberable=false, so the remember action is not ' +
+        'rendered at all and the gate offers exactly two actions.',
     }
     expect.soft(gateAppeared, 'arc (b): the gate appeared after switching to edit-auto').toBe(true)
-    expect.soft(approved, 'arc (b): the Approve button was clickable').toBe(true)
+    expect.soft(approved, 'arc (b): the Allow once button was clickable').toBe(true)
     flushObservations()
   })
 

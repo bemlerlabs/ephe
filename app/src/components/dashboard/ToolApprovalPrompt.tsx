@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { ShieldAlert, Check, X } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { ShieldAlert, Check, ShieldCheck, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import DiffView from './DiffView'
 import type { ToolCall } from '@/store/chatStore'
@@ -13,7 +13,7 @@ import type { ToolCall } from '@/store/chatStore'
  * - role="alertdialog" + aria-label (screen-reader announcement)
  * - initial focus on Deny (conservative: approving needs an
  *   explicit Tab/click — no accidental approve)
- * - focus trap: Tab/Shift+Tab cycle inside Approve↔Deny
+ * - focus trap: Tab/Shift+Tab cycle inside the action row, whatever it holds
  * - Esc = escape hatch → onDeny
  *
  * Architecture: renders UI only and calls onApprove/onDeny — the API call
@@ -43,16 +43,18 @@ export default function ToolApprovalPrompt({
     .filter((x): x is string => x != null)
     .join('  ·  ')
   const dialogRef = useRef<HTMLDivElement>(null)
-  const approveRef = useRef<HTMLButtonElement>(null)
-  const denyRef = useRef<HTMLButtonElement>(null)
-  const [remember, setRemember] = useState(false)
 
   // Initial focus on Deny (conservative) + Tab focus trap + Esc
   useEffect(() => {
     const node = dialogRef.current
     if (!node) return
 
-    denyRef.current?.focus()
+    const focusables = () =>
+      Array.from(node.querySelectorAll<HTMLButtonElement>('button')).filter((b) => !b.disabled)
+
+    focusables()
+      .find((b) => b.dataset.testid === 'approval-deny')
+      ?.focus()
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -61,11 +63,9 @@ export default function ToolApprovalPrompt({
         return
       }
       if (e.key !== 'Tab') return
-      const focusables = [approveRef.current, denyRef.current].filter(
-        (b): b is HTMLButtonElement => b != null,
-      )
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
+      const list = focusables()
+      const first = list[0]
+      const last = list[list.length - 1]
       if (!first || !last) return
       const active = document.activeElement
 
@@ -116,34 +116,38 @@ export default function ToolApprovalPrompt({
           <span className="text-ink-faint">{t('chat.toolApproval.blastRadius')}</span> {blast}
         </div>
       )}
-      {rememberable && (
-        <label className="mt-2 flex items-center gap-1.5 pl-6 text-ui-sm text-ink-soft hover:text-ink-soft cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="accent-brand h-3 w-3"
-          />
-          {t('chat.toolApproval.remember')}
-        </label>
-      )}
-      <div className="mt-2 flex gap-2 pl-6">
-        {/* WP2b keep: approve (green) against deny (danger) is a semantic pair, not an accent. */}
+      <div className="mt-2 flex flex-wrap gap-2 pl-6">
+        {/* WP2b keep: approve (green) against deny (danger) is a semantic pair, not an accent.
+            E2: the remembered approval is a second, named action rather than a checkbox the
+            primary button silently carries — the reader sees what each click buys. */}
         <button
-          ref={approveRef}
           type="button"
-          onClick={() => onApprove(remember)}
-          aria-label={t('chat.toolApproval.approve')}
+          onClick={() => onApprove(false)}
+          aria-label={t('chat.toolApproval.once')}
+          data-testid="approval-once"
           className="flex items-center gap-1.5 rounded-md border border-status-success/30 bg-status-success/20 px-3 py-1.5 text-ui-xs text-status-success hover:bg-status-success/30 transition-colors"
         >
           <Check className="h-3.5 w-3.5" />
-          {t('chat.toolApproval.approve')}
+          {t('chat.toolApproval.once')}
         </button>
+        {rememberable && (
+          <button
+            type="button"
+            onClick={() => onApprove(true)}
+            aria-label={t('chat.toolApproval.remember')}
+            data-testid="approval-remember"
+            title={t('chat.toolApproval.remember')}
+            className="flex items-center gap-1.5 rounded-md border border-control px-3 py-1.5 text-ui-xs text-ink-soft hover:bg-surface-interactive transition-colors"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t('chat.toolApproval.remember')}
+          </button>
+        )}
         <button
-          ref={denyRef}
           type="button"
           onClick={onDeny}
           aria-label={t('chat.toolApproval.deny')}
+          data-testid="approval-deny"
           className="flex items-center gap-1.5 rounded-md border border-status-danger/20 bg-status-danger/10 px-3 py-1.5 text-ui-xs text-status-danger hover:bg-status-danger/20 transition-colors"
         >
           <X className="h-3.5 w-3.5" />

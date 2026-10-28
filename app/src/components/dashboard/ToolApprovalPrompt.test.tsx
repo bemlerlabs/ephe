@@ -8,8 +8,9 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => {
       const map: Record<string, string> = {
         'chat.approvalNeeded': 'Bestätigung erforderlich',
-        'chat.toolApproval.approve': 'Genehmigen',
-        'chat.toolApproval.deny': 'Ablehnen',
+        'chat.toolApproval.once': 'Allow once',
+        'chat.toolApproval.remember': 'Remember for this session',
+        'chat.toolApproval.deny': 'Deny',
         'chat.toolApproval.blastRadius': 'Blast radius:',
       }
       return map[key] ?? key
@@ -25,7 +26,7 @@ const tool = {
 }
 
 describe('ToolApprovalPrompt (D1 a11y)', () => {
-  it('hat role=alertdialog mit aria-label', () => {
+  it('is an alertdialog with an aria-label', () => {
     const { container } = render(
       <ToolApprovalPrompt tool={tool} onApprove={() => {}} onDeny={() => {}} />,
     )
@@ -34,36 +35,56 @@ describe('ToolApprovalPrompt (D1 a11y)', () => {
     expect(dlg!.getAttribute('aria-label')).toContain('Bestätigung')
   })
 
-  it('setzt initial den Fokus auf den Ablehnen-Button (konservativ: deny zuerst)', () => {
+  it('puts the initial focus on Deny (conservative: deny first)', () => {
     const { container } = render(
       <ToolApprovalPrompt tool={tool} onApprove={() => {}} onDeny={() => {}} />,
     )
-    const deny = container.querySelector<HTMLButtonElement>('[aria-label="Ablehnen"]')
+    const deny = container.querySelector<HTMLButtonElement>('[data-testid="approval-deny"]')
     expect(deny?.contains(document.activeElement) || document.activeElement === deny).toBe(true)
   })
 
-  it('Focus-Trap: Tab-Zyklus bleibt innerhalb des Dialogs (Approve → Deny → Approve)', () => {
+  it('focus trap: Tab cycles inside the dialog (Deny → Allow once → Deny)', () => {
     const { container } = render(
       <ToolApprovalPrompt tool={tool} onApprove={() => {}} onDeny={() => {}} />,
     )
-    const dlg = container.querySelector('[role="alertdialog"]')!
-    const approve = container.querySelector<HTMLButtonElement>('[aria-label="Genehmigen"]')!
-    const deny = container.querySelector<HTMLButtonElement>('[aria-label="Ablehnen"]')!
+    const once = container.querySelector<HTMLButtonElement>('[data-testid="approval-once"]')!
+    const deny = container.querySelector<HTMLButtonElement>('[data-testid="approval-deny"]')!
 
     // Start: focus sits on Deny (auto-focus)
     deny.focus()
 
-    // Tab from Deny → Approve (wrap)
+    // Tab from the last action (Deny) wraps to the first (Allow once)
     fireEvent.keyDown(deny, { key: 'Tab' })
-    expect(dlg.contains(document.activeElement)).toBe(true)
+    expect(document.activeElement).toBe(once)
 
-    // Shift+Tab from Approve → Deny (wrap back)
-    approve.focus()
-    fireEvent.keyDown(approve, { key: 'Tab', shiftKey: true })
-    expect(dlg.contains(document.activeElement)).toBe(true)
+    // Shift+Tab from the first action wraps back to the last (Deny)
+    once.focus()
+    fireEvent.keyDown(once, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(deny)
   })
 
-  it('Esc löst onDeny aus (Flucht-Pfad)', () => {
+  it('keeps the remember action inside the same trap when it is offered', () => {
+    const { container } = render(
+      <ToolApprovalPrompt tool={tool} rememberable onApprove={() => {}} onDeny={() => {}} />,
+    )
+    const once = container.querySelector<HTMLButtonElement>('[data-testid="approval-once"]')!
+    const remember = container.querySelector<HTMLButtonElement>('[data-testid="approval-remember"]')!
+    const deny = container.querySelector<HTMLButtonElement>('[data-testid="approval-deny"]')!
+
+    fireEvent.keyDown(deny, { key: 'Tab' })
+    expect(document.activeElement).toBe(once)
+
+    // Middle action: neither edge, so the browser's own Tab order applies
+    remember.focus()
+    fireEvent.keyDown(remember, { key: 'Tab' })
+    expect(document.activeElement).toBe(remember)
+
+    once.focus()
+    fireEvent.keyDown(once, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(deny)
+  })
+
+  it('Esc fires onDeny (the escape path)', () => {
     let denied = 0
     const { container } = render(
       <ToolApprovalPrompt tool={tool} onApprove={() => {}} onDeny={() => denied++} />,
@@ -73,12 +94,25 @@ describe('ToolApprovalPrompt (D1 a11y)', () => {
     expect(denied).toBe(1)
   })
 
-  it('onApprove wird beim Klick auf Genehmigen aufgerufen', () => {
-    let approved = 0
-    render(<ToolApprovalPrompt tool={tool} onApprove={() => approved++} onDeny={() => {}} />)
-    const approve = document.querySelector<HTMLButtonElement>('[aria-label="Genehmigen"]')!
-    fireEvent.click(approve)
-    expect(approved).toBe(1)
+  it('Allow once approves without remembering', () => {
+    const onApprove = vi.fn()
+    render(<ToolApprovalPrompt tool={tool} onApprove={onApprove} onDeny={() => {}} />)
+    fireEvent.click(document.querySelector<HTMLButtonElement>('[data-testid="approval-once"]')!)
+    expect(onApprove).toHaveBeenCalledWith(false)
+  })
+
+  it('Remember approves with the remembered flag', () => {
+    const onApprove = vi.fn()
+    render(<ToolApprovalPrompt tool={tool} rememberable onApprove={onApprove} onDeny={() => {}} />)
+    fireEvent.click(document.querySelector<HTMLButtonElement>('[data-testid="approval-remember"]')!)
+    expect(onApprove).toHaveBeenCalledWith(true)
+  })
+
+  it('hides Remember when the tool cannot be remembered', () => {
+    const { container } = render(
+      <ToolApprovalPrompt tool={tool} onApprove={() => {}} onDeny={() => {}} />,
+    )
+    expect(container.querySelector('[data-testid="approval-remember"]')).toBeNull()
   })
 })
 
@@ -92,7 +126,7 @@ const REAL_DIFF = [
   '+GAMMA',
 ].join('\n')
 
-describe('ToolApprovalPrompt (Wave B1: Diff statt JSON)', () => {
+describe('ToolApprovalPrompt (Wave B1: diff instead of JSON)', () => {
   const editTool = {
     id: 'e1',
     name: 'edit_file',
@@ -101,7 +135,7 @@ describe('ToolApprovalPrompt (Wave B1: Diff statt JSON)', () => {
     approval_diff: REAL_DIFF,
   }
 
-  it('rendert den Unified-Diff (Hunk + -/+) wenn approval_diff vorhanden', () => {
+  it('renders the unified diff (hunk + -/+) when approval_diff is present', () => {
     const { container } = render(
       <ToolApprovalPrompt tool={editTool} onApprove={() => {}} onDeny={() => {}} />,
     )
@@ -111,7 +145,7 @@ describe('ToolApprovalPrompt (Wave B1: Diff statt JSON)', () => {
     expect(container.textContent).toContain('GAMMA')
   })
 
-  it('zeigt NICHT den Raw-JSON-Args-Blob, wenn ein Diff vorhanden ist', () => {
+  it('does NOT show the raw JSON args blob when a diff is present', () => {
     const { container } = render(
       <ToolApprovalPrompt tool={editTool} onApprove={() => {}} onDeny={() => {}} />,
     )
@@ -119,7 +153,7 @@ describe('ToolApprovalPrompt (Wave B1: Diff statt JSON)', () => {
     expect(container.textContent).not.toContain('"old_string"')
   })
 
-  it('fällt ohne approval_diff auf die Args-Vorschau zurück (run_shell)', () => {
+  it('falls back to the args preview without approval_diff (run_shell)', () => {
     const { container } = render(
       <ToolApprovalPrompt tool={tool} onApprove={() => {}} onDeny={() => {}} />,
     )

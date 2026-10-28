@@ -231,7 +231,7 @@
     "approvalNeeded": "Ephe möchte ein Tool ausführen",
     "toolApproval": {
       "remember": "Für diese Sitzung merken",
-      "approve": "Genehmigen",
+      "once": "Einmalig",
       "blastRadius": "Blast-Radius:",
       "deny": "Ablehnen"
     },

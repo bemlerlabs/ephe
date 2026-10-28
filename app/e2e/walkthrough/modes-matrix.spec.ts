@@ -55,7 +55,7 @@
  *   tool rows       app/src/components/dashboard/bubble/toolStreamRows.tsx:47   data-testid="tool-stream-rows"
  *   tool row group  app/src/components/dashboard/bubble/toolStreamRows.tsx:84   data-testid="tool-stream-row-<family>"
  *   approval gate   app/src/components/dashboard/ToolApprovalPrompt.tsx:87-91   role="alertdialog" aria-label="Ephe wants to run a tool" (chat.approvalNeeded, locales/en.json:54)
- *   approve / deny  app/src/components/dashboard/ToolApprovalPrompt.tsx:136,146  aria-label "Approve" / "Deny" (locales/en.json:57-58)
+ *   approve / deny  app/src/components/dashboard/ToolApprovalPrompt.tsx:123,147  data-testid "approval-once" ("Allow once") / "approval-deny" ("Deny")
  *   blast radius    app/src/components/dashboard/ToolApprovalPrompt.tsx:112      data-testid="approval-blast-radius"
  *   plan card       app/src/components/dashboard/PlanCard.tsx:52                data-testid="plan-card" (data-state draft|running|accepted)
  *   plan progress   app/src/components/dashboard/PlanCard.tsx:57                data-testid="plan-progress"
