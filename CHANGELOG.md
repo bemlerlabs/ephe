@@ -7,6 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 index-dialog fix is named below (`7214003`): the dialog opens only from
+the status pill, so no unsolicited modal covers the workspace on load; the index
+routes gain tests for a reentrant job, a raising worker, a vanished span and the
+search bound.
 The 0.3.0 plan-lookup fix is named below (`ae59b01`): the command body reuses the
 Path the workspace listing returned instead of resolving the raw name a second
 time, so the request string never becomes a filesystem path in that route.
