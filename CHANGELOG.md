@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 plan-lookup fix is named below (`ae59b01`): the command body reuses the
+Path the workspace listing returned instead of resolving the raw name a second
+time, so the request string never becomes a filesystem path in that route.
 The 0.3.0 index-scope fix is named below (`b16b7fd`): the index routes take no
 directory from the request and cover only the configured workspace, and `/project`
 matches its plan name against the workspace listing, so no request string becomes
