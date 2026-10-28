@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 route fix is named below (`5148e27`): `Path` is imported at module scope
+for the helper's annotation, and the three resolve sites name the containment check
+that lets their value out (`# codeql[py/path-injection]`).
 The 0.3.0 UI fix is named below (`426be55`): the index pill reads the declared
 `bg-surface-interactive` hover role, and the twelve `codebase.*` leaves move the
 locale ceilings by their measured size.
