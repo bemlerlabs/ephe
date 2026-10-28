@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Archive, Bot, Copy, Pencil, Plus, RotateCcw } from 'lucide-react'
+import { Archive, Bot, Copy, FolderInput, Pencil, Plus, RotateCcw } from 'lucide-react'
 
 import PageHeader from '@/components/shell/PageHeader'
 import { SettingsGroup } from '@/components/shell/SettingsRow'
@@ -9,6 +9,8 @@ import SearchInput from '@/components/shell/SearchInput'
 import Switch from '@/components/shell/Switch'
 import { LoadingRow } from '@/components/ui'
 import { toastBus } from '@/lib/toast'
+import { importPickedFolder } from '@/lib/settingsImport'
+import { isDesktopShell } from '@/lib/tauriBridge'
 import {
   duplicateAgent,
   getModelProviders,
@@ -108,14 +110,40 @@ export default function AgentsSection({ model }: { model: SettingsModel }) {
         title={t('settings.agentsTitle')}
         subtitle={t('settings.agentsHint')}
         actions={
-          <button
-            type="button"
-            className={PRIMARY}
-            onClick={() => setEditing(null)}
-            data-testid="agent-create"
-          >
-            <Plus className="h-3.5 w-3.5" /> {t('settings.agentCreate')}
-          </button>
+          <>
+            {/* M2: an AGENT.md folder from another agent framework, imported where the
+                agents live — the tour already does this once, this is the second door. */}
+            {isDesktopShell() && (
+              <button
+                type="button"
+                className={BUTTON}
+                data-testid="agent-import"
+                onClick={() => {
+                  void importPickedFolder()
+                    .then((outcome) => {
+                      if (!outcome) return
+                      toastBus.success(
+                        t('settings.agentImportDone', {
+                          skills: outcome.skills,
+                          servers: outcome.servers,
+                        }),
+                      )
+                    })
+                    .catch(() => toastBus.error(t('settings.agentImportFailed')))
+                }}
+              >
+                <FolderInput className="h-3.5 w-3.5" /> {t('settings.agentImport')}
+              </button>
+            )}
+            <button
+              type="button"
+              className={PRIMARY}
+              onClick={() => setEditing(null)}
+              data-testid="agent-create"
+            >
+              <Plus className="h-3.5 w-3.5" /> {t('settings.agentCreate')}
+            </button>
+          </>
         }
       />
       <SearchInput
