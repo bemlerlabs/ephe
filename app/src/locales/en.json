@@ -235,7 +235,7 @@
       "blastRadius": "Blast radius:",
       "deny": "Deny"
     },
-    "compactNow": "Compact now",
+    "compactNow": "Compact the context now",
     "compactBanner": "Context is getting full — compact to free up space",
     "compactIndicator": "🗜 Compact: {{count}} messages were summarized. Remaining: {{after}} (before: {{before}}).",
     "compactIndicator_one": "🗜 Compact: {{count}} message was summarized. Remaining: {{after}} (before: {{before}}).",
@@ -408,7 +408,6 @@
     "activeMarker": "(current)",
     "contextRing": "Context used: {{percent}}%",
     "contextMeter": "{{percent}}% · {{used}} / {{window}} tok",
-    "compactNow": "Compact the context now",
     "queuePlaceholder": "Queue your next task — Ephe works through it after the current one",
     "busyPlaceholder": "Ephe is working — typing is disabled during the answer",
     "rowWorking": "Working",
@@ -2198,28 +2197,22 @@
     "modelLabel": "Model",
     "cards": {
       "0": {
-        "title": "Explain my project",
-        "prompt": "Explain to me how my project is structured and what the most important modules do.",
-        "desc": "Current code: {{n}} modules detected. Risk: low.",
-        "descLive": "{{n}} projects in the workspace — top pick: {{name}}"
+        "title": "Check a PDF or a contract",
+        "prompt": "Check this document for me and tell me what matters: risks, deadlines, anything I should not sign without noticing.",
+        "desc": "Attach the file and get a plain answer.",
+        "descLive": "{{n}} documents in the workspace — latest: {{name}}"
       },
       "1": {
-        "title": "Write an email",
-        "prompt": "Write a professional email for me. Subject: project status update.",
-        "desc": "Recipient ready — your last draft is one click away.",
-        "descLive": "Last draft: {{name}}"
+        "title": "Build a spreadsheet and read it",
+        "prompt": "Build a spreadsheet from my numbers and give me the evaluation — totals, outliers, and what they mean.",
+        "desc": "Paste the numbers, get the table and the reading.",
+        "descLive": "{{n}} sheets in the workspace — latest: {{name}}"
       },
       "2": {
-        "title": "Analyze this image",
-        "prompt": "Analyze the image I am attaching and describe in detail what you see.",
-        "desc": "Attach an image and get a full analysis.",
-        "descLive": "{{n}} images analyzed — last: {{name}}"
-      },
-      "3": {
-        "title": "Search online",
-        "prompt": "Search the web for the latest AI trends and summarize them with sources.",
-        "desc": "Web search (opt-in) with sources.",
-        "descLive": "Recent: {{topics}}"
+        "title": "Research a topic properly",
+        "prompt": "Research this topic properly for me and summarize what matters, with sources.",
+        "desc": "Ask a question, get a summary with sources.",
+        "descLive": "{{n}} researched topics — latest: {{name}}"
       }
     },
     "greetingMorning": "Good morning",

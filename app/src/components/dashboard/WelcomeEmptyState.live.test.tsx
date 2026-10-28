@@ -31,7 +31,7 @@ describe('WelcomeEmptyState', () => {
     expect(screen.queryByTestId('model-status-toast')).toBeNull()
     expect(screen.queryByTestId('model-status-line')).toBeNull()
     expect(screen.getByTestId('welcome-card-0')).toBeTruthy()
-    expect(screen.getByTestId('welcome-card-3')).toBeTruthy()
+    expect(screen.getByTestId('welcome-card-2')).toBeTruthy()
     expect(screen.getByTestId('hero-greeting')).toBeTruthy()
   })
 

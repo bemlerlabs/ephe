@@ -11,7 +11,7 @@
  */
 import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { m, useReducedMotion } from 'framer-motion'
-import { Sparkles, Mail, Image as ImageIcon, Globe } from 'lucide-react'
+import { FileText, Table2, Telescope } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { subscribeTourMarker, tourMarkerSnapshot } from '@/lib/firstRunTour'
 import './WelcomeEmptyState.css'
@@ -26,8 +26,9 @@ interface WelcomeEmptyStateProps {
   onFillComposer: (text: string) => void
 }
 
-const CARD_ICONS = [Sparkles, Mail, ImageIcon, Globe] as const
-const STARTER_CARD_BY_USAGE: Record<string, number> = { code: 0, documents: 1, research: 3 }
+const CARD_ICONS = [FileText, Table2, Telescope] as const
+const CARD_INDEXES = CARD_ICONS.map((_, i) => i)
+const STARTER_CARD_BY_USAGE: Record<string, number> = { documents: 0, code: 1, research: 2 }
 
 export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateProps) {
   const { t } = useTranslation()
@@ -133,8 +134,8 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
             </p>
           )}
           {(recommended === null
-            ? [0, 1, 2, 3]
-            : [recommended, ...[0, 1, 2, 3].filter((i) => i !== recommended)]
+            ? CARD_INDEXES
+            : [recommended, ...CARD_INDEXES.filter((i) => i !== recommended)]
           ).map((i) => {
             const Icon = CARD_ICONS[i]!
             const isRecommended = i === recommended

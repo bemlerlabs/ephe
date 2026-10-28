@@ -235,7 +235,7 @@
       "blastRadius": "Blast-Radius:",
       "deny": "Ablehnen"
     },
-    "compactNow": "Jetzt kompaktieren",
+    "compactNow": "Kontext jetzt kompaktieren",
     "compactBanner": "Kontext wird voll — kompaktiere, um Platz zu schaffen",
     "compactIndicator": "🗜 Kompakt: {{count}} Nachrichten wurden zusammengefasst. Verbleiben: {{after}} (vorher {{before}}).",
     "compactIndicator_one": "🗜 Kompakt: {{count}} Nachricht wurde zusammengefasst. Verbleiben: {{after}} (vorher {{before}}).",
@@ -408,7 +408,6 @@
     "activeMarker": "(aktuell)",
     "contextRing": "Kontext belegt: {{percent}}%",
     "contextMeter": "{{percent}} % · {{used}} / {{window}} Tok",
-    "compactNow": "Kontext jetzt kompaktieren",
     "queuePlaceholder": "Nächste Aufgabe anstellen — Ephe arbeitet sie nach der aktuellen ab",
     "busyPlaceholder": "Ephe arbeitet — Eingabe ist während der Antwort deaktiviert",
     "rowWorking": "Läuft",
@@ -2198,28 +2197,22 @@
     "modelLabel": "Modell",
     "cards": {
       "0": {
-        "title": "Erkläre mir mein Projekt",
-        "prompt": "Erkläre mir, wie mein Projekt aufgebaut ist und was die wichtigsten Module machen.",
-        "desc": "Aktueller Code: {{n}} Module erkannt. Risiko: Niedrig.",
-        "descLive": "{{n}} Projekte im Workspace — Top: {{name}}"
+        "title": "PDF-Dokument oder Vertrag prüfen",
+        "prompt": "Prüfe dieses Dokument für mich und sag mir, worauf es ankommt: Risiken, Fristen, alles, was ich nicht unterschreiben sollte, ohne es zu merken.",
+        "desc": "Datei anhängen, klare Antwort bekommen.",
+        "descLive": "{{n}} Dokumente im Arbeitsbereich — zuletzt: {{name}}"
       },
       "1": {
-        "title": "Schreibe eine E-Mail",
-        "prompt": "Schreibe eine professionelle E-Mail für mich. Thema: Projekt-Status-Update.",
-        "desc": "Empfänger bereit — dein letzter Entwurf ist einen Klick entfernt.",
-        "descLive": "Letzter Entwurf: {{name}}"
+        "title": "Excel-Tabelle & Auswertung bauen",
+        "prompt": "Baue aus meinen Zahlen eine Tabelle und liefere die Auswertung — Summen, Ausreißer und was sie bedeuten.",
+        "desc": "Zahlen einfügen, Tabelle und Auswertung bekommen.",
+        "descLive": "{{n}} Tabellen im Arbeitsbereich — zuletzt: {{name}}"
       },
       "2": {
-        "title": "Analysiere dieses Bild",
-        "prompt": "Analysiere das Bild, das ich anhänge, und beschreibe im Detail, was du siehst.",
-        "desc": "Bild anhängen und vollständige Analyse erhalten.",
-        "descLive": "{{n}} Bilder analysiert — zuletzt: {{name}}"
-      },
-      "3": {
-        "title": "Online suchen",
-        "prompt": "Suche im Web nach den neuesten Trends bei Agent-Modellen und fasse sie mit Quellen zusammen.",
-        "desc": "Websuche (Opt-in) mit Quellen.",
-        "descLive": "Kürzlich: {{topics}}"
+        "title": "Thema gründlich recherchieren",
+        "prompt": "Recherchiere dieses Thema gründlich für mich und fasse zusammen, worauf es ankommt — mit Quellen.",
+        "desc": "Frage stellen, Zusammenfassung mit Quellen bekommen.",
+        "descLive": "{{n}} recherchierte Themen — zuletzt: {{name}}"
       }
     },
     "greetingMorning": "Guten Morgen",
