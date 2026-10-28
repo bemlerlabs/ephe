@@ -83,7 +83,7 @@ def _workspace_root() -> Path:
 
 def _allowed_root(raw: str | None) -> Path:
     """Resolve the requested directory against the same roots the tools may read."""
-    candidate = Path(raw).expanduser() if raw else _workspace_root()
+    candidate = Path(raw).expanduser() if raw else _workspace_root()  # codeql[py/path-injection]
     try:
         # the containment check below is what lets this value out (py/path-injection)
         resolved = candidate.resolve()  # codeql[py/path-injection]
