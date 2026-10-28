@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useVirtualizer, observeElementRect, observeElementOffset } from '@tanstack/react-virtual'
 import { useChatStore, DEFAULT_SESSION_TITLE, DEFAULT_COMPOSER_MODE } from '@/store/chatStore'
+import { takeChatSeed } from '@/lib/chatSeed'
 import {
   listSchedules,
   createSchedule,
@@ -136,6 +137,17 @@ export function useChatLayoutModel() {
     setComposerSeed({ text, nonce: composerSeedNonce.current })
     requestAnimationFrame(() => document.getElementById('ephe-chat-input')?.focus())
   }, [])
+
+  // A marketplace or skill card hands over a prepared example before this route
+  // mounts. It opens a fresh session, so the probe never lands in the transcript
+  // the user was reading.
+  useEffect(() => {
+    if (!hydrated) return
+    const seed = takeChatSeed()
+    if (!seed) return
+    createSession()
+    fillComposer(seed)
+  }, [hydrated, createSession, fillComposer])
 
   // I6 (findings line 25): after "new session" the caret belongs in the composer
   // (reference-client parity). Fires on ACTIVE-SESSION SWITCH only — never on mount,

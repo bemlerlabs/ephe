@@ -57,6 +57,7 @@ export function ExtensionCenter({
   const [home, setHome] = useState<MarketHome | null>(null)
   const [index, setIndex] = useState<MarketIndexBody | null>(null)
   const [indexError, setIndexError] = useState('')
+  const [indexDigest, setIndexDigest] = useState('')
   const [installed, setInstalled] = useState<MarketInstalledRow[]>([])
   const [updates, setUpdates] = useState<MarketUpdate[]>([])
   const [updateErrors, setUpdateErrors] = useState<{ source: string; error: string }[]>([])
@@ -84,6 +85,7 @@ export function ExtensionCenter({
       setInstalled(installedData.plugins)
       setIndex(indexData.index)
       setIndexError(indexData.error)
+      setIndexDigest(indexData.digest ?? '')
       setUpdates(updateData.updates)
       setUpdateErrors(updateData.errors)
     } catch (err) {
@@ -312,7 +314,7 @@ export function ExtensionCenter({
 
       {view === 'discover' ? (
         <>
-          <MarketSources home={home} t={t} />
+          <MarketSources home={home} digest={indexDigest} t={t} />
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />

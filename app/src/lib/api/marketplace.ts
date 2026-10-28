@@ -80,6 +80,8 @@ export interface MarketIndexResponse {
   source: MarketSource
   index: MarketIndexBody | null
   error: string
+  /** SHA-256 over the validated catalog, measured when it was read. */
+  digest?: string
 }
 
 export interface MarketInstalledRow {

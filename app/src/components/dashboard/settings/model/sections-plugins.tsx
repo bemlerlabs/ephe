@@ -9,9 +9,11 @@ import Switch from '@/components/shell/Switch'
 import SearchInput from '@/components/shell/SearchInput'
 import PluginIcon from '@/components/shell/PluginIcon'
 import PluginSwitch from '@/components/ui/PluginSwitch'
-import { Puzzle, Power, Store } from 'lucide-react'
+import { Puzzle, Power, Store, MessageSquarePlus } from 'lucide-react'
 import type { PluginEntry } from '@/lib/api'
 import { ApiError } from '@/lib/api'
+import { startDisposableChat } from '@/lib/chatSeed'
+import { examplePromptFor } from '@/lib/pluginExamples'
 import { DeepFields } from './deepFields'
 const ExtensionCenter = lazy(() =>
   import('./extensionCenter/ExtensionCenter').then((module) => ({
@@ -183,13 +185,13 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                               <p className="truncate text-ui-xs font-medium text-foreground/90">
                                 {p.name}
                                 {p.version && (
-                                  <span className="ml-1.5 font-mono text-ui-2xs text-ink-faint">
+                                  <span className="ml-1.5 font-mono text-ui-xs text-ink-faint">
                                     v{p.version}
                                   </span>
                                 )}
                                 <span
                                   data-testid={`plugin-origin-${p.id}`}
-                                  className={`ml-1.5 rounded-md px-1.5 py-0.5 text-ui-2xs align-middle ${p.origin === 'external' ? 'bg-surface text-ink-faint' : 'bg-brand/10 text-brand-deep'}`}
+                                  className={`ml-1.5 rounded-md px-1.5 py-0.5 text-ui-xs align-middle ${p.origin === 'external' ? 'bg-surface text-ink-faint' : 'bg-brand/10 text-brand-deep'}`}
                                 >
                                   {p.origin === 'external'
                                     ? t('settings.pluginOriginExternal')
@@ -251,7 +253,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                               {p.tags.map((tag) => (
                                 <span
                                   key={tag}
-                                  className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-2xs text-foreground/60"
+                                  className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs text-foreground/60"
                                 >
                                   {tag}
                                 </span>
@@ -259,19 +261,34 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                             </div>
                           )}
                           {/* E4b: detail sheet — click the name to expand facts. */}
-                          <button
-                            type="button"
-                            data-testid={`plugin-detail-toggle-${p.id}`}
-                            aria-expanded={expandedPlugin === p.id}
-                            onClick={() =>
-                              setExpandedPlugin((prev) => (prev === p.id ? null : p.id))
-                            }
-                            className="text-ui-2xs text-ink-faint hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
-                          >
-                            {expandedPlugin === p.id
-                              ? t('settings.pluginDetailHide')
-                              : t('settings.pluginDetailShow')}
-                          </button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              data-testid={`plugin-detail-toggle-${p.id}`}
+                              aria-expanded={expandedPlugin === p.id}
+                              onClick={() =>
+                                setExpandedPlugin((prev) => (prev === p.id ? null : p.id))
+                              }
+                              className="text-ui-xs text-ink-faint hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
+                            >
+                              {expandedPlugin === p.id
+                                ? t('settings.pluginDetailHide')
+                                : t('settings.pluginDetailShow')}
+                            </button>
+                            <button
+                              type="button"
+                              data-testid={`plugin-try-${p.id}`}
+                              onClick={() =>
+                                startDisposableChat(
+                                  p.example_prompts?.[0] || examplePromptFor(p.id, p.name),
+                                )
+                              }
+                              className="flex items-center gap-1 text-ui-xs text-brand-deep hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
+                            >
+                              <MessageSquarePlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                              {t('settings.marketTryInChat')}
+                            </button>
+                          </div>
                           {expandedPlugin === p.id && (
                             <div
                               data-testid={`plugin-detail-${p.id}`}
@@ -279,7 +296,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                             >
                               <div className="flex flex-wrap gap-1">
                                 {p.source && (
-                                  <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-2xs text-foreground/70">
+                                  <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs text-foreground/70">
                                     {t('settings.pluginDetailSource')}:{' '}
                                     {t(`settings.pluginSource.${p.source}`)}
                                   </span>
@@ -287,7 +304,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                                 {(p.permissions ?? []).map((fam) => (
                                   <span
                                     key={fam}
-                                    className="rounded-md bg-status-warning/10 px-1.5 py-0.5 font-mono text-ui-2xs text-status-warning"
+                                    className="rounded-md bg-status-warning/10 px-1.5 py-0.5 font-mono text-ui-xs text-status-warning"
                                   >
                                     {fam}
                                   </span>
@@ -295,7 +312,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                               </div>
                               {p.sha256 && (
                                 <p
-                                  className="truncate font-mono text-ui-2xs text-ink-faint"
+                                  className="truncate font-mono text-ui-xs text-ink-faint"
                                   title={p.sha256}
                                 >
                                   {t('settings.pluginDetailHash')}: {p.sha256.slice(0, 16)}…
@@ -303,11 +320,11 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                               )}
                               {(p.example_prompts ?? []).length > 0 && (
                                 <div className="space-y-0.5">
-                                  <p className="text-ui-2xs font-medium text-ink-faint">
+                                  <p className="text-ui-xs font-medium text-ink-faint">
                                     {t('settings.pluginDetailPrompts')}
                                   </p>
                                   {p.example_prompts.map((prompt, i) => (
-                                    <p key={i} className="text-ui-2xs text-ink-faint">
+                                    <p key={i} className="text-ui-xs text-ink-faint">
                                       — {prompt}
                                     </p>
                                   ))}
@@ -326,7 +343,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                   <p className="text-ui-xs font-medium text-ink-soft">
                     {t('settings.plugins.orphans')}
                   </p>
-                  <p className="text-ui-2xs text-ink-faint">{t('settings.plugins.orphansHint')}</p>
+                  <p className="text-ui-xs text-ink-faint">{t('settings.plugins.orphansHint')}</p>
                   {pluginView.orphans!.map((id) => (
                     <p key={id} className="font-mono text-ui-xs text-ink-soft">
                       {id}

@@ -111,6 +111,30 @@ class TestRead:
         assert cache.is_file()
         assert stat.S_IMODE(cache.stat().st_mode) == 0o600
 
+    def test_the_read_seals_the_catalog_it_returned(self, cfg, tmp_path):
+        import hashlib
+
+        local = tmp_path / "index.json"
+        local.write_text(json.dumps(index_doc()), encoding="utf-8")
+        source = marketplace_sources.add_source("local", "Mine", str(local))
+
+        result = marketplace_sources.read_source(source)
+
+        canonical = json.dumps(
+            result["index"], sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode("utf-8")
+        assert result["digest"] == hashlib.sha256(canonical).hexdigest()
+
+    def test_a_failed_read_carries_no_seal(self, cfg, tmp_path):
+        local = tmp_path / "index.json"
+        local.write_text("{broken", encoding="utf-8")
+        source = marketplace_sources.add_source("local", "Mine", str(local))
+
+        result = marketplace_sources.read_source(source)
+
+        assert result["status"] == "error"
+        assert "digest" not in result
+
     def test_a_broken_refresh_keeps_the_last_good_index(self, cfg, tmp_path):
         local = tmp_path / "index.json"
         local.write_text(json.dumps(index_doc()), encoding="utf-8")

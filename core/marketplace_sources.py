@@ -347,7 +347,16 @@ def read_source(
     data["last_read"][source["id"]] = _now()
     data["last_error"].pop(source["id"], None)
     save_sources(data)
-    return {"status": "ok", "source": source, "index": index, "error": ""}
+    digest = hashlib.sha256(
+        json.dumps(index, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+    return {
+        "status": "ok",
+        "source": source,
+        "index": index,
+        "error": "",
+        "digest": digest,
+    }
 
 
 def refresh_all(fetcher: Callable[[str], bytes] | None = None) -> list[dict[str, Any]]:

@@ -1,10 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Download, Loader2, RotateCcw, ShieldAlert, Trash2 } from 'lucide-react'
-
 import {
-  marketIconUrl,
+  ChevronDown,
+  Download,
+  Loader2,
+  MessageSquarePlus,
+  RotateCcw,
+  ShieldAlert,
+  Trash2,
+} from 'lucide-react'
+
+import PluginIcon from '@/components/shell/PluginIcon'
+import PluginSwitch from '@/components/ui/PluginSwitch'
+import { startDisposableChat } from '@/lib/chatSeed'
+import { examplePromptFor } from '@/lib/pluginExamples'
+import {
   type MarketInstalledRow,
   type MarketPlugin,
   type MarketUpdate,
@@ -58,7 +69,6 @@ export function MarketCard({
   onConsentCancel?: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const [iconOk, setIconOk] = useState(true)
   const version = plugin.versions[0]
   const updateVersion = update
     ? plugin.versions.find((entry) => entry.version === update.version)
@@ -96,22 +106,15 @@ export function MarketCard({
       className="glass-reading rounded-xl p-3 space-y-2"
     >
       <div className="flex items-start gap-2">
-        {iconOk && (
-          <img
-            src={marketIconUrl(plugin.name)}
-            alt=""
-            className="h-9 w-9 shrink-0 rounded-lg"
-            onError={() => setIconOk(false)}
-          />
-        )}
+        <PluginIcon pluginId={plugin.name} name={plugin.displayName} size={36} />
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-1.5 text-ui-xs font-medium text-foreground/90">
             <span className="truncate">{plugin.displayName}</span>
-            <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-2xs text-ink-faint">
+            <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs tabular-nums text-ink-faint">
               v{version?.version ?? '—'}
             </span>
             <span
-              className={`rounded-md px-1.5 py-0.5 text-ui-2xs ${
+              className={`rounded-md px-1.5 py-0.5 text-ui-xs ${
                 signed ? 'bg-brand/10 text-brand-deep' : 'bg-status-warning/15 text-status-warning'
               }`}
             >
@@ -122,12 +125,12 @@ export function MarketCard({
                   : t('settings.marketUnsigned')}
             </span>
           </p>
-          <p className="text-ui-2xs text-ink-faint">
+          <p className="text-ui-xs text-ink-faint">
             {plugin.publisher?.name} · {trustLabel(plugin.trust, t)}
           </p>
-          <p className="flex flex-wrap items-center gap-1.5 text-ui-2xs text-ink-faint">
+          <p className="flex flex-wrap items-center gap-1.5 text-ui-xs text-ink-faint">
             <span
-              className="rounded-md bg-surface px-1.5 py-0.5 text-ui-2xs text-ink-soft"
+              className="rounded-md bg-surface px-1.5 py-0.5 text-ui-xs text-ink-soft"
               data-testid={`market-quality-${plugin.name}`}
             >
               {qualityText}
@@ -139,12 +142,12 @@ export function MarketCard({
                 : plugin.provenance || '—'}
             </span>
             {tiers && (
-              <span>
+              <span className="tabular-nums">
                 {t('settings.marketTiers')}: {tiers}
               </span>
             )}
           </p>
-          <p className="text-ui-2xs text-ink-faint" data-testid={`market-measured-${plugin.name}`}>
+          <p className="text-ui-xs text-ink-faint" data-testid={`market-measured-${plugin.name}`}>
             {measured}
           </p>
           <p className="line-clamp-2 text-ui-xs text-ink-soft">
@@ -158,11 +161,11 @@ export function MarketCard({
           data-testid={`market-consent-${plugin.name}`}
           className="rounded-lg border border-status-warning/40 bg-status-warning/10 p-2 space-y-1"
         >
-          <p className="text-ui-2xs font-medium text-foreground/85">
+          <p className="text-ui-xs font-medium text-foreground/85">
             {t('settings.marketConsentTitle')}
           </p>
           {(consent.families.length > 0 || consent.roots.length > 0) && (
-            <p className="text-ui-2xs text-ink-soft">
+            <p className="text-ui-xs text-ink-soft">
               {t('settings.marketConsentDelta')}: {[...consent.families, ...consent.roots].join(', ')}
             </p>
           )}
@@ -189,31 +192,21 @@ export function MarketCard({
 
       <div className="flex flex-wrap items-center gap-1.5">
         {installed && onSwitch && (
-          <span className="flex items-center gap-1.5">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={installed.enabled}
-              aria-label={
-                installed.enabled ? t('settings.marketSwitchOff') : t('settings.marketSwitchOn')
-              }
-              data-testid={`market-switch-${plugin.name}`}
-              disabled={busy || switchBusy}
-              onClick={() => onSwitch(!installed.enabled)}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${
-                installed.enabled ? 'bg-brand' : 'bg-control'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                  installed.enabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className="text-ui-2xs text-ink-soft">
-              {installed.enabled ? t('settings.marketOn') : t('settings.marketOff')}
-            </span>
-          </span>
+          <PluginSwitch
+            name={plugin.displayName}
+            checked={installed.enabled}
+            disabled={busy || switchBusy}
+            onToggle={(next) => onSwitch(next)}
+            testid={`market-switch-${plugin.name}`}
+            errorTestid={`market-switch-error-${plugin.name}`}
+            labels={{
+              on: t('settings.marketOn'),
+              off: t('settings.marketOff'),
+              enabling: t('settings.pluginEnabling'),
+              disabling: t('settings.pluginDisabling'),
+              failed: t('settings.pluginToggleFailed'),
+            }}
+          />
         )}
         {update && updateVersion && !notInstallable && (
           <button
@@ -248,7 +241,7 @@ export function MarketCard({
           </button>
         )}
         {installed && (
-          <span className="text-ui-2xs text-ink-faint">
+          <span className="text-ui-xs text-ink-faint">
             {installed.origin === 'bundled' ? `${t('settings.marketBundledState')} · ` : ''}
             {installedState}
           </span>
@@ -262,6 +255,15 @@ export function MarketCard({
         >
           <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
           {t('settings.marketDetail')}
+        </button>
+        <button
+          type="button"
+          className={BUTTON}
+          onClick={() => startDisposableChat(examplePromptFor(plugin.name, plugin.displayName))}
+          data-testid={`market-try-${plugin.name}`}
+        >
+          <MessageSquarePlus className="h-3.5 w-3.5" />
+          {t('settings.marketTryInChat')}
         </button>
         {installed?.origin === 'user' && (
           <>
@@ -282,7 +284,7 @@ export function MarketCard({
       </div>
 
       {!signed && !notInstallable && installed?.origin !== 'bundled' && (
-        <p className="flex items-start gap-1.5 text-ui-2xs text-status-warning">
+        <p className="flex items-start gap-1.5 text-ui-xs text-status-warning">
           <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
           {t('settings.marketUnsignedHint')}
         </p>
@@ -293,36 +295,36 @@ export function MarketCard({
           className="space-y-1.5 rounded-lg bg-canvas p-2"
           data-testid={`market-detail-body-${plugin.name}`}
         >
-          <p className="text-ui-2xs text-ink-soft">
+          <p className="text-ui-xs text-ink-soft">
             <span className="font-medium">{t('settings.marketPublisher')}:</span>{' '}
             {plugin.publisher?.name}
           </p>
-          <p className="text-ui-2xs text-ink-soft">
+          <p className="text-ui-xs text-ink-soft">
             <span className="font-medium">{t('settings.marketTrust')}:</span>{' '}
             {trustLabel(plugin.trust, t)}
           </p>
-          <p className="text-ui-2xs text-ink-soft">
+          <p className="text-ui-xs text-ink-soft">
             <span className="font-medium">{t('settings.marketQualityLabel')}:</span> {qualityText}
           </p>
           <p
-            className="text-ui-2xs text-ink-soft"
+            className="text-ui-xs text-ink-soft"
             data-testid={`market-detail-measured-${plugin.name}`}
           >
             {measured}
           </p>
-          <p className="break-all font-mono text-ui-2xs text-ink-faint">
+          <p className="break-all font-mono text-ui-xs tabular-nums text-ink-faint">
             {t('settings.marketVersion')}: {version.version} · {version.source.sha256.slice(0, 16)}…
           </p>
-          <p className="text-ui-2xs text-ink-soft">
+          <p className="text-ui-xs text-ink-soft">
             <span className="font-medium">{t('settings.marketPermissions')}:</span>{' '}
             {(version.permissions?.tool_families ?? []).join(', ') || '—'}
           </p>
-          <p className="text-ui-2xs text-ink-soft">
+          <p className="text-ui-xs text-ink-soft">
             <span className="font-medium">{t('settings.marketComponents')}:</span>{' '}
             {version.components.join(', ') || '—'}
           </p>
           {plugin.versions.length > 1 && (
-            <p className="text-ui-2xs text-ink-faint">
+            <p className="text-ui-xs tabular-nums text-ink-faint">
               {plugin.versions.map((entry) => `v${entry.version}`).join(' · ')}
             </p>
           )}

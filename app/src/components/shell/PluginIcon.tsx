@@ -8,10 +8,20 @@
 import { useState } from 'react'
 import slugAngle from './slugAngle'
 
-export default function PluginIcon({ pluginId, name }: { pluginId: string; name: string }) {
+export default function PluginIcon({
+  pluginId,
+  name,
+  size,
+}: {
+  pluginId: string
+  name: string
+  /** Rendered edge in px; the default keeps the 44 px tile of the installed list. */
+  size?: number
+}) {
   const [failed, setFailed] = useState(false)
   const initial = (name || pluginId || '?').trim().charAt(0).toUpperCase()
   const angle = slugAngle(pluginId)
+  const edge = size ? { width: size, height: size } : undefined
 
   if (failed) {
     return (
@@ -19,6 +29,7 @@ export default function PluginIcon({ pluginId, name }: { pluginId: string; name:
         data-testid={`plugin-icon-${pluginId}`}
         className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand/20 text-ui-base font-semibold text-foreground/90"
         style={{
+          ...edge,
           background: `linear-gradient(${angle}deg, color-mix(in oklab, var(--color-brand) 22%, var(--color-canvas)), var(--color-canvas))`,
         }}
       >
@@ -34,6 +45,7 @@ export default function PluginIcon({ pluginId, name }: { pluginId: string; name:
       aria-hidden="true"
       onError={() => setFailed(true)}
       className="h-11 w-11 shrink-0 rounded-xl"
+      style={edge}
     />
   )
 }

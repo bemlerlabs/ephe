@@ -96,7 +96,7 @@ export default function PluginSwitch({
         <p
           role="alert"
           data-testid={errorTestid}
-          className="max-w-40 text-right text-ui-2xs text-status-danger"
+          className="max-w-40 text-right text-ui-xs text-status-danger"
         >
           {error}
         </p>

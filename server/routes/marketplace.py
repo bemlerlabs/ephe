@@ -194,6 +194,7 @@ async def market_index() -> dict:
         "source": result["source"],
         "index": result.get("index"),
         "error": result.get("error") or "",
+        "digest": result.get("digest") or "",
     }
 
 

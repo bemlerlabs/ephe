@@ -146,8 +146,16 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // ("Allow once" / "Einmalig") and the deck's seal carries the guard's tool count.
 // Measured as committed: en.json 135,271 B and de.json 146,565 B, so both halves
 // move to keep the ~600 B headroom the earlier waves held.
-const EN_CEILING = 136_650
-const DE_CEILING = 148_000
+// Raised on purpose on 2026-10-28 (QD-014): the Skills Studio adds the builder
+// card (ten keys: title, hint, open, name, trigger, description, prompt, create,
+// created, failed), the pack preview's show-all/show-less pair, the run chip, the
+// verified-recipe seal and the provenance label; the marketplace adds its try-in-
+// chat button and the catalog seal. Seventeen leaves in both files, measured as
+// committed: en.json 137,002 B and de.json 148,410 B, +966 B / +1,037 B over the
+// numbers this wave inherited. Both halves move by the same 1,000 B, which keeps
+// the ~600 B headroom the earlier waves held.
+const EN_CEILING = 137_650
+const DE_CEILING = 149_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on
