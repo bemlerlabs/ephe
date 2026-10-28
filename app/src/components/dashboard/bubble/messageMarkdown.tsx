@@ -61,9 +61,9 @@ function declaresSurface(txt: string): boolean {
 const PANEL_LINK_TARGET = /^(https?:\/\/|\/)/i
 
 /** QD-015 W3: an answer links to the file it just wrote. `docs/report.pdf`,
- *  `/Users/…/shot.png` and `file:///…` are workspace paths, not app routes —
- *  the browser answered them with a 404 on the app origin. They resolve through
- *  the guarded preview route instead, which owns the allowed-roots check. */
+ *  `/Users/…/shot.png` and `file:///…` point at workspace files, and on the app
+ *  origin the browser answered them with a 404. They resolve through the
+ *  guarded preview route instead, which owns the allowed-roots check. */
 const FILE_LIKE = /\.[a-z0-9]{1,8}(?:[?#].*)?$/i
 const FOREIGN_SCHEME = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
 

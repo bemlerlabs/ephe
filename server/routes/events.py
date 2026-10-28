@@ -8,7 +8,8 @@ browser without a stream or a listener that has not opened yet.
 
 The tick is a measurement, not a claim: `TICK_SECONDS` is the worst-case delay
 between a state change and the frame that carries it. An event-hook version (the
-<8 ms target of the directive) belongs to the writers, not to this route.
+<8 ms target of the directive) belongs to the writers; this route reads finished
+snapshots.
 """
 from __future__ import annotations
 

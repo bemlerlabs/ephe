@@ -33,7 +33,7 @@ class TestBudget:
     def test_the_frame_never_names_a_cap_above_the_hard_cap(self):
         assert budget_continue_frame(999)["cap"] == TOOL_BUDGET_HARD_CAP
         assert budget_continue_frame(None)["cap"] == MAX_TOOL_ITERATIONS
-        # 0 means "unset", not "no rounds" — clamp_tool_budget keeps the class default.
+        # "0" reads as unset here; clamp_tool_budget keeps the class default.
         assert budget_continue_frame(0)["cap"] == MAX_TOOL_ITERATIONS
 
 
