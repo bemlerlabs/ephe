@@ -1416,25 +1416,23 @@ async def _run_swarm_command(message: str, model: str, emit: Callable[[dict], No
 def _project_plan_path(message: str) -> Path | None:
     """The plan a `/project` message names, if it is a file inside the workspace.
 
-    Without such a file the message keeps its earlier meaning (a normal prompt the
-    project skill may answer), so the new command only claims what it can run.
+    The name is matched against the workspace listing, so no request string becomes
+    a filesystem path; a name outside the tree matches nothing. Without such a file
+    the message keeps its earlier meaning (a normal prompt the project skill may
+    answer), so the new command only claims what it can run.
     """
     from core.workspace_rules import resolve_workspace_dir
 
     raw = parse_project_command(message)
     if not raw:
         return None
-    workspace = Path(resolve_workspace_dir()).resolve()
-    candidate = Path(raw).expanduser()  # codeql[py/path-injection]
-    if not candidate.is_absolute():
-        candidate = workspace / candidate
-    try:
-        # the caller only acts on a file that sits inside the workspace (py/path-injection)
-        plan = candidate.resolve()  # codeql[py/path-injection]
-    except OSError:
+    name = raw.strip().replace("\\", "/")
+    if not name or name.startswith(("/", "~")) or ".." in name.split("/"):
         return None
-    if plan.is_file() and plan.is_relative_to(workspace):
-        return plan
+    workspace = Path(resolve_workspace_dir()).resolve()
+    for entry in workspace.rglob("*"):
+        if entry.is_file() and entry.relative_to(workspace).as_posix() == name:
+            return entry
     return None
 
 

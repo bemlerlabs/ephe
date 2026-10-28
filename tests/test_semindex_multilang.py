@@ -242,13 +242,10 @@ def test_index_routes_report_progress_and_search(
     assert any(hit["name"] == "Engine" for hit in found["hits"])
 
 
-def test_index_route_refuses_paths_outside_the_roots(tmp_path: Path) -> None:
+def test_index_request_names_no_path() -> None:
     from server.routes import project
-    from fastapi import HTTPException
 
-    with pytest.raises(HTTPException) as refused:
-        asyncio.run(project.start_index(project.IndexRequest(path="/etc")))
-    assert refused.value.status_code == 403
+    assert "path" not in project.IndexRequest.model_fields
 
 
 def test_iter_source_files_is_stable(workspace: Path) -> None:

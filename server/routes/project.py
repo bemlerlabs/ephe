@@ -21,7 +21,6 @@ from core.semindex.store import (
     iter_source_files,
     read_ignore_patterns,
 )
-from core.tools.base import _get_allowed_roots
 
 router = APIRouter()
 
@@ -63,10 +62,7 @@ _jobs: dict[str, _Job] = {}
 
 
 class IndexRequest(BaseModel):
-    path: str | None = Field(
-        default=None,
-        description="Directory to index; defaults to the configured workspace.",
-    )
+    """The body names no path: indexing always covers the configured workspace."""
 
 
 class SearchRequest(BaseModel):
@@ -81,23 +77,12 @@ def _workspace_root() -> Path:
     return Path(resolve_workspace_dir()).resolve()
 
 
-def _allowed_root(raw: str | None) -> Path:
-    """Resolve the requested directory against the same roots the tools may read."""
-    candidate = Path(raw).expanduser() if raw else _workspace_root()  # codeql[py/path-injection]
-    try:
-        # the containment check below is what lets this value out (py/path-injection)
-        resolved = candidate.resolve()  # codeql[py/path-injection]
-    except OSError as exc:
-        raise HTTPException(status_code=400, detail=f"path cannot be resolved: {exc}")
-    if not resolved.is_dir():
-        raise HTTPException(status_code=400, detail="path is not a directory")
-    for root in [*_get_allowed_roots(), _workspace_root()]:
-        try:
-            resolved.relative_to(root.resolve())
-            return resolved
-        except ValueError:
-            continue
-    raise HTTPException(status_code=403, detail="path is outside the allowed roots")
+def _index_root() -> Path:
+    """The only tree this route indexes. A caller cannot name another one."""
+    root = _workspace_root()
+    if not root.is_dir():
+        raise HTTPException(status_code=400, detail="the workspace is not a directory")
+    return root
 
 
 def _index_sync(root: Path, job: _Job) -> None:
@@ -151,7 +136,7 @@ def _status_from_disk(root: Path) -> dict:
 
 @router.post("/project/index", tags=["Project"])
 async def start_index(request: IndexRequest) -> dict:
-    root = _allowed_root(request.path)
+    root = _index_root()
     key = str(root)
     existing = _jobs.get(key)
     if existing is not None and existing.state == "indexing":
@@ -163,8 +148,8 @@ async def start_index(request: IndexRequest) -> dict:
 
 
 @router.get("/project/index/status", tags=["Project"])
-async def index_status(path: str | None = None) -> dict:
-    root = _allowed_root(path)
+async def index_status() -> dict:
+    root = _index_root()
     job = _jobs.get(str(root))
     if job is not None:
         return job.as_dict()
@@ -182,7 +167,7 @@ def _read_span(file: str, start: int, end: int) -> str:
 
 @router.post("/project/search", tags=["Project"])
 async def search_index(request: SearchRequest) -> dict:
-    root = _allowed_root(None)
+    root = _index_root()
     database = index_database(root)
     if not database.exists():
         return {"status": "not_indexed", "root": str(root), "hits": []}
