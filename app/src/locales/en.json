@@ -2188,13 +2188,6 @@
     "modelChecking": "Checking the engine",
     "modelOnline": "Engine reachable",
     "modelOffline": "Engine unreachable",
-    "modelKeyRefused": "Engine refuses the key",
-    "modelNoModel": "Engine reachable — choose a model",
-    "retry": "Retry",
-    "fixKey": "Check key",
-    "chooseModel": "Choose model",
-    "openSetup": "Set up engine",
-    "modelLabel": "Model",
     "cards": {
       "0": {
         "title": "Check a PDF or a contract",

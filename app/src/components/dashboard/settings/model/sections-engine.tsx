@@ -16,6 +16,7 @@
 import { useMemo, useState } from 'react'
 import { KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
 import { ModelPicker } from '@/components/model/ModelPicker'
+import { estimateModelGb } from '@/lib/modelMatrix'
 import { rowsFromOptions } from '@/components/model/modelPickerTypes'
 import PageHeader from '@/components/shell/PageHeader'
 import {
@@ -154,6 +155,15 @@ export function EngineSection({ model }: { model: SettingsModel }) {
                     accent: the accent marks what is running at this moment. */}
                 <SettingValue>
                   {shownModel === activeModel ? t('settings.modelInUse') : ''}
+                  {/* G1: what the model costs in memory. The estimate is the
+                      identifier's parameter count at its quantisation; a name
+                      that states no size gets no number. */}
+                  {(() => {
+                    const gb = estimateModelGb(shownModel)
+                    return gb == null ? null : (
+                      <span className="tabular text-ink-faint ml-2">{`≈ ${gb} GB`}</span>
+                    )
+                  })()}
                 </SettingValue>
                 <SettingVerb>
                   <button

@@ -212,6 +212,12 @@ describe('W3-56 — no orphan layers', () => {
       '--color-figure-wing-root',
       '--color-figure-wing-mid',
       '--color-figure-wing-tip',
+      // The constitution's role names: a surface asks for the role, and the
+      // palette answers with the signal steps it already had.
+      '--color-elevated',
+      '--color-ok',
+      '--color-warn',
+      '--color-error',
     ])
     const bare = (n: string) =>
       n.endsWith('--line-height') ? n.slice(0, -'--line-height'.length) : n

@@ -2188,13 +2188,6 @@
     "modelChecking": "Engine wird geprüft",
     "modelOnline": "Engine erreichbar",
     "modelOffline": "Engine nicht erreichbar",
-    "modelKeyRefused": "Engine lehnt den Schlüssel ab",
-    "modelNoModel": "Engine erreichbar — Modell wählen",
-    "retry": "Erneut prüfen",
-    "fixKey": "Schlüssel prüfen",
-    "chooseModel": "Modell wählen",
-    "openSetup": "Engine einrichten",
-    "modelLabel": "Modell",
     "cards": {
       "0": {
         "title": "PDF-Dokument oder Vertrag prüfen",
@@ -2203,8 +2196,8 @@
         "descLive": "{{n}} Dokumente im Arbeitsbereich — zuletzt: {{name}}"
       },
       "1": {
-        "title": "Excel-Tabelle & Auswertung bauen",
-        "prompt": "Baue aus meinen Zahlen eine Tabelle und liefere die Auswertung — Summen, Ausreißer und was sie bedeuten.",
+        "title": "Excel-Tabelle & Auswertung",
+        "prompt": "Aus meinen Zahlen eine Tabelle mit Auswertung — Summen, Ausreißer und was sie bedeuten.",
         "desc": "Zahlen einfügen, Tabelle und Auswertung bekommen.",
         "descLive": "{{n}} Tabellen im Arbeitsbereich — zuletzt: {{name}}"
       },
