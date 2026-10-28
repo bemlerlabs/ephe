@@ -327,6 +327,28 @@ class SemanticStore:
         )
 
 
+def reindex_single_file(
+    store: SemanticStore, workspace: Path | str, file_path: Path | str
+) -> int:
+    """QD-013: after one write, bring that one file up to date.
+
+    The store already skips a file whose mtime did not move, so a write that
+    rewrote identical bytes costs one stat. A path outside the workspace is not
+    indexed at all — the tool that wrote it was already refused there, and the
+    index must not become the way around that fence.
+    """
+    root = Path(workspace).resolve()
+    target = Path(file_path)
+    if not target.is_absolute():
+        target = root / target
+    target = target.resolve()
+    if target != root and root not in target.parents:
+        return 0
+    nodes = store.index_file(target)
+    store.conn.commit()
+    return nodes
+
+
 def index_workspace(root: str | Path, db_path: str | Path | None = None,
                     progress=None) -> IndexResult:
     """Open (or create) the workspace index and bring it up to date."""
