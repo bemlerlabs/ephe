@@ -1997,7 +1997,8 @@
     "change_set_state_reserved": "change set '{{change_set}}' is not set to '{{state}}' by hand — record a verdict or publish it",
     "change_set_approval_superseded": "change set '{{change_set}}' carries an approval filed against bytes an amend replaced — record a fresh verdict on it as it now stands, then publish on that",
     "change_set_unpublish_refused": "{{reason}} — check the set's stage on the Workspaces page",
-    "publish_path_claimed": "{{paths}} is held by {{holders}} — check that run on the Workspaces page, then publish with force=True to write over it"
+    "publish_path_claimed": "{{paths}} is held by {{holders}} — check that run on the Workspaces page, then publish with force=True to write over it",
+    "self_sign_forbidden": "An author cannot sign its own change set. Route it to an independent reviewer."
   },
   "reader": {
     "fetch_empty_url": "[fetch failed] The URL is empty.",

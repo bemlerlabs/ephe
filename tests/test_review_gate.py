@@ -241,3 +241,38 @@ def test_the_module_level_submit_decide_and_may_publish_run_through_one_ledger(
     latest = review_gate.decide("cs-1")
     assert latest is not None and latest.verdict == APPROVE
     assert review_gate.may_publish("cs-1") is True
+
+
+def test_self_signature_carries_its_own_code():
+    """J2: an author approving its own work answers a stable code, not prose."""
+    import pytest
+
+    from core.review_gate import ChangeSet, Reason, ReviewGateError, ReviewLedger
+
+    ledger = ReviewLedger(path=None)
+    target = ChangeSet(change_set_id="cs-9", author="agent-a", paths=("src/a.py",))
+    with pytest.raises(ReviewGateError) as caught:
+        ledger.submit(
+            target,
+            "approve",
+            "agent-a",
+            [Reason(path="src/a.py", line=12, why="looks fine")],
+        )
+    assert caught.value.code == "self_sign_forbidden"
+
+
+def test_another_refusal_keeps_the_generic_code():
+    import pytest
+
+    from core.review_gate import ChangeSet, Reason, ReviewGateError, ReviewLedger
+
+    ledger = ReviewLedger(path=None)
+    target = ChangeSet(change_set_id="cs-10", author="agent-a", paths=("src/a.py",))
+    with pytest.raises(ReviewGateError) as caught:
+        ledger.submit(
+            target,
+            "approve",
+            "agent-b",
+            [Reason(path="src/other.py", line=3, why="outside the set")],
+        )
+    assert caught.value.code == "review_refused"

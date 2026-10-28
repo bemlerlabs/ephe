@@ -52,10 +52,18 @@ REASON_KEYS = frozenset({"path", "line", "why"})
 class ReviewGateError(ValueError):
     """A submission the gate turns down before it becomes a verdict.
 
+    ``code`` is stable, so a surface can key its next step on it instead of
+    matching prose: an author signing its own work answers ``self_sign_forbidden``
+    and everything else keeps the generic ``review_refused``.
+
     A refusal arrives as an error because it does not belong in the verdict list: a verdict
     with no located reason is not a weaker verdict, and an author's approval of its own work
     is not a verdict either. Neither one is written to the ledger.
     """
+
+    def __init__(self, message: str, *, code: str = "review_refused") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -291,7 +299,8 @@ class ReviewLedger:
         )
         if recorded.verdict == APPROVE and recorded.reviewer == target.author:
             raise ReviewGateError(
-                f"{recorded.reviewer} authored {target.change_set_id} and cannot approve it"
+                f"{recorded.reviewer} authored {target.change_set_id} and cannot approve it",
+                code="self_sign_forbidden",
             )
         outside = [r.where() for r in recorded.reasons if target.paths and r.path not in target.paths]
         if outside:

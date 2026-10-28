@@ -214,7 +214,7 @@ async def review_change_set(id: str, request: ReviewRequest) -> dict:
     try:
         recorded = submit(target, request.verdict, request.reviewer, request.reasons)
     except ReviewGateError as exc:
-        raise Refused("review_refused", reason=str(exc)) from exc
+        raise Refused(exc.code, reason=str(exc)) from exc
     from core import change_set_lifecycle as loop
 
     loop.settle(id, recorded.verdict)
