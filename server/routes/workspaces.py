@@ -83,6 +83,11 @@ async def list_workspaces() -> dict:
     polling this one route has the fleet without a second endpoint. Nothing is stored here:
     `core.fleet` reads the registers that already exist.
     """
+    return fleet_payload()
+
+
+def fleet_payload() -> dict:
+    """The one read both the route and the multiplex stream answer with."""
     from core import fleet
     from core import workspace_lifecycle as life
 

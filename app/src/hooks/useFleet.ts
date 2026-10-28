@@ -13,6 +13,7 @@
  */
 import { useEffect, useSyncExternalStore } from 'react'
 import { listWorkspaces, type FleetRun, type Workspace } from '@/lib/api'
+import { multiplexIsOpen, subscribeMultiplex } from '@/lib/multiplex'
 import { refusalSentence } from '@/components/dashboard/workspaces/labels'
 
 export interface FleetSnapshot {
@@ -91,18 +92,32 @@ export function useFleet(): { fleet: FleetSnapshot | null; refresh: () => void }
 
   useEffect(() => {
     watchers += 1
+    // L1: the multiplex stream carries the same payload; the poll stays as the
+    // fallback for a browser without a stream and for the first frames before it
+    // opens. A tick while the stream is open does nothing.
+    const unsubscribe = subscribeMultiplex((event) => {
+      if (!event.fleet) return
+      snapshot = {
+        workspaces: event.fleet.workspaces ?? [],
+        runs: event.fleet.runs ?? [],
+        failed: false,
+        reason: '',
+      }
+      emit()
+    })
     if (timer === null) {
       void poll()
       timer = setInterval(() => {
-        if (!document.hidden) void poll()
+        if (!document.hidden && !multiplexIsOpen()) void poll()
       }, POLL_MS)
     }
     // A tab that comes back is on screen again: read at once rather than up to a beat late.
     const onVisibility = () => {
-      if (!document.hidden) void poll()
+      if (!document.hidden && !multiplexIsOpen()) void poll()
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
+      unsubscribe()
       document.removeEventListener('visibilitychange', onVisibility)
       watchers -= 1
       if (watchers <= 0 && timer !== null) {

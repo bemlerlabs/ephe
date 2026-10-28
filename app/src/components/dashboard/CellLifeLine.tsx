@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getCellLife, type CellLife } from '@/lib/api'
+import { multiplexIsOpen, subscribeMultiplex } from '@/lib/multiplex'
 
 const POLL_MS = 5000
 /** Must match `--ephe-decay-duration` in globals.css (380 ms + buffer). */
@@ -33,38 +34,48 @@ export function CellLifeLine({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     let cancelled = false
+    const apply = (cell: CellLife) => {
+      if (cell.alive) {
+        sawLife.current = true
+        setLife(cell)
+        setPhase('alive')
+        return
+      }
+      if (!sawLife.current) {
+        // Never born: there is nothing to claim.
+        setPhase('silent')
+        setLife(null)
+        return
+      }
+      setPhase('dying')
+      window.clearTimeout(decay.current)
+      decay.current = window.setTimeout(() => {
+        if (!cancelled) setPhase('gone')
+      }, DECAY_MS)
+    }
     const read = () => {
       // A hidden window does not ask for a life it cannot see.
       if (typeof document !== 'undefined' && document.hidden) return
       getCellLife(sessionId)
         .then((r) => {
-          if (cancelled) return
-          const cell = r.cell
-          if (cell.alive) {
-            sawLife.current = true
-            setLife(cell)
-            setPhase('alive')
-            return
-          }
-          if (!sawLife.current) {
-            // Never born: there is nothing to claim.
-            setPhase('silent')
-            setLife(null)
-            return
-          }
-          setPhase('dying')
-          decay.current = window.setTimeout(() => {
-            if (!cancelled) setPhase('gone')
-          }, DECAY_MS)
+          if (!cancelled) apply(r.cell)
         })
         .catch(() => {
           if (!cancelled) setPhase(sawLife.current ? 'gone' : 'silent')
         })
     }
+    // L1: the multiplex stream carries this session's cell; the poll stays as the
+    // fallback for a browser without a stream and for the first frame.
+    const unsubscribe = subscribeMultiplex((event) => {
+      if (!cancelled && event.cell) apply(event.cell)
+    }, sessionId)
     read()
-    const id = window.setInterval(read, POLL_MS)
+    const id = window.setInterval(() => {
+      if (!multiplexIsOpen()) read()
+    }, POLL_MS)
     return () => {
       cancelled = true
+      unsubscribe()
       window.clearInterval(id)
       window.clearTimeout(decay.current)
     }
