@@ -99,6 +99,16 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # Appearance
     "appearance.font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
                               "label": "Schriftgröße (%)", "labelEn": "Font scale (%)"},
+    # G2: the base step under the percentage. Until this field the 15 px were a
+    # constant, so the type scale was a build fact rather than a choice.
+    "appearance.base_font_px": {"type": "select", "default": "15",
+                                "options": ["13", "14", "15"],
+                                "optionLabels": {
+                                    "13": ["Klein (13 px)", "Small (13 px)"],
+                                    "14": ["Mittel (14 px)", "Medium (14 px)"],
+                                    "15": ["Groß (15 px)", "Large (15 px)"],
+                                },
+                                "label": "Grundschrift (px)", "labelEn": "Base text size (px)"},
     "appearance.chat_font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
                                    "label": "Schriftgröße im Gespräch (%)",
                                    "labelEn": "Chat font scale (%)"},

@@ -74,11 +74,17 @@ export function deepText(key: string, fallback = ''): string {
  *  - animations_enabled: html.no-motion, the same hard switch-off that
  *    prefers-reduced-motion brings — here chosen by the user.
  */
+/** G2: the base step under the percentages — 13, 14 or 15 px, 15 unless chosen. */
+export function baseFontPx(): number {
+  const chosen = Number(deepSelect('appearance.base_font_px', String(UI_FONT_SIZE_BASE_PX)))
+  return [13, 14, 15].includes(chosen) ? chosen : UI_FONT_SIZE_BASE_PX
+}
+
 /** The chat reading step: the interface scale times the conversation's own factor. */
 export function chatFontSizePx(): number {
   const ui = Math.min(150, Math.max(80, deepNumber('appearance.font_scale', 100)))
   const chat = Math.min(150, Math.max(80, deepNumber('appearance.chat_font_scale', 100)))
-  return Math.round((UI_FONT_SIZE_BASE_PX - 2) * (ui / 100) * (chat / 100) * 100) / 100
+  return Math.round((baseFontPx() - 2) * (ui / 100) * (chat / 100) * 100) / 100
 }
 
 /** The transcript's maximum reading width in pixels. */
@@ -92,7 +98,7 @@ export function applyDeepAppearance(): void {
   const scale = Math.min(150, Math.max(80, deepNumber('appearance.font_scale', 100)))
   root.style.setProperty(
     '--ui-font-size',
-    `${Math.round(UI_FONT_SIZE_BASE_PX * (scale / 100) * 100) / 100}px`,
+    `${Math.round(baseFontPx() * (scale / 100) * 100) / 100}px`,
   )
   root.style.setProperty('--chat-font-size', `${chatFontSizePx()}px`)
   root.style.setProperty('--chat-reading-width', `${chatReadingWidthPx()}px`)

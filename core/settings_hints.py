@@ -121,6 +121,12 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "Sets the interface text size: all seven steps hang off one variable "
         "(14 px at 100 percent) while rem spacing stays. Applies right after saving.",
     ),
+    "appearance.base_font_px": (
+        "Legt die Grundstufe der Oberfläche fest (13, 14 oder 15 px). Die "  # language-gate: ignore
+        "Prozent-Regler darüber skalieren diesen Wert; 15 px ist der Standard.",  # language-gate: ignore
+        "Sets the interface's base step (13, 14 or 15 px). The percentage dials "
+        "scale this value; 15 px is the default.",
+    ),
     "appearance.chat_font_scale": (
         "Skaliert nur den Fließtext im Gespräch zwischen 80 und 150 Prozent; "  # language-gate: ignore
         "die übrige Oberfläche folgt weiterhin der allgemeinen Schriftgröße.",  # language-gate: ignore

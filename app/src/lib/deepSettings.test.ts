@@ -105,6 +105,37 @@ describe('applyDeepAppearance', () => {
     )
   })
 
+  it('carries the chosen base step (13 px) into both type steps', () => {
+    seedDeepSettings([
+      {
+        key: 'appearance',
+        fields: [
+          field('appearance.font_scale', 'number', 100, { min: 80, max: 150 }),
+          field('appearance.chat_font_scale', 'number', 100, { min: 80, max: 150 }),
+          field('appearance.base_font_px', 'select', '13'),
+        ],
+      },
+    ])
+    expect(document.documentElement.style.getPropertyValue('--ui-font-size')).toBe('13px')
+    // the conversation step keeps its two-pixel step under the base
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('11px')
+  })
+
+  it('ignores a base step outside 13/14/15 and keeps the shipped 15 px', () => {
+    seedDeepSettings([
+      {
+        key: 'appearance',
+        fields: [
+          field('appearance.font_scale', 'number', 100, { min: 80, max: 150 }),
+          field('appearance.base_font_px', 'select', '22'),
+        ],
+      },
+    ])
+    expect(document.documentElement.style.getPropertyValue('--ui-font-size')).toBe(
+      `${UI_FONT_SIZE_BASE_PX}px`,
+    )
+  })
+
   it('scales the conversation step from the interface and chat factors', () => {
     seedDeepSettings(sections)
     expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('23.4px')
