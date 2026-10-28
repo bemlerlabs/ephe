@@ -1033,18 +1033,8 @@ html.no-motion .hero-frost::after {
   transition: transform var(--motion-fast) var(--ease-organic);
 }
 
-/* Brand: ephemeral dot trail (wordmark) — the dots breathe like the
-   settling half of the emblem. Reduced motion = static dots. */
-.ephemeral-dot {
-  animation: ephemeral-breathe 2.8s ease-in-out infinite;
-}
-@keyframes ephemeral-breathe {
-  0%, 100% { opacity: var(--dot-op, 0.8); }
-  50% { opacity: 0.15; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ephemeral-dot { animation: none; }
-}
+/* Brand: the wordmark's dot trail was removed (QD-014 B3) — it breathed
+   forever and read as a loading animation in the `Ready` empty state. */
 
 /* U-2: update signal — the header affordance says "there is something for you".
    One 3.2 s period carries both halves, so they read as one slow breath: a
@@ -1692,7 +1682,7 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
    goes"). The global switch-off above (0.01 ms + animation-fill-mode: both)
    already books the one-shot entrances/exits onto their last keyframe:
    condensation stands finished, the decay is gone. Deliberately NO residual
-   opacity as in .orb-hero / .ephemeral-dot — a reduced-motion user sees the
+   opacity as in .orb-hero — a reduced-motion user sees the
    finished image, not a ghost.
    Only the delay and the ongoing-state rule need hand work. */
 @media (prefers-reduced-motion: reduce) {

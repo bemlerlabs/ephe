@@ -1,59 +1,27 @@
 /**
  * Ephe — EphemeralWordmark (the brand moment in the empty chat state)
  *
- * GIVEN the brand name with a fading dot trail
+ * GIVEN the brand name
  * WHEN the component renders
- * THEN the text stays one contiguous text node (the hero-brand test's
- *      textContent pin still applies), 4 dots of decreasing size are present,
- *      and Reduced Motion halts the animation.
+ * THEN the text stays one contiguous node (the `hero-brand` textContent pin)
+ *      and no dot trail follows it — QD-014 B3: the breathing dots read as a
+ *      loading animation while the agent waited in `Ready`.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-
-const motionState = vi.hoisted(() => ({ reduce: false }))
-
-vi.mock('framer-motion', async (importOriginal) => {
-  const orig = await importOriginal<typeof import('framer-motion')>()
-  return { ...(orig as object), useReducedMotion: () => motionState.reduce }
-})
-
 import EphemeralWordmark from './EphemeralWordmark'
 
 describe('EphemeralWordmark', () => {
-  beforeEach(() => {
-    motionState.reduce = false
-  })
-
-  it('rendert den Text als einen zusammenhängenden Knoten + 4 dots', () => {
+  it('renders the name as one text node', () => {
     render(<EphemeralWordmark text="Ephe Agent" />)
     const wm = screen.getByTestId('ephemeral-wordmark')
-    expect(wm.textContent).toContain('Ephe Agent')
-    for (let i = 0; i < 4; i += 1) {
-      expect(screen.getByTestId(`ephemeral-dot-${i}`)).toBeTruthy()
-    }
-    expect(screen.queryByTestId('ephemeral-dot-4')).toBeNull()
+    expect(wm.textContent).toBe('Ephe Agent')
+    expect(wm.children.length).toBe(0)
   })
 
-  it('dots klingen in Größe ab (Fading-Motiv)', () => {
-    render(<EphemeralWordmark text="Ephe" />)
-    const widths = [0, 1, 2, 3].map((i) =>
-      Number(
-        (screen.getByTestId(`ephemeral-dot-${i}`) as HTMLElement).style.width.replace(/em$/, ''),
-      ),
-    )
-    expect(widths.every((w, i) => i === 0 || w < widths[i - 1]!)).toBe(true)
-  })
-
-  it('Reduced Motion pausiert die Atmung (animationPlayState paused)', () => {
-    motionState.reduce = true
-    render(<EphemeralWordmark text="Ephe" />)
-    const dot = screen.getByTestId('ephemeral-dot-0') as HTMLElement
-    expect(dot.style.animationPlayState).toBe('paused')
-  })
-
-  it('ohne Reduced Motion läuft die Animation (Play-State nicht gesetzt)', () => {
-    render(<EphemeralWordmark text="Ephe" />)
-    const dot = screen.getByTestId('ephemeral-dot-0') as HTMLElement
-    expect(dot.style.animationPlayState).toBe('')
+  it('carries no dot trail', () => {
+    const { container } = render(<EphemeralWordmark text="Ephe" />)
+    expect(container.querySelector('.ephemeral-dot')).toBeNull()
+    expect(screen.queryByTestId('ephemeral-dot-0')).toBeNull()
   })
 })
