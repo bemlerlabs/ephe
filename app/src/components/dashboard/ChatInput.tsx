@@ -16,6 +16,7 @@ import ComposerMentionList from './chat/ComposerMentionList'
 import ComposerMicButton from './chat/ComposerMicButton'
 import ComposerModeChip from './chat/ComposerModeChip'
 import ComposerModelChip from './chat/ComposerModelChip'
+import ComposerContextMeter from './chat/ComposerContextMeter'
 import ComposerSendButton from './chat/ComposerSendButton'
 import ComposerSlashMenu from './chat/ComposerSlashMenu'
 import {
@@ -58,6 +59,8 @@ interface ChatInputProps {
   draftSeed?: { text: string; nonce: number } | null
   /** E-UX: context utilisation in % (0–100) for the ring around the send button. */
   contextPercent?: number | null
+  /** F3: the same occupancy in tokens, for the meter beside the ring. */
+  contextTokens?: { used: number; window: number } | null
 }
 
 /** G-A → 2026 IA sweep → P3 wave 2026-10-05: the four composer modes live in
@@ -73,6 +76,7 @@ export default function ChatInput({
   onSlashCommand,
   draftSeed = null,
   contextPercent = null,
+  contextTokens = null,
 }: ChatInputProps) {
   const { t } = useTranslation()
   // I6-3: `chat.allow_input_while_streaming` — off makes Enter useless during an
@@ -586,6 +590,12 @@ export default function ChatInput({
           {/* M3 (reference pattern): model chip + thinking chip + send in one
               right-hand group — like the reference composer pattern. */}
           <div className="relative flex min-w-0 shrink-0 items-center gap-2 ml-auto max-sm:max-w-[8rem] max-sm:overflow-hidden">
+            <ComposerContextMeter
+              percent={contextPercent}
+              used={contextTokens?.used ?? null}
+              window={contextTokens?.window ?? null}
+              onCompact={() => onSlashCommand?.('/compact')}
+            />
             <ComposerModelChip
               open={chipOpen}
               anchorRef={modelChipRef}

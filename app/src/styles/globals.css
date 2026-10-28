@@ -694,6 +694,13 @@ body {
 .font-mono-code {
   font-family: "JetBrains Mono", monospace;
 }
+
+/* A2: every number that updates in place — token counts, durations, iteration
+   labels, digests — sits in a fixed-width column, so it cannot nudge its
+   neighbours on the next frame. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
 } /* end @layer components (night glow/obsidian/typography) */
 
 /*  FOCUS STYLES (accessibility) */

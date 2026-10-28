@@ -399,6 +399,8 @@
     "modeSelectorAria": "Antwort-Modus des Composers",
     "activeMarker": "(aktuell)",
     "contextRing": "Kontext belegt: {{percent}}%",
+    "contextMeter": "{{percent}} % · {{used}} / {{window}} Tok",
+    "compactNow": "Kontext jetzt kompaktieren",
     "queuePlaceholder": "Nächste Aufgabe anstellen — Ephe arbeitet sie nach der aktuellen ab",
     "busyPlaceholder": "Ephe arbeitet — Eingabe ist während der Antwort deaktiviert",
     "rowWorking": "Läuft",

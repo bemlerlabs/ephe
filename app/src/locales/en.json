@@ -399,6 +399,8 @@
     "modeSelectorAria": "Composer response mode",
     "activeMarker": "(current)",
     "contextRing": "Context used: {{percent}}%",
+    "contextMeter": "{{percent}}% · {{used}} / {{window}} tok",
+    "compactNow": "Compact the context now",
     "queuePlaceholder": "Queue your next task — Ephe works through it after the current one",
     "busyPlaceholder": "Ephe is working — typing is disabled during the answer",
     "rowWorking": "Working",

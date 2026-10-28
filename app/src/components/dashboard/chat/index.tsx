@@ -819,6 +819,10 @@ export default function ChatLayout() {
                 onSlashCommand={handleSlashCommand}
                 draftSeed={composerSeed}
                 contextPercent={contextPercent}
+                contextTokens={{
+                  used: occupancy.tokens,
+                  window: occupancy.window ?? occupancy.usage.window,
+                }}
               />
             </div>
             {/* Minimal footer (E-UX): agent status + live tok/s + context meter.
