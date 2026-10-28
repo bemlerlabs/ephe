@@ -256,15 +256,21 @@ function TaskRow({
                 that moves while a turn runs, so it is the row's "now" — and the
                 only number in this block that carries the accent. */}
             <span className={`${DATA} ${running ? 'text-brand-deep' : 'text-ink-faint'}`}>
-              {session.messages.length} {t('sidebar.messages')}
+              {session.messages.length === 0
+                ? t('sidebar.ready')
+                : `${session.messages.length} ${t('sidebar.messages')}`}
             </span>
             <span data-testid={`session-age-${session.id}`}>
-              <Num col={1}>
-                {formatDistanceToNowStrict(session.createdAt, {
-                  locale: dateLocaleFor(i18n?.language),
-                  roundingMethod: 'floor',
-                })}
-              </Num>
+              {session.messages.length === 0 ? (
+                t('sidebar.freshCell')
+              ) : (
+                <Num col={1}>
+                  {formatDistanceToNowStrict(session.createdAt, {
+                    locale: dateLocaleFor(i18n?.language),
+                    roundingMethod: 'floor',
+                  })}
+                </Num>
+              )}
             </span>
           </p>
         )}

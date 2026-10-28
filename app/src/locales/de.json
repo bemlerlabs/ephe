@@ -473,6 +473,8 @@
     "deleteYes": "Ja",
     "deleteNo": "Abbrechen",
     "messages": "Nachrichten",
+    "ready": "Bereit",
+    "freshCell": "Neue Einweg-Zelle",
     "collapse": "Sidebar einklappen",
     "expand": "Sidebar ausklappen",
     "collapseBranch": "Zweig einklappen",

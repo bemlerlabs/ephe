@@ -15,6 +15,8 @@ vi.mock('react-i18next', () => ({
       const map: Record<string, string> = {
         'sidebar.newChat': 'New task',
         'sidebar.messages': 'messages',
+        'sidebar.ready': 'Ready',
+        'sidebar.freshCell': 'New one-way cell',
         'sidebar.expandBranch': 'Expand branch',
         'sidebar.collapseBranch': 'Collapse branch',
         'sidebar.helperChat': 'Helper',
@@ -99,6 +101,16 @@ describe('sidebar task rows — the direction, measured', () => {
     // No radius, no shadow, no card background on any row.
     const cls = [...classesIn(rows), rows.getAttribute('class') ?? ''].join(' ')
     expect(cls).not.toMatch(/\brounded-|shadow-|bg-surface-raised|bg-brand\/10|border-brand/)
+  })
+
+  it('trades the zero counters for the ready line on a fresh session', () => {
+    renderGroup({
+      sessions: [{ id: 'fresh', title: 'New task', createdAt: base, messages: [] }],
+    })
+    const age = screen.getByTestId('session-age-fresh')
+    expect(age.textContent).toBe('New one-way cell')
+    expect(document.body.textContent).not.toContain('0 messages')
+    expect(document.body.textContent).toContain('Ready')
   })
 
   it('sets the title at the UI step and the meta line at the data step', () => {

@@ -473,6 +473,8 @@
     "deleteYes": "Yes",
     "deleteNo": "Cancel",
     "messages": "messages",
+    "ready": "Ready",
+    "freshCell": "New one-way cell",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "collapseBranch": "Collapse branch",
