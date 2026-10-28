@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.2.1 fix is named below (`2542d57`): Quick Look opens through
+`QLPreviewPanel` in-process, because `qlmanage -p` started a process that opened
+no window on macOS 26.
 The 0.2.0 changes are named below (`0f7093d`, `1d175b7`, `2761c4a`): Quick Look
 and the dock run live in the shell, Apple Vision reads the text off an attached
 image on this machine, and a written file is checked in the Seatbelt sandbox
@@ -49,6 +52,14 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+
+## [0.2.1] - 2026-10-28
+
+### Fixed
+- Quick Look opens through `QLPreviewPanel` instead of `qlmanage -p`: the CLI's
+  process started and opened no window on macOS 26. The panel is driven on the
+  main thread with the file's URL, and the path still passes the canonicalized
+  root fence first (`2542d57`).
 
 ## [0.2.0] - 2026-10-28
 
