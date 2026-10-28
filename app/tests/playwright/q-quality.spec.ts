@@ -217,12 +217,14 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // (GET /api/tour, the device marker) to the 24 measured before it. The workspace
     // bar is now always present, so its one read of the active folder (GET /api/fs,
     // shared by every consumer through useWorkspaceState) joins that set: 26.
+    // QD-012: the codebase index pill reads its status once on boot
+    // (GET /api/project/index/status), so the ceiling moves 26 -> 27.
     // Snapshot at the panel-ready boundary: a late health or session poll is not part
     // of the boot set, and a slower runner otherwise adds one while the DOM is read.
     expect(
       bootApiCalls.length,
       `API-Anzahl ${bootApiCalls.length}: ${bootApiCalls.join(' ')}`,
-    ).toBeLessThanOrEqual(26)
+    ).toBeLessThanOrEqual(27)
     // The set is closed at the panel mount: a request that starts afterwards stays out,
     // however late the runner gets to read it.
     const frozenAt = await page.evaluate(async () => {
