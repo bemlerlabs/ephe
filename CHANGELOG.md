@@ -83,6 +83,49 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
 
+### Added
+
+- settings: One glyph per row and one stroke across icons (`3fd47db`)
+- composer: Drop the standing sentence above the action row (`001163c`)
+- design: Hold the ten colour roles and the 12 px floor as a gate (`4a2bff4`)
+- composer: Hold the action row on one line at 390 px (`552271a`)
+- composer: Show the context fill in numbers with a compact action (`d6c9c2b`)
+- sidebar: Name the four surfaces instead of one catch-all (`a10642e`)
+- header: Give the engine state one home in the top bar (`c55028b`)
+- header: Fold the run line into the one 40 px chrome row (`c46e3d7`)
+- composer: Name the mode chip as the profile it is (`a200ec2`)
+- proof: One tool result, two readers (`375d2ce`)
+- welcome: Three missions a newcomer can name (`e34b8e3`)
+- engine: A model row states what it costs in memory (`f3a0fb7`)
+- engine: One matrix row per model, chosen where it is read (`514fb35`)
+- settings: State the boundary and the register in behaviour (`07ca34b`)
+- swarm: A deck for the helpers instead of a flat feed (`f93926d`)
+- artifacts: Adopt from the workbench rail too (`ecedeb2`)
+- swarm: Steer a running helper from its card (`7e14d68`)
+- custody: Say where the two digests part (`5cfcb60`)
+- core: Every sqlite handle waits instead of failing (`685d5a6`)
+- custody: The self-signature refusal names itself (`0daed69`)
+- approval: Three named actions instead of a checkbox (`0e03f37`)
+- swarm: The seal counts the tools the guard grants (`0c1c3ba`)
+- chat: The answer carries its earned proof (`26e6858`)
+- sidebar: A fresh session says it is ready (`17bd3b0`)
+- settings: The type scale becomes a choice, not a constant (`dcee90a`)
+- mcp: Each server card states the boundary it runs under (`f4bc4c0`)
+- settings: The find gesture filters the register (`4d6b252`)
+- shell: The desktop top row keeps clear of its own window buttons (`ee1c266`)
+- agents: Import an AGENT.md folder from the agents area (`c90c46f`)
+- core: A Merkle certificate for one release or pull request (`fedae28`)
+- companion: The countdown is the user's, down to zero (`dd8196c`)
+- index: A write refreshes its own file, nothing else (`1fb72b0`)
+- custody: One gate for who may sign, one rule for path conflicts (`daea998`)
+- shell: The window buttons keep their corner, and give it back in fullscreen (`0517dfa`)
+
+### Fixed
+
+- shell: Drop the header inset the screenshot disproved (`e6faceb`)
+- review: The four-eyes refusal answers 422 instead of a 500 (`ca99f5e`)
+- proof: Stop printing an exit code no frame carries (`2ba7bac`)
+- gate: A role the terminal does not carry is CSS-only, not missing (`f065f05`)
 ## [0.3.0] - 2026-10-28
 
 Phase 1 of the sovereign software factory: the workspace is indexed locally, any
