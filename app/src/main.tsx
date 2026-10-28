@@ -9,6 +9,7 @@ import { saveSections } from '@/lib/api'
 import { hasSeenFirstRunIntro, loadSetupGate, readSetupGateHint } from '@/lib'
 import { initPwa } from './registerSW'
 import App from './App'
+import { IconScale } from './components/ui/iconScale'
 import './styles/globals.css'
 import './styles/highlight.css'
 
@@ -136,14 +137,18 @@ const captureFilm =
 if (captureFilm) {
   const IntroFilm = lazy(() => import('./components/onboarding/IntroFilm'))
   root.render(
-    <Suspense fallback={null}>
-      <IntroFilm capture />
-    </Suspense>,
+    <IconScale>
+      <Suspense fallback={null}>
+        <IntroFilm capture />
+      </Suspense>
+    </IconScale>,
   )
 } else {
   root.render(
-    <Suspense fallback={null}>
-      <Boot />
-    </Suspense>,
+    <IconScale>
+      <Suspense fallback={null}>
+        <Boot />
+      </Suspense>
+    </IconScale>,
   )
 }

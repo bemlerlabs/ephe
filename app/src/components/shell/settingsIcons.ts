@@ -4,41 +4,51 @@
 // led by its icon, so every field needs one. The mapping lives here (and not in the backend
 // register) because it is a UI decision: a field with no choice of its own falls
 // back to the glyph of its type, never to nothing.
+//
+// One glyph, one row: two fields sharing an icon makes the list unreadable at a
+// glance, which is what the icon is there for. `auditSettingsIconCollisions` is the
+// check for that, and the test beside this file holds it to zero.
 import {
   Activity,
   AlarmClock,
+  Archive,
   Brain,
   CalendarClock,
-  History,
-  Copy,
-  Filter,
-  LoaderCircle,
+  ChevronsUpDown,
+  Clock,
   Clock3,
+  Copy,
+  DatabaseZap,
+  Eye,
+  Filter,
+  Gauge,
+  GitFork,
+  Hash,
+  History,
   Hourglass,
   Keyboard,
+  LoaderCircle,
   Maximize2,
-  RotateCcw,
-  Rows3,
-  ScrollText,
-  Target,
-  Thermometer,
-  Wrench,
-  BrainCircuit,
-  Clock,
-  Gauge,
-  Hash,
-  Webhook,
-  ListChecks,
   MessagesSquare,
+  Orbit,
   Palette,
   PlayCircle,
   Puzzle,
   RefreshCw,
+  RotateCcw,
+  Rows3,
+  ScrollText,
   ShieldCheck,
-  Timer,
-  Type,
-  Layers,
+  Target,
+  TextCursorInput,
   TextSelect,
+  Thermometer,
+  Timer,
+  ToggleLeft,
+  Type,
+  Webhook,
+  Wrench,
+  BrainCircuit,
 } from 'lucide-react'
 
 export type IconComponent = typeof Type
@@ -46,7 +56,7 @@ export type IconComponent = typeof Type
 /** By field key — the row the user is looking for. */
 export const FIELD_ICONS: Record<string, IconComponent> = {
   'chat.show_reasoning': BrainCircuit,
-  'chat.details_mode': ListChecks,
+  'chat.details_mode': Eye,
   // I6-3: the behaviour area. A field without its own glyph would fall back to its
   // type's — in a list the user reads by icon, that is the emergency exit, not the
   // rule.
@@ -61,12 +71,12 @@ export const FIELD_ICONS: Record<string, IconComponent> = {
   'memory.capture_enabled': Brain,
   'memory.capture_min_answer_chars': TextSelect,
   'memory.dedupe_score_threshold': Copy,
-  'memory.inject_max_entries': Layers,
+  'memory.inject_max_entries': DatabaseZap,
   'memory.inject_min_score': Filter,
   'cron.misfire_grace_minutes': AlarmClock,
-  'cron.history_keep': History,
-  'cron.history_rows': ListChecks,
-  'cron.max_parallel_jobs': Layers,
+  'cron.history_keep': Archive,
+  'cron.history_rows': History,
+  'cron.max_parallel_jobs': GitFork,
   'hooks.enabled': Webhook,
   'appearance.font_scale': Type,
   'appearance.animations_enabled': Activity,
@@ -84,7 +94,7 @@ export const SECTION_ICONS: Record<string, IconComponent> = {
   advanced: Gauge,
   plugins: Puzzle,
   memory: Brain,
-  ephemera: Hourglass,
+  ephemera: Orbit,
   cron: CalendarClock,
   hooks: Webhook,
 }
@@ -104,10 +114,10 @@ export function generationIcon(key: string): IconComponent {
 }
 
 const TYPE_ICONS: Record<string, IconComponent> = {
-  bool: ListChecks,
+  bool: ToggleLeft,
   number: Gauge,
-  select: ListChecks,
-  text: Type,
+  select: ChevronsUpDown,
+  text: TextCursorInput,
 }
 
 export function fieldIcon(key: string, type: string): IconComponent {
@@ -116,4 +126,28 @@ export function fieldIcon(key: string, type: string): IconComponent {
 
 export function sectionIcon(key: string): IconComponent | undefined {
   return SECTION_ICONS[key]
+}
+
+export interface IconCollision {
+  icon: string
+  keys: string[]
+}
+
+/**
+ * Two rows wearing the same glyph. Field keys and type fallbacks share one
+ * namespace because they share one list; section headers are a different surface
+ * and are not counted here.
+ */
+export function auditSettingsIconCollisions(): IconCollision[] {
+  const byIcon = new Map<string, string[]>()
+  const rows = [...Object.entries(FIELD_ICONS), ...Object.entries(TYPE_ICONS)]
+  for (const [key, icon] of rows) {
+    const name = icon.displayName ?? 'anonymous'
+    const keys = byIcon.get(name)
+    if (keys) keys.push(key)
+    else byIcon.set(name, [key])
+  }
+  return [...byIcon.entries()]
+    .filter(([, keys]) => keys.length > 1)
+    .map(([icon, keys]) => ({ icon, keys }))
 }
