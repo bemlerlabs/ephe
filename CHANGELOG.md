@@ -126,6 +126,8 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - review: The four-eyes refusal answers 422 instead of a 500 (`ca99f5e`)
 - proof: Stop printing an exit code no frame carries (`2ba7bac`)
 - gate: A role the terminal does not carry is CSS-only, not missing (`f065f05`)
+- settings: The behaviour tab survives an answer without a subagent (`ee2f911`)
+- shell: The chrome row fits a 320 px phone again (`5d75d4c`)
 ## [0.3.0] - 2026-10-28
 
 Phase 1 of the sovereign software factory: the workspace is indexed locally, any
