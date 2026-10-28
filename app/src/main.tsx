@@ -89,6 +89,7 @@ import '@fontsource/jetbrains-mono/latin-400.css'
 import '@fontsource/jetbrains-mono/latin-700.css'
 import '@fontsource/jetbrains-mono/latin-ext-400.css'
 import '@fontsource/jetbrains-mono/latin-ext-700.css'
+import { applyPlatformChrome } from '@/lib/platformChrome'
 
 // PWA: register the service worker (production builds only — in the dev server
 // the SW would intercept SSE streaming and module fetches) and mount the install
@@ -131,6 +132,8 @@ function Boot() {
 
 // `?film=capture` mounts the first-open choreography alone; the render script seeks it
 // frame by frame at 60 fps. Development only, so the production entry keeps one branch.
+applyPlatformChrome()
+
 const captureFilm =
   import.meta.env.DEV && new URLSearchParams(window.location.search).get('film') === 'capture'
 
