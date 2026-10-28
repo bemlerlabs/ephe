@@ -128,6 +128,43 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - gate: A role the terminal does not carry is CSS-only, not missing (`f065f05`)
 - settings: The behaviour tab survives an answer without a subagent (`ee2f911`)
 - shell: The chrome row fits a 320 px phone again (`5d75d4c`)
+## [0.5.0] - 2026-10-28
+
+The market and studio wave: every plugin wears its own icon, the settings screen spends
+one glyph per row, and a plugin or skill reaches its example in one click.
+
+### Added
+
+- **Plugin icon constitution.** All 16 first-party plugins carry a hand-built warm-ink
+  SVG on the 96 grid (3.5 px stroke), including separate drawings for the two pairs that
+  once shared a byte-identical file; `plugins.svg.test.ts` refuses a reused picture or a
+  trace of the retired forest palette.
+- **Cross-map icon audit.** `auditSettingsIconCollisions` reads the field, type, section
+  and generation maps together and reports zero collisions; section headers moved to
+  Library, Cable and Wrench, the generation levers to Coins, ListOrdered and
+  SlidersHorizontal, and the fallback to Variable.
+- **Skills Studio 2.0.** A pack expands from six skills to all of them, every skill
+  carries an 18 px family glyph, the trigger is a run chip that opens a fresh chat, and
+  the provenance seal shows "verified recipe" with the full content hash one disclosure
+  down. A builder card writes a new skill through `POST /api/skills`.
+- **Marketplace 2.0.** Every market card draws the shared `PluginIcon` with its monogram
+  fallback and the shared `PluginSwitch`; each card and each installed plugin offer a
+  one-click example that opens a fresh, disposable chat. The catalog shows the SHA-256
+  seal of the index it read.
+- **16 px navigation.** Settings search hits and nav rows render 16 px Lucide glyphs on
+  the 1.5 px stroke raster.
+
+### Changed
+
+- Every badge on the market and skills surfaces moved from `text-ui-2xs` (11 px) to
+  `text-ui-xs` (12 px); numeric chips use tabular figures.
+- The locale ceilings take the measured step for the seventeen new leaves in both files.
+
+### Fixed
+
+- A failed market icon no longer disappears: the tile falls back to the plugin monogram.
+- A skill pack can no longer hide its seventh skill behind a dead `+N` span.
+
 ## [0.4.0] - 2026-10-28
 
 The control wave: the co-pilot's countdown is the user's, a write keeps the codebase
