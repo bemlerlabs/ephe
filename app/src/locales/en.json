@@ -2555,7 +2555,8 @@
     "canSignCount_one": "{{count}} agent can sign this record",
     "canSignCount_other": "{{count}} agents can sign this record",
     "checkAgain": "Check the record again",
-    "checking": "Checking…"
+    "checking": "Checking…",
+    "forkAt": "parts at character {{index}}"
   },
   "modelPicker": {
     "search": "Search models",

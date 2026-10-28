@@ -27,10 +27,16 @@ import {
 } from '@/components/dashboard/workspaces/labels'
 
 /** Where two digests part: the shared head, and what each side carries after it. */
-function fork(a: string, b: string): { head: string; aTail: string; bTail: string } {
+/** Where two digests stop agreeing: the shared head, both tails, and the character. */
+export function fork(a: string, b: string): {
+  head: string
+  aTail: string
+  bTail: string
+  index: number
+} {
   let i = 0
   while (i < a.length && i < b.length && a[i] === b[i]) i += 1
-  return { head: a.slice(0, i), aTail: a.slice(i), bTail: b.slice(i) }
+  return { head: a.slice(0, i), aTail: a.slice(i), bTail: b.slice(i), index: i }
 }
 
 function Step({ index, label, children }: { index: number; label: string; children: ReactNode }) {
@@ -240,7 +246,12 @@ export default function CustodyPage() {
           {files.length === 0 && (
             <li className="text-ui-2xs text-ink-faint">{t('workspaces.filesNone')}</li>
           )}
-          {files.map((file) => (
+          {files.map((file) => {
+            const digests = fork(
+              diffPrefix(file.recorded, 64),
+              diffPrefix(file.current ?? '', 64),
+            )
+            return (
             <li key={file.path} data-testid={`custody-file-${file.path}`}>
               <div className="flex flex-wrap items-center gap-1.5 text-ui-2xs">
                 <span className="min-w-0 flex-1 truncate font-mono text-foreground/80" dir="ltr">
@@ -257,7 +268,16 @@ export default function CustodyPage() {
               <div className="mt-0.5 space-y-0.5 pl-0.5 font-mono text-ui-2xs" dir="ltr">
                 <p className="flex flex-wrap items-baseline gap-1.5">
                   <span className="w-14 shrink-0 text-ink-faint/70">{t('custody.recorded')}</span>
-                  <span className="break-all text-ink-faint">{diffPrefix(file.recorded, 64)}</span>
+                  <span className="break-all">
+                    {file.moved && file.current !== null ? (
+                      <>
+                        <span className="text-status-success/90">{digests.head}</span>
+                        <mark className="bg-transparent text-status-danger">{digests.aTail}</mark>
+                      </>
+                    ) : (
+                      <span className="text-ink-faint">{diffPrefix(file.recorded, 64)}</span>
+                    )}
+                  </span>
                 </p>
                 {file.moved && file.current !== null && (
                   <p
@@ -265,17 +285,22 @@ export default function CustodyPage() {
                     data-testid={`custody-drift-${file.path}`}
                   >
                     <span className="w-14 shrink-0 text-ink-faint/70">{t('custody.onDisk')}</span>
-                    <span className="break-all text-ink-faint">
-                      {fork(diffPrefix(file.recorded, 64), diffPrefix(file.current, 64)).head}
-                      <mark className="bg-transparent text-status-danger">
-                        {fork(diffPrefix(file.recorded, 64), diffPrefix(file.current, 64)).bTail}
-                      </mark>
+                    <span className="break-all">
+                      <span className="text-status-success/90">{digests.head}</span>
+                      <mark className="bg-transparent text-status-danger">{digests.bTail}</mark>
+                      <span
+                        className="ml-2 tabular-nums text-ink-faint"
+                        data-testid="custody-fork-index"
+                      >
+                        {t('custody.forkAt', { index: digests.index })}
+                      </span>
                     </span>
                   </p>
                 )}
               </div>
             </li>
-          ))}
+            )
+          })}
         </ul>
       </section>
 

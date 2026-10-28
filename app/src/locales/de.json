@@ -2555,7 +2555,8 @@
     "canSignCount_one": "{{count}} Agent kann diesen Eintrag bestätigen",
     "canSignCount_other": "{{count}} Agenten können diesen Eintrag bestätigen",
     "checkAgain": "Den Eintrag erneut prüfen",
-    "checking": "Wird geprüft…"
+    "checking": "Wird geprüft…",
+    "forkAt": "trennt sich bei Zeichen {{index}}"
   },
   "modelPicker": {
     "search": "Modelle durchsuchen",

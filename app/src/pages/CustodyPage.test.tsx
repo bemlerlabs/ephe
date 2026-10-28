@@ -233,3 +233,21 @@ describe('the bytes the signature covers', () => {
     expect(screen.queryByTestId('custody-refusal')).toBeNull()
   })
 })
+
+describe('J1: where the digests part', () => {
+  it('names the shared head and the character the two stopped agreeing on', async () => {
+    const { fork } = await import('./CustodyPage')
+    const result = fork('aaaa1111', 'aaaa2222')
+    expect(result).toEqual({ head: 'aaaa', aTail: '1111', bTail: '2222', index: 4 })
+  })
+
+  it('calls two identical digests one shared head', async () => {
+    const { fork } = await import('./CustodyPage')
+    expect(fork('abcdef', 'abcdef')).toEqual({
+      head: 'abcdef',
+      aTail: '',
+      bTail: '',
+      index: 6,
+    })
+  })
+})
