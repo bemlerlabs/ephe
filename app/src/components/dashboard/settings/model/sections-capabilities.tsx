@@ -1,12 +1,25 @@
 'use client'
 
-import { FileBox, Loader2, Download, Upload, Trash2, Power, Puzzle, Layers } from 'lucide-react'
-import { exportPackUrl, fileUrl } from '@/lib/api'
+import {
+  Download,
+  FileBox,
+  Layers,
+  Loader2,
+  MessageSquarePlus,
+  Power,
+  Puzzle,
+  ShieldCheck,
+  Trash2,
+  Upload,
+} from 'lucide-react'
+import { fileUrl } from '@/lib/api'
+import { startDisposableChat } from '@/lib/chatSeed'
 import { describeSkill } from '@/lib/slashCommands'
 import PageHeader from '@/components/shell/PageHeader'
 import { SettingsGroup } from '@/components/shell/SettingsRow'
 import SchedulerPanel from '../../SchedulerPanel'
 import { DeepFields } from './deepFields'
+import { SkillBuilderCard, SkillPackCard, skillGlyph } from './skillsStudio'
 import type { SettingsModel } from './types'
 
 export function renderSkills(model: SettingsModel) {
@@ -29,6 +42,8 @@ export function renderSkills(model: SettingsModel) {
   return (
     <div className="space-y-3">
       <PageHeader title={t('settings.skillsTitle')} subtitle={t('settings.skillsHint')} />
+
+      <SkillBuilderCard t={t} onCreated={reloadSkills} />
 
       {/* R16 skill-pack management: install (zip/tgz) + refresh; W3b: URL install.
               I7-4: grouped with a purpose line, so every button says what it does
@@ -113,46 +128,7 @@ export function renderSkills(model: SettingsModel) {
         >
           <div className="space-y-2">
             {packIndex.map((pack) => (
-              <div key={pack.id} className="glass-reading rounded-xl p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-ui-sm font-medium text-foreground/90">{pack.title}</span>
-                  <span
-                    data-testid={`pack-installed-${pack.id}`}
-                    className="text-ui-2xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft"
-                  >
-                    {t('settings.packInstalled', {
-                      have: pack.skills.filter((sk) => sk.installed).length,
-                      total: pack.skills.length,
-                    })}
-                  </span>
-                  <span className="flex-1" />
-                  <a
-                    href={exportPackUrl(pack.id)}
-                    download
-                    data-testid={`pack-export-${pack.id}`}
-                    className="p-1.5 rounded-lg hover:bg-surface text-ink-soft hover:text-brand transition-colors"
-                    aria-label={`${t('settings.exportPack')}: ${pack.title}`}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-                <p className="text-ui-xs text-ink-soft mt-1">{pack.description}</p>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {pack.skills.slice(0, 6).map((sk) => (
-                    <span
-                      key={sk.name}
-                      className="px-1.5 py-0.5 rounded-md bg-surface text-ink-soft text-ui-xs font-mono"
-                    >
-                      {sk.trigger || sk.name}
-                    </span>
-                  ))}
-                  {pack.skills.length > 6 && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-surface text-ink-faint text-ui-xs">
-                      +{pack.skills.length - 6}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <SkillPackCard key={pack.id} pack={pack} t={t} />
             ))}
           </div>
         </SettingsGroup>
@@ -170,26 +146,33 @@ export function renderSkills(model: SettingsModel) {
           ) : skills.length === 0 ? (
             <p className="text-ui-xs text-ink-faint">{t('settings.noSkills')}</p>
           ) : (
-            skills.map((s) => (
-              <div
-                key={s.name}
-                className={`glass-reading rounded-xl p-3 ${s.disabled ? 'opacity-50' : ''}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-ui-sm font-medium text-foreground/90">{s.name}</span>
+            skills.map((s) => {
+              const Glyph = skillGlyph(s)
+              return (
+                <div
+                  key={s.name}
+                  className={`glass-reading rounded-xl p-3 ${s.disabled ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Glyph
+                      className="h-[18px] w-[18px] shrink-0 text-brand/70"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                    <span className="text-ui-sm font-medium text-foreground/90">{s.name}</span>
                   {s.version && (
-                    <span className="text-ui-2xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft font-mono">
+                    <span className="text-ui-xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft font-mono">
                       v{s.version}
                     </span>
                   )}
                   {s.is_builtin && (
-                    <span className="text-ui-2xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft">
+                    <span className="text-ui-xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft">
                       {t('settings.skillBuiltinChip')}
                     </span>
                   )}
                   {s.install?.origin && (
                     <span
-                      className="max-w-[16rem] truncate text-ui-2xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft font-mono"
+                      className="max-w-[16rem] truncate text-ui-xs px-1.5 py-0.5 rounded-full bg-surface text-ink-soft font-mono"
                       title={`${s.install.origin} · ${s.install.content_hash}`}
                       data-testid={`skill-origin-${s.name}`}
                     >
@@ -198,14 +181,14 @@ export function renderSkills(model: SettingsModel) {
                   )}
                   {s.unchanged === false && (
                     <span
-                      className="text-ui-2xs px-1.5 py-0.5 rounded-full bg-status-warning/20 text-status-warning"
+                      className="text-ui-xs px-1.5 py-0.5 rounded-full bg-status-warning/20 text-status-warning"
                       data-testid={`skill-changed-${s.name}`}
                     >
                       {t('settings.skillsChangedChip')}
                     </span>
                   )}
                   {s.disabled && (
-                    <span className="text-ui-2xs px-1.5 py-0.5 rounded-full bg-status-danger/20 text-status-danger">
+                    <span className="text-ui-xs px-1.5 py-0.5 rounded-full bg-status-danger/20 text-status-danger">
                       {t('settings.skillsDisabledChip')}
                     </span>
                   )}
@@ -231,10 +214,35 @@ export function renderSkills(model: SettingsModel) {
                     </button>
                   )}
                 </div>
-                <p className="text-ui-sm text-brand/60 font-mono mt-0.5">{s.trigger}</p>
+                <button
+                  type="button"
+                  onClick={() => startDisposableChat(s.trigger)}
+                  data-testid={`skill-run-${s.name}`}
+                  className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-surface px-2 py-1 text-ui-xs font-mono text-brand-deep transition-colors hover:bg-surface-interactive focus-ring"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  {s.trigger} · {t('settings.skillRunNow')}
+                </button>
                 <p className="text-ui-xs text-ink-soft mt-1">{describeSkill(s, t)}</p>
+                {s.install && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {s.unchanged !== false && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-status-success/15 px-1.5 py-0.5 text-ui-xs text-status-success">
+                        <ShieldCheck className="h-3 w-3" strokeWidth={1.5} />
+                        {t('settings.skillVerifiedRecipe')}
+                      </span>
+                    )}
+                    <details className="text-ui-xs text-ink-faint">
+                      <summary className="cursor-pointer">{t('settings.skillProvenance')}</summary>
+                      <p className="mt-1 break-all font-mono" data-testid={`skill-hash-${s.name}`}>
+                        {s.install.origin} · {s.install.content_hash}
+                      </p>
+                    </details>
+                  </div>
+                )}
               </div>
-            ))
+              )
+            })
           )}
         </div>
       </SettingsGroup>

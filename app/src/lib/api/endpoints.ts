@@ -462,6 +462,22 @@ export function listSkills(): Promise<{ skills: SkillSummary[]; total: number }>
   return request<{ skills: SkillSummary[]; total: number }>('/api/skills')
 }
 
+export interface SkillCreateInput {
+  name: string
+  trigger: string
+  description: string
+  tools?: string[]
+  system_prompt: string
+}
+
+/** Creates a user skill (POST /api/skills). */
+export function createSkill(input: SkillCreateInput): Promise<{ name: string }> {
+  return request<{ name: string }>('/api/skills', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 /** R16: installs a skill pack (zip/tgz) — multipart, no JSON header. */
 export async function installSkill(file: File, force = false): Promise<SkillInstallResult> {
   const form = new FormData()
