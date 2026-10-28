@@ -128,6 +128,36 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - gate: A role the terminal does not carry is CSS-only, not missing (`f065f05`)
 - settings: The behaviour tab survives an answer without a subagent (`ee2f911`)
 - shell: The chrome row fits a 320 px phone again (`5d75d4c`)
+## [0.4.0] - 2026-10-28
+
+The control wave: the co-pilot's countdown is the user's, a write keeps the codebase
+index current, and the surfaces that carry proof state what they actually measured.
+
+### Added
+
+- **Companion countdown as a setting.** `appearance.companion_countdown_seconds`
+  (0-10 s, half-second steps) replaces the fixed 2.5 s pause; the studio shows the
+  value live, 0 s acts on the next tick, and the co-pilot also offers the codebase
+  index when a workspace has none.
+- **Incremental re-index on write.** `reindex_single_file` updates the changed file
+  after `write_file` / `edit_file` and refuses a path outside the workspace.
+- **Proof ledger and approval card.** Each finished turn lists its runs with duration
+  and the sha256 of the payload the reader holds; waiting approvals offer allow once,
+  remember for the session, and deny.
+- **Sandbox strip on every MCP card**, reading platform, file root and net/pid
+  sharing from `core/mcp_sandbox.py`.
+- **One custody gate.** `evaluateCustodyGate` decides self-signature once, and the
+  cross-workspace conflict radar gains the ordered name `detectWorkspaceConflicts`.
+- **Type scale 13/14/15 px**, the ⌘F register filter inside settings, a
+  fullscreen-aware window-button inset, and the AGENT.md import in the agents area.
+
+### Fixed
+
+- The four-eyes refusal answers 422 with `self_sign_forbidden` instead of a 500.
+- The expert sentence under a tool group says `passed` — no frame carries an exit code.
+- The Behaviour tab survives a capability answer without a `subagent`.
+- The chrome row fits 320 px again (the inset rides the `md:` arm; the run line clips).
+
 ## [0.3.0] - 2026-10-28
 
 Phase 1 of the sovereign software factory: the workspace is indexed locally, any

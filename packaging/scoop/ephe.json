@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/schema.json",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local-first AI assistant — private, offline, yours (Windows PWA + backend via install.ps1).",
   "homepage": "https://github.com/bemlerlabs/ephe",
   "license": "BUSL-1.1",

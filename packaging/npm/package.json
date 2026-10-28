@@ -1,6 +1,6 @@
 {
   "name": "@ephemora/ephe",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local-first AI assistant — one-command install wrapper (delegates to install.sh).",
   "bin": {
     "ephe": "./ephe.js"
