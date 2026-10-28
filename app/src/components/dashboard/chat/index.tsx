@@ -740,7 +740,7 @@ export default function ChatLayout() {
                     ref={parentRef}
                     onScroll={handleScroll}
                     data-testid="panel-chat"
-                    className="flex-1 overflow-y-auto px-4"
+                    className="flex-1 overflow-y-auto px-4 pt-4"
                     style={{ overflowAnchor: 'auto' }}
                   >
                     <div

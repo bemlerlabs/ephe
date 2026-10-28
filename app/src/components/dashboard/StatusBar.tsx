@@ -119,7 +119,11 @@ export default function StatusBar({
       // The last surface of the chat column: installed on a phone the home
       // indicator is drawn over it, so this row carries the bottom inset. The
       // composer sits above it and needs none.
-      className="border-b border-hairline px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-center gap-3 flex-shrink-0 select-none max-lg:flex-wrap max-lg:gap-y-1"
+      // QD-015 V1: one line, always. The row used to wrap below lg, and a
+      // wrapped second line painted into the popover's space while the right
+      // panel squeezed the column. The width hierarchy now hides the secondary
+      // figures in steps (md, lg, xl) and lets the meter absorb the remainder.
+      className="border-b border-hairline px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-center gap-2 flex-shrink-0 select-none overflow-hidden whitespace-nowrap"
     >
       {/* Reference image 2: two pills on the left — 'Expand status' + current activity */}
       <div className="hidden sm:flex items-center shrink-0">
@@ -155,7 +159,9 @@ export default function StatusBar({
           the agent-status popover („Status aufklappen") — the visible row stays
           minimal: one pill per fact, nothing more. */}
       <ConnectionPill backendOnline={backendOnline} engineOnline={engineOnline} />
-      <CodebaseStatusBarPill onOpen={() => setCodebaseOpen(true)} />
+      <div className="hidden md:inline-flex min-w-0 max-w-[12rem]">
+        <CodebaseStatusBarPill onOpen={() => setCodebaseOpen(true)} />
+      </div>
       {/* Live %-full Meter. R36 (Judge R2): percent lives OUTSIDE the meter
           div — as a squeezed flex-1 child it painted over the neighboring tok
           pill (overflow visible). Both are root children with gap + shrink-0
@@ -215,7 +221,7 @@ export default function StatusBar({
         data-testid="statusbar-breakdown-toggle"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        className="hidden md:flex text-ui-xs font-mono tabular-nums text-ink-faint hover:text-foreground/60 transition-colors items-center gap-1 py-1.5 -my-1.5 px-1 -mx-1 whitespace-nowrap shrink-0"
+        className="hidden lg:flex text-ui-xs font-mono tabular-nums text-ink-faint hover:text-foreground/60 transition-colors items-center gap-1 py-1.5 -my-1.5 px-1 -mx-1 whitespace-nowrap shrink-0"
         title={t('statusBar.breakdownHint')}
       >
         <Zap className="h-3 w-3 text-brand/70" />
@@ -256,14 +262,17 @@ export default function StatusBar({
         data-testid="statusbar-tok-chip"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        className="md:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
+        className="lg:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
       >
         {formatNumber(effectiveTokens, i18n.language)} tok
       </button>
 
       {/* F1: a free figure without its total is a number with no unit. The window
-          goes where the reader already looks for the remainder. */}
-      <span className="text-ui-xs text-ink-faint font-mono whitespace-nowrap tabular-nums shrink-0">
+          goes where the reader already looks for the remainder.
+          QD-015 V1: the remainder is the first figure to give way — below md it
+          steps out entirely, and above it `min-w-0 truncate` lets it shrink
+          against the cost chips instead of pushing them into a second row. */}
+      <span className="hidden md:inline-block min-w-0 truncate text-ui-xs text-ink-faint font-mono tabular-nums">
         {effectiveWindow
           ? t('statusBar.contextFreeOf', {
               free: formatNumber(effectiveRemaining, i18n.language),

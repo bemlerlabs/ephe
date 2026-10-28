@@ -27,7 +27,7 @@ export function CostChips({
       {sessionCost !== null && (
         <span
           data-testid="statusbar-cost"
-          className="text-ui-xs font-mono tabular-nums text-brand/80 whitespace-nowrap shrink-0"
+          className="min-w-0 max-w-[7rem] truncate text-ui-xs font-mono tabular-nums text-brand/80 whitespace-nowrap shrink-0"
           title={t('statusBar.costTitle', {
             in: formatNumber(usageTotals?.in ?? 0, i18n.language),
             out: formatNumber(usageTotals?.out ?? 0, i18n.language),
@@ -42,11 +42,14 @@ export function CostChips({
       {/* F1: the engine carries no price. Silence here read as "$0.00" from the chip
           beside it, so the absence is said out loud once — as the missing setting
           itself (i18n: statusBar.noPricing), while the title names the mechanism
-          (engine.json: in_per_m/out_per_m). */}
+          (engine.json: in_per_m/out_per_m).
+          QD-015 V1: this sentence is the widest, least urgent item in the row. It
+          moved behind lg and truncates, so it can no longer push the free-token
+          figure into a second line while the right panel is open. */}
       {sessionCost === null && pricingMissing(usageTotals, enginePricing) && (
         <span
           data-testid="statusbar-no-pricing"
-          className="text-ui-xs font-mono text-ink-faint whitespace-nowrap shrink-0"
+          className="hidden lg:inline-block min-w-0 max-w-[11rem] truncate text-ui-xs font-mono text-ink-faint whitespace-nowrap shrink-0"
           title={t('statusBar.noPricingTitle')}
         >
           {t('statusBar.noPricing')}
