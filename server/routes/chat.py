@@ -20,7 +20,13 @@ from pydantic import BaseModel
 
 from core.observability import structured_log
 
-from core.chat import OllamaNotReachableError, OllamaModelNotFoundError, OllamaModelBusyError, chat_with_tools
+from core.chat import (
+    OllamaNotReachableError,
+    OllamaModelNotFoundError,
+    OllamaModelBusyError,
+    budget_continue_frame,
+    chat_with_tools,
+)
 from core import trajectory
 from core.ephe_plan import EphePlan
 from core.persona import (
@@ -2315,6 +2321,12 @@ async def chat_stream(
                 # P6: the final first answer as an ASSISTANT step with its full
                 # text body (trajectory USER/reasoning/output parity).
                 emit({"type": "assistant", "text": first_answer})
+                if budget_note_is_unfinished(first_answer):
+                    # QD-015 Z2: a cap end is not a dead end. The frame carries
+                    # the cap the turn ran on and the rounds one click adds, so
+                    # the surface can offer the continuation instead of leaving
+                    # the reader with a note and no button.
+                    emit(budget_continue_frame(_max_tool_iterations(request.tool_budget, active_skill)))
                 silent_event = silent_turn_event(first_answer, captured_tool_results)
                 if silent_event:
                     # W1-R3: a throttled free-tier answer arrived as an empty

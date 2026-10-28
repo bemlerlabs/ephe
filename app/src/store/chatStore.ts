@@ -45,6 +45,7 @@ export const useChatStore = create<ChatState>((set, get) => {
     hydrated: false,
     checkpoints: {},
     lastTurnUsage: null,
+    budgetNotice: null,
     enginePricing: null,
     setEnginePricing: (p) => set({ enginePricing: p }),
     ...makeSessionActions(setFn, getFn, persistActive),

@@ -53,6 +53,7 @@ type Store = Pick<
   | 'markAskTimedOut'
   | 'markStreamError'
   | 'markLastUsage'
+  | 'markBudgetReached'
   | 'setReflecting'
   | 'setRevising'
   | 'setQualityCheck'
@@ -204,6 +205,12 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
 
     case 'goal_check':
       store.advanceGoal(event.turn, event.ok)
+      break
+
+    case 'budget':
+      // QD-015 Z2: the cap end carries the continuation offer — the button
+      // reads the same numbers the server counted with.
+      store.markBudgetReached(event.cap, event.extra)
       break
 
     case 'artifact_check':

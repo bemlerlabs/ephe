@@ -8,6 +8,7 @@ and the open-plan nudge settings; core/chat.py re-exports the public names.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from core.chat_context import _active_context_window, _fit_messages_to_window
 from core.corrections import CorrectionJournal
@@ -101,6 +102,31 @@ KNOWLEDGE_GAP_PROTOCOL = (
 )
 
 
+def _workspace_anchor() -> str | None:
+    """The active project, named with its absolute path (QD-015 Z3).
+
+    Every turn used to learn the workspace only from the tool schema or from
+    listing directories, so it began by looking for the tree it was meant to
+    work in. One stable block names it up front; it changes per workspace, not
+    per turn, so it sits with the other rarely-changing context.
+    """
+    try:
+        from core.workspace_rules import resolve_workspace_dir
+
+        raw = str(resolve_workspace_dir() or "").strip()
+        if not raw:
+            return None
+        root = Path(raw).expanduser().resolve()
+    except Exception:
+        return None
+    return (
+        "## Active workspace\n"
+        f"Name: {root.name or root}\n"
+        f"Path: {root}\n"
+        "Relative paths in this conversation resolve against this root."
+    )
+
+
 def assemble_system_prompt(
     *,
     model: str,
@@ -108,6 +134,7 @@ def assemble_system_prompt(
     extra_system_prompt: str | None = None,
     custom_instructions_ctx: str | None = None,
     workspace_rules_ctx: str | None = None,
+    workspace_ctx: str | None = None,
     profile_ctx: str | None = None,
     memory_ctx: str | None = None,
     corrections_ctx: str | None = None,
@@ -130,7 +157,8 @@ def assemble_system_prompt(
     5. extra directive (e.g. the R22 coding-agent brief)
     6. constant knowledge-gap protocol (KNOWLEDGE_GAP_PROTOCOL)
     7. custom instructions (this device's standing words, provenance-marked)
-    8. workspace project rules (AGENTS.md and .ephe/rules/*, provenance-marked)
+    8. active workspace (name + absolute path) and its project rules
+       (AGENTS.md and .ephe/rules/*, provenance-marked)
     9. user profile → 10. corrections → 11. feedback   (rarely change)
     12. memory (per-turn volatile) → 13. current date block (per-day, last)
 
@@ -162,6 +190,7 @@ def assemble_system_prompt(
     parts.append(KNOWLEDGE_GAP_PROTOCOL)
     for ctx in (
         custom_instructions_ctx,
+        workspace_ctx,
         workspace_rules_ctx,
         profile_ctx,
         corrections_ctx,
@@ -316,12 +345,15 @@ def _assemble_system_prompt_into(
     except Exception:
         workspace_rules_ctx = None
 
+    workspace_ctx = _workspace_anchor()
+
     full_system_prompt = assemble_system_prompt(
         model=model,
         incoming_system=incoming_system,
         extra_system_prompt=extra_system_prompt,
         custom_instructions_ctx=custom_instructions_block(),
         workspace_rules_ctx=workspace_rules_ctx,
+        workspace_ctx=workspace_ctx,
         profile_ctx=profile_ctx,
         memory_ctx=memory_ctx,
         corrections_ctx=corrections_ctx,

@@ -792,7 +792,10 @@ GENERATION_BOUNDS: dict[str, tuple[float | int | None, float | int, float | int 
     "temperature": (0.0, 0.0, 2.0),
     "top_p": (None, 0.0, 1.0),
     "max_tokens": (None, 1, None),
-    "tool_budget": (10, 1, 40),
+    # QD-015 Z1: the dial's default is the chat's own class default (25 rounds,
+    # core/chat.py MAX_TOOL_ITERATIONS), not the old provisional 10 that every
+    # project turn then had to raise by hand.
+    "tool_budget": (25, 1, 40),
     "context_window": (None, 1, None),
     "memory_max_entries": (1000, 1, None),
     # How many swarm agents of one wave may run at the same time.

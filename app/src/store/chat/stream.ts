@@ -42,9 +42,18 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
           sessions,
           currentSession: sessions.find((sess) => sess.id === s.activeSessionId) ?? null,
           lastTurnUsage: null,
+          // QD-015 Z2: the offer belongs to the turn that hit the cap; the next
+          // turn replaces it.
+          budgetNotice: null,
         }
       })
       persistActive()
+    },
+
+    // QD-015 Z2: the budget frame arrived — the surface now offers the next
+    // rounds instead of leaving the note as a dead end.
+    markBudgetReached: (cap, extra) => {
+      set({ budgetNotice: { cap, extra } })
     },
 
     appendChunk: (chunk) => {

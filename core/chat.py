@@ -145,6 +145,11 @@ from core.usage import estimate_tokens, serialize_prompt  # noqa: F401
 MAX_TOOL_ITERATIONS: int = 25
 
 
+# QD-015 Z2: the budget card's one click. The surface sends it as a new turn
+# whose budget is the cap the turn ran on plus this many rounds.
+CONTINUE_TURN_ROUNDS: int = 10
+
+
 # R37: hard cap above all task classes; P2b consolidation: /ephe uses
 # the same value (EPHE_TOOL_BUDGET=40), clamp_tool_budget clamps to this cap.
 TOOL_BUDGET_HARD_CAP: int = 40
@@ -154,6 +159,20 @@ def clamp_tool_budget(max_tool_iterations: int | None) -> int:
     """R37: tool budget by task class — casual default 10, coding class
     (/ephe) up to the hard cap 40. Never 0, never above the cap."""
     return max(1, min(TOOL_BUDGET_HARD_CAP, int(max_tool_iterations or MAX_TOOL_ITERATIONS)))
+
+
+def budget_continue_frame(cap: int | None) -> dict:
+    """The frame that turns a cap end into an offer (QD-015 Z2).
+
+    `cap` is the budget the turn actually ran on; the surface offers the next
+    rounds as one click and sends the click as a new turn with cap + extra.
+    """
+    return {
+        "type": "budget",
+        "action": "continue_turn",
+        "cap": clamp_tool_budget(cap),
+        "extra": CONTINUE_TURN_ROUNDS,
+    }
 
 
 def _ollama_async_client():

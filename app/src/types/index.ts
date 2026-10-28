@@ -675,6 +675,15 @@ export interface StreamTurn {
   session_id?: string
 }
 
+/** QD-015 Z2: the turn stopped on the tool budget. `action` is the offer the
+ *  surface renders as a button; `extra` is the number of rounds it adds. */
+export interface StreamBudget {
+  type: 'budget'
+  action: 'continue_turn'
+  cap: number
+  extra: number
+}
+
 export interface StreamFileResult {
   type: 'file_result'
   file_type: string
@@ -742,6 +751,7 @@ export type StreamEvent =
   | StreamGoalStart
   | StreamGoalTurn
   | StreamGoalCheck
+  | StreamBudget
   | StreamGap
   | StreamSkillCreated
   | StreamSwarmCreated
@@ -774,6 +784,9 @@ export interface StreamChatRequest {
   images?: string[]
   /** W19: UI mode — backend skips the fast path + sets the anti-hallucination guard on 'ask' */
   mode?: string
+  /** QD-015 Z2: per-turn tool rounds. The budget card sends the cap it read
+   *  plus the rounds the button adds; unset keeps the class default. */
+  tool_budget?: number
 }
 
 /** Response of POST /api/sandbox/approve (a token that is known) */

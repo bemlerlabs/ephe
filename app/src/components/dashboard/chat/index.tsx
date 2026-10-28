@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import WelcomeEmptyState from '../WelcomeEmptyState'
+import { BudgetContinueCard } from '../BudgetContinueCard'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
@@ -164,6 +165,7 @@ export default function ChatLayout() {
     pinToBottom,
     handleSlashCommand,
     handleSend,
+    handleContinue,
     handlePickOption,
     handleEditMessage,
     handleRegenerate,
@@ -792,6 +794,7 @@ export default function ChatLayout() {
                     two rows — without the buffer the last message ran
                     past its edge (computer-use finding t23, 2026-10-01). */}
                     <div aria-hidden="true" className="h-16 lg:h-0" />
+                    <BudgetContinueCard onContinue={() => void handleContinue()} />
                   </div>
                   <RunRail plan={runData.plan} />
                   {/* The toolbar, as a contextual dock: it floats over the

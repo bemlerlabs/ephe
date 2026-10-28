@@ -871,7 +871,7 @@ export function useChatLayoutModel() {
   // session is the user message the turn refers to (the backend appends
   // request.message to history → history = everything except the last one).
   const runTurn = useCallback(
-    async (payload: string, images?: string[], isRetry = false) => {
+    async (payload: string, images?: string[], isRetry = false, toolBudget?: number) => {
       startTurn()
       setTyping(true)
 
@@ -908,6 +908,8 @@ export function useChatLayoutModel() {
             // mode stays on the strict dialog even though 'full-access' was chosen.
             autonomous: (session_?.mode ?? DEFAULT_COMPOSER_MODE) === 'full-access',
             ...(images && images.length > 0 ? { images } : {}),
+            // QD-015 Z2: the budget card's continuation names its own rounds.
+            ...(toolBudget ? { tool_budget: toolBudget } : {}),
           },
           {
             signal: controller.signal,
@@ -1029,6 +1031,20 @@ export function useChatLayoutModel() {
     },
     [addMessage, createSession, runTurn, pinToBottom, backendOnline, t],
   )
+  // QD-015 Z2: the continuation the budget card offers. It is a normal turn —
+  // its own user bubble, the same pipeline — that carries the cap the server
+  // reported plus the rounds the card promised.
+  const handleContinue = useCallback(async () => {
+    const state = useChatStore.getState()
+    const notice = state.budgetNotice
+    if (!notice || state.isTyping) return
+    const payload = t('chat.continueMessage')
+    addMessage('user', payload)
+    failedTurnRef.current = null
+    pinToBottom()
+    await runTurn(payload, undefined, false, notice.cap + notice.extra)
+  }, [addMessage, runTurn, pinToBottom, t])
+
   handleSendRef.current = (msg: string) => {
     void handleSend(msg)
   }
@@ -1320,6 +1336,7 @@ export function useChatLayoutModel() {
     handleSlashCommand,
     runTurn,
     handleSend,
+    handleContinue,
     handlePickOption,
     handleEditMessage,
     handleRegenerate,

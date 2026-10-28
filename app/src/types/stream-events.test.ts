@@ -49,6 +49,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
     case 'goal_start':
     case 'goal_turn':
     case 'goal_check':
+    case 'budget':
     case 'gap':
     case 'skill_created':
     case 'swarm_created':
@@ -79,7 +80,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
 }
 
 describe('StreamEvent (Diskriminierte Union)', () => {
-  it('deckt alle 33 Backend-Event-Typen exhaustiv ab', () => {
+  it('deckt alle 34 Backend-Event-Typen exhaustiv ab', () => {
     const events: StreamEvent[] = [
       { type: 'thinking_start' },
       { type: 'thinking_chunk', data: 'Ich überlege…' },
@@ -120,6 +121,7 @@ describe('StreamEvent (Diskriminierte Union)', () => {
       },
       { type: 'goal_turn', turn: 1 },
       { type: 'goal_check', turn: 1, ok: true, output: '2 passed' },
+      { type: 'budget', action: 'continue_turn', cap: 25, extra: 10 },
       { type: 'swarm_created', swarm_id: 's1', agents: ['a1', 'a2'], model: 'gemma4:12b' },
       { type: 'swarm_agent_started', swarm_id: 's1', agent_id: 'a1', subtask: 't' },
       { type: 'swarm_agent_done', swarm_id: 's1', agent_id: 'a1', summary: 'done' },
@@ -156,7 +158,7 @@ describe('StreamEvent (Diskriminierte Union)', () => {
     ]
     const seen: string[] = []
     for (const e of events) assertExhaustive(e, seen)
-    expect(new Set(seen).size).toBe(33) // 31 + the ask gate's ask_user/ask_timeout frames
+    expect(new Set(seen).size).toBe(34) // 33 + the budget card's continue frame
   })
 
   it('chunk-Payload: { data: string } (exakt, kein content-Feld)', () => {

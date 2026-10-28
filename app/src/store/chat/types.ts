@@ -219,6 +219,11 @@ export interface ChatState {
    *  Wave 3: ALSO accumulates the session total (usageTotals) — the basis for the
    *  USD and cache chip in the status bar. Persisted through DbSession. */
   markLastUsage: (u: { in: number; out: number; cached?: number }) => void
+  /** QD-015 Z2: the turn stopped on the tool budget. `cap` is the budget it ran
+   *  on, `extra` the rounds the surface's continue button adds. Cleared when the
+   *  next turn starts. */
+  budgetNotice: { cap: number; extra: number } | null
+  markBudgetReached: (cap: number, extra: number) => void
   /** Wave 3 (cost monitor): the price table of the active model — USD per 1M tokens
    *  from engine.json `pricing` (via /api/model/providers). null = no price kept →
    *  the status bar shows no cost chip (never guess a number). */
