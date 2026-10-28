@@ -450,6 +450,14 @@ body {
   overflow-x: hidden;
 }
 
+/* H2: one optical stroke on every Lucide glyph. Lucide writes stroke-width="2"
+   as a presentation attribute; the raster is a stylesheet decision, so a call
+   site that needs a heavier mark sets it inline instead of changing the default
+   every other icon inherits. */
+svg.lucide {
+  stroke-width: 1.5;
+}
+
 /*  SCROLLBAR — moss green (N4′: ghost mark: 4 px, transparent track) */
 
 ::-webkit-scrollbar {
