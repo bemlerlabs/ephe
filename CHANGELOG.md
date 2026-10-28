@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.3.0 UI fix is named below (`426be55`): the index pill reads the declared
+`bg-surface-interactive` hover role, and the twelve `codebase.*` leaves move the
+locale ceilings by their measured size.
 The 0.3.0 changes are named below (`bd27cd6`): a workspace is indexed locally into
 SQLite from Python, TypeScript, JavaScript and Rust declarations with ignore rules
 and mtime-only re-parsing, a status pill and dialog show the index, `query_codebase`
