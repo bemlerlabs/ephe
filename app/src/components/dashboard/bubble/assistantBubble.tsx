@@ -15,6 +15,7 @@ import { TurnHeadRow } from './turnHeadRow'
 import { StreamBlocks } from './streamBlocks'
 import { SourcesBar } from './sourcesBar'
 import { ToolStreamRows } from './toolStreamRows'
+import { SwarmDeck } from './SwarmDeck'
 import LiveAskCard from './liveAskCard'
 
 interface AssistantBubbleProps {
@@ -151,6 +152,7 @@ export function AssistantBubble({
       {/* 2. Activities (phase transitions inline) — transient: only
                   while streaming, otherwise "Analyzing request…" lingers in
                   finished bubbles forever (deploy polish P2-6). */}
+      {m.activities && m.activities.length > 0 && <SwarmDeck activities={m.activities} />}
       {m.streaming && <ActivityFeed activities={m.activities} />}
 
       {/* R1 (reference parity): ordered chronology plan — thinking,

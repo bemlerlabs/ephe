@@ -2638,5 +2638,20 @@
     "done": "{{count}} Symbole indexiert",
     "error": "Indexierung fehlgeschlagen: {{message}}",
     "close": "Schließen"
+  },
+  "swarm": {
+    "phase": {
+      "planning": "Planung",
+      "spawning": "Helfer werden gestartet",
+      "executing": "Helfer arbeiten",
+      "synthesizing": "Berichte werden zusammengeführt",
+      "done": "Fertig"
+    },
+    "seal": "NUR LESEND",
+    "agent": {
+      "running": "läuft",
+      "done": "fertig",
+      "failed": "fehlgeschlagen"
+    }
   }
 }

@@ -2638,5 +2638,20 @@
     "done": "{{count}} symbols indexed",
     "error": "Index failed: {{message}}",
     "close": "Close"
+  },
+  "swarm": {
+    "phase": {
+      "planning": "Planning",
+      "spawning": "Spawning helpers",
+      "executing": "Helpers at work",
+      "synthesizing": "Merging the reports",
+      "done": "Done"
+    },
+    "seal": "READ-ONLY HELPERS",
+    "agent": {
+      "running": "running",
+      "done": "done",
+      "failed": "failed"
+    }
   }
 }
