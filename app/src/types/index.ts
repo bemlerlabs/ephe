@@ -314,6 +314,7 @@ export interface GenerationBlock {
   tool_budget?: number | null
   context_window?: number | null
   memory_max_entries?: number | null
+  swarm_max_parallel?: number | null
 }
 
 export interface AppSettings {

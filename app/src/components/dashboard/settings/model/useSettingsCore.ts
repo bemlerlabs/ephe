@@ -168,6 +168,7 @@ export function useSettingsCore(state: ReturnType<typeof useSettingsState>) {
         tool_budget: g.tool_budget != null ? String(g.tool_budget) : '',
         context_window: g.context_window != null ? String(g.context_window) : '',
         memory_max_entries: g.memory_max_entries != null ? String(g.memory_max_entries) : '',
+        swarm_max_parallel: g.swarm_max_parallel != null ? String(g.swarm_max_parallel) : '',
       })
     } catch {
       // A read that failed says nothing about the engine, so nothing is seeded into the

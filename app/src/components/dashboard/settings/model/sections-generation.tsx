@@ -20,6 +20,7 @@ const DIALS = [
   ['tool_budget', 'settings.genToolBudget'],
   ['context_window', 'settings.genContextWindow'],
   ['memory_max_entries', 'settings.genMemoryMax'],
+  ['swarm_max_parallel', 'settings.genSwarmMax'],
 ] as const
 
 export function renderGeneration(model: SettingsModel) {

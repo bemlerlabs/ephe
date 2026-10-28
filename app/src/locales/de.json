@@ -1072,6 +1072,7 @@
     "genToolBudget": "Tool-Budget",
     "genContextWindow": "Kontext-Fenster",
     "genMemoryMax": "Merksätze (max)",
+    "genSwarmMax": "Swarm-Agenten (parallel)",
     "skills": "Skills",
     "cron": "Cronjobs",
     "cronTitle": "Cronjobs",

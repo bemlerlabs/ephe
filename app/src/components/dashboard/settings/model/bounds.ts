@@ -134,6 +134,7 @@ export const GENERATION_NUMBER_KEYS = [
   'tool_budget',
   'context_window',
   'memory_max_entries',
+  'swarm_max_parallel',
 ] as const
 
 /**

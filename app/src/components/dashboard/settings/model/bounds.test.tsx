@@ -149,7 +149,7 @@ describe('renderGeneration mit Meta aus dem Payload', () => {
     expect(input.max).toBe('1.5')
   })
 
-  it('zeigt jeden der sechs Hebel als eigene Zeile', () => {
+  it('zeigt jeden der sieben Hebel als eigene Zeile', () => {
     render(<div>{renderGeneration(model)}</div>)
     for (const key of [
       'temperature',
@@ -158,6 +158,7 @@ describe('renderGeneration mit Meta aus dem Payload', () => {
       'tool_budget',
       'context_window',
       'memory_max_entries',
+      'swarm_max_parallel',
     ]) {
       expect(screen.getByTestId(`generation-row-${key}`)).toBeTruthy()
     }

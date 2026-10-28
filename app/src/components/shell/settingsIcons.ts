@@ -34,6 +34,7 @@ import {
   LoaderCircle,
   Maximize2,
   MessagesSquare,
+  Network,
   Orbit,
   Palette,
   PlayCircle,
@@ -115,6 +116,7 @@ export const GENERATION_ICONS: Record<string, IconComponent> = {
   tool_budget: SlidersHorizontal,
   context_window: Maximize2,
   memory_max_entries: ListOrdered,
+  swarm_max_parallel: Network,
 }
 
 export function generationIcon(key: string): IconComponent {
