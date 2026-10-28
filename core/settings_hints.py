@@ -193,6 +193,12 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "Scales the companion alone between 70 and 140 percent; type, spacing "
         "and the touch targets of every other control stay unchanged.",
     ),
+    "appearance.companion_countdown_seconds": (
+        "Wie lange der Begleiter seinen Vorschlag zeigt, bevor er ihn selbst "  # language-gate: ignore
+        "ausführt (0 bis 10 Sekunden). Bei 0 führt er sofort aus.",  # language-gate: ignore
+        "How long the companion shows its proposal before acting on it "
+        "(0 to 10 seconds). At 0 it acts at once.",
+    ),
     "appearance.animations_enabled": (
         "Übergänge und CSS-Animationen ein oder aus; aus legt auch den "
         "Feder-Einstieg der Nachrichten still. Die reduced-motion-Einstellung des "

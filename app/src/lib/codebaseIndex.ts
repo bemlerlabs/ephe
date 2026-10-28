@@ -18,10 +18,20 @@ const EMPTY: CodebaseIndexStatus = {
   total: 0,
 }
 
+// The pill polls anyway; the co-pilot reads the same answer instead of a second
+// request, and an index it starts is visible to the next co-pilot decision.
+let known: CodebaseIndexStatus | null = null
+
 async function readStatus(response: Response): Promise<CodebaseIndexStatus> {
   if (!response.ok) throw new Error(`index status HTTP ${response.status}`)
   const body = (await response.json()) as Partial<CodebaseIndexStatus>
-  return { ...EMPTY, ...body }
+  known = { ...EMPTY, ...body }
+  return known
+}
+
+/** The last answer any surface received, or null before the first one. */
+export function lastKnownIndexState(): CodebaseIndexStatus['state'] | null {
+  return known?.state ?? null
 }
 
 export async function fetchIndexStatus(): Promise<CodebaseIndexStatus> {

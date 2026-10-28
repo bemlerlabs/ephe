@@ -17,10 +17,13 @@ import { approveSandbox } from '@/lib/api/endpoints'
 import { answerAsk } from '@/lib/api/endpoints'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { markSetupIntent } from '@/lib/setupGate'
+import { lastKnownIndexState } from '@/lib/codebaseIndex'
+import { deepNumber } from '@/lib/deepSettings'
 import {
   bindEscapeCancel,
-  COUNTDOWN_MS,
   CopilotCountdown,
+  countdownMs,
+  DEFAULT_COUNTDOWN_SECONDS,
   findCopilotTarget,
   pushReceipt,
   type CopilotFinding,
@@ -158,6 +161,7 @@ export function useCompanionCopilot(args: {
       ).length,
       toolError: toolCalls.some((c) => c.status === 'failed'),
       repairVisible,
+      codebaseIdle: lastKnownIndexState() === 'idle',
     }
 
     const next = findCopilotTarget(snapshot, mode)
@@ -185,11 +189,13 @@ export function useCompanionCopilot(args: {
     if (executedKey.current === key) return
     if (countdown.current) return
 
-    const count = new CopilotCountdown(COUNTDOWN_MS)
+    // QD-013: the pause before an automatic act is the user's, 0 s included.
+    const ms = countdownMs(deepNumber('appearance.companion_countdown_seconds', DEFAULT_COUNTDOWN_SECONDS))
+    const count = new CopilotCountdown(ms)
     countdown.current = count
     activeKey.current = key
-    setDeadline(Date.now() + COUNTDOWN_MS)
-    setRemaining(COUNTDOWN_MS)
+    setDeadline(ms > 0 ? Date.now() + ms : null)
+    setRemaining(ms)
     escapeRelease.current = bindEscapeCancel(cancel)
     count.start(() => {
       countdown.current = null

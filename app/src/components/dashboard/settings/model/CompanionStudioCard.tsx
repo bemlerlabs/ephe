@@ -12,6 +12,8 @@ export const COMPANION_KEYS = [
   'appearance.companion_behavior',
   'appearance.companion_sound',
   'appearance.companion_scale',
+  'appearance.companion_mode',
+  'appearance.companion_countdown_seconds',
 ] as const
 
 const SPECIES: CompanionSpecies[] = ['fire_bee', 'ember_spark', 'minimal']
@@ -31,6 +33,11 @@ export function CompanionStudioCard({ model }: { model: SettingsModel }) {
   const species = String(valueOf(model, 'appearance.companion_species', 'fire_bee'))
   const scale = Number(valueOf(model, 'appearance.companion_scale', 100))
   const enabled = Boolean(valueOf(model, 'appearance.companion_enabled', false))
+  const seconds = Number(valueOf(model, 'appearance.companion_countdown_seconds', 2.5))
+  const countdown =
+    seconds > 0
+      ? t('settings.companionCountdownValue', { seconds: seconds.toFixed(1) })
+      : t('settings.companionCountdownNow')
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)
     : 'fire_bee'
@@ -56,6 +63,13 @@ export function CompanionStudioCard({ model }: { model: SettingsModel }) {
           </h4>
           <p className="pt-0.5 text-scale-data text-ink-faint">
             {t('settings.companionStudioHint')}
+          </p>
+          {/* QD-013: the readout makes the slider's effect legible before a turn runs. */}
+          <p
+            data-testid="companion-countdown-readout"
+            className="pt-1 text-scale-data tabular-nums text-ink-soft"
+          >
+            {countdown}
           </p>
         </div>
       </div>

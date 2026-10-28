@@ -33,6 +33,7 @@ vi.mock('@/store/chatStore', () => ({
 }))
 
 import { useChatStore } from '@/store/chatStore'
+import { seedDeepSettings } from '@/lib/deepSettings'
 import { useCompanionCopilot } from './useCompanionCopilot'
 
 // The real store object sits behind the selector; the hook reads getState()
@@ -97,6 +98,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  seedDeepSettings(null)
   window.removeEventListener('ephe:preview-open', recordPreview)
 })
 
@@ -118,6 +120,35 @@ describe('useCompanionCopilot — the loop', () => {
     expect(result.current.receipts).toHaveLength(1)
     expect(result.current.receipts[0]!.actionKey).toBe('copilot.action.approve')
     expect(result.current.countdownRemaining).toBeNull()
+  })
+
+  it('acts at once when the user set the countdown to 0 s', async () => {
+    seedDeepSettings([
+      {
+        key: 'appearance',
+        fields: [
+          {
+            key: 'appearance.companion_countdown_seconds',
+            type: 'number',
+            value: 0,
+            default: 2.5,
+            min: 0,
+            max: 10,
+            step: 0.5,
+            label: 'countdown',
+            labelEn: 'countdown',
+          },
+        ],
+      },
+    ])
+    state.currentSession = sessionWith([
+      assistant({ id: 't1', name: 'run_shell', args: { command: 'pytest' }, status: 'waiting', description: 'token-0s' }),
+    ])
+    const { result } = renderHook(() => useCompanionCopilot(hookArgs()))
+    expect(result.current.finding?.verdict).toBe('auto_act')
+    // The proof is the zero-length advance: a 2500 ms countdown would not fire here.
+    await vi.advanceTimersByTimeAsync(0)
+    expect(approveSandbox).toHaveBeenCalledWith('token-0s', true, false)
   })
 
   it('a risky command never starts a countdown and never approves', () => {

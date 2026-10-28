@@ -88,6 +88,26 @@ const sections = [
         max: 140,
       },
       {
+        key: 'appearance.companion_mode',
+        type: 'select',
+        value: 'copilot',
+        default: 'copilot',
+        label: 'mode',
+        labelEn: 'mode',
+        options: ['perch', 'scout', 'copilot'],
+      },
+      {
+        key: 'appearance.companion_countdown_seconds',
+        type: 'number',
+        value: 2.5,
+        default: 2.5,
+        min: 0,
+        max: 10,
+        step: 0.5,
+        label: 'countdown',
+        labelEn: 'countdown',
+      },
+      {
         key: 'appearance.animations_enabled',
         type: 'bool',
         label: 'Animationen aktiv',
@@ -175,7 +195,7 @@ describe('AppearanceSection', () => {
     expect(setDeepField).toHaveBeenCalledWith('appearance', 'appearance.reading_width', 640)
   })
 
-  it('renders the live companion studio with the five register rows', () => {
+  it('renders the live companion studio with every register row', () => {
     render(<AppearanceSection model={model()} />)
     const studio = screen.getByTestId('companion-studio')
     expect(studio.querySelector('.companion-actor')).toBeTruthy()

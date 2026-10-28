@@ -139,12 +139,15 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // so the ceilings move by the measured delta and keep the ~600 B headroom the
 // earlier waves held.
 // G3 + C1: capability matrix, stage switch and the swarm deck's five strings.
+// Raised on 2026-10-28 (QD-013): the companion countdown row and readout, plus the
+// co-pilot's codebase-index action and reason. Measured as committed: en.json
+// 136,036 B and de.json 147,373 B; both halves take the ~600 B headroom again.
 // Grown again on 2026-10-28 (E2, C2): the approval card names its three actions
 // ("Allow once" / "Einmalig") and the deck's seal carries the guard's tool count.
 // Measured as committed: en.json 135,271 B and de.json 146,565 B, so both halves
 // move to keep the ~600 B headroom the earlier waves held.
-const EN_CEILING = 135_900
-const DE_CEILING = 147_200
+const EN_CEILING = 136_650
+const DE_CEILING = 148_000
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

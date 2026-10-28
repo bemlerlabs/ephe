@@ -1347,7 +1347,9 @@
     "audienceTitle": "How much detail",
     "audienceHint": "One switch for wording and depth: plain confirmations, or every hash and timing.",
     "audienceEveryday": "For everyone",
-    "audienceExpert": "Expert view"
+    "audienceExpert": "Expert view",
+    "companionCountdownNow": "Immediately",
+    "companionCountdownValue": "{{seconds}} s before it acts"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",
@@ -2625,7 +2627,8 @@
       "compact": "Compact the session",
       "contextLimit": "Context is at the limit",
       "openReview": "Open Review / Artifacts",
-      "focusRepair": "Focus the repair control"
+      "focusRepair": "Focus the repair control",
+      "indexCodebase": "Index the codebase"
     },
     "reason": {
       "safeCheck": "Allowlisted single check command",
@@ -2637,7 +2640,8 @@
       "contextAfterTurn": "Context {{param}}% after the turn",
       "newFiles": "The turn that just ended produced files",
       "repair": "The setup needs its key binding repaired",
-      "toolFailed": "A tool call failed"
+      "toolFailed": "A tool call failed",
+      "codebaseIdle": "This workspace has no codebase index yet"
     }
   },
   "codebase": {

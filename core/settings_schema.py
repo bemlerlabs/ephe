@@ -168,6 +168,12 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                   "label": "Begleiter-Modus", "labelEn": "Companion mode"},
     "appearance.companion_scale": {"type": "number", "default": 100, "min": 70, "max": 140,
                                    "label": "Begleiter-Größe (%)", "labelEn": "Companion size (%)"},
+    # QD-013: how long the co-pilot's proposal stays on screen before it acts. 0
+    # means it acts at once — the reader who set it asked for exactly that.
+    "appearance.companion_countdown_seconds": {"type": "number", "default": 2.5,
+                                               "min": 0.0, "max": 10.0, "step": 0.5,
+                                               "label": "Rückfrage-Zeit (s)",
+                                               "labelEn": "Countdown (s)"},
     # I3-4: default True — the time always stood under the message. A
     # switch whose default invents the shipped behaviour would be a
     # regressive button (off = something disappears that nobody ever ordered).
@@ -467,7 +473,9 @@ def deep_view() -> list[dict[str, Any]]:
                 # I3-3: step derived from the field type, not typed per field —
                 # whole numbers jump by 1, decimals with a fine hand. A fourth
                 # bound in the schema would be another source to keep in sync.
-                entry["step"] = 1 if isinstance(meta["default"], int) else 0.01
+                entry["step"] = meta.get("step") or (
+                    1 if isinstance(meta["default"], int) else 0.01
+                )
             if meta["type"] == "text" and "max_chars" in meta:
                 entry["maxChars"] = meta["max_chars"]
                 entry["multiline"] = bool(meta.get("multiline"))

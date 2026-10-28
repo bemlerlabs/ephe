@@ -12,6 +12,16 @@
  * happens: 2500 ms on screen, canceled by Escape or the Cancel button.
  */
 export const COUNTDOWN_MS = 2500
+/** QD-013: the countdown is a setting now; this is only its default. */
+export const DEFAULT_COUNTDOWN_SECONDS = 2.5
+
+/** Seconds as the schema allows them (0-10), rounded to whole milliseconds. */
+export function countdownMs(seconds: number | null | undefined): number {
+  const value = typeof seconds === 'number' && Number.isFinite(seconds)
+    ? Math.min(10, Math.max(0, seconds))
+    : DEFAULT_COUNTDOWN_SECONDS
+  return Math.round(value * 1000)
+}
 export const RECEIPT_CAP = 10
 
 export type CopilotMode = 'perch' | 'scout' | 'copilot'
@@ -22,6 +32,7 @@ export type CopilotTargetId =
   | 'context_compact'
   | 'open_review_or_preview'
   | 'error_or_setup_repair'
+  | 'codebase_index'
 
 export interface CopilotFinding {
   target: CopilotTargetId
@@ -56,6 +67,8 @@ export interface CopilotSnapshot {
   newEdits: number
   toolError: boolean
   repairVisible: boolean
+  /** The workspace has no codebase index yet, so pointing at it is the next step. */
+  codebaseIdle?: boolean
   /** Verbs the user taught it through "Remember this command shape". */
   remembered?: readonly string[]
 }
@@ -306,6 +319,17 @@ export function findCopilotTarget(
       selector: snapshot.repairVisible
         ? '[data-testid="setup-repair"]'
         : '[data-testid="tool-call-error"], [data-testid="tool-card"]',
+    }
+  }
+
+  // Lowest priority of all: it is a suggestion, never a repair.
+  if (snapshot.codebaseIdle) {
+    return {
+      target: 'codebase_index',
+      verdict: mode === 'scout' ? 'focus' : 'auto_act',
+      actionKey: 'copilot.action.indexCodebase',
+      reasonKey: 'copilot.reason.codebaseIdle',
+      selector: '[data-testid="codebase-pill"]',
     }
   }
 

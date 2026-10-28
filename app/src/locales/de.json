@@ -1347,7 +1347,9 @@
     "audienceTitle": "Wie viel Detail",
     "audienceHint": "Ein Schalter für Wortwahl und Tiefe: schlichte Bestätigungen oder jeder Hash und jede Laufzeit.",
     "audienceEveryday": "Für Jedermann",
-    "audienceExpert": "Experten-Röntgenblick"
+    "audienceExpert": "Experten-Röntgenblick",
+    "companionCountdownNow": "Sofort",
+    "companionCountdownValue": "{{seconds}} s bis zur Ausführung"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",
@@ -2625,7 +2627,8 @@
       "compact": "Sitzung komprimieren",
       "contextLimit": "Kontext ist am Limit",
       "openReview": "Review / Artefakte öffnen",
-      "focusRepair": "Reparatur-Element anzeigen"
+      "focusRepair": "Reparatur-Element anzeigen",
+      "indexCodebase": "Codebase indexieren"
     },
     "reason": {
       "safeCheck": "Einzelner Prüfbefehl aus der Freigabeliste",
@@ -2637,7 +2640,8 @@
       "contextAfterTurn": "Kontext {{param}}% nach der Runde",
       "newFiles": "Die letzte Runde hat Dateien erzeugt",
       "repair": "Die Einrichtung braucht eine reparierte Schlüsselbindung",
-      "toolFailed": "Ein Werkzeugaufruf ist fehlgeschlagen"
+      "toolFailed": "Ein Werkzeugaufruf ist fehlgeschlagen",
+      "codebaseIdle": "Für diesen Arbeitsbereich gibt es noch keinen Index"
     }
   },
   "codebase": {
