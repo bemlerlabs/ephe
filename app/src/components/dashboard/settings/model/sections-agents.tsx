@@ -9,7 +9,7 @@ import SearchInput from '@/components/shell/SearchInput'
 import Switch from '@/components/shell/Switch'
 import { LoadingRow } from '@/components/ui'
 import { toastBus } from '@/lib/toast'
-import { importPickedFolder } from '@/lib/settingsImport'
+import { importPickedFolder } from '@/lib'
 import { isDesktopShell } from '@/lib/tauriBridge'
 import {
   duplicateAgent,

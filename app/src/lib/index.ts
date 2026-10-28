@@ -35,3 +35,8 @@ export * from './toolCardModel'
 export * from './toolStreamModel'
 export * from './utils'
 export type { ToolCallShape } from './toolCardModel'
+
+export * from './custodyGate'
+export * from './platformChrome'
+export * from './settingsImport'
+export * from './globalShortcut'

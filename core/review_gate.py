@@ -4,10 +4,8 @@ Parallel writers are only safe when a refusal is possible. This module holds the
 change set reaches the trunk after a reviewer approved it, the reviewer is never its own
 author, and an approval carrying no located reason is never recorded at all.
 
-A reason names a path, a line and the sentence a reviewer would say. Both review-shaped
-instruments this repo already runs read the same way – ``scripts/architecture_check.mjs``
-reports a rule against a file, ``app/scripts/bundle_budget.py`` a limit against a chunk – so
-a human reads one dialect across the whole gate stack.
+A reason names a path, a line and the sentence a reviewer would say, the dialect
+``scripts/architecture_check.mjs`` and ``app/scripts/bundle_budget.py`` already print.
 
 Three rules are enforced here rather than described:
 
@@ -52,13 +50,8 @@ REASON_KEYS = frozenset({"path", "line", "why"})
 class ReviewGateError(ValueError):
     """A submission the gate turns down before it becomes a verdict.
 
-    ``code`` is stable, so a surface can key its next step on it instead of
-    matching prose: an author signing its own work answers ``self_sign_forbidden``
-    and everything else keeps the generic ``review_refused``.
-
-    A refusal arrives as an error because it does not belong in the verdict list: a verdict
-    with no located reason is not a weaker verdict, and an author's approval of its own work
-    is not a verdict either. Neither one is written to the ledger.
+    ``code`` is stable: a self-signature answers ``self_sign_forbidden``, the rest
+    ``review_refused``. Neither kind reaches the ledger.
     """
 
     def __init__(self, message: str, *, code: str = "review_refused") -> None:
@@ -305,9 +298,8 @@ class ReviewLedger:
         outside = [r.where() for r in recorded.reasons if target.paths and r.path not in target.paths]
         if outside:
             raise ReviewGateError(
-                f"{target.change_set_id} does not touch "
-                + ", ".join(outside)
-                + "; a reason names a file in the change set"
+                f"{target.change_set_id} does not touch {', '.join(outside)}; "
+                "a reason names a file in the change set"
             )
         entry = {
             "schema": LEDGER_SCHEMA,

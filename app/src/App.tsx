@@ -9,7 +9,7 @@ import PageErrorBoundary from '@/components/dashboard/PageErrorBoundary'
 import { useCommandPalette } from '@/hooks'
 import { CommandPalette } from '@/components/ui'
 import { consumeSetupIntent, shouldLeaveSetup } from '@/lib'
-import { gateSnapshot, loadSetupGate, subscribeGate, type SetupGate } from '@/lib/setupGate'
+import { gateSnapshot, loadSetupGate, subscribeGate, type SetupGate } from '@/lib'
 
 // Route-level code-splitting: chat, setup and memory are independent bundles
 const ChatPage = lazy(() => import('./pages/ChatPage'))

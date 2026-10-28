@@ -21,9 +21,13 @@ vi.mock('@/lib/api', () => ({
   getSetupStatus: () => Promise.resolve({ configured: true, skipped: false }),
 }))
 
+const readyGate = { ready: true, configured: true, skipped: false }
 vi.mock('@/lib', () => ({
   consumeSetupIntent: () => false,
   shouldLeaveSetup: () => false,
+  gateSnapshot: () => readyGate,
+  loadSetupGate: async () => {},
+  subscribeGate: () => () => {},
 }))
 
 vi.mock('@/hooks', () => ({

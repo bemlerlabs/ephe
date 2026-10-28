@@ -118,15 +118,12 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "Setzt die Schriftgröße der Oberfläche: alle sieben Stufen hängen an "
         "einer Variablen (14 px bei 100 Prozent), die Abstände in rem bleiben. "
         "Wirkt direkt nach dem Speichern.",
-        "Sets the interface text size: all seven steps hang off one variable "
-        "(14 px at 100 percent) while rem spacing stays. Applies right after saving.",
+        "Sets the interface text size: all seven steps hang off one variable (14 px at 100 "
+        "percent) while rem spacing stays. Applies right after saving.",
     ),
     "appearance.base_font_px": (
-        "Legt die Grundstufe der Oberfläche fest (13, 14 oder 15 px). Die "  # language-gate: ignore
-        "Prozent-Regler darüber skalieren diesen Wert; 15 px ist der Standard.",  # language-gate: ignore
-        "Sets the interface's base step (13, 14 or 15 px). The percentage dials "
-        "scale this value; 15 px is the default.",
-    ),
+        "Grundstufe in px (13, 14, 15); die Prozent-Regler skalieren sie.",  # language-gate: ignore
+        "Base step in px (13, 14 or 15); the percentage dials scale it."),
     "appearance.chat_font_scale": (
         "Skaliert nur den Fließtext im Gespräch zwischen 80 und 150 Prozent; "  # language-gate: ignore
         "die übrige Oberfläche folgt weiterhin der allgemeinen Schriftgröße.",  # language-gate: ignore
@@ -187,18 +184,12 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "a visible countdown. Riskier actions always stay with the user.",
     ),
     "appearance.companion_scale": (
-        "Skaliert nur den Begleiter zwischen 70 und 140 Prozent; Typografie, "  # language-gate: ignore
-        "Abstände und die Touch-Flächen der übrigen Bedienelemente bleiben "  # language-gate: ignore
-        "unverändert.",  # language-gate: ignore
-        "Scales the companion alone between 70 and 140 percent; type, spacing "
-        "and the touch targets of every other control stay unchanged.",
+        "Skaliert nur den Begleiter (70-140 %); Typografie, Abstände und Touch-Flächen bleiben.",  # language-gate: ignore
+        "Scales the companion alone (70-140 percent); type, spacing and touch targets stay.",
     ),
     "appearance.companion_countdown_seconds": (
-        "Wie lange der Begleiter seinen Vorschlag zeigt, bevor er ihn selbst "  # language-gate: ignore
-        "ausführt (0 bis 10 Sekunden). Bei 0 führt er sofort aus.",  # language-gate: ignore
-        "How long the companion shows its proposal before acting on it "
-        "(0 to 10 seconds). At 0 it acts at once.",
-    ),
+        "Zeit bis zur Ausführung (0-10 s); bei 0 sofort.",  # language-gate: ignore
+        "Time before it acts (0-10 s); at 0 it acts at once."),
     "appearance.animations_enabled": (
         "Übergänge und CSS-Animationen ein oder aus; aus legt auch den "
         "Feder-Einstieg der Nachrichten still. Die reduced-motion-Einstellung des "

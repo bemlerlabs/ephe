@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from core.tools.index_refresh import refresh_index
 from core.tools.base import (
     FileNotAllowedError,
     MAX_FILE_CHARS,
@@ -88,29 +89,6 @@ async def file_search(query: str, path: str | None = None) -> str:
         return f"Searching for '{query}' took too long."
     except FileNotFoundError:
         return f"file search not available on this system ({sys.platform})."
-
-
-def _refresh_index(written: Path) -> None:
-    """QD-013: keep the codebase index in step with what the agent just wrote.
-
-    A failed refresh must never fail the write: the file is already on disk, and
-    an index that lags is repaired by the next full run.
-    """
-    try:
-        from core.engine_config import get_workspace_dir
-        from core.semindex.store import SemanticStore, index_database, reindex_single_file
-
-        root = Path(get_workspace_dir()).resolve()
-        database = index_database(root)
-        if not database.exists():
-            return
-        store = SemanticStore(database)
-        try:
-            reindex_single_file(store, root, written)
-        finally:
-            store.close()
-    except Exception:
-        return
 
 
 def _resolve_against_workspace(path: str) -> Path:
@@ -215,7 +193,7 @@ async def edit_file(path: str, old_string: str, new_string: str, replace_all: bo
         # a non-empty old_string the loop otherwise broke on FileNotFound).
         resolved.parent.mkdir(parents=True, exist_ok=True)
         resolved.write_text(new_string, encoding="utf-8")
-        _refresh_index(resolved)
+        refresh_index(resolved)
         from core import coding_loop
 
         return f"created '{resolved}' ({len(new_string)} chars)." + coding_loop.annotation(resolved)
@@ -236,7 +214,7 @@ async def edit_file(path: str, old_string: str, new_string: str, replace_all: bo
 
     updated = content.replace(old_string, new_string) if replace_all else content.replace(old_string, new_string, 1)
     resolved.write_text(updated, encoding="utf-8")
-    _refresh_index(resolved)
+    refresh_index(resolved)
 
     diff = "".join(
         difflib.unified_diff(
@@ -341,7 +319,7 @@ async def write_file(path: str, content: str) -> str:
     previous = resolved.read_text(encoding="utf-8", errors="replace") if existed else ""
     resolved.parent.mkdir(parents=True, exist_ok=True)
     resolved.write_text(content, encoding="utf-8")
-    _refresh_index(resolved)
+    refresh_index(resolved)
 
     diff = "".join(
         difflib.unified_diff(

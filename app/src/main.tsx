@@ -4,7 +4,7 @@ import { Suspense, lazy, useState } from 'react'
 import './i18n'
 import { installDbAutoFlush } from '@/lib'
 import { deepBool, initDeepSettings } from '@/lib'
-import { ensureGlobalShortcut } from '@/lib/globalShortcut'
+import { ensureGlobalShortcut } from '@/lib'
 import { saveSections } from '@/lib/api'
 import { hasSeenFirstRunIntro, loadSetupGate, readSetupGateHint } from '@/lib'
 import { initPwa } from './registerSW'
@@ -89,7 +89,7 @@ import '@fontsource/jetbrains-mono/latin-400.css'
 import '@fontsource/jetbrains-mono/latin-700.css'
 import '@fontsource/jetbrains-mono/latin-ext-400.css'
 import '@fontsource/jetbrains-mono/latin-ext-700.css'
-import { applyPlatformChrome } from '@/lib/platformChrome'
+import { applyPlatformChrome } from '@/lib'
 
 // PWA: register the service worker (production builds only — in the dev server
 // the SW would intercept SSE streaming and module fetches) and mount the install

@@ -21,7 +21,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Badge, Button } from '@/components/ui'
 import { reviewChangeSet, type FileChange, type Verdict } from '@/lib/api'
 import { refusalSentence } from './labels'
-import { evaluateCustodyGate } from '@/lib/custodyGate'
+import { evaluateCustodyGate } from '@/lib'
 
 /** The reviewer's name is remembered between verdicts — typing it each time is friction
  * that buys nothing, and the value is not a secret. */
