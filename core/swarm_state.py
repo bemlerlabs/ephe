@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
+
+from core import sqlite_util
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -123,7 +125,7 @@ class SwarmStateStore:
 
         if db_path:
             # T-09: SQLite backend
-            self._db: sqlite3.Connection | None = sqlite3.connect(
+            self._db: sqlite3.Connection | None = sqlite_util.connect(
                 db_path, check_same_thread=False
             )
             self._db.row_factory = sqlite3.Row

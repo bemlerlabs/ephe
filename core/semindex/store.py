@@ -11,6 +11,7 @@ import sqlite3
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from core import sqlite_util
 from core.semindex.tree import (
     LANGUAGE_BY_SUFFIX,
     SUPPORTED_SUFFIXES,
@@ -117,7 +118,7 @@ class SemanticStore:
 
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = str(db_path)
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = sqlite_util.connect(self.db_path)
         self.conn.executescript(_SCHEMA)
         self.conn.commit()
 

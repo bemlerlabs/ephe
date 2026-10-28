@@ -34,6 +34,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from core import sqlite_util
 from core.memory_kepta_ranking import entry
 from core.memory_kepta_read import KeptaReadMixin
 from core.memory_kepta_schema import (
@@ -86,7 +87,7 @@ class KeptaProvider(KeptaReadMixin):
         """The calling thread's connection, opened on first use."""
         conn: sqlite3.Connection | None = getattr(self._local, "conn", None)
         if conn is None:
-            conn = sqlite3.connect(self._db_path)
+            conn = sqlite_util.connect(self._db_path)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA busy_timeout = 5000")
             conn.execute("PRAGMA foreign_keys = ON")

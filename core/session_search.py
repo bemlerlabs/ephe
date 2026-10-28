@@ -26,6 +26,8 @@ import json
 import os
 import re
 import sqlite3
+
+from core import sqlite_util
 from pathlib import Path
 from typing import Any
 
@@ -92,7 +94,7 @@ def _ensure_format(conn: sqlite3.Connection) -> None:
 
 
 def _open_index(path: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(str(path))
+    conn = sqlite_util.connect(path)
     conn.executescript(_SCHEMA)
     _ensure_format(conn)
     return conn

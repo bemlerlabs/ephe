@@ -34,6 +34,8 @@ _SECRET_KEY_RE = re.compile(r"key|token|secret|password|auth", re.IGNORECASE)
 _SLUGISH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ./_:-]{1,80}$")
 
 
+from core import sqlite_util
+
 def _strip_jsonc(text: str) -> str:
     """Removes // and /* */ comments (JSONC → JSON). String-safe enough
     for configs: comments inside strings are not relevant in practice —
@@ -493,7 +495,7 @@ def _recent_models_from_db(db: Path) -> list[str]:
     try:
         import sqlite3
 
-        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        con = sqlite_util.connect(db, readonly=True)
         try:
             rows = con.execute(
                 "SELECT model FROM session WHERE model IS NOT NULL AND model != ''"

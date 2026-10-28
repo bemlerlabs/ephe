@@ -24,6 +24,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core import sqlite_util
 from core.artifact_workbench import artifact_target, content_hash, iso, now_iso, schedule_for
 
 # Env override (deployment/tests), otherwise ~/.ephe/artifacts.db — pattern like
@@ -84,7 +85,7 @@ _COLS = (
 
 def _connect() -> sqlite3.Connection:
     ARTIFACTS_DB.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(ARTIFACTS_DB, check_same_thread=False)
+    conn = sqlite_util.connect(ARTIFACTS_DB, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
