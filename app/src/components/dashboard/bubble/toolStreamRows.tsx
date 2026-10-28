@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { ChevronRight, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useDeepBool } from '@/lib/deepSettings'
+import { useDeepBool, useDeepSelect } from '@/lib/deepSettings'
+import { audienceOf, proofText } from '@/lib/proofAudience'
 import { fmtMs } from '@/lib/format'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import ToolCallDisplay from '../ToolCallDisplay'
@@ -25,6 +26,8 @@ export function ToolStreamRows({
 }) {
   const { t } = useTranslation()
   const showCount = useDeepBool('chat.show_tool_count', true)
+  // P1: the same switch that opens the details also picks the wording.
+  const detailsMode = useDeepSelect('chat.details_mode', 'expanded')
   const expandFirst = useDeepBool('chat.expand_tool_calls', false)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const touched = useRef(false)
@@ -70,6 +73,14 @@ export function ToolStreamRows({
           : g.hasFailure
             ? 'failed'
             : 'done'
+        const groupMs = g.calls.reduce(
+          (sum, c) => sum + ((c as { duration_ms?: number }).duration_ms ?? 0),
+          0,
+        )
+        const proof =
+          rowStatus === 'running'
+            ? null
+            : proofText(audienceOf(detailsMode), { ok: !g.hasFailure, ms: groupMs || null })
         const tailSource = [...g.calls]
           .reverse()
           .map((c) => (c as { stdout?: string }).stdout)
@@ -130,6 +141,16 @@ export function ToolStreamRows({
                   </span>
                 )}
               </span>
+              {proof && (
+                <span
+                  data-testid="tool-row-proof"
+                  className={`tabular-nums text-ui-2xs shrink-0 truncate ${
+                    g.hasFailure ? 'text-status-danger/90' : 'text-ink-faint'
+                  }`}
+                >
+                  {t(proof.key, proof.values)}
+                </span>
+              )}
               {g.target &&
                 g.count === 1 &&
                 (g.family === 'edit' ||

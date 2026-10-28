@@ -396,6 +396,13 @@
     "toolApproved": "{{tool}} genehmigt",
     "goToMessage": "Zu Nachricht {{n}}",
     "askNoTools": "keine Werkzeuge im Ask-Modus",
+    "proof": {
+      "everyday": "✓ Automatische Prüfung bestanden ({{seconds}} s)",
+      "everydayNoTime": "✓ Automatische Prüfung bestanden",
+      "expert": "[{{tool}}] Rückgabewert 0 · {{ms}} ms",
+      "expertNoTime": "[{{tool}}] Rückgabewert 0",
+      "failed": "✗ Prüfung fehlgeschlagen — Zeile öffnen für die Ausgabe"
+    },
     "profilePrefix": "Profil:",
     "modeSelectorAria": "Antwort-Modus des Composers",
     "activeMarker": "(aktuell)",
