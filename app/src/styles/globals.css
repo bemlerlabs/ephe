@@ -146,6 +146,13 @@
   --color-ink-soft: hsl(30 9% 66%);      /* secondary text (mist) */
   --color-ink-faint: hsl(30 8% 53%);     /* muted text (mist-dim / muted-foreground) */
   --color-hairline: hsl(22.5 9.5% 16.5%);     /* #2E2926 — 1-px rules instead of shadows */
+  /* The ten constitution tokens the palette called by another name. Aliases, so
+     nothing on screen moves; the names exist so a surface can ask for a role
+     instead of a hue. */
+  --color-elevated: #25201D;                 /* active card, hover surface, input */
+  --color-ok: var(--color-signal-ok);        /* #5BAE90 */
+  --color-warn: var(--color-signal-warn);    /* #F6A328 */
+  --color-error: var(--color-signal-danger); /* #F63B1E */
   /* Louder hairline = the control boundary. Raised from 24% (1.72:1 on this canvas,
      1.29:1 on the interactive tint) to the WCAG 1.4.11 floor: 3:1 or better against
      every background role the sheet declares, both themes, recomputed on every run. */

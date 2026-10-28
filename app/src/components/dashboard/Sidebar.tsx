@@ -881,7 +881,7 @@ export default function Sidebar({
           >
             <Plus className="h-3.5 w-3.5" />
             {!rail && <span className="flex-1 text-center">{t('sidebar.newChat')}</span>}
-            {!rail && <span className="text-black/60 font-mono text-[10px] pr-1">⌘N</span>}
+            {!rail && <span className="text-black/60 font-mono text-xs pr-1">⌘N</span>}
           </button>
 
           {/* P2-2 → 2026 IA-Sweep : nav in everyday language, every
