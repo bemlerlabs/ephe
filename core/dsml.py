@@ -3,17 +3,20 @@
 Some DeepSeek deployments do not use the OpenAI ``tool_calls`` channel: the
 model writes the call as special tokens in the answer text,
 
-    <｜｜DSML｜｜tool_calls>
-    <｜｜DSML｜｜invoke name="read_file">
-    <｜｜DSML｜｜parameter name="path" string="true">src/main.py</｜｜DSML｜｜parameter>
-    </｜｜DSML｜｜invoke>
-    </｜｜DSML｜｜tool_calls>
+    <||DSML||tool_calls>
+    <||DSML||invoke name="read_file">
+    <||DSML||parameter name="path" string="true">src/main.py</||DSML||parameter>
+    </||DSML||invoke>
+    </||DSML||tool_calls>
+
+The bar is a fullwidth vertical line (U+FF5C) in the template that DeepSeek
+ships; it is written as an escape below so this file stays Latin-only.
 
 and a client that only reads ``tool_calls`` shows the reader the raw XML and
 runs nothing. The bridge below splits those blocks out of the content before it
 reaches the bubble and returns them as ordinary ``ProviderToolCall`` objects.
-Both bar spellings (full-width ``｜`` and ASCII ``|``) and the spaced form
-``<｜｜DSML｜｜ calls>`` are accepted, because the tag is a template artifact
+Both bar spellings (fullwidth U+FF5C and ASCII ``|``) and the spaced form
+``<bars>DSML<bars> calls>`` are accepted, because the tag is a template artifact
 rather than a stable protocol.
 """
 
@@ -26,7 +29,7 @@ import uuid
 
 from core.model_provider import ProviderFunctionCall, ProviderToolCall
 
-_BAR = r"[｜|]{2}"
+_BAR = r"[\uff5c|]{2}"
 _OPEN = rf"<\s*{_BAR}\s*DSML\s*{_BAR}\s*(?:tool_calls|calls)\s*>"
 _CLOSE = rf"</\s*{_BAR}\s*DSML\s*{_BAR}\s*(?:tool_calls|calls)\s*>"
 
@@ -50,7 +53,7 @@ _PARAM_RE = re.compile(
 # between the bars and the word varies by template, so the head is matched
 # loosely rather than enumerated.
 _PARTIAL_HEAD = re.compile(
-    r"</?\s*(?:[｜|]{1,2}\s*)?(?:D(?:S(?:M(?:L)?)?)?)?\s*(?:[｜|]{1,2}\s*)?"
+    r"</?\s*(?:[\uff5c|]{1,2}\s*)?(?:D(?:S(?:M(?:L)?)?)?)?\s*(?:[\uff5c|]{1,2}\s*)?"
     r"(?:t(?:o(?:o(?:l(?:_(?:c(?:a(?:l(?:l(?:s)?)?)?)?)?)?)?)?)?"
     r"|c(?:a(?:l(?:l(?:s)?)?)?)?)?$",
     re.IGNORECASE,

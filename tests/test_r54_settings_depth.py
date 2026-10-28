@@ -73,7 +73,7 @@ def test_get_settings_has_generation_block(client: TestClient):
 def test_generation_defaults(client: TestClient):
     g = client.get("/api/settings").json()["generation"]
     assert g["temperature"] == 0.0
-    assert g["tool_budget"] == 10
+    assert g["tool_budget"] == 25
     assert g["top_p"] is None
     assert g["max_tokens"] is None
     assert g["context_window"] is None
@@ -125,7 +125,8 @@ def test_env_precedence_over_persisted(client: TestClient, monkeypatch: pytest.M
 
 def test_clamp_generation_values_pure():
     from core.engine_config import clamp_generation_value
-    assert clamp_generation_value("tool_budget", None) == 10
+    # QD-015 Z1: the dial's default is the chat class default (25 rounds).
+    assert clamp_generation_value("tool_budget", None) == 25
     assert clamp_generation_value("tool_budget", 0) == 1
     assert clamp_generation_value("tool_budget", 999) == 40
     assert clamp_generation_value("temperature", 9.0) == 2.0
