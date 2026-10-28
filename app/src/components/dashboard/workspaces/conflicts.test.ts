@@ -10,7 +10,7 @@
  * pick its own rows out of the page-wide list without re-deriving the rule.
  */
 import { describe, it, expect } from 'vitest'
-import { pathConflicts, setConflicts } from './conflicts'
+import { detectWorkspaceConflicts, pathConflicts, setConflicts } from './conflicts'
 import type { ChangeSet } from '@/lib/api'
 
 const cs = (id: string, paths: string[], workspace = 'w1', over: Partial<ChangeSet> = {}) => ({
@@ -120,5 +120,11 @@ describe('setConflicts', () => {
 
   it('finds nothing for a set no other run shares a path with', () => {
     expect(setConflicts(cs('a', ['alone.ts']), rows)).toEqual([])
+  })
+})
+
+describe('the order\'s name for the radar (QD-013)', () => {
+  it('detectWorkspaceConflicts is the same rule, not a second one', () => {
+    expect(detectWorkspaceConflicts).toBe(pathConflicts)
   })
 })

@@ -79,3 +79,9 @@ export function setConflicts(changeSet: ChangeSet, conflicts: PathConflict[]): P
     (row) => mine.has(row.path) && row.holders.some((h) => h.changeSetId === changeSet.id),
   )
 }
+
+/**
+ * The name QD-013 asks for. One rule, two callers' vocabularies — a second
+ * implementation would be a second answer to the same question.
+ */
+export const detectWorkspaceConflicts = pathConflicts
