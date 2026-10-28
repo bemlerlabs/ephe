@@ -19,6 +19,10 @@ vi.mock('react-i18next', async (importOriginal) => {
 })
 
 vi.mock('@/lib/api', () => ({
+  getCapabilities: vi.fn(async () => ({
+    subagent: { tools: ['read_file'], tool_count: 1, max_iterations: 8, read_only: true },
+    main_agent: { read_only: false, note: 'all tools' },
+  })),
   getSettings: vi.fn(async () => ({
     provider: {
       type: 'openai_compatible',

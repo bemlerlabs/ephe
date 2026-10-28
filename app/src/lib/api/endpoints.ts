@@ -27,6 +27,16 @@ import type {
   SyncSession,
 } from './types_sessions'
 import type { AppSettings, AskAnswerResponse } from '@/types'
+export interface CapabilitiesView {
+  subagent: { tools: string[]; tool_count: number; max_iterations: number; read_only: boolean }
+  main_agent: { read_only: boolean; note: string }
+}
+
+/** What each agent kind may do, read from the guard rather than a copy. */
+export function getCapabilities(): Promise<CapabilitiesView> {
+  return request<CapabilitiesView>('/api/capabilities')
+}
+
 export function getSettings(): Promise<AppSettings> {
   return request<AppSettings>('/api/settings')
 }

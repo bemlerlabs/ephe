@@ -1322,7 +1322,19 @@
     "companionModePerch": "Perch — sits at the edge, never interferes",
     "companionModeScout": "Scout — points at the next step, never clicks",
     "companionModeCopilot": "Co-pilot — acts on safe steps after a countdown",
-    "modelSizeUnknown": "size unknown"
+    "modelSizeUnknown": "size unknown",
+    "capabilityTitle": "Capability boundary",
+    "capabilityHint": "Who may change files, and under which guard.",
+    "capabilityMain": "Main agent",
+    "capabilityMainHint": "Plans, edits and runs commands; every write passes the approval gate.",
+    "capabilityWrites": "writes allowed",
+    "capabilitySub": "Read-only sub-agent",
+    "capabilityTools": "tools",
+    "capabilityUnknown": "the boundary could not be read",
+    "audienceTitle": "How much detail",
+    "audienceHint": "One switch for wording and depth: plain confirmations, or every hash and timing.",
+    "audienceEveryday": "For everyone",
+    "audienceExpert": "Expert view"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",

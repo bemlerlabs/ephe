@@ -1322,7 +1322,19 @@
     "companionModePerch": "Perch — sitzt ruhig am Rand, greift nie ein",
     "companionModeScout": "Scout — zeigt den nächsten Schritt, klickt nie",
     "companionModeCopilot": "Co-Pilot — handelt nach Countdown bei sicheren Schritten",
-    "modelSizeUnknown": "Größe unbekannt"
+    "modelSizeUnknown": "Größe unbekannt",
+    "capabilityTitle": "Grenze der Fähigkeiten",
+    "capabilityHint": "Wer Dateien ändern darf, und unter welchem Schutz.",
+    "capabilityMain": "Haupt-Agent",
+    "capabilityMainHint": "Plant, ändert und führt aus; jede Schreibaktion geht durch die Freigabe.",
+    "capabilityWrites": "darf schreiben",
+    "capabilitySub": "Nur-Lese-Helfer",
+    "capabilityTools": "Werkzeuge",
+    "capabilityUnknown": "die Grenze ließ sich nicht lesen",
+    "audienceTitle": "Wie viel Detail",
+    "audienceHint": "Ein Schalter für Wortwahl und Tiefe: schlichte Bestätigungen oder jeder Hash und jede Laufzeit.",
+    "audienceEveryday": "Für Jedermann",
+    "audienceExpert": "Experten-Röntgenblick"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",

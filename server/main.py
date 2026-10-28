@@ -33,6 +33,7 @@ from server.routes import (
     agent_teams,
     artifacts,
     audit,
+    capabilities,
     cell,
     learning,
     channels,
@@ -360,6 +361,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
 
     # API routes
     app.include_router(health.router, prefix="/api")
+    app.include_router(capabilities.router, prefix="/api")
     app.include_router(usage.router, prefix="/api")
     app.include_router(files.router, prefix="/api")
     app.include_router(chat.router, prefix="/api")

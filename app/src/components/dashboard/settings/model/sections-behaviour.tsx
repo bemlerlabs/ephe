@@ -25,6 +25,7 @@ import {
 import { CONTROL_CLASS } from '@/components/shell/SettingControl'
 import FolderPickerDialog from '../../FolderPickerDialog'
 import { ApprovalRegister } from './approvalRegister'
+import { CapabilityMatrix, DetailsModeSwitch } from './CapabilityMatrix'
 import { DeepFields } from './deepFields'
 import type { SettingsModel } from './types'
 
@@ -72,7 +73,9 @@ function CustomInstructionsCard({ model }: { model: SettingsModel }) {
 }
 
 export function BehaviourSection({ model }: { model: SettingsModel }) {
-  const { t, setWorkspaceDraft, setWsPickerOpen, workspaceDraft, wsPickerOpen } = model
+  const { t, setWorkspaceDraft, setWsPickerOpen, workspaceDraft, wsPickerOpen, deepDraft, setDeepField } =
+    model
+  const detailsMode = String(deepDraft?.chat?.['chat.details_mode'] ?? 'expanded')
 
   return (
     <div className="space-y-4">
@@ -117,8 +120,14 @@ export function BehaviourSection({ model }: { model: SettingsModel }) {
         />
       </SettingsGroup>
       <CustomInstructionsCard model={model} />
+      <DetailsModeSwitch
+        value={detailsMode}
+        onChange={(next) => setDeepField('chat', 'chat.details_mode', next)}
+        t={t}
+      />
+      <CapabilityMatrix t={t} />
       <ApprovalRegister model={model} />
-      <DeepFields model={model} prefixes={['chat.']} />
+      <DeepFields model={model} prefixes={['chat.']} exclude={['chat.details_mode']} />
     </div>
   )
 }

@@ -138,8 +138,9 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // both files. Measured en.json 133,870 B and de.json 145,056 B (278,926 B together),
 // so the ceilings move by the measured delta and keep the ~600 B headroom the
 // earlier waves held.
-const EN_CEILING = 134_500
-const DE_CEILING = 145_700
+// G3: the capability matrix and the stage switch add twelve strings.
+const EN_CEILING = 134_800
+const DE_CEILING = 145_950
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

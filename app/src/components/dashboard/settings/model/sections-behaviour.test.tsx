@@ -83,7 +83,9 @@ describe('BehaviourSection', () => {
     expect(screen.getByTestId('page-title').textContent).toBe('settings.behaviourTitle')
     expect(screen.getByTestId('page-subtitle').textContent).toBe('settings.behaviourHint')
     expect(screen.getByTestId('deep-row-chat.show_reasoning')).toBeTruthy()
-    expect(screen.getByTestId('deep-row-chat.details_mode')).toBeTruthy()
+    // details_mode has its own two-stage switch now, not a raw select row.
+    expect(screen.getByTestId('details-mode-group')).toBeTruthy()
+    expect(screen.queryByTestId('deep-row-chat.details_mode')).toBeNull()
     expect(screen.getByTestId('deep-row-chat.stream_idle_seconds')).toBeTruthy()
     expect(screen.queryByTestId('deep-row-appearance.font_scale')).toBeNull()
   })
@@ -95,21 +97,17 @@ describe('BehaviourSection', () => {
     )
   })
 
-  it('zeigt die Auswahl in der Sprache des Interfaces, der Wert bleibt der Identifier', () => {
+  it('names the two stages instead of listing raw values', () => {
     render(<BehaviourSection model={model()} />)
-    const select = screen.getByTestId('setting-select-chat.details_mode') as HTMLSelectElement
-    expect(Array.from(select.options).map((o) => o.value)).toEqual(['expanded', 'collapsed'])
-    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
-      'Ausgeklappt',
-      'Eingeklappt',
-    ])
+    expect(screen.getByTestId('details-mode-collapsed')).toBeTruthy()
+    expect(screen.getByTestId('details-mode-expanded')).toBeTruthy()
+    expect(screen.queryByTestId('setting-select-chat.details_mode')).toBeNull()
   })
 
   it('schreibt eine Aenderung in den Draft', () => {
     const setDeepField = vi.fn()
     render(<BehaviourSection model={model({ setDeepField })} />)
-    const select = screen.getByTestId('setting-select-chat.details_mode')
-    fireEvent.change(select, { target: { value: 'collapsed' } })
+    fireEvent.click(screen.getByTestId('details-mode-collapsed'))
     expect(setDeepField).toHaveBeenCalledWith('chat', 'chat.details_mode', 'collapsed')
     fireEvent.click(screen.getByTestId('setting-switch-chat.show_reasoning'))
     expect(setDeepField).toHaveBeenCalledWith('chat', 'chat.show_reasoning', false)
