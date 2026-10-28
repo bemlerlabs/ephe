@@ -1464,15 +1464,8 @@ async def _run_project_command(
     from core.workspace_rules import resolve_workspace_dir
 
     workspace = Path(resolve_workspace_dir()).resolve()
-    candidate = Path(raw).expanduser()  # codeql[py/path-injection]
-    if not candidate.is_absolute():
-        candidate = workspace / candidate
-    try:
-        # the plan is refused below unless it sits inside the workspace (py/path-injection)
-        plan = candidate.resolve()  # codeql[py/path-injection]
-    except OSError:
-        plan = candidate
-    if not plan.is_file() or not plan.is_relative_to(workspace):
+    plan = _project_plan_path(message)
+    if plan is None:
         emit({
             "type": "chunk",
             "data": (
