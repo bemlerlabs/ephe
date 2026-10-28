@@ -53,7 +53,7 @@ export default function CodebaseStatusBarPill({ onOpen, onStatus }: Props) {
       data-testid="codebase-pill"
       data-state={status.state}
       onClick={onOpen}
-      className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-ui-xs font-medium hover:bg-surface-hover ${tone}`}
+      className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-ui-xs font-medium hover:bg-surface-interactive ${tone}`}
       aria-label={label}
     >
       <Icon className={`h-3.5 w-3.5 ${status.state === 'indexing' ? 'animate-spin' : ''}`} />

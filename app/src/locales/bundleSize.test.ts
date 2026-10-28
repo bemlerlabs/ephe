@@ -133,8 +133,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // reveal/open verbs and their refusal line, and the interrupted word the helper
 // directory needs. Measured as committed: en.json 133,274 B and de.json 144,383 B,
 // +371 B / +414 B over the inherited numbers. Both halves move by 500 B.
-const EN_CEILING = 133_500
-const DE_CEILING = 144_500
+// Raised on purpose on 2026-10-28 (QD-012): the codebase index adds the
+// `codebase.*` block — pill, dialog, progress and failure lines — twelve leaves in
+// both files. Measured en.json 133,870 B and de.json 145,056 B (278,926 B together),
+// so the ceilings move by the measured delta and keep the ~600 B headroom the
+// earlier waves held.
+const EN_CEILING = 134_500
+const DE_CEILING = 145_700
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on
