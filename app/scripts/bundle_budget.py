@@ -42,6 +42,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # Agent Center and Teams sections moved into their own lazy chunks. Measured
     # 13.45 kB gzip; the row carries ~10% headroom.
     "SchedulerPanel.js": 14.8,
+    # 2026-10-28: the marketplace and skills cards hand a prepared example to the
+    # chat, so the composer's seed path became a shared chunk of its own. Measured
+    # 13.87 kB gzip in app/dist; the row carries ~10% headroom.
+    "chatSeed.js": 15.3,
     "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
     "motion.js": 35.2,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion; 2026-10-25: 14.5 measures 31.99)
     "ui-vendor.js": 40.0,    # lucide-react, i18next
