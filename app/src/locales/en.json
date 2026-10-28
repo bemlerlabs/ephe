@@ -399,8 +399,8 @@
     "proof": {
       "everyday": "✓ Automatic check passed ({{seconds}} s)",
       "everydayNoTime": "✓ Automatic check passed",
-      "expert": "[{{tool}}] exit 0 · {{ms}} ms",
-      "expertNoTime": "[{{tool}}] exit 0",
+      "expert": "[{{tool}}] passed · {{ms}} ms",
+      "expertNoTime": "[{{tool}}] passed",
       "failed": "✗ Check failed — open the row for the output"
     },
     "profilePrefix": "Profile:",

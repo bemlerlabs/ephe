@@ -399,8 +399,8 @@
     "proof": {
       "everyday": "✓ Automatische Prüfung bestanden ({{seconds}} s)",
       "everydayNoTime": "✓ Automatische Prüfung bestanden",
-      "expert": "[{{tool}}] Rückgabewert 0 · {{ms}} ms",
-      "expertNoTime": "[{{tool}}] Rückgabewert 0",
+      "expert": "[{{tool}}] bestanden · {{ms}} ms",
+      "expertNoTime": "[{{tool}}] bestanden",
       "failed": "✗ Prüfung fehlgeschlagen — Zeile öffnen für die Ausgabe"
     },
     "profilePrefix": "Profil:",
