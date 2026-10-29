@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import WelcomeEmptyState from '../WelcomeEmptyState'
 import { BudgetContinueCard } from '../BudgetContinueCard'
+import { SolInsightCard } from '../SolInsightCard'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
@@ -799,6 +800,7 @@ export default function ChatLayout() {
                     past its edge (computer-use finding t23, 2026-10-01). */}
                     <div aria-hidden="true" className="h-16 lg:h-0" />
                     <BudgetContinueCard onContinue={() => void handleContinue()} />
+                    <SolInsightCard />
                   </div>
                   <RunRail plan={runData.plan} />
                   {/* The toolbar, as a contextual dock: it floats over the

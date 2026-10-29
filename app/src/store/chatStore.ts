@@ -46,6 +46,7 @@ export const useChatStore = create<ChatState>((set, get) => {
     checkpoints: {},
     lastTurnUsage: null,
     budgetNotice: null,
+    solInsights: [],
     enginePricing: null,
     setEnginePricing: (p) => set({ enginePricing: p }),
     ...makeSessionActions(setFn, getFn, persistActive),

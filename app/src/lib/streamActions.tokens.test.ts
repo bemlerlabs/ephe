@@ -22,6 +22,7 @@ function mockStore() {
     markStreamError: vi.fn(),
     markLastUsage: vi.fn(),
     markBudgetReached: vi.fn(),
+    markSolInsight: vi.fn(),
     setReflecting: vi.fn(),
     setRevising: vi.fn(),
     setQualityCheck: vi.fn(),

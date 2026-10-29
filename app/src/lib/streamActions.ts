@@ -56,6 +56,7 @@ type Store = Pick<
   | 'markStreamError'
   | 'markLastUsage'
   | 'markBudgetReached'
+  | 'markSolInsight'
   | 'setReflecting'
   | 'setRevising'
   | 'setQualityCheck'
@@ -223,6 +224,11 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       // QD-015 Z2: the cap end carries the continuation offer — the button
       // reads the same numbers the server counted with.
       store.markBudgetReached(event.cap, event.extra)
+      break
+
+    case 'sol_insight':
+      // SOL: a rule the turn proved. The card names it and links to the store.
+      store.markSolInsight(event.heuristic)
       break
 
     case 'artifact_check':

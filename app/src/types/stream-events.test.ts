@@ -50,6 +50,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
     case 'goal_turn':
     case 'goal_check':
     case 'budget':
+    case 'sol_insight':
     case 'steer':
     case 'gap':
     case 'skill_created':
@@ -81,7 +82,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
 }
 
 describe('StreamEvent (Diskriminierte Union)', () => {
-  it('deckt alle 35 Backend-Event-Typen exhaustiv ab', () => {
+  it('deckt alle 36 Backend-Event-Typen exhaustiv ab', () => {
     const events: StreamEvent[] = [
       { type: 'thinking_start' },
       { type: 'thinking_chunk', data: 'Ich überlege…' },
@@ -123,6 +124,18 @@ describe('StreamEvent (Diskriminierte Union)', () => {
       { type: 'goal_turn', turn: 1 },
       { type: 'goal_check', turn: 1, ok: true, output: '2 passed' },
       { type: 'budget', action: 'continue_turn', cap: 25, extra: 10 },
+      {
+        type: 'sol_insight',
+        heuristic: {
+          id: 'H1',
+          title: 'Tools are not on the PATH',
+          kind: 'command-not-found',
+          trigger: 'command-not-found',
+          insight: 'node resolves to /opt/homebrew/bin/node',
+          action: 'Prepend /opt/homebrew/bin to PATH',
+          verified_at: '2026-10-29T14:00:00Z',
+        },
+      },
       { type: 'steer', status: 'landed', actor: 'user', msg: 'Direction changed', text: 't', agent_id: 'a1' },
       { type: 'swarm_created', swarm_id: 's1', agents: [{ agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' }, { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' }], model: 'gemma4:12b' },
       { type: 'swarm_agent_started', swarm_id: 's1', agent_id: 'a1', subtask: 't' },
@@ -160,7 +173,7 @@ describe('StreamEvent (Diskriminierte Union)', () => {
     ]
     const seen: string[] = []
     for (const e of events) assertExhaustive(e, seen)
-    expect(new Set(seen).size).toBe(35) // 34 + the steering frame
+    expect(new Set(seen).size).toBe(36) // 35 + the steering frame + SOL's learned rule
   })
 
   it('chunk-Payload: { data: string } (exakt, kein content-Feld)', () => {

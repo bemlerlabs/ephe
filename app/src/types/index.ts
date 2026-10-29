@@ -715,6 +715,22 @@ export interface StreamBudget {
   extra: number
 }
 
+/** SOL: one rule a turn proved. The card names it; the store file holds it. */
+export interface SolHeuristic {
+  id: string
+  title: string
+  kind: string
+  trigger: string
+  insight: string
+  action: string
+  verified_at: string
+}
+
+export interface StreamSolInsight {
+  type: 'sol_insight'
+  heuristic: SolHeuristic
+}
+
 export interface StreamFileResult {
   type: 'file_result'
   file_type: string
@@ -783,6 +799,7 @@ export type StreamEvent =
   | StreamGoalTurn
   | StreamGoalCheck
   | StreamBudget
+  | StreamSolInsight
   | StreamGap
   | StreamSkillCreated
   | StreamSwarmCreated

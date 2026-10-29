@@ -25,6 +25,7 @@ function mockStore() {
     markStreamError: vi.fn(),
     markLastUsage: vi.fn(),
     markBudgetReached: vi.fn(),
+    markSolInsight: vi.fn(),
     setReflecting: vi.fn(),
     setRevising: vi.fn(),
     setQualityCheck: vi.fn(),
@@ -46,6 +47,34 @@ describe('applyStreamEvent — budget frame', () => {
   it('does not finish the turn on its own', () => {
     const store = mockStore()
     applyStreamEvent({ type: 'budget', action: 'continue_turn', cap: 40, extra: 10 }, store)
+    expect(store.finishTurn).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * SOL: the rule a turn proved. The dispatcher hands the whole rule to the store —
+ * the card renders the title and links to the file that holds it.
+ */
+describe('applyStreamEvent — sol_insight frame', () => {
+  const rule = {
+    id: 'H1',
+    title: 'The project tools are not on the shell PATH',
+    kind: 'command-not-found',
+    trigger: 'A tool call fails with command-not-found',
+    insight: '`node` resolves to /opt/homebrew/bin/node',
+    action: 'Prepend /opt/homebrew/bin to PATH',
+    verified_at: '2026-10-29T14:00:00Z',
+  }
+
+  it('stores the rule the turn proved', () => {
+    const store = mockStore()
+    applyStreamEvent({ type: 'sol_insight', heuristic: rule }, store)
+    expect(store.markSolInsight).toHaveBeenCalledWith(rule)
+  })
+
+  it('leaves the turn open for the frames after it', () => {
+    const store = mockStore()
+    applyStreamEvent({ type: 'sol_insight', heuristic: rule }, store)
     expect(store.finishTurn).not.toHaveBeenCalled()
   })
 })

@@ -7,6 +7,7 @@ import type {
   Session,
   SessionFolder,
   SessionState,
+  SolHeuristic,
   ToolCall,
 } from '@/types'
 import type { HelperChat } from '@/lib/helperSession'
@@ -224,6 +225,9 @@ export interface ChatState {
    *  next turn starts. */
   budgetNotice: { cap: number; extra: number } | null
   markBudgetReached: (cap: number, extra: number) => void
+  /** SOL: the rules this turn proved, shown as cards until the next turn. */
+  solInsights: SolHeuristic[]
+  markSolInsight: (rule: SolHeuristic) => void
   /** Wave 3 (cost monitor): the price table of the active model — USD per 1M tokens
    *  from engine.json `pricing` (via /api/model/providers). null = no price kept →
    *  the status bar shows no cost chip (never guess a number). */

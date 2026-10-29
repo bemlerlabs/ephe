@@ -465,7 +465,9 @@
       "run": "[{{tool}}] {{args}} · {{state}} · {{ms}} ms · sha256:{{digest}}",
       "passed": "passed",
       "failed": "failed"
-    }
+    },
+    "solLearned": "A rule for this project was learned",
+    "solOpen": "View / Edit"
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",
@@ -1379,7 +1381,19 @@
     "audienceEveryday": "For everyone",
     "audienceExpert": "Expert view",
     "companionCountdownNow": "Immediately",
-    "companionCountdownValue": "{{seconds}} s before it acts"
+    "companionCountdownValue": "{{seconds}} s before it acts",
+    "solGroup": "Learned project rules",
+    "solEmpty": "No rule learned yet",
+    "solEmptyHint": "A rule is stored once a correction ends a failed tool round in this workspace.",
+    "solUnavailable": "The rule store cannot be read",
+    "solUnavailableHint": "The workspace's .ephe/learning folder was not reachable.",
+    "solEdit": "Edit rule",
+    "solEditHint": "This action is what Ephe applies next time.",
+    "solActionLabel": "Rule action",
+    "solSave": "Save",
+    "solDelete": "Delete rule",
+    "solDeleteConfirm": "Confirm delete",
+    "deepSection.sol": "Learning"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",
