@@ -62,14 +62,13 @@ describe('MessageBubble — Tool-Zeilen Spinner + Status-Suffix (P3 Ephe-Norm)',
     expect(screen.getByTestId('tool-row-status').className).toContain('text-status-info')
   })
 
-  it('fertige Gruppe: kein Spinner, „Completed"-Suffix in der gedämpften Rolle', () => {
+  it('fertige Gruppe: kein Spinner und kein Status-Suffix in der Zeile', () => {
     render(<MessageBubble message={toolMsg([shellCall('s1', 'completed')], false)} />)
     expect(screen.queryByTestId('tool-row-spinner')).toBeNull()
     expect(screen.queryByTestId('tool-stream-row-active')).toBeNull()
-    expect(screen.getByTestId('tool-row-status').textContent).toContain('Completed')
-    // R2-B: the step used to be text-status-info/60 — 3.81:1 on paper, hence below
-    // 4.5:1. Muted text now lives on its own role.
-    expect(screen.getByTestId('tool-row-status').className).toContain('text-ink-faint')
+    // One line per finished step: the status lives in the proof line the reader
+    // opens, not as a permanent suffix beside the label.
+    expect(screen.queryByTestId('tool-row-status')).toBeNull()
   })
 
   it('fehlgeschlagene Gruppe: „Failed"-Suffix in Gefahren-Farbe', () => {

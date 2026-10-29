@@ -122,7 +122,7 @@ export function SwarmDeck({
                     type="button"
                     onClick={() => void steer(agent.id)}
                     data-testid={`swarm-steer-send-${agent.id}`}
-                    className="rounded px-1 text-ui-2xs text-brand"
+                    className="rounded px-1 text-ui-xs text-brand-glow"
                   >
                     →
                   </button>

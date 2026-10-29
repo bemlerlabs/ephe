@@ -406,8 +406,8 @@
     "proof": {
       "everyday": "✓ Automatische Prüfung bestanden ({{seconds}} s)",
       "everydayNoTime": "✓ Automatische Prüfung bestanden",
-      "expert": "[{{tool}}] bestanden · {{ms}} ms",
-      "expertNoTime": "[{{tool}}] bestanden",
+      "expert": "bestanden · {{ms}} ms",
+      "expertNoTime": "bestanden",
       "failed": "✗ Prüfung fehlgeschlagen — Zeile öffnen für die Ausgabe"
     },
     "profilePrefix": "Profil:",
@@ -467,7 +467,11 @@
       "failed": "fehlgeschlagen"
     },
     "solLearned": "Eine Regel für dieses Projekt wurde gelernt",
-    "solOpen": "Ansehen / Bearbeiten"
+    "solOpen": "Ansehen / Bearbeiten",
+    "ranOneTool": "1 Werkzeug ausgeführt",
+    "ranTools": "{{count}} Werkzeuge ausgeführt",
+    "runRunning": "Läuft",
+    "stepPill": "Schritt {{n}} / {{total}}"
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",

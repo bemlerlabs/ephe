@@ -20,11 +20,23 @@ vi.mock('rehype-highlight', () => ({ default: () => (node: unknown) => node }))
 vi.mock('@/components/dashboard/CodeBlock', () => ({
   default: ({ children }: { children?: ReactNode }) => <pre>{children}</pre>,
 }))
-vi.mock('@/lib/utils', () => ({ formatTime: () => '12:00' }))
+vi.mock('@/lib/utils', () => ({
+  formatTime: () => '12:00',
+  // The running step now opens itself, so its detail (Badge & friends) renders
+  // in these tests too — the class combiner has to exist on the mock.
+  cn: (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' '),
+}))
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '9', init: () => Promise.resolve() },
   // `as never`: the mock only has to serve the signature seen at runtime
-  useTranslation: (() => ({ t: (key: string) => key, i18n: { language: 'de' } })) as never,
+  useTranslation: (() => ({
+    t: (key: string, values?: Record<string, unknown>) => {
+      if (key === 'chat.ranTools') return `Ran ${values?.count} tools`
+      if (key === 'chat.ranOneTool') return 'Ran 1 tool'
+      return key
+    },
+    i18n: { language: 'de' },
+  })) as never,
 }))
 
 import type { ChatMessage } from '@/types'
@@ -147,10 +159,10 @@ describe('MessageBubble — ToolStreamRows Icon + Breite (I6 P2c-Gate)', () => {
     expect(row.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('zwei Calls derselben Familie zeigen den ·-Zaehler (I6 "Terminal · N")', () => {
+  it('zwei Calls derselben Familie lesen sich als eine Zeile (Ran 2 tools)', () => {
     render(<MessageBubble message={toolMsg([shellCall('s1'), shellCall('s2')])} />)
     const row = screen.getByTestId('tool-stream-row-shell')
-    expect(row.textContent).toContain('·')
+    expect(row.textContent).toMatch(/Ran 2 tools|2 tools/)
   })
 
   it('kurze Zeilen dehnen den Abschnitt nicht auf volle Breite (inline-flex)', () => {
@@ -293,17 +305,16 @@ describe('MessageBubble — Live-Takt in der Zeile (Runde 2 R42)', () => {
     expect(screen.getByTestId('tool-stream-row-shell').textContent).toContain('2/3')
   })
 
-  it('fertige Familie zeigt nur den Total-Zaehler, kein n/m-Paar', () => {
+  it('fertige Familie ist eine Zeile ohne n/m-Paar', () => {
     render(<MessageBubble message={liveMsg([run('s1', 'completed'), run('s2', 'completed')])} />)
     const row = screen.getByTestId('tool-stream-row-shell')
-    expect(row.textContent).toContain('·')
     expect(row.textContent).not.toContain('2/2')
   })
 
-  it('stdout-Tail ist schon in der kollabierten Zeile sichtbar (ohne Expand)', () => {
+  it('stdout-Tail steht in der Zeile, ohne dass der Leser etwas tun muss', () => {
     render(<MessageBubble message={liveMsg([run('s1', 'pending', 'a\nb\nLAST')])} />)
+    // The running step shows its last output line in the row itself; the detail
+    // below it carries the full tail.
     expect(screen.getByTestId('tool-row-tail').textContent).toContain('LAST')
-    // collapsed: the detail pre is NOT in the DOM — only the inline tail
-    expect(screen.queryAllByTestId('tool-stdout-tail')).toHaveLength(0)
   })
 })

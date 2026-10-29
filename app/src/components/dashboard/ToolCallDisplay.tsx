@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import type { TFunction } from 'i18next'
 import type { ToolCall } from '@/store/chatStore'
 import {
@@ -217,7 +218,7 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
             </button>
           )}
           <Icon className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
-          <span className="text-ui-xs uppercase tracking-wide text-ink-faint shrink-0">
+          <span className="text-ui-xs uppercase tracking-wide text-foreground/70 shrink-0">
             {t(model.verbKey)}
           </span>
           {model.target !== '' && (
@@ -302,10 +303,13 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
                 {(tool.duration_ms / 1000).toFixed(1)}s
               </span>
             )}
-            <Badge variant={statusVariant(tool.status)} className="shrink-0">
+            <Badge
+              variant={statusVariant(tool.status)}
+              className={cn('shrink-0', tool.status === 'pending' && 'text-brand-glow')}
+            >
               {tool.name}
             </Badge>
-            <span className="text-ui-xs text-ink-faint shrink-0" title={statusLabel}>
+            <span className="text-ui-xs text-foreground/70 shrink-0" title={statusLabel}>
               {statusLabel}
             </span>
           </div>
@@ -496,7 +500,7 @@ function ResultPre({ result }: { result: string }) {
   const { t } = useTranslation()
   return (
     <div>
-      <div className="text-ui-xs uppercase tracking-wide text-ink-faint mb-1">
+      <div className="text-ui-xs uppercase tracking-wide text-foreground/70 mb-1">
         {t('chat.toolResultLabel')}
       </div>
       <pre className="text-ui-xs text-ink-faint max-h-40 overflow-auto rounded bg-canvas p-2 whitespace-pre-wrap">
@@ -522,7 +526,7 @@ function GenericBody({ tool }: { tool: ToolCall }) {
     <>
       {hasArgs && (
         <div>
-          <div className="text-ui-xs uppercase tracking-wide text-ink-faint mb-1">
+          <div className="text-ui-xs uppercase tracking-wide text-foreground/70 mb-1">
             {t('chat.toolArgsLabel')}
           </div>
           <pre className="text-ui-xs text-ink-faint max-h-40 overflow-auto rounded bg-canvas p-2">
