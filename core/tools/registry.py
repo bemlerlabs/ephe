@@ -916,6 +916,19 @@ async def execute_tool(
         return f"[Tool '{name}' is disabled (plugin '{gate.plugin}' is off — enable it in Settings → Plugins)]"
     plugin_owner = gate.plugin
 
+    # The user's own switch, at the call that would run: the offer filter hides
+    # the tool from the model, and this line closes the deferred bridge.
+    try:
+        from core import capabilities
+
+        if not capabilities.is_enabled(name):
+            return (
+                f"[Tool '{name}' is switched off in Settings → Capabilities — "
+                "turn it on to allow this call.]"
+            )
+    except Exception:
+        pass
+
     # W10 mode contract (Plan read-only / Ask no-tools), fail-closed: the offer
     # filter hides tools from the model, yet the deferred bridge resolves a name at
     # execution time and never sees that list. Model dispatch and the meta router
@@ -1326,13 +1339,8 @@ _UTILITY_TOOL_SCHEMAS = [
 ]
 
 
-def _apply_plugin_filter(schemas: list[dict]) -> list[dict]:
-    """E1 plugin runtime: the gate is a post filter OUTSIDE the cache.
-
-    Runs on the cache-hit path too, so a disabled plugin's tools cannot come
-    back on the second call of a TTL window; a registry flip still takes
-    effect on the next call without invalidation plumbing.
-    """
+def _apply_plugin_gate(schemas: list[dict]) -> list[dict]:
+    """Drop the tools of a plugin that is switched off (the plugin runtime's verdict)."""
     try:
         from core import plugin_runtime
 
@@ -1341,14 +1349,45 @@ def _apply_plugin_filter(schemas: list[dict]) -> list[dict]:
         return schemas  # fail-open for visibility (execution gates strictly by itself)
 
 
+def _apply_plugin_filter(schemas: list[dict]) -> list[dict]:
+    """The offer list after the two runtime filters, OUTSIDE the cache.
+
+    Runs on the cache-hit path too, so a disabled plugin's tools or a tool the
+    user switched off cannot come back on the second call of a TTL window; a
+    flip still takes effect on the next call without invalidation plumbing.
+    """
+    filtered = _apply_plugin_gate(schemas)
+    try:
+        from core import capabilities
+
+        return capabilities.filter_schemas(filtered)
+    except Exception:
+        return filtered
+
+
 def get_tool_schemas() -> list[dict]:
+    """The offer list the model sees: plugin gate plus the user's own switches."""
+    return _apply_plugin_filter(_all_tool_schemas())
+
+
+def get_all_tool_schemas() -> list[dict]:
+    """Every schema the registry can offer, before the user's own switches.
+
+    The catalog, the allow-list check and the settings view read this one: a tool
+    the user switched off has to stay visible there, or nothing could switch it
+    back on.
+    """
+    return _apply_plugin_gate(_all_tool_schemas())
+
+
+def _all_tool_schemas() -> list[dict]:
     global _TOOL_SCHEMA_CACHE
     now = time.monotonic()
     if (
         _TOOL_SCHEMA_CACHE
         and now - _TOOL_SCHEMA_CACHE[0] < TOOL_SCHEMA_CACHE_TTL_SECONDS
     ):
-        return _apply_plugin_filter(_TOOL_SCHEMA_CACHE[1])
+        return _TOOL_SCHEMA_CACHE[1]
 
     schemas = list(BASE_TOOL_SCHEMAS)
     # Deep-audit wave 2 (parity harness): stateful kernel + session ledger +
@@ -1390,7 +1429,7 @@ def get_tool_schemas() -> list[dict]:
         )
 
     _TOOL_SCHEMA_CACHE = (now, schemas)
-    return _apply_plugin_filter(schemas)
+    return schemas
 
 
 def get_filtered_tool_schemas(whitelist: list[str]) -> list[dict]:

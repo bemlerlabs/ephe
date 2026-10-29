@@ -160,7 +160,14 @@ class Subagent:
             self.steering.enter_focus(self.agent_id)
         try:
             effective_timeout = float(self.timeout) if self.timeout else SUBAGENT_TIMEOUT
-            effective_whitelist = set(self.allowed_tools) if self.allowed_tools else set(SUBAGENT_TOOL_WHITELIST)
+            if self.allowed_tools:
+                effective_whitelist = set(self.allowed_tools)
+            else:
+                # The stock read-only list plus what the user added in Settings,
+                # minus every tool they switched off.
+                from core import capabilities
+
+                effective_whitelist = set(capabilities.subagent_allowlist())
             for _iteration in range(self.max_iterations or SUBAGENT_MAX_ITERATIONS):
                 # The helper's own round boundary: the previous iteration's tool
                 # results are in `messages`, so a direction change lands where the
@@ -287,7 +294,9 @@ async def _whitelisted_schemas() -> list[dict]:
     """Schemas for the whitelist only — the model never sees more."""
     from core.tools.registry import get_tool_schemas
 
-    wanted = set(SUBAGENT_TOOL_WHITELIST)
+    from core import capabilities
+
+    wanted = set(capabilities.subagent_allowlist())
     return [s for s in get_tool_schemas() if s.get("function", {}).get("name") in wanted]
 
 
