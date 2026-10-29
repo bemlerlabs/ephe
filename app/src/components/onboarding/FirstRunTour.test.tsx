@@ -6,15 +6,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const { skipSetupGate, writeTourMarker, skipSetup, markerStep, gateState } = vi.hoisted(() => ({
+const { skipSetupGate, writeTourMarker, skipSetup, markerStep, gateState, motion } = vi.hoisted(() => ({
   skipSetupGate: vi.fn(async () => {}),
   writeTourMarker: vi.fn(async (marker: unknown) => marker),
   skipSetup: vi.fn(),
   markerStep: { value: 4 },
   gateState: { snapshot: { ready: true, configured: false, skipped: false } },
+  motion: { reduced: true },
 }))
 
-vi.mock('framer-motion', () => ({ useReducedMotion: () => true }))
+vi.mock('framer-motion', () => ({ useReducedMotion: () => motion.reduced }))
 vi.mock('@/lib/deepSettings', () => ({ useDeepBool: () => false }))
 vi.mock('@/lib/setupGate', () => ({
   gateSnapshot: () => gateState.snapshot,
@@ -60,6 +61,7 @@ import FirstRunTour from './FirstRunTour'
 beforeEach(() => {
   skipSetupGate.mockClear()
   writeTourMarker.mockClear()
+  motion.reduced = true
 })
 
 describe('FirstRunTour — audit fixes', () => {
@@ -87,6 +89,14 @@ describe('FirstRunTour — audit fixes', () => {
     expect(await screen.findByTestId('tour-approval-card')).toBeTruthy()
     fireEvent.click(screen.getByTestId('tour-guard-allow'))
     await waitFor(() => expect(screen.queryByTestId('tour-approval-card')).toBeNull())
+    markerStep.value = 4
+  })
+
+  it('puts the moth glyph in the engine core', async () => {
+    markerStep.value = 2
+    render(<FirstRunTour />)
+    await screen.findByTestId('tour-engine-core')
+    expect(screen.getByTestId('paper-moth-glyph')).toBeTruthy()
     markerStep.value = 4
   })
 
