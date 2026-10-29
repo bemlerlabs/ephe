@@ -227,23 +227,30 @@ RUSTSEC-2026-0371  # package=zbus_names ecosystem=crates.io scope=runtime state=
 RUSTSEC-2026-0370  # package=zvariant ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
 RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
 
-# zip 4.6.1 came in as tauri-plugin-updater 2.14.0's own dependency. The three
-# findings carry a RustSec ID and a GHSA alias each: SUID/SGID preservation during
-# extraction, symlink targets outside the destination, and permissions applied through
-# those symlinks. Every one of them closes with zip 9.0.0. The rows below name the
-# RustSec IDs: GitHub serves no advisory page for the GHSA aliases (HTTP 404 on
-# 2026-10-18), while OSV resolves each alias to the RustSec record it shares.
-# Why it is not fixed yet: the updater's manifest pins the 4.x line, so the lock cannot
-# move to 9.0.0 without the plugin moving first; that is upstream's open work.
+# zip came in as tauri-plugin-updater's own dependency. Four findings sit here. Three
+# carry a RustSec ID and a GHSA alias each: SUID/SGID preservation during extraction,
+# symlink targets outside the destination, and permissions applied through those
+# symlinks. Every one of them closes with zip 9.0.0. The rows below name the RustSec
+# IDs: GitHub serves no advisory page for the GHSA aliases (HTTP 404 on 2026-10-18),
+# while OSV resolves each alias to the RustSec record it shares.
+# The fourth is GHSA-m665-v7pm-7grj (CVE-2026-115905, "Zip Cloaking", critical, patched
+# in 9.0.5). It has no RustSec record, so `cargo-audit` stays green on it whatever the
+# lock holds; the reader that reported it was Dependabot on the public snapshot, one
+# alert opened 2026-10-28.
+# Why it is fixed: tauri-plugin-updater 2.14.1 (2026-10-28) moved its dependency from
+# zip ^4 to zip ^9, and `cargo update -p tauri-plugin-updater --precise 2.14.1` took the
+# lock from 4.6.1 to 9.1.3. No manifest line changed, because Cargo.toml already allowed
+# `2`. `cargo check --locked` finishes green on that tree.
 # Exposure as measured on 2026-10-26, with `cargo tree --target <triple> -i zip` run in
 # app/src-tauri: `aarch64-apple-darwin` and `x86_64-unknown-linux-gnu` each answer
-# "warning: nothing to print.", so neither shipped build carries the crate. Only
-# `x86_64-pc-windows-msvc` resolves it (`zip v4.6.1` under `tauri-plugin-updater v2.14.0`),
+# "warning: nothing to print.", so neither shipped build carried the crate; only
+# `x86_64-pc-windows-msvc` resolved it (`zip v4.6.1` under `tauri-plugin-updater v2.14.0`),
 # and no release has published a Windows asset. The attack needs a crafted archive that
 # passes the signature check in latest.json; a hostile network response alone does not.
-RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
-RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
-RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 blocked_by=tauri-plugin-updater-pins-zip-4 recheck=2026-11-06
+RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-11-06
+RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-11-06
+RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-11-06
+GHSA-m665-v7pm-7grj  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.5 fixed_in=9.0.5 recheck=2026-11-06
 
 # Why it is fixed: `AsyncFd::new` and related constructors violate I/O safety; a patch
 # bump inside the Tauri shell's existing dependency graph moves it to 1.53.3, and no
