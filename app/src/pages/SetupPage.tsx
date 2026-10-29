@@ -34,6 +34,8 @@ import {
 } from '@/lib/api'
 import { forgetSetupGate } from '@/lib/setupGate'
 import { announceSetupRepair } from '@/lib/companionRepair'
+import { apiUrl } from '@/lib/api/http'
+import { recommendOneClickSetup } from '@/lib/oneClickSetup'
 
 type ProviderKind = 'local_ollama' | 'custom_ollama' | 'openai_compatible'
 
@@ -170,6 +172,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
   const [apiKey, setApiKey] = useState('')
   // W3-26: what the scan found, held until the user agrees. Null = nothing offered.
   const [offer, setOffer] = useState<DetectionOffer | null>(null)
+  // P2: the one-click answer. 'none' means the scan reached no engine this button
+  // may persist — the picker below stays the way forward.
+  const [oneClick, setOneClick] = useState<'idle' | 'running' | 'none'>('idle')
 
   const needsUrl = kind !== 'local_ollama'
 
@@ -520,6 +525,43 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     }
   }
 
+  /** P2: one click, one explicit consent. The scan says which engine answered
+   *  and what it serves; the memory the endpoint reports decides which of those
+   *  models fits. Nothing is written before this click, and a scan that reaches
+   *  no engine writes nothing at all. */
+  async function handleOneClick() {
+    if (oneClick === 'running' || saving) return
+    setOneClick('running')
+    setError('')
+    try {
+      const [scan, mem] = await Promise.all([
+        detectEngines(),
+        fetch(apiUrl('/api/system/metrics'))
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null) as Promise<{ mem_total_gb?: number | null } | null>,
+      ])
+      const totalGb = typeof mem?.mem_total_gb === 'number' ? mem.mem_total_gb : null
+      const choice = recommendOneClickSetup(scan.detected, totalGb)
+      if (!choice) {
+        setOneClick('none')
+        return
+      }
+      setSaving(true)
+      await updateSettings({
+        provider: {
+          type: choice.kind,
+          model: choice.model,
+          endpoint: choice.kind === 'custom_ollama' ? choice.url || undefined : undefined,
+        },
+      })
+      onDone()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setOneClick('idle')
+      setSaving(false)
+    }
+  }
+
   /** T2 choice 1: keep the stored key and restore the engine it is bound to. */
   async function handleKeepBoundEngine() {
     if (!repair?.bound) return
@@ -651,6 +693,33 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             </div>
             <h1 className="text-3xl font-medium text-foreground">{t('setup.title')}</h1>
             <p className="mt-2 text-ui-sm text-ink-soft">{t('setup.subtitle')}</p>
+          </div>
+
+          {/* P2: the primary path for a first start — one click, one consent. It
+              only offers an engine the scan reached on this machine or on an
+              endpoint the user already runs, and a model the reported memory
+              holds. Everything else stays the picker below. */}
+          <div className="mb-5">
+            <button
+              type="button"
+              data-testid="setup-one-click"
+              onClick={() => void handleOneClick()}
+              disabled={oneClick === 'running' || saving}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-ui-sm font-medium text-black transition-colors hover:bg-brand disabled:opacity-60 pointer-coarse:min-h-11"
+            >
+              {oneClick === 'running' ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Check className="size-4" aria-hidden />
+              )}
+              {oneClick === 'running' ? t('setup.oneClickRunning') : t('setup.oneClick')}
+            </button>
+            <p
+              className="mt-2 text-ui-xs leading-relaxed text-ink-soft"
+              data-testid="setup-one-click-hint"
+            >
+              {oneClick === 'none' ? t('setup.oneClickNone') : t('setup.oneClickHint')}
+            </p>
           </div>
 
           {repair && (
