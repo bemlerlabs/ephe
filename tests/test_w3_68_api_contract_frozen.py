@@ -48,6 +48,10 @@ Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
   landed wrong could only be corrected by building the change set again. Its core is
   ``core.change_set_lifecycle.unpublish``, and the landing it undoes keeps its stamp and
   the oid the publish wrote.
+  Three SOL additions: ``GET /api/sol/heuristics`` is the inspector's view on the
+  workspace's ``.ephe/learning/heuristics.md`` (rules, map, the switch), and
+  ``PATCH``/``DELETE /api/sol/heuristics/{rule_id}`` are the same edit and delete a
+  hand edit performs, so the settings surface and the file cannot disagree.
 
 The routing table carries one more /api surface than the schema documents —
 ``GET /api/docs`` (``docs_url``), pinned below — and the proxy catch-all is
@@ -67,6 +71,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "DELETE /api/schedule/{job_id}",
     "DELETE /api/sessions/{session_id}",
     "DELETE /api/skills/{name}",
+    "DELETE /api/sol/heuristics/{rule_id}",
     "DELETE /api/tasks/{task_id}",
     "DELETE /api/workspaces/{id}",
     "GET /api/agent-teams",
@@ -161,6 +166,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/skills/pack-index",
     "GET /api/skills/{name}",
     "GET /api/skills/{name}/verify",
+    "GET /api/sol/heuristics",
     "GET /api/subagents",
     "GET /api/subagents/{agent_id}",
     "GET /api/system/metrics",
@@ -172,6 +178,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/workspaces",
     "GET /api/workspaces/{id}",
     "PATCH /api/sessions/{session_id}",
+    "PATCH /api/sol/heuristics/{rule_id}",
     "POST /api/agent-teams",
     "POST /api/agent-teams/runs/{run_id}/cancel",
     "POST /api/agent-teams/{team_id}/archive",
@@ -274,7 +281,6 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "PUT /api/skills/{name}",
     "PUT /api/tasks/{task_id}",
 )
-
 
 #: The running app's own API explorer: a router-only route, never in the schema.
 DOCS_URL = "/api/docs"

@@ -200,6 +200,7 @@ async def chat_with_tools(
     session_id: str = "",
     turn_id: str = "",
     loop_observer: LoopObserver | None = None,
+    sol_turn: object | None = None,
 ) -> str:
     """
     Tool-enabled chat with automatic tool execution.
@@ -261,6 +262,15 @@ async def chat_with_tools(
     observer = loop_observer if loop_observer is not None else LoopObserver(turn_id=turn_id)
     observer.set_budget_cap(budget_cap)
     observer_token = bind_observer(observer)
+
+    # SOL: the turn's failure record. A caller that wants the learned rules
+    # (the routes do, for the card) passes its own instance and reads `.learned`.
+    from core.sol.session import SolTurn, bind_sol_turn, reset_sol_turn
+
+    sol = sol_turn if sol_turn is not None else SolTurn.open()
+    sol_token = bind_sol_turn(sol)  # type: ignore[arg-type]
+    last_round = 0
+    turn_ok = False
 
     try:
         history_in = list(history)
@@ -328,7 +338,7 @@ async def chat_with_tools(
             raise OllamaNotReachableError()
 
         # Step 2: tool-calling loop (hard-limited by budget + error budget)
-        iteration, detection_streamed, response = await _run_tool_loop(
+        iteration, detection_streamed, response = await _run_tool_loop(  # noqa: F841 (iteration feeds SOL)
             client=client,
             provider=provider,
             model=model,
@@ -347,6 +357,7 @@ async def chat_with_tools(
             budget_cap=budget_cap,
             turn_id=turn_id,
         )
+        last_round = iteration
 
         # Out of budget? The loop names its reason, so a turn that answered on its
         # last allowed round is not read as an exhausted budget — the round count
@@ -357,6 +368,7 @@ async def chat_with_tools(
             # and appears in the chat stream that way (with 'unfinished' status, never pseudo-complete).
             # R44: before the note, ONE tool-less finalize round — a real
             # conclusion instead of a bare system line.
+            turn_ok = True
             return await _finalize_budget_exhausted(
                 client=client,
                 provider=provider,
@@ -369,6 +381,7 @@ async def chat_with_tools(
             )
 
         # Step 3: emit the final answer (parse thinking tags)
+        turn_ok = True
         return await _emit_final_answer(
             response=response,
             detection_streamed=detection_streamed,
@@ -379,6 +392,13 @@ async def chat_with_tools(
     finally:
         note_turn_end()
         reset_observer(observer_token)
+        reset_sol_turn(sol_token)
+        try:
+            # A rule is stored only for a turn that finished: the correction in a
+            # failed or aborted turn was never shown to work.
+            sol.finish(turn_ok, last_round=last_round)  # type: ignore[attr-defined]
+        except Exception:
+            pass
         # P1-4: close the upstream connection explicitly — a client disconnect
         # should leave no socket hanging in the loop. Ollama/httpx: aclose(),
         # OpenAI client: close(); stub clients in tests without either are tolerated.

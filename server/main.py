@@ -78,6 +78,7 @@ from server.routes import (
     reader,
     workspaces,
     events,
+    sol,
 )
 from server.spa import SPAStaticFiles
 from core import __version__, __edition__, __tagline__
@@ -380,6 +381,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(search.router, prefix="/api")
     app.include_router(sessions.router, prefix="/api")
     app.include_router(learning.router, prefix="/api")
+    app.include_router(sol.router, prefix="/api")
     app.include_router(context.router, prefix="/api")
     app.include_router(metrics.router, prefix="/api")
     app.include_router(profile.router, prefix="/api")

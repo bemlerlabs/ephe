@@ -38,7 +38,7 @@ from tests.test_settings_surface_is_real import _read_keys  # noqa: E402
 # both languages — that is exactly what the contract demands before a section may
 # stand here.
 SECTION_KEYS = {"chat", "appearance", "shortcuts", "advanced", "plugins", "memory",
-                "ephemera", "cron", "hooks"}
+                "ephemera", "cron", "hooks", "sol"}
 
 
 def _fields_of(section_key: str) -> list[str]:

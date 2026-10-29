@@ -112,6 +112,20 @@ def _announce_tool_round(iteration: int, budget_cap: int) -> None:
         note_budget_low(remaining)
 
 
+def _sol_reflection(iteration: int, outputs: list[tuple[str, str, str]]) -> str | None:
+    """The SOL reflection block for one round's results, or None.
+
+    Every result is offered and the classifier decides: a shell run reports a
+    failure as `[exit N]` inside a plain string, which the round's error flag
+    does not see. A turn without a SOL turn bound pays one contextvar read.
+    """
+    try:
+        from core.sol.session import current_sol_turn
+
+        turn = current_sol_turn()
+        return turn.reflect_round(iteration, outputs) if turn is not None else None
+    except Exception:
+        return None
 
 
 async def _model_follow_up(
@@ -314,6 +328,7 @@ async def _run_tool_loop(
 
             # 3) Append the results to the history in their original order.
             round_had_error = False
+            round_outputs: list[tuple[str, str, str]] = []
             round_stall: _Stall | None = None
             for idx, name, args in parsed:
                 # P1-9: cap before it enters the message array.
@@ -341,6 +356,7 @@ async def _run_tool_loop(
                     )
                 if normalized_result.status == "error":
                     round_had_error = True
+                round_outputs.append((name, str(args), result))
                 trip = stall_guard.record(
                     name, args, is_error=normalized_result.status == "error"
                 )
@@ -363,6 +379,12 @@ async def _run_tool_loop(
                         f"- warnings: {normalized_result.warnings}"
                     ),
                 })
+
+            # SOL: a failed round gets a named class, the assumption it broke and
+            # the correction, in front of the next model call.
+            block = _sol_reflection(iteration, round_outputs)
+            if block:
+                messages.append({"role": "system", "content": block})
 
             # P1-8: spend/rescue the error-round budget (one success resets it).
             if round_had_error:
@@ -477,6 +499,7 @@ async def _run_tool_loop(
                     safe_names_n = set()
                 results_n: dict[int, object] = {}
                 round_had_error_n = False
+                round_outputs_n: list[tuple[str, str, str]] = []
                 round_stall_n: _Stall | None = None
                 for idx, name, args in parsed_n:
                     blocked_n = _search_gate(name, args)
@@ -527,6 +550,7 @@ async def _run_tool_loop(
                         )
                     if normalized_result.status == "error":
                         round_had_error_n = True
+                    round_outputs_n.append((name, str(args), result))
                     trip_n = stall_guard.record(
                         name, args, is_error=normalized_result.status == "error"
                     )
@@ -546,6 +570,9 @@ async def _run_tool_loop(
                             f"- warnings: {normalized_result.warnings}"
                         ),
                     })
+                block_n = _sol_reflection(iteration, round_outputs_n)
+                if block_n:
+                    messages.append({"role": "system", "content": block_n})
                 if round_had_error_n:
                     consecutive_error_rounds += 1
                 else:
