@@ -255,9 +255,9 @@ describe('FirstRunIntro', () => {
   it('mounts the live actor with its wing layers and the separate forehead flame', () => {
     render(<FirstRunIntro />)
     const stage = screen.getByTestId('intro-film')
-    expect(stage.querySelector('img[src*="bee-3d-actor"]')).toBeTruthy()
-    expect(stage.querySelectorAll('img[src*="bee-3d-wing-"]')).toHaveLength(2)
-    expect(stage.querySelector('img[src*="bee-3d-flame"]')).toBeTruthy()
+    expect(stage.querySelector('img[src*="paper-moth-actor"]')).toBeTruthy()
+    expect(stage.querySelectorAll('img[src*="paper-moth-wing-"]')).toHaveLength(2)
+    expect(stage.querySelector('img[src*="paper-moth-thread"]')).toBeTruthy()
     expect(stage.querySelector('.intro-live-spark')).toBeTruthy()
   })
 

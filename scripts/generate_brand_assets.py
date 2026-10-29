@@ -1,10 +1,9 @@
 """Ephe — brand-asset generator (the icon/branding wave).
 scripts/generate_brand_assets.py
 
-The shipped icon kit is the bee: the small fire-spirit being of
-`scripts/generate_fire_spirit_bee.py`, whose lit comb belly, glass wings and flame
-plume carry the brand (brand decision 2026-10-16,
-`docs/brand/fire-spirit-decision-2026-10-16.md`). This script composes the emblems
+The shipped icon kit is the paper moth of `scripts/paper_moth.py`: a figure folded
+from one sheet, tied at the wing roots with the product red (owner decision
+2026-10-29, `docs/brand/paper-moth-decision.md`). This script composes the emblems
 and rasters around that figure, so the tab, the PWA tiles, the Tauri bundle and the
 tray all carry the vector the app inlines. The cut follows the size, not the other
 way round — the whole figure from 48 px, the plain red head-and-blade cut below —
@@ -37,6 +36,7 @@ scripts/generate_brand_assets.py
 from __future__ import annotations
 
 import math
+import os
 import subprocess
 import sys
 import tempfile
@@ -283,7 +283,7 @@ def _dandelion() -> str:
 
 def _mark(*, compact: bool = False, micro: bool = False, mono: bool = False,
           vector: bool = False, beads: bool | None = None) -> str:
-    """The mark the surface inlines: the fire-spirit bee, cut by target size.
+    """The mark the surface inlines: the paper moth, cut by target size.
 
     The bee is the product's figure (brand decision 2026-10-16), so the vector
     `EpheMark` inlines is the same drawing the icon kit and the first-open scene
@@ -294,16 +294,10 @@ def _mark(*, compact: bool = False, micro: bool = False, mono: bool = False,
 
     The three size cuts live in MARK_CUTS; this docstring states no band.
     """
-    from generate_fire_spirit_bee import bee_body, micro_body, mono_body  # noqa: PLC0415
+    from paper_moth import moth_body  # noqa: PLC0415
 
-    del beads  # the bee's cuts carry their own trail rule
-    if mono:
-        return mono_body("calm")
-    if compact or micro:
-        def paint(role: str) -> str:
-            return f"var({token_for(role)})" if vector else hex_for(role)
-        return micro_body(paint)
-    return bee_body("calm", 512, ground="var" if vector else "ink")
+    del beads  # the moth's cuts carry their own thread rule
+    return moth_body(compact=compact, micro=micro, mono=mono, vector=vector)
 
 
 def mark_svg(size: int = 48, *, mono: bool = False, view_box: str | None = None,
@@ -427,12 +421,10 @@ def emblem_svg(*, full_bleed: bool, scale: float = 0.84, variant: str = "circle"
         f"</linearGradient>"
     )
     shape = VARIANTS[variant]() if disc is None else disc
-    transform = (
-        f'translate({256 * (1 - scale)},{256 * (1 - scale)}) '
-        f"scale({scale})"
-        if full_bleed
-        else ""
-    )
+    # Scale about the canvas centre: the mark is drawn across the whole 512 box,
+    # so the old corner-anchored translate would push half of it out of frame.
+    inset = scale if full_bleed else 0.84
+    transform = f"translate(256,256) scale({inset}) translate(-256,-256)"
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SVG:.0f} {SVG:.0f}">'
         f"<defs>{grad}</defs>"
@@ -574,9 +566,9 @@ def _kit_from_master(master_png: Path) -> None:
     print("icon kit written from master:", master_png)
 
 
-def _bee_icns() -> None:
-    """Apple .icns via iconutil, the bee cut per size — Dock, Finder, app switcher."""
-    from generate_fire_spirit_bee import bee_body  # noqa: PLC0415
+def _mark_icns() -> None:
+    """Apple .icns via iconutil, the moth cut per size — Dock, Finder, app switcher."""
+    from paper_moth import moth_body  # noqa: PLC0415
 
     with tempfile.TemporaryDirectory() as td:
         iconset = Path(td) / "icon.iconset"
@@ -586,7 +578,7 @@ def _bee_icns() -> None:
             "128x128": 128, "128x128@2x": 256, "256x256": 256,
             "256x256@2x": 512, "512x512": 512, "512x512@2x": 1024,
         }.items():
-            _render(emblem_svg(full_bleed=False, disc=bee_body("calm", px)),
+            _render(emblem_svg(full_bleed=False, disc=moth_body(compact=px < 48, micro=px <= 32)),
                     px, iconset / f"icon_{tag}.png", transparent=True)
         subprocess.run(
             ["iconutil", "-c", "icns", str(iconset), "-o", str(TAURI_ICONS / "icon.icns")],
@@ -594,10 +586,10 @@ def _bee_icns() -> None:
         )
 
 
-def _bee_kit() -> None:
-    """The shipped icon and brand kit, drawn from the fire-spirit bee.
+def _mark_kit() -> None:
+    """The shipped icon and brand kit, drawn from the paper moth.
 
-    `scripts/generate_fire_spirit_bee.py` owns the figure and its cuts; this
+    `scripts/paper_moth.py` owns the figure and its cuts; this
     composes the emblems and rasters around it, so the tab, the PWA tiles, the
     Tauri bundle and the tray all carry the vector the app inlines. The grounds are
     the ones the mark shipped on — a rounded near-black tile for the tab and the
@@ -605,10 +597,11 @@ def _bee_kit() -> None:
     because below 48 px the figure's texture is dust and its soot body would vanish
     into the near-black field.
     """
-    from generate_fire_spirit_bee import TRAY_VIEW, bee_body, mono_body  # noqa: PLC0415
+    from paper_moth import TRAY_VIEW, moth_body  # noqa: PLC0415
 
     def disc(size_px: int, scale: float = 1.0) -> str:
-        return bee_body("calm", int(round(size_px * scale)))
+        px = int(round(size_px * scale))
+        return moth_body(compact=px < 48, micro=px <= 32)
 
     (PUBLIC / "favicon.svg").write_text(
         emblem_svg(full_bleed=False, disc=disc(16)), encoding="utf-8")
@@ -625,10 +618,10 @@ def _bee_kit() -> None:
             PUBLIC / "apple-touch-icon-180.png", transparent=False)
 
     tray = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{TRAY_VIEW}" role="img" '
-            f'style="color:{hex_for("template")}">{mono_body("calm")}</svg>')
+            f'style="color:{hex_for("template")}">{moth_body(mono=True, micro=True)}</svg>')
     _render(tray, 44, TAURI_ICONS / "tray-mono.png", transparent=True)
 
-    # The in-app vectors `EpheMark` inlines: the same bee, cut by size, with the
+    # The in-app vectors `EpheMark` inlines: the same moth, cut by size, with the
     # roles the stylesheet resolves. Vectors, because the condensation addresses
     # the SVG's children and an image would have none.
     (SRC_ASSETS / "mark.svg").write_text(mark_svg(512), encoding="utf-8")
@@ -642,18 +635,26 @@ def _bee_kit() -> None:
             TAURI_ICONS / "128x128@2x.png", transparent=True)
     _render(emblem_svg(full_bleed=False, disc=disc(512)), 512,
             TAURI_ICONS / "icon.png", transparent=True)
-    for name, size in TAURI_SQUARES.items():
-        _render(emblem_svg(full_bleed=True, scale=0.9, disc=disc(size, 0.9)), size,
-                TAURI_ICONS / name, transparent=False)
+    # The Windows squares are the same emblem resampled from the 512 tile: one
+    # drawing, so a platform cannot drift from the others.
+    from PIL import Image as _Image  # noqa: PLC0415
 
-    _bee_icns()
+    with _Image.open(TAURI_ICONS / "icon.png") as tile:
+        source = tile.convert("RGBA")
+    for name, size in TAURI_SQUARES.items():
+        small = source.resize((size, size), _Image.LANCZOS)
+        ground = _Image.new("RGBA", (size, size), (18, 18, 18, 255))
+        ground.alpha_composite(small)
+        ground.convert("RGBA").save(TAURI_ICONS / name)
+
+    _mark_icns()
     _ico(TAURI_ICONS / "128x128@2x.png")
 
     # The brand mark the README shows, and the social avatar: the same emblem, the
     # avatar rounded to the circle a profile picture wants.
     from PIL import Image, ImageDraw  # noqa: PLC0415
 
-    mark = ROOT / "docs" / "media" / "ephe-bee-512.png"
+    mark = ROOT / "docs" / "media" / "ephe-mark-512.png"
     mark.parent.mkdir(parents=True, exist_ok=True)
     _render(emblem_svg(full_bleed=False, disc=disc(512)), 512, mark, transparent=True)
     with Image.open(mark) as image:
@@ -662,7 +663,7 @@ def _bee_kit() -> None:
     ImageDraw.Draw(mask).ellipse((0, 0, avatar.size[0] - 1, avatar.size[1] - 1), fill=255)
     avatar.putalpha(mask)
     avatar.save(ROOT / "docs" / "media" / "eph-avatar-512.png")
-    print("brand assets written (variant=bee):", PUBLIC, "and", TAURI_ICONS)
+    print("brand assets written (variant=moth):", PUBLIC, "and", TAURI_ICONS)
 
 
 def _requested_variant() -> str:
@@ -689,7 +690,7 @@ if __name__ != "__main__":
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch()
+    browser = p.chromium.launch(channel=os.environ.get("EPHE_BRAND_RENDER_CHANNEL") or None)
     page = browser.new_page()
 
     master_png = None
@@ -752,9 +753,9 @@ with sync_playwright() as p:
         sheet.save(sheet_path)
         print("comparison sheet:", sheet_path)
     elif _requested_variant() == "bee":
-        # The shipped kit is the bee (brand decision 2026-10-16). The candidate
-        # draws below stay reachable with an explicit --variant for comparisons.
-        _bee_kit()
+        # The shipped kit is the paper moth (owner decision 2026-10-29). The
+        # candidate draws stay reachable with an explicit --variant for comparisons.
+        _mark_kit()
     else:
         # Legacy draws, reachable with --variant=mark|mayfly|dandelion|circle|e|breath:
         # the drop-spirit "mark" is still the source of the in-app vectors.

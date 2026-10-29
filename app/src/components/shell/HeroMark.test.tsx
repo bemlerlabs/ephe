@@ -83,7 +83,7 @@ describe('the mark size contract (ONBOARDING_FILM)', () => {
     render(<HeroMark size="3rem" testId="guard-mark" />)
     const node = screen.getByTestId('guard-mark')
     const img = node.querySelector('img')
-    expect(img?.getAttribute('src')).toBe('/onboarding/bee-3d-hero.webp')
+    expect(img?.getAttribute('src')).toBe('/onboarding/paper-moth-actor.webp')
     expect(img?.getAttribute('alt')).toBe('')
     expect(node.querySelector('svg')).toBeNull()
   })

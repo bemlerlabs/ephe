@@ -1,7 +1,7 @@
 <p align="center"><a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.es.md">Español</a></p>
 
 <div align="center">
-<img src="docs/media/ephe-bee-512.png" alt="Ephe bee mark" width="88">
+<img src="docs/media/ephe-mark-512.png" alt="Ephe mark" width="88">
 
 # Ephe
 

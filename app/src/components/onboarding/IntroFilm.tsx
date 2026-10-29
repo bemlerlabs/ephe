@@ -1,7 +1,8 @@
 /**
  * The first-open film as one continuous 60 fps choreography: a spark falls into the
- * clearing, runs a spline through the forest, spins into a fire tornado and becomes the
- * bee that hovers in the awakening.
+ * clearing, runs a spline through the forest, spins into a fire tornado and unfolds into
+ * the paper moth that hovers in the awakening. The four figure layers are the moth's
+ * (left wing, right wing, body, crimson thread), cut from one master.
  *
  * The same component runs live in the intro and behind `?film=capture`, where
  * `__epheIntroSeek(ms)` renders an exact frame so `scripts/render_onboarding_film.py`
@@ -195,11 +196,13 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
           'transform',
           `translate(-50%, -50%) translate3d(${lean}px, ${breathe}px, 0) rotateX(${tilt}deg) rotateZ(${lean * 0.6}deg) scale(${scale})`,
         )
-        const brightness = 4.2 - 3.2 * settle
-        const sepia = 1 - settle
-        const saturate = 4 - 3 * settle
-        const glow = 44 - 32 * settle
-        const blur = (1 - settle) * 1.6
+        // The figure is paper, not soot: it starts as a warm silhouette inside the
+        // vortex light and settles to its own colour instead of being blown out by it.
+        const brightness = 0.55 + 0.45 * settle
+        const sepia = 0.85 * (1 - settle)
+        const saturate = 0.7 + 0.3 * settle
+        const glow = 40 - 26 * settle
+        const blur = (1 - settle) * 1.2
         set(
           beeRef.current,
           'filter',
@@ -297,28 +300,28 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
       <div ref={beeRef} className="intro-live-bee">
         <img
           className="intro-live-bee-body"
-          src="/onboarding/bee-3d-actor.webp"
+          src="/onboarding/paper-moth-actor.webp"
           alt=""
           draggable={false}
         />
         <img
           ref={wingLRef}
           className="intro-live-wing intro-live-wing-l"
-          src="/onboarding/bee-3d-wing-l.webp"
+          src="/onboarding/paper-moth-wing-l.webp"
           alt=""
           draggable={false}
         />
         <img
           ref={wingRRef}
           className="intro-live-wing intro-live-wing-r"
-          src="/onboarding/bee-3d-wing-r.webp"
+          src="/onboarding/paper-moth-wing-r.webp"
           alt=""
           draggable={false}
         />
         <img
           ref={flameRef}
           className="intro-live-flame"
-          src="/onboarding/bee-3d-flame.webp"
+          src="/onboarding/paper-moth-thread.webp"
           alt=""
           draggable={false}
         />
