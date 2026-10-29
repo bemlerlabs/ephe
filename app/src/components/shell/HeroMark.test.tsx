@@ -71,8 +71,14 @@ describe('the mark size contract (ONBOARDING_FILM)', () => {
       .filter((p) => p.component === 'HeroMark' && toPx(p.size) < 48)
       .map((p) => `${p.file} ${p.size}`)
     expect(small).toEqual([])
+    // Both in-app hero slots carry the living moth now; the size rule is the point.
     expect(
-      placements.some((p) => p.component === 'HeroMark' && /pages\/SetupPage/.test(p.file)),
+      placements.some(
+        (p) =>
+          (p.component === 'PaperMoth' || p.component === 'HeroMark') &&
+          /pages\/SetupPage/.test(p.file) &&
+          toPx(p.size) >= 48,
+      ),
     ).toBe(true)
     // The welcome hero is the living moth now; it still has to sit at or above 48 px.
     expect(

@@ -2606,6 +2606,7 @@
     "droppedBody_other": "{{count}} Aufgaben hat der Server nicht in den Index übernommen. Sie sind da, aber die Suche findet sie nicht."
   },
   "custody": {
+    "sealed": "Versiegelt",
     "title": "Nachweiskette",
     "back": "Zurück zu den Arbeitsbereichen",
     "loading": "Der Eintrag wird gelesen…",

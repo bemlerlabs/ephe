@@ -2606,6 +2606,7 @@
     "droppedBody_other": "The server did not index {{count}} tasks. They are there; the search does not find them."
   },
   "custody": {
+    "sealed": "Sealed",
     "title": "Chain of custody",
     "back": "Back to the workspaces",
     "loading": "Reading the record…",

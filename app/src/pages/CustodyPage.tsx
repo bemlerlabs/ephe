@@ -17,6 +17,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, GitCommitHorizontal, SquarePen, Tally5 } from 'lucide-react'
 import { Badge, LoadingRow, Skeleton } from '@/components/ui'
+import { CustodySeal } from '@/components/brand/CustodySeal'
 import PageHeader from '@/components/shell/PageHeader'
 import { getCustody, reviewChangeSet, type Custody } from '@/lib/api'
 import {
@@ -225,9 +226,12 @@ export default function CustodyPage() {
               </p>
             </div>
           ) : (
-            <p className="text-ui-sm text-status-success" data-testid="custody-landable">
-              {t('custody.canLand', { name: approval?.reviewer ?? '' })}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <CustodySeal />
+              <p className="text-ui-sm text-status-success" data-testid="custody-landable">
+                {t('custody.canLand', { name: approval?.reviewer ?? '' })}
+              </p>
+            </div>
           )}
         </Step>
       </ol>
