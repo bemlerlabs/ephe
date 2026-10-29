@@ -1,5 +1,5 @@
 /**
- * The companion in the active chat: the bee (or the spark) that outlives the
+ * The companion in the active chat: the moth (or the spark) that outlives the
  * onboarding. It sits above the composer, moves toward the answer while the
  * engine works, and opens its quick panel on click.
  *
