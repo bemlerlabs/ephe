@@ -465,7 +465,9 @@
       "run": "[{{tool}}] {{args}} · {{state}} · {{ms}} ms Laufzeit · sha256:{{digest}}",
       "passed": "bestanden",
       "failed": "fehlgeschlagen"
-    }
+    },
+    "solLearned": "Eine Regel für dieses Projekt wurde gelernt",
+    "solOpen": "Ansehen / Bearbeiten"
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
@@ -1379,7 +1381,19 @@
     "audienceEveryday": "Für Jedermann",
     "audienceExpert": "Experten-Röntgenblick",
     "companionCountdownNow": "Sofort",
-    "companionCountdownValue": "{{seconds}} s bis zur Ausführung"
+    "companionCountdownValue": "{{seconds}} s bis zur Ausführung",
+    "solGroup": "Gelernte Projektregeln",
+    "solEmpty": "Noch keine Regel gelernt",
+    "solEmptyHint": "Eine Regel entsteht, sobald eine Korrektur eine fehlgeschlagene Werkzeugrunde in diesem Arbeitsbereich beendet.",
+    "solUnavailable": "Der Regelspeicher ist nicht lesbar",
+    "solUnavailableHint": "Der Ordner .ephe/learning des Arbeitsbereichs war nicht erreichbar.",
+    "solEdit": "Regel bearbeiten",
+    "solEditHint": "Diese Aktion wendet Ephe beim nächsten Mal an.",
+    "solActionLabel": "Aktion der Regel",
+    "solSave": "Speichern",
+    "solDelete": "Regel löschen",
+    "solDeleteConfirm": "Löschen bestätigen",
+    "deepSection.sol": "Lernen"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",

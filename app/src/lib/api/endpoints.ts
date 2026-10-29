@@ -386,6 +386,48 @@ export function acceptLearningProposal(
   })
 }
 
+// SOL: the rules a workspace learned (`.ephe/learning/heuristics.md`)
+
+export interface SolHeuristicDto {
+  id: string
+  title: string
+  kind: string
+  trigger: string
+  insight: string
+  action: string
+  verified_at: string
+}
+
+export interface SolHeuristicsView {
+  workspace: string
+  enabled: boolean
+  max_active: number
+  heuristics: SolHeuristicDto[]
+  map: {
+    stack: Array<{ name: string; version: string }>
+    commands: string[]
+    quirks: string[]
+  } | null
+}
+
+export function getSolHeuristics(): Promise<SolHeuristicsView> {
+  return request<SolHeuristicsView>('/api/sol/heuristics')
+}
+
+export function updateSolHeuristic(
+  id: string,
+  patch: { trigger?: string; action?: string },
+): Promise<{ heuristic: SolHeuristicDto }> {
+  return request(`/api/sol/heuristics/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function deleteSolHeuristic(id: string): Promise<{ status: string; id: string }> {
+  return request(`/api/sol/heuristics/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 // ── F round 4: file system (explorer + workspace dialog, read-only) ─────────
 
 export function listFs(path?: string): Promise<FsListing> {

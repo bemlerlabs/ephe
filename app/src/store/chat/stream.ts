@@ -45,6 +45,8 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
           // QD-015 Z2: the offer belongs to the turn that hit the cap; the next
           // turn replaces it.
           budgetNotice: null,
+          // SOL: a learned rule belongs to the turn that proved it.
+          solInsights: [],
         }
       })
       persistActive()
@@ -54,6 +56,10 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
     // rounds instead of leaving the note as a dead end.
     markBudgetReached: (cap, extra) => {
       set({ budgetNotice: { cap, extra } })
+    },
+
+    markSolInsight: (rule) => {
+      set((s) => ({ solInsights: s.solInsights.some((item) => item.id === rule.id) ? s.solInsights : [...s.solInsights, rule] }))
     },
 
     appendChunk: (chunk) => {

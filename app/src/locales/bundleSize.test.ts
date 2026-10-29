@@ -163,8 +163,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // 2026-10-29 (R3): the tool catalog card added four leaves per file
 // (tools.catalogTitle, catalogHint, catalogSafe, catalogAsks). Measured:
 // en 138 081 B, de 149 602 B — headroom ~79/~88 B.
-const EN_CEILING = 138_160
-const DE_CEILING = 149_690
+// 2026-10-29 (SOL): the insight card and the rules inspector add thirteen leaves
+// per file (learned, open, group, empty and its hint, unavailable and its hint,
+// edit and its hint, action label, save, delete, confirm delete). Measured as
+// committed: en 138 719 B, de 150 343 B — both halves move by 1,000 B, the step
+// the earlier waves took, which keeps the ~600 B headroom.
+const EN_CEILING = 139_160
+const DE_CEILING = 150_690
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

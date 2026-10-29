@@ -18,6 +18,7 @@ import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
 import { exportMemoryUrl, importMemory } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
 import { DeepFields } from './deepFields'
+import { SolHeuristicsCard } from './SolHeuristicsCard'
 import type { SettingsModel } from './types'
 
 export function MemorySection({ model }: { model: SettingsModel }) {
@@ -137,6 +138,10 @@ export function MemorySection({ model }: { model: SettingsModel }) {
           </a>
         </SettingsRow>
       </SettingsGroup>
+
+      {/* SOL: what this workspace learned, next to the memory it is kept apart from. */}
+      <DeepFields model={model} prefixes={['sol.']} />
+      <SolHeuristicsCard t={t} />
 
       <SettingsGroup icon={Ban} title={t('settings.memoryGroupDanger')}>
         <SettingsRow
