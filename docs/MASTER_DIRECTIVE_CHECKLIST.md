@@ -15,9 +15,14 @@ Sources: the two master-directive documents of 2026-10-29 (areas A–V, directiv
 - [x] No template placeholders or duplicate measurements in the run rows.
 - [x] No silent turn: a `progress` beat every 3 s without other frames.
 - [ ] Inline diff card inside an open group (the tool card stands in for it).
-- [ ] Replay removed from the transcript and reachable in the sidebar.
+- [ ] Replay removed from the transcript and reachable in the sidebar. Still
+      renders inside the assistant turn (`bubble/assistantExtras.tsx:45` mounts
+      `ToolReplayKader` under every finished message).
 - [ ] Expert view trimmed to the same anatomy (no replay bar, no token rows in the bubble).
-- [ ] Composer and transcript: no light border, one ground, measured contrast.
+- [x] Composer and transcript: no light border. Neither `ChatInput` nor
+      `bubble/` carries a white or near-white border; the `bg-white` hits under
+      `dashboard/` are document and QR previews (`artifacts/preview.tsx`,
+      `agent/previewFrame.tsx`), which are white by nature.
 - [ ] Long-run proof: hours-long run without a stall (needs a measured run).
 
 ## Engine, tools, plugins
@@ -39,16 +44,37 @@ Sources: the two master-directive documents of 2026-10-29 (areas A–V, directiv
 ## Brand and repository assets
 
 - [ ] Paper-moth mark replaces the bee on every surface (app icon, tray, PWA
-      manifest, empty state, setup, custody seal, README).
-- [ ] Bee survives only as the swarm sub-agent badge.
+      manifest, empty state, setup, custody seal, README). Landed so far: the
+      TUI header and boot card (`ui/terminal_mark.py`), the intro still, the
+      first-run tour guide and its engine core, and the chat companion. Icons,
+      tray and README are the open rows.
+- [ ] Bee survives only as the swarm sub-agent badge. No source file under
+      `app/src` names a `bee-3d*` asset any more; the files still sit in
+      `app/public/onboarding/` unreferenced.
 - [ ] Master asset adopted from the owner's `paper-moth.webp` (paper, crimson
       thread) and rendered at 16–24 px from a vector cut.
 - [ ] Repo screenshots and GIFs recaptured from the built app after the wave.
 
 ## Prompt and persona
 
-- [ ] `persona.md` / `soul.md` / system prompt audited and extended for the
-      current model class (not re-measured in this wave).
+- [ ] The system prompt is audited and extended for the current model class
+      (not re-measured in this wave). It is built in `core/persona.py` and
+      `core/chat_prompt.py`; there is no `persona.md` or `soul.md` in this tree.
+
+## Updates (verified 2026-10-29)
+
+- [x] A merge between two tags reaches the user: the check compares the build's
+      commit against the default branch (ancestry, `core/update_check.py`) and
+      reports `channel: "main"` with the commit range. Ahead and diverged
+      checkouts are left alone.
+- [x] Four surfaces carry it: the PWA and desktop dialog (`UpdateDialog.tsx`,
+      compare link instead of an install the updater cannot perform), the TUI's
+      boot line (`ui/app.py`), and the `ephe doctor` Update row, which never
+      decides the exit code.
+- [x] The pet is the user's: a drag on the moth moves it anywhere in the chat
+      pane, the offset is remembered as a fraction of the viewport and clamped
+      to the clipping ancestor, and a double click brings it home
+      (`shell/useCompanionDrag.ts`).
 
 ## Packages A–V (master directive)
 
