@@ -1780,23 +1780,24 @@ html.no-motion .ephe-spirit-frame {
   .ephe-run {
     animation: ephe-run-enter var(--ephe-run-enter-duration) var(--ease-out-soft) both;
   }
-  /* The mark carries the state by tone; a live state also breathes. */
-  .ephe-run-mark {
-    background: var(--text-role-muted);
-    transition: background-color var(--motion-base) var(--ease-settle);
-  }
-  .ephe-run[data-state="ready"] .ephe-run-mark { background: var(--color-signal-ok); }
+  /* The moth glyph carries the state: it breathes while the run works, its two
+     knots pulse while the run waits, and it settles when the step lands. */
+  .ephe-run[data-state="ready"] .ephe-run-mark { opacity: 1; }
   .ephe-run[data-state="working"] .ephe-run-mark {
-    background: var(--color-brand);
     animation: ephe-run-work var(--ephe-run-work-period) ease-in-out infinite;
   }
-  .ephe-run[data-state="waiting"] .ephe-run-mark {
-    background: var(--color-signal-warn);
-    animation: ephe-run-work var(--ephe-run-wait-period) ease-in-out infinite;
+  .ephe-run[data-state="waiting"] .ephe-run-mark .moth-knot {
+    animation: moth-knot 1.6s ease-in-out infinite;
+  }
+  .ephe-run[data-state="waiting"] .ephe-run-mark .moth-knot.is-right {
+    animation-delay: -0.8s;
   }
   .ephe-run[data-state="done"] .ephe-run-mark {
-    background: var(--color-signal-ok);
     animation: ephe-run-done var(--ephe-run-done-duration) var(--ease-organic) both;
+  }
+  @keyframes moth-knot {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
   }
   /* The run's progress rule: the accent at the bar's foot, its length the one ratio
      the plan already carries, and the grow to the next step is the transition. */

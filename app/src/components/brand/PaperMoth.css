@@ -1,0 +1,247 @@
+/* The living paper moth: five states on one stage.
+ *
+ * The wings turn on the body's own axis (left wing's right edge, right wing's left
+ * edge), which is why the parts are cut at that axis rather than boxed. Motion is
+ * the state; there is no second indicator anywhere near the mark. */
+
+.paper-moth {
+  --moth-size: 9rem;
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--moth-size);
+  block-size: var(--moth-size);
+  pointer-events: none;
+}
+
+.paper-moth-stage {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  perspective: 640px;
+  transform-style: preserve-3d;
+}
+
+.paper-moth-wing,
+.paper-moth-body {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.paper-moth-wing {
+  transition: transform 1.2s var(--ease-out-soft, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.paper-moth-wing {
+  transform-origin: 50% 50%;
+}
+
+.paper-moth-body {
+  z-index: 1;
+}
+
+/* The ties sit where the master has them: just outboard of the body at wing root. */
+.paper-moth-thread {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.paper-moth-thread .knot {
+  position: absolute;
+  top: 54%;
+  inline-size: 4.5%;
+  block-size: 4.5%;
+  border-radius: 999px;
+  background: var(--color-firefly);
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.paper-moth-thread .knot.is-left {
+  left: 41%;
+}
+
+.paper-moth-thread .knot.is-right {
+  right: 41%;
+}
+
+.paper-moth-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-figure-paper-lit) 70%, transparent) 48%,
+    transparent 66%
+  );
+  -webkit-mask: url('/onboarding/paper-moth-actor.webp') center / contain no-repeat;
+  mask: url('/onboarding/paper-moth-actor.webp') center / contain no-repeat;
+  mix-blend-mode: soft-light;
+}
+
+/* READY — a breath of air, every ten seconds, never a loop you notice. */
+.paper-moth[data-state='ready'] .paper-moth-wing {
+  animation: moth-breathe 10s ease-in-out infinite;
+}
+
+.paper-moth[data-state='ready'] .paper-moth-wing.is-right {
+  animation-delay: -0.4s;
+}
+
+/* WORKING — the slow flap and the light that walks the fibres. */
+.paper-moth[data-state='working'] .paper-moth-wing.is-left {
+  animation: moth-flap 2.4s ease-in-out infinite;
+}
+
+.paper-moth[data-state='working'] .paper-moth-wing.is-right {
+  animation: moth-flap 2.4s ease-in-out infinite reverse;
+}
+
+.paper-moth[data-state='working'] .paper-moth-sheen {
+  animation: moth-sheen 2.4s ease-in-out infinite;
+}
+
+/* WAITING — the ties pulse: a letter that waits to be sealed. */
+.paper-moth[data-state='waiting'] .paper-moth-thread .knot {
+  opacity: 1;
+  animation: moth-knot 1.6s ease-in-out infinite;
+}
+
+.paper-moth[data-state='waiting'] .paper-moth-thread .knot.is-right {
+  animation-delay: -0.8s;
+}
+
+/* DONE — folds to the sealed slip: the wings come in, the body stands. */
+.paper-moth[data-state='done'] .paper-moth-wing.is-left {
+  transform: rotateY(78deg) rotateZ(-4deg);
+}
+
+.paper-moth[data-state='done'] .paper-moth-wing.is-right {
+  transform: rotateY(-78deg) rotateZ(4deg);
+}
+
+.paper-moth[data-state='done'] .paper-moth-thread .knot {
+  opacity: 1;
+}
+
+/* EVAPORATED — rises out of frame; what it produced stays in the shelf. */
+.paper-moth[data-state='evaporated'] {
+  animation: moth-rise 1.4s var(--ease-out-soft, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+}
+
+/* The first start only: a flat sheet, one fold, the first wing beat (1.8 s). */
+.paper-moth[data-unfold='true'] .paper-moth-wing {
+  animation: moth-unfold 1.8s var(--ease-out-soft, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  animation-delay: 0.5s;
+}
+
+.paper-moth[data-unfold='true'] .paper-moth-wing.is-right {
+  animation-delay: 0.6s;
+}
+
+.paper-moth[data-unfold='true'] .paper-moth-body {
+  animation: moth-lift 1.8s var(--ease-out-soft, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes moth-breathe {
+  0%,
+  92%,
+  100% {
+    transform: rotateY(0deg);
+  }
+  96% {
+    transform: rotateY(1.5deg);
+  }
+}
+
+@keyframes moth-flap {
+  0%,
+  100% {
+    transform: rotateY(6deg);
+  }
+  50% {
+    transform: rotateY(22deg);
+  }
+}
+
+@keyframes moth-sheen {
+  0% {
+    opacity: 0;
+    background-position: -120% 0;
+  }
+  40% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    background-position: 220% 0;
+  }
+}
+
+@keyframes moth-knot {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes moth-rise {
+  0% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -38%;
+  }
+}
+
+@keyframes moth-unfold {
+  0% {
+    transform: rotateY(88deg) rotateZ(-6deg);
+    opacity: 0.4;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(4deg);
+    opacity: 1;
+  }
+}
+
+@keyframes moth-lift {
+  0% {
+    scale: 0.92;
+    opacity: 0.6;
+  }
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-moth *,
+  .paper-moth {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .paper-moth[data-state='waiting'] .paper-moth-thread .knot {
+    opacity: 1;
+    transform: none;
+  }
+}

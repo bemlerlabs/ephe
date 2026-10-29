@@ -68,7 +68,8 @@ describe('AgenticBar — one chrome line states the run', () => {
     // The bar wears both chrome classes; the sheet addresses the mark through its state.
     expect(bar.className).toContain('workbench-bar')
     expect(bar.className).toContain('ephe-run')
-    expect(bar.querySelector('.ephe-run-mark')).toBeTruthy()
+    // The mark is the moth glyph; the sheet addresses its knots through the state.
+    expect(bar.querySelector('[data-testid="agentic-moth"]')).toBeTruthy()
   })
 
   it('states the plan ratio and grows the accent rule to it', () => {
