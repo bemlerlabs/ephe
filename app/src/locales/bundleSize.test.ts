@@ -154,8 +154,11 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // committed: en.json 137,002 B and de.json 148,410 B, +966 B / +1,037 B over the
 // numbers this wave inherited. Both halves move by the same 1,000 B, which keeps
 // the ~600 B headroom the earlier waves held.
-const EN_CEILING = 137_650
-const DE_CEILING = 149_000
+// 2026-10-29 (E2): the deny-with-correction row added three leaves to both
+// files. Measured from app/src/locales: en 137 613 B, de 149 093 B; the rows
+// carry ~40 B and ~57 B of headroom, the same shape the notes above describe.
+const EN_CEILING = 137_660
+const DE_CEILING = 149_150
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

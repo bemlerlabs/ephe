@@ -230,6 +230,9 @@
     "offlineStreamError": "Ephe ist gerade nicht erreichbar. Backend starten (ephe start) — danach erneut senden.",
     "approvalNeeded": "Ephe möchte ein Tool ausführen",
     "toolApproval": {
+      "denyCorrect": "Mit Korrektur ablehnen",
+      "correction": "Was soll es stattdessen tun?",
+      "correctionSend": "Ablehnen & senden",
       "remember": "Für diese Sitzung merken",
       "once": "Einmalig",
       "blastRadius": "Blast-Radius:",

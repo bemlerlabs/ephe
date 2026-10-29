@@ -245,6 +245,16 @@ export function AssistantBubble({
           rememberable={waitingTool.rememberable}
           onApprove={(remember?: boolean) => onApproveSandbox(waitingTool, remember)}
           onDeny={() => onDenySandbox(waitingTool)}
+          onDenyWithCorrection={
+            onPickOption
+              ? (text: string) => {
+                  // The refusal ends this call; the correction starts the next
+                  // turn, so the user is never left with a bare "denied".
+                  onDenySandbox(waitingTool)
+                  onPickOption(text)
+                }
+              : undefined
+          }
         />
       )}
     </>

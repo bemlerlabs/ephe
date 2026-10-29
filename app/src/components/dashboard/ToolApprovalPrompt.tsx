@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ShieldAlert, Check, ShieldCheck, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import DiffView from './DiffView'
@@ -24,13 +24,25 @@ export default function ToolApprovalPrompt({
   rememberable = false,
   onApprove,
   onDeny,
+  onDenyWithCorrection,
 }: {
   tool: ToolCall
   rememberable?: boolean
   onApprove: (remember?: boolean) => void
   onDeny: () => void
+  /** E2: refuse and say what to do instead; the wiring denies, then sends it. */
+  onDenyWithCorrection?: (text: string) => void
 }) {
   const { t } = useTranslation()
+  const [correction, setCorrection] = useState('')
+  const [asking, setAsking] = useState(false)
+  const submitCorrection = () => {
+    const text = correction.trim()
+    if (!text) return
+    setCorrection('')
+    setAsking(false)
+    onDenyWithCorrection?.(text)
+  }
   const argsPreview = JSON.stringify(tool.args ?? {})
   // M4 (blast radius): the directly affected values (path/URL/amount) as one
   // compact line — the user immediately sees what the action touches.
@@ -153,7 +165,45 @@ export default function ToolApprovalPrompt({
           <X className="h-3.5 w-3.5" />
           {t('chat.toolApproval.deny')}
         </button>
+        {onDenyWithCorrection && (
+          <button
+            type="button"
+            onClick={() => setAsking((v) => !v)}
+            aria-expanded={asking}
+            data-testid="approval-deny-with-correction"
+            className="text-ui-xs text-ink-soft underline-offset-2 hover:underline"
+          >
+            {t('chat.toolApproval.denyCorrect')}
+          </button>
+        )}
       </div>
+      {asking && onDenyWithCorrection && (
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <input
+            value={correction}
+            onChange={(event) => setCorrection(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                submitCorrection()
+              }
+            }}
+            placeholder={t('chat.toolApproval.correction')}
+            aria-label={t('chat.toolApproval.correction')}
+            data-testid="approval-correction"
+            className="flex-1 rounded-md border border-control bg-canvas px-2 py-1 text-ui-xs text-foreground/90 focus-ring"
+          />
+          <button
+            type="button"
+            onClick={submitCorrection}
+            disabled={!correction.trim()}
+            data-testid="approval-correction-send"
+            className="rounded-md bg-status-danger/15 px-2 py-1 text-ui-xs text-status-danger disabled:opacity-40"
+          >
+            {t('chat.toolApproval.correctionSend')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

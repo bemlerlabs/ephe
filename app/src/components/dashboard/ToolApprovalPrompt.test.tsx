@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, fireEvent } from '@testing-library/react'
+import { render, fireEvent, screen } from '@testing-library/react'
 import ToolApprovalPrompt from '@/components/dashboard/ToolApprovalPrompt'
 
 // i18n mock (ToolApprovalPrompt uses useTranslation)
@@ -177,4 +177,36 @@ describe('ToolApprovalPrompt (blast-radius label comes from i18n)', () => {
     // the affected value stays the raw one, next to the translated label
     expect(row!.textContent).toContain('command=ls')
   })
+  it('refuses and sends the correction the reader typed (E2)', () => {
+    const onDeny = vi.fn()
+    const onDenyWithCorrection = vi.fn()
+    render(
+      <ToolApprovalPrompt
+        tool={tool}
+        onApprove={() => {}}
+        onDeny={onDeny}
+        onDenyWithCorrection={onDenyWithCorrection}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('approval-deny-with-correction'))
+    const input = screen.getByTestId('approval-correction') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'write it to docs/ instead' } })
+    fireEvent.click(screen.getByTestId('approval-correction-send'))
+    expect(onDenyWithCorrection).toHaveBeenCalledWith('write it to docs/ instead')
+    expect(onDeny).not.toHaveBeenCalled()
+  })
+
+  it('keeps the send disabled until the correction has text', () => {
+    render(
+      <ToolApprovalPrompt
+        tool={tool}
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onDenyWithCorrection={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('approval-deny-with-correction'))
+    expect((screen.getByTestId('approval-correction-send') as HTMLButtonElement).disabled).toBe(true)
+  })
+
 })
