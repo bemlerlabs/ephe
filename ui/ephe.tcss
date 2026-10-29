@@ -64,7 +64,7 @@ Screen {
     background: $ink-panel;
     border-bottom: heavy $ink-line;
     padding: 0 1;
-    height: 2;
+    height: 4;
     dock: top;
     layout: horizontal;
 }
@@ -77,6 +77,7 @@ Screen {
 }
 
 #brand-title {
+    height: 3;
     color: $ink-text;
     text-style: bold;
     width: auto;
@@ -85,6 +86,7 @@ Screen {
 }
 
 #brand-version {
+    height: 3;
     color: $ink-dim;
     width: auto;
     padding: 0 1;
@@ -92,6 +94,7 @@ Screen {
 }
 
 #brand-session {
+    height: 3;
     color: $ink-dim;
     width: 1fr;
     padding: 0 1;
@@ -100,6 +103,7 @@ Screen {
 }
 
 #brand-state {
+    height: 3;
     width: auto;
     padding: 0 1;
     text-style: bold;

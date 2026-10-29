@@ -59,7 +59,9 @@ def test_header_names_the_session_and_one_state_word(app_factory):
     async def go():
         async with app.run_test(size=(80, 24)) as pilot:
             await pilot.pause()
-            assert "◑" in str(app.query_one("#brand-mark").render())
+            from ui.terminal_mark import MARK_HEAD
+
+            assert MARK_HEAD[0].strip() in str(app.query_one("#brand-mark").render())
             assert "Ephe" in str(app.query_one("#brand-title").render())
             assert "Alpha" in str(app.query_one("#brand-session").render())
             assert "rest" in str(app.query_one("#brand-state").render())

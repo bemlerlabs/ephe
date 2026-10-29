@@ -151,15 +151,19 @@ def test_footer_paints_every_active_binding():
         assert description in row
 
 
-def test_brand_header_paints_one_row_with_spaced_brand():
+def test_brand_header_paints_the_moth_beside_the_wordmark():
     """GIVEN the brand header
-    THEN it holds one content row and mark, name and version stand apart on it."""
+    THEN it holds the moth's three lines, and the mark, name and version stand
+    apart on the line the moth is widest."""
+    from ui.terminal_mark import MARK_HEAD
+
     shot = viewport()
-    assert shot.heights["header"] == 1
-    row = _row_with(shot.rows, "◑")
+    assert shot.heights["header"] == len(MARK_HEAD)
+    row = _row_with(shot.rows, "Ephe")
     assert row
-    assert re.search(r"◑\s+Ephe\s+v", row), row
+    assert re.search(r"Ephe\s+v", row), row
     assert f"v{__version__}" in row
+    assert MARK_HEAD[1].strip() in row
 
 
 def test_greeting_hint_lists_every_shown_binding():

@@ -66,7 +66,7 @@ from ui.session_switcher import SessionChoice, SessionSwitcher
 from ui import editor as editor_mod
 from ui import file_context
 from ui.palette import ACCENT, DIM, ERROR, OK, WARN
-from ui.terminal_mark import MARK_ROWS
+from ui.terminal_mark import MARK_HEAD, MARK_ROWS
 
 
 def _relative_when(iso: object) -> str:
@@ -330,7 +330,7 @@ class EpheApp(App):
         # Ink-ground brand header: mark, name, the session in front of you, and
         # one state word — the terminal's answer to "what is running here".
         with Horizontal(id="brand-header"):
-            yield Static(f"[{ACCENT}]◑[/{ACCENT}]", id="brand-mark")
+            yield Static(Text("\n".join(MARK_HEAD), style=ACCENT), id="brand-mark")
             yield Static("Ephe", id="brand-title")
             yield Static(f"v{__version__}", id="brand-version")
             yield Static("", id="brand-session")
@@ -478,11 +478,11 @@ class EpheApp(App):
         return tuple(hints)
 
     def _welcome_card(self, head: tuple[str, ...], body: tuple[str, ...]) -> Text:
-        """The bee beside the first words of a session.
+        """The moth beside the first words of a session.
 
-        The mark is the template cut of `app/src/assets/mark-mono.svg` folded to a
-        character grid by `scripts/generate_terminal_mark.py`, so the terminal shows
-        the same silhouette as the app icon. The words sit in its right margin.
+        The mark is the alpha cut of `docs/media/paper-moth-master.png` folded into
+        braille by `scripts/generate_terminal_mark.py`, so the terminal shows the
+        same silhouette as the app icon. The words sit in its right margin.
 
         A Text carries styles as spans: a session title is the user's own text and
         must not reach a markup parser.

@@ -269,7 +269,7 @@ def test_brand_header_present():
     THEN there is an ink-ground brand header (not a generic Textual header)."""
     app_src = _read("ui/app.py")
     assert 'id="brand-header"' in app_src, "brand header missing"
-    assert 'id="brand-mark"' in app_src, "brand mark (◑) missing"
+    assert 'id="brand-mark"' in app_src, "brand mark (the moth) missing"
 
 
 def test_statusbar_shows_provider_label():

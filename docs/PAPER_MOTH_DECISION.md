@@ -25,6 +25,7 @@ the thread is the custody chain that keeps it attached.
 | Welcome hero, setup card | `app/public/onboarding/paper-moth-actor.webp` (`HeroMark`) | actor cut |
 | First-open film | `app/public/onboarding/paper-moth-{actor,wing-l,wing-r,thread}.webp` | `scripts/generate_moth_film_parts.py` |
 | Companion, guide | the same four layers | as the film |
+| Terminal (`ephe tui`) | `ui/terminal_mark.py` — the header mark and the greeting card | `scripts/generate_terminal_mark.py`, braille dots from the master's alpha |
 
 One generator writes all of them, so no surface can carry a drawing the others do
 not have.
@@ -37,6 +38,14 @@ not have.
   pixel at this size, so the cut drops them rather than blurring them.
 - **33–47 px (compact)** — the planes and the thread, no crease.
 - **≥48 px (mark)** — the folded planes, the crease on both forewings, the thread.
+
+## The terminal cut
+
+A terminal has no pixels, so `scripts/generate_terminal_mark.py` samples the
+master's alpha at braille dot positions: a 20×20 dot grid for the greeting card,
+20×12 for the header, every dot lit above 120/255. A braille cell is two dots
+wide and four tall, which is square on a 1:2 terminal cell, so both grids keep
+the cut's own proportions and the figure is the one the icon carries.
 
 ## Colours
 
