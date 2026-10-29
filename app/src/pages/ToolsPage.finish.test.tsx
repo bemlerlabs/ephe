@@ -27,6 +27,8 @@ const api = vi.hoisted(() => ({
   analyzeImageBase64: vi.fn(),
   exportSessionsBundle: vi.fn(),
   importSessionsBundle: vi.fn(),
+  // The catalog card reads this; no catalog means it stays hidden here.
+  getCapabilities: vi.fn(),
 }))
 vi.mock('@/lib/api', () => api)
 
@@ -49,6 +51,10 @@ beforeEach(() => {
   api.analyzeImage.mockResolvedValue(analysis)
   api.analyzeImageBase64.mockResolvedValue(analysis)
   api.importSessionsBundle.mockResolvedValue({ restored: 3 })
+  api.getCapabilities.mockResolvedValue({
+    subagent: { tools: [], tool_count: 0, max_iterations: 1, read_only: true },
+    main_agent: { read_only: false, note: '' },
+  })
   vi.stubGlobal('URL', {
     ...URL,
     createObjectURL: vi.fn(() => 'blob:test'),
