@@ -105,7 +105,7 @@ jobs:
         # depend on which uv happened to ship that day. The freshness check, lockfile
         # lane and scratch resolver must use the same pin.
         run: |
-          pip install "uv==0.13.5"
+          pip install "uv==0.13.6"
           uv lock --check
 
       - name: Install package (with dev tools)
@@ -327,7 +327,7 @@ jobs:
         # have served 3.12.10); spell it `'3.12.15'` to freeze it.
         run: |
           python3 -m venv "${RUNNER_TEMP:?RUNNER_TEMP is set by the runner}/ephe-boot"
-          "${RUNNER_TEMP}/ephe-boot/bin/pip" install "uv==0.13.5"
+          "${RUNNER_TEMP}/ephe-boot/bin/pip" install "uv==0.13.6"
           "${RUNNER_TEMP}/ephe-boot/bin/uv" --version
           "${RUNNER_TEMP}/ephe-boot/bin/uv" python install '3.12'
           "${RUNNER_TEMP}/ephe-boot/bin/uv" venv --seed --python '3.12' .venv
@@ -339,7 +339,7 @@ jobs:
 
       - name: Verify uv.lock is fresh (supply-chain guard)
         run: |
-          pip install "uv==0.13.5"
+          pip install "uv==0.13.6"
           uv lock --check
 
       - name: Install package (with dev tools)

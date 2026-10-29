@@ -25,7 +25,7 @@ Four checks, each with the unit it is stated in:
   so a crate bumped in the manifest with no `cargo update` left a lock that builds a different set
   than the manifest names. Read as text, so no Rust toolchain and no network are needed.
 
-The Python half delegates to `uv lock --check` under the pinned `uv==0.13.5` that `tests.yml` already
+The Python half delegates to `uv lock --check` under the pinned `uv==0.13.6` that `tests.yml` already
 names. `--require-uv` turns a missing uv into a refusal, so the leg cannot pass by never having had it.
 
 `--diff` is a report rather than a fifth check, and both it and the two parsers it reads out of git
@@ -58,7 +58,7 @@ APP = ROOT / "app"  # the --app default, so a test can point the check at a plan
 EXPECTED_LOCKFILE_VERSION = "9.0"
 #: The uv that generates `uv.lock` here. `tests.yml` names this exact number on its freshness step for
 #: the reason written there -- a lock checked by a different resolver is a verdict about that resolver.
-EXPECTED_UV_VERSION = "0.13.5"
+EXPECTED_UV_VERSION = "0.13.6"
 
 
 def read_manifest(app: Path) -> dict:
@@ -121,7 +121,7 @@ def check_package_manager(manifest: dict) -> tuple[list[str], str]:
     return problems, match.group(1)
 
 
-def resolved_pnpm_version() -> str | None:
+def resolved_pnpm_version(app: Path = APP) -> str | None:
     """The pnpm that answers on this PATH, or None when there is none there.
 
     A runner that never installed pnpm — the coverage leg pins node but not pnpm —
@@ -130,7 +130,7 @@ def resolved_pnpm_version() -> str | None:
     exactly as it already does for a pnpm that answers non-zero.
     """
     try:
-        done = subprocess.run(["pnpm", "--version"], capture_output=True, text=True, check=False)
+        done = subprocess.run(["pnpm", "--version"], cwd=app, capture_output=True, text=True, check=False)
     except OSError:
         return None
     if done.returncode != 0:
@@ -323,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
 
     pin_problems, pinned = check_package_manager(manifest)
     failures += pin_problems
-    actual = resolved_pnpm_version()
+    actual = resolved_pnpm_version(args.app)
     if actual is None:
         line = "pnpm did not resolve on this PATH"
         if args.require_pnpm:

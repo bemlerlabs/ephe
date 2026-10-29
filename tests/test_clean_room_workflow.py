@@ -10,8 +10,13 @@ to the repository is its own incident.
 """
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "clean-room.yml"
@@ -168,3 +173,30 @@ def test_the_script_provisions_a_pinned_node_inside_the_scratch_root():
     )
     assert "corepack prepare" in script, "the pinned pnpm is not activated from app/package.json"
     assert "--store-dir" in script, "the pnpm store is not confined to the scratch root"
+
+
+@pytest.mark.parametrize("request_kind,expected_exit", [
+    ("minor", 0), ("patch", 0), ("wrong-minor", 1), ("wrong-patch", 1),
+])
+def test_resolved_interpreter_matches_the_requested_precision(tmp_path, request_kind, expected_exit):
+    major, minor, patch = sys.version_info[:3]
+    requested = {
+        "minor": f"{major}.{minor}",
+        "patch": f"{major}.{minor}.{patch}",
+        "wrong-minor": f"{major}.{minor + 1}",
+        "wrong-patch": f"{major}.{minor}.{patch + 1}",
+    }[request_kind]
+    binary = tmp_path / "bin" / "python"
+    binary.parent.mkdir()
+    binary.symlink_to(sys.executable)
+    script = SCRIPT.read_text(encoding="utf-8")
+    start = script.index('        got="$("$venv/bin/python"')
+    end = script.index('        say "shape $shape: interpreter', start)
+    guard = script[start:end]
+    done = subprocess.run(
+        ["bash", "-c", 'failures=0\nfail() { failures=$((failures + 1)); }\n'
+         + guard + '\nexit "$failures"'],
+        env=dict(os.environ, venv=str(tmp_path), shape=requested),
+        capture_output=True, text=True, check=False,
+    )
+    assert done.returncode == expected_exit, done.stdout + done.stderr

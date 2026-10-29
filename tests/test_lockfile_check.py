@@ -40,7 +40,7 @@ def test_uv_version_contracts_use_the_approved_pin(source, pattern):
     body = "\n".join(line for line in (ROOT / source).read_text(encoding="utf-8").splitlines()
                      if not line.lstrip().startswith("#"))
     pins = re.findall(pattern, body)
-    assert pins and set(pins) == {"0.13.5"}, f"{source}: uv pins {pins}"
+    assert pins and set(pins) == {"0.13.6"}, f"{source}: uv pins {pins}"
 
 
 def write_pair(tmp_path: Path, manifest: dict, lock_body: str) -> Path:
@@ -126,6 +126,35 @@ class TestRealTreeAgrees:
         assert actual == pinned, (
             f"pnpm on this PATH is {actual!r}, packageManager pins {pinned!r}"
         )
+
+
+def test_pnpm_version_is_read_from_the_application_directory(tmp_path, monkeypatch):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shim = bin_dir / "pnpm"
+    shim.write_text(
+        '#!/bin/sh\nif [ "$PWD" = "$EXPECTED_APP" ]; then\n'
+        '  printf "11.11.0\\n"\nelse\n  printf "11.10.0\\n"\nfi\n',
+        encoding="utf-8",
+    )
+    shim.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    monkeypatch.setenv("EXPECTED_APP", str(tmp_path.resolve()))
+    assert lockfile_check.resolved_pnpm_version(tmp_path) == "11.11.0"
+
+
+def test_cli_probes_pnpm_in_the_app_given_by_the_caller(tmp_path, monkeypatch):
+    app = write_pair(tmp_path, {"name": "x", "packageManager": "pnpm@11.11.0"}, "    dependencies: {}\n")
+    bin_dir = _fake_pnpm(tmp_path, "11.10.0")
+    (bin_dir / "pnpm").write_text(
+        '#!/bin/sh\nif [ "$PWD" = "$EXPECTED_APP" ]; then\n'
+        '  printf "11.11.0\\n"\nelse\n  printf "11.10.0\\n"\nfi\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("EXPECTED_APP", str(app.resolve()))
+    done = run(app, "--require-pnpm", path=bin_dir)
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert "`pnpm --version` says 11.11.0" in done.stdout
 
 
 class TestPlantedDisagreements:

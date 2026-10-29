@@ -149,7 +149,7 @@ jobs:
           set -uo pipefail
           # No -e here on purpose: a failed install must land in the resolution below, which names
           # the tool that is missing, rather than aborting on a pip traceback.
-          pip install --quiet "uv==0.13.5" "pip-audit==2.10.1" \
+          pip install --quiet "uv==0.13.6" "pip-audit==2.10.1" \
             || echo "::notice::the tool install did not complete; the resolution below names what is missing"
           if [ -n "${EPHE_LEG_VENV:-}" ] && ! pip -V | grep -q "$EPHE_LEG_VENV"; then
             echo "::error::install resolves outside the job's own venv: $(pip -V)"

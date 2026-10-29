@@ -32,7 +32,7 @@ jobs:
       - name: Install the pinned uv
         run: |
           python3 -m venv .uv
-          .uv/bin/pip install --quiet uv==0.13.5
+          .uv/bin/pip install --quiet uv==0.13.6
           echo "$PWD/.uv/bin" >> "$GITHUB_PATH"
 
       - name: The locks agree with the manifests

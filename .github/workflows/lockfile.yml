@@ -39,7 +39,7 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  EPHE_UV_VERSION: "0.13.5"
+  EPHE_UV_VERSION: "0.13.6"
 
 jobs:
   agreement:

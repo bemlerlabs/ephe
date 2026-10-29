@@ -22,7 +22,7 @@
 # installing a resolver into the venv would add a package to the set under test.
 set -uo pipefail
 
-readonly UV_VERSION="${EPHE_UV_VERSION:-0.13.5}"
+readonly UV_VERSION="${EPHE_UV_VERSION:-0.13.6}"
 #: Node 22 LTS, fetched into the scratch root because the leg must not use setup-node.
 #: Digests: nodejs.org/dist/v22.23.4/SHASUMS256.txt, verified 2026-10-23.
 readonly NODE_VERSION="${EPHE_NODE_VERSION:-22.23.4}"
@@ -255,10 +255,11 @@ if want_target py; then
         timed "uv-sync-$shape" "$sync_time"
         first_venv="${first_venv:-$venv}"
 
-        got="$("$venv/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
-        if [ "$got" != "$shape" ]; then
-            fail "shape $shape resolved to CPython $got: the leg does not run the interpreter it names"
-        fi
+        got="$("$venv/bin/python" -c 'import platform; print(platform.python_version())' 2>/dev/null)"
+        case "$got" in
+            "$shape"|"$shape".*) ;;
+            *) fail "shape $shape resolved to CPython $got: the leg does not run the interpreter it names" ;;
+        esac
         say "shape $shape: interpreter ${fetch_time}s, uv sync --frozen ${sync_time}s cold, exit 0"
         say "shape $shape: cold cache $cache holds $(find "$cache" -type f 2>/dev/null | wc -l | tr -d ' ') files, $(du -sh "$cache" 2>/dev/null | cut -f1)"
         say "shape $shape: CPython $got at $("$venv/bin/python" -c 'import sys; print(sys.prefix)')"

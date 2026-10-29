@@ -16,6 +16,12 @@ The cell ownership fix (`a233c71`) keeps the session workspace locked until
 its worker finishes, including during cancellation and shutdown. A queued
 reset can no longer erase an active guest's files.
 
+The Python runtime upgrade moves every CI resolver pin to uv 0.13.6, requests
+the patched interpreters 3.13.18 and 3.12.16 in the cold-install lane, and
+declares 3.13.18 in `.python-version`. The lockfile check also probes pnpm in
+the application directory it was given, so a Corepack pin is read where it
+applies.
+
 The 0.5.1 surface wave is named below (`cdb26e6`, `b4aacec`, `7ea5684`,
 `5ca2ad9`, `c8e9993`, `c9e0ba5`, `6c13716`, `47f4666`, `56226d7`, `4a8583b`,
 `934a7b2`, `d967a5f`, `a012491`, `1c1a7b3`, `cf90dd9`): the TUI footer counts
