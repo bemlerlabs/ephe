@@ -261,7 +261,7 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       store.upsertActivity({
         label: `Swarm: ${event.agents.length} Agents`,
         status: 'done',
-        detail: event.agents.join(', '),
+        detail: event.agents.map((a) => `${a.role} · ${a.model}`).join(', '),
       })
       break
 
@@ -269,14 +269,16 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       store.upsertActivity({
         label: `Agent ${event.agent_id}`,
         status: 'running',
-        detail: event.subtask,
+        // QD-016 C1: the card names the model that runs it; the old frame
+        // carried the task alone and the deck could not show the wiring.
+        detail: event.model ? `${event.model} · ${event.subtask}` : event.subtask,
       })
       break
 
     case 'swarm_agent_done':
       store.upsertActivity({
         label: `Agent ${event.agent_id}`,
-        status: 'done',
+        status: event.status === 'error' ? 'failed' : 'done',
         detail: event.summary,
       })
       break

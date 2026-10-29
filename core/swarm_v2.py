@@ -537,12 +537,6 @@ class SwarmAgent:
         await self.state.update_agent_status(
             self.agent_id, AgentStatus.RUNNING, f"Starte: {self.subtask[:60]}…"
         )
-        self._emit({
-            "type": "swarm_agent_started",
-            "agent_id": self.agent_id,
-            "role": self.role,
-            "subtask": self.subtask,
-        })
 
         # Agent isolation, Ephe norm: every sub-agent = its own mini computer (its own cell).
         # Cell key = agent_id (not session_id), so worker namespaces stay isolated.
@@ -903,8 +897,29 @@ class SwarmOrchestrator:
                 active_skills=sub_skills,
                 trace_id=trace_id,
                 run_id=f"{self.swarm_id}:{i}",
+                # The bridge the orchestrator received: without it every card in
+                # the deck stayed at its first frame (no started/done pair ever
+                # reached the stream, and the roster size was unknown).
+                on_event=self.on_event,
             )
             agents.append(agent)
+
+        # The roster the deck draws: one row per agent with the model that runs
+        # it and the hash of its task, before the first agent starts.
+        self.on_event({
+            "type": "swarm_created",
+            "swarm_id": self.swarm_id,
+            "model": self.model,
+            "agents": [
+                {
+                    "agent_id": a.agent_id,
+                    "role": a.role,
+                    "model": a.model,
+                    "task_spec_hash": a.task_spec_hash,
+                }
+                for a in agents
+            ],
+        })
 
         # Phase 3: parallel execution — bounded by swarm_max_parallel (generation
         # option, default 8; the spawn COUNT is already capped in phase 2). A wave
@@ -922,12 +937,33 @@ class SwarmOrchestrator:
                 # The agent counts its gate skips on this wave's counters (N24 R1).
                 agent.wave = self.wave
                 self._wave_enter(agent)
+                # The card opens when the slot is taken (not when the agent was
+                # queued): role, model and task hash travel with it.
+                self.on_event({
+                    "type": "swarm_agent_started",
+                    "swarm_id": self.swarm_id,
+                    "agent_id": agent.agent_id,
+                    "role": agent.role,
+                    "model": agent.model,
+                    "task_spec_hash": agent.task_spec_hash,
+                    "subtask": agent.subtask,
+                })
                 status: object = "error"
                 try:
                     envelope = await agent.run()
                     status = envelope
                     return envelope
                 finally:
+                    # The deck's card closes on this frame; without it every
+                    # agent stayed "running" until the turn ended.
+                    ok = isinstance(status, SwarmEnvelope)
+                    self.on_event({
+                        "type": "swarm_agent_done",
+                        "swarm_id": self.swarm_id,
+                        "agent_id": agent.agent_id,
+                        "status": "done" if ok else "error",
+                        "summary": status.summary[:280] if ok else "",
+                    })
                     self._wave_exit(agent, status)
 
         agent_tasks = [asyncio.create_task(_run_bounded(agent)) for agent in agents]

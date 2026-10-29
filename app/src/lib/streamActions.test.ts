@@ -182,13 +182,13 @@ describe('applyStreamEvent (Event → Store-Action Mapping)', () => {
       status: 'running',
     })
     applyStreamEvent(
-      { type: 'swarm_created', swarm_id: 'sw-1', agents: ['a1', 'a2'], model: 'gemma4:e4b' },
+      { type: 'swarm_created', swarm_id: 'sw-1', agents: [{ agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' }, { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' }], model: 'gemma4:e4b' },
       store,
     )
     expect(store.upsertActivity).toHaveBeenLastCalledWith({
       label: 'Swarm: 2 Agents',
       status: 'done',
-      detail: 'a1, a2',
+      detail: 'researcher · gemma4:e4b, researcher · gemma4:e4b',
     })
     applyStreamEvent(
       { type: 'swarm_agent_started', swarm_id: 'sw-1', agent_id: 'a1', subtask: 'X' },

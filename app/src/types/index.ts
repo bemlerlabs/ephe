@@ -502,10 +502,17 @@ export interface StreamSkillCreated {
   skill: { name: string; trigger: string; description: string }
 }
 
+export interface StreamSwarmAgentRef {
+  agent_id: string
+  role: string
+  model: string
+  task_spec_hash: string
+}
+
 export interface StreamSwarmCreated {
   type: 'swarm_created'
   swarm_id: string
-  agents: string[]
+  agents: StreamSwarmAgentRef[]
   model: string
 }
 
@@ -513,6 +520,9 @@ export interface StreamSwarmAgentStarted {
   type: 'swarm_agent_started'
   swarm_id: string
   agent_id: string
+  role?: string
+  model?: string
+  task_spec_hash?: string
   subtask: string
 }
 
@@ -520,6 +530,7 @@ export interface StreamSwarmAgentDone {
   type: 'swarm_agent_done'
   swarm_id: string
   agent_id: string
+  status?: string
   summary: string
 }
 

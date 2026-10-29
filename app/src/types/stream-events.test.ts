@@ -122,7 +122,7 @@ describe('StreamEvent (Diskriminierte Union)', () => {
       { type: 'goal_turn', turn: 1 },
       { type: 'goal_check', turn: 1, ok: true, output: '2 passed' },
       { type: 'budget', action: 'continue_turn', cap: 25, extra: 10 },
-      { type: 'swarm_created', swarm_id: 's1', agents: ['a1', 'a2'], model: 'gemma4:12b' },
+      { type: 'swarm_created', swarm_id: 's1', agents: [{ agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' }, { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' }], model: 'gemma4:12b' },
       { type: 'swarm_agent_started', swarm_id: 's1', agent_id: 'a1', subtask: 't' },
       { type: 'swarm_agent_done', swarm_id: 's1', agent_id: 'a1', summary: 'done' },
       {
@@ -215,11 +215,11 @@ describe('StreamEvent (Diskriminierte Union)', () => {
     const e: StreamSwarmCreated = {
       type: 'swarm_created',
       swarm_id: 'sw',
-      agents: ['a'],
+      agents: [{ agent_id: 'a', role: 'r', model: 'm', task_spec_hash: 'h' }],
       model: 'm',
     }
     expect(e.swarm_id).toBe('sw')
-    expect(e.agents).toEqual(['a'])
+    expect(e.agents[0]!.agent_id).toBe('a')
   })
 
   it('error-Payload: { msg } (kein "message"-Feld)', () => {
