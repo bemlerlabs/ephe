@@ -55,6 +55,13 @@ export function ToolStreamRows({
   }, [expandFirst, groups])
 
   if (groups.length === 0) return null
+  // One run header for the block, not one per family: a turn that reads while it
+  // edits would otherwise print the same clock twice.
+  const anyRunning =
+    streaming !== false &&
+    groups.some(
+      (g) => g.calls.filter((c) => (c as { status?: string }).status !== 'pending').length < g.count,
+    )
 
   // R61 rule 2: the run's record is a control pane, and a control veil may rest on
   // the reading pane the assistant bubble carries.
@@ -63,6 +70,18 @@ export function ToolStreamRows({
       className="glass-control mt-1 inline-flex flex-col items-start gap-0.5 max-w-full"
       data-testid="tool-stream-rows"
     >
+      {anyRunning && startTs ? (
+        <div
+          data-testid="tool-run-header"
+          className="flex items-center gap-1.5 px-1.5 pt-1 text-ui-xs text-ink-soft"
+        >
+          <Loader2 className="h-3 w-3 animate-spin text-brand" aria-hidden="true" />
+          <span>{t('chat.runRunning')}</span>
+          <span className="tabular-nums text-ink-soft">
+            <LiveElapsed since={startTs} />
+          </span>
+        </div>
+      ) : null}
       {groups.map((g, i) => {
         const key = `${g.family}-${i}`
         const RowIcon =
@@ -111,18 +130,6 @@ export function ToolStreamRows({
         // the muted 11px ink at 3.85:1; the row's ink moves onto --color-ink-soft there.
         return (
           <div key={key} data-testid={`tool-stream-row-${g.family}`}>
-            {running && startTs ? (
-              <div
-                data-testid="tool-run-header"
-                className="flex items-center gap-1.5 px-1.5 pt-1 text-ui-xs text-ink-soft"
-              >
-                <Loader2 className="h-3 w-3 animate-spin text-brand" aria-hidden="true" />
-                <span>{t('chat.runRunning')}</span>
-                <span className="tabular-nums text-ink-soft">
-                  <LiveElapsed since={startTs} />
-                </span>
-              </div>
-            ) : null}
             <button
               type="button"
               data-testid={running ? 'tool-stream-row-active' : undefined}
