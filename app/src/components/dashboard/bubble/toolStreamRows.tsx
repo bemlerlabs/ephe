@@ -131,8 +131,10 @@ export function ToolStreamRows({
               <span
                 className={`text-ui-xs shrink-0 ${g.hasFailure ? 'text-status-danger/90' : 'text-ink-soft'}`}
               >
-                {t(g.summaryKey)}
-                {showCount && g.count > 1 && (
+                {g.hasFailure || g.family === 'edit' || g.family === 'write'
+                  ? t(g.summaryKey)
+                  : t(g.count === 1 ? 'chat.ranOneTool' : 'chat.ranTools', { count: g.count })}
+                {showCount && g.count > 1 && (g.hasFailure || g.family === 'edit' || g.family === 'write') && (
                   <span className="text-ink-faint group-hover:text-ink-soft group-focus-visible:text-ink-soft">
                     {' · '}
                     {running
@@ -141,7 +143,7 @@ export function ToolStreamRows({
                   </span>
                 )}
               </span>
-              {proof && (
+              {proof && open && (
                 <span
                   data-testid="tool-row-proof"
                   className={`tabular-nums text-ui-2xs shrink-0 truncate ${
@@ -175,9 +177,10 @@ export function ToolStreamRows({
                   </span>
                 )}
               {/* K3 Z08: elapsed-time chip (from the tool_done frame, ms) */}
-              {g.calls
-                .map((c) => (c as { duration_ms?: number }).duration_ms)
-                .find((d) => d !== undefined) !== undefined && (
+              {running &&
+                g.calls
+                  .map((c) => (c as { duration_ms?: number }).duration_ms)
+                  .find((d) => d !== undefined) !== undefined && (
                 <span
                   data-testid="tool-duration-chip"
                   className="text-ui-xs font-mono text-ink-soft shrink-0"
@@ -201,6 +204,7 @@ export function ToolStreamRows({
               )}
               {/* P3 : status suffix on the right of the row end —
                   "1/3 · Working" / "· Completed" / "· Failed". */}
+              {(running || rowStatus === 'failed') && (
               <span
                 data-testid="tool-row-status"
                 className={`text-ui-xs shrink-0 ${
@@ -214,10 +218,9 @@ export function ToolStreamRows({
                 {'· '}
                 {rowStatus === 'running'
                   ? t('chat.rowWorking', { defaultValue: 'Working' })
-                  : rowStatus === 'failed'
-                    ? t('chat.rowFailed', { defaultValue: 'Failed' })
-                    : t('chat.rowCompleted', { defaultValue: 'Completed' })}
+                  : t('chat.rowFailed', { defaultValue: 'Failed' })}
               </span>
+              )}
             </button>
             {open && (
               <div className="pl-4 pb-1">

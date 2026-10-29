@@ -406,8 +406,8 @@
     "proof": {
       "everyday": "✓ Automatic check passed ({{seconds}} s)",
       "everydayNoTime": "✓ Automatic check passed",
-      "expert": "[{{tool}}] passed · {{ms}} ms",
-      "expertNoTime": "[{{tool}}] passed",
+      "expert": "passed · {{ms}} ms",
+      "expertNoTime": "passed",
       "failed": "✗ Check failed — open the row for the output"
     },
     "profilePrefix": "Profile:",
@@ -467,7 +467,9 @@
       "failed": "failed"
     },
     "solLearned": "A rule for this project was learned",
-    "solOpen": "View / Edit"
+    "solOpen": "View / Edit",
+    "ranOneTool": "Ran 1 tool",
+    "ranTools": "Ran {{count}} tools"
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",
