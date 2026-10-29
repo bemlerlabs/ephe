@@ -354,3 +354,21 @@ stands a fake `ephemora_cell` in front of the real path
 `disk_quota_bytes`, and an egress-free `allow_dirs` (only the read-only guest root and
 the writable `/work`). The `@live` sibling `test_cell_config_carries_every_ceiling_it_claims`
 is the same identity against the installed release; this one keeps it in CI.
+
+## The shell sandbox allows a loopback listener (2026-10-29)
+
+`sandbox-exec` (shell tool, opt-in via `security.json`) denied every network
+operation, so `python3 -m http.server 8000` answered "Operation not permitted" —
+a workspace could not serve its own project, and "look at my project and start
+it" ended in retries instead of a URL.
+
+The profile keeps `(deny network*)` and adds one narrower rule after it:
+
+```
+(allow network-bind network-inbound (local ip "localhost:*"))
+```
+
+A sandboxed command may bind and accept on loopback; every outbound connection
+and every non-loopback bind stays refused. `tests/test_sandbox_loopback.py`
+proves both directions on macOS with a real `sandbox-exec` run (a bind on
+127.0.0.1 succeeds, a connect to 1.1.1.1 fails).

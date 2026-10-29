@@ -5,7 +5,8 @@ approved shell command in `sandbox-exec -p <profile>`:
 
   - Writing ONLY into the workspace, system TMP and HOME (the profile would
     otherwise be unusable — git/npm write caches into $HOME)
-  - Network off (deny network*)
+  - Outbound network off (deny network*); a loopback listener is allowed, because
+    "start my project" ends in a dev server the user opens in a browser
   - Reading stays allowed (otherwise every toolchain breaks)
 
 Honest limits (documented in docs/SANDBOX_EXECUTION.md): sandbox-exec is
@@ -34,6 +35,10 @@ def build_profile(workspace: str) -> str:
         "(version 1)\n"
         "(allow default)\n"
         "(deny network*)\n"
+        # Narrower than the deny above, and later: binding and accepting on
+        # loopback is how a workspace starts its own dev server. Every outbound
+        # connection and every non-loopback bind stays refused.
+        "(allow network-bind network-inbound (local ip \"localhost:*\"))\n"
         f"(deny file-write*)\n"
         f"(allow file-write*\n"
         f"  (subpath \"{ws}\")\n"

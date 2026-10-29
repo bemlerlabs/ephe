@@ -22,9 +22,11 @@ Sources: the two master-directive documents of 2026-10-29 (areas A–V, directiv
 
 ## Engine, tools, plugins
 
-- [ ] "Look at my project and start it": start command found in the workspace,
-      served on loopback, URL reported. The sandbox profile denies `network*`,
-      so `python3 -m http.server` fails with "Operation not permitted".
+- [x] Loopback listener allowed in the shell sandbox (bind/inbound on
+      `localhost:*`; outbound still denied), proven by a real `sandbox-exec` run.
+- [ ] "Look at my project and start it" end to end: the workspace's own start
+      command is chosen (SOL's map already names `dev: …`), started in the
+      background instead of blocking a tool round, and the URL is reported.
 - [ ] One editable capability surface: built-in tools, plugin tools, skills and
       MCP entries with an editable allow-list (read-only whitelist included).
       No route or surface carries it today.
