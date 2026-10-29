@@ -1,19 +1,18 @@
-"""The terminal mark: the shipped vector, and nothing invented beside it.
+"""The terminal mark: the mastered cut, and nothing invented beside it.
 
-`ui/terminal_mark.py` is generated from `app/src/assets/mark-mono.svg` by
+`ui/terminal_mark.py` is generated from `docs/media/paper-moth-master.png` by
 `scripts/generate_terminal_mark.py`. These tests keep the two tied together, so a
-change to the icon reaches the terminal only through the generator, and check the
+change to the cut reaches the terminal only through the generator, and check the
 boot card that carries it.
 """
 from __future__ import annotations
 
-import asyncio
 import importlib.util
-import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from PIL import Image, ImageDraw
 
 REPO = Path(__file__).resolve().parent.parent
 GENERATOR = REPO / "scripts" / "generate_terminal_mark.py"
@@ -33,47 +32,66 @@ def gen():
     return _load("generate_terminal_mark_under_test", "scripts/generate_terminal_mark.py")
 
 
-def test_the_committed_grid_is_the_vector_measured(gen):
-    """GIVEN the shipped template cut
-    WHEN the generator folds it to the committed grid
-    THEN the file in ui/ is what the vector says at the grid it names."""
-    from ui.terminal_mark import MARK_GRID, MARK_ROWS
+def test_the_committed_cuts_are_the_master_measured(gen):
+    """GIVEN the mastered cut
+    WHEN the generator folds it at the two grids the module names
+    THEN the rows in ui/ are what the alpha channel says at those grids."""
+    from ui.terminal_mark import MARK_GRID, MARK_HEAD, MARK_HEAD_GRID, MARK_ROWS
 
-    shapes = gen.coverages(gen.SOURCE.read_text(encoding="utf-8"))
-    assert gen.render(shapes, *MARK_GRID) == list(MARK_ROWS)
-
-
-def test_the_mark_is_one_plane_on_its_own_axis(gen):
-    """GIVEN a terminal cell carries no colour here
-    THEN every glyph of the grid comes from the ramp, and the silhouette's mass
-    sits on the middle of its own bounding box — the axis `mark_contract.py`
-    measures on the vector."""
-    from ui.terminal_mark import MARK_ROWS
-
-    assert set("".join(MARK_ROWS)) <= set(gen.RAMP)
-    ink = [(row, col) for row, line in enumerate(MARK_ROWS)
-           for col, ch in enumerate(line) if ch != " "]
-    left = min(col for _, col in ink)
-    right = max(col for _, col in ink)
-    centre = sum(col for _, col in ink) / len(ink)
-    assert abs(centre - (left + right) / 2) <= 1.0
+    image = gen.cut()
+    assert list(MARK_ROWS) == gen.braille(image, MARK_GRID)
+    assert list(MARK_HEAD) == gen.braille(image, MARK_HEAD_GRID)
 
 
-def test_the_generator_reads_the_commands_the_mark_writes(gen):
-    """GIVEN a path body
-    THEN the closed subpaths come back as polygons, and a command the sampler
-    does not implement contributes no outline rather than a wrong one."""
-    assert gen._polygons("M10,10 L20,10 L20,20 Z") == [
-        [(10.0, 10.0), (20.0, 10.0), (20.0, 20.0), (10.0, 10.0)]
-    ]
-    assert gen._polygons("M10,10 A5,5 0 0 1 20,20 Z") == []
+def test_every_glyph_is_a_braille_cell_on_its_own_axis(gen):
+    """GIVEN a braille cell carries only dots
+    THEN every glyph of both cuts is a braille pattern, and the ink sits on the
+    middle of its own bounding box — the axis `mark_contract.py` measures. The
+    tolerance is one cell and a half: a cell is two dots wide, so the ink's centre
+    lands between dots."""
+    from ui.terminal_mark import MARK_HEAD, MARK_ROWS
+
+    for rows in (MARK_ROWS, MARK_HEAD):
+        ink = [(row, col) for row, line in enumerate(rows)
+               for col, ch in enumerate(line) if ch != " "]
+        assert ink
+        assert all(0x2800 <= ord(rows[row][col]) <= 0x28FF for row, col in ink)
+        left = min(col for _, col in ink)
+        right = max(col for _, col in ink)
+        centre = sum(col for _, col in ink) / len(ink)
+        assert abs(centre - (left + right) / 2) <= 1.5
+
+
+def test_the_cut_trims_to_the_silhouette(gen):
+    """GIVEN a cleared ground with a lit rectangle in it
+    THEN the cut comes back at the rectangle's own box, so the mark carries ink
+    and not canvas."""
+    canvas = Image.new("RGBA", (40, 20), (0, 0, 0, 0))
+    ImageDraw.Draw(canvas).rectangle([10, 4, 29, 15], fill=(255, 255, 255, 255))
+
+    assert gen.cut(canvas).size == (20, 12)
+
+
+def test_a_faint_ground_lights_no_dot(gen):
+    """GIVEN alpha at the floor
+    THEN no dot is lit and the grid trims away instead of emitting blank cells."""
+    canvas = Image.new("L", (2, 4), gen.INK_FLOOR - 1)
+
+    assert gen.braille(canvas, (2, 4)) == []
+
+
+def test_every_dot_position_maps_to_its_braille_bit(gen):
+    """GIVEN a fully lit cut
+    THEN the single cell carries dots 1-8, which is the bit layout the terminal
+    renders."""
+    assert gen.braille(Image.new("L", (2, 4), 255), (2, 4)) == [chr(0x28FF)]
 
 
 @pytest.mark.asyncio
-async def test_the_boot_card_carries_the_mark_and_the_wordmark(tmp_path, monkeypatch):
+async def test_the_boot_card_and_the_header_carry_the_mark(tmp_path, monkeypatch):
     """GIVEN a first session with no messages
     WHEN the terminal paints its greeting
-    THEN the bee and the wordmark are on the same screen, and the key legend
+    THEN the moth is in the header and beside the wordmark, and the key legend
     still reaches the reader."""
     from core import multi_session as ms
 
@@ -81,7 +99,7 @@ async def test_the_boot_card_carries_the_mark_and_the_wordmark(tmp_path, monkeyp
     ms.switch_to(str(entry["id"]))
 
     from ui.app import EpheApp
-    from ui.terminal_mark import MARK_ROWS
+    from ui.terminal_mark import MARK_HEAD, MARK_ROWS
 
     app = EpheApp(model="boot-card", reset=False)
 
@@ -102,3 +120,6 @@ async def test_the_boot_card_carries_the_mark_and_the_wordmark(tmp_path, monkeyp
         assert "Ephe" in painted
         assert MARK_ROWS[0].strip() in painted
         assert "Ctrl+P" in painted
+        header = str(app.query_one("#brand-mark").render())
+        assert MARK_HEAD[0].strip() in header
+        assert MARK_HEAD[-1].strip() in header
