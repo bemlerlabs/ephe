@@ -331,6 +331,11 @@ export default function ChatLayout() {
                 isTauri && sidebarCollapsed
                   ? ' md:pl-[calc(2rem+var(--chrome-inset-left,0px))]'
                   : ''
+              }${
+                // I2: the Windows 11 caption buttons sit over the window's top
+                // right corner on every desktop window, so the reserve is not
+                // tied to the sidebar state the way the macOS inset is.
+                isTauri ? ' md:pr-[calc(1rem+var(--chrome-inset-right,0px))]' : ''
               }`}
             >
               {/* DD-27: the left group is the interactive column (nav arrows, title).

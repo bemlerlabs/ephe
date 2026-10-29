@@ -72,6 +72,13 @@ describe('safe-area insets on the chat shell', () => {
     expect(header).toMatch(/pt-\[calc\([^\]]*env\(safe-area-inset-top\)\)\]/)
   })
 
+  it('reserves the Windows caption corner on the same header', () => {
+    // I2: the 138 px right inset was written to the root and read by nobody.
+    const header = CHAT_SHELL.split('\n').find((l) => l.includes('md:pr-[calc(1rem+var(--chrome-inset-right'))
+    expect(header).toBeTruthy()
+    expect(header).toContain('isTauri')
+  })
+
   it('clears it on the mobile drawer header too — the phone reaches the app through it', () => {
     const sidebar = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), 'Sidebar.tsx'),
