@@ -72,6 +72,9 @@ const CONTENT_EXT = new Set([
   'xls',
   'csv',
   'docx',
+  'pptx',
+  'ppt',
+  'odp',
   'md',
   'markdown',
   'txt',
@@ -98,7 +101,8 @@ export function artifactPreviewMode(name: string, kind = ''): ArtifactPreviewMod
   // Code: the file endpoint serves the source, so the card shows it instead of
   // the 'unsupported' answer it gave for every .ts/.py/.sh before.
   if (CODE_EXT[ext]) return 'code'
-  // pptx/deck/doc variants: no browser render, no text extract → honest card
+  // The deck kinds go through the server's slide read; a deck it cannot parse
+  // answers 'none' with a reason, and the card says that.
   return 'none'
 }
 

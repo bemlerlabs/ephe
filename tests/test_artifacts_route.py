@@ -776,3 +776,43 @@ class TestChatIngest:
         }
         assert {row["kind"] for row in rows} == {"pptx", "scorecard", "manifest", "qa", "html"}
         assert {row["session_id"] for row in rows} == {"sess-deck"}
+
+class TestDeckPreview:
+    """A deck is a zip of slide XML; the card can read it without a viewer."""
+
+    @staticmethod
+    def _deck(tmp_path, slides: list[tuple[str, list[str]]]):
+        import zipfile
+
+        path = tmp_path / "deck.pptx"
+        with zipfile.ZipFile(path, "w") as deck:
+            for index, (title, lines) in enumerate(slides, start=1):
+                runs = "".join(f"<a:t>{t}</a:t>" for t in [title, *lines])
+                deck.writestr(
+                    f"ppt/slides/slide{index}.xml",
+                    '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+                    f'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+                    f"<p:cSld><p:spTree><p:sp><p:txBody><a:p>{runs}</a:p></p:txBody></p:sp>"
+                    "</p:spTree></p:cSld></p:sld>",
+                )
+        return path
+
+    def test_slides_arrive_in_order_with_title_and_lines(self, tmp_path):
+        from core.artifact_preview import preview_payload
+
+        path = self._deck(
+            tmp_path,
+            [("Quarterly review", ["Revenue up", "Churn flat"]), ("Next steps", ["Hire two"])],
+        )
+        body = preview_payload(path, "pptx")
+        assert body["mode"] == "slides"
+        assert body["count"] == 2
+        assert body["slides"][0] == {"title": "Quarterly review", "lines": ["Revenue up", "Churn flat"]}
+        assert body["slides"][1]["title"] == "Next steps"
+
+    def test_a_broken_deck_is_none_with_a_reason(self, tmp_path):
+        from core.artifact_preview import preview_payload
+
+        (tmp_path / "broken.pptx").write_text("not a zip")
+        body = preview_payload(tmp_path / "broken.pptx", "pptx")
+        assert body["mode"] == "none" and body["reason"].startswith("unreadable")
