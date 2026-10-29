@@ -7,6 +7,7 @@
  * is the only comparison that decides an install.
  */
 import { apiUrl } from '@/lib/api/http'
+import { isDesktopShell } from '@/lib/tauriBridge'
 import { readAsset, readManifestNotes, readPlatform } from '@/lib/updateDetails'
 
 export interface UpdateCheckInfo {
@@ -85,10 +86,7 @@ export interface UpdateState {
   restart?: boolean
 }
 
-/** True inside the Ephe desktop shell (Tauri IPC available). */
-export function isDesktopShell(): boolean {
-  return !!(window as unknown as Record<string, unknown>).__TAURI__
-}
+export { isDesktopShell }
 
 /** The running bundle's version, read from the shell. */
 async function shellVersion(): Promise<string | undefined> {
@@ -196,7 +194,7 @@ export async function applyUpdate(): Promise<ApplyResult> {
   try {
     const r = await fetch(apiUrl('/api/update/apply'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ confirm: 'update' }),
     })
     if (!r.ok) return { ok: false, reason: `HTTP ${r.status}` }

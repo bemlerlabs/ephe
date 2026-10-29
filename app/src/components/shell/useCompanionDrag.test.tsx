@@ -6,7 +6,7 @@
  * window has to stay reachable in a narrow one.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useRef } from 'react'
 import { clampOffset, offsetBounds, useCompanionDrag } from './useCompanionDrag'
 
@@ -71,13 +71,16 @@ describe('useCompanionDrag', () => {
     expect(onActivate).toHaveBeenCalledTimes(1)
   })
 
-  it('remembers the offset as a fraction of the viewport', () => {
+  it('remembers the offset as a fraction of the viewport', async () => {
     const first = render(<Pet />)
     drag([0, 0], [100, 50])
     const parked = screen.getByTestId('pet').style.translate
     expect(window.localStorage.getItem('ephe.companion.offset.v1')).toBeTruthy()
     first.unmount()
     render(<Pet />)
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+    })
     expect(screen.getByTestId('pet').style.translate).toBe(parked)
   })
 

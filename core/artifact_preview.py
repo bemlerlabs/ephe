@@ -1,7 +1,7 @@
 """Ephe – artifact_preview: preview for the kinds a browser does not know (R4/A5).
 
 A browser renders PDF, image, text and audio itself. It renders **no**
-table from a .xlsx, no Word document and no slide deck — for exactly these
+table from a .xlsx, no Word document and no OOXML deck — for exactly these
 kinds this path exists: the bytes are read here and delivered as data the
 surface can show as a table, as running text or as slides. Everything else
 goes through `GET /artifacts/{id}/file` directly.
@@ -17,11 +17,10 @@ MAX_ROWS = 60
 MAX_COLS = 24
 MAX_TEXT_CHARS = 20_000
 MAX_SLIDES = 40
+MAX_SLIDE_PART_BYTES = 4_000_000
 
 # Enough to tell them apart — and keeps the surface honest.
 TABLE_KINDS = {"xlsx", "xls", "csv"}
-# ODP and the binary .ppt are not OOXML zips; the surface names them as such.
-SLIDE_KINDS = {"pptx", "ppt", "odp"}
 TEXT_KINDS = {"docx", "md", "markdown", "txt", "log", "json", "yaml", "yml", "toml", "ini", "conf"}
 
 
@@ -92,6 +91,8 @@ def _pptx_slides(path: Path) -> list[dict]:
             key=lambda n: int(re.search(r"(\d+)", n.rsplit("/", 1)[1])[1]),
         )
         for name in names[:MAX_SLIDES]:
+            if deck.getinfo(name).file_size > MAX_SLIDE_PART_BYTES:
+                continue
             root = ET.fromstring(deck.read(name))
             lines = [(t.text or "").strip() for t in root.iterfind(".//a:t", ns)]
             lines = [line for line in lines if line]

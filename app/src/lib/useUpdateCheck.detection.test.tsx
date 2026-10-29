@@ -84,6 +84,7 @@ describe('U-1 — automatic detection', () => {
 
   it('the desktop compares against the shell version, not a backend from another checkout', async () => {
     ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
       app: { getVersion: async () => '0.1.0-beta.4' },
     }
     vi.doMock('@tauri-apps/plugin-updater', () => ({
@@ -267,7 +268,9 @@ describe('U-3 — the install path names its own phases', () => {
   })
 
   it('the share comes from the events, then the installation, then the finish', async () => {
-    ;(window as unknown as Record<string, unknown>).__TAURI__ = {}
+    ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
+    }
     // The download is held open by the test, so every phase it passes through
     // is read while it is the current one: a chunked arrival over the network
     // is what the surface has to draw, not one jump to the end.
@@ -340,7 +343,9 @@ describe('U-3 — the install path names its own phases', () => {
   })
 
   it('an installer that refuses carries the failure, and says where', async () => {
-    ;(window as unknown as Record<string, unknown>).__TAURI__ = {}
+    ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
+    }
     const download = vi.fn(async (onEvent: (e: unknown) => void) => {
       onEvent({ event: 'Started', data: { contentLength: 100 } })
     })

@@ -229,7 +229,7 @@
     {
       "file": "app/src/lib/updateCheckRun.ts",
       "marker": "__TAURI__",
-      "count": 3,
+      "count": 2,
       "surface": "update check, run outside React",
       "web": "GET /api/update/check, including the merges the backend reports on the main channel",
       "desktop": "GET /api/update/check plus the signed updater's own comparison and the bundle version"
@@ -237,7 +237,7 @@
     {
       "file": "app/src/lib/updateCheckRun.ts",
       "marker": "isDesktopShell",
-      "count": 2,
+      "count": 3,
       "surface": "update check, run outside React",
       "web": "false; the feed decides",
       "desktop": "true; the updater's comparison decides, and the main channel points at the comparison page"

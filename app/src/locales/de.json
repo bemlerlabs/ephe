@@ -2420,7 +2420,7 @@
     "applyNow": "Jetzt aktualisieren",
     "applying": "Neueste Commits werden geholt und installiert. Das kann ein paar Minuten dauern.",
     "titleApplying": "Aktualisiere",
-    "applied": "Diese Installation läuft jetzt auf den neuesten Commits.",
+    "applied": "Neueste Commits installiert. Ein Neustart lädt sie.",
     "titleApplied": "Aktualisiert",
     "stepPull": "neueste Commits geholt",
     "stepInstall": "Umgebung und Web-App neu installiert",

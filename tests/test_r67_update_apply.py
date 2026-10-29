@@ -101,12 +101,22 @@ def test_a_failing_installer_is_reported_with_its_steps(tmp_path):
 
 class TestRoute:
 
+    def test_the_route_needs_the_browser_marker(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
+        from server.main import create_app
+
+        with TestClient(create_app()) as client:
+            r = client.post("/api/update/apply", json={"confirm": "update"})
+            assert r.status_code == 403
+
     def test_the_route_requires_the_confirm_word(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
         from server.main import create_app
 
         with TestClient(create_app()) as client:
-            r = client.post("/api/update/apply", json={})
+            r = client.post(
+                "/api/update/apply", json={}, headers={"X-Requested-With": "XMLHttpRequest"}
+            )
             assert r.status_code == 400
 
     def test_the_route_runs_the_apply(self, tmp_path, monkeypatch):
@@ -121,7 +131,11 @@ class TestRoute:
         from server.main import create_app
 
         with TestClient(create_app()) as client:
-            r = client.post("/api/update/apply", json={"confirm": "update"})
+            r = client.post(
+                "/api/update/apply",
+                json={"confirm": "update"},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+            )
             assert r.status_code == 200
             assert r.json()["ok"] is True
         assert seen == [True]

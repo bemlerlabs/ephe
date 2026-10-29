@@ -29,7 +29,11 @@ import {
   previewSrc,
 } from '@/lib/previewMode'
 
-function ContentPreview({ art }: { art: ArtifactEntry }) {
+export function ContentPreview({
+  art,
+}: {
+  art: Pick<ArtifactEntry, 'id' | 'version' | 'name'>
+}) {
   const { t } = useTranslation()
   const [data, setData] = useState<ArtifactContentPreview | null>(null)
   const [failed, setFailed] = useState(false)
@@ -219,7 +223,7 @@ function CodePreview({ art }: { art: ArtifactEntry }) {
   )
 }
 
-function NoPreview({ art, reason }: { art: ArtifactEntry; reason?: string }) {
+function NoPreview({ art, reason }: { art: Pick<ArtifactEntry, 'name'>; reason?: string }) {
   const { t } = useTranslation()
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-ui-xs text-ink-soft">
