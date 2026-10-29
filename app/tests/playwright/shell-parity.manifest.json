@@ -93,10 +93,10 @@
     {
       "file": "app/src/components/dashboard/chat/index.tsx",
       "marker": "isTauri",
-      "count": 5,
-      "surface": "chat header: window controls, the traffic-light clearance, and the backend version message",
-      "web": "no controls, no left inset and no version message: the browser draws the window chrome and has no shell to ask",
-      "desktop": "minimize and maximize at the header's right edge, an extra left inset when the sidebar is a rail so the first control clears the overlaid traffic lights, and one read of the shell's backend-parity verdict at boot"
+      "count": 6,
+      "surface": "chat header: window controls, the traffic-light clearance, the caption-corner clearance and the backend version message",
+      "web": "no controls, no inset and no version message: the browser draws the window chrome and has no shell to ask",
+      "desktop": "minimize and maximize at the header's right edge, an extra left inset when the sidebar is a rail so the first control clears the overlaid traffic lights, a right inset of the same width so the header text clears the Windows caption buttons, and one read of the shell's backend-parity verdict at boot"
     },
     {
       "file": "app/src/components/dashboard/chat/model.ts",

@@ -215,7 +215,7 @@ def test_tui_swarm_worker_names_the_remote_engine(tmp_path, monkeypatch):
     async def _boom(**_kwargs):
         raise OllamaNotReachableError()
 
-    monkeypatch.setattr("ui.app.run_swarm", _boom)
+    monkeypatch.setattr("ui.app.run_swarm_v2", _boom)
 
     from ui.app import EpheApp
 
