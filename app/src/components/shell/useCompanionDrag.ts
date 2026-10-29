@@ -146,8 +146,20 @@ export function useCompanionDrag(
 
   useEffect(() => {
     const stored = readStored()
-    if (stored) place(stored)
-  }, [place])
+    if (!stored) return
+    // The saved offset was measured in another window; clamp it to this one
+    // once the box has a layout, or a pet parked at a wide edge is offscreen.
+    const frame = requestAnimationFrame(() => {
+      // No layout, nothing to clamp against: the box is not on screen yet.
+      if (!ref.current?.getClientRects().length) {
+        place(stored)
+        return
+      }
+      const bounds = boundsNow()
+      place(bounds ? clampOffset(stored, bounds) : stored)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [boundsNow, place])
 
   const viewport = useRef({ width: window.innerWidth, height: window.innerHeight })
 

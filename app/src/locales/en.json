@@ -2420,7 +2420,7 @@
     "applyNow": "Update now",
     "applying": "Pulling the newest commits and reinstalling. This can take a few minutes.",
     "titleApplying": "Updating",
-    "applied": "This installation runs the newest commits now.",
+    "applied": "Newest commits installed. A restart loads them.",
     "titleApplied": "Updated",
     "stepPull": "newest commits pulled",
     "stepInstall": "environment and web app reinstalled",

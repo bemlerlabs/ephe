@@ -11,9 +11,12 @@ Ephe – Bad Liebenzell, Schwarzwald
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from core import update_apply, update_check
+
+XHR_HEADER = "X-Requested-With"
 
 router = APIRouter(tags=["update"])
 
@@ -27,14 +30,20 @@ def get_update_check(force: bool = False) -> dict:
     return update_check.check_for_update(force=force)
 
 
+class UpdateApplyRequest(BaseModel):
+    confirm: str = ""
+
+
 @router.post("/update/apply")
-def post_update_apply(body: dict) -> dict:
+def post_update_apply(body: UpdateApplyRequest, request: Request) -> dict:
     """Pull the newest commits and reinstall, on the user's click.
 
-    The body carries `confirm: "update"`: a mutation this large is never the
-    result of a stray POST. Origin and host are already checked by the security
-    middleware for every non-GET request."""
-    if str(body.get("confirm") or "") != "update":
+    Two gates, because this body starts a `git pull` and an installer: the
+    browser must send the same `X-Requested-With` marker the other process
+    routes demand, and the body must carry the confirm word."""
+    if request.headers.get(XHR_HEADER, "") != "XMLHttpRequest":
+        raise HTTPException(status_code=403, detail="missing X-Requested-With")
+    if body.confirm != "update":
         raise HTTPException(status_code=400, detail="missing confirm: update")
     if not update_check.update_check_enabled():
         raise HTTPException(status_code=403, detail="update check is switched off")

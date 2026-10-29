@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { ApiError, artifactFileUrl, fileUrl } from '@/lib/api'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import { ContentPreview } from './preview'
 import {
   artifactPreviewMode,
   previewSandbox,
@@ -98,7 +99,8 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
   const bytes = file.artifactId ? artifactFileUrl(file.artifactId) : view
   const src = retry ? `${bytes}${bytes.includes('?') ? '&' : '?'}retry=${retry}` : bytes
   const inline =
-    openable && (mode === 'image' || mode === 'frame' || mode === 'video' || mode === 'audio')
+    (openable && (mode === 'image' || mode === 'frame' || mode === 'video' || mode === 'audio')) ||
+    (mode === 'content' && !!file.artifactId)
 
   function failed(why = '') {
     setBroken(true)
@@ -163,6 +165,14 @@ export default function MessageFileCard({ file }: { file: ProducedFile }) {
           >
             {t('artifacts.previewRetry')}
           </button>
+        </div>
+      )}
+      {inline && !broken && mode === 'content' && file.artifactId && (
+        <div
+          data-testid={`message-file-content-${file.key}`}
+          className="mt-2 max-h-72 overflow-auto rounded-md border border-hairline bg-surface/40"
+        >
+          <ContentPreview art={{ id: file.artifactId, version: 0, name: file.name }} />
         </div>
       )}
       {inline && !broken && mode === 'image' && (
