@@ -6,10 +6,10 @@ only a changed snapshot leaves the process, and a reconnect needs no replay beca
 every frame is the full state. The client keeps its polls as the fallback for a
 browser without a stream or a listener that has not opened yet.
 
-The tick is a measurement, not a claim: `TICK_SECONDS` is the worst-case delay
-between a state change and the frame that carries it. An event-hook version (the
-<8 ms target of the directive) belongs to the writers; this route reads finished
-snapshots.
+The tick is now only the fallback. A state writer calls `core.live_state.notify()`
+after it changed something a frame carries, every open stream wakes at once and
+sends the frame; `TICK_SECONDS` is the worst case when nobody notified (a fleet
+half that re-reads on its own beat, a cell that someone else changed).
 """
 from __future__ import annotations
 
@@ -20,10 +20,23 @@ from typing import Any
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
+from core import live_state
 from core.ephemeral_cell import cell_life
 from server.routes.workspaces import fleet_payload
 
 router = APIRouter(tags=["Events"])
+
+# One event per open stream; a writer's notify() sets them all, so the frame
+# leaves on the write instead of on the next tick.
+_WAITERS: set[asyncio.Event] = set()
+
+
+def _wake_all() -> None:
+    for event in list(_WAITERS):
+        event.set()
+
+
+live_state.subscribe(_wake_all)
 
 TICK_SECONDS = 0.25
 FLEET_EVERY_SECONDS = 1.0
@@ -47,6 +60,8 @@ def _canonical(payload: dict[str, Any]) -> str:
 
 async def _frames(request: Request, session_id: str | None):
     """The frames of one connection; the route's counter is released here."""
+    wake = asyncio.Event()
+    _WAITERS.add(wake)
     try:
         yield ": connected\n\n"
         yield "event: hello\ndata: " + json.dumps(
@@ -79,8 +94,14 @@ async def _frames(request: Request, session_id: str | None):
             elif now - last_keepalive >= KEEPALIVE_SECONDS:
                 last_keepalive = now
                 yield ": keepalive\n\n"
-            await asyncio.sleep(TICK_SECONDS)
+            try:
+                await asyncio.wait_for(wake.wait(), timeout=TICK_SECONDS)
+            except asyncio.TimeoutError:
+                pass
+            else:
+                wake.clear()
     finally:
+        _WAITERS.discard(wake)
         global _active
         _active = max(0, _active - 1)
 

@@ -12,6 +12,8 @@ Isolation is the point: two bots never share a namespace.
 """
 from __future__ import annotations
 
+from core import live_state
+
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -90,6 +92,7 @@ def forget(session_id: str) -> bool:
 
     had = _CELLS.pop(session_id, None) is not None
     _PREWARMED.pop(session_id, None)
+    live_state.notify()
     try:
         reset_work_dir(session_id)
     except OSError:
@@ -109,6 +112,7 @@ def create_cell(session_id: str, kind: str = KIND_KERNEL,
     existing = _CELLS.get(session_id)
     if existing is not None:
         existing.touch(now)
+        live_state.notify()
         return existing
     _CREATED += 1
     cell = EphemeralCell(
@@ -121,6 +125,7 @@ def create_cell(session_id: str, kind: str = KIND_KERNEL,
         ordinal=_CREATED,
     )
     _CELLS[session_id] = cell
+    live_state.notify()
     return cell
 
 
@@ -146,6 +151,8 @@ def reap_idle(now: float | None = None) -> int:
     expired = [sid for sid, cell in _CELLS.items() if cell.is_expired(now)]
     for sid in expired:
         _CELLS.pop(sid, None)
+    if expired:
+        live_state.notify()
     return len(expired)
 
 
@@ -155,6 +162,7 @@ def reset_cells() -> None:
     _CELLS.clear()
     _PREWARMED.clear()
     _CREATED = 0
+    live_state.notify()
 
 
 def cell_count() -> int:
@@ -173,6 +181,7 @@ def record_call(session_id: str, elapsed_ms: float, *,
     cell = create_cell(session_id, kind=kind, ttl_seconds=ttl_seconds)
     cell.calls += 1
     cell.total_ms += max(0.0, float(elapsed_ms))
+    live_state.notify()
 
 
 def _containment_available() -> bool:

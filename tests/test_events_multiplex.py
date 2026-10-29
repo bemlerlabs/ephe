@@ -74,3 +74,38 @@ def test_the_stream_cap_refuses_instead_of_unbounded_readers(monkeypatch):
     response = TestClient(app).get("/api/events/multiplex")
     assert response.status_code == 503
     assert events._active == events.MAX_STREAMS
+
+
+def test_a_writer_wakes_every_open_stream():
+    """L1: notify() reaches each stream's own event, not a shared one."""
+    from core import live_state
+
+    async def scenario() -> None:
+        first, second = asyncio.Event(), asyncio.Event()
+        events._WAITERS.update({first, second})
+        try:
+            live_state.notify()
+            assert first.is_set() and second.is_set()
+        finally:
+            events._WAITERS.difference_update({first, second})
+
+    asyncio.run(scenario())
+
+
+def test_a_finished_stream_leaves_no_waiter_behind():
+    assert not events._WAITERS
+
+
+def test_a_new_cell_notifies_the_live_state():
+    from core import live_state
+    from core.ephemeral_cell import create_cell, forget
+
+    calls: list[int] = []
+    unsubscribe = live_state.subscribe(lambda: calls.append(1))
+    try:
+        before = len(calls)
+        create_cell("wake-test")
+        assert len(calls) > before
+    finally:
+        unsubscribe()
+        forget("wake-test")
