@@ -554,7 +554,7 @@ html.no-motion .tour-bee { transform: none !important; }
   position: relative;
 }
 .tour-engine-core .tour-core-mark {
-  color: var(--color-paper, #efe6d2);
+  color: var(--color-figure-paper);
   filter: drop-shadow(0 0 14px rgb(255 191 71 / 0.35));
 }
 .tour-engine-core .tour-core-halo {
