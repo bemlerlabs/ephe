@@ -30,6 +30,14 @@ vi.mock('react-i18next', () => ({
         'update.viewReleases': 'Releases ansehen',
         'update.mainChannel': '{{count}} new commits on main since your build.',
         'update.viewChanges': 'View changes',
+        'update.applyNow': 'Update now',
+        'update.applying': 'Pulling the newest commits and reinstalling.',
+        'update.titleApplying': 'Updating',
+        'update.applied': 'This installation runs the newest commits now.',
+        'update.titleApplied': 'Updated',
+        'update.stepPull': 'newest commits pulled',
+        'update.stepInstall': 'environment and web app reinstalled',
+        'update.reload': 'Reload',
       }
       const raw = map[key] ?? key
       return String(raw).replace(/\{\{(\w+)\}\}/g, (_m, n: string) =>
@@ -40,7 +48,14 @@ vi.mock('react-i18next', () => ({
 }))
 
 const noop = () => {}
-const base = { open: true, onOpenChange: noop, onCheck: noop, onInstall: noop, onRelaunch: noop }
+const base = {
+  open: true,
+  onOpenChange: noop,
+  onCheck: noop,
+  onInstall: noop,
+  onApply: noop,
+  onRelaunch: noop,
+}
 
 describe('R2-U — der Update-Dialog sagt, was er weiß', () => {
   it('ein fehlgeschlagener Check heißt Prüfung nicht möglich — nicht „aktuell"', () => {
@@ -213,5 +228,41 @@ describe('continuous channel — commits before the next tag', () => {
     render(<UpdateDialog {...base} state={state} releasesUrl="https://github.com/x/y/releases" />)
     expect(screen.queryByTestId('update-install')).toBeNull()
     expect(screen.queryByTestId('update-browser-note')).toBeNull()
+  })
+})
+
+describe('applying a merge that has no release yet', () => {
+  const found: UpdateState = {
+    phase: 'available',
+    progress: null,
+    channel: 'main',
+    commitsBehind: 2,
+    commit: '2a1405a8',
+    latest: 'deadbeef',
+    url: 'https://github.com/bemlerlabs/ephe/compare/2a1405a8...main',
+  }
+
+  it('offers one button that takes the commits', () => {
+    const onApply = vi.fn()
+    render(<UpdateDialog {...base} state={found} onApply={onApply} />)
+    fireEvent.click(screen.getByTestId('update-apply'))
+    expect(onApply).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the steps and offers the relaunch once it landed', () => {
+    const state: UpdateState = {
+      phase: 'applied',
+      progress: null,
+      restart: true,
+      current: 'deadbeef',
+      steps: [
+        { name: 'pull', ok: true, detail: '' },
+        { name: 'install', ok: true, detail: '' },
+      ],
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    expect(screen.getByText('Updated')).toBeTruthy()
+    expect(screen.getByTestId('update-steps').textContent).toContain('newest commits pulled')
+    expect(screen.getByTestId('update-apply-relaunch')).toBeTruthy()
   })
 })

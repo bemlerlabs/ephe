@@ -48,6 +48,7 @@ async function mount() {
   return {
     state: () => hook?.state,
     install: () => hook?.install(),
+    apply: () => hook?.apply(),
     phases,
     shares,
     view,
@@ -126,6 +127,28 @@ describe('U-1 — automatic detection', () => {
     expect(state?.commitsBehind).toBe(2)
     expect(state?.commit).toBe('2a1405a837f0')
     expect(state?.latest).toBe('deadbeefcafe')
+  })
+
+  it('the apply button takes the commits and reports the steps', async () => {
+    global.fetch = vi.fn(async (url: string) =>
+      String(url).includes('/api/update/apply')
+        ? answer({
+            ok: true,
+            steps: [{ name: 'pull', ok: true, detail: 'a1 → b2' }],
+            restart: true,
+            after: 'b2',
+          })
+        : answer({ enabled: true, available: false, current: '0.5.1' }),
+    ) as unknown as typeof fetch
+    const probe = await mount()
+    await flush()
+    await act(async () => {
+      await probe.apply()
+    })
+    const state = probe.state()
+    expect(state?.phase).toBe('applied')
+    expect(state?.restart).toBe(true)
+    expect(state?.steps?.[0]?.name).toBe('pull')
   })
 
   it('the first question of a session leaves the backend cache behind', async () => {

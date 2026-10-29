@@ -23,6 +23,7 @@ import {
 } from '@/lib/restartGuard'
 import { readAsset, readManifestNotes, readPlatform } from '@/lib/updateDetails'
 import {
+  applyUpdate,
   isDesktopShell,
   runCheck,
   type UpdateCheckInfo,
@@ -50,7 +51,14 @@ const FAILED_BACKOFF_MS = 15 * 60 * 1000
 
 /** Phases where a further question has nothing to add: the answer is known
  *  (available) or the installation owns the surface. */
-const SETTLED: readonly UpdatePhase[] = ['available', 'downloading', 'installing', 'ready']
+const SETTLED: readonly UpdatePhase[] = [
+  'available',
+  'downloading',
+  'installing',
+  'ready',
+  'applying',
+  'applied',
+]
 
 /** The gate lives on the module. The chat panel mounts and unmounts as the
  *  user moves through the app, and a remount must not reopen a gate the last
@@ -238,6 +246,32 @@ export function useUpdateCheck() {
     }
   }, [])
 
+  /**
+   * Take the newest commits the check found. The backend owns the guards; the
+   * surface owns the words, so a refusal arrives as a sentence with its reason
+   * rather than as a silent no-op.
+   */
+  const apply = useCallback(async () => {
+    tokenRef.current += 1
+    setPhase('applying', { progress: null })
+    const result = await applyUpdate()
+    if (!result.ok) {
+      setPhase('failed', {
+        progress: null,
+        reason: result.detail || result.reason || 'the update could not be applied',
+        failedAt: 'install',
+      })
+      return false
+    }
+    setPhase('applied', {
+      progress: null,
+      steps: result.steps,
+      restart: result.restart,
+      current: result.after ?? undefined,
+    })
+    return true
+  }, [setPhase])
+
   const restartBlocked: RestartBlock | null = useRestartGuard().reason
 
   const show = state.phase === 'available' && !!state.latest && dismissed !== state.latest
@@ -249,6 +283,7 @@ export function useUpdateCheck() {
     setOpen,
     check,
     install,
+    apply,
     relaunch,
     restartBlocked,
     dismiss: () => state.latest && setDismissed(state.latest),
