@@ -565,6 +565,21 @@ export interface StreamSubagentTool {
   tool: string
   args_preview: string
   chat_session_id?: string
+  /** N24: the gate's own record for this call (exempt/approved/denied). */
+  gate?: string
+}
+
+/** core/steering.py: a direction change reached (or missed) the run. */
+export interface StreamSteer {
+  type: 'steer'
+  status: string
+  actor: string
+  msg: string
+  text: string
+  turn_id?: string
+  round?: number | null
+  agent_id?: string
+  stop?: boolean
 }
 
 export interface StreamSubagentDone {
@@ -770,6 +785,7 @@ export type StreamEvent =
   | StreamSwarmAgentDone
   | StreamSubagentStarted
   | StreamSubagentTool
+  | StreamSteer
   | StreamSubagentDone
   | StreamSwarmDone
   | StreamVisionLearning

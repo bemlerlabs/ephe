@@ -17,6 +17,8 @@ export interface DeckAgent {
   role: string | null
   task: string | null
   status: 'running' | 'done' | 'failed'
+  /** D2: the last direction change that reached this agent's run. */
+  steered?: string
 }
 
 export interface SwarmDeckState {
@@ -29,6 +31,7 @@ export type DeckPhase = 'planning' | 'spawning' | 'executing' | 'synthesizing' |
 const AGENT = /^Agent (.+)$/
 const HELPER = /^SubAgent (\S+)(?: \((.+)\))?$/
 const SPAWNED = /^Swarm: (\d+) Agents$/
+const STEER = /^Steer (.+)$/
 
 function statusOf(raw: string): DeckAgent['status'] {
   if (raw === 'done') return 'done'
@@ -53,6 +56,12 @@ export function deckFromActivities(activities: readonly DeckActivity[]): SwarmDe
         task: activity.detail ?? null,
         status: statusOf(activity.status),
       })
+      continue
+    }
+    const steer = STEER.exec(activity.label)
+    if (steer) {
+      const target = agents.get(steer[1]!)
+      if (target && activity.status !== 'failed') target.steered = activity.detail ?? ''
       continue
     }
     const member = AGENT.exec(activity.label)

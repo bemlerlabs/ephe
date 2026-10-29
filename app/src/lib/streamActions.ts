@@ -313,7 +313,11 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       store.upsertActivity({
         label: `SubAgent ${event.agent_id}`,
         status: 'running',
-        detail: `${event.tool}: ${event.args_preview}`,
+        // C2: the gate's verdict rides on the same line, so a refused or
+        // approved write is visible on the card instead of only in the audit.
+        detail: event.gate
+          ? `${event.gate} · ${event.tool}: ${event.args_preview}`
+          : `${event.tool}: ${event.args_preview}`,
       })
       if (event.chat_session_id) {
         store.stepHelperChat({
@@ -323,6 +327,16 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
           argsPreview: event.args_preview,
         })
       }
+      break
+
+    case 'steer':
+      // D2: the direction change appears where the run is read. For an agent
+      // the line is keyed to that card; for the whole run it stands alone.
+      store.upsertActivity({
+        label: event.agent_id ? `Steer ${event.agent_id}` : event.msg,
+        status: event.status === 'unlanded' ? 'failed' : 'done',
+        detail: event.text,
+      })
       break
 
     case 'subagent_done': {

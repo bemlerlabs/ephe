@@ -128,19 +128,21 @@ export function SwarmDeck({
                   </button>
                 </span>
               )}
-              {(steered[agent.id] || agent.status !== 'running') && (
+              {(steered[agent.id] || agent.steered || agent.status !== 'running') && (
                 <span
                   className={`ml-auto shrink-0 ${
-                    steered[agent.id]
+                    steered[agent.id] || agent.steered
                       ? 'text-status-warning'
                       : agent.status === 'failed'
                         ? 'text-status-danger'
                         : 'text-ink-faint'
                   }`}
                   data-testid={`swarm-agent-state-${agent.id}`}
-                  title={steered[agent.id]}
+                  title={steered[agent.id] ?? agent.steered}
                 >
-                  {steered[agent.id] ? t('swarm.agent.steered') : t(`swarm.agent.${agent.status}`)}
+                  {steered[agent.id] || agent.steered
+                    ? t('swarm.agent.steered')
+                    : t(`swarm.agent.${agent.status}`)}
                 </span>
               )}
             </li>
