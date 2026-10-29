@@ -19,7 +19,6 @@
  * and after it lands.
  */
 import { useTranslation } from 'react-i18next'
-import type { ReactNode } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -30,7 +29,8 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Rule } from '@/components/ui/Rule'
-import { isDesktopShell, type UpdateState } from '@/lib/useUpdateCheck'
+import { DetailRow, NotesBody } from './UpdateNotes'
+import { isDesktopShell, type UpdateState } from '@/lib/updateCheckRun'
 import type { RestartBlock } from '@/lib/restartGuard'
 import { formatBytes } from '@/lib/updateDetails'
 
@@ -44,82 +44,6 @@ interface Props {
   releasesUrl?: string
   /** Why a restart is held back right now — undefined when nothing holds it. */
   restartBlocked?: RestartBlock | null
-}
-
-/** Inline code spans in the release notes, rendered in the mono face. */
-function inline(text: string): ReactNode {
-  return text.split('`').map((part, index) =>
-    index % 2 === 1 ? (
-      <code key={index} className="bg-surface px-1 font-mono text-ui-2xs text-ink">
-        {part}
-      </code>
-    ) : (
-      part
-    ),
-  )
-}
-
-/** The release notes as the feed wrote them: headings, bullets, paragraphs.
- *  No markdown dependency — the release feed has carried exactly these three
- *  shapes since the first release. */
-function NotesBody({ text }: { text: string }) {
-  const blocks: ReactNode[] = []
-  text.split('\n').forEach((raw, index) => {
-    const line = raw.trim()
-    if (!line) return
-    if (line.startsWith('### ')) {
-      blocks.push(
-        <h4 key={index} className="mt-3 text-scale-ui font-semibold text-foreground first:mt-0">
-          {line.slice(4)}
-        </h4>,
-      )
-      return
-    }
-    if (line.startsWith('- ')) {
-      blocks.push(
-        <p key={index} className="flex gap-2 py-0.5 text-scale-ui text-ink-soft">
-          <span className="mt-[0.65em] h-1 w-1 shrink-0 rounded-full bg-brand" aria-hidden="true" />
-          <span className="min-w-0">{inline(line.slice(2))}</span>
-        </p>,
-      )
-      return
-    }
-    blocks.push(
-      <p key={index} className="py-0.5 text-scale-ui text-ink-soft">
-        {inline(line)}
-      </p>,
-    )
-  })
-  return <>{blocks}</>
-}
-
-/** One line of the Details block: a rule, a label at 13px, a value on the
- *  right edge of the mono axis. */
-function DetailRow({
-  label,
-  value,
-  mono = false,
-  testId,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-  testId?: string
-}) {
-  return (
-    <>
-      <Rule />
-      <div className="flex items-baseline gap-3 py-1.5">
-        <span className="text-scale-ui text-ink-faint">{label}</span>
-        <span
-          data-testid={testId}
-          className={`ml-auto text-right ${mono ? 'font-mono tabular-nums text-scale-data' : 'text-scale-ui'} text-ink-faint`}
-        >
-          {value}
-        </span>
-      </div>
-    </>
-  )
 }
 
 export function UpdateDialog({
@@ -142,6 +66,9 @@ export function UpdateDialog({
   const barValue = installing ? 100 : downloading ? pct : null
   const running = downloading || installing
   const size = formatBytes(state.sizeBytes)
+  /** Merges before the next tag: there is nothing for the updater to install,
+   *  so the surface shows the range and points at the comparison. */
+  const mainChannel = state.channel === 'main' && state.phase === 'available'
   const notReported = t('update.detailsUnknown')
   /** The Details block is worth opening wherever the release carries facts —
    *  not only in the desktop build: the browser can read the versions and the
@@ -200,6 +127,7 @@ export function UpdateDialog({
               </>
             )}
             {state.phase === 'unsupported' && t('update.disabledHint')}
+            {mainChannel && t('update.mainChannel', { count: state.commitsBehind ?? 0 })}
             {downloading && t('update.downloading', { version: state.latest ?? '' })}
             {installing && t('update.installing', { version: state.latest ?? '' })}
             {state.phase === 'ready' && t('update.ready')}
@@ -214,7 +142,7 @@ export function UpdateDialog({
               <span className="update-orb" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-scale-data tabular-nums text-ink-soft">
-                  <span>{state.current ?? '—'}</span>
+                  <span>{mainChannel ? (state.commit ?? '—') : (state.current ?? '—')}</span>
                   <span className="px-2 text-brand" aria-hidden="true">
                     →
                   </span>
@@ -264,7 +192,7 @@ export function UpdateDialog({
             </div>
           )}
 
-          {!desktop && state.phase === 'available' && (
+          {!desktop && state.phase === 'available' && !mainChannel && (
             <p data-testid="update-browser-note" className="mt-3 text-scale-ui text-ink-soft">
               {t('update.browserNote')}
             </p>
@@ -296,7 +224,11 @@ export function UpdateDialog({
               <div className="update-details-body mt-1 pl-6">
                 <DetailRow
                   label={t('update.detailsVersion')}
-                  value={`${state.current ?? '—'} → ${state.latest ?? '—'}`}
+                  value={
+                    mainChannel
+                      ? `${state.commit ?? '—'} → ${state.latest ?? 'main'}`
+                      : `${state.current ?? '—'} → ${state.latest ?? '—'}`
+                  }
                   mono
                   testId="update-details-version"
                 />
@@ -331,7 +263,18 @@ export function UpdateDialog({
           <Rule className="mt-3" tone={running ? 'now' : 'rule'} />
 
           <div className="flex items-center gap-2 pt-3">
-            {state.phase === 'available' && (
+            {mainChannel && state.url && (
+              <a
+                href={state.url}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="update-main-link"
+                className="flex-1 bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+              >
+                {t('update.viewChanges')}
+              </a>
+            )}
+            {state.phase === 'available' && !mainChannel && (
               <button
                 type="button"
                 data-testid="update-install"

@@ -191,6 +191,50 @@ def _doctor_image_endpoint() -> tuple[bool, str]:
     return False, f"{base} not reachable — /image returns an honest error (setup: docs/LOCAL_IMAGE_ENGINE.md)"
 
 
+def _doctor_update_row(seconds: float = 3.0) -> str:
+    """What the update check knows, as one doctor line.
+
+    A diagnostic command may not wait sixteen seconds on a network that is not
+    there (release feed plus ancestry), so the probe runs on a daemon thread and
+    is abandoned after `seconds`. None means it did not answer in time."""
+    import threading
+
+    box: dict[str, Any] = {}
+    done = threading.Event()
+
+    def probe() -> None:
+        try:
+            from core.update_check import check_for_update
+
+            box["value"] = check_for_update()
+        except Exception:  # noqa: BLE001 — the row is informational
+            pass
+        finally:
+            done.set()
+
+    threading.Thread(target=probe, daemon=True, name="ephe-update-check").start()
+    if not done.wait(seconds):
+        return "not checked — the source did not answer in 3 s"
+    info = box.get("value")
+    if not info:
+        return "check skipped"
+    if info.get("available") and info.get("channel") == "main":
+        behind = int(info.get("commitsBehind") or 0)
+        plural = "" if behind == 1 else "s"
+        return (
+            f"{behind} new commit{plural} on main since this build "
+            f"({info.get('commit', '?')} → {info.get('latest', 'main')}) — ephe update"
+        )
+    if info.get("available"):
+        return (
+            f"{info.get('latest', '?')} available (running {info.get('current', '?')}) "
+            "— ephe update"
+        )
+    if info.get("error"):
+        return f"check not possible — {info['error']}"
+    return f"current ({info.get('current', '?')})"
+
+
 def _doctor_voice() -> tuple[bool, str]:
     """R18: voice check — active engine, Piper setup, Whisper availability."""
     from core.transcribe import is_whisper_available
@@ -862,6 +906,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     voice_ok, voice_detail = _doctor_voice()
     checks.append(("Voice (TTS)", voice_ok, voice_detail))
 
+    # The continuous channel: a tagged release, or merges that reached the
+    # default branch before the next tag. Being behind is a state; it may never
+    # decide this command's exit code.
+    informational.append(("Update", True, _doctor_update_row()))
+
     # R16/R18/E1: the informative checks (Image/Voice/ephemora-cell/CPython-Cell) do
     # NOT flow into `ok` — a text-only or cloud-fallback setup is valid, and an
     # updatable optional package contradicts no working setup (offline-first: the
@@ -1289,7 +1338,7 @@ def cmd_bench(args: argparse.Namespace) -> int:
 
 def cmd_update(args: argparse.Namespace) -> int:
     if args.json:
-        print(json.dumps({"ok": True, "message": "update gestartet"}, indent=2))
+        print(json.dumps({"ok": True, "message": "update started"}, indent=2))
     if (PROJECT_ROOT / ".git").exists():
         _run(["git", "pull", "--ff-only"])
 

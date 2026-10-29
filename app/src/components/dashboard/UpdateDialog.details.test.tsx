@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { UpdateDialog } from './UpdateDialog'
-import type { UpdateState } from '@/lib/useUpdateCheck'
+import type { UpdateState } from '@/lib/updateCheckRun'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '9', init: () => Promise.resolve() },

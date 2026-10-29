@@ -31,6 +31,10 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 UPDATE_TTL_S = 6 * 3600
+#: The continuous channel: merges on the default branch reach a user between two
+#: tagged releases. Compared by ancestry, so a checkout that is ahead or has
+#: diverged is not told to update.
+MAIN_BRANCH = "main"
 # A failed check is not an answer worth keeping for six hours: the feed can go
 # live, and a button that keeps reporting a stale failure reads as broken. A
 # short failure TTL also makes an explicit refresh unnecessary in most cases.
@@ -132,6 +136,70 @@ def _fetch_latest() -> dict[str, Any]:
     }
 
 
+def installed_commit() -> str:
+    """The commit this build runs on: baked at packaging time, else the checkout's
+    HEAD. Empty when neither is known, and then the continuous channel stays quiet."""
+    baked = (os.environ.get("EPHE_BUILD_COMMIT") or "").strip()
+    if baked:
+        return baked
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.exists(os.path.join(root, ".git")):
+        return ""
+    import subprocess
+
+    try:
+        done = subprocess.run(
+            ["git", "-C", root, "rev-parse", "HEAD"],
+            capture_output=True, timeout=5, check=False, text=True,
+        )
+    except Exception:  # noqa: BLE001 — a missing git is not an update answer
+        return ""
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def _fetch_main_compare(commit: str) -> dict[str, Any]:
+    """Ancestry of `commit` against the default branch's tip, from GitHub's
+    compare API. Raises on network failure like the release fetch."""
+    url = f"https://api.github.com/repos/{release_repo()}/compare/{commit}...{MAIN_BRANCH}"
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310 — https, pinned host
+        data = json.loads(resp.read().decode("utf-8"))
+    commits = data.get("commits") or []
+    newest = commits[-1] if commits else {}
+    return {
+        "status": str(data.get("status") or ""),
+        "behind": int(data.get("behind_by") or 0),
+        "sha": str((data.get("base_commit") or {}).get("sha") or ""),
+        "tip": str((newest.get("sha") or data.get("merge_base_commit", {}).get("sha") or "")),
+        "message": str((newest.get("commit") or {}).get("message") or "").splitlines()[0][:160]
+        if commits
+        else "",
+    }
+
+
+def _main_channel(commit: str) -> dict[str, Any] | None:
+    """The continuous channel's answer for `commit`, or None when there is none.
+
+    A lookup failure returns None rather than raising: the release answer is
+    already in hand and a secondary source going down must not erase it."""
+    try:
+        main = _fetch_main_compare(commit)
+    except Exception as exc:  # noqa: BLE001 — release answer stands without it
+        logger.info("main-branch comparison failed: %s", exc)
+        return None
+    if main["status"] != "behind" or main["behind"] <= 0:
+        return None
+    return {
+        "available": True,
+        "channel": "main",
+        "latest": (main["tip"] or MAIN_BRANCH)[:12],
+        "commit": commit[:12],
+        "commitsBehind": main["behind"],
+        "url": f"https://github.com/{release_repo()}/compare/{commit}...{MAIN_BRANCH}",
+        "notes": main["message"],
+    }
+
+
 def update_check_enabled() -> bool:
     """Deep setting `appearance.update_check` (default ON)."""
     from core.settings_schema import deep_bool
@@ -151,16 +219,26 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
             return dict(cached)
 
     current = current_version()
+    commit = installed_commit()
     try:
         latest = _fetch_latest()
+        newer_release = _is_newer(latest["tag"], current)
         result = {
             "enabled": True,
-            "available": _is_newer(latest["tag"], current),
+            "available": newer_release,
             "current": current,
             "latest": latest["tag"].removeprefix("v").removeprefix("V"),
             "url": latest["url"],
             "notes": latest["notes"],
+            "channel": "release",
         }
+        if commit:
+            result["commit"] = commit[:12]
+            if not newer_release:
+                # A merge that has not been tagged yet is still an update the user
+                # can take. Only `behind` says so: ahead and diverged would be
+                # telling a checkout to go backwards.
+                result.update(_main_channel(commit) or {})
     except Exception as exc:  # noqa: BLE001 — the check must never break the app
         # The exception is for the log below. The client gets a fixed sentence.
         logger.warning("update check failed: %s", exc, exc_info=True)

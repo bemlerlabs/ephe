@@ -381,6 +381,38 @@ class EpheApp(App):
             self.run_worker(self._async_check_connection(), exclusive=False)
         # Attach the MCP servers from mcp.json / EPHE_MCP_SERVERS (non-blocking)
         self.run_worker(self._async_init_mcp(), exclusive=False)
+        # One line when this build is behind — a release or untagged merges.
+        self.run_worker(self._async_check_update(), exclusive=False)
+
+    async def _async_check_update(self) -> None:
+        """Say, once at boot, whether a newer build exists.
+
+        The check reaches GitHub, so it runs off the event loop and stays
+        silent when the answer is "current" or unknown: the transcript is a run
+        log, not a status board."""
+        try:
+            from core.update_check import check_for_update
+
+            info = await asyncio.to_thread(check_for_update)
+        except Exception:
+            return
+        if not info.get("available"):
+            return
+        if info.get("channel") == "main":
+            behind = int(info.get("commitsBehind") or 0)
+            plural = "" if behind == 1 else "s"
+            line = (
+                f"↑ {behind} new commit{plural} on main since this build "
+                f"({info.get('commit', '?')} → {info.get('latest', 'main')})."
+            )
+        else:
+            line = (
+                f"↑ Ephe {info.get('latest', '?')} is out — this build runs "
+                f"{info.get('current', '?')}."
+            )
+        self.query_one(ChatView).post_message(
+            ChatView.AddSystemMessage(f"{line}\n   Run:  ephe update", style="system-msg")
+        )
 
     async def _async_init_mcp(self) -> None:
         """Wire the configured MCP servers into this terminal at startup.

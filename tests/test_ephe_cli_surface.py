@@ -1842,3 +1842,46 @@ def test_the_remaining_flags_carry_their_one_liners():
     assert "probed on" in _help_of("doctor", "--port")
     assert _help_of("doctor", "--json")
     assert _help_of("tui", "--reset")
+
+
+def test_doctor_update_row_names_the_continuous_channel(monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {
+            "enabled": True,
+            "available": True,
+            "channel": "main",
+            "commitsBehind": 2,
+            "commit": "2a1405a8",
+            "latest": "deadbeef",
+        },
+    )
+    row = ephe_cli._doctor_update_row()
+    assert "2 new commits on main" in row and "ephe update" in row
+
+
+def test_doctor_update_row_names_a_release_and_a_current_build(monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {"available": True, "channel": "release", "latest": "0.7.0", "current": "0.6.0"},
+    )
+    assert "0.7.0 available (running 0.6.0)" in ephe_cli._doctor_update_row()
+    monkeypatch.setattr(
+        update_check, "check_for_update", lambda **_k: {"available": False, "current": "0.6.0"}
+    )
+    assert ephe_cli._doctor_update_row() == "current (0.6.0)"
+
+
+def test_cmd_doctor_prints_the_update_row(monkeypatch, capsys, tmp_path):
+    _patch_doctor_base(monkeypatch, tmp_path)
+    ephe_cli.cmd_doctor(_parser().parse_args(["doctor", "--model", "m", "--json"]))
+    data = json.loads(capsys.readouterr().out)
+    row = next(c for c in data["checks"] if c["name"] == "Update")
+    assert row["ok"] is True
+    assert "check not possible" in row["detail"]

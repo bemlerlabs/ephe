@@ -123,6 +123,24 @@ def _isolate_mcp_registry():
     mcp_client._invalidate_schema_cache()
 
 
+@pytest.fixture(autouse=True)
+def _no_update_feed(monkeypatch: pytest.MonkeyPatch):
+    """No unit test reaches the update feed.
+
+    The TUI asks at boot, the doctor row asks, and the PWA route asks on a
+    thread — all fail-soft, so a live request would only be slow and
+    non-deterministic here. Tests that want an answer patch these themselves
+    (tests/test_r67_update_check.py)."""
+    from core import update_check
+
+    def offline(*_a, **_k):
+        raise OSError("update feed is off in tests")
+
+    monkeypatch.setattr(update_check, "_fetch_latest", offline)
+    monkeypatch.setattr(update_check, "_fetch_main_compare", offline)
+    update_check._reset_cache()
+
+
 # ---------------------------------------------------------------------------
 # Provider state isolation (autouse) — root-cause fix for test pollution
 # ---------------------------------------------------------------------------
