@@ -7,24 +7,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The updater security fix (`cf344a2`) moves tauri-plugin-updater to 2.14.1 and
-zip from 4.6.1 to 9.1.3, above the 9.0.5 floor for GHSA-m665-v7pm-7grj.
-The advisory register now enforces that floor alongside the three earlier
-zip extraction fixes.
+### Added
 
-The cell ownership fix (`a233c71`) keeps the session workspace locked until
-its worker finishes, including during cancellation and shutdown. A queued
-reset can no longer erase an active guest's files.
-
-The index accept fix (`2aa599c`) samples the job state before its worker thread
-starts, so the response to `/project/index` reports `indexing` even when a small
-project finishes inside the thread's first slice.
-
-The Python runtime upgrade (`db2f752`) moves every CI resolver pin to uv 0.13.6, requests
-the patched interpreters 3.13.18 and 3.12.16 in the cold-install lane, and
-declares 3.13.18 in `.python-version`. The lockfile check also probes pnpm in
-the application directory it was given, so a Corepack pin is read where it
-applies.
+- **Self-organised learning.** A turn now has three phases beyond the answer:
+  before the first tool call the workspace's manifests become a compact map
+  (stack, versions, its own dev/test/build commands, the pins that change how
+  they run) under `.ephe/learning/map.json`; a failed tool round is named by
+  class — command-not-found, port-in-use, permission-denied, missing module,
+  timeout, network, compile error, failing test, missing file — with the
+  assumption it broke and the correction that follows, in front of the next
+  model call; and a correction that ended the run is written as a readable rule
+  to `.ephe/learning/heuristics.md`, where the new inspector in Settings →
+  Memory lists it, edits the action and deletes it. The store is a plain text
+  file the user owns; the newest rules ride along in the prompt, older ones move
+  to `heuristics-archive.md`, and `sol.enabled` turns the whole loop off.
 
 The 0.5.1 surface wave is named below (`cdb26e6`, `b4aacec`, `7ea5684`,
 `5ca2ad9`, `c8e9993`, `c9e0ba5`, `6c13716`, `47f4666`, `56226d7`, `4a8583b`,
@@ -209,6 +205,27 @@ the user's own tools, and a capped turn offers the next ten rounds.
   Homebrew bin dirs in front, and no inherited entry is dropped.
 - The empty state no longer looks like it is loading: the four breathing dots beside
   the brand name are gone.
+
+### Security
+
+- The archive parser is lifted above the zip-cloaking advisory (GHSA-m665-v7pm-7grj):
+  `tauri-plugin-updater` moves to 2.14.1 and the resolved `zip` crate from 4.6.1 to
+  9.1.3, above the 9.0.5 floor, and the advisory register enforces that floor (`cf344a2`).
+- The cell keeps its session workspace locked until its worker has finished, including
+  under cancellation and shutdown, so a queued reset cannot erase an active guest's
+  files (`a233c71`).
+
+### Changed
+
+- The CI resolvers pin uv 0.13.6 and request CPython 3.13.18 and 3.12.16 in the
+  cold-install lane; `.python-version` declares 3.13.18, and the lockfile check reads
+  pnpm in the application directory it was given (`db2f752`).
+
+### Fixed
+
+- The `/project/index` accept response samples the job state before its worker thread
+  starts, so a small project no longer reports `ready` while it is still indexing
+  (`2aa599c`).
 
 ## [0.5.0] - 2026-10-28
 
