@@ -29,8 +29,10 @@ modules.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import os
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -142,7 +144,7 @@ def exec_choice_error() -> str:
     if choice and choice not in (RUNTIME_KERNEL, RUNTIME_CELL, "cell"):
         return (
             f"{ENV_EXEC}={choice!r} is unknown - valid values are "
-            f"'{RUNTIME_CELL}' (WASI-Cell) und '{RUNTIME_KERNEL}' (In-Process, "
+            f"'{RUNTIME_CELL}' (WASI-Cell) and '{RUNTIME_KERNEL}' (In-Process, "
             "without sandbox). Nothing was executed."
         )
     return ""
@@ -327,14 +329,29 @@ async def run_python(code: str, session_id: str, *, reset: bool = False,
             "dropped": [],
             "preopens": [],
         }
-    if reset:
-        reset_work_dir(session_id)
     fuel = fuel_budget()
     async with _async_lock_for(session_id):
-        return await asyncio.to_thread(
-            _run_sync, code, session_id,
+        if reset:
+            reset_work_dir(session_id)
+        # Shutdown cancels Tasks; the executor Future tracks the actual worker.
+        worker = asyncio.get_running_loop().run_in_executor(None, partial(
+            contextvars.copy_context().run, _run_sync, code, session_id,
             fuel=fuel, memory_mb=memory_mb, timeout_seconds=timeout_seconds,
-        )
+        ))
+        cancelled: asyncio.CancelledError | None = None
+        while not worker.done():
+            try:
+                await asyncio.shield(worker)
+            except asyncio.CancelledError as exc:
+                cancelled = exc
+            except Exception:
+                if cancelled is None:
+                    raise
+        if cancelled is not None:
+            if not worker.cancelled():
+                worker.exception()
+            raise cancelled
+        return worker.result()
 
 
 _async_locks: dict[str, asyncio.Lock] = {}
