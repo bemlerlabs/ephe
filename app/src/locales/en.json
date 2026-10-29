@@ -1357,6 +1357,11 @@
     "companionModePerch": "Perch — sits at the edge, never interferes",
     "companionModeScout": "Scout — points at the next step, never clicks",
     "companionModeCopilot": "Co-pilot — acts on safe steps after a countdown",
+    "fit": {
+      "optimal": "fits · {{percent}}%",
+      "tight": "tight · {{percent}}%",
+      "swap": "swap risk · {{percent}}%"
+    },
     "modelSizeUnknown": "size unknown",
     "capabilityTitle": "Capability boundary",
     "capabilityHint": "Who may change files, and under which guard.",

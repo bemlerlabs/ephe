@@ -73,6 +73,9 @@ def _read_metrics() -> dict:
             "available": True,
             "cpu_percent": round(float(cpu), 1),
             "mem_used_mb": round(vm.used / (1024 * 1024)),
+            # G1: the engine matrix compares a model's estimate against this
+            # number; without it the fit stays "unknown" by design.
+            "mem_total_gb": round(vm.total / (1024 ** 3), 1),
             "mem_percent": round(vm.percent, 1),
             "uptime_s": round(_process_uptime_s()),
             **_disk_payload(),
@@ -83,6 +86,7 @@ def _read_metrics() -> dict:
             "available": False,
             "cpu_percent": None,
             "mem_used_mb": None,
+            "mem_total_gb": None,
             "mem_percent": None,
             "uptime_s": round(max(0.0, time.time() - _START_TIME)),
             **_disk_payload(),

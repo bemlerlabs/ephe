@@ -13,8 +13,14 @@
  * `engineNotConfigured` remains, and the endpoint is what the user stored —
  * the surface does not guess.
  */
+import { useEffect, useState } from 'react'
 import { KeyRound, Cpu, FileOutput, FolderInput, Zap } from 'lucide-react'
-import { deduplicateEngineModels, estimateModelGb } from '@/lib/modelMatrix'
+import {
+  deduplicateEngineModels,
+  estimateModelGb,
+  evaluateModelHardwareFit,
+} from '@/lib/modelMatrix'
+import { apiUrl } from '@/lib/api/http'
 import PageHeader from '@/components/shell/PageHeader'
 import {
   FIELD_COL,
@@ -35,7 +41,30 @@ import type { SettingsModel } from './types'
  *  so values of adjacent rows meet on one edge. */
 const FIELD = `${FIELD_COL} max-md:w-32 ${CONTROL_CLASS} text-right placeholder:text-ink-faint pointer-coarse:min-h-11 pointer-coarse:text-ui-input`
 
+/** The fit verdict in the row's own tone; the numbers stay tabular. */
+const FIT_TONE: Record<'optimal' | 'tight' | 'swap', string> = {
+  optimal: 'text-status-success',
+  tight: 'text-status-warning',
+  swap: 'text-status-danger',
+}
+
 export function EngineSection({ model }: { model: SettingsModel }) {
+  // G1: the model rows compare their estimate against the machine's own total
+  // memory. The endpoint reports it; without a number the row says nothing.
+  const [totalGb, setTotalGb] = useState<number | null>(null)
+  useEffect(() => {
+    let alive = true
+    fetch(apiUrl('/api/system/metrics'))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { mem_total_gb?: number | null } | null) => {
+        if (alive && typeof data?.mem_total_gb === 'number') setTotalGb(data.mem_total_gb)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
   const {
     checkHealth,
     customApiKey,
@@ -120,6 +149,7 @@ export function EngineSection({ model }: { model: SettingsModel }) {
         {deduplicateEngineModels(displayModels).map((opt) => {
           const stated = liveModels.find((m) => m.name === opt.id)
           const gb = estimateModelGb(opt.id)
+          const fit = evaluateModelHardwareFit(opt.id, totalGb)
           const inUse = opt.id === activeModel
           return (
             <SettingsRow
@@ -144,6 +174,16 @@ export function EngineSection({ model }: { model: SettingsModel }) {
                 <span className="tabular text-ink-faint ml-2">
                   {gb == null ? t('settings.modelSizeUnknown') : `≈ ${gb} GB`}
                 </span>
+                {fit && (
+                  <span
+                    data-testid={`engine-matrix-fit-${opt.id}`}
+                    data-verdict={fit.verdict}
+                    title={`${fit.percent}% of ${totalGb} GB`}
+                    className={`ml-2 tabular ${FIT_TONE[fit.verdict]}`}
+                  >
+                    {t(`settings.fit.${fit.verdict}`, { percent: fit.percent })}
+                  </span>
+                )}
               </SettingValue>
               {!inUse && (
                 <SettingVerb>
