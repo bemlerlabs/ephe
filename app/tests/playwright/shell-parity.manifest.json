@@ -281,7 +281,14 @@
       "kind": "dom",
       "selector": "[data-testid=\"header-minimize\"], [data-testid=\"header-maximize\"]",
       "present_on": "desktop",
-      "reason": "The shell draws its own title bar; a browser tab already has minimize and maximize. Both items sit in the header menu and exist only in the shell's DOM while that menu is open."
+      "reason": "The shell draws its own title bar; a browser tab already has minimize and maximize. Both items sit in the header menu and exist only in the shell's DOM while that menu is open, and on macOS they stay absent because the window's native traffic lights sit over that corner."
+    },
+    {
+      "id": "agent-import",
+      "kind": "dom",
+      "selector": "[data-testid=\"agent-import\"]",
+      "present_on": "desktop",
+      "reason": "The agents header imports an AGENT.md folder through the shell's pick_folder; a browser tab has no folder picker, so the row is absent there and the two headers would otherwise differ by that one label."
     },
     {
       "id": "service-worker",

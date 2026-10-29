@@ -294,7 +294,7 @@ test.describe('shell parity at 1280x800', () => {
     })
   }
 
-  test('the declared DOM difference is the only one: window controls exist in the shell only', async ({
+  test('the declared DOM difference is the only one: window controls are the shell menu’s, except on macOS', async ({
     browser,
   }) => {
     const baseURL = test.info().project.use.baseURL
@@ -326,9 +326,17 @@ test.describe('shell parity at 1280x800', () => {
 
       const desktop = await desktopContext.newPage()
       await prepare(desktop, '[data-testid="panel-chat"]', '/chat')
+      // The header reads the host the same way the product does (`isMacPlatform` in
+      // lib/shortcuts.ts): macOS paints the native traffic lights over that corner,
+      // so a second pair in the menu would duplicate them. The expectation follows
+      // that rule instead of assuming one host, which is why this leg read 0 on a
+      // Mac and 2 on Linux.
+      const macHost = await desktop.evaluate(() =>
+        /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent),
+      )
       await desktop.getByTestId('header-more').focus()
       await desktop.keyboard.press('Enter')
-      await expect(desktop.locator(selector as string)).toHaveCount(2)
+      await expect(desktop.locator(selector as string)).toHaveCount(macHost ? 0 : 2)
     } finally {
       await webContext.close()
       await desktopContext.close()
