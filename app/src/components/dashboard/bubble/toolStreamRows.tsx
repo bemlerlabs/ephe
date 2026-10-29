@@ -114,7 +114,7 @@ export function ToolStreamRows({
             {running && startTs ? (
               <div
                 data-testid="tool-run-header"
-                className="flex items-center gap-1.5 px-1.5 pt-1 text-ui-xs text-ink-faint"
+                className="flex items-center gap-1.5 px-1.5 pt-1 text-ui-xs text-ink-soft"
               >
                 <Loader2 className="h-3 w-3 animate-spin text-brand" aria-hidden="true" />
                 <span>{t('chat.runRunning')}</span>
@@ -163,7 +163,7 @@ export function ToolStreamRows({
                   ? t(g.summaryKey)
                   : t(g.count === 1 ? 'chat.ranOneTool' : 'chat.ranTools', { count: g.count })}
                 {showCount && g.count > 1 && (running || g.hasFailure || g.family === 'edit' || g.family === 'write') && (
-                  <span className="text-ink-faint group-hover:text-ink-soft group-focus-visible:text-ink-soft">
+                  <span className="text-ink-soft group-hover:text-foreground/80 group-focus-visible:text-foreground/80">
                     {' · '}
                     {running
                       ? `${doneCount}/${g.count}`
@@ -174,7 +174,7 @@ export function ToolStreamRows({
               {proof && open && (
                 <span
                   data-testid="tool-row-proof"
-                  className={`tabular-nums text-ui-2xs shrink-0 truncate ${
+                  className={`tabular-nums text-ui-xs shrink-0 truncate ${
                     g.hasFailure ? 'text-status-danger/90' : 'text-ink-faint'
                   }`}
                 >
@@ -188,7 +188,7 @@ export function ToolStreamRows({
                   g.family === 'read' ||
                   g.family === 'subagent') && (
                   <span
-                    className={`text-ui-xs text-ink-faint group-hover:text-ink-soft group-focus-visible:text-ink-soft truncate min-w-0 font-mono ${g.family === 'subagent' ? 'font-medium text-ink-soft' : ''}`}
+                    className={`text-ui-xs text-ink-soft group-hover:text-foreground/80 group-focus-visible:text-foreground/80 truncate min-w-0 font-mono ${g.family === 'subagent' ? 'font-medium text-ink-soft' : ''}`}
                   >
                     {g.target}
                   </span>
