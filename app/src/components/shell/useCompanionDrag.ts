@@ -159,13 +159,16 @@ export function useCompanionDrag(
       place(bounds ? clampOffset(stored, bounds) : stored)
     })
     return () => cancelAnimationFrame(frame)
-  }, [boundsNow, place])
+  }, [boundsNow, place, ref])
 
   const viewport = useRef({ width: window.innerWidth, height: window.innerHeight })
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth === viewport.current.width && window.innerHeight === viewport.current.height) {
+      if (
+        window.innerWidth === viewport.current.width &&
+        window.innerHeight === viewport.current.height
+      ) {
         return
       }
       viewport.current = { width: window.innerWidth, height: window.innerHeight }
