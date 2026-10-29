@@ -41,7 +41,7 @@ from core.react import react_loop, ReActStep
 from core.tools import ShellConfirmationRequired
 from core.tools.approval import ApprovalPolicy
 from core.engine_config import OPENAI_COMPAT
-from core.swarm import run_swarm
+from core.swarm_v2 import run_swarm_v2
 from core.commands import (
     extract_learn_topic,
     extract_swarm_task,
@@ -816,6 +816,7 @@ class EpheApp(App):
         self._submit_turn(text)
 
     def _finish_simple_turn(self, chat: ChatView, status: StatusBar) -> None:
+        self._refresh_seal(status)
         chat.post_message(ChatView.FinalizeAssistantMessage())
         status.post_message(StatusBar.SetStreaming(False))
         self._streaming = False
@@ -1269,6 +1270,15 @@ class EpheApp(App):
 
     # ── Swarm Worker ──────────────────────────────────────────────────────────
 
+    def _refresh_seal(self, status: StatusBar) -> None:
+        """K3: the audit chain's verdict, read from the log it guards."""
+        try:
+            from core.audit_log import verify_chain
+
+            status.post_message(StatusBar.SetSeal(verify_chain()))
+        except Exception:
+            status.post_message(StatusBar.SetSeal(None))
+
     @work(exclusive=True, thread=False)
     async def _run_swarm(self, task: str) -> None:
         """
@@ -1285,6 +1295,7 @@ class EpheApp(App):
         chat.post_message(ChatView.BeginAssistantMessage())
 
         accumulated = ""
+        wave = {"total": 0, "active": 0}
 
         def on_progress(text: str) -> None:
             nonlocal accumulated
@@ -1292,11 +1303,32 @@ class EpheApp(App):
             # Stream progress into the live assistant area
             chat.post_message(ChatView.AppendChunk(text + "\n"))
 
+        def on_swarm_event(event: dict) -> None:
+            """K3: the same structured frames the PWA deck reads, at the footer."""
+            kind = str(event.get("type", ""))
+            if kind == "swarm_created":
+                wave["total"] = len(event.get("agents") or [])
+                status.post_message(StatusBar.SetAgents(0, wave["total"]))
+                on_progress(f"🐝 {wave['total']} helpers spawned")
+            elif kind == "swarm_agent_started":
+                wave["active"] += 1
+                status.post_message(StatusBar.SetAgents(wave["active"], wave["total"]))
+                on_progress(
+                    f"▶ {event.get('agent_id')} ({event.get('role', '')}) "
+                    f"{event.get('model', '')}".rstrip()
+                )
+            elif kind == "swarm_agent_done":
+                wave["active"] = max(0, wave["active"] - 1)
+                status.post_message(StatusBar.SetAgents(wave["active"], wave["total"]))
+                on_progress(f"✓ {event.get('agent_id')}: {str(event.get('summary') or '')[:80]}")
+            elif kind == "swarm_done":
+                status.post_message(StatusBar.SetAgents(0, wave["total"]))
+
         try:
-            result = await run_swarm(
+            result = await run_swarm_v2(
                 task=task,
                 model=self.model,
-                on_progress=on_progress,
+                on_event=on_swarm_event,
             )
 
             # Show final synthesis as the main response
@@ -1314,6 +1346,7 @@ class EpheApp(App):
                 Message(role="assistant", content=accumulated + final_text)
             )
             self._save_session()
+            self._refresh_seal(status)
 
         except OllamaNotReachableError:
             status_text, body_text = self._engine_down_text(swarm=True)

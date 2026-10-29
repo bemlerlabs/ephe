@@ -768,6 +768,20 @@ class ConfirmPrompt(Widget):
 # ===========================================================================
 
 
+def agents_label(active: int, total: int) -> str:
+    """K3: the footer's swarm chip — empty until a wave actually spawned."""
+    if total <= 0:
+        return ""
+    return f"◈ {active}/{total}"
+
+
+def seal_label(problems: "list[str] | None") -> str:
+    """K3: the audit chain's own state; empty until it was checked once."""
+    if problems is None:
+        return ""
+    return "⛓ ok" if not problems else f"⛓ {len(problems)} broken"
+
+
 class StatusBar(Widget):
     """
     Single-line status bar docked at the bottom.
@@ -819,6 +833,21 @@ class StatusBar(Widget):
             super().__init__()
             self.count = count
 
+    class SetAgents(TextualMessage):
+        """K3: the running swarm's own count — active helpers of the wave."""
+
+        def __init__(self, active: int, total: int) -> None:
+            super().__init__()
+            self.active = active
+            self.total = total
+
+    class SetSeal(TextualMessage):
+        """K3: the audit chain's verdict, or None before it was checked."""
+
+        def __init__(self, problems: "list[str] | None") -> None:
+            super().__init__()
+            self.problems = problems
+
     # ── State ────────────────────────────────────────────────────────────────
 
     _connected: bool = False
@@ -830,6 +859,9 @@ class StatusBar(Widget):
     _session: str = ""
     _session_count: int = 0
     _queue: int = 0
+    _agents_active: int = 0
+    _agents_total: int = 0
+    _seal: "list[str] | None" = None
 
     def compose(self) -> ComposeResult:
         yield Static("", id="status-indicator", markup=True)
@@ -838,6 +870,8 @@ class StatusBar(Widget):
         yield Static("", id="status-session", markup=True)
         yield Static("", id="status-meter", markup=True)
         yield Static("", id="status-queue", markup=True)
+        yield Static("", id="status-agents", markup=True)
+        yield Static("", id="status-seal", markup=True)
         yield Static(
             f"[{DIM}]Runs locally on the engine you choose.[/{DIM}]",
             id="status-tagline",
@@ -882,6 +916,15 @@ class StatusBar(Widget):
         self._queue = event.count
         self._update_display()
 
+    def on_status_bar_set_agents(self, event: "StatusBar.SetAgents") -> None:
+        self._agents_active = event.active
+        self._agents_total = event.total
+        self._update_display()
+
+    def on_status_bar_set_seal(self, event: "StatusBar.SetSeal") -> None:
+        self._seal = event.problems
+        self._update_display()
+
     def on_resize(self, event: object) -> None:
         """At 80 columns the provider label yields to the model, session and meter."""
         if self.size.width and self.size.width < 110:
@@ -899,6 +942,8 @@ class StatusBar(Widget):
         session_label = self.query_one("#status-session", Static)
         meter_label = self.query_one("#status-meter", Static)
         queue_label = self.query_one("#status-queue", Static)
+        agents_cell = self.query_one("#status-agents", Static)
+        seal_cell = self.query_one("#status-seal", Static)
 
         narrow = self.has_class("narrow")
         if self._error:
@@ -937,6 +982,12 @@ class StatusBar(Widget):
         queue_label.update(
             f"[{WARN}]  │  {self._queue} queued[/{WARN}]" if self._queue else ""
         )
+        agents = agents_label(self._agents_active, self._agents_total)
+        tone = ACCENT if self._agents_active else DIM
+        agents_cell.update(f"[{tone}]  │  {agents}[/{tone}]" if agents else "")
+        seal = seal_label(self._seal)
+        seal_tone = ERROR if (self._seal or []) else OK
+        seal_cell.update(f"[{seal_tone}]  │  {seal}[/{seal_tone}]" if seal else "")
 
     def _meter_markup(self) -> str:
         """Empty when no fill was measured; the warning colour at/over the threshold."""
