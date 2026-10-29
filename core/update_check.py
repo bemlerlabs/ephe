@@ -241,7 +241,7 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
                 result.update(_main_channel(commit) or {})
     except Exception as exc:  # noqa: BLE001 — the check must never break the app
         # The exception is for the log below. The client gets a fixed sentence.
-        logger.warning("update check failed: %s", exc, exc_info=True)
+        logger.warning("update check failed: %s", exc)
         result = {
             "enabled": True,
             "available": False,
