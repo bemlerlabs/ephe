@@ -124,6 +124,10 @@ def _stream_heartbeat_s() -> float:
 
 STREAM_HEARTBEAT_S = _stream_heartbeat_s()
 
+#: A turn that produced no frame for this long emits one progress beat, so an
+#: engine wait never looks like a dead stream.
+TURN_SILENT_BEAT_S = float(os.environ.get("EPHE_TURN_BEAT_S", "") or 3.0)
+
 #: A running tool reports its place every 5 s.
 PROGRESS_HEARTBEAT_SECONDS = 5.0
 
@@ -1953,7 +1957,37 @@ async def chat_stream(
 
         turn_failure: list[str] = []
 
+        # A turn may wait minutes for the engine between rounds (no chunks, no
+        # tool rows). This beat keeps one visible progress line alive whenever no
+        # other frame went out for SILENT_BEAT_S — a silent stream must never be
+        # indistinguishable from a dead one.
+        _last_frame = [time.monotonic()]
+        _beat_t0 = time.monotonic()
+
+        async def _turn_beat() -> None:
+            while True:
+                # Short steps so the gap the constant names is the gap that fires,
+                # not the gap plus a sleep quantum.
+                await asyncio.sleep(0.25)
+                now = time.monotonic()
+                if now - _last_frame[0] < TURN_SILENT_BEAT_S:
+                    continue
+                _last_frame[0] = now
+                queue.put_nowait((
+                    "event",
+                    {
+                        "type": "progress",
+                        "turn_id": turn_id,
+                        "round": 0,
+                        "round_cap": 0,
+                        "tool": "",
+                        "phase": "turn_beat",
+                        "elapsed_ms": round((now - _beat_t0) * 1000),
+                    },
+                ))
+
         def emit(event: dict) -> None:
+            _last_frame[0] = time.monotonic()
             _announce_failover()
             # SEC-1: redact the event before it leaves the process.
             from core.redact import redact_deep
@@ -2041,6 +2075,7 @@ async def chat_stream(
             # W32: turn observability — start stamp + counters set early,
             # so the finally entry is complete even on an early exception.
             _turn_t0 = time.perf_counter()
+            _beat_task = asyncio.create_task(_turn_beat())
             captured_tool_results: list = []
             active_provider: ModelProviderConfig | None = None
             model = request.model
@@ -2511,6 +2546,7 @@ async def chat_stream(
                 except Exception:
                     emit({"type": "error", "msg": _error_msg(exc)})
             finally:
+                _beat_task.cancel()
                 # N1: a steer the turn never read is reported before the turn
                 # closes. The loop reports its own leftovers, so this covers the
                 # paths that never return to it — a provider error out of the
