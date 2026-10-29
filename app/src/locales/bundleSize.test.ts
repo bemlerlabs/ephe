@@ -160,8 +160,11 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // 2026-10-29 (P2): the one-click setup button added four leaves per file
 // (setup.oneClick, oneClickHint, oneClickRunning, oneClickNone). Measured:
 // en 137 876 B, de 149 370 B — each half moves by ~300 B, headroom ~74/~80 B.
-const EN_CEILING = 137_950
-const DE_CEILING = 149_450
+// 2026-10-29 (R3): the tool catalog card added four leaves per file
+// (tools.catalogTitle, catalogHint, catalogSafe, catalogAsks). Measured:
+// en 138 081 B, de 149 602 B — headroom ~79/~88 B.
+const EN_CEILING = 138_160
+const DE_CEILING = 149_690
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

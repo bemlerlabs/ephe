@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Download, ImageIcon, Loader2, Upload } from 'lucide-react'
 import { Button, Card } from '@/components/ui'
 import PageHeader from '@/components/shell/PageHeader'
+import { ToolCatalog } from '@/components/dashboard/ToolCatalog'
 import {
   analyzeImage,
   analyzeImageBase64,
@@ -153,6 +154,8 @@ export default function ToolsPage() {
         </Button>
         <PageHeader title={t('tools.title')} subtitle={t('tools.subtitle')} />
       </div>
+
+      <ToolCatalog />
 
       <Card data-testid="tools-vision">
         <h3 className="flex items-center gap-2 font-display text-ui-lg font-semibold text-foreground/95">

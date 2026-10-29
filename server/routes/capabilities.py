@@ -13,8 +13,36 @@ from fastapi import APIRouter
 
 from core.subagent import SUBAGENT_MAX_ITERATIONS, SUBAGENT_TOOL_WHITELIST
 from core.mcp_sandbox import platform_boundary
+from core.tools import get_tool_schemas
+from core.tools.approval_rules import SAFE_TOOLS
 
 router = APIRouter(tags=["Agents"])
+
+
+def _tool_catalog() -> dict:
+    """Every registered tool with the gate's own verdict on it.
+
+    `safe` is membership in `SAFE_TOOLS` — the one list that decides a call runs
+    without a prompt. A catalog that derived its own answer could drift from the
+    guard that refuses; this one cannot.
+    """
+    rows = []
+    for schema in get_tool_schemas():
+        function = schema.get("function") or {}
+        name = str(function.get("name") or "")
+        if not name:
+            continue
+        rows.append({
+            "name": name,
+            "description": str(function.get("description") or ""),
+            "safe": name in SAFE_TOOLS,
+        })
+    rows.sort(key=lambda row: row["name"])
+    return {
+        "tools": rows,
+        "count": len(rows),
+        "safe_count": sum(1 for row in rows if row["safe"]),
+    }
 
 
 def _mcp_sandbox() -> dict:
@@ -49,5 +77,6 @@ def capabilities() -> dict:
             "read_only": False,
             "note": "every registered tool; each write passes the approval gate",
         },
+        "tools": _tool_catalog(),
         "mcp_sandbox": _mcp_sandbox(),
     }

@@ -2540,6 +2540,10 @@
   "tools": {
     "title": "Tools",
     "subtitle": "Analyse a single image with your engine, and back up or restore the session store.",
+    "catalogTitle": "What the agents may run",
+    "catalogHint": "{{safe}} of {{total}} tools run without a prompt; the rest ask first.",
+    "catalogSafe": "runs alone",
+    "catalogAsks": "asks first",
     "visionTitle": "Image analysis",
     "visionHint": "Send one image to the engine you chose. In a chat turn an attached image already travels with the message; here it runs on its own.",
     "chooseImage": "Choose image",

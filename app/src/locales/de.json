@@ -2540,6 +2540,10 @@
   "tools": {
     "title": "Werkzeuge",
     "subtitle": "Ein einzelnes Bild mit deiner Engine analysieren und den Sitzungsspeicher sichern oder zurückspielen.",
+    "catalogTitle": "Was die Agenten ausführen dürfen",
+    "catalogHint": "{{safe}} von {{total}} Werkzeugen laufen ohne Rückfrage; der Rest fragt zuerst.",
+    "catalogSafe": "läuft allein",
+    "catalogAsks": "fragt zuerst",
     "visionTitle": "Bildanalyse",
     "visionHint": "Ein Bild an die gewählte Engine schicken. Im Chat reist ein angehängtes Bild schon mit der Nachricht; hier läuft es für sich.",
     "chooseImage": "Bild wählen",

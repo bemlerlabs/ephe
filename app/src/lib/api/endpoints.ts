@@ -60,9 +60,18 @@ export interface McpSandboxView {
   pid_isolated: boolean
 }
 
+/** One registered tool with the gate's verdict: `safe` = runs without a prompt. */
+export interface ToolCatalogRow {
+  name: string
+  description: string
+  safe: boolean
+}
+
 export interface CapabilitiesView {
   subagent: { tools: string[]; tool_count: number; max_iterations: number; read_only: boolean }
   main_agent: { read_only: boolean; note: string }
+  /** Absent on an older server; the catalog card then stays hidden. */
+  tools?: { tools: ToolCatalogRow[]; count: number; safe_count: number }
   mcp_sandbox?: McpSandboxView
 }
 
