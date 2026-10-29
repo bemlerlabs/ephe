@@ -3,7 +3,7 @@
 /**
  * The first open after the six-second scene: four questions, then the desk.
  *
- * The greeting and the desk frame the questions; the bee is the guide. The
+ * The greeting and the desk frame the questions; the moth is the guide. The
  * answers land in the device marker (`/api/tour`), not in the browser: the PWA
  * and the desktop app must agree on whether the tour has been walked. The engine
  * question hands off to the shipped setup card instead of re-implementing it; the
@@ -15,7 +15,8 @@ import { useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Code2, FileText, Layers, Loader2, Search, ShieldCheck } from 'lucide-react'
 import { useDeepBool } from '@/lib/deepSettings'
-import { InteractiveBeeGuide, type BeeGuideHandle } from './InteractiveBeeGuide'
+import { InteractiveMothGuide, type MothGuideHandle } from './InteractiveMothGuide'
+import { PaperMothGlyph } from '@/components/brand/PaperMothGlyph'
 import {
   gateSnapshot,
   loadSetupGate,
@@ -147,7 +148,7 @@ export default function FirstRunTour() {
 
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
-  const beeRef = useRef<BeeGuideHandle>(null)
+  const guideRef = useRef<MothGuideHandle>(null)
   const booted = useRef(false)
 
   useEffect(() => {
@@ -237,9 +238,9 @@ export default function FirstRunTour() {
       await closeTour(true, false)
       return
     }
-    // Scene 7: the live bee flies from where it is into the header corner.
+    // Scene 7: the live moth flies from where it is into the header corner.
     setFinale(true)
-    beeRef.current?.finale()
+    guideRef.current?.finale()
     window.setTimeout(() => void closeTour(true, false), 1300)
   }, [closeTour, engine?.model, gate.configured, still])
 
@@ -428,7 +429,7 @@ export default function FirstRunTour() {
     if (!open || still) return
     const id = window.setTimeout(() => {
       const panel = dialogRef.current?.querySelector('[data-testid="tour-panel"]')
-      beeRef.current?.flyToPanelPerch(panel ?? null)
+      guideRef.current?.flyToPanelPerch(panel ?? null)
     }, 60)
     return () => window.clearTimeout(id)
   }, [open, still, step])
@@ -436,7 +437,7 @@ export default function FirstRunTour() {
   useEffect(() => {
     if (!open || still || step !== 2 || !(gate.configured || engine?.model)) return
     const core = dialogRef.current?.querySelector('[data-testid="tour-engine-core"]')
-    beeRef.current?.flyToControl(core ?? null)
+    guideRef.current?.flyToControl(core ?? null)
   }, [engine?.model, gate.configured, open, still, step])
 
   const clickStage = useCallback(
@@ -445,9 +446,9 @@ export default function FirstRunTour() {
       const control = (event.target as HTMLElement).closest('[data-testid]')
       const id = control?.getAttribute('data-testid') ?? ''
       if (control && /^tour-(usage-|toggle-|guard-|continue|start|next|engine-)/.test(id)) {
-        beeRef.current?.flyToControl(control)
+        guideRef.current?.flyToControl(control)
       } else {
-        beeRef.current?.flyTo(event.clientX, event.clientY)
+        guideRef.current?.flyTo(event.clientX, event.clientY)
       }
     },
     [still],
@@ -564,8 +565,8 @@ export default function FirstRunTour() {
       className={`tour-stage${still ? ' is-still' : ''}${finale ? ' is-finale' : ''}`}
       onPointerDown={clickStage}
     >
-      {/* Scene 5 is the stage: the keyframe's forest behind the glass card. The bee is
-          the live guide over it, never a bee baked into the backdrop. */}
+      {/* Scene 5 is the stage: the keyframe's forest behind the glass card. The moth
+          is the live guide over it, never a figure baked into the backdrop. */}
       <img
         className="tour-stage-frame"
         src="/onboarding/scene-1-ignition.jpg"
@@ -576,7 +577,7 @@ export default function FirstRunTour() {
       <div className="tour-stage-shade" aria-hidden="true" />
       <div className="tour-fireflies" aria-hidden="true" />
       <div className="tour-ground" aria-hidden="true" />
-      <InteractiveBeeGuide ref={beeRef} still={still} size="clamp(13rem, 24vw, 20rem)" />
+      <InteractiveMothGuide ref={guideRef} still={still} size="clamp(13rem, 24vw, 20rem)" />
 
       <section
         className={`tour-panel${sparked ? ' is-sparked' : ''}`}
@@ -652,7 +653,7 @@ export default function FirstRunTour() {
                 data-state={engineLoading ? 'testing' : configured ? 'ok' : 'idle'}
                 aria-hidden="true"
               >
-                <img src="/onboarding/scene-6-engine.jpg" alt="" draggable={false} />
+                <PaperMothGlyph size="2.6rem" className="tour-core-mark" />
                 <span className="tour-core-halo" />
               </div>
               {engineLoading ? (

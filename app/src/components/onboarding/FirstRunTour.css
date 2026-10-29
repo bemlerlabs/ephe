@@ -553,11 +553,9 @@ html.no-motion .tour-bee { transform: none !important; }
   overflow: hidden;
   position: relative;
 }
-.tour-engine-core img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 44%;
+.tour-engine-core .tour-core-mark {
+  color: var(--color-figure-paper);
+  filter: drop-shadow(0 0 14px rgb(255 191 71 / 0.35));
 }
 .tour-engine-core .tour-core-halo {
   inset: 0;
@@ -593,7 +591,6 @@ html.no-motion .tour-bee { transform: none !important; }
 .tour-stage-frame { opacity: 0.82; }
 
 .tour-engine-core { height: 8.5rem; }
-.tour-engine-core img { object-position: 50% 58%; }
 
 @media (pointer: coarse) {
   .tour-approval-allow,

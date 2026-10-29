@@ -1,18 +1,16 @@
 /**
- * The live guide: the keyframe bee as a cut-out 2.5-D sprite, flown by a spring.
+ * The live guide: the paper moth as a cut-out 2.5-D sprite, flown by a spring.
  *
- * The actor is not redrawn: `paper-moth-actor.webp` is the hero frame's bee with a soft
- * alpha, and its two wings are separate layers that turn around the shoulders in real
- * HTML 3D. The component owns a 60 fps spring, a click-to-fly lock, a continuous gold
- * trail and the idle hover; the parent aims it at the card, a control, the engine core
- * or the header.
+ * `paper-moth-actor.webp` is the mastered cut, and its two wings are separate layers
+ * that turn around the wing roots in real HTML 3D. The component owns a 60 fps spring,
+ * a click-to-fly lock, a continuous gold trail and the idle hover; the parent aims it
+ * at the card, a control, the engine core or the header.
  */
-import './InteractiveBeeGuide.css'
+import './InteractiveMothGuide.css'
 import { playSparkChime, playWingWhoosh } from '@/lib/spiritAudio'
-import { BeeEyelids } from '@/components/bee/BeeEyelids'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
-export interface BeeGuideHandle {
+export interface MothGuideHandle {
   flyTo(x: number, y: number): void
   flyToControl(element: Element | null): void
   flyToElement(element: Element | null): void
@@ -40,8 +38,8 @@ interface Spark {
 
 const CLICK_LOCK_MS = 1350
 
-export const InteractiveBeeGuide = forwardRef<BeeGuideHandle, GuideProps>(
-  function InteractiveBeeGuide(
+export const InteractiveMothGuide = forwardRef<MothGuideHandle, GuideProps>(
+  function InteractiveMothGuide(
     { still = false, size = 'clamp(13rem, 24vw, 20rem)', onFinaleLanded },
     ref,
   ) {
@@ -64,8 +62,8 @@ export const InteractiveBeeGuide = forwardRef<BeeGuideHandle, GuideProps>(
       pos.current = { x, y }
       target.current = { x, y }
       if (rootRef.current) {
-        rootRef.current.style.setProperty('--bee-x', `${x}px`)
-        rootRef.current.style.setProperty('--bee-y', `${y}px`)
+        rootRef.current.style.setProperty('--moth-x', `${x}px`)
+        rootRef.current.style.setProperty('--moth-y', `${y}px`)
       }
     }, [])
 
@@ -210,13 +208,13 @@ export const InteractiveBeeGuide = forwardRef<BeeGuideHandle, GuideProps>(
         const yaw = Math.max(-34, Math.min(34, vel.current.x * 2))
         const pitch = Math.max(-22, Math.min(22, -vel.current.y * 1.2))
         const z = 0.9 + Math.min(0.34, speed * 0.012)
-        root.style.setProperty('--bee-x', `${pos.current.x + hoverX}px`)
-        root.style.setProperty('--bee-y', `${pos.current.y + hoverY}px`)
-        root.style.setProperty('--bee-z', z.toFixed(3))
-        root.style.setProperty('--bee-bank', `${bank.toFixed(2)}deg`)
-        root.style.setProperty('--bee-yaw', `${yaw.toFixed(2)}deg`)
-        root.style.setProperty('--bee-pitch', `${pitch.toFixed(2)}deg`)
-        root.style.setProperty('--bee-speed', Math.min(1, speed / 12).toFixed(3))
+        root.style.setProperty('--moth-x', `${pos.current.x + hoverX}px`)
+        root.style.setProperty('--moth-y', `${pos.current.y + hoverY}px`)
+        root.style.setProperty('--moth-z', z.toFixed(3))
+        root.style.setProperty('--moth-bank', `${bank.toFixed(2)}deg`)
+        root.style.setProperty('--moth-yaw', `${yaw.toFixed(2)}deg`)
+        root.style.setProperty('--moth-pitch', `${pitch.toFixed(2)}deg`)
+        root.style.setProperty('--moth-speed', Math.min(1, speed / 12).toFixed(3))
         setFlying(speed > 0.9)
         raf.current = requestAnimationFrame(step)
       }
@@ -288,42 +286,41 @@ export const InteractiveBeeGuide = forwardRef<BeeGuideHandle, GuideProps>(
 
     return (
       <>
-        <canvas ref={canvasRef} className="bee-guide-sparks" aria-hidden="true" />
+        <canvas ref={canvasRef} className="moth-guide-sparks" aria-hidden="true" />
         <div
           ref={rootRef}
-          data-testid="interactive-bee-guide"
-          className={`bee-guide${flying ? ' is-flying' : ''}`}
-          style={{ '--bee-size': size } as React.CSSProperties}
+          data-testid="interactive-moth-guide"
+          className={`moth-guide${flying ? ' is-flying' : ''}`}
+          style={{ '--moth-size': size } as React.CSSProperties}
           aria-hidden="true"
         >
-          <span className="bee-guide-light" />
-          <div className="bee-actor">
-            <div className="bee-actor-motion">
+          <span className="moth-guide-light" />
+          <div className="moth-actor">
+            <div className="moth-actor-motion">
               <img
-                className="bee-actor-body"
+                className="moth-actor-body"
                 src="/onboarding/paper-moth-actor.webp"
                 alt=""
                 draggable={false}
               />
               <img
-                className="bee-actor-wing bee-wing-l"
+                className="moth-actor-wing moth-wing-l"
                 src="/onboarding/paper-moth-wing-l.webp"
                 alt=""
                 draggable={false}
               />
               <img
-                className="bee-actor-wing bee-wing-r"
+                className="moth-actor-wing moth-wing-r"
                 src="/onboarding/paper-moth-wing-r.webp"
                 alt=""
                 draggable={false}
               />
               <img
-                className="bee-actor-flame"
+                className="moth-actor-flame"
                 src="/onboarding/paper-moth-thread.webp"
                 alt=""
                 draggable={false}
               />
-              <BeeEyelids still={still} />
             </div>
           </div>
         </div>
