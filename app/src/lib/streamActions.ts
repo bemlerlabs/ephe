@@ -20,8 +20,10 @@
  *   - subagent_started / subagent_tool / subagent_done
  *                            → activity (R36-S: spawn_agent helper feed)
  *   - skill_created        → activity
- *   - model_info / swarm_done / vision_learning / vision_learned_success
+ *   - model_info / vision_learning / vision_learned_success
  *                            → no-op (handled by the UI, no message mutation)
+ *   - swarm_done            → activity only when it carries measured tokens
+
  *   - sandbox_confirm      → resolveSandbox (token as tool.description)
  *   - ask_user             → resolveAsk (G1: the run is paused on this question)
  *   - ask_timeout          → markAskTimedOut (G1: nobody answered, the run went on)
@@ -64,12 +66,13 @@ type Store = Pick<
 >
 import { serverErrorText } from './serverError'
 
+const shortTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
+
 /** "1.2k in / 240 out" from what the engine reported; empty when it reported none. */
 function tokenNote(tokensIn?: number, tokensOut?: number): string {
   const parts: string[] = []
-  const short = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
-  if (tokensIn) parts.push(`${short(tokensIn)} in`)
-  if (tokensOut) parts.push(`${short(tokensOut)} out`)
+  if (tokensIn) parts.push(`${shortTokens(tokensIn)} in`)
+  if (tokensOut) parts.push(`${shortTokens(tokensOut)} out`)
   return parts.length > 0 ? `${parts.join(' / ')} tok` : ''
 }
 
@@ -294,9 +297,21 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       })
       break
 
-    case 'swarm_done':
-      // the final text arrives as a chunk; swarm_done itself = no-op
+    case 'swarm_done': {
+      // The final text arrives as a chunk. The frame's token record is the one
+      // number the feed can state honestly: agents' own context next to the
+      // brief the merge step read. No record, no line.
+      const tokens = event.tokens
+      if (tokens && tokens.agent_in > 0 && tokens.merge_in > 0) {
+        const saved = Math.max(0, 100 - Math.round((tokens.merge_in / tokens.agent_in) * 100))
+        store.upsertActivity({
+          label: 'Swarm envelope',
+          status: 'done',
+          detail: `${shortTokens(tokens.agent_in)} → ${shortTokens(tokens.merge_in)} tok (−${saved}%)`,
+        })
+      }
       break
+    }
 
     case 'subagent_started':
       // R36-S: delegated helper — one activity per agent_id (label key);

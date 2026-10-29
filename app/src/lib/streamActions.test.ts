@@ -378,6 +378,25 @@ describe('applyStreamEvent (Event → Store-Action Mapping)', () => {
     })
   })
 
+  it('C3: a swarm_done with measured tokens states the merge ratio', () => {
+    const store = mockStore()
+    applyStreamEvent(
+      {
+        type: 'swarm_done',
+        swarm_id: 'sw-1',
+        agent_count: 2,
+        final: 'fertig',
+        tokens: { agent_in: 12000, agent_out: 3000, merge_in: 1200, merge_out: 300 },
+      },
+      store,
+    )
+    expect(store.upsertActivity).toHaveBeenLastCalledWith({
+      label: 'Swarm envelope',
+      status: 'done',
+      detail: '12.0k → 1.2k tok (−90%)',
+    })
+  })
+
   it('model_info + swarm_done = No-Ops (keine Store-Action)', () => {
     applyStreamEvent({ type: 'model_info', tier: 'offline', model: 'gemma4:e4b' }, store)
     applyStreamEvent(

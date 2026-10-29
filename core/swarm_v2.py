@@ -807,6 +807,8 @@ class SwarmOrchestrator:
         self.model = model
         self.on_event = on_event or (lambda e: None)
         self.state = state_store or swarm_state_store
+        # The merge call's own usage, when its engine reported one.
+        self._synth_tokens: dict[str, int] | None = None
         self.tool_whitelist = tool_whitelist or DEFAULT_TOOL_WHITELIST
         self.active_skills = active_skills or []
         self.swarm_id = ""
@@ -1027,7 +1029,22 @@ class SwarmOrchestrator:
         # Phase 4: synthesis
         await self.state.update_session_phase(self.swarm_id, SwarmPhase.SYNTHESIZING)
 
+        self._synth_tokens = None
         final = await self._synthesize(subtasks, results)
+        # What the orchestrator actually carried: the agents' own context next to
+        # the brief the merge step read. Both numbers are engine-reported; the
+        # difference is arithmetic, not an estimate.
+        usage = self._synth_tokens or {}
+        tokens = {
+            "agent_in": sum(
+                env.tokens_in for env in envelopes if isinstance(env, SwarmEnvelope)
+            ),
+            "agent_out": sum(
+                env.tokens_out for env in envelopes if isinstance(env, SwarmEnvelope)
+            ),
+            "merge_in": int(usage.get("in", 0)),
+            "merge_out": int(usage.get("out", 0)),
+        }
 
         await self.state.set_session_result(self.swarm_id, final)
         await self.state.update_session_phase(self.swarm_id, SwarmPhase.DONE)
@@ -1039,6 +1056,7 @@ class SwarmOrchestrator:
             "agent_count": len(agents),
             "final": final,
             "counters": self.wave_snapshot(),
+            "tokens": tokens,
         })
 
         return SwarmV2Result(
@@ -1049,6 +1067,7 @@ class SwarmOrchestrator:
             final=final,
             envelopes=envelopes,
             counters=self.wave_snapshot(),
+            tokens=tokens,
         )
 
     async def _run_manager(self) -> dict | None:
@@ -1139,8 +1158,19 @@ class SwarmOrchestrator:
             # two shapes arrive: Pydantic object (Ollama ≥ 0.4) or dict
             if isinstance(response, dict):
                 content = response.get("message", {}).get("content", "")
+                usage = response.get("usage") or {}
+                self._synth_tokens = {
+                    "in": int(usage.get("prompt_tokens") or 0),
+                    "out": int(usage.get("completion_tokens") or 0),
+                }
             else:
                 content = getattr(getattr(response, "message", None), "content", "") or ""
+                usage = getattr(response, "usage", None)
+                if usage is not None:
+                    self._synth_tokens = {
+                        "in": int(getattr(usage, "prompt_tokens", 0) or 0),
+                        "out": int(getattr(usage, "completion_tokens", 0) or 0),
+                    }
             return str(content).strip()
         except Exception as exc:
             logger.error(f"◑ Synthesizer error: {exc}")
@@ -1162,6 +1192,7 @@ class SwarmV2Result:
     final: str
     envelopes: list[SwarmEnvelope | str | None] = field(default_factory=list)
     counters: dict = field(default_factory=dict)
+    tokens: dict = field(default_factory=dict)
 
     def __repr__(self) -> str:
         return (

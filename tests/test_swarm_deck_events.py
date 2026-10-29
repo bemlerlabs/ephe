@@ -116,3 +116,46 @@ def test_the_agent_reads_usage_and_the_done_frame_carries_it():
     assert 'getattr(response, "usage", None)' in source
     assert '"prompt_tokens", 0' in source
     assert '"tokens_in": status.tokens_in if ok else 0' in source
+
+
+@pytest.mark.asyncio
+async def test_the_done_frame_carries_the_token_record(
+    monkeypatch: pytest.MonkeyPatch, events: list[dict]
+) -> None:
+    """C3: the record exists on every run; zeros mean 'the engine said nothing'."""
+    _fake_runs(monkeypatch)
+    orch = _orchestrator(["a"], events)
+
+    await orch.run()
+
+    done = [e for e in events if e["type"] == "swarm_done"]
+    assert done, "no swarm_done frame"
+    tokens = done[0]["tokens"]
+    assert set(tokens) == {"agent_in", "agent_out", "merge_in", "merge_out"}
+    assert all(value == 0 for value in tokens.values())
+
+
+@pytest.mark.asyncio
+async def test_the_synthesizer_records_the_usage_its_engine_reported(
+    monkeypatch: pytest.MonkeyPatch, events: list[dict]
+) -> None:
+    class Usage:
+        prompt_tokens = 1200
+        completion_tokens = 240
+
+    class Response:
+        usage = Usage()
+        message = type("Message", (), {"content": "merged"})()
+
+    class Client:
+        async def chat(self, **_kwargs):
+            return Response()
+
+    monkeypatch.setattr(
+        "core.model_provider.build_provider_client", lambda *a, **k: Client()
+    )
+    # A plain orchestrator: the helper above stubs _synthesize for the frame tests.
+    orch = SwarmOrchestrator(task="t", model="m", state_store=SwarmStateStore())
+
+    assert await orch._synthesize(["a"], ["r"]) == "merged"
+    assert orch._synth_tokens == {"in": 1200, "out": 240}

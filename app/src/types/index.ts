@@ -539,6 +539,8 @@ export interface StreamSwarmAgentDone {
 
 export interface StreamSwarmDone {
   type: 'swarm_done'
+  /** Engine-reported tokens: agent context vs. the merge step's input. */
+  tokens?: { agent_in: number; agent_out: number; merge_in: number; merge_out: number }
   swarm_id: string
   agent_count: number
   final: string
