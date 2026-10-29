@@ -28,6 +28,17 @@ export interface UpdateCheckInfo {
   commit?: string
 }
 
+/** What the app's own update did, step by step. */
+export interface ApplyResult {
+  ok: boolean
+  reason?: string
+  detail?: string
+  steps?: Array<{ name: string; ok: boolean; detail: string }>
+  before?: string
+  after?: string
+  restart?: boolean
+}
+
 export type UpdatePhase =
   | 'idle'
   | 'checking'
@@ -37,6 +48,8 @@ export type UpdatePhase =
   | 'downloading'
   | 'installing'
   | 'ready'
+  | 'applying'
+  | 'applied'
   | 'unsupported'
 
 export interface UpdateState {
@@ -66,6 +79,10 @@ export interface UpdateState {
   commitsBehind?: number
   /** The commit this build runs on, when the backend knows it. */
   commit?: string
+  /** The steps an applied update ran, in order. */
+  steps?: Array<{ name: string; ok: boolean; detail: string }>
+  /** True when the update moved the checkout, so a relaunch is owed. */
+  restart?: boolean
 }
 
 /** True inside the Ephe desktop shell (Tauri IPC available). */
@@ -167,5 +184,24 @@ export async function runCheck(force = false): Promise<UpdateState> {
       reason: e instanceof Error ? e.message : String(e),
       failedAt: 'check',
     }
+  }
+}
+
+/**
+ * Take the newest commits: the same pull and installer `ephe update` runs,
+ * behind one click. The backend refuses a dirty tree, another branch or a
+ * second click, and says why.
+ */
+export async function applyUpdate(): Promise<ApplyResult> {
+  try {
+    const r = await fetch(apiUrl('/api/update/apply'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'update' }),
+    })
+    if (!r.ok) return { ok: false, reason: `HTTP ${r.status}` }
+    return (await r.json()) as ApplyResult
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) }
   }
 }

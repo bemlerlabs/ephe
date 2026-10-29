@@ -14,7 +14,14 @@ vi.mock('react-i18next', () => ({
 }))
 
 const noop = () => {}
-const base = { open: true, onOpenChange: noop, onCheck: noop, onInstall: noop, onRelaunch: noop }
+const base = {
+  open: true,
+  onOpenChange: noop,
+  onCheck: noop,
+  onInstall: noop,
+  onApply: noop,
+  onRelaunch: noop,
+}
 
 const available: UpdateState = {
   phase: 'available',

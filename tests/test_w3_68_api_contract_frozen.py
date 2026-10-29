@@ -52,6 +52,10 @@ Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
   workspace's ``.ephe/learning/heuristics.md`` (rules, map, the switch), and
   ``PATCH``/``DELETE /api/sol/heuristics/{rule_id}`` are the same edit and delete a
   hand edit performs, so the settings surface and the file cannot disagree.
+  One update addition: ``POST /api/update/apply`` runs the same pull and installer
+  ``ephe update`` runs, so a user on a checkout can take the merges between two
+  tags from the dialog instead of a terminal. It refuses a dirty tree, another
+  branch and a second click, and it is the only route under /api/update that writes.
 
 The routing table carries one more /api surface than the schema documents —
 ``GET /api/docs`` (``docs_url``), pinned below — and the proxy catch-all is
@@ -261,6 +265,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/skills/{name}/enable",
     "POST /api/tasks",
     "POST /api/tour",
+    "POST /api/update/apply",
     "POST /api/vision/analyze",
     "POST /api/vision/base64",
     "POST /api/workspaces",

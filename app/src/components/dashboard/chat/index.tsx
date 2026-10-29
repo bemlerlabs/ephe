@@ -180,8 +180,7 @@ export default function ChatLayout() {
   // F8: the ring reads the same occupancy as the status bar — one numerator,
   // one denominator, so the two cannot contradict each other.
   const occupancy = useContextOccupancy(currentSession?.messages, contextWindow, currentSession?.id)
-  const contextPercent =
-    (currentSession?.messages.length ?? 0) > 0 ? occupancy.percent : null
+  const contextPercent = (currentSession?.messages.length ?? 0) > 0 ? occupancy.percent : null
   // The updater replaces the shell and not the backend it starts; the two are
   // allowed to disagree for exactly one reason — nobody told the user. The
   // shell's own comparison runs on the start thread, so this reads after it.
@@ -623,6 +622,7 @@ export default function ChatLayout() {
                   onOpenChange={update.setOpen}
                   onCheck={() => void update.check()}
                   onInstall={() => void update.install()}
+                  onApply={() => void update.apply()}
                   onRelaunch={() => void update.relaunch()}
                   releasesUrl={update.state.url}
                   restartBlocked={update.restartBlocked}
@@ -728,7 +728,7 @@ export default function ChatLayout() {
                   {isTyping && runData.plan && (
                     <StepPill
                       step={
-                        (runData.plan.items.findIndex((s) => s.status === 'active') + 1) ||
+                        runData.plan.items.findIndex((s) => s.status === 'active') + 1 ||
                         Math.min(planDone + 1, planTotal)
                       }
                       total={planTotal}

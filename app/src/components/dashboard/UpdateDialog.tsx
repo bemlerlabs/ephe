@@ -40,6 +40,8 @@ interface Props {
   onOpenChange: (open: boolean) => void
   onCheck: () => void
   onInstall: () => void
+  /** Take the newest commits a release has not been cut from yet. */
+  onApply: () => void
   onRelaunch: () => void
   releasesUrl?: string
   /** Why a restart is held back right now — undefined when nothing holds it. */
@@ -52,6 +54,7 @@ export function UpdateDialog({
   onOpenChange,
   onCheck,
   onInstall,
+  onApply,
   onRelaunch,
   releasesUrl,
   restartBlocked = null,
@@ -61,6 +64,8 @@ export function UpdateDialog({
   const pct = state.progress === null ? null : Math.round(state.progress * 100)
   const downloading = state.phase === 'downloading'
   const installing = state.phase === 'installing'
+  const applying = state.phase === 'applying'
+  const applied = state.phase === 'applied'
   /** The bar reports the download: during the installation it stands at the
    *  value the download ended with, which is 100 %. */
   const barValue = installing ? 100 : downloading ? pct : null
@@ -85,6 +90,8 @@ export function UpdateDialog({
     downloading: t('update.titleDownloading'),
     installing: t('update.titleInstalling'),
     ready: t('update.titleReady'),
+    applying: t('update.titleApplying'),
+    applied: t('update.titleApplied'),
     unsupported: t('update.title'),
   }[state.phase]
 
@@ -97,7 +104,7 @@ export function UpdateDialog({
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-scale-title">
-            {(state.phase === 'checking' || installing) && (
+            {(state.phase === 'checking' || installing || applying) && (
               <Loader2 className="h-4 w-4 animate-spin text-brand" />
             )}
             {state.phase === 'current' && <CheckCircle2 className="h-4 w-4 text-status-success" />}
@@ -105,7 +112,7 @@ export function UpdateDialog({
             {(state.phase === 'available' || downloading) && (
               <Download className="h-4 w-4 text-brand" />
             )}
-            {state.phase === 'ready' && (
+            {(state.phase === 'ready' || applied) && (
               <CheckCircle2 className="update-confirm h-4 w-4 text-status-success" />
             )}
             {title}
@@ -128,6 +135,8 @@ export function UpdateDialog({
             )}
             {state.phase === 'unsupported' && t('update.disabledHint')}
             {mainChannel && t('update.mainChannel', { count: state.commitsBehind ?? 0 })}
+            {applying && t('update.applying')}
+            {applied && t('update.applied')}
             {downloading && t('update.downloading', { version: state.latest ?? '' })}
             {installing && t('update.installing', { version: state.latest ?? '' })}
             {state.phase === 'ready' && t('update.ready')}
@@ -150,6 +159,21 @@ export function UpdateDialog({
                 </p>
                 <p className="mt-0.5 text-scale-ui text-ink-faint">{t('update.stageHint')}</p>
               </div>
+            </div>
+          )}
+
+          {applied && (state.steps?.length ?? 0) > 0 && (
+            <div data-testid="update-steps" className="mt-3 space-y-1">
+              {state.steps?.map((step) => (
+                <p key={step.name} className="flex gap-2 text-scale-ui text-ink-faint">
+                  <span className={step.ok ? 'text-status-success' : 'text-status-warning'}>
+                    {step.ok ? '✓' : '✗'}
+                  </span>
+                  <span>
+                    {step.name === 'pull' ? t('update.stepPull') : t('update.stepInstall')}
+                  </span>
+                </p>
+              ))}
             </div>
           )}
 
@@ -263,13 +287,23 @@ export function UpdateDialog({
           <Rule className="mt-3" tone={running ? 'now' : 'rule'} />
 
           <div className="flex items-center gap-2 pt-3">
+            {mainChannel && (
+              <button
+                type="button"
+                data-testid="update-apply"
+                onClick={onApply}
+                className="flex-1 bg-brand px-3 py-2 text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+              >
+                {t('update.applyNow')}
+              </button>
+            )}
             {mainChannel && state.url && (
               <a
                 href={state.url}
                 target="_blank"
                 rel="noreferrer"
                 data-testid="update-main-link"
-                className="flex-1 bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+                className="px-3 py-2 text-scale-ui text-ink-faint underline-offset-2 hover:underline"
               >
                 {t('update.viewChanges')}
               </a>
@@ -292,6 +326,16 @@ export function UpdateDialog({
                 className="px-3 py-2 text-scale-ui text-ink-faint transition-colors duration-base ease-settle hover:text-foreground"
               >
                 {t('update.later')}
+              </button>
+            )}
+            {applied && (
+              <button
+                type="button"
+                data-testid="update-apply-relaunch"
+                onClick={desktop ? onRelaunch : () => window.location.reload()}
+                className="flex-1 bg-brand px-3 py-2 text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+              >
+                {desktop ? t('update.relaunchNow') : t('update.reload')}
               </button>
             )}
             {state.phase === 'ready' && desktop && (
