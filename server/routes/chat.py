@@ -2228,6 +2228,14 @@ async def chat_stream(
                 from core import coding_loop
 
                 coding_loop.reset_turn()
+                # SOL: the turn's own failure record, so the rules it proves can
+                # be shown in the chat right after the answer.
+                try:
+                    from core.sol.session import SolTurn
+
+                    sol_turn = SolTurn.open()
+                except Exception:
+                    sol_turn = None
                 captured_tool_results = []
 
                 # The `turn` event carries the same id, so surface and index
@@ -2303,6 +2311,7 @@ async def chat_stream(
                     max_tool_iterations=_max_tool_iterations(request.tool_budget, active_skill),
                     session_id=request.session_id,
                     turn_id=turn_id,
+                    sol_turn=sol_turn,
                 )
 
                 first_answer = "".join(first_chunks)
@@ -2321,6 +2330,13 @@ async def chat_stream(
                 # P6: the final first answer as an ASSISTANT step with its full
                 # text body (trajectory USER/reasoning/output parity).
                 emit({"type": "assistant", "text": first_answer})
+                # SOL: the rules this turn proved, as one card each. The file is
+                # the record; the card only says a rule was learned and links to it.
+                for _rule in getattr(sol_turn, "learned", []) or []:
+                    try:
+                        emit({"type": "sol_insight", "heuristic": _rule.as_dict()})
+                    except Exception:
+                        pass
                 if budget_note_is_unfinished(first_answer):
                     # QD-015 Z2: a cap end is not a dead end. The frame carries
                     # the cap the turn ran on and the rounds one click adds, so
@@ -2459,6 +2475,7 @@ async def chat_stream(
                     max_tool_iterations=_max_tool_iterations(request.tool_budget, active_skill),
                     session_id=request.session_id,
                     turn_id=turn_id,
+                    sol_turn=sol_turn,
                 )
                 # P6: the revised answer as its own ASSISTANT step.
                 if rev_chunks:
