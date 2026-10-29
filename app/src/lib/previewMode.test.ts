@@ -62,7 +62,8 @@ describe('R4/A5 — artifactPreviewMode', () => {
     ['notiz.md', 'md', 'content'],
     ['sprache.mp3', 'audio', 'audio'],
     ['clip.mp4', 'mp4', 'video'],
-    ['deck.pptx', 'deck', 'none'],
+    ['deck.pptx', 'deck', 'content'],
+    ['folien.odp', 'odp', 'content'],
     ['irgendwas.bin', 'file', 'none'],
   ] as const)('%s → %s', (name, kind, want) => {
     expect(artifactPreviewMode(name, kind)).toBe(want)
@@ -104,7 +105,7 @@ describe('A5 edge — code was none, now its own view', () => {
   it('still calls a non-code file by its own name', () => {
     expect(codePreviewLanguage('bericht.pdf', 'pdf')).toBeNull()
     expect(codePreviewLanguage('irgendwas.bin')).toBeNull()
-    expect(artifactPreviewMode('deck.pptx', 'deck')).toBe('none')
+    expect(artifactPreviewMode('archiv.zip', 'zip')).toBe('none')
   })
 
   it('reads the language out of the kind when there is no dot, same rule as the mode', () => {

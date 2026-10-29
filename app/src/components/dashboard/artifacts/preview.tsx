@@ -66,6 +66,37 @@ function ContentPreview({ art }: { art: ArtifactEntry }) {
   if (!data) {
     return <LoadingRow label={t('artifacts.preview.loading')} className="h-full justify-center" />
   }
+  if (data.mode === 'slides') {
+    const slides = data.slides ?? []
+    return (
+      <div className="h-full overflow-auto space-y-2 p-2" data-testid="artifact-preview-slides">
+        {slides.map((slide, index) => (
+          <section
+            key={index}
+            className="rounded-md border border-hairline bg-surface/60 px-3 py-2"
+          >
+            <p className="flex items-baseline gap-2">
+              <span className="font-mono text-ui-2xs tabular-nums text-ink-faint">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className="text-scale-ui font-medium text-foreground">
+                {slide.title || '—'}
+              </span>
+            </p>
+            {slide.lines.length > 0 && (
+              <ul className="mt-1 space-y-0.5 pl-6 text-ui-xs text-ink-soft">
+                {slide.lines.map((line, lineIndex) => (
+                  <li key={lineIndex} className="list-disc">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+      </div>
+    )
+  }
   if (data.mode === 'table') {
     const header = data.header ?? []
     const rows = data.rows ?? []

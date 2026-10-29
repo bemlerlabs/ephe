@@ -179,7 +179,7 @@ export function listArtifactVersions(id: string): Promise<{ versions: ArtifactEn
 
 /** Content preview for xlsx/docx — `mode: 'none'` is an answer, not an error. */
 export interface ArtifactContentPreview {
-  mode: 'table' | 'text' | 'none'
+  mode: 'table' | 'text' | 'slides' | 'none'
   reason?: string
   sheets?: string[]
   header?: string[]
@@ -187,6 +187,9 @@ export interface ArtifactContentPreview {
   truncated?: boolean
   format?: string
   text?: string
+  /** A deck's slides: the title and the body lines the file carries. */
+  slides?: Array<{ title: string; lines: string[] }>
+  count?: number
 }
 
 export function artifactPreview(id: string): Promise<ArtifactContentPreview> {
