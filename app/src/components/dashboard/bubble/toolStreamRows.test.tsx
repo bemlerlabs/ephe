@@ -80,6 +80,16 @@ describe('ToolStreamRows — a finished step is one calm line', () => {
     expect(container.textContent ?? '').not.toContain('{{')
   })
 
+  it('prints the run clock once for a block with two running families', () => {
+    const running = [
+      { id: 'a1', name: 'run_shell', args: { command: 'pytest -q' }, status: 'pending' },
+      { id: 'a2', name: 'read_file', args: { path: 'README.md' }, status: 'pending' },
+    ]
+    render(<ToolStreamRows tool_calls={running as never} streaming startTs={Date.now()} />)
+    expect(screen.getAllByTestId('tool-run-header')).toHaveLength(1)
+    expect(screen.getAllByTestId('tool-row-spinner')).toHaveLength(2)
+  })
+
   it('opens the running step, counts its time and keeps one live duration', () => {
     const running = [
       { id: 't1', name: 'run_shell', args: { command: 'pytest -q' }, status: 'done', duration_ms: 13 },
