@@ -18,12 +18,18 @@
   --text-ui-base--line-height: 17.5px;
   --text-ui-caption: calc(var(--ui-font-size) - 1px);   /* 13 */
   --text-ui-caption--line-height: 16.25px;
-  --text-ui-sm: calc(var(--ui-font-size) - 2px);        /* 12 */
+  /* The floor is part of every step that can reach it: at a 13 px base the
+     plain calc would render sm/xs at 11 px, which is the size the owner
+     directive forbids. */
+  --text-ui-sm: max(12px, calc(var(--ui-font-size) - 2px));   /* 12 */
   --text-ui-sm--line-height: 15px;
-  --text-ui-xs: calc(var(--ui-font-size) - 2px);        /* 12px — the floor */
+  --text-ui-xs: max(12px, calc(var(--ui-font-size) - 2px));   /* 12px — the floor */
   --text-ui-xs--line-height: 15px;
-  --text-ui-2xs: calc(var(--ui-font-size) - 3px);       /* 11px — axes / badges */
-  --text-ui-2xs--line-height: 14px;
+  /* A1 (owner directive, QD-014): no text run below 12 px anywhere. The step
+     keeps its name (215 call sites), but the floor is now part of the value, so
+     even a user who scales the base to 13 px cannot pull it under the floor. */
+  --text-ui-2xs: max(12px, calc(var(--ui-font-size) - 3px));
+  --text-ui-2xs--line-height: 15px;
   /* S2: iOS compatibility token — fixed 16px/20px, it does NOT scale with
      --ui-font-size (viewport focus-zoom threshold of the WebView inputs). */
   --text-ui-input: 16px;
