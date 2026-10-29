@@ -88,8 +88,8 @@ sandbox must allow a loopback listener for this case (it currently refuses
 
 ## Open checklist
 
-- [ ] Run surface rebuilt to the anatomy in §1 (groups, live block, step pill).
-- [ ] Placeholder and duplicate-measurement defects removed (§2).
+- [x] Groups (`Ran N tools`), the live block (`Running · <time>`, auto-open) and the step pill are in (`d31cbd9`, `3342826`); the inline diff card inside an open group is still the tool card, not the reference's compact diff.
+- [x] Placeholder and duplicate-measurement defects removed (§2, `d31cbd9`).
 - [ ] No light borders in composer/transcript; contrast measured (§2, §3).
 - [ ] Heartbeat and stall reporting for long runs (§4).
 - [ ] Project start request recognised and served on loopback (§5).
