@@ -221,18 +221,19 @@ class TestTheInAppVector:
             r'(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,8}|rgba?\([^"]*\)|hsla?\([^"]*\))"', text)
         assert literals == [], f"the mark paints the literal(s) {literals}"
         assert "var(--" in text
-        # The shipped in-app vector is the bee's full cut: its eye gradient is
-        # the figure's, not the old drop spirit's knockout pair.
-        assert 'id="bspc-eye"' in text, "the in-app mark is not the bee's full cut"
+        # The shipped in-app vector is the moth's full cut: the folded sheet is
+        # painted by its own gradient, not the bee's eye pair.
+        assert 'id="bspc-paper"' in text, "the in-app mark is not the moth's full cut"
 
-    def test_the_creature_carries_the_roles_and_its_eye_gradient(self):
+    def test_the_creature_carries_the_roles_and_the_thread(self):
         text = (ROOT / "app/src/assets/mark.svg").read_text(encoding="utf-8")
-        assert 'stop-color="var(--color-firefly)"' in text
-        assert 'stop-color="var(--color-firefly-glow)"' in text
-        # The bee paints its face: the eye gradient and the soot pupils are the
-        # figure's own, and both reach their colour through roles.
-        assert 'id="bspc-eye"' in text
-        assert 'fill="var(--color-figure-soot)"' in text
+        # The sheet: two gradient faces, both resolved through roles.
+        assert 'stop-color="var(--color-figure-paper)"' in text
+        assert 'stop-color="var(--color-figure-paper-lit)"' in text
+        # The thread ties the wings with the product red — the one accent the
+        # mark spends, and the same colour the interface uses for custody.
+        assert 'stroke="var(--color-firefly)"' in text
+        assert 'id="bspc-paper"' in text
         # A role reference or a currentColor, never a hex colour. `url(#id)` is not a
         # colour and is allowed, so this looks for a hash followed by hex digits.
         assert not re.search(r"#[0-9a-fA-F]{3,8}\b", text), (
@@ -275,7 +276,7 @@ class TestTheTemplateCut:
 
 
 class TestTheShippedRaster:
-    """The 32 px icon is the micro cut: a flat fill, so its red is exact."""
+    """The 32 px icon is the micro cut: the silhouette, no crease and no thread."""
 
     def planes(self) -> Counter:
         from PIL import Image
@@ -284,10 +285,14 @@ class TestTheShippedRaster:
             return Counter((r, g, b) for r, g, b, a in image.convert("RGBA").get_flattened_data()
                            if a > 200)
 
-    def test_the_small_cut_carries_the_ink_red(self):
+    def test_the_small_cut_is_the_sheet_and_paints_no_red(self):
         planes = self.planes()
-        assert planes[INK_RED_RGB] > 100, "the icon no longer paints the ink brand"
+        # The thread is a sub-pixel line at this size, so the micro cut drops it;
+        # what must survive is the paper itself.
+        light = sum(count for (r, g, b), count in planes.items() if r > 180 and b > 140)
+        assert light > 100, "the icon no longer paints the sheet"
         assert planes[FROZEN_RED_RGB] == 0, "the icon still paints the frozen paper red"
+        assert planes[INK_RED_RGB] == 0, "the micro cut carries no thread"
 
     def test_the_visible_red_measures_above_the_floor_on_the_icon_field(self):
         assert round(contrast(INK_RED_RGB, ICON_FIELD), 2) == 5.15
@@ -306,8 +311,13 @@ class TestTheGateOnTheRepository:
         # The paper reading (5.42:1) left with the ground it measured; a second
         # ratio in this output would mean a second ground came back.
         assert "paper" not in done.stdout, done.stdout
-        assert "mark: silhouette mass centre x=256.00" in done.stdout, done.stdout
-        assert "mark-micro: silhouette mass centre x=256.00" in done.stdout, done.stdout
+        axis = re.findall(r"(mark(?:-micro|-compact)?): silhouette mass centre x=([\d.]+)",
+                          done.stdout)
+        assert axis, done.stdout
+        # The figure is mirrored about the canvas middle; sub-pixel rounding in the
+        # measurement is furniture, a lean is not.
+        for name, value in axis:
+            assert abs(float(value) - 256.0) <= 1.0, f"{name} leans to x={value}"
 
 
 class TestTheGateOnABrokenCopy:
@@ -315,13 +325,13 @@ class TestTheGateOnABrokenCopy:
 
     def test_a_literal_in_the_in_app_vector_is_refused(self, tmp_path):
         root = plant_surface(tmp_path)
-        edit(root / "app/src/assets/mark.svg", 'stop-color="var(--color-firefly)"',
-             f'stop-color="{FROZEN_RED}"')
+        edit(root / "app/src/assets/mark.svg", 'stroke="var(--color-firefly)"',
+             f'stroke="{FROZEN_RED}"')
         done = run_gate(root)
         assert done.returncode == 1, done.stdout
         assert f"paints the literal(s) {FROZEN_RED}" in done.stdout, done.stdout
-        # The frozen red also breaks the contrast floor, which is why it mattered.
-        assert "measures 4.01:1 on hsl(30 16.7% 7.06%), floor is 4.5:1" in done.stdout, done.stdout
+        # The literal is the first refusal; that the same red also sits under the
+        # contrast floor is the role table's business (TestTheRoleTable measures it).
 
     def test_an_in_app_directory_without_the_mark_is_refused(self, tmp_path):
         root = plant_surface(tmp_path)
@@ -351,9 +361,11 @@ class TestTheGateOnABrokenCopy:
         # test fail the next time the figure is redrawn.
         edit(
             root / "scripts/generate_brand_assets.py",
-            "        return micro_body(paint)",
-            "        return micro_body(paint) + "
-            "'<path d=\"M320,60 L320,460 L500,460 Z\" fill=\"currentColor\"/>'",
+            "    return moth_body(compact=compact, micro=micro, mono=mono, vector=vector)",
+            "    body = moth_body(compact=compact, micro=micro, mono=mono, vector=vector)\n"
+            "    if micro:\n"
+            "        body += '<path d=\"M320,60 L320,460 L500,460 Z\" fill=\"currentColor\"/>'\n"
+            "    return body",
         )
         done = run_gate(root)
         assert done.returncode == 1, done.stdout

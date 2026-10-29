@@ -178,25 +178,25 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
             <div className="companion-motion">
               <img
                 className="companion-body"
-                src="/onboarding/bee-3d-actor.webp"
+                src="/onboarding/paper-moth-actor.webp"
                 alt=""
                 draggable={false}
               />
               <img
                 className="companion-wing companion-wing-l"
-                src="/onboarding/bee-3d-wing-l.webp"
+                src="/onboarding/paper-moth-wing-l.webp"
                 alt=""
                 draggable={false}
               />
               <img
                 className="companion-wing companion-wing-r"
-                src="/onboarding/bee-3d-wing-r.webp"
+                src="/onboarding/paper-moth-wing-r.webp"
                 alt=""
                 draggable={false}
               />
               <img
                 className="companion-flame"
-                src="/onboarding/bee-3d-flame.webp"
+                src="/onboarding/paper-moth-thread.webp"
                 alt=""
                 draggable={false}
               />

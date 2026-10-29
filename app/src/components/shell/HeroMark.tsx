@@ -3,11 +3,11 @@
 /**
  * S3 — the mark where the brand contract puts it above 48 px.
  *
- * `docs/ONBOARDING_FILM.md` splits the figure by size: the vector rig carries 16–47 px,
- * and from 48 px the app icons carry the rendered hero with the flame. Two in-app slots
- * sat at exactly that size and still drew the vector — the setup card mark (3rem) and the
- * welcome hero fallback (4rem). They now use the shipped render (`bee-3d-hero.webp`),
- * unpainted and unre-drawn, and every sub-48 px mark stays vector.
+ * `docs/PAPER_MOTH_DECISION.md` splits the figure by size: the vector rig carries the
+ * small cuts, and from 48 px the slots carry the rendered actor. Two in-app slots sit at
+ * exactly that size — the setup card mark (3rem) and the welcome hero fallback (4rem) —
+ * and both use the shipped render (`paper-moth-actor.webp`), unpainted and unre-drawn,
+ * while every sub-48 px mark stays vector.
  *
  * The render is a cut-out: measured on the committed file, 72 % of its pixels are
  * transparent and the matte fades to nothing at the edge. On paper that reads as a box,
@@ -35,7 +35,7 @@ export function HeroMark({
       className={`hero-mark ${className}`}
       style={{ '--hero-mark-size': size } as CSSProperties}
     >
-      <img src="/onboarding/bee-3d-hero.webp" alt="" draggable={false} />
+      <img src="/onboarding/paper-moth-actor.webp" alt="" draggable={false} />
     </span>
   )
 }

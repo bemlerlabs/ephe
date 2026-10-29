@@ -4,7 +4,7 @@
 > **La versión en inglés es la referencia oficial.** Esta traducción puede quedar desactualizada; prevalece [README.md](README.md).
 
 <div align="center">
-<img src="docs/media/ephe-bee-512.png" alt="Emblema de la abeja de Ephe" width="88">
+<img src="docs/media/ephe-mark-512.png" alt="Emblema de Ephe" width="88">
 
 # Ephe
 

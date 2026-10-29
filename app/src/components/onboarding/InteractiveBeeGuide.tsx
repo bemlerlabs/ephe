@@ -1,7 +1,7 @@
 /**
  * The live guide: the keyframe bee as a cut-out 2.5-D sprite, flown by a spring.
  *
- * The actor is not redrawn: `bee-3d-actor.webp` is the hero frame's bee with a soft
+ * The actor is not redrawn: `paper-moth-actor.webp` is the hero frame's bee with a soft
  * alpha, and its two wings are separate layers that turn around the shoulders in real
  * HTML 3D. The component owns a 60 fps spring, a click-to-fly lock, a continuous gold
  * trail and the idle hover; the parent aims it at the card, a control, the engine core
@@ -301,25 +301,25 @@ export const InteractiveBeeGuide = forwardRef<BeeGuideHandle, GuideProps>(
             <div className="bee-actor-motion">
               <img
                 className="bee-actor-body"
-                src="/onboarding/bee-3d-actor.webp"
+                src="/onboarding/paper-moth-actor.webp"
                 alt=""
                 draggable={false}
               />
               <img
                 className="bee-actor-wing bee-wing-l"
-                src="/onboarding/bee-3d-wing-l.webp"
+                src="/onboarding/paper-moth-wing-l.webp"
                 alt=""
                 draggable={false}
               />
               <img
                 className="bee-actor-wing bee-wing-r"
-                src="/onboarding/bee-3d-wing-r.webp"
+                src="/onboarding/paper-moth-wing-r.webp"
                 alt=""
                 draggable={false}
               />
               <img
                 className="bee-actor-flame"
-                src="/onboarding/bee-3d-flame.webp"
+                src="/onboarding/paper-moth-thread.webp"
                 alt=""
                 draggable={false}
               />

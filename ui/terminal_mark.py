@@ -6,22 +6,13 @@ generator, never this file.
 
 #: The grid the generator was run at, so the provenance test re-renders the
 #: same cut instead of guessing a size.
-MARK_GRID: tuple[int, int] = (48, 24)
+MARK_GRID: tuple[int, int] = (34, 18)
 
 #: Rows top to bottom, one string per terminal line, in the ramp of the generator.
 MARK_ROWS: tuple[str, ...] = (
-    '██░         ░██',
-    ' ░▓▓   ▓█▓    ▓▓░',
-    '   ██ ███▓  ██',
-    '   ███████████',
-    '   ████████████',
-    '   ▓██████████▓',
-    ' ░▓████████████▓░',
-    '░████████████████░',
-    '██████████████████',
-    '██████████████████',
-    '████████████████',
-    ' ░██████████████░',
-    '   ░▓████████▓░',
-    '        ░░',
+    '██',
+    '██',
+    '█▓',
+    '',
+    '░',
 )

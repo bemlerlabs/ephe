@@ -4,7 +4,7 @@
 > **以英文版为准。** 本翻译可能未及时更新；请以 [README.md](README.md) 为准。
 
 <div align="center">
-<img src="docs/media/ephe-bee-512.png" alt="Ephe 蜜蜂标志" width="88">
+<img src="docs/media/ephe-mark-512.png" alt="Ephe 标志" width="88">
 
 # Ephe
 

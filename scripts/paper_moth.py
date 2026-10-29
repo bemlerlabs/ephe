@@ -61,17 +61,24 @@ def _crease_left(color: str) -> str:
 
 
 def _body(fill: str) -> str:
-    return _poly([(44.6, 40), (48, 43), (50.2, 52), (46, 70), (43.2, 53)], fill)
+    a, b = _p(44.4, 40.0), _p(51.6, 40.0)
+    c, d = _p(50.2, 53.0), _p(48.0, 70.0)
+    e = _p(45.4, 53.0)
+    return (
+        f'<path d="M{a[0]:.1f} {a[1]:.1f} L{b[0]:.1f} {b[1]:.1f} '
+        f'L{c[0]:.1f} {c[1]:.1f} L{d[0]:.1f} {d[1]:.1f} '
+        f'L{e[0]:.1f} {e[1]:.1f} Z" fill="{fill}"/>'
+    )
 
 
 def _head(fill: str) -> str:
-    x, y = _p(47.4, 39.4)
+    x, y = _p(48.0, 39.0)
     return f'<circle cx="{x:.1f}" cy="{y:.1f}" r="8.6" fill="{fill}"/>'
 
 
 def _threads(color: str) -> str:
-    left = _p(43.2, 52)
-    right = _p(50.4, 52)
+    left = _p(42.0, 52)
+    right = _p(54.0, 52)
     w = 7.2
     return (
         f'<g data-ephe-part="accent">'
@@ -133,7 +140,8 @@ def moth_body(*, compact: bool = False, micro: bool = False, mono: bool = False,
     parts = [
         _left_forewing(fore, colors["lit"]),
         _left_hindwing(hind),
-        _poly(_mirror([(45, 47), (15, 7), (2, 29), (26, 49)]), fore),
+        _poly(_mirror([(45, 47), (15, 7), (2, 29), (26, 49)]), fore)
+        + _poly(_mirror([(45, 47), (26, 49), (37, 41)]), colors["lit"]),
         _poly(_mirror([(44, 53), (27, 54), (10, 80), (34, 70)]), hind),
         _body(colors["body"]) + _head(colors["shade"]),
     ]
