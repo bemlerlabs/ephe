@@ -54,6 +54,22 @@ const sections = [
   },
 ] as unknown as DeepSection[]
 
+const solSections = [
+  {
+    key: 'sol',
+    fields: [
+      {
+        key: 'sol.enabled',
+        type: 'bool',
+        label: 'Aus Fehlern lernen',
+        labelEn: 'Learn from failures',
+        default: true,
+        value: true,
+      },
+    ],
+  },
+] as unknown as DeepSection[]
+
 function model(over: Record<string, unknown> = {}) {
   return {
     deepSections: sections,
@@ -152,5 +168,18 @@ describe('DeepFields locale keys', () => {
     expect(
       screen.getByTestId('deep-row-plugins.plugin_lifecycle_read_only-desc').textContent,
     ).toContain('Blocks switch changes.')
+  })
+})
+
+describe('the SOL section from the register', () => {
+  it('renders its own group with a header glyph and its row', () => {
+    // The section key comes from core/settings_schema.py, so the icon map has to
+    // know it before a backend ever answers — an unmapped header renders nothing.
+    render(
+      <DeepFields model={model({ deepSections: solSections })} prefixes={['sol.']} />,
+    )
+    expect(screen.getByTestId('deep-fields')).toBeTruthy()
+    expect(screen.getByTestId('deep-row-sol.enabled')).toBeTruthy()
+    expect(screen.getByText('settings.deepSection.sol')).toBeTruthy()
   })
 })

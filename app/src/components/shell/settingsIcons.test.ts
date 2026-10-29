@@ -12,6 +12,7 @@ import {
   Orbit,
   ChevronsUpDown,
   ToggleLeft,
+  Sprout,
   Variable,
   Wrench,
 } from 'lucide-react'
@@ -77,5 +78,7 @@ describe('settings icons', () => {
 
   it('marks scheduled runs with the orbit glyph', () => {
     expect(sectionIcon('ephemera')).toBe(Orbit)
+    // SOL's section arrives from the backend register; its header needs a glyph.
+    expect(sectionIcon('sol')).toBe(Sprout)
   })
 })

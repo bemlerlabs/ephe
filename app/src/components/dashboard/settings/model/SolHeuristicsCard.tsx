@@ -32,8 +32,11 @@ export function SolHeuristicsCard({ t }: { t: (key: string) => string }) {
     getSolHeuristics()
       .then((view) => {
         if (!live) return
-        setRules(view.heuristics)
-        setState('ready')
+        // An answer without the list is not an empty store: the section says it
+        // cannot read one rather than rendering a fake zero and crashing on it.
+        const rows = Array.isArray(view?.heuristics) ? view.heuristics : null
+        setRules(rows ?? [])
+        setState(rows ? 'ready' : 'failed')
       })
       .catch(() => {
         if (live) setState('failed')

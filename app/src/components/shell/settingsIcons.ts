@@ -45,6 +45,7 @@ import {
   Ruler,
   ScrollText,
   ShieldCheck,
+  Sprout,
   SlidersHorizontal,
   Target,
   TextCursorInput,
@@ -106,6 +107,7 @@ export const SECTION_ICONS: Record<string, IconComponent> = {
   ephemera: Orbit,
   cron: CalendarClock,
   hooks: Cable,
+  sol: Sprout,
 }
 
 /** The six generation levers on the engine card. */

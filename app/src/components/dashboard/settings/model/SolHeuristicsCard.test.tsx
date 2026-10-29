@@ -57,6 +57,14 @@ describe('SolHeuristicsCard', () => {
     expect(screen.getByText('No rule learned yet')).toBeTruthy()
   })
 
+  it('refuses an answer without the rule list instead of crashing on it', async () => {
+    // The settings panel must survive any answer: a proxy page, a stub, an older
+    // backend. `{}` is what the route test's static server hands back.
+    vi.mocked(getSolHeuristics).mockResolvedValue({} as never)
+    render(<SolHeuristicsCard t={t} />)
+    await waitFor(() => expect(screen.getByTestId('sol-unavailable')).toBeTruthy())
+  })
+
   it('lists the stored rules with the action Ephe applies', async () => {
     vi.mocked(getSolHeuristics).mockResolvedValue(view([rule]) as never)
     render(<SolHeuristicsCard t={t} />)
