@@ -248,6 +248,36 @@ def test_index_request_names_no_path() -> None:
     assert "path" not in project.IndexRequest.model_fields
 
 
+def test_a_job_that_finishes_at_once_is_accepted_as_indexing(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GIVEN a worker that finishes inside its own start THEN the accept response
+    still reports the state it handed out.
+
+    The macOS leg on CPython 3.12.16 caught the old shape: `start_index` read the
+    job after starting the thread, so a three-file project answered `ready` to the
+    request that had just begun indexing. The state the caller is promised belongs
+    to the moment the job was accepted, and the status route carries the rest.
+    """
+    from server.routes import project
+
+    class _ImmediateThread:
+        def __init__(self, target=None, args=(), daemon=None, **_kw):
+            self._target, self._args = target, args
+
+        def start(self) -> None:
+            self._target(*self._args)
+
+    monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+    monkeypatch.setattr(project.threading, "Thread", _ImmediateThread)
+    monkeypatch.setattr(project, "_index_sync", lambda root, job: None)
+    project._jobs.clear()
+
+    accepted = asyncio.run(project.start_index(project.IndexRequest()))
+    assert accepted["state"] == "indexing"
+    assert asyncio.run(project.index_status())["state"] == "ready"
+
+
 def test_iter_source_files_is_stable(workspace: Path) -> None:
     first = [p.relative_to(workspace).as_posix() for p in iter_source_files(workspace)]
     second = [p.relative_to(workspace).as_posix() for p in iter_source_files(workspace)]

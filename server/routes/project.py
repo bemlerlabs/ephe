@@ -143,8 +143,12 @@ async def start_index(request: IndexRequest) -> dict:
         return existing.as_dict()
     job = _Job(root=key)
     _jobs[key] = job
+    # Snapshot before the worker starts: a job small enough to finish inside the
+    # thread's first slice would otherwise answer "ready" to the request that
+    # accepted it, which reports a transition the caller never saw.
+    accepted = job.as_dict()
     threading.Thread(target=_start_thread, args=(root, job), daemon=True).start()
-    return job.as_dict()
+    return accepted
 
 
 @router.get("/project/index/status", tags=["Project"])
