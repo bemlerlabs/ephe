@@ -157,7 +157,7 @@ describe('K3 Z08+Z07 — Stream-Frames (Dauer/stdout)', () => {
 // without the component mocks of this file).
 
 describe('K3 Z08+Z07 — Stream-Zeilen-Rendering', () => {
-  it('Dauer-Chip + stdout-Tail im expandierten Detail', () => {
+  it('Proof-Zeile + stdout-Tail im expandierten Detail', () => {
     const msg: ChatMessage = {
       id: 'a1',
       role: 'assistant',
@@ -176,8 +176,12 @@ describe('K3 Z08+Z07 — Stream-Zeilen-Rendering', () => {
       ],
     }
     render(<MessageBubble message={msg} />)
-    expect(screen.getByTestId('tool-duration-chip').textContent).toMatch(/1\.2ms/)
+    // The measurement lives in the proof line the reader opens — one number, and
+    // no chip on a finished step.
+    expect(screen.queryByTestId('tool-duration-chip')).toBeNull()
     fireEvent.click(screen.getByTestId('tool-stream-row-shell').querySelector('button')!)
+    // This suite's i18n mock returns keys; the proof row is the contract here.
+    expect(screen.getByTestId('tool-row-proof').textContent).toContain('chat.proof')
     expect(screen.getByTestId('tool-stdout-tail').textContent).toMatch(/zeile|a/)
   })
 })

@@ -128,7 +128,9 @@ export function ToolStreamRows({
               data-testid={running ? 'tool-stream-row-active' : undefined}
               onClick={() => {
                 touched.current = true
-                setOpenGroup((v) => (v === key ? null : key))
+                // The rendered state decides: a step that opened itself closes on
+                // the first click instead of staying open.
+                setOpenGroup(open ? null : key)
                 // the subagent row additionally opens the detail tab (run details,
                 // like the reference pattern: click the row → agent in the tab).
                 if (g.family === 'subagent') {
@@ -157,10 +159,10 @@ export function ToolStreamRows({
               <span
                 className={`text-ui-xs shrink-0 ${g.hasFailure ? 'text-status-danger/90' : 'text-ink-soft'}`}
               >
-                {g.hasFailure || g.family === 'edit' || g.family === 'write'
+                {running || g.hasFailure || g.family === 'edit' || g.family === 'write'
                   ? t(g.summaryKey)
                   : t(g.count === 1 ? 'chat.ranOneTool' : 'chat.ranTools', { count: g.count })}
-                {showCount && g.count > 1 && (g.hasFailure || g.family === 'edit' || g.family === 'write') && (
+                {showCount && g.count > 1 && (running || g.hasFailure || g.family === 'edit' || g.family === 'write') && (
                   <span className="text-ink-faint group-hover:text-ink-soft group-focus-visible:text-ink-soft">
                     {' · '}
                     {running
