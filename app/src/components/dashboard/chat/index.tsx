@@ -131,7 +131,6 @@ export default function ChatLayout() {
     branchList,
     branchBusy,
     composerSeed,
-    fillComposer,
     toggleBranchMenu,
     switchBranch,
     navInfo,
@@ -716,7 +715,7 @@ export default function ChatLayout() {
             {!hydrated ? (
               <ChatSkeleton />
             ) : !currentSession || currentSession.messages.length === 0 ? (
-              <WelcomeEmptyState onFillComposer={fillComposer} />
+              <WelcomeEmptyState onStartMission={(text) => void handleSend(text)} />
             ) : (
               <>
                 <div data-testid="chat-scroll-region" className="flex flex-1 min-h-0 relative">

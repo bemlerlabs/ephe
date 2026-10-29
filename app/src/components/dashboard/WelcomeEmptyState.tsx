@@ -3,8 +3,8 @@
  *
  * Hero (2 lines) + model-status toast (from /api/health) + 4 glassy
  * action cards in a 2x2 grid with LIVE data (workspace projects from
- * /api/projects, recent artifacts from /api/artifacts). The cards fill the
- * main composer draft via onFillComposer — there is no second input here.
+ * /api/projects, recent artifacts from /api/artifacts). A card starts its run
+ * through onStartMission — there is no second input here.
  *
  * Offline-first: every fetch fails silently into an honest static
  * fallback text — the cards never render fabricated numbers.
@@ -22,15 +22,15 @@ import { HeroMark } from '@/components/shell/HeroMark'
 import { CompanionActor, type CompanionHandle } from '@/components/shell/CompanionActor'
 
 interface WelcomeEmptyStateProps {
-  /** Fills the main chat composer (bottom ChatInput) — cards never auto-send. */
-  onFillComposer: (text: string) => void
+  /** Sends the card's prompt as a normal turn in the chat view. */
+  onStartMission: (text: string) => void
 }
 
 const CARD_ICONS = [FileText, Table2, Telescope] as const
 const CARD_INDEXES = CARD_ICONS.map((_, i) => i)
 const STARTER_CARD_BY_USAGE: Record<string, number> = { documents: 0, code: 1, research: 2 }
 
-export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateProps) {
+export default function WelcomeEmptyState({ onStartMission }: WelcomeEmptyStateProps) {
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
   const companionEnabled = useDeepBool('appearance.companion_enabled', false)
@@ -47,14 +47,14 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
   const recommended = usage && usage !== 'mix' ? (STARTER_CARD_BY_USAGE[usage] ?? null) : null
 
   // A click on a card (or on the companion) turns the bee toward the card,
-  // leaves a spark burst and fills the draft. It still never sends.
+  // leaves a spark burst and starts the run.
   const activateCard = useCallback(
     (index: number, degrees = 0) => {
       companionRef.current?.turnTo(degrees)
       companionRef.current?.burst()
-      onFillComposer(t(`welcome.cards.${index}.prompt`))
+      onStartMission(t(`welcome.cards.${index}.prompt`))
     },
-    [onFillComposer, t],
+    [onStartMission, t],
   )
 
   // I2: time-of-day greeting for the clean empty state (reference look).
@@ -163,9 +163,8 @@ export default function WelcomeEmptyState({ onFillComposer }: WelcomeEmptyStateP
                 whileTap={reduceMotion ? undefined : { scale: 0.99 }}
                 className={`glass-control rounded-full px-3.5 py-1.5 welcome-card group flex items-center gap-2 shrink-0 max-lg:min-h-11${isRecommended ? ' welcome-card-recommended' : ''}`}
                 onClick={(event) => {
-                  // Deploy-check P2-1: a card FILLS the composer draft instead of
-                  // firing an engine call on a stray click — the user stays in
-                  // control and can edit before sending.
+                  // P3: the card is a mission, so it starts the run; the prompt
+                  // stays editable in the transcript's own turn.
                   const rect = event.currentTarget.getBoundingClientRect()
                   const degrees = Math.max(
                     -38,

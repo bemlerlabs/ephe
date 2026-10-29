@@ -27,7 +27,7 @@ import WelcomeEmptyState from './WelcomeEmptyState'
 
 describe('WelcomeEmptyState', () => {
   it('keeps the canvas free of a floating engine box', () => {
-    render(<WelcomeEmptyState onFillComposer={vi.fn()} />)
+    render(<WelcomeEmptyState onStartMission={vi.fn()} />)
     expect(screen.queryByTestId('model-status-toast')).toBeNull()
     expect(screen.queryByTestId('model-status-line')).toBeNull()
     expect(screen.getByTestId('welcome-card-0')).toBeTruthy()
@@ -36,7 +36,7 @@ describe('WelcomeEmptyState', () => {
   })
 
   it('has exactly one input surface: no second composer, chips or send button', () => {
-    render(<WelcomeEmptyState onFillComposer={vi.fn()} />)
+    render(<WelcomeEmptyState onStartMission={vi.fn()} />)
     expect(screen.queryByTestId('smart-suggestions')).toBeNull()
     expect(screen.queryByTestId('welcome-input')).toBeNull()
     expect(screen.queryByTestId('welcome-send')).toBeNull()
@@ -45,11 +45,11 @@ describe('WelcomeEmptyState', () => {
     expect(screen.queryByRole('button', { name: 'welcome.send' })).toBeNull()
   })
 
-  it('card click seeds the bottom composer with the card prompt (never auto-sends)', () => {
-    const onFillComposer = vi.fn()
-    render(<WelcomeEmptyState onFillComposer={onFillComposer} />)
+  it('card click starts the run with the card prompt', () => {
+    const onStartMission = vi.fn()
+    render(<WelcomeEmptyState onStartMission={onStartMission} />)
     fireEvent.click(screen.getByTestId('welcome-card-2'))
-    expect(onFillComposer).toHaveBeenCalledTimes(1)
-    expect(onFillComposer).toHaveBeenCalledWith('welcome.cards.2.prompt')
+    expect(onStartMission).toHaveBeenCalledTimes(1)
+    expect(onStartMission).toHaveBeenCalledWith('welcome.cards.2.prompt')
   })
 })

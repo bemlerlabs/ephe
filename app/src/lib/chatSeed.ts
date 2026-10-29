@@ -13,7 +13,7 @@ export function startDisposableChat(prompt: string): void {
 }
 
 export function takeChatSeed(): string | null {
-  const text = pending
+  const seed = pending
   pending = null
-  return text
+  return seed
 }
