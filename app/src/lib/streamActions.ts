@@ -64,6 +64,15 @@ type Store = Pick<
 >
 import { serverErrorText } from './serverError'
 
+/** "1.2k in / 240 out" from what the engine reported; empty when it reported none. */
+function tokenNote(tokensIn?: number, tokensOut?: number): string {
+  const parts: string[] = []
+  const short = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
+  if (tokensIn) parts.push(`${short(tokensIn)} in`)
+  if (tokensOut) parts.push(`${short(tokensOut)} out`)
+  return parts.length > 0 ? `${parts.join(' / ')} tok` : ''
+}
+
 export function applyStreamEvent(event: StreamEvent, store: Store): void {
   switch (event.type) {
     case 'thinking_start':
@@ -279,7 +288,9 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
       store.upsertActivity({
         label: `Agent ${event.agent_id}`,
         status: event.status === 'error' ? 'failed' : 'done',
-        detail: event.summary,
+        detail: [event.summary, tokenNote(event.tokens_in, event.tokens_out)]
+          .filter(Boolean)
+          .join(' · '),
       })
       break
 

@@ -210,6 +210,39 @@ describe('applyStreamEvent (Event → Store-Action Mapping)', () => {
     })
   })
 
+  it('C3: the done line carries the tokens the engine reported', () => {
+    const store = mockStore()
+    applyStreamEvent(
+      {
+        type: 'swarm_agent_done',
+        swarm_id: 'sw-1',
+        agent_id: 'a1',
+        summary: 'Y',
+        tokens_in: 1200,
+        tokens_out: 240,
+      },
+      store,
+    )
+    expect(store.upsertActivity).toHaveBeenLastCalledWith({
+      label: 'Agent a1',
+      status: 'done',
+      detail: 'Y · 1.2k in / 240 out tok',
+    })
+  })
+
+  it('C3: an engine that reported no usage adds nothing to the line', () => {
+    const store = mockStore()
+    applyStreamEvent(
+      { type: 'swarm_agent_done', swarm_id: 'sw-1', agent_id: 'a1', summary: 'Y' },
+      store,
+    )
+    expect(store.upsertActivity).toHaveBeenLastCalledWith({
+      label: 'Agent a1',
+      status: 'done',
+      detail: 'Y',
+    })
+  })
+
   it('R36-S: Subagent-Events → Activities (ein Feed-Eintrag pro agent_id)', () => {
     applyStreamEvent(
       {

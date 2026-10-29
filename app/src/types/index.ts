@@ -532,6 +532,9 @@ export interface StreamSwarmAgentDone {
   agent_id: string
   status?: string
   summary: string
+  /** What the engine reported for this agent; 0/absent = it reported nothing. */
+  tokens_in?: number
+  tokens_out?: number
 }
 
 export interface StreamSwarmDone {

@@ -85,8 +85,14 @@ class SwarmEnvelope:
 
 def _make_envelope(agent_id: str, text: str, *, status: str = "ok",
                    trace_id: str = "", run_id: str = "",
-                   task_spec_hash: str = "") -> SwarmEnvelope:
-    """Raw text → validated envelope (cap + required-field check)."""
+                   task_spec_hash: str = "",
+                   tokens_in: int = 0, tokens_out: int = 0) -> SwarmEnvelope:
+    """Raw text → validated envelope (cap + required-field check).
+
+    The token counters are what the engine reported for this agent's calls and
+    stay zero when it reported no usage — a figure the surface can hide, never
+    one it can guess.
+    """
     body = (text or "").strip()
     capped = len(body) > ENVELOPE_SUMMARY_CAP
     summary = body[:ENVELOPE_SUMMARY_CAP]
@@ -94,6 +100,7 @@ def _make_envelope(agent_id: str, text: str, *, status: str = "ok",
     st = status if status != "ok" else ("budget_exceeded" if capped else "ok")
     return SwarmEnvelope(
         agent_id=agent_id, status=st, summary=summary, facts=facts,
+        tokens_in=tokens_in, tokens_out=tokens_out,
         trace_id=trace_id, run_id=run_id, task_spec_hash=task_spec_hash,
     )
 
@@ -571,6 +578,9 @@ class SwarmAgent:
         client = build_provider_client()
         result_text = ""
         max_iterations = mode["max_iterations"]
+        # What the engine reported across this agent's calls; 0 = it reported none.
+        tokens_in = 0
+        tokens_out = 0
 
         try:
             for iteration in range(max_iterations):
@@ -586,6 +596,11 @@ class SwarmAgent:
                     ),
                     timeout=AGENT_TIMEOUT,
                 )
+
+                usage = getattr(response, "usage", None)
+                if usage is not None:
+                    tokens_in += int(getattr(usage, "prompt_tokens", 0) or 0)
+                    tokens_out += int(getattr(usage, "completion_tokens", 0) or 0)
 
                 # Process the tool calls
                 if (
@@ -686,7 +701,8 @@ class SwarmAgent:
             )
             return _make_envelope(self.agent_id, result_text, status="timeout",
                                   trace_id=self.trace_id, run_id=self.run_id,
-                                  task_spec_hash=self.task_spec_hash)
+                                  task_spec_hash=self.task_spec_hash,
+                                  tokens_in=tokens_in, tokens_out=tokens_out)
         except Exception as exc:
             result_text = f"[Agent {self.agent_id} Error: {exc}]"
             await self.state.set_agent_error(self.agent_id, str(exc))
@@ -695,7 +711,8 @@ class SwarmAgent:
             )
             return _make_envelope(self.agent_id, result_text, status="error",
                                   trace_id=self.trace_id, run_id=self.run_id,
-                                  task_spec_hash=self.task_spec_hash)
+                                  task_spec_hash=self.task_spec_hash,
+                                  tokens_in=tokens_in, tokens_out=tokens_out)
 
         # store result + history (the basis for the agent_message continuation)
         _store_agent_history(
@@ -713,7 +730,8 @@ class SwarmAgent:
         step_status = "step_limit" if (iteration + 1 >= max_iterations and not self._terminated) else "ok"
         return _make_envelope(self.agent_id, result_text, status=step_status,
                               trace_id=self.trace_id, run_id=self.run_id,
-                              task_spec_hash=self.task_spec_hash)
+                              task_spec_hash=self.task_spec_hash,
+                              tokens_in=tokens_in, tokens_out=tokens_out)
 
     def _get_tools(self) -> list[dict]:
         """Builds the tool schemas for this agent (filtered + terminate_self)."""
@@ -963,6 +981,9 @@ class SwarmOrchestrator:
                         "agent_id": agent.agent_id,
                         "status": "done" if ok else "error",
                         "summary": status.summary[:280] if ok else "",
+                        # 0/0 = the engine reported no usage; the card then shows none.
+                        "tokens_in": status.tokens_in if ok else 0,
+                        "tokens_out": status.tokens_out if ok else 0,
                     })
                     self._wave_exit(agent, status)
 

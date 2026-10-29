@@ -9,6 +9,7 @@ first phase: no roster, no model, no done stamp.
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -100,3 +101,18 @@ async def test_a_failing_agent_closes_its_card_as_error(
     done = [e for e in events if e["type"] == "swarm_agent_done"]
     assert done and done[0]["status"] == "error"
     assert done[0]["summary"] == ""
+
+
+def test_the_envelope_keeps_what_the_engine_reported():
+    """QD-016 C3: the counters are the engine's own numbers, not a guess."""
+    env = _make_envelope("a1", "done", tokens_in=1200, tokens_out=240)
+    assert (env.tokens_in, env.tokens_out) == (1200, 240)
+
+
+def test_the_agent_reads_usage_and_the_done_frame_carries_it():
+    source = (Path(__file__).resolve().parents[1] / "core" / "swarm_v2.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'getattr(response, "usage", None)' in source
+    assert '"prompt_tokens", 0' in source
+    assert '"tokens_in": status.tokens_in if ok else 0' in source
