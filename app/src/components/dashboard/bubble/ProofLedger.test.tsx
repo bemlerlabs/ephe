@@ -47,6 +47,16 @@ describe('the proof ledger', () => {
     expect(row.textContent).not.toContain('sha256')
   })
 
+  it('opens the payload the frame delivered (E1)', () => {
+    mode.value = 'expanded'
+    render(<ProofLedger tools={[call({ result: 'exit 0\n2 passed' })]} />)
+    const detail = screen.getByTestId('proof-details-c1')
+    expect(detail.tagName).toBe('DETAILS')
+    expect(screen.getByTestId('proof-result-c1').textContent).toContain('2 passed')
+    // a frame without a payload has nothing to open
+    expect(screen.queryByTestId('proof-details-c2')).toBeNull()
+  })
+
   it('names a failed run in both registers', () => {
     mode.value = 'collapsed'
     const { unmount } = render(<ProofLedger tools={[call({ status: 'failed' })]} />)
