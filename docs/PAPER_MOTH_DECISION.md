@@ -78,3 +78,9 @@ assets carries a luminance spread of 249.8 against a floor of 20.0 (measured
 The fire-spirit bee (`scripts/generate_fire_spirit_bee.py`) remains in the tree as
 provenance: it is the drawing the 2026-10-16 decision shipped, and the comparison
 sheet still renders it. It no longer writes any shipped asset.
+
+The first-open tour is the one surface still built around the bee:
+`InteractiveBeeGuide` is its live guide and `scene-6-engine.jpg` its engine core.
+The film's reduced-motion still used to show the bee's awakening plate; it now
+stands the moth on the drawn stage, and that plate plus two plates no component
+referenced are gone.
