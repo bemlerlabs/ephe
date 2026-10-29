@@ -202,7 +202,7 @@ describe('FirstRunIntro', () => {
     const overlay = screen.getByTestId('first-run-intro')
     expect(overlay.dataset.reduced).toBe('true')
     expect(overlay.dataset.act).toBe('awakening')
-    expect(screen.getByTestId('first-run-intro').querySelector('img.intro-media')).toBeTruthy()
+    expect(screen.getByTestId('intro-still-moth')).toBeTruthy()
     expect(screen.getByText('welcome.introTitle').style.animationDelay).toBe('0ms')
     act(() => {
       vi.advanceTimersByTime(STILL_MS - 1)

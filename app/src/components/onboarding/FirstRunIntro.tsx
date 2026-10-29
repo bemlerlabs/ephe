@@ -17,6 +17,7 @@ import { useDeepBool } from '@/lib/deepSettings'
 import { hasSeenFirstRunIntro, markFirstRunIntroSeen } from '@/lib/firstRun'
 import { readSetupGateHint } from '@/lib/setupGate'
 import IntroFilm from './IntroFilm'
+import { PaperMoth } from '@/components/brand/PaperMoth'
 
 export { INTRO_SEEN_KEY } from '@/lib/firstRun'
 
@@ -43,10 +44,6 @@ export type SceneAct = (typeof ACTS)[number]['act']
 
 const TITLE_ID = 'first-run-intro-title'
 const LINE_ID = 'first-run-intro-line'
-
-const SCENE = {
-  awakening: '/onboarding/scene-4-awakening.jpg',
-} as const
 
 interface Spark {
   x: number
@@ -216,13 +213,9 @@ export default function FirstRunIntro({ onDone }: { onDone?: () => void } = {}) 
       className={`intro-stage${leaving ? ' intro-decay' : ''}${still ? ' is-still' : ''}`}
     >
       {still ? (
-        <img
-          className="intro-media"
-          src={SCENE.awakening}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-        />
+        <div className="intro-still" aria-hidden="true">
+          <PaperMoth state="ready" size="clamp(9rem, 20vw, 15rem)" testId="intro-still-moth" />
+        </div>
       ) : (
         <IntroFilm />
       )}

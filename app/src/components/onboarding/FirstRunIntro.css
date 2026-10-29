@@ -12,14 +12,15 @@
   outline: none;
   isolation: isolate;
 }
-.intro-media {
+.intro-still {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 55%;
+  display: grid;
+  place-items: center;
   pointer-events: none;
+  background:
+    radial-gradient(52% 34% at 50% 66%, rgb(255 178 62 / 0.16) 0%, transparent 72%),
+    linear-gradient(180deg, #050b09 0%, #020504 58%, #070a08 100%);
 }
 .intro-vignette {
   position: absolute;
