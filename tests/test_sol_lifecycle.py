@@ -495,6 +495,15 @@ class TestRoutes:
         assert consolidator.load(workspace) == []
 
     def test_unknown_and_malformed_ids_are_404(self, client, workspace):
+        from core.sol import consolidator
+
+        consolidator.record(
+            kind="timeout", title="Split the run", trigger="t", insight="i", action="a", root=workspace
+        )
         assert client.delete("/api/sol/heuristics/H9").status_code == 404
-        assert client.patch("/api/sol/heuristics/..%2Fetc", json={"action": "x"}).status_code == 404
+        # Not an H<n> id: refused before it can name anything.
+        assert client.patch("/api/sol/heuristics/..%2Fetc", json={"action": "x"}).status_code in (404, 405)
+        assert client.patch("/api/sol/heuristics/nope", json={"action": "x"}).status_code == 404
         assert client.patch("/api/sol/heuristics/H1", json={}).status_code == 422
+        # Nothing outside the store was touched by those requests.
+        assert [item.id for item in consolidator.load(workspace)] == ["H1"]

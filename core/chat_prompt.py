@@ -158,9 +158,8 @@ def assemble_system_prompt(
     5. extra directive (e.g. the R22 coding-agent brief)
     6. constant knowledge-gap protocol (KNOWLEDGE_GAP_PROTOCOL)
     7. custom instructions (this device's standing words, provenance-marked)
-    8. active workspace (name + absolute path), its project rules
-       (AGENTS.md and .ephe/rules/*, provenance-marked) and what the workspace
-       learned from earlier failed rounds (.ephe/learning/)
+    8. active workspace, its project rules (AGENTS.md, .ephe/rules/*) and what
+       the workspace learned from earlier failed rounds (.ephe/learning/)
     9. user profile → 10. corrections → 11. feedback   (rarely change)
     12. memory (per-turn volatile) → 13. current date block (per-day, last)
 
@@ -339,24 +338,17 @@ def _assemble_system_prompt_into(
     except Exception:
         feedback_ctx = None
 
+    workspace_ctx = _workspace_anchor()
     try:
-        # R29: operative project rules from the workspace's own instruction
-        # file (provenance-marked, capped) — never crashes a turn.
+        # R29: the workspace's own rules; SOL: its map and learned rules. Both
+        # layers are best effort and never crash a turn.
+        from core.sol.context import learning_block
         from core.workspace_rules import load_workspace_rules
 
         workspace_rules_ctx: str | None = load_workspace_rules()
-    except Exception:
-        workspace_rules_ctx = None
-
-    workspace_ctx = _workspace_anchor()
-
-    try:
-        # SOL: the workspace map and the rules earlier failures left behind.
-        from core.sol.context import learning_block
-
         learning_ctx: str | None = learning_block()
     except Exception:
-        learning_ctx = None
+        workspace_rules_ctx = learning_ctx = None
 
     full_system_prompt = assemble_system_prompt(
         model=model,

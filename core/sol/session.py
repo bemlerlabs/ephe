@@ -112,6 +112,7 @@ class SolTurn:
         self.active = active
         self.failures: list[Failure] = []
         self.learned: list[consolidator.Heuristic] = []
+        self.rounds = 0
 
     @classmethod
     def open(cls, root: Path | None = None, *, active: bool | None = None) -> "SolTurn":
@@ -121,6 +122,7 @@ class SolTurn:
 
     def reflect_round(self, round_no: int, failed: list[tuple[str, str, str]]) -> str | None:
         """The reflection block for one round's failed calls, or None."""
+        self.rounds = max(self.rounds, round_no)
         if not self.active or not failed:
             return None
         fresh: list[reflector.Reflection] = []
@@ -174,7 +176,7 @@ class SolTurn:
         """
         if not self.active or not ok or not self.failures:
             return []
-        boundary = last_round if last_round is not None else max(item.round for item in self.failures)
+        boundary = last_round if last_round is not None else self.rounds
         written: list[consolidator.Heuristic] = []
         for item in self.failures:
             if item.round >= boundary:
@@ -213,3 +215,18 @@ def reset_sol_turn(token: contextvars.Token) -> None:
 
 def current_sol_turn() -> SolTurn | None:
     return _CURRENT.get()
+
+
+def open_sol_turn(turn: SolTurn | None = None) -> tuple[SolTurn, contextvars.Token]:
+    """Bind the turn the loop and the prompt read; `turn` is a caller's own."""
+    sol = turn if turn is not None else SolTurn.open()
+    return sol, bind_sol_turn(sol)
+
+
+def close_sol_turn(sol: SolTurn, token: contextvars.Token, *, ok: bool) -> None:
+    """Unbind the turn and store what it proved. Never raises into the turn."""
+    reset_sol_turn(token)
+    try:
+        sol.finish(ok)
+    except Exception:
+        pass
