@@ -287,8 +287,8 @@ def map_header(root: Path | None = None, *, max_chars: int = MAP_HEADER_MAX_CHAR
     if data.get("commands"):
         lines.append("Verified commands: " + _join(list(data["commands"]), " | "))
         if any(cmd.startswith(("dev:", "start:")) for cmd in data["commands"]):
-            # "Start my project" ends in a server, not in a tool round that
-            # blocks: the run goes to the background and the URL is reported.
+            # "Start my project" ends in a server the user opens: the run goes
+            # to the background and the URL is reported.
             lines.append(
                 "To start it: run that start command with run_shell(run_in_background=true), "
                 "then report the address it prints."
