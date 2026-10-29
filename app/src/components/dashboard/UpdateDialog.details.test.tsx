@@ -80,7 +80,9 @@ describe('U-4 — Details carries what is being installed', () => {
 
 describe('U-4 — a restart that would cost work', () => {
   it('holds the restart back while a turn runs, and says so', () => {
-    ;(window as unknown as Record<string, unknown>).__TAURI__ = {}
+    ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
+    }
     const state: UpdateState = { phase: 'ready', progress: 1, latest: '0.1.0-beta.2' }
     render(<UpdateDialog {...base} state={state} restartBlocked="running" />)
     expect(screen.getByTestId('update-relaunch').hasAttribute('disabled')).toBe(true)
@@ -91,7 +93,9 @@ describe('U-4 — a restart that would cost work', () => {
   })
 
   it('offers the restart when nothing holds it', () => {
-    ;(window as unknown as Record<string, unknown>).__TAURI__ = {}
+    ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
+    }
     const state: UpdateState = { phase: 'ready', progress: 1, latest: '0.1.0-beta.2' }
     render(<UpdateDialog {...base} state={state} restartBlocked={null} />)
     expect(screen.getByTestId('update-relaunch').hasAttribute('disabled')).toBe(false)

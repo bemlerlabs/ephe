@@ -98,7 +98,9 @@ describe('R2-U — der Update-Dialog sagt, was er weiß', () => {
   it('installiert heißt bereit zum Neustart — und der Neustart ist die Handlung', () => {
     // The restart button belongs in the desktop build: in the browser there is
     // nothing the surface could restart. So the Tauri channel is put in place.
-    ;(window as unknown as Record<string, unknown>).__TAURI__ = {}
+    ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
+    }
     const onRelaunch = vi.fn()
     const state: UpdateState = { phase: 'ready', progress: 1, latest: '1.2.0' }
     render(<UpdateDialog {...base} onRelaunch={onRelaunch} state={state} />)
