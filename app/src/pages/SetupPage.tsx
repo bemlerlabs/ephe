@@ -15,7 +15,7 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import { storeEngineKey } from '@/lib/engineKey'
 import ForestBackground from '@/components/dashboard/ForestBackground'
 import EnvironmentTools from '@/components/shell/EnvironmentTools'
-import { HeroMark } from '@/components/shell/HeroMark'
+import { PaperMoth } from '@/components/brand/PaperMoth'
 import { ModelPicker } from '@/components/model/ModelPicker'
 import { rowsFromProbe } from '@/components/model/modelPickerTypes'
 import {
@@ -687,7 +687,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
           <div className="mb-8 text-center">
             {/* S3: 48 px is where the brand contract stops drawing the figure and
                 starts showing the shipped render (docs/ONBOARDING_FILM.md). */}
-            <HeroMark size="3rem" testId="setup-mark" className="mx-auto mb-4" />
+            <PaperMoth state="ready" size="4rem" testId="setup-mark" className="mx-auto mb-4" />
             <div className="mb-3 text-ui-xs uppercase tracking-[0.25em] text-brand/70">
               {t('setup.kicker')}
             </div>
