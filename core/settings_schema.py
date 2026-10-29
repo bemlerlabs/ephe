@@ -257,13 +257,21 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # Hooks (I6-4 — own area, the reader is core/user_hooks.py itself)
     "hooks.enabled": {"type": "bool", "default": True,
                       "label": "Hooks ausführen", "labelEn": "Run hooks"},
+    # Self-organised learning (SOL). Readers: core/sol/session.py for the switch,
+    # core/sol/consolidator.py for the cap on active rules.
+    "sol.enabled": {"type": "bool", "default": True,
+                    "label": "Aus Fehlern im Projekt lernen",
+                    "labelEn": "Learn from failures in this project"},
+    "sol.max_active_rules": {"type": "number", "default": 15, "min": 5, "max": 50,
+                             "label": "Aktive Projektregeln (Anzahl)",
+                             "labelEn": "Active project rules (count)"},
 }
 
 # Section breakdown (order = render order in the PWA).
 SECTIONS: list[dict[str, Any]] = [
     {"key": section, "fields": [k for k in SCHEMA if k.startswith(f"{section}.")]}
     for section in ("chat", "appearance", "shortcuts", "advanced", "plugins", "memory",
-                    "ephemera", "cron", "hooks")
+                    "ephemera", "cron", "hooks", "sol")
 ]
 
 

@@ -135,6 +135,7 @@ def assemble_system_prompt(
     custom_instructions_ctx: str | None = None,
     workspace_rules_ctx: str | None = None,
     workspace_ctx: str | None = None,
+    learning_ctx: str | None = None,
     profile_ctx: str | None = None,
     memory_ctx: str | None = None,
     corrections_ctx: str | None = None,
@@ -157,8 +158,9 @@ def assemble_system_prompt(
     5. extra directive (e.g. the R22 coding-agent brief)
     6. constant knowledge-gap protocol (KNOWLEDGE_GAP_PROTOCOL)
     7. custom instructions (this device's standing words, provenance-marked)
-    8. active workspace (name + absolute path) and its project rules
-       (AGENTS.md and .ephe/rules/*, provenance-marked)
+    8. active workspace (name + absolute path), its project rules
+       (AGENTS.md and .ephe/rules/*, provenance-marked) and what the workspace
+       learned from earlier failed rounds (.ephe/learning/)
     9. user profile → 10. corrections → 11. feedback   (rarely change)
     12. memory (per-turn volatile) → 13. current date block (per-day, last)
 
@@ -192,6 +194,7 @@ def assemble_system_prompt(
         custom_instructions_ctx,
         workspace_ctx,
         workspace_rules_ctx,
+        learning_ctx,
         profile_ctx,
         corrections_ctx,
         feedback_ctx,
@@ -347,6 +350,14 @@ def _assemble_system_prompt_into(
 
     workspace_ctx = _workspace_anchor()
 
+    try:
+        # SOL: the workspace map and the rules earlier failures left behind.
+        from core.sol.context import learning_block
+
+        learning_ctx: str | None = learning_block()
+    except Exception:
+        learning_ctx = None
+
     full_system_prompt = assemble_system_prompt(
         model=model,
         incoming_system=incoming_system,
@@ -354,6 +365,7 @@ def _assemble_system_prompt_into(
         custom_instructions_ctx=custom_instructions_block(),
         workspace_rules_ctx=workspace_rules_ctx,
         workspace_ctx=workspace_ctx,
+        learning_ctx=learning_ctx,
         profile_ctx=profile_ctx,
         memory_ctx=memory_ctx,
         corrections_ctx=corrections_ctx,
