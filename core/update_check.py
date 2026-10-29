@@ -157,23 +157,42 @@ def installed_commit() -> str:
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
-def _fetch_main_compare(commit: str) -> dict[str, Any]:
-    """Ancestry of `commit` against the default branch's tip, from GitHub's
-    compare API. Raises on network failure like the release fetch."""
-    url = f"https://api.github.com/repos/{release_repo()}/compare/{commit}...{MAIN_BRANCH}"
+def _get_json(url: str) -> dict[str, Any]:
     req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
     with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310 — https, pinned host
-        data = json.loads(resp.read().decode("utf-8"))
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _fetch_head() -> dict[str, str]:
+    """The tip of the default branch: its sha and the newest commit subject.
+
+    GitHub's compare answers with an empty commit list when the build is only
+    behind, so the range alone names neither the tip nor what changed."""
+    data = _get_json(f"https://api.github.com/repos/{release_repo()}/commits/{MAIN_BRANCH}")
+    body = str((data.get("commit") or {}).get("message") or "")
+    return {"sha": str(data.get("sha") or ""), "message": body.splitlines()[0][:160] if body else ""}
+
+
+def _fetch_main_compare(commit: str) -> dict[str, Any]:
+    """Ancestry of `commit` against the default branch's tip. Raises on network
+    failure like the release fetch."""
+    data = _get_json(
+        f"https://api.github.com/repos/{release_repo()}/compare/{commit}...{MAIN_BRANCH}"
+    )
     commits = data.get("commits") or []
-    newest = commits[-1] if commits else {}
+    status = str(data.get("status") or "")
+    message = str((commits[-1].get("commit") or {}).get("message") or "") if commits else ""
+    tip = str(commits[-1].get("sha") or "") if commits else ""
+    if status == "behind" and (not message or not tip):
+        head = _fetch_head()
+        message = message or head["message"]
+        tip = tip or head["sha"]
     return {
-        "status": str(data.get("status") or ""),
+        "status": status,
         "behind": int(data.get("behind_by") or 0),
         "sha": str((data.get("base_commit") or {}).get("sha") or ""),
-        "tip": str((newest.get("sha") or data.get("merge_base_commit", {}).get("sha") or "")),
-        "message": str((newest.get("commit") or {}).get("message") or "").splitlines()[0][:160]
-        if commits
-        else "",
+        "tip": tip,
+        "message": message.splitlines()[0][:160] if message else "",
     }
 
 

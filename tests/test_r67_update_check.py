@@ -28,6 +28,7 @@ if str(ROOT) not in sys.path:
 from core import update_check  # noqa: E402
 
 _REAL_INSTALLED_COMMIT = update_check.installed_commit
+_REAL_MAIN_COMPARE = update_check._fetch_main_compare
 
 
 @pytest.fixture(autouse=True)
@@ -312,3 +313,55 @@ class TestContinuousChannel:
         if not (ROOT / ".git").exists():
             pytest.skip("not a checkout, so there is no HEAD to read")
         assert len(_REAL_INSTALLED_COMMIT()) == 40
+
+
+class TestComparePayload:
+    """GitHub answers a build that is only behind with an empty commit list, so
+    the range alone names neither the tip nor what changed."""
+
+    def test_a_behind_compare_fills_the_tip_and_the_subject(self, monkeypatch):
+        monkeypatch.setattr(update_check, "_fetch_main_compare", _REAL_MAIN_COMPARE)
+        payloads = [
+            {"status": "behind", "behind_by": 2, "commits": [],
+             "base_commit": {"sha": "abc123def456"}},
+            {"sha": "feedfacecafe", "commit": {"message": "feat(companion): the pet moves\n\nbody"}},
+        ]
+
+        class Resp:
+            def __init__(self, body):
+                self._body = body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_exc):
+                return False
+
+            def read(self):
+                return json.dumps(self._body).encode()
+
+        monkeypatch.setattr(update_check.urllib.request, "urlopen", lambda *_a, **_k: Resp(payloads.pop(0)))
+        out = update_check._fetch_main_compare("abc123def456")
+        assert out["status"] == "behind" and out["behind"] == 2
+        assert out["tip"] == "feedfacecafe"
+        assert out["message"] == "feat(companion): the pet moves"
+
+    def test_an_ahead_compare_asks_for_no_further_read(self, monkeypatch):
+        monkeypatch.setattr(update_check, "_fetch_main_compare", _REAL_MAIN_COMPARE)
+
+        def fail(*_a, **_k):
+            raise AssertionError("ahead needs no head read")
+
+        class Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_exc):
+                return False
+
+            def read(self):
+                return json.dumps({"status": "ahead", "ahead_by": 1, "behind_by": 0, "commits": []}).encode()
+
+        monkeypatch.setattr(update_check.urllib.request, "urlopen", lambda *_a, **_k: Resp())
+        assert update_check._fetch_main_compare("abc")["tip"] == ""
+        monkeypatch.setattr(update_check.urllib.request, "urlopen", fail)
