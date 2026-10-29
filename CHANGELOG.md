@@ -7,6 +7,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.5.1 surface wave is named below (`cdb26e6`, `b4aacec`, `7ea5684`,
+`5ca2ad9`, `c8e9993`, `c9e0ba5`, `6c13716`, `47f4666`, `56226d7`, `4a8583b`,
+`934a7b2`, `d967a5f`, `a012491`, `1c1a7b3`, `cf90dd9`): the TUI footer counts
+the helpers and reads the audit chain, every tool states whether it runs without
+asking, one click at setup picks the engine this computer can hold, the welcome
+mission cards start the run, the swarm deck sees its own run, its cards carry
+the gate and the steer, an agent's line carries what the engine charged, and the
+envelope states what the merge actually read; a state write wakes the live
+stream instead of waiting for the tick, the proof ledger opens the payload behind
+its line, a refusal arrives with a correction, an artifact adoption lands whole
+or not at all, the model matrix shows whether the machine can hold a model, no
+text renders below 12 px at any scale, and the Windows caption corner is
+reserved where the shell announces it.
+
 The 0.5.1 repair wave is named below (`6e50458`, `2f2d59d`, `c655497`, `1383522`,
 `b1edb54`, `295a7b7`, `a32c997`, `1283589`, `19851ea`, `f5e97d2`, `e83e55b`,
 `e1d7d5a`, `10642bd`): every Lucide glyph sits on the 1.5 px raster, the fleet and
