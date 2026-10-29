@@ -1782,12 +1782,7 @@ html.no-motion .ephe-spirit-frame {
   }
   /* The moth glyph carries the state: it breathes while the run works, its two
      knots pulse while the run waits, and it settles when the step lands. */
-  .ephe-run[data-state="ready"] .ephe-run-mark {
-    opacity: 1;
-  }
-  .ephe-run [data-testid="agentic-moth"] {
-    transition: transform var(--motion-base) var(--ease-settle);
-  }
+  .ephe-run[data-state="ready"] .ephe-run-mark { opacity: 1; }
   .ephe-run[data-state="working"] .ephe-run-mark {
     animation: ephe-run-work var(--ephe-run-work-period) ease-in-out infinite;
   }
