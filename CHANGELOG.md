@@ -16,6 +16,10 @@ The cell ownership fix (`a233c71`) keeps the session workspace locked until
 its worker finishes, including during cancellation and shutdown. A queued
 reset can no longer erase an active guest's files.
 
+The index accept fix (`2aa599c`) samples the job state before its worker thread
+starts, so the response to `/project/index` reports `indexing` even when a small
+project finishes inside the thread's first slice.
+
 The Python runtime upgrade (`db2f752`) moves every CI resolver pin to uv 0.13.6, requests
 the patched interpreters 3.13.18 and 3.12.16 in the cold-install lane, and
 declares 3.13.18 in `.python-version`. The lockfile check also probes pnpm in
