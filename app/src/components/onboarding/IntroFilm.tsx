@@ -196,11 +196,13 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
           'transform',
           `translate(-50%, -50%) translate3d(${lean}px, ${breathe}px, 0) rotateX(${tilt}deg) rotateZ(${lean * 0.6}deg) scale(${scale})`,
         )
-        const brightness = 4.2 - 3.2 * settle
-        const sepia = 1 - settle
-        const saturate = 4 - 3 * settle
-        const glow = 44 - 32 * settle
-        const blur = (1 - settle) * 1.6
+        // The figure is paper, not soot: it starts as a warm silhouette inside the
+        // vortex light and settles to its own colour instead of being blown out by it.
+        const brightness = 0.55 + 0.45 * settle
+        const sepia = 0.85 * (1 - settle)
+        const saturate = 0.7 + 0.3 * settle
+        const glow = 40 - 26 * settle
+        const blur = (1 - settle) * 1.2
         set(
           beeRef.current,
           'filter',
