@@ -15,7 +15,6 @@
  * those answers arrives live (see `runLive`).
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { apiUrl } from '@/lib/api/http'
 import {
   relaunchApp,
   restartGuardNow,
@@ -23,52 +22,13 @@ import {
   type RestartBlock,
 } from '@/lib/restartGuard'
 import { readAsset, readManifestNotes, readPlatform } from '@/lib/updateDetails'
-
-export interface UpdateCheckInfo {
-  enabled: boolean
-  available: boolean
-  current?: string
-  latest?: string
-  url?: string
-  notes?: string
-  /** The reason the check could not run. Without a reader in the surface this
-   *  value used to be lost — which is why it said "no update" on a 404. */
-  error?: string
-}
-
-export type UpdatePhase =
-  | 'idle'
-  | 'checking'
-  | 'current'
-  | 'failed'
-  | 'available'
-  | 'downloading'
-  | 'installing'
-  | 'ready'
-  | 'unsupported'
-
-export interface UpdateState {
-  phase: UpdatePhase
-  current?: string
-  latest?: string
-  notes?: string
-  url?: string
-  /** The size the transfer reported, when it reported one — the Details line
-   *  shows it in bytes the reader can compare. */
-  sizeBytes?: number
-  /** The package the updater resolved for this platform, when it named one. */
-  asset?: string
-  /** The host platform the shell runs on. */
-  platform?: string
-  /** The publish date the release feed named, when it named one. */
-  date?: string
-  /** 0..1, only during `downloading`; null when the source reports nothing. */
-  progress: number | null
-  reason?: string
-  /** Which step carried the failure. An installer that refused used to be
-   *  reported with the sentence about an unreachable release source. */
-  failedAt?: 'check' | 'install'
-}
+import {
+  isDesktopShell,
+  runCheck,
+  type UpdateCheckInfo,
+  type UpdatePhase,
+  type UpdateState,
+} from '@/lib/updateCheckRun'
 
 /** The cadence of a session that stays open: the feed is asked every half
  *  hour. A live question costs one request against a public API with an hourly
@@ -99,92 +59,6 @@ let liveGateAt = 0
 
 function initialState(): UpdateState {
   return { phase: 'idle', progress: null }
-}
-
-/** True inside the Ephe desktop shell (Tauri IPC available). */
-export function isDesktopShell(): boolean {
-  return !!(window as unknown as Record<string, unknown>).__TAURI__
-}
-
-/** The running bundle's version, read from the shell. */
-async function shellVersion(): Promise<string | undefined> {
-  const app = (window as { __TAURI__?: { app?: { getVersion?: () => Promise<string> } } }).__TAURI__
-    ?.app
-  try {
-    return await app?.getVersion?.()
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * The desktop check. The local backend owns the opt-out and the release notes;
- * the signed updater compares the release against the bundle it will replace,
- * which is the only comparison that decides an install.
- */
-async function runDesktopCheck(force: boolean): Promise<UpdateState> {
-  let local: UpdateCheckInfo | undefined
-  try {
-    const r = await fetch(apiUrl(force ? '/api/update/check?force=1' : '/api/update/check'))
-    if (r.ok) local = (await r.json()) as UpdateCheckInfo
-  } catch {
-    /* the updater below answers on its own */
-  }
-  if (local && !local.enabled) {
-    return { phase: 'unsupported', progress: null, current: local.current, reason: 'disabled' }
-  }
-  const updater = await import('@tauri-apps/plugin-updater')
-  const [current, update] = await Promise.all([shellVersion(), updater.check()])
-  const base = {
-    current: current ?? update?.currentVersion ?? local?.current,
-    latest: update?.version ?? current ?? local?.latest,
-    notes: readManifestNotes(update?.body) ?? local?.notes,
-    platform: readPlatform(),
-    asset: readAsset(update?.rawJson),
-    date: update?.date,
-  }
-  return update?.available
-    ? { phase: 'available', progress: null, ...base }
-    : { phase: 'current', progress: null, ...base }
-}
-
-/**
- * The check path itself — once for a live question, once for the click from
- * the menu or the dialog. `force` is what makes the backend skip its TTL
- * cache, so every caller here passes true except the tests.
- */
-async function runCheck(force = false): Promise<UpdateState> {
-  try {
-    if (isDesktopShell()) return await runDesktopCheck(force)
-    const r = await fetch(apiUrl(force ? '/api/update/check?force=1' : '/api/update/check'))
-    if (!r.ok) {
-      return { phase: 'failed', progress: null, reason: `HTTP ${r.status}`, failedAt: 'check' }
-    }
-    const info = (await r.json()) as UpdateCheckInfo
-    if (!info.enabled) {
-      return { phase: 'unsupported', progress: null, current: info.current, reason: 'disabled' }
-    }
-    if (info.error) {
-      return {
-        phase: 'failed',
-        progress: null,
-        current: info.current,
-        reason: String(info.error),
-        failedAt: 'check',
-      }
-    }
-    const base = { current: info.current, latest: info.latest, notes: info.notes, url: info.url }
-    return info.available && info.latest
-      ? { phase: 'available', progress: null, ...base }
-      : { phase: 'current', progress: null, ...base }
-  } catch (e) {
-    return {
-      phase: 'failed',
-      progress: null,
-      reason: e instanceof Error ? e.message : String(e),
-      failedAt: 'check',
-    }
-  }
 }
 
 export function useUpdateCheck() {
@@ -393,5 +267,8 @@ export function updateInfoOf(state: UpdateState): UpdateCheckInfo | null {
     url: state.url,
     notes: state.notes,
     error: state.phase === 'failed' ? state.reason : undefined,
+    channel: state.channel,
+    commitsBehind: state.commitsBehind,
+    commit: state.commit,
   }
 }

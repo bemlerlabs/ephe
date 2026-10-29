@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render } from '@testing-library/react'
-import type { UpdateState } from '@/lib/useUpdateCheck'
+import type { UpdateState } from '@/lib/updateCheckRun'
 
 const realFetch = global.fetch
 
@@ -104,6 +104,28 @@ describe('U-1 — automatic detection', () => {
     await flush()
     expect(probe.state()?.phase).toBe('current')
     expect(probe.state()?.current).toBe('0.1.0-beta.4')
+  })
+
+  it('a merge before the next tag arrives on the main channel, not as an install', async () => {
+    global.fetch = fetchStub({
+      enabled: true,
+      available: true,
+      channel: 'main',
+      current: '0.6.0',
+      commit: '2a1405a837f0',
+      latest: 'deadbeefcafe',
+      commitsBehind: 2,
+      url: 'https://github.com/bemlerlabs/ephe/compare/2a1405a837f0...main',
+      notes: 'fix(chat): quieter rows',
+    }) as unknown as typeof fetch
+    const probe = await mount()
+    await flush()
+    const state = probe.state()
+    expect(state?.phase).toBe('available')
+    expect(state?.channel).toBe('main')
+    expect(state?.commitsBehind).toBe(2)
+    expect(state?.commit).toBe('2a1405a837f0')
+    expect(state?.latest).toBe('deadbeefcafe')
   })
 
   it('the first question of a session leaves the backend cache behind', async () => {

@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { UpdateDialog } from './UpdateDialog'
-import type { UpdateState } from '@/lib/useUpdateCheck'
+import type { UpdateState } from '@/lib/updateCheckRun'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '9', init: () => Promise.resolve() },
@@ -28,6 +28,8 @@ vi.mock('react-i18next', () => ({
         'update.downloading': 'Lade Ephe {{version}} herunter…',
         'update.installAndRestart': 'Installieren & neu starten',
         'update.viewReleases': 'Releases ansehen',
+        'update.mainChannel': '{{count}} new commits on main since your build.',
+        'update.viewChanges': 'View changes',
       }
       const raw = map[key] ?? key
       return String(raw).replace(/\{\{(\w+)\}\}/g, (_m, n: string) =>
@@ -182,5 +184,34 @@ describe('U-3 — the running phases read as themselves', () => {
     expect(screen.getByText('update.installFailed')).toBeTruthy()
     expect(screen.queryByText('update.checkFailed')).toBeNull()
     expect(screen.getByTestId('update-reason').textContent).toBe('the installer refused the bundle')
+  })
+})
+
+describe('continuous channel — commits before the next tag', () => {
+  const state: UpdateState = {
+    phase: 'available',
+    progress: null,
+    channel: 'main',
+    current: '0.6.0',
+    commit: '2a1405a837f0',
+    latest: 'deadbeefcafe',
+    commitsBehind: 3,
+    url: 'https://github.com/bemlerlabs/ephe/compare/2a1405a837f0...main',
+    notes: 'fix(chat): quieter tool rows',
+  }
+
+  it('names the commit range and leads to the comparison instead of an install', () => {
+    render(<UpdateDialog {...base} state={state} />)
+    expect(screen.getByTestId('update-state').textContent).toContain('3')
+    expect(screen.getByTestId('update-stage').textContent).toContain('2a1405a837f0')
+    expect(screen.getByTestId('update-stage').textContent).toContain('deadbeefcafe')
+    expect(screen.getByTestId('update-main-link').getAttribute('href')).toBe(state.url)
+    expect(screen.getByTestId('update-main-link').textContent).toBe('View changes')
+  })
+
+  it('offers neither an installer nor a release page', () => {
+    render(<UpdateDialog {...base} state={state} releasesUrl="https://github.com/x/y/releases" />)
+    expect(screen.queryByTestId('update-install')).toBeNull()
+    expect(screen.queryByTestId('update-browser-note')).toBeNull()
   })
 })

@@ -1842,3 +1842,98 @@ def test_the_remaining_flags_carry_their_one_liners():
     assert "probed on" in _help_of("doctor", "--port")
     assert _help_of("doctor", "--json")
     assert _help_of("tui", "--reset")
+
+
+def test_doctor_update_row_names_the_continuous_channel(monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {
+            "enabled": True,
+            "available": True,
+            "channel": "main",
+            "commitsBehind": 2,
+            "commit": "2a1405a8",
+            "latest": "deadbeef",
+        },
+    )
+    row = ephe_cli._doctor_update_row()
+    assert "2 new commits on main" in row and "ephe update" in row
+
+
+def test_doctor_update_row_names_a_release_and_a_current_build(monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {"available": True, "channel": "release", "latest": "0.7.0", "current": "0.6.0"},
+    )
+    assert "0.7.0 available (running 0.6.0)" in ephe_cli._doctor_update_row()
+    monkeypatch.setattr(
+        update_check, "check_for_update", lambda **_k: {"available": False, "current": "0.6.0"}
+    )
+    assert ephe_cli._doctor_update_row() == "current (0.6.0)"
+
+
+def test_cmd_doctor_prints_the_update_row(monkeypatch, capsys, tmp_path):
+    _patch_doctor_base(monkeypatch, tmp_path)
+    ephe_cli.cmd_doctor(_parser().parse_args(["doctor", "--model", "m", "--json"]))
+    data = json.loads(capsys.readouterr().out)
+    row = next(c for c in data["checks"] if c["name"] == "Update")
+    assert row["ok"] is True
+    assert "check not possible" in row["detail"]
+
+
+def test_doctor_update_row_says_when_the_source_stays_quiet(monkeypatch):
+    import time
+
+    from core import update_check
+
+    def slow(**_k):
+        time.sleep(0.3)
+        return {"available": False, "current": "0.6.0"}
+
+    monkeypatch.setattr(update_check, "check_for_update", slow)
+    assert "did not answer" in ephe_cli._doctor_update_row(seconds=0.05)
+
+
+def test_doctor_update_row_survives_a_check_that_raises(monkeypatch):
+    from core import update_check
+
+    def boom(**_k):
+        raise RuntimeError("broken")
+
+    monkeypatch.setattr(update_check, "check_for_update", boom)
+    assert ephe_cli._doctor_update_row() == "check skipped"
+
+
+def test_doctor_update_row_reports_an_unreachable_source(monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {"available": False, "error": "the release source could not be reached"},
+    )
+    assert "check not possible" in ephe_cli._doctor_update_row()
+
+
+def test_doctor_update_row_uses_the_singular_for_one_commit(monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {
+            "available": True,
+            "channel": "main",
+            "commitsBehind": 1,
+            "commit": "2a1405a8",
+            "latest": "deadbeef",
+        },
+    )
+    row = ephe_cli._doctor_update_row()
+    assert "1 new commit on main" in row and "commits on main" not in row

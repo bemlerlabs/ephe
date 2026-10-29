@@ -923,3 +923,64 @@ def test_a_tool_row_names_what_the_tool_did_to_what(app_factory):
             assert any("Wrote launch.md" in t for t in titles), titles
 
     _run(go())
+
+
+def _transcript(app) -> str:
+    from textual.containers import Vertical
+
+    from ui.widgets import ChatView
+
+    container = app.query_one(ChatView).query_one("#chat-container", Vertical)
+    return "\n".join(str(child.render()) for child in container.children)
+
+
+def test_boot_names_an_available_update_on_the_main_channel(app_factory, monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {
+            "enabled": True,
+            "available": True,
+            "channel": "main",
+            "commitsBehind": 3,
+            "commit": "2a1405a8",
+            "latest": "deadbeef",
+            "current": "0.6.0",
+        },
+    )
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            await app._async_check_update()
+            await pilot.pause()
+            text = _transcript(app)
+            assert "3 new commits on main since this build" in text
+            assert "2a1405a8 → deadbeef" in text
+            assert "ephe update" in text
+
+    _run(go())
+
+
+def test_boot_stays_quiet_when_the_build_is_current(app_factory, monkeypatch):
+    from core import update_check
+
+    monkeypatch.setattr(
+        update_check,
+        "check_for_update",
+        lambda **_k: {"enabled": True, "available": False, "current": "0.6.0"},
+    )
+    app = app_factory()
+
+    async def go():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            before = _transcript(app)
+            await app._async_check_update()
+            await pilot.pause()
+            assert _transcript(app) == before
+
+    _run(go())

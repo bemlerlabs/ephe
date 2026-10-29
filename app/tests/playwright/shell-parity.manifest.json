@@ -213,7 +213,7 @@
     {
       "file": "app/src/lib/useUpdateCheck.ts",
       "marker": "__TAURI__",
-      "count": 5,
+      "count": 2,
       "surface": "update check",
       "web": "GET /api/update/check",
       "desktop": "GET /api/update/check plus the signed updater's own comparison"
@@ -221,10 +221,26 @@
     {
       "file": "app/src/lib/useUpdateCheck.ts",
       "marker": "isDesktopShell",
-      "count": 3,
+      "count": 2,
       "surface": "update check",
       "web": "false; the feed decides",
       "desktop": "true; install and relaunch are offered"
+    },
+    {
+      "file": "app/src/lib/updateCheckRun.ts",
+      "marker": "__TAURI__",
+      "count": 3,
+      "surface": "update check, run outside React",
+      "web": "GET /api/update/check, including the merges the backend reports on the main channel",
+      "desktop": "GET /api/update/check plus the signed updater's own comparison and the bundle version"
+    },
+    {
+      "file": "app/src/lib/updateCheckRun.ts",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "update check, run outside React",
+      "web": "false; the feed decides",
+      "desktop": "true; the updater's comparison decides, and the main channel points at the comparison page"
     },
     {
       "file": "app/src/components/dashboard/settings/index.tsx",
