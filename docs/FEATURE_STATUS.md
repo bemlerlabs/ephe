@@ -22,6 +22,11 @@ exist first, and nothing in the product claims it until it does.
 | File/PDF/Office workflows | Active | Local file access is restricted by tool policy; artifacts get inline previews |
 | Shell/desktop actions | Active | Approval-gated, per-segment command whitelist |
 | **Plugins (Extensions 1.0)** | **Active** | Manifest-based bundles (skills, commands, agents, hooks, MCP) — versioned, sha256-hashed, ES256-signed, switchable per plugin with a master kill-switch; marketplace + `ephe plugin` CLI |
+| Marketplace rows | Active | Each plugin card draws the plugin's own icon with a monogram fallback, switches it with the same control everywhere, and names its state in words; the sixteen shipped icons are pairwise distinct and on the Warm-Ink palette, held by `plugins.svg.test.ts` |
+| Skills Studio | Active | Settings → Capabilities: a pack shows its first six skills and expands to all of them, every skill carries a trigger chip that opens the chat with it, provenance shows both the everyday seal and the full `content_hash`, and the builder card writes a new skill through `core/skill_builder.py` |
+| Tool catalog | Active | `/tools` lists every registered tool with its description and whether it runs without asking; the badge reads `SAFE_TOOLS`, the list the approval gate itself uses, so a row cannot advertise a freedom the guard would refuse |
+| Live state stream | Active | `GET /api/events/multiplex` sends one complete snapshot of the cell and the fleet whenever either changed, woken by the state writer with a 250 ms tick as fallback; the 3 s and 5 s polls stay only for a browser without a stream. It detects change, it is not an event hook, so the `<8 ms` target in the directives is not what this number means |
+| Swarm token accounting | Active | The deck's agent line carries the tokens the engine reported for that agent, the envelope line carries the merge ratio, and both come from the engine's own usage report; an engine that reports none shows no number rather than a filled-in one |
 | v2 experiments | Experimental | Not the main product surface |
 
 Known limits that this table does not capture:
