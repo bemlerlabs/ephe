@@ -10,6 +10,7 @@
 import { useTranslation } from 'react-i18next'
 import { Command } from 'lucide-react'
 import type { PlanCardSpec } from '@/types'
+import { PaperMothGlyph } from '@/components/brand/PaperMothGlyph'
 import './AgenticBar.css'
 
 export type RunState = 'ready' | 'working' | 'waiting' | 'done'
@@ -64,7 +65,7 @@ export default function AgenticBar({
         data-testid="workbench-state"
         className="inline-flex shrink-0 items-center gap-1.5 text-ui-xs text-ink-soft"
       >
-        <span className="ephe-run-mark h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+        <PaperMothGlyph size="18px" className="ephe-run-mark" testId="agentic-moth" />
         {t(`workbench.${state}`)}
       </span>
       {goal && (

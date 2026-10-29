@@ -44,7 +44,7 @@ for (const abs of walk(SRC)) {
   const file = relative('.', abs)
   if (file.endsWith('shell/HeroMark.tsx')) continue
   const text = readFileSync(abs, 'utf8')
-  for (const m of text.matchAll(/<(EpheMark|HeroMark)\b/g)) {
+  for (const m of text.matchAll(/<(EpheMark|HeroMark|PaperMoth)\b/g)) {
     const size = /size="([^"]+)"/.exec(text.slice(m.index!, m.index! + 400))?.[1]
     if (!size) continue
     // The exception marker has to sit in the 400 characters before the element, which is
@@ -74,8 +74,14 @@ describe('the mark size contract (ONBOARDING_FILM)', () => {
     expect(
       placements.some((p) => p.component === 'HeroMark' && /pages\/SetupPage/.test(p.file)),
     ).toBe(true)
+    // The welcome hero is the living moth now; it still has to sit at or above 48 px.
     expect(
-      placements.some((p) => p.component === 'HeroMark' && /WelcomeEmptyState/.test(p.file)),
+      placements.some(
+        (p) =>
+          (p.component === 'PaperMoth' || p.component === 'HeroMark') &&
+          /WelcomeEmptyState/.test(p.file) &&
+          toPx(p.size) >= 48,
+      ),
     ).toBe(true)
   })
 

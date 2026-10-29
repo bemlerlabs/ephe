@@ -18,7 +18,7 @@ import './WelcomeEmptyState.css'
 import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
 import EphemeralWordmark from './EphemeralWordmark'
 import { EpheMark } from '@/components/shell/EpheMark'
-import { HeroMark } from '@/components/shell/HeroMark'
+import { PaperMoth } from '@/components/brand/PaperMoth'
 import { CompanionActor, type CompanionHandle } from '@/components/shell/CompanionActor'
 
 interface WelcomeEmptyStateProps {
@@ -98,7 +98,7 @@ export default function WelcomeEmptyState({ onStartMission }: WelcomeEmptyStateP
              is the user's own choice of the quiet vector form; its shape lands in Wave 5. */
           <EpheMark state="condense" size="4rem" testId="ephe-mark-hero" className="mb-3" />
         ) : (
-          <HeroMark size="4rem" testId="ephe-mark-hero" className="mb-3" />
+          <PaperMoth state="ready" unfold size="7rem" testId="ephe-mark-hero" className="mb-3" />
         )}
         {/* I2 clean empty state (reference look): a time-of-day greeting, a
           subdued brand name, no tile/version line — the first impression stays

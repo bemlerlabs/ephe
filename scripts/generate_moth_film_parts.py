@@ -11,6 +11,7 @@ Writes, into `app/public/onboarding/`:
   paper-moth-wing-l.[png|webp]  everything left of the body axis
   paper-moth-wing-r.[png|webp]  everything right of it
   paper-moth-thread.[png|webp]  the crimson ties, the one red the film carries
+  paper-moth-body.[png|webp]    the body strip, so a flap can turn the wings alone
 """
 from __future__ import annotations
 
@@ -59,9 +60,11 @@ def _crop(image: Image.Image) -> Image.Image:
 
 
 def _masked(image: Image.Image, columns: slice) -> Image.Image:
+    """A half on the master's own canvas: both halves then share one geometry, so a
+    placement at 0/0/100%/100% lines them up instead of guessing per-crop offsets."""
     px = np.asarray(image, dtype=np.uint8).copy()
     px[:, columns, 3] = 0
-    return _crop(Image.fromarray(px, mode="RGBA"))
+    return Image.fromarray(px, mode="RGBA")
 
 
 def _thread(image: Image.Image) -> Image.Image:
@@ -76,6 +79,14 @@ def _thread(image: Image.Image) -> Image.Image:
     return _crop(Image.fromarray(out, mode="RGBA"))
 
 
+def _body(master: Image.Image, axis: int, half: int = 60) -> Image.Image:
+    """The body strip around the axis, on the master's canvas for the same reason."""
+    px = np.asarray(master, dtype=np.uint8).copy()
+    px[:, : max(0, axis - half), 3] = 0
+    px[:, axis + half :, 3] = 0
+    return Image.fromarray(px, mode="RGBA")
+
+
 def main() -> int:
     if not MASTER.is_file():
         raise SystemExit(f"missing master: {MASTER} (run scripts/extract_moth_master.py)")
@@ -84,10 +95,11 @@ def main() -> int:
     axis = _body_axis(master)
 
     parts = {
-        "paper-moth-actor": _crop(master),
+        "paper-moth-actor": master,
         "paper-moth-wing-l": _masked(master, slice(axis, master.width)),
         "paper-moth-wing-r": _masked(master, slice(0, axis)),
         "paper-moth-thread": _thread(master),
+        "paper-moth-body": _body(master, axis),
     }
     written = []
     for name, image in parts.items():

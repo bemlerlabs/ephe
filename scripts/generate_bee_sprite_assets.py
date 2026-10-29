@@ -53,6 +53,11 @@ def _tile(actor: Image.Image, size: int, padding: float = 0.10,
     radius = round(size * 0.21) if rounded else 0
     draw.rounded_rectangle((inset, inset, size - inset, size - inset), radius=radius,
                            fill=GROUND + (255,))
+    # The tile's fine bevel: one unit of #2E2926, the same edge the app's panels carry,
+    # so the paper reads as lying on a surface rather than floating in a void.
+    if rounded and size >= 64:
+        draw.rounded_rectangle((inset, inset, size - inset, size - inset), radius=radius,
+                               outline=(46, 41, 38, 255), width=max(1, round(size / 512)))
 
     glow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     ImageDraw.Draw(glow).ellipse(
