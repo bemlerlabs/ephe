@@ -65,19 +65,61 @@ export interface ToolCatalogRow {
   name: string
   description: string
   safe: boolean
+  /** Built-in, plugin, MCP remote or skills. Absent on an older server. */
+  kind?: 'builtin' | 'plugin' | 'mcp' | 'skills'
+  /** False when the user switched this tool off. */
+  enabled?: boolean
+  /** True for the bridge tools the turn cannot run without. */
+  locked?: boolean
 }
 
 export interface CapabilitiesView {
-  subagent: { tools: string[]; tool_count: number; max_iterations: number; read_only: boolean }
+  subagent: {
+    tools: string[]
+    tool_count: number
+    max_iterations: number
+    read_only: boolean
+    /** The stock list and the user's own additions, kept apart. */
+    base_tools?: string[]
+    extra_tools?: string[]
+  }
   main_agent: { read_only: boolean; note: string }
   /** Absent on an older server; the catalog card then stays hidden. */
-  tools?: { tools: ToolCatalogRow[]; count: number; safe_count: number }
+  tools?: {
+    tools: ToolCatalogRow[]
+    count: number
+    safe_count: number
+    enabled_count?: number
+    locked?: string[]
+  }
   mcp_sandbox?: McpSandboxView
 }
 
 /** What each agent kind may do, read from the guard rather than a copy. */
 export function getCapabilities(): Promise<CapabilitiesView> {
   return request<CapabilitiesView>('/api/capabilities')
+}
+
+/** Switch one tool on or off. 409 means the tool is locked on. */
+export function setCapability(
+  name: string,
+  enabled: boolean,
+): Promise<{ name: string; enabled: boolean }> {
+  return request(`/api/capabilities/${encodeURIComponent(name)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  })
+}
+
+/** Replace the names the user adds to the sub-agent's read-only whitelist. */
+export function setSubagentAllowlist(names: string[]): Promise<{
+  extra_tools: string[]
+  tools: string[]
+}> {
+  return request('/api/capabilities/subagent-allowlist', {
+    method: 'PUT',
+    body: JSON.stringify({ names }),
+  })
 }
 
 export function getSettings(): Promise<AppSettings> {
