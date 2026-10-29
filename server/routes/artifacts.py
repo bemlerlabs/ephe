@@ -21,7 +21,6 @@ import io
 import mimetypes
 import os
 import re
-import shutil
 import zipfile
 from pathlib import Path
 from urllib.parse import quote
@@ -377,7 +376,11 @@ async def adopt_artifact(artifact_id: str, request: ArtifactAdoptRequest) -> dic
             detail=f"'{dest.name}' exists and is not this artifact's own copy.",
         )
     try:
-        shutil.copyfile(source, dest)
+        # E3: an adopted file lands whole or not at all — the same doctrine the
+        # change-set publisher follows, at one-file scale.
+        from core.atomic_publish import publish_file
+
+        publish_file(source, dest)
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"adopt failed: {exc}") from exc
     digest = workbench.content_hash(dest)

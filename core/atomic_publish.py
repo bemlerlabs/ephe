@@ -77,6 +77,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# The single-file form of the same doctrine (an adopted artifact has no change
+# set); re-exported here so callers keep one entry point for atomic publishing.
+from core.atomic_file import publish_file  # noqa: F401
+
 DEFAULT_MESSAGE = "chore(publish): apply change set atomically"
 _ZERO = "0" * 40
 
