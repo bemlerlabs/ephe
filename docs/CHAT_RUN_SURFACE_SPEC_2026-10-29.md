@@ -56,7 +56,7 @@ the order it happened, with the working visible on request and nothing else.
 
 ## 5. "Look at my project and start it"
 
-A request in plain words ("schau dir das Projekt an und starte es") must lead to
+A request in plain words ("look at the project and start it") must lead to
 the project's own start command, found in the workspace (package scripts,
 Makefile, docker compose), run on a free local port, with the URL reported. The
 sandbox must allow a loopback listener for this case (it currently refuses

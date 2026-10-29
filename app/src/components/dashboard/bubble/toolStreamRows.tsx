@@ -3,7 +3,7 @@ import { ChevronRight, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useDeepBool, useDeepSelect } from '@/lib/deepSettings'
 import { audienceOf, proofText } from '@/lib/proofAudience'
-import { fmtMs } from '@/lib/format'
+import { fmtDurationUnits, fmtMs } from '@/lib/format'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import ToolCallDisplay from '../ToolCallDisplay'
 import { ICONS } from '../ToolCallDisplay'
@@ -17,12 +17,24 @@ import { classifyToolCall } from '@/lib/toolCardModel'
  * summary), the chevron expands the existing family cards
  * (ToolCallDisplay) as details — plain in the stream instead of chips-in-one-block.
  */
+function LiveElapsed({ since }: { since: number }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+  return <>{fmtDurationUnits(Math.max(0, now - since))}</>
+}
+
 export function ToolStreamRows({
   tool_calls,
   streaming,
+  startTs,
 }: {
   tool_calls: ToolCallShape[]
   streaming?: boolean
+  /** Wall clock of the turn's first frame: the running block counts from it. */
+  startTs?: number
 }) {
   const { t } = useTranslation()
   const showCount = useDeepBool('chat.show_tool_count', true)
@@ -53,7 +65,6 @@ export function ToolStreamRows({
     >
       {groups.map((g, i) => {
         const key = `${g.family}-${i}`
-        const open = openGroup === key
         const RowIcon =
           ICONS[classifyToolCall(g.calls[0] as Parameters<typeof classifyToolCall>[0]).icon] ??
           ICONS.wrench
@@ -66,6 +77,9 @@ export function ToolStreamRows({
         // "Working" (honest status, otherwise the spinner sticks forever).
         const live = streaming !== false
         const running = live && doneCount < g.count
+        // The step that is running shows its work; a finished one folds back to
+        // one line. A click wins over both, for the rest of the turn.
+        const open = openGroup === key || (running && !touched.current)
         // P3 : status suffix at the end of the row — Working/Completed/
         // Failed; running beats failed (the group is still working).
         const rowStatus: 'running' | 'done' | 'failed' = running
@@ -97,6 +111,18 @@ export function ToolStreamRows({
         // the muted 11px ink at 3.85:1; the row's ink moves onto --color-ink-soft there.
         return (
           <div key={key} data-testid={`tool-stream-row-${g.family}`}>
+            {running && startTs ? (
+              <div
+                data-testid="tool-run-header"
+                className="flex items-center gap-1.5 px-1.5 pt-1 text-ui-xs text-ink-faint"
+              >
+                <Loader2 className="h-3 w-3 animate-spin text-brand" aria-hidden="true" />
+                <span>{t('chat.runRunning')}</span>
+                <span className="tabular-nums text-ink-soft">
+                  <LiveElapsed since={startTs} />
+                </span>
+              </div>
+            ) : null}
             <button
               type="button"
               data-testid={running ? 'tool-stream-row-active' : undefined}

@@ -19,6 +19,7 @@ import {
 import WelcomeEmptyState from '../WelcomeEmptyState'
 import { BudgetContinueCard } from '../BudgetContinueCard'
 import { SolInsightCard } from '../SolInsightCard'
+import { StepPill } from '../StepPill'
 import ChatSkeleton from './ChatSkeleton'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
@@ -724,6 +725,16 @@ export default function ChatLayout() {
                       message glides under the input instead of stopping at its edge. */}
                   <div aria-hidden="true" className="composer-veil" />
                   {/* G1.4: floating scroll-to-bottom (only when not pinned) */}
+                  {isTyping && runData.plan && (
+                    <StepPill
+                      step={
+                        (runData.plan.items.findIndex((s) => s.status === 'active') + 1) ||
+                        Math.min(planDone + 1, planTotal)
+                      }
+                      total={planTotal}
+                      onJump={pinToBottom}
+                    />
+                  )}
                   {!isPinned && (
                     <button
                       onClick={pinToBottom}

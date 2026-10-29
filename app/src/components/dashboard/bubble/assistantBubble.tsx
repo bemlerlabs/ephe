@@ -177,6 +177,7 @@ export function AssistantBubble({
               tool_calls={m.tool_calls ?? []}
               thinkingPhases={m.thinkingPhases ?? []}
               streaming={m.streaming}
+              startTs={m.timestamp}
             />
           </div>
         </>

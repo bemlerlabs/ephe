@@ -469,7 +469,9 @@
     "solLearned": "A rule for this project was learned",
     "solOpen": "View / Edit",
     "ranOneTool": "Ran 1 tool",
-    "ranTools": "Ran {{count}} tools"
+    "ranTools": "Ran {{count}} tools",
+    "runRunning": "Running",
+    "stepPill": "Step {{n}} / {{total}}"
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",

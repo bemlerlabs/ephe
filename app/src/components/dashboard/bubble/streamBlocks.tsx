@@ -39,11 +39,14 @@ export function StreamBlocks({
   tool_calls,
   thinkingPhases,
   streaming,
+  startTs,
 }: {
   blocks: MessageBlock[]
   tool_calls: ToolCall[]
   thinkingPhases: ThinkingPhase[]
   streaming?: boolean
+  /** The turn's first frame: the running block counts its elapsed time from it. */
+  startTs?: number
 }) {
   const byId = useMemo(() => {
     const map = new Map<string, ToolCall>()
@@ -88,7 +91,12 @@ export function StreamBlocks({
         ) : seg.kind === 'thinking' ? (
           <ThinkingBlock key={`h-${i}`} thinking={seg.phase} />
         ) : (
-          <ToolStreamRows key={`g-${i}`} tool_calls={seg.calls} streaming={streaming} />
+          <ToolStreamRows
+            key={`g-${i}`}
+            tool_calls={seg.calls}
+            streaming={streaming}
+            startTs={startTs}
+          />
         ),
       )}
       {streaming && (

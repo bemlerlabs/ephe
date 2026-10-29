@@ -13,6 +13,7 @@ vi.mock('react-i18next', () => ({
         'chat.ranOneTool': 'Ran 1 tool',
         'chat.ranTools': 'Ran {{count}} tools',
         'chat.rowWorking': 'Working',
+        'chat.runRunning': 'Running',
         'chat.rowFailed': 'Failed',
         'streamGroup.terminal': 'Terminal',
         'streamGroup.count': '{{count}} calls',
@@ -79,12 +80,17 @@ describe('ToolStreamRows — a finished step is one calm line', () => {
     expect(container.textContent ?? '').not.toContain('{{')
   })
 
-  it('keeps the live row: spinner, working state and one running duration', () => {
+  it('opens the running step, counts its time and keeps one live duration', () => {
     const running = [
       { id: 't1', name: 'run_shell', args: { command: 'pytest -q' }, status: 'done', duration_ms: 13 },
       { id: 't2', name: 'run_shell', args: { command: 'ruff check .' }, status: 'pending' },
     ]
-    render(<ToolStreamRows tool_calls={running as never} streaming />)
+    render(<ToolStreamRows tool_calls={running as never} streaming startTs={Date.now() - 245_000} />)
+    // The running step shows its work without a click, and the header counts from
+    // the turn's first frame (the reference block reads "Running · 245s").
+    expect(screen.getByTestId('tool-run-header').textContent).toContain('Running')
+    expect(screen.getByTestId('tool-run-header').textContent).toContain('4m 5s')
+    expect(screen.getByTestId('tool-cards')).toBeTruthy()
     expect(screen.getByTestId('tool-row-spinner')).toBeTruthy()
     expect(screen.getByTestId('tool-row-status').textContent).toContain('Working')
     expect(screen.getByTestId('tool-duration-chip')).toBeTruthy()

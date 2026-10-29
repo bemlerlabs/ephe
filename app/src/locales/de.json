@@ -469,7 +469,9 @@
     "solLearned": "Eine Regel für dieses Projekt wurde gelernt",
     "solOpen": "Ansehen / Bearbeiten",
     "ranOneTool": "1 Werkzeug ausgeführt",
-    "ranTools": "{{count}} Werkzeuge ausgeführt"
+    "ranTools": "{{count}} Werkzeuge ausgeführt",
+    "runRunning": "Läuft",
+    "stepPill": "Schritt {{n}} / {{total}}"
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
