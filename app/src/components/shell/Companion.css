@@ -306,6 +306,12 @@ body.ephe-tour-open [data-testid='ephe-mark-hero'] {
 }
 .workspace-companion .companion-actor {
   cursor: pointer;
+  /* The figure is the handle: a press on it moves the pet instead of scrolling
+     the page it happens to float over. */
+  touch-action: none;
+}
+.workspace-companion[data-dragging='true'] .companion-actor {
+  cursor: grabbing;
 }
 
 @media (max-width: 1100px) {

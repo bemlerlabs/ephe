@@ -1,5 +1,5 @@
 /**
- * The companion in the active chat: the bee (or the spark) that outlives the
+ * The companion in the active chat: the moth (or the spark) that outlives the
  * onboarding. It sits above the composer, moves toward the answer while the
  * engine works, and opens its quick panel on click.
  *
@@ -10,6 +10,7 @@
  * header perch's place; this surface stays out of it.
  */
 import './Companion.css'
+import { useRef } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useDeepBool, useDeepNumber, useDeepSelect } from '@/lib/deepSettings'
 import type { RunState } from './AgenticBar'
@@ -18,6 +19,7 @@ import type { CompanionSpecies } from './CompanionActor'
 import { companionMood } from './companionState'
 import { useCompanionCopilot } from '@/lib/useCompanionCopilot'
 import { useSetupRepair } from '@/lib/companionRepair'
+import { useCompanionDrag } from './useCompanionDrag'
 import type { CopilotMode } from '@/lib/companionCopilot'
 import { useTranslation } from 'react-i18next'
 
@@ -43,6 +45,13 @@ export default function WorkspaceCompanion({
   const mood = companionMood(runState)
   const still = Boolean(reduced) || !animationsEnabled || mood === 'still' || mood === 'settle'
   const repairVisible = useSetupRepair()
+  const box = useRef<HTMLDivElement>(null)
+  // Only the figure itself starts a drag: the copilot chip and the open panel
+  // carry their own controls, and a press on one of them is a press on it.
+  const pet = useCompanionDrag(
+    box,
+    (target) => target instanceof Element && target.closest('[data-testid="companion-trigger"]') !== null,
+  )
   // The co-pilot loop runs in exactly one surface: the perch the register chose.
   // A second instance would approve the same prompt twice. The creature itself
   // is also on the welcome screen — the header switch refused to show anything
@@ -74,6 +83,10 @@ export default function WorkspaceCompanion({
 
   return (
     <div
+      ref={box}
+      style={pet.style}
+      {...pet.handlers}
+      data-dragging={pet.dragging ? 'true' : undefined}
       data-testid="workspace-companion"
       data-behavior={behavior}
       data-species={form}
