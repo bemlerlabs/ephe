@@ -1032,8 +1032,7 @@ class SwarmOrchestrator:
         self._synth_tokens = None
         final = await self._synthesize(subtasks, results)
         # What the orchestrator actually carried: the agents' own context next to
-        # the brief the merge step read. Both numbers are engine-reported; the
-        # difference is arithmetic, not an estimate.
+        # the brief the merge step read, both from the engine's own usage report.
         usage = self._synth_tokens or {}
         tokens = {
             "agent_in": sum(
