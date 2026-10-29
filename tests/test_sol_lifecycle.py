@@ -63,6 +63,26 @@ class TestOrganizer:
         assert second["fingerprint"] != first["fingerprint"]
         assert "lint: `pnpm run lint`" in second["commands"]
 
+    def test_a_start_command_comes_with_the_one_way_to_run_it(self, workspace):
+        from core.sol import organizer
+
+        header = organizer.map_header()
+        assert header is not None
+        assert "run_shell(run_in_background=true)" in header
+        assert "report the address" in header
+
+    def test_a_workspace_without_a_start_command_gets_no_hint(self, tmp_path, monkeypatch):
+        from core import workspace_rules
+        from core.sol import organizer
+
+        root = tmp_path / "lib"
+        (root / "pyproject.toml").parent.mkdir(parents=True, exist_ok=True)
+        (root / "pyproject.toml").write_text('[project]\nname = "lib"\n')
+        monkeypatch.setattr(workspace_rules, "resolve_workspace_dir", lambda: str(root))
+        header = organizer.map_header()
+        assert header is not None
+        assert "run_in_background" not in header
+
     def test_the_header_stays_inside_the_prompt_budget(self, workspace):
         from core.sol import organizer
 
