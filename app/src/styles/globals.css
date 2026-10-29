@@ -196,6 +196,10 @@
      answer what the being is made of, so they stand once here and hold on paper
      as well: the drawing reads the same on either ground, and only the glass wing
      and the brand roles above bend with the theme. */
+  --color-figure-paper: #EFE6D2;     /* the moth's sheet */
+  --color-figure-paper-lit: #FBF5E6; /* the lit face of a fold */
+  --color-figure-paper-shade: #D8C9AC; /* turned-away face, crease */
+  --color-figure-paper-body: #C8B591; /* the rolled body slip */
   --color-figure-soot: #221A15;      /* body, fringe, brow cuts */
   --color-figure-plate: #33221A;     /* comb plates, antenna balls */
   --color-figure-fur: #563323;       /* brim, foot stubs */
