@@ -209,3 +209,28 @@ class TestMarkerIdempotence:
         raw = (persona_env / "persona.md").read_text(encoding="utf-8")
         assert raw.count("[persona]") == 0, "stored file must stay marker-free"
         assert load_persona().count("[persona]") == 1
+
+
+class TestTheDefaultWorkContract:
+    """The four rules the product's own behaviour depends on, in the seed persona.
+
+    They were learned from the field: claims without a tool result, "start my
+    project" read as a question, a switched-off tool silently faked, and a long
+    run going quiet. A new install must not relearn them.
+    """
+
+    def test_the_seed_persona_states_proof_start_switches_and_long_runs(self):
+        from core.persona import DEFAULT_PERSONA
+
+        text = DEFAULT_PERSONA.lower()
+        assert "tool result" in text, "no proof-first rule"
+        assert "start command" in text, "no start-my-project rule"
+        assert "capabilities" in text, "no switched-off-capability rule"
+        assert "background" in text, "no long-run rule"
+
+    def test_the_seed_persona_stays_identity_free(self):
+        from core.persona import DEFAULT_PERSONA
+
+        # Identity is the generated block's job; a name here would drift from it.
+        assert "ephe" not in DEFAULT_PERSONA.lower()
+
