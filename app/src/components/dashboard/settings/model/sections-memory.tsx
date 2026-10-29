@@ -14,12 +14,18 @@
  */
 import { Ban, Database, Download, FolderTree, Layers, ListChecks, Upload } from 'lucide-react'
 import PageHeader from '@/components/shell/PageHeader'
+import * as React from 'react'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
 import { exportMemoryUrl, importMemory } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
 import { DeepFields } from './deepFields'
-import { SolHeuristicsCard } from './SolHeuristicsCard'
 import type { SettingsModel } from './types'
+
+// The inspector is opened, not painted: its chunk only loads in the Memory
+// section, so the settings register keeps its own budget.
+const SolHeuristicsCard = React.lazy(() =>
+  import('./SolHeuristicsCard').then((module) => ({ default: module.SolHeuristicsCard })),
+)
 
 export function MemorySection({ model }: { model: SettingsModel }) {
   const {
@@ -141,7 +147,9 @@ export function MemorySection({ model }: { model: SettingsModel }) {
 
       {/* SOL: what this workspace learned, next to the memory it is kept apart from. */}
       <DeepFields model={model} prefixes={['sol.']} />
-      <SolHeuristicsCard t={t} />
+      <React.Suspense fallback={null}>
+        <SolHeuristicsCard t={t} />
+      </React.Suspense>
 
       <SettingsGroup icon={Ban} title={t('settings.memoryGroupDanger')}>
         <SettingsRow

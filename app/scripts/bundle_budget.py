@@ -78,8 +78,12 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # app/dist after the two sections moved into their own lazy chunks:
     # de.js 40.58 kB, en.js 36.71 kB. Both rows keep ~10% headroom. The two
     # section chunks themselves are 4.85 and 4.52 kB and need no row.
-    "de.js": 44.6,           # measured 40.58
-    "en.js": 40.4,           # measured 36.71
+    # 2026-10-29: measured again after the QD-014, QD-015 and SOL leaves landed
+    # without this row moving: de.js 44.66 kB, en.js 40.39 kB — the German half
+    # carried the studio, market and repair copy as well. The ~10% headroom rule
+    # gives both rows their new numbers.
+    "de.js": 49.1,           # measured 44.66
+    "en.js": 44.4,           # measured 40.39
     # 2026-10-14: the chat's fence highlighter is on demand, so these are lazy
     # chunks like any route chunk — but each one that passes the small ceiling
     # ships unwatched without a row here. A fence fetches core, the JS engine,
@@ -173,8 +177,8 @@ MEASURED_GZIP_KB: dict[str, float] = {
     # sidebar's dated list reads; the entry keeps the locales and relative time.
     "dates.js": 5.8,
     "dates-format.js": 3.63,
-    "de.js": 40.58,
-    "en.js": 36.71,
+    "de.js": 44.66,
+    "en.js": 40.39,
     "SettingsPanel.js": 32.97,
     "SchedulerPanel.js": 13.45,
     # 2026-10-14, same instrument and day as the budgets above.
