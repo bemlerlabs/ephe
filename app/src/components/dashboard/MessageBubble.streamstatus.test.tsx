@@ -109,4 +109,3 @@ describe('MessageBubble — a finished turn keeps one run line (PAKET X)', () =>
     expect(screen.getByTestId('activity-sa1').textContent).toContain('SubAgent e1 (explore)')
   })
 })
-

@@ -54,9 +54,7 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
 
   return (
     <>
-      {m.streaming && m.progress && !m.error && (
-        <TurnProgressLine progress={m.progress} />
-      )}
+      {m.streaming && m.progress && !m.error && <TurnProgressLine progress={m.progress} />}
 
       {/* J6: structured option card when the answer carries an AskUserQuestion JSON block */}
       {!m.streaming && isAssistant && onPickOption

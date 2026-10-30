@@ -267,9 +267,12 @@ describe('PAKET X: the capsule is the only preview in the transcript', () => {
   })
 
   it('renders no inline image, frame, video or audio', () => {
-    for (const f of [file(), file({ name: 'brief.pdf', kind: 'pdf', key: 'p1' }),
-                     file({ name: 'clip.mp4', kind: 'video', key: 'v1' }),
-                     file({ name: 'voice.mp3', kind: 'audio', key: 'a1' })]) {
+    for (const f of [
+      file(),
+      file({ name: 'brief.pdf', kind: 'pdf', key: 'p1' }),
+      file({ name: 'clip.mp4', kind: 'video', key: 'v1' }),
+      file({ name: 'voice.mp3', kind: 'audio', key: 'a1' }),
+    ]) {
       const { container, unmount } = render(<MessageFileCard file={f} />)
       expect(container.querySelector('img')).toBeNull()
       expect(container.querySelector('iframe')).toBeNull()
@@ -295,4 +298,3 @@ describe('PAKET X: the capsule is the only preview in the transcript', () => {
     expect(detail.url).not.toContain('/api/file?')
   })
 })
-
