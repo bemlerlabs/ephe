@@ -177,21 +177,27 @@ EPHE_PUBLISH_HOST=0.0.0.0 docker compose up   # then scan the in-app QR code
 
 ## After install
 
-`install.sh` installs into `~/Documents/Ephe/.venv` and edits no shell rc, so `ephe` is not on your
-`PATH` in a fresh terminal. Activate the environment first — the installer prints exactly these
-lines when it finishes:
+`install.sh` puts one launcher on your `PATH` (`~/.local/bin/ephe`) and replaces an older
+launcher at the same path, so a fresh terminal answers `ephe` directly:
 
 ```bash
-source ~/Documents/Ephe/.venv/bin/activate
-ephe configure    # choose the engine once (saved to ~/.ephe/engine.json)
-ephe doctor       # check Ollama, model and server state
-ephe tui          # CLI mode: start the terminal UI
+ephe configure    # choose the engine from the shell (optional: the app asks on first run)
+ephe doctor       # check engine, model and server state
+ephe tui          # CLI mode: the terminal app
 ephe start --open # desktop mode: start the local app, then open http://127.0.0.1:8765
 ```
 
-`source` applies to the shell it runs in, so repeat it in every new terminal (or put
-`~/Documents/Ephe/.venv/bin` on your `PATH` yourself). Without it a bare `ephe` answers
-`command not found` — the commands below all assume the environment is active:
+No engine is needed for the first start: the terminal app opens its own setup (provider,
+endpoint, API key, model) and sends nothing until you choose one.
+
+If `~/.local/bin` is not on your `PATH`, the installer prints the one `export` line. If no
+launcher could be placed at all, it prints the activation line instead:
+
+```bash
+source ~/Documents/Ephe/.venv/bin/activate
+```
+
+Without either, a bare `ephe` answers `command not found`.
 
 ```bash
 ephe doctor --fix      # apply safe local repairs

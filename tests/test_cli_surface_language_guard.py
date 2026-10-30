@@ -80,7 +80,9 @@ PRE_WAVE_INSTALLER = (
     '${GREEN}${BOLD}Setup fertig.${NC}',
 )
 
-OUTPUT_CALL = re.compile(r"^\s*(?:echo|info|warn|ok|fail|step|read)\b")
+# `run_quiet` takes its label first and prints it through `ok` when the step passes,
+# so its label is user surface like the six calls around it.
+OUTPUT_CALL = re.compile(r"^\s*(?:echo|info|warn|ok|fail|step|read|run_quiet)\b")
 SHELL_STRING = re.compile(r"'([^']*)'|\"([^\"]*)\"")
 
 
