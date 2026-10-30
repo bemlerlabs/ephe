@@ -67,18 +67,21 @@ def test_generator_follows_the_cursor_and_dedupes(monkeypatch):
 
     pages = {
         "": {
-            "metadata": {"nextCursor": "a/one:1.1.0", "count": 2},
+            "metadata": {"nextCursor": "a/one:1.1.0", "count": 3},
             "servers": [
                 {"server": {"name": "a/one", "title": "Alpha",
-                            "description": "file reading", "version": "1.0.0",
+                            "description": "read files and folders", "version": "1.0.0",
                             "packages": [{"transport": {"type": "stdio"},
                                           "runtimeHint": "npx -y alpha"}]},
                  "_meta": {"isLatest": False, "publishedAt": "2026-01-01T00:00:00Z"}},
                 {"server": {"name": "a/one", "title": "Alpha",
-                            "description": "file reading", "version": "1.1.0",
+                            "description": "read files and folders", "version": "1.1.0",
                             "packages": [{"transport": {"type": "stdio"},
                                           "runtimeHint": "npx -y alpha@1.1"}]},
                  "_meta": {"isLatest": True, "publishedAt": "2026-02-01T00:00:00Z"}},
+                {"server": {"name": "c/gamma", "title": "Gamma",
+                            "description": "the gamma provider", "version": "1.0.0"},
+                 "_meta": {"isLatest": True}},
             ],
         },
         "a/one:1.1.0": {
@@ -105,6 +108,9 @@ def test_generator_follows_the_cursor_and_dedupes(monkeypatch):
         return json.dumps(pages[cursor]).encode()
 
     monkeypatch.setattr(catalog_discover, "fetch", fake_fetch)
+    # The filter reuses the language gate's marker vocabulary; the test
+    # substitutes its own marker so no sample of foreign prose is stored here.
+    monkeypatch.setattr("language_inventory.WORD", __import__("re").compile(r"\bgamma\b"))
     count, entries, errors = catalog_discover.mirror_registry()
     assert not errors
     assert count == 2
