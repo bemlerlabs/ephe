@@ -28,6 +28,11 @@ const en = new Map(enLeaves)
 
 /** Keys whose de leaf reads exactly like its en leaf, and why that is not a leak. */
 const SAME_BY_DESIGN = new Set<string>([
+  // The Discover shelf keeps the loanword the settings already use, and a unit.
+  'discover.tabSkill',
+  'discover.kindSkill',
+  'discover.did', // {{name}}: {{what}} — the shape carries, not the word
+  'discover.cardLatency',
   // Brand and product names.
   'nav.appName', // Ephe
   'welcome.heroTitle', // Ephe Agent

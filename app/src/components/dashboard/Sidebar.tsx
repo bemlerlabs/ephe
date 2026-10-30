@@ -683,13 +683,15 @@ export default function Sidebar({
       run: () => onOpenSettings('agents'),
     },
     marketplace: {
-      // P6 B7 (ref-01): the skill store as its own nav row —
-      // jumps straight into the plugins tab of the settings.
+      // D2: the capability shelf is a page of its own now — the row that used to
+      // jump into the settings plugins tab opens /discover instead.
       testid: 'sidebar-action-marketplace',
       Icon: Store,
-      label: t('sidebar.navMarketplace'),
+      label: t('discover.nav'),
       hint: '',
-      run: () => onOpenSettings('plugins'),
+      run: () => {
+        window.location.hash = '#/discover'
+      },
     },
     files: {
       testid: 'sidebar-action-files',
