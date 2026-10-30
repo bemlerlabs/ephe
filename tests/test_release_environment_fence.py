@@ -124,6 +124,36 @@ def test_the_signing_key_is_referenced_by_the_owner_alone():
     )
 
 
+#: The weekly catalog sync is the second job that holds a token, and the shape of the job
+#: is the reason. It runs on the schedule and on a manual dispatch only, it declares no
+#: environment, and its write is the pair of scopes one push of one fixed branch and one
+#: pull request need. `_sync_exemption_holds` re-checks that shape on every run, so the
+#: exemption cannot survive the file drifting into a trigger or a scope that would reach
+#: the release path.
+SYNC_WORKFLOW = "catalog-sync.yml"
+SYNC_SCOPES = {"contents": "write", "pull-requests": "write"}
+
+
+def _sync_exemption_holds() -> bool:
+    doc = _workflows().get(SYNC_WORKFLOW)
+    if not isinstance(doc, dict):
+        return False
+    triggers = doc.get("on") if "on" in doc else doc.get(True)
+    if not isinstance(triggers, dict) or set(triggers) - {"schedule", "workflow_dispatch"}:
+        return False
+    jobs = doc.get("jobs") or {}
+    if not isinstance(jobs, dict) or not jobs:
+        return False
+    for job in jobs.values():
+        if not isinstance(job, dict):
+            return False
+        if job.get("environment"):
+            return False
+        if job.get("permissions") != SYNC_SCOPES:
+            return False
+    return True
+
+
 def test_no_workflow_outside_the_owner_reads_any_secret():
     """GIVEN `secrets.` appears only in the owning workflow THEN no other workflow can echo a
     secret into a log or hand it to a third-party action. This is broader than the two key
@@ -133,7 +163,8 @@ def test_no_workflow_outside_the_owner_reads_any_secret():
     """
     users = [p.name for p in sorted(WORKFLOWS.glob("*.yml"))
              if "secrets." in p.read_text(encoding="utf-8")]
-    assert users == [ENVIRONMENT_OWNER], (
+    allowed = [ENVIRONMENT_OWNER] + ([SYNC_WORKFLOW] if _sync_exemption_holds() else [])
+    assert users == sorted(allowed), (
         f"workflows referencing `secrets.` outside {ENVIRONMENT_OWNER}: {users}. The "
         "release token is the one credential every workflow already holds; if a job needs "
         "it, say what for in the workflow and update this test with that reason."
@@ -159,7 +190,12 @@ def test_the_only_write_scope_in_the_tree_is_the_publishing_job():
             for scope, level in block.items():
                 if str(level).strip() == "write":
                     writes.append(f"{name} {where} {scope}: write")
-    assert writes == [f"{ENVIRONMENT_OWNER} job:build-bundles contents: write"], (
+    expected = []
+    if _sync_exemption_holds():
+        expected += [f"{SYNC_WORKFLOW} job:sync contents: write",
+                     f"{SYNC_WORKFLOW} job:sync pull-requests: write"]
+    expected.append(f"{ENVIRONMENT_OWNER} job:build-bundles contents: write")
+    assert writes == expected, (
         f"unexpected write grants: {writes}. Exactly one is allowed and it must stay in the "
         "job that creates the GitHub release; `can_admins_bypass: true` on the environment "
         "means a writable token is the other thing that could reach the signing path."
