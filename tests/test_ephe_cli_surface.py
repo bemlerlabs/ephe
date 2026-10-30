@@ -99,29 +99,35 @@ def test_cmd_update_missing_installer(monkeypatch, capsys, tmp_path):
     capsys.readouterr()
 
 
-def test_cmd_update_runs_git_and_installer(monkeypatch, capsys, tmp_path):
-    monkeypatch.setattr(ephe_cli, "PROJECT_ROOT", tmp_path)
-    (tmp_path / ".git").mkdir()
-    (tmp_path / "install.sh").write_text("echo hi")
-    calls: list[list[str]] = []
+def test_cmd_update_reports_the_range_and_restart(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "core.update_apply.apply_update",
+        lambda root=None: {
+            "ok": True,
+            "reason": "",
+            "detail": "abc1234 → def5678",
+            "steps": [],
+            "restart": True,
+        },
+    )
+    assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 0
+    out = capsys.readouterr().out
+    assert "abc1234" in out and "Restart" in out
 
-    def fake_run(cmd, *_a, **_k):
-        calls.append(cmd)
-        return types.SimpleNamespace(returncode=0)
 
-    monkeypatch.setattr(ephe_cli, "_run", fake_run)
-    assert ephe_cli.cmd_update(_parser().parse_args(["update", "--json", "--model", "m1"])) == 0
-    assert calls[0] == ["git", "pull", "--ff-only"]
-    assert calls[1][0] == "bash" and calls[1][-1] == "--no-start"
-    capsys.readouterr()
-
-
-def test_cmd_update_reports_failure_exit_code(monkeypatch, capsys, tmp_path):
-    monkeypatch.setattr(ephe_cli, "PROJECT_ROOT", tmp_path)
-    (tmp_path / "install.sh").write_text("x")
-    monkeypatch.setattr(ephe_cli, "_run", lambda *_a, **_k: types.SimpleNamespace(returncode=3))
-    assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 3
-    capsys.readouterr()
+def test_cmd_update_reports_a_refusal_with_exit_one(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "core.update_apply.apply_update",
+        lambda root=None: {
+            "ok": False,
+            "reason": "dirty_tree",
+            "detail": "this checkout has local changes; commit or set them aside first",
+            "steps": [],
+        },
+    )
+    assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 1
+    out = capsys.readouterr().out
+    assert "Update stopped:" in out and "local changes" in out
 
 
 # bench

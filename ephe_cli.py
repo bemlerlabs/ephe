@@ -1337,25 +1337,20 @@ def cmd_bench(args: argparse.Namespace) -> int:
 
 
 def cmd_update(args: argparse.Namespace) -> int:
-    if args.json:
-        print(json.dumps({"ok": True, "message": "update started"}, indent=2))
-    if (PROJECT_ROOT / ".git").exists():
-        _run(["git", "pull", "--ff-only"])
+    """Fast-forward this checkout and reinstall it; git's own words never reach the user."""
+    from core.update_apply import apply_update
 
-    installer = PROJECT_ROOT / "install.sh"
-    if not installer.exists():
-        _emit_error(args, 1, "install.sh not found", "Check the project directory or run `git pull`")
+    result = apply_update()
+    if args.json:
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+    if not result.get("ok"):
+        print(f"  Update stopped: {result.get('detail') or 'the update did not run'}")
         return 1
-
-    env = os.environ.copy()
-    env["OLLAMA_HOST"] = LOCAL_OLLAMA_HOST
-    if args.model:
-        env["EPHE_MODEL"] = args.model
-    env["EPHE_NO_START"] = "1"
-    rc = _run(["bash", str(installer), "--no-start"], env=env).returncode
-    if args.json:
-        print(json.dumps({"ok": rc == 0, "exit_code": rc}, indent=2))
-    return rc
+    print(f"  {result.get('detail') or 'already current'}")
+    if result.get("restart"):
+        print("  Restart Ephe to run the new build.")
+    return 0
 
 
 def _completion_subcommands() -> list[str]:

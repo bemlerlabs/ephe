@@ -53,7 +53,10 @@ def apply_update(root: Path | None = None) -> dict[str, Any]:
     try:
         branch = _git(base, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
         if branch != "main":
-            return _refusal("not_on_main", f"this checkout is on {branch or 'no branch'}, not main")
+            return _refusal(
+                "not_on_main",
+                "this checkout is on a development branch, not on main",
+            )
         dirty = _git(base, "status", "--porcelain").stdout.strip()
         if dirty:
             return _refusal(
