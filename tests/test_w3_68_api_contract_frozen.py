@@ -60,6 +60,9 @@ Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
 The routing table carries one more /api surface than the schema documents —
 ``GET /api/docs`` (``docs_url``), pinned below — and the proxy catch-all is
 published without its ``:path`` converter; neither is a second route.
+  The Discover bench reads one route of its own, ``GET /api/audit/usage``: the audit log
+  already held per-tool call counts and only a CLI script summed them, so the number a
+  card shows had no reader on the product side. Read-only, newest window first.
 """
 from __future__ import annotations
 
@@ -98,6 +101,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/artifacts/{artifact_id}/provenance",
     "GET /api/artifacts/{artifact_id}/versions",
     "GET /api/audit",
+    "GET /api/audit/usage",
     "GET /api/capabilities",
     "GET /api/cell",
     "GET /api/change-sets",
