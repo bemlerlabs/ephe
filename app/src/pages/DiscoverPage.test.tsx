@@ -1,7 +1,7 @@
 /**
- * The page is where the seven loads meet the grid, so the proof is about what the
- * user can act on: the counts in the tabs, the bench drawn from the audit log, and
- * the one write a click is allowed to make.
+ * The page is where the one bootstrap frame meets the grid, so the proof is about
+ * what the user can act on: the counts in the tabs, the bento of our own items,
+ * the bench drawn from the audit log, and the one write a click is allowed to make.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -15,14 +15,9 @@ vi.mock('react-i18next', () => ({
 }))
 
 const api = vi.hoisted(() => ({
-  listSkills: vi.fn(),
+  getDiscoverBootstrap: vi.fn(),
   getMcpSettings: vi.fn(),
   probeMcpHealth: vi.fn(),
-  getMcpCatalog: vi.fn(),
-  getMarketHome: vi.fn(),
-  getMarketIndex: vi.fn(),
-  getMarketInstalled: vi.fn(),
-  getToolUsage: vi.fn(),
   enableSkill: vi.fn(),
   disableSkill: vi.fn(),
   putMcpSettings: vi.fn(),
@@ -38,9 +33,52 @@ import DiscoverPage from './DiscoverPage'
 const emptyIndex = { format: 1, name: 'c', owner: { name: 'Ephe' }, plugins: [] }
 
 function seed() {
-  api.listSkills.mockResolvedValue({
+  api.getDiscoverBootstrap.mockResolvedValue({
     skills: [{ name: 'pdf', trigger: 'document', description: 'Reads PDFs', is_builtin: true }],
-    total: 1,
+    sources: [
+      { id: 'main', title: 'Main', kind: 'https', url: 'u', trust: 'signed', removable: false },
+    ],
+    last_read: {},
+    last_error: {},
+    home: {
+      sources: [
+        { id: 'main', title: 'Main', kind: 'https', url: 'u', trust: 'signed', removable: false },
+      ],
+      last_read: {},
+      last_error: {},
+    },
+    index: emptyIndex,
+    catalog: [
+      {
+        id: 'maps',
+        name: 'maps',
+        description: 'Karten',
+        description_en: 'Maps',
+        category: 'geo',
+        spec: 'npx:mcp-maps',
+      },
+    ],
+    curated: [
+      {
+        id: 'web-search',
+        name: 'Web Search',
+        description: 'Search the open web',
+        category: 'web',
+        install_hint: 'npx -y web-search (stdio)',
+        docs: 'https://registry.example/v0/servers/web-search',
+        version: '1.0.0',
+        published_at: '2026-10-01T00:00:00Z',
+        source: 'registry',
+        curated_reason: 'pick',
+      },
+    ],
+    registry_count: 6606,
+    installed: [],
+    usage: {
+      tools: [{ tool: 'pdf', calls: 12, ok: 10, errors: 2, blocked: 1, last_ts: 'ts' }],
+      population: 12,
+      window: 500,
+    },
   })
   api.getMcpSettings.mockResolvedValue({ servers: ['npx:mcp-weather'], source: 'file', tools: [] })
   api.probeMcpHealth.mockResolvedValue({
@@ -54,37 +92,6 @@ function seed() {
         error: null,
       },
     ],
-  })
-  api.getMcpCatalog.mockResolvedValue({
-    entries: [
-      {
-        id: 'maps',
-        name: 'maps',
-        description: 'Karten',
-        description_en: 'Maps',
-        category: 'geo',
-        spec: 'npx:mcp-maps',
-      },
-    ],
-  })
-  api.getMarketHome.mockResolvedValue({
-    sources: [
-      { id: 'main', title: 'Main', kind: 'https', url: 'u', trust: 'signed', removable: false },
-    ],
-    last_read: {},
-    last_error: {},
-  })
-  api.getMarketIndex.mockResolvedValue({
-    status: 'ok',
-    source: { id: 'main' },
-    index: emptyIndex,
-    error: '',
-  })
-  api.getMarketInstalled.mockResolvedValue({ plugins: [] })
-  api.getToolUsage.mockResolvedValue({
-    tools: [{ tool: 'pdf', calls: 12, ok: 10, errors: 2, blocked: 1, last_ts: 'ts' }],
-    population: 12,
-    window: 500,
   })
 }
 
@@ -104,17 +111,19 @@ beforeEach(() => {
 })
 
 describe('discover page', () => {
-  it('shows the band, the counted tabs and the measured bench', async () => {
+  it('shows the band, the counted tabs, the bento and the measured bench', async () => {
     render_()
-    await waitFor(() => expect(screen.getByTestId('discover-grid')).toBeTruthy())
+    await waitFor(() => expect(screen.getByTestId('discover-sections')).toBeTruthy())
     expect(screen.getByTestId('discover-band')).toBeTruthy()
-    expect(screen.getByTestId('discover-tab-all').textContent).toContain('3')
-    expect(screen.getByTestId('discover-tab-connector').textContent).toContain('2')
+    expect(screen.getByTestId('discover-bento')).toBeTruthy()
+    expect(screen.getByTestId('discover-tab-all').textContent).toContain('4')
+    expect(screen.getByTestId('discover-tab-connector').textContent).toContain('3')
     expect(screen.getByTestId('discover-card-skill:pdf')).toBeTruthy()
+    expect(screen.getByTestId('discover-badge-connector:registry:web-search').textContent).toContain(
+      'discover.badge.pick',
+    )
     expect(screen.getByTestId('discover-bench-row-pdf').textContent).toContain('12')
     expect(screen.getByTestId('discover-bench-reach').textContent).toContain('12')
-    // One card is presented large, and it is the one already on the machine.
-    expect(screen.getByTestId('discover-card-skill:pdf').getAttribute('data-hero')).toBe('true')
   })
 
   it('adds a suggested connector by rewriting the server list', async () => {
@@ -126,6 +135,34 @@ describe('discover page', () => {
     expect(screen.getByTestId('discover-notice').textContent).toContain('discover.added')
   })
 
+  it('attaches a curated registry connector through its launch line', async () => {
+    render_()
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-card-connector:registry:web-search')).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByTestId('discover-act-connector:registry:web-search'))
+    await waitFor(() => expect(api.putMcpSettings).toHaveBeenCalledTimes(1))
+    expect(api.putMcpSettings.mock.calls[0]?.[0]).toEqual([
+      'npx:mcp-weather',
+      'stdio:npx -y web-search',
+    ])
+  })
+
+  it('opens the centred detail surface from a card', async () => {
+    render_()
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-detail-open-connector:registry:web-search')).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByTestId('discover-detail-open-connector:registry:web-search'))
+    await waitFor(() => expect(screen.getByTestId('discover-detail-summary')).toBeTruthy())
+    expect(screen.getByTestId('discover-detail-install').textContent).toContain(
+      'npx -y web-search',
+    )
+    expect(screen.getByTestId('discover-detail-permissions').textContent).toContain(
+      'discover.detailPermissionsReview',
+    )
+  })
+
   it('switches a skill off through its own route', async () => {
     render_()
     await waitFor(() => expect(screen.getByTestId('discover-card-skill:pdf')).toBeTruthy())
@@ -134,7 +171,7 @@ describe('discover page', () => {
   })
 
   it('names the lists that did not answer', async () => {
-    api.getMarketIndex.mockRejectedValue(new Error('offline'))
+    api.getDiscoverBootstrap.mockRejectedValue(new Error('offline'))
     render_()
     await waitFor(() => expect(screen.getByTestId('discover-failed')).toBeTruthy())
     expect(screen.getByTestId('discover-fail-addons')).toBeTruthy()

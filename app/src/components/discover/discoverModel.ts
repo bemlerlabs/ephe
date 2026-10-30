@@ -32,6 +32,26 @@ export interface DiscoverItem {
   spec?: string
   /** Calls measured in the audit log, when the item names a tool that was used. */
   calls?: number
+  /** The listing page this entry was drawn from, for the detail surface. */
+  docs?: string
+  /** The launch line the publisher suggests, when the entry is not attached yet. */
+  installHint?: string
+  /** Provenance the card can show: our selection, freshly published, or in the box. */
+  badge?: 'pick' | 'recent' | 'bundled'
+}
+
+/** One curated registry tier row, served by /api/discover/bootstrap. */
+export interface RegistryEntry {
+  id: string
+  name: string
+  description: string
+  category: string
+  install_hint: string
+  docs: string
+  version: string
+  published_at: string
+  source: string
+  curated_reason?: 'pick' | 'recent'
 }
 
 export interface DiscoverSources {
@@ -39,6 +59,8 @@ export interface DiscoverSources {
   mcp: McpSettings | null
   health: McpHealthServer[]
   catalog: McpCatalogEntry[]
+  registry: RegistryEntry[]
+  registryCount: number
   home: MarketHome | null
   index: MarketIndexBody | null
   installed: MarketInstalledRow[]
@@ -119,6 +141,27 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       installed: configured.has(entry.name),
       enabled: false,
       spec: entry.spec ?? entry.install_hint,
+      badge: 'bundled',
+    })
+  }
+
+  for (const entry of sources.registry) {
+    if (configured.has(entry.name)) continue
+    if (sources.catalog.some((known) => known.name === entry.name)) continue
+    items.push({
+      id: `connector:registry:${entry.id}`,
+      kind: 'connector',
+      name: entry.name,
+      title: entry.name,
+      summary: entry.description,
+      origin: 'registry',
+      categories: [entry.category],
+      installed: false,
+      enabled: false,
+      version: entry.version,
+      docs: entry.docs,
+      installHint: entry.install_hint,
+      badge: entry.curated_reason === 'recent' ? 'recent' : 'pick',
     })
   }
 
@@ -196,4 +239,17 @@ export function heroOf(items: DiscoverItem[]): DiscoverItem | null {
       (b.calls ?? 0) - (a.calls ?? 0),
   )
   return used[0] ?? null
+}
+
+/** Three cards of our own top items — the calm opening the page makes its claim with. */
+export function bentoOf(items: DiscoverItem[]): DiscoverItem[] {
+  return items
+    .filter((item) => item.origin === 'bundled')
+    .sort(
+      (a, b) =>
+        (b.calls ?? 0) - (a.calls ?? 0) ||
+        Number(b.enabled) - Number(a.enabled) ||
+        a.title.localeCompare(b.title),
+    )
+    .slice(0, 3)
 }
