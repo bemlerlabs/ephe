@@ -110,6 +110,21 @@ export default function DiscoverPage() {
     void load()
   }, [load])
 
+  const items = useMemo(() => (sources ? buildItems(sources) : []), [sources])
+
+  /** The index answers with entry ids; a card carries the kind in front of it. */
+  const intentLookup = useMemo(() => {
+    const table = new Map<string, string>()
+    for (const item of items) {
+      table.set(item.id, item.id)
+      table.set(item.name, item.id)
+      const bare = item.id.replace(/^connector:/, '')
+      table.set(bare, item.id)
+      table.set(bare.replace(/^registry:/, ''), item.id)
+    }
+    return table
+  }, [items])
+
   /** The typed phrase also asks the intent index, so a task word finds the entry. */
   const needle = query.query.trim()
   useEffect(() => {
@@ -121,7 +136,12 @@ export default function DiscoverPage() {
     const timer = window.setTimeout(() => {
       searchDiscover(needle)
         .then((hits) => {
-          if (live) setIntentIds(hits.map((hit) => hit.id))
+          if (!live) return
+          setIntentIds(
+            hits
+              .map((hit) => intentLookup.get(hit.id))
+              .filter((id): id is string => Boolean(id)),
+          )
         })
         .catch(() => {
           if (live) setIntentIds([])
@@ -131,9 +151,7 @@ export default function DiscoverPage() {
       live = false
       window.clearTimeout(timer)
     }
-  }, [needle])
-
-  const items = useMemo(() => (sources ? buildItems(sources) : []), [sources])
+  }, [needle, intentLookup])
   const shown = useMemo(
     () => rankByIntent(filterItems(items, query, intentIds), intentIds),
     [items, query, intentIds],
