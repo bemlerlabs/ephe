@@ -15,7 +15,8 @@
  * draws above its rows.
  */
 import { ABOUT_KEYS, NAV_GROUPS, navIcon } from './model'
-import { sectionsOfTab } from './model/deepRegister'
+import { sectionRevealId } from './model/deepRegister'
+import { subsOfTab } from './model/settingsParts'
 import type { DeepSection } from '@/types'
 import type { SettingsModel } from './model/buildModel'
 import type { FieldHit, RowHit } from './model/settingsSearch'
@@ -42,7 +43,7 @@ export interface RegisterNavProps {
   /** The schema's sections; the active tab lists its own beneath the row. */
   sections?: DeepSection[] | null
   t: SettingsModel['t']
-  onJump: (tab: TabKey, secKey?: string) => void
+  onJump: (tab: TabKey, revealId?: string) => void
   onSelect: (key: TabKey) => void
 }
 
@@ -109,7 +110,7 @@ export function RegisterNav({
                   key={`field-${secKey}-${label}`}
                   type="button"
                   data-testid={`settings-search-field-${secKey}-${label}`}
-                  onClick={() => onJump(tab, secKey)}
+                  onClick={() => onJump(tab, sectionRevealId(secKey))}
                   className={`${HIT_ROW} border-l-2 border-transparent text-ink-soft hover:text-ink`}
                   title={label}
                 >
@@ -154,9 +155,10 @@ export function RegisterNav({
               {group.keys.map((key) => {
                 const Icon = navIcon(key)
                 const selected = activeTab === key
-                // The second level opens under the row you are in: its sections
-                // come from the schema, and a click scrolls the page to it.
-                const subs = selected ? sectionsOfTab(sections, key) : []
+                // The second level opens under the row you are in: the register
+                // blocks come from the schema, the page blocks from TAB_PARTS, and
+                // a click lands the column on that block.
+                const subs = selected ? subsOfTab(key, sections) : []
                 return (
                   <div key={key} className="max-md:contents">
                     <button
@@ -178,15 +180,15 @@ export function RegisterNav({
                         data-testid={`settings-nav-sections-${key}`}
                         className="hidden border-l border-hairline/60 py-0.5 pl-6 md:block"
                       >
-                        {subs.map((sec) => (
+                        {subs.map((sub) => (
                           <button
-                            key={sec.key}
+                            key={sub.id}
                             type="button"
-                            data-testid={`settings-nav-section-${key}-${sec.key}`}
-                            onClick={() => onJump(key, sec.key)}
+                            data-testid={`settings-nav-part-${key}-${sub.id}`}
+                            onClick={() => onJump(key, sub.id)}
                             className="focus-ring block w-full px-2 py-1 text-left text-scale-data text-ink-faint transition-colors hover:text-ink"
                           >
-                            {t(`settings.deepSection.${sec.key}`, { defaultValue: sec.key })}
+                            {t(sub.labelKey)}
                           </button>
                         ))}
                       </div>

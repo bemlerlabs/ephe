@@ -59,7 +59,7 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
         <LoadingRow label={t('settings.loading')} data-testid="voice-loading" />
       ) : (
         <>
-          <SettingsGroup icon={Volume2} title={t('settings.audioGroupOutput')}>
+          <SettingsGroup icon={Volume2} title={t('settings.audioGroupOutput')} testid="voice-group-output">
             <SettingsRow
               icon={Cpu}
               title={t('settings.audioEngineRow')}
@@ -194,7 +194,7 @@ export function VoiceSection({ model }: { model: SettingsModel }) {
             </SettingsRow>
           </SettingsGroup>
 
-          <SettingsGroup icon={Mic} title={t('settings.audioGroupInput')}>
+          <SettingsGroup icon={Mic} title={t('settings.audioGroupInput')} testid="voice-group-input">
             <SettingsRow
               icon={Gauge}
               title={t('settings.sttModel')}

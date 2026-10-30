@@ -20,7 +20,7 @@ export function ApprovalRegister({ model }: { model: SettingsModel }) {
   const { handleSecuritySave, securityCfg, t } = model
 
   return (
-    <SettingsGroup icon={ShieldCheck} title={t('settings.privacyGroupApproval')}>
+    <SettingsGroup icon={ShieldCheck} title={t('settings.privacyGroupApproval')} testid="behaviour-group-approval">
       <SettingsRow
         icon={ShieldCheck}
         title={t('settings.privacyProfileRow')}

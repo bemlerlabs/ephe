@@ -30,7 +30,7 @@ export function renderGeneration(model: SettingsModel) {
   return (
     <div className="space-y-4">
       <PageHeader title={t('settings.generationTitle')} subtitle={t('settings.generationHint')} />
-      <SettingsGroup icon={generationIcon('temperature')} title={t('settings.generationGroup')}>
+      <SettingsGroup icon={generationIcon('temperature')} title={t('settings.generationGroup')} testid="generation-group-params">
         {DIALS.map(([key, labelKey]) => {
           const bound = meta?.[key]
           const isDe = i18n?.language === 'de'
@@ -66,7 +66,7 @@ export function renderGeneration(model: SettingsModel) {
 
       {/* Wave 2/B4: the engine's own reasoning-effort vocabulary. Unset is the
           first choice and is exactly the request shape of every earlier version. */}
-      <SettingsGroup icon={generationIcon('temperature')} title={t('settings.genReasoningGroup')}>
+      <SettingsGroup icon={generationIcon('temperature')} title={t('settings.genReasoningGroup')} testid="generation-group-reasoning">
         <SettingsRow
           icon={generationIcon('temperature')}
           title={t('settings.genReasoning')}

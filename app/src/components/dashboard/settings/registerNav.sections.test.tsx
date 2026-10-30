@@ -12,7 +12,7 @@ import type { SettingsModel } from './model/buildModel'
 const t = ((key: string) => key) as SettingsModel['t']
 const none = [] as never[]
 
-function nav(activeTab: 'appearance' | 'privacy', sections: DeepSection[]) {
+function nav(activeTab: 'appearance' | 'cron', sections: DeepSection[]) {
   const onJump = vi.fn()
   render(
     <RegisterNav
@@ -37,17 +37,17 @@ describe('settings nav sections', () => {
       { key: 'chat' } as DeepSection,
     ])
 
-    const row = screen.getByTestId('settings-nav-section-appearance-appearance')
+    const row = screen.getByTestId('settings-nav-part-appearance-deep-section-appearance')
     expect(row).toBeTruthy()
     // `chat` belongs to the behaviour tab, not this one.
-    expect(screen.queryByTestId('settings-nav-section-appearance-chat')).toBeNull()
+    expect(screen.queryByTestId('settings-nav-part-appearance-deep-section-chat')).toBeNull()
 
     fireEvent.click(row)
-    expect(onJump).toHaveBeenCalledWith('appearance', 'appearance')
+    expect(onJump).toHaveBeenCalledWith('appearance', 'deep-section-appearance')
   })
 
-  it('keeps a tab without sections a single row', () => {
-    nav('privacy', [{ key: 'appearance' } as DeepSection])
-    expect(screen.queryByTestId('settings-nav-sections-privacy')).toBeNull()
+  it('keeps a tab with neither sections nor parts a single row', () => {
+    nav('cron', [{ key: 'appearance' } as DeepSection])
+    expect(screen.queryByTestId('settings-nav-sections-cron')).toBeNull()
   })
 })

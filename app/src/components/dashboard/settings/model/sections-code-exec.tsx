@@ -118,11 +118,11 @@ export function CodeExecSection({ model }: { model: SettingsModel }) {
             )}
           </SettingsGroup>
 
-          <SettingsGroup icon={Timer} title={t('settings.codeExecGroupCeilings')}>
+          <SettingsGroup icon={Timer} title={t('settings.codeExecGroupCeilings')} testid="code-exec-ceilings">
             <CeilingRows policy={codeExecCfg} t={t} language={i18n?.language} />
           </SettingsGroup>
 
-          <SettingsGroup icon={GlobeLock} title={t('settings.codeExecGroupReach')}>
+          <SettingsGroup icon={GlobeLock} title={t('settings.codeExecGroupReach')} testid="code-exec-reach">
             <SettingsRow
               icon={GlobeLock}
               title={t('settings.codeExecNetwork')}

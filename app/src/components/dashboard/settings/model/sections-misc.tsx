@@ -133,7 +133,7 @@ export function renderPrivacy(model: SettingsModel) {
     <div className="space-y-4">
       <PageHeader title={t('settings.privacyTitle')} subtitle={t('settings.privacySubtitle')} />
 
-      <SettingsGroup icon={Eraser} title={t('settings.privacyGroupDevice')}>
+      <SettingsGroup icon={Eraser} title={t('settings.privacyGroupDevice')} testid="privacy-group-device">
         <SettingsRow
           icon={Eraser}
           title={t('settings.clearLocalData')}
