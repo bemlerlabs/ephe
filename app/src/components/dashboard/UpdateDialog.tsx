@@ -30,6 +30,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Rule } from '@/components/ui/Rule'
 import { DetailRow, NotesBody } from './UpdateNotes'
+import { UpdateFacts } from './UpdateFacts'
 import { isDesktopShell, type UpdateState } from '@/lib/updateCheckRun'
 import type { RestartBlock } from '@/lib/restartGuard'
 import { formatBytes } from '@/lib/updateDetails'
@@ -256,21 +257,12 @@ export function UpdateDialog({
                   mono
                   testId="update-details-version"
                 />
-                {state.commit && (
-                  <DetailRow
-                    label={t('update.detailsCommit')}
-                    value={state.commit}
-                    mono
-                    testId="update-details-commit"
-                  />
-                )}
-                {state.channel && (
-                  <DetailRow
-                    label={t('update.detailsChannel')}
-                    value={state.channel}
-                    testId="update-details-channel"
-                  />
-                )}
+                <UpdateFacts
+                  commit={state.commit}
+                  channel={state.channel}
+                  commitLabel={t('update.detailsCommit')}
+                  channelLabel={t('update.detailsChannel')}
+                />
                 <DetailRow
                   label={t('update.detailsSize')}
                   value={size ?? notReported}
