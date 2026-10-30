@@ -104,7 +104,7 @@ class TestSchemaView:
         _write_registry(cfg.parent, [{"name": "web-research", "enabled": False}])
         from core.tools.registry import TOOL_MAP
 
-        assert len(TOOL_MAP) == 75
+        assert len(TOOL_MAP) == 77
 
 
 class TestExecution:
