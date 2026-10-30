@@ -187,14 +187,13 @@ def _fetch_main_compare(commit: str) -> dict[str, Any]:
     status = str(data.get("status") or "")
     message = str((commits[-1].get("commit") or {}).get("message") or "") if commits else ""
     tip = str(commits[-1].get("sha") or "") if commits else ""
-    if status == "behind" and (not message or not tip):
+    if status in {"ahead", "behind"} and (not message or not tip):
         head = _fetch_head()
         message = message or head["message"]
         tip = tip or head["sha"]
     return {
-        "status": status,
+        "ahead": int(data.get("ahead_by") or 0),
         "behind": int(data.get("behind_by") or 0),
-        "sha": str((data.get("base_commit") or {}).get("sha") or ""),
         "tip": tip,
         "message": message.splitlines()[0][:160] if message else "",
     }
@@ -203,21 +202,23 @@ def _fetch_main_compare(commit: str) -> dict[str, Any]:
 def _main_channel(commit: str) -> dict[str, Any] | None:
     """The continuous channel's answer for `commit`, or None when there is none.
 
-    A lookup failure returns None rather than raising: the release answer is
-    already in hand and a secondary source going down must not erase it."""
+    A lookup failure returns None rather than raising: the release answer is in
+    hand already and a secondary source going down must not erase it."""
     try:
         main = _fetch_main_compare(commit)
     except Exception as exc:  # noqa: BLE001 — release answer stands without it
         logger.info("main-branch comparison failed: %s", exc)
         return None
-    if main["status"] != "behind" or main["behind"] <= 0:
+    # `compare/<build>...main` answers from the build's side: `ahead` is what main
+    # has and the build lacks, `behind` what the build carries and main does not.
+    if main["behind"] or main["ahead"] <= 0:
         return None
     return {
         "available": True,
         "channel": "main",
         "latest": (main["tip"] or MAIN_BRANCH)[:12],
         "commit": commit[:12],
-        "commitsBehind": main["behind"],
+        "commitsBehind": main["ahead"],
         "url": f"https://github.com/{release_repo()}/compare/{commit}...{MAIN_BRANCH}",
         "notes": main["message"],
     }
