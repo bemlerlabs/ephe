@@ -177,7 +177,6 @@ describe('ws3 a11y — ActivityFeed', () => {
       container.querySelector('[data-testid="activity-r"] svg')?.getAttribute('aria-hidden'),
     ).toBe('true')
   })
-
 })
 
 describe('ws3 a11y — MetricsGauges', () => {
