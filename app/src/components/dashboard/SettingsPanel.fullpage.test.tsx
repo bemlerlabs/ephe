@@ -134,7 +134,7 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
     for (const id of ['models', 'look', 'work', 'trust', 'system']) {
-      expect(screen.getByTestId(`settings-nav-group-${id}`)).toBeInTheDocument()
+      expect(screen.getByTestId(`settings-group-head-${id}`)).toBeInTheDocument()
     }
     for (const n of NAV) {
       const row = screen.getByTestId(`settings-nav-${n.key}`)
@@ -145,7 +145,7 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
       expect(row.querySelector('svg')?.getAttribute('stroke-width')).toBe('1.5')
     }
     for (const group of NAV_GROUPS) {
-      const id = `settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`
+      const id = `settings-group-head-${group.groupKey.replace('settings.group', '').toLowerCase()}`
       // A group head carries no 16 px row glyph; its only svg is the 12 px fold chevron.
       expect(screen.getByTestId(id).querySelector('svg.h-4')).toBeNull()
     }
@@ -158,16 +158,12 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     const first = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
     fireEvent.click(screen.getByTestId('settings-fold-models'))
-    expect(
-      screen.getByTestId('settings-fold-models').getAttribute('aria-expanded'),
-    ).toBe('false')
+    expect(screen.getByTestId('settings-fold-models').getAttribute('aria-expanded')).toBe('false')
     expect(screen.getByTestId('settings-group-rows-models').className).toContain('hidden')
     first.unmount()
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
-    expect(
-      screen.getByTestId('settings-fold-models').getAttribute('aria-expanded'),
-    ).toBe('false')
+    expect(screen.getByTestId('settings-fold-models').getAttribute('aria-expanded')).toBe('false')
   })
 
   // I5-4: the save footer belongs only on tabs whose form writes the settings.

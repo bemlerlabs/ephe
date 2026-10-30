@@ -16,7 +16,7 @@
  */
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { ABOUT_KEYS, NAV_GROUPS, navIcon } from './model'
+import { NAV_GROUPS, navIcon } from './model'
 import { sectionRevealId } from './model/deepRegister'
 import { subsOfTab } from './model/settingsParts'
 import type { DeepSection } from '@/types'
@@ -174,21 +174,14 @@ export function RegisterNav({
       {!query && (
         <div className="max-md:flex max-md:w-full max-md:gap-1 max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden max-md:[mask-image:linear-gradient(to_right,transparent_0,black_12px,black_calc(100%-28px),transparent_100%)]">
           {NAV_GROUPS.map((group) => (
-            <div
-              key={group.groupKey}
-              className="mb-2 max-md:flex max-md:items-center max-md:gap-1"
-            >
-              {/* Hidden at phone width, the chips ran as one undifferentiated strip
-                  inside a long scroll — the heading is what makes a run readable.
-                  On a wide column the heading folds its rows, and the folder keeps
-                  its memory: a register that reopens unfolded every time makes the
-                  reader pack it again. */}
-              {/* The heading names the group and stays inert; the chevron beside it is
-                  the control. The parity walk clicks every `settings-nav-*` element, so a
-                  heading that folded its own rows would hide the very rows it is walked
-                  for. */}
+            <div key={group.groupKey} className="mb-2 max-md:contents">
+              {/* The heading names the run and stays inert; the chevron beside it folds
+                  the rows, and the fold is remembered. The parity walk clicks every
+                  `settings-nav-*` element, so a heading that folded its own rows would
+                  hide the very rows it is walked for. On a phone the group is `contents`:
+                  its heading and rows sit in the one horizontal strip. */}
               <p
-                data-testid={`settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+                data-testid={`settings-group-head-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
                 className={NAV_GROUP}
               >
                 {t(group.groupKey)}
@@ -258,32 +251,6 @@ export function RegisterNav({
               </div>
             </div>
           ))}
-          <div
-            data-testid="settings-nav-group-about"
-            className="mb-2 max-md:flex max-md:items-center max-md:gap-1"
-          >
-            {ABOUT_KEYS.map((key) => {
-              const Icon = navIcon(key)
-              const selected = activeTab === key
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  data-testid={`settings-nav-${key}`}
-                  onClick={() => onSelect(key)}
-                  aria-current={selected ? 'true' : undefined}
-                  className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 border-y border-r border-dashed border-control ${
-                    selected
-                      ? 'border-l-hairline-strong text-ink'
-                      : 'border-l-transparent text-ink-soft hover:text-ink'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                  <span className="truncate">{t(`settings.${key}`)}</span>
-                </button>
-              )
-            })}
-          </div>
         </div>
       )}
     </>
