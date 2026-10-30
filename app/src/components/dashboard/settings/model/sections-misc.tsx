@@ -12,6 +12,7 @@ import { toastBus } from '@/lib/toast'
 import { SkyPanel } from '../../SkyCard'
 import { SessionStoreSection } from './sections-sessions'
 import type { SettingsModel } from './types'
+import { UpdateSection } from './UpdateSection'
 
 export function renderPersona(model: SettingsModel) {
   const {
@@ -201,6 +202,7 @@ export function renderAbout(model: SettingsModel) {
   return (
     <div className="space-y-3">
       <PageHeader title={t('settings.aboutTitle')} subtitle={t('settings.aboutSubtitle')} />
+      <UpdateSection />
       {about === null ? (
         <p className="text-ui-xs text-ink-faint">{t('settings.healthFail')}</p>
       ) : (
