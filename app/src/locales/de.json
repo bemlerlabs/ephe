@@ -2713,7 +2713,7 @@
     "removed": "Entfernt",
     "refused": "Der Katalog hat diese Installation abgelehnt.",
     "bentoEyebrow": "Von Ephe",
-    "bentoLede": "Die Skills, die diese Maschine am häufigsten nutzt – hier im Repo geschrieben.",
+    "bentoLede": "Die Skills, die diese Maschine am häufigsten nutzt – von Ephe mitgeliefert.",
     "seeAll": "Alle {{count}}",
     "cardDetail": "Details",
     "badge": {
@@ -2763,7 +2763,7 @@
     "detailTools": "Werkzeuge",
     "detailVersion": "Version",
     "detailKind": "Art",
-    "detailSource": "Gelesen aus",
+    "detailSource": "Quelle",
     "detailPermissions": "Berechtigungen",
     "detailPermissionsInstalled": "Bereits auf diesem Gerät; das Berechtigungsblatt lief bei der Installation.",
     "detailPermissionsReview": "Aktivieren führt zuerst die Berechtigungsprüfung aus: Werkzeugfamilien, Datenbereiche und nötige Schlüssel werden gezeigt, bevor etwas startet.",
