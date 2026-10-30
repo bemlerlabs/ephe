@@ -7,9 +7,10 @@ everything else is a pure local read and rides here in one frame.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 
 from core import marketplace_service, marketplace_sources
+from core.marketplace_verify import verify_entry
 from core.mcp_catalog import catalog_entries, curated_entries, registry_entries
 from server.routes.audit import get_audit_usage
 from server.routes.marketplace import market_home, market_index
@@ -38,3 +39,27 @@ async def discover_bootstrap(top: int = 12) -> dict:
         "installed": marketplace_service.installed()["plugins"],
         "usage": usage,
     }
+
+
+@router.post("/discover/dry-run")
+async def discover_dry_run(request: Request, body: dict) -> dict:
+    """The rehearsal: scan one catalog entry before anything is downloaded.
+
+    Same XHR rule as every mutation, because the rehearsal is a user action.
+    The answer names its mode so the surface never implies a live handshake."""
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "unauthorized", "detail": "X-Requested-With: XMLHttpRequest required"},
+        )
+    fields = {
+        key: str(body.get(key) or "")
+        for key in ("name", "description", "install_hint", "spec")
+        if body.get(key)
+    }
+    if not fields:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "entry_required", "detail": "nothing to rehearse"},
+        )
+    return verify_entry(fields)

@@ -34,6 +34,7 @@ from core.marketplace_planner import (
     permission_delta,
     plan,
 )
+from core import plugin_manifest
 from core.plugin_lockfile import LOCK_FILENAME, build_lockfile, write_lockfile
 from core.plugin_store import config_root
 
@@ -252,6 +253,21 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
             "delta": delta,
         }
     if result.get("status") == "extracted":
+        from core.marketplace_verify import verify_artifact, write_verdict
+        from core.plugin_versions import plugin_dir
+
+        artifact = plugin_dir(plugin_manifest.plugins_root(), name)
+        verdict = verify_artifact(artifact)
+        write_verdict(artifact, verdict)
+        result["verification"] = verdict
+        if verdict["verdict"] == "refused":
+            _audit(name, "refused", "static_check_failed")
+            return {
+                "status": "refused",
+                "code": "static_check_failed",
+                "error": "the artifact's text carries instruction or download shapes",
+                "findings": verdict["findings"],
+            }
         _invalidate()
         lock_error = _write_lock()
         _audit(

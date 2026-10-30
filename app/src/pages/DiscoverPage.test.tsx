@@ -24,6 +24,7 @@ const api = vi.hoisted(() => ({
   setPluginEnabled: vi.fn(),
   planMarketInstall: vi.fn(),
   installMarketPlan: vi.fn(),
+  dryRunEntry: vi.fn(),
 }))
 
 vi.mock('@/lib/api', () => api)
@@ -119,9 +120,9 @@ describe('discover page', () => {
     expect(screen.getByTestId('discover-tab-all').textContent).toContain('4')
     expect(screen.getByTestId('discover-tab-connector').textContent).toContain('3')
     expect(screen.getByTestId('discover-card-skill:pdf')).toBeTruthy()
-    expect(screen.getByTestId('discover-badge-connector:registry:web-search').textContent).toContain(
-      'discover.badge.pick',
-    )
+    expect(
+      screen.getByTestId('discover-badge-connector:registry:web-search').textContent,
+    ).toContain('discover.badge.pick')
     expect(screen.getByTestId('discover-bench-row-pdf').textContent).toContain('12')
     expect(screen.getByTestId('discover-bench-reach').textContent).toContain('12')
   })
@@ -155,11 +156,24 @@ describe('discover page', () => {
     )
     fireEvent.click(screen.getByTestId('discover-detail-open-connector:registry:web-search'))
     await waitFor(() => expect(screen.getByTestId('discover-detail-summary')).toBeTruthy())
-    expect(screen.getByTestId('discover-detail-install').textContent).toContain(
-      'npx -y web-search',
-    )
+    expect(screen.getByTestId('discover-detail-install').textContent).toContain('npx -y web-search')
     expect(screen.getByTestId('discover-detail-permissions').textContent).toContain(
       'discover.detailPermissionsReview',
+    )
+  })
+
+  it('rehearses a catalog entry inside the detail surface', async () => {
+    api.dryRunEntry.mockResolvedValue({ verdict: 'checked-clean', findings: [], mode: 'static' })
+    render_()
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-detail-open-connector:registry:web-search')).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByTestId('discover-detail-open-connector:registry:web-search'))
+    await waitFor(() => expect(screen.getByTestId('discover-detail-rehearse')).toBeTruthy())
+    fireEvent.click(screen.getByTestId('discover-detail-rehearse'))
+    await waitFor(() => expect(api.dryRunEntry).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId('discover-detail-verdict').textContent).toContain(
+      'discover.verdict.checked-clean',
     )
   })
 

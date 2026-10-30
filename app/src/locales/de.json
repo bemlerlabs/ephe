@@ -2727,6 +2727,13 @@
     "detailAdd": "Hinzufügen",
     "detailRemove": "Entfernen",
     "stateOnAction": "Aktivieren",
-    "stateOffAction": "Deaktivieren"
+    "stateOffAction": "Deaktivieren",
+    "dryRun": "Proberaum (statische Prüfung)",
+    "verdict": {
+      "checked-clean": "Ohne Befund",
+      "checked": "Bestanden mit Hinweisen",
+      "refused": "Abgelehnt — der Text trägt Anweisungen oder einen Download"
+    },
+    "verdictFindings": "{{count}} Befund(e)"
   }
 }
