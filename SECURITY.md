@@ -89,6 +89,12 @@ Where a finding is accepted rather than fixed, it is recorded here and in the re
 - **Engine Advisory Register** — `.github/engine-advisories.txt` covers the class the Python audit cannot see: flaws in the Rust execution engine compiled into the `wasmtime` wheel, whose advisories live in the crates.io database. Measured 2026-10-09, the locked engine version answers zero records as `wasmtime` (PyPI) and five as `wasmtime-wasi` (crates.io) — so without this file the audit reports clean about the component that runs model-authored code.
 - **Advisory ID resolution (blocking)** — `scripts/advisory_id_check.py` resolves every accepted ID against the advisory databases, by the ID itself and, when that misses, as a package/version query matched on `id` **and** `aliases`. A well-formed ID that names no advisory fails the run instead of being ignored quietly: `pip-audit --ignore-vuln` exits 0 on an ID that matches nothing, which is how an accepted risk could refer to an advisory that never existed.
 - **Cell Runtime Pin Register** — `.github/cell-runtime-fence.json` records, per published Ephemora Cell release, the licence and wheel hash read from that artifact and whether this codebase measured its policy caps; the pin admits only measured, unexpired rungs, so the settings surface cannot report caps nobody read off the runtime that enforces them.
+- **A marketplace source stays inside the owner's home folder** — a local index is a
+  file the owner names, and `core/marketplace_sources._local_index` resolves it and
+  proves it under `Path.home()` with `core/path_guard.confine` before anything is
+  opened; the credential stores and this app's own state are refused on top
+  (`path_guard.denied`), and only a `.json` index is accepted. A path outside the
+  home folder answers `outside_home` and is never read.
 - **Path expressions in the owner's own folder settings** — CodeQL's `py/path-injection`
   query cannot model the confinement this tree uses: `core/path_guard.py` resolves a value
   once and then compares it on a path-separator boundary, and the two folder settings refuse

@@ -87,6 +87,9 @@ def client(tmp_path, monkeypatch):
         market,
         [entry("1.0.0", *v1), entry("2.0.0", *v2)],
     )
+    # A local source has to sit inside the owner's home folder; the scratch directory
+    # stands in for it here.
+    monkeypatch.setattr(marketplace_sources, "_home_root", lambda: tmp_path)
     from fastapi.testclient import TestClient
 
     from server.main import create_app

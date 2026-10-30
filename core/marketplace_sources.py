@@ -158,14 +158,20 @@ def _source_id(url: str) -> str:
     return "src-" + hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
 
 
+def _home_root() -> Path:
+    return Path.home()
+
+
 def _local_index(value: str) -> Path:
-    # The owner names an index file on their own machine, so the path is theirs to choose:
-    # the guards below keep it a JSON index and out of the credential stores and this app's
-    # own state, which is all a source reader may ever be pointed at.
-    candidate = Path(str(value or "")).expanduser()  # codeql[py/path-injection]
+    # A source stays inside the owner's home folder: `confine` proves the resolved path is
+    # under that root, `denied` keeps the credential stores out, and the suffix keeps the
+    # reader on a JSON index. An index elsewhere is refused with a code the page can show.
+    candidate = Path(str(value or ""))
     if not candidate.is_absolute():
         raise SourceError("invalid_url", "a local source needs an absolute path")
-    resolved = candidate.resolve()
+    resolved = path_guard.confine(candidate, _home_root())
+    if resolved is None:
+        raise SourceError("outside_home", "a local source has to sit inside your home folder")
     if resolved.suffix != ".json":
         raise SourceError("invalid_url", "a local source needs a .json index")
     if path_guard.denied(resolved):
@@ -319,7 +325,13 @@ def read_source(
     data = load_sources()
     kind = source.get("kind")
     try:
-        if kind in {"local", "bundled"}:
+        if kind == "bundled":
+            # The bundled index is this repository's own file, not a value from a page.
+            bundled = bundled_index_path()
+            if not bundled.is_file():
+                raise SourceError("not_found", "the bundled index does not exist")
+            raw = _read_json_file(bundled)
+        elif kind == "local":
             path = _local_index(str(source.get("url") or ""))
             raw = _read_json_file(path)
         elif kind == "https":

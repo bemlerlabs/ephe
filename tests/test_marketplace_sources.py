@@ -58,6 +58,9 @@ def cfg(tmp_path, monkeypatch):
     bundled.parent.mkdir(parents=True)
     bundled.write_text(json.dumps(index_doc()), encoding="utf-8")
     monkeypatch.setenv("EPHE_MARKETPLACE_INDEX", str(bundled))
+    # A local source has to sit inside the owner's home folder; the test's scratch
+    # directory stands in for it.
+    monkeypatch.setattr(marketplace_sources, "_home_root", lambda: tmp_path)
     return root
 
 
@@ -109,6 +112,13 @@ class TestStore:
         with pytest.raises(marketplace_sources.SourceError) as exc:
             marketplace_sources.add_source("local", "Mine", str(local))
         assert exc.value.code == "refused_path"
+
+    def test_a_local_source_outside_the_home_folder_is_refused(self, cfg, tmp_path):
+        outside = tmp_path.parent / "elsewhere.json"
+        outside.write_text(json.dumps(index_doc()), encoding="utf-8")
+        with pytest.raises(marketplace_sources.SourceError) as exc:
+            marketplace_sources.add_source("local", "Mine", str(outside))
+        assert exc.value.code == "outside_home"
 
     def test_a_cache_name_cannot_leave_its_folder(self, cfg):
         with pytest.raises(marketplace_sources.SourceError):

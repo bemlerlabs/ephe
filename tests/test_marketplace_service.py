@@ -112,6 +112,9 @@ def market(tmp_path, monkeypatch):
             version_entry("2.0.0", v2, sha2),
         ],
     )
+    # A local source has to sit inside the owner's home folder; the scratch directory
+    # stands in for it here.
+    monkeypatch.setattr(marketplace_sources, "_home_root", lambda: tmp_path)
     source = marketplace_sources.add_source("local", "Test source", str(index))
     return {
         "cfg": cfg,
