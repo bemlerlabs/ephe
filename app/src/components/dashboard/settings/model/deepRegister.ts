@@ -25,6 +25,11 @@ export const SECTION_TAB: Record<string, TabKey> = {
   hooks: 'hooks',
 }
 
+/** The DOM anchor a register block is rendered under. The nav and the search both
+ *  reveal by this id, so the prefix is written once. */
+export const DEEP_PREFIX = 'deep-section-'
+export const sectionRevealId = (secKey: string): string => `${DEEP_PREFIX}${secKey}`
+
 /** The sections a tab shows, in schema order — the nav's second level reads
  *  this instead of carrying a list of its own, so a new section appears in the
  *  column the moment SECTION_TAB names its tab. */

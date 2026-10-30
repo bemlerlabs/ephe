@@ -111,9 +111,9 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
 
   const [revealTarget, setRevealTarget] = useState<string | null>(null)
   const [revealTick, setRevealTick] = useState(0)
-  const jumpTo = (tab: TabKey, secKey?: string) => {
+  const jumpTo = (tab: TabKey, revealId?: string) => {
     model.setActiveTab(tab)
-    setRevealTarget(secKey ? `deep-section-${secKey}` : null)
+    setRevealTarget(revealId ?? null)
     setRevealTick((n) => n + 1)
   }
   useEffect(() => {

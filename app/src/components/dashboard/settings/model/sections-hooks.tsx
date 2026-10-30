@@ -112,7 +112,7 @@ export function HooksSection({ model }: { model: SettingsModel }) {
           ))}
 
           {idle.length > 0 && (
-            <SettingsGroup icon={CircleSlash} title={t('settings.hooksGroupIdle')}>
+            <SettingsGroup icon={CircleSlash} title={t('settings.hooksGroupIdle')} testid="hooks-group-idle">
               {idle.map((event, i) => (
                 <SettingsRow
                   key={event.key ?? `unnamed-${i}`}
@@ -125,7 +125,7 @@ export function HooksSection({ model }: { model: SettingsModel }) {
             </SettingsGroup>
           )}
 
-          <SettingsGroup icon={Terminal} title={t('settings.hooksGroupRecent')}>
+          <SettingsGroup icon={Terminal} title={t('settings.hooksGroupRecent')} testid="hooks-group-recent">
             {recent.length === 0 ? (
               <SettingsRow
                 icon={CircleSlash}

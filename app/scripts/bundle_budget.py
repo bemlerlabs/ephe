@@ -36,8 +36,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # became its own lazy chunk, opened rather than painted. ChatPage now
     # measures 83.82 kB. 2026-10-28: the capability matrix, the stage switch and
     # the model matrix brought it to 32.97 kB; the ~10% headroom rule gives the
-    # row 36.3.
-    "SettingsPanel.js": 36.3,
+    # row 36.3. 2026-10-30: the nav's second level grew to every area, which is a
+    # table of the blocks each page renders (TAB_PARTS); measured again at 36.91,
+    # so the row is 40.6.
+    "SettingsPanel.js": 40.6,
     # 2026-10-22: the scheduler panel crossed the 12 kB small ceiling after the
     # Agent Center and Teams sections moved into their own lazy chunks. Measured
     # 13.45 kB gzip; the row carries ~10% headroom.
