@@ -1,4 +1,5 @@
 'use client'
+import { Suspense, lazy } from 'react'
 
 import { Box, Check, Eraser, Languages, Loader2 } from 'lucide-react'
 import PageHeader from '@/components/shell/PageHeader'
@@ -12,7 +13,11 @@ import { toastBus } from '@/lib/toast'
 import { SkyPanel } from '../../SkyCard'
 import { SessionStoreSection } from './sections-sessions'
 import type { SettingsModel } from './types'
-import { UpdateSection } from './UpdateSection'
+// The About tab is rare; the section carries the update hook, so it loads on demand
+// and stays out of the SettingsPanel chunk budget.
+const LazyUpdateSection = lazy(() =>
+  import('./UpdateSection').then((m) => ({ default: m.UpdateSection })),
+)
 
 export function renderPersona(model: SettingsModel) {
   const {
@@ -202,7 +207,9 @@ export function renderAbout(model: SettingsModel) {
   return (
     <div className="space-y-3">
       <PageHeader title={t('settings.aboutTitle')} subtitle={t('settings.aboutSubtitle')} />
-      <UpdateSection />
+      <Suspense fallback={null}>
+        <LazyUpdateSection />
+      </Suspense>
       {about === null ? (
         <p className="text-ui-xs text-ink-faint">{t('settings.healthFail')}</p>
       ) : (
