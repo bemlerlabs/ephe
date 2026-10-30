@@ -15,6 +15,7 @@ const SRC = (rel: string) => readFileSync(`src/${rel}`, 'utf-8')
 
 const SURFACES = [
   'pages/ArtifactsPage.tsx',
+  'pages/DiscoverPage.tsx',
   'pages/MemoryPage.tsx',
   'components/dashboard/artifacts/detail.tsx',
   'components/dashboard/artifacts/preview.tsx',
@@ -30,13 +31,11 @@ const SURFACES = [
   'components/dashboard/settings/model/sections-code-exec.tsx',
   'components/dashboard/settings/model/sections-plugins.tsx',
   'components/dashboard/settings/model/sections-tasks.tsx',
-  'components/dashboard/settings/model/sections-mcp.tsx',
 ]
 
-// sections-mcp legitimately keeps inline button spinners (health check, save);
-// every other surface draws its only spinner from the primitive.
-const NO_HAND_ROLLED_SPIN = SURFACES.filter((f) => !f.endsWith('sections-mcp.tsx'))
-
+// sections-mcp is not a surface: after its catalog moved to Discover the panel
+// has no placeholder left to draw, only the inline button spinners (health
+// check, save) that a momentary action needs.
 describe('WD-32 — the dashboard loads the same way everywhere', () => {
   it.each(SURFACES)('%s routes its loading placeholder through LoadingRow', (rel) => {
     const src = SRC(rel)
@@ -44,7 +43,7 @@ describe('WD-32 — the dashboard loads the same way everywhere', () => {
     expect(src).toContain('@/components/ui')
   })
 
-  it.each(NO_HAND_ROLLED_SPIN)('%s no longer hand-rolls a spinner', (rel) => {
+  it.each(SURFACES)('%s no longer hand-rolls a spinner', (rel) => {
     expect(SRC(rel)).not.toContain('animate-spin')
   })
 

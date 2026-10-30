@@ -1,6 +1,5 @@
 'use client'
 
-import { lazy, Suspense, useState } from 'react'
 
 import PageHeader from '@/components/shell/PageHeader'
 import { LoadingRow } from '@/components/ui'
@@ -15,11 +14,6 @@ import { ApiError } from '@/lib/api'
 import { startDisposableChat } from '@/lib/chatSeed'
 import { examplePromptFor } from '@/lib/pluginExamples'
 import { DeepFields } from './deepFields'
-const ExtensionCenter = lazy(() =>
-  import('./extensionCenter/ExtensionCenter').then((module) => ({
-    default: module.ExtensionCenter,
-  })),
-)
 import type { SettingsModel } from './types'
 
 export function renderPlugins(model: SettingsModel) {
@@ -37,7 +31,6 @@ function PluginsSection({ model }: { model: SettingsModel }) {
     setPluginQuery,
     t,
   } = model
-  const [marketView, setMarketView] = useState<'installed' | 'discover' | 'updates'>('installed')
 
   return (
     <div className="space-y-4">
@@ -47,7 +40,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
         title={t('settings.pluginsTitle')}
         subtitle={t('settings.pluginsHint')}
         actions={
-          marketView === 'installed' && pluginView ? (
+          pluginView ? (
             <span
               data-testid="plugin-count-pill"
               className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand-deep"
@@ -60,29 +53,6 @@ function PluginsSection({ model }: { model: SettingsModel }) {
           ) : undefined
         }
       />
-      <div className="flex gap-1.5" role="tablist" aria-label={t('settings.pluginsTitle')}>
-        {(['installed', 'discover', 'updates'] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={marketView === key}
-            onClick={() => setMarketView(key)}
-            data-testid={`market-tab-${key}`}
-            className={`focus-ring rounded-full px-3 py-1 text-ui-xs transition-colors ${
-              marketView === key ? 'bg-brand/15 text-brand-deep' : 'text-ink-faint hover:text-ink'
-            }`}
-          >
-            {key === 'installed'
-              ? t('settings.marketInstalled')
-              : key === 'discover'
-                ? t('settings.marketDiscover')
-                : t('settings.marketUpdates')}
-          </button>
-        ))}
-      </div>
-      {marketView === 'installed' ? (
-        <>
           <SearchInput
             value={pluginQuery}
             onChange={setPluginQuery}
@@ -355,12 +325,6 @@ function PluginsSection({ model }: { model: SettingsModel }) {
           )}
           {/* I3-V5: catalog policy belongs with the plugins, not in an expert box. */}
           <DeepFields model={model} prefixes={['plugins.']} />
-        </>
-      ) : (
-        <Suspense fallback={<LoadingRow label={t('settings.loading')} />}>
-          <ExtensionCenter model={model} view={marketView} />
-        </Suspense>
-      )}
     </div>
   )
 }

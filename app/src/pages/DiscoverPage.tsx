@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PageHeader from '@/components/shell/PageHeader'
 import { EpheMark } from '@/components/shell/EpheMark'
+import { LoadingRow } from '@/components/ui'
 import { DiscoverCard } from '@/components/discover/DiscoverCard'
 import { DiscoverFilters } from '@/components/discover/DiscoverFilters'
 import { UsageBench } from '@/components/discover/UsageBench'
@@ -229,9 +230,11 @@ export default function DiscoverPage() {
               onChange={setQuery}
             />
 
-            {shown.length === 0 ? (
+            {sources === null ? (
+              <LoadingRow label={t('discover.loading')} />
+            ) : shown.length === 0 ? (
               <p data-testid="discover-empty" className="mt-8 text-center text-ui-sm text-ink-soft">
-                {sources ? t('discover.empty') : t('discover.loading')}
+                {t('discover.empty')}
               </p>
             ) : (
               <div

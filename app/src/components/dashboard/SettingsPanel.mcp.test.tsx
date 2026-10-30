@@ -213,21 +213,5 @@ describe('SettingsPanel MCP-Tab (W44 P1c + E3c)', () => {
     expect(screen.getByTestId('mcp-health-detail-0').textContent).toContain('settings.mcpHealthOk')
   })
 
-  it('E3c: Katalog-Rows erscheinen im Tab', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="mcp" />)
-    const row = await screen.findByTestId('mcp-catalog-row-mcp-everything')
-    expect(row.textContent).toContain('Everything Server')
-  })
 
-  it('P6 B7: Katalog-Suche filtert nach Name/Beschreibung/Kategorie', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="mcp" />)
-    await screen.findByTestId('mcp-catalog-row-mcp-everything')
-    const search = screen.getByTestId('page-search') as HTMLInputElement
-    // match
-    fireEvent.change(search, { target: { value: 'everything' } })
-    expect(screen.getByTestId('mcp-catalog-row-mcp-everything')).toBeTruthy()
-    // no match -> the row disappears
-    fireEvent.change(search, { target: { value: 'netzwerk-dienst' } })
-    expect(screen.queryByTestId('mcp-catalog-row-mcp-everything')).toBeNull()
-  })
 })

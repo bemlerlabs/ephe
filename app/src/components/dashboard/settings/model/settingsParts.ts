@@ -60,7 +60,6 @@ export const TAB_PARTS: Partial<Record<TabKey, NavSub[]>> = {
     part('voice-group-input', 'settings.audioGroupInput'),
   ],
   skills: [
-    part('skills-group-install', 'settings.skillsGroupInstall'),
     part('skills-group-packs', 'settings.themedPacks'),
     part('skills-group-mine', 'settings.skillsGroupMine'),
     part('skills-group-builder', 'settings.skillBuilderTitle'),
@@ -81,7 +80,6 @@ export const TAB_PARTS: Partial<Record<TabKey, NavSub[]>> = {
   ],
   mcp: [
     part('mcp-section-servers', 'settings.mcpServers'),
-    part('mcp-section-catalog', 'settings.mcpCatalog'),
   ],
   plugins: [part('plugins-master', 'settings.pluginsGroupMaster'), register('plugins')],
   hooks: [

@@ -410,12 +410,11 @@ const DESKTOP: Shot[] = [
     name: 'register-extensions',
     phone: false,
     lang: 'en',
-    anchor: '[data-testid="market-catalog"]',
+    anchor: '[data-testid="discover-page"]',
     reach: async (p) => {
       await gotoHash(p, '/chat', '[data-testid="chat-sidebar"]')
-      await openRegister(p, 'plugins')
-      await p.getByTestId('market-tab-discover').click()
-      await expect(p.getByTestId('market-plugin-documents')).toBeVisible()
+      await p.getByTestId('sidebar-action-marketplace').click()
+      await expect(p.getByTestId('discover-page')).toBeVisible()
     },
     decision:
       'certifies the curated Extension Center: the Plugin label, first-party provenance, the measured/no line and no install action on bundled entries.',
@@ -556,12 +555,11 @@ const PHONE: Shot[] = [
     name: 'register-extensions',
     phone: true,
     lang: 'de',
-    anchor: '[data-testid="market-catalog"]',
+    anchor: '[data-testid="discover-page"]',
     reach: async (p) => {
       await gotoHash(p, '/chat', '[data-testid="chat-sidebar"]')
-      await openRegisterPhone(p, 'plugins')
-      await p.getByTestId('market-tab-discover').click()
-      await expect(p.getByTestId('market-plugin-documents')).toBeVisible()
+      await p.getByTestId('sidebar-action-marketplace').click()
+      await expect(p.getByTestId('discover-page')).toBeVisible()
     },
     decision:
       'certifies the Extension Center at 390 px in German: the quality label, provenance and measured/no line fit the phone register.',

@@ -77,9 +77,6 @@ describe('Skills-Bereich (I7-4)', () => {
 
   it('jede Gruppe fuehrt ihre Zweckzeile', () => {
     render(renderSkills(skillModel()))
-    expect(screen.getByTestId('skills-group-install').textContent).toContain(
-      'settings.skillsGroupInstallHint',
-    )
     expect(screen.getByTestId('skills-group-packs').textContent).toContain(
       'settings.skillsGroupPacksHint',
     )

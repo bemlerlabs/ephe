@@ -1,41 +1,32 @@
 'use client'
 
-import { Check, Loader2, Trash2, Activity, Plug, Library } from 'lucide-react'
+import { Check, Loader2, Trash2, Activity, Plug, } from 'lucide-react'
 import { putMcpSettings } from '@/lib/api'
-import { openExternally } from '@/lib/nativeBrowser'
+import '@/lib/nativeBrowser'
 import { toastBus } from '@/lib/toast'
 import PageHeader from '@/components/shell/PageHeader'
-import { LoadingRow } from '@/components/ui'
+import '@/components/ui'
 import { SettingsGroup } from '@/components/shell/SettingsRow'
-import SearchInput from '@/components/shell/SearchInput'
 import { McpSandboxStrip } from './McpSandboxStrip'
 import type { SettingsModel } from './types'
 
 export function renderMcp(model: SettingsModel) {
   const {
     handleMcpHealthCheck,
-    i18n,
-    mcpCatalog,
-    mcpCatalogQuery,
-    mcpHealth,
+            mcpHealth,
     mcpHealthLoading,
     mcpLoading,
     mcpSaving,
     mcpServers,
     mcpSource,
     mcpTools,
-    setMcpCatalogQuery,
-    setMcpHealth,
+        setMcpHealth,
     setMcpSaving,
     setMcpServers,
     setMcpSource,
     setMcpTools,
     t,
   } = model
-  const isDe = i18n?.language === 'de'
-  const catalogText = (e: { description: string; description_en?: string }) =>
-    isDe ? e.description : e.description_en || e.description
-
   return (
     <div className="space-y-4">
       {/* E3c: PageHeader + server cards with health dot + curated catalog.
@@ -198,82 +189,6 @@ export function renderMcp(model: SettingsModel) {
           </div>
         </div>
       )}
-      <SettingsGroup
-        icon={Library}
-        title={t('settings.mcpCatalog')}
-        description={t('settings.mcpCatalogHint')}
-        testid="mcp-section-catalog"
-      >
-        <div className="space-y-2.5 p-3">
-          {mcpCatalog !== null && mcpCatalog.length > 0 && (
-            <SearchInput
-              label={t('settings.mcpCatalogSearch')}
-              value={mcpCatalogQuery}
-              onChange={setMcpCatalogQuery}
-              placeholder={t('settings.mcpCatalogSearch')}
-            />
-          )}
-          {mcpCatalog === null ? (
-            <LoadingRow label={t('settings.loading')} />
-          ) : (
-            <div className="grid gap-2.5 lg:grid-cols-2">
-              {mcpCatalog
-                .filter((e) => {
-                  const q = mcpCatalogQuery.trim().toLowerCase()
-                  if (!q) return true
-                  return (
-                    e.name.toLowerCase().includes(q) ||
-                    catalogText(e).toLowerCase().includes(q) ||
-                    e.category.toLowerCase().includes(q)
-                  )
-                })
-                .map((e) => (
-                  <div
-                    key={e.id}
-                    data-testid={`mcp-catalog-row-${e.id}`}
-                    className="glass-reading rounded-xl p-3 space-y-1.5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-ui-xs font-medium text-foreground/90">
-                        {e.name}
-                      </p>
-                      <span className="rounded-md bg-surface px-1.5 py-0.5 text-ui-2xs text-ink-faint">
-                        {e.category}
-                      </span>
-                    </div>
-                    <p className="line-clamp-2 text-ui-xs text-ink-faint">{catalogText(e)}</p>
-                    {e.install_hint && (
-                      <p
-                        className="truncate font-mono text-ui-2xs text-ink-faint"
-                        title={e.install_hint}
-                      >
-                        {e.install_hint}
-                      </p>
-                    )}
-                    {e.docs && (
-                      <a
-                        href={e.docs}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        data-testid={`mcp-catalog-docs-${e.id}`}
-                        onClick={(ev) => {
-                          // The href stays for the PWA and for a middle click. Inside the
-                          // desktop shell `window.open` cannot leave the web view, so the
-                          // click goes through the same bridge the sidebar report link uses.
-                          ev.preventDefault()
-                          void openExternally(e.docs as string)
-                        }}
-                        className="inline-block text-ui-2xs text-brand/80 underline-offset-2 hover:underline focus-ring"
-                      >
-                        {t('settings.mcpCatalogDocs')}
-                      </a>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </SettingsGroup>
     </div>
   )
 }
