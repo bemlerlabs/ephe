@@ -151,12 +151,8 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "and return the next time it is switched on.",
     ),
     "appearance.companion_species": (
-        "Wählt die Gestalt im Arbeitsbereich: die gefaltete Papier-Motte, die "  # language-gate: ignore
-        "Feuergeist-Biene, den goldenen Funken aus dem Film oder ein ruhiges Symbol. "  # language-gate: ignore
-        "Motte und Biene tragen Flügel und Blick; der Funke bleibt eine Kugel.",  # language-gate: ignore
-        "Chooses the form in the workspace: the folded paper moth, the fire-spirit "
-        "bee, the golden spark with ghost eyes from the film, or a calm emblem. "
-        "Moth and bee carry wings and a gaze; the spark stays a single glow.",
+        "Wählt die Gestalt im Arbeitsbereich: die gefaltete Papier-Motte, die Feuergeist-Biene, den goldenen Funken aus dem Film oder ein ruhiges Symbol. Motte und Biene tragen Flügel und Blick; der Funke bleibt eine Kugel.",  # language-gate: ignore
+        "Chooses the form in the workspace: the folded paper moth, the fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. Moth and bee carry wings and a gaze; the spark stays a single glow.",
     ),
     "appearance.companion_behavior": (
         "Bestimmt Ort und Bewegung: mitfliegend und klickbar am Composer, ruhig "  # language-gate: ignore
@@ -205,12 +201,8 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "trail and buttons stay put.",
     ),
     "appearance.update_channel": (
-        "Welche Updates angeboten werden: nur veröffentlichte Releases, oder jeder "  # language-gate: ignore
-        "Merge aus main, sobald er grün ist. Der Commit-Kanal zeigt, wie viele Commits "  # language-gate: ignore
-        "der laufende Build hinter main liegt, und lässt sich direkt anwenden.",  # language-gate: ignore
-        "Which updates are offered: published releases only, or every green merge "
-        "from main as it lands. The commit channel names how many commits the running "
-        "build is behind main and can be applied in place.",
+        "Nur veröffentlichte Releases oder jeder grüne Merge aus main; der Commit-Kanal nennt den Rückstand und wendet ihn an.",  # language-gate: ignore
+        "Published releases only, or every green merge from main; the commit channel names the distance and applies it.",
     ),
     "appearance.update_check": (
         "Fragt alle 30 Minuten anonym die GitHub-Releases ab und zeigt dann das "
