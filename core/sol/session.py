@@ -46,6 +46,15 @@ _FAILURE_TITLES = {
 }
 
 
+def task_from(history: object) -> str:
+    """The request a turn answers: the newest user message that carries text."""
+    for item in reversed(list(history or [])):
+        if isinstance(item, dict) and item.get("role") == "user":
+            content = item.get("content")
+            return content if isinstance(content, str) else ""
+    return ""
+
+
 def looks_failed(text: str) -> bool:
     """Whether a tool result reports a failed run.
 
