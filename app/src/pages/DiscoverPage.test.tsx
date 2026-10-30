@@ -269,7 +269,7 @@ describe('discover page', () => {
   })
 
   it('finds a task entry whose words the card never carries', async () => {
-    api.searchDiscover.mockResolvedValue([{ id: 'connector:registry:web-search', score: -3 }])
+    api.searchDiscover.mockResolvedValue([{ id: 'web-search', score: -3 }])
     render_()
     await waitFor(() => expect(screen.getByTestId('discover-search')).toBeTruthy())
     fireEvent.change(screen.getByTestId('discover-search'), {
