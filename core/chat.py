@@ -263,16 +263,8 @@ async def chat_with_tools(
     observer.set_budget_cap(budget_cap)
     observer_token = bind_observer(observer)
 
-    from core.sol.session import close_sol_turn, open_sol_turn
+    from core.sol.session import close_sol_turn, open_sol_turn, task_from
     # SOL: a caller that wants the learned rules passes its own turn (`.learned`).
-    # The request keys the two-run comparison; a repeat only keeps its rule when
-    # it beat the previous attempt at the same task.
-    task_text = ""
-    for item in reversed(history):
-        if isinstance(item, dict) and item.get("role") == "user":
-            content = item.get("content")
-            task_text = content if isinstance(content, str) else ""
-            break
     sol, sol_token = open_sol_turn(sol_turn)  # type: ignore[arg-type]
     turn_ok = False
 
@@ -394,7 +386,7 @@ async def chat_with_tools(
     finally:
         note_turn_end()
         reset_observer(observer_token)
-        close_sol_turn(sol, sol_token, ok=turn_ok, task=task_text)  # type: ignore[arg-type]
+        close_sol_turn(sol, sol_token, ok=turn_ok, task=task_from(history))  # type: ignore[arg-type]
         # P1-4: close the upstream connection explicitly — a client disconnect
         # should leave no socket hanging in the loop. Ollama/httpx: aclose(),
         # OpenAI client: close(); stub clients in tests without either are tolerated.
