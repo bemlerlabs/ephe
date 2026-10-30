@@ -184,7 +184,11 @@ function DataRoute({ children }: { children: React.ReactNode }) {
   return (
     <GateRoute>
       <Suspense fallback={<RouteFallback />}>
-        <PageErrorBoundary>{children}</PageErrorBoundary>
+        {/* The desktop window is transparent, so a data page that paints no ground
+            shows the window material behind it. The wrapper owns the ink. */}
+        <div className="min-h-dvh bg-canvas">
+          <PageErrorBoundary>{children}</PageErrorBoundary>
+        </div>
       </Suspense>
     </GateRoute>
   )
