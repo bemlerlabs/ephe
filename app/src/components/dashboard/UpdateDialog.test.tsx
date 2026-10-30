@@ -38,6 +38,13 @@ vi.mock('react-i18next', () => ({
         'update.stepPull': 'newest commits pulled',
         'update.stepInstall': 'environment and web app reinstalled',
         'update.reload': 'Reload',
+        'update.getRelease': 'Get the release',
+        'update.technical': 'Technical detail',
+        'update.installFailed': 'The installation did not finish.',
+        'update.blocked.not_a_checkout': 'Installed from a release; it updates by replacing the app.',
+        'update.blocked.not_on_main': 'This checkout is on another branch.',
+        'update.blocked.dirty_tree': 'This checkout has local changes.',
+        'update.blocked.other': 'This build cannot pull by itself.',
       }
       const raw = map[key] ?? key
       return String(raw).replace(/\{\{(\w+)\}\}/g, (_m, n: string) =>
@@ -198,7 +205,9 @@ describe('U-3 — the running phases read as themselves', () => {
     }
     render(<UpdateDialog {...base} state={state} />)
     expect(screen.getByText('update.titleInstallFailed')).toBeTruthy()
-    expect(screen.getByText('update.installFailed')).toBeTruthy()
+    expect(screen.getByTestId('update-failed-sentence').textContent).toContain(
+      'The installation did not finish.',
+    )
     expect(screen.queryByText('update.checkFailed')).toBeNull()
     expect(screen.getByTestId('update-reason').textContent).toBe('the installer refused the bundle')
   })
@@ -266,5 +275,66 @@ describe('applying a merge that has no release yet', () => {
     expect(screen.getByText('Updated')).toBeTruthy()
     expect(screen.getByTestId('update-steps').textContent).toContain('newest commits pulled')
     expect(screen.getByTestId('update-apply-relaunch')).toBeTruthy()
+  })
+})
+
+describe('the commit path states its own closure', () => {
+  const found: UpdateState = {
+    phase: 'available',
+    progress: null,
+    channel: 'main',
+    commitsBehind: 2,
+    commit: '2a1405a8',
+    latest: 'deadbeef',
+    url: 'https://github.com/bemlerlabs/ephe/compare/2a1405a8...main',
+    releaseUrl: 'https://github.com/bemlerlabs/ephe/releases/latest',
+  }
+
+  it('offers no pull when the backend cannot pull, and says why', () => {
+    render(<UpdateDialog {...base} state={{ ...found, applyBlocked: 'not_a_checkout' }} />)
+    expect(screen.queryByTestId('update-apply')).toBeNull()
+    expect(screen.getByTestId('update-apply-blocked').textContent).toContain(
+      'Installed from a release',
+    )
+    expect(screen.getByTestId('update-release-link').getAttribute('href')).toBe(found.releaseUrl)
+  })
+
+  it('keeps the pull when the backend answered that it can run it', () => {
+    render(<UpdateDialog {...base} state={found} />)
+    expect(screen.getByTestId('update-apply')).toBeTruthy()
+    expect(screen.queryByTestId('update-apply-blocked')).toBeNull()
+  })
+
+  it('a structural refusal ends the retry loop instead of repeating it', () => {
+    const state: UpdateState = {
+      phase: 'failed',
+      progress: null,
+      failedAt: 'install',
+      reasonCode: 'not_on_main',
+      reason: 'this checkout is on a development branch, not on main',
+      releaseUrl: 'https://github.com/bemlerlabs/ephe/releases/latest',
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    expect(screen.getByTestId('update-failed-sentence').textContent).toContain(
+      'This checkout is on another branch.',
+    )
+    expect(screen.queryByTestId('update-recheck')).toBeNull()
+    expect(screen.getByTestId('update-release-link')).toBeTruthy()
+    expect(screen.getByTestId('update-reason').textContent).toContain('development branch')
+  })
+
+  it('a dirty tree stays retryable: clearing it is up to the user', () => {
+    const state: UpdateState = {
+      phase: 'failed',
+      progress: null,
+      failedAt: 'install',
+      reasonCode: 'dirty_tree',
+      reason: 'this checkout has local changes',
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    expect(screen.getByTestId('update-failed-sentence').textContent).toContain(
+      'This checkout has local changes.',
+    )
+    expect(screen.getByTestId('update-recheck')).toBeTruthy()
   })
 })

@@ -86,3 +86,33 @@ def test_the_commit_channel_reports_the_merges_ahead(monkeypatch):
     assert out["commitsBehind"] == 3
     assert out["available"] is True
     assert out["updateChannel"] == "commit"
+
+
+def test_a_main_channel_answer_carries_the_apply_verdict(monkeypatch):
+    """The surface may only offer the pull when the backend said it can run it.
+    A release install has no checkout, so the answer travels with the finding."""
+    from core import update_apply
+
+    monkeypatch.setattr(update_check, "installed_commit", lambda: "b" * 40)
+    _same_version_release(monkeypatch)
+    monkeypatch.setattr(
+        update_check,
+        "_main_channel",
+        lambda commit: {
+            "available": True,
+            "channel": "main",
+            "latest": "deadbeefcafe",
+            "commit": commit[:12],
+            "commitsBehind": 2,
+            "url": "https://github.com/bemlerlabs/ephe/compare/x...main",
+            "notes": "",
+        },
+    )
+    monkeypatch.setattr(
+        update_apply, "probe", lambda root=None: {"ok": False, "code": "not_a_checkout"}
+    )
+    update_check._reset_cache()
+    result = update_check.check_for_update(force=True)
+    assert result["channel"] == "main"
+    assert result["apply"] == {"ok": False, "code": "not_a_checkout"}
+    assert result["releaseUrl"] == "u"

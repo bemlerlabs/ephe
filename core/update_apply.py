@@ -32,6 +32,15 @@ def _git(root: Path, *args: str, timeout: int = 30) -> subprocess.CompletedProce
     )
 
 
+#: One sentence per refusal, for the log and the API reader. The surface owns
+#: the words the user sees; these travel beside the code, never instead of it.
+_REFUSAL_DETAIL = {
+    "not_a_checkout": "this installation has no git checkout; take the newest release instead",
+    "not_on_main": "this checkout is on a development branch, not on main",
+    "dirty_tree": "this checkout has local changes; commit or set them aside first",
+}
+
+
 def _step(name: str, ok: bool, detail: str) -> dict[str, Any]:
     return {"name": name, "ok": ok, "detail": detail}
 
@@ -40,29 +49,40 @@ def _refusal(reason: str, detail: str) -> dict[str, Any]:
     return {"ok": False, "reason": reason, "detail": detail, "steps": []}
 
 
+def probe(root: Path | None = None) -> dict[str, Any]:
+    """Whether this installation *can* pull the default branch, without pulling.
+
+    The surface asks before it offers the button: a build installed from a
+    release has no checkout to fast-forward, and a checkout on another branch
+    would have to be moved first, so neither is a failure a retry can cure.
+    Both are answers the dialog states up front."""
+    base = root or project_root()
+    if not (base / ".git").exists():
+        return {"ok": False, "code": "not_a_checkout"}
+    branch = _git(base, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    if branch != "main":
+        return {"ok": False, "code": "not_on_main"}
+    if _git(base, "status", "--porcelain").stdout.strip():
+        return {"ok": False, "code": "dirty_tree"}
+    return {"ok": True, "code": ""}
+
+
+def attach_channel_hint(result: dict[str, Any], release_url: str) -> None:
+    """The pull a channel offers may not be runnable here; the check says so up
+    front instead of letting the dialog offer a button that must refuse."""
+    result["apply"] = probe()
+    result["releaseUrl"] = release_url
+
+
 def apply_update(root: Path | None = None) -> dict[str, Any]:
     """Fast-forward this checkout and reinstall it, or stop with a reason."""
     base = root or project_root()
-    if not (base / ".git").exists():
-        return _refusal(
-            "not_a_checkout",
-            "this installation has no git checkout; take the newest release instead",
-        )
+    ready = probe(base)
+    if not ready["ok"]:
+        return _refusal(ready["code"], _REFUSAL_DETAIL.get(ready["code"], ""))
     if not _BUSY.acquire(blocking=False):
         return _refusal("busy", "an update is already running")
     try:
-        branch = _git(base, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-        if branch != "main":
-            return _refusal(
-                "not_on_main",
-                "this checkout is on a development branch, not on main",
-            )
-        dirty = _git(base, "status", "--porcelain").stdout.strip()
-        if dirty:
-            return _refusal(
-                "dirty_tree",
-                "this checkout has local changes; commit or set them aside first",
-            )
         steps: list[dict[str, Any]] = []
         before = _git(base, "rev-parse", "--short", "HEAD").stdout.strip()
         try:

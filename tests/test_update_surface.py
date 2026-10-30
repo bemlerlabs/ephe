@@ -58,3 +58,28 @@ def test_the_cli_reports_the_refusal_as_one_sentence(monkeypatch, capsys) -> Non
     assert "development branch" in out
     assert "git " not in out
     assert "--set-upstream" not in out
+
+
+def test_the_probe_answers_before_anything_is_offered(tmp_path: Path) -> None:
+    """The dialog asks first: a release install has no checkout to move, and a
+    branch checkout is not one a pull may take. Both come back as codes the
+    surface owns, so the user is never handed a button that must refuse."""
+    from core.update_apply import probe
+
+    assert probe(tmp_path)["code"] == "not_a_checkout"
+    (tmp_path / "b").mkdir()
+    branch = probe(_repo_on(tmp_path / "b", "internal-lane"))
+    assert branch == {"ok": False, "code": "not_on_main"}
+
+    clean = tmp_path / "c"
+    clean.mkdir()
+    _git(clean, "init", "-q", "-b", "main")
+    _git(clean, "config", "user.email", "test@example.invalid")
+    _git(clean, "config", "user.name", "test")
+    (clean / "README.md").write_text("ephe\n")
+    _git(clean, "add", "README.md")
+    _git(clean, "commit", "-q", "-m", "seed")
+    assert probe(clean) == {"ok": True, "code": ""}
+
+    (clean / "README.md").write_text("changed\n")
+    assert probe(clean)["code"] == "dirty_tree"
