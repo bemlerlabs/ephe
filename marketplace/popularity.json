@@ -1,0 +1,293 @@
+{
+  "generated": "2026-10-30T18:51:06+00:00",
+  "packages": {
+    "npm:@accesslumens/mcp": {
+      "downloads": 486,
+      "registry": "npm"
+    },
+    "npm:@appscreen/mcp": {
+      "downloads": 322,
+      "registry": "npm"
+    },
+    "npm:@athenode/cli": {
+      "downloads": 731,
+      "registry": "npm"
+    },
+    "npm:@atlasyield/mcp": {
+      "downloads": 200,
+      "registry": "npm"
+    },
+    "npm:@audioeye/testing-sdk-mcp": {
+      "downloads": 125,
+      "registry": "npm"
+    },
+    "npm:@auth0/auth0-mcp-server": {
+      "downloads": 14323,
+      "registry": "npm"
+    },
+    "npm:@beacio/mcp": {
+      "downloads": 83,
+      "registry": "npm"
+    },
+    "npm:@circulara/plugin": {
+      "downloads": 76,
+      "registry": "npm"
+    },
+    "npm:@clize/clize": {
+      "downloads": 927,
+      "registry": "npm"
+    },
+    "npm:@clize/domains": {
+      "downloads": 202,
+      "registry": "npm"
+    },
+    "npm:@clize/inbox": {
+      "downloads": 198,
+      "registry": "npm"
+    },
+    "npm:@clize/storefront": {
+      "downloads": 223,
+      "registry": "npm"
+    },
+    "npm:@collhub/mcp": {
+      "downloads": 133,
+      "registry": "npm"
+    },
+    "npm:@cookwala/mcp": {
+      "downloads": 191,
+      "registry": "npm"
+    },
+    "npm:@dakaio/domainscout-mcp": {
+      "downloads": 252,
+      "registry": "npm"
+    },
+    "npm:@decionis/commerce": {
+      "downloads": 215,
+      "registry": "npm"
+    },
+    "npm:@dinglebear/cortex": {
+      "downloads": 163,
+      "registry": "npm"
+    },
+    "npm:@dinglebear/rapprise": {
+      "downloads": 103,
+      "registry": "npm"
+    },
+    "npm:@dinglebear/rarcane": {
+      "downloads": 73,
+      "registry": "npm"
+    },
+    "npm:@dinglebear/yarr": {
+      "downloads": 95,
+      "registry": "npm"
+    },
+    "npm:@durely/garmin-insights-mcp": {
+      "downloads": 570,
+      "registry": "npm"
+    },
+    "npm:@enconvert/mcp": {
+      "downloads": 147,
+      "registry": "npm"
+    },
+    "npm:@erseni/vault-ask": {
+      "downloads": 164,
+      "registry": "npm"
+    },
+    "npm:@flydocs/cli": {
+      "downloads": 1655,
+      "registry": "npm"
+    },
+    "npm:@getfacade/mcp": {
+      "downloads": 116,
+      "registry": "npm"
+    },
+    "npm:@taasky/taasky": {
+      "downloads": 1200,
+      "registry": "npm"
+    },
+    "npm:@takara-ai/miru-code": {
+      "downloads": 1466,
+      "registry": "npm"
+    },
+    "npm:@tensorfeed/x402-base-mcp": {
+      "downloads": 135,
+      "registry": "npm"
+    },
+    "npm:@unpaper/cli": {
+      "downloads": 82,
+      "registry": "npm"
+    },
+    "npm:af360": {
+      "downloads": 146,
+      "registry": "npm"
+    },
+    "npm:apprise-rmcp": {
+      "downloads": 0,
+      "registry": "npm"
+    },
+    "npm:arcane-rmcp": {
+      "downloads": 0,
+      "registry": "npm"
+    },
+    "npm:arena-mcp-server": {
+      "downloads": 273,
+      "registry": "npm"
+    },
+    "npm:artifyde-mcp": {
+      "downloads": 61,
+      "registry": "npm"
+    },
+    "npm:brydge-mcp": {
+      "downloads": 64,
+      "registry": "npm"
+    },
+    "npm:conduyt-mcp": {
+      "downloads": 1708,
+      "registry": "npm"
+    },
+    "npm:cortex-rmcp": {
+      "downloads": 0,
+      "registry": "npm"
+    },
+    "npm:crustapi-mcp": {
+      "downloads": 75,
+      "registry": "npm"
+    },
+    "npm:datum-mcp-server": {
+      "downloads": 112,
+      "registry": "npm"
+    },
+    "npm:deepsearch-x402-mcp": {
+      "downloads": 104,
+      "registry": "npm"
+    },
+    "npm:execbro": {
+      "downloads": 1691,
+      "registry": "npm"
+    },
+    "npm:hellohop-mcp": {
+      "downloads": 692,
+      "registry": "npm"
+    },
+    "npm:mason-context": {
+      "downloads": 282,
+      "registry": "npm"
+    },
+    "npm:mcp-merchant": {
+      "downloads": 109,
+      "registry": "npm"
+    },
+    "pypi:allyotter-lite": {
+      "downloads": 48,
+      "registry": "pypi"
+    },
+    "pypi:arxyne": {
+      "downloads": 14357,
+      "registry": "pypi"
+    },
+    "pypi:authyouragent": {
+      "downloads": 250,
+      "registry": "pypi"
+    },
+    "pypi:backtest-auditor": {
+      "downloads": 46,
+      "registry": "pypi"
+    },
+    "pypi:candlefeed-mcp": {
+      "downloads": 73,
+      "registry": "pypi"
+    },
+    "pypi:codenib": {
+      "downloads": 154,
+      "registry": "pypi"
+    },
+    "pypi:contextburn": {
+      "downloads": 31,
+      "registry": "pypi"
+    },
+    "pypi:datavidence-financials": {
+      "downloads": 77,
+      "registry": "pypi"
+    },
+    "pypi:deepdna-mcp": {
+      "downloads": 121,
+      "registry": "pypi"
+    },
+    "pypi:deployangel": {
+      "downloads": 214,
+      "registry": "pypi"
+    },
+    "pypi:easyship-mcp": {
+      "downloads": 215,
+      "registry": "pypi"
+    },
+    "pypi:gateco": {
+      "downloads": 109,
+      "registry": "pypi"
+    },
+    "pypi:hashgrid": {
+      "downloads": 274,
+      "registry": "pypi"
+    },
+    "pypi:lakewave-mcp": {
+      "downloads": 47,
+      "registry": "pypi"
+    },
+    "pypi:lbrain-coding-agents": {
+      "downloads": 95,
+      "registry": "pypi"
+    },
+    "pypi:leadgreen-mcp": {
+      "downloads": 51,
+      "registry": "pypi"
+    },
+    "pypi:magnemo-mcp": {
+      "downloads": 511,
+      "registry": "pypi"
+    },
+    "pypi:mailsocket-mcp": {
+      "downloads": 67,
+      "registry": "pypi"
+    },
+    "pypi:mcp-proxy-for-aws": {
+      "downloads": 346967,
+      "registry": "pypi"
+    },
+    "pypi:mirastack-redfish-mcp": {
+      "downloads": 55,
+      "registry": "pypi"
+    },
+    "pypi:mirobody": {
+      "downloads": 319,
+      "registry": "pypi"
+    },
+    "pypi:model-finder-mcp": {
+      "downloads": 36,
+      "registry": "pypi"
+    },
+    "pypi:nauro": {
+      "downloads": 219,
+      "registry": "pypi"
+    },
+    "pypi:poppy-memory": {
+      "downloads": 527,
+      "registry": "pypi"
+    },
+    "pypi:roxels-mcp": {
+      "downloads": 158,
+      "registry": "pypi"
+    },
+    "pypi:swissco-mcp": {
+      "downloads": 34,
+      "registry": "pypi"
+    },
+    "pypi:wikidata-google-knowledge-mcp": {
+      "downloads": 35,
+      "registry": "pypi"
+    },
+    "pypi:xbrlkit": {
+      "downloads": 376,
+      "registry": "pypi"
+    }
+  }
+}
