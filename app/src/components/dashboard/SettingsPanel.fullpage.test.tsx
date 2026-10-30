@@ -133,14 +133,9 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
   it('Nav-Gruppen nach Schema und alle NAV-Einträge als Pillen-Zeilen', async () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
-    expect(screen.getByTestId('settings-nav-group-everyday')).toBeInTheDocument()
-    expect(screen.getByTestId('settings-nav-group-capabilities')).toBeInTheDocument()
-    expect(screen.getByTestId('settings-nav-group-data')).toBeInTheDocument()
-    expect(screen.getByTestId('settings-nav-group-advanced')).toBeInTheDocument()
-    const about = screen.getByTestId('settings-nav-group-about')
-    expect(about).toBeInTheDocument()
-    // About closes the register as a card; there is no fifth heading.
-    expect(about.querySelector('p')).toBeNull()
+    for (const id of ['models', 'look', 'work', 'trust', 'system']) {
+      expect(screen.getByTestId(`settings-nav-group-${id}`)).toBeInTheDocument()
+    }
     for (const n of NAV) {
       const row = screen.getByTestId(`settings-nav-${n.key}`)
       expect(row).toBeInTheDocument()
@@ -156,6 +151,22 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     // 1:1 — every group matches the NAV keys, no entry missing or doubled
     const groupKeys = [...NAV_GROUPS.flatMap((g) => g.keys), ...ABOUT_KEYS]
     expect([...groupKeys].sort()).toEqual(NAV.map((n) => n.key).sort())
+  })
+
+  it('a folded group stays folded when the register opens again', async () => {
+    const first = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
+    await screen.findByTestId('settings-page')
+    fireEvent.click(screen.getByTestId('settings-nav-group-toggle-models'))
+    expect(
+      screen.getByTestId('settings-nav-group-toggle-models').getAttribute('aria-expanded'),
+    ).toBe('false')
+    expect(screen.getByTestId('settings-nav-rows-models').className).toContain('hidden')
+    first.unmount()
+    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
+    await screen.findByTestId('settings-page')
+    expect(
+      screen.getByTestId('settings-nav-group-toggle-models').getAttribute('aria-expanded'),
+    ).toBe('false')
   })
 
   // I5-4: the save footer belongs only on tabs whose form writes the settings.

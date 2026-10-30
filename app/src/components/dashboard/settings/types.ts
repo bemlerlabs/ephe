@@ -38,6 +38,7 @@ export type TabKey =
   | 'code-exec'
   | 'shortcuts'
   | 'network'
+  | 'vault'
   | 'ephemera'
   | 'ephemeris'
 
@@ -48,30 +49,31 @@ export type TabKey =
 // (model.tsx → sections → components/ui → hooks/useCommandPalette).
 export const NAV_KEYS = [
   'engine',
-  'appearance',
-  'behaviour',
   'generation',
-  'skills',
-  'cron',
   'agents',
   'teams',
-  'artifacts',
-  'ephemera',
-  'ephemeris',
-  'tasks',
-  'voice',
   'memory',
   'persona',
-  'mobile',
+  'appearance',
   'language',
-  'privacy',
-  'about',
+  'voice',
+  'behaviour',
+  'shortcuts',
+  'mobile',
+  'skills',
   'plugins',
+  'mcp',
+  'cron',
+  'artifacts',
+  'tasks',
+  'ephemera',
+  'privacy',
   'hooks',
   'code-exec',
-  'shortcuts',
+  'vault',
   'network',
-  'mcp',
+  'ephemeris',
+  'about',
 ] as const
 
 // DD-24: pure view / instant-effect tabs — there is nothing to save here (language
@@ -110,6 +112,8 @@ export const READONLY_TABS: ReadonlySet<TabKey> = new Set([
   // Agent Center and Agent Teams save through their own endpoints and buttons.
   'agents',
   'teams',
+  // The vault writes on click through the secrets routes; nothing to save here.
+  'vault',
 ])
 
 export const VOICES = [

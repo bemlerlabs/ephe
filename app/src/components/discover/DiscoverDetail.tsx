@@ -124,9 +124,7 @@ export function DiscoverDetail({
                   ) : null}
                 </div>
               ) : null}
-              {item.requiredEnv?.length ? (
-                <CredentialFields names={item.requiredEnv} />
-              ) : null}
+              {item.requiredEnv?.length ? <CredentialFields names={item.requiredEnv} /> : null}
               {item.docs ? (
                 <a
                   data-testid="discover-detail-docs"

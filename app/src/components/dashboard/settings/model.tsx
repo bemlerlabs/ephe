@@ -35,6 +35,7 @@ import {
   Hourglass,
   Bot,
   UsersRound,
+  KeyRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { TabKey } from './types'
@@ -63,6 +64,7 @@ import { HooksSection } from './model/sections-hooks'
 import { CodeExecSection } from './model/sections-code-exec'
 import { ShortcutsSection } from './model/sections-shortcuts'
 import { NetworkSection } from './model/sections-network'
+import { VaultSection } from './model/sections-vault'
 import { BehaviourSection } from './model/sections-behaviour'
 
 // Agent Center and Teams are their own lazy chunks: a reader who opens Engine
@@ -108,43 +110,39 @@ const NAV_ICON: Record<TabKey, LucideIcon> = {
   shortcuts: Keyboard,
   network: Globe,
   mcp: Plug,
+  vault: KeyRound,
 }
 
 export const NAV: { key: TabKey; icon: React.ComponentType<{ className?: string }> }[] =
   NAV_KEYS.map((key) => ({ key, icon: NAV_ICON[key] }))
 
-// The four groups of the register (docs/SCREEN_SPEC.md §7). About is the
-// dashed closing card below them, without a fifth heading.
+// Five super-groups, in the order a person arrives with a question: what thinks,
+// what it looks like, what it can do, what it may do, what it runs on. About is
+// the last row of the last group instead of a sixth heading.
 export const NAV_GROUPS: { groupKey: string; keys: TabKey[] }[] = [
   {
-    groupKey: 'settings.groupEveryday',
-    keys: ['language', 'appearance', 'behaviour', 'shortcuts'],
+    groupKey: 'settings.groupModels',
+    keys: ['engine', 'generation', 'agents', 'teams', 'memory', 'persona'],
   },
   {
-    groupKey: 'settings.groupCapabilities',
-    keys: [
-      'engine',
-      'generation',
-      'voice',
-      'memory',
-      'persona',
-      'skills',
-      'cron',
-      'agents',
-      'teams',
-    ],
+    groupKey: 'settings.groupLook',
+    keys: ['appearance', 'language', 'voice', 'behaviour', 'shortcuts', 'mobile'],
   },
   {
-    groupKey: 'settings.groupData',
-    keys: ['privacy', 'artifacts', 'tasks', 'ephemeris', 'mobile'],
+    groupKey: 'settings.groupWork',
+    keys: ['skills', 'plugins', 'mcp', 'cron', 'artifacts', 'tasks', 'ephemera'],
   },
   {
-    groupKey: 'settings.groupAdvanced',
-    keys: ['mcp', 'plugins', 'hooks', 'code-exec', 'ephemera', 'network'],
+    groupKey: 'settings.groupTrust',
+    keys: ['privacy', 'hooks', 'code-exec', 'vault'],
+  },
+  {
+    groupKey: 'settings.groupSystem',
+    keys: ['network', 'ephemeris', 'about'],
   },
 ]
 
-export const ABOUT_KEYS: TabKey[] = ['about']
+export const ABOUT_KEYS: TabKey[] = []
 
 // IcoEphemora lookup for the group nav (one icon per row, no rows without an icon).
 export function navIcon(key: TabKey): LucideIcon {
@@ -192,6 +190,7 @@ export function useSettingsPanelModel(props: SettingsPanelProps) {
     'code-exec': <CodeExecSection model={model} />,
     shortcuts: <ShortcutsSection model={model} />,
     network: <NetworkSection model={model} />,
+    vault: <VaultSection model={model} />,
     mcp: renderMcp(model),
   }
 

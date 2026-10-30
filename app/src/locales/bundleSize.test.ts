@@ -178,8 +178,12 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // 2026-10-30 (discover S3): the bento, the section heads and the detail surface
 // add ~1.2 kB per file (badge, see-all, detail labels, category names). Measured
 // as committed: en 138,620 B, de 150,266 B.
-const EN_CEILING = 139_500
-const DE_CEILING = 151_300
+// 2026-10-30 (Y5 + Y6): the credential fields inside the discover sheet and the
+// vault area with its five nav groups add 1,351 B to en.json and 1,467 B to de.json.
+// Measured as committed: en 139,971 B, de 151,733 B — the halves move by the
+// measured delta and keep the ~600 B headroom the earlier waves held.
+const EN_CEILING = 140_600
+const DE_CEILING = 152_400
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

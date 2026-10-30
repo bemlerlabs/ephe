@@ -115,9 +115,7 @@ beforeEach(() => {
   api.enableSkill.mockResolvedValue({ name: 'pdf', disabled: false })
   api.disableSkill.mockResolvedValue({ name: 'pdf', disabled: true })
   api.putMcpSettings.mockResolvedValue({ servers: [], source: 'file', tools: [] })
-  api.getSecretStatus.mockResolvedValue([
-    { name: 'WEB_SEARCH_KEY', present: false, mode: '' },
-  ])
+  api.getSecretStatus.mockResolvedValue([{ name: 'WEB_SEARCH_KEY', present: false, mode: '' }])
   api.putSecret.mockResolvedValue({ name: 'WEB_SEARCH_KEY', present: true, mode: 'keyring' })
   api.removeSecret.mockResolvedValue({ name: 'WEB_SEARCH_KEY', present: false, mode: '' })
   api.declareMcpEnv.mockResolvedValue({ servers: {}, declared: ['WEB_SEARCH_KEY'] })
@@ -196,18 +194,18 @@ describe('discover page', () => {
     )
     fireEvent.click(screen.getByTestId('discover-detail-open-connector:registry:web-search'))
     await waitFor(() => expect(screen.getByTestId('discover-credentials')).toBeTruthy())
-    expect(
-      screen.getByTestId('discover-credential-state-WEB_SEARCH_KEY').textContent,
-    ).toContain('discover.credentialMissing')
+    expect(screen.getByTestId('discover-credential-state-WEB_SEARCH_KEY').textContent).toContain(
+      'discover.credentialMissing',
+    )
     fireEvent.change(screen.getByTestId('discover-credential-input-WEB_SEARCH_KEY'), {
       target: { value: 'sk-test' },
     })
     fireEvent.click(screen.getByTestId('discover-credential-save-WEB_SEARCH_KEY'))
     await waitFor(() => expect(api.putSecret).toHaveBeenCalledWith('WEB_SEARCH_KEY', 'sk-test'))
     await waitFor(() =>
-      expect(
-        screen.getByTestId('discover-credential-state-WEB_SEARCH_KEY').textContent,
-      ).toContain('discover.credentialStored.keyring'),
+      expect(screen.getByTestId('discover-credential-state-WEB_SEARCH_KEY').textContent).toContain(
+        'discover.credentialStored.keyring',
+      ),
     )
     expect(screen.getByTestId('discover-credential-input-WEB_SEARCH_KEY')).toHaveProperty(
       'value',

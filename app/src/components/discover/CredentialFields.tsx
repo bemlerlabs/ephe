@@ -12,7 +12,10 @@ export interface CredentialFieldsProps {
   testId?: string
 }
 
-export function CredentialFields({ names, testId = 'discover-credentials' }: CredentialFieldsProps) {
+export function CredentialFields({
+  names,
+  testId = 'discover-credentials',
+}: CredentialFieldsProps) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<Record<string, SecretStatus>>({})
   const [drafts, setDrafts] = useState<Record<string, string>>({})
