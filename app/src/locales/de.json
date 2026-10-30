@@ -2681,6 +2681,7 @@
     "benchLoading": "Liest das Protokoll…",
     "loading": "Liest deine Einrichtung…",
     "empty": "Keine Übereinstimmung. Setze einen Filter ab, um mehr zu sehen.",
+        "emptyFailed": "Von diesem Gerät war nichts zu lesen. Lade die Seite neu, um es erneut zu versuchen.",
     "partial": "Einige Listen haben nicht geantwortet: {{areas}}.",
     "fail": {
       "skills": "Skills",

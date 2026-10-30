@@ -234,7 +234,7 @@ export default function DiscoverPage() {
               <LoadingRow label={t('discover.loading')} />
             ) : shown.length === 0 ? (
               <p data-testid="discover-empty" className="mt-8 text-center text-ui-sm text-ink-soft">
-                {t('discover.empty')}
+                {failed.length ? t('discover.emptyFailed') : t('discover.empty')}
               </p>
             ) : (
               <div
