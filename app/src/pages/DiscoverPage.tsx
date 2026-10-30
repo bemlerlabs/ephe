@@ -12,6 +12,7 @@ import { DiscoverCard } from '@/components/discover/DiscoverCard'
 import { DiscoverDetail } from '@/components/discover/DiscoverDetail'
 import { DiscoverFilters } from '@/components/discover/DiscoverFilters'
 import { SourcesRow } from '@/components/discover/SourcesRow'
+import { useIntentSearch } from '@/components/discover/useIntentSearch'
 import { UsageBench } from '@/components/discover/UsageBench'
 import {
   bentoOf,
@@ -38,7 +39,6 @@ import {
   probeMcpHealth,
   putMcpSettings,
   removeMarketSource,
-  searchDiscover,
   setPluginEnabled,
 } from '@/lib/api'
 
@@ -97,7 +97,6 @@ export default function DiscoverPage() {
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
   const [detail, setDetail] = useState<DiscoverItem | null>(null)
-  const [intentIds, setIntentIds] = useState<string[]>([])
 
   const load = useCallback(async () => {
     const next = await loadSources()
@@ -112,46 +111,9 @@ export default function DiscoverPage() {
 
   const items = useMemo(() => (sources ? buildItems(sources) : []), [sources])
 
-  /** The index answers with entry ids; a card carries the kind in front of it. */
-  const intentLookup = useMemo(() => {
-    const table = new Map<string, string>()
-    for (const item of items) {
-      table.set(item.id, item.id)
-      table.set(item.name, item.id)
-      const bare = item.id.replace(/^connector:/, '')
-      table.set(bare, item.id)
-      table.set(bare.replace(/^registry:/, ''), item.id)
-    }
-    return table
-  }, [items])
-
-  /** The typed phrase also asks the intent index, so a task word finds the entry. */
   const needle = query.query.trim()
-  useEffect(() => {
-    if (needle.length < 3) {
-      setIntentIds([])
-      return
-    }
-    let live = true
-    const timer = window.setTimeout(() => {
-      searchDiscover(needle)
-        .then((hits) => {
-          if (!live) return
-          setIntentIds(
-            hits
-              .map((hit) => intentLookup.get(hit.id))
-              .filter((id): id is string => Boolean(id)),
-          )
-        })
-        .catch(() => {
-          if (live) setIntentIds([])
-        })
-    }, 150)
-    return () => {
-      live = false
-      window.clearTimeout(timer)
-    }
-  }, [needle, intentLookup])
+  const intentIds = useIntentSearch(items, needle)
+
   const shown = useMemo(
     () => rankByIntent(filterItems(items, query, intentIds), intentIds),
     [items, query, intentIds],
