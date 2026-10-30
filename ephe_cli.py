@@ -112,8 +112,10 @@ def _run_doctor_repairs(args: argparse.Namespace) -> list[tuple[str, bool, str]]
         model_ok, model_detail = _ensure_model_ready_for_start(args.model)
         repairs.append((f"Repair model {args.model}", model_ok, model_detail))
     else:
+        # Nothing to repair, and nothing that makes this run red: a box without a
+        # chosen model is a state `ephe doctor --fix` cannot improve by itself.
         repairs.append(
-            ("Repair model", False, "no model chosen — ephe configure, EPHE_MODEL or --model")
+            ("Repair model", True, "skipped — no model chosen yet")
         )
 
     pwa_ok = ensure_pwa_built()
@@ -756,15 +758,36 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     checks.append(("Project files", (PROJECT_ROOT / "app" / "index.html").exists(), str(PROJECT_ROOT)))
 
     engine = _active_engine_choice()
+    engine_usable = engine is not None and engine.is_complete()
 
     local_models: list[str] = []
     model_ready = False
-    if engine is not None and engine.provider != LOCAL_OLLAMA:
+    #: Was a model actually asked about? A run that named none has no readiness to
+    #: judge, and an unanswered probe of nothing is not a failed check.
+    probed_model = False
+    if engine is not None and not engine_usable:
+        # A half-written config used to reach the endpoint probe, whose answer was
+        # a key-binding complaint about an engine that has no endpoint at all. The
+        # missing field is the finding; the way out is the one command that writes it.
+        missing = "model"
+        if engine.provider == OPENAI_COMPAT and not (engine.api_url or "").strip():
+            missing = "api_url"
+        checks.append(
+            (
+                "Engine config",
+                False,
+                f"incomplete — {missing} missing for {engine.provider}; choose the engine: ephe",
+            )
+        )
+        for name in ("Ollama CLI", "Ollama service"):
+            informational.append((name, True, "not used — the chosen engine is not this box's"))
+    elif engine_usable and engine.provider != LOCAL_OLLAMA:
         # The chosen engine is not this box's Ollama, so asking the local CLI, service and
         # tag about it reports a working setup as broken. Probe the endpoint the engine
         # actually lives at, and name the local rows as "not chosen yet" instead of
         # MISSING. A chosen engine that does not answer stays a genuine failure.
         probe_model = (args.model or "").strip() or engine.model
+        probed_model = True
         model_ready, engine_detail = _probe_active_remote_engine(engine.api_url or "", probe_model)
         checks.append(
             (
@@ -778,16 +801,21 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                 (name, True, "not chosen yet (informational) — the active engine is remote")
             )
     else:
+        probe_model = (args.model or "").strip() or _local_chosen_tag()
+        # Without any choice the Ollama rows describe a path the user has not taken:
+        # reported beside the rest, and never the reason this run is red.
+        target = checks if (engine is not None or probe_model) else informational
+
         ollama = _ollama_binary()
-        checks.append(("Ollama CLI", bool(ollama), ollama or "not in PATH"))
+        target.append(("Ollama CLI", bool(ollama), ollama or "not in PATH"))
 
         tags = _json_get(f"{LOCAL_OLLAMA_BASE_URL}/api/tags")
         if tags is not None:
             local_models = [item.get("name", "") for item in tags.get("models", [])]
-        checks.append(("Ollama service", tags is not None, LOCAL_OLLAMA_BASE_URL))
+        target.append(("Ollama service", tags is not None, LOCAL_OLLAMA_BASE_URL))
 
-        probe_model = (args.model or "").strip() or _local_chosen_tag()
         if probe_model:
+            probed_model = True
             model_installed = _model_installed(probe_model)
             model_detail = "run: ephe update --model " + probe_model
             if model_installed and tags is not None:
@@ -796,15 +824,26 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                     model_detail = f"{model_detail}; repair: ollama pull {probe_model}"
             elif model_installed:
                 model_detail = "installed; start Ollama to verify loadability"
-            checks.append((f"Model {probe_model}", model_installed, "installed" if model_installed else model_detail))
-            checks.append((f"Model {probe_model} load test", model_ready, model_detail))
+            target.append((f"Model {probe_model}", model_installed, "installed" if model_installed else model_detail))
+            target.append((f"Model {probe_model} load test", model_ready, model_detail))
         else:
-            checks.append(
-                ("Model", False, "no model chosen — ephe configure, EPHE_MODEL or --model")
+            # No engine and no tag: a state the app resolves in its setup, so it is
+            # reported and does not decide the exit code.
+            informational.append(
+                ("Model", True, "none chosen yet — pick one in the app: ephe")
             )
 
     server_health = _json_get(f"http://127.0.0.1:{args.port}/api/health")
-    checks.append(("Ephe server", server_health is not None, f"http://127.0.0.1:{args.port}"))
+    # A stopped app is a state the setup tolerates: the terminal app serves
+    # itself, and the browser app is one command away. The row informs.
+    server_line = (
+        "running"
+        if server_health is not None
+        else "not running — start it with: ephe start"
+    )
+    informational.append(
+        ("Ephe server", server_health is not None, f"http://127.0.0.1:{args.port} — {server_line}")
+    )
 
     # E0 (Extensions v2) + H1: dependency watch for ephemora-cell — PyPI latest
     # against the installed version, WITH the pin. The ceiling is read from our own
@@ -923,7 +962,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     display = checks + informational
     payload = {
         "ok": all(ok for name, ok, _ in checks if name not in _INFORMATIVE_CHECKS)
-        and model_ready
+        # No model was asked about, so there is no readiness to judge; the app asks.
+        and (model_ready or not probed_model)
         and all(ok for _, ok, _ in repairs),
         "repairs": [{"name": name, "ok": ok, "detail": detail} for name, ok, detail in repairs],
         "checks": [{"name": name, "ok": ok, "detail": detail} for name, ok, detail in display],
@@ -938,15 +978,47 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             for name, ok, detail in repairs:
                 _print_check(ok, name, detail)
             print("")
+        optional = _INFORMATIVE_CHECKS | {name for name, _ok, _d in informational}
         for name, ok, detail in display:
-            _print_check(ok, name, detail)
+            _print_check(ok, name, detail, optional=name in optional)
         if local_models:
             print("Models  " + ", ".join(local_models))
         total = len(display) + len(repairs)
         passed = sum(1 for _, ok, _ in display if ok) + sum(1 for _, ok, _ in repairs if ok)
-        print(f"Summary: {passed}/{total} checks OK")
+        summary = f"Summary: {passed}/{total} checks OK"
+        optional_notes = sum(1 for name, ok, _ in display if name in optional and not ok)
+        if optional_notes:
+            noun = "note" if optional_notes == 1 else "notes"
+            summary += f" — {optional_notes} optional {noun}"
+        print(summary)
+        failing = [name for name, ok, _ in display if not ok and name not in optional]
+        step, why = _doctor_next_step(failing, engine=engine, engine_usable=engine_usable)
+        print(f"Next: {step}   # {why}")
     return 0 if payload["ok"] else 1
 
+
+def _doctor_next_step(
+    failing: list[str], *, engine: object | None, engine_usable: bool
+) -> tuple[str, str]:
+    """The one command that moves this setup forward, with the reason it names.
+
+    A box that reports every problem at once leaves the reader to choose; the
+    doctor is the surface that already knows what it looked at, so it names the
+    single next step instead of the whole list again.
+    """
+    if "Engine config" in failing:
+        return "ephe", "no engine chosen yet — the app opens its setup"
+    for name in failing:
+        if name.startswith("Model ") and "load test" not in name:
+            tag = name[len("Model "):].strip()
+            return f"ephe update --model {tag}", "pull the model your engine is set to"
+        if name.startswith("Engine "):
+            return "ephe", "check the endpoint in the engine setup (F10 in the terminal)"
+    if engine is None and not engine_usable:
+        return "ephe", "no engine chosen yet — the app opens its setup"
+    if failing:
+        return "ephe doctor --fix", "apply the safe local repairs named above"
+    return "ephe", "start the app"
 
 def cmd_start(args: argparse.Namespace, config_path=None) -> int:
     # Brand: orb banner (docs/BRAND.md) — one glyph, version, stance.
@@ -984,15 +1056,22 @@ def cmd_start(args: argparse.Namespace, config_path=None) -> int:
         from dataclasses import replace
 
         choice = replace(choice, model=args.model)
+    binding_problem = ""
     if choice is not None:
         from core.engine_config import EngineKeyMismatch, assert_engine_key_binding
 
         try:
             assert_engine_key_binding(choice)
         except EngineKeyMismatch as exc:
-            print(f"  ✗ {exc}")
-            print(f"  Fix: {exc.hint}")
-            return 1
+            # The server starts anyway: the key is re-entered in the settings it
+            # serves, and the request-time guard still refuses every turn with it
+            # until then. Ending the start here left the user no surface to fix it.
+            binding_problem = str(exc)
+            _print_check(
+                False,
+                "Engine key",
+                f"{exc} The app opens; re-enter the key for this engine in its settings.",
+            )
     if choice is not None:
         try:
             choice.apply_env()
@@ -1004,7 +1083,9 @@ def cmd_start(args: argparse.Namespace, config_path=None) -> int:
             print(f"  Fix: {exc.hint}")
             choice = None
 
-    if choice is not None and not args.skip_model_check:
+    # The readiness probe sends a request; with a key bound to another engine it
+    # would carry that credential, so a mismatched binding skips the probe.
+    if choice is not None and not args.skip_model_check and not binding_problem:
         # Non-blocking readiness checks: Ephe is engine-agnostic —
         # the server starts ALWAYS, and the PWA walks the user through the
         # engine selection (/api/setup/status → setup UI). Root cause: an
@@ -2072,6 +2153,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Ephe local assistant CLI",
         epilog=(
             "Examples:\n"
+            "  ephe                           Open the terminal app\n"
             "  ephe configure                 Choose the engine once (saved to ~/.ephe/engine.json)\n"
             "  ephe start                     Start the local web app (default port 8765)\n"
             "  ephe start --lan --open        Expose on LAN for QR mobile pairing, open browser\n"
@@ -2093,7 +2175,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="version",
         version=f"ephe {EPHE_VERSION}",
     )
-    sub = parser.add_subparsers(dest="command", required=True, parser_class=_ToolHelpParser)
+    sub = parser.add_subparsers(dest="command", parser_class=_ToolHelpParser)
 
     start = sub.add_parser(
         "start",
@@ -2804,9 +2886,23 @@ def _failure_fix(exc: BaseException) -> str:
     )
 
 
+def _default_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
+    """The call that names no verb opens the terminal app when a person is at the keyboard.
+
+    Without a terminal there is nothing to draw, so the usage page is the answer a
+    script or a CI step can read, and exit 2 keeps it a usage error there.
+    """
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        parser.print_help()
+        raise SystemExit(2)
+    return parser.parse_args(["tui"])
+
+
 def main() -> None:
     parser = build_parser()
     args = _parse_args(parser)
+    if getattr(args, "command", None) is None:
+        args = _default_command(parser)
     try:
         raise SystemExit(args.func(args))
     except SystemExit:

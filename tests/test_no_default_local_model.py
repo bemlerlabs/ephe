@@ -446,9 +446,11 @@ def test_doctor_without_a_chosen_tag_reports_the_absence(capsys, tmp_path, monke
         code = args.func(args)
 
     out = capsys.readouterr().out
-    assert code == 1
+    # No engine and no tag is a state the app resolves in its own setup
+    # (owner order 2026-10-29), so the row informs and the run stays green.
+    assert code == 0
     installed.assert_not_called()
-    assert "no model chosen" in out
+    assert "none chosen yet" in out
 
 
 def test_doctor_probes_the_persisted_local_tag_without_a_flag(tmp_path, monkeypatch, capsys):

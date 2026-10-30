@@ -63,7 +63,7 @@ Every tool result stays attached to the turn that produced it. A claim about a f
 
 The desktop and browser share an installable web app (PWA) and one Python backend. `ephe desktop` builds and installs the desktop shell; `ephe start --open` opens the browser app. A build writes `Ephe.app` under `app/src-tauri/target/`; that copy is not an install. `ephe desktop` puts the app in `/Applications` and removes the build copy, and the update button rewrites the installed bundle.
 
-The terminal (`ephe tui`) uses the engine choice from `~/.ephe/engine.json`. A phone on your local network can open the PWA after `ephe start --lan --open`; public access is a separate opt-in path.
+The terminal (`ephe`) uses the engine choice from `~/.ephe/engine.json` and offers its own setup when none is chosen yet. A phone on your local network can open the PWA after `ephe start --lan --open`; public access is a separate opt-in path.
 
 ## Quick start
 
@@ -125,7 +125,7 @@ For a hosted endpoint, enter its key on the same page. The app keeps it in the O
 
 ### 3. Ask
 
-Open `http://127.0.0.1:8765` or run `ephe start --open`. The desktop shell is built from the same app; `ephe desktop` installs it. From the terminal, `ephe tui` opens the text interface. Type a task. The strict profile asks before file edits or shell commands.
+Open `http://127.0.0.1:8765` or run `ephe start --open`. The desktop shell is built from the same app; `ephe desktop` installs it. From the terminal, `ephe` opens the text interface; the same surface answers to `ephe tui`. Type a task. The strict profile asks before file edits or shell commands.
 
 To use the same workspace from a phone on your network, start with `ephe start --lan --open`, open Settings → Mobile. Click **Connect mobile**. Scan the QR code, then open the PWA on the phone. Public access is a separate opt-in path; the walkthrough is in [docs/MOBILE.md](docs/MOBILE.md).
 

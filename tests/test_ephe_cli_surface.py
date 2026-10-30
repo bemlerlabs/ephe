@@ -889,8 +889,14 @@ def test_cmd_start_incomplete_engine_falls_back_to_setup(monkeypatch, tmp_path, 
     assert seen["env"].get("EPHE_OPENAI_COMPAT_BASE_URL") is None
 
 
-def test_cmd_start_refuses_an_unbound_engine_key(monkeypatch, tmp_path, capsys):
-    """A mismatched binding ends the start before the server is spawned."""
+def test_cmd_start_starts_with_an_unbound_engine_key_and_names_the_fix(monkeypatch, tmp_path, capsys):
+    """A mismatched binding no longer ends the start.
+
+    The settings that re-enter the key are served by the server itself, so ending
+    the start there closed the only surface the user could fix it in. The
+    request-time guard still refuses every turn until the key matches, and the
+    readiness probe is skipped so no request leaves with the foreign credential.
+    """
     from core import engine_config
 
     _patch_start_common(monkeypatch, tmp_path)
@@ -901,17 +907,23 @@ def test_cmd_start_refuses_an_unbound_engine_key(monkeypatch, tmp_path, capsys):
         raise engine_config.EngineKeyMismatch("the stored engine key is bound to another engine")
 
     monkeypatch.setattr(engine_config, "assert_engine_key_binding", refuse)
+    probed: list[tuple] = []
+    monkeypatch.setattr(
+        ephe_cli, "_probe_active_remote_engine",
+        lambda url, model: (probed.append((url, model)), (True, "reachable"))[1],
+    )
     started: list[tuple] = []
     monkeypatch.setattr(
         ephe_cli, "_run",
         lambda *a, **k: (started.append(a), types.SimpleNamespace(returncode=0))[1],
     )
 
-    assert ephe_cli.cmd_start(_parser().parse_args(["start"])) == 1
+    assert ephe_cli.cmd_start(_parser().parse_args(["start"])) == 0
     out = capsys.readouterr().out
     assert "bound to another engine" in out
-    assert "Fix: Re-enter the key" in out
-    assert started == []
+    assert "re-enter the key" in out.lower()
+    assert started != []
+    assert probed == []
 
 
 def test_cmd_start_remote_probe(monkeypatch, tmp_path, capsys):
@@ -1272,9 +1284,10 @@ def test_cmd_doctor_repair_hint_and_no_model(monkeypatch, capsys, tmp_path):
     assert ephe_cli.cmd_doctor(_parser().parse_args(["doctor", "--model", "m"])) == 1
     assert "repair: ollama pull m" in capsys.readouterr().out
 
-    # no --model and no chosen tag -> the "no model chosen" note
-    assert ephe_cli.cmd_doctor(_parser().parse_args(["doctor"])) in (0, 1)
-    assert "no model chosen" in capsys.readouterr().out
+    # no --model and no chosen tag -> the absence is a state the app resolves,
+    # so the row informs and the run stays green (owner order 2026-10-29)
+    assert ephe_cli.cmd_doctor(_parser().parse_args(["doctor"])) == 0
+    assert "none chosen yet" in capsys.readouterr().out
 
 
 # start: explicit model + ephemeris failures

@@ -28,9 +28,20 @@ environment. `docs/SECURITY_THREAT_MODEL.md` §1a holds the three lifetimes and 
 Starts backend + PWA locally (backend :8765, PWA build). Loads `engine.json`, starts the scheduler and makes sure the model is loaded. `--model <tag>` overrides the model inside the chosen engine and picks no engine itself; with no engine chosen it names nothing, so the PWA starts in setup mode and takes over the selection in the browser.
 
 ## `ephe doctor [--fix] [--json]`
-Diagnoses the local setup: Python, project files, Ollama CLI/service, model (installed + load test), server health, the **image endpoint** (R16, informational) and **voice (TTS)** (R18, informational).
-The model line covers a tag that exists: `--model`, else `EPHE_MODEL`, else the persisted local-Ollama choice. With none of them it reports `no model chosen` and names the way out instead of probing a model nobody picked.
-`--fix` repairs the safe drift: repo fast-forward, dependencies (`.[gui,voice]`), Ollama service + model, PWA build. The model repair follows the same rule — no tag, nothing pulled.
+Diagnoses the local setup: Python, project files, the engine (chosen, reachable, key bound), model (installed + load test), the **image endpoint** (R16, informational) and **voice (TTS)** (R18, informational).
+
+The last line is the one to act on: `Next: <command>   # <why>` names the single step that
+moves this setup forward — the engine setup, a model pull, a safe repair, or the app.
+
+States the app resolves by itself do not fail the run: no engine chosen yet, a server that
+is not running, and the optional rows are reported and keep the exit code at 0. A broken
+setup does fail it — a half-written engine config, a configured engine that does not answer,
+a missing model of the chosen engine, a skills-lock mismatch.
+
+The model line covers a tag that exists: `--model`, else `EPHE_MODEL`, else the persisted
+local-Ollama choice. `--fix` repairs the safe drift: repo fast-forward, dependencies
+(`.[gui,voice]`), Ollama service + model, PWA build. With no tag there is nothing to pull,
+so the repair is skipped instead of turning the run red.
 
 ## `ephe update [--model <name>]`
 Repo fast-forward, dependencies, model pull (ollama), installer invocation. Without `--model` and without `EPHE_MODEL` no model is passed to the installer: `ephe update` names no tag on the user's behalf.
@@ -40,8 +51,22 @@ R18 — manage local Piper voices:
 - `list`: binary status (`brew install piper`) + installed voices (`~/.ephe/voices/`)
 - `install en_US-amy-medium`: downloads the `.onnx` + `.onnx.json` from HuggingFace (opt-in, 200-MB cap)
 
-## `ephe tui`
-Textual TUI (terminal mode, extra `.[tui]`). Engine resolution as above. `--model <tag>` overrides the model inside the chosen engine — a model name is not an engine choice. `--api-url <url>` picks an OpenAI-compatible engine explicitly and needs a tag from `--model` or `EPHE_OPENAI_COMPAT_MODEL`; with neither it fails closed and names that variable.
+## `ephe` / `ephe tui`
+Textual TUI (terminal mode, extra `.[tui]`). The bare `ephe` opens it too; without a
+terminal (pipe, CI) it prints the usage page and exits 2.
+
+Engine resolution as above, with one difference: **no chosen engine is no abort here**.
+The app opens and offers its own setup (provider list, endpoint, API key, model) —
+`F10` or `/setup` reopens it. Nothing is sent until a choice exists, and a config that
+names a remote provider without an endpoint counts as none. `--model <tag>` overrides
+the model inside the chosen engine — a model name is not an engine choice. `--api-url
+<url>` picks an OpenAI-compatible engine explicitly and needs a tag from `--model` or
+`EPHE_OPENAI_COMPAT_MODEL`; with neither it fails closed and names that variable.
+
+One update check a day: when the checkout is behind its upstream, the app shows the
+update after the greeting, runs `git pull --ff-only` plus the installer on request,
+and closes so the next start carries the new build. `EPHE_NO_UPDATE_CHECK=1` turns
+the check off.
 
 ## `ephe configure [--force]`
 Store the engine choice once (a preset or your own endpoint). The choice lands in
@@ -110,7 +135,8 @@ ephe doctor                    # setup check (Ollama, model, server)
 ephe doctor --fix              # safe local repairs (repo, deps, Ollama, model)
 ephe doctor --json             # machine-readable health report
 ephe update                    # repo pull + dependencies + model
-ephe tui                       # terminal UI (Textual) — uses the configured engine
+ephe                           # terminal UI (Textual); opens its setup if no engine is chosen
+ephe tui                       # same surface, named
 ephe tui --model <tag>         # TUI on a tag you named yourself
 ephe tui --configure           # force the engine selection dialog
 ephe serve                     # OpenAI-compatible engine (/v1/chat/completions)
@@ -128,7 +154,7 @@ A build writes `app/src-tauri/target/release/bundle/macos/Ephe.app`. That copy i
 
 ## Engine choice (no silent default)
 
-`ephe configure` asks once which engine to use and stores the answer in `~/.ephe/engine.json`. `ephe start`, `ephe tui`, `ephe code`, `ephe goal`, `ephe run`, `ephe serve` and the server (`run_server.py`) all read that same choice — one source of truth. Without a saved choice and without an explicit engine env they never pick an engine in silence: the CLI paths stop with an actionable hint, the server starts in **setup mode on loopback** with the chat closed until a choice exists, and a LAN bind refuses to start outright. For scripted or headless setups use `EPHE_MODEL_PROVIDER=local_ollama|custom_ollama|openai_compatible` plus the matching `EPHE_LOCAL_OLLAMA_BASE_URL` / `EPHE_CUSTOM_OLLAMA_BASE_URL` / `EPHE_OPENAI_COMPAT_BASE_URL` (+ model); an explicit `EPHE_MODEL_PROVIDER` without `EPHE_MODEL` is a configuration error that names the missing variable, not a request to fill one in. Explicit `--api-url` selects the engine; `--model` names the tag inside the chosen engine and never selects one — `ephe start --model <tag>` without a saved engine still opens in setup mode. API keys are never stored; a key is only read from `EPHE_OPENAI_COMPAT_API_KEY`. Template for an OpenAI-compatible / vLLM endpoint: `engine.example.json`, `.env.example`.
+`ephe configure` asks once which engine to use and stores the answer in `~/.ephe/engine.json`. `ephe start`, `ephe tui`, `ephe code`, `ephe goal`, `ephe run`, `ephe serve` and the server (`run_server.py`) all read that same choice — one source of truth. Without a saved choice and without an explicit engine env they never pick an engine in silence: the terminal app opens its own provider setup, the remaining CLI paths stop with an actionable hint, the server starts in **setup mode on loopback** with the chat closed until a choice exists, and a LAN bind refuses to start outright. For scripted or headless setups use `EPHE_MODEL_PROVIDER=local_ollama|custom_ollama|openai_compatible` plus the matching `EPHE_LOCAL_OLLAMA_BASE_URL` / `EPHE_CUSTOM_OLLAMA_BASE_URL` / `EPHE_OPENAI_COMPAT_BASE_URL` (+ model); an explicit `EPHE_MODEL_PROVIDER` without `EPHE_MODEL` is a configuration error that names the missing variable, not a request to fill one in. Explicit `--api-url` selects the engine; `--model` names the tag inside the chosen engine and never selects one — `ephe start --model <tag>` without a saved engine still opens in setup mode. API keys are never stored; a key is only read from `EPHE_OPENAI_COMPAT_API_KEY`. Template for an OpenAI-compatible / vLLM endpoint: `engine.example.json`, `.env.example`.
 
 ## Connection test
 

@@ -117,8 +117,9 @@ def _venv_python() -> str:
     return str(candidate) if candidate.exists() else sys.executable
 
 
-def _print_check(ok: bool, label: str, detail: str = "") -> None:
-    status = "OK" if ok else "MISSING"
+def _print_check(ok: bool, label: str, detail: str = "", *, optional: bool = False) -> None:
+    """One doctor row. `optional` names a row that does not decide the exit code."""
+    status = "OK" if ok else ("OPTIONAL" if optional else "MISSING")
     suffix = f" - {detail}" if detail else ""
     print(f"{status:7} {label}{suffix}")
 

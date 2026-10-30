@@ -154,6 +154,44 @@ class ModelPicker(_ListScreen):
         )
 
 
+class UpdatePrompt(ModalScreen[bool]):
+    """A newer Ephe on the remote: update now, or keep working.
+
+    Updating replaces the code the running process was started from, so the
+    app closes itself afterwards and the next start carries the new build.
+    """
+
+    BINDINGS = [
+        Binding("escape", "later", "Later", priority=True),
+        Binding("n", "later", "Later", show=False, priority=True),
+        Binding("enter", "update", "Update", priority=True),
+        Binding("y", "update", "Update", show=False, priority=True),
+    ]
+
+    def __init__(self, version: str, url: str = "") -> None:
+        super().__init__()
+        self._version = version
+        self._url = url
+
+    def compose(self) -> ComposeResult:
+        with Vertical(classes="overlay-card"):
+            yield Static(
+                f"[bold {TEXT}]Ephe update[/bold {TEXT}]", classes="overlay-title"
+            )
+            yield Static(
+                f"[{TEXT}]Ephe {self._version} is available.[/{TEXT}]\n"
+                f"[{DIM}]Updating closes Ephe. Start it again with: ephe[/{DIM}]",
+                id="update-body",
+            )
+            yield Static(f"[{DIM}]Enter update · Esc later[/{DIM}]", id="update-hint")
+
+    def action_update(self) -> None:
+        self.dismiss(True)
+
+    def action_later(self) -> None:
+        self.dismiss(False)
+
+
 class HelpOverlay(ModalScreen[None]):
     """Every binding and command on one scrollable page."""
 
