@@ -23,13 +23,13 @@ function Menu({
   onChange: (next: string | null) => void
 }) {
   return (
-    <label className="relative inline-flex min-w-0 items-center">
+    <label className="relative inline-flex w-40 min-w-0 items-center">
       <span className="sr-only">{label}</span>
       <select
         data-testid={testId}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value || null)}
-        className={`h-8 min-w-0 cursor-pointer appearance-none truncate rounded-full border bg-transparent pl-3 pr-7 text-ui-xs transition-colors motion-safe:duration-fast hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+        className={`h-8 w-full min-w-0 cursor-pointer appearance-none truncate rounded-full border bg-transparent pl-3 pr-7 text-ui-xs transition-colors motion-safe:duration-fast hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
           value
             ? 'border-brand/45 text-foreground'
             : 'border-hairline text-ink-soft hover:border-hairline-strong'
@@ -72,9 +72,9 @@ export function DiscoverFilters({
   return (
     <div
       data-testid="discover-filters"
-      className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4"
+      className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-x-4"
     >
-      <label className="relative order-first flex h-10 items-center lg:order-last lg:ml-auto lg:w-72">
+      <label className="relative order-first flex h-10 items-center lg:order-last lg:ml-auto lg:w-56 xl:w-72">
         <Search
           className="pointer-events-none absolute left-3 h-4 w-4 text-ink-faint"
           aria-hidden="true"
