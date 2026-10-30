@@ -111,7 +111,10 @@ export function DiscoverDetail({
                     {t('discover.dryRun')}
                   </button>
                   {rehearsal ? (
-                    <p data-testid="discover-detail-verdict" className="font-mono text-ui-xs text-ink-soft">
+                    <p
+                      data-testid="discover-detail-verdict"
+                      className="font-mono text-ui-xs text-ink-soft"
+                    >
                       {t(`discover.verdict.${rehearsal.verdict}`)}
                       {rehearsal.findings.length
                         ? ` · ${t('discover.verdictFindings', { count: rehearsal.findings.length })}`
