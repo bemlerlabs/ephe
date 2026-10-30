@@ -36,6 +36,7 @@ const SAME_BY_DESIGN = new Set<string>([
   // Loanwords and product nouns the German surface keeps as they are.
   'discover.cardDetail', // Details
   'discover.detailVersion', // Version
+  'discover.sourceTitle', // Name — the same word in both
   'discover.category.code', // Code
   'discover.category.cloud', // Cloud
   'discover.category.web', // Web

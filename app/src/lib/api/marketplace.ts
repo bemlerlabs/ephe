@@ -226,3 +226,35 @@ export function removeMarketPlugin(name: string, deleteData = false): Promise<Ma
 export function marketIconUrl(name: string): string {
   return apiUrl(`/api/market/icon/${encodeURIComponent(name)}`)
 }
+
+// The catalogs a user adds: GET /api/market/sources and its two writes.
+
+export function getMarketSources(): Promise<{
+  sources: MarketSource[]
+  last_read: Record<string, string>
+  last_error: Record<string, string>
+}> {
+  return request<{
+    sources: MarketSource[]
+    last_read: Record<string, string>
+    last_error: Record<string, string>
+  }>('/api/market/sources')
+}
+
+export function addMarketSource(body: {
+  kind: 'local' | 'https'
+  title: string
+  url: string
+}): Promise<{ source: MarketSource }> {
+  return request<{ source: MarketSource }>('/api/market/sources', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function removeMarketSource(id: string): Promise<{ removed: boolean }> {
+  return request<{ removed: boolean }>('/api/market/sources/remove', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  })
+}

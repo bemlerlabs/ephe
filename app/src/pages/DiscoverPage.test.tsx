@@ -30,6 +30,8 @@ const api = vi.hoisted(() => ({
   getSecretStatus: vi.fn(),
   putSecret: vi.fn(),
   removeSecret: vi.fn(),
+  addMarketSource: vi.fn(),
+  removeMarketSource: vi.fn(),
 }))
 
 vi.mock('@/lib/api', () => api)
@@ -80,6 +82,17 @@ function seed() {
       },
     ],
     registry_count: 6606,
+    presets: [
+      { id: 'ephe-index', title: 'Ephe', kind: 'bundled', url: '', state: 'bundled', count: 2 },
+      {
+        id: 'mcp-registry',
+        title: 'Registry',
+        kind: 'mirror',
+        url: 'https://registry.example/v0/servers',
+        state: 'mirrored weekly',
+        count: 6606,
+      },
+    ],
     installed: [],
     usage: {
       tools: [{ tool: 'pdf', calls: 12, ok: 10, errors: 2, blocked: 1, last_ts: 'ts' }],
@@ -119,6 +132,8 @@ beforeEach(() => {
   api.putSecret.mockResolvedValue({ name: 'WEB_SEARCH_KEY', present: true, mode: 'keyring' })
   api.removeSecret.mockResolvedValue({ name: 'WEB_SEARCH_KEY', present: false, mode: '' })
   api.declareMcpEnv.mockResolvedValue({ servers: {}, declared: ['WEB_SEARCH_KEY'] })
+  api.addMarketSource.mockResolvedValue({ source: { id: 'src-1', title: 'Mine' } })
+  api.removeMarketSource.mockResolvedValue({ removed: true })
 })
 
 describe('discover page', () => {
@@ -211,6 +226,32 @@ describe('discover page', () => {
       'value',
       '',
     )
+  })
+
+  it('names the two preset shelves with their counts', async () => {
+    render_()
+    await waitFor(() => expect(screen.getByTestId('discover-sources')).toBeTruthy())
+    expect(screen.getByTestId('discover-preset-ephe-index').textContent).toContain('2')
+    expect(screen.getByTestId('discover-preset-mcp-registry').textContent).toContain('6606')
+  })
+
+  it('adds a user source through the validated door', async () => {
+    render_()
+    await waitFor(() => expect(screen.getByTestId('discover-source-add')).toBeTruthy())
+    fireEvent.click(screen.getByTestId('discover-source-add'))
+    fireEvent.change(screen.getByTestId('discover-source-title'), {
+      target: { value: 'My index' },
+    })
+    fireEvent.change(screen.getByTestId('discover-source-url'), {
+      target: { value: 'https://example.com/index.json' },
+    })
+    fireEvent.click(screen.getByTestId('discover-source-save'))
+    await waitFor(() => expect(api.addMarketSource).toHaveBeenCalledTimes(1))
+    expect(api.addMarketSource.mock.calls[0]?.[0]).toEqual({
+      kind: 'https',
+      title: 'My index',
+      url: 'https://example.com/index.json',
+    })
   })
 
   it('switches a skill off through its own route', async () => {

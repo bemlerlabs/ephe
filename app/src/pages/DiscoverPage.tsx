@@ -11,6 +11,7 @@ import { LoadingRow } from '@/components/ui'
 import { DiscoverCard } from '@/components/discover/DiscoverCard'
 import { DiscoverDetail } from '@/components/discover/DiscoverDetail'
 import { DiscoverFilters } from '@/components/discover/DiscoverFilters'
+import { SourcesRow } from '@/components/discover/SourcesRow'
 import { UsageBench } from '@/components/discover/UsageBench'
 import {
   bentoOf,
@@ -26,6 +27,7 @@ import {
   type DiscoverSources,
 } from '@/components/discover/discoverModel'
 import {
+  addMarketSource,
   declareMcpEnv,
   disableSkill,
   enableSkill,
@@ -35,6 +37,7 @@ import {
   planMarketInstall,
   probeMcpHealth,
   putMcpSettings,
+  removeMarketSource,
   searchDiscover,
   setPluginEnabled,
 } from '@/lib/api'
@@ -61,6 +64,7 @@ async function loadSources(): Promise<{ sources: DiscoverSources; failed: string
       catalog: boot?.catalog ?? [],
       registry: boot?.curated ?? [],
       registryCount: boot?.registry_count ?? 0,
+      presets: boot?.presets ?? [],
       home: boot?.home ?? null,
       index: boot?.index ?? null,
       installed: boot?.installed ?? [],
@@ -323,6 +327,16 @@ export default function DiscoverPage() {
               total={shown.length}
               onChange={setQuery}
             />
+
+            {sources ? (
+              <SourcesRow
+                presets={sources.presets}
+                sources={sources.home?.sources ?? []}
+                busy={Boolean(busy)}
+                onAdd={(body) => addMarketSource(body).then(load)}
+                onRemove={(id) => removeMarketSource(id).then(load)}
+              />
+            ) : null}
 
             {sources === null ? (
               <LoadingRow label={t('discover.loading')} />

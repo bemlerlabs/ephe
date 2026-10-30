@@ -24,6 +24,7 @@
   },
   "bots": {
     "49699333+dependabot[bot]@users.noreply.github.com": "dependabot PR author",
-    "noreply@github.com": "github.com merge and squash commits"
+    "noreply@github.com": "github.com merge and squash commits",
+    "41898282+github-actions[bot]@users.noreply.github.com": "weekly catalog sync PR author"
   }
 }
