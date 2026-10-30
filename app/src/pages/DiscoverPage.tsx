@@ -69,7 +69,9 @@ async function loadSources(): Promise<{ sources: DiscoverSources; failed: string
 
 /** A publisher launch line becomes the config spec the connector rides on. */
 function registrySpec(hint: string): string | null {
-  const match = hint.match(/^(npx|uvx|uv run|python3?|node)\s+(.+?)(?:\s+\((stdio|http|streamable-http)\))?$/)
+  const match = hint.match(
+    /^(npx|uvx|uv run|python3?|node)\s+(.+?)(?:\s+\((stdio|http|streamable-http)\))?$/,
+  )
   if (!match || !match[1] || !match[2]) return null
   return `stdio:${match[1]} ${match[2].trim()}`
 }
@@ -194,17 +196,17 @@ export default function DiscoverPage() {
       {list
         .filter((item) => !bentoIds.has(item.id))
         .map((item) => (
-        <DiscoverCard
-          key={item.id}
-          item={item}
-          hero={item === hero}
-          busy={busy === item.id}
-          onAdd={onAdd}
-          onToggle={onToggle}
-          onRemove={onRemove}
-          onDetail={setDetail}
-        />
-      ))}
+          <DiscoverCard
+            key={item.id}
+            item={item}
+            hero={item === hero}
+            busy={busy === item.id}
+            onAdd={onAdd}
+            onToggle={onToggle}
+            onRemove={onRemove}
+            onDetail={setDetail}
+          />
+        ))}
     </div>
   )
 
