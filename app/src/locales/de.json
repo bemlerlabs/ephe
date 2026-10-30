@@ -864,6 +864,8 @@
     "voiceTest": "Teststimme abspielen",
     "voiceTestFailed": "Audio-Backend nicht erreichbar",
     "aboutTitle": "Über Ephe",
+    "aboutUpdates": "Version & Updates",
+    "aboutUpdatesCheck": "Jetzt prüfen",
     "aboutVersion": "Version",
     "aboutLicense": "Lizenz",
     "aboutModel": "Modell",
