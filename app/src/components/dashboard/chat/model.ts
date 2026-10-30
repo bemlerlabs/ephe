@@ -93,8 +93,6 @@ export function useChatLayoutModel() {
   tRef.current = t
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  // R17 Artifact Hub: open the ArtifactRail library mode from the header
-  const [railLibraryOpen, setRailLibraryOpen] = useState(false)
   // P6 B7: added 'plugins' — the sidebar opens the marketplace tab directly.
   // 2026 IA-Sweep: TabKey union — the sidebar nav now links straight into any
   // settings cap (cron, mcp, …); 'model' stays a legacy alias and the caller
@@ -1258,8 +1256,6 @@ export function useChatLayoutModel() {
     setSidebarOpen,
     settingsOpen,
     setSettingsOpen,
-    railLibraryOpen,
-    setRailLibraryOpen,
     settingsTab,
     setSettingsTab,
     sidebarCollapsed,

@@ -13,10 +13,9 @@
  * component's defaultValue (the de/en texts are identical).
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
 import i18n from '@/i18n'
 import MessageBubble from './MessageBubble'
-import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import type { ChatMessage } from '@/types'
 
 afterEach(cleanup)
@@ -78,7 +77,7 @@ describe('MessageBubble — Tool-Zeilen Spinner + Status-Suffix (P3 Ephe-Norm)',
   })
 })
 
-describe('MessageBubble — Subagent-Zeilen persistieren nach Turn-Ende (P3)', () => {
+describe('MessageBubble — a finished turn keeps one run line (PAKET X)', () => {
   beforeAll(async () => {
     await i18n.changeLanguage('en')
   })
@@ -89,26 +88,18 @@ describe('MessageBubble — Subagent-Zeilen persistieren nach Turn-Ende (P3)', (
     { id: 'ph1', label: 'Analyzing request…', status: 'done' as const },
   ]
 
-  it('nach streaming=false bleiben Agent-Zeilen sichtbar (Suffix pro Status)', () => {
+  it('the finished bubble repeats no subagent rows — they live in the subagents tab', () => {
     render(
       <MessageBubble
         message={{ ...toolMsg([], false), activities: agentActivities } as unknown as ChatMessage}
       />,
     )
-    // Agent rows stay put below the tool groups …
-    expect(screen.getByTestId('agent-activity-rows')).toBeTruthy()
-    expect(screen.getByTestId('agent-activity-sa1').textContent).toContain('SubAgent e1 (explore)')
-    expect(screen.getByTestId('agent-activity-sa1').textContent).toContain('· Completed')
-    // … running row: spinner + „Working"
-    expect(screen.getByTestId('agent-activity-sa2').querySelector('.animate-spin')).toBeTruthy()
-    expect(screen.getByTestId('agent-activity-status-sa2').textContent).toContain('Working')
-    // non-agent phases do NOT enter the persistence list …
-    expect(screen.queryByTestId('agent-activity-ph1')).toBeNull()
-    // … and the transient feed is gone once the stream ends
+    expect(screen.queryByTestId('agent-activity-rows')).toBeNull()
+    expect(screen.queryByTestId('agent-activity-sa1')).toBeNull()
     expect(screen.queryByTestId('activity-ph1')).toBeNull()
   })
 
-  it('während streaming zeigt der transiente Feed die Agent-Zeile (wie bisher)', () => {
+  it('while streaming the transient feed still shows the agent line', () => {
     render(
       <MessageBubble
         message={{ ...toolMsg([], true), activities: agentActivities } as unknown as ChatMessage}
@@ -117,25 +108,5 @@ describe('MessageBubble — Subagent-Zeilen persistieren nach Turn-Ende (P3)', (
     expect(screen.getByTestId('activity-sa1')).toBeTruthy()
     expect(screen.getByTestId('activity-sa1').textContent).toContain('SubAgent e1 (explore)')
   })
-
-  it('Klick auf die persistente Agent-Zeile öffnet den Subagents-Tab', () => {
-    let detail: unknown = null
-    const listener = (e: Event) => {
-      detail = (e as CustomEvent).detail
-    }
-    window.addEventListener(PREVIEW_OPEN_EVENT, listener)
-    try {
-      render(
-        <MessageBubble
-          message={
-            { ...toolMsg([], false), activities: [agentActivities[0]] } as unknown as ChatMessage
-          }
-        />,
-      )
-      fireEvent.click(screen.getByTestId('agent-activity-sa1'))
-      expect(detail).toEqual({ tab: 'subagents' })
-    } finally {
-      window.removeEventListener(PREVIEW_OPEN_EVENT, listener)
-    }
-  })
 })
+

@@ -62,7 +62,7 @@ vi.mock('framer-motion', async () => {
 import AskUserQuestionCard from './AskUserQuestionCard'
 import CheckpointControls from './CheckpointControls'
 import TimelineRail from './TimelineRail'
-import ActivityFeed, { AgentActivityRows } from './ActivityFeed'
+import ActivityFeed from './ActivityFeed'
 import MetricsGauges from './MetricsGauges'
 import TypingIndicator from './TypingIndicator'
 import type { ChatCheckpoint } from '@/lib/checkpoints'
@@ -178,14 +178,6 @@ describe('ws3 a11y — ActivityFeed', () => {
     ).toBe('true')
   })
 
-  it('hides the status glyph in the persistent agent rows', () => {
-    const { container } = render(
-      <AgentActivityRows activities={[{ id: 'a', label: 'Explore agent', status: 'done' }]} />,
-    )
-    expect(
-      container.querySelector('[data-testid="agent-activity-a"] svg')?.getAttribute('aria-hidden'),
-    ).toBe('true')
-  })
 })
 
 describe('ws3 a11y — MetricsGauges', () => {
