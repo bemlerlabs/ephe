@@ -954,9 +954,12 @@ test.describe('D0 contrast parity on the one ground', () => {
         const tabs = blocked
           ? []
           : await settings.evaluate(() =>
-              Array.from(document.querySelectorAll('[data-testid^="settings-nav-"]')).map((el) =>
-                (el.getAttribute('data-testid') ?? '').replace('settings-nav-', ''),
-              ),
+              // Only what a user of this width can reach: the second nav level is
+              // `hidden md:block`, so a phone walk that clicked it would measure a
+              // timeout rather than the strip the phone actually shows.
+              Array.from(document.querySelectorAll('[data-testid^="settings-nav-"]'))
+                .filter((el) => el.getClientRects().length > 0)
+                .map((el) => (el.getAttribute('data-testid') ?? '').replace('settings-nav-', '')),
             )
         // The register has to be complete whenever it can be opened at all; a cycle blocked by
         // the defect above carries its own finding instead of a second one here.

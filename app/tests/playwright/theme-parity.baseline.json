@@ -339,6 +339,246 @@
     "boundary": 0,
     "render-error": 0
   },
+  "settings-part-'code-exec'-code-exec-ceilings/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-'code-exec'-code-exec-reach/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-'code-exec'-code-exec-runtime/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-about-settings-updates/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-appearance-appearance-presets/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-appearance-appearance-profile-group/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-appearance-companion-studio/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-appearance-deep-section-appearance/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-behaviour-behaviour-group-approval/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-behaviour-behaviour-group-workspace/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-behaviour-capability-matrix/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-behaviour-custom-instructions-group/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-behaviour-deep-section-chat/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-behaviour-details-mode-group/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-engine-deep-section-advanced/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-engine-engine-group-access/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-engine-engine-group-folders/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-engine-engine-group-image/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-engine-engine-group-model/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-generation-generation-group-params/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-generation-generation-group-reasoning/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-hooks-deep-section-hooks/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-hooks-hooks-file/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-hooks-hooks-group-idle/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-hooks-hooks-group-recent/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-mcp-mcp-section-catalog/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-mcp-mcp-section-servers/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-memory-deep-section-memory/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-memory-memory-group-danger/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-memory-memory-group-entries/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-memory-memory-group-store/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-network-network-group-server/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-network-network-group-shares/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-plugins-deep-section-plugins/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-plugins-plugins-master/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-privacy-privacy-group-device/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-privacy-session-store-group/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-shortcuts-deep-section-shortcuts/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-shortcuts-shortcuts-group-desktop/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-skills-skills-group-builder/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-skills-skills-group-install/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-skills-skills-group-mine/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-skills-skills-group-packs/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-tasks-tasks-group-list/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-tasks-tasks-group-new/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-teams-team-template-picker/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-voice-voice-group-input/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-part-voice-voice-group-output/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
   "settings-persona/forest/1280": {
     "text": 0,
     "boundary": 0,
@@ -365,6 +605,91 @@
     "render-error": 0
   },
   "settings-privacy/forest/390": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-'code-exec'/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-about/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-appearance/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-behaviour/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-engine/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-generation/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-hooks/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-mcp/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-memory/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-network/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-plugins/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-privacy/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-shortcuts/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-skills/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-tasks/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-teams/forest/1280": {
+    "text": 0,
+    "boundary": 0,
+    "render-error": 0
+  },
+  "settings-sections-voice/forest/1280": {
     "text": 0,
     "boundary": 0,
     "render-error": 0
