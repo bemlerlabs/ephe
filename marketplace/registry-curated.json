@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-30T15:40:59+00:00",
+  "generated": "2026-10-30T16:32:12+00:00",
   "source": "https://registry.modelcontextprotocol.io/v0/servers",
   "count": 447,
   "entries": [
@@ -13,6 +13,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -25,6 +26,7 @@
       "version": "0.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -37,6 +39,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -49,6 +52,7 @@
       "version": "1.29.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -61,6 +65,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -73,6 +78,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -85,6 +91,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -97,6 +104,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -109,6 +117,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -121,6 +130,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -133,6 +143,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -145,6 +156,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -157,6 +169,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -169,6 +182,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -181,6 +195,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -193,6 +208,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -205,6 +221,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -217,6 +234,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -229,6 +247,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -241,6 +260,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -253,6 +273,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -265,6 +286,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -277,6 +299,7 @@
       "version": "1.0.11",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -289,6 +312,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -301,6 +325,12 @@
       "version": "6.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "AI_2KW_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -313,6 +343,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -325,6 +356,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -337,6 +369,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -349,6 +382,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -361,6 +395,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -373,6 +408,7 @@
       "version": "1.10.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -385,6 +421,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -397,6 +434,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -409,6 +447,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -421,6 +460,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -433,6 +473,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -445,6 +486,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -457,6 +499,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -469,6 +512,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -481,6 +525,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -493,6 +538,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -505,6 +551,7 @@
       "version": "1.2.4",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -517,6 +564,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -529,6 +577,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -541,6 +590,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -553,6 +603,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -565,6 +616,7 @@
       "version": "3.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -577,6 +629,7 @@
       "version": "3.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -589,6 +642,7 @@
       "version": "3.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -601,6 +655,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -613,6 +668,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -625,6 +681,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -637,6 +694,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -649,6 +707,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -661,6 +720,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -673,6 +733,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -685,6 +746,7 @@
       "version": "1.19.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -697,6 +759,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -709,6 +772,7 @@
       "version": "1.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -721,6 +785,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -733,6 +798,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -745,6 +811,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -757,6 +824,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -769,6 +837,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -781,6 +850,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -793,6 +863,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -805,6 +876,7 @@
       "version": "1.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -817,6 +889,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -829,6 +902,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -841,6 +915,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -853,6 +928,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -865,6 +941,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -877,6 +954,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -889,6 +967,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -901,6 +980,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -913,6 +993,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -925,6 +1006,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -937,6 +1019,7 @@
       "version": "2.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -949,6 +1032,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -961,6 +1045,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -973,6 +1058,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -985,6 +1071,12 @@
       "version": "1.0.3",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "AETHERYA_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -997,6 +1089,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1009,6 +1102,7 @@
       "version": "0.1.11",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1021,6 +1115,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1033,6 +1128,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1045,6 +1141,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1057,6 +1154,7 @@
       "version": "1.10.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1069,6 +1167,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1081,6 +1180,7 @@
       "version": "0.1.0-beta",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1093,6 +1193,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1105,6 +1206,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1117,6 +1219,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1129,6 +1232,7 @@
       "version": "1.11.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1141,6 +1245,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1153,6 +1258,7 @@
       "version": "0.26.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1165,6 +1271,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1177,6 +1284,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1189,6 +1297,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1201,6 +1310,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1213,6 +1323,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1225,6 +1336,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1237,6 +1349,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1249,6 +1362,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1261,6 +1375,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1273,6 +1388,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1285,6 +1401,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1297,6 +1414,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1309,6 +1427,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1321,6 +1440,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1333,6 +1453,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1345,6 +1466,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1357,6 +1479,7 @@
       "version": "2.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1369,6 +1492,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1381,6 +1505,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1393,6 +1518,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1405,6 +1531,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1417,6 +1544,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1429,6 +1557,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1441,6 +1570,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1453,6 +1583,7 @@
       "version": "1.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1465,6 +1596,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1477,6 +1609,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1489,6 +1622,12 @@
       "version": "1.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "AGENTTRUST_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -1501,6 +1640,7 @@
       "version": "0.2.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1513,6 +1653,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1525,6 +1666,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1537,6 +1679,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1549,6 +1692,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1561,6 +1705,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1573,6 +1718,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1585,6 +1731,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1597,6 +1744,7 @@
       "version": "5.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1609,6 +1757,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1621,6 +1770,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1633,6 +1783,7 @@
       "version": "0.1.13",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1645,6 +1796,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1657,6 +1809,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1669,6 +1822,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1681,6 +1835,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1693,6 +1848,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1705,6 +1861,12 @@
       "version": "0.1.3",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "AMC_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -1717,6 +1879,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1729,6 +1892,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1741,6 +1905,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1753,6 +1918,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1765,6 +1931,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1777,6 +1944,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1789,6 +1957,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1801,6 +1970,12 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "ADTEST_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -1813,6 +1988,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1825,6 +2001,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1837,6 +2014,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1849,6 +2027,7 @@
       "version": "1.1.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1861,6 +2040,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1873,6 +2053,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1885,6 +2066,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1897,6 +2079,7 @@
       "version": "0.7.31",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1909,6 +2092,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1921,6 +2105,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1933,6 +2118,12 @@
       "version": "0.2.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "CLAWFETCH_PRIVATE_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -1945,6 +2136,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1957,6 +2149,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1969,6 +2162,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1981,6 +2175,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -1993,6 +2188,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2005,6 +2201,12 @@
       "version": "2.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "ELFA_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -2017,6 +2219,7 @@
       "version": "3.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2029,6 +2232,7 @@
       "version": "3.0.7",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2041,6 +2245,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2053,6 +2258,7 @@
       "version": "0.2.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2065,6 +2271,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2077,6 +2284,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2089,6 +2297,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2101,6 +2310,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2113,6 +2323,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2125,6 +2336,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2137,6 +2349,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2149,6 +2362,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2161,6 +2375,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2173,6 +2388,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2185,6 +2401,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2197,6 +2414,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2209,6 +2427,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2221,6 +2440,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2233,6 +2453,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2245,6 +2466,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2257,6 +2479,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2269,6 +2492,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2281,6 +2505,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2293,6 +2518,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2305,6 +2531,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2317,6 +2544,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2329,6 +2557,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2341,6 +2570,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2353,6 +2583,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2365,6 +2596,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2377,6 +2609,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2389,6 +2622,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2401,6 +2635,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2413,6 +2648,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2425,6 +2661,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2437,6 +2674,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2449,6 +2687,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2461,6 +2700,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2473,6 +2713,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2485,6 +2726,7 @@
       "version": "0.1.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2497,6 +2739,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2509,6 +2752,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2521,6 +2765,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2533,6 +2778,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2545,6 +2791,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2557,6 +2804,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2569,6 +2817,12 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "LAKEWAVE_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -2581,6 +2835,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2593,6 +2848,7 @@
       "version": "0.10.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2605,6 +2861,7 @@
       "version": "1.0.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2617,6 +2874,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2629,6 +2887,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2641,6 +2900,7 @@
       "version": "0.1.0-alpha",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2653,6 +2913,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2665,6 +2926,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2677,6 +2939,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2689,6 +2952,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2701,6 +2965,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2713,6 +2978,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2725,6 +2991,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2737,6 +3004,12 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "SENDRAVEN_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -2749,6 +3022,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2761,6 +3035,7 @@
       "version": "1.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2773,6 +3048,7 @@
       "version": "0.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2785,6 +3061,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2797,6 +3074,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2809,6 +3087,7 @@
       "version": "2.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2821,6 +3100,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2833,6 +3113,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2845,6 +3126,12 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "TRADESEARCHER_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -2857,6 +3144,7 @@
       "version": "0.3.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2869,6 +3157,7 @@
       "version": "0.3.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2881,6 +3170,7 @@
       "version": "0.3.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2893,6 +3183,7 @@
       "version": "0.3.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2905,6 +3196,7 @@
       "version": "0.3.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2917,6 +3209,7 @@
       "version": "0.3.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2929,6 +3222,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2941,6 +3235,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2953,6 +3248,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2965,6 +3261,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -2977,6 +3274,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2989,6 +3287,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3001,6 +3300,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3013,6 +3313,7 @@
       "version": "1.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3025,6 +3326,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3037,6 +3339,7 @@
       "version": "0.4.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3049,6 +3352,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3061,6 +3365,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3073,6 +3378,7 @@
       "version": "0.8.5",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3085,6 +3391,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3097,6 +3404,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3109,6 +3417,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3121,6 +3430,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3133,6 +3443,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3145,6 +3456,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3157,6 +3469,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3169,6 +3482,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3181,6 +3495,16 @@
       "version": "0.4.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "RARCANE_API_KEY",
+          "secret": true
+        },
+        {
+          "name": "RARCANE_API_URL",
+          "secret": false
+        }
+      ],
       "curated_reason": "recent"
     },
     {
@@ -3193,6 +3517,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3205,6 +3530,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3217,6 +3543,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3229,6 +3556,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3241,6 +3569,7 @@
       "version": "0.3.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3253,6 +3582,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3265,6 +3595,7 @@
       "version": "1.0.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3277,6 +3608,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3289,6 +3621,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3301,6 +3634,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3313,6 +3647,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3325,6 +3660,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3337,6 +3673,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3349,6 +3686,7 @@
       "version": "0.4.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3361,6 +3699,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3373,6 +3712,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3385,6 +3725,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3397,6 +3738,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3409,6 +3751,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3421,6 +3764,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3433,6 +3777,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3445,6 +3790,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3457,6 +3803,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3469,6 +3816,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3481,6 +3829,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3493,6 +3842,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3505,6 +3855,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3517,6 +3868,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3529,6 +3881,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3541,6 +3894,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3553,6 +3907,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3565,6 +3920,12 @@
       "version": "0.6.3",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "APPSCREENSHOTSTUDIO_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -3577,6 +3938,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3589,6 +3951,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3601,6 +3964,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3613,6 +3977,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3625,6 +3990,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3637,6 +4003,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3649,6 +4016,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3661,6 +4029,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3673,6 +4042,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3685,6 +4055,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3697,6 +4068,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3709,6 +4081,12 @@
       "version": "0.1.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "AGENT_PAY_BURNER_SEED",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -3721,6 +4099,12 @@
       "version": "1.2.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "MCP_WALLET_PRIVATE_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -3733,6 +4117,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3745,6 +4130,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3757,6 +4143,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3769,6 +4156,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3781,6 +4169,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3793,6 +4182,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3805,6 +4195,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3817,6 +4208,7 @@
       "version": "0.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3829,6 +4221,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3841,6 +4234,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3853,6 +4247,12 @@
       "version": "0.2.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "CRUSTAPI_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -3865,6 +4265,7 @@
       "version": "1.1.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3877,6 +4278,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3889,6 +4291,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3901,6 +4304,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3913,6 +4317,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3925,6 +4330,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3937,6 +4343,7 @@
       "version": "1.0.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3949,6 +4356,12 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "DEVART_MCP_POSTGRESQL_CONNECTION",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -3961,6 +4374,12 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "DEVART_MCP_SQLITE_CONNECTION",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -3973,6 +4392,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3985,6 +4405,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -3997,6 +4418,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4009,6 +4431,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4021,6 +4444,20 @@
       "version": "0.5.6",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "ECHO_MEMORY_AGENT_ID",
+          "secret": false
+        },
+        {
+          "name": "ECHO_MEMORY_DATABASE_URL",
+          "secret": true
+        },
+        {
+          "name": "ECHO_MEMORY_USER_ID",
+          "secret": false
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -4033,6 +4470,12 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "EDGEDEPTH_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -4045,6 +4488,7 @@
       "version": "0.12.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4057,6 +4501,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4069,6 +4514,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4081,6 +4527,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4093,6 +4540,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4105,6 +4553,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4117,6 +4566,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4129,6 +4579,7 @@
       "version": "0.2.19",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4141,6 +4592,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4153,6 +4605,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4165,6 +4618,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4177,6 +4631,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4189,6 +4644,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4201,6 +4657,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4213,6 +4670,7 @@
       "version": "1.33.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4225,6 +4683,7 @@
       "version": "1.33.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4237,6 +4696,7 @@
       "version": "0.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4249,6 +4709,7 @@
       "version": "0.6.14",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4261,6 +4722,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4273,6 +4735,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4285,6 +4748,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4297,6 +4761,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4309,6 +4774,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4321,6 +4787,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4333,6 +4800,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4345,6 +4813,7 @@
       "version": "1.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4357,6 +4826,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4369,6 +4839,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4381,6 +4852,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4393,6 +4865,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4405,6 +4878,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4417,6 +4891,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4429,6 +4904,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4441,6 +4917,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4453,6 +4930,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4465,6 +4943,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4477,6 +4956,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4489,6 +4969,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4501,6 +4982,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4513,6 +4995,12 @@
       "version": "0.20.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "LITHTRIX_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -4525,6 +5013,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4537,6 +5026,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4549,6 +5039,7 @@
       "version": "2.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4561,6 +5052,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4573,6 +5065,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4585,6 +5078,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4597,6 +5091,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4609,6 +5104,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4621,6 +5117,12 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "MATHTER_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -4633,6 +5135,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4645,6 +5148,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4657,6 +5161,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4669,6 +5174,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4681,6 +5187,7 @@
       "version": "2.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4693,6 +5200,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4705,6 +5213,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4717,6 +5226,7 @@
       "version": "0.1.2",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4729,6 +5239,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4741,6 +5252,12 @@
       "version": "1.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [
+        {
+          "name": "NIMROD_API_KEY",
+          "secret": true
+        }
+      ],
       "curated_reason": "pick"
     },
     {
@@ -4753,6 +5270,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4765,6 +5283,7 @@
       "version": "1.29.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4777,6 +5296,7 @@
       "version": "0.6.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4789,6 +5309,7 @@
       "version": "0.2.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4801,6 +5322,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4813,6 +5335,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4825,6 +5348,7 @@
       "version": "1.3.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4837,6 +5361,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4849,6 +5374,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4861,6 +5387,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4873,6 +5400,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4885,6 +5413,7 @@
       "version": "0.6.6",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4897,6 +5426,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -4909,6 +5439,7 @@
       "version": "0.1.0-beta.3",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4921,6 +5452,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4933,6 +5465,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4945,6 +5478,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4957,6 +5491,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4969,6 +5504,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4981,6 +5517,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -4993,6 +5530,7 @@
       "version": "0.2.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5005,6 +5543,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5017,6 +5556,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5029,6 +5569,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5041,6 +5582,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5053,6 +5595,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5065,6 +5608,7 @@
       "version": "1.4.94",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5077,6 +5621,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5089,6 +5634,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5101,6 +5647,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5113,6 +5660,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5125,6 +5673,7 @@
       "version": "1.0.3",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5137,6 +5686,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5149,6 +5699,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5161,6 +5712,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5173,6 +5725,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5185,6 +5738,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5197,6 +5751,7 @@
       "version": "2.2.6",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5209,6 +5764,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5221,6 +5777,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5233,6 +5790,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5245,6 +5803,7 @@
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5257,6 +5816,7 @@
       "version": "1.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5269,6 +5829,7 @@
       "version": "0.12.27",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5281,6 +5842,7 @@
       "version": "2.1.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5293,6 +5855,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5305,6 +5868,7 @@
       "version": "1.28.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5317,6 +5881,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5329,6 +5894,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5341,6 +5907,7 @@
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5353,6 +5920,7 @@
       "version": "1.0.3",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -5365,6 +5933,7 @@
       "version": "0.1.1",
       "published_at": "",
       "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     }
   ]
