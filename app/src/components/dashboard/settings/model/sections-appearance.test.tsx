@@ -56,9 +56,9 @@ const sections = [
         type: 'select',
         label: 'Begleiter-Gestalt',
         labelEn: 'Companion form',
-        default: 'fire_bee',
-        value: 'fire_bee',
-        options: ['fire_bee', 'ember_spark', 'minimal'],
+        default: 'paper_moth',
+        value: 'paper_moth',
+        options: ['paper_moth', 'fire_bee', 'ember_spark', 'minimal'],
       },
       {
         key: 'appearance.companion_behavior',

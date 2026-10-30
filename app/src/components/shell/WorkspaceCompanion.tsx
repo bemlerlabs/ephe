@@ -23,7 +23,7 @@ import { useCompanionDrag } from './useCompanionDrag'
 import type { CopilotMode } from '@/lib/companionCopilot'
 import { useTranslation } from 'react-i18next'
 
-const SPECIES: CompanionSpecies[] = ['fire_bee', 'ember_spark', 'minimal']
+const SPECIES: CompanionSpecies[] = ['paper_moth', 'fire_bee', 'ember_spark', 'minimal']
 
 export default function WorkspaceCompanion({
   runState,
@@ -36,7 +36,7 @@ export default function WorkspaceCompanion({
 }) {
   const { t } = useTranslation()
   const enabled = useDeepBool('appearance.companion_enabled', false)
-  const species = useDeepSelect('appearance.companion_species', 'fire_bee')
+  const species = useDeepSelect('appearance.companion_species', 'paper_moth')
   const behavior = useDeepSelect('appearance.companion_behavior', 'interactive')
   const mode = useDeepSelect('appearance.companion_mode', 'copilot')
   const scale = useDeepNumber('appearance.companion_scale', 100)
@@ -76,7 +76,7 @@ export default function WorkspaceCompanion({
 
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)
-    : 'fire_bee'
+    : 'paper_moth'
   const interact = behavior === 'interactive'
   const finding = copilot.finding
   const countingDown = copilot.countdownRemaining !== null

@@ -34,7 +34,7 @@ export default function WelcomeEmptyState({ onStartMission }: WelcomeEmptyStateP
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
   const companionEnabled = useDeepBool('appearance.companion_enabled', false)
-  const companionSpecies = useDeepSelect('appearance.companion_species', 'fire_bee')
+  const companionSpecies = useDeepSelect('appearance.companion_species', 'paper_moth')
   const companionScale = useDeepNumber('appearance.companion_scale', 100)
   const animationsEnabled = useDeepBool('appearance.animations_enabled', true)
   const still = Boolean(reduceMotion) || !animationsEnabled
@@ -85,7 +85,11 @@ export default function WelcomeEmptyState({ onStartMission }: WelcomeEmptyStateP
         {companionEnabled && companionSpecies !== 'minimal' ? (
           <CompanionActor
             ref={companionRef}
-            species={companionSpecies === 'ember_spark' ? 'ember_spark' : 'fire_bee'}
+            species={
+              companionSpecies === 'fire_bee' || companionSpecies === 'ember_spark'
+                ? companionSpecies
+                : 'paper_moth'
+            }
             scale={companionScale}
             still={still}
             size="hero"

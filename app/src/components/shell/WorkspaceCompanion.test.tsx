@@ -39,18 +39,31 @@ describe('WorkspaceCompanion', () => {
     expect(screen.queryByTestId('workspace-companion')).toBeNull()
   })
 
-  it('shows the bee in the active chat once it is switched on', () => {
+  it('shows the moth in the active chat once it is switched on', () => {
     seed({ 'appearance.companion_enabled': true })
     render(<WorkspaceCompanion runState="ready" hasMessages />)
     const companion = screen.getByTestId('workspace-companion')
     expect(companion.dataset.behavior).toBe('interactive')
-    expect(companion.dataset.species).toBe('fire_bee')
+    expect(companion.dataset.species).toBe('paper_moth')
+    expect(companion.querySelector('img.companion-body')?.getAttribute('src')).toBe(
+      '/onboarding/paper-moth-actor.webp',
+    )
     expect(companion.dataset.state).toBe('ready')
     expect(companion.dataset.mood).toBe('rest')
     expect(companion.dataset['copilotMode']).toBe('copilot')
     expect(companion.querySelector('.companion-body')).toBeTruthy()
     expect(companion.querySelectorAll('.companion-wing')).toHaveLength(2)
     expect(companion.querySelector('.companion-flame')).toBeTruthy()
+  })
+
+  it('keeps the bee as a chosen species with its own sprites', () => {
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_species': 'fire_bee' })
+    render(<WorkspaceCompanion runState="ready" hasMessages />)
+    const companion = screen.getByTestId('workspace-companion')
+    expect(companion.dataset.species).toBe('fire_bee')
+    expect(companion.querySelector('img.companion-body')?.getAttribute('src')).toBe(
+      '/onboarding/bee-3d-actor.webp',
+    )
   })
 
   it('appears on the welcome screen too, so the summon switch answers visibly', () => {

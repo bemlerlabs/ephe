@@ -13,7 +13,29 @@ import { playSparkBurst, playWingWhoosh } from '@/lib/spiritAudio'
 import { EpheMark } from '@/components/shell/EpheMark'
 import { BeeEyelids } from '@/components/bee/BeeEyelids'
 
-export type CompanionSpecies = 'fire_bee' | 'ember_spark' | 'minimal'
+export type CompanionSpecies = 'paper_moth' | 'fire_bee' | 'ember_spark' | 'minimal'
+
+/** Each cut-out actor is a body, two hinged wings and one accent part. */
+interface ActorArt {
+  body: string
+  wingLeft: string
+  wingRight: string
+  accent: string
+}
+
+const MOTH_ART: ActorArt = {
+  body: '/onboarding/paper-moth-actor.webp',
+  wingLeft: '/onboarding/paper-moth-wing-l.webp',
+  wingRight: '/onboarding/paper-moth-wing-r.webp',
+  accent: '/onboarding/paper-moth-thread.webp',
+}
+
+const BEE_ART: ActorArt = {
+  body: '/onboarding/bee-3d-actor.webp',
+  wingLeft: '/onboarding/bee-3d-wing-l.webp',
+  wingRight: '/onboarding/bee-3d-wing-r.webp',
+  accent: '/onboarding/bee-3d-flame.webp',
+}
 
 export interface CompanionHandle {
   turnTo(degrees: number): void
@@ -151,6 +173,9 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
 
     useEffect(() => () => cancelAnimationFrame(raf.current), [])
 
+    const art = species === 'fire_bee' ? BEE_ART : MOTH_ART
+    const showsActor = species === 'paper_moth' || species === 'fire_bee'
+
     return (
       <div
         ref={rootRef}
@@ -162,7 +187,7 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
         }
         aria-hidden="true"
       >
-        {species === 'fire_bee' && (
+        {showsActor && (
           <div
             className="companion-turn"
             onClick={
@@ -178,25 +203,25 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
             <div className="companion-motion">
               <img
                 className="companion-body"
-                src="/onboarding/paper-moth-actor.webp"
+                src={art.body}
                 alt=""
                 draggable={false}
               />
               <img
                 className="companion-wing companion-wing-l"
-                src="/onboarding/paper-moth-wing-l.webp"
+                src={art.wingLeft}
                 alt=""
                 draggable={false}
               />
               <img
                 className="companion-wing companion-wing-r"
-                src="/onboarding/paper-moth-wing-r.webp"
+                src={art.wingRight}
                 alt=""
                 draggable={false}
               />
               <img
                 className="companion-flame"
-                src="/onboarding/paper-moth-thread.webp"
+                src={art.accent}
                 alt=""
                 draggable={false}
               />
