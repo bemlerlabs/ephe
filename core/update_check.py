@@ -221,8 +221,13 @@ def _main_channel(commit: str) -> dict[str, Any] | None:
     }
 
 
+OPT_OUT_ENV = "EPHE_NO_UPDATE_CHECK"
+
+
 def update_check_enabled() -> bool:
-    """Deep setting `appearance.update_check` (default ON)."""
+    """The one switch: `appearance.update_check` (ON), or EPHE_NO_UPDATE_CHECK."""
+    if os.environ.get(OPT_OUT_ENV):
+        return False
     from core.settings_schema import deep_bool
 
     return deep_bool("appearance.update_check")
@@ -308,7 +313,6 @@ def _reset_cache() -> None:
 # outlives it, and the product promise here is one look a day.
 DAY_S = 24 * 3600
 STATE_FILE = "update.json"
-OPT_OUT_ENV = "EPHE_NO_UPDATE_CHECK"
 
 
 def state_path() -> Path:

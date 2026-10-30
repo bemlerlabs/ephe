@@ -36,6 +36,9 @@ def _no_installed_commit(monkeypatch):
     """The continuous channel is opt-in per test: a unit test must never reach
     GitHub just because the checkout it runs in happens to have a HEAD."""
     monkeypatch.setattr(update_check, "installed_commit", lambda: "")
+    # The suite-wide opt-out would answer "disabled" before the feed is asked,
+    # and this file is the feed contract.
+    monkeypatch.delenv(update_check.OPT_OUT_ENV, raising=False)
     update_check._reset_cache()
 
 
@@ -108,6 +111,25 @@ class TestCheckForUpdate:
         update_check._reset_cache()
         out = update_check.check_for_update()
         assert out.get("enabled") is False
+
+
+    def test_env_opt_out_silences_every_caller(self, monkeypatch):
+        """docs/CLI.md promises `EPHE_NO_UPDATE_CHECK=1` turns the check off —
+        the terminal app asked the feed through check_for_update directly and
+        ignored that promise until now."""
+
+        def _no_network():
+            raise AssertionError("the opt-out must not reach the release feed")
+
+        monkeypatch.setenv(update_check.OPT_OUT_ENV, "1")
+        monkeypatch.setattr(update_check, "_fetch_latest", _no_network)
+        update_check._reset_cache()
+        assert update_check.check_for_update() == {
+            "enabled": False,
+            "available": False,
+        }
+        assert update_check.daily_check()["enabled"] is False
+        update_check._reset_cache()
 
 
 class TestRoute:
