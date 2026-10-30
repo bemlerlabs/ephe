@@ -2336,6 +2336,8 @@
   "update": {
     "details": "Details",
     "detailsVersion": "Version",
+      "detailsCommit": "Commit",
+      "detailsChannel": "Kanal",
     "detailsSize": "Download",
     "detailsPlatform": "Plattform",
     "detailsAsset": "Paket",
