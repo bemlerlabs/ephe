@@ -162,8 +162,7 @@ def _local_index(value: str) -> Path:
     # The owner names an index file on their own machine, so the path is theirs to choose:
     # the guards below keep it a JSON index and out of the credential stores and this app's
     # own state, which is all a source reader may ever be pointed at.
-    # codeql[py/path-injection]
-    candidate = Path(str(value or "")).expanduser()
+    candidate = Path(str(value or "")).expanduser()  # codeql[py/path-injection]
     if not candidate.is_absolute():
         raise SourceError("invalid_url", "a local source needs an absolute path")
     resolved = candidate.resolve()
