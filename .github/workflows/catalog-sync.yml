@@ -19,8 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: catalog-sync
@@ -34,6 +33,10 @@ jobs:
     name: Mirror, curate, tag, then propose the diff as a pull request
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
+    # Scoped to this job: the workflow itself only reads.
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
