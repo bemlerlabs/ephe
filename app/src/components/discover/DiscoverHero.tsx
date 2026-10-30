@@ -119,9 +119,7 @@ export function DiscoverHero({
             label={t('discover.detailSource')}
             value={t(`discover.origin.${item.origin}`, { defaultValue: item.origin })}
           />
-          {item.version ? (
-            <Fact label={t('discover.detailVersion')} value={item.version} />
-          ) : null}
+          {item.version ? <Fact label={t('discover.detailVersion')} value={item.version} /> : null}
         </dl>
       </div>
     </section>

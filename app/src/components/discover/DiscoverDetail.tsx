@@ -128,7 +128,9 @@ export function DiscoverDetail({
             ) : null}
 
             <dl className="mt-5 divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline bg-surface/40">
-              {item.publisher ? <Row label={t('discover.detailPublisher')}>{item.publisher}</Row> : null}
+              {item.publisher ? (
+                <Row label={t('discover.detailPublisher')}>{item.publisher}</Row>
+              ) : null}
               {item.downloads ? (
                 <Row label={t('discover.detailDownloads')}>
                   {t('discover.cardDownloads', { count: item.downloads })}
@@ -139,9 +141,7 @@ export function DiscoverDetail({
                   {t('discover.cardTools', { count: item.toolCount })}
                 </Row>
               ) : null}
-              {item.version ? (
-                <Row label={t('discover.detailVersion')}>{item.version}</Row>
-              ) : null}
+              {item.version ? <Row label={t('discover.detailVersion')}>{item.version}</Row> : null}
               {item.installHint ? (
                 <Row label={t('discover.detailInstall')} mono testId="discover-detail-install">
                   {item.installHint}

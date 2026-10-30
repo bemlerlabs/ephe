@@ -35,10 +35,7 @@ function Badge({ item }: { item: DiscoverItem }) {
   // when it says something the row does not already say.
   if (!item.badge || item.badge === 'pick') return null
   return (
-    <span
-      data-testid={`discover-badge-${item.id}`}
-      className="shrink-0 text-ui-2xs text-brand"
-    >
+    <span data-testid={`discover-badge-${item.id}`} className="shrink-0 text-ui-2xs text-brand">
       · {t(`discover.badge.${item.badge}`)}
     </span>
   )

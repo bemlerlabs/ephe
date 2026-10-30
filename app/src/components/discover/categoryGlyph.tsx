@@ -46,7 +46,7 @@ const BY_KIND: Record<DiscoverKind, LucideIcon> = {
   plugin: Puzzle,
 }
 
-export function glyphFor(category: string | undefined, kind: DiscoverKind): LucideIcon {
+function glyphFor(category: string | undefined, kind: DiscoverKind): LucideIcon {
   return (category ? BY_CATEGORY[category] : undefined) ?? BY_KIND[kind]
 }
 

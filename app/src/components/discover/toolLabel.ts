@@ -19,7 +19,11 @@ export function toolLabel(tool: string): string {
   const known = KNOWN[tool]
   if (known) return known
   const tail = tool.includes('__') ? (tool.split('__').pop() ?? tool) : tool
-  const words = tail.replace(/[._-]+/g, ' ').trim().split(' ').filter(Boolean)
+  const words = tail
+    .replace(/[._-]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
   if (!words.length) return tool
   return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
 }
