@@ -1312,7 +1312,8 @@
       "keyring": "im Systemschlüsselbund",
       "file_0600": "in einer Datei, die nur du lesen kannst"
     },
-    "pluginsDiscover": "Weitere im Discover-Marktplatz entdecken"
+    "pluginsDiscover": "Weitere im Discover-Marktplatz entdecken",
+    "groupFold": "Diese Gruppe zuklappen"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",

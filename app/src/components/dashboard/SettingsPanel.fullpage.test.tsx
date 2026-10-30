@@ -146,7 +146,8 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     }
     for (const group of NAV_GROUPS) {
       const id = `settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`
-      expect(screen.getByTestId(id).querySelector('p')?.querySelector('svg')).toBeNull()
+      // A group head carries no 16 px row glyph; its only svg is the 12 px fold chevron.
+      expect(screen.getByTestId(id).querySelector('svg.h-4')).toBeNull()
     }
     // 1:1 — every group matches the NAV keys, no entry missing or doubled
     const groupKeys = [...NAV_GROUPS.flatMap((g) => g.keys), ...ABOUT_KEYS]
@@ -156,16 +157,16 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
   it('a folded group stays folded when the register opens again', async () => {
     const first = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
-    fireEvent.click(screen.getByTestId('settings-nav-group-toggle-models'))
+    fireEvent.click(screen.getByTestId('settings-fold-models'))
     expect(
-      screen.getByTestId('settings-nav-group-toggle-models').getAttribute('aria-expanded'),
+      screen.getByTestId('settings-fold-models').getAttribute('aria-expanded'),
     ).toBe('false')
-    expect(screen.getByTestId('settings-nav-rows-models').className).toContain('hidden')
+    expect(screen.getByTestId('settings-group-rows-models').className).toContain('hidden')
     first.unmount()
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
     expect(
-      screen.getByTestId('settings-nav-group-toggle-models').getAttribute('aria-expanded'),
+      screen.getByTestId('settings-fold-models').getAttribute('aria-expanded'),
     ).toBe('false')
   })
 
