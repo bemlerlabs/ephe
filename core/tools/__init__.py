@@ -68,6 +68,10 @@ from core.tools.sandbox_tools import (
     run_sandboxed_code,
 )
 
+from core.tools.dev_server_tools import (
+    start_workspace_dev_server,
+    stop_workspace_dev_server,
+)
 from core.tools.system_tools import (
     get_datetime,
     discover_projects,
@@ -227,6 +231,7 @@ __all__ = [
     "run_shell", "execute_confirmed_shell",
     "task_output", "task_stop", "agent_message",
     "run_sandboxed_code",
+    "start_workspace_dev_server", "stop_workspace_dev_server",
     "load_workspace", "analyze_image", "take_screenshot", "create_svg",
     "browser_go", "browser_screenshot", "browser_click", "browser_type", "browser_press",
     "browser_scroll", "browser_evaluate", "clipboard_read", "clipboard_write", "get_display_info",

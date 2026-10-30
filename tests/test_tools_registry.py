@@ -99,7 +99,7 @@ class TestToolMap:
         """
         GIVEN  TOOL_MAP
         WHEN   checked for completeness
-        THEN   it holds all 75 expected entries
+        THEN   it holds all 77 expected entries
         """
         expected_tools = {
             "manage_tasks", "web_search", "query_codebase", "file_search",
@@ -109,6 +109,7 @@ class TestToolMap:
             "delete_file",
             "get_datetime", "run_shell", "run_sandboxed_code",
             "load_workspace", "analyze_image",
+            "start_workspace_dev_server", "stop_workspace_dev_server",
             "vision_click", "vision_type",
             "take_screenshot",
             "browser_go", "browser_screenshot", "browser_click",
