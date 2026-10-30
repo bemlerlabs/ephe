@@ -275,7 +275,6 @@ export function UpdateDialog({
           {hasFacts ? <UpdateDetailRows state={state} mainChannel={mainChannel} /> : null}
 
           <Rule className="mt-3" tone={running ? 'now' : 'rule'} />
-
           <div className="flex items-center gap-2 pt-3">
             {mainChannel && !blocked && (
               <button
