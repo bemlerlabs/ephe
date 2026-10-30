@@ -26,6 +26,13 @@ def _permissions(raw: Any) -> dict[str, list[str]]:
     }
 
 
+def _verification(directory: Path) -> str:
+    from core.marketplace_verify import read_verdict
+
+    verdict = read_verdict(directory) or {}
+    return str(verdict.get("verdict") or "unverified")
+
+
 def installed() -> dict[str, Any]:
     registry = {str(item.get("name")): item.get("enabled") is not False for item in load_registry()}
 
@@ -61,6 +68,7 @@ def installed() -> dict[str, Any]:
                     if value
                 ),
                 "permissions": _permissions(manifest.get("permissions")),
+                "verification": _verification(directory),
             }
         )
     return {"plugins": sorted(rows, key=lambda row: row["name"])}

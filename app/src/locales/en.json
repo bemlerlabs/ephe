@@ -2727,6 +2727,13 @@
     "detailAdd": "Add",
     "detailRemove": "Remove",
     "stateOnAction": "Enable",
-    "stateOffAction": "Disable"
+    "stateOffAction": "Disable",
+    "dryRun": "Rehearse (static scan)",
+    "verdict": {
+      "checked-clean": "No findings",
+      "checked": "Passed with notes",
+      "refused": "Refused — it carries instructions or a download"
+    },
+    "verdictFindings": "{{count}} finding(s)"
   }
 }

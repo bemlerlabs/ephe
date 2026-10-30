@@ -36,3 +36,29 @@ export interface DiscoverBootstrap {
 export function getDiscoverBootstrap(): Promise<DiscoverBootstrap> {
   return request<DiscoverBootstrap>('/api/discover/bootstrap')
 }
+
+export interface DryRunFinding {
+  class: string
+  severity: string
+  file: string
+  marker: string
+}
+
+export interface DryRunResult {
+  verdict: 'checked-clean' | 'checked' | 'refused'
+  findings: DryRunFinding[]
+  mode: 'static'
+}
+
+/** Y2 — the rehearsal: scan one catalog entry before anything is downloaded. */
+export function dryRunEntry(body: {
+  name: string
+  description?: string
+  install_hint?: string
+  spec?: string
+}): Promise<DryRunResult> {
+  return request<DryRunResult>('/api/discover/dry-run', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
