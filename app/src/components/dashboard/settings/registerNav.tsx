@@ -205,50 +205,50 @@ export function RegisterNav({
                 data-testid={`settings-nav-rows-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
                 className={folded.includes(group.groupKey) ? 'hidden md:block' : 'contents'}
               >
-              {group.keys.map((key) => {
-                const Icon = navIcon(key)
-                const selected = activeTab === key
-                // The second level opens under the row you are in: the register
-                // blocks come from the schema, the page blocks from TAB_PARTS, and
-                // a click lands the column on that block.
-                const subs = selected ? subsOfTab(key, sections) : []
-                return (
-                  <div key={key} className="max-md:contents">
-                    <button
-                      type="button"
-                      data-testid={`settings-nav-${key}`}
-                      onClick={() => onSelect(key)}
-                      aria-current={selected ? 'true' : undefined}
-                      className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
-                        selected
-                          ? 'border-l-hairline-strong text-ink'
-                          : 'border-l-transparent text-ink-soft hover:text-ink'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                      <span className="truncate">{t(`settings.${key}`)}</span>
-                    </button>
-                    {subs.length > 0 && (
-                      <div
-                        data-testid={`settings-nav-sections-${key}`}
-                        className="hidden border-l border-hairline/60 py-0.5 pl-6 md:block"
+                {group.keys.map((key) => {
+                  const Icon = navIcon(key)
+                  const selected = activeTab === key
+                  // The second level opens under the row you are in: the register
+                  // blocks come from the schema, the page blocks from TAB_PARTS, and
+                  // a click lands the column on that block.
+                  const subs = selected ? subsOfTab(key, sections) : []
+                  return (
+                    <div key={key} className="max-md:contents">
+                      <button
+                        type="button"
+                        data-testid={`settings-nav-${key}`}
+                        onClick={() => onSelect(key)}
+                        aria-current={selected ? 'true' : undefined}
+                        className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
+                          selected
+                            ? 'border-l-hairline-strong text-ink'
+                            : 'border-l-transparent text-ink-soft hover:text-ink'
+                        }`}
                       >
-                        {subs.map((sub) => (
-                          <button
-                            key={sub.id}
-                            type="button"
-                            data-testid={`settings-nav-part-${key}-${sub.id}`}
-                            onClick={() => onJump(key, sub.id)}
-                            className="focus-ring block w-full px-2 py-1 text-left text-scale-data text-ink-faint transition-colors hover:text-ink"
-                          >
-                            {t(sub.labelKey)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                        <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                        <span className="truncate">{t(`settings.${key}`)}</span>
+                      </button>
+                      {subs.length > 0 && (
+                        <div
+                          data-testid={`settings-nav-sections-${key}`}
+                          className="hidden border-l border-hairline/60 py-0.5 pl-6 md:block"
+                        >
+                          {subs.map((sub) => (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              data-testid={`settings-nav-part-${key}-${sub.id}`}
+                              onClick={() => onJump(key, sub.id)}
+                              className="focus-ring block w-full px-2 py-1 text-left text-scale-data text-ink-faint transition-colors hover:text-ink"
+                            >
+                              {t(sub.labelKey)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ))}
