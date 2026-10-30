@@ -77,7 +77,7 @@ function seed() {
         version: '1.0.0',
         published_at: '2026-10-01T00:00:00Z',
         source: 'registry',
-        curated_reason: 'pick',
+        curated_reason: 'recent',
         required_env: [{ name: 'WEB_SEARCH_KEY', secret: true }],
       },
     ],
@@ -137,17 +137,17 @@ beforeEach(() => {
 })
 
 describe('discover page', () => {
-  it('shows the band, the counted tabs, the bento and the measured bench', async () => {
+  it('shows the featured pick, the counted tabs, the bento and the measured bench', async () => {
     render_()
     await waitFor(() => expect(screen.getByTestId('discover-sections')).toBeTruthy())
-    expect(screen.getByTestId('discover-band')).toBeTruthy()
+    expect(screen.getByTestId('discover-hero')).toBeTruthy()
     expect(screen.getByTestId('discover-bento')).toBeTruthy()
     expect(screen.getByTestId('discover-tab-all').textContent).toContain('4')
     expect(screen.getByTestId('discover-tab-connector').textContent).toContain('3')
     expect(screen.getByTestId('discover-card-skill:pdf')).toBeTruthy()
     expect(
       screen.getByTestId('discover-badge-connector:registry:web-search').textContent,
-    ).toContain('discover.badge.pick')
+    ).toContain('discover.badge.recent')
     expect(screen.getByTestId('discover-bench-row-pdf').textContent).toContain('12')
     expect(screen.getByTestId('discover-bench-reach').textContent).toContain('12')
   })
@@ -232,7 +232,7 @@ describe('discover page', () => {
     render_()
     await waitFor(() => expect(screen.getByTestId('discover-sources')).toBeTruthy())
     expect(screen.getByTestId('discover-preset-ephe-index').textContent).toContain('2')
-    expect(screen.getByTestId('discover-preset-mcp-registry').textContent).toContain('6606')
+    expect(screen.getByTestId('discover-preset-mcp-registry').textContent).toContain('6,606')
   })
 
   it('adds a user source through the validated door', async () => {

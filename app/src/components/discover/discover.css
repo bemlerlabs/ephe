@@ -1,0 +1,64 @@
+/* Subject colours for the shelf.
+ *
+ * A subject is coded once and read everywhere: the plate of an entry, the dot
+ * beside a shelf title, the eyebrow of the featured pick. The hues are muted
+ * against the ink ground (58–68% lightness keeps an icon legible) and the plate
+ * is the same hue at 13%, so a row of cards reads as a shelf of one subject
+ * without any of them carrying a logo we do not have. */
+
+/* The hue is inherited from the entry; the fallback keeps a bare plate neutral. */
+.discover-plate {
+  background-color: color-mix(in srgb, var(--subject, hsl(30 8% 60%)) 22%, transparent);
+  border-color: color-mix(in srgb, var(--subject, hsl(30 8% 60%)) 38%, transparent);
+  color: var(--subject, hsl(30 8% 60%));
+}
+
+.discover-dot {
+  background-color: var(--subject, hsl(30 8% 60%));
+}
+
+[data-subject='skills'] {
+  --subject: hsl(41 62% 61%);
+}
+[data-subject='code'] {
+  --subject: hsl(158 42% 60%);
+}
+[data-subject='web'] {
+  --subject: hsl(203 62% 63%);
+}
+[data-subject='memory'] {
+  --subject: hsl(266 42% 68%);
+}
+[data-subject='files'] {
+  --subject: hsl(33 44% 62%);
+}
+[data-subject='communication'] {
+  --subject: hsl(348 50% 66%);
+}
+[data-subject='productivity'] {
+  --subject: hsl(182 42% 58%);
+}
+[data-subject='database'] {
+  --subject: hsl(232 46% 68%);
+}
+[data-subject='cloud'] {
+  --subject: hsl(196 68% 64%);
+}
+[data-subject='security'] {
+  --subject: hsl(16 62% 62%);
+}
+[data-subject='media'] {
+  --subject: hsl(318 42% 66%);
+}
+[data-subject='utility'] {
+  --subject: hsl(78 32% 58%);
+}
+[data-subject='testing'] {
+  --subject: hsl(122 32% 58%);
+}
+[data-subject='sandbox'] {
+  --subject: hsl(215 14% 62%);
+}
+[data-subject='other'] {
+  --subject: hsl(30 8% 62%);
+}

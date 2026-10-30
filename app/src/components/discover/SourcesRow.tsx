@@ -1,10 +1,10 @@
-/** The shelf's sources: the two presets that ship, and what the user added.
- *
- *  A preset is readable and not removable — it is the breadth the app promises
- *  out of the box. A user source is a local JSON index or an HTTPS index; both
- *  are added through the same validated door and can be removed again. */
+/** Where the shelf is read from: the two presets that ship, and what the user
+ *  added. A preset is readable and not removable — it is the breadth the app
+ *  promises out of the box. A user source is a local JSON index or an HTTPS
+ *  index; both come through the same validated door and can be removed again. */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatNumber } from '@/lib/dateLocale'
 import { Database, Globe, HardDrive, Plus, Trash2 } from 'lucide-react'
 import type { DiscoverPreset } from '@/lib/api'
 import type { MarketSource } from '@/lib/api'
@@ -18,7 +18,7 @@ export interface SourcesRowProps {
 }
 
 export function SourcesRow({ presets, sources, busy, onAdd, onRemove }: SourcesRowProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<'local' | 'https'>('https')
   const [title, setTitle] = useState('')
@@ -38,57 +38,75 @@ export function SourcesRow({ presets, sources, busy, onAdd, onRemove }: SourcesR
   }
 
   return (
-    <section data-testid="discover-sources" className="mt-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <section
+      data-testid="discover-sources"
+      className="mt-16 rounded-2xl border border-hairline bg-surface/35 p-5"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-ui-sm font-semibold text-foreground/95">
+            {t('discover.sourcesTitle')}
+          </h2>
+          <p className="mt-1 max-w-xl text-ui-xs leading-relaxed text-ink-faint">
+            {t('discover.sourcesLede')}
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="discover-source-add"
+          onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
+          className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-full border border-hairline px-3 text-ui-xs text-ink-soft transition-colors hover:border-hairline-strong hover:text-foreground"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+          {t('discover.sourceAdd')}
+        </button>
+      </div>
+
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {presets.map((preset) => (
-          <span
+          <li
             key={preset.id}
             data-testid={`discover-preset-${preset.id}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface/40 px-2.5 py-1 text-ui-xs text-ink-soft"
+            className="flex items-center gap-2.5 rounded-xl border border-hairline bg-surface/50 px-3 py-2.5 text-ui-xs text-ink-soft"
           >
             {preset.kind === 'mirror' ? (
-              <Database className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <Database className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
             ) : (
-              <HardDrive className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <HardDrive className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
             )}
-            {t(`discover.preset.${preset.id}`)}
-            <span className="tabular-nums text-ink-faint">{preset.count}</span>
-          </span>
+            <span className="min-w-0 flex-1 truncate">{t(`discover.preset.${preset.id}`)}</span>
+            <span className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint">
+              {formatNumber(preset.count, i18n?.language)}
+            </span>
+          </li>
         ))}
         {sources
           .filter((source) => source.removable)
           .map((source) => (
-            <span
+            <li
               key={source.id}
               data-testid={`discover-source-${source.id}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface/40 px-2.5 py-1 text-ui-xs text-ink-soft"
+              className="flex items-center gap-2.5 rounded-xl border border-hairline bg-surface/50 px-3 py-2.5 text-ui-xs text-ink-soft"
             >
-              <Globe className="h-3.5 w-3.5" strokeWidth={1.5} />
-              {source.title}
+              <Globe className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
+              <span className="min-w-0 flex-1 truncate">{source.title}</span>
               <button
                 type="button"
                 data-testid={`discover-source-remove-${source.id}`}
                 disabled={busy}
                 onClick={() => void onRemove(source.id)}
-                className="focus-ring rounded-full text-ink-faint hover:text-foreground disabled:opacity-50"
+                className="focus-ring shrink-0 rounded-full p-1 text-ink-faint hover:text-foreground disabled:opacity-50"
                 aria-label={t('discover.sourceRemove')}
               >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
               </button>
-            </span>
+            </li>
           ))}
-        <button
-          type="button"
-          data-testid="discover-source-add"
-          onClick={() => setOpen((current) => !current)}
-          className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-dashed border-control px-2.5 py-1 text-ui-xs text-ink-faint hover:text-foreground"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-          {t('discover.sourceAdd')}
-        </button>
-      </div>
+      </ul>
+
       {open ? (
-        <div className="mt-2 space-y-2 rounded-xl border border-hairline bg-surface/40 p-3">
+        <div className="mt-3 space-y-2 rounded-xl border border-hairline bg-surface/50 p-3">
           <div className="flex flex-wrap items-center gap-2">
             {(['https', 'local'] as const).map((option) => (
               <button
@@ -97,7 +115,7 @@ export function SourcesRow({ presets, sources, busy, onAdd, onRemove }: SourcesR
                 data-testid={`discover-source-kind-${option}`}
                 onClick={() => setKind(option)}
                 aria-pressed={kind === option}
-                className={`focus-ring rounded-lg border px-2.5 py-1 text-ui-xs ${
+                className={`focus-ring rounded-full border px-2.5 py-1 text-ui-xs ${
                   kind === option
                     ? 'border-hairline-strong text-foreground'
                     : 'border-hairline text-ink-faint'
@@ -127,7 +145,7 @@ export function SourcesRow({ presets, sources, busy, onAdd, onRemove }: SourcesR
               data-testid="discover-source-save"
               disabled={busy || !title.trim() || !url.trim()}
               onClick={() => void submit()}
-              className="focus-ring rounded-lg border border-hairline px-2.5 py-1 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground disabled:opacity-50"
+              className="focus-ring rounded-full border border-hairline px-2.5 py-1 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground disabled:opacity-50"
             >
               {t('discover.sourceSave')}
             </button>

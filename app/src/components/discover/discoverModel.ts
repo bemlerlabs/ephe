@@ -22,6 +22,8 @@ export interface DiscoverItem {
   kind: DiscoverKind
   name: string
   title: string
+  /** Registry entries carry their namespace (`ai.takara`), shown under the title. */
+  publisher?: string
   summary: string
   /** Who shipped it: a source title, a publisher, or the word for "in the box". */
   origin: string
@@ -74,7 +76,7 @@ export interface DiscoverSources {
   catalog: McpCatalogEntry[]
   registry: RegistryEntry[]
   registryCount: number
-  /** The two shelves that ship: named, readable, not removable. */
+  /** The two shelves that ship: named on the page and outside the removable set. */
   presets: DiscoverPreset[]
   home: MarketHome | null
   index: MarketIndexBody | null
@@ -101,6 +103,52 @@ const byName = <T extends { name: string }>(rows: T[]): Map<string, T> =>
 
 export const kindOf = (tab: DiscoverTab): DiscoverKind | null => (tab === 'all' ? null : tab)
 
+/** The shelf's own order: the subjects a person browses, ahead of the alphabet. */
+export const CATEGORY_ORDER = [
+  'skills',
+  'code',
+  'web',
+  'memory',
+  'files',
+  'communication',
+  'productivity',
+  'database',
+  'cloud',
+  'security',
+  'media',
+  'utility',
+  'testing',
+  'sandbox',
+  'other',
+] as const
+
+/** `com.ainetcafe/netcafe-memory` reads as "Netcafe Memory" on a card. */
+export function prettyName(name: string): string {
+  if (!name) return name
+  const tail = name.includes('/') ? name.slice(name.lastIndexOf('/') + 1) : name
+  if (!tail) return name
+  // A name that already carries spaces and capitals was written for people.
+  if (/\s/.test(tail) && /[A-Z]/.test(tail)) return tail
+  return tail
+    .replace(/[._-]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((word) =>
+      /^(ai|api|cli|mcp|sdk|db|ui|css|json|http|sql)$/i.test(word)
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(' ')
+}
+
+/** The namespace before the slash names who published the entry. */
+export function publisherOf(name: string): string | undefined {
+  if (!name.includes('/')) return undefined
+  const head = name.slice(0, name.lastIndexOf('/'))
+  return head || undefined
+}
+
 export function buildItems(sources: DiscoverSources): DiscoverItem[] {
   const items: DiscoverItem[] = []
   const usedCalls = new Map((sources.usage?.tools ?? []).map((one) => [one.tool, one.calls]))
@@ -114,7 +162,9 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       title: skill.name,
       summary: skill.description ?? '',
       origin: skill.is_builtin ? 'bundled' : 'local',
-      categories: skill.trigger ? [skill.trigger] : [],
+      // A trigger names the command (`/api-test`), not the subject: as a chip it
+      // produced a hundred rows of slash commands, so skills read as one subject.
+      categories: ['skills'],
       installed: true,
       enabled: !skill.disabled,
       version: skill.version,
@@ -167,7 +217,8 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       id: `connector:registry:${entry.id}`,
       kind: 'connector',
       name: entry.name,
-      title: entry.name,
+      title: prettyName(entry.name),
+      publisher: publisherOf(entry.name),
       summary: entry.description,
       origin: 'registry',
       categories: [entry.category],
@@ -231,12 +282,14 @@ export function filterItems(
   })
 }
 
-/** The intent ranking wins over page order; an unranked item keeps its place behind. */
+/** What the machine already runs leads a search; the intent ranking follows, and an
+ *  unranked item keeps its place behind both. */
 export function rankByIntent(items: DiscoverItem[], intentIds: string[]): DiscoverItem[] {
   if (!intentIds.length) return items
   const order = new Map(intentIds.map((id, index) => [id, index]))
   return [...items].sort(
     (a, b) =>
+      Number(b.installed) - Number(a.installed) ||
       (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id) ?? Number.MAX_SAFE_INTEGER),
   )
 }
@@ -260,6 +313,13 @@ export function facetValues(
   const set = new Set<string>()
   for (const item of items) for (const one of pick(item)) if (one) set.add(one)
   return [...set].sort()
+}
+
+/** Subjects in the shelf's own order, and only those the loaded items carry. */
+export function categoryFacets(items: DiscoverItem[]): string[] {
+  const present = new Set<string>()
+  for (const item of items) for (const one of item.categories) if (one) present.add(one)
+  return CATEGORY_ORDER.filter((key) => present.has(key))
 }
 
 /** The first card is the one the page presents large: installed and most used wins. */
