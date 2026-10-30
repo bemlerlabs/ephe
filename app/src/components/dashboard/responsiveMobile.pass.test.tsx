@@ -54,7 +54,6 @@ describe('responsive pass — overlays stay inside the phone viewport', () => {
     expect(String(overlay!.className)).toContain('px-3')
     expect(String(overlay!.className)).toContain('pt-[20dvh]')
   })
-
 })
 
 describe('responsive pass — wide markdown does not clip on a phone', () => {
