@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Discover catalogue candidates from Ephe, Qoder, the MCP Registry and Claude.
+"""Discover catalogue candidates from Ephe, two third-party plugin
+marketplaces, and the MCP Registry. The adapters are named for the manifest shape
+they read; the vendors they read stay in the cited URLs only.
 
 Read-only by construction: every download is https-only and capped, archives
 are read in memory and hashed against the index, and nothing is written except
@@ -30,8 +32,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from catalog_fetch import fetch
 
-QODER_INDEX = "https://qoder.com/apphub/api/v1/marketplace/marketplace.json"
-CLAUDE_INDEX = "https://raw.githubusercontent.com/anthropics/claude-code/main/.claude-plugin/marketplace.json"
+APP_MARKET_INDEX = "https://qoder.com/apphub/api/v1/marketplace/marketplace.json"
+OSS_PLUGIN_INDEX = "https://raw.githubusercontent.com/anthropics/claude-code/main/.claude-plugin/marketplace.json"
 MCP_REGISTRY = "https://registry.modelcontextprotocol.io/v0/servers"
 MANIFEST_BYTES = 256_000
 ALLOWED_LICENSES = {"MIT", "APACHE-2.0", "BSD-2-CLAUSE", "BSD-3-CLAUSE", "ISC"}
@@ -131,7 +133,7 @@ def discover_ephe(root: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _qoder_manifest(archive: bytes) -> tuple[dict[str, Any], list[str]]:
+def _app_market_manifest(archive: bytes) -> tuple[dict[str, Any], list[str]]:
     with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
         names = bundle.namelist()
         manifest_name = next(
@@ -151,7 +153,7 @@ def _qoder_manifest(archive: bytes) -> tuple[dict[str, Any], list[str]]:
     return manifest, licenses
 
 
-def discover_qoder(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes] = fetch,
+def discover_app_market(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes] = fetch,
                    read_archives: bool = True) -> tuple[list[dict[str, Any]], list[str]]:
     rows: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -174,7 +176,7 @@ def discover_qoder(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes]
                 if not extra["archive_sha256_ok"]:
                     reason = "archive hash does not match the index"
                 else:
-                    manifest, licenses = _qoder_manifest(archive)
+                    manifest, licenses = _app_market_manifest(archive)
                     archive_read = True
                     license_text = str(manifest.get("license") or "")
                     repository = str(manifest.get("repository") or "")
@@ -183,7 +185,7 @@ def discover_qoder(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes]
                         if manifest.get(key)
                     ]
                     if manifest.get("canvas") or any(manifest.get(k) for k in ("ui", "workflows")):
-                        compatibility = "qoder-native"
+                        compatibility = "app-market-native"
                     elif components and set(components) <= {"skills", "commands"}:
                         compatibility = "skills-only"
                     if not license_text and licenses:
@@ -196,7 +198,7 @@ def discover_qoder(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes]
             status = "refused_hash"
         elif not archive_read:
             reason = reason or "metadata only; archive not read"
-        elif compatibility == "qoder-native":
+        elif compatibility == "app-market-native":
             status = "incompatible"
         elif not permissive(license_text):
             status = "refused_license"
@@ -271,7 +273,7 @@ def discover_mcp(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def discover_claude(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes] = fetch,
+def discover_oss_plugin(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes] = fetch,
                     repo: str = "anthropics/claude-code") -> tuple[list[dict[str, Any]], list[str]]:
     rows: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -330,9 +332,9 @@ def summarize(rows: list[dict[str, Any]], errors: list[str]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", required=True, type=Path, help="run-scoped report path")
-    parser.add_argument("--sources", default="ephe,qoder,mcp,claude", help="comma-separated adapters")
+    parser.add_argument("--sources", default="ephe,app-market,mcp,oss-plugin", help="comma-separated adapters")
     parser.add_argument("--root", type=Path, default=ROOT, help="workshop root for the Ephe adapter")
-    parser.add_argument("--no-archives", action="store_true", help="skip Qoder archive downloads")
+    parser.add_argument("--no-archives", action="store_true", help="skip app-market archive downloads")
     args = parser.parse_args(argv)
 
     sources = [part.strip() for part in args.sources.split(",") if part.strip()]
@@ -342,15 +344,15 @@ def main(argv: list[str] | None = None) -> int:
     if "ephe" in sources:
         used.append("ephe")
         rows += discover_ephe(args.root)
-    if "qoder" in sources:
-        used.append("qoder")
+    if "app-market" in sources:
+        used.append("app-market")
         try:
-            index = json.loads(fetch(QODER_INDEX))
-            found, failures = discover_qoder(index, read_archives=not args.no_archives)
+            index = json.loads(fetch(APP_MARKET_INDEX))
+            found, failures = discover_app_market(index, read_archives=not args.no_archives)
             rows += found
             errors += failures
         except Exception as exc:  # noqa: BLE001 - a source failure is data
-            errors.append(f"qoder index: {type(exc).__name__}: {exc}")
+            errors.append(f"app-market index: {type(exc).__name__}: {exc}")
     if "mcp" in sources:
         used.append("mcp")
         payloads = []
@@ -362,15 +364,15 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:  # noqa: BLE001 - a source failure is data
                 errors.append(f"mcp {query}: {type(exc).__name__}: {exc}")
         rows += discover_mcp(payloads)
-    if "claude" in sources:
-        used.append("claude")
+    if "oss-plugin" in sources:
+        used.append("oss-plugin")
         try:
-            index = json.loads(fetch(CLAUDE_INDEX))
-            found, failures = discover_claude(index)
+            index = json.loads(fetch(OSS_PLUGIN_INDEX))
+            found, failures = discover_oss_plugin(index)
             rows += found
             errors += failures
         except Exception as exc:  # noqa: BLE001 - a source failure is data
-            errors.append(f"claude index: {type(exc).__name__}: {exc}")
+            errors.append(f"oss-plugin index: {type(exc).__name__}: {exc}")
 
     report = summarize(rows, errors)
     report["sources"] = used
