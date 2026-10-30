@@ -25,6 +25,13 @@ export const SECTION_TAB: Record<string, TabKey> = {
   hooks: 'hooks',
 }
 
+/** The sections a tab shows, in schema order — the nav's second level reads
+ *  this instead of carrying a list of its own, so a new section appears in the
+ *  column the moment SECTION_TAB names its tab. */
+export function sectionsOfTab(sections: DeepSection[] | null, tab: TabKey): DeepSection[] {
+  return (sections ?? []).filter((sec) => SECTION_TAB[sec.key] === tab)
+}
+
 export function deepFieldsOf(sections: DeepSection[] | null, prefixes: string[]) {
   return (sections ?? []).filter((sec) => prefixes.some((p) => sec.key === p.replace(/\.$/, '')))
 }

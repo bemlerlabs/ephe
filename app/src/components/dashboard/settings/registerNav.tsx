@@ -15,6 +15,8 @@
  * draws above its rows.
  */
 import { ABOUT_KEYS, NAV_GROUPS, navIcon } from './model'
+import { sectionsOfTab } from './model/deepRegister'
+import type { DeepSection } from '@/types'
 import type { SettingsModel } from './model/buildModel'
 import type { FieldHit, RowHit } from './model/settingsSearch'
 import type { TabKey } from './types'
@@ -37,6 +39,8 @@ export interface RegisterNavProps {
   fieldHits: FieldHit[]
   rowHits: RowHit[]
   activeTab: TabKey
+  /** The schema's sections; the active tab lists its own beneath the row. */
+  sections?: DeepSection[] | null
   t: SettingsModel['t']
   onJump: (tab: TabKey, secKey?: string) => void
   onSelect: (key: TabKey) => void
@@ -48,6 +52,7 @@ export function RegisterNav({
   fieldHits,
   rowHits,
   activeTab,
+  sections = null,
   t,
   onJump,
   onSelect,
@@ -149,22 +154,44 @@ export function RegisterNav({
               {group.keys.map((key) => {
                 const Icon = navIcon(key)
                 const selected = activeTab === key
+                // The second level opens under the row you are in: its sections
+                // come from the schema, and a click scrolls the page to it.
+                const subs = selected ? sectionsOfTab(sections, key) : []
                 return (
-                  <button
-                    key={key}
-                    type="button"
-                    data-testid={`settings-nav-${key}`}
-                    onClick={() => onSelect(key)}
-                    aria-current={selected ? 'true' : undefined}
-                    className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
-                      selected
-                        ? 'border-l-hairline-strong text-ink'
-                        : 'border-l-transparent text-ink-soft hover:text-ink'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                    <span className="truncate">{t(`settings.${key}`)}</span>
-                  </button>
+                  <div key={key} className="max-md:contents">
+                    <button
+                      type="button"
+                      data-testid={`settings-nav-${key}`}
+                      onClick={() => onSelect(key)}
+                      aria-current={selected ? 'true' : undefined}
+                      className={`${NAV_ROW} max-md:w-auto max-md:shrink-0 max-md:snap-start max-md:whitespace-nowrap max-md:mb-0 ${
+                        selected
+                          ? 'border-l-hairline-strong text-ink'
+                          : 'border-l-transparent text-ink-soft hover:text-ink'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                      <span className="truncate">{t(`settings.${key}`)}</span>
+                    </button>
+                    {subs.length > 0 && (
+                      <div
+                        data-testid={`settings-nav-sections-${key}`}
+                        className="hidden border-l border-hairline/60 py-0.5 pl-6 md:block"
+                      >
+                        {subs.map((sec) => (
+                          <button
+                            key={sec.key}
+                            type="button"
+                            data-testid={`settings-nav-section-${key}-${sec.key}`}
+                            onClick={() => onJump(key, sec.key)}
+                            className="focus-ring block w-full px-2 py-1 text-left text-scale-data text-ink-faint transition-colors hover:text-ink"
+                          >
+                            {t(`settings.deepSection.${sec.key}`, { defaultValue: sec.key })}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>

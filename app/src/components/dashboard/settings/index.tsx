@@ -276,6 +276,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
                 />
               </div>
               <RegisterNav
+                sections={deepSections}
                 query={query}
                 tabHits={tabHits}
                 fieldHits={fieldHits}
