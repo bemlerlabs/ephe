@@ -113,11 +113,21 @@ class TestSources:
         body = client.get("/api/market").json()
         assert [source["id"] for source in body["sources"]] == ["bundled"]
 
-    def test_source_writes_are_not_exposed(self, client):
-        """No self-service: adding, refreshing or removing a source is not a
-        user action, so the routes are absent rather than hidden in the UI."""
+    def test_source_writes_are_exposed_behind_validation(self, client):
+        """The breadth door (owner order 2026-10-30): adding and removing a
+        source is a user action now, so the routes answer — but only with the
+        XHR marker (403 without) and only with a title (400 with a stable code).
+        Refresh stays absent: a source is read when it is used."""
+        no_marker = client.post("/api/market/sources", json={})
+        assert no_marker.status_code == 403, no_marker.text
+        empty = client.post("/api/market/sources", json={}, headers=HEADERS)
+        assert empty.status_code == 400, empty.text
+        assert empty.json()["error"]["detail"]["code"] == "title_required"
+        remove_unknown = client.post(
+            "/api/market/sources/remove", json={"id": "nope"}, headers=HEADERS
+        )
+        assert remove_unknown.status_code == 400, remove_unknown.text
         for response in (
-            client.post("/api/market/sources", json={}, headers=HEADERS),
             client.delete("/api/market/sources/x", headers=HEADERS),
             client.post("/api/market/refresh", headers=HEADERS),
         ):
