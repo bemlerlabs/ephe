@@ -36,6 +36,10 @@ from core.tools.source_tools import (
     query_source_notebook,
     export_source_brief,
 )
+from core.tools.dev_server_tools import (
+    start_workspace_dev_server,
+    stop_workspace_dev_server,
+)
 from core.tools.system_tools import (
     discover_projects,
     analyze_project,
@@ -592,6 +596,8 @@ TOOL_MAP: dict[str, object] = {
     "agent_message": _agent_message_impl,
     "run_sandboxed_code": run_sandboxed_code,
     "load_workspace": load_workspace,
+    "start_workspace_dev_server": start_workspace_dev_server,
+    "stop_workspace_dev_server": stop_workspace_dev_server,
     "analyze_image": analyze_image,
     "vision_click": _vision_click_wrapper,
     "vision_type": _vision_type_wrapper,
