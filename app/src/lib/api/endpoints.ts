@@ -283,6 +283,8 @@ export interface McpHealthServer {
   transport: string
   latency_ms: number | null
   error: string | null
+  /** Declared secret names this machine does not hold yet. */
+  missing_env?: string[]
 }
 
 export interface McpCatalogEntry {
@@ -304,6 +306,51 @@ export function probeMcpHealth(): Promise<{ servers: McpHealthServer[] }> {
 
 export function getMcpCatalog(): Promise<{ entries: McpCatalogEntry[] }> {
   return request<{ entries: McpCatalogEntry[] }>('/api/mcp/catalog')
+}
+
+/** Which secret names a connector may receive — declared, never the values. */
+export function getMcpEnv(): Promise<{ servers: Record<string, string[]> }> {
+  return request<{ servers: Record<string, string[]> }>('/api/mcp/env')
+}
+
+export function declareMcpEnv(
+  spec: string,
+  names: string[],
+): Promise<{ servers: Record<string, string[]>; declared: string[] }> {
+  return request<{ servers: Record<string, string[]>; declared: string[] }>('/api/mcp/env', {
+    method: 'POST',
+    body: JSON.stringify({ spec, names }),
+  })
+}
+
+export type SecretMode = 'keyring' | 'file_0600' | ''
+
+export interface SecretStatus {
+  name: string
+  present: boolean
+  mode: SecretMode
+}
+
+/** Presence and storage mode — a value never crosses this route. */
+export function getSecretStatus(names: string[]): Promise<SecretStatus[]> {
+  const params = new URLSearchParams({ names: names.join(',') })
+  return request<{ names: SecretStatus[] }>(`/api/secrets/status?${params.toString()}`).then(
+    (payload) => payload.names,
+  )
+}
+
+export function putSecret(name: string, value: string): Promise<SecretStatus> {
+  return request<SecretStatus>('/api/secrets', {
+    method: 'POST',
+    body: JSON.stringify({ name, value }),
+  })
+}
+
+export function removeSecret(name: string): Promise<SecretStatus> {
+  return request<SecretStatus>('/api/secrets/remove', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
 }
 
 // ── R28: Agent Identity — persona editor ────────────────────────────────────

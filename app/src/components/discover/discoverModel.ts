@@ -36,6 +36,8 @@ export interface DiscoverItem {
   docs?: string
   /** The launch line the publisher suggests, when the entry is not attached yet. */
   installHint?: string
+  /** Credential names the publisher requires; a value is never part of an item. */
+  requiredEnv?: { name: string; secret: boolean }[]
   /** Provenance the card can show: our selection, freshly published, or in the box. */
   badge?: 'pick' | 'recent' | 'bundled'
 }
@@ -52,6 +54,8 @@ export interface RegistryEntry {
   published_at: string
   source: string
   curated_reason?: 'pick' | 'recent'
+  /** Names a publisher declares as required; values live in the vault, never here. */
+  required_env?: { name: string; secret: boolean }[]
 }
 
 export interface DiscoverSources {
@@ -162,6 +166,7 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       docs: entry.docs,
       installHint: entry.install_hint,
       badge: entry.curated_reason === 'recent' ? 'recent' : 'pick',
+      requiredEnv: entry.required_env ?? [],
     })
   }
 

@@ -63,20 +63,21 @@ def _jsonrpc_error_text(resp: dict) -> str:
 class MCPClient:
     """A single MCP server: list_tools() → tools, call_tool() → result."""
 
-    def __init__(self, endpoint: str, transport: str = "http", label: str = "", timeout: float = 30.0, args: list[str] | None = None, auth_token: str = ""):
+    def __init__(self, endpoint: str, transport: str = "http", label: str = "", timeout: float = 30.0, args: list[str] | None = None, auth_token: str = "", env_names: list[str] | None = None):
         self.endpoint = endpoint
         self.transport = transport
         self.label = label or endpoint
         self.timeout = timeout
         self.args = list(args or [])
         self.auth_token = auth_token
+        self.env_names = list(env_names or [])
         self.session_id: str | None = None
         # Restart policy (I1-8): failures count, the backoff window applies —
         # both sit with the process, because only the process restarts.
         self.last_error: str = ""
         self._link: StdioLink | None = None
         if transport == "stdio":
-            self._link = StdioLink(endpoint, self.args, timeout)
+            self._link = StdioLink(endpoint, self.args, timeout, env_names=self.env_names)
 
     # --- JSON-RPC payload builders (pure, testable) ---
     def _build_initialize(self) -> dict:

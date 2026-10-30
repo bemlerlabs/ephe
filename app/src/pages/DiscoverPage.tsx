@@ -26,6 +26,7 @@ import {
   type DiscoverSources,
 } from '@/components/discover/discoverModel'
 import {
+  declareMcpEnv,
   disableSkill,
   enableSkill,
   getDiscoverBootstrap,
@@ -192,7 +193,11 @@ export default function DiscoverPage() {
       const current = sources?.mcp?.servers ?? []
       return run(
         item,
-        () => putMcpSettings(current.includes(spec) ? current : [...current, spec]),
+        async () => {
+          await putMcpSettings(current.includes(spec) ? current : [...current, spec])
+          const names = (item.requiredEnv ?? []).map((one) => one.name)
+          if (names.length) await declareMcpEnv(spec, names)
+        },
         'discover.added',
       )
     }

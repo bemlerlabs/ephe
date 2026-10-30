@@ -20,6 +20,14 @@ def mcp_config_path():
     return engine_config.config_root() / "mcp.json"
 
 
+def _read() -> dict:
+    try:
+        raw = json.loads(mcp_config_path().read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
 def load_mcp_servers() -> tuple[list[str], str]:
     """Effective server list + source ('env' | 'file' | 'none')."""
     import os
@@ -29,34 +37,72 @@ def load_mcp_servers() -> tuple[list[str], str]:
         servers = [part.strip() for part in env_raw.split(",") if part.strip()]
         if servers:
             return servers, "env"
-    try:
-        raw = json.loads(mcp_config_path().read_text(encoding="utf-8"))
-        entries = raw.get("servers") if isinstance(raw, dict) else None
-        if isinstance(entries, list):
-            servers = [str(e).strip() for e in entries if str(e).strip()]
-            if servers:
-                return servers, "file"
-    except Exception:
-        pass
+    raw = _read()
+    entries = raw.get("servers")
+    if isinstance(entries, list):
+        servers = [str(e).strip() for e in entries if str(e).strip()]
+        if servers:
+            return servers, "file"
     return [], "none"
 
 
-def save_mcp_servers(servers: list[str], path=None) -> list[str]:
-    """Atomic write (0600). Returns the list as it was stored."""
-    cleaned = [str(s).strip() for s in (servers or []) if str(s).strip()]
-    target = path or mcp_config_path()
+def load_server_env() -> dict[str, list[str]]:
+    """Which secrets a connector may receive, keyed by the spec it was added as.
+
+    Declared, not inferred: a server gets the names the user confirmed on its
+    card, so one connector's key never reaches another connector's process."""
+    raw = _read().get("env")
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, list[str]] = {}
+    for spec, names in raw.items():
+        if isinstance(names, list):
+            cleaned = [str(name).strip() for name in names if str(name).strip()]
+            if cleaned:
+                out[str(spec)] = cleaned
+    return out
+
+
+def save_server_env(spec: str, names: list[str]) -> dict[str, list[str]]:
+    """Records the declared names for one connector (empty list forgets it)."""
+    current = load_server_env()
+    cleaned = [str(name).strip() for name in names if str(name).strip()]
+    if cleaned:
+        current[str(spec)] = cleaned
+    else:
+        current.pop(str(spec), None)
+    target = mcp_config_path()
+    stored = _read().get("servers")
+    servers = [str(s).strip() for s in stored if str(s).strip()] if isinstance(stored, list) else []
+    _write(target, servers, current)
+    return current
+
+
+def _write(target, servers: list[str], env_map: dict[str, list[str]]) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     try:
         target.parent.chmod(0o700)
     except OSError:
         pass
     tmp = target.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"servers": cleaned}, ensure_ascii=False, indent=2), encoding="utf-8")
+    body = {"servers": servers, "env": env_map}
+    tmp.write_text(json.dumps(body, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(target)
     try:
         target.chmod(0o600)
     except OSError:
         pass
+
+
+def save_mcp_servers(servers: list[str], path=None) -> list[str]:
+    """Atomic write (0600). Returns the list as it was stored.
+
+    A connector that is no longer in the list loses its declared names: a
+    spec that is gone cannot have a process to hand a secret to."""
+    cleaned = [str(s).strip() for s in (servers or []) if str(s).strip()]
+    target = path or mcp_config_path()
+    env_map = {spec: names for spec, names in load_server_env().items() if spec in cleaned}
+    _write(target, cleaned, env_map)
     return cleaned
 
 
@@ -72,7 +118,7 @@ async def init_mcp_from_config(specs: list[str] | None = None) -> list[str]:
         specs, _source = load_mcp_servers()
     if not specs:
         return []
-    set_mcp_servers(specs)
+    set_mcp_servers(specs, env_map=load_server_env())
     try:
         return list(await sync_mcp_tools())
     except Exception:

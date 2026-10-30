@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { dryRunEntry, type DryRunResult } from '@/lib/api'
+import { CredentialFields } from './CredentialFields'
 import type { DiscoverItem } from './discoverModel'
 
 export interface DiscoverDetailProps {
@@ -122,6 +123,9 @@ export function DiscoverDetail({
                     </p>
                   ) : null}
                 </div>
+              ) : null}
+              {item.requiredEnv?.length ? (
+                <CredentialFields names={item.requiredEnv} />
               ) : null}
               {item.docs ? (
                 <a

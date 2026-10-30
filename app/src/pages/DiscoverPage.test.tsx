@@ -26,6 +26,10 @@ const api = vi.hoisted(() => ({
   installMarketPlan: vi.fn(),
   dryRunEntry: vi.fn(),
   searchDiscover: vi.fn(),
+  declareMcpEnv: vi.fn(),
+  getSecretStatus: vi.fn(),
+  putSecret: vi.fn(),
+  removeSecret: vi.fn(),
 }))
 
 vi.mock('@/lib/api', () => api)
@@ -72,6 +76,7 @@ function seed() {
         published_at: '2026-10-01T00:00:00Z',
         source: 'registry',
         curated_reason: 'pick',
+        required_env: [{ name: 'WEB_SEARCH_KEY', secret: true }],
       },
     ],
     registry_count: 6606,
@@ -110,6 +115,12 @@ beforeEach(() => {
   api.enableSkill.mockResolvedValue({ name: 'pdf', disabled: false })
   api.disableSkill.mockResolvedValue({ name: 'pdf', disabled: true })
   api.putMcpSettings.mockResolvedValue({ servers: [], source: 'file', tools: [] })
+  api.getSecretStatus.mockResolvedValue([
+    { name: 'WEB_SEARCH_KEY', present: false, mode: '' },
+  ])
+  api.putSecret.mockResolvedValue({ name: 'WEB_SEARCH_KEY', present: true, mode: 'keyring' })
+  api.removeSecret.mockResolvedValue({ name: 'WEB_SEARCH_KEY', present: false, mode: '' })
+  api.declareMcpEnv.mockResolvedValue({ servers: {}, declared: ['WEB_SEARCH_KEY'] })
 })
 
 describe('discover page', () => {
@@ -175,6 +186,32 @@ describe('discover page', () => {
     await waitFor(() => expect(api.dryRunEntry).toHaveBeenCalledTimes(1))
     expect(screen.getByTestId('discover-detail-verdict').textContent).toContain(
       'discover.verdict.checked-clean',
+    )
+  })
+
+  it('takes a required credential in the sheet and never shows it back', async () => {
+    render_()
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-detail-open-connector:registry:web-search')).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByTestId('discover-detail-open-connector:registry:web-search'))
+    await waitFor(() => expect(screen.getByTestId('discover-credentials')).toBeTruthy())
+    expect(
+      screen.getByTestId('discover-credential-state-WEB_SEARCH_KEY').textContent,
+    ).toContain('discover.credentialMissing')
+    fireEvent.change(screen.getByTestId('discover-credential-input-WEB_SEARCH_KEY'), {
+      target: { value: 'sk-test' },
+    })
+    fireEvent.click(screen.getByTestId('discover-credential-save-WEB_SEARCH_KEY'))
+    await waitFor(() => expect(api.putSecret).toHaveBeenCalledWith('WEB_SEARCH_KEY', 'sk-test'))
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('discover-credential-state-WEB_SEARCH_KEY').textContent,
+      ).toContain('discover.credentialStored.keyring'),
+    )
+    expect(screen.getByTestId('discover-credential-input-WEB_SEARCH_KEY')).toHaveProperty(
+      'value',
+      '',
     )
   })
 
