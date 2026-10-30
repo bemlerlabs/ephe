@@ -67,7 +67,7 @@ export function DiscoverCard({
       data-testid={`discover-card-${item.id}`}
       data-subject={item.categories[0] ?? 'other'}
       className={`group relative flex flex-col overflow-hidden rounded-2xl border border-hairline bg-surface/75 p-4 transition-colors motion-safe:duration-base hover:border-hairline-strong hover:bg-surface ${
-        fluid ? 'w-full' : 'w-[17rem] shrink-0'
+        fluid ? 'w-full' : 'w-68 shrink-0'
       }`}
     >
       {onDetail ? (

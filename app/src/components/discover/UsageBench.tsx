@@ -11,19 +11,29 @@ import { toolLabel } from './toolLabel'
 
 const MAX_ROWS = 6
 
-function Bar({ row, max, armed }: { row: ToolUsageRow; max: number; armed: boolean }) {
+function Bar({
+  row,
+  max,
+  armed,
+  capped,
+}: {
+  row: ToolUsageRow
+  max: number
+  armed: boolean
+  capped: boolean
+}) {
   const { t } = useTranslation()
   const pct = max > 0 ? Math.max(4, Math.round((row.calls / max) * 100)) : 0
   const share = row.calls > 0 ? Math.round((row.ok / row.calls) * 100) : 0
   return (
     <li
       data-testid={`discover-bench-row-${row.tool}`}
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5"
+      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 ${capped ? 'max-sm:hidden' : ''}`}
       title={row.blocked > 0 ? t('discover.benchBlocked', { count: row.blocked }) : undefined}
     >
       <span className="truncate text-ui-xs text-ink-soft">{toolLabel(row.tool)}</span>
       <span className="font-mono text-ui-xs tabular-nums text-foreground/90">{row.calls}</span>
-      <span aria-hidden="true" className="h-[3px] overflow-hidden rounded-full bg-hairline/50">
+      <span aria-hidden="true" className="h-1 overflow-hidden rounded-full bg-hairline/50">
         <span
           className={`block h-full rounded-full transition-[width] duration-slow ease-out-soft motion-reduce:transition-none ${
             row.errors > 0 ? 'bg-status-warning/80' : 'bg-brand/75'
@@ -82,9 +92,10 @@ export function UsageBench({ view }: { view: ToolUsageView | null }) {
           {view ? t('discover.benchNone') : t('discover.benchLoading')}
         </p>
       ) : (
-        <ul className="grid gap-3 [&>li:nth-child(n+4)]:hidden sm:[&>li:nth-child(n+4)]:grid">
-          {rows.map((row) => (
-            <Bar key={row.tool} row={row} max={max} armed={armed} />
+        <ul className="grid gap-3">
+          {rows.map((row, index) => (
+            // A phone shows the first three calls; the desk shows all six.
+            <Bar key={row.tool} row={row} max={max} armed={armed} capped={index >= 3} />
           ))}
         </ul>
       )}

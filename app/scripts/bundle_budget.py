@@ -63,7 +63,11 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # kind badge, chip row and the bench bars — and it replaces three market panels
     # whose card CSS is now gone. Net after both sides: 23.03 -> 23.82 kB gzip,
     # measured from app/dist; the row keeps the same headroom it carried before.
-    "index.css": 24.0,
+    # 2026-10-30 (store shelf): the page became a shelf — a segmented toolbar, a
+    # sideways track per subject and the subject plates. The plate palette itself
+    # rides the /discover chunk (DiscoverPage.css); what lands here is the utility
+    # set, measured 24.24 kB gzip against the 24.0 row.
+    "index.css": 24.6,
     "app-vendor.js": 28.0,   # react-router, zustand, tanstack, clsx, cva
     "radix.js": 39.0,        # P1-8: 33 @radix-ui packages + @floating-ui + the tail
     "ui.js": 17.0,           # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette)
@@ -175,7 +179,7 @@ MEASURED_GZIP_KB: dict[str, float] = {
     # 2026-10-15, same wave: the font imports name their subsets, so the entry CSS
     # no longer declares cyrillic/cyrillic-ext/greek/greek-ext/vietnamese faces for
     # eleven faces that only en/de can use: 34.28 -> 20.94 kB gzip.
-    "index.css": 23.82,
+    "index.css": 24.24,
     "app-vendor.js": 23.17,
     "radix.js": 34.6,
     "ui.js": 15.09,

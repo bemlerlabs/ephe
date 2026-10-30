@@ -8,57 +8,63 @@
 
 /* The hue is inherited from the entry; the fallback keeps a bare plate neutral. */
 .discover-plate {
-  background-color: color-mix(in srgb, var(--subject, hsl(30 8% 60%)) 22%, transparent);
-  border-color: color-mix(in srgb, var(--subject, hsl(30 8% 60%)) 38%, transparent);
-  color: var(--subject, hsl(30 8% 60%));
+  background-color: color-mix(in srgb, var(--s, hsl(30 8% 60%)) 22%, transparent);
+  color: var(--s, hsl(30 8% 60%));
 }
 
 .discover-dot {
-  background-color: var(--subject, hsl(30 8% 60%));
+  background-color: var(--s, hsl(30 8% 60%));
 }
 
 [data-subject='skills'] {
-  --subject: hsl(41 62% 61%);
+  --s: hsl(41 62% 61%);
 }
 [data-subject='code'] {
-  --subject: hsl(158 42% 60%);
+  --s: hsl(158 42% 60%);
 }
 [data-subject='web'] {
-  --subject: hsl(203 62% 63%);
+  --s: hsl(203 62% 63%);
 }
 [data-subject='memory'] {
-  --subject: hsl(266 42% 68%);
+  --s: hsl(266 42% 68%);
 }
 [data-subject='files'] {
-  --subject: hsl(33 44% 62%);
+  --s: hsl(33 44% 62%);
 }
 [data-subject='communication'] {
-  --subject: hsl(348 50% 66%);
+  --s: hsl(348 50% 66%);
 }
 [data-subject='productivity'] {
-  --subject: hsl(182 42% 58%);
+  --s: hsl(182 42% 58%);
 }
 [data-subject='database'] {
-  --subject: hsl(232 46% 68%);
+  --s: hsl(232 46% 68%);
 }
 [data-subject='cloud'] {
-  --subject: hsl(196 68% 64%);
+  --s: hsl(196 68% 64%);
 }
 [data-subject='security'] {
-  --subject: hsl(16 62% 62%);
+  --s: hsl(16 62% 62%);
 }
 [data-subject='media'] {
-  --subject: hsl(318 42% 66%);
+  --s: hsl(318 42% 66%);
 }
 [data-subject='utility'] {
-  --subject: hsl(78 32% 58%);
+  --s: hsl(78 32% 58%);
 }
 [data-subject='testing'] {
-  --subject: hsl(122 32% 58%);
+  --s: hsl(122 32% 58%);
 }
-[data-subject='sandbox'] {
-  --subject: hsl(215 14% 62%);
+
+/* A shelf scrolls sideways; the bar itself is not part of the shelf. */
+.discover-track {
+  scrollbar-width: none;
 }
-[data-subject='other'] {
-  --subject: hsl(30 8% 62%);
+.discover-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* The pick's eyebrow carries the subject hue and nothing else. */
+.discover-glyph {
+  color: var(--s, hsl(30 8% 62%));
 }

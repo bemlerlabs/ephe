@@ -50,12 +50,12 @@ export function DiscoverHero({
         <div className="flex min-w-0 flex-col justify-between gap-6">
           <div>
             <p className="flex items-center gap-2 font-mono text-ui-2xs uppercase tracking-[0.2em] text-ink-faint">
-              <span data-subject={category} className="text-[var(--subject)]">
+              <span data-subject={category} className="discover-glyph">
                 <CategoryGlyph category={category} kind={item.kind} className="h-3.5 w-3.5" />
               </span>
               {t('discover.heroEyebrow')}
             </p>
-            <h2 className="mt-4 max-w-[20ch] font-display text-[2.1rem] leading-[1.06] tracking-tight text-foreground sm:text-[2.6rem]">
+            <h2 className="mt-4 max-w-lg font-display text-4xl leading-[1.06] tracking-tight text-foreground sm:text-5xl">
               {item.title}
             </h2>
             <p className="mt-3 line-clamp-2 max-w-xl text-ui-sm leading-relaxed text-ink-soft">
