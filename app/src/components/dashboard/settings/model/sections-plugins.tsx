@@ -60,7 +60,7 @@ function PluginsSection({ model }: { model: SettingsModel }) {
                 // outside a router.
                 window.location.hash = '#/discover'
               }}
-              className="focus-ring flex items-center gap-1.5 rounded-lg border border-hairline px-2.5 py-1 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground"
+              className="focus-ring flex items-center gap-1.5 rounded-lg border border-hairline-strong px-2.5 py-1 text-ui-xs text-ink-soft hover:border-control hover:text-foreground"
             >
               <Compass className="h-3.5 w-3.5" strokeWidth={1.5} />
               {t('settings.pluginsDiscover')}
