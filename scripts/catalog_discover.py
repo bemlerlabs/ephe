@@ -30,7 +30,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from catalog_fetch import fetch
+sys.path.insert(0, str(ROOT))
+from catalog_fetch import fetch  # noqa: E402
+from core.discover_intent import keys as intent_keys, tags_for  # noqa: E402
 
 APP_MARKET_INDEX = "https://qoder.com/apphub/api/v1/marketplace/marketplace.json"
 OSS_PLUGIN_INDEX = "https://raw.githubusercontent.com/anthropics/claude-code/main/.claude-plugin/marketplace.json"
@@ -200,6 +202,31 @@ def curated_from_mirror(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             row.setdefault("curated_reason", "recent")
     ordered = sorted(picked.values(), key=lambda e: (e["name"].lower(),))
     return ordered
+
+
+def write_intent_index(entries: list[dict[str, Any]], target: Path) -> None:
+    """The intent tags for the curated tier, computed once so a search is a lookup.
+
+    Only the tags are precomputed; the ranking runs at read time in `core.discover_search`."""
+    tagged = {}
+    for entry in entries:
+        entry_id = str(entry.get("id") or entry.get("name") or "")
+        if not entry_id:
+            continue
+        tagged[entry_id] = tags_for(
+            str(entry.get("name") or ""),
+            str(entry.get("description") or ""),
+            str(entry.get("category") or ""),
+        )
+    payload = {
+        "format": 1,
+        "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+        "intents": list(intent_keys()),
+        "entries": tagged,
+    }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"search-index: {len(tagged)} entry(ies) tagged into {target}")
 
 
 def permissive(license_text: str) -> bool:
@@ -501,6 +528,10 @@ def main(argv: list[str] | None = None) -> int:
         "--curated", type=Path, metavar="OUT",
         help="write the curated tier to OUT and exit (picks plus recent per category)",
     )
+    parser.add_argument(
+        "--search-index", type=Path, metavar="OUT",
+        help="write the precomputed intent tags for the curated tier to OUT",
+    )
     args = parser.parse_args(argv)
 
     if args.mirror:
@@ -543,6 +574,19 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
         print(f"curated: {len(curated)} of {count} entry(ies) written to {args.curated}")
+        if args.search_index:
+            write_intent_index(curated, args.search_index)
+        return 0
+
+    if args.search_index:
+        snapshot = ROOT / "marketplace" / "registry-curated.json"
+        try:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"search-index: {snapshot} unreadable: {exc}")
+            return 1
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        write_intent_index(entries if isinstance(entries, list) else [], args.search_index)
         return 0
 
     if args.out is None:

@@ -19,6 +19,7 @@ import {
   facetValues,
   filterItems,
   heroOf,
+  rankByIntent,
   specName,
   type DiscoverItem,
   type DiscoverQuery,
@@ -33,6 +34,7 @@ import {
   planMarketInstall,
   probeMcpHealth,
   putMcpSettings,
+  searchDiscover,
   setPluginEnabled,
 } from '@/lib/api'
 
@@ -90,6 +92,7 @@ export default function DiscoverPage() {
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
   const [detail, setDetail] = useState<DiscoverItem | null>(null)
+  const [intentIds, setIntentIds] = useState<string[]>([])
 
   const load = useCallback(async () => {
     const next = await loadSources()
@@ -102,8 +105,34 @@ export default function DiscoverPage() {
     void load()
   }, [load])
 
+  /** The typed phrase also asks the intent index, so a task word finds the entry. */
+  const needle = query.query.trim()
+  useEffect(() => {
+    if (needle.length < 3) {
+      setIntentIds([])
+      return
+    }
+    let live = true
+    const timer = window.setTimeout(() => {
+      searchDiscover(needle)
+        .then((hits) => {
+          if (live) setIntentIds(hits.map((hit) => hit.id))
+        })
+        .catch(() => {
+          if (live) setIntentIds([])
+        })
+    }, 150)
+    return () => {
+      live = false
+      window.clearTimeout(timer)
+    }
+  }, [needle])
+
   const items = useMemo(() => (sources ? buildItems(sources) : []), [sources])
-  const shown = useMemo(() => filterItems(items, query), [items, query])
+  const shown = useMemo(
+    () => rankByIntent(filterItems(items, query, intentIds), intentIds),
+    [items, query, intentIds],
+  )
   const counts = useMemo(() => countByTab(items), [items])
   const categories = useMemo(() => facetValues(items, (one) => one.categories), [items])
   const origins = useMemo(() => facetValues(items, (one) => [one.origin]), [items])

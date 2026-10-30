@@ -192,20 +192,36 @@ export interface DiscoverQuery {
 }
 
 /** Search covers the words a person would type, so it reads title, name and summary. */
-export function filterItems(items: DiscoverItem[], q: DiscoverQuery): DiscoverItem[] {
+export function filterItems(
+  items: DiscoverItem[],
+  q: DiscoverQuery,
+  intentIds: string[] = [],
+): DiscoverItem[] {
   const needle = q.query.trim().toLowerCase()
   const kind = kindOf(q.tab)
+  const intent = new Set(intentIds)
   return items.filter((item) => {
     if (kind && item.kind !== kind) return false
     if (q.category && !item.categories.includes(q.category)) return false
     if (q.origin && item.origin !== q.origin) return false
     if (!needle) return true
+    if (intent.has(item.id)) return true
     return (
       item.title.toLowerCase().includes(needle) ||
       item.name.toLowerCase().includes(needle) ||
       item.summary.toLowerCase().includes(needle)
     )
   })
+}
+
+/** The intent ranking wins over page order; an unranked item keeps its place behind. */
+export function rankByIntent(items: DiscoverItem[], intentIds: string[]): DiscoverItem[] {
+  if (!intentIds.length) return items
+  const order = new Map(intentIds.map((id, index) => [id, index]))
+  return [...items].sort(
+    (a, b) =>
+      (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+  )
 }
 
 export function countByTab(items: DiscoverItem[]): Record<DiscoverTab, number> {

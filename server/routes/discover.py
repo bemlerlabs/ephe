@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
 
-from core import marketplace_service, marketplace_sources
+from core import discover_search, marketplace_service, marketplace_sources
 from core.marketplace_verify import verify_entry
 from core.mcp_catalog import catalog_entries, curated_entries, registry_entries
 from server.routes.audit import get_audit_usage
@@ -17,6 +17,15 @@ from server.routes.marketplace import market_home, market_index
 from server.routes.skills import list_skills
 
 router = APIRouter(tags=["discover"])
+
+
+@router.get("/discover/search")
+async def discover_search_entries(q: str = "", limit: int = 24) -> dict:
+    """Intent search over the shelf: the task a person types, not the package name.
+
+    Offline by construction — the tags were precomputed with the catalog and the
+    ranking runs in an in-memory FTS5 table."""
+    return {"query": q, "entries": discover_search.search(q, limit)}
 
 
 @router.get("/discover/bootstrap")
