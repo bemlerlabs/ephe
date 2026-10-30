@@ -198,6 +198,10 @@ def cmd_configure(args: argparse.Namespace, config_path=None) -> int:
     from core.engine_config import EngineNotConfigured, load_engine_config
 
     existing = load_engine_config(config_path)
+    if existing is not None and not existing.is_complete():
+        # A half-written config is not a decision, and the command whose whole job
+        # is to write one must not answer "already configured" over it.
+        existing = None
     if existing is not None and not args.force:
         where = f" @ {existing.api_url}" if existing.api_url else ""
         print(f"  → Engine already configured: {existing.provider} / {existing.model}{where}")
@@ -278,15 +282,30 @@ def cmd_tui(args: argparse.Namespace, config_path=None) -> int:
             api_url=args.api_url,
         )
     else:
-        # Without the model flag: engine.json → env → onboarding (--configure or TTY).
-        # W18 fail-closed: without config/env the start aborts with instructions,
-        # instead of picking an engine in silence. No Ollama pull.
-        choice = resolve_engine_choice(
-            config_path=config_path, configure=args.configure, args=args
-        )
+        # Without the model flag: engine.json → env. No engine is not an abort any
+        # more (owner order 2026-10-29): the terminal app opens and offers the
+        # engine setup in its own surface. The rule that survives is the stricter
+        # half — nothing leaves until a choice exists, so no request runs against
+        # an engine the user never named.
+        try:
+            if args.configure:
+                choice = resolve_engine_choice(
+                    config_path=config_path, configure=True, args=None
+                )
+            else:
+                from core.engine_config import resolve_engine_choice as _persisted_choice
 
-    choice.apply_env()
-    forwarded = ["ephe"] + choice.to_flags()
+                choice = _persisted_choice(config_path, allow_prompt=False)
+        except Exception:  # EngineNotConfigured and a damaged config alike
+            choice = None
+
+    if choice is not None and not choice.is_complete():
+        choice = None
+    if choice is not None:
+        choice.apply_env()
+        forwarded = ["ephe"] + choice.to_flags()
+    else:
+        forwarded = ["ephe"]
     if args.reset:
         forwarded.append("--reset")
 

@@ -24,8 +24,10 @@ import json
 import logging
 import os
 import re
+import subprocess
 import time
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -274,3 +276,98 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
 def _reset_cache() -> None:
     """Test seam: drop the TTL cache."""
     _cache["at"], _cache["value"] = None, None
+
+
+# One answer a day across process starts.
+#
+# The in-memory TTL above describes a running process. A terminal app that is
+# opened ten times a day would ask the feed ten times without a store that
+# outlives it, and the product promise here is one look a day.
+DAY_S = 24 * 3600
+STATE_FILE = "update.json"
+OPT_OUT_ENV = "EPHE_NO_UPDATE_CHECK"
+
+
+def state_path() -> Path:
+    from core.engine_config import config_root
+
+    return config_root() / STATE_FILE
+
+
+def load_daily_state() -> dict[str, Any]:
+    try:
+        payload = json.loads(Path(state_path()).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _save_daily_state(result: dict[str, Any], now: float) -> None:
+    payload = {"checked_at": now, "result": result}
+    target = state_path()
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
+
+def daily_check(now: float | None = None) -> dict[str, Any]:
+    """The release answer, asked at most once a day across process starts."""
+    if os.environ.get(OPT_OUT_ENV):
+        return {"enabled": False, "available": False}
+    stamp = time.time() if now is None else now
+    stored = load_daily_state()
+    checked = stored.get("checked_at")
+    result = stored.get("result")
+    if isinstance(checked, (int, float)) and isinstance(result, dict):
+        if stamp - float(checked) < DAY_S:
+            return dict(result)
+    fresh = check_for_update(force=True)
+    if fresh.get("enabled", True):
+        _save_daily_state(fresh, stamp)
+    return fresh
+
+
+def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+
+def run_update(root: Path | None = None) -> tuple[bool, str]:
+    """Pull the checkout and reinstall. Returns (ok, one line to show)."""
+    checkout = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    installer = checkout / "install.sh"
+    if not installer.exists():
+        return False, "install.sh not found"
+
+    pulled = _git(checkout, "pull", "--ff-only")
+    if pulled.returncode != 0:
+        tail = (pulled.stderr or pulled.stdout or "").strip().splitlines()
+        return False, tail[-1] if tail else "git pull failed"
+
+    env = os.environ.copy()
+    env["EPHE_NO_START"] = "1"
+    try:
+        installed = subprocess.run(
+            ["bash", str(installer), "--no-start"],
+            cwd=str(checkout),
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+    except Exception as exc:
+        return False, str(exc)
+    if installed.returncode != 0:
+        tail = (installed.stderr or installed.stdout or "").strip().splitlines()
+        return False, tail[-1] if tail else f"installer exited {installed.returncode}"
+    _reset_cache()
+    try:
+        Path(state_path()).unlink()
+    except Exception:
+        pass
+    return True, "updated"

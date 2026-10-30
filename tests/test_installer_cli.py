@@ -807,6 +807,7 @@ def _build_pwa_runnable(tmp_path, tools, dry_run="0"):
             'ok() { echo "OK $*"; }',
             'fail() { echo "FAIL $*" >&2; exit 1; }',
             'run() { if [[ "$DRY_RUN" == "1" ]]; then echo "DRY-RUN: $*"; else "$@"; fi; }',
+            'run_quiet() { local l="$1"; shift; if [[ "$DRY_RUN" == "1" ]]; then echo "DRY-RUN: $*"; else "$@"; fi; }',
             f'PROJECT_DIR="{tmp_path}"',
             f'APP_DIR="{app_dir}"',
             "build_pwa() {",
@@ -1620,23 +1621,26 @@ def test_given_the_documented_after_install_block_when_checked_then_it_repeats_t
     )
 
 
-def test_given_a_fresh_terminal_when_the_installer_finishes_then_activation_precedes_the_commands():
+def test_given_a_fresh_terminal_when_the_installer_finishes_then_a_launcher_precedes_the_commands():
     """
     GIVEN the user opens a new terminal after the install
     WHEN the installer's closing block and the docs are read
-    THEN both put `source …/.venv/bin/activate` before the first `ephe` command, and the
-         docs name the failure that skipping it produces (`command not found`).
+    THEN both name the `ephe` launcher before the first command, and both keep the
+         activation fallback with the failure it avoids (`command not found`).
     """
     script = (ROOT / "install.sh").read_text(encoding="utf-8")
     docs = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
 
     closing = _installer_closing_block(script)
-    assert _ACTIVATION_ECHOED in closing, "the closing block no longer prints the activation line"
-    assert closing.index(_ACTIVATION_ECHOED) < closing.index("ephe configure")
+    assert "the launcher answers to ephe." in closing, "the closing block no longer names the launcher"
+    assert closing.index("the launcher answers to ephe.") < closing.index("ephe tui")
+    # The fallback survives for a machine where no launcher can be placed.
+    assert _ACTIVATION_ECHOED in script
+    assert "ln -sfn" in script
 
     section = _after_install_section(docs)
-    assert _ACTIVATION_DOCUMENTED in section, "the After install section lost the activation line"
-    assert section.index(_ACTIVATION_DOCUMENTED) < section.index("ephe configure")
+    assert "~/.local/bin/ephe" in section, "the After install section lost the launcher"
+    assert _ACTIVATION_DOCUMENTED in section, "the After install section lost the fallback"
     assert "command not found" in section
 
 

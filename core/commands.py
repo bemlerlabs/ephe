@@ -82,7 +82,8 @@ COMMANDS: dict[str, str] = {
     "/help": "Ephe command overview (see /help in the TUI)",
     "/model": "Show active model/provider (see /model in the TUI)",
     "/engine": "Show engine config (see /engine in the TUI)",
-    "/configure": "Select engine (see /configure in the TUI)",
+    "/setup": "Engine setup: provider, endpoint, API key, model (terminal)",
+    "/configure": "Same as /setup (terminal)",
 }
 
 APP_COMMANDS: frozenset[str] = frozenset(
@@ -199,7 +200,8 @@ _COMMAND_DESCRIPTIONS: dict[str, str] = {
     "/help":    "Command overview (local, no LLM)",
     "/model":   "Active model/provider (local, no LLM)",
     "/engine":  "Engine config (local, no LLM)",
-    "/configure": "Engine selection (local, no LLM)",
+    "/setup":   "Engine setup: provider, endpoint, key, model (terminal)",
+    "/configure": "Same as /setup (terminal)",
 }
 
 # Commands that trigger special app-level behaviour (not resolved to a prompt)

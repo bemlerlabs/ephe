@@ -61,7 +61,12 @@ from core.skills import SkillLoader
 from ui.composer import Composer
 from ui.widgets import ChatView, ConfirmPrompt, StatusBar
 from ui.context_meter import estimate_context_usage, resolve_window
-from ui.overlays import CommandPalette, HelpOverlay, ModelPicker, PaletteEntry
+from ui.overlays import (
+    CommandPalette,
+    HelpOverlay,
+    ModelPicker,
+    PaletteEntry,
+)
 from ui.session_switcher import SessionChoice, SessionSwitcher
 from ui import editor as editor_mod
 from ui import file_context
@@ -89,11 +94,16 @@ def _relative_when(iso: object) -> str:
 
 
 def _chosen_engine():
-    """The engine the user chose (persisted config, else engine env) — None if neither."""
+    """The engine the user chose (persisted config, else engine env) — None if neither.
+
+    A half-written config counts as none: a remote provider without its endpoint
+    starts nothing, so the app opens the setup instead of a chat that cannot send.
+    """
     try:
         from core.engine_config import resolve_engine_choice
 
-        return resolve_engine_choice(allow_prompt=False)
+        choice = resolve_engine_choice(allow_prompt=False)
+        return choice if choice is not None and choice.is_complete() else None
     except Exception:
         return None
 
@@ -189,6 +199,7 @@ class EpheApp(App):
         Binding("ctrl+p", "palette", "Actions", show=True, priority=True),
         Binding("ctrl+o", "sessions", "Sessions", show=True),
         Binding("f2", "model_picker", "Model", show=True),
+        Binding("f10", "engine_setup", "Engine", show=False),
         Binding("f1", "help", "Help", show=True),
         Binding("f8", "undo_turn", "Undo", show=False),
         Binding("f9", "redo_turn", "Redo", show=False),
@@ -361,20 +372,22 @@ class EpheApp(App):
         self.query_one(Composer).focus_input()
 
         if self._engine_missing:
-            # Fail closed, and name the one command that resolves it. No probe
-            # against a local engine the user never chose.
+            # Nothing is sent until an engine is chosen. The app stays usable and
+            # opens the setup itself, so a first start does not dead-end in a
+            # command line the user did not ask for.
             self._set_run_state("offline")
             self.query_one(StatusBar).post_message(
-                StatusBar.SetError("No engine configured — ephe configure")
+                StatusBar.SetError("No engine configured — F10 opens the setup")
             )
             self.query_one(ChatView).post_message(
                 ChatView.AddSystemMessage(
-                    "⚠  No engine configured.\n"
-                    "   Run:  ephe configure\n"
+                    "⚠  No engine configured yet.\n"
+                    "   Pick one in the setup that opens now (F10 reopens it).\n"
                     "   Nothing is sent until an engine is chosen.",
                     style="error-msg",
                 )
             )
+            self.call_after_refresh(self.action_engine_setup)
         else:
             self._set_run_state("rest")
             # Check the chosen engine asynchronously (non-blocking)
@@ -892,6 +905,8 @@ class EpheApp(App):
             "/redo": self.action_redo_turn,
             "/editor": self.action_editor,
             "/help": self.action_help,
+            "/setup": self.action_engine_setup,
+            "/configure": self.action_engine_setup,
         }
         if verb in app_actions:
             app_actions[verb]()
@@ -1613,6 +1628,7 @@ class EpheApp(App):
             PaletteEntry("new_session", "New session", "Ctrl+R"),
             PaletteEntry("sessions", "Sessions", "Ctrl+O"),
             PaletteEntry("model_picker", "Model picker", "F2"),
+            PaletteEntry("engine_setup", "Engine setup", "F10"),
             PaletteEntry("undo_turn", "Undo the last turn", "F8"),
             PaletteEntry("redo_turn", "Redo the last turn", "F9"),
             PaletteEntry("editor", "Edit the draft", "F4"),
@@ -1661,6 +1677,7 @@ class EpheApp(App):
             "  Ctrl+O, /sessions  session switcher (Ctrl+N new, F2 rename, F3 delete)",
             "  Ctrl+R, /new       new session",
             "  F2, /model         model picker (writes engine.json)",
+            "  F10, /setup        engine setup: provider, endpoint, key, model",
             "  F8, /undo          undo the last turn",
             "  F9, /redo          restore the last undone turn",
             "  F4, /editor        edit the draft in $VISUAL/$EDITOR",
@@ -1682,6 +1699,44 @@ class EpheApp(App):
         rows.extend(f"  {command:<12} {description}" for command, description in get_command_help())
         return "\n".join(rows)
 
+    def action_engine_setup(self) -> None:
+        """Open the engine setup: provider list, then its endpoint, key and model."""
+        from ui.setup import ProviderPicker
+
+        self.push_screen(ProviderPicker(), self._after_provider_choice)
+
+    def _after_provider_choice(self, provider: object) -> None:
+        from ui.setup import EngineForm
+
+        if provider is None:
+            return
+        self.push_screen(EngineForm(provider), self._apply_engine_choice)
+
+    def _apply_engine_choice(self, choice: object) -> None:
+        """Adopt the engine the setup stored, without restarting the app."""
+        if choice is None:
+            return
+        self.model = getattr(choice, "model", "") or ""
+        self.api_url = getattr(choice, "api_url", None)
+        self._engine_missing = not self.model
+        if self._engine_missing:
+            return
+        self._set_run_state("rest")
+        self.query_one(StatusBar).post_message(
+            StatusBar.SetStatus(
+                connected=True, model=self.model, provider=self._provider_label()
+            )
+        )
+        where = f" @ {self.api_url}" if self.api_url else ""
+        self.query_one(ChatView).post_message(
+            ChatView.AddSystemMessage(
+                f"◑ Engine set → {getattr(choice, 'provider', '')} / {self.model}{where}\n"
+                "   Type a message to start.",
+                style="system-msg",
+            )
+        )
+        self.run_worker(self._async_check_connection(), exclusive=False)
+
     def action_model_picker(self) -> None:
         self._open_model_picker()
 
@@ -1690,7 +1745,7 @@ class EpheApp(App):
         if self._engine_missing:
             self.query_one(ChatView).post_message(
                 ChatView.AddSystemMessage(
-                    "No engine configured — run: ephe configure",
+                    "No engine configured — F10 opens the setup",
                     style="error-msg",
                 )
             )

@@ -210,6 +210,17 @@ def _isolate_provider_state(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_network_update_check(monkeypatch: pytest.MonkeyPatch):
+    """A test run is no device, so it makes no update call.
+
+    The terminal app asks the release feed once a day when it starts. Without
+    this, every pilot test that mounts EpheApp waits on GitHub and gets a real
+    update prompt over the surface it is asserting on.
+    """
+    monkeypatch.setenv("EPHE_NO_UPDATE_CHECK", "1")
+
+
+@pytest.fixture(autouse=True)
 def _hermetic_engine_key_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """No test may resolve the developer's own stored engine token.
 

@@ -710,6 +710,16 @@ class EngineChoice:
         if not self.model.strip():
             raise ValueError("Model name must not be empty.")
 
+    def is_complete(self) -> bool:
+        """Whether this choice names an engine that can start.
+
+        A remote provider without an endpoint is a half-written config, and a
+        config is not a decision: the surfaces treat it as no choice at all.
+        """
+        if not (self.model or "").strip():
+            return False
+        return self.provider != OPENAI_COMPAT or bool((self.api_url or "").strip())
+
     def to_flags(self) -> list[str]:
         """CLI flags for `ephe main()` — model and engine URL."""
         flags = ["--model", self.model]

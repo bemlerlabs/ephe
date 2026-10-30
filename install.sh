@@ -106,6 +106,29 @@ run() {
   fi
 }
 
+# A step whose tool narrates a page of resolver or bundler output (pip, vite) is
+# run with its log kept aside: the install shows one line per step and hands the
+# last lines back only when the step fails.
+run_quiet() {
+  local label="$1"
+  shift
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "  DRY-RUN: $*"
+    return 0
+  fi
+  local log rc
+  log="$(mktemp)"
+  if "$@" >"$log" 2>&1; then
+    rm -f "$log"
+    ok "$label"
+    return 0
+  fi
+  rc=$?
+  tail -n 40 "$log" >&2
+  rm -f "$log"
+  return "$rc"
+}
+
 # Package managers are called as root only when the shell is not already root: a
 # stock `ubuntu:24.04` (and any minimal image) ships no `sudo` binary, so
 # `sudo apt-get …` answered "command not found" and `set -e` stopped a bare box
@@ -425,8 +448,7 @@ else
   fi
 fi
 # openpyxl: xlsx support (otherwise missing from a Miniconda env, and it costs 10 tests)
-run .venv/bin/python -m pip install openpyxl
-ok "Dependencies installed"
+run_quiet "Excel support installed" .venv/bin/python -m pip install -q openpyxl
 
 # ── PWA build (desktop mode) ────────────────────────────────────────────────
 # The server serves the web app (PWA) from app/dist/ — a build artifact that is
@@ -461,13 +483,13 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
     if [[ ! -f "$PROJECT_DIR/app/pnpm-lock.yaml" ]]; then
       info "install is running (without the lockfile)"
       if [[ "$pnpm_ok" == "1" ]]; then
-        run pnpm --dir "$PROJECT_DIR/app" install
+        run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install
       else
-        run npm --prefix "$PROJECT_DIR/app" install --no-package-lock
+        run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock
       fi
     elif [[ "$pnpm_ok" == "1" ]]; then
-      run pnpm --dir "$PROJECT_DIR/app" install --frozen-lockfile || run pnpm --dir "$PROJECT_DIR/app" install
-      run pnpm --dir "$PROJECT_DIR/app" run build
+      run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install --frozen-lockfile || run_quiet "Dependencies installed (app, relaxed lockfile)" pnpm --dir "$PROJECT_DIR/app" install
+      run_quiet "Frontend built" pnpm --dir "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
     else
       # npm, and `install --no-package-lock` rather than `ci`: a fresh clone has no
       # package-lock.json, and `npm ci` refuses that state outright — measured on
@@ -477,8 +499,8 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
       # tests/test_r46_pnpm_single_source.py forbids. The flag is the shape that both
       # runs without a lockfile and leaves the pnpm-only contract alone.
       info "pnpm is not usable here — building with npm (no package-lock.json will be written)"
-      run npm --prefix "$PROJECT_DIR/app" install --no-package-lock
-      run npm --prefix "$PROJECT_DIR/app" run build
+      run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock
+      run_quiet "Frontend built" npm --prefix "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
     fi
     if [[ "$DRY_RUN" != "1" && ! -f "$PROJECT_DIR/app/dist/index.html" ]]; then
       fail "PWA build failed: app/dist/index.html does not exist."
@@ -498,23 +520,46 @@ else
 fi
 ok "$HOME/.ephe ready"
 
-# The `ephe` console script is installed into `.venv/bin` and nothing here edits
-# a shell rc, so a bare `ephe configure` typed into a NEW terminal answers
-# "command not found" (docs/UI_AUDIT_2026-10-12.md, "the documented first command
-# is not on PATH"). The block therefore prints the activation line first and the
-# commands after it; docs/INSTALL.md repeats exactly these lines, and
-# tests/test_installer_cli.py pins the printed set to the documented set and both
-# to the real subparsers of `ephe_cli.build_parser()`.
+# The `ephe` console script lives in `.venv/bin`, and nothing here edits a shell
+# rc, so a bare `ephe` in a NEW terminal used to answer "command not found"
+# (docs/UI_AUDIT_2026-10-12.md). A launcher on PATH closes that gap — and it has
+# to replace a launcher left by an older install, which otherwise keeps answering
+# for a tree this run no longer touches.
+LAUNCHER_DIR="${EPHE_BIN_DIR:-$HOME/.local/bin}"
+LAUNCHER="$LAUNCHER_DIR/ephe"
+launcher_ready=0
+if [[ "$DRY_RUN" == "1" ]]; then
+  info "DRY-RUN: ln -sfn $PROJECT_DIR/.venv/bin/ephe $LAUNCHER"
+  launcher_ready=1
+elif mkdir -p "$LAUNCHER_DIR" 2>/dev/null && ln -sfn "$PROJECT_DIR/.venv/bin/ephe" "$LAUNCHER" 2>/dev/null; then
+  launcher_ready=1
+fi
+on_path=0
+case ":$PATH:" in
+  *":$LAUNCHER_DIR:"*) on_path=1 ;;
+esac
+
 echo ""
 echo -e "${GREEN}${BOLD}Setup complete.${NC}"
 echo "Project: $PROJECT_DIR"
 echo ""
-echo "The 'ephe' command is not on PATH yet - activate the environment first:"
-echo "  source \"$PROJECT_DIR/.venv/bin/activate\""
+if [[ "$launcher_ready" == "1" && "$on_path" == "1" ]]; then
+  ok "Ready — the launcher answers to ephe."
+elif [[ "$launcher_ready" == "1" ]]; then
+  ok "Launcher installed: $LAUNCHER"
+  echo "  Add its folder to PATH once (~/.zshrc):"
+  echo "    export PATH=\"$LAUNCHER_DIR:\$PATH\""
+  echo "  Or call it directly: $LAUNCHER"
+else
+  warn "No launcher could be placed in $LAUNCHER_DIR — activate the environment instead:"
+  echo "  source \"$PROJECT_DIR/.venv/bin/activate\""
+fi
 echo ""
-echo "Then, in that same shell:"
-echo "  ephe configure    # choose the engine once (saved to ~/.ephe/engine.json)"
-echo "  ephe doctor       # check Ollama, model and server state"
+echo "No engine is needed to start: the terminal app opens its own setup"
+echo "(provider, endpoint, API key, model) and sends nothing until you choose one."
+echo ""
+echo "  ephe configure    # choose the engine from the shell (optional: the app asks on first run)"
+echo "  ephe doctor       # check engine, model and server state"
 if [[ "$INSTALL_MODE" == "cli" ]]; then
   echo "  ephe tui          # start the terminal UI"
 else
