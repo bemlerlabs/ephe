@@ -201,12 +201,7 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
           >
             <span className="companion-glow" />
             <div className="companion-motion">
-              <img
-                className="companion-body"
-                src={art.body}
-                alt=""
-                draggable={false}
-              />
+              <img className="companion-body" src={art.body} alt="" draggable={false} />
               <img
                 className="companion-wing companion-wing-l"
                 src={art.wingLeft}
@@ -219,12 +214,7 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
                 alt=""
                 draggable={false}
               />
-              <img
-                className="companion-flame"
-                src={art.accent}
-                alt=""
-                draggable={false}
-              />
+              <img className="companion-flame" src={art.accent} alt="" draggable={false} />
               <BeeEyelids still={still} winkSignal={wink} />
             </div>
           </div>

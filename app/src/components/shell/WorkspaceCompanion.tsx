@@ -50,7 +50,8 @@ export default function WorkspaceCompanion({
   // carry their own controls, and a press on one of them is a press on it.
   const pet = useCompanionDrag(
     box,
-    (target) => target instanceof Element && target.closest('[data-testid="companion-trigger"]') !== null,
+    (target) =>
+      target instanceof Element && target.closest('[data-testid="companion-trigger"]') !== null,
   )
   // The co-pilot loop runs in exactly one surface: the perch the register chose.
   // A second instance would approve the same prompt twice. The creature itself
@@ -58,10 +59,7 @@ export default function WorkspaceCompanion({
   // there, so clicking it looked broken (QA-0.1.11, R1) — and `welcome_only`
   // now means what its label says instead of hiding the figure everywhere.
   const onWelcome = !hasMessages
-  const shows =
-    enabled &&
-    behavior !== 'header' &&
-    (behavior === 'welcome_only' ? onWelcome : true)
+  const shows = enabled && behavior !== 'header' && (behavior === 'welcome_only' ? onWelcome : true)
 
   const copilot = useCompanionCopilot({
     // The crawl needs a turn to read; on the welcome screen only the figure shows.
