@@ -176,7 +176,6 @@ export function RegisterNav({
           {NAV_GROUPS.map((group) => (
             <div
               key={group.groupKey}
-              data-testid={`settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
               className="mb-2 max-md:flex max-md:items-center max-md:gap-1"
             >
               {/* Hidden at phone width, the chips ran as one undifferentiated strip
@@ -184,25 +183,32 @@ export function RegisterNav({
                   On a wide column the heading folds its rows, and the folder keeps
                   its memory: a register that reopens unfolded every time makes the
                   reader pack it again. */}
-              <p className={`${NAV_GROUP} md:hidden`}>{t(group.groupKey)}</p>
-              <button
-                type="button"
-                data-testid={`settings-nav-group-toggle-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
-                aria-expanded={!folded.includes(group.groupKey)}
-                onClick={() => toggleGroup(group.groupKey)}
-                className={`${NAV_GROUP} focus-ring hidden w-full items-center gap-1 text-left md:flex`}
+              {/* The heading names the group and stays inert; the chevron beside it is
+                  the control. The parity walk clicks every `settings-nav-*` element, so a
+                  heading that folded its own rows would hide the very rows it is walked
+                  for. */}
+              <p
+                data-testid={`settings-nav-group-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+                className={NAV_GROUP}
               >
                 {t(group.groupKey)}
-                <span aria-hidden="true">
+                <button
+                  type="button"
+                  data-testid={`settings-fold-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+                  aria-expanded={!folded.includes(group.groupKey)}
+                  aria-label={t('settings.groupFold')}
+                  onClick={() => toggleGroup(group.groupKey)}
+                  className="focus-ring ml-1 hidden align-middle md:inline-flex"
+                >
                   {folded.includes(group.groupKey) ? (
                     <ChevronRight className="h-3 w-3" strokeWidth={1.5} />
                   ) : (
                     <ChevronDown className="h-3 w-3" strokeWidth={1.5} />
                   )}
-                </span>
-              </button>
+                </button>
+              </p>
               <div
-                data-testid={`settings-nav-rows-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+                data-testid={`settings-group-rows-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
                 className={folded.includes(group.groupKey) ? 'hidden md:block' : 'contents'}
               >
                 {group.keys.map((key) => {

@@ -1312,7 +1312,8 @@
       "keyring": "in the system keychain",
       "file_0600": "in a file only you can read"
     },
-    "pluginsDiscover": "Discover more in the marketplace"
+    "pluginsDiscover": "Discover more in the marketplace",
+    "groupFold": "Fold this group"
   },
   "error": {
     "fallback": "Something went wrong loading the landing page. Reload the page to try again.",
