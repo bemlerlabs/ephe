@@ -1956,3 +1956,26 @@ def test_doctor_update_row_uses_the_singular_for_one_commit(monkeypatch):
     )
     row = ephe_cli._doctor_update_row()
     assert "1 new commit on main" in row and "commits on main" not in row
+
+
+def test_cmd_update_json_success_is_machine_readable(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "core.update_apply.apply_update",
+        lambda root=None: {"ok": True, "reason": "", "detail": "a → b", "steps": []},
+    )
+    assert ephe_cli.cmd_update(_parser().parse_args(["update", "--json"])) == 0
+    assert '"ok": true' in capsys.readouterr().out
+
+
+def test_cmd_update_json_refusal_exits_one(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "core.update_apply.apply_update",
+        lambda root=None: {
+            "ok": False,
+            "reason": "busy",
+            "detail": "an update is already running",
+            "steps": [],
+        },
+    )
+    assert ephe_cli.cmd_update(_parser().parse_args(["update", "--json"])) == 1
+    assert '"ok": false' in capsys.readouterr().out
