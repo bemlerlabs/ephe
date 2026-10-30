@@ -1,6 +1,5 @@
 'use client'
 
-
 import PageHeader from '@/components/shell/PageHeader'
 import { LoadingRow } from '@/components/ui'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
@@ -53,278 +52,272 @@ function PluginsSection({ model }: { model: SettingsModel }) {
           ) : undefined
         }
       />
-          <SearchInput
-            value={pluginQuery}
-            onChange={setPluginQuery}
-            placeholder={t('settings.pluginsSearch')}
-            label={t('settings.pluginsSearch')}
-          />
-          {pluginView?.notices?.some(
-            (notice) => notice.code === 'legacy_master_bypass_retired',
-          ) && (
-            <p
-              data-testid="plugin-legacy-master-notice"
-              className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+      <SearchInput
+        value={pluginQuery}
+        onChange={setPluginQuery}
+        placeholder={t('settings.pluginsSearch')}
+        label={t('settings.pluginsSearch')}
+      />
+      {pluginView?.notices?.some((notice) => notice.code === 'legacy_master_bypass_retired') && (
+        <p
+          data-testid="plugin-legacy-master-notice"
+          className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+        >
+          {t('settings.pluginLegacyMasterRetired')}
+        </p>
+      )}
+      {pluginView?.read_only && (
+        <p
+          data-testid="plugin-read-only-notice"
+          className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+        >
+          {t('settings.pluginReadOnly')}
+        </p>
+      )}
+      {pluginView?.unproven && (
+        <p
+          data-testid="plugin-state-unproven-notice"
+          className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
+        >
+          {t('settings.pluginStateUnproven')}
+        </p>
+      )}
+      {pluginView === null ? (
+        <LoadingRow label={t('settings.loading')} />
+      ) : (
+        <>
+          {/* E1: master kill switch — off = stock Ephe, toggles disabled. */}
+          <SettingsGroup
+            icon={Store}
+            title={t('settings.pluginsGroupMaster')}
+            testid="plugins-master"
+          >
+            <SettingsRow
+              icon={Power}
+              title={t('settings.pluginsMaster')}
+              description={t('settings.pluginsMasterHint')}
+              testid="plugins-master-row"
             >
-              {t('settings.pluginLegacyMasterRetired')}
-            </p>
-          )}
-          {pluginView?.read_only && (
-            <p
-              data-testid="plugin-read-only-notice"
-              className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
-            >
-              {t('settings.pluginReadOnly')}
-            </p>
-          )}
-          {pluginView?.unproven && (
-            <p
-              data-testid="plugin-state-unproven-notice"
-              className="rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-ui-xs text-status-warning"
-            >
-              {t('settings.pluginStateUnproven')}
-            </p>
-          )}
-          {pluginView === null ? (
-            <LoadingRow label={t('settings.loading')} />
-          ) : (
-            <>
-              {/* E1: master kill switch — off = stock Ephe, toggles disabled. */}
-              <SettingsGroup
-                icon={Store}
-                title={t('settings.pluginsGroupMaster')}
-                testid="plugins-master"
-              >
-                <SettingsRow
-                  icon={Power}
-                  title={t('settings.pluginsMaster')}
-                  description={t('settings.pluginsMasterHint')}
-                  testid="plugins-master-row"
-                >
-                  <Switch
-                    checked={pluginView.master_enabled !== false}
-                    label={t('settings.pluginsMaster')}
-                    testid="plugins-master-toggle"
-                    disabled={
-                      pluginView.master_enabled === false ||
-                      pluginView.read_only === true ||
-                      pluginView.unproven === true
-                    }
-                    onChange={(next) => void handlePluginMasterToggle(next)}
-                  />
-                </SettingsRow>
-              </SettingsGroup>
-              {(() => {
-                // I7-4: filter first, then build the groups. Before this every
-                // empty section stood there as an empty card with a dash in it —
-                // "Personal" is always empty in the shipped catalog, so that
-                // was a box that never had anything to say.
-                const q = pluginQuery.trim().toLowerCase()
-                const matches = (p: PluginEntry) =>
-                  !q ||
-                  p.name.toLowerCase().includes(q) ||
-                  p.description.toLowerCase().includes(q) ||
-                  p.tags.some((tg) => tg.toLowerCase().includes(q))
-                const segments = (['public', 'personal'] as const)
-                  .map((seg) => ({
-                    seg,
-                    rows: (pluginView[seg] ?? []).filter(matches),
-                  }))
-                  .filter((s) => s.rows.length > 0)
-                if (segments.length === 0) {
-                  return <p className="text-ui-xs text-ink-faint">{t('settings.noResults')}</p>
+              <Switch
+                checked={pluginView.master_enabled !== false}
+                label={t('settings.pluginsMaster')}
+                testid="plugins-master-toggle"
+                disabled={
+                  pluginView.master_enabled === false ||
+                  pluginView.read_only === true ||
+                  pluginView.unproven === true
                 }
-                return segments.map(({ seg, rows }) => (
-                  <SettingsGroup
-                    key={seg}
-                    icon={seg === 'public' ? Store : Puzzle}
-                    title={t(`settings.plugins.${seg}`)}
-                    description={t('settings.pluginsGroupToggleHint')}
-                    testid={`plugins-section-${seg}`}
-                  >
-                    <div className="grid gap-2.5 lg:grid-cols-2">
-                      {rows.map((p) => (
-                        <div
-                          key={p.id}
-                          data-testid={`plugin-row-${seg}-${p.id}`}
-                          className="glass-reading rounded-xl p-3 space-y-1.5"
-                        >
-                          <div className="flex items-center gap-2">
-                            <PluginIcon pluginId={p.id} name={p.name} />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-ui-xs font-medium text-foreground/90">
-                                {p.name}
-                                {p.version && (
-                                  <span className="ml-1.5 font-mono text-ui-xs text-ink-faint">
-                                    v{p.version}
-                                  </span>
-                                )}
-                                <span
-                                  data-testid={`plugin-origin-${p.id}`}
-                                  className={`ml-1.5 rounded-md px-1.5 py-0.5 text-ui-xs align-middle ${p.origin === 'external' ? 'bg-surface text-ink-faint' : 'bg-brand/10 text-brand-deep'}`}
-                                >
-                                  {p.origin === 'external'
-                                    ? t('settings.pluginOriginExternal')
-                                    : t('settings.pluginOriginFirstParty')}
-                                </span>
-                              </p>
-                              <p className="line-clamp-1 text-ui-xs text-ink-faint">
-                                {p.description}
-                              </p>
-                            </div>
-                            <PluginSwitch
-                              name={p.name}
-                              checked={p.enabled}
-                              disabled={
-                                pluginView.master_enabled === false ||
-                                pluginView.read_only === true ||
-                                pluginView.unproven === true
+                onChange={(next) => void handlePluginMasterToggle(next)}
+              />
+            </SettingsRow>
+          </SettingsGroup>
+          {(() => {
+            // I7-4: filter first, then build the groups. Before this every
+            // empty section stood there as an empty card with a dash in it —
+            // "Personal" is always empty in the shipped catalog, so that
+            // was a box that never had anything to say.
+            const q = pluginQuery.trim().toLowerCase()
+            const matches = (p: PluginEntry) =>
+              !q ||
+              p.name.toLowerCase().includes(q) ||
+              p.description.toLowerCase().includes(q) ||
+              p.tags.some((tg) => tg.toLowerCase().includes(q))
+            const segments = (['public', 'personal'] as const)
+              .map((seg) => ({
+                seg,
+                rows: (pluginView[seg] ?? []).filter(matches),
+              }))
+              .filter((s) => s.rows.length > 0)
+            if (segments.length === 0) {
+              return <p className="text-ui-xs text-ink-faint">{t('settings.noResults')}</p>
+            }
+            return segments.map(({ seg, rows }) => (
+              <SettingsGroup
+                key={seg}
+                icon={seg === 'public' ? Store : Puzzle}
+                title={t(`settings.plugins.${seg}`)}
+                description={t('settings.pluginsGroupToggleHint')}
+                testid={`plugins-section-${seg}`}
+              >
+                <div className="grid gap-2.5 lg:grid-cols-2">
+                  {rows.map((p) => (
+                    <div
+                      key={p.id}
+                      data-testid={`plugin-row-${seg}-${p.id}`}
+                      className="glass-reading rounded-xl p-3 space-y-1.5"
+                    >
+                      <div className="flex items-center gap-2">
+                        <PluginIcon pluginId={p.id} name={p.name} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-ui-xs font-medium text-foreground/90">
+                            {p.name}
+                            {p.version && (
+                              <span className="ml-1.5 font-mono text-ui-xs text-ink-faint">
+                                v{p.version}
+                              </span>
+                            )}
+                            <span
+                              data-testid={`plugin-origin-${p.id}`}
+                              className={`ml-1.5 rounded-md px-1.5 py-0.5 text-ui-xs align-middle ${p.origin === 'external' ? 'bg-surface text-ink-faint' : 'bg-brand/10 text-brand-deep'}`}
+                            >
+                              {p.origin === 'external'
+                                ? t('settings.pluginOriginExternal')
+                                : t('settings.pluginOriginFirstParty')}
+                            </span>
+                          </p>
+                          <p className="line-clamp-1 text-ui-xs text-ink-faint">{p.description}</p>
+                        </div>
+                        <PluginSwitch
+                          name={p.name}
+                          checked={p.enabled}
+                          disabled={
+                            pluginView.master_enabled === false ||
+                            pluginView.read_only === true ||
+                            pluginView.unproven === true
+                          }
+                          onToggle={(next) => handlePluginToggle(p.id, next)}
+                          testid={`plugin-toggle-${p.id}`}
+                          errorTestid={`plugin-toggle-error-${p.id}`}
+                          labels={{
+                            on: t('settings.pluginOn'),
+                            off: t('settings.pluginOff'),
+                            enabling: t('settings.pluginEnabling'),
+                            disabling: t('settings.pluginDisabling'),
+                            failed: t('settings.pluginToggleFailed'),
+                          }}
+                          describeError={(reason, fallback) => {
+                            if (reason instanceof ApiError) {
+                              if (reason.reasonCode === 'dependency_blocked') {
+                                return t('settings.pluginErrorDependency', {
+                                  name: reason.message,
+                                })
                               }
-                              onToggle={(next) => handlePluginToggle(p.id, next)}
-                              testid={`plugin-toggle-${p.id}`}
-                              errorTestid={`plugin-toggle-error-${p.id}`}
-                              labels={{
-                                on: t('settings.pluginOn'),
-                                off: t('settings.pluginOff'),
-                                enabling: t('settings.pluginEnabling'),
-                                disabling: t('settings.pluginDisabling'),
-                                failed: t('settings.pluginToggleFailed'),
-                              }}
-                              describeError={(reason, fallback) => {
-                                if (reason instanceof ApiError) {
-                                  if (reason.reasonCode === 'dependency_blocked') {
-                                    return t('settings.pluginErrorDependency', {
-                                      name: reason.message,
-                                    })
-                                  }
-                                  if (reason.reasonCode === 'dependents_enabled') {
-                                    return t('settings.pluginErrorDependents', {
-                                      name: reason.message,
-                                    })
-                                  }
-                                  if (reason.reasonCode === 'stale_state') {
-                                    return t('settings.pluginErrorStale')
-                                  }
-                                  if (reason.reasonCode === 'not_cancellable') {
-                                    return t('settings.pluginErrorNotCancellable')
-                                  }
-                                  if (reason.reasonCode === 'plugin_lifecycle_read_only') {
-                                    return t('settings.pluginErrorReadOnly')
-                                  }
-                                }
-                                return reason instanceof Error && reason.message
-                                  ? reason.message
-                                  : fallback
-                              }}
-                            />
+                              if (reason.reasonCode === 'dependents_enabled') {
+                                return t('settings.pluginErrorDependents', {
+                                  name: reason.message,
+                                })
+                              }
+                              if (reason.reasonCode === 'stale_state') {
+                                return t('settings.pluginErrorStale')
+                              }
+                              if (reason.reasonCode === 'not_cancellable') {
+                                return t('settings.pluginErrorNotCancellable')
+                              }
+                              if (reason.reasonCode === 'plugin_lifecycle_read_only') {
+                                return t('settings.pluginErrorReadOnly')
+                              }
+                            }
+                            return reason instanceof Error && reason.message
+                              ? reason.message
+                              : fallback
+                          }}
+                        />
+                      </div>
+                      {p.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {p.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs text-foreground/60"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* E4b: detail sheet — click the name to expand facts. */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          data-testid={`plugin-detail-toggle-${p.id}`}
+                          aria-expanded={expandedPlugin === p.id}
+                          onClick={() => setExpandedPlugin((prev) => (prev === p.id ? null : p.id))}
+                          className="text-ui-xs text-ink-faint hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
+                        >
+                          {expandedPlugin === p.id
+                            ? t('settings.pluginDetailHide')
+                            : t('settings.pluginDetailShow')}
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`plugin-try-${p.id}`}
+                          onClick={() =>
+                            startDisposableChat(
+                              p.example_prompts?.[0] || examplePromptFor(p.id, p.name),
+                            )
+                          }
+                          className="flex items-center gap-1 text-ui-xs text-brand-deep hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
+                        >
+                          <MessageSquarePlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                          {t('settings.marketTryInChat')}
+                        </button>
+                      </div>
+                      {expandedPlugin === p.id && (
+                        <div
+                          data-testid={`plugin-detail-${p.id}`}
+                          className="space-y-1.5 rounded-lg bg-canvas p-2"
+                        >
+                          <div className="flex flex-wrap gap-1">
+                            {p.source && (
+                              <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs text-foreground/70">
+                                {t('settings.pluginDetailSource')}:{' '}
+                                {t(`settings.pluginSource.${p.source}`)}
+                              </span>
+                            )}
+                            {(p.permissions ?? []).map((fam) => (
+                              <span
+                                key={fam}
+                                className="rounded-md bg-status-warning/10 px-1.5 py-0.5 font-mono text-ui-xs text-status-warning"
+                              >
+                                {fam}
+                              </span>
+                            ))}
                           </div>
-                          {p.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {p.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs text-foreground/60"
-                                >
-                                  {tag}
-                                </span>
+                          {p.sha256 && (
+                            <p
+                              className="truncate font-mono text-ui-xs text-ink-faint"
+                              title={p.sha256}
+                            >
+                              {t('settings.pluginDetailHash')}: {p.sha256.slice(0, 16)}…
+                            </p>
+                          )}
+                          {(p.example_prompts ?? []).length > 0 && (
+                            <div className="space-y-0.5">
+                              <p className="text-ui-xs font-medium text-ink-faint">
+                                {t('settings.pluginDetailPrompts')}
+                              </p>
+                              {p.example_prompts.map((prompt, i) => (
+                                <p key={i} className="text-ui-xs text-ink-faint">
+                                  — {prompt}
+                                </p>
                               ))}
                             </div>
                           )}
-                          {/* E4b: detail sheet — click the name to expand facts. */}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              data-testid={`plugin-detail-toggle-${p.id}`}
-                              aria-expanded={expandedPlugin === p.id}
-                              onClick={() =>
-                                setExpandedPlugin((prev) => (prev === p.id ? null : p.id))
-                              }
-                              className="text-ui-xs text-ink-faint hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
-                            >
-                              {expandedPlugin === p.id
-                                ? t('settings.pluginDetailHide')
-                                : t('settings.pluginDetailShow')}
-                            </button>
-                            <button
-                              type="button"
-                              data-testid={`plugin-try-${p.id}`}
-                              onClick={() =>
-                                startDisposableChat(
-                                  p.example_prompts?.[0] || examplePromptFor(p.id, p.name),
-                                )
-                              }
-                              className="flex items-center gap-1 text-ui-xs text-brand-deep hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 rounded"
-                            >
-                              <MessageSquarePlus className="h-3.5 w-3.5" strokeWidth={1.5} />
-                              {t('settings.marketTryInChat')}
-                            </button>
-                          </div>
-                          {expandedPlugin === p.id && (
-                            <div
-                              data-testid={`plugin-detail-${p.id}`}
-                              className="space-y-1.5 rounded-lg bg-canvas p-2"
-                            >
-                              <div className="flex flex-wrap gap-1">
-                                {p.source && (
-                                  <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-xs text-foreground/70">
-                                    {t('settings.pluginDetailSource')}:{' '}
-                                    {t(`settings.pluginSource.${p.source}`)}
-                                  </span>
-                                )}
-                                {(p.permissions ?? []).map((fam) => (
-                                  <span
-                                    key={fam}
-                                    className="rounded-md bg-status-warning/10 px-1.5 py-0.5 font-mono text-ui-xs text-status-warning"
-                                  >
-                                    {fam}
-                                  </span>
-                                ))}
-                              </div>
-                              {p.sha256 && (
-                                <p
-                                  className="truncate font-mono text-ui-xs text-ink-faint"
-                                  title={p.sha256}
-                                >
-                                  {t('settings.pluginDetailHash')}: {p.sha256.slice(0, 16)}…
-                                </p>
-                              )}
-                              {(p.example_prompts ?? []).length > 0 && (
-                                <div className="space-y-0.5">
-                                  <p className="text-ui-xs font-medium text-ink-faint">
-                                    {t('settings.pluginDetailPrompts')}
-                                  </p>
-                                  {p.example_prompts.map((prompt, i) => (
-                                    <p key={i} className="text-ui-xs text-ink-faint">
-                                      — {prompt}
-                                    </p>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </SettingsGroup>
-                ))
-              })()}
-              {(pluginView.orphans ?? []).length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-ui-xs font-medium text-ink-soft">
-                    {t('settings.plugins.orphans')}
-                  </p>
-                  <p className="text-ui-xs text-ink-faint">{t('settings.plugins.orphansHint')}</p>
-                  {pluginView.orphans!.map((id) => (
-                    <p key={id} className="font-mono text-ui-xs text-ink-soft">
-                      {id}
-                    </p>
                   ))}
                 </div>
-              )}
-            </>
+              </SettingsGroup>
+            ))
+          })()}
+          {(pluginView.orphans ?? []).length > 0 && (
+            <div className="space-y-1">
+              <p className="text-ui-xs font-medium text-ink-soft">
+                {t('settings.plugins.orphans')}
+              </p>
+              <p className="text-ui-xs text-ink-faint">{t('settings.plugins.orphansHint')}</p>
+              {pluginView.orphans!.map((id) => (
+                <p key={id} className="font-mono text-ui-xs text-ink-soft">
+                  {id}
+                </p>
+              ))}
+            </div>
           )}
-          {/* I3-V5: catalog policy belongs with the plugins, not in an expert box. */}
-          <DeepFields model={model} prefixes={['plugins.']} />
+        </>
+      )}
+      {/* I3-V5: catalog policy belongs with the plugins, not in an expert box. */}
+      <DeepFields model={model} prefixes={['plugins.']} />
     </div>
   )
 }

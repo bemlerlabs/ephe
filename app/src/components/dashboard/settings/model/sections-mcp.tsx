@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Loader2, Trash2, Activity, Plug, } from 'lucide-react'
+import { Check, Loader2, Trash2, Activity, Plug } from 'lucide-react'
 import { putMcpSettings } from '@/lib/api'
 import '@/lib/nativeBrowser'
 import { toastBus } from '@/lib/toast'
@@ -13,14 +13,14 @@ import type { SettingsModel } from './types'
 export function renderMcp(model: SettingsModel) {
   const {
     handleMcpHealthCheck,
-            mcpHealth,
+    mcpHealth,
     mcpHealthLoading,
     mcpLoading,
     mcpSaving,
     mcpServers,
     mcpSource,
     mcpTools,
-        setMcpHealth,
+    setMcpHealth,
     setMcpSaving,
     setMcpServers,
     setMcpSource,

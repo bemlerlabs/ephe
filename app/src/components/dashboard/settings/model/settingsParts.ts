@@ -78,9 +78,7 @@ export const TAB_PARTS: Partial<Record<TabKey, NavSub[]>> = {
     part('tasks-group-new', 'settings.tasksGroupNew'),
     part('tasks-group-list', 'settings.tasksGroupList'),
   ],
-  mcp: [
-    part('mcp-section-servers', 'settings.mcpServers'),
-  ],
+  mcp: [part('mcp-section-servers', 'settings.mcpServers')],
   plugins: [part('plugins-master', 'settings.pluginsGroupMaster'), register('plugins')],
   hooks: [
     part('hooks-file', 'settings.hooksGroupFile'),
@@ -97,7 +95,10 @@ export const TAB_PARTS: Partial<Record<TabKey, NavSub[]>> = {
     part('network-group-server', 'settings.networkGroupServer'),
     part('network-group-shares', 'settings.networkGroupShares'),
   ],
-  shortcuts: [part('shortcuts-group-desktop', 'settings.shortcutsGroup.global'), register('shortcuts')],
+  shortcuts: [
+    part('shortcuts-group-desktop', 'settings.shortcutsGroup.global'),
+    register('shortcuts'),
+  ],
   teams: [part('team-template-picker', 'settings.teamTemplate')],
   about: [part('settings-updates', 'settings.aboutUpdates')],
 }
@@ -109,7 +110,9 @@ export const TAB_PARTS: Partial<Record<TabKey, NavSub[]>> = {
 export function subsOfTab(tab: TabKey, sections: DeepSection[] | null): NavSub[] {
   const deep = sectionsOfTab(sections, tab).map((sec) => register(sec.key))
   const sent = new Set(deep.map((one) => one.id))
-  const parts = (TAB_PARTS[tab] ?? []).filter((one) => !one.id.startsWith(DEEP_PREFIX) || sent.has(one.id))
+  const parts = (TAB_PARTS[tab] ?? []).filter(
+    (one) => !one.id.startsWith(DEEP_PREFIX) || sent.has(one.id),
+  )
   const named = new Set(parts.map((one) => one.id))
   return [...parts, ...deep.filter((one) => !named.has(one.id))]
 }

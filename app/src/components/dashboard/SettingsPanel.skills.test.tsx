@@ -177,6 +177,4 @@ describe('SettingsPanel Skills-Tab (W3b)', () => {
     const link = await screen.findByTestId('pack-export-core')
     expect(link).toHaveAttribute('href', '/api/skills/export-pack/core')
   })
-
-
 })

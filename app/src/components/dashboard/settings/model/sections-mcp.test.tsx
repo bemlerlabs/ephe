@@ -44,8 +44,6 @@ function model(over: Record<string, unknown> = {}) {
 }
 
 describe('MCP-Bereich (I7-4)', () => {
-
-
   it('die Gruppen erklären Ersetzen und Nicht-Aktualisieren', () => {
     render(renderMcp(model()))
     expect(screen.getByTestId('mcp-section-servers').textContent).toContain(
@@ -53,5 +51,4 @@ describe('MCP-Bereich (I7-4)', () => {
     )
     expect(screen.getByText('settings.mcpToolsHint')).toBeTruthy()
   })
-
 })

@@ -212,6 +212,4 @@ describe('SettingsPanel MCP-Tab (W44 P1c + E3c)', () => {
     // Identity-t mock: the detail line shows the i18n key (no interpolation)
     expect(screen.getByTestId('mcp-health-detail-0').textContent).toContain('settings.mcpHealthOk')
   })
-
-
 })
