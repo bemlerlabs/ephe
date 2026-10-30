@@ -9,9 +9,11 @@ import PageHeader from '@/components/shell/PageHeader'
 import { EpheMark } from '@/components/shell/EpheMark'
 import { LoadingRow } from '@/components/ui'
 import { DiscoverCard } from '@/components/discover/DiscoverCard'
+import { DiscoverDetail } from '@/components/discover/DiscoverDetail'
 import { DiscoverFilters } from '@/components/discover/DiscoverFilters'
 import { UsageBench } from '@/components/discover/UsageBench'
 import {
+  bentoOf,
   buildItems,
   countByTab,
   facetValues,
@@ -25,53 +27,51 @@ import {
 import {
   disableSkill,
   enableSkill,
-  getMarketHome,
-  getMarketIndex,
-  getMarketInstalled,
-  getMcpCatalog,
+  getDiscoverBootstrap,
   getMcpSettings,
-  getToolUsage,
   installMarketPlan,
-  listSkills,
   planMarketInstall,
   probeMcpHealth,
   putMcpSettings,
   setPluginEnabled,
-  type MarketIndexResponse,
 } from '@/lib/api'
 
-/** `getMcpCatalog` and `probeMcpHealth` answer for the connector tabs. */
+/** The bootstrap frame carries everything but the slow health probes. */
 async function loadSources(): Promise<{ sources: DiscoverSources; failed: string[] }> {
-  const [skills, mcp, health, catalog, home, index, installed, usage] = await Promise.all([
-    listSkills().catch(() => null),
+  const [boot, mcp, health] = await Promise.all([
+    getDiscoverBootstrap().catch(() => null),
     getMcpSettings().catch(() => null),
     probeMcpHealth().catch(() => null),
-    getMcpCatalog().catch(() => null),
-    getMarketHome().catch(() => null),
-    getMarketIndex().catch(() => null),
-    getMarketInstalled().catch(() => null),
-    getToolUsage().catch(() => null),
   ])
   const failed: string[] = []
   const note = (key: string, ok: boolean) => {
     if (!ok) failed.push(key)
   }
-  note('skills', skills !== null)
-  note('connectors', health !== null && catalog !== null)
-  note('addons', (index as MarketIndexResponse | null)?.status === 'ok')
+  note('skills', boot !== null)
+  note('connectors', boot !== null)
+  note('addons', boot !== null)
   return {
     sources: {
-      skills: skills?.skills ?? [],
+      skills: boot?.skills ?? [],
       mcp,
       health: health?.servers ?? [],
-      catalog: catalog?.entries ?? [],
-      home,
-      index: index?.index ?? null,
-      installed: installed?.plugins ?? [],
-      usage,
+      catalog: boot?.catalog ?? [],
+      registry: boot?.curated ?? [],
+      registryCount: boot?.registry_count ?? 0,
+      home: boot?.home ?? null,
+      index: boot?.index ?? null,
+      installed: boot?.installed ?? [],
+      usage: boot?.usage ?? null,
     },
     failed,
   }
+}
+
+/** A publisher launch line becomes the config spec the connector rides on. */
+function registrySpec(hint: string): string | null {
+  const match = hint.match(/^(npx|uvx|uv run|python3?|node)\s+(.+?)(?:\s+\((stdio|http|streamable-http)\))?$/)
+  if (!match || !match[1] || !match[2]) return null
+  return `stdio:${match[1]} ${match[2].trim()}`
 }
 
 export default function DiscoverPage() {
@@ -87,6 +87,7 @@ export default function DiscoverPage() {
   })
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
+  const [detail, setDetail] = useState<DiscoverItem | null>(null)
 
   const load = useCallback(async () => {
     const next = await loadSources()
@@ -105,6 +106,20 @@ export default function DiscoverPage() {
   const categories = useMemo(() => facetValues(items, (one) => one.categories), [items])
   const origins = useMemo(() => facetValues(items, (one) => [one.origin]), [items])
   const hero = useMemo(() => heroOf(shown), [shown])
+  const bento = useMemo(() => bentoOf(items), [items])
+  const bentoIds = useMemo(() => new Set(bento.map((one) => one.id)), [bento])
+
+  /** On the quiet default view the shelf reads as sections, one per category. */
+  const grouped = useMemo(() => {
+    if (query.tab !== 'all' || query.query || query.category) return null
+    const map = new Map<string, DiscoverItem[]>()
+    for (const item of shown) {
+      if (bentoIds.has(item.id)) continue
+      const key = item.categories[0] ?? 'other'
+      map.set(key, [...(map.get(key) ?? []), item])
+    }
+    return [...map.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 8)
+  }, [shown, query, bentoIds])
 
   const run = async (item: DiscoverItem, action: () => Promise<unknown>, done: string) => {
     setBusy(item.id)
@@ -138,8 +153,11 @@ export default function DiscoverPage() {
 
   const onAdd = (item: DiscoverItem) => {
     if (item.kind === 'connector') {
-      const spec = item.spec
-      if (!spec) return undefined
+      const spec = item.spec ?? (item.installHint ? registrySpec(item.installHint) : null)
+      if (!spec) {
+        setNotice(t('discover.didNot', { name: item.title }))
+        return undefined
+      }
       const current = sources?.mcp?.servers ?? []
       return run(
         item,
@@ -171,6 +189,25 @@ export default function DiscoverPage() {
     return run(item, () => setPluginEnabled(item.name, false), 'discover.removed')
   }
 
+  const renderCards = (list: DiscoverItem[]) => (
+    <div data-testid="discover-grid" className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {list
+        .filter((item) => !bentoIds.has(item.id))
+        .map((item) => (
+        <DiscoverCard
+          key={item.id}
+          item={item}
+          hero={item === hero}
+          busy={busy === item.id}
+          onAdd={onAdd}
+          onToggle={onToggle}
+          onRemove={onRemove}
+          onDetail={setDetail}
+        />
+      ))}
+    </div>
+  )
+
   return (
     <div data-testid="discover-page" className="flex h-full min-h-0 flex-col overflow-y-auto">
       <PageHeader title={t('discover.title')} subtitle={t('discover.subtitle')} />
@@ -197,6 +234,27 @@ export default function DiscoverPage() {
             </div>
           </div>
         </section>
+
+        {bento.length ? (
+          <section data-testid="discover-bento" className="mt-6">
+            <p className="font-mono text-ui-xs uppercase tracking-[0.18em] text-brand">
+              {t('discover.bentoEyebrow')}
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {bento.map((item) => (
+                <DiscoverCard
+                  key={item.id}
+                  item={item}
+                  busy={busy === item.id}
+                  onAdd={onAdd}
+                  onToggle={onToggle}
+                  onRemove={onRemove}
+                  onDetail={setDetail}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {notice ? (
           <p
@@ -236,29 +294,56 @@ export default function DiscoverPage() {
               <p data-testid="discover-empty" className="mt-8 text-center text-ui-sm text-ink-soft">
                 {failed.length ? t('discover.emptyFailed') : t('discover.empty')}
               </p>
-            ) : (
-              <div
-                data-testid="discover-grid"
-                className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-              >
-                {shown.map((item) => (
-                  <DiscoverCard
-                    key={item.id}
-                    item={item}
-                    hero={item === hero}
-                    busy={busy === item.id}
-                    onAdd={onAdd}
-                    onToggle={onToggle}
-                    onRemove={onRemove}
-                  />
+            ) : grouped ? (
+              <div data-testid="discover-sections" className="mt-5 space-y-7">
+                {grouped.map(([key, list]) => (
+                  <section key={key} data-testid={`discover-section-${key}`}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="font-display text-lg text-foreground">
+                        {t(`discover.category.${key}`, { defaultValue: key })}
+                      </h3>
+                      <button
+                        type="button"
+                        data-testid={`discover-see-all-${key}`}
+                        onClick={() => setQuery((q) => ({ ...q, category: key }))}
+                        className="text-ui-xs text-brand hover:underline"
+                      >
+                        {t('discover.seeAll', { count: list.length })}
+                      </button>
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {list.slice(0, 6).map((item) => (
+                        <DiscoverCard
+                          key={item.id}
+                          item={item}
+                          busy={busy === item.id}
+                          onAdd={onAdd}
+                          onToggle={onToggle}
+                          onRemove={onRemove}
+                          onDetail={setDetail}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 ))}
               </div>
+            ) : (
+              renderCards(shown)
             )}
           </div>
 
           <UsageBench view={sources?.usage ?? null} />
         </div>
       </div>
+
+      <DiscoverDetail
+        item={detail}
+        busy={detail ? busy === detail.id : false}
+        onClose={() => setDetail(null)}
+        onAdd={onAdd}
+        onToggle={onToggle}
+        onRemove={onRemove}
+      />
     </div>
   )
 }

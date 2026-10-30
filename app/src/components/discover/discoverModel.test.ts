@@ -18,6 +18,8 @@ const base: DiscoverSources = {
   mcp: null,
   health: [],
   catalog: [],
+  registry: [],
+  registryCount: 0,
   home: null,
   index: null,
   installed: [],

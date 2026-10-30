@@ -2269,8 +2269,8 @@
   "update": {
     "details": "Details",
     "detailsVersion": "Version",
-      "detailsCommit": "Commit",
-      "detailsChannel": "Kanal",
+    "detailsCommit": "Commit",
+    "detailsChannel": "Kanal",
     "detailsSize": "Download",
     "detailsPlatform": "Plattform",
     "detailsAsset": "Paket",
@@ -2681,7 +2681,7 @@
     "benchLoading": "Liest das Protokoll…",
     "loading": "Liest deine Einrichtung…",
     "empty": "Keine Übereinstimmung. Setze einen Filter ab, um mehr zu sehen.",
-        "emptyFailed": "Von diesem Gerät war nichts zu lesen. Lade die Seite neu, um es erneut zu versuchen.",
+    "emptyFailed": "Von diesem Gerät war nichts zu lesen. Lade die Seite neu, um es erneut zu versuchen.",
     "partial": "Einige Listen haben nicht geantwortet: {{areas}}.",
     "fail": {
       "skills": "Skills",
@@ -2692,6 +2692,41 @@
     "didNot": "{{name}} bleibt unverändert.",
     "added": "Hinzugefügt",
     "removed": "Entfernt",
-    "refused": "Der Katalog hat diese Installation abgelehnt."
+    "refused": "Der Katalog hat diese Installation abgelehnt.",
+    "bentoEyebrow": "Ephe-Originale",
+    "seeAll": "Alle {{count}} anzeigen",
+    "cardDetail": "Details",
+    "badge": {
+      "pick": "Kuratierte Auswahl",
+      "recent": "Neu",
+      "bundled": "Im Lieferumfang"
+    },
+    "category": {
+      "files": "Dateien",
+      "code": "Code",
+      "database": "Datenbank",
+      "web": "Web",
+      "memory": "Gedächtnis",
+      "communication": "Kommunikation",
+      "security": "Sicherheit",
+      "cloud": "Cloud",
+      "media": "Medien",
+      "productivity": "Produktivität",
+      "utility": "Werkzeuge",
+      "other": "Weitere",
+      "testing": "Testen",
+      "sandbox": "Sandbox"
+    },
+    "detailInstall": "Startzeile",
+    "detailAttached": "Angebunden als",
+    "detailVersion": "Version",
+    "detailPermissions": "Berechtigungen",
+    "detailPermissionsInstalled": "Bereits auf diesem Gerät; das Berechtigungsblatt lief bei der Installation.",
+    "detailPermissionsReview": "Aktivieren führt zuerst die Berechtigungsprüfung aus: Werkzeugfamilien, Datenbereiche und nötige Schlüssel werden gezeigt, bevor etwas startet.",
+    "detailDocs": "Listeneintrag",
+    "detailAdd": "Hinzufügen",
+    "detailRemove": "Entfernen",
+    "stateOnAction": "Aktivieren",
+    "stateOffAction": "Deaktivieren"
   }
 }

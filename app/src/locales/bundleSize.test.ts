@@ -175,8 +175,11 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // Lowered on 2026-10-30 by measuring again: the in-Settings marketplace surfaces
 // moved to /discover and 69 dead `market*` keys per file went with them — en
 // 140,411 B → 137,362 B, de 152,236 B → 148,893 B.
-const EN_CEILING = 137_900
-const DE_CEILING = 149_400
+// 2026-10-30 (discover S3): the bento, the section heads and the detail surface
+// add ~1.2 kB per file (badge, see-all, detail labels, category names). Measured
+// as committed: en 138,620 B, de 150,266 B.
+const EN_CEILING = 139_100
+const DE_CEILING = 150_800
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

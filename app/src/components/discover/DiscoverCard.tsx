@@ -38,6 +38,7 @@ export function DiscoverCard({
   onAdd,
   onToggle,
   onRemove,
+  onDetail,
 }: {
   item: DiscoverItem
   hero?: boolean
@@ -45,6 +46,7 @@ export function DiscoverCard({
   onAdd: (item: DiscoverItem) => void
   onToggle: (item: DiscoverItem, next: boolean) => void
   onRemove: (item: DiscoverItem) => void
+  onDetail?: (item: DiscoverItem) => void
 }) {
   const { t } = useTranslation()
   const Icon = KIND_ICON[item.kind]
@@ -101,15 +103,25 @@ export function DiscoverCard({
       </header>
 
       <div className="relative">
-        <h3
-          className={
-            hero
-              ? 'font-display text-xl leading-snug text-foreground sm:text-2xl'
-              : 'text-ui-sm font-semibold leading-snug text-foreground'
-          }
-        >
-          {item.title}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3
+            className={
+              hero
+                ? 'font-display text-xl leading-snug text-foreground sm:text-2xl'
+                : 'text-ui-sm font-semibold leading-snug text-foreground'
+            }
+          >
+            {item.title}
+          </h3>
+          {item.badge ? (
+            <span
+              data-testid={`discover-badge-${item.id}`}
+              className="rounded-full bg-brand/15 px-2 py-0.5 font-mono text-ui-2xs text-brand-deep"
+            >
+              {t(`discover.badge.${item.badge}`)}
+            </span>
+          ) : null}
+        </div>
         <p
           data-testid={`discover-summary-${item.id}`}
           className={`mt-1 text-ink-soft ${hero ? 'text-ui-sm' : 'line-clamp-2 text-ui-xs'}`}
@@ -126,6 +138,17 @@ export function DiscoverCard({
           <Facts item={item} />
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          {onDetail ? (
+            <button
+              type="button"
+              data-testid={`discover-detail-open-${item.id}`}
+              disabled={busy}
+              onClick={() => onDetail(item)}
+              className="inline-flex h-9 items-center rounded-lg border border-hairline px-2.5 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground disabled:opacity-50"
+            >
+              {t('discover.cardDetail')}
+            </button>
+          ) : null}
           {item.installed && item.kind !== 'skill' ? (
             <button
               type="button"

@@ -12,7 +12,7 @@ from fastapi import APIRouter
 from core import marketplace_service, marketplace_sources
 from core.mcp_catalog import catalog_entries, curated_entries, registry_entries
 from server.routes.audit import get_audit_usage
-from server.routes.marketplace import market_home
+from server.routes.marketplace import market_home, market_index
 from server.routes.skills import list_skills
 
 router = APIRouter(tags=["discover"])
@@ -22,6 +22,7 @@ router = APIRouter(tags=["discover"])
 async def discover_bootstrap(top: int = 12) -> dict:
     skills = (await list_skills()).skills
     home = await market_home()
+    index = await market_index()
     usage = await get_audit_usage(top=top)
     data = marketplace_sources.load_sources()
     return {
@@ -30,6 +31,7 @@ async def discover_bootstrap(top: int = 12) -> dict:
         "last_read": data["last_read"],
         "last_error": data["last_error"],
         "home": home,
+        "index": index.get("index"),
         "catalog": catalog_entries(),
         "curated": curated_entries(),
         "registry_count": len(registry_entries()),
