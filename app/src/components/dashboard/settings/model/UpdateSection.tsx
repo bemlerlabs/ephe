@@ -54,7 +54,7 @@ export function UpdateSection() {
           type="button"
           data-testid="settings-updates-check"
           onClick={() => void update.check()}
-          className="focus-ring rounded-md border border-hairline bg-surface/60 px-2.5 py-1 text-ui-xs text-ink-soft hover:text-ink"
+          className="focus-ring rounded-md glass-control px-2.5 py-1 text-ui-xs text-ink-soft hover:bg-brand/10 hover:text-ink"
         >
           {t('settings.aboutUpdatesCheck')}
         </button>
