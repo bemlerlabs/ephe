@@ -355,38 +355,6 @@
     "acceptInstalled": "Skill installed: {{name}} — it is active from now on (trigger via the skills list).",
     "acceptFailed": "Could not install the skill: {{reason}}",
     "dismissed": "Proposal {{id}} dismissed.",
-    "toolTipShell": {
-      "title": "Shell command",
-      "body": "Runs a whitelisted command in the workspace and shows its output."
-    },
-    "toolTipEdit": {
-      "title": "File edit",
-      "body": "The agent changed this file — the diff shows before/after."
-    },
-    "toolTipWrite": {
-      "title": "File created",
-      "body": "The agent wrote this file; the content preview is expandable."
-    },
-    "toolTipRead": {
-      "title": "File read",
-      "body": "The agent read this file for context."
-    },
-    "toolTipSearch": {
-      "title": "Search",
-      "body": "The agent searched the workspace for matches."
-    },
-    "toolTipWeb": {
-      "title": "Web lookup",
-      "body": "The agent fetched information from the web."
-    },
-    "toolTipTask": {
-      "title": "Step update",
-      "body": "The agent created or updated a step on the to-do list."
-    },
-    "toolTipGeneric": {
-      "title": "Tool call",
-      "body": "The agent used one of its tools."
-    },
     "reviewTipM": {
       "title": "M — modified",
       "body": "An existing file was changed. Green = added lines, red = removed lines."
@@ -1688,17 +1656,10 @@
       "back": "Back to the task",
       "ablageHint": "Adopted means: a copy sits in your adopt folder — the card itself is born here, in the workbench."
     },
-    "title": "Artifacts",
     "download": "Download",
     "filterAll": "All",
-    "filterDocs": "PDF & Docs",
-    "filterVisual": "Images & Charts",
-    "filterOffice": "Office",
     "filterGroup": "Filter artifacts",
     "library": "Artifact Library",
-    "closeLibrary": "Close library",
-    "openWorkbench": "open in workbench",
-    "showInWorkbench": "Show in workbench",
     "searchPlaceholder": "Search all artifacts…",
     "searchClear": "Clear search",
     "exportAll": "Export all as zip",
@@ -1749,14 +1710,8 @@
     "quickLook": "Quick Look",
     "fileActionFailed": "Ephe may only reveal files in its workbench, its project or your usual save folders.",
     "imageUnavailable": "Image not available",
-    "mediaUnavailable": "File not available",
     "previewRetry": "Try again",
-    "previewOpen": "open larger",
-    "lightboxClose": "Close image",
-    "claimWithoutArtifact": "The answer mentions an image, but this turn produced none. Treat that claim as unverified.",
-    "reasonProtected": "blocked",
-    "reasonMissing": "missing",
-    "reasonOffline": "offline"
+    "claimWithoutArtifact": "The answer mentions an image, but this turn produced none. Treat that claim as unverified."
   },
   "scheduler": {
     "title": "Recurring tasks",
@@ -2221,19 +2176,8 @@
     "noPricingTitle": "The cost figure needs pricing for the active engine — `pricing` with `in_per_m` and `out_per_m` per million tokens in ~/.ephe/engine.json. This engine carries none, so the token count is all the row can state.",
     "cacheTitle": "Prompt cache: {{percent}}% of the last turn's prompt tokens were served from cache"
   },
-  "taskDock": {
-    "title": "Tasks",
-    "expand": "Show tasks",
-    "collapse": "Collapse tasks",
-    "dismiss": "Hide for this session",
-    "steps": "Steps"
-  },
+  "taskDock": {},
   "toolbar": {
-    "group": "Toolbars",
-    "files": "Files",
-    "preview": "Browser",
-    "develop": "Develop",
-    "gitConsole": "Git Console",
     "uptime": "Backend uptime",
     "uptimeShort": "{{minutes}} min up",
     "autoSpeak": "Auto read-aloud"

@@ -206,10 +206,10 @@ describe('MessageBubble — Artifact-Header Dup-Fix (I6 P3-3)', () => {
     expect(screen.getAllByText('script.js')).toHaveLength(1)
   })
 
-  it('unterschiedlicher title: beide Texte bleiben sichtbar', () => {
+  it('unterschiedlicher title: die Kapsel nennt die Datei genau einmal', () => {
     render(<MessageBubble message={artifactMsg('Palindrome Checker', 'script.js')} />)
     expect(screen.getAllByText('script.js')).toHaveLength(1)
-    expect(screen.getByText('Palindrome Checker')).toBeTruthy()
+    expect(screen.queryByText('Palindrome Checker')).toBeNull()
   })
 })
 

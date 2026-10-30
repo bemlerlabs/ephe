@@ -355,38 +355,6 @@
     "acceptInstalled": "Skill installiert: {{name}} — ab sofort aktiv (Trigger über die Skill-Liste).",
     "acceptFailed": "Skill konnte nicht installiert werden: {{reason}}",
     "dismissed": "Vorschlag {{id}} verworfen.",
-    "toolTipShell": {
-      "title": "Shell-Befehl",
-      "body": "Führt einen whitelisted Befehl im Workspace aus und zeigt die Ausgabe."
-    },
-    "toolTipEdit": {
-      "title": "Datei geändert",
-      "body": "Der Agent hat diese Datei verändert — der Diff zeigt vorher/nachher."
-    },
-    "toolTipWrite": {
-      "title": "Datei erstellt",
-      "body": "Der Agent hat diese Datei geschrieben; der Inhalt ist aufklappbar."
-    },
-    "toolTipRead": {
-      "title": "Datei gelesen",
-      "body": "Der Agent hat diese Datei als Kontext gelesen."
-    },
-    "toolTipSearch": {
-      "title": "Suche",
-      "body": "Der Agent hat den Workspace nach Treffern durchsucht."
-    },
-    "toolTipWeb": {
-      "title": "Web-Abfrage",
-      "body": "Der Agent hat Informationen aus dem Web geladen."
-    },
-    "toolTipTask": {
-      "title": "Schritte-Update",
-      "body": "Ephe hat einen Schritt der To-do-Liste angelegt oder aktualisiert."
-    },
-    "toolTipGeneric": {
-      "title": "Tool-Aufruf",
-      "body": "Der Agent hat eines seiner Werkzeuge benutzt."
-    },
     "reviewTipM": {
       "title": "M — geändert",
       "body": "Eine bestehende Datei wurde verändert. Grün = neue Zeilen, rot = entfernte."
@@ -1688,17 +1656,10 @@
       "back": "Zurück zur Aufgabe",
       "ablageHint": "Übernommen heißt: eine Kopie liegt in deinem Übernahme-Ordner — geboren wird die Karte hier, in der Werkbank."
     },
-    "title": "Artefakte",
     "download": "Herunterladen",
     "filterAll": "Alle",
-    "filterDocs": "PDF & Doku",
-    "filterVisual": "Bilder & Charts",
-    "filterOffice": "Office",
     "filterGroup": "Artefakte filtern",
     "library": "Artefakt-Bibliothek",
-    "closeLibrary": "Bibliothek schließen",
-    "openWorkbench": "in der Werkbank öffnen",
-    "showInWorkbench": "In der Werkbank zeigen",
     "searchPlaceholder": "Alle Artefakte durchsuchen…",
     "searchClear": "Suche leeren",
     "exportAll": "Alle als zip exportieren",
@@ -1749,14 +1710,8 @@
     "quickLook": "Schnellansicht",
     "fileActionFailed": "Ephe darf nur Dateien aus Werkbank, Projekt oder den üblichen Speicherordnern zeigen.",
     "imageUnavailable": "Bild nicht verfügbar",
-    "mediaUnavailable": "Datei nicht verfügbar",
     "previewRetry": "Erneut versuchen",
-    "previewOpen": "größer öffnen",
-    "lightboxClose": "Bild schließen",
-    "claimWithoutArtifact": "Die Antwort nennt ein Bild, aber dieser Turn hat keines erzeugt. Die Aussage ist unbelegt.",
-    "reasonProtected": "gesperrt",
-    "reasonMissing": "fehlt",
-    "reasonOffline": "nicht erreichbar"
+    "claimWithoutArtifact": "Die Antwort nennt ein Bild, aber dieser Turn hat keines erzeugt. Die Aussage ist unbelegt."
   },
   "scheduler": {
     "title": "Wiederkehrende Aufgaben",
@@ -2221,19 +2176,8 @@
     "noPricingTitle": "Die Kostenzahl braucht einen Preis zum aktiven Engine — `pricing` mit `in_per_m` und `out_per_m` je Million Token in ~/.ephe/engine.json. Den trägt dieser Engine nicht, darum steht in der Zeile nur der Tokenzähler.",
     "cacheTitle": "Prompt-Cache: {{percent}}% der Prompt-Token des letzten Turns kamen aus dem Cache"
   },
-  "taskDock": {
-    "title": "Aufgaben",
-    "expand": "Aufgaben einblenden",
-    "collapse": "Aufgaben einklappen",
-    "dismiss": "Für diese Sitzung ausblenden",
-    "steps": "Schritte"
-  },
+  "taskDock": {},
   "toolbar": {
-    "group": "Werkzeuge",
-    "files": "Dateien",
-    "preview": "Browser",
-    "develop": "Entwickeln",
-    "gitConsole": "Git-Konsole",
     "uptime": "Backend-Laufzeit",
     "uptimeShort": "{{minutes}} Min. Laufzeit",
     "autoSpeak": "Auto-Vorlesen"
