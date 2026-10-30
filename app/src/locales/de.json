@@ -2759,6 +2759,20 @@
     "credentialStored": {
       "keyring": "im Systemschlüsselbund",
       "file_0600": "in einer Datei, die nur du lesen kannst"
-    }
+    },
+    "preset": {
+      "ephe-index": "Ephe-geprüfter Index",
+      "mcp-registry": "Offizielles MCP-Community-Register"
+    },
+    "sourceAdd": "Quelle hinzufügen",
+    "sourceRemove": "Quelle entfernen",
+    "sourceKind": {
+      "https": "HTTPS-Index",
+      "local": "Lokaler Index"
+    },
+    "sourceTitle": "Name",
+    "sourcePath": "/absoluter/pfad/zum/index.json",
+    "sourceSave": "Hinzufügen",
+    "sourceRefused": "Die Quelle wurde nicht hinzugefügt."
   }
 }

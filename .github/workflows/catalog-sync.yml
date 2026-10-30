@@ -1,0 +1,103 @@
+name: Catalog sync
+
+# Weekly refresh of the discover shelf's connector mirror. The registry is public
+# CC0 metadata; the mirror, the curated tier and the intent tags are committed files,
+# so a build never reaches the network and a reader can diff what changed.
+#
+# The job never pushes to main. It writes a branch and opens (or updates) one pull
+# request, and the ordinary gates decide: a red shelf blocks a bad snapshot exactly
+# as it blocks hand-written code. That is also why the schedule is off the build
+# path — a 503 at the registry or a changed upstream shape must cost the weekly PR,
+# not a release.
+#
+# Monday 04:00 UTC: after the weekend's publications, before the working week's
+# first build, and an hour clear of the nightly catalog-freshness run.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: catalog-sync
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  sync:
+    name: Mirror, curate, tag, then propose the diff as a pull request
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Hermetic preflight
+        run: bash scripts/ci_preflight.sh
+
+      - name: Refresh the mirror, the curated tier and the intent tags
+        run: |
+          python3 scripts/catalog_discover.py --mirror marketplace/registry-snapshot.json
+          python3 scripts/catalog_discover.py --curated marketplace/registry-curated.json \
+            --search-index marketplace/search-intents.json
+
+      - name: Compare with what is committed
+        id: delta
+        run: |
+          if git diff --quiet -- marketplace/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "the mirror is unchanged this week"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- marketplace/
+          fi
+
+      - name: Open or update the sync pull request
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="catalog/weekly-sync"
+
+          # The register in .github/identities.json names this address; a bot commit
+          # under any other one fails the hygiene leg before the shelf is judged.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add marketplace/
+          git commit -m "data(discover): weekly catalog sync"
+          # The branch belongs to this job alone: last week's open PR is meant to be
+          # replaced by this week's snapshot, not merged with it. The token rides one
+          # push in a header, never in the checkout's stored remote.
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push --force origin "$branch"
+
+          if [ -z "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "data(discover): weekly catalog sync" \
+              --body "Automated refresh of the connector mirror, the curated tier and the intent tags from the public registry (CC0 metadata). Review the counts in the diff; the ordinary gates judge the shelf."
+          else
+            echo "the open sync pull request was updated with this week's snapshot"
+          fi
+
+      - name: Say what happened
+        env:
+          CHANGED: ${{ steps.delta.outputs.changed }}
+        run: |
+          if [ "$CHANGED" = "true" ]; then
+            echo "a pull request carries this week's snapshot"
+          else
+            echo "nothing to propose"
+          fi

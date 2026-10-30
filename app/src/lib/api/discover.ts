@@ -19,6 +19,16 @@ export interface RegistryEntry {
   curated_reason?: 'pick' | 'recent'
 }
 
+/** One of the two shelves that ship with the app; a preset is readable, not bought. */
+export interface DiscoverPreset {
+  id: string
+  title: string
+  kind: 'bundled' | 'mirror'
+  url: string
+  state: string
+  count: number
+}
+
 export interface DiscoverBootstrap {
   skills: SkillSummary[]
   sources: MarketSource[]
@@ -29,6 +39,7 @@ export interface DiscoverBootstrap {
   catalog: McpCatalogEntry[]
   curated: RegistryEntry[]
   registry_count: number
+  presets: DiscoverPreset[]
   installed: MarketInstalledRow[]
   usage: ToolUsageView
 }

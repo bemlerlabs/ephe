@@ -28,6 +28,27 @@ async def discover_search_entries(q: str = "", limit: int = 24) -> dict:
     return {"query": q, "entries": discover_search.search(q, limit)}
 
 
+#: The two shelves that ship with the app. The row names what is already readable
+#: and where a refresh comes from, so nobody has to add a source to get the
+#: default breadth.
+PRESETS = (
+    {
+        "id": "ephe-index",
+        "title": "Ephe verified index",
+        "kind": "bundled",
+        "url": "",
+        "state": "bundled",
+    },
+    {
+        "id": "mcp-registry",
+        "title": "Official MCP community registry",
+        "kind": "mirror",
+        "url": "https://registry.modelcontextprotocol.io/v0/servers",
+        "state": "mirrored weekly",
+    },
+)
+
+
 @router.get("/discover/bootstrap")
 async def discover_bootstrap(top: int = 12) -> dict:
     skills = (await list_skills()).skills
@@ -35,6 +56,13 @@ async def discover_bootstrap(top: int = 12) -> dict:
     index = await market_index()
     usage = await get_audit_usage(top=top)
     data = marketplace_sources.load_sources()
+    registry_count = len(registry_entries())
+    presets = [
+        dict(one, count=len(index.get("index", {}).get("plugins") or []))
+        if one["id"] == "ephe-index"
+        else dict(one, count=registry_count)
+        for one in PRESETS
+    ]
     return {
         "skills": skills,
         "sources": data["sources"],
@@ -44,7 +72,8 @@ async def discover_bootstrap(top: int = 12) -> dict:
         "index": index.get("index"),
         "catalog": catalog_entries(),
         "curated": curated_entries(),
-        "registry_count": len(registry_entries()),
+        "registry_count": registry_count,
+        "presets": presets,
         "installed": marketplace_service.installed()["plugins"],
         "usage": usage,
     }

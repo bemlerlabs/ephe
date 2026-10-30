@@ -3,7 +3,13 @@
  * of which may fail on its own, so every row says where it came from and a card
  * only shows a number the endpoint actually sent.
  */
-import type { McpCatalogEntry, McpHealthServer, McpSettings, SkillSummary } from '@/lib/api'
+import type {
+  DiscoverPreset,
+  McpCatalogEntry,
+  McpHealthServer,
+  McpSettings,
+  SkillSummary,
+} from '@/lib/api'
 import type { MarketHome, MarketIndexBody, MarketInstalledRow, ToolUsageView } from '@/lib/api'
 
 export type DiscoverKind = 'skill' | 'connector' | 'plugin'
@@ -65,6 +71,8 @@ export interface DiscoverSources {
   catalog: McpCatalogEntry[]
   registry: RegistryEntry[]
   registryCount: number
+  /** The two shelves that ship: named, readable, not removable. */
+  presets: DiscoverPreset[]
   home: MarketHome | null
   index: MarketIndexBody | null
   installed: MarketInstalledRow[]

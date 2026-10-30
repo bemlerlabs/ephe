@@ -20,6 +20,7 @@ const base: DiscoverSources = {
   catalog: [],
   registry: [],
   registryCount: 0,
+  presets: [],
   home: null,
   index: null,
   installed: [],
