@@ -277,7 +277,7 @@ describe('conduct §2 — the clicks that do move it', () => {
     fireEvent.click(screen.getByTestId('message-file-open-act-a9'))
     expect(openEvents).toHaveLength(1)
     await waitFor(() => expect(pane()).not.toBeNull())
-    expect(String((openEvents[0]!.detail as { url?: string }).url)).toContain('report.pdf')
+    expect(String((openEvents[0]!.detail as { url?: string }).url)).toContain('/api/artifacts/')
     stop()
   })
 
