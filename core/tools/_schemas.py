@@ -424,6 +424,22 @@ BASE_TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "stop_workspace_dev_server",
+            "description": (
+                "Stops a dev server this session started, by the port start_workspace_dev_server returned."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "port": {"type": "integer", "description": "The port the start call returned."},
+                },
+                "required": ["port"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "load_workspace",
             "description": (
                 "Reads all files of a directory (workspace) recursively. Use this tool when the user wants to analyse, understand or review a whole project. Ideal for code reviews, project overviews and documentation tasks."
