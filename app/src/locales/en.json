@@ -2716,7 +2716,8 @@
     "badge": {
       "pick": "curated pick",
       "recent": "new",
-      "bundled": "in the box"
+      "bundled": "in the box",
+      "popular": "popular"
     },
     "category": {
       "files": "Files",
@@ -2776,6 +2777,8 @@
     "sourceTitle": "Name",
     "sourcePath": "/absolute/path/to/index.json",
     "sourceSave": "Add",
-    "sourceRefused": "The source was not added."
+    "sourceRefused": "The source was not added.",
+    "heroEyebrow": "Top pick",
+    "cardDownloads": "{{count}}/week"
   }
 }

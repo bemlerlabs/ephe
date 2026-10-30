@@ -15,11 +15,12 @@ const KIND_ICON: Record<DiscoverKind, typeof Plug> = {
   plugin: Puzzle,
 }
 
-/** The four numbers a card may carry, each only when the endpoint sent it. */
+/** The numbers a card may carry, each only when the endpoint sent it. Version and
+ *  dates live in the detail; a card argues, it does not catalogue. */
 function Facts({ item }: { item: DiscoverItem }) {
   const { t } = useTranslation()
   const facts: string[] = []
-  if (item.version) facts.push(item.version)
+  if (item.downloads) facts.push(t('discover.cardDownloads', { count: item.downloads }))
   if (item.toolCount !== undefined) facts.push(t('discover.cardTools', { count: item.toolCount }))
   if (item.calls !== undefined) facts.push(t('discover.cardCalls', { count: item.calls }))
   if (item.latencyMs !== undefined) facts.push(t('discover.cardLatency', { ms: item.latencyMs }))
@@ -73,10 +74,18 @@ export function DiscoverCard({
       ) : null}
 
       <header className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface-raised/60 px-2 py-0.5 font-mono text-ui-xs text-ink-soft">
+        <span className="inline-flex items-center gap-1.5 font-mono text-ui-xs uppercase tracking-[0.14em] text-ink-faint">
           <Icon className="h-3.5 w-3.5" aria-hidden="true" />
           {t(`discover.kind${item.kind.charAt(0).toUpperCase()}${item.kind.slice(1)}`)}
         </span>
+        {item.badge ? (
+          <span
+            data-testid={`discover-badge-${item.id}`}
+            className="rounded-full bg-brand/10 px-2 py-0.5 font-mono text-ui-2xs text-brand-deep"
+          >
+            {t(`discover.badge.${item.badge}`)}
+          </span>
+        ) : null}
         {item.installed ? (
           <span
             data-testid={`discover-state-${item.id}`}
@@ -113,14 +122,6 @@ export function DiscoverCard({
           >
             {item.title}
           </h3>
-          {item.badge ? (
-            <span
-              data-testid={`discover-badge-${item.id}`}
-              className="rounded-full bg-brand/15 px-2 py-0.5 font-mono text-ui-2xs text-brand-deep"
-            >
-              {t(`discover.badge.${item.badge}`)}
-            </span>
-          ) : null}
         </div>
         <p
           data-testid={`discover-summary-${item.id}`}
@@ -133,7 +134,7 @@ export function DiscoverCard({
       <div className="mt-auto flex items-end justify-between gap-3 pt-1">
         <div className="min-w-0">
           <p className="truncate text-ui-xs text-ink-faint">
-            {t(`discover.origin.${item.origin}`)}
+            {t(`discover.origin.${item.origin}`, { defaultValue: item.origin })}
           </p>
           <Facts item={item} />
         </div>

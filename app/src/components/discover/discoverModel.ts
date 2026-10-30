@@ -38,6 +38,8 @@ export interface DiscoverItem {
   spec?: string
   /** Calls measured in the audit log, when the item names a tool that was used. */
   calls?: number
+  /** Weekly package downloads where the publisher ships a package and the count is known. */
+  downloads?: number
   /** The listing page this entry was drawn from, for the detail surface. */
   docs?: string
   /** The launch line the publisher suggests, when the entry is not attached yet. */
@@ -62,6 +64,7 @@ export interface RegistryEntry {
   curated_reason?: 'pick' | 'recent'
   /** Names a publisher declares as required; values live in the vault, never here. */
   required_env?: { name: string; secret: boolean }[]
+  downloads?: number
 }
 
 export interface DiscoverSources {
@@ -175,6 +178,7 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       installHint: entry.install_hint,
       badge: entry.curated_reason === 'recent' ? 'recent' : 'pick',
       requiredEnv: entry.required_env ?? [],
+      downloads: entry.downloads,
     })
   }
 
@@ -261,13 +265,16 @@ export function facetValues(
 /** The first card is the one the page presents large: installed and most used wins. */
 export function heroOf(items: DiscoverItem[]): DiscoverItem | null {
   if (!items.length) return null
-  const used = [...items].sort(
+  // The featured entry argues for the shelf, so a measured download count outranks
+  // everything; what this machine already uses is the next-best proof.
+  const ranked = [...items].sort(
     (a, b) =>
+      (b.downloads ?? 0) - (a.downloads ?? 0) ||
       Number(b.installed) - Number(a.installed) ||
       Number(b.enabled) - Number(a.enabled) ||
       (b.calls ?? 0) - (a.calls ?? 0),
   )
-  return used[0] ?? null
+  return ranked[0] ?? null
 }
 
 /** Three cards of our own top items — the calm opening the page makes its claim with. */

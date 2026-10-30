@@ -10,6 +10,7 @@ import { EpheMark } from '@/components/shell/EpheMark'
 import { LoadingRow } from '@/components/ui'
 import { DiscoverCard } from '@/components/discover/DiscoverCard'
 import { DiscoverDetail } from '@/components/discover/DiscoverDetail'
+import { DiscoverHero } from '@/components/discover/DiscoverHero'
 import { DiscoverFilters } from '@/components/discover/DiscoverFilters'
 import { SourcesRow } from '@/components/discover/SourcesRow'
 import { useIntentSearch } from '@/components/discover/useIntentSearch'
@@ -295,6 +296,16 @@ export default function DiscoverPage() {
               </span>
             ))}
           </p>
+        ) : null}
+
+        {hero && !query.query ? (
+          <DiscoverHero
+            item={hero}
+            busy={busy === hero.id}
+            onAdd={onAdd}
+            onToggle={onToggle}
+            onDetail={setDetail}
+          />
         ) : null}
 
         <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">

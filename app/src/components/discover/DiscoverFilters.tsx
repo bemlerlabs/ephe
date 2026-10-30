@@ -150,7 +150,7 @@ function ChipRow({
                 : 'border-hairline text-ink-soft hover:border-hairline-strong hover:text-foreground'
             }`}
           >
-            {translate ? t(`discover.origin.${value}`) : value}
+            {translate ? t(`discover.origin.${value}`, { defaultValue: value }) : value}
           </button>
         )
       })}

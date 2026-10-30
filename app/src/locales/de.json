@@ -2716,7 +2716,8 @@
     "badge": {
       "pick": "Kuratierte Auswahl",
       "recent": "Neu",
-      "bundled": "Im Lieferumfang"
+      "bundled": "Im Lieferumfang",
+      "popular": "beliebt"
     },
     "category": {
       "files": "Dateien",
@@ -2776,6 +2777,8 @@
     "sourceTitle": "Name",
     "sourcePath": "/absoluter/pfad/zum/index.json",
     "sourceSave": "Hinzufügen",
-    "sourceRefused": "Die Quelle wurde nicht hinzugefügt."
+    "sourceRefused": "Die Quelle wurde nicht hinzugefügt.",
+    "heroEyebrow": "Top-Empfehlung",
+    "cardDownloads": "{{count}}/Woche"
   }
 }
