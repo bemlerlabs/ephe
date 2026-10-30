@@ -120,3 +120,22 @@ def test_generator_follows_the_cursor_and_dedupes(monkeypatch):
     assert by_id["b-two"]["category"] == "database"
     assert by_id["b-two"]["install_hint"].endswith("(streamable-http)")
     assert by_id["a-one"]["install_hint"] == "npx -y alpha@1.1 (stdio)"
+
+
+def test_bootstrap_returns_one_frame(tmp_path, monkeypatch):
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
+    monkeypatch.setenv("EPHE_SESSIONS_DIR", str(tmp_path / "sessions"))
+    from fastapi.testclient import TestClient
+
+    from server.main import create_app
+
+    with TestClient(create_app()) as client:
+        r = client.get("/api/discover/bootstrap")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert {"skills", "sources", "home", "catalog", "curated", "registry_count",
+            "installed", "usage"} <= set(body)
+    assert body["registry_count"] == len(mcp_catalog.registry_entries())
+    assert isinstance(body["curated"], list)
+    assert isinstance(body["skills"], list)
+    assert isinstance(body["usage"], dict)

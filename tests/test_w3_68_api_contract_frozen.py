@@ -114,6 +114,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/channels/telegram/status",
     "GET /api/context/budget",
     "GET /api/context/stages",
+    "GET /api/discover/bootstrap",
     "GET /api/discover/registry",
     "GET /api/ephemeris",
     "GET /api/events/multiplex",
