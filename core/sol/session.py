@@ -15,7 +15,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.sol import consolidator, organizer, reflector
+from core.sol import consolidator, episodes, organizer, reflector
 
 logger = logging.getLogger(__name__)
 
@@ -167,37 +167,64 @@ class SolTurn:
         signal = f"the round reported: {item.signal}" if item.signal else ""
         return signal, item.reflection.correction
 
-    def finish(self, ok: bool, *, last_round: int | None = None) -> list[consolidator.Heuristic]:
+    def finish(
+        self, ok: bool, *, last_round: int | None = None, task: str = ""
+    ) -> list[consolidator.Heuristic]:
         """Persist the rules this turn proved, newest first. A turn that did not
-        finish proves nothing and writes nothing.
+        finish proves nothing and writes no rule; it still leaves its episode,
+        because the next attempt on the same task is measured against it.
 
         `last_round` is the turn's final tool round: a failure that stood in it
-        had no later round to show the correction working.
+        had no later round to show the correction working. `task` is the request
+        this turn answers; it keys the two-run comparison, and a repeat that did
+        not beat its predecessor keeps no new rule. Without a task the turn keeps
+        the earlier behaviour and writes what it proved.
         """
-        if not self.active or not ok or not self.failures:
-            return []
         boundary = last_round if last_round is not None else self.rounds
+        proven = [item for item in self.failures if item.round < boundary]
+        key = episodes.task_key(task) if (self.active and task.strip()) else ""
+        keep = True
+        if key and proven:
+            before = episodes.previous_for(self.root, task)
+            if before is not None:
+                keep = episodes.should_keep_rule(
+                    before,
+                    {"ok": ok, "rounds": boundary, "failures": [item.kind for item in proven]},
+                )
         written: list[consolidator.Heuristic] = []
-        for item in self.failures:
-            if item.round >= boundary:
-                continue
-            insight, action = self._evidence(item)
-            if not insight:
-                continue
+        if self.active and ok and keep:
+            for item in proven:
+                insight, action = self._evidence(item)
+                if not insight:
+                    continue
+                try:
+                    rule = consolidator.record(
+                        kind=item.kind,
+                        title=_FAILURE_TITLES.get(item.kind, item.reflection.correction),
+                        trigger=f"A tool call in this project fails with {item.kind}",
+                        insight=insight,
+                        action=action,
+                        root=self.root,
+                    )
+                except Exception as exc:
+                    logger.warning("SOL could not store a heuristic: %s", exc)
+                    continue
+                if rule is not None:
+                    written.append(rule)
+        if key:
             try:
-                rule = consolidator.record(
-                    kind=item.kind,
-                    title=_FAILURE_TITLES.get(item.kind, item.reflection.correction),
-                    trigger=f"A tool call in this project fails with {item.kind}",
-                    insight=insight,
-                    action=action,
-                    root=self.root,
+                episodes.record(
+                    self.root,
+                    episodes.Episode(
+                        task=key,
+                        ok=ok,
+                        rounds=boundary,
+                        failures=tuple(item.kind for item in proven),
+                        rules=tuple(str(getattr(rule, "id", "")) for rule in written),
+                    ),
                 )
             except Exception as exc:
-                logger.warning("SOL could not store a heuristic: %s", exc)
-                continue
-            if rule is not None:
-                written.append(rule)
+                logger.warning("SOL could not record the episode: %s", exc)
         self.learned = written
         return written
 
@@ -223,10 +250,10 @@ def open_sol_turn(turn: SolTurn | None = None) -> tuple[SolTurn, contextvars.Tok
     return sol, bind_sol_turn(sol)
 
 
-def close_sol_turn(sol: SolTurn, token: contextvars.Token, *, ok: bool) -> None:
-    """Unbind the turn and store what it proved. Never raises into the turn."""
+def close_sol_turn(sol: SolTurn, token: contextvars.Token, *, ok: bool, task: str = "") -> None:
+    """Unbind the turn, store what it proved, leave its episode. Never raises."""
     reset_sol_turn(token)
     try:
-        sol.finish(ok)
+        sol.finish(ok, task=task)
     except Exception:
         pass
