@@ -90,6 +90,13 @@ def _mirror_hint(server: dict[str, Any]) -> tuple[str, str]:
     return "", docs
 
 
+def _english_only(text: str) -> bool:
+    # Reuse the language gate's marker regex: a line it flags as German is not committed.
+    from language_inventory import WORD
+
+    return WORD.search(text) is None
+
+
 def mirror_registry() -> tuple[int, list[dict[str, Any]], list[str]]:
     """One full pass over the public registry: cursor pagination, dedupe by
     name (the newest version wins), ASCII-only descriptions, one entry per
@@ -123,6 +130,12 @@ def mirror_registry() -> tuple[int, list[dict[str, Any]], list[str]]:
             if not name or not description or not description.isascii():
                 continue
             hint, docs = _mirror_hint(server)
+            if not all(
+                _english_only(part)
+                for part in (name, str(server.get("title") or ""), description, hint, docs)
+                if part
+            ):
+                continue
             meta = raw.get("_meta")
             meta = meta if isinstance(meta, dict) else {}
             previous = entries.get(name)
