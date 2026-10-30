@@ -46,7 +46,7 @@ def test_curated_tier_is_a_small_derived_window():
     entries = mcp_catalog.curated_entries()
     assert 200 <= len(entries) <= 600
     for entry in entries:
-        assert entry.get("curated_reason") in {"pick", "recent"}
+        assert entry.get("curated_reason") in {"pick", "recent", "popular"}
         assert entry["source"] == "registry"
 
 
@@ -72,12 +72,14 @@ def test_generator_follows_the_cursor_and_dedupes(monkeypatch):
                 {"server": {"name": "a/one", "title": "Alpha",
                             "description": "read files and folders", "version": "1.0.0",
                             "packages": [{"transport": {"type": "stdio"},
-                                          "runtimeHint": "npx -y alpha"}]},
+                                          "runtimeHint": "npx",
+                                          "identifier": "alpha"}]},
                  "_meta": {"isLatest": False, "publishedAt": "2026-01-01T00:00:00Z"}},
                 {"server": {"name": "a/one", "title": "Alpha",
                             "description": "read files and folders", "version": "1.1.0",
                             "packages": [{"transport": {"type": "stdio"},
-                                          "runtimeHint": "npx -y alpha@1.1"}]},
+                                          "runtimeHint": "npx",
+                                          "identifier": "alpha@1.1"}]},
                  "_meta": {"isLatest": True, "publishedAt": "2026-02-01T00:00:00Z"}},
                 {"server": {"name": "c/gamma", "title": "Gamma",
                             "description": "the gamma provider", "version": "1.0.0"},
@@ -139,3 +141,34 @@ def test_bootstrap_returns_one_frame(tmp_path, monkeypatch):
     assert isinstance(body["curated"], list)
     assert isinstance(body["skills"], list)
     assert isinstance(body["usage"], dict)
+
+
+def test_the_launch_line_names_the_package():
+    """A runtime alone is not a launch line: `npx (stdio)` names nothing a reader
+    could type, and the identifier is what makes the entry installable."""
+    import catalog_discover
+
+    hint, _docs = catalog_discover._mirror_hint(
+        {"name": "x/y", "packages": [{"transport": {"type": "stdio"},
+                                      "runtimeHint": "npx", "identifier": "@x/y-mcp"}]}
+    )
+    assert hint == "npx -y @x/y-mcp (stdio)"
+
+
+def test_a_package_coordinate_is_read_from_the_launch_line():
+    import catalog_discover
+
+    assert catalog_discover.package_of({"install_hint": "npx -y @a/b (stdio)"}) == ("npm", "@a/b")
+    assert catalog_discover.package_of({"install_hint": "uvx mcp-server-x (stdio)"}) == ("pypi", "mcp-server-x")
+    assert catalog_discover.package_of({"install_hint": "https://x/mcp (streamable-http)"}) is None
+
+
+def test_the_curated_tier_spreads_over_the_categories():
+    """Round-robin: no category takes a second entry before every other one that has
+    one takes its first, so the shelf stays broad."""
+    import collections
+
+    entries = mcp_catalog.curated_entries()
+    counts = collections.Counter(entry["category"] for entry in entries)
+    assert len(counts) >= 8
+    assert max(counts.values()) - min(counts.values()) <= 2

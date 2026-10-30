@@ -20,6 +20,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import sys
 import urllib.parse
 import zipfile
@@ -49,18 +50,30 @@ MIRROR_MAX_ENTRIES = 10_000
 
 #: Facet buckets for the registry mirror; the map lives here so the snapshot
 #: stays reproducible and the runtime serves pure data.
+#: Read in order, first match wins, so the narrow families sit above the broad ones.
 _CATEGORY_KEYWORDS = (
-    ("files", ("filesystem", "file", "folder", "drive", "s3", "dropbox")),
-    ("code", ("git", "github", "repository", "pull request", "code review")),
-    ("database", ("postgres", "sql", "database", "redis", "vector", "mongo", "bigquery", "snowflake")),
-    ("web", ("browser", "scraping", "search", "http", "url", "fetch")),
-    ("memory", ("memory", "knowledge", "graph", "notes", "obsidian", "notion")),
-    ("communication", ("slack", "email", "gmail", "telegram", "discord", "messaging")),
-    ("security", ("security", "audit", "vulnerability", "auth", "identity")),
-    ("cloud", ("aws", "azure", "gcp", "kubernetes", "docker", "serverless", "terraform")),
-    ("media", ("image", "video", "audio", "music", "media")),
-    ("productivity", ("calendar", "task", "todo", "project", "spreadsheet", "docs")),
-    ("utility", ("time", "math", "calculator", "qr", "random", "weather")),
+    ("database", ("postgres", "sql", "database", "redis", "vector", "mongo", "bigquery",
+                  "snowflake", "clickhouse", "supabase", "mysql", "sqlite", "neo4j")),
+    ("cloud", ("amazon", "aws", "azure", "gcp", "google cloud", "ec2", "ecs", "eks",
+               "lambda", "kubernetes", "docker", "serverless", "terraform", "cloudflare",
+               "vercel", "netlify", "heroku", "s3 bucket")),
+    ("code", ("git", "github", "gitlab", "repository", "pull request", "code review",
+              "refactor", "lint", "compiler", "debugger")),
+    ("files", ("filesystem", "file", "folder", "drive", "dropbox", "storage", "pdf",
+               "document", "docx", "excel", "csv")),
+    ("communication", ("slack", "email", "gmail", "telegram", "discord", "messaging",
+                       "whatsapp", "sms", "newsletter", "sms", "chat")),
+    ("security", ("security", "audit", "vulnerability", "cve", "identity", "auth",
+                  "password", "encryption", "certificate", "compliance", "soc 2")),
+    ("web", ("browser", "scrap", "search", "http", "url", "fetch", "crawl", "selenium",
+             "playwright", "puppeteer")),
+    ("memory", ("memory", "knowledge", "graph", "notes", "obsidian", "notion", "wiki")),
+    ("media", ("image", "video", "audio", "music", "media", "photo", "podcast",
+               "transcription", "speech")),
+    ("productivity", ("calendar", "task", "todo", "project", "spreadsheet", "docs",
+                      "crm", "invoice", "meeting", "workflow", "automation")),
+    ("utility", ("time", "math", "calculator", "qr", "random", "weather", "currency",
+                 "converter", "geocod", "maps")),
 )
 
 
@@ -87,9 +100,86 @@ def _mirror_hint(server: dict[str, Any]) -> tuple[str, str]:
         return f"{url} ({kind})", docs
     for package in server.get("packages") or []:
         transport = str((package.get("transport") or {}).get("type") or "stdio")
-        command = str(package.get("runtimeHint") or package.get("identifier") or "")
-        return f"{command} ({transport})", docs
+        runtime = str(package.get("runtimeHint") or "").strip()
+        identifier = str(package.get("identifier") or "").strip()
+        if identifier:
+            # The runtime alone is not a launch line: `npx (stdio)` names no package,
+            # and the identifier is what a reader would have to type.
+            command = f"{runtime} -y {identifier}" if runtime in {"npx", "bunx"} else (
+                f"{runtime} {identifier}" if runtime else identifier
+            )
+            return f"{command} ({transport})", docs
     return "", docs
+
+
+#: Where a package's weekly downloads are read from. Both publishers answer one
+#: package per request and cap the rate; a miss is recorded as "no count", never
+#: as zero downloads.
+NPM_DOWNLOADS = "https://api.npmjs.org/downloads/point/last-week/"
+PYPI_RECENT = "https://pypistats.org/api/packages/{name}/recent"
+
+
+def package_of(entry: dict[str, Any]) -> tuple[str, str] | None:
+    """(registry, name) when the launch line names a package a publisher counts."""
+    hint = str(entry.get("install_hint") or "").strip()
+    parts = hint.split()
+    if not parts:
+        return None
+    runtime = parts[0]
+    rest = [part for part in parts[1:] if not part.startswith("-") and not part.startswith("(")]
+    if not rest:
+        return None
+    name = rest[0].strip()
+    if runtime in {"npx", "bunx"}:
+        return ("npm", name)
+    if runtime in {"uvx", "pipx"}:
+        return ("pypi", name)
+    return None
+
+
+def _downloads(registry: str, name: str) -> int | None:
+    try:
+        if registry == "npm":
+            payload = json.loads(fetch(NPM_DOWNLOADS + urllib.parse.quote(name, safe="@")))
+            value = payload.get("downloads")
+            return int(value) if isinstance(value, (int, float)) else None
+        payload = json.loads(fetch(PYPI_RECENT.format(name=urllib.parse.quote(name))))
+        data = payload.get("data") if isinstance(payload, dict) else None
+        value = data.get("last_week") if isinstance(data, dict) else None
+        return int(value) if isinstance(value, (int, float)) else None
+    except Exception:  # noqa: BLE001 - an unreachable count is data, not a failure
+        return None
+
+
+def popularity_of(entries: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Weekly downloads per package coordinate, for the entries that name one."""
+    counts: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        coordinate = package_of(entry)
+        if coordinate is None:
+            continue
+        registry, name = coordinate
+        key = f"{registry}:{name}"
+        if key in counts:
+            continue
+        downloads = _downloads(registry, name)
+        if downloads is None:
+            continue
+        counts[key] = {"registry": registry, "downloads": downloads}
+    return counts
+
+
+def _popularity_score(entry: dict[str, Any], counts: dict[str, dict[str, Any]]) -> float:
+    """Log-scaled weekly downloads, with a name prior for the well-known servers."""
+    coordinate = package_of(entry)
+    if coordinate is not None:
+        hit = counts.get(f"{coordinate[0]}:{coordinate[1]}")
+        if hit:
+            return math.log10(max(1, int(hit["downloads"])))
+    name = str(entry.get("name") or "").lower()
+    if any(pick in name for pick in PICKS):
+        return 2.0
+    return 1.0
 
 
 def _english_only(text: str) -> bool:
@@ -201,29 +291,80 @@ PICKS = (
     "screenshot", "browserbase", "fetch", "memory", "search", "terminal",
     "obsidian", "notion", "youtube", "spotify", "weather", "math",
 )
-PICKS_PER_CATEGORY = 20
 
 
-def curated_from_mirror(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The tier the surface shows by default: named picks first, then the 30
-    most recently published entries per category. Every row is a mirror entry
-    plus its reason; nothing here is invented data."""
-    picked: dict[str, dict[str, Any]] = {}
+
+#: How many entries the default shelf carries, and the floor every category keeps
+#: so a small category is not crowded out by a large one.
+CURATED_TOTAL = 360
+CURATED_MIN_PER_CATEGORY = 6
+
+
+def curated_from_mirror(
+    entries: list[dict[str, Any]],
+    popularity: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """The tier the surface shows by default: the best-liked entries we can measure.
+
+    Weekly downloads rank a package inside its category wherever a publisher ships
+    one; a named pick keeps the prior it has (these are the servers people ask for
+    by name); everything else falls back to how recently it was published. Each
+    category keeps a floor, so a broad shelf stays broad instead of filling up with
+    the one category that has the most packages."""
+    counts = popularity or {}
+    scored: dict[str, dict[str, Any]] = {}
     for entry in entries:
-        name = entry["name"].lower()
-        if any(pick in name for pick in PICKS):
-            picked[entry["id"]] = dict(entry, curated_reason="pick")
+        row = dict(entry)
+        # Sorting happens at curation time, so a widened rule re-sorts the shelf on
+        # the next curated run without fetching the registry again.
+        row["category"] = _registry_category(
+            f"{entry.get('name') or ''} {entry.get('description') or ''}"
+        )
+        coordinate = package_of(entry)
+        if coordinate is not None:
+            hit = counts.get(f"{coordinate[0]}:{coordinate[1]}")
+            if hit:
+                row["downloads"] = int(hit["downloads"])
+        row["_score"] = _popularity_score(entry, counts)
+        scored[entry["id"]] = row
+
+    def reason(row: dict[str, Any]) -> str:
+        if row.get("downloads"):
+            return "popular"
+        if any(pick in str(row.get("name") or "").lower() for pick in PICKS):
+            return "pick"
+        return "recent"
+
     by_category: dict[str, list[dict[str, Any]]] = {}
-    for entry in entries:
-        by_category.setdefault(entry["category"], []).append(entry)
+    for row in scored.values():
+        by_category.setdefault(str(row.get("category") or "other"), []).append(row)
     for rows in by_category.values():
-        rows.sort(key=lambda e: e.get("published_at") or "", reverse=True)
-    for rows in by_category.values():
-        for entry in rows[:PICKS_PER_CATEGORY]:
-            row = picked.setdefault(entry["id"], dict(entry))
-            row.setdefault("curated_reason", "recent")
-    ordered = sorted(picked.values(), key=lambda e: (e["name"].lower(),))
-    return ordered
+        rows.sort(
+            key=lambda e: (e["_score"], e.get("published_at") or "", e["name"].lower()),
+            reverse=True,
+        )
+
+    # Round-robin across the categories: each one contributes its best entry before
+    # any category contributes a second, so a broad shelf stays broad and one large
+    # bucket cannot fill it alone.
+    chosen: dict[str, dict[str, Any]] = {}
+    queues = {key: list(rows) for key, rows in by_category.items()}
+    keys = sorted(queues)
+    cursor = 0
+    while len(chosen) < CURATED_TOTAL and any(queues.values()):
+        key = keys[cursor % len(keys)]
+        cursor += 1
+        if queues[key]:
+            row = queues[key].pop(0)
+            chosen.setdefault(row["id"], row)
+
+    out: list[dict[str, Any]] = []
+    for row in chosen.values():
+        row = dict(row)
+        row.pop("_score", None)
+        row["curated_reason"] = reason(row)
+        out.append(row)
+    return sorted(out, key=lambda e: e["name"].lower())
 
 
 def write_intent_index(entries: list[dict[str, Any]], target: Path) -> None:
@@ -554,6 +695,10 @@ def main(argv: list[str] | None = None) -> int:
         "--search-index", type=Path, metavar="OUT",
         help="write the precomputed intent tags for the curated tier to OUT",
     )
+    parser.add_argument(
+        "--popularity", type=Path, metavar="OUT",
+        help="read weekly downloads for every package-backed entry and write them to OUT",
+    )
     args = parser.parse_args(argv)
 
     if args.mirror:
@@ -573,6 +718,31 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  error: {error}")
         return 1 if errors else 0
 
+    if args.popularity:
+        snapshot = ROOT / "marketplace" / "registry-snapshot.json"
+        try:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"popularity: {snapshot} unreadable: {exc}")
+            return 1
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        counts = popularity_of(entries if isinstance(entries, list) else [])
+        args.popularity.parent.mkdir(parents=True, exist_ok=True)
+        args.popularity.write_text(
+            json.dumps(
+                {
+                    "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+                    "packages": counts,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"popularity: {len(counts)} package count(s) written to {args.popularity}")
+        return 0
+
     if args.curated:
         # The curated tier derives from the committed mirror, so the run is
         # deterministic and offline; --mirror refreshes the mirror first.
@@ -584,7 +754,14 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         count = int(payload.get("count") or 0)
         entries = payload.get("entries") if isinstance(payload, dict) else None
-        curated = curated_from_mirror(entries if isinstance(entries, list) else [])
+        popularity_path = ROOT / "marketplace" / "popularity.json"
+        try:
+            popularity = json.loads(popularity_path.read_text(encoding="utf-8")).get("packages", {})
+        except (OSError, ValueError):
+            popularity = {}
+        curated = curated_from_mirror(
+            entries if isinstance(entries, list) else [], popularity
+        )
         payload = {
             "generated": datetime.now(UTC).isoformat(timespec="seconds"),
             "source": MCP_REGISTRY,
