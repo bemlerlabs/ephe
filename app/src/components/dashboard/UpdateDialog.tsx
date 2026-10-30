@@ -256,6 +256,21 @@ export function UpdateDialog({
                   mono
                   testId="update-details-version"
                 />
+                {state.commit && (
+                  <DetailRow
+                    label={t('update.detailsCommit')}
+                    value={state.commit}
+                    mono
+                    testId="update-details-commit"
+                  />
+                )}
+                {state.channel && (
+                  <DetailRow
+                    label={t('update.detailsChannel')}
+                    value={state.channel}
+                    testId="update-details-channel"
+                  />
+                )}
                 <DetailRow
                   label={t('update.detailsSize')}
                   value={size ?? notReported}
