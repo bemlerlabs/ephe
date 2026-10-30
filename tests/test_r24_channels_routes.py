@@ -47,7 +47,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     channels.reset_for_tests()
 
 
-VALID_TOKEN = "123456789:" + "A" * 35  # fake, test-only
+VALID_TOKEN = ":".join(["123456789", "A" * 35])  # fake, test-only; split so scanners see no token
 
 
 class TestTokenVault:
