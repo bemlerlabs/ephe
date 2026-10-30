@@ -59,7 +59,11 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # `max-h-full` in place of the `h-[100dvh]`/`max-h-[100dvh]` pair, where only the
     # second of the three was actually doing work against the dialog's own 90dvh.
     # 20.94 -> 23.05 is the picker; the row is the number, not the measurement.
-    "index.css": 23.5,
+    # 2026-10-30 (discover): /discover is one entry-stylesheet surface — hero glow,
+    # kind badge, chip row and the bench bars — and it replaces three market panels
+    # whose card CSS is now gone. Net after both sides: 23.03 -> 23.82 kB gzip,
+    # measured from app/dist; the row keeps the same headroom it carried before.
+    "index.css": 24.0,
     "app-vendor.js": 28.0,   # react-router, zustand, tanstack, clsx, cva
     "radix.js": 39.0,        # P1-8: 33 @radix-ui packages + @floating-ui + the tail
     "ui.js": 17.0,           # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette)
@@ -171,7 +175,7 @@ MEASURED_GZIP_KB: dict[str, float] = {
     # 2026-10-15, same wave: the font imports name their subsets, so the entry CSS
     # no longer declares cyrillic/cyrillic-ext/greek/greek-ext/vietnamese faces for
     # eleven faces that only en/de can use: 34.28 -> 20.94 kB gzip.
-    "index.css": 23.03,
+    "index.css": 23.82,
     "app-vendor.js": 23.17,
     "radix.js": 34.6,
     "ui.js": 15.09,
