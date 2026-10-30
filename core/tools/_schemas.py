@@ -406,6 +406,24 @@ BASE_TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "start_workspace_dev_server",
+            "description": (
+                "Starts the workspace's own dev command (package.json → scripts.dev) in the background on a free loopback port and returns the URL. Use this when the user asks to look at their project and run it."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Project directory — absolute or ~-relative. Empty uses the active workspace.",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "load_workspace",
             "description": (
                 "Reads all files of a directory (workspace) recursively. Use this tool when the user wants to analyse, understand or review a whole project. Ideal for code reviews, project overviews and documentation tasks."
