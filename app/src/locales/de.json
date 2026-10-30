@@ -751,10 +751,6 @@
     "help": "Hilfe",
     "helpHint": "Aktive Seite: {{tab}} — Werte werden mit Speichern übernommen und sind nach dem Neuladen sichtbar.",
     "languagePillAria": "Sprache wechseln",
-    "groupEveryday": "Alltag",
-    "groupCapabilities": "Fähigkeiten",
-    "groupData": "Daten",
-    "groupAdvanced": "Erweitert",
     "mobile": "Mobil",
     "mobileTitle": "Mobile verbinden",
     "mobileSubtitle": "QR scannen → Ephe öffnet sich auf deinem Handy (LAN-Netz).",
@@ -1298,7 +1294,25 @@
     "solSave": "Speichern",
     "solDelete": "Regel löschen",
     "solDeleteConfirm": "Löschen bestätigen",
-    "deepSection.sol": "Lernen"
+    "deepSection.sol": "Lernen",
+    "groupModels": "Intelligenz & Modelle",
+    "groupLook": "Erscheinungsbild & Interaktion",
+    "groupWork": "Arbeitsraum & Fähigkeiten",
+    "groupTrust": "Sicherheit, Konten & Tresor",
+    "groupSystem": "Netzwerk & System",
+    "vault": "Passwörter & Tresor",
+    "vaultHint": "Was dieses Gerät für Connectoren hält und wo es liegt.",
+    "vaultGroup": "Deklarierte Zugangsdaten",
+    "vaultConnectorHint": "Der Connector erhält nur die hier gelisteten Namen.",
+    "vaultMissing": "nicht gesetzt — auf der Karte des Connectors eintragen",
+    "vaultForget": "Entfernen",
+    "vaultEmpty": "Noch kein Connector verlangt Zugangsdaten.",
+    "vaultLoading": "Tresor wird gelesen",
+    "vaultStored": {
+      "keyring": "im Systemschlüsselbund",
+      "file_0600": "in einer Datei, die nur du lesen kannst"
+    },
+    "pluginsDiscover": "Weitere im Discover-Marktplatz entdecken"
   },
   "error": {
     "fallback": "Beim Laden der Landing Page ist etwas schiefgelaufen. Lade die Seite neu, um es erneut zu versuchen.",

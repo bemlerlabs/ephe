@@ -14,6 +14,8 @@
  * radius is spent to say it. A group name is the 11 px mono label the direction
  * draws above its rows.
  */
+import { useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { ABOUT_KEYS, NAV_GROUPS, navIcon } from './model'
 import { sectionRevealId } from './model/deepRegister'
 import { subsOfTab } from './model/settingsParts'
@@ -33,6 +35,18 @@ const NAV_GROUP =
 
 const HIT_ROW =
   'focus-ring w-full flex items-center gap-2.5 px-3 py-1.5 text-scale-ui transition-colors'
+
+/** Which groups the reader folded away, remembered across openings. */
+const FOLDED_KEY = 'ephe.settings.foldedGroups'
+
+function readFolded(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FOLDED_KEY) || '[]')
+    return Array.isArray(raw) ? raw.filter((one) => typeof one === 'string') : []
+  } catch {
+    return []
+  }
+}
 
 export interface RegisterNavProps {
   query: string
@@ -58,6 +72,22 @@ export function RegisterNav({
   onJump,
   onSelect,
 }: RegisterNavProps) {
+  const [folded, setFolded] = useState<string[]>(readFolded)
+
+  const toggleGroup = (groupKey: string) => {
+    setFolded((current) => {
+      const next = current.includes(groupKey)
+        ? current.filter((one) => one !== groupKey)
+        : [...current, groupKey]
+      try {
+        localStorage.setItem(FOLDED_KEY, JSON.stringify(next))
+      } catch {
+        // A browser that refuses storage still folds for this visit.
+      }
+      return next
+    })
+  }
+
   return (
     <>
       {/* I3-V5: search in the navigation — it finds areas and the single
@@ -150,8 +180,31 @@ export function RegisterNav({
               className="mb-2 max-md:flex max-md:items-center max-md:gap-1"
             >
               {/* Hidden at phone width, the chips ran as one undifferentiated strip
-                  inside a long scroll — the heading is what makes a run readable. */}
-              <p className={NAV_GROUP}>{t(group.groupKey)}</p>
+                  inside a long scroll — the heading is what makes a run readable.
+                  On a wide column the heading folds its rows, and the folder keeps
+                  its memory: a register that reopens unfolded every time makes the
+                  reader pack it again. */}
+              <p className={`${NAV_GROUP} md:hidden`}>{t(group.groupKey)}</p>
+              <button
+                type="button"
+                data-testid={`settings-nav-group-toggle-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+                aria-expanded={!folded.includes(group.groupKey)}
+                onClick={() => toggleGroup(group.groupKey)}
+                className={`${NAV_GROUP} focus-ring hidden w-full items-center gap-1 text-left md:flex`}
+              >
+                {t(group.groupKey)}
+                <span aria-hidden="true">
+                  {folded.includes(group.groupKey) ? (
+                    <ChevronRight className="h-3 w-3" strokeWidth={1.5} />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" strokeWidth={1.5} />
+                  )}
+                </span>
+              </button>
+              <div
+                data-testid={`settings-nav-rows-${group.groupKey.replace('settings.group', '').toLowerCase()}`}
+                className={folded.includes(group.groupKey) ? 'hidden md:block' : 'contents'}
+              >
               {group.keys.map((key) => {
                 const Icon = navIcon(key)
                 const selected = activeTab === key
@@ -196,6 +249,7 @@ export function RegisterNav({
                   </div>
                 )
               })}
+              </div>
             </div>
           ))}
           <div

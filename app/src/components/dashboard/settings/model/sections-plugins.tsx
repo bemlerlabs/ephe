@@ -7,7 +7,7 @@ import Switch from '@/components/shell/Switch'
 import SearchInput from '@/components/shell/SearchInput'
 import PluginIcon from '@/components/shell/PluginIcon'
 import PluginSwitch from '@/components/ui/PluginSwitch'
-import { Puzzle, Power, Store, MessageSquarePlus } from 'lucide-react'
+import { Puzzle, Power, Store, MessageSquarePlus, Compass } from 'lucide-react'
 import type { PluginEntry } from '@/lib/api'
 import { ApiError } from '@/lib/api'
 import { startDisposableChat } from '@/lib/chatSeed'
@@ -39,17 +39,33 @@ function PluginsSection({ model }: { model: SettingsModel }) {
         title={t('settings.pluginsTitle')}
         subtitle={t('settings.pluginsHint')}
         actions={
-          pluginView ? (
-            <span
-              data-testid="plugin-count-pill"
-              className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand-deep"
+          <>
+            {pluginView ? (
+              <span
+                data-testid="plugin-count-pill"
+                className="rounded-full bg-brand/15 px-2.5 py-1 text-ui-xs font-medium text-brand-deep"
+              >
+                {(pluginView.public ?? []).filter((p) => p.enabled).length +
+                  (pluginView.personal ?? []).filter((p) => p.enabled).length}
+                {' / '}
+                {(pluginView.public?.length ?? 0) + (pluginView.personal?.length ?? 0)}
+              </span>
+            ) : null}
+            {/* The catalog lives in /discover; this area only switches what is here. */}
+            <button
+              type="button"
+              data-testid="plugins-open-discover"
+              onClick={() => {
+                // HashRouter: the address is the route, and this block also renders
+                // outside a router.
+                window.location.hash = '#/discover'
+              }}
+              className="focus-ring flex items-center gap-1.5 rounded-lg border border-hairline px-2.5 py-1 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground"
             >
-              {(pluginView.public ?? []).filter((p) => p.enabled).length +
-                (pluginView.personal ?? []).filter((p) => p.enabled).length}
-              {' / '}
-              {(pluginView.public?.length ?? 0) + (pluginView.personal?.length ?? 0)}
-            </span>
-          ) : undefined
+              <Compass className="h-3.5 w-3.5" strokeWidth={1.5} />
+              {t('settings.pluginsDiscover')}
+            </button>
+          </>
         }
       />
       <SearchInput
