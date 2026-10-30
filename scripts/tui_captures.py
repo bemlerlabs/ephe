@@ -19,6 +19,10 @@ from pathlib import Path
 SIZES = ((80, 24), (140, 40))
 STATES = ("idle", "streaming", "tool-card", "approval", "session-switcher", "error")
 
+# Python puts the script directory on sys.path and never the repo root, so a bare
+# `import ui` resolves to whatever editable install this interpreter carries.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 
 def _isolate(root: Path) -> None:
     sessions = root / "sessions"
@@ -34,6 +38,9 @@ def _isolate(root: Path) -> None:
     os.environ["EPHE_PROFILE_PATH"] = str(root / "profile.json")
     os.environ["EPHE_MEMORY_DIR"] = str(root / "chroma")
     os.environ["EPHE_FEEDBACK_DIR"] = str(root / "feedback")
+    # The boot update line reaches GitHub; a capture has to be offline to be
+    # reproducible, and the update notice is not one of the six states.
+    os.environ["EPHE_NO_UPDATE_CHECK"] = "1"
 
 
 def _seed_sessions() -> None:
