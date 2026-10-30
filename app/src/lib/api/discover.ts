@@ -37,6 +37,19 @@ export function getDiscoverBootstrap(): Promise<DiscoverBootstrap> {
   return request<DiscoverBootstrap>('/api/discover/bootstrap')
 }
 
+export interface DiscoverHit {
+  id: string
+  score: number
+}
+
+/** Y3 — intent search: the task a person types, answered from the committed index. */
+export function searchDiscover(query: string, limit = 24): Promise<DiscoverHit[]> {
+  const params = new URLSearchParams({ q: query, limit: String(limit) })
+  return request<{ query: string; entries: DiscoverHit[] }>(
+    `/api/discover/search?${params.toString()}`,
+  ).then((payload) => payload.entries)
+}
+
 export interface DryRunFinding {
   class: string
   severity: string

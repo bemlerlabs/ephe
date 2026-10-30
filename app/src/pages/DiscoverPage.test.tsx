@@ -25,6 +25,7 @@ const api = vi.hoisted(() => ({
   planMarketInstall: vi.fn(),
   installMarketPlan: vi.fn(),
   dryRunEntry: vi.fn(),
+  searchDiscover: vi.fn(),
 }))
 
 vi.mock('@/lib/api', () => api)
@@ -189,5 +190,19 @@ describe('discover page', () => {
     render_()
     await waitFor(() => expect(screen.getByTestId('discover-failed')).toBeTruthy())
     expect(screen.getByTestId('discover-fail-addons')).toBeTruthy()
+  })
+
+  it('finds a task entry whose words the card never carries', async () => {
+    api.searchDiscover.mockResolvedValue([{ id: 'connector:registry:web-search', score: -3 }])
+    render_()
+    await waitFor(() => expect(screen.getByTestId('discover-search')).toBeTruthy())
+    fireEvent.change(screen.getByTestId('discover-search'), {
+      target: { value: 'Nachricht senden' },
+    })
+    await waitFor(() => expect(api.searchDiscover).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-card-connector:registry:web-search')).toBeTruthy(),
+    )
+    expect(screen.getByTestId('discover-result-count').textContent).toContain('1')
   })
 })
