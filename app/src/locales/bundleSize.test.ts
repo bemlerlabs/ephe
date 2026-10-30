@@ -172,8 +172,11 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // editor add ten leaves per file (on-count, filter, switch label, locked, failed,
 // allow title, hint, pick, add, remove). Measured as committed: en 139 320 B,
 // de 151 028 B — both halves move by 1,000 B, the step the earlier waves took.
-const EN_CEILING = 140_900
-const DE_CEILING = 152_600
+// Lowered on 2026-10-30 by measuring again: the in-Settings marketplace surfaces
+// moved to /discover and 69 dead `market*` keys per file went with them — en
+// 140,411 B → 137,362 B, de 152,236 B → 148,893 B.
+const EN_CEILING = 137_900
+const DE_CEILING = 149_400
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

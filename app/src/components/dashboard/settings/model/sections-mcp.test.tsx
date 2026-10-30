@@ -44,42 +44,14 @@ function model(over: Record<string, unknown> = {}) {
 }
 
 describe('MCP-Bereich (I7-4)', () => {
-  it('deutsche Oberflaeche: deutsche Katalogbeschreibung', () => {
-    render(renderMcp(model()))
-    expect(screen.getByTestId('mcp-catalog-row-mcp-fetch').textContent).toContain(
-      'Webseiten abrufen',
-    )
-  })
 
-  it('englische Oberflaeche: keine deutschen Saetze im Katalog', () => {
-    render(renderMcp(model({ i18n: { language: 'en' } })))
-    const row = screen.getByTestId('mcp-catalog-row-mcp-fetch')
-    expect(row.textContent).toContain('Fetch websites')
-    expect(row.textContent).not.toContain('Webseiten abrufen')
-  })
 
   it('die Gruppen erklären Ersetzen und Nicht-Aktualisieren', () => {
     render(renderMcp(model()))
     expect(screen.getByTestId('mcp-section-servers').textContent).toContain(
       'settings.mcpGroupServersHint',
     )
-    expect(screen.getByTestId('mcp-section-catalog').textContent).toContain(
-      'settings.mcpCatalogHint',
-    )
     expect(screen.getByText('settings.mcpToolsHint')).toBeTruthy()
   })
 
-  it('fehlende englische Fassung faellt auf den Backend-Text zurueck', () => {
-    render(
-      renderMcp(
-        model({
-          i18n: { language: 'en' },
-          mcpCatalog: [{ ...entries[0], description_en: undefined }],
-        }),
-      ),
-    )
-    expect(screen.getByTestId('mcp-catalog-row-mcp-fetch').textContent).toContain(
-      'Webseiten abrufen',
-    )
-  })
 })

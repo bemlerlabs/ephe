@@ -1,6 +1,6 @@
 // W3b — Skills tab: pack export link, file install and URL install (pins).
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -178,23 +178,5 @@ describe('SettingsPanel Skills-Tab (W3b)', () => {
     expect(link).toHaveAttribute('href', '/api/skills/export-pack/core')
   })
 
-  it('Datei-Install: change am versteckten File-Input ruft installSkill', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="skills" />)
-    await screen.findByTestId('pack-export-core')
-    const file = new File(['x'], 'pack.zip')
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
-    Object.defineProperty(input, 'files', { value: [file], configurable: true })
-    fireEvent.change(input)
-    await waitFor(() => expect(installSkill).toHaveBeenCalled())
-  })
 
-  it('URL-Install: Button ruft installSkillFromUrl mit getippter URL', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="skills" />)
-    const input = await screen.findByTestId('skill-install-url-input')
-    fireEvent.change(input, { target: { value: 'https://example.org/pack.zip' } })
-    fireEvent.click(await screen.findByTestId('skill-install-url'))
-    await waitFor(() =>
-      expect(installSkillFromUrl).toHaveBeenCalledWith('https://example.org/pack.zip'),
-    )
-  })
 })

@@ -105,11 +105,6 @@ const SAME_BY_DESIGN = new Set<string>([
   'settings.deepSection.hooks', // Hooks
   'settings.deepSection.plugins', // Plugins
   'settings.agentName', // Name — the same word in both languages
-  'settings.marketDetail', // Details
-  'settings.marketQualityPlugin', // Plugin — the product's own label, the same word in German
-  'settings.marketQualityCapabilityPreset', // Capability Preset — product term, same form in both surfaces
-  'settings.marketVersion', // Version
-  'settings.marketTrustCommunity', // Community
   'settings.agentOriginEphe', // Ephe
   'settings.agentOriginPlugin', // Plugin
   'settings.teamBudget', // Budget

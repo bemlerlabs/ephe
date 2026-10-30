@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  Download,
   FileBox,
   Layers,
   Loader2,
@@ -10,7 +9,7 @@ import {
   Puzzle,
   ShieldCheck,
   Trash2,
-  Upload,
+  Download,
 } from 'lucide-react'
 import { fileUrl } from '@/lib/api'
 import { startDisposableChat } from '@/lib/chatSeed'
@@ -24,19 +23,12 @@ import type { SettingsModel } from './types'
 
 export function renderSkills(model: SettingsModel) {
   const {
-    fileInputRef,
-    handleSkillDelete,
-    handleSkillInstall,
-    handleSkillInstallUrl,
-    handleSkillToggle,
+        handleSkillDelete,
+            handleSkillToggle,
     packIndex,
     reloadSkills,
-    setSkillUrl,
-    skillUrl,
-    skills,
-    skillsBusy,
-    skillsMsg,
-    t,
+            skills,
+            t,
   } = model
 
   return (
@@ -48,75 +40,6 @@ export function renderSkills(model: SettingsModel) {
       {/* R16 skill-pack management: install (zip/tgz) + refresh; W3b: URL install.
               I7-4: grouped with a purpose line, so every button says what it does
               to the file system. */}
-      <SettingsGroup
-        icon={Download}
-        title={t('settings.skillsGroupInstall')}
-        description={t('settings.skillsGroupInstallHint')}
-        testid="skills-group-install"
-      >
-        <div className="space-y-2 p-3">
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".zip,.tgz,.tar.gz,.tar"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void handleSkillInstall(f)
-                e.target.value = ''
-              }}
-            />
-            <button
-              type="button"
-              disabled={skillsBusy}
-              onClick={() => fileInputRef.current?.click()}
-              data-testid="skill-install-file"
-              className="flex items-center gap-1.5 rounded-lg bg-brand/20 text-brand-deep hover:bg-brand/20 px-3 py-2 text-ui-xs font-medium transition-colors disabled:opacity-50 max-lg:min-h-11"
-            >
-              {skillsBusy ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              {t('settings.skillsInstall')}
-            </button>
-            <button
-              type="button"
-              onClick={reloadSkills}
-              className="rounded-lg glass-control text-foreground/60 hover:text-foreground px-3 py-2 text-ui-xs font-medium transition-colors max-lg:min-h-11"
-            >
-              {t('settings.skillsRefresh')}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={skillUrl}
-              onChange={(e) => setSkillUrl(e.target.value)}
-              placeholder={t('settings.skillsInstallUrlPlaceholder')}
-              aria-label={t('settings.skillsInstallUrl')}
-              data-testid="skill-install-url-input"
-              className="min-w-0 flex-1 rounded-lg bg-surface px-2 py-2 text-ui-input text-foreground/80 placeholder:text-ink-faint outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 focus:bg-surface transition-colors max-lg:min-h-11"
-            />
-            <button
-              type="button"
-              disabled={skillsBusy || !skillUrl.trim()}
-              onClick={() => void handleSkillInstallUrl()}
-              data-testid="skill-install-url"
-              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-brand/20 text-brand-deep hover:bg-brand/20 px-3 py-2 text-ui-xs font-medium transition-colors disabled:opacity-50 max-lg:min-h-11"
-            >
-              {skillsBusy ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5" />
-              )}
-              {t('settings.skillsInstallUrl')}
-            </button>
-          </div>
-          {skillsMsg && <p className="text-ui-xs font-mono text-brand/80 break-all">{skillsMsg}</p>}
-        </div>
-      </SettingsGroup>
 
       {/* R16: curated topic packs (offline index) — export as zip */}
       {packIndex && packIndex.length > 0 && (

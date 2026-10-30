@@ -98,7 +98,7 @@ Sources: the two master-directive documents of 2026-10-29 (areas A–V, directiv
 | P progressive disclosure | done in v0.4.0 |
 | Q plugin SVGs | 15 distinct SVGs, Warm-Ink palette (`sha256sum` all unique) |
 | R cross-map icons + 16 px nav | `registerNav` 16 px / 1.5 px; audit zero collisions |
-| S marketplace 2.0 | `MarketCard` uses `PluginIcon`; one-click try lives |
+| S marketplace 2.0 | `/discover` holds skills, connectors and add-ons in one shelf; the bench reads call counts from the audit log |
 | T skills studio 2.0 | expandable packs, 18 px icons, run chip, provenance, builder |
 | U working backwards | spec + gates in place (this page is its checklist) |
 | V paper moth branding | assets and surfaces open (see Brand above) |
