@@ -42,6 +42,151 @@ MCP_QUERIES = [
     "everything", "github", "playwright", "context7", "chrome devtools",
     "postgres", "notion", "slack", "linear",
 ]
+MIRROR_PAGE_LIMIT = 100
+MIRROR_MAX_ENTRIES = 10_000
+
+#: Facet buckets for the registry mirror; the map lives here so the snapshot
+#: stays reproducible and the runtime serves pure data.
+_CATEGORY_KEYWORDS = (
+    ("files", ("filesystem", "file", "folder", "drive", "s3", "dropbox")),
+    ("code", ("git", "github", "repository", "pull request", "code review")),
+    ("database", ("postgres", "sql", "database", "redis", "vector", "mongo", "bigquery", "snowflake")),
+    ("web", ("browser", "scraping", "search", "http", "url", "fetch")),
+    ("memory", ("memory", "knowledge", "graph", "notes", "obsidian", "notion")),
+    ("communication", ("slack", "email", "gmail", "telegram", "discord", "messaging")),
+    ("security", ("security", "audit", "vulnerability", "auth", "identity")),
+    ("cloud", ("aws", "azure", "gcp", "kubernetes", "docker", "serverless", "terraform")),
+    ("media", ("image", "video", "audio", "music", "media")),
+    ("productivity", ("calendar", "task", "todo", "project", "spreadsheet", "docs")),
+    ("utility", ("time", "math", "calculator", "qr", "random", "weather")),
+)
+
+
+def _registry_category(text: str) -> str:
+    lowered = text.lower()
+    for category, keywords in _CATEGORY_KEYWORDS:
+        if any(keyword in lowered for keyword in keywords):
+            return category
+    return "other"
+
+
+def _mirror_slug(name: str) -> str:
+    return "".join(ch if ch.isalnum() else "-" for ch in name.lower()).strip("-") or "entry"
+
+
+def _mirror_hint(server: dict[str, Any]) -> tuple[str, str]:
+    """(install_hint, docs) for one registry server; the registry listing URL
+    is the only locator the metadata guarantees."""
+    quoted = urllib.parse.quote(str(server.get("name") or ""))
+    docs = f"https://registry.modelcontextprotocol.io/v0/servers/{quoted}"
+    for remote in server.get("remotes") or []:
+        url = str(remote.get("url") or "")
+        kind = str(remote.get("type") or "streamable-http")
+        return f"{url} ({kind})", docs
+    for package in server.get("packages") or []:
+        transport = str((package.get("transport") or {}).get("type") or "stdio")
+        command = str(package.get("runtimeHint") or package.get("identifier") or "")
+        return f"{command} ({transport})", docs
+    return "", docs
+
+
+def mirror_registry() -> tuple[int, list[dict[str, Any]], list[str]]:
+    """One full pass over the public registry: cursor pagination, dedupe by
+    name (the newest version wins), ASCII-only descriptions, one entry per
+    server. Returns (count, entries, errors). Metadata only — the registry
+    data is CC0, its terms reserve nothing for read access."""
+    entries: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    cursor = ""
+    pages = 0
+    while pages < 200:
+        url = f"{MCP_REGISTRY}?limit={MIRROR_PAGE_LIMIT}"
+        if cursor:
+            url += f"&cursor={urllib.parse.quote(cursor)}"
+        try:
+            payload = json.loads(fetch(url))
+        except Exception as exc:  # noqa: BLE001 - a source failure is data
+            errors.append(f"page {pages}: {type(exc).__name__}: {exc}")
+            break
+        servers = payload.get("servers") if isinstance(payload, dict) else None
+        if not isinstance(servers, list):
+            errors.append(f"page {pages}: no servers array")
+            break
+        for raw in servers:
+            if not isinstance(raw, dict):
+                continue
+            server = raw.get("server")
+            if not isinstance(server, dict):
+                continue
+            name = str(server.get("name") or "")
+            description = " ".join(str(server.get("description") or "").split()).strip()
+            if not name or not description or not description.isascii():
+                continue
+            hint, docs = _mirror_hint(server)
+            meta = raw.get("_meta")
+            meta = meta if isinstance(meta, dict) else {}
+            previous = entries.get(name)
+            latest = bool(meta.get("isLatest"))
+            if previous is not None and not latest:
+                continue
+            entries[name] = {
+                "id": _mirror_slug(name),
+                "name": str(server.get("title") or name),
+                "description": description[:400],
+                "category": _registry_category(description),
+                "install_hint": hint,
+                "docs": docs,
+                "version": str(server.get("version") or ""),
+                "published_at": str(meta.get("publishedAt") or ""),
+                "source": "registry",
+            }
+            if len(entries) >= MIRROR_MAX_ENTRIES:
+                break
+        pages += 1
+        cursor = ""
+        if isinstance(payload, dict) and isinstance(payload.get("metadata"), dict):
+            cursor = str(payload["metadata"].get("nextCursor") or "")
+        if not cursor or len(entries) >= MIRROR_MAX_ENTRIES:
+            break
+    return len(entries), sorted(entries.values(), key=lambda e: e["name"].lower()), errors
+
+
+#: Well-known registry names the curated tier leads with; matched as substrings
+#: against mirror names, so a pick that disappears from the registry stops
+#: matching instead of resurrecting a dead entry.
+PICKS = (
+    "everything", "filesystem", "server-fetch", "server-git", "server-time",
+    "server-memory", "sequential", "github", "gitlab", "slack", "notion",
+    "linear", "postgres", "sqlite", "redis", "context7", "brave", "chrome",
+    "playwright", "puppeteer", "firecrawl", "tavily", "figma", "sentry",
+    "stripe", "supabase", "kubernetes", "docker", "terraform", "google-maps",
+    "gmail", "jira", "confluence", "clickup", "airtable", "exa", "serper",
+    "screenshot", "browserbase", "fetch", "memory", "search", "terminal",
+    "obsidian", "notion", "youtube", "spotify", "weather", "math",
+)
+PICKS_PER_CATEGORY = 20
+
+
+def curated_from_mirror(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The tier the surface shows by default: named picks first, then the 30
+    most recently published entries per category. Every row is a mirror entry
+    plus its reason; nothing here is invented data."""
+    picked: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        name = entry["name"].lower()
+        if any(pick in name for pick in PICKS):
+            picked[entry["id"]] = dict(entry, curated_reason="pick")
+    by_category: dict[str, list[dict[str, Any]]] = {}
+    for entry in entries:
+        by_category.setdefault(entry["category"], []).append(entry)
+    for rows in by_category.values():
+        rows.sort(key=lambda e: e.get("published_at") or "", reverse=True)
+    for rows in by_category.values():
+        for entry in rows[:PICKS_PER_CATEGORY]:
+            row = picked.setdefault(entry["id"], dict(entry))
+            row.setdefault("curated_reason", "recent")
+    ordered = sorted(picked.values(), key=lambda e: (e["name"].lower(),))
+    return ordered
 
 
 def permissive(license_text: str) -> bool:
@@ -331,11 +476,64 @@ def summarize(rows: list[dict[str, Any]], errors: list[str]) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", required=True, type=Path, help="run-scoped report path")
+    parser.add_argument("--out", type=Path, help="run-scoped report path")
     parser.add_argument("--sources", default="ephe,app-market,mcp,oss-plugin", help="comma-separated adapters")
     parser.add_argument("--root", type=Path, default=ROOT, help="workshop root for the Ephe adapter")
     parser.add_argument("--no-archives", action="store_true", help="skip app-market archive downloads")
+    parser.add_argument(
+        "--mirror", type=Path, metavar="OUT",
+        help="write the full registry mirror to OUT and exit (metadata only)",
+    )
+    parser.add_argument(
+        "--curated", type=Path, metavar="OUT",
+        help="write the curated tier to OUT and exit (picks plus recent per category)",
+    )
     args = parser.parse_args(argv)
+
+    if args.mirror:
+        count, entries, errors = mirror_registry()
+        payload = {
+            "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+            "source": MCP_REGISTRY,
+            "count": count,
+            "entries": entries,
+        }
+        args.mirror.parent.mkdir(parents=True, exist_ok=True)
+        args.mirror.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"mirror: {count} entry(ies) written to {args.mirror}")
+        for error in errors:
+            print(f"  error: {error}")
+        return 1 if errors else 0
+
+    if args.curated:
+        # The curated tier derives from the committed mirror, so the run is
+        # deterministic and offline; --mirror refreshes the mirror first.
+        snapshot = ROOT / "marketplace" / "registry-snapshot.json"
+        try:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"curated: {snapshot} unreadable: {exc}")
+            return 1
+        count = int(payload.get("count") or 0)
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        curated = curated_from_mirror(entries if isinstance(entries, list) else [])
+        payload = {
+            "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+            "source": MCP_REGISTRY,
+            "count": len(curated),
+            "entries": curated,
+        }
+        args.curated.parent.mkdir(parents=True, exist_ok=True)
+        args.curated.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"curated: {len(curated)} of {count} entry(ies) written to {args.curated}")
+        return 0
+
+    if args.out is None:
+        parser.error("--out is required unless --mirror is given")
 
     sources = [part.strip() for part in args.sources.split(",") if part.strip()]
     rows: list[dict[str, Any]] = []

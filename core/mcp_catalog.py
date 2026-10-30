@@ -13,6 +13,25 @@ Ephe – Bad Liebenzell, Schwarzwald
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
+_SNAPSHOT_PATH = (
+    Path(__file__).resolve().parent.parent / "marketplace" / "registry-snapshot.json"
+)
+_CURATED_PATH = (
+    Path(__file__).resolve().parent.parent / "marketplace" / "registry-curated.json"
+)
+
+
+def _load_entries(path: Path) -> list[dict]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    entries = payload.get("entries") if isinstance(payload, dict) else None
+    return [dict(entry) for entry in entries] if isinstance(entries, list) else []
+
 CATALOG: list[dict] = [
     {
         "id": "mcp-everything",
@@ -104,3 +123,17 @@ CATALOG: list[dict] = [
 def catalog_entries() -> list[dict]:
     """Copy of the catalog (route output; deterministic, without secrets)."""
     return [dict(e) for e in CATALOG]
+
+
+def registry_entries() -> list[dict]:
+    """The public registry mirror written by `catalog_discover.py --mirror`.
+
+    Metadata only (CC0), English descriptions from the publishers themselves,
+    served without a network call — the breadth answer for the connector area."""
+    return _load_entries(_SNAPSHOT_PATH)
+
+
+def curated_entries() -> list[dict]:
+    """The tier the connector area shows by default: named picks plus the most
+    recently published entries per category, derived from the mirror."""
+    return _load_entries(_CURATED_PATH)
