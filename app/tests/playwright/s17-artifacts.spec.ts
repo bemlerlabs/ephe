@@ -100,17 +100,15 @@ async function stub(route: Route) {
   return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
 }
 
-test('S17: a produced PNG renders inline and opens in the lightbox', async ({ page }) => {
+test('S17: a produced PNG reaches the pane through its 40px capsule', async ({ page }) => {
   await openChat(page)
   await page.getByTestId('chat-input').fill('show me the image')
   await page.getByTestId('send-btn').click()
 
-  const image = page.locator('[data-testid^="message-file-image-"]').first()
-  await expect(image).toBeVisible({ timeout: 15000 })
-  const src = await image.locator('img').getAttribute('src')
-  expect(src).toContain('/api/artifacts/art-png/file')
-  expect(src).not.toContain('/api/file?')
-
-  await image.click()
-  await expect(page.locator('[data-testid^="message-file-lightbox-"]')).toBeVisible()
+  const capsule = page.locator('[data-testid^="message-file-open-"]').first()
+  await expect(capsule).toBeVisible({ timeout: 15000 })
+  // The transcript stays a log: no inline image, no lightbox.
+  await expect(page.locator('[data-testid^="message-file-image-"]')).toHaveCount(0)
+  await capsule.click()
+  await expect(page.locator('[role="tabpanel"]')).toBeVisible()
 })

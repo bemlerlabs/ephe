@@ -35,7 +35,6 @@ import { UpdateDialog } from '../UpdateDialog'
 import ChatInput from '../ChatInput'
 import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
 import HeaderCompanion from '@/components/shell/HeaderCompanion'
-import { TaskDock } from '../TaskDock'
 import { CellLifeLine } from '../CellLifeLine'
 import { useContextOccupancy } from '@/lib/useContextOccupancy'
 import MessageBubble from '../MessageBubble'
@@ -66,7 +65,6 @@ import { isMacPlatform } from '@/lib/shortcuts'
 // W3-1: the two heavy panes are their own chunks. The agent panel drags in xterm
 // and every tab; the artifact rail is only needed once a turn produced a file.
 // Both load after the chat shell paints instead of riding in the ChatPage chunk.
-const ArtifactRail = lazy(() => import('../ArtifactRail'))
 const AgentPanel = lazy(() => import('../AgentPanel'))
 // The register is opened, not painted: its own chunk keeps ChatPage under the
 // first-paint budget as the appearance surface grows.
@@ -121,8 +119,6 @@ export default function ChatLayout() {
     setSidebarOpen,
     settingsOpen,
     setSettingsOpen,
-    railLibraryOpen,
-    setRailLibraryOpen,
     settingsTab,
     setSettingsTab,
     sidebarCollapsed,
@@ -583,13 +579,17 @@ export default function ChatLayout() {
                       {t('shortcuts.title')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={() => setRailLibraryOpen((v) => !v)}
+                      onSelect={() => {
+                        const sid = currentSession?.id
+                        window.location.hash = sid
+                          ? `#/artifacts?session=${encodeURIComponent(sid)}`
+                          : '#/artifacts'
+                      }}
                       data-testid="artifact-library-toggle"
                       className="gap-2"
                     >
                       <Library className="h-3.5 w-3.5" aria-hidden="true" />
                       {t('artifacts.library')}
-                      {railLibraryOpen && <span className="ml-auto text-ui-xs">✓</span>}
                     </DropdownMenuItem>
                     {/* macOS draws the native traffic lights over this window
                         (tauri.conf titleBarStyle Overlay); a second minimize/
@@ -814,13 +814,6 @@ export default function ChatLayout() {
                     <SolInsightCard />
                   </div>
                   <RunRail plan={runData.plan} />
-                  {/* The toolbar, as a contextual dock: it floats over the
-                      transcript and clears the composer at any composer height. */}
-                  <TaskDock
-                    messages={currentSession?.messages ?? []}
-                    plan={runData.plan}
-                    headerMeta={workspace.set ? headerMeta : null}
-                  />
                 </div>
                 <div ref={messagesEndRef} />
               </>
@@ -868,15 +861,6 @@ export default function ChatLayout() {
             />
           </div>
         </main>
-        {/* P2-1: artifact preview rail (right side, only when artifacts exist) */}
-        <Suspense fallback={null}>
-          <ArtifactRail
-            messages={currentSession?.messages ?? []}
-            sessionId={currentSession?.id}
-            libraryOpen={railLibraryOpen}
-            onCloseLibrary={() => setRailLibraryOpen(false)}
-          />
-        </Suspense>
         {/* Round 14: shortcut cheatsheet ('?') */}
         <ShortcutOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
         {/* G2/G1: agent panel (tabs: live preview | terminal), opens via Cmd-K */}

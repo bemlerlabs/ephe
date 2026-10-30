@@ -186,9 +186,9 @@ describe('MessageFileCard', () => {
     expect(openEvents).toHaveLength(1)
     expect(openEvents[0]!.detail).toMatchObject({
       tab: 'preview',
-      url: expect.stringContaining('/api/file?path='),
+      url: expect.stringContaining('/api/artifacts/'),
     })
-    expect(String(openEvents[0]!.detail.url)).toContain('report.pdf')
+    expect(String(openEvents[0]!.detail.url)).toContain('/file')
     stop()
   })
 
@@ -256,7 +256,7 @@ describe('the adopt failure names the next step', () => {
   })
 })
 
-describe('S17: the bytes the card points at', () => {
+describe('PAKET X: the capsule is the only preview in the transcript', () => {
   const file = (over = {}) => ({
     key: 'k1',
     name: 'cat.png',
@@ -266,56 +266,33 @@ describe('S17: the bytes the card points at', () => {
     ...over,
   })
 
-  it('renders an image inline through the artifact route, not /api/file', () => {
-    render(<MessageFileCard file={file()} />)
-    const img = screen.getByTestId('message-file-image-k1').querySelector('img')!
-    expect(img.getAttribute('src')).toContain('/api/artifacts/art-png/file')
-    expect(img.getAttribute('src')).not.toContain('/api/file?')
-    expect(img.getAttribute('src')).not.toContain('download=1')
+  it('renders no inline image, frame, video or audio', () => {
+    for (const f of [file(), file({ name: 'brief.pdf', kind: 'pdf', key: 'p1' }),
+                     file({ name: 'clip.mp4', kind: 'video', key: 'v1' }),
+                     file({ name: 'voice.mp3', kind: 'audio', key: 'a1' })]) {
+      const { container, unmount } = render(<MessageFileCard file={f} />)
+      expect(container.querySelector('img')).toBeNull()
+      expect(container.querySelector('iframe')).toBeNull()
+      expect(container.querySelector('video')).toBeNull()
+      expect(container.querySelector('audio')).toBeNull()
+      unmount()
+    }
   })
 
-  it('replaces a broken image with a concrete reason and a retry that re-requests it', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }))
-    render(<MessageFileCard file={file()} />)
-    fireEvent.error(screen.getByTestId('message-file-image-k1').querySelector('img')!)
-    const alert = await screen.findByTestId('message-file-unavailable-k1')
-    expect(alert.textContent).toContain('artifacts.reasonProtected')
-    expect(alert.textContent!.match(/artifacts\.imageUnavailable/g)).toHaveLength(1)
-    expect(screen.queryByTestId('message-file-image-k1')).toBeNull()
-    fireEvent.click(screen.getByTestId('message-file-retry-k1'))
-    const img = screen.getByTestId('message-file-image-k1').querySelector('img')!
-    expect(img.getAttribute('src')).toContain('retry=1')
-    vi.unstubAllGlobals()
-  })
-
-  it('names a missing file as missing, not as an unreadable image', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
-    render(<MessageFileCard file={file()} />)
-    fireEvent.error(screen.getByTestId('message-file-image-k1').querySelector('img')!)
-    const alert = await screen.findByTestId('message-file-unavailable-k1')
-    expect(alert.textContent).toContain('artifacts.reasonMissing')
-    vi.unstubAllGlobals()
-  })
-
-  it('renders a PDF in a sandboxed frame', () => {
-    render(<MessageFileCard file={file({ name: 'brief.pdf', kind: 'pdf', key: 'p1' })} />)
-    const frame = screen.getByTestId('message-file-frame-p1')
-    expect(frame.getAttribute('src')).toContain('/api/artifacts/art-png/file')
-    expect(frame.getAttribute('src')).toContain('view=FitH')
-    // A PDF stays unsandboxed: its viewer is an extension no sandboxed frame runs.
-    expect(frame.getAttribute('sandbox')).toBeNull()
-  })
-
-  it('renders a video with controls and a range-capable source', () => {
-    render(<MessageFileCard file={file({ name: 'clip.mp4', kind: 'video', key: 'v1' })} />)
-    const video = screen.getByTestId('message-file-video-v1') as HTMLVideoElement
-    expect(video.controls).toBe(true)
-    expect(video.getAttribute('src')).toContain('/api/artifacts/art-png/file')
-  })
-
-  it('renders audio with controls', () => {
-    render(<MessageFileCard file={file({ name: 'voice.mp3', kind: 'audio', key: 'a1' })} />)
-    const audio = screen.getByTestId('message-file-audio-a1') as HTMLAudioElement
-    expect(audio.controls).toBe(true)
+  it('the capsule opens the pane through the artifact route', () => {
+    const seen: unknown[] = []
+    const listener = (e: Event) => seen.push((e as CustomEvent).detail)
+    window.addEventListener('ephe:preview-open', listener)
+    try {
+      render(<MessageFileCard file={file()} />)
+      fireEvent.click(screen.getByTestId('message-file-open-k1'))
+    } finally {
+      window.removeEventListener('ephe:preview-open', listener)
+    }
+    const detail = seen[0] as { tab: string; url: string }
+    expect(detail.tab).toBe('preview')
+    expect(detail.url).toContain('/api/artifacts/art-png/file')
+    expect(detail.url).not.toContain('/api/file?')
   })
 })
+

@@ -1,12 +1,9 @@
-import { AlertTriangle, RotateCcw } from 'lucide-react'
+import { AlertTriangle, FileCode, History, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { fileUrl } from '@/lib/api'
 import { friendlyError } from '@/lib/errorText'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import type { ChatMessage as LegacyChatMessage } from '@/store/chatStore'
-import CodeBlock from '../CodeBlock'
-import { ToolReplayKader } from '../ToolReplayKader'
-import { AgentActivityRows } from '../ActivityFeed'
 import AskUserQuestionCard from '../AskUserQuestionCard'
 import { parseAskUserQuestion } from '@/lib/askUserQuestion'
 import PlanCard from '../PlanCard'
@@ -24,28 +21,44 @@ interface AssistantExtrasProps {
   onRetry?: (id: string) => void
 }
 
-/** P3 tail of an assistant turn: activity rows, replay frame, ask/plan
- *  cards, diff summary, inline artifacts, produced files, error + retry. */
+/** Open a tab of the one right-side panel. The steps, the subagent rows and the
+ *  changed-file list already live there, so the bubble keeps one link per fact. */
+function openPanelTab(tab: 'trajectory' | 'git' | 'subagents') {
+  window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab } }))
+}
+
+/** P3 tail of an assistant turn: the live progress line, ask/plan cards, the one
+ *  run line (diff + replay), artifact pills, produced files, error + retry. */
 export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasProps) {
   const { t } = useTranslation()
   const isAssistant = m.role === 'assistant'
+  const hasSteps = Boolean(m.tool_calls?.length || m.blocks?.length)
+
+  const diff = (() => {
+    if (m.streaming || !isAssistant) return null
+    const ds = summarizeToolDiff(m.tool_calls)
+    if (!ds) return null
+    const undo = () => {
+      const st = useChatStore.getState()
+      const sid = st.activeSessionId
+      const cps = sid && st.checkpoints[sid]?.length ? st.checkpoints[sid] : []
+      const last = cps[cps.length - 1]
+      if (last) st.rollbackToCheckpoint(last.id)
+    }
+    const snap = useChatStore.getState()
+    const hasCheckpoints = !!(
+      snap.activeSessionId && snap.checkpoints[snap.activeSessionId]?.length
+    )
+    return { ds, undo, hasCheckpoints }
+  })()
+
   return (
     <>
       {m.streaming && m.progress && !m.error && (
         <TurnProgressLine progress={m.progress} />
       )}
 
-      {/* P3 : subagent/swarm rows stay visible even after
-                  turn end ("Explore · Completed") — permanently below
-                  the tool groups, a pure derivation from m.activities. */}
-      {!m.streaming && <AgentActivityRows activities={m.activities} />}
-
-      {/* N2: tool-replay frame — numbered steps of the turn from the
-                  trajectory snapshot, a single row while collapsed. */}
-      {!m.streaming && <ToolReplayKader message={m} />}
-
-      {/* J6: structured option card when the answer carries an
-                  AskUserQuestion JSON block (content or artifact code) */}
+      {/* J6: structured option card when the answer carries an AskUserQuestion JSON block */}
       {!m.streaming && isAssistant && onPickOption
         ? (() => {
             const askSpec = parseAskUserQuestion(
@@ -66,89 +79,89 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
           })()
         : null}
 
-      {/* M3 (reference parity): stat line per run —
-                  "N files changed +A −D  ↶ Undo" as the last edge of the tools. */}
-      {!m.streaming &&
-        isAssistant &&
-        (() => {
-          const ds = summarizeToolDiff(m.tool_calls)
-          if (!ds) return null
-          const undo = () => {
-            const st = useChatStore.getState()
-            const sid = st.activeSessionId
-            const cps = sid && st.checkpoints[sid]?.length ? st.checkpoints[sid] : []
-            const last = cps[cps.length - 1]
-            if (last) st.rollbackToCheckpoint(last.id)
-          }
-          // F-9: without checkpoints there is nothing to roll back to —
-          // render the summary line without a lying Undo button.
-          const snap = useChatStore.getState()
-          const hasCheckpoints = !!(
-            snap.activeSessionId && snap.checkpoints[snap.activeSessionId]?.length
-          )
-          return (
-            <div
-              data-testid="diff-summary-line"
-              className="mt-2 flex items-center gap-2 text-ui-sm font-mono text-ink-soft"
+      {/* M3: one run line per turn. The counts open the review tab, the Undo rolls
+                  back to the last checkpoint, Replay opens the trajectory tab. */}
+      {!m.streaming && (diff || (isAssistant && hasSteps)) && (
+        <div
+          data-testid="diff-summary-line"
+          className="mt-2 flex flex-wrap items-center gap-2 text-ui-sm font-mono text-ink-soft"
+        >
+          {diff && (
+            <button
+              type="button"
+              data-testid="diff-summary-open"
+              onClick={() => openPanelTab('git')}
+              title={t('chat.openInPanel')}
+              className="inline-flex items-center gap-2 rounded-md px-1 -mx-1 py-0.5 transition-colors hover:text-foreground hover:bg-surface-interactive"
             >
               <span data-testid="diff-summary-files">
-                {t('agentPanel.diffFiles', { count: ds.files })}
+                {t('agentPanel.diffFiles', { count: diff.ds.files })}
               </span>
               <span data-testid="diff-summary-add" className="text-status-success/90">
-                +{ds.additions}
+                +{diff.ds.additions}
               </span>
               <span data-testid="diff-summary-del" className="text-status-danger/90">
-                -{ds.deletions}
+                -{diff.ds.deletions}
               </span>
-              {hasCheckpoints && (
-                <button
-                  type="button"
-                  data-testid="diff-summary-undo"
-                  onClick={undo}
-                  aria-label={t('agentPanel.diffUndo')}
-                  title={t('agentPanel.diffUndo')}
-                  className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-1.5 py-0.5 text-ui-xs text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors"
-                >
-                  <RotateCcw className="h-3 w-3" aria-hidden="true" />
-                  {t('agentPanel.diffUndo')}
-                </button>
-              )}
-            </div>
-          )
-        })()}
+            </button>
+          )}
+          {diff?.hasCheckpoints && (
+            <button
+              type="button"
+              data-testid="diff-summary-undo"
+              onClick={diff.undo}
+              aria-label={t('agentPanel.diffUndo')}
+              title={t('agentPanel.diffUndo')}
+              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-1.5 py-0.5 text-ui-xs text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
+              {t('agentPanel.diffUndo')}
+            </button>
+          )}
+          {isAssistant && hasSteps && (
+            <button
+              type="button"
+              data-testid="replay-link"
+              onClick={() => openPanelTab('trajectory')}
+              title={t('agentPanel.tabTrajectory')}
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-faint transition-colors hover:text-foreground hover:bg-surface-interactive"
+            >
+              <History className="h-3 w-3" aria-hidden="true" />
+              {t('agentPanel.tabTrajectory')}
+            </button>
+          )}
+        </div>
+      )}
 
-      {/* 3b. F-01: detector artifacts inline (code always stays visible/copyable).
-                  One without content is a file rather than a listing, and 3c reaches it. */}
+      {/* 2. Detector artifacts as one-line pills. The code itself stands in the
+                  answer above; the pill is the way into the panel, not a second copy. */}
       {(m.artifacts ?? [])
         .filter((a) => a.content)
         .map((a, i) => (
-          <div key={a.id ?? `a-${i}`} className="mt-2">
-            <div className="mb-1 flex items-center gap-1.5 text-ui-xs text-ink-soft">
-              <span aria-hidden="true">📄</span>
-              <span className="font-medium text-foreground/80">{a.filename}</span>
-              {/* Detector fallback sets title = filename; legacy-persisted
-                        sessions keep that shape, so dedup at render time. */}
-              {a.title && a.title !== a.filename && (
-                <span className="truncate opacity-70">{a.title}</span>
-              )}
-              {/* K1 (reference parity): context link (chat.openInPanel) inside the stream */}
-              <button
-                type="button"
-                data-testid="artifact-open-panel"
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent(PREVIEW_OPEN_EVENT, {
-                      detail: { url: fileUrl(a.filename) },
-                    }),
-                  )
-                }
-                className="ml-auto rounded-md px-1.5 py-0.5 text-ink-faint hover:text-brand hover:bg-surface-interactive transition-colors"
-                aria-label={t('chat.openInPanel')}
-              >
-                {t('chat.openInPanel')}
-              </button>
-            </div>
-            <CodeBlock code={a.content} language={a.language} />
+          <div
+            key={a.id ?? `a-${i}`}
+            data-testid={`message-artifact-${a.id ?? i}`}
+            className="mt-2 flex items-center gap-2 rounded-md border border-hairline bg-surface/60 px-2 py-1.5"
+          >
+            <FileCode className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate text-ui-xs text-foreground/85">
+              {a.filename}
+            </span>
+            <button
+              type="button"
+              data-testid="artifact-open-panel"
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent(PREVIEW_OPEN_EVENT, {
+                    detail: { url: fileUrl(a.filename) },
+                  }),
+                )
+              }
+              className="shrink-0 rounded-md px-1.5 py-0.5 text-ui-2xs font-medium text-brand-deep transition-colors hover:bg-brand/10"
+              aria-label={t('chat.openInPanel')}
+            >
+              {t('chat.openInPanel')}
+            </button>
           </div>
         ))}
 
