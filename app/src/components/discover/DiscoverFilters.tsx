@@ -6,6 +6,7 @@
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, Search, X } from 'lucide-react'
 import type { DiscoverQuery, DiscoverTab } from './discoverModel'
+import './discover.css'
 
 const TABS: DiscoverTab[] = ['all', 'skill', 'connector', 'plugin']
 
@@ -94,7 +95,7 @@ export function DiscoverFilters({
           role="tablist"
           aria-label={t('discover.tabsLabel')}
           data-testid="discover-tabs"
-          className="flex max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto rounded-lg border border-hairline bg-surface/40 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="discover-track flex max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto rounded-lg border border-hairline bg-surface/40 p-0.5"
         >
           {TABS.map((tab) => {
             const active = query.tab === tab

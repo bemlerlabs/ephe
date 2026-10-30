@@ -50,7 +50,7 @@ export function Shelf({
         role="group"
         aria-label={title}
         tabIndex={0}
-        className="focus-ring -mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+        className="discover-track focus-ring -mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0"
       >
         {children}
       </div>
