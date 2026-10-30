@@ -65,6 +65,8 @@ class MCPServerSpec:
     command: str = ""
     args: list[str] = field(default_factory=list)
     label: str = ""
+    #: Secret names this connector declared. Only these reach its child process.
+    env: tuple[str, ...] = ()
 
     def render(self) -> str:
         if self.transport == "stdio":
@@ -79,26 +81,32 @@ class MCPServerSpec:
             and self.endpoint == other.endpoint
             and self.command == other.command
             and self.args == other.args
+            and self.env == other.env
         )
 
 
-def parse_server_spec(spec: str) -> MCPServerSpec:
+def parse_server_spec(spec: str, env: tuple[str, ...] = ()) -> MCPServerSpec:
     """Parse "stdio:cmd arg…" or "http://host:port[/mcp]" into a ServerSpec."""
     spec = spec.strip()
     if spec.startswith("stdio:"):
         rest = spec[len("stdio:"):].strip()
         parts = shlex.split(rest)
         cmd = parts[0] if parts else ""
-        return MCPServerSpec(transport="stdio", command=cmd, args=parts[1:])
+        return MCPServerSpec(transport="stdio", command=cmd, args=parts[1:], env=tuple(env))
     endpoint = spec if spec.startswith("http://") or spec.startswith("https://") else f"https://{spec}"
-    return MCPServerSpec(transport="http", endpoint=endpoint)
+    return MCPServerSpec(transport="http", endpoint=endpoint, env=tuple(env))
 
 
-def set_mcp_servers(specs: list[str]) -> list[MCPServerSpec]:
+def set_mcp_servers(
+    specs: list[str], env_map: dict[str, list[str]] | None = None
+) -> list[MCPServerSpec]:
     """Set the active MCP servers (from command line/env). Empties the registry."""
     global _MCP_SERVERS
     unregister_mcp_tools()
-    _MCP_SERVERS = [parse_server_spec(s) for s in specs if s.strip()]
+    declared = env_map or {}
+    _MCP_SERVERS = [
+        parse_server_spec(s, tuple(declared.get(s.strip(), ()))) for s in specs if s.strip()
+    ]
     return _MCP_SERVERS
 
 
@@ -164,7 +172,9 @@ def _clear_discovered_mcp_tools() -> None:
 
 
 def _live_key(spec: MCPServerSpec) -> str:
-    return f"{spec.transport}:{spec.render()}"
+    # The declared names are part of the identity: a connector that gained a
+    # secret has to be spawned again, or it keeps running without it.
+    return f"{spec.transport}:{spec.render()}:{','.join(spec.env)}"
 
 
 class MCPTeardownError(RuntimeError):
@@ -283,6 +293,7 @@ async def sync_mcp_tools(server_specs: list[MCPServerSpec] | None = None) -> lis
                 transport=spec.transport,
                 label=spec.label or f"mcp-{idx}",
                 args=spec.args,
+                env_names=list(spec.env),
             )
             _LIVE_CLIENTS[key] = client
         tools = await client.list_tools()

@@ -99,6 +99,27 @@ def _english_only(text: str) -> bool:
     return WORD.search(text) is None
 
 
+def _required_env(server: dict[str, Any]) -> list[dict[str, Any]]:
+    """The names a publisher declares as required, as names only.
+
+    Descriptions stay out: they are free prose, and what a surface needs is the
+    variable name and whether its value is a secret."""
+    found: dict[str, bool] = {}
+    packages = server.get("packages")
+    for package in packages if isinstance(packages, list) else []:
+        if not isinstance(package, dict):
+            continue
+        variables = package.get("environmentVariables")
+        for variable in variables if isinstance(variables, list) else []:
+            if not isinstance(variable, dict) or not variable.get("isRequired"):
+                continue
+            name = str(variable.get("name") or "").strip()
+            if not name or len(name) > 64:
+                continue
+            found.setdefault(name, bool(variable.get("isSecret")))
+    return [{"name": name, "secret": secret} for name, secret in sorted(found.items())]
+
+
 def mirror_registry() -> tuple[int, list[dict[str, Any]], list[str]]:
     """One full pass over the public registry: cursor pagination, dedupe by
     name (the newest version wins), ASCII-only descriptions, one entry per
@@ -154,6 +175,7 @@ def mirror_registry() -> tuple[int, list[dict[str, Any]], list[str]]:
                 "version": str(server.get("version") or ""),
                 "published_at": str(meta.get("publishedAt") or ""),
                 "source": "registry",
+                "required_env": _required_env(server),
             }
             if len(entries) >= MIRROR_MAX_ENTRIES:
                 break

@@ -2734,6 +2734,17 @@
       "checked": "Bestanden mit Hinweisen",
       "refused": "Abgelehnt — der Text trägt Anweisungen oder einen Download"
     },
-    "verdictFindings": "{{count}} Befund(e)"
+    "verdictFindings": "{{count}} Befund(e)",
+    "credentialsTitle": "Braucht Zugangsdaten",
+    "credentialNote": "Der Wert bleibt auf diesem Gerät und geht nur an diesen Connector.",
+    "credentialMissing": "nicht gesetzt",
+    "credentialPlaceholder": "Wert",
+    "credentialSave": "Speichern",
+    "credentialForget": "Entfernen",
+    "credentialRefused": "Der Wert wurde nicht gespeichert.",
+    "credentialStored": {
+      "keyring": "im Systemschlüsselbund",
+      "file_0600": "in einer Datei, die nur du lesen kannst"
+    }
   }
 }

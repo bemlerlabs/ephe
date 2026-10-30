@@ -51,11 +51,15 @@ class StdioLink:
         args: list[str] | None = None,
         timeout: float = 30.0,
         trusted: bool = False,
+        env_names: list[str] | None = None,
     ):
         self.command = command
         self.args = list(args or [])
         self.trusted = trusted
         self.timeout = timeout
+        #: The names this connector declared; the values stay in the vault and are
+        #: read once at spawn, so the child holds them and this object does not.
+        self.env_names = list(env_names or [])
         self.proc: Any | None = None
         self.last_error: str = ""
         self.failures: int = 0
@@ -86,6 +90,15 @@ class StdioLink:
             )
         except Exception:  # noqa: BLE001 — an audit failure must not block the spawn
             logger.debug("mcp child audit skipped", exc_info=True)
+
+    def _child_env(self, home: str | None) -> dict[str, str]:
+        env = child_env(home=home)
+        if not self.env_names:
+            return env
+        from core import secret_store
+
+        env.update(secret_store.env_for(self.env_names))
+        return env
 
     def note_failure(self) -> None:
         self.failures += 1
@@ -186,7 +199,7 @@ class StdioLink:
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
-                    env=child_env(home=home),
+                    env=self._child_env(home),
                     # The bwrap path already chdirs; Seatbelt needs the same
                     # start directory, or `python -c` reads the denied home as
                     # its cwd and dies before the first message.
