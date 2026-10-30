@@ -71,7 +71,6 @@ const SAME_BY_DESIGN = new Set<string>([
   'agentPanel.terminalLive', // Live
   'agentPanel.trajectoryTurn', // Turn
   'agentPanel.workspace', // Workspace
-  'artifacts.filterOffice', // Office
   'artifacts.kind.deck', // Deck — the product's own term for a presentation
   'artifacts.kind.screenshot', // Screenshot
   'chat.engineOffline', // Engine offline
@@ -125,7 +124,6 @@ const SAME_BY_DESIGN = new Set<string>([
   'sidebar.navScheduled', // Automations — the file's own short form ("Automations-Vorlagen")
   'streamGroup.terminal', // Terminal
   'streamGroup.web', // Web
-  'toolbar.preview', // Browser
   'update.title', // Updates
   'update.details', // Details
   'update.detailsVersion', // Version
