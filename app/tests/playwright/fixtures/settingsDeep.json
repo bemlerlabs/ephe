@@ -222,16 +222,22 @@
         "type": "select",
         "label": "Companion form",
         "labelEn": "Companion form",
-        "default": "fire_bee",
-        "value": "fire_bee",
-        "hint": "Chooses the form in the workspace: the full fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. The bee carries wings, the forehead flame and the gaze; the spark stays a single glow.",
-        "hintEn": "Chooses the form in the workspace: the full fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. The bee carries wings, the forehead flame and the gaze; the spark stays a single glow.",
+        "default": "paper_moth",
+        "value": "paper_moth",
+        "hint": "Chooses the form in the workspace: the folded paper moth, the fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. Moth and bee carry wings and a gaze; the spark stays a single glow.",
+        "hintEn": "Chooses the form in the workspace: the folded paper moth, the fire-spirit bee, the golden spark with ghost eyes from the film, or a calm emblem. Moth and bee carry wings and a gaze; the spark stays a single glow.",
         "options": [
+          "paper_moth",
           "fire_bee",
           "ember_spark",
           "minimal"
         ],
         "optionLabels": [
+          {
+            "value": "paper_moth",
+            "label": "Ephe Paper Moth (3D)",
+            "labelEn": "Ephe Paper Moth (3D)"
+          },
           {
             "value": "fire_bee",
             "label": "Ephe Fire-Spirit Bee (3D)",

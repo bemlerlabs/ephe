@@ -16,7 +16,7 @@ export const COMPANION_KEYS = [
   'appearance.companion_countdown_seconds',
 ] as const
 
-const SPECIES: CompanionSpecies[] = ['fire_bee', 'ember_spark', 'minimal']
+const SPECIES: CompanionSpecies[] = ['paper_moth', 'fire_bee', 'ember_spark', 'minimal']
 
 function valueOf(model: SettingsModel, key: string, fallback: string | number | boolean) {
   const field = (model.deepSections ?? [])
@@ -30,7 +30,7 @@ export function CompanionStudioCard({ model }: { model: SettingsModel }) {
   const { t } = model
   const animationsEnabled = useDeepBool('appearance.animations_enabled', true)
   const reduced = useReducedMotion()
-  const species = String(valueOf(model, 'appearance.companion_species', 'fire_bee'))
+  const species = String(valueOf(model, 'appearance.companion_species', 'paper_moth'))
   const scale = Number(valueOf(model, 'appearance.companion_scale', 100))
   const enabled = Boolean(valueOf(model, 'appearance.companion_enabled', false))
   const seconds = Number(valueOf(model, 'appearance.companion_countdown_seconds', 2.5))
@@ -40,7 +40,7 @@ export function CompanionStudioCard({ model }: { model: SettingsModel }) {
       : t('settings.companionCountdownNow')
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)
-    : 'fire_bee'
+    : 'paper_moth'
 
   return (
     <div className="space-y-2" data-testid="companion-studio">

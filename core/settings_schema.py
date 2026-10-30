@@ -136,9 +136,10 @@ SCHEMA: dict[str, dict[str, Any]] = {
     "appearance.companion_enabled": {"type": "bool", "default": False,
                                      "label": "Begleiter (Pet) im Arbeitsbereich",
                                      "labelEn": "Workspace companion (pet)"},
-    "appearance.companion_species": {"type": "select", "default": "fire_bee",
-                                     "options": ["fire_bee", "ember_spark", "minimal"],
+    "appearance.companion_species": {"type": "select", "default": "paper_moth",
+                                     "options": ["paper_moth", "fire_bee", "ember_spark", "minimal"],
                                      "optionLabels": {
+                                         "paper_moth": ["Ephe Papier-Motte (3D)", "Ephe Paper Moth (3D)"],
                                          "fire_bee": ["Ephe Feuergeist-Biene (3D)", "Ephe Fire-Spirit Bee (3D)"],
                                          "ember_spark": ["Goldener Feuerfunke", "Golden fire spark"],
                                          "minimal": ["Dezentes Symbol", "Minimal emblem"],

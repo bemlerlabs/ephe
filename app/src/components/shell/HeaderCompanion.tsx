@@ -17,7 +17,7 @@ import { useCompanionCopilot } from '@/lib/useCompanionCopilot'
 import { useSetupRepair } from '@/lib/companionRepair'
 import type { CopilotMode } from '@/lib/companionCopilot'
 
-const SPECIES: CompanionSpecies[] = ['fire_bee', 'ember_spark', 'minimal']
+const SPECIES: CompanionSpecies[] = ['paper_moth', 'fire_bee', 'ember_spark', 'minimal']
 
 export default function HeaderCompanion({
   runState,
@@ -29,7 +29,7 @@ export default function HeaderCompanion({
   contextPercent?: number | null
 }) {
   const enabled = useDeepBool('appearance.companion_enabled', false)
-  const species = useDeepSelect('appearance.companion_species', 'fire_bee')
+  const species = useDeepSelect('appearance.companion_species', 'paper_moth')
   const behavior = useDeepSelect('appearance.companion_behavior', 'interactive')
   const mode = useDeepSelect('appearance.companion_mode', 'copilot')
   const scale = useDeepNumber('appearance.companion_scale', 100)
@@ -53,7 +53,7 @@ export default function HeaderCompanion({
 
   const form = SPECIES.includes(species as CompanionSpecies)
     ? (species as CompanionSpecies)
-    : 'fire_bee'
+    : 'paper_moth'
 
   return (
     <div

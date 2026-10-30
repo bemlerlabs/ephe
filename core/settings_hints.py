@@ -151,12 +151,12 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "and return the next time it is switched on.",
     ),
     "appearance.companion_species": (
-        "Wählt die Gestalt im Arbeitsbereich: die volle Feuergeist-Biene, den "  # language-gate: ignore
-        "goldenen Funken mit Geist-Augen aus dem Film oder ein ruhiges Symbol. "  # language-gate: ignore
-        "Die Biene trägt Flügel, Stirnflamme und Blick; der Funke bleibt eine Kugel.",  # language-gate: ignore
-        "Chooses the form in the workspace: the full fire-spirit bee, the golden "
-        "spark with ghost eyes from the film, or a calm emblem. The bee carries "
-        "wings, the forehead flame and the gaze; the spark stays a single glow.",
+        "Wählt die Gestalt im Arbeitsbereich: die gefaltete Papier-Motte, die "  # language-gate: ignore
+        "Feuergeist-Biene, den goldenen Funken aus dem Film oder ein ruhiges Symbol. "  # language-gate: ignore
+        "Motte und Biene tragen Flügel und Blick; der Funke bleibt eine Kugel.",  # language-gate: ignore
+        "Chooses the form in the workspace: the folded paper moth, the fire-spirit "
+        "bee, the golden spark with ghost eyes from the film, or a calm emblem. "
+        "Moth and bee carry wings and a gaze; the spark stays a single glow.",
     ),
     "appearance.companion_behavior": (
         "Bestimmt Ort und Bewegung: mitfliegend und klickbar am Composer, ruhig "  # language-gate: ignore
