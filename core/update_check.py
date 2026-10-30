@@ -73,9 +73,7 @@ def current_version() -> str:
 
 def _semver(tag: str) -> tuple[int, int, int]:
     m = _SEMVER_RE.match((tag or "").strip())
-    if not m:
-        return (0, 0, 0)
-    return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else (0, 0, 0)
 
 
 def _parse(tag: str) -> tuple[int, int, int, list[str] | None] | None:
@@ -286,6 +284,10 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
                 # can take. Only `behind` says so: ahead and diverged would be
                 # telling a checkout to go backwards.
                 result.update(_main_channel(commit) or {})
+        if result.get("channel") == "main":
+            import core.update_apply as apply_mod
+
+            apply_mod.attach_channel_hint(result, latest["url"])
     except Exception as exc:  # noqa: BLE001 — the check must never break the app
         # The exception is for the log below. The client gets a fixed sentence.
         logger.warning("update check failed: %s", exc)
@@ -358,10 +360,7 @@ def daily_check(now: float | None = None) -> dict[str, Any]:
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["git", "-C", str(root), *args],
-        capture_output=True,
-        text=True,
-        timeout=30,
+        ["git", "-C", str(root), *args], capture_output=True, text=True, timeout=30
     )
 
 

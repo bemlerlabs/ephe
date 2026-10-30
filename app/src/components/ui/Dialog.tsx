@@ -28,12 +28,19 @@ const DialogContent = forwardRef<HTMLDivElement, DialogPrimitive.DialogContentPr
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        // The sheet takes the focus itself: letting the browser land on the first
+        // control drew a keyboard ring on open, which read as a selected control
+        // nobody had chosen. The panel carries tabIndex -1 and no outline.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          ;(event.currentTarget as HTMLElement | null)?.focus()
+        }}
         className={cn(
           // Edge inset + scroll: a centred dialog without a max-height runs off the
           // top on a phone (fixed + translate-y-[-50%]), and w-full touches the
           // screen edges. 90dvh follows the mobile toolbar, overflow-y-auto keeps
           // tall content reachable.
-          'fixed left-[50%] top-[50%] z-overlay w-[calc(100vw-2rem)] max-w-lg max-h-[90dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] float-surface p-6 forest-glow-strong animate-in fade-in-0 zoom-in-95',
+          'fixed left-[50%] top-[50%] z-overlay w-[calc(100vw-2rem)] max-w-lg max-h-[90dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] float-surface p-6 forest-glow-strong animate-in fade-in-0 zoom-in-95 focus:outline-none focus-visible:outline-none',
           className,
         )}
         data-float="3"

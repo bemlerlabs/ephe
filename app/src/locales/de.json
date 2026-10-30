@@ -2333,6 +2333,14 @@
     "installing": "Die Dateien sind geladen. Ephe schreibt sie jetzt an ihren Platz.",
     "percent": "{{pct}} %",
     "titleInstallFailed": "Installation fehlgeschlagen",
+    "blocked": {
+      "not_a_checkout": "Dieses Ephe wurde aus einem Release installiert und aktualisiert sich, indem die App ersetzt wird. Merges ohne Release kommen mit dem nächsten.",
+      "not_on_main": "Dieses Ephe läuft aus einem Checkout auf einem anderen Branch und zieht den Hauptbranch nicht darunter weg.",
+      "dirty_tree": "Dieser Checkout hat lokale Änderungen. Committe sie oder lege sie beiseite, dann erneut prüfen.",
+      "other": "Dieser Build kann die neuesten Commits nicht selbst ziehen."
+    },
+    "getRelease": "Release holen",
+    "technical": "Technische Angabe",
     "installFailed": "Die Installation ist nicht durchgelaufen. Ephe läuft weiter in der Version, die du hast.",
     "recheck": "Erneut prüfen"
   },

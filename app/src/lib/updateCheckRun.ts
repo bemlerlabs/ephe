@@ -27,6 +27,12 @@ export interface UpdateCheckInfo {
   commitsBehind?: number
   /** The commit this build runs on, when the backend knows it. */
   commit?: string
+  /** Whether the backend can actually pull this channel, asked before the
+   *  surface offers the button. A release install has no checkout to move, and
+   *  a checkout on another branch is not one a pull may take. */
+  apply?: { ok: boolean; code?: string }
+  /** The newest published release page, for the install-from-release path. */
+  releaseUrl?: string
 }
 
 /** What the app's own update did, step by step. */
@@ -84,6 +90,13 @@ export interface UpdateState {
   steps?: Array<{ name: string; ok: boolean; detail: string }>
   /** True when the update moved the checkout, so a relaunch is owed. */
   restart?: boolean
+  /** Why the commit path is closed here (`not_a_checkout`, `not_on_main`,
+   *  `dirty_tree`). Empty when it is open. */
+  applyBlocked?: string
+  /** The code behind a failed apply, so the surface can own the sentence. */
+  reasonCode?: string
+  /** The newest released version's page, when the feed named one. */
+  releaseUrl?: string
 }
 
 export { isDesktopShell }
@@ -132,6 +145,8 @@ async function runDesktopCheck(force: boolean): Promise<UpdateState> {
     commitsBehind: main?.commitsBehind,
     commit: main?.commit,
     url: main?.url,
+    applyBlocked: main?.apply && !main.apply.ok ? (main.apply.code ?? 'other') : undefined,
+    releaseUrl: main?.releaseUrl ?? local?.releaseUrl,
   }
   return update?.available || main
     ? { phase: 'available', progress: null, ...base }
@@ -171,6 +186,8 @@ export async function runCheck(force = false): Promise<UpdateState> {
       channel: info.channel,
       commitsBehind: info.commitsBehind,
       commit: info.commit,
+      applyBlocked: info.apply && !info.apply.ok ? (info.apply.code ?? 'other') : undefined,
+      releaseUrl: info.releaseUrl,
     }
     return info.available && info.latest
       ? { phase: 'available', progress: null, ...base }

@@ -2333,6 +2333,14 @@
     "installing": "The files are downloaded. Ephe is writing them into place now.",
     "percent": "{{pct}}%",
     "titleInstallFailed": "Installation failed",
+    "blocked": {
+      "not_a_checkout": "This Ephe was installed from a release, so it updates by replacing the app. Merges that have no release yet reach you with the next one.",
+      "not_on_main": "This Ephe runs from a checkout on another branch, so it will not pull the default branch under it.",
+      "dirty_tree": "This checkout carries local changes. Commit or set them aside, then check again.",
+      "other": "This build cannot pull the newest commits by itself."
+    },
+    "getRelease": "Get the release",
+    "technical": "Technical detail",
     "installFailed": "The installation did not finish. Ephe keeps running the version you have.",
     "recheck": "Check again"
   },

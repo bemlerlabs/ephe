@@ -733,6 +733,14 @@ svg.lucide {
   outline-offset: 2px;
 }
 
+/* A dialog panel takes the focus so the first control does not light up on
+   open, and as a surface it draws no ring of its own. This sits beside the
+   rule it excepts because an unlayered focus rule beats every utility in the
+   component layer. */
+[data-float]:focus-visible {
+  outline: none;
+}
+
 /*  REDUCED MOTION (accessibility) */
 
 @media (prefers-reduced-motion: reduce) {

@@ -256,9 +256,12 @@ export function useUpdateCheck() {
     setPhase('applying', { progress: null })
     const result = await applyUpdate()
     if (!result.ok) {
+      // The code travels beside the prose: the surface owns the sentence the
+      // user reads, the backend's detail stays as the technical line.
       setPhase('failed', {
         progress: null,
-        reason: result.detail || result.reason || 'the update could not be applied',
+        reason: result.detail || result.reason || '',
+        reasonCode: result.reason,
         failedAt: 'install',
       })
       return false

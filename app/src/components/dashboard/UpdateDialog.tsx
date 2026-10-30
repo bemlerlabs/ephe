@@ -29,11 +29,10 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Rule } from '@/components/ui/Rule'
-import { DetailRow, NotesBody } from './UpdateNotes'
-import { UpdateFacts } from './UpdateFacts'
+import { NotesBody } from './UpdateNotes'
+import { UpdateDetailRows } from './UpdateDetailRows'
 import { isDesktopShell, type UpdateState } from '@/lib/updateCheckRun'
 import type { RestartBlock } from '@/lib/restartGuard'
-import { formatBytes } from '@/lib/updateDetails'
 
 interface Props {
   state: UpdateState
@@ -71,11 +70,24 @@ export function UpdateDialog({
    *  value the download ended with, which is 100 %. */
   const barValue = installing ? 100 : downloading ? pct : null
   const running = downloading || installing
-  const size = formatBytes(state.sizeBytes)
   /** Merges before the next tag: there is nothing for the updater to install,
    *  so the surface shows the range and points at the comparison. */
   const mainChannel = state.channel === 'main' && state.phase === 'available'
-  const notReported = t('update.detailsUnknown')
+  /** The commit path is closed here — a release install has no checkout to
+   *  move, a branch checkout is not one a pull may take. The surface states
+   *  that instead of offering a button guaranteed to refuse. */
+  const blocked = state.applyBlocked ?? ''
+  const blockedKey = ['not_a_checkout', 'not_on_main', 'dirty_tree'].includes(blocked)
+    ? blocked
+    : 'other'
+  const failedStructural =
+    state.failedAt === 'install' &&
+    (state.reasonCode === 'not_a_checkout' || state.reasonCode === 'not_on_main')
+  const failedCode = ['not_a_checkout', 'not_on_main', 'dirty_tree'].includes(
+    state.reasonCode ?? '',
+  )
+    ? (state.reasonCode as string)
+    : 'other'
   /** The Details block is worth opening wherever the release carries facts —
    *  not only in the desktop build: the browser can read the versions and the
    *  notes just as well. */
@@ -124,17 +136,22 @@ export function UpdateDialog({
           <p data-testid="update-state" className="text-scale-ui text-ink-faint">
             {state.phase === 'checking' && t('update.checking')}
             {state.phase === 'current' && t('update.isCurrent', { version: state.current ?? '' })}
-            {state.phase === 'failed' && (
-              <>
-                {state.failedAt === 'install' ? t('update.installFailed') : t('update.checkFailed')}
-                {state.reason && (
-                  <span className="mt-1 block font-mono text-ui-2xs" data-testid="update-reason">
-                    {state.reason}
-                  </span>
-                )}
-              </>
-            )}
+            {state.phase === 'failed' &&
+              (state.failedAt === 'install' ? (
+                <span data-testid="update-failed-sentence">
+                  {failedCode === 'other'
+                    ? t('update.installFailed')
+                    : t(`update.blocked.${failedCode}`)}
+                </span>
+              ) : (
+                t('update.checkFailed')
+              ))}
             {state.phase === 'unsupported' && t('update.disabledHint')}
+            {mainChannel && blocked ? (
+              <span className="mt-1 block" data-testid="update-apply-blocked">
+                {t(`update.blocked.${blockedKey}`)}
+              </span>
+            ) : null}
             {mainChannel && t('update.mainChannel', { count: state.commitsBehind ?? 0 })}
             {applying && t('update.applying')}
             {applied && t('update.applied')}
@@ -162,6 +179,18 @@ export function UpdateDialog({
               </div>
             </div>
           )}
+
+          {state.phase === 'failed' && state.reason ? (
+            <details className="update-details mt-2" data-testid="update-failure-details">
+              <summary className="update-details-summary flex items-center gap-1.5 text-scale-ui text-ink-faint">
+                <ChevronRight className="update-caret h-3.5 w-3.5" aria-hidden="true" />
+                {t('update.technical')}
+              </summary>
+              <p className="mt-1 pl-6 font-mono text-ui-2xs break-words text-ink-faint" data-testid="update-reason">
+                {state.reason}
+              </p>
+            </details>
+          ) : null}
 
           {applied && (state.steps?.length ?? 0) > 0 && (
             <div data-testid="update-steps" className="mt-3 space-y-1">
@@ -240,69 +269,31 @@ export function UpdateDialog({
             </section>
           )}
 
-          {hasFacts && (
-            <details className="update-details mt-3" data-testid="update-details">
-              <summary className="update-details-summary flex items-center gap-1.5 text-scale-ui text-ink-soft">
-                <ChevronRight className="update-caret h-3.5 w-3.5" aria-hidden="true" />
-                {t('update.details')}
-              </summary>
-              <div className="update-details-body mt-1 pl-6">
-                <DetailRow
-                  label={t('update.detailsVersion')}
-                  value={
-                    mainChannel
-                      ? `${state.commit ?? '—'} → ${state.latest ?? 'main'}`
-                      : `${state.current ?? '—'} → ${state.latest ?? '—'}`
-                  }
-                  mono
-                  testId="update-details-version"
-                />
-                <UpdateFacts
-                  commit={state.commit}
-                  channel={state.channel}
-                  commitLabel={t('update.detailsCommit')}
-                  channelLabel={t('update.detailsChannel')}
-                />
-                <DetailRow
-                  label={t('update.detailsSize')}
-                  value={size ?? notReported}
-                  mono={!!size}
-                  testId="update-details-size"
-                />
-                <DetailRow
-                  label={t('update.detailsPlatform')}
-                  value={state.platform ?? notReported}
-                  testId="update-details-platform"
-                />
-                <DetailRow
-                  label={t('update.detailsAsset')}
-                  value={state.asset ?? notReported}
-                  testId="update-details-asset"
-                />
-                {state.date && (
-                  <DetailRow
-                    label={t('update.detailsDate')}
-                    value={state.date.slice(0, 10)}
-                    mono
-                    testId="update-details-date"
-                  />
-                )}
-              </div>
-            </details>
-          )}
+          {hasFacts ? <UpdateDetailRows state={state} mainChannel={mainChannel} /> : null}
 
           <Rule className="mt-3" tone={running ? 'now' : 'rule'} />
 
           <div className="flex items-center gap-2 pt-3">
-            {mainChannel && (
+            {mainChannel && !blocked && (
               <button
                 type="button"
                 data-testid="update-apply"
                 onClick={onApply}
-                className="flex-1 bg-brand px-3 py-2 text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
               >
                 {t('update.applyNow')}
               </button>
+            )}
+            {mainChannel && blocked && state.releaseUrl && (
+              <a
+                href={state.releaseUrl}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="update-release-link"
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+              >
+                {t('update.getRelease')}
+              </a>
             )}
             {mainChannel && state.url && (
               <a
@@ -320,7 +311,7 @@ export function UpdateDialog({
                 type="button"
                 data-testid="update-install"
                 onClick={onInstall}
-                className="flex-1 bg-brand px-3 py-2 text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
               >
                 {desktop ? t('update.installAndRestart') : t('update.viewReleases')}
               </button>
@@ -340,7 +331,7 @@ export function UpdateDialog({
                 type="button"
                 data-testid="update-apply-relaunch"
                 onClick={desktop ? onRelaunch : () => window.location.reload()}
-                className="flex-1 bg-brand px-3 py-2 text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
               >
                 {desktop ? t('update.relaunchNow') : t('update.reload')}
               </button>
@@ -351,12 +342,12 @@ export function UpdateDialog({
                 data-testid="update-relaunch"
                 onClick={onRelaunch}
                 disabled={restartBlocked !== null}
-                className="flex-1 bg-brand px-3 py-2 text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow disabled:opacity-40"
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow disabled:opacity-40"
               >
                 {t('update.relaunchNow')}
               </button>
             )}
-            {!desktop && state.phase === 'available' && releasesUrl && (
+            {!desktop && state.phase === 'available' && !blocked && releasesUrl && (
               <a
                 href={releasesUrl}
                 target="_blank"
@@ -367,7 +358,20 @@ export function UpdateDialog({
                 {releasesUrl.replace(/^https:\/\/(github\.com\/)?/, '')}
               </a>
             )}
-            {(state.phase === 'failed' || state.phase === 'current' || state.phase === 'idle') && (
+            {state.phase === 'failed' && failedStructural && state.releaseUrl ? (
+              <a
+                href={state.releaseUrl}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="update-release-link"
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+              >
+                {t('update.getRelease')}
+              </a>
+            ) : null}
+            {((state.phase === 'failed' && !failedStructural) ||
+              state.phase === 'current' ||
+              state.phase === 'idle') && (
               <button
                 type="button"
                 data-testid="update-recheck"
