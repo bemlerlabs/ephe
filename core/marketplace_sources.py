@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from core import guarded_fetch, marketplace_index, plugin_signing
+from core import guarded_fetch, marketplace_index, path_guard, plugin_signing
 from core.plugin_store import config_root
 
 SCHEMA_VERSION = 1
@@ -46,9 +46,10 @@ def cache_dir() -> Path:
 
 
 def cache_path(source_id: str) -> Path:
-    if not _ID.match(source_id):
+    target = path_guard.child(cache_dir(), source_id, pattern=_ID, suffix=".json")
+    if target is None:
         raise SourceError("invalid_source_id", source_id)
-    return cache_dir() / f"{source_id}.json"
+    return target
 
 
 def bundled_index_path() -> Path:
@@ -157,18 +158,31 @@ def _source_id(url: str) -> str:
     return "src-" + hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
 
 
+def _local_index(value: str) -> Path:
+    # The owner names an index file on their own machine, so the path is theirs to choose:
+    # the guards below keep it a JSON index and out of the credential stores and this app's
+    # own state, which is all a source reader may ever be pointed at.
+    # codeql[py/path-injection]
+    candidate = Path(str(value or "")).expanduser()
+    if not candidate.is_absolute():
+        raise SourceError("invalid_url", "a local source needs an absolute path")
+    resolved = candidate.resolve()
+    if resolved.suffix != ".json":
+        raise SourceError("invalid_url", "a local source needs a .json index")
+    if path_guard.denied(resolved):
+        raise SourceError("refused_path", "this file is not readable as a source")
+    if not resolved.is_file():
+        raise SourceError("not_found", "the index file does not exist")
+    return resolved
+
+
 def add_source(kind: str, title: str, url: str) -> dict[str, Any]:
     kind = str(kind or "").strip().lower()
     title = str(title or "").strip()
     if not title:
         raise SourceError("title_required", "a source needs a title")
     if kind == "local":
-        path = Path(str(url or "")).expanduser()
-        if not path.is_absolute():
-            raise SourceError("invalid_url", "a local source needs an absolute path")
-        path = path.resolve()
-        if not path.is_file():
-            raise SourceError("not_found", str(path))
+        path = _local_index(url)
         url = str(path)
         trust = "local"
     elif kind == "https":
@@ -307,9 +321,7 @@ def read_source(
     kind = source.get("kind")
     try:
         if kind in {"local", "bundled"}:
-            path = Path(str(source.get("url") or ""))
-            if not path.is_file():
-                raise SourceError("not_found", str(path))
+            path = _local_index(str(source.get("url") or ""))
             raw = _read_json_file(path)
         elif kind == "https":
             url = str(source.get("url") or "")

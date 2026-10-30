@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core import marketplace_sources, plugin_signing  # noqa: E402
+from core import marketplace_sources, path_guard, plugin_signing  # noqa: E402
 
 
 def index_doc(version: str = "1.0.0") -> dict:
@@ -94,6 +94,25 @@ class TestStore:
         marketplace_sources.add_source("local", "Mine", str(local))
         path = marketplace_sources.sources_path()
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+    def test_a_local_source_must_be_a_json_index(self, cfg, tmp_path):
+        plain = tmp_path / "index.txt"
+        plain.write_text("{}", encoding="utf-8")
+        with pytest.raises(marketplace_sources.SourceError) as exc:
+            marketplace_sources.add_source("local", "Mine", str(plain))
+        assert exc.value.code == "invalid_url"
+
+    def test_a_local_source_cannot_come_from_a_credential_folder(self, cfg, tmp_path, monkeypatch):
+        monkeypatch.setattr(path_guard, "DENY_ROOTS", (str(tmp_path),))
+        local = tmp_path / "index.json"
+        local.write_text(json.dumps(index_doc()), encoding="utf-8")
+        with pytest.raises(marketplace_sources.SourceError) as exc:
+            marketplace_sources.add_source("local", "Mine", str(local))
+        assert exc.value.code == "refused_path"
+
+    def test_a_cache_name_cannot_leave_its_folder(self, cfg):
+        with pytest.raises(marketplace_sources.SourceError):
+            marketplace_sources.cache_path("../../etc/passwd")
 
 
 class TestRead:
