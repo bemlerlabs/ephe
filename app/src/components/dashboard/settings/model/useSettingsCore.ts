@@ -286,7 +286,11 @@ export function useSettingsCore(state: ReturnType<typeof useSettingsState>) {
   // does not have at all (misleading). When the active model is missing
   // from the live list (e.g. the engine is briefly offline) it is still
   // shown and marked as a chip — the user always sees what is really active.
-  const customOption = { id: 'custom', label: 'Custom Ollama', descKey: 'settings.customModelDesc' }
+  const customOption = {
+    id: 'custom',
+    label: t('settings.providerLabelCustomOllama'),
+    descKey: 'settings.customModelDesc',
+  }
   const providerType = settings?.provider.type
   const isOllamaFamily = providerType !== 'openai_compatible'
   const liveChips = liveModels.map((m) => ({
@@ -304,10 +308,10 @@ export function useSettingsCore(state: ReturnType<typeof useSettingsState>) {
   ) {
     liveChips.unshift({ id: activeModel, label: activeModel, desc: t('settings.activeModelChip') })
   }
-  const displayModels: Array<{ id: string; label: string; desc?: string; descKey?: string }> = [
-    ...liveChips,
-    ...(isOllamaFamily ? [customOption] : []),
-  ]
+  // The custom choice has its own row below the list; carrying it in the list
+  // as well printed it twice under two different verbs.
+  const displayModels: Array<{ id: string; label: string; desc?: string; descKey?: string }> =
+    liveChips
 
   const artifacts = (currentSession?.messages ?? [])
     .flatMap((m) => m.activities ?? [])

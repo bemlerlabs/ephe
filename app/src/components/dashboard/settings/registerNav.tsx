@@ -27,7 +27,7 @@ import type { TabKey } from './types'
 /** The nav row: the left border is always two pixels wide, so the 2 px rule of
  *  the selected row moves no text when the selection changes. */
 const NAV_ROW =
-  'focus-ring w-full flex items-center gap-2.5 border-l-2 px-3 py-1.5 text-scale-ui transition-colors pointer-coarse:min-h-11'
+  'focus-ring w-full flex items-center gap-2.5 rounded-r-md border-l-2 px-3 py-1.5 text-scale-ui transition-colors pointer-coarse:min-h-11'
 
 /** The group name above a run of nav rows: the 11 px mono label of the direction. */
 const NAV_GROUP =

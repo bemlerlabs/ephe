@@ -13,6 +13,29 @@ import { IconScale } from './components/ui/iconScale'
 import './styles/globals.css'
 import './styles/highlight.css'
 
+// A deploy replaces every chunk hash, and a tab that still holds the previous
+// entry asks for a file that no longer exists — Vite reports that as
+// `vite:preloadError` and the page it lands in is dead until a reload. One
+// reload per half minute turns that into the load the user expected, and the
+// floor keeps a genuinely missing chunk from looping.
+window.addEventListener('vite:preloadError', (event) => {
+  const key = 'ephe.chunk.reloadedAt'
+  let last = 0
+  try {
+    last = Number(window.sessionStorage.getItem(key) ?? 0)
+  } catch {
+    return
+  }
+  if (Date.now() - last < 30_000) return
+  try {
+    window.sessionStorage.setItem(key, String(Date.now()))
+  } catch {
+    return
+  }
+  event.preventDefault()
+  window.location.reload()
+})
+
 // The first-run scene is a chunk of its own, fetched by a browser that has not seen it and
 // by no other: the entry keeps its budget, and a returning load pays nothing for a scene it
 // would not show. The flag it is gated on lives in `lib/firstRun`; the read sits here rather
