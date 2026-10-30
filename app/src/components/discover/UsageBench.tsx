@@ -5,49 +5,38 @@
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Activity } from 'lucide-react'
 import type { ToolUsageRow, ToolUsageView } from '@/lib/api'
+import { toolLabel } from './toolLabel'
 
-const MAX_ROWS = 8
-
-/** `417 / 500` in the head says how far back the ranking reaches. */
-function Reach({ view }: { view: ToolUsageView }) {
-  const { t } = useTranslation()
-  return (
-    <span data-testid="discover-bench-reach" className="font-mono text-ui-xs text-ink-faint">
-      {t('discover.benchReach', { population: view.population, window: view.window })}
-    </span>
-  )
-}
+const MAX_ROWS = 6
 
 function Bar({ row, max, armed }: { row: ToolUsageRow; max: number; armed: boolean }) {
   const { t } = useTranslation()
-  const pct = max > 0 ? Math.max(2, Math.round((row.calls / max) * 100)) : 0
+  const pct = max > 0 ? Math.max(4, Math.round((row.calls / max) * 100)) : 0
   const share = row.calls > 0 ? Math.round((row.ok / row.calls) * 100) : 0
   return (
     <li
       data-testid={`discover-bench-row-${row.tool}`}
-      className="group/bench grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1"
+      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5"
+      title={row.blocked > 0 ? t('discover.benchBlocked', { count: row.blocked }) : undefined}
     >
-      <span className="truncate font-mono text-ui-xs text-ink-soft group-hover/bench:text-foreground">
-        {row.tool}
-      </span>
-      <span className="text-right font-mono text-ui-xs tabular-nums text-foreground">
-        {row.calls}
-        <span className="ml-1 text-ink-faint">
-          {t('discover.benchShare', { share })}
-          {row.blocked > 0 ? ` · ${t('discover.benchBlocked', { count: row.blocked })}` : ''}
-        </span>
-      </span>
-      <span
-        aria-hidden="true"
-        className="col-span-2 h-[3px] overflow-hidden rounded-full bg-hairline/50"
-      >
+      <span className="truncate text-ui-xs text-ink-soft">{toolLabel(row.tool)}</span>
+      <span className="font-mono text-ui-xs tabular-nums text-foreground/90">{row.calls}</span>
+      <span aria-hidden="true" className="h-[3px] overflow-hidden rounded-full bg-hairline/50">
         <span
-          className={`block h-full rounded-full bg-brand/70 transition-[width] duration-slow ease-out-soft motion-reduce:transition-none ${
-            row.errors > 0 ? 'bg-status-warning/70' : ''
+          className={`block h-full rounded-full transition-[width] duration-slow ease-out-soft motion-reduce:transition-none ${
+            row.errors > 0 ? 'bg-status-warning/80' : 'bg-brand/75'
           }`}
           style={{ width: armed ? `${pct}%` : '0%' }}
         />
+      </span>
+      <span
+        className={`font-mono text-ui-2xs tabular-nums ${
+          row.errors > 0 ? 'text-status-warning' : 'text-ink-faint'
+        }`}
+      >
+        {t('discover.benchShare', { share })}
       </span>
     </li>
   )
@@ -68,30 +57,46 @@ export function UsageBench({ view }: { view: ToolUsageView | null }) {
   return (
     <section
       data-testid="discover-bench"
-      className="glass-float rounded-2xl border border-hairline p-4 shadow-elevation-2"
+      className="flex flex-col rounded-2xl border border-hairline bg-surface/55 p-4"
       aria-labelledby="discover-bench-title"
     >
-      <header className="mb-3 flex items-baseline justify-between gap-3">
-        <h2
-          id="discover-bench-title"
-          className="text-ui-xs font-semibold uppercase tracking-wide text-ink-faint"
+      <header className="mb-4 flex items-start gap-2.5">
+        <span
+          aria-hidden="true"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-surface-raised/60 text-ink-faint"
         >
-          {t('discover.benchTitle')}
-        </h2>
-        {view ? <Reach view={view} /> : null}
+          <Activity className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </span>
+        <div className="min-w-0">
+          <h2 id="discover-bench-title" className="text-ui-sm font-semibold text-foreground/95">
+            {t('discover.benchTitle')}
+          </h2>
+          <p className="mt-0.5 text-ui-2xs leading-relaxed text-ink-faint">
+            {view ? t('discover.benchLede', { window: view.window }) : t('discover.benchLoading')}
+          </p>
+        </div>
       </header>
 
       {rows.length === 0 ? (
-        <p data-testid="discover-bench-empty" className="text-ui-sm text-ink-soft">
+        <p data-testid="discover-bench-empty" className="text-ui-xs leading-relaxed text-ink-soft">
           {view ? t('discover.benchNone') : t('discover.benchLoading')}
         </p>
       ) : (
-        <ul className="grid gap-3">
+        <ul className="grid gap-3 [&>li:nth-child(n+4)]:hidden sm:[&>li:nth-child(n+4)]:grid">
           {rows.map((row) => (
             <Bar key={row.tool} row={row} max={max} armed={armed} />
           ))}
         </ul>
       )}
+
+      {view && rows.length ? (
+        <p
+          data-testid="discover-bench-reach"
+          className="mt-auto border-t border-hairline pt-3 text-ui-2xs tabular-nums text-ink-faint"
+        >
+          {t('discover.benchReach', { population: view.population, window: view.window })}
+        </p>
+      ) : null}
     </section>
   )
 }

@@ -5,10 +5,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildItems,
+  categoryFacets,
   countByTab,
   facetValues,
   filterItems,
   heroOf,
+  prettyName,
+  publisherOf,
   specName,
   type DiscoverSources,
 } from './discoverModel'
@@ -154,6 +157,39 @@ describe('discover build', () => {
   })
 })
 
+describe('discover names', () => {
+  it('reads a registry id as a name and keeps its namespace', () => {
+    expect(prettyName('com.ainetcafe/netcafe-memory')).toBe('Netcafe Memory')
+    expect(prettyName('ai.takara/miru')).toBe('Miru')
+    expect(prettyName('Memory Server')).toBe('Memory Server')
+    expect(publisherOf('ai.takara/miru')).toBe('ai.takara')
+    expect(publisherOf('Filesystem Server')).toBeUndefined()
+  })
+
+  it('orders subjects by the shelf order, not the alphabet', () => {
+    const items = buildItems({
+      ...base,
+      skills: [{ name: 'pdf', trigger: 'document', description: '' }],
+      catalog: [{ id: 'a', name: 'a', description: '', category: 'web' }],
+      registry: [
+        {
+          id: 'r',
+          name: 'ai.takara/miru',
+          description: '',
+          category: 'code',
+          install_hint: 'npx -y miru',
+          docs: '',
+          version: '1',
+          published_at: '',
+          source: 'registry',
+        },
+      ],
+    })
+    expect(categoryFacets(items)).toEqual(['skills', 'code', 'web'])
+    expect(items.find((one) => one.id === 'connector:registry:r')?.title).toBe('Miru')
+  })
+})
+
 describe('discover query', () => {
   const items = buildItems({
     ...base,
@@ -176,8 +212,8 @@ describe('discover query', () => {
       ),
     ).toEqual(['maps'])
     expect(
-      filterItems(items, { tab: 'all', query: '', category: 'geo', origin: null }),
-    ).toHaveLength(1)
+      filterItems(items, { tab: 'all', query: '', category: 'skills', origin: null }),
+    ).toHaveLength(2)
     expect(
       filterItems(items, { tab: 'all', query: '', category: null, origin: 'local' }),
     ).toHaveLength(2)

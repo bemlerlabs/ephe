@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui'
 import { dryRunEntry, type DryRunResult } from '@/lib/api'
 import { CredentialFields } from './CredentialFields'
+import { CategoryGlyph } from './categoryGlyph'
+import './discover.css'
 import type { DiscoverItem } from './discoverModel'
 
 export interface DiscoverDetailProps {
@@ -15,6 +17,33 @@ export interface DiscoverDetailProps {
   onAdd: (item: DiscoverItem) => Promise<void> | undefined
   onToggle: (item: DiscoverItem, next: boolean) => Promise<void> | undefined
   onRemove: (item: DiscoverItem) => Promise<void> | undefined
+}
+
+/** One labelled fact. The value keeps its own line when it is a command. */
+function Row({
+  label,
+  children,
+  mono = false,
+  testId,
+}: {
+  label: string
+  children: React.ReactNode
+  mono?: boolean
+  testId?: string
+}) {
+  return (
+    <div className="flex items-start justify-between gap-6 px-4 py-3">
+      <dt className="shrink-0 text-ui-xs text-ink-faint">{label}</dt>
+      <dd
+        data-testid={testId}
+        className={`min-w-0 text-right text-ui-xs text-foreground/90 ${
+          mono ? 'break-all font-mono text-ui-2xs' : ''
+        }`}
+      >
+        {children}
+      </dd>
+    </div>
+  )
 }
 
 export function DiscoverDetail({
@@ -46,128 +75,168 @@ export function DiscoverDetail({
 
   return (
     <Dialog open={item !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-xl">
         {item ? (
-          <>
-            <DialogHeader>
-              <p
-                data-testid="discover-detail-origin"
-                className="font-mono text-ui-xs uppercase tracking-[0.16em] text-brand"
-              >
-                {item.origin}
-              </p>
-              <DialogTitle className="text-left font-display text-xl">{item.title}</DialogTitle>
-            </DialogHeader>
-            <div className="mt-4 space-y-4 text-ui-sm">
-              <p data-testid="discover-detail-summary" className="text-ink-soft">
-                {item.summary}
-              </p>
-              {item.badge ? (
+          <div data-subject={item.categories[0] ?? 'other'}>
+            <DialogHeader className="text-left">
+              <div className="flex items-start gap-4">
                 <span
-                  data-testid="discover-detail-badge"
-                  className="inline-flex rounded-full bg-brand/15 px-2.5 py-0.5 font-mono text-ui-xs text-brand-deep"
+                  aria-hidden="true"
+                  className="discover-plate grid h-12 w-12 shrink-0 place-items-center rounded-xl border"
                 >
-                  {t(`discover.badge.${item.badge}`)}
+                  {item.kind === 'skill' ? (
+                    <span className="font-display text-xl leading-none">
+                      {(item.title.trim()[0] ?? '?').toUpperCase()}
+                    </span>
+                  ) : (
+                    <CategoryGlyph
+                      category={item.categories[0]}
+                      kind={item.kind}
+                      className="h-5 w-5"
+                    />
+                  )}
                 </span>
+                <div className="min-w-0">
+                  <p
+                    data-testid="discover-detail-origin"
+                    className="font-mono text-ui-2xs uppercase tracking-[0.18em] text-ink-faint"
+                  >
+                    {t(`discover.kind${item.kind.charAt(0).toUpperCase()}${item.kind.slice(1)}`)} ·{' '}
+                    {t(`discover.origin.${item.origin}`, { defaultValue: item.origin })}
+                  </p>
+                  <DialogTitle className="mt-1.5 font-display text-[1.7rem] leading-tight">
+                    {item.title}
+                  </DialogTitle>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <p
+              data-testid="discover-detail-summary"
+              className="mt-4 text-ui-sm leading-relaxed text-ink-soft"
+            >
+              {item.summary}
+            </p>
+
+            {item.badge && item.badge !== 'pick' ? (
+              <p
+                data-testid="discover-detail-badge"
+                className="mt-2 font-mono text-ui-2xs uppercase tracking-wide text-ink-faint"
+              >
+                {t(`discover.badge.${item.badge}`)}
+              </p>
+            ) : null}
+
+            <dl className="mt-5 divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline bg-surface/40">
+              {item.publisher ? <Row label={t('discover.detailPublisher')}>{item.publisher}</Row> : null}
+              {item.downloads ? (
+                <Row label={t('discover.detailDownloads')}>
+                  {t('discover.cardDownloads', { count: item.downloads })}
+                </Row>
               ) : null}
-              <dl className="grid gap-2 rounded-xl border border-hairline bg-surface/40 p-4 font-mono text-ui-xs text-ink-soft">
-                {item.installHint ? (
-                  <>
-                    <dt className="text-ink-faint">{t('discover.detailInstall')}</dt>
-                    <dd
-                      data-testid="discover-detail-install"
-                      className="break-all text-foreground/90"
-                    >
-                      {item.installHint}
-                    </dd>
-                  </>
-                ) : item.spec ? (
-                  <>
-                    <dt className="text-ink-faint">{t('discover.detailAttached')}</dt>
-                    <dd className="break-all text-foreground/90">{item.spec}</dd>
-                  </>
-                ) : null}
-                {item.version ? (
-                  <>
-                    <dt className="text-ink-faint">{t('discover.detailVersion')}</dt>
-                    <dd>{item.version}</dd>
-                  </>
-                ) : null}
-                <dt className="text-ink-faint">{t('discover.detailPermissions')}</dt>
-                <dd data-testid="discover-detail-permissions">
+              {item.toolCount !== undefined ? (
+                <Row label={t('discover.detailTools')}>
+                  {t('discover.cardTools', { count: item.toolCount })}
+                </Row>
+              ) : null}
+              {item.version ? (
+                <Row label={t('discover.detailVersion')}>{item.version}</Row>
+              ) : null}
+              {item.installHint ? (
+                <Row label={t('discover.detailInstall')} mono testId="discover-detail-install">
+                  {item.installHint}
+                </Row>
+              ) : item.spec ? (
+                <Row label={t('discover.detailAttached')} mono>
+                  {item.spec}
+                </Row>
+              ) : null}
+              <div className="px-4 py-3">
+                <dt className="text-ui-xs text-ink-faint">{t('discover.detailPermissions')}</dt>
+                <dd
+                  data-testid="discover-detail-permissions"
+                  className="mt-1 text-ui-xs leading-relaxed text-foreground/90"
+                >
                   {item.installed
                     ? t('discover.detailPermissionsInstalled')
                     : t('discover.detailPermissionsReview')}
                 </dd>
-              </dl>
-              {item.kind === 'connector' && !item.installed ? (
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    data-testid="discover-detail-rehearse"
-                    disabled={busy}
-                    onClick={() => void rehearse(item)}
-                    className="focus-ring rounded-lg border border-hairline px-2.5 py-1 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground disabled:opacity-50"
-                  >
-                    {t('discover.dryRun')}
-                  </button>
-                  {rehearsal ? (
-                    <p
-                      data-testid="discover-detail-verdict"
-                      className="font-mono text-ui-xs text-ink-soft"
-                    >
-                      {t(`discover.verdict.${rehearsal.verdict}`)}
-                      {rehearsal.findings.length
-                        ? ` · ${t('discover.verdictFindings', { count: rehearsal.findings.length })}`
-                        : ''}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-              {item.requiredEnv?.length ? <CredentialFields names={item.requiredEnv} /> : null}
-              {item.docs ? (
-                <a
-                  data-testid="discover-detail-docs"
-                  className="inline-block text-brand hover:underline"
-                  href={item.docs}
-                  target="_blank"
-                  rel="noreferrer"
+              </div>
+            </dl>
+
+            {item.kind === 'connector' && !item.installed ? (
+              <div className="mt-3 space-y-1">
+                <button
+                  type="button"
+                  data-testid="discover-detail-rehearse"
+                  disabled={busy}
+                  onClick={() => void rehearse(item)}
+                  className="focus-ring rounded-lg border border-hairline px-2.5 py-1 text-ui-xs text-ink-soft hover:border-hairline-strong hover:text-foreground disabled:opacity-50"
                 >
-                  {t('discover.detailDocs')}
-                </a>
-              ) : null}
-              <div className="flex items-center gap-2 pt-1">
-                {item.installed ? (
-                  <>
-                    <Button
-                      data-testid="discover-detail-toggle"
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => void onToggle(item, !item.enabled)}
+                  {t('discover.dryRun')}
+                </button>
+                {rehearsal ? (
+                  <p
+                    data-testid="discover-detail-verdict"
+                    className="font-mono text-ui-xs text-ink-soft"
+                  >
+                    {t(`discover.verdict.${rehearsal.verdict}`)}
+                    {rehearsal.findings.length
+                      ? ` · ${t('discover.verdictFindings', { count: rehearsal.findings.length })}`
+                      : ''}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {item.requiredEnv?.length ? <CredentialFields names={item.requiredEnv} /> : null}
+
+            <div className="mt-6 flex items-center gap-2 border-t border-hairline pt-4">
+              {item.installed ? (
+                <>
+                  <Button
+                    data-testid="discover-detail-toggle"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void onToggle(item, !item.enabled)}
+                  >
+                    {item.enabled ? t('discover.stateOffAction') : t('discover.stateOnAction')}
+                  </Button>
+                  <Button
+                    data-testid="discover-detail-remove"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => void onRemove(item)}
+                    className="text-ink-faint hover:text-status-danger"
+                  >
+                    {t('discover.detailRemove')}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {item.docs ? (
+                    <a
+                      data-testid="discover-detail-docs"
+                      className="focus-ring inline-flex h-10 items-center rounded-full px-3 text-ui-sm text-ink-soft hover:text-foreground"
+                      href={item.docs}
+                      target="_blank"
+                      rel="noreferrer"
                     >
-                      {item.enabled ? t('discover.stateOffAction') : t('discover.stateOnAction')}
-                    </Button>
-                    <Button
-                      data-testid="discover-detail-remove"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() => void onRemove(item)}
-                    >
-                      {t('discover.detailRemove')}
-                    </Button>
-                  </>
-                ) : (
+                      {t('discover.detailDocs')}
+                    </a>
+                  ) : null}
                   <Button
                     data-testid="discover-detail-add"
                     disabled={busy}
                     onClick={() => void onAdd(item)}
+                    className="ml-auto h-10 px-5"
                   >
                     {t('discover.detailAdd')}
                   </Button>
-                )}
-              </div>
+                </>
+              )}
             </div>
-          </>
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>

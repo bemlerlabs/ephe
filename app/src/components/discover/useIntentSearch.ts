@@ -32,9 +32,7 @@ export function useIntentSearch(items: DiscoverItem[], needle: string): string[]
       searchDiscover(needle)
         .then((hits) => {
           if (!live) return
-          setIds(
-            hits.map((hit) => lookup.get(hit.id)).filter((id): id is string => Boolean(id)),
-          )
+          setIds(hits.map((hit) => lookup.get(hit.id)).filter((id): id is string => Boolean(id)))
         })
         .catch(() => {
           if (live) setIds([])
