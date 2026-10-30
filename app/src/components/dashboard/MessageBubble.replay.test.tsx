@@ -1,38 +1,15 @@
-// N2 — a tool replay frame per turn: collapsed to one row (the header), expanded
-// into numbered steps (TYPE, shortened text, duration) from the trajectory snapshot.
+// PAKET X1 — the finished turn keeps ONE line: diff counts, Undo and a Replay
+// link that opens the trajectory tab of the right-side panel. The steps
+// themselves no longer render inside the bubble.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import MessageBubble from './MessageBubble'
-import { useChatStore } from '@/store/chatStore'
-import type { ChatMessage } from '@/types'
-
-// GET /api/trajectory answers newest-first (core/trajectory.py prepends the
-// finished turn), so the later answer's turn stands at index 0.
-function fixtureTurns() {
-  return [
-    {
-      sid: 's1',
-      model: 'm',
-      ts: 1761806359,
-      duration_ms: 2100,
-      steps: [{ n: 1, type: 'message', title: 'answer', ms: 2000, state: 'ok' }],
-    },
-    {
-      sid: 's1',
-      model: 'm',
-      ts: 1761806357,
-      duration_ms: 3500,
-      steps: [
-        { n: 1, type: 'user', title: 'prompt text', ms: 120, state: 'ok' },
-        { n: 2, type: 'tool_call', title: 'run_shell ls', ms: 450, state: 'ok', text: 'OUT-TEXT' },
-      ],
-    },
-  ]
-}
+import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 
 vi.mock('@/lib/api', () => ({
-  getTrajectory: vi.fn(async () => ({ turns: fixtureTurns() })),
-  getSettings: vi.fn(async () => ({ workspace_dir: null })),
+  synthesizeSpeech: vi.fn(() => Promise.resolve('/audio/tts_test.mp3')),
+  getTrajectory: vi.fn(async () => ({ turns: [] })),
+  getCapabilities: vi.fn(async () => ({ subagent: { tool_count: null } })),
 }))
 
 vi.mock('react-i18next', () => ({
@@ -44,75 +21,57 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const FIRST: ChatMessage = {
+import type { ChatMessage } from '@/types'
+
+const WITH_STEPS: ChatMessage = {
   id: 'a1',
   role: 'assistant',
   content: 'Antwort 1',
   timestamp: Date.now() - 20_000,
   durationMs: 3500,
   streaming: false,
-}
-const SECOND: ChatMessage = {
-  id: 'a2',
-  role: 'assistant',
-  content: 'Antwort 2',
-  timestamp: Date.now() - 10_000,
-  durationMs: 2100,
-  streaming: false,
-}
-
-function setupStore() {
-  useChatStore.setState({
-    activeSessionId: 's1',
-    currentSession: {
-      id: 's1',
-      title: 'T',
-      messages: [
-        { id: 'u1', role: 'user', content: 'frage', timestamp: Date.now() - 21_000 },
-        FIRST,
-        SECOND,
-      ],
-      created_at: 1,
-      updated_at: 2,
-    } as never,
-  })
+  tool_calls: [
+    {
+      id: 't1',
+      name: 'run_shell',
+      args: { cmd: 'ls' },
+      result: 'ok',
+      status: 'done',
+    } as unknown as NonNullable<ChatMessage['tool_calls']>[number],
+  ],
 }
 
-describe('Tool-Replay-Kader (N2)', () => {
+describe('Replay link (PAKET X1)', () => {
   beforeEach(() => {
-    setupStore()
+    vi.restoreAllMocks()
   })
 
-  it('zeigt je Assistant-Turn einen Kader — der zweite zeigt seinen eigenen Turn', async () => {
+  it('renders no inline replay frame — only one link into the trajectory tab', () => {
+    render(<MessageBubble message={WITH_STEPS} />)
+    expect(document.querySelector('[data-testid^="tool-replay-kader"]')).toBeNull()
+    expect(document.querySelector('[data-testid^="replay-row-"]')).toBeNull()
+    expect(screen.getByTestId('replay-link')).toBeTruthy()
+  })
+
+  it('the link asks the panel for the trajectory tab', () => {
+    const seen: unknown[] = []
+    const listener = (e: Event) => seen.push((e as CustomEvent).detail)
+    window.addEventListener(PREVIEW_OPEN_EVENT, listener)
+    try {
+      render(<MessageBubble message={WITH_STEPS} />)
+      fireEvent.click(screen.getByTestId('replay-link'))
+    } finally {
+      window.removeEventListener(PREVIEW_OPEN_EVENT, listener)
+    }
+    expect(seen).toEqual([{ tab: 'trajectory' }])
+  })
+
+  it('a turn without steps offers no replay link', () => {
     render(
-      <>
-        <MessageBubble message={FIRST} />
-        <MessageBubble message={SECOND} />
-      </>,
+      <MessageBubble
+        message={{ id: 'a2', role: 'assistant', content: 'x', timestamp: 0 } as ChatMessage}
+      />,
     )
-    const k0 = await screen.findByTestId('tool-replay-kader-0')
-    expect(k0.textContent).toContain('chat.replaySteps')
-    expect(k0.textContent).toContain('"count":2')
-    const k1 = await screen.findByTestId('tool-replay-kader-1')
-    expect(k1.textContent).toContain('chat.replaySteps')
-    expect(k1.textContent).toContain('"count":1')
-  })
-
-  it('zugeklappt eine Zeile; Klick oeffnet nummerierte Steps mit Dauer', async () => {
-    render(<MessageBubble message={FIRST} />)
-    const kader = await screen.findByTestId('tool-replay-kader-0')
-    // closed: no step row in the DOM
-    expect(document.querySelector('[data-testid="replay-row-0-0"]')).toBeNull()
-    fireEvent.click(kader.querySelector('button')!)
-    // Turn ti=0, step index i=1 is the tool_call — testid schema: replay-row-{ti}-{i}
-    await waitFor(() =>
-      expect(document.querySelector('[data-testid="replay-row-0-1"]')).toBeTruthy(),
-    )
-    const row = document.querySelector('[data-testid="replay-row-0-1"]')
-    expect(row?.textContent).toContain('02')
-    expect(row?.textContent).toContain('tool_call')
-    expect(row?.textContent).toContain('450ms')
-    // this step shows its text body instead of the title
-    expect(row?.textContent).toContain('OUT-TEXT')
+    expect(screen.queryByTestId('replay-link')).toBeNull()
   })
 })
