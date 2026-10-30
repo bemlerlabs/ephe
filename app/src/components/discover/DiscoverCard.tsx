@@ -49,7 +49,10 @@ export function DiscoverCard({
   const { t } = useTranslation()
   const Icon = KIND_ICON[item.kind]
   const primary = item.installed
-    ? { label: t(item.enabled ? 'discover.actionOff' : 'discover.actionOn'), run: () => onToggle(item, !item.enabled) }
+    ? {
+        label: t(item.enabled ? 'discover.actionOff' : 'discover.actionOn'),
+        run: () => onToggle(item, !item.enabled),
+      }
     : { label: t('discover.actionAdd'), run: () => onAdd(item) }
 
   return (
@@ -76,10 +79,16 @@ export function DiscoverCard({
           <span
             data-testid={`discover-state-${item.id}`}
             className={`inline-flex items-center gap-1 text-ui-xs ${
-              item.offline ? 'text-status-warning' : item.enabled ? 'text-status-success' : 'text-ink-faint'
+              item.offline
+                ? 'text-status-warning'
+                : item.enabled
+                  ? 'text-status-success'
+                  : 'text-ink-faint'
             }`}
           >
-            {item.offline ? t('discover.stateOffline') : item.enabled ? (
+            {item.offline ? (
+              t('discover.stateOffline')
+            ) : item.enabled ? (
               <>
                 <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('discover.stateOn')}
@@ -111,7 +120,9 @@ export function DiscoverCard({
 
       <div className="mt-auto flex items-end justify-between gap-3 pt-1">
         <div className="min-w-0">
-          <p className="truncate text-ui-xs text-ink-faint">{t(`discover.origin.${item.origin}`)}</p>
+          <p className="truncate text-ui-xs text-ink-faint">
+            {t(`discover.origin.${item.origin}`)}
+          </p>
           <Facts item={item} />
         </div>
         <div className="flex shrink-0 items-center gap-1.5">

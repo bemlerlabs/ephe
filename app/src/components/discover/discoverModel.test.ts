@@ -36,7 +36,15 @@ describe('discover build', () => {
   it('keeps the three kinds apart and carries only measured facts', () => {
     const items = buildItems({
       ...base,
-      skills: [{ name: 'pdf', trigger: 'document', description: 'Reads PDFs', is_builtin: true, disabled: true }],
+      skills: [
+        {
+          name: 'pdf',
+          trigger: 'document',
+          description: 'Reads PDFs',
+          is_builtin: true,
+          disabled: true,
+        },
+      ],
       mcp: { servers: ['npx:mcp-weather'], source: 'file', tools: [] },
       health: [
         {
@@ -48,7 +56,16 @@ describe('discover build', () => {
           error: null,
         },
       ],
-      catalog: [{ id: 'maps', name: 'maps', description: 'Karten', description_en: 'Maps', category: 'geo', spec: 'npx:mcp-maps' }],
+      catalog: [
+        {
+          id: 'maps',
+          name: 'maps',
+          description: 'Karten',
+          description_en: 'Maps',
+          category: 'geo',
+          spec: 'npx:mcp-maps',
+        },
+      ],
       index: {
         format: 1,
         name: 'catalog',
@@ -61,19 +78,54 @@ describe('discover build', () => {
             publisher: { name: 'Ephe', verified: true },
             trust: 'signed',
             categories: ['office'],
-            versions: [{ version: '1.1.0', publishTimestamp: 0, source: { type: 'https', url: 'u', sha256: 'd' }, engines: { ephe: '>=0.1' }, permissions: {}, components: [] }],
+            versions: [
+              {
+                version: '1.1.0',
+                publishTimestamp: 0,
+                source: { type: 'https', url: 'u', sha256: 'd' },
+                engines: { ephe: '>=0.1' },
+                permissions: {},
+                components: [],
+              },
+            ],
           },
         ],
       },
-      installed: [{ name: 'spreadsheets', version: '1.0.0', description: 'Turns tables', enabled: false, origin: 'bundled', components: [], permissions: { tool_families: [], data_roots: [] } }],
-      usage: { tools: [{ tool: 'pdf', calls: 12, ok: 10, errors: 2, blocked: 1, last_ts: 't' }], population: 12, window: 500 },
+      installed: [
+        {
+          name: 'spreadsheets',
+          version: '1.0.0',
+          description: 'Turns tables',
+          enabled: false,
+          origin: 'bundled',
+          components: [],
+          permissions: { tool_families: [], data_roots: [] },
+        },
+      ],
+      usage: {
+        tools: [{ tool: 'pdf', calls: 12, ok: 10, errors: 2, blocked: 1, last_ts: 't' }],
+        population: 12,
+        window: 500,
+      },
     })
 
     const pdf = items.find((one) => one.id === 'skill:pdf')
-    expect(pdf).toMatchObject({ kind: 'skill', installed: true, enabled: false, calls: 12, origin: 'bundled' })
+    expect(pdf).toMatchObject({
+      kind: 'skill',
+      installed: true,
+      enabled: false,
+      calls: 12,
+      origin: 'bundled',
+    })
 
     const weather = items.find((one) => one.id === 'connector:mcp-weather')
-    expect(weather).toMatchObject({ installed: true, enabled: true, toolCount: 3, latencyMs: 42, spec: 'npx:mcp-weather' })
+    expect(weather).toMatchObject({
+      installed: true,
+      enabled: true,
+      toolCount: 3,
+      latencyMs: 42,
+      spec: 'npx:mcp-weather',
+    })
 
     // A catalog entry the health probe never saw stays a suggestion.
     const maps = items.find((one) => one.id === 'connector:maps')
@@ -90,7 +142,10 @@ describe('discover build', () => {
   })
 
   it('offers only facets the items carry', () => {
-    const items = buildItems({ ...base, catalog: [{ id: 'a', name: 'a', description: '', category: 'geo' }] })
+    const items = buildItems({
+      ...base,
+      catalog: [{ id: 'a', name: 'a', description: '', category: 'geo' }],
+    })
     expect(facetValues(items, (one) => one.categories)).toEqual(['geo'])
     expect(facetValues(items, (one) => [one.origin])).toEqual(['catalog'])
   })
@@ -106,11 +161,23 @@ describe('discover query', () => {
   })
 
   it('narrows by tab, chip and word', () => {
-    expect(filterItems(items, { tab: 'skill', query: '', category: null, origin: null })).toHaveLength(2)
-    expect(filterItems(items, { tab: 'plugin', query: '', category: null, origin: null })).toHaveLength(0)
-    expect(filterItems(items, { tab: 'all', query: 'place', category: null, origin: null }).map((one) => one.name)).toEqual(['maps'])
-    expect(filterItems(items, { tab: 'all', query: '', category: 'geo', origin: null })).toHaveLength(1)
-    expect(filterItems(items, { tab: 'all', query: '', category: null, origin: 'local' })).toHaveLength(2)
+    expect(
+      filterItems(items, { tab: 'skill', query: '', category: null, origin: null }),
+    ).toHaveLength(2)
+    expect(
+      filterItems(items, { tab: 'plugin', query: '', category: null, origin: null }),
+    ).toHaveLength(0)
+    expect(
+      filterItems(items, { tab: 'all', query: 'place', category: null, origin: null }).map(
+        (one) => one.name,
+      ),
+    ).toEqual(['maps'])
+    expect(
+      filterItems(items, { tab: 'all', query: '', category: 'geo', origin: null }),
+    ).toHaveLength(1)
+    expect(
+      filterItems(items, { tab: 'all', query: '', category: null, origin: 'local' }),
+    ).toHaveLength(2)
   })
 
   it('presents an installed item before a suggestion', () => {

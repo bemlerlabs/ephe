@@ -8,7 +8,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => `${key}${opts ? `:${JSON.stringify(opts)}` : ''}` }),
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, unknown>) =>
+      `${key}${opts ? `:${JSON.stringify(opts)}` : ''}`,
+  }),
 }))
 
 const api = vi.hoisted(() => ({
@@ -42,14 +45,41 @@ function seed() {
   api.getMcpSettings.mockResolvedValue({ servers: ['npx:mcp-weather'], source: 'file', tools: [] })
   api.probeMcpHealth.mockResolvedValue({
     servers: [
-      { spec: 'npx:mcp-weather', status: 'ok', tool_count: 3, transport: 'stdio', latency_ms: 40, error: null },
+      {
+        spec: 'npx:mcp-weather',
+        status: 'ok',
+        tool_count: 3,
+        transport: 'stdio',
+        latency_ms: 40,
+        error: null,
+      },
     ],
   })
   api.getMcpCatalog.mockResolvedValue({
-    entries: [{ id: 'maps', name: 'maps', description: 'Karten', description_en: 'Maps', category: 'geo', spec: 'npx:mcp-maps' }],
+    entries: [
+      {
+        id: 'maps',
+        name: 'maps',
+        description: 'Karten',
+        description_en: 'Maps',
+        category: 'geo',
+        spec: 'npx:mcp-maps',
+      },
+    ],
   })
-  api.getMarketHome.mockResolvedValue({ sources: [{ id: 'main', title: 'Main', kind: 'https', url: 'u', trust: 'signed', removable: false }], last_read: {}, last_error: {} })
-  api.getMarketIndex.mockResolvedValue({ status: 'ok', source: { id: 'main' }, index: emptyIndex, error: '' })
+  api.getMarketHome.mockResolvedValue({
+    sources: [
+      { id: 'main', title: 'Main', kind: 'https', url: 'u', trust: 'signed', removable: false },
+    ],
+    last_read: {},
+    last_error: {},
+  })
+  api.getMarketIndex.mockResolvedValue({
+    status: 'ok',
+    source: { id: 'main' },
+    index: emptyIndex,
+    error: '',
+  })
   api.getMarketInstalled.mockResolvedValue({ plugins: [] })
   api.getToolUsage.mockResolvedValue({
     tools: [{ tool: 'pdf', calls: 12, ok: 10, errors: 2, blocked: 1, last_ts: 'ts' }],
