@@ -282,6 +282,38 @@ def tail(limit: int = 100, kind: str = "", turn_id: str = "") -> list[dict]:
         return []
 
 
+def usage_by_tool(limit: int = 500, top: int = 12) -> dict:
+    """Calls per tool over the newest `limit` tool_exec entries, most called first.
+
+    The log is the only honest source for "most used": a catalogue says what could
+    run, this says what ran. `population` is how many calls the ranking stands on,
+    so a surface that dresses five calls up as a habit is using the payload wrong.
+
+    The words are the ones the writer emits, measured over the whole log: status
+    is `ok` or `error`, and a call the user blocked carries `decision: blocked` on
+    the same line.
+    """
+    rows = tail(limit=limit, kind="tool_exec")
+    seen: dict[str, dict] = {}
+    for entry in rows:
+        name = str(entry.get("tool") or "")
+        if not name:
+            continue
+        row = seen.setdefault(name, {"tool": name, "calls": 0, "ok": 0, "errors": 0,
+                                     "blocked": 0, "last_ts": ""})
+        row["calls"] += 1
+        status = str(entry.get("status") or "")
+        if status == "ok":
+            row["ok"] += 1
+        elif status == "error":
+            row["errors"] += 1
+        if str(entry.get("decision") or "") == "blocked":
+            row["blocked"] += 1
+        row["last_ts"] = row["last_ts"] or str(entry.get("ts") or "")
+    ranked = sorted(seen.values(), key=lambda one: (-one["calls"], one["tool"]))[: max(1, top)]
+    return {"tools": ranked, "population": len(rows), "window": min(max(int(limit), 1), 500)}
+
+
 def clear() -> bool:
     """Only visible for tests/documentation — the product stays append-only."""
     return False

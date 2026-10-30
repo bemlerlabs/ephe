@@ -109,3 +109,40 @@ def test_route_page_and_total_describe_the_same_log(audit):
     assert body["total_matching"] == 2
     assert [e["tool"] for e in body["entries"]] == ["b", "a"]
     assert all(isinstance(e, dict) for e in body["entries"])
+
+
+def test_usage_ranks_by_calls_and_states_its_window(audit):
+    """The ranking is a count over the newest window, and says how big that count is."""
+    core, _route, log = audit
+    _write(
+        log,
+        [
+            _entry(tool="read_file", status="ok"),
+            _entry(tool="read_file", status="error"),
+            _entry(tool="shell", status="ok", decision="blocked"),
+            _entry(kind="approval", tool="read_file"),  # a decision line, no call
+        ],
+    )
+    usage = core.usage_by_tool(top=5)
+    assert [one["tool"] for one in usage["tools"]] == ["read_file", "shell"]
+    assert usage["tools"][0] == {
+        "tool": "read_file", "calls": 2, "ok": 1, "errors": 1, "blocked": 0,
+        "last_ts": "2026-10-11T00:00:00.000+00:00",
+    }
+    assert usage["tools"][1]["blocked"] == 1
+    # `population` is what the ranking stands on; four calls is a small number.
+    assert usage["population"] == 3
+
+
+def test_usage_names_no_tool_without_one(audit):
+    core, _route, log = audit
+    _write(log, [_entry(kind="approval"), ""])
+    assert core.usage_by_tool() == {"tools": [], "population": 0, "window": 500}
+
+
+def test_usage_window_is_the_window_the_reader_can_open(audit):
+    """A limit above `tail`'s ceiling is answered with the ceiling it can open."""
+    core, _route, log = audit
+    _write(log, [_entry(tool=f"t{i}") for i in range(300)])
+    assert core.usage_by_tool(limit=5000)["window"] == 500
+    assert core.usage_by_tool(limit=5000)["population"] == 300

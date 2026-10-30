@@ -1,11 +1,11 @@
-'''server/routes/audit.py – R23: Read-only Audit-Log-Inspektion.'''
+'''server/routes/audit.py — R23: read-only inspection of the audit log.'''
 from __future__ import annotations
 
 import json
 
 from fastapi import APIRouter, HTTPException, Query
 
-from core.audit_log import AUDIT_LOG_FILE, tail
+from core.audit_log import AUDIT_LOG_FILE, tail, usage_by_tool
 from server.refusals import Refused
 
 router = APIRouter(tags=["Audit"])
@@ -43,6 +43,16 @@ def count_matching(kind: str = "") -> int | None:
         return total
     except Exception:
         return None
+
+
+@router.get("/audit/usage")
+async def get_audit_usage(top: int = 12) -> dict:
+    """Calls per tool over the newest window of the log — the "most used" facts.
+
+    The window is one read of the log. `population` says how many calls the
+    ranking stands on, so a surface can say plainly when that is a small number.
+    """
+    return usage_by_tool(top=max(1, min(int(top), 24)))
 
 
 @router.get("/audit")
