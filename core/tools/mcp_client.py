@@ -288,12 +288,15 @@ async def sync_mcp_tools(server_specs: list[MCPServerSpec] | None = None) -> lis
         keep.add(key)
         client = _LIVE_CLIENTS.get(key)
         if client is None:
+            # Only a connector that declared secret names gets the extra wiring; a
+            # plain server keeps the constructor it always had.
+            declared = {"env_names": list(spec.env)} if spec.env else {}
             client = MCPClient(
                 endpoint=endpoint,
                 transport=spec.transport,
                 label=spec.label or f"mcp-{idx}",
                 args=spec.args,
-                env_names=list(spec.env),
+                **declared,
             )
             _LIVE_CLIENTS[key] = client
         tools = await client.list_tools()
