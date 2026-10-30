@@ -72,7 +72,10 @@ export function UsageBench({ view }: { view: ToolUsageView | null }) {
       aria-labelledby="discover-bench-title"
     >
       <header className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 id="discover-bench-title" className="text-ui-xs font-semibold uppercase tracking-wide text-ink-faint">
+        <h2
+          id="discover-bench-title"
+          className="text-ui-xs font-semibold uppercase tracking-wide text-ink-faint"
+        >
           {t('discover.benchTitle')}
         </h2>
         {view ? <Reach view={view} /> : null}
