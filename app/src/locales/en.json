@@ -2681,6 +2681,7 @@
     "benchLoading": "Reading the audit log…",
     "loading": "Reading your setup…",
     "empty": "Nothing matches. Clear a filter to see the rest.",
+        "emptyFailed": "Nothing could be read from this machine. Reload the page to try again.",
     "partial": "Some lists did not answer: {{areas}}.",
     "fail": {
       "skills": "skills",
