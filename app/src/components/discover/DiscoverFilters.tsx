@@ -53,14 +53,19 @@ export function DiscoverFilters({
                 }`}
               >
                 {t(`discover.tab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`)}
-                <span className="font-mono text-ui-xs tabular-nums text-ink-faint">{counts[tab]}</span>
+                <span className="font-mono text-ui-xs tabular-nums text-ink-faint">
+                  {counts[tab]}
+                </span>
               </button>
             )
           })}
         </div>
 
         <label className="relative flex min-w-0 flex-1 items-center md:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 h-4 w-4 text-ink-faint" aria-hidden="true" />
+          <Search
+            className="pointer-events-none absolute left-3 h-4 w-4 text-ink-faint"
+            aria-hidden="true"
+          />
           <span className="sr-only">{t('discover.searchLabel')}</span>
           <input
             value={query.query}
@@ -127,7 +132,9 @@ function ChipRow({
   const { t } = useTranslation()
   return (
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
-      <span className="mr-1 font-mono text-ui-xs uppercase tracking-wide text-ink-faint">{label}</span>
+      <span className="mr-1 font-mono text-ui-xs uppercase tracking-wide text-ink-faint">
+        {label}
+      </span>
       {values.map((value) => {
         const active = selected === value
         return (

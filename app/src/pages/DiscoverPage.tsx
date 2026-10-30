@@ -78,7 +78,12 @@ export default function DiscoverPage() {
   const [sources, setSources] = useState<DiscoverSources | null>(null)
   const [indexSource, setIndexSource] = useState<string>('')
   const [failed, setFailed] = useState<string[]>([])
-  const [query, setQuery] = useState<DiscoverQuery>({ tab: 'all', query: '', category: null, origin: null })
+  const [query, setQuery] = useState<DiscoverQuery>({
+    tab: 'all',
+    query: '',
+    category: null,
+    origin: null,
+  })
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -123,7 +128,11 @@ export default function DiscoverPage() {
         next ? 'discover.stateOn' : 'discover.stateOff',
       )
     }
-    return run(item, () => setPluginEnabled(item.name, next), next ? 'discover.stateOn' : 'discover.stateOff')
+    return run(
+      item,
+      () => setPluginEnabled(item.name, next),
+      next ? 'discover.stateOn' : 'discover.stateOff',
+    )
   }
 
   const onAdd = (item: DiscoverItem) => {
@@ -144,7 +153,8 @@ export default function DiscoverPage() {
       item,
       async () => {
         const plan = await planMarketInstall(indexSource, item.name, item.version ?? '')
-        if (plan.status === 'refused') throw new Error(plan.error || plan.code || t('discover.refused'))
+        if (plan.status === 'refused')
+          throw new Error(plan.error || plan.code || t('discover.refused'))
         return installMarketPlan(plan)
       },
       'discover.added',
@@ -169,7 +179,10 @@ export default function DiscoverPage() {
           data-testid="discover-band"
           className="relative -mt-2 overflow-hidden rounded-3xl border border-hairline bg-surface/60 px-5 py-6 sm:px-8 sm:py-9"
         >
-          <span aria-hidden="true" className="forest-glow pointer-events-none absolute inset-0 opacity-70" />
+          <span
+            aria-hidden="true"
+            className="forest-glow pointer-events-none absolute inset-0 opacity-70"
+          />
           <div className="relative flex items-start gap-4">
             <EpheMark size="2.75rem" testId="discover-mark" className="mt-1 shrink-0" />
             <div className="min-w-0">
@@ -221,7 +234,10 @@ export default function DiscoverPage() {
                 {sources ? t('discover.empty') : t('discover.loading')}
               </p>
             ) : (
-              <div data-testid="discover-grid" className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                data-testid="discover-grid"
+                className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              >
                 {shown.map((item) => (
                   <DiscoverCard
                     key={item.id}

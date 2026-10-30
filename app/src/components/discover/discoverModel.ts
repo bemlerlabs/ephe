@@ -62,8 +62,7 @@ export const specName = (spec: string): string => {
 const byName = <T extends { name: string }>(rows: T[]): Map<string, T> =>
   new Map(rows.map((row) => [row.name, row]))
 
-export const kindOf = (tab: DiscoverTab): DiscoverKind | null =>
-  tab === 'all' ? null : tab
+export const kindOf = (tab: DiscoverTab): DiscoverKind | null => (tab === 'all' ? null : tab)
 
 export function buildItems(sources: DiscoverSources): DiscoverItem[] {
   const items: DiscoverItem[] = []
@@ -167,13 +166,21 @@ export function filterItems(items: DiscoverItem[], q: DiscoverQuery): DiscoverIt
 }
 
 export function countByTab(items: DiscoverItem[]): Record<DiscoverTab, number> {
-  const counts: Record<DiscoverTab, number> = { all: items.length, skill: 0, connector: 0, plugin: 0 }
+  const counts: Record<DiscoverTab, number> = {
+    all: items.length,
+    skill: 0,
+    connector: 0,
+    plugin: 0,
+  }
   for (const item of items) counts[item.kind] += 1
   return counts
 }
 
 /** The chips only ever offer a value the loaded items carry. */
-export function facetValues(items: DiscoverItem[], pick: (item: DiscoverItem) => string[]): string[] {
+export function facetValues(
+  items: DiscoverItem[],
+  pick: (item: DiscoverItem) => string[],
+): string[] {
   const set = new Set<string>()
   for (const item of items) for (const one of pick(item)) if (one) set.add(one)
   return [...set].sort()
