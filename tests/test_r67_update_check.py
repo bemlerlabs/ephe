@@ -257,10 +257,12 @@ class TestContinuousChannel:
         )
 
     def test_behind_main_is_an_update_on_the_main_channel(self, monkeypatch):
+        # The shape GitHub answers for `compare/<build>...main` when the build is
+        # behind: the head (main) is ahead, so `ahead_by` carries the count.
         self._pin(monkeypatch)
         monkeypatch.setattr(
             update_check, "_fetch_main_compare",
-            lambda c: {"status": "behind", "behind": 3, "sha": self.COMMIT,
+            lambda c: {"ahead": 3, "behind": 0,
                        "tip": "deadbeefcafe0123", "message": "fix(chat): quieter rows"},
         )
         out = update_check.check_for_update()
@@ -286,12 +288,16 @@ class TestContinuousChannel:
         out = update_check.check_for_update()
         assert out["available"] is True and out["channel"] == "release"
 
-    @pytest.mark.parametrize("status", ["ahead", "diverged", "identical"])
-    def test_never_told_to_go_backwards(self, monkeypatch, status):
+    @pytest.mark.parametrize(
+        ("ahead", "behind"),
+        [(0, 4), (2, 1), (0, 0)],
+        ids=["build-ahead", "diverged", "identical"],
+    )
+    def test_never_told_to_go_backwards(self, monkeypatch, ahead, behind):
         self._pin(monkeypatch)
         monkeypatch.setattr(
             update_check, "_fetch_main_compare",
-            lambda c: {"status": status, "behind": 4, "tip": "t" * 40, "message": ""},
+            lambda c: {"ahead": ahead, "behind": behind, "tip": "t" * 40, "message": ""},
         )
         out = update_check.check_for_update()
         assert out["available"] is False
@@ -335,13 +341,14 @@ class TestContinuousChannel:
 
 class TestComparePayload:
     """GitHub answers a build that is only behind with an empty commit list, so
-    the range alone names neither the tip nor what changed."""
+    the range alone names neither the tip nor what changed. The counts come from
+    the build's side: `ahead_by` is what main has and the build lacks."""
 
     def test_a_behind_compare_fills_the_tip_and_the_subject(self, monkeypatch):
         monkeypatch.delenv(update_check.OPT_OUT_ENV, raising=False)
         monkeypatch.setattr(update_check, "_fetch_main_compare", _REAL_MAIN_COMPARE)
         payloads = [
-            {"status": "behind", "behind_by": 2, "commits": [],
+            {"status": "ahead", "ahead_by": 2, "behind_by": 0, "commits": [],
              "base_commit": {"sha": "abc123def456"}},
             {"sha": "feedfacecafe", "commit": {"message": "feat(companion): the pet moves\n\nbody"}},
         ]
@@ -361,16 +368,16 @@ class TestComparePayload:
 
         monkeypatch.setattr(update_check.urllib.request, "urlopen", lambda *_a, **_k: Resp(payloads.pop(0)))
         out = update_check._fetch_main_compare("abc123def456")
-        assert out["status"] == "behind" and out["behind"] == 2
+        assert out["ahead"] == 2 and out["behind"] == 0
         assert out["tip"] == "feedfacecafe"
         assert out["message"] == "feat(companion): the pet moves"
 
-    def test_an_ahead_compare_asks_for_no_further_read(self, monkeypatch):
+    def test_a_build_with_its_own_commits_asks_for_no_further_read(self, monkeypatch):
         monkeypatch.delenv(update_check.OPT_OUT_ENV, raising=False)
         monkeypatch.setattr(update_check, "_fetch_main_compare", _REAL_MAIN_COMPARE)
 
         def fail(*_a, **_k):
-            raise AssertionError("ahead needs no head read")
+            raise AssertionError("a build with its own commits needs no head read")
 
         class Resp:
             def __enter__(self):
@@ -380,7 +387,7 @@ class TestComparePayload:
                 return False
 
             def read(self):
-                return json.dumps({"status": "ahead", "ahead_by": 1, "behind_by": 0, "commits": []}).encode()
+                return json.dumps({"status": "behind", "ahead_by": 0, "behind_by": 3, "commits": []}).encode()
 
         monkeypatch.setattr(update_check.urllib.request, "urlopen", lambda *_a, **_k: Resp())
         assert update_check._fetch_main_compare("abc")["tip"] == ""
