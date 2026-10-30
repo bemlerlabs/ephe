@@ -20,6 +20,7 @@ const MemoryPage = lazy(() => import('./pages/MemoryPage'))
 const ArtifactsPage = lazy(() => import('./pages/ArtifactsPage'))
 // W4: the tools page carries the vision + session-bundle surfaces.
 const ToolsPage = lazy(() => import('./pages/ToolsPage'))
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
 // W1: the parallel agents and their change sets — the overview the product lacked.
 const WorkspacesPage = lazy(() => import('./pages/WorkspacesPage'))
 const CustodyPage = lazy(() => import('./pages/CustodyPage'))
@@ -273,6 +274,14 @@ function AppInner() {
           element={
             <DataRoute>
               <ToolsPage />
+            </DataRoute>
+          }
+        />
+        <Route
+          path="/discover"
+          element={
+            <DataRoute>
+              <DiscoverPage />
             </DataRoute>
           }
         />
