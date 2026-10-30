@@ -36,9 +36,6 @@ def _no_installed_commit(monkeypatch):
     """The continuous channel is opt-in per test: a unit test must never reach
     GitHub just because the checkout it runs in happens to have a HEAD."""
     monkeypatch.setattr(update_check, "installed_commit", lambda: "")
-    # The suite-wide opt-out would answer "disabled" before the feed is asked,
-    # and this file is the feed contract.
-    monkeypatch.delenv(update_check.OPT_OUT_ENV, raising=False)
     update_check._reset_cache()
 
 
@@ -113,22 +110,21 @@ class TestCheckForUpdate:
         assert out.get("enabled") is False
 
 
-    def test_env_opt_out_silences_every_caller(self, monkeypatch):
+    def test_env_opt_out_stops_the_fetch_and_keeps_the_contract(self, monkeypatch):
         """docs/CLI.md promises `EPHE_NO_UPDATE_CHECK=1` turns the check off —
-        the terminal app asked the feed through check_for_update directly and
-        ignored that promise until now."""
-
-        def _no_network():
-            raise AssertionError("the opt-out must not reach the release feed")
+        the terminal app asked the feed through `check_for_update` directly and
+        reached GitHub despite the switch. The gate now sits at the one network
+        seam, so the check answers "not possible" instead of phoning home."""
 
         monkeypatch.setenv(update_check.OPT_OUT_ENV, "1")
-        monkeypatch.setattr(update_check, "_fetch_latest", _no_network)
         update_check._reset_cache()
-        assert update_check.check_for_update() == {
+        out = update_check.check_for_update(force=True)
+        assert out["available"] is False
+        assert "could not be reached" in out["error"]
+        assert update_check.daily_check() == {
             "enabled": False,
             "available": False,
         }
-        assert update_check.daily_check()["enabled"] is False
         update_check._reset_cache()
 
 
@@ -342,6 +338,7 @@ class TestComparePayload:
     the range alone names neither the tip nor what changed."""
 
     def test_a_behind_compare_fills_the_tip_and_the_subject(self, monkeypatch):
+        monkeypatch.delenv(update_check.OPT_OUT_ENV, raising=False)
         monkeypatch.setattr(update_check, "_fetch_main_compare", _REAL_MAIN_COMPARE)
         payloads = [
             {"status": "behind", "behind_by": 2, "commits": [],
@@ -369,6 +366,7 @@ class TestComparePayload:
         assert out["message"] == "feat(companion): the pet moves"
 
     def test_an_ahead_compare_asks_for_no_further_read(self, monkeypatch):
+        monkeypatch.delenv(update_check.OPT_OUT_ENV, raising=False)
         monkeypatch.setattr(update_check, "_fetch_main_compare", _REAL_MAIN_COMPARE)
 
         def fail(*_a, **_k):
