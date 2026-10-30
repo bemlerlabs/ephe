@@ -7,6 +7,7 @@ import { TAB_KEYS } from '@/components/dashboard/agent/primitives'
 import { searchSessionContent, fileUrl, type SessionSearchResult } from '@/lib/api'
 import { openExternally } from '@/lib/nativeBrowser'
 import type { CommandItem } from './paletteTypes'
+import { requestSettingsOpen } from '@/lib/openSettings'
 import {
   buildArtifactCommands,
   buildControlCommands,
@@ -187,7 +188,9 @@ export function useCommandPalette() {
       // ChatLayout listener on 'ephe:open-settings' is the central entry — with the
       // header gear gone, the palette is the second way into settings.
       action: () => {
-        window.dispatchEvent(new CustomEvent('ephe:open-settings'))
+        // The hub lives with the chat shell; from another page the request carries
+        // through the route change instead of firing into a page without a listener.
+        requestSettingsOpen()
         setOpen(false)
       },
     },

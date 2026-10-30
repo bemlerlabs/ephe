@@ -37,6 +37,8 @@ const SAME_BY_DESIGN = new Set<string>([
   'discover.cardDetail', // Details
   'discover.detailVersion', // Version
   'discover.sourceTitle', // Name — the same word in both
+  'discover.origin.Ephe', // the product's own name
+  'settings.plugins', // Plugins — the loanword both surfaces use
   'discover.category.code', // Code
   'discover.category.cloud', // Cloud
   'discover.category.web', // Web

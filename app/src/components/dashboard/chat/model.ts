@@ -46,6 +46,7 @@ import { toastBus } from '@/lib/toast'
 import { toggleCompanionEnabled } from '@/lib/companionToggle'
 import { SHORTCUTS_EVENT } from '../ShortcutOverlay'
 import { apiUrl } from '@/lib/api/http'
+import { takePendingSettingsOpen } from '@/lib/openSettings'
 
 /**
  * Chat layout (PWA-Chat-UX-Plan, Phase C1/C2).
@@ -299,6 +300,8 @@ export function useChatLayoutModel() {
 
   // Command palette actions (round 12): sidebar toggle + open settings
   useEffect(() => {
+    // A palette request from another page waits here: the hub mounts with this shell.
+    if (takePendingSettingsOpen()) setSettingsOpen(true)
     const onToggleSidebar = () => toggleSidebarCollapsed()
     const onOpenSettings = () => setSettingsOpen(true)
     // 2026 IA-Sweep + R4-A2: the sidebar row "Artefakte" opens the **page**, not

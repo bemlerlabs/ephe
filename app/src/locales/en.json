@@ -827,7 +827,7 @@
     "mcpSave": "Save",
     "mcpTools": "Registered tools",
     "mcp": "MCP",
-    "plugins": "Plugin Store",
+    "plugins": "Plugins",
     "appearance": "Appearance",
     "appearanceTitle": "Appearance",
     "appearanceHint": "How Ephe looks and what it shows you.",
@@ -2683,7 +2683,9 @@
       "local": "Yours",
       "catalog": "Suggested",
       "yours": "Yours",
-      "unknown": "Unknown publisher"
+      "unknown": "Unknown publisher",
+      "registry": "Community registry",
+      "Ephe": "Ephe"
     },
     "cardTools": "{{count}} tools",
     "cardCalls": "{{count}} calls",
