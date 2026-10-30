@@ -160,6 +160,10 @@ def installed_commit() -> str:
 
 
 def _get_json(url: str) -> dict[str, Any]:
+    # The documented opt-out (docs/CLI.md) lives at the only place every check
+    # touches the network, so the contract answers stay identical for callers.
+    if os.environ.get(OPT_OUT_ENV):
+        raise RuntimeError("update check switched off")
     req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
     with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310 — https, pinned host
         return json.loads(resp.read().decode("utf-8"))
@@ -221,13 +225,8 @@ def _main_channel(commit: str) -> dict[str, Any] | None:
     }
 
 
-OPT_OUT_ENV = "EPHE_NO_UPDATE_CHECK"
-
-
 def update_check_enabled() -> bool:
-    """The one switch: `appearance.update_check` (ON), or EPHE_NO_UPDATE_CHECK."""
-    if os.environ.get(OPT_OUT_ENV):
-        return False
+    """Deep setting `appearance.update_check` (default ON)."""
     from core.settings_schema import deep_bool
 
     return deep_bool("appearance.update_check")
@@ -313,6 +312,7 @@ def _reset_cache() -> None:
 # outlives it, and the product promise here is one look a day.
 DAY_S = 24 * 3600
 STATE_FILE = "update.json"
+OPT_OUT_ENV = "EPHE_NO_UPDATE_CHECK"
 
 
 def state_path() -> Path:
