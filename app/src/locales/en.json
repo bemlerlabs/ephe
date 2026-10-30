@@ -2663,7 +2663,7 @@
     "kindConnector": "Connector",
     "kindPlugin": "Add-on",
     "searchLabel": "Search capabilities",
-    "searchPlaceholder": "Search skills, connectors, add-ons",
+    "searchPlaceholder": "Search capabilities",
     "facetCategory": "Subject",
     "facetAll": "All subjects",
     "facetOrigin": "From",
