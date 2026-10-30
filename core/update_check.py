@@ -228,6 +228,26 @@ def update_check_enabled() -> bool:
     return deep_bool("appearance.update_check")
 
 
+#: The two answers a user can ask for: a published release, or the branch itself.
+CHANNELS = ("stable", "commit")
+
+
+def update_channel() -> str:
+    """Deep setting `appearance.update_channel` (default `commit`).
+
+    `stable` offers only published releases; `commit` also follows the default
+    branch between tags. An unknown value falls back to the default rather than
+    silencing updates.
+    """
+    from core.settings_schema import deep_select
+
+    try:
+        chosen = str(deep_select("appearance.update_channel") or "").strip()
+    except Exception:  # noqa: BLE001 — a broken settings file keeps the default
+        return "commit"
+    return chosen if chosen in CHANNELS else "commit"
+
+
 def check_for_update(force: bool = False) -> dict[str, Any]:
     """Full contract result; cached within the TTL unless force=True."""
     if not update_check_enabled():
@@ -241,6 +261,7 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
 
     current = current_version()
     commit = installed_commit()
+    channel = update_channel()
     try:
         latest = _fetch_latest()
         newer_release = _is_newer(latest["tag"], current)
@@ -252,8 +273,9 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
             "url": latest["url"],
             "notes": latest["notes"],
             "channel": "release",
+            "updateChannel": channel,
         }
-        if commit:
+        if commit and channel == "commit":
             result["commit"] = commit[:12]
             if not newer_release:
                 # A merge that has not been tagged yet is still an update the user
@@ -268,6 +290,7 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
             "available": False,
             "current": current,
             "error": "the release source could not be reached",
+            "updateChannel": channel,
         }
     _cache["at"], _cache["value"] = now, result
     return dict(result)
