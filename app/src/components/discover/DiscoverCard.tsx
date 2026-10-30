@@ -73,7 +73,7 @@ export function DiscoverCard({
         />
       ) : null}
 
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="inline-flex items-center gap-1.5 font-mono text-ui-xs uppercase tracking-[0.14em] text-ink-faint">
           <Icon className="h-3.5 w-3.5" aria-hidden="true" />
           {t(`discover.kind${item.kind.charAt(0).toUpperCase()}${item.kind.slice(1)}`)}
@@ -81,7 +81,7 @@ export function DiscoverCard({
         {item.badge ? (
           <span
             data-testid={`discover-badge-${item.id}`}
-            className="rounded-full bg-brand/10 px-2 py-0.5 font-mono text-ui-2xs text-brand-deep"
+            className="shrink-0 whitespace-nowrap rounded-full bg-brand/10 px-2 py-0.5 font-mono text-ui-2xs text-brand-deep"
           >
             {t(`discover.badge.${item.badge}`)}
           </span>
@@ -89,7 +89,7 @@ export function DiscoverCard({
         {item.installed ? (
           <span
             data-testid={`discover-state-${item.id}`}
-            className={`inline-flex items-center gap-1 text-ui-xs ${
+            className={`ml-auto inline-flex items-center gap-1 text-ui-xs ${
               item.offline
                 ? 'text-status-warning'
                 : item.enabled
@@ -131,13 +131,13 @@ export function DiscoverCard({
         </p>
       </div>
 
-      <div className="mt-auto flex items-end justify-between gap-3 pt-1">
-        <div className="min-w-0">
-          <p className="truncate text-ui-xs text-ink-faint">
-            {t(`discover.origin.${item.origin}`, { defaultValue: item.origin })}
-          </p>
-          <Facts item={item} />
-        </div>
+      <p className="mt-auto truncate text-ui-xs text-ink-faint">
+        {t(`discover.origin.${item.origin}`, { defaultValue: item.origin })}
+      </p>
+      <Facts item={item} />
+
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0" />
         <div className="flex shrink-0 items-center gap-1.5">
           {onDetail ? (
             <button
