@@ -1979,3 +1979,12 @@ def test_cmd_update_json_refusal_exits_one(monkeypatch, capsys):
     )
     assert ephe_cli.cmd_update(_parser().parse_args(["update", "--json"])) == 1
     assert '"ok": false' in capsys.readouterr().out
+
+
+def test_cmd_update_asks_for_a_restart_only_when_the_build_moved(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "core.update_apply.apply_update",
+        lambda root=None: {"ok": True, "reason": "", "detail": "a → b", "steps": [], "restart": True},
+    )
+    assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 0
+    assert "Restart Ephe" in capsys.readouterr().out
