@@ -37,6 +37,7 @@ const SAME_BY_DESIGN = new Set<string>([
   'settings.discordTitle', // Discord
   'settings.telegramTitle', // Telegram
   // Acronyms and initialisms.
+  'update.detailsCommit', // Commit — the German word is the English one
   'settings.api', // API
   'settings.mcp', // MCP
   'artifacts.kind.pdf', // PDF
