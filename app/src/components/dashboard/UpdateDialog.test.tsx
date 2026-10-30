@@ -41,7 +41,8 @@ vi.mock('react-i18next', () => ({
         'update.getRelease': 'Get the release',
         'update.technical': 'Technical detail',
         'update.installFailed': 'The installation did not finish.',
-        'update.blocked.not_a_checkout': 'Installed from a release; it updates by replacing the app.',
+        'update.blocked.not_a_checkout':
+          'Installed from a release; it updates by replacing the app.',
         'update.blocked.not_on_main': 'This checkout is on another branch.',
         'update.blocked.dirty_tree': 'This checkout has local changes.',
         'update.blocked.other': 'This build cannot pull by itself.',

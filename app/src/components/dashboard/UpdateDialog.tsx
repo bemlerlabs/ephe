@@ -186,7 +186,10 @@ export function UpdateDialog({
                 <ChevronRight className="update-caret h-3.5 w-3.5" aria-hidden="true" />
                 {t('update.technical')}
               </summary>
-              <p className="mt-1 pl-6 font-mono text-ui-2xs break-words text-ink-faint" data-testid="update-reason">
+              <p
+                className="mt-1 pl-6 font-mono text-ui-2xs break-words text-ink-faint"
+                data-testid="update-reason"
+              >
                 {state.reason}
               </p>
             </details>
