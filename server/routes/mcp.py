@@ -19,7 +19,7 @@ import time
 
 from fastapi import APIRouter
 
-from core.mcp_catalog import catalog_entries
+from core.mcp_catalog import catalog_entries, curated_entries, registry_entries
 from core.tools.mcp_client import MCPClient, parse_server_spec
 
 router = APIRouter(tags=["mcp"])
@@ -74,3 +74,17 @@ async def post_mcp_health() -> dict:
 def get_mcp_catalog() -> dict:
     """Curated starter list of open MCP servers (pure data, no network)."""
     return {"entries": catalog_entries()}
+
+
+@router.get("/discover/registry")
+def get_discover_registry(full: bool = False) -> dict:
+    """The connector tiers: the curated window always, the full mirror only
+    when asked. Separate from /mcp/catalog, whose contract promises curated
+    bilingual rows without a single secret-shaped word; the mirror carries
+    publisher text verbatim and needs its own contract."""
+    entries = registry_entries()
+    return {
+        "curated": curated_entries(),
+        "registry": entries if full else [],
+        "registry_count": len(entries),
+    }

@@ -153,6 +153,46 @@ async def market_home() -> dict:
     }
 
 
+@router.get("/market/sources")
+async def market_sources() -> dict:
+    """Every source the shelf reads: the bundled index plus the user's own."""
+    data = marketplace_sources.load_sources()
+    return {
+        "sources": data["sources"],
+        "last_read": data["last_read"],
+        "last_error": data["last_error"],
+    }
+
+
+@router.post("/market/sources")
+async def market_source_add(body: dict) -> dict:
+    """The breadth door: a user-provisioned local or https index, added for
+    this device only. Refusals carry the stable code; no path or URL echoes."""
+    try:
+        source = marketplace_sources.add_source(
+            str(body.get("kind") or ""),
+            str(body.get("title") or ""),
+            str(body.get("url") or ""),
+        )
+    except marketplace_sources.SourceError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": exc.code, "detail": _REFUSED},
+        ) from exc
+    return source
+
+
+@router.post("/market/sources/remove")
+async def market_source_remove(body: dict) -> dict:
+    source_id = str(body.get("id") or "")
+    if not marketplace_sources.remove_source(source_id):
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "not_found", "detail": _REFUSED},
+        )
+    return {"status": "removed", "id": source_id}
+
+
 @router.get("/market/icon/{name}")
 async def market_icon(name: str) -> Response:
     if not _ICON_NAME.match(name):
