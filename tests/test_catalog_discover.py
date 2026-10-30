@@ -36,7 +36,7 @@ def _archive(manifest: dict) -> bytes:
     return payload.getvalue()
 
 
-def _qoder_index(url: str, digest: str) -> dict:
+def _app_market_index(url: str, digest: str) -> dict:
     return {
         "plugins": [
             {
@@ -79,11 +79,11 @@ def test_ephe_lists_first_party_plugins_and_skill_packs(tmp_path):
     assert packs[0]["license"] == "project"
 
 
-def test_qoder_archive_is_hashed_and_licensed():
+def test_app_market_archive_is_hashed_and_licensed():
     manifest = {"name": "alpha", "license": "MIT", "repository": "https://example.test/alpha", "skills": "./skills/"}
     data = _archive(manifest)
-    rows, errors = discover.discover_qoder(
-        _qoder_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
+    rows, errors = discover.discover_app_market(
+        _app_market_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
         fetch_bytes=lambda _url: data,
     )
     assert errors == []
@@ -94,39 +94,39 @@ def test_qoder_archive_is_hashed_and_licensed():
     assert row["components"] == ["skills"]
 
 
-def test_a_qoder_hash_mismatch_is_refused():
+def test_an_app_market_hash_mismatch_is_refused():
     data = _archive({"name": "alpha", "license": "MIT", "skills": "./skills/"})
-    rows, _ = discover.discover_qoder(
-        _qoder_index("https://example.test/alpha.zip", "0" * 64),
+    rows, _ = discover.discover_app_market(
+        _app_market_index("https://example.test/alpha.zip", "0" * 64),
         fetch_bytes=lambda _url: data,
     )
     assert rows[0]["status"] == "refused_hash"
     assert rows[0]["archive_sha256_ok"] is False
 
 
-def test_a_qoder_pack_without_a_licence_is_refused():
+def test_an_app_market_pack_without_a_licence_is_refused():
     data = _archive({"name": "alpha", "skills": "./skills/"})
-    rows, _ = discover.discover_qoder(
-        _qoder_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
+    rows, _ = discover.discover_app_market(
+        _app_market_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
         fetch_bytes=lambda _url: data,
     )
     assert rows[0]["status"] == "refused_license"
 
 
-def test_a_qoder_native_pack_is_incompatible():
+def test_an_app_market_native_pack_is_incompatible():
     data = _archive({"name": "alpha", "license": "MIT", "skills": "./skills/", "canvas": {"viewers": []}})
-    rows, _ = discover.discover_qoder(
-        _qoder_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
+    rows, _ = discover.discover_app_market(
+        _app_market_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
         fetch_bytes=lambda _url: data,
     )
-    assert rows[0]["compatibility"] == "qoder-native"
+    assert rows[0]["compatibility"] == "app-market-native"
     assert rows[0]["status"] == "incompatible"
 
 
 def test_an_interface_alone_is_not_native():
     data = _archive({"name": "alpha", "license": "MIT", "skills": "./skills/", "interface": {"displayName": "Alpha"}})
-    rows, _ = discover.discover_qoder(
-        _qoder_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
+    rows, _ = discover.discover_app_market(
+        _app_market_index("https://example.test/alpha.zip", hashlib.sha256(data).hexdigest()),
         fetch_bytes=lambda _url: data,
     )
     assert rows[0]["compatibility"] == "skills-only"
@@ -180,22 +180,22 @@ def test_mcp_registry_maps_remote_and_package_entries():
     assert all(row["kind"] == "connector" for row in rows)
 
 
-def test_claude_without_a_licence_is_refused():
+def test_oss_plugin_without_a_licence_is_refused():
     index = {"owner": {"name": "Anthropic"}, "plugins": [
         {"name": "demo", "version": "1.0.0", "source": "./plugins/demo"}
     ]}
-    rows, _ = discover.discover_claude(
+    rows, _ = discover.discover_oss_plugin(
         index, fetch_bytes=lambda _url: json.dumps({"name": "demo"}).encode()
     )
     assert rows[0]["status"] == "refused_license"
     assert "no licence" in rows[0]["reason"]
 
 
-def test_claude_with_a_permissive_licence_is_discovered():
+def test_oss_plugin_with_a_permissive_licence_is_discovered():
     index = {"owner": {"name": "Anthropic"}, "plugins": [
         {"name": "demo", "version": "1.0.0", "source": "./plugins/demo"}
     ]}
-    rows, _ = discover.discover_claude(
+    rows, _ = discover.discover_oss_plugin(
         index,
         fetch_bytes=lambda _url: json.dumps({"name": "demo", "license": "MIT", "skills": "./skills/"}).encode(),
     )
