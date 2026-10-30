@@ -33,6 +33,13 @@ const SAME_BY_DESIGN = new Set<string>([
   'discover.kindSkill',
   'discover.did', // {{name}}: {{what}} — the shape carries, not the word
   'discover.cardLatency',
+  // Loanwords and product nouns the German surface keeps as they are.
+  'discover.cardDetail', // Details
+  'discover.detailVersion', // Version
+  'discover.category.code', // Code
+  'discover.category.cloud', // Cloud
+  'discover.category.web', // Web
+  'discover.category.sandbox', // Sandbox
   // Brand and product names.
   'nav.appName', // Ephe
   'welcome.heroTitle', // Ephe Agent
