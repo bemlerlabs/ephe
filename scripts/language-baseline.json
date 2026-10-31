@@ -32,7 +32,6 @@
   "app/src/components/dashboard/ChatInput.badge.test.tsx": 3,
   "app/src/components/dashboard/ChatInput.chips.test.tsx": 3,
   "app/src/components/dashboard/ChatInput.mode.test.tsx": 1,
-  "app/src/components/dashboard/ChatInput.modelfallback.test.tsx": 1,
   "app/src/components/dashboard/ChatInput.p3.test.tsx": 38,
   "app/src/components/dashboard/ChatInput.queueHint.test.tsx": 2,
   "app/src/components/dashboard/ChatInput.test.tsx": 14,
