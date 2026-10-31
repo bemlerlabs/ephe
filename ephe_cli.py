@@ -216,7 +216,7 @@ def _doctor_update_row(seconds: float = 3.0) -> str:
 
     threading.Thread(target=probe, daemon=True, name="ephe-update-check").start()
     if not done.wait(seconds):
-        return "not checked — the source did not answer in 3 s"
+        return f"not checked — the source did not answer in {seconds:g} s"
     info = box.get("value")
     if not info:
         return "check skipped"
