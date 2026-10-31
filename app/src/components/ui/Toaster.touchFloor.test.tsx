@@ -53,8 +53,11 @@ describe('the toaster at phone width', () => {
     const el = stack()
     const phoneAnchor = tokens(el).find((t) => /^max-lg:top-\[/.test(t))
     expect(phoneAnchor, 'a phone-width top anchor').toBeTruthy()
-    expect(tokens(el), 'no bottom anchor at phone width').not.toContain('bottom-20')
-    expect(tokens(el), 'desktop keeps its bottom anchor').toContain('lg:bottom-20')
+    expect(tokens(el), 'no bottom anchor at any width').not.toContain('bottom-20')
+    expect(
+      tokens(el).some((t) => t === 'lg:top-[calc(env(safe-area-inset-top)+3.75rem)]'),
+      'desktop anchors under the top bar',
+    ).toBe(true)
   })
 
   it('clears the measured 53px header with its phone offset', () => {

@@ -205,7 +205,7 @@
     "toolFailed": "{{tool}} failed",
     "backendMismatch": "The app is {{shell}}, the backend {{backend}}. Restart Ephe.",
     "backendUpdated": "The backend code was updated. Restart Ephe to load it.",
-    "buildMismatch": "This window was built from {{build}}, the backend runs {{backend}}. Reload to get the newer interface.",
+    "buildMismatch": "A newer interface is ready. Reload the window to load it.",
     "toolArgsLabel": "Arguments",
     "toolResultLabel": "Result",
     "toolVerbRun": "Runs",
@@ -2505,7 +2505,15 @@
     "imported_other": "{{count}} sessions restored.",
     "errorOffline": "No answer from Ephe — nothing was sent. Start the backend, then try again.",
     "errorImport": "The import failed: {{message}}. Check that the file is a zip or tar.gz bundle Ephe exported, then try again.",
-    "errorExport": "The export failed: {{message}}. Try again; if it stays, the backend log names the cause."
+    "errorExport": "The export failed: {{message}}. Try again; if it stays, the backend log names the cause.",
+    "catalogFamily": {
+      "files": "Files",
+      "web": "Web & browser",
+      "system": "System & shell",
+      "media": "Documents & media",
+      "agents": "Agents & tasks",
+      "other": "Other"
+    }
   },
   "route": {
     "unknownTitle": "No page at this address",

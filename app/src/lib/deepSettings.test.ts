@@ -233,3 +233,25 @@ describe('initDeepSettings', () => {
     expect(document.documentElement.classList.contains('no-motion')).toBe(false)
   })
 })
+
+describe('the unchosen chat step', () => {
+  it('reads at 16px instead of borrowing the interface step', () => {
+    seedDeepSettings([
+      { key: 'appearance', fields: [field('appearance.font_scale', 'number', 100)] },
+    ])
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('16px')
+  })
+
+  it('keeps a chosen step, even a smaller one', () => {
+    seedDeepSettings([
+      {
+        key: 'appearance',
+        fields: [
+          field('appearance.font_scale', 'number', 100),
+          field('appearance.chat_font_scale', 'number', 80),
+        ],
+      },
+    ])
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('10.4px')
+  })
+})

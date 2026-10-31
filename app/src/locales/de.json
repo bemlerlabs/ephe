@@ -205,7 +205,7 @@
     "toolFailed": "{{tool}} fehlgeschlagen",
     "backendMismatch": "Die App ist {{shell}}, ihr Backend läuft noch mit {{backend}}. Starte Ephe neu.",
     "backendUpdated": "Der Backend-Code wurde aktualisiert. Starte Ephe neu.",
-    "buildMismatch": "Dieses Fenster wurde aus {{build}} gebaut, das Backend läuft auf {{backend}}. Lade die Seite neu, um die aktuelle Oberfläche zu bekommen.",
+    "buildMismatch": "Eine neuere Oberfläche ist bereit. Lade das Fenster neu, um sie zu laden.",
     "toolArgsLabel": "Parameter",
     "toolResultLabel": "Ergebnis",
     "toolVerbRun": "Führt aus",
@@ -2505,7 +2505,15 @@
     "imported_other": "{{count}} Sitzungen wiederhergestellt.",
     "errorOffline": "Keine Antwort von Ephe — es wurde nichts gesendet. Starte das Backend und versuche es dann erneut.",
     "errorImport": "Der Import ist fehlgeschlagen: {{message}}. Prüfe, ob die Datei ein von Ephe exportiertes zip- oder tar.gz-Bundle ist, und versuche es dann erneut.",
-    "errorExport": "Der Export ist fehlgeschlagen: {{message}}. Versuche es erneut; bleibt es dabei, nennt das Backend-Protokoll die Ursache."
+    "errorExport": "Der Export ist fehlgeschlagen: {{message}}. Versuche es erneut; bleibt es dabei, nennt das Backend-Protokoll die Ursache.",
+    "catalogFamily": {
+      "files": "Dateien",
+      "web": "Web & Browser",
+      "system": "System & Shell",
+      "media": "Dokumente & Medien",
+      "agents": "Agenten & Aufgaben",
+      "other": "Sonstiges"
+    }
   },
   "route": {
     "unknownTitle": "Keine Seite unter dieser Adresse",

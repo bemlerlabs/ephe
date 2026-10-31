@@ -14,15 +14,17 @@ const MAX_VISIBLE = 4
  * bottom-right, auto-dismiss (errors stay longer). a11y: each toast
  * role="status" + aria-live (error: assertive).
  *
- * Where the stack sits: on a phone it hangs under the header, on a wide window it
- * keeps the bottom-left corner. The phone case is a measured fix — the restore
- * toast measured [16,720,358x44] at 390x844 while the composer's bottom row sits
- * at y=739, so the stack covered the model chip and the send button (25px of
- * overlap, 2026-10-13). A bottom offset cannot be made safe there: the composer's
- * height is not a constant (the textarea grows to max-h-32, attachments wrap, and
- * a h-16 buffer sits above it), so any "above the composer" offset is stale the
- * moment the composer grows. The band under the header is always free instead,
- * and the header measures a flat 53px below lg — the offset below clears it.
+ * Where the stack sits: on a phone it hangs under the header; on a wide window it
+ * keeps the top-right corner, under the chat's own top bar. The phone case is a
+ * measured fix — the restore toast measured [16,720,358x44] at 390x844 while the
+ * composer's bottom row sits at y=739, so the stack covered the model chip and the
+ * send button (25px of overlap, 2026-10-13). A bottom offset cannot be made safe
+ * there: the composer's height is not a constant (the textarea grows to max-h-32,
+ * attachments wrap, and a h-16 buffer sits above it), so any "above the composer"
+ * offset is stale the moment the composer grows. The band under the header is
+ * always free instead, and the header measures a flat 53px below lg — the offset
+ * below clears it. On a wide window the same rule applies to the bottom: the
+ * composer is tall and grows, so the stack anchors top-right there too.
  */
 export function Toaster() {
   const { t } = useTranslation()
@@ -70,7 +72,7 @@ export function Toaster() {
   return (
     <div
       data-inert-exempt=""
-      className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] left-1/2 -translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:bottom-20"
+      className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:right-4 lg:top-[calc(env(safe-area-inset-top)+3.75rem)]"
     >
       {items.map((item) => {
         const Icon =

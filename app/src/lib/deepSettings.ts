@@ -83,7 +83,13 @@ export function baseFontPx(): number {
 /** The chat reading step: the interface scale times the conversation's own factor. */
 export function chatFontSizePx(): number {
   const ui = Math.min(150, Math.max(80, deepNumber('appearance.font_scale', 100)))
-  const chat = Math.min(150, Math.max(80, deepNumber('appearance.chat_font_scale', 100)))
+  const chosen = deepNumber('appearance.chat_font_scale', Number.NaN)
+  // An unchosen step reads at 16 px: the transcript is read, not navigated, so it
+  // sits a step above the interface. A chosen factor still wins, unchanged.
+  if (!Number.isFinite(chosen)) {
+    return Math.round((baseFontPx() + 1) * (ui / 100) * 100) / 100
+  }
+  const chat = Math.min(150, Math.max(80, chosen))
   return Math.round((baseFontPx() - 2) * (ui / 100) * (chat / 100) * 100) / 100
 }
 

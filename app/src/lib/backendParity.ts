@@ -88,6 +88,6 @@ export async function announceBuildParity(
     return { verdict: 'unknown', build: mine, backend }
   }
   if (mine === backend) return { verdict: 'match', build: mine, backend }
-  toastBus.error(t('chat.buildMismatch', { build: mine, backend }))
+  toastBus.error(t('chat.buildMismatch'))
   return { verdict: 'mismatch', build: mine, backend }
 }

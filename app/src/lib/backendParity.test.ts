@@ -85,7 +85,7 @@ describe('announceBackendParity', () => {
 })
 
 describe('announceBuildParity', () => {
-  it('names the two commits when the window is older than the backend', async () => {
+  it('announces an older window without putting commits in the reader\'s face', async () => {
     health.mockResolvedValue({ git_sha: 'bbbbbbbbbbbb' })
 
     await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa')).resolves.toEqual({
@@ -95,7 +95,7 @@ describe('announceBuildParity', () => {
     })
 
     expect(toast.error).toHaveBeenCalledWith(
-      'chat.buildMismatch:aaaaaaaaaaaa/bbbbbbbbbbbb',
+      'chat.buildMismatch',
     )
   })
 
