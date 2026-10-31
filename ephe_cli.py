@@ -910,7 +910,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             (
                 "Environment (agent tools)",
                 True,
-                ", ".join(tools) if tools else "none further detected",
+                f"{len(tools)} mirrored on PATH" if tools else "none further detected",
             )
         )
     except Exception:  # noqa: BLE001 — the mirror must never break doctor
@@ -1524,8 +1524,8 @@ def cmd_session(args: argparse.Namespace) -> int:
             info = ms.session_info(s["id"]) or {}
             print(
                 f" {marker} {s.get('id'):<8}  {s.get('title', '?'):<30}  "
-                f"Nachrichten: {info.get('message_count', 0):>3}   "
-                f"Update: {info.get('updated_at', '')[:19]}"
+                f"messages: {info.get('message_count', 0):>3}   "
+                f"updated: {info.get('updated_at', '')[:19]}"
             )
         return 0
 
