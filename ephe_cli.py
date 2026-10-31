@@ -1421,7 +1421,10 @@ def cmd_update(args: argparse.Namespace) -> int:
     """Fast-forward this checkout and reinstall it; git's own words never reach the user."""
     from core.update_apply import apply_update
 
-    result = apply_update()
+    # The tree the CLI lives in, named here so a test that moves PROJECT_ROOT
+    # moves the update with it — this used to read the module's own default and
+    # ran an installer wherever the process happened to start.
+    result = apply_update(PROJECT_ROOT)
     if args.json:
         print(json.dumps(result, indent=2))
         return 0 if result.get("ok") else 1

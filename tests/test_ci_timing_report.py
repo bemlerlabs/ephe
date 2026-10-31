@@ -323,3 +323,51 @@ class TestBudgetFileAgreesWithTheWorkflows:
         assert any("no longer budgeted" in note for note in self.data["notes"]), (
             "the split is not documented in the budget file"
         )
+
+
+def test_a_transient_api_error_is_retried_then_reported(tmp_path, monkeypatch):
+    """A 502 from the Actions API is not a verdict about our timings. It used to
+    end the report before a file existed, so the nightly went red with the reason
+    only in the log — the artifact step then failed on a missing glob."""
+    import importlib.util
+    import urllib.error
+
+    spec = importlib.util.spec_from_file_location("ci_timing_report", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    calls = {"n": 0}
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+        def read(self):
+            return b'{"ok": true}'
+
+    def flaky(*_a, **_k):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise urllib.error.HTTPError("u", 502, "Bad Gateway", None, None)
+        return Resp()
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", flaky)
+    monkeypatch.setattr(module.time, "sleep", lambda _s: None)
+    assert module.api_get("repos/x/y/actions/runs/1/jobs", "t") == {"ok": True}
+    assert calls["n"] == 3
+
+    monkeypatch.setattr(
+        module.urllib.request,
+        "urlopen",
+        lambda *_a, **_k: (_ for _ in ()).throw(urllib.error.HTTPError("u", 502, "Bad", None, None)),
+    )
+    out = tmp_path / "out" / "timing.json"
+    code = module.main(
+        ["--repository", "x/y", "--json", str(out), "--workflow", "Tests", "--runs", "3"]
+    )
+    assert code == 2
+    assert json.loads(out.read_text())["source_error"].startswith("the Actions API stayed unreachable")
