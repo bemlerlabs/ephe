@@ -358,7 +358,8 @@ CommandPalette, ModelPicker, SessionSwitcher, HelpOverlay {
 }
 
 #status-bar.narrow #status-provider,
-#status-bar.narrow #status-tagline {
+#status-bar.narrow #status-tagline,
+#status-bar.compact #status-tagline {
     display: none;
 }
 

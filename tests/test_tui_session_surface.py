@@ -85,7 +85,47 @@ def test_the_greeting_retires_after_the_first_message() -> None:
 def test_the_status_bar_fits_its_facts_at_120_columns() -> None:
     """GIVEN provider, model, session and meter on a 120-column terminal
     WHEN the bar renders
-    THEN it drops the provider cell instead of clipping the meter."""
+    THEN the session cell yields (the masthead carries its title) and the
+    provider plus the whole meter stay on screen."""
+    from textual.app import App, ComposeResult
+
+    class _Harness(App):
+        def compose(self) -> ComposeResult:
+            yield StatusBar(id="status-bar")
+
+    async def run() -> tuple[bool, bool, str, str, str]:
+        app = _Harness()
+        async with app.run_test(size=(120, 10)) as pilot:
+            status = app.query_one(StatusBar)
+            status.post_message(
+                StatusBar.SetStatus(
+                    True, "deepseek-flash", "OpenAI-compatible API · api.deepseek.com"
+                )
+            )
+            status.post_message(StatusBar.SetSession("beecard3", 19))
+            status.post_message(
+                StatusBar.SetMeter(ContextUsage(user=3200, window=8192), "engine")
+            )
+            await pilot.pause()
+            return (
+                status.has_class("narrow"),
+                status.has_class("compact"),
+                str(status.query_one("#status-provider").render()),
+                str(status.query_one("#status-session").render()),
+                str(status.query_one("#status-meter").render()),
+            )
+
+    narrow, compact, provider, session, meter = asyncio.run(run())
+    assert narrow is False
+    assert compact is True
+    assert "OpenAI-compatible" in provider
+    assert session == ""
+    assert "ctx 39%" in meter
+    assert "tok" in meter
+
+
+def test_the_status_bar_drops_the_provider_before_it_clips() -> None:
+    """At 80 columns the provider yields first; the meter keeps its unit."""
     from textual.app import App, ComposeResult
 
     class _Harness(App):
@@ -94,7 +134,7 @@ def test_the_status_bar_fits_its_facts_at_120_columns() -> None:
 
     async def run() -> tuple[bool, str, str]:
         app = _Harness()
-        async with app.run_test(size=(120, 10)) as pilot:
+        async with app.run_test(size=(80, 10)) as pilot:
             status = app.query_one(StatusBar)
             status.post_message(
                 StatusBar.SetStatus(
@@ -115,7 +155,6 @@ def test_the_status_bar_fits_its_facts_at_120_columns() -> None:
     narrow, provider, meter = asyncio.run(run())
     assert narrow is True
     assert provider == ""
-    assert "ctx 39%" in meter
     assert "tok" in meter
 
 
