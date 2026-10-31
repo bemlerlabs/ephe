@@ -1040,7 +1040,7 @@ class StatusBar(Widget):
         agents = agents_label(self._agents_active, self._agents_total)
         seal = seal_label(self._seal)
 
-        def cells(narrow: bool, title: str) -> dict[str, str]:
+        def cells(narrow: bool, title: str, session: bool = True) -> dict[str, str]:
             """Markup per cell; a hidden cell is absent, never shifted."""
             if self._error:
                 head, tone = f"⚠  {self._error}", ERROR
@@ -1055,11 +1055,11 @@ class StatusBar(Widget):
                 tone = ERROR
             out = {"indicator": f"[{tone}]{head}[/{tone}]"}
             if self._provider and not narrow:
-                out["provider"] = f"[{ACCENT}]  │  {self._provider}[/{ACCENT}]"
-            out["model"] = f"[{DIM}]  │  {self._model}[/{DIM}]"
-            if title:
+                out["provider"] = f"[{ACCENT}] │ {self._provider}[/{ACCENT}]"
+            out["model"] = f"[{DIM}] │ {self._model}[/{DIM}]"
+            if title and session:
                 out["session"] = (
-                    f"[{DIM}]  │  {title} ({self._session_count})[/{DIM}]"
+                    f"[{DIM}] │ {title} ({self._session_count})[/{DIM}]"
                 )
             if meter:
                 warn = (
@@ -1068,15 +1068,15 @@ class StatusBar(Widget):
                     and self._meter_source != "legacy"
                 )
                 colour = WARN if warn else DIM
-                out["meter"] = f"[{colour}]  │  {meter}[/{colour}]"
+                out["meter"] = f"[{colour}] │ {meter}[/{colour}]"
             if self._queue:
-                out["queue"] = f"[{WARN}]  │  {self._queue} queued[/{WARN}]"
+                out["queue"] = f"[{WARN}] │ {self._queue} queued[/{WARN}]"
             if agents:
                 colour = ACCENT if self._agents_active else DIM
-                out["agents"] = f"[{colour}]  │  {agents}[/{colour}]"
+                out["agents"] = f"[{colour}] │ {agents}[/{colour}]"
             if seal:
                 colour = ERROR if (self._seal or []) else OK
-                out["seal"] = f"[{colour}]  │  {seal}[/{colour}]"
+                out["seal"] = f"[{colour}] │ {seal}[/{colour}]"
             return out
 
         def plain_of(rendered: dict[str, str]) -> int:
@@ -1087,16 +1087,28 @@ class StatusBar(Widget):
             return total
 
         title = self._session
-        wide = cells(False, title)
         width = self.size.width or 0
         # A fixed 80/110 cut let the meter's tail be clipped at 120–140 columns
-        # (seen 2026-10-31): the provider cell alone is ~44. Fit the facts, not
-        # a number someone guessed.
-        narrow = bool(width) and (width < 110 or plain_of(wide) + 2 > width)
-        self.set_class(narrow, "narrow")
-        if narrow and len(title) > 18:
+        # (seen 2026-10-31): the provider cell alone is ~44. Fit the facts, and
+        # give up the session first — the masthead carries its title already.
+        full = cells(False, title)
+        compact = cells(False, title, session=False)
+        if not width or plain_of(full) + 2 <= width:
+            tier = "wide"
+        elif width >= 110 and plain_of(compact) + 2 <= width:
+            tier = "compact"
+        else:
+            tier = "narrow"
+        self.set_class(tier == "narrow", "narrow")
+        self.set_class(tier == "compact", "compact")
+        if tier == "narrow" and len(title) > 18:
             title = title[:17] + "…"
-        visible = cells(narrow, title)
+        if tier == "wide":
+            visible = cells(False, title)
+        elif tier == "compact":
+            visible = cells(False, title, session=False)
+        else:
+            visible = cells(True, title)
         indicator.update(visible.get("indicator", ""))
         provider_label.update(visible.get("provider", ""))
         model_label.update(visible.get("model", ""))
