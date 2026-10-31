@@ -1066,7 +1066,7 @@
     "imageModel": "Modell (optional)",
     "imageApiKey": "API-Key (optional)",
     "imageKeySet": "konfiguriert {{hint}} — leeres Feld behält ihn",
-    "imageSave": "Speichern",
+    "imageSave": "Bild-Endpunkt speichern",
     "imageTest": "Endpunkt testen",
     "imageProbeOk": "Erreichbar — {{count}} Modell(e), erstes: {{model}}",
     "imageProbeOk_one": "Erreichbar — {{count}} Modell, erstes: {{model}}",
@@ -2781,6 +2781,8 @@
       "refused": "Abgelehnt — der Text trägt Anweisungen oder einen Download"
     },
     "verdictFindings": "{{count}} Befund(e)",
+    "verdictFailed": "Die Prüfung konnte nicht laufen",
+    "needsArgument": "{{name}} braucht zuerst einen Ordner oder Pfad — füge es in den MCP-Einstellungen mit diesem Argument hinzu.",
     "credentialsTitle": "Braucht Zugangsdaten",
     "credentialNote": "Der Wert bleibt auf diesem Gerät und geht nur an diesen Connector.",
     "credentialMissing": "nicht gesetzt",

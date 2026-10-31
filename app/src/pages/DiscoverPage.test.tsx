@@ -161,6 +161,17 @@ describe('discover page', () => {
     expect(screen.getByTestId('discover-notice').textContent).toContain('discover.added')
   })
 
+  it('switches an attached connector through the server list, not the plugin store', async () => {
+    render_()
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-card-connector:mcp-weather')).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByTestId('discover-act-connector:mcp-weather'))
+    await waitFor(() => expect(api.putMcpSettings).toHaveBeenCalledTimes(1))
+    expect(api.putMcpSettings.mock.calls[0]?.[0]).toEqual([])
+    expect(api.setPluginEnabled).not.toHaveBeenCalled()
+  })
+
   it('attaches a curated registry connector through its launch line', async () => {
     render_()
     await waitFor(() =>
