@@ -17,6 +17,7 @@ import type {
   MarketInstalledRow,
   ToolUsageView,
 } from '@/lib/api'
+import { CATEGORY_ORDER, prettyName, publisherOf, specName } from './discoverNames'
 
 export type DiscoverKind = 'skill' | 'connector' | 'plugin'
 
@@ -106,63 +107,10 @@ const desc = (value: string | Record<string, string> | undefined): string => {
   return String(values[0] ?? '')
 }
 
-/** `npx:weather` and `uvx:maps@1` both name themselves after the colon. */
-export const specName = (spec: string): string => {
-  const tail = spec.includes(':') ? spec.slice(spec.lastIndexOf(':') + 1) : spec
-  const head = tail.replace(/^@/, '').split('@')[0] ?? ''
-  return head.split('/').pop() || spec
-}
-
 const byName = <T extends { name: string }>(rows: T[]): Map<string, T> =>
   new Map(rows.map((row) => [row.name, row]))
 
 export const kindOf = (tab: DiscoverTab): DiscoverKind | null => (tab === 'all' ? null : tab)
-
-/** The shelf's own order: the subjects a person browses, ahead of the alphabet. */
-export const CATEGORY_ORDER = [
-  'skills',
-  'code',
-  'web',
-  'memory',
-  'files',
-  'communication',
-  'productivity',
-  'database',
-  'cloud',
-  'security',
-  'media',
-  'utility',
-  'testing',
-  'sandbox',
-  'other',
-] as const
-
-/** `com.ainetcafe/netcafe-memory` reads as "Netcafe Memory" on a card. */
-export function prettyName(name: string): string {
-  if (!name) return name
-  const tail = name.includes('/') ? name.slice(name.lastIndexOf('/') + 1) : name
-  if (!tail) return name
-  // A name that already carries spaces and capitals was written for people.
-  if (/\s/.test(tail) && /[A-Z]/.test(tail)) return tail
-  return tail
-    .replace(/[._-]+/g, ' ')
-    .trim()
-    .split(' ')
-    .filter(Boolean)
-    .map((word) =>
-      /^(ai|api|cli|mcp|sdk|db|ui|css|json|http|sql)$/i.test(word)
-        ? word.toUpperCase()
-        : word.charAt(0).toUpperCase() + word.slice(1),
-    )
-    .join(' ')
-}
-
-/** The namespace before the slash names who published the entry. */
-export function publisherOf(name: string): string | undefined {
-  if (!name.includes('/')) return undefined
-  const head = name.slice(0, name.lastIndexOf('/'))
-  return head || undefined
-}
 
 /** A featured row's verified launch line in the format the settings accept. */
 function featuredSpec(entry: FeaturedEntry): string | undefined {
