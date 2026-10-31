@@ -2000,3 +2000,18 @@ def test_cmd_update_asks_for_a_restart_only_when_the_build_moved(monkeypatch, ca
     )
     assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 0
     assert "Restart Ephe" in capsys.readouterr().out
+
+
+def test_the_doctor_names_no_foreign_agent_tool(monkeypatch, capsys, tmp_path):
+    """GIVEN other coding agents installed on the machine
+    WHEN `ephe doctor` reports the environment mirror
+    THEN it reports the count: a product screen carries no foreign tool name."""
+    _patch_doctor_base(monkeypatch, tmp_path)
+    import core.environment_mirror as mirror
+
+    monkeypatch.setattr(mirror, "installed_tools", lambda: ["agent-one", "agent-two"])
+    assert ephe_cli.cmd_doctor(_parser().parse_args(["doctor", "--model", "m"])) == 0
+    out = capsys.readouterr().out
+    assert "2 mirrored on PATH" in out
+    assert "agent-one" not in out
+    assert "agent-two" not in out

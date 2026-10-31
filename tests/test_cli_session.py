@@ -54,6 +54,34 @@ def test_session_list_json_structure(sessions_dir: Path):
     assert data == []
 
 
+def test_session_list_hides_the_pwa_mirror_and_speaks_english(sessions_dir: Path):
+    """GIVEN one session plus its PWA mirror entry
+    WHEN `ephe session list` prints the table
+    THEN the mirror is not a choice and the columns are English."""
+    entry = json.loads(
+        _run("session", "new", "--title", "Mine", "--json", sessions_dir=sessions_dir).stdout
+    )
+    registry = sessions_dir / "registry.json"
+    data = json.loads(registry.read_text(encoding="utf-8"))
+    data["sessions"].append(
+        {
+            "id": f"pwa-{entry['id']}",
+            "title": "Mine",
+            "created_at": "2026-10-30T10:00:00",
+            "last_active": "2026-10-30T10:00:00",
+        }
+    )
+    registry.write_text(json.dumps(data), encoding="utf-8")
+
+    r = _run("session", "list", sessions_dir=sessions_dir)
+    assert r.returncode == 0
+    assert r.stdout.count("Mine") == 1
+    assert f"pwa-{entry['id']}" not in r.stdout
+    assert "messages:" in r.stdout
+    assert "updated:" in r.stdout
+    assert "Nachrichten" not in r.stdout
+
+
 # new
 
 

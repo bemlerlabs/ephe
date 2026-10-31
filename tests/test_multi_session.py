@@ -263,3 +263,32 @@ def test_session_info_includes_message_count_and_updated_at():
 
 def test_session_info_for_missing_returns_none():
     assert ms.session_info("deadbeef") is None
+
+
+# Mirrors are copies, not conversations
+
+
+def test_the_mirror_copies_stay_out_of_the_choosable_list():
+    """A PWA/REST mirror carries the same title and transcript as its original.
+
+    Listing both gave two rows a reader cannot tell apart (seen in the terminal
+    switcher on 2026-10-31). The server still reads the registry directly, so
+    restore keeps its copy; a list that offers a choice offers only originals.
+    """
+    import json
+
+    real = ms.create_session("Shared title")
+    raw = json.loads(ms.REGISTRY_FILE.read_text(encoding="utf-8"))
+    raw["sessions"].append(
+        {
+            "id": f"pwa-{real['id']}",
+            "title": "Shared title",
+            "created_at": "2026-10-30T10:00:00",
+            "last_active": "2026-10-30T10:00:00",
+        }
+    )
+    ms.REGISTRY_FILE.write_text(json.dumps(raw), encoding="utf-8")
+
+    listed = {entry["id"] for entry in ms.list_sessions()}
+    assert real["id"] in listed
+    assert f"pwa-{real['id']}" not in listed

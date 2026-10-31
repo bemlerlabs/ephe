@@ -259,14 +259,26 @@ def create_session(title: str) -> dict[str, Any]:
 
 
 def list_sessions() -> list[dict[str, Any]]:
-    """Returns all sessions, sorted by last_active descending.
+    """Returns the user's sessions, sorted by last_active descending.
+
+    The PWA and REST mirrors are copies of a conversation, not conversations of
+    their own: listing them beside the original gave two rows with one title and
+    one transcript (seen in the terminal switcher on 2026-10-31). The server
+    reads the registry directly and still sees them; a reader that offers a
+    choice gets only what it can choose between.
 
     Triggers the legacy migration if default.json exists.
     """
     if _legacy_migration_needed():
         _run_legacy_migration()
+    from core.session_lifecycle import namespace_of
+
     reg = _load_registry()
-    sessions = [s for s in reg.get("sessions", []) if isinstance(s, dict)]
+    sessions = [
+        s
+        for s in reg.get("sessions", [])
+        if isinstance(s, dict) and not namespace_of(str(s.get("id") or ""))
+    ]
     sessions.sort(key=lambda s: s.get("last_active", ""), reverse=True)
     return sessions
 
