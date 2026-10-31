@@ -33,6 +33,7 @@ vi.mock('@/i18n', () => ({
 import {
   MAX_SESSIONS_PER_CALL,
   flushSessionSync,
+  flushSessionSyncNow,
   isSessionSyncEnabled,
   isTombstoned,
   queueSessionDeleted,
@@ -69,6 +70,18 @@ describe('sessionSync (R30)', () => {
     const payload = firstCallPayload()
     expect(payload.sessions[0]?.id).toBe('s1')
     expect(payload.sessions[0]?.messages.map((m) => m.role)).toEqual(['user', 'assistant'])
+  })
+
+  it('sends the turn now, keepalive only when asked', async () => {
+    queueSessionSync(session('s-now'))
+    flushSessionSyncNow()
+    await vi.waitFor(() => expect(syncMock).toHaveBeenCalledTimes(1))
+    expect(syncMock.mock.calls[0]?.[1]).toBe(false)
+
+    queueSessionSync(session('s-unload'))
+    flushSessionSyncNow(true)
+    await vi.waitFor(() => expect(syncMock).toHaveBeenCalledTimes(2))
+    expect(syncMock.mock.calls[1]?.[1]).toBe(true)
   })
 
   it('syncs deletions', async () => {

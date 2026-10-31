@@ -14,9 +14,12 @@ const sync = vi.hoisted(() => ({ queued: [] as unknown[], deleted: [] as string[
 
 // IEDBdb.ts first calls the server sync inside dbSaveSession (fire-and-forget) —
 // through this mock we observe HERE when a persist really writes.
+const flushMirror = vi.hoisted(() => vi.fn())
+
 vi.mock('@/lib/sessionSync', () => ({
   queueSessionSync: (session: unknown) => sync.queued.push(session),
   queueSessionDeleted: (id: string) => sync.deleted.push(id),
+  flushSessionSyncNow: flushMirror,
 }))
 
 import { debouncedSaveSession, flushPendingSave } from './db'
@@ -56,10 +59,14 @@ describe('db.flushPendingSave (I6 P2b)', () => {
     expect(sync.queued).toHaveLength(1)
   })
 
-  it('flushPendingSave ohne ausstehenden Schreib ist ein No-op', () => {
+  it('flushPendingSave ohne ausstehenden Schreib schreibt nichts, flusht aber den Spiegel', () => {
+    flushMirror.mockClear()
     flushPendingSave()
     vi.advanceTimersByTime(5000)
     expect(sync.queued).toHaveLength(0)
+    // The turn may have saved through dbSaveSession directly; its queued mirror
+    // write must not wait for a timer the unload will kill.
+    expect(flushMirror).toHaveBeenCalledTimes(1)
   })
 
   it('Spaeltere flush nach bereits erfolgtem Timer-Lauf schreibt nicht erneut', () => {

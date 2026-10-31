@@ -7,7 +7,7 @@
 
 import type { DbSession, SessionFolder } from '@/types'
 import type { ChatCheckpoint } from '@/lib/checkpoints'
-import { queueSessionDeleted, queueSessionSync } from '@/lib/sessionSync'
+import { flushSessionSyncNow, queueSessionDeleted, queueSessionSync } from '@/lib/sessionSync'
 import { migrateSessionRecord, normalizeFolders } from '@/store/chat/sessionModel'
 
 const DB_NAME = 'ephe'
@@ -232,7 +232,12 @@ export function debouncedSaveSession(session: DbSession, delayMs: number = 1500)
  * tab changes and page unload.
  */
 export function flushPendingSave(): void {
-  if (!pendingSession) return
+  if (!pendingSession) {
+    // A turn may have saved through dbSaveSession directly. Its mirror write is
+    // still queued; an unload now must not strand it on the debounce timer.
+    flushSessionSyncNow()
+    return
+  }
   if (saveTimer) {
     clearTimeout(saveTimer)
     saveTimer = null
@@ -240,6 +245,9 @@ export function flushPendingSave(): void {
   const next = pendingSession
   pendingSession = null
   void dbSaveSession(next)
+  // The mirror write rides along: an unload one instant later must not strand it
+  // on the debounce timer.
+  flushSessionSyncNow()
 }
 
 let autoFlushInstalled = false
@@ -257,9 +265,16 @@ let autoFlushInstalled = false
 export function installDbAutoFlush(): void {
   if (autoFlushInstalled || typeof window === 'undefined') return
   autoFlushInstalled = true
-  window.addEventListener('beforeunload', () => flushPendingSave())
+  const flushForUnload = () => {
+    flushPendingSave()
+    // A small tail can still ride out the unload; a large one was already sent
+    // at turn end, because browsers cap keepalive bodies at 64 KB.
+    flushSessionSyncNow(true)
+  }
+  window.addEventListener('beforeunload', flushForUnload)
+  window.addEventListener('pagehide', flushForUnload)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flushPendingSave()
+    if (document.visibilityState === 'hidden') flushForUnload()
   })
 }
 
