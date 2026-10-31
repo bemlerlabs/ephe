@@ -12,7 +12,7 @@ import {
   heroOf,
   type DiscoverSources,
 } from './discoverModel'
-import { prettyName, publisherOf, specName } from './discoverNames'
+import { prettyName, publisherOf, registrySpec, specName } from './discoverNames'
 
 const base: DiscoverSources = {
   skills: [],
@@ -34,6 +34,23 @@ describe('discover spec name', () => {
     expect(specName('npx:@modelcontextprotocol/server-filesystem')).toBe('server-filesystem')
     expect(specName('uvx:mcp-search@1.2')).toBe('mcp-search')
     expect(specName('plain')).toBe('plain')
+    expect(specName('stdio:npx -y @playwright/mcp@latest')).toBe('playwright/mcp')
+    expect(specName('stdio:uvx mcp-server-time')).toBe('mcp-server-time')
+  })
+
+  it('keeps a remote endpoint apart instead of collapsing every /mcp into one', () => {
+    expect(specName('https://mcp.context7.com/mcp')).toBe('mcp.context7.com/mcp')
+    expect(specName('https://api.githubcopilot.com/mcp/')).toBe('api.githubcopilot.com/mcp')
+    expect(specName('https://mcp.linear.app/mcp')).not.toBe('mcp')
+  })
+
+  it('reads remote and annotated catalogue lines into a spec', () => {
+    expect(registrySpec('https://mcp.exa.ai/mcp (streamable-http)')).toBe('https://mcp.exa.ai/mcp')
+    expect(registrySpec('npx -y firecrawl-mcp (stdio; FIRECRAWL_API_KEY)')).toBe(
+      'stdio:npx -y firecrawl-mcp',
+    )
+    expect(registrySpec('uvx mcp-server-git --repository <path> (stdio)')).toBeNull()
+    expect(registrySpec('a paragraph of prose')).toBeNull()
   })
 })
 
@@ -198,6 +215,52 @@ describe('discover featured tier', () => {
     })
     expect(items.some((one) => one.id === 'connector:registry:app-linear-linear')).toBe(false)
     expect(heroOf(items)?.id).toBe('connector:featured:featured-linear')
+  })
+
+  it('marks a featured stdio line attached by its exact spec', () => {
+    const playwright = {
+      ...linear,
+      id: 'featured-playwright',
+      name: 'Playwright MCP',
+      publisher: 'Microsoft',
+      transport: 'stdio' as const,
+      install_hint: 'npx -y @playwright/mcp@latest (stdio)',
+      category: 'code',
+      icon: 'playwright',
+    }
+    const items = buildItems({
+      ...base,
+      featured: [playwright],
+      mcp: { servers: ['stdio:npx -y @playwright/mcp@latest'], source: 'file', tools: [] },
+    })
+    expect(items[0]).toMatchObject({ installed: true, spec: 'stdio:npx -y @playwright/mcp@latest' })
+  })
+
+  it('turns a catalogue publisher line into an installable spec', () => {
+    const items = buildItems({
+      ...base,
+      catalog: [
+        {
+          id: 'time',
+          name: 'Time Server',
+          description: 'Clock',
+          category: 'utility',
+          install_hint: 'uvx mcp-server-time (stdio)',
+        },
+        {
+          id: 'files',
+          name: 'Filesystem Server',
+          description: 'Files',
+          category: 'files',
+          install_hint: 'npx -y @modelcontextprotocol/server-filesystem <folder> (stdio)',
+        },
+      ],
+    })
+    const time = items.find((one) => one.id === 'connector:Time Server')
+    expect(time?.spec).toBe('stdio:uvx mcp-server-time')
+    const files = items.find((one) => one.id === 'connector:Filesystem Server')
+    expect(files?.spec).toBeUndefined()
+    expect(files?.installHint).toContain('<folder>')
   })
 
   it('reads an attached featured endpoint from the machine state', () => {

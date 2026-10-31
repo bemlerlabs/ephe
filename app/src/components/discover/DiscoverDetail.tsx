@@ -57,8 +57,11 @@ export function DiscoverDetail({
   const { t } = useTranslation()
   const [rehearsal, setRehearsal] = useState<DryRunResult | null>(null)
 
+  const [rehearsalError, setRehearsalError] = useState(false)
+
   const rehearse = async (target: DiscoverItem) => {
     setRehearsal(null)
+    setRehearsalError(false)
     try {
       setRehearsal(
         await dryRunEntry({
@@ -69,7 +72,8 @@ export function DiscoverDetail({
         }),
       )
     } catch {
-      setRehearsal({ verdict: 'checked', findings: [], mode: 'static' })
+      // A refused check is not a passed check.
+      setRehearsalError(true)
     }
   }
 
@@ -230,6 +234,14 @@ export function DiscoverDetail({
                     {rehearsal.findings.length
                       ? ` · ${t('discover.verdictFindings', { count: rehearsal.findings.length })}`
                       : ''}
+                  </p>
+                ) : null}
+                {rehearsalError ? (
+                  <p
+                    data-testid="discover-detail-verdict-failed"
+                    className="font-mono text-ui-xs text-status-danger"
+                  >
+                    {t('discover.verdictFailed')}
                   </p>
                 ) : null}
               </div>

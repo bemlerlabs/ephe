@@ -92,6 +92,24 @@ function scheduleFlush(): void {
 }
 
 /**
+ * Send what is queued right away; the five-second wait is skipped. A turn that
+ * ends just before a reload used to leave its mirror write on a timer the unload
+ * killed: the transcript was in IndexedDB, but a fresh profile restored only the
+ * older mirror copy.
+ *
+ * The unload path passes `keepalive` so the request outlives the page. A turn
+ * that ends while the page is visible flushes normally: browsers cap keepalive
+ * bodies at 64 KB, and a long transcript is larger than that (measured: the
+ * first attempt silently failed for an 8-message session).
+ */
+export function flushSessionSyncNow(keepalive?: boolean): void {
+  if (flushTimer) clearTimeout(flushTimer)
+  flushTimer = null
+  const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  void flushSessionSync(keepalive ?? hidden)
+}
+
+/**
  * The server refuses a single call above this cap
  * (`server/routes/session_mirror.py: MAX_SESSIONS_PER_CALL`) with a 413. The
  * flush used to put the whole pending queue into one call, so a store of more
@@ -149,7 +167,7 @@ function toWireSession(s: DbSession): SyncSession {
 
 /** Send everything queued in batches of at most MAX_SESSIONS_PER_CALL; keeps the
  *  batches the server did not confirm (retried next flush). */
-export async function flushSessionSync(): Promise<void> {
+export async function flushSessionSync(keepalive = false): Promise<void> {
   flushTimer = null
   if (flushing) return
   if (pendingSessions.size === 0 && pendingDeleted.size === 0) return
@@ -177,10 +195,13 @@ export async function flushSessionSync(): Promise<void> {
   let droppedTotal = 0
   try {
     for (const batch of batches) {
-      const result = await syncSessions({
-        sessions: batch.sessions.map(toWireSession),
-        deleted: batch.deleted,
-      })
+      const result = await syncSessions(
+        {
+          sessions: batch.sessions.map(toWireSession),
+          deleted: batch.deleted,
+        },
+        keepalive,
+      )
       droppedTotal += result?.dropped_sessions ?? 0
       // only clear what this call actually confirmed
       for (const s of batch.sessions) {

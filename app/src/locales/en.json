@@ -1066,7 +1066,7 @@
     "imageModel": "Model (optional)",
     "imageApiKey": "API key (optional)",
     "imageKeySet": "configured {{hint}} — empty field keeps it",
-    "imageSave": "Save",
+    "imageSave": "Save image endpoint",
     "imageTest": "Test endpoint",
     "imageProbeOk": "Reachable — {{count}} model(s), first: {{model}}",
     "imageProbeOk_one": "Reachable — {{count}} model, first: {{model}}",
@@ -2781,6 +2781,8 @@
       "refused": "Refused — it carries instructions or a download"
     },
     "verdictFindings": "{{count}} finding(s)",
+    "verdictFailed": "The check could not run",
+    "needsArgument": "{{name}} needs a folder or path — add it from MCP settings with that argument.",
     "credentialsTitle": "Needs credentials",
     "credentialNote": "The value stays on this machine and is handed to this connector only.",
     "credentialMissing": "not set",

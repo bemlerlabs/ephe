@@ -17,7 +17,7 @@ import type {
   MarketInstalledRow,
   ToolUsageView,
 } from '@/lib/api'
-import { CATEGORY_ORDER, prettyName, publisherOf, specName } from './discoverNames'
+import { CATEGORY_ORDER, prettyName, publisherOf, registrySpec, specName } from './discoverNames'
 
 export type DiscoverKind = 'skill' | 'connector' | 'plugin'
 
@@ -118,7 +118,10 @@ function featuredSpec(entry: FeaturedEntry): string | undefined {
     const url = entry.install_hint.split(/\s+/)[0] ?? ''
     return /^https?:\/\//.test(url) ? url : undefined
   }
-  const command = entry.install_hint.replace(/\s*\((?:stdio|http|streamable-http)\)\s*$/, '')
+  // Any trailing parenthetical is an annotation: `(stdio)`, `(http, OAuth)`,
+  // `(stdio; FIRECRAWL_API_KEY)`. Leaving it in the command makes a spec the
+  // parser accepts and the server can never start.
+  const command = entry.install_hint.replace(/\s*\([^)]*\)\s*$/, '').trim()
   return command ? `stdio:${command}` : undefined
 }
 
@@ -188,7 +191,10 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
   for (const entry of featuredRows) {
     const spec = featuredSpec(entry)
     const host = remoteHost(spec)
-    const match = host ? attached.find((one) => remoteHost(one) === host) : undefined
+    // The exact line wins; a second endpoint of the same publisher counts too.
+    const match =
+      (spec ? attached.find((one) => one === spec) : undefined) ??
+      (host ? attached.find((one) => remoteHost(one) === host) : undefined)
     const probe = match ? sources.health.find((one) => one.spec === match) : undefined
     items.push({
       id: `connector:featured:${entry.id}`,
@@ -208,6 +214,7 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       icon: `/api/discover/icon/${entry.icon}`,
       why: entry.why,
       sources: entry.evidence,
+      requiredEnv: entry.required_env,
     })
   }
 
@@ -223,7 +230,12 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       categories: entry.category ? [entry.category] : [],
       installed: configured.has(entry.name),
       enabled: false,
-      spec: entry.spec ?? entry.install_hint,
+      // The catalogue carries a publisher line where a launch spec belongs; the
+      // parser reads it into the shape the settings accept.
+      spec:
+        entry.spec ??
+        (entry.install_hint ? (registrySpec(entry.install_hint) ?? undefined) : undefined),
+      installHint: entry.install_hint,
       badge: 'bundled',
     })
   }
