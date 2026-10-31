@@ -10,11 +10,9 @@ import {
   facetValues,
   filterItems,
   heroOf,
-  prettyName,
-  publisherOf,
-  specName,
   type DiscoverSources,
 } from './discoverModel'
+import { prettyName, publisherOf, specName } from './discoverNames'
 
 const base: DiscoverSources = {
   skills: [],

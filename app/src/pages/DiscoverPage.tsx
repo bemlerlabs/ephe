@@ -18,90 +18,31 @@ import { SourcesRow } from '@/components/discover/SourcesRow'
 import { useIntentSearch } from '@/components/discover/useIntentSearch'
 import { UsageBench } from '@/components/discover/UsageBench'
 import {
-  CATEGORY_ORDER,
   bentoOf,
   buildItems,
   categoryFacets,
   countByTab,
   facetValues,
   filterItems,
-  heroOf,
   rankByIntent,
-  specName,
   type DiscoverItem,
   type DiscoverQuery,
   type DiscoverSources,
 } from '@/components/discover/discoverModel'
+import { CATEGORY_ORDER, specName } from '@/components/discover/discoverNames'
+import { loadSources, registrySpec } from '@/components/discover/discoverSources'
+import { browsingPicks, useFeaturedRotation } from '@/components/discover/useFeaturedRotation'
 import {
   addMarketSource,
   declareMcpEnv,
   disableSkill,
   enableSkill,
-  getDiscoverBootstrap,
-  getMcpSettings,
   installMarketPlan,
   planMarketInstall,
-  probeMcpHealth,
   putMcpSettings,
   removeMarketSource,
   setPluginEnabled,
 } from '@/lib/api'
-
-/** The bootstrap frame carries everything but the slow health probes. */
-async function loadSources(): Promise<{ sources: DiscoverSources; failed: string[] }> {
-  const [boot, mcp, health] = await Promise.all([
-    getDiscoverBootstrap().catch(() => null),
-    getMcpSettings().catch(() => null),
-    probeMcpHealth().catch(() => null),
-  ])
-  const failed: string[] = []
-  const note = (key: string, ok: boolean) => {
-    if (!ok) failed.push(key)
-  }
-  note('skills', boot !== null)
-  note('connectors', boot !== null)
-  note('addons', boot !== null)
-  return {
-    sources: {
-      skills: boot?.skills ?? [],
-      mcp,
-      health: health?.servers ?? [],
-      catalog: boot?.catalog ?? [],
-      featured: boot?.featured ?? [],
-      registry: boot?.curated ?? [],
-      registryCount: boot?.registry_count ?? 0,
-      presets: boot?.presets ?? [],
-      home: boot?.home ?? null,
-      index: boot?.index ?? null,
-      installed: boot?.installed ?? [],
-      usage: boot?.usage ?? null,
-    },
-    failed,
-  }
-}
-
-/** The quiet default view: no tab, no phrase, no facet. */
-function browsingPicks(query: DiscoverQuery): boolean {
-  return Boolean(query.query || query.category || query.origin || query.tab !== 'all')
-}
-
-/** Motion is a preference, not a default: the hero stays still when it is off. */
-function prefersStill(): boolean {
-  try {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  } catch {
-    return false
-  }
-}
-
-/** A publisher launch line becomes the config spec the connector rides on. */
-function registrySpec(hint: string): string | null {
-  const match = hint.match(
-    /^(npx|uvx|uv run|python3?|node)\s+(.+?)(?:\s+\((stdio|http|streamable-http)\))?$/,
-  )
-  if (!match || !match[1] || !match[2]) return null
-  return `stdio:${match[1]} ${match[2].trim()}`
-}
 
 export default function DiscoverPage() {
   const { t } = useTranslation()
@@ -141,31 +82,7 @@ export default function DiscoverPage() {
   const counts = useMemo(() => countByTab(items), [items])
   const categories = useMemo(() => categoryFacets(items), [items])
   const origins = useMemo(() => facetValues(items, (one) => [one.origin]), [items])
-  const featured = useMemo(
-    () =>
-      [...items]
-        .filter((item) => item.featured !== undefined)
-        .sort((a, b) => Number(a.featured) - Number(b.featured)),
-    [items],
-  )
-  const [pick, setPick] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const still = prefersStill()
-  useEffect(() => {
-    if (still || paused || browsingPicks(query) || featured.length < 2) return undefined
-    const timer = window.setInterval(
-      () => setPick((current) => (current + 1) % Math.min(3, featured.length)),
-      8000,
-    )
-    return () => window.clearInterval(timer)
-  }, [still, paused, query, featured.length])
-  const hero = useMemo(
-    () =>
-      browsingPicks(query) || !featured.length
-        ? heroOf(shown)
-        : (featured[pick % Math.min(3, featured.length)] ?? heroOf(shown)),
-    [query, featured, pick, shown],
-  )
+  const { featured, hero, pick, setPick, setPaused } = useFeaturedRotation(items, query, shown)
   const bento = useMemo(() => bentoOf(items), [items])
   const bentoIds = useMemo(() => new Set(bento.map((one) => one.id)), [bento])
 
