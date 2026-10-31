@@ -99,6 +99,18 @@ def test_cmd_update_missing_installer(monkeypatch, capsys, tmp_path):
     capsys.readouterr()
 
 
+def test_cmd_update_updates_the_tree_it_lives_in(monkeypatch, capsys, tmp_path):
+    seen: list = []
+    monkeypatch.setattr(ephe_cli, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        "core.update_apply.apply_update",
+        lambda root=None: seen.append(root) or {"ok": True, "detail": "", "steps": []},
+    )
+    assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 0
+    capsys.readouterr()
+    assert seen == [tmp_path]
+
+
 def test_cmd_update_reports_the_range_and_restart(monkeypatch, capsys):
     monkeypatch.setattr(
         "core.update_apply.apply_update",

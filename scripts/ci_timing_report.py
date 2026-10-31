@@ -29,6 +29,8 @@ import os
 import statistics
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -77,7 +79,17 @@ def gh_token() -> str:
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
-def api_get(path: str, token: str) -> dict:
+class ApiUnavailable(RuntimeError):
+    """The Actions API did not answer, after the retries."""
+
+
+def api_get(path: str, token: str, attempts: int = 3) -> dict:
+    """One read of the Actions API, retried while the answer is transient.
+
+    A 502 from the API is not a statement about our timings, and it used to end
+    the whole report before a single file was written: the nightly went red, the
+    artifact step found nothing, and the reason lived only in the log.
+    """
     request = urllib.request.Request(
         f"{API_ROOT}/{path}",
         headers={
@@ -86,8 +98,20 @@ def api_get(path: str, token: str) -> dict:
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.load(response)
+    last: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            if exc.code not in {429, 500, 502, 503, 504}:
+                raise ApiUnavailable(f"HTTP {exc.code} from {path}") from exc
+            last = exc
+        except urllib.error.URLError as exc:
+            last = exc
+        if attempt + 1 < attempts:
+            time.sleep(2 * (attempt + 1))
+    raise ApiUnavailable(f"the Actions API stayed unreachable for {path}: {last}")
 
 
 def shape(job: dict, run: dict) -> dict:
@@ -277,7 +301,26 @@ def main(argv: list[str] | None = None) -> int:
         if not token:
             print("timing: no token in the environment and `gh auth token` answered nothing")
             return 2
-        jobs = collect_runs(args.workflow, tuple(e.strip() for e in args.events.split(",")), args.runs, token)
+        try:
+            jobs = collect_runs(
+                args.workflow, tuple(e.strip() for e in args.events.split(",")), args.runs, token
+            )
+        except ApiUnavailable as exc:
+            # The artifact records the reason: a run whose file is missing says
+            # less than one that says why it could not be written.
+            print(f"timing: {exc}")
+            if args.json:
+                args.json.parent.mkdir(parents=True, exist_ok=True)
+                args.json.write_text(
+                    json.dumps(
+                        {"workflow": args.workflow, "source_error": str(exc)},
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+            return 2
 
     if not jobs:
         print(f"timing: no completed `{args.workflow}` runs in the pages read")
