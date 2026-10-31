@@ -69,6 +69,10 @@ export interface HelperEndInput {
 export interface ChatState {
   sessions: Session[]
   activeSessionId: string | null
+  /** The session a running turn belongs to. It and `activeSessionId` differ
+   *  once the reader moves to another task mid-answer: the remaining chunks
+   *  still go to the session that asked. */
+  streamSessionId: string | null
   isTyping: boolean
   pendingToolCall: PendingToolCall | null
   currentSession: Session | null

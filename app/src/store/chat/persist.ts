@@ -7,8 +7,11 @@ import { toDbSession, updateActiveMessage } from './helpers'
 export function makePersistActive(get: GetFn) {
   return () => {
     const state = get()
-    if (!state.activeSessionId) return
-    const updated = state.sessions.find((s) => s.id === state.activeSessionId)
+    // The answer is written where the question was asked: a reader who moved on
+    // mid-stream must not send the rest of it into the session they opened.
+    const id = state.streamSessionId ?? state.activeSessionId
+    if (!id) return
+    const updated = state.sessions.find((s) => s.id === id)
     if (updated) debouncedSaveSession(toDbSession(updated))
   }
 }

@@ -41,6 +41,9 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
         return {
           sessions,
           currentSession: sessions.find((sess) => sess.id === s.activeSessionId) ?? null,
+          // Every later chunk of this turn is written here, wherever the reader
+          // goes next.
+          streamSessionId: s.activeSessionId,
           lastTurnUsage: null,
           // QD-015 Z2: the offer belongs to the turn that hit the cap; the next
           // turn replaces it.
@@ -59,7 +62,11 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
     },
 
     markSolInsight: (rule) => {
-      set((s) => ({ solInsights: s.solInsights.some((item) => item.id === rule.id) ? s.solInsights : [...s.solInsights, rule] }))
+      set((s) => ({
+        solInsights: s.solInsights.some((item) => item.id === rule.id)
+          ? s.solInsights
+          : [...s.solInsights, rule],
+      }))
     },
 
     appendChunk: (chunk) => {
@@ -157,8 +164,8 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
     setQualityCheck: (on) => setTransientMeta('qualityCheck', on),
 
     markStreamError: (msg, code) => {
-      set((s) =>
-        updateActiveMessage(s, (m) => ({
+      set((s) => ({
+        ...updateActiveMessage(s, (m) => ({
           ...m,
           error: msg,
           errorCode: code ?? null,
@@ -170,7 +177,8 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
           thinkingPhases: closeThinkingPhases(m),
           streamMeta: { reflecting: false, revising: false, qualityCheck: false },
         })),
-      )
+        streamSessionId: null,
+      }))
       persistActive()
       // I6 P2b: the error path works like finishTurn — the text received so far
       // must survive the debounce window (see the finishTurn comment).
@@ -199,7 +207,7 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
         // a single chunk arrived, an empty assistant bubble used to stay behind
         // (owner session: message [3] with content=''). A turn-end bubble with no
         // content at all is noise — it is removed again instead of persisted.
-        const sessId = s.activeSessionId
+        const sessId = s.streamSessionId ?? s.activeSessionId
         const sessions = finalized.sessions.map((sess) => {
           if (sess.id !== sessId) return sess
           const msgs = sess.messages
@@ -219,7 +227,8 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
         })
         return {
           sessions,
-          currentSession: sessions.find((sess) => sess.id === sessId) ?? finalized.currentSession,
+          currentSession: sessions.find((sess) => sess.id === s.activeSessionId) ?? null,
+          streamSessionId: null,
         }
       })
       persistActive()
