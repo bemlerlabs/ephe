@@ -372,11 +372,20 @@ export function getContextStages(): Promise<{ stages: ContextStage[]; total_char
 }
 // ── R30: session sync (PWA → server, powers FTS5 over browser sessions) ──────
 
-export function syncSessions(payload: {
-  sessions: SyncSession[]
-  deleted: string[]
-}): Promise<{ stored_sessions: number; dropped_sessions: number }> {
-  return request('/api/sessions/sync', { method: 'POST', body: JSON.stringify(payload) })
+export function syncSessions(
+  payload: {
+    sessions: SyncSession[]
+    deleted: string[]
+  },
+  keepalive = false,
+): Promise<{ stored_sessions: number; dropped_sessions: number }> {
+  // keepalive lets the last flush outlive a reload or tab close; the browser
+  // then delivers it even though the page that queued it is gone.
+  return request('/api/sessions/sync', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    ...(keepalive ? { keepalive: true } : {}),
+  })
 }
 
 // ── Restore-on-empty (PWA ← server): hydrate from the sync mirror when the
