@@ -126,7 +126,6 @@
   "app/src/components/dashboard/settings/model/useSettingsFeatures.ts": 1,
   "app/src/components/dashboard/settings/saveSurface.test.ts": 2,
   "app/src/components/dashboard/wave10_p0.test.tsx": 3,
-  "app/src/components/shell/EnvironmentTools.test.tsx": 6,
   "app/src/components/shell/EpheMark.test.tsx": 4,
   "app/src/components/shell/PluginIcon.test.tsx": 1,
   "app/src/components/shell/shell.test.tsx": 2,

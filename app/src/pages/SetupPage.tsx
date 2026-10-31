@@ -14,7 +14,6 @@ import {
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import { storeEngineKey } from '@/lib/engineKey'
 import ForestBackground from '@/components/dashboard/ForestBackground'
-import EnvironmentTools from '@/components/shell/EnvironmentTools'
 import { PaperMoth } from '@/components/brand/PaperMoth'
 import { ModelPicker } from '@/components/model/ModelPicker'
 import { rowsFromProbe } from '@/components/model/modelPickerTypes'
@@ -731,9 +730,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
               <div className="flex gap-2">
                 <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
                 <div className="min-w-0">
-                  <p className="text-ui-sm text-foreground">
-                    {t('setup.repairEngineKeyMismatch')}
-                  </p>
+                  <p className="text-ui-sm text-foreground">{t('setup.repairEngineKeyMismatch')}</p>
                   <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-ui-xs">
                     <dt className="text-ink-soft">{t('setup.repairActiveEngine')}</dt>
                     <dd
@@ -958,31 +955,6 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                 {kind === k && <Check className="h-4 w-4 text-brand" />}
               </button>
             ))}
-          </div>
-
-          {/* B2: opt-in mirror of the agent tools already on this machine — clicking
-              a model prefills provider/endpoint/model, then the normal probe runs.
-              Without a derivable endpoint the chip stays purely informative. */}
-          <div
-            data-testid="setup-environment"
-            className="mb-5 rounded-xl border border-hairline bg-surface-raised p-3"
-          >
-            <p className="mb-2 text-ui-xs font-semibold uppercase tracking-wide text-ink-soft">
-              {t('environment.title')}
-            </p>
-            <EnvironmentTools
-              onPick={(pick) => {
-                setOffer(null)
-                choose(pick.providerKind)
-                if (pick.endpoint) {
-                  applyEndpoint(pick.endpoint)
-                  preferredEndpoint.current = pick.endpoint
-                }
-                setModel(pick.model)
-                setProbeState(null)
-                void runProbe(pick.providerKind)
-              }}
-            />
           </div>
 
           {/* Endpoint (remote engines only) */}

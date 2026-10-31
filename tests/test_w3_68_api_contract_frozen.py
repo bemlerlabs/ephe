@@ -226,7 +226,6 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/chat/steer",
     "POST /api/chat/stream",
     "POST /api/discover/dry-run",
-    "POST /api/environment/scan",
     "POST /api/export",
     "POST /api/feedback/thumbs_down",
     "POST /api/feedback/thumbs_up",

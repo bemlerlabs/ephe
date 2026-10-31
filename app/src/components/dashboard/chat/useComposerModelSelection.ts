@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getModelProviders, setModelProvider } from '@/lib/api'
-import { scanEnvironment } from '@/lib/api/environment'
 import { isJunkModel } from '@/lib/modelFilter'
 import { gateSnapshot, loadSetupGate } from '@/lib/setupGate'
 import { toastBus } from '@/lib/toast'
 import { useChatStore } from '@/store/chatStore'
 import type { ModelChipEntry } from './composerModelEntries'
-import { buildScanEntries, mergeScanEntries } from './composerModelEntries'
+import { endpointKindOf } from './composerModelEntries'
 import { anchorAbove, type MenuPos } from './composerPopups'
 
 /**
  * K3 Z24 / P3 wave 2026-10-05: model & provider selection for the composer —
- * chip state, provider list (incl. the environment-scan merge), setup-state
- * re-entry and the live-provider switch. Extracted from ChatInput.tsx.
+ * chip state, provider list, setup-state re-entry and the live-provider switch.
+ * Extracted from ChatInput.tsx. The list is the provider table's alone: no
+ * other application's config files are read to fill it.
  */
 export function useComposerModelSelection() {
   const { t } = useTranslation()
@@ -71,9 +71,11 @@ export function useComposerModelSelection() {
         )
         const withFacts = (entry: ModelChipEntry): ModelChipEntry => {
           const fact = facts.get(entry.model ?? entry.id ?? entry.label)
-          if (!fact) return entry
+          const endpointKind = endpointKindOf(entry.endpoint)
+          if (!fact) return { ...entry, endpointKind }
           return {
             ...entry,
+            endpointKind,
             context_window: fact.context_window ?? null,
             price_in_per_m: fact.price_in_per_m ?? null,
             price_out_per_m: fact.price_out_per_m ?? null,
@@ -86,20 +88,6 @@ export function useComposerModelSelection() {
         // F-J (t5 audit): keep "test"/embedding models out of the history.
         const clean = list.filter((p) => !isJunkModel(p.model ?? p.id)).map(withFacts)
         setProviders(clean)
-        // B8 (generic): the environment scan is ALWAYS merged — presets first,
-        // deduplicated across them (provider id, model); that is how the models of
-        // the tools found on this machine become selectable even when the provider
-        // table is already filled.
-        scanEnvironment()
-          .then((env) => {
-            if (cancelled) return
-            const merged = mergeScanEntries(
-              clean,
-              buildScanEntries(env?.tools ?? []).map(withFacts),
-            )
-            setProviders(merged)
-          })
-          .catch(() => {})
       })
       .catch(() => {}) // Backend offline → keep the default badge
     return () => {

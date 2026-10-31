@@ -42,7 +42,6 @@ from server.routes import (
     hooks,
     audio,
     chat,
-    environment,
     ephemeris,
     export,
     feedback,
@@ -397,7 +396,6 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(plugins.router, prefix="/api")
     app.include_router(importer.router, prefix="/api")
     app.include_router(tour.router, prefix="/api")
-    app.include_router(environment.router, prefix="/api")
     app.include_router(ephemeris.router, prefix="/api")
     app.include_router(mcp.router, prefix="/api")
     app.include_router(vision.router, prefix="/api")

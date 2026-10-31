@@ -31,7 +31,6 @@ import {
   VERB_BUTTON,
 } from '@/components/shell/SettingsRow'
 import { CONTROL_CLASS } from '@/components/shell/SettingControl'
-import EnvironmentTools from '@/components/shell/EnvironmentTools'
 import { engineStateOf, providerLabel } from './constants'
 import { DeepFields } from './deepFields'
 import { EngineImageGroup } from './sections-engine-image'
@@ -191,9 +190,7 @@ export function EngineSection({ model }: { model: SettingsModel }) {
                     type="button"
                     onClick={() =>
                       setSettings((prev) =>
-                        prev
-                          ? { ...prev, provider: { ...prev.provider, model: opt.id } }
-                          : prev!,
+                        prev ? { ...prev, provider: { ...prev.provider, model: opt.id } } : prev!,
                       )
                     }
                     data-testid={`engine-matrix-use-${opt.id}`}
@@ -314,35 +311,6 @@ export function EngineSection({ model }: { model: SettingsModel }) {
       </SettingsGroup>
 
       <EngineImageGroup model={model} />
-
-      <SettingsGroup icon={Cpu} title={t('environment.title')} testid="settings-environment">
-        <SettingsRow
-          icon={Zap}
-          title={t('environment.title')}
-          description={t('environment.settingsHint')}
-          testid="engine-row-environment"
-        />
-        <div className="pb-3 pl-6">
-          <EnvironmentTools
-            onPick={(pick) => {
-              setSettings((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      provider: {
-                        ...prev.provider,
-                        type: pick.providerKind,
-                        model: pick.model,
-                        endpoint: pick.endpoint ?? prev.provider.endpoint,
-                      },
-                    }
-                  : prev,
-              )
-              if (pick.endpoint) setCustomEndpoint(pick.endpoint)
-            }}
-          />
-        </div>
-      </SettingsGroup>
 
       {/* I3-V5: the engine gate lives here, not in an expert box. */}
       <DeepFields model={model} prefixes={['advanced.']} />

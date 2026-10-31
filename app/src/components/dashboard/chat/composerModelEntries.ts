@@ -2,11 +2,9 @@
  * Ephe — composer model entries (P3 wave 2026-10-05, split out of ChatInput: the
  * composer file sits far above the architecture limit).
  *
- * N9 — fallback schema at the model chip: when GET /api/model/providers returns no
- * units (first start without engine.json, empty provider table), the environment
- * scan findings are merged in as options. Deduplication runs over the scrubbed
- * triple (provider kind, scrubbed endpoint, model name); the mirror's
- * ``preferred`` row (its reference harness) sorts first.
+ * The list is the provider table's: the chip does not read another application's
+ * config files to fill itself, so an empty table stays empty until this app has
+ * been given an engine.
  *
  * P3 — hygiene over the list:
  *  · endpoint templates with an unfilled variable (`${SNOWFLAKE_ACCOUNT}`) are not
@@ -17,11 +15,8 @@
  *
  * Everything here is a pure transformation of real data — nothing is invented.
  */
-import { derivePick, scrubUrl } from '../../shell/EnvironmentTools'
-import type { MirrorTool } from '@/lib/api/environment'
 import {
   hasUnfilledTemplate,
-  isJunkModel,
   isLoopbackEndpoint,
   isPrivateEndpoint,
   modelKind,
@@ -86,59 +81,6 @@ export function entryKey(p: ModelChipEntry): string {
 export function isActiveEntry(p: ModelChipEntry, activeP: string, model: string): boolean {
   const key = entryKey(p)
   return key === activeP || (activeP === '' && (p.model === model || p.label === model))
-}
-
-/** The chip row leads with the tool's own name as the mirror reports it, first
- *  letter up — a display transform of data, so no product name is spelled here. */
-export function displayToolName(tool: string): string {
-  return tool ? tool.charAt(0).toUpperCase() + tool.slice(1) : tool
-}
-
-export function buildScanEntries(tools: MirrorTool[]): ModelChipEntry[] {
-  const out: ModelChipEntry[] = []
-  const seen = new Set<string>()
-  for (const tool of [...tools]
-    .filter((t) => t.installed)
-    .sort((a, b) => Number(Boolean(b.preferred)) - Number(Boolean(a.preferred)))) {
-    for (const model of tool.models) {
-      // F-J: do not offer embedding/test models from the scan.
-      if (isJunkModel(model)) continue
-      const pick = derivePick(tool, model)
-      if (!pick) continue
-      const ep = pick.endpoint ? scrubUrl(pick.endpoint) : ''
-      const dedupe = `${pick.providerKind}|${ep}|${pick.model}`
-      if (seen.has(dedupe)) continue
-      seen.add(dedupe)
-      // Only the mirror's own free list says a model is free. A `-free` / `:free`
-      // suffix is another service's naming convention, not a fact about this endpoint.
-      const isFree = (tool.free_models ?? []).includes(model)
-      out.push({
-        id: `${tool.tool}:${model}`,
-        kind: pick.providerKind,
-        model: pick.model,
-        endpoint: ep || undefined,
-        endpointKind: endpointKindOf(ep),
-        free: isFree || undefined,
-        unconfigured: hasUnfilledTemplate(ep) || undefined,
-        label: `${displayToolName(tool.tool)} · ${pick.model}`,
-      })
-    }
-  }
-  return out
-}
-
-/** B8: scan findings supplement the preset units — deduplicated over (identifier,
- *  model); earlier entries (presets) win. Key is 'kind' for scan entries,
- *  'provider'/'id' for presets. */
-export function mergeScanEntries(base: ModelChipEntry[], scan: ModelChipEntry[]): ModelChipEntry[] {
-  const seen = new Set(base.map((p) => `${p.kind ?? p.provider ?? p.id ?? ''}|${p.model ?? ''}`))
-  const extra = scan.filter((e) => {
-    const key = `${e.kind ?? e.id ?? ''}|${e.model ?? ''}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-  return [...base, ...extra]
 }
 
 /**
