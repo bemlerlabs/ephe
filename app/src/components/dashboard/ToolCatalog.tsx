@@ -52,6 +52,31 @@ function iconFor(name: string) {
   return ICONS[name] ?? Wrench
 }
 
+/** The catalogue reads in families, not as one 74-row table. The classifier uses
+ *  the verb the tool's own name carries, so a new tool lands in a group without
+ *  a second list to maintain. */
+type Family = 'files' | 'web' | 'system' | 'media' | 'agents' | 'other'
+
+const FAMILY_ORDER: Family[] = ['files', 'web', 'system', 'media', 'agents', 'other']
+
+const MEDIA_TOKENS = /(pptx|docx|pdf|xlsx|svg|deck|chart|diagram|notebook|image|video|audio|qr|slide)/
+
+function familyOf(name: string): Family {
+  const n = name.toLowerCase()
+  if (/^(browser_|fetch_|web_)/.test(n)) return 'web'
+  if (MEDIA_TOKENS.test(n)) return 'media'
+  if (/^(read_|write_|edit_|list_|file_|glob|grep|patch|search_|clipboard_)/.test(n)) return 'files'
+  if (/^(run_|execute_|shell|system_|process_|code_)/.test(n)) return 'system'
+  if (
+    /^(create_|generate_|render_|export_|import_|analyze_image|take_screenshot|vision_|audio|tts|stt|record_)/.test(
+      n,
+    )
+  )
+    return 'media'
+  if (/^(spawn_|agent_|task_|delegate|ask_user|manage_tasks)/.test(n)) return 'agents'
+  return 'other'
+}
+
 /** The switch a row carries: on, off, or locked on by the turn's own needs. */
 function CapabilitySwitch({
   row,
@@ -134,6 +159,20 @@ export function ToolCatalog() {
     )
   }, [rows, filter])
 
+  const groups = useMemo(() => {
+    const buckets = new Map<Family, ToolCatalogRow[]>()
+    for (const row of shown) {
+      const family = familyOf(row.name)
+      const bucket = buckets.get(family)
+      if (bucket) bucket.push(row)
+      else buckets.set(family, [row])
+    }
+    return FAMILY_ORDER.filter((family) => buckets.has(family)).map((family) => ({
+      family,
+      rows: buckets.get(family)!,
+    }))
+  }, [shown])
+
   if (!rows || rows.length === 0) return null
   const safe = rows.filter((row) => row.safe).length
   const on = rows.filter((row) => row.enabled !== false).length
@@ -208,46 +247,65 @@ export function ToolCatalog() {
         <p className="mt-1 text-ui-sm text-ink-faint">
           {t('tools.catalogHint', { safe, total: rows.length })}
         </p>
-        <ul className="mt-3 divide-y divide-hairline">
-          {shown.map((row) => {
-            const Icon = iconFor(row.name)
-            const enabled = row.enabled !== false
-            return (
-              <li
-                key={row.name}
-                data-testid={`tool-row-${row.name}`}
-                data-safe={row.safe ? 'true' : 'false'}
-                data-enabled={enabled ? 'true' : 'false'}
-                className="flex items-center gap-2 py-1.5"
-              >
-                <Icon
-                  className="h-4 w-4 shrink-0 text-ink-faint"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
-                <span className="shrink-0 font-mono text-ui-xs text-foreground/90">
-                  {row.name}
+        <div className="mt-1">
+          {groups.map((group) => (
+            <section key={group.family} data-testid={`tool-group-${group.family}`}>
+              <h4 className="mt-4 flex items-baseline gap-2 text-ui-xs font-medium text-ink-soft">
+                {t(`tools.catalogFamily.${group.family}`)}
+                <span className="font-mono text-ui-xs tabular-nums text-ink-faint">
+                  {group.rows.length}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-ui-xs text-ink-faint">
-                  {row.description}
-                </span>
-                <span
-                  className={`shrink-0 text-ui-xs ${
-                    row.safe ? 'text-status-success/90' : 'text-status-warning/90'
-                  }`}
-                >
-                  {row.safe ? t('tools.catalogSafe') : t('tools.catalogAsks')}
-                </span>
-                <CapabilitySwitch
-                  row={row}
-                  busy={busy === row.name}
-                  t={t}
-                  onToggle={(next) => void toggle(row, next)}
-                />
-              </li>
-            )
-          })}
-        </ul>
+              </h4>
+              <ul className="mt-1 divide-y divide-hairline">
+                {group.rows.map((row) => {
+                  const Icon = iconFor(row.name)
+                  const enabled = row.enabled !== false
+                  return (
+                    <li
+                      key={row.name}
+                      data-testid={`tool-row-${row.name}`}
+                      data-safe={row.safe ? 'true' : 'false'}
+                      data-enabled={enabled ? 'true' : 'false'}
+                      className="flex items-start gap-3 py-2.5"
+                    >
+                      <Icon
+                        className="mt-0.5 h-4 w-4 shrink-0 text-ink-faint"
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="font-mono text-ui-xs text-foreground/90">
+                            {row.name}
+                          </span>
+                          <span
+                            className={`text-ui-xs ${
+                              row.safe ? 'text-status-success/90' : 'text-status-warning/90'
+                            }`}
+                          >
+                            {row.safe ? t('tools.catalogSafe') : t('tools.catalogAsks')}
+                          </span>
+                        </div>
+                        <p
+                          className="mt-0.5 line-clamp-2 text-ui-xs leading-relaxed text-ink-faint"
+                          title={row.description}
+                        >
+                          {row.description}
+                        </p>
+                      </div>
+                      <CapabilitySwitch
+                        row={row}
+                        busy={busy === row.name}
+                        t={t}
+                        onToggle={(next) => void toggle(row, next)}
+                      />
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
         {error && (
           <p role="alert" data-testid="tools-catalog-error" className="mt-2 text-ui-xs text-status-danger">
             {t('tools.switchFailed')}
