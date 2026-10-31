@@ -146,7 +146,9 @@ def test_status_bar_renders_and_clears_the_meter_chip():
         app = _Harness()
         async with app.run_test(size=(120, 10)) as pilot:
             status = app.query_one(StatusBar)
-            status.post_message(StatusBar.SetMeter(ContextUsage(user=1000, window=2000)))
+            status.post_message(
+                StatusBar.SetMeter(ContextUsage(user=1000, window=2000), "engine")
+            )
             await pilot.pause()
             shown = str(status.query_one("#status-meter").render())
             status.post_message(StatusBar.SetMeter(None))
@@ -158,6 +160,34 @@ def test_status_bar_renders_and_clears_the_meter_chip():
     assert "ctx 50%" in shown
     assert "2.0k tok" in shown
     assert cleared == ""
+
+
+def test_the_chip_claims_no_percentage_for_a_guessed_window():
+    """GIVEN the legacy 8192 window (no engine or tier named one)
+    WHEN the chip renders
+    THEN it shows the fill alone: a percentage of a guess reads as a budget."""
+    from textual.app import App, ComposeResult
+
+    from ui.widgets import StatusBar
+
+    class _Harness(App):
+        def compose(self) -> ComposeResult:
+            yield StatusBar(id="status-bar")
+
+    async def run():
+        app = _Harness()
+        async with app.run_test(size=(160, 10)) as pilot:
+            status = app.query_one(StatusBar)
+            status.post_message(
+                StatusBar.SetMeter(ContextUsage(user=3200, window=8192), "legacy")
+            )
+            await pilot.pause()
+            return str(status.query_one("#status-meter").render())
+
+    shown = asyncio.run(run())
+    assert "3.2k tok" in shown
+    assert "%" not in shown
+    assert "8.2k" not in shown
 
 
 def test_app_pushes_the_meter_from_the_session(tmp_session_dir, monkeypatch):

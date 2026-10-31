@@ -21,6 +21,7 @@ Streaming architecture (2026-08-22, "Structured Agent Message"):
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from typing import Any
 
@@ -161,6 +162,32 @@ class _ToolCallBlock(Collapsible):
             self._args_static.update(f"[{DIM}]{_tool_verb_present(name).lower()}[/{DIM}]")
         self._output: Static | None = None
 
+    def set_waiting(self) -> None:
+        """The approval prompt is open: nothing runs until a person answers."""
+        target = _tool_target(self._tool_name, self._args)
+        self.title = f"Waiting for approval · {target}".rstrip(" ·")
+        self.add_class("tool-waiting")
+
+    def set_running(self) -> None:
+        """Approved: the clock starts here, so the wait is not billed as work."""
+        self._started = time.monotonic()
+        self.remove_class("tool-waiting")
+        self.title = f"{_tool_verb_present(self._tool_name)}…"
+
+    def set_refused(self, result: str) -> None:
+        """A declined call is never shown as one that ran."""
+        target = _tool_target(self._tool_name, self._args)
+        self.title = f"Declined {target}".rstrip()
+        self.remove_class("tool-pending")
+        self.remove_class("tool-waiting")
+        self.add_class("tool-refused")
+        self._output = Static("", id=f"tool-out-{id(self)}", markup=True)
+        self._output.add_class("tool-output")
+        reason = str(result or "").replace("[TOOL-DENIED]", "").strip()
+        self._output.update(Text.assemble(("not executed\n", DIM), reason))
+        self.compose_add_child(self._output)
+        self.refresh()
+
     def set_done(self, result: str) -> None:
         """Tool done: past-tense verb + target + duration, output in the body."""
         target = _tool_target(self._tool_name, self._args)
@@ -241,10 +268,21 @@ class AgentMessageCard(Widget):
             self.args = args
 
     class ToolDone(TextualMessage):
-        def __init__(self, name: str, result: str) -> None:
+        def __init__(self, name: str, result: str, refused: bool = False) -> None:
             super().__init__()
             self.name = name
             self.result = result
+            self.refused = refused
+
+    class ToolWaiting(TextualMessage):
+        def __init__(self, name: str) -> None:
+            super().__init__()
+            self.name = name
+
+    class ToolResume(TextualMessage):
+        def __init__(self, name: str) -> None:
+            super().__init__()
+            self.name = name
 
     class AnswerChunk(TextualMessage):
         def __init__(self, chunk: str) -> None:
@@ -351,7 +389,22 @@ class AgentMessageCard(Widget):
         """Close the last still-open tool block (FIFO over the 'tool-pending' class)."""
         for block in reversed(self._blocks):
             if block.has_class("tool-pending"):
-                block.set_done(event.result)
+                if event.refused:
+                    block.set_refused(event.result)
+                else:
+                    block.set_done(event.result)
+                break
+
+    def on_agent_message_card_tool_waiting(self, event: "AgentMessageCard.ToolWaiting") -> None:
+        for block in reversed(self._blocks):
+            if block.has_class("tool-pending"):
+                block.set_waiting()
+                break
+
+    def on_agent_message_card_tool_resume(self, event: "AgentMessageCard.ToolResume") -> None:
+        for block in reversed(self._blocks):
+            if block.has_class("tool-waiting"):
+                block.set_running()
                 break
 
     def on_agent_message_card_answer_chunk(self, event: "AgentMessageCard.AnswerChunk") -> None:
@@ -473,11 +526,14 @@ class ChatView(Widget):
         """A system block handed over as a renderable.
 
         Text carries its styles as spans and never meets a markup parser, which is
-        what a block built from a user's own session title has to be."""
+        what a block built from a user's own session title has to be. ``ident``
+        names the block for a later handler; the greeting uses it to retire
+        itself as soon as the first message arrives."""
 
-        def __init__(self, visual: RenderableType) -> None:
+        def __init__(self, visual: RenderableType, ident: str = "") -> None:
             super().__init__()
             self.visual = visual
+            self.ident = ident
 
     class BeginAssistantMessage(TextualMessage):
         pass
@@ -503,6 +559,20 @@ class ChatView(Widget):
             super().__init__()
             self.name = name
             self.result = result
+
+    class ToolCallWaiting(TextualMessage):
+        """The confirmation prompt opened; the tool has not started."""
+
+        def __init__(self, name: str) -> None:
+            super().__init__()
+            self.name = name
+
+    class ToolCallResume(TextualMessage):
+        """The prompt was answered with yes; execution starts now."""
+
+        def __init__(self, name: str) -> None:
+            super().__init__()
+            self.name = name
 
     class SetPhase(TextualMessage):
         def __init__(self, text: str) -> None:
@@ -547,6 +617,11 @@ class ChatView(Widget):
     # ── Message Handlers ────────────────────────────────────────────────────
 
     def on_chat_view_add_user_message(self, event: "ChatView.AddUserMessage") -> None:
+        # The greeting describes a session with nothing in it yet. The first
+        # message makes that untrue, and leaving it above the conversation put a
+        # stale count and a key legend in front of every turn.
+        for greeting in self.query("#welcome-card"):
+            greeting.remove()
         text = event.text.replace("[", "\\[").replace("]", "\\]")
         self._add_static_block(f"[bold {ACCENT}]You[/bold {ACCENT}]\n[{TEXT}]{text}[/{TEXT}]")
 
@@ -566,6 +641,8 @@ class ChatView(Widget):
         anchored = container.is_vertical_scroll_end
         block = Static(event.visual)
         block.add_class("static-block")
+        if event.ident:
+            block.id = event.ident
         container.mount(block)
         if anchored:
             self.call_after_refresh(container.scroll_end, animate=False)
@@ -594,7 +671,18 @@ class ChatView(Widget):
 
     def on_chat_view_tool_call_done(self, event: "ChatView.ToolCallDone") -> None:
         if self._active_card is not None:
-            self._active_card.post_message(AgentMessageCard.ToolDone(event.name, event.result))
+            refused = str(event.result or "").startswith("[TOOL-DENIED]")
+            self._active_card.post_message(
+                AgentMessageCard.ToolDone(event.name, event.result, refused=refused)
+            )
+
+    def on_chat_view_tool_call_waiting(self, event: "ChatView.ToolCallWaiting") -> None:
+        if self._active_card is not None:
+            self._active_card.post_message(AgentMessageCard.ToolWaiting(event.name))
+
+    def on_chat_view_tool_call_resume(self, event: "ChatView.ToolCallResume") -> None:
+        if self._active_card is not None:
+            self._active_card.post_message(AgentMessageCard.ToolResume(event.name))
 
     def on_chat_view_set_phase(self, event: "ChatView.SetPhase") -> None:
         if self._active_card is not None:
@@ -814,9 +902,10 @@ class StatusBar(Widget):
     class SetMeter(TextualMessage):
         """Push the session's context fill; ``None`` clears the chip."""
 
-        def __init__(self, usage: ContextUsage | None) -> None:
+        def __init__(self, usage: ContextUsage | None, source: str = "legacy") -> None:
             super().__init__()
             self.usage = usage
+            self.source = source
 
     class SetSession(TextualMessage):
         """Name the active session and how many messages it holds."""
@@ -856,6 +945,7 @@ class StatusBar(Widget):
     _streaming: bool = False
     _error: str = ""
     _meter: ContextUsage | None = None
+    _meter_source: str = "legacy"
     _session: str = ""
     _session_count: int = 0
     _queue: int = 0
@@ -905,6 +995,7 @@ class StatusBar(Widget):
 
     def on_status_bar_set_meter(self, event: "StatusBar.SetMeter") -> None:
         self._meter = event.usage
+        self._meter_source = event.source
         self._update_display()
 
     def on_status_bar_set_session(self, event: "StatusBar.SetSession") -> None:
@@ -926,11 +1017,7 @@ class StatusBar(Widget):
         self._update_display()
 
     def on_resize(self, event: object) -> None:
-        """At 80 columns the provider label yields to the model, session and meter."""
-        if self.size.width and self.size.width < 110:
-            self.add_class("narrow")
-        else:
-            self.remove_class("narrow")
+        """The bar re-fits itself: narrow wins when the facts would not fit."""
         self._update_display()
 
     # ── Rendering ────────────────────────────────────────────────────────────
@@ -945,53 +1032,76 @@ class StatusBar(Widget):
         agents_cell = self.query_one("#status-agents", Static)
         seal_cell = self.query_one("#status-seal", Static)
 
-        narrow = self.has_class("narrow")
-        if self._error:
-            indicator.update(f"[bold {ERROR}]⚠  {self._error}[/bold {ERROR}]")
-        elif self._streaming:
-            indicator.update(
-                f"[{ACCENT}]⏳ working[/{ACCENT}]" if narrow
-                else f"[{ACCENT}]⏳ Generating…[/{ACCENT}]"
-            )
-        elif self._connected:
-            indicator.update(
-                f"[{OK}]● connected[/{OK}]" if narrow
-                else f"[{OK}]●  Engine: connected[/{OK}]"
-            )
-        else:
-            indicator.update(
-                f"[{ERROR}]✗ offline[/{ERROR}]" if narrow
-                else f"[{ERROR}]✗  Engine: offline[/{ERROR}]"
-            )
-
-        # Engine and model stay visible in every state: an error that hides the
-        # resolved engine would make the bar unable to say what failed.
-        provider_label.update(
-            f"[{ACCENT}]  │  {self._provider}[/{ACCENT}]" if self._provider else ""
-        )
-        model_label.update(f"[{DIM}]  │  {self._model}[/{DIM}]")
-        title = self._session
-        if narrow and len(title) > 18:
-            title = title[:17] + "…"
-        session_label.update(
-            f"[{DIM}]  │  {title} ({self._session_count})[/{DIM}]"
-            if title
+        meter = (
+            meter_text(self._meter, known=self._meter_source != "legacy")
+            if self._meter is not None
             else ""
         )
-        meter_label.update(self._meter_markup())
-        queue_label.update(
-            f"[{WARN}]  │  {self._queue} queued[/{WARN}]" if self._queue else ""
-        )
         agents = agents_label(self._agents_active, self._agents_total)
-        tone = ACCENT if self._agents_active else DIM
-        agents_cell.update(f"[{tone}]  │  {agents}[/{tone}]" if agents else "")
         seal = seal_label(self._seal)
-        seal_tone = ERROR if (self._seal or []) else OK
-        seal_cell.update(f"[{seal_tone}]  │  {seal}[/{seal_tone}]" if seal else "")
 
-    def _meter_markup(self) -> str:
-        """Empty when no fill was measured; the warning colour at/over the threshold."""
-        if self._meter is None:
-            return ""
-        color = WARN if self._meter.warn else DIM
-        return f"[{color}]  │  {meter_text(self._meter)}[/{color}]"
+        def cells(narrow: bool, title: str) -> dict[str, str]:
+            """Markup per cell; a hidden cell is absent, never shifted."""
+            if self._error:
+                head, tone = f"⚠  {self._error}", ERROR
+            elif self._streaming:
+                head = "⏳ working" if narrow else "⏳ Generating…"
+                tone = ACCENT
+            elif self._connected:
+                head = "● connected" if narrow else "●  Engine: connected"
+                tone = OK
+            else:
+                head = "✗ offline" if narrow else "✗  Engine: offline"
+                tone = ERROR
+            out = {"indicator": f"[{tone}]{head}[/{tone}]"}
+            if self._provider and not narrow:
+                out["provider"] = f"[{ACCENT}]  │  {self._provider}[/{ACCENT}]"
+            out["model"] = f"[{DIM}]  │  {self._model}[/{DIM}]"
+            if title:
+                out["session"] = (
+                    f"[{DIM}]  │  {title} ({self._session_count})[/{DIM}]"
+                )
+            if meter:
+                warn = (
+                    self._meter is not None
+                    and self._meter.warn
+                    and self._meter_source != "legacy"
+                )
+                colour = WARN if warn else DIM
+                out["meter"] = f"[{colour}]  │  {meter}[/{colour}]"
+            if self._queue:
+                out["queue"] = f"[{WARN}]  │  {self._queue} queued[/{WARN}]"
+            if agents:
+                colour = ACCENT if self._agents_active else DIM
+                out["agents"] = f"[{colour}]  │  {agents}[/{colour}]"
+            if seal:
+                colour = ERROR if (self._seal or []) else OK
+                out["seal"] = f"[{colour}]  │  {seal}[/{colour}]"
+            return out
+
+        def plain_of(rendered: dict[str, str]) -> int:
+            """Width a cell takes on screen: markup for nothing, its own padding counted."""
+            total = 0
+            for cell in rendered.values():
+                total += len(re.sub(r"\[/?[^\]]*\]", "", cell)) + 2
+            return total
+
+        title = self._session
+        wide = cells(False, title)
+        width = self.size.width or 0
+        # A fixed 80/110 cut let the meter's tail be clipped at 120–140 columns
+        # (seen 2026-10-31): the provider cell alone is ~44. Fit the facts, not
+        # a number someone guessed.
+        narrow = bool(width) and (width < 110 or plain_of(wide) + 2 > width)
+        self.set_class(narrow, "narrow")
+        if narrow and len(title) > 18:
+            title = title[:17] + "…"
+        visible = cells(narrow, title)
+        indicator.update(visible.get("indicator", ""))
+        provider_label.update(visible.get("provider", ""))
+        model_label.update(visible.get("model", ""))
+        session_label.update(visible.get("session", ""))
+        meter_label.update(visible.get("meter", ""))
+        queue_label.update(visible.get("queue", ""))
+        agents_cell.update(visible.get("agents", ""))
+        seal_cell.update(visible.get("seal", ""))

@@ -124,16 +124,27 @@ class CommandPalette(_ListScreen):
     def __init__(self, entries: list[PaletteEntry]) -> None:
         super().__init__(
             "Actions",
-            [
-                (
-                    entry.action,
-                    f"{entry.label}"
-                    + (f"  [{DIM}]{entry.key}[/{DIM}]" if entry.key else "")
-                    + (f"  [{DIM}]· {entry.detail}[/{DIM}]" if entry.detail else ""),
-                )
-                for entry in entries
-            ],
+            [(entry.action, _palette_label(entry)) for entry in entries],
         )
+
+
+#: A palette row wider than this puts its detail on a hanging second line.
+#: Static would otherwise wrap it flush against the card's left border.
+_PALETTE_WIDTH = 64
+
+
+def _palette_label(entry: PaletteEntry) -> str:
+    key = f"  {entry.key}" if entry.key else ""
+    head = entry.label + key
+    if entry.key:
+        head = entry.label + f"  [{DIM}]{entry.key}[/{DIM}]"
+    plain = entry.label + key
+    if not entry.detail:
+        return head
+    tail = f"· {entry.detail}"
+    if len(plain) + 2 + len(tail) <= _PALETTE_WIDTH:
+        return f"{head}  [{DIM}]{tail}[/{DIM}]"
+    return f"{head}\n    [{DIM}]{tail}[/{DIM}]"
 
 
 class ModelPicker(_ListScreen):

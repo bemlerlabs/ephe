@@ -92,6 +92,13 @@ def _compact(count: int) -> str:
     return str(count)
 
 
-def meter_text(usage: ContextUsage) -> str:
-    """One-line chip for the status bar, e.g. ``ctx 12% · 1.0k/131k tok``."""
+def meter_text(usage: ContextUsage, *, known: bool = True) -> str:
+    """One-line chip for the status bar, e.g. ``ctx 12% · 1.0k/131k tok``.
+
+    A window the engine never named is the documented legacy 8192, not a budget
+    anyone measured; a percentage of it said "39 %" for a remote engine whose
+    real window is larger (seen 2026-10-31). The chip then shows the fill alone.
+    """
+    if not known or usage.window <= 0:
+        return f"ctx {_compact(usage.total)} tok"
     return f"ctx {usage.percent}% · {_compact(usage.total)}/{_compact(usage.window)} tok"

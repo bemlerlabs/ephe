@@ -166,6 +166,16 @@ Screen {
     padding: 0 1;
 }
 
+/* A call waiting on a person, and a call a person declined, are not work. */
+.tool-call-block.tool-waiting {
+    border: round $ink-warn;
+}
+
+.tool-call-block.tool-refused {
+    border: round $ink-warn;
+    color: $ink-warn;
+}
+
 .phase-line {
     padding: 0 1;
 }
