@@ -211,15 +211,25 @@ class SessionSwitcher(ModalScreen[SessionChoice]):
                 f"{cursor} [{colour}]{marker}[/{colour}] {title}  "
                 f"[{DIM}]{sid} · {count} messages · {_age(item.get('last_active'))}[/{DIM}]"
             )
-            if self._pending_delete == sid:
-                label += f"  [bold {ERROR}]F3 again to delete[/bold {ERROR}]"
             rows.append(label)
         hidden = len(self._matches) - start - len(visible)
         if hidden > 0:
             rows.append(f"[{DIM}]… {hidden} more — type to filter[/{DIM}]")
         self.query_one("#session-list", Static).update("\n".join(rows))
-        self.query_one("#session-footer", Static).update(
-            f"[{DIM}]Enter open · Ctrl+N new · F2 rename · F3 delete · Esc close[/{DIM}]"
-        )
+        # The confirmation belongs in the footer: appended to the row, it pushed
+        # the row past the card and wrapped "delete" to the left border.
+        if self._pending_delete:
+            armed = next(
+                (
+                    str(item.get("title") or "this session")
+                    for item in self._matches
+                    if str(item.get("id")) == self._pending_delete
+                ),
+                "this session",
+            )
+            footer = f"[bold {ERROR}]F3 again deletes “{armed}” · Esc cancels[/bold {ERROR}]"
+        else:
+            footer = f"[{DIM}]Enter open · Ctrl+N new · F2 rename · F3 delete · Esc close[/{DIM}]"
+        self.query_one("#session-footer", Static).update(footer)
         if self._renaming is not None:
             self.query_one("#session-filter", Input).placeholder = "Rename to…"

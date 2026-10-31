@@ -73,6 +73,10 @@ from ui import file_context
 from ui.palette import ACCENT, DIM, ERROR, OK, WARN
 from ui.terminal_mark import MARK_HEAD, MARK_ROWS
 
+#: Stored turns the terminal paints on resume. A bound keeps a four-digit
+#: session from mounting thousands of widgets; the lead line names the cut.
+TRANSCRIPT_TAIL = 60
+
 
 def _relative_when(iso: object) -> str:
     """A short age for the session greeting; the store writes ISO-8601."""
@@ -91,6 +95,36 @@ def _relative_when(iso: object) -> str:
         return f"{delta.days} days ago"
     except (TypeError, ValueError):
         return ""
+
+
+def _display_content(text: str) -> str:
+    """Stored shell turns carry the gate's machine sentence; the reader gets the fact."""
+    if text.startswith("$ ") and "[TOOL-DENIED]" in text:
+        command = text.split("\n", 1)[0].split(" [TOOL-DENIED]")[0]
+        return f"`{command}`\n\nDeclined — not executed."
+    return text
+
+def _help_rows(
+    pairs: list[tuple[str, str]], *, column: int = 21, width: int = 66
+) -> list[str]:
+    """Two columns that keep their gutter when a description wraps.
+
+    Static wraps at the widget edge with no hanging indent, so a long sentence
+    came back flush against the card's left border (seen 2026-10-31). Wrapping
+    here fixes the indent to the description column.
+    """
+    indent = " " * column
+    rows: list[str] = []
+    for label, description in pairs:
+        head = "  " + str(label).ljust(column - 2)
+        wrapped = textwrap.wrap(
+            str(description),
+            width=width,
+            initial_indent=head,
+            subsequent_indent=indent,
+        )
+        rows.extend(wrapped or [head.rstrip()])
+    return rows
 
 
 def _chosen_engine():
@@ -290,6 +324,9 @@ class EpheApp(App):
             return True
         chat = self.query_one(ChatView)
         self._set_run_state("waiting")
+        # The tool row says "Waiting for approval" until a person answers; a card
+        # that reads "Running…" in front of a prompt claims work nobody allowed.
+        chat.post_message(ChatView.ToolCallWaiting(tool_name))
         try:
             if tool_name == "run_shell":
                 command = str(args.get("command", ""))
@@ -306,6 +343,8 @@ class EpheApp(App):
             # Read the result straight from the widget (set synchronously in on_key) —
             # no race through the app handler (which runs asynchronously AFTER event.set()).
             approved, _always = prompt.result
+            if approved:
+                chat.post_message(ChatView.ToolCallResume(tool_name))
             return bool(approved)
         finally:
             if self._streaming:
@@ -316,21 +355,15 @@ class EpheApp(App):
 
         (The worker reads the approval result directly from the prompt widget;
         this is about the after-effect: 'always' allowlist + feedback.)
+        A plain no needs no second line: the tool row itself turns into
+        "Declined <target>" when the denial reaches it.
         """
         if event.always and event.answer:
             self._confirm_allowed.add(event.tool_name)
-        chat = self.query_one(ChatView)
         if event.answer and event.always:
-            chat.post_message(
+            self.query_one(ChatView).post_message(
                 ChatView.AddSystemMessage(
                     f"✔  {event.tool_name} allowed for this session.",
-                    style="system-msg",
-                )
-            )
-        elif not event.answer:
-            chat.post_message(
-                ChatView.AddSystemMessage(
-                    f"✖  {event.tool_name} declined — execution stopped.",
                     style="system-msg",
                 )
             )
@@ -463,6 +496,11 @@ class EpheApp(App):
         """Persist the transcript into its one server-authoritative file."""
         if self._session_id:
             ms.save_messages(self._session_id, self._session)
+            try:
+                title, count = self._session_label_values()
+                self.query_one(StatusBar).post_message(StatusBar.SetSession(title, count))
+            except Exception:
+                pass
 
     def _load_session_and_greet(self) -> None:
         chat = self.query_one(ChatView)
@@ -489,17 +527,18 @@ class EpheApp(App):
         self.query_one(StatusBar).post_message(StatusBar.SetSession(title, count))
 
         if count > 0:
-            chat.post_message(ChatView.AddSystemVisual(self._welcome_card(
-                head=("Ephe", "Welcome back."),
-                body=(f"Session “{title}”: {count} messages, {when}.",
-                      *self._key_hint_rows(), *self._session_hints()),
-            )))
+            # A resumed session opens on its own transcript. The greeting used to
+            # stand alone here while the messages stayed off-screen (2026-10-31):
+            # the bar said "19 messages" and the reader saw none of them.
+            self._render_transcript(
+                lead=f"Resumed “{title}” — {count} messages, {when}."
+            )
         else:
             chat.post_message(ChatView.AddSystemVisual(self._welcome_card(
                 head=("Ephe", "Runs locally. Everything else is a decision."),
                 body=(f"Session “{title}”. /sessions switches, /new starts one.",
                       *self._key_hint_rows(), *self._session_hints()),
-            )))
+            ), ident="welcome-card"))
         self._post_context_meter()
 
     def _key_hint_rows(self) -> tuple[str, ...]:
@@ -634,9 +673,9 @@ class EpheApp(App):
             status = self.query_one(StatusBar)
         except Exception:
             return
-        window, _source = resolve_window(self.model)
+        window, source = resolve_window(self.model)
         status.post_message(
-            StatusBar.SetMeter(estimate_context_usage(self._session, window))
+            StatusBar.SetMeter(estimate_context_usage(self._session, window), source)
         )
 
     def _handle_model_switch(self, new_model: str) -> None:
@@ -686,24 +725,6 @@ class EpheApp(App):
         except Exception:
             return False
 
-    def _heal_model_drift(self, available: list[str]) -> str | None:
-        """Pick the auto-healable model when the configured one is missing.
-
-        Conservative rules (never guess):
-        - exactly 1 model loaded                       → take that one
-        - several: 1 contains "qwen" (active DGX family) → take that one
-        - otherwise → None (the user must pick explicitly via /model)
-        """
-        if not available:
-            return None
-        if len(available) == 1:
-            return available[0]
-        # Several loaded: look for the active model family (DGX = Qwen).
-        qwen = [m for m in available if "qwen" in m.lower()]
-        if len(qwen) == 1:
-            return qwen[0]
-        return None
-
     async def _async_check_connection(self) -> None:
         """Ping the active engine on startup, show model list if not found."""
         if self.api_url:
@@ -748,31 +769,9 @@ class EpheApp(App):
         model_present = any(self.model in name for name in available)
         if not model_present:
             if self.api_url:
-                # ── Auto-heal: model drift (DGX/vLLM) ──────────────────────────
-                # The configured model is missing on the engine but another one is
-                # (unambiguously) loaded → switch to it automatically and update
-                # engine.json (no dead end).
-                healed = self._heal_model_drift(available)
-                if healed:
-                    old_model = self.model
-                    self.model = healed
-                    self._persist_model(healed)
-                    self.query_one(StatusBar).post_message(
-                        StatusBar.SetStatus(
-                            connected=True, model=self.model,
-                            provider=self._provider_label(),
-                        )
-                    )
-                    chat.post_message(
-                        ChatView.AddSystemMessage(
-                            f"◑  Model auto-corrected: {old_model} → {healed}\n"
-                            f"   (engine.json updated — the start command is unchanged.)",
-                            style="system-msg",
-                        )
-                    )
-                    return
-
-                # No unambiguous candidate → show the existing model list
+                # The tag is the user's choice; the product never picks one for
+                # them. An automatic "heal" also wrote a config the next start
+                # could not use (2026-10-31), so this reports and hands over.
                 model_list = "\n".join(
                     f"   • {name}" for name in available[:10]
                 ) or "   (the engine lists no models)"
@@ -782,7 +781,7 @@ class EpheApp(App):
                         f"   Available on {self.api_url}:\n"
                         f"{model_list}\n\n"
                         f"   Load it there or switch with:\n"
-                        f"   /model <name>",
+                        f"   /model <name>   (F2 lists them)",
                         style="error-msg",
                     )
                 )
@@ -1665,38 +1664,45 @@ class EpheApp(App):
     def _help_text(self) -> str:
         from core.commands import get_command_help
 
-        rows = [
-            "◑ Ephe — keys",
-            "",
-            "  Enter              send the draft",
-            "  Ctrl+J             new line (Shift+Enter where reported)",
-            "  Tab                complete a command or an @file",
-            "  ↑ / ↓              history on one line, cursor movement in a draft",
-            "  Ctrl+↑ / Ctrl+↓    history at any draft length",
-            "  Ctrl+P             every action",
-            "  Ctrl+O, /sessions  session switcher (Ctrl+N new, F2 rename, F3 delete)",
-            "  Ctrl+R, /new       new session",
-            "  F2, /model         model picker (writes engine.json)",
-            "  F10, /setup        engine setup: provider, endpoint, key, model",
-            "  F8, /undo          undo the last turn",
-            "  F9, /redo          restore the last undone turn",
-            "  F4, /editor        edit the draft in $VISUAL/$EDITOR",
-            "  F1, /help          this page",
-            "  Ctrl+L             clear the display",
-            "  q                  quit",
-            "",
-            "Draft tokens",
-            "  @path              attach a workspace file to the prompt",
-            "  @path#L10-L20      attach a line range",
-            "  !command           run a shell command through the approval prompt",
-            "",
-            "Undo rewrites the transcript only. File edits a tool made are not",
-            "reverted: the tool cards name the change set, and `git status` /",
-            "`git restore <path>` are the file-level revert.",
-            "",
-            "Commands",
+        keys = [
+            ("Enter", "send the draft"),
+            ("Ctrl+J", "new line (Shift+Enter where reported)"),
+            ("Tab", "complete a command or an @file"),
+            ("↑ / ↓", "history on one line, cursor movement in a draft"),
+            ("Ctrl+↑ / Ctrl+↓", "history at any draft length"),
+            ("Ctrl+P", "every action"),
+            ("Ctrl+O, /sessions", "session switcher (Ctrl+N new, F2 rename, F3 delete)"),
+            ("Ctrl+R, /new", "new session"),
+            ("F2, /model", "model picker (writes engine.json)"),
+            ("F10, /setup", "engine setup: provider, endpoint, key, model"),
+            ("F8, /undo", "undo the last turn"),
+            ("F9, /redo", "restore the last undone turn"),
+            ("F4, /editor", "edit the draft in $VISUAL/$EDITOR"),
+            ("F1, /help", "this page"),
+            ("Ctrl+L", "clear the display"),
+            ("Ctrl+Q", "quit (q works while the draft is empty)"),
         ]
-        rows.extend(f"  {command:<12} {description}" for command, description in get_command_help())
+        rows = ["◑ Ephe — keys", "", *_help_rows(keys), "", "Draft tokens", ""]
+        rows.extend(
+            _help_rows(
+                [
+                    ("@path", "attach a workspace file to the prompt"),
+                    ("@path#L10-L20", "attach a line range"),
+                    ("!command", "run a shell command through the approval prompt"),
+                ]
+            )
+        )
+        rows.extend(
+            [
+                "",
+                "Undo rewrites the transcript only. File edits a tool made are not",
+                "reverted: the tool cards name the change set, and `git status` /",
+                "`git restore <path>` are the file-level revert.",
+                "",
+                "Commands",
+            ]
+        )
+        rows.extend(_help_rows(get_command_help(), column=16))
         return "\n".join(rows)
 
     def action_engine_setup(self) -> None:
@@ -1829,18 +1835,30 @@ class EpheApp(App):
         meta = ms.get_session(self._session_id) or {}
         return str(meta.get("title") or "default"), len(self._session)
 
-    def _render_transcript(self) -> None:
+    def _render_transcript(self, lead: str = "") -> None:
+        """Paint the stored turns; the terminal owns no transcript of its own.
+
+        Bounded to the tail: a long session would otherwise mount thousands of
+        widgets on start. The lead line says what was hidden, so the cut is
+        visible instead of silent.
+        """
         chat = self.query_one(ChatView)
         chat.clear_display()
-        for message in self._session:
+        shown = self._session[-TRANSCRIPT_TAIL:]
+        if lead and len(shown) < len(self._session):
+            lead += f" The first {len(self._session) - len(shown)} stay in the session file."
+        if lead:
+            chat.post_message(ChatView.AddSystemMessage(lead, style="system-msg"))
+        for message in shown:
             role = message.get("role")
             content = str(message.get("content") or "")
             if role == "user":
                 chat.post_message(ChatView.AddUserMessage(content))
             elif role == "assistant":
                 chat.post_message(ChatView.BeginAssistantMessage())
-                chat.post_message(ChatView.AppendChunk(content))
+                chat.post_message(ChatView.AppendChunk(_display_content(content)))
                 chat.post_message(ChatView.FinalizeAssistantMessage())
+
 
     def action_editor(self) -> None:
         if self._refuse_while_running():
