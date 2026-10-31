@@ -205,7 +205,7 @@
     "toolFailed": "{{tool}} fehlgeschlagen",
     "backendMismatch": "Die App ist {{shell}}, ihr Backend läuft noch mit {{backend}}. Starte Ephe neu.",
     "backendUpdated": "Der Backend-Code wurde aktualisiert. Starte Ephe neu.",
-    "buildMismatch": "Eine neuere Oberfläche ist bereit. Lade das Fenster neu, um sie zu laden.",
+    "buildMismatch": "Eine aktualisierte Oberfläche ist bereit — lade das Fenster, um sie zu laden.",
     "toolArgsLabel": "Parameter",
     "toolResultLabel": "Ergebnis",
     "toolVerbRun": "Führt aus",
