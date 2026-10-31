@@ -1399,15 +1399,22 @@ def persist_engine_choice(
     # Read-modify-write: the folder settings (path chain) survive a provider
     # persist, otherwise they are lost quietly on an engine change.
     existing = load_engine_config()
+    remote = provider in ("openai_compatible", "custom_ollama")
+    url = (base_url or "").strip() or None
+    if remote and not url:
+        # An endpoint the caller did not pass is not an endpoint to delete: a
+        # model switch keeps the URL it was reached at. Without either, a remote
+        # provider is no choice at all — the start rule treats it as none, so
+        # writing it would strand the next start in setup (seen 2026-10-31).
+        if existing is not None and existing.provider == provider and existing.api_url:
+            url = existing.api_url
+        else:
+            return False
     return save_engine_config(
         EngineChoice(
             provider=provider,
             model=model,
-            api_url=(
-                base_url
-                if provider in ("openai_compatible", "custom_ollama") and base_url
-                else None
-            ),
+            api_url=url if remote else None,
             output_dir=existing.output_dir if existing else None,
             workspace_dir=existing.workspace_dir if existing else None,
             brand=existing.brand if existing else None,
