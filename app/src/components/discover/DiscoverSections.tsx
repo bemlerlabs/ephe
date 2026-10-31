@@ -12,6 +12,7 @@ const PER_SECTION = 8
 function ranked(list: DiscoverItem[]): DiscoverItem[] {
   return [...list].sort(
     (a, b) =>
+      Number(a.featured ?? 999) - Number(b.featured ?? 999) ||
       Number(b.installed) - Number(a.installed) ||
       (b.calls ?? 0) - (a.calls ?? 0) ||
       (b.downloads ?? 0) - (a.downloads ?? 0) ||

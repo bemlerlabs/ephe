@@ -10,7 +10,13 @@ import type {
   McpSettings,
   SkillSummary,
 } from '@/lib/api'
-import type { MarketHome, MarketIndexBody, MarketInstalledRow, ToolUsageView } from '@/lib/api'
+import type {
+  FeaturedEntry,
+  MarketHome,
+  MarketIndexBody,
+  MarketInstalledRow,
+  ToolUsageView,
+} from '@/lib/api'
 
 export type DiscoverKind = 'skill' | 'connector' | 'plugin'
 
@@ -50,6 +56,14 @@ export interface DiscoverItem {
   requiredEnv?: { name: string; secret: boolean }[]
   /** Provenance the card can show: our selection, freshly published, or in the box. */
   badge?: 'pick' | 'recent' | 'bundled'
+  /** Featured tier: the editorial rank that puts a verified publisher on top. */
+  featured?: number
+  /** Vendor icon served from this machine (`/api/discover/icon/<slug>`). */
+  icon?: string
+  /** The one-sentence reason this entry is in the featured tier. */
+  why?: string
+  /** Where the featured claim was checked: ranking pages and vendor docs. */
+  sources?: string[]
 }
 
 /** One curated registry tier row, served by /api/discover/bootstrap. */
@@ -74,6 +88,7 @@ export interface DiscoverSources {
   mcp: McpSettings | null
   health: McpHealthServer[]
   catalog: McpCatalogEntry[]
+  featured: FeaturedEntry[]
   registry: RegistryEntry[]
   registryCount: number
   /** The two shelves that ship: named on the page and outside the removable set. */
@@ -149,6 +164,27 @@ export function publisherOf(name: string): string | undefined {
   return head || undefined
 }
 
+/** A featured row's verified launch line in the format the settings accept. */
+function featuredSpec(entry: FeaturedEntry): string | undefined {
+  if (entry.transport === 'http') {
+    const url = entry.install_hint.split(/\s+/)[0] ?? ''
+    return /^https?:\/\//.test(url) ? url : undefined
+  }
+  const command = entry.install_hint.replace(/\s*\((?:stdio|http|streamable-http)\)\s*$/, '')
+  return command ? `stdio:${command}` : undefined
+}
+
+/** The remote endpoint a launch line names, so one product is listed once. */
+function remoteHost(spec: string | undefined): string | undefined {
+  const url = (spec ?? '').match(/https?:\/\/[^\s)]+/)?.[0]
+  if (!url) return undefined
+  try {
+    return new URL(url).host.toLowerCase()
+  } catch {
+    return undefined
+  }
+}
+
 export function buildItems(sources: DiscoverSources): DiscoverItem[] {
   const items: DiscoverItem[] = []
   const usedCalls = new Map((sources.usage?.tools ?? []).map((one) => [one.tool, one.calls]))
@@ -193,6 +229,40 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
     })
   }
 
+  const featuredRows = sources.featured ?? []
+  const attached = sources.mcp?.servers ?? []
+  // One product, one row: the mirror often carries the same publisher under a
+  // second endpoint (Linear /mcp next to Linear /sse), so the featured row owns
+  // its endpoint host and the long tail keeps only the rest.
+  const featuredHosts = new Set(
+    featuredRows.map((entry) => remoteHost(featuredSpec(entry))).filter(Boolean),
+  )
+  for (const entry of featuredRows) {
+    const spec = featuredSpec(entry)
+    const host = remoteHost(spec)
+    const match = host ? attached.find((one) => remoteHost(one) === host) : undefined
+    const probe = match ? sources.health.find((one) => one.spec === match) : undefined
+    items.push({
+      id: `connector:featured:${entry.id}`,
+      kind: 'connector',
+      name: entry.name,
+      title: entry.name,
+      publisher: entry.publisher,
+      summary: entry.summary,
+      origin: 'featured',
+      categories: entry.category ? [entry.category] : [],
+      installed: Boolean(match && configured.has(specName(match))),
+      enabled: probe?.status === 'ok',
+      spec,
+      docs: entry.docs,
+      installHint: entry.install_hint,
+      featured: entry.rank,
+      icon: `/api/discover/icon/${entry.icon}`,
+      why: entry.why,
+      sources: entry.evidence,
+    })
+  }
+
   for (const entry of sources.catalog) {
     if (sources.health.some((probe) => specName(probe.spec) === entry.name)) continue
     items.push({
@@ -213,6 +283,8 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
   for (const entry of sources.registry) {
     if (configured.has(entry.name)) continue
     if (sources.catalog.some((known) => known.name === entry.name)) continue
+    const host = remoteHost(entry.install_hint)
+    if (host && featuredHosts.has(host)) continue
     items.push({
       id: `connector:registry:${entry.id}`,
       kind: 'connector',
@@ -325,10 +397,12 @@ export function categoryFacets(items: DiscoverItem[]): string[] {
 /** The first card is the one the page presents large: installed and most used wins. */
 export function heroOf(items: DiscoverItem[]): DiscoverItem | null {
   if (!items.length) return null
-  // The featured entry argues for the shelf, so a measured download count outranks
-  // everything; what this machine already uses is the next-best proof.
+  // The featured rank argues for the shelf first: a verified publisher with a
+  // known endpoint outranks a package with a measured count. Then downloads; what
+  // this machine already uses is the next-best proof.
   const ranked = [...items].sort(
     (a, b) =>
+      Number(a.featured ?? 999) - Number(b.featured ?? 999) ||
       (b.downloads ?? 0) - (a.downloads ?? 0) ||
       Number(b.installed) - Number(a.installed) ||
       Number(b.enabled) - Number(a.enabled) ||

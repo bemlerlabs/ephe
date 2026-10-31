@@ -1,0 +1,75 @@
+{
+  "note": "Vendor icons, fetched from the publisher's own domain as brand identification. Regenerate with scripts/fetch_marketplace_icons.py.",
+  "icons": {
+    "github": {
+      "source": "https://github.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "3636259a57226e6d6dea9bf8a360e70b41376a12cbe314eaa315d5dacda11b6f"
+    },
+    "context7": {
+      "source": "https://context7.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "6cecab8d4d2b6dfb58c3d0e0bc10395be8b392f17ba04afe326eec24862176ee"
+    },
+    "playwright": {
+      "source": "https://playwright.dev/img/playwright-logo.svg",
+      "fetched": "2026-10-31",
+      "sha256": "e5c4aa06ce090e8a72a8a8ad1b4ef19b420f71580fd3a0993005e7a41314229c"
+    },
+    "sentry": {
+      "source": "https://sentry.io/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "1f0a2af48d7d0c3f654287efacac8ca966037ec0eed7a0b17d2f4a4878171bcd"
+    },
+    "supabase": {
+      "source": "https://supabase.com/images/supabase-logo-icon.svg",
+      "fetched": "2026-10-31",
+      "sha256": "33ecd3ba476aa9f9ca8d6edbfa78faa29d39e1b036a52c97faf86eff9b0c3bf4"
+    },
+    "firecrawl": {
+      "source": "https://www.firecrawl.dev/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "9896cbd3a5bc0db1e51777741d70ddf0ddd8928abee3971ba40ba5f1ee216b4a"
+    },
+    "exa": {
+      "source": "https://exa.ai/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "ce8946fc6c170c0059c57cb232fcc1bf958fc5e402da3a6cb3c61beb2b0d5d12"
+    },
+    "cloudflare": {
+      "source": "https://www.cloudflare.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "42d2ec81fac683204238957c83e7543d63e7a26e0020f91d6ef7147687990f89"
+    },
+    "grafana": {
+      "source": "https://grafana.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "e14038b71a263982ba9b50a44afbded6453a5d3d3f2102306bd19d4baeb60bd4"
+    },
+    "aws": {
+      "source": "https://aws.amazon.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "74c844a54c2d31bacdd08f706adba0daf6e6a33898a625fbd4c3928259eeba8e"
+    },
+    "notion": {
+      "source": "https://www.notion.so/images/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "1a1d8702052a148b813dfd5248d75aa430643836542109a2f6c5cd6986fc0150"
+    },
+    "linear": {
+      "source": "https://linear.app/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "c364fb75ebf6e2f23f574b03d461eb9ec5a1c8bc4fa5539f971d961a441c1750"
+    },
+    "stripe": {
+      "source": "https://stripe.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "d21da45a8bc2f00d5fb065425b28da8904a1bbcb8386a3d9045e2e3e8c4e893a"
+    },
+    "figma": {
+      "source": "https://www.figma.com/favicon.ico",
+      "fetched": "2026-10-31",
+      "sha256": "11f0d172b9855e877a5448691f3d71acedbfbad50deaa7d067fd769565f29c66"
+    }
+  }
+}

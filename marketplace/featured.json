@@ -1,0 +1,258 @@
+{
+  "generated": "2026-10-31",
+  "note": "Editorial tier: servers whose publisher and installation path were verified on 2026-10-31. The popularity column cites the community ranking (best-of-mcp-servers) or the registry, and never stands in for a claim about safety.",
+  "entries": [
+    {
+      "id": "featured-github",
+      "rank": 1,
+      "name": "GitHub MCP Server",
+      "publisher": "GitHub",
+      "summary": "Repositories, issues, pull requests and code search as tools. The remote server is hosted by GitHub and authenticates with a personal access token.",
+      "category": "code",
+      "transport": "http",
+      "install_hint": "https://api.githubcopilot.com/mcp/ (streamable-http)",
+      "docs": "https://github.com/github/github-mcp-server",
+      "icon": "github",
+      "icon_source": "https://github.com/favicon.ico",
+      "evidence": [
+        "https://github.com/github/github-mcp-server",
+        "https://github.com/tolkonepiu/best-of-mcp-servers"
+      ],
+      "why": "Official GitHub server; the most-starred version-control entry in the community ranking (34k)."
+    },
+    {
+      "id": "featured-context7",
+      "rank": 2,
+      "name": "Context7",
+      "publisher": "Upstash",
+      "summary": "Up-to-date library documentation on demand, so the model reads the current API instead of a remembered one.",
+      "category": "code",
+      "transport": "http",
+      "install_hint": "https://mcp.context7.com/mcp (streamable-http)",
+      "docs": "https://context7.com",
+      "icon": "context7",
+      "icon_source": "https://context7.com/favicon.ico",
+      "evidence": [
+        "https://github.com/upstash/context7",
+        "https://github.com/tolkonepiu/best-of-mcp-servers"
+      ],
+      "why": "Most-starred documentation server in the community ranking (64k) and the first pick in two independent 2026 roundups."
+    },
+    {
+      "id": "featured-playwright",
+      "rank": 3,
+      "name": "Playwright MCP",
+      "publisher": "Microsoft",
+      "summary": "Browser automation over accessibility snapshots: navigate, click, type and read a page without image-based guessing.",
+      "category": "code",
+      "transport": "stdio",
+      "install_hint": "npx -y @playwright/mcp@latest (stdio)",
+      "docs": "https://github.com/microsoft/playwright-mcp",
+      "icon": "playwright",
+      "icon_source": "https://playwright.dev/img/playwright-logo.svg",
+      "evidence": [
+        "https://github.com/microsoft/playwright-mcp",
+        "https://github.com/tolkonepiu/best-of-mcp-servers"
+      ],
+      "why": "Official Microsoft server; the most-starred browser-automation entry (39k)."
+    },
+    {
+      "id": "featured-sentry",
+      "rank": 4,
+      "name": "Sentry",
+      "publisher": "Sentry",
+      "summary": "Issues, stack traces and releases from Sentry, read and triaged from the conversation.",
+      "category": "monitoring",
+      "transport": "http",
+      "install_hint": "https://mcp.sentry.dev (streamable-http, OAuth)",
+      "docs": "https://docs.sentry.io/product/sentry-mcp/",
+      "icon": "sentry",
+      "icon_source": "https://sentry.io/favicon.ico",
+      "evidence": [
+        "https://github.com/getsentry/sentry-mcp",
+        "https://mcp.sentry.dev"
+      ],
+      "why": "Official Sentry server with a hosted endpoint; the reference observability entry."
+    },
+    {
+      "id": "featured-supabase",
+      "rank": 5,
+      "name": "Supabase",
+      "publisher": "Supabase",
+      "summary": "Projects, tables, migrations and logs of a Supabase project. Reads config and runs SQL with the project's own policies.",
+      "category": "data",
+      "transport": "http",
+      "install_hint": "https://mcp.supabase.com/mcp (streamable-http)",
+      "docs": "https://supabase.com/mcp",
+      "icon": "supabase",
+      "icon_source": "https://supabase.com/images/supabase-logo-icon.svg",
+      "evidence": [
+        "https://github.com/supabase-community/supabase-mcp",
+        "https://supabase.com/mcp"
+      ],
+      "why": "Official Supabase server; the standard database pick in 2026 roundups."
+    },
+    {
+      "id": "featured-firecrawl",
+      "rank": 6,
+      "name": "Firecrawl",
+      "publisher": "Firecrawl",
+      "summary": "Search, scrape and crawl the live web, returned as clean Markdown or structured data.",
+      "category": "search",
+      "transport": "stdio",
+      "install_hint": "npx -y firecrawl-mcp (stdio; FIRECRAWL_API_KEY)",
+      "docs": "https://github.com/firecrawl/firecrawl-mcp-server",
+      "icon": "firecrawl",
+      "icon_source": "https://www.firecrawl.dev/favicon.ico",
+      "evidence": [
+        "https://github.com/firecrawl/firecrawl-mcp-server",
+        "https://github.com/tolkonepiu/best-of-mcp-servers"
+      ],
+      "why": "Most-starred search-and-extraction server (7.7k) with an official SDK and hosted plans."
+    },
+    {
+      "id": "featured-exa",
+      "rank": 7,
+      "name": "Exa",
+      "publisher": "Exa",
+      "summary": "Neural web search and page retrieval built for agents, with a hosted MCP endpoint.",
+      "category": "search",
+      "transport": "http",
+      "install_hint": "https://mcp.exa.ai/mcp (streamable-http)",
+      "docs": "https://docs.exa.ai/reference/exa-mcp",
+      "icon": "exa",
+      "icon_source": "https://exa.ai/favicon.ico",
+      "evidence": [
+        "https://github.com/exa-labs/exa-mcp-server",
+        "https://mcp.exa.ai/mcp"
+      ],
+      "why": "Official Exa server with a hosted endpoint; second most-starred search entry (5.2k)."
+    },
+    {
+      "id": "featured-cloudflare",
+      "rank": 8,
+      "name": "Cloudflare",
+      "publisher": "Cloudflare",
+      "summary": "Workers, KV, D1, R2 and account configuration read and operated through Cloudflare's own MCP servers.",
+      "category": "cloud",
+      "transport": "http",
+      "install_hint": "https://mcp.cloudflare.com/mcp (streamable-http, OAuth)",
+      "docs": "https://developers.cloudflare.com/agents/model-context-protocol/",
+      "icon": "cloudflare",
+      "icon_source": "https://www.cloudflare.com/favicon.ico",
+      "evidence": [
+        "https://github.com/cloudflare/mcp-server-cloudflare",
+        "https://mcp.cloudflare.com/mcp"
+      ],
+      "why": "Official Cloudflare server family; the largest cloud-platform entry by stars (4.4k)."
+    },
+    {
+      "id": "featured-grafana",
+      "rank": 9,
+      "name": "Grafana",
+      "publisher": "Grafana Labs",
+      "summary": "Dashboards, datasources, Prometheus queries and alerts from Grafana, read inside the turn.",
+      "category": "monitoring",
+      "transport": "http",
+      "install_hint": "https://mcp.grafana.com/mcp (streamable-http, OAuth)",
+      "docs": "https://github.com/grafana/mcp-grafana",
+      "icon": "grafana",
+      "icon_source": "https://grafana.com/favicon.ico",
+      "evidence": [
+        "https://github.com/grafana/mcp-grafana",
+        "https://mcp.grafana.com/mcp"
+      ],
+      "why": "Official Grafana Labs server; the most-starred monitoring-specific entry (3.6k)."
+    },
+    {
+      "id": "featured-aws",
+      "rank": 10,
+      "name": "AWS MCP Servers",
+      "publisher": "AWS",
+      "summary": "AWS's own suite: documentation, infrastructure-as-code guidance and service-specific servers for AWS work.",
+      "category": "cloud",
+      "transport": "stdio",
+      "install_hint": "uvx awslabs.aws-documentation-mcp-server (stdio)",
+      "docs": "https://awslabs.github.io/mcp/",
+      "icon": "aws",
+      "icon_source": "https://aws.amazon.com/favicon.ico",
+      "evidence": [
+        "https://github.com/awslabs/mcp",
+        "https://awslabs.github.io/mcp/"
+      ],
+      "why": "Official AWS suite; the largest cloud listing by stars (9.9k)."
+    },
+    {
+      "id": "featured-notion",
+      "rank": 11,
+      "name": "Notion",
+      "publisher": "Notion",
+      "summary": "Search a workspace, read pages and create or update content in Notion.",
+      "category": "productivity",
+      "transport": "http",
+      "install_hint": "https://mcp.notion.com/mcp (streamable-http, OAuth)",
+      "docs": "https://developers.notion.com/docs/mcp",
+      "icon": "notion",
+      "icon_source": "https://www.notion.so/images/favicon.ico",
+      "evidence": [
+        "https://mcp.notion.com/mcp",
+        "https://developers.notion.com/docs/mcp"
+      ],
+      "why": "Official Notion server; the workspace pick named in the 2026 roundups."
+    },
+    {
+      "id": "featured-linear",
+      "rank": 12,
+      "name": "Linear",
+      "publisher": "Linear",
+      "summary": "Issues, projects and cycles from Linear, read and updated where the work is tracked.",
+      "category": "productivity",
+      "transport": "http",
+      "install_hint": "https://mcp.linear.app/mcp (streamable-http, OAuth)",
+      "docs": "https://linear.app/docs/mcp",
+      "icon": "linear",
+      "icon_source": "https://linear.app/favicon.ico",
+      "evidence": [
+        "https://mcp.linear.app/mcp",
+        "https://linear.app/docs/mcp"
+      ],
+      "why": "Official Linear server with a hosted endpoint."
+    },
+    {
+      "id": "featured-stripe",
+      "rank": 13,
+      "name": "Stripe",
+      "publisher": "Stripe",
+      "summary": "Customers, payments and documentation from Stripe; test-mode work stays in test mode.",
+      "category": "finance",
+      "transport": "http",
+      "install_hint": "https://mcp.stripe.com (streamable-http, OAuth)",
+      "docs": "https://docs.stripe.com/mcp",
+      "icon": "stripe",
+      "icon_source": "https://stripe.com/favicon.ico",
+      "evidence": [
+        "https://mcp.stripe.com",
+        "https://docs.stripe.com/mcp"
+      ],
+      "why": "Official Stripe server; the payments entry with a hosted endpoint."
+    },
+    {
+      "id": "featured-figma",
+      "rank": 14,
+      "name": "Figma",
+      "publisher": "Figma",
+      "summary": "Design files, components and variables from Figma, so the implementation reads the source of truth.",
+      "category": "design",
+      "transport": "http",
+      "install_hint": "https://mcp.figma.com/mcp (streamable-http)",
+      "docs": "https://developers.figma.com/docs/figma-mcp-server/",
+      "icon": "figma",
+      "icon_source": "https://www.figma.com/favicon.ico",
+      "evidence": [
+        "https://mcp.figma.com/mcp",
+        "https://developers.figma.com/docs/figma-mcp-server/"
+      ],
+      "why": "Official Figma Dev Mode server; the design entry named in 2026 roundups."
+    }
+  ]
+}

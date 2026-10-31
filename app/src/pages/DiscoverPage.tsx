@@ -67,6 +67,7 @@ async function loadSources(): Promise<{ sources: DiscoverSources; failed: string
       mcp,
       health: health?.servers ?? [],
       catalog: boot?.catalog ?? [],
+      featured: boot?.featured ?? [],
       registry: boot?.curated ?? [],
       registryCount: boot?.registry_count ?? 0,
       presets: boot?.presets ?? [],
@@ -76,6 +77,20 @@ async function loadSources(): Promise<{ sources: DiscoverSources; failed: string
       usage: boot?.usage ?? null,
     },
     failed,
+  }
+}
+
+/** The quiet default view: no tab, no phrase, no facet. */
+function browsingPicks(query: DiscoverQuery): boolean {
+  return Boolean(query.query || query.category || query.origin || query.tab !== 'all')
+}
+
+/** Motion is a preference, not a default: the hero stays still when it is off. */
+function prefersStill(): boolean {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch {
+    return false
   }
 }
 
@@ -126,7 +141,31 @@ export default function DiscoverPage() {
   const counts = useMemo(() => countByTab(items), [items])
   const categories = useMemo(() => categoryFacets(items), [items])
   const origins = useMemo(() => facetValues(items, (one) => [one.origin]), [items])
-  const hero = useMemo(() => heroOf(shown), [shown])
+  const featured = useMemo(
+    () =>
+      [...items]
+        .filter((item) => item.featured !== undefined)
+        .sort((a, b) => Number(a.featured) - Number(b.featured)),
+    [items],
+  )
+  const [pick, setPick] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const still = prefersStill()
+  useEffect(() => {
+    if (still || paused || browsingPicks(query) || featured.length < 2) return undefined
+    const timer = window.setInterval(
+      () => setPick((current) => (current + 1) % Math.min(3, featured.length)),
+      8000,
+    )
+    return () => window.clearInterval(timer)
+  }, [still, paused, query, featured.length])
+  const hero = useMemo(
+    () =>
+      browsingPicks(query) || !featured.length
+        ? heroOf(shown)
+        : (featured[pick % Math.min(3, featured.length)] ?? heroOf(shown)),
+    [query, featured, pick, shown],
+  )
   const bento = useMemo(() => bentoOf(items), [items])
   const bentoIds = useMemo(() => new Set(bento.map((one) => one.id)), [bento])
 
@@ -303,16 +342,72 @@ export default function DiscoverPage() {
             {!browsing ? (
               <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]">
                 {hero ? (
-                  <DiscoverHero
-                    item={hero}
-                    busy={busy === hero.id}
+                  <div
+                    className="min-w-0"
+                    onMouseEnter={() => setPaused(true)}
+                    onMouseLeave={() => setPaused(false)}
+                    onFocusCapture={() => setPaused(true)}
+                    onBlurCapture={() => setPaused(false)}
+                  >
+                    <div key={hero.id} className="discover-hero-turn">
+                      <DiscoverHero
+                        item={hero}
+                        busy={busy === hero.id}
+                        onAdd={onAdd}
+                        onToggle={onToggle}
+                        onDetail={setDetail}
+                      />
+                    </div>
+                    {featured.length > 1 && !browsingPicks(query) ? (
+                      <div
+                        data-testid="discover-pick-dots"
+                        className="mt-3 flex items-center gap-1.5"
+                        role="tablist"
+                        aria-label={t('discover.featuredEyebrow')}
+                      >
+                        {featured.slice(0, 3).map((entry, index) => (
+                          <button
+                            key={entry.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={index === pick}
+                            aria-label={entry.title}
+                            data-testid={`discover-pick-dot-${index}`}
+                            onClick={() => setPick(index)}
+                            className={`h-1.5 rounded-full transition-all motion-safe:duration-300 ${
+                              index === pick
+                                ? 'w-6 bg-brand'
+                                : 'w-1.5 bg-ink-faint/40 hover:bg-ink-faint'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                <UsageBench view={sources.usage} />
+              </div>
+            ) : null}
+
+            {featured.length > 0 && !browsing ? (
+              <Shelf
+                testId="discover-featured"
+                subject="code"
+                title={t('discover.featuredEyebrow')}
+                lede={t('discover.featuredLede')}
+                className="mt-10"
+              >
+                {featured.map((item) => (
+                  <DiscoverCard
+                    key={item.id}
+                    item={item}
+                    busy={busy === item.id}
                     onAdd={onAdd}
                     onToggle={onToggle}
                     onDetail={setDetail}
                   />
-                ) : null}
-                <UsageBench view={sources.usage} />
-              </div>
+                ))}
+              </Shelf>
             ) : null}
 
             {bento.length > 0 && !browsing ? (

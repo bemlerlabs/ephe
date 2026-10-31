@@ -2702,7 +2702,8 @@
       "yours": "Yours",
       "unknown": "Unknown publisher",
       "registry": "Registry",
-      "Ephe": "Ephe"
+      "Ephe": "Ephe",
+      "featured": "Featured pick"
     },
     "cardTools": "{{count}} tools",
     "cardCalls": "{{count}} calls",
@@ -2783,7 +2784,8 @@
     "detailPermissions": "Permissions",
     "detailPermissionsInstalled": "Already on this machine; the permission sheet ran at install.",
     "detailPermissionsReview": "Enable runs the permission review first: tool families, data roots and required secrets are shown before anything starts.",
-    "detailDocs": "Listing page",
+    "detailDocs": "Documentation",
+    "detailSources": "Sources",
     "detailAdd": "Add",
     "detailRemove": "Remove",
     "stateOnAction": "Enable",
@@ -2823,6 +2825,9 @@
     "sourceSave": "Add",
     "sourceRefused": "The source was not added.",
     "heroEyebrow": "Top pick",
-    "cardDownloads": "{{count, number}}/week"
+    "cardDownloads": "{{count, number}}/week",
+    "featuredEyebrow": "Featured picks",
+    "featuredLede": "Publishers with a verified endpoint, ranked above the long tail.",
+    "whyFeatured": "Why it is here"
   }
 }
