@@ -1,7 +1,7 @@
 {
   "generated": "2026-10-30T18:53:33+00:00",
   "source": "https://registry.modelcontextprotocol.io/v0/servers",
-  "count": 360,
+  "count": 358,
   "entries": [
     {
       "id": "com-augur-trade-foresight-web",
@@ -529,34 +529,6 @@
       "source": "registry",
       "required_env": [],
       "curated_reason": "pick"
-    },
-    {
-      "id": "aws-api-us-east-1-ecs-mcp-server",
-      "name": "Amazon ECS MCP Server",
-      "description": "AI-powered Amazon ECS workload management",
-      "category": "cloud",
-      "install_hint": "uvx mcp-proxy-for-aws (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/aws.api.us-east-1.ecs-mcp/server",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 346967,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "aws-api-us-east-1-eks-mcp-server",
-      "name": "Amazon EKS MCP Server",
-      "description": "AI-powered Amazon EKS cluster management and troubleshooting",
-      "category": "cloud",
-      "install_hint": "uvx mcp-proxy-for-aws (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/aws.api.us-east-1.eks-mcp/server",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 346967,
-      "curated_reason": "popular"
     },
     {
       "id": "app-hellohop-hellohop",

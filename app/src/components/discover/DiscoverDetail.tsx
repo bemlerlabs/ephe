@@ -84,7 +84,15 @@ export function DiscoverDetail({
                   aria-hidden="true"
                   className="discover-plate grid h-12 w-12 shrink-0 place-items-center rounded-xl border"
                 >
-                  {item.kind === 'skill' ? (
+                  {item.icon ? (
+                    <img
+                      src={item.icon}
+                      alt=""
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 rounded-lg object-contain"
+                    />
+                  ) : item.kind === 'skill' ? (
                     <span className="font-display text-xl leading-none">
                       {(item.title.trim()[0] ?? '?').toUpperCase()}
                     </span>
@@ -118,6 +126,15 @@ export function DiscoverDetail({
               {item.summary}
             </p>
 
+            {item.why ? (
+              <div data-testid="discover-detail-why" className="mt-3">
+                <p className="font-mono text-ui-2xs uppercase tracking-[0.16em] text-ink-faint">
+                  {t('discover.whyFeatured')}
+                </p>
+                <p className="mt-1 text-ui-xs leading-relaxed text-ink-soft">{item.why}</p>
+              </div>
+            ) : null}
+
             {item.badge && item.badge !== 'pick' ? (
               <p
                 data-testid="discover-detail-badge"
@@ -142,6 +159,35 @@ export function DiscoverDetail({
                 </Row>
               ) : null}
               {item.version ? <Row label={t('discover.detailVersion')}>{item.version}</Row> : null}
+              {item.docs ? (
+                <Row label={t('discover.detailDocs')} testId="discover-detail-docs">
+                  <a
+                    href={item.docs}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="focus-ring break-all text-brand hover:underline"
+                  >
+                    {item.docs}
+                  </a>
+                </Row>
+              ) : null}
+              {item.sources?.length ? (
+                <Row label={t('discover.detailSources')} testId="discover-detail-sources">
+                  <span className="flex flex-col gap-0.5">
+                    {item.sources.map((one) => (
+                      <a
+                        key={one}
+                        href={one}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="focus-ring break-all text-brand hover:underline"
+                      >
+                        {one.replace(/^https?:\/\//, '')}
+                      </a>
+                    ))}
+                  </span>
+                </Row>
+              ) : null}
               {item.installHint ? (
                 <Row label={t('discover.detailInstall')} mono testId="discover-detail-install">
                   {item.installHint}
@@ -213,27 +259,14 @@ export function DiscoverDetail({
                   </Button>
                 </>
               ) : (
-                <>
-                  {item.docs ? (
-                    <a
-                      data-testid="discover-detail-docs"
-                      className="focus-ring inline-flex h-10 items-center rounded-full px-3 text-ui-sm text-ink-soft hover:text-foreground"
-                      href={item.docs}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {t('discover.detailDocs')}
-                    </a>
-                  ) : null}
-                  <Button
-                    data-testid="discover-detail-add"
-                    disabled={busy}
-                    onClick={() => void onAdd(item)}
-                    className="ml-auto h-10 px-5"
-                  >
-                    {t('discover.detailAdd')}
-                  </Button>
-                </>
+                <Button
+                  data-testid="discover-detail-add"
+                  disabled={busy}
+                  onClick={() => void onAdd(item)}
+                  className="ml-auto h-10 px-5"
+                >
+                  {t('discover.detailAdd')}
+                </Button>
               )}
             </div>
           </div>

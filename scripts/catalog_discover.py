@@ -170,7 +170,14 @@ def popularity_of(entries: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
 
 def _popularity_score(entry: dict[str, Any], counts: dict[str, dict[str, Any]]) -> float:
-    """Log-scaled weekly downloads, with a name prior for the well-known servers."""
+    """Log-scaled weekly downloads, with a name prior for the well-known servers.
+
+    A shared launcher is not the server's popularity: `mcp-proxy-for-aws` fronts
+    every AWS server, and its count was read as two different servers' own
+    (346,967 each, 2026-10-31). An entry that installs through a proxy package
+    keeps no download figure of its own."""
+    if "mcp-proxy-for-aws" in str(entry.get("install_hint") or ""):
+        return 1.0
     coordinate = package_of(entry)
     if coordinate is not None:
         hit = counts.get(f"{coordinate[0]}:{coordinate[1]}")

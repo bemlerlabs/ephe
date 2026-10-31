@@ -22,6 +22,9 @@ _SNAPSHOT_PATH = (
 _CURATED_PATH = (
     Path(__file__).resolve().parent.parent / "marketplace" / "registry-curated.json"
 )
+_FEATURED_PATH = (
+    Path(__file__).resolve().parent.parent / "marketplace" / "featured.json"
+)
 
 
 def _load_entries(path: Path) -> list[dict]:
@@ -137,3 +140,15 @@ def curated_entries() -> list[dict]:
     """The tier the connector area shows by default: named picks plus the most
     recently published entries per category, derived from the mirror."""
     return _load_entries(_CURATED_PATH)
+
+
+def featured_entries() -> list[dict]:
+    """The editorial tier: publishers and installation paths verified by hand.
+
+    Each entry carries its own evidence links and a verified transport, so the
+    shelf can put a known-good server above the long tail. Ranked by `rank`."""
+    entries = _load_entries(_FEATURED_PATH)
+    for entry in entries:
+        entry["source"] = "featured"
+        entry["description"] = entry.get("summary") or ""
+    return sorted(entries, key=lambda one: (int(one.get("rank") or 999), str(one.get("name") or "")))

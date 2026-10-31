@@ -122,7 +122,7 @@ def _rows() -> list[tuple[str, int, str, str, str]]:
     rows: list[tuple[str, int, str, str, str]] = []
     precomputed = _precomputed_tags()
     for tier, entries in (
-        (0, mcp_catalog.catalog_entries()),
+        (0, (*mcp_catalog.catalog_entries(), *mcp_catalog.featured_entries())),
         (1, mcp_catalog.curated_entries()),
     ):
         for entry in entries:

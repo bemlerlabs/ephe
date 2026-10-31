@@ -21,6 +21,7 @@ const base: DiscoverSources = {
   mcp: null,
   health: [],
   catalog: [],
+  featured: [],
   registry: [],
   registryCount: 0,
   presets: [],
@@ -154,6 +155,70 @@ describe('discover build', () => {
     })
     expect(facetValues(items, (one) => one.categories)).toEqual(['geo'])
     expect(facetValues(items, (one) => [one.origin])).toEqual(['catalog'])
+  })
+})
+
+describe('discover featured tier', () => {
+  const linear = {
+    id: 'featured-linear',
+    rank: 12,
+    name: 'Linear',
+    publisher: 'Linear',
+    summary: 'Issues and projects as tools',
+    category: 'productivity',
+    transport: 'http' as const,
+    install_hint: 'https://mcp.linear.app/mcp (streamable-http)',
+    docs: 'https://linear.app/docs',
+    icon: 'linear',
+    why: 'Official Linear endpoint',
+    evidence: ['https://linear.app/docs/mcp'],
+  }
+  const legacy = {
+    id: 'app-linear-linear',
+    name: 'app.linear/linear',
+    description: 'Older SSE endpoint',
+    category: 'productivity',
+    install_hint: 'https://mcp.linear.app/sse (sse)',
+    docs: '',
+    version: '1',
+    published_at: '',
+    source: 'registry',
+  }
+
+  it('lists one product once and ranks it into the hero', () => {
+    const items = buildItems({ ...base, featured: [linear], registry: [legacy] })
+    const row = items.find((one) => one.id === 'connector:featured:featured-linear')
+    expect(row).toMatchObject({
+      kind: 'connector',
+      origin: 'featured',
+      featured: 12,
+      icon: '/api/discover/icon/linear',
+      why: 'Official Linear endpoint',
+      spec: 'https://mcp.linear.app/mcp',
+      docs: 'https://linear.app/docs',
+      sources: ['https://linear.app/docs/mcp'],
+    })
+    expect(items.some((one) => one.id === 'connector:registry:app-linear-linear')).toBe(false)
+    expect(heroOf(items)?.id).toBe('connector:featured:featured-linear')
+  })
+
+  it('reads an attached featured endpoint from the machine state', () => {
+    const items = buildItems({
+      ...base,
+      featured: [linear],
+      mcp: { servers: ['https://mcp.linear.app/mcp'], source: 'file', tools: [] },
+      health: [
+        {
+          spec: 'https://mcp.linear.app/mcp',
+          status: 'ok',
+          tool_count: 4,
+          transport: 'http',
+          latency_ms: 30,
+          error: null,
+        },
+      ],
+    })
+    expect(items[0]).toMatchObject({ installed: true, enabled: true })
   })
 })
 

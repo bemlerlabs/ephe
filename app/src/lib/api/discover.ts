@@ -6,6 +6,21 @@ import type { MarketHome, MarketIndexBody, MarketInstalledRow, MarketSource } fr
 import type { ToolUsageView } from './usage'
 
 /** One curated registry tier row; the full tier rides behind `?full=1`. */
+export interface FeaturedEntry {
+  id: string
+  rank: number
+  name: string
+  publisher: string
+  summary: string
+  category: string
+  transport: 'http' | 'stdio'
+  install_hint: string
+  docs: string
+  icon: string
+  why: string
+  evidence?: string[]
+}
+
 export interface RegistryEntry {
   id: string
   name: string
@@ -37,6 +52,7 @@ export interface DiscoverBootstrap {
   home: MarketHome
   index: MarketIndexBody | null
   catalog: McpCatalogEntry[]
+  featured: FeaturedEntry[]
   curated: RegistryEntry[]
   registry_count: number
   presets: DiscoverPreset[]

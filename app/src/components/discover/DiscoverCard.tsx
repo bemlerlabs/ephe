@@ -85,7 +85,16 @@ export function DiscoverCard({
           aria-hidden="true"
           className="discover-plate grid h-9 w-9 shrink-0 place-items-center rounded-lg border transition-colors motion-safe:duration-base"
         >
-          {item.kind === 'skill' ? (
+          {item.icon ? (
+            <img
+              src={item.icon}
+              alt=""
+              width={28}
+              height={28}
+              loading="lazy"
+              className="h-7 w-7 rounded-md object-contain"
+            />
+          ) : item.kind === 'skill' ? (
             <span className="font-display text-ui-base leading-none text-foreground/85">
               {(item.title.trim()[0] ?? '?').toUpperCase()}
             </span>

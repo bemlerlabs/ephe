@@ -193,11 +193,11 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // headline, lede of the removed hero band, −228 B in en.json). Measured as committed:
 // en 141,912 B, de 153,765 B — both halves move by the measured step plus the ~600 B
 // headroom the earlier waves held.
-// 2026-10-31 (tools catalogue): the 74-row table reads in six families, so the
-// catalogue gains six group names. Measured as committed: en 142,619 B,
-// de 154,485 B — both halves move by 200 B, the step the earlier waves took.
-const EN_CEILING = 142_800
-const DE_CEILING = 154_700
+// 2026-10-31 (tools catalogue, then the featured shelf): six family names, then the
+// featured tier's five labels. Measured as committed: en 142,821 B, de 154,687 B —
+// both halves move by 400 B, the step the earlier waves took.
+const EN_CEILING = 143_200
+const DE_CEILING = 155_100
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

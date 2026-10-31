@@ -7,11 +7,20 @@ everything else is a pure local read and rides here in one frame.
 """
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 
 from core import discover_search, marketplace_service, marketplace_sources
 from core.marketplace_verify import verify_entry
-from core.mcp_catalog import catalog_entries, curated_entries, registry_entries
+from core.mcp_catalog import (
+    catalog_entries,
+    curated_entries,
+    featured_entries,
+    registry_entries,
+)
 from server.routes.audit import get_audit_usage
 from server.routes.marketplace import market_home, market_index
 from server.routes.skills import list_skills
@@ -71,6 +80,7 @@ async def discover_bootstrap(top: int = 12) -> dict:
         "home": home,
         "index": index.get("index"),
         "catalog": catalog_entries(),
+        "featured": featured_entries(),
         "curated": curated_entries(),
         "registry_count": registry_count,
         "presets": presets,
@@ -101,3 +111,22 @@ async def discover_dry_run(request: Request, body: dict) -> dict:
             detail={"code": "entry_required", "detail": "nothing to rehearse"},
         )
     return verify_entry(fields)
+
+
+#: Vendor icons for the featured tier, fetched once by
+#: `scripts/fetch_marketplace_icons.py` and served from the tree so a render
+#: never calls a third party.
+_ICON_DIR = Path(__file__).resolve().parents[2] / "marketplace" / "icons" / "providers"
+_ICON_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
+
+
+@router.get("/discover/icon/{slug}")
+def discover_icon(slug: str) -> FileResponse:
+    if not _ICON_SLUG.fullmatch(slug or ""):
+        raise HTTPException(status_code=404, detail="unknown icon")
+    path = _ICON_DIR / f"{slug}.png"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="unknown icon")
+    return FileResponse(
+        path, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"}
+    )

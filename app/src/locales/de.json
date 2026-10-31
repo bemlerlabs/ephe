@@ -2702,7 +2702,8 @@
       "yours": "Von dir",
       "unknown": "Unbekannter Anbieter",
       "registry": "Register",
-      "Ephe": "Ephe"
+      "Ephe": "Ephe",
+      "featured": "Empfohlen"
     },
     "cardTools": "{{count}} Werkzeuge",
     "cardCalls": "{{count}} Aufrufe",
@@ -2783,7 +2784,8 @@
     "detailPermissions": "Berechtigungen",
     "detailPermissionsInstalled": "Bereits auf diesem Gerät; das Berechtigungsblatt lief bei der Installation.",
     "detailPermissionsReview": "Aktivieren führt zuerst die Berechtigungsprüfung aus: Werkzeugfamilien, Datenbereiche und nötige Schlüssel werden gezeigt, bevor etwas startet.",
-    "detailDocs": "Listeneintrag",
+    "detailDocs": "Dokumentation",
+    "detailSources": "Quellen",
     "detailAdd": "Hinzufügen",
     "detailRemove": "Entfernen",
     "stateOnAction": "Aktivieren",
@@ -2823,6 +2825,9 @@
     "sourceSave": "Hinzufügen",
     "sourceRefused": "Die Quelle wurde nicht hinzugefügt.",
     "heroEyebrow": "Top-Empfehlung",
-    "cardDownloads": "{{count, number}}/Woche"
+    "cardDownloads": "{{count, number}}/Woche",
+    "featuredEyebrow": "Empfohlene Dienste",
+    "featuredLede": "Anbieter mit geprüftem Endpunkt, vor dem langen Rest.",
+    "whyFeatured": "Warum es hier steht"
   }
 }
