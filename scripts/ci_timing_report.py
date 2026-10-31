@@ -83,6 +83,18 @@ class ApiUnavailable(RuntimeError):
     """The Actions API did not answer, after the retries."""
 
 
+def _write_report(target: Path | None, payload: dict) -> None:
+    """A report that could not be measured still lands as a file that says so.
+
+    The upload step runs with `if: always()`; without this, a failed read leaves
+    no artifact and the run shows a missing glob instead of the cause."""
+    if target is None:
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"timing: wrote {target}")
+
+
 def api_get(path: str, token: str, attempts: int = 3) -> dict:
     """One read of the Actions API, retried while the answer is transient.
 
@@ -300,6 +312,10 @@ def main(argv: list[str] | None = None) -> int:
         token = gh_token()
         if not token:
             print("timing: no token in the environment and `gh auth token` answered nothing")
+            _write_report(
+                args.json,
+                {"workflow": args.workflow, "source_error": "no token for the Actions API"},
+            )
             return 2
         try:
             jobs = collect_runs(
@@ -309,17 +325,9 @@ def main(argv: list[str] | None = None) -> int:
             # The artifact records the reason: a run whose file is missing says
             # less than one that says why it could not be written.
             print(f"timing: {exc}")
-            if args.json:
-                args.json.parent.mkdir(parents=True, exist_ok=True)
-                args.json.write_text(
-                    json.dumps(
-                        {"workflow": args.workflow, "source_error": str(exc)},
-                        indent=2,
-                        sort_keys=True,
-                    )
-                    + "\n",
-                    encoding="utf-8",
-                )
+            _write_report(
+                args.json, {"workflow": args.workflow, "source_error": str(exc)}
+            )
             return 2
 
     if not jobs:

@@ -357,6 +357,7 @@ def test_a_transient_api_error_is_retried_then_reported(tmp_path, monkeypatch):
 
     monkeypatch.setattr(module.urllib.request, "urlopen", flaky)
     monkeypatch.setattr(module.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(module, "gh_token", lambda: "t")
     assert module.api_get("repos/x/y/actions/runs/1/jobs", "t") == {"ok": True}
     assert calls["n"] == 3
 
