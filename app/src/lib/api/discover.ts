@@ -19,6 +19,8 @@ export interface FeaturedEntry {
   icon: string
   why: string
   evidence?: string[]
+  /** Credential names the publisher requires; the vault sheet asks for them. */
+  required_env?: { name: string; secret: boolean }[]
 }
 
 export interface RegistryEntry {

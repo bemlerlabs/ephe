@@ -29,20 +29,11 @@ import {
   type DiscoverQuery,
   type DiscoverSources,
 } from '@/components/discover/discoverModel'
-import { CATEGORY_ORDER, specName } from '@/components/discover/discoverNames'
-import { loadSources, registrySpec } from '@/components/discover/discoverSources'
+import { CATEGORY_ORDER } from '@/components/discover/discoverNames'
+import { loadSources } from '@/components/discover/discoverSources'
+import { useDiscoverActions } from '@/components/discover/useDiscoverActions'
 import { browsingPicks, useFeaturedRotation } from '@/components/discover/useFeaturedRotation'
-import {
-  addMarketSource,
-  declareMcpEnv,
-  disableSkill,
-  enableSkill,
-  installMarketPlan,
-  planMarketInstall,
-  putMcpSettings,
-  removeMarketSource,
-  setPluginEnabled,
-} from '@/lib/api'
+import { addMarketSource, removeMarketSource } from '@/lib/api'
 
 export default function DiscoverPage() {
   const { t } = useTranslation()
@@ -55,9 +46,6 @@ export default function DiscoverPage() {
     category: null,
     origin: null,
   })
-  const [busy, setBusy] = useState('')
-  const [notice, setNotice] = useState('')
-  const [detail, setDetail] = useState<DiscoverItem | null>(null)
 
   const load = useCallback(async () => {
     const next = await loadSources()
@@ -101,81 +89,11 @@ export default function DiscoverPage() {
       .slice(0, 8)
   }, [shown, query, bentoIds])
 
-  const run = async (item: DiscoverItem, action: () => Promise<unknown>, done: string) => {
-    setBusy(item.id)
-    setNotice('')
-    try {
-      await action()
-      setNotice(t('discover.did', { name: item.title, what: t(done) }))
-      await load()
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : t('discover.didNot', { name: item.title }))
-    } finally {
-      setBusy('')
-    }
-  }
-
-  /** A skill switches through its own pair of routes; everything else through plugins. */
-  const onToggle = (item: DiscoverItem, next: boolean) => {
-    if (item.kind === 'skill') {
-      return run(
-        item,
-        () => (next ? enableSkill(item.name) : disableSkill(item.name)),
-        next ? 'discover.stateOn' : 'discover.stateOff',
-      )
-    }
-    return run(
-      item,
-      () => setPluginEnabled(item.name, next),
-      next ? 'discover.stateOn' : 'discover.stateOff',
-    )
-  }
-
-  const onAdd = (item: DiscoverItem) => {
-    if (item.kind === 'connector') {
-      const spec = item.spec ?? (item.installHint ? registrySpec(item.installHint) : null)
-      if (!spec) {
-        setNotice(t('discover.didNot', { name: item.title }))
-        return undefined
-      }
-      const current = sources?.mcp?.servers ?? []
-      const names = (item.requiredEnv ?? []).map((one) => one.name)
-      return run(
-        item,
-        async () => {
-          await putMcpSettings(current.includes(spec) ? current : [...current, spec])
-          if (names.length) await declareMcpEnv(spec, names)
-        },
-        'discover.added',
-      )?.then(() => {
-        // A connector that declared a key cannot start without one, so the sheet
-        // that takes it opens right after the add instead of leaving a dead entry.
-        if (names.length) setDetail({ ...item, installed: true, spec })
-      })
-    }
-    if (item.kind === 'skill') {
-      return run(item, () => enableSkill(item.name), 'discover.added')
-    }
-    return run(
-      item,
-      async () => {
-        const plan = await planMarketInstall(indexSource, item.name, item.version ?? '')
-        if (plan.status === 'refused')
-          throw new Error(plan.error || plan.code || t('discover.refused'))
-        return installMarketPlan(plan)
-      },
-      'discover.added',
-    )
-  }
-
-  const onRemove = (item: DiscoverItem) => {
-    if (item.kind === 'connector') {
-      const current = sources?.mcp?.servers ?? []
-      const next = item.spec ? current.filter((one) => specName(one) !== item.name) : current
-      return run(item, () => putMcpSettings(next), 'discover.removed')
-    }
-    return run(item, () => setPluginEnabled(item.name, false), 'discover.removed')
-  }
+  const { busy, notice, detail, setDetail, onToggle, onAdd, onRemove } = useDiscoverActions(
+    sources,
+    indexSource,
+    load,
+  )
 
   const renderCards = (list: DiscoverItem[]) => (
     <div data-testid="discover-grid" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

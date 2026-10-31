@@ -108,7 +108,13 @@
         "https://github.com/firecrawl/firecrawl-mcp-server",
         "https://github.com/tolkonepiu/best-of-mcp-servers"
       ],
-      "why": "Most-starred search-and-extraction server (7.7k) with an official SDK and hosted plans."
+      "why": "Most-starred search-and-extraction server (7.7k) with an official SDK and hosted plans.",
+      "required_env": [
+        {
+          "name": "FIRECRAWL_API_KEY",
+          "secret": true
+        }
+      ]
     },
     {
       "id": "featured-exa",

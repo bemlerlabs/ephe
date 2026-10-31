@@ -262,27 +262,32 @@ export function EngineSection({ model }: { model: SettingsModel }) {
             />
             <SettingVerb />
           </SettingsRow>
-          <SettingsRow
-            icon={KeyRound}
-            title={t('settings.apiKeyLabel')}
-            description={
-              keyRefused
-                ? t(keyHeld ? 'settings.engineKeyRejected' : 'settings.engineKeyMissing')
-                : t('settings.apiKeyHint')
-            }
-            testid="engine-row-apikey"
-          >
-            <input
-              id="settings-api-key"
-              type="password"
-              value={customApiKey}
-              onChange={(e) => setCustomApiKey(e.target.value)}
-              placeholder="sk-..."
-              aria-label={t('settings.apiKeyLabel')}
-              className={FIELD}
-            />
-            <SettingVerb />
-          </SettingsRow>
+          {/* The key is stored for OpenAI-compatible engines only; an Ollama
+              endpoint never sends it, so a field here would take a value and
+              drop it without saying so. */}
+          {active?.type === 'openai_compatible' ? (
+            <SettingsRow
+              icon={KeyRound}
+              title={t('settings.apiKeyLabel')}
+              description={
+                keyRefused
+                  ? t(keyHeld ? 'settings.engineKeyRejected' : 'settings.engineKeyMissing')
+                  : t('settings.apiKeyHint')
+              }
+              testid="engine-row-apikey"
+            >
+              <input
+                id="settings-api-key"
+                type="password"
+                value={customApiKey}
+                onChange={(e) => setCustomApiKey(e.target.value)}
+                placeholder="sk-..."
+                aria-label={t('settings.apiKeyLabel')}
+                className={FIELD}
+              />
+              <SettingVerb />
+            </SettingsRow>
+          ) : null}
         </SettingsGroup>
       )}
 

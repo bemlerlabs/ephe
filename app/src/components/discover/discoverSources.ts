@@ -34,12 +34,3 @@ export async function loadSources(): Promise<{ sources: DiscoverSources; failed:
     failed,
   }
 }
-
-/** A publisher launch line becomes the config spec the connector rides on. */
-export function registrySpec(hint: string): string | null {
-  const match = hint.match(
-    /^(npx|uvx|uv run|python3?|node)\s+(.+?)(?:\s+\((stdio|http|streamable-http)\))?$/,
-  )
-  if (!match || !match[1] || !match[2]) return null
-  return `stdio:${match[1]} ${match[2].trim()}`
-}
