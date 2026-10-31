@@ -3,7 +3,7 @@
 /**
  * S3 — the mark where the brand contract puts it above 48 px.
  *
- * `docs/PAPER_MOTH_DECISION.md` splits the figure by size: the vector rig carries the
+ * The mark splits the figure by size: the vector rig carries the
  * small cuts, and from 48 px the slots carry the rendered actor. Two in-app slots sit at
  * exactly that size — the setup card mark (3rem) and the welcome hero fallback (4rem) —
  * and both use the shipped render (`paper-moth-actor.webp`), unpainted and unre-drawn,

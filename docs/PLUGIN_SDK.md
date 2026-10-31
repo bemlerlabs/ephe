@@ -126,4 +126,3 @@ backed out), `unknown_plugin` / `no_url` (honest, no crash).
 ## See also
 
 - `docs/PLUGINS.md` — the complete manifest format v1, enforcement semantics, API table
-- `docs/EXTENSIONS_DESIGN.md` — the E2 wave design (runtime honesty, bundling)

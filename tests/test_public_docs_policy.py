@@ -1,8 +1,10 @@
 """The public trunk carries product documentation and no workshop state.
 
-The workshop is the private repository. A dated workshop document under docs/
-and a reference to the retired export pipeline are the two shapes that would
-drag it back into this tree.
+The workshop is the private repository: orders, plans, boards, decision records,
+competitive readings and the working-backwards drafts live there and stay there.
+This gate names the two ways they used to reach this tree — a dated filename and
+a document whose own words say it is an order — so a later wave cannot publish
+one again by naming it after its subject.
 """
 from __future__ import annotations
 
@@ -19,6 +21,23 @@ TEXT_SUFFIXES = {
     ".mjs", ".js", ".ts", ".tsx", ".ps1",
 }
 RECEIPT = re.compile(r"docs/RELEASE_RECEIPT_\d+\.\d+\.\d+\.md")
+
+#: A workshop document names its own class: the order it answers, the plan it
+#: carries, the decision it records. None of those classes is a product page.
+WORKSHOP_NAME = re.compile(
+    r"(^|_)(ORDER|DIRECTIVE|DECISION|PLAN|BOARD|CHECKLIST|DOSSIER|STRATEGY|ROADMAP"
+    r"|BRAINSTORM|PROPOSAL|COMPETITIVE|MASTER|WORKING_BACKWARDS|AT_A_GLANCE|SPEC)(\.|_|$)",
+    re.IGNORECASE,
+)
+#: A document can carry the class in its first line instead of its name.
+WORKSHOP_TEXT = re.compile(
+    r"owner order|order:\s*s\d|playbook rule|working-backwards",
+    re.IGNORECASE,
+)
+#: The comparison names live in the workshop. A public page cites prior art by
+#: what it does, never by whose product it is.
+COMPETITORS = re.compile(r"\b(Qoder|Hermes|Cursor|pi coding agent)\b")
+PUBLIC_MARKDOWN = ("docs/", "README", "CONTRIBUTING", "SECURITY", "COMMERCIAL")
 
 
 def tracked() -> list[str]:
@@ -50,3 +69,41 @@ def test_a_release_receipt_is_version_named():
     for rel in tracked():
         if rel.startswith("docs/") and "RECEIPT" in Path(rel).name.upper():
             assert RECEIPT.fullmatch(rel), rel
+
+
+def test_no_workshop_document_published_under_docs():
+    offenders = [
+        rel for rel in tracked()
+        if rel.startswith("docs/")
+        and rel.endswith(".md")
+        and WORKSHOP_NAME.search(Path(rel).name)
+    ]
+    assert offenders == [], f"workshop documents in the public docs tree: {offenders}"
+
+
+def test_no_document_announces_itself_as_an_order():
+    offenders: list[str] = []
+    for rel in tracked():
+        if not rel.endswith(".md"):
+            continue
+        if not (rel.startswith(PUBLIC_MARKDOWN) or Path(rel).name in {
+            "README.md", "CONTRIBUTING.md", "SECURITY.md", "COMMERCIAL.md",
+        }):
+            continue
+        text = (ROOT / rel).read_text(encoding="utf-8", errors="ignore")
+        match = WORKSHOP_TEXT.search(text)
+        if match:
+            offenders.append(f"{rel}: {match.group(0)!r}")
+    assert offenders == [], "workshop prose in a public document: " + ", ".join(offenders)
+
+
+def test_no_competitor_product_is_named_in_the_public_documents():
+    offenders: list[str] = []
+    for rel in tracked():
+        if not rel.endswith(".md") or rel.startswith("app/"):
+            continue
+        text = (ROOT / rel).read_text(encoding="utf-8", errors="ignore")
+        found = {m.group(0).lower() for m in COMPETITORS.finditer(text)}
+        if found:
+            offenders.append(f"{rel}: {sorted(found)}")
+    assert offenders == [], "competitor names in the public tree: " + ", ".join(offenders)
