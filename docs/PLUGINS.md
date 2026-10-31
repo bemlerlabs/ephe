@@ -1,7 +1,7 @@
 # Ephe Plugins — Manifest Format v1 (E2)
 
-> Spec for `ephe-plugin.json`. Companion: `docs/EXTENSIONS_DESIGN.md` (E2
-> wave), Autoren-Einstieg: `docs/PLUGIN_SDK.md`. A plugin is a directory under
+> Spec for `ephe-plugin.json`. Autoren-Einstieg: `docs/PLUGIN_SDK.md`. A
+> plugin is a directory under
 > `~/.ephe/plugins/<plugin>/`; the manifest turns that directory into a
 > versioned, validated, switchable unit.
 

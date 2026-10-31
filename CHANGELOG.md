@@ -534,8 +534,6 @@ the shell itself is written in.
   checked for ancestry against the trunk, and the pre-publication tags that
   cannot carry one are recorded in a baseline (`e629e6c`, `afadd56`,
   `fb85bb9`).
-- `docs/BACKEND_PATH.md` names the backend root this machine configured, the
-  `current` symlink and the versioned sidecar that replaces it (`60ce39e`).
 
 ### Fixed
 - The desktop version check waits for a cold backend instead of reading
@@ -585,10 +583,6 @@ fixed (`38a9640`).
   being read or cannot be read says so (`b831014`).
 - Fetch failures and refusals carry reader codes in both languages, and the
   English line of every code is the engine-facing entry (`36640f5`).
-
-### Added
-- `docs/WORKING_BACKWARDS.md`, `docs/COMPETITIVE_MATRIX.md` and
-  `docs/AGENTS_PROPOSAL.md` (`8e0b7a1`).
 
 ### Security
 - The `pnpm` pin moves to 11.11.0 (`GHSA-vx52-2968-3vc6` covers 11.10.0). The

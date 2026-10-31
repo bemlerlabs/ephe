@@ -23,7 +23,6 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 
 | File | Content |
 |---|---|
-| `AT_A_GLANCE.md` | Figures, install matrix, feature parity and the case for Ephe |
 | `FEATURE_STATUS.md` | What is active, experimental and planned, with the limits the table does not capture |
 | `ARCHITECTURE.md` | Topology, module map and the contracts between them |
 | `SECURITY_AND_PRIVACY.md` | The security and privacy mechanisms in one table |
@@ -43,8 +42,6 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `PLUGINS_OVERVIEW.md` | The first-party plugin bundles |
 | `PLUGINS.md` | The plugin manifest format, v1 |
 | `PLUGIN_SDK.md` | Guide for plugin authors |
-| `EXTENSIONS_DESIGN.md` | Extensions 1.0 design |
-| `EXTENSIONS_PRFAQ.md` | Extensions 1.0 questions and answers |
 
 ## Measurement and project
 

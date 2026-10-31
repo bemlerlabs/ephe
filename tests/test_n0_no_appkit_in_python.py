@@ -1,6 +1,6 @@
 """N0 boundary gate: core/ and server/ import no macOS UI framework.
 
-docs/NATIVE_DESKTOP_PLAN.md section N0 keeps native macOS capabilities in the Rust
+The desktop contract keeps native macOS capabilities in the Rust
 shell or a signed sidecar. A Python import of AppKit would tie a backend route to the
 window server and drop the Linux and container legs, so the rule gets an executable
 check here.

@@ -3,7 +3,7 @@
  *
  * The shell raises the window and emits; this hook is the whole other half, so
  * every id in `app/src-tauri/src/lib.rs` needs a subscriber here or the item
- * fires into a void. The gate `docs/NATIVE_DESKTOP_PLAN.md` sets for N2 is
+ * fires into a void. The gate the tray work sets for itself is
  * "every menu item fires", and this file is where that is decided for the ids
  * the shell hands to the surface instead of solving on its own.
  */

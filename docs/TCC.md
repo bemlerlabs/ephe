@@ -1,6 +1,6 @@
 # Signing and privacy grants on macOS
 
-Date: 2026-10-26. Order: S25 N1. Why a rebuild can lose the microphone grant,
+Date: 2026-10-26. Why a rebuild can lose the microphone grant,
 which privacy keys the bundle declares, and what a stable signature changes.
 
 ## What the installed bundle said on 2026-10-26

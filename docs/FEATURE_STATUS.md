@@ -31,6 +31,6 @@ exist first, and nothing in the product claims it until it does.
 
 Known limits that this table does not capture:
 
-- Per-task model routing is partial: one active model at a time (G7 in [Feature Parity](AT_A_GLANCE.md#feature-parity)), not a shipped router.
+- Per-task model routing is partial: one active model at a time, not a shipped router.
 - CI runs the tracked offline test subset; the full `pytest tests/ -q` suite is maintainer-side.
 - The benchmark figures are a product benchmark and trend points, not an academic SOTA claim — the methodology and its deliberate limits live in [`benchmark-mapping.md`](benchmark-mapping.md).
