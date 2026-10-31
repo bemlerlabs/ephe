@@ -573,14 +573,11 @@ export function useChatLayoutModel() {
     { sessionId: string | null; message: string; attachments: ChatAttachment[] }[]
   >([])
 
-  // P1-5: unmount parity — a fetch reader that was never closed would keep
-  // running after the panel is swapped out and write chunks into the old instance.
-  useEffect(
-    () => () => {
-      abortRef.current?.abort()
-    },
-    [],
-  )
+  // P1-5 used to abort the reader here: a panel swapped out kept writing into
+  // the instance that was gone. The store now routes every chunk to the session
+  // that asked, so leaving for another task must not cancel the answer the first
+  // task is still producing — measured, it dropped a 2.5 kB reply that the
+  // backend went on to finish and store anyway.
 
   // Virtualization — only render visible messages
   const parentRef = useRef<HTMLDivElement>(null)

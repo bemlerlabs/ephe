@@ -39,6 +39,7 @@ export const useChatStore = create<ChatState>((set, get) => {
   return {
     sessions: [],
     activeSessionId: null,
+    streamSessionId: null,
     isTyping: false,
     pendingToolCall: null,
     currentSession: null,

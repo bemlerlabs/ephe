@@ -80,16 +80,27 @@ export function fromDbSession(d: DbSession): Session {
 }
 
 /**
- * Update the ACTIVE assistant message (streaming=true) of the current session
- * in place. Pure state transformation (Zustand `set` updater). // language-gate: ignore — "Zustand" is the store library's name, the sentence itself is English
+ * Update the ACTIVE assistant message (streaming=true) of the session the turn
+ * belongs to, in place. Pure state transformation (Zustand `set` updater).
+ *
+ * The turn's own session wins over whatever is displayed: a chunk that arrives
+ * after the reader moved to another task belongs to the question that was asked
+ * where they came from. `currentSession` only follows while the two are the same
+ * session — otherwise the answer would repaint the screen the user left.
  */
 export function updateActiveMessage(
-  s: { sessions: Session[]; activeSessionId: string | null },
+  s: {
+    sessions: Session[]
+    activeSessionId: string | null
+    streamSessionId?: string | null
+    currentSession?: Session | null
+  },
   fn: (m: ChatMessage) => ChatMessage,
 ): { sessions: Session[]; currentSession: Session | null } {
-  if (!s.activeSessionId) return { sessions: s.sessions, currentSession: null }
+  const target = s.streamSessionId ?? s.activeSessionId
+  if (!target) return { sessions: s.sessions, currentSession: null }
   const sessions = s.sessions.map((sess) => {
-    if (sess.id !== s.activeSessionId) return sess
+    if (sess.id !== target) return sess
     const msgs = sess.messages
     let last = -1
     for (let i = msgs.length - 1; i >= 0; i--) {
@@ -103,9 +114,10 @@ export function updateActiveMessage(
     next[last] = fn(msgs[last]!)
     return { ...sess, messages: next }
   })
+  const shown = sessions.find((sess) => sess.id === s.activeSessionId) ?? null
   return {
     sessions,
-    currentSession: sessions.find((sess) => sess.id === s.activeSessionId) ?? null,
+    currentSession: target === s.activeSessionId ? shown : (s.currentSession ?? null),
   }
 }
 
