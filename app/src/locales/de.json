@@ -1517,22 +1517,6 @@
     },
     "probeBorrowedKey": "Ein Key aus einem Tool neben Ephe hat geantwortet; gespeichert wurde nichts. Eine Unterhaltung braucht deinen eigenen Key — setze ihn hier."
   },
-  "environment": {
-    "hint": "Ephe kann auf diesem Gerät nach bereits installierten Agent-Tools suchen (opencode, claude, cursor, …) und deren Modelle spiegeln — nichts wird gesendet.",
-    "scan": "Dieses Gerät durchsuchen",
-    "scanning": "Suche…",
-    "rescan": "Erneut suchen",
-    "privacy": "Nur Lesen auf diesem Gerät · Zugangsdaten werden nie angezeigt.",
-    "authYes": "angemeldet",
-    "authNo": "ohne Anmeldung",
-    "modelsLabel_one": "{{count}} Modell gespiegelt",
-    "modelsLabel_other": "{{count}} Modelle gespiegelt",
-    "noneFound": "Keine bekannte Agent-Tools gefunden — ganz okay: wähle oben eine Engine.",
-    "alsoFound": "Nicht installiert: {{tools}}",
-    "pickHint": "Dieses Modell als Engine übernehmen",
-    "settingsHint": "Nur-Lese-Spiegel deiner installierten Agent-Tools — Zugangsdaten werden gelesen, aber nie übernommen, angezeigt oder weitergegeben.",
-    "title": "Deine bestehenden Tools"
-  },
   "artifacts": {
     "page": {
       "title": "Werkbank",

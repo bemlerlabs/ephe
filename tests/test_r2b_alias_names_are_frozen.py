@@ -66,7 +66,6 @@ FROZEN = frozenset(
         "components/dashboard/settings/model/sections-engine.tsx",
         "components/dashboard/settings/model/sections-io.tsx",
         "components/dashboard/settings/model/sections-mcp.tsx",
-        "components/shell/EnvironmentTools.tsx",
         "components/ui/CommandPalette.tsx",
         "components/ui/Skeleton.tsx",
         "lib/utils.ts",

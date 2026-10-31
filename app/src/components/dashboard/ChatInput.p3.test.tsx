@@ -59,14 +59,6 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const scanEnv = vi.hoisted(() =>
-  vi.fn(async (_opts?: unknown): Promise<unknown> => ({
-    tools: [],
-    summary: { installed: 0, with_models: [] },
-  })),
-)
-vi.mock('@/lib/api/environment', () => ({ scanEnvironment: (...a: unknown[]) => scanEnv(...a) }))
-
 const setModelProvider = vi.hoisted(() => vi.fn(async () => ({ active: { model: 'm1' } })))
 vi.mock('@/lib/api', () => ({
   getModelProviders: vi.fn(async () => ({
@@ -74,6 +66,25 @@ vi.mock('@/lib/api', () => ({
     providers: [
       { provider: 'local_ollama', model: 'gemma4:12b', label: 'Local Ollama' },
       { provider: 'openai_compatible', model: 'm', label: 'OpenAI-compatible API' },
+      {
+        id: 'sample:claude-fable-5',
+        model: 'claude-fable-5',
+        label: 'Sample · claude-fable-5',
+        endpoint: 'https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/cortex/v1',
+      },
+      { id: 'sample:whisper-1', model: 'whisper-1', label: 'Sample · whisper-1' },
+      {
+        id: 'sample:qwen3.8-flash-next',
+        model: 'qwen3.8-flash-next',
+        label: 'Sample · qwen3.8-flash-next',
+        endpoint: 'https://api.vultrinference.com/v1',
+      },
+      {
+        id: 'claude:deepseek-v4-flash',
+        model: 'deepseek-v4-flash',
+        label: 'Claude · deepseek-v4-flash',
+        endpoint: 'http://host-one.example.ts.net:8000',
+      },
     ],
     local_models: [],
     local_model_options: [],
@@ -98,11 +109,7 @@ vi.mock('@/lib/api', () => ({
 
 import ChatInput from './ChatInput'
 import { useChatStore } from '@/store/chatStore'
-import {
-  groupModelEntries,
-  isUnconfiguredEntry,
-  buildScanEntries,
-} from './chat/composerModelEntries'
+import { groupModelEntries, isUnconfiguredEntry } from './chat/composerModelEntries'
 import { detectMentionToken, filterMentionEntries, topmostPopup } from './chat/composerPopups'
 import { modeShortLabel, COMPOSER_MODES } from './chat/ComposerModeMenu'
 import {
@@ -289,31 +296,7 @@ describe('P3-3 @-Mentions sind tastaturbedienbar', () => {
 })
 
 // ── 4 · Model menu ─────────────────────────────────────────────────────────
-const SCAN_TOOLS = [
-  {
-    tool: 'sample',
-    installed: true,
-    config_path: '~/.example-tool/config.yaml',
-    providers: ['http://127.0.0.1:11434/v1'],
-    models: ['claude-fable-5', 'whisper-1', 'qwen3.8-flash-next'],
-    auth_present: true,
-    model_endpoints: {
-      'claude-fable-5': 'https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/cortex/v1',
-      'qwen3.8-flash-next': 'https://api.vultrinference.com/v1',
-    },
-  },
-  {
-    tool: 'claude',
-    installed: true,
-    config_path: '~/.claude/settings.json',
-    providers: ['http://host-one.example.ts.net:8000'],
-    models: ['deepseek-v4-flash'],
-    auth_present: true,
-  },
-]
-
 async function openModelMenu() {
-  scanEnv.mockResolvedValueOnce({ tools: SCAN_TOOLS, summary: { installed: 2, with_models: [] } })
   render(<ChatInput onSend={vi.fn()} />)
   await waitFor(() => expect(screen.getByTestId('model-chip').textContent).toContain('gemma4'))
   fireEvent.click(screen.getByTestId('model-chip'))
@@ -412,12 +395,11 @@ describe('P3-5 Modell-Liste: Vorlagen deaktiviert, Typen getrennt', () => {
     expect(screen.getByTestId('model-group-other').textContent).toContain('whisper-1')
   })
 
-  it('Tailnet- und Loopback-Endpunkte stehen nicht als rohe URL in der Zeile', () => {
-    const entries = buildScanEntries(SCAN_TOOLS as never)
-    const priv = entries.find((e) => e.id === 'claude:deepseek-v4-flash')
-    expect(priv?.endpoint).toContain('ts.net')
-    expect(priv?.label).not.toContain('ts.net')
-    expect(priv?.endpointKind).toBe('private')
+  it('Tailnet-Endpunkte stehen nicht als rohe URL in der Zeile', async () => {
+    await openModelMenu()
+    const row = screen.getByTestId('model-chip-option-claude:deepseek-v4-flash')
+    expect(row.textContent).not.toContain('ts.net')
+    expect(row.textContent).not.toContain('host-one')
   })
 
   it('gruppieren trennt nach Typ und Vorlage', () => {

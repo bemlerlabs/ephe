@@ -38,9 +38,7 @@ import './ChatInput.css'
 
 export type { ChatAttachment }
 // P3 wave 2026-10-05: the model entries live in chat/composerModelEntries
-// (architecture boundary). The public name stays exported from this file —
-// the components/index.ts facade and the N9 tests reach them right here.
-export { buildScanEntries, mergeScanEntries } from './chat/composerModelEntries'
+// (architecture boundary).
 export type { ModelChipEntry } from './chat/composerModelEntries'
 // P3 wave 2026-10-05: the ring copy lives in chat/contextRing (architecture
 // boundary). The public name stays exported from this file — the locales tests

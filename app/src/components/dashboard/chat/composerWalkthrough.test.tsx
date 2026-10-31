@@ -35,14 +35,6 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const scanEnv = vi.hoisted(() =>
-  vi.fn(async (_opts?: unknown): Promise<unknown> => ({
-    tools: [],
-    summary: { installed: 0, with_models: [] },
-  })),
-)
-vi.mock('@/lib/api/environment', () => ({ scanEnvironment: (...a: unknown[]) => scanEnv(...a) }))
-
 const transcribeAudio = vi.hoisted(() => vi.fn(async () => 'voice note'))
 vi.mock('@/lib/api', () => ({
   getModelProviders: vi.fn(async () => ({

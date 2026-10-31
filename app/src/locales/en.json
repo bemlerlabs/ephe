@@ -1517,22 +1517,6 @@
     },
     "probeBorrowedKey": "A key from a tool beside Ephe answered this; nothing was stored. A conversation needs your own key — set it here."
   },
-  "environment": {
-    "hint": "Ephe can look for agent tools already installed on this device (opencode, claude, cursor, …) and mirror their models — nothing is sent anywhere.",
-    "scan": "Scan this device",
-    "scanning": "Searching…",
-    "rescan": "Search again",
-    "privacy": "Read-only on this device · credentials are never displayed.",
-    "authYes": "signed in",
-    "authNo": "no sign-in",
-    "modelsLabel_one": "{{count}} model mirrored",
-    "modelsLabel_other": "{{count}} models mirrored",
-    "noneFound": "No known agent tools found — that's fine: pick an engine above.",
-    "alsoFound": "Not installed: {{tools}}",
-    "pickHint": "Use this model as engine",
-    "settingsHint": "Read-only mirror of your installed agent tools — credentials are read, but never taken over, shown, or sent.",
-    "title": "Your existing tools"
-  },
   "artifacts": {
     "page": {
       "title": "Workbench",

@@ -30,7 +30,6 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   { tab: 'engine', key: 'settings.apiKeyLabel' },
   { tab: 'behaviour', key: 'settings.workspaceTitle' },
   { tab: 'engine', key: 'settings.outputDirTitle' },
-  { tab: 'engine', key: 'environment.title' },
   { tab: 'engine', key: 'settings.imageBaseUrl' },
   { tab: 'engine', key: 'settings.imageModel' },
   { tab: 'engine', key: 'settings.imageApiKey' },

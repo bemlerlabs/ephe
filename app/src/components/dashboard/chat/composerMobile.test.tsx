@@ -25,14 +25,6 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const scanEnv = vi.hoisted(() =>
-  vi.fn(async (_opts?: unknown): Promise<unknown> => ({
-    tools: [],
-    summary: { installed: 0, with_models: [] },
-  })),
-)
-vi.mock('@/lib/api/environment', () => ({ scanEnvironment: (...a: unknown[]) => scanEnv(...a) }))
-
 vi.mock('@/lib/api', () => ({
   getModelProviders: vi.fn(async () => ({
     active: { provider: 'local_ollama', model: 'gemma4:12b', offline_capable: true },
