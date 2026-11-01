@@ -7,7 +7,6 @@ everything else is a pure local read and rides here in one frame.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -16,6 +15,7 @@ from fastapi.responses import FileResponse
 from core import discover_search, marketplace_service, marketplace_sources
 from core.marketplace_verify import verify_entry
 from core.mcp_catalog import (
+    ICON_SLUG,
     catalog_entries,
     curated_entries,
     featured_entries,
@@ -117,12 +117,11 @@ async def discover_dry_run(request: Request, body: dict) -> dict:
 #: `scripts/fetch_marketplace_icons.py` and served from the tree so a render
 #: never calls a third party.
 _ICON_DIR = Path(__file__).resolve().parents[2] / "marketplace" / "icons" / "providers"
-_ICON_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
 
 
 @router.get("/discover/icon/{slug}")
 def discover_icon(slug: str) -> FileResponse:
-    if not _ICON_SLUG.fullmatch(slug or ""):
+    if not ICON_SLUG.fullmatch(slug or ""):
         raise HTTPException(status_code=404, detail="unknown icon")
     path = _ICON_DIR / f"{slug}.png"
     if not path.is_file():

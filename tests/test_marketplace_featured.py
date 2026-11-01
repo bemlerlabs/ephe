@@ -55,6 +55,40 @@ def test_the_icon_route_serves_a_png_and_refuses_a_bad_slug() -> None:
         discover_icon("no-such-vendor")
 
 
+def test_a_curated_icon_slug_survives_the_loader_and_a_broken_one_does_not(
+    tmp_path, monkeypatch
+) -> None:
+    """The curated tier may name a vendor icon; the load is the gate.
+
+    A slug the icon route could never resolve is dropped before the frame is
+    served, so `/discover/bootstrap` stays deterministic and offline whatever
+    the data file holds."""
+    import json
+
+    from core import mcp_catalog
+
+    path = tmp_path / "registry-curated.json"
+    path.write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {"id": "ok", "name": "Ok", "icon": "github"},
+                    {"id": "url", "name": "Url", "icon": "https://example.com/x.png"},
+                    {"id": "traversal", "name": "Traversal", "icon": "../etc/passwd"},
+                    {"id": "bare", "name": "Bare"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(mcp_catalog, "_CURATED_PATH", path)
+    entries = {entry["id"]: entry for entry in mcp_catalog.curated_entries()}
+    assert entries["ok"]["icon"] == "github"
+    assert "icon" not in entries["url"]
+    assert "icon" not in entries["traversal"]
+    assert "icon" not in entries["bare"]
+
+
 def test_no_curated_row_claims_a_shared_launchers_downloads() -> None:
     import json
 

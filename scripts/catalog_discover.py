@@ -317,7 +317,9 @@ def curated_from_mirror(
     one; a named pick keeps the prior it has (these are the servers people ask for
     by name); everything else falls back to how recently it was published. Each
     category keeps a floor, so a broad shelf stays broad instead of filling up with
-    the one category that has the most packages."""
+    the one category that has the most packages. A row may additionally carry an
+    optional vendor `icon` slug, taken from the mirror row unchanged; the loader
+    drops anything the icon route could not serve."""
     counts = popularity or {}
     scored: dict[str, dict[str, Any]] = {}
     for entry in entries:

@@ -64,12 +64,6 @@
   display: none;
 }
 
-/* The pick's eyebrow carries the subject hue and nothing else. */
-.discover-glyph {
-  color: var(--s, hsl(30 8% 62%));
-}
-
-
 /* The featured pick turns on its own; the rise is the only motion it uses. */
 @keyframes discover-rise {
   from {
