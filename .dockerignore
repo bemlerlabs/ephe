@@ -16,8 +16,8 @@ tests/
 docs/
 *.md
 !README.md
-.env
-.DS_Store
+**/.env
+**/.DS_Store
 Thumbs.db
 *.swp
 *.swo
@@ -33,4 +33,4 @@ app/test-results/
 out/
 .hermes/
 .audit/
-*.log
+**/*.log
