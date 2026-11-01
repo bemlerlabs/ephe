@@ -53,6 +53,22 @@ def test_the_project_overrides_the_transitive_upper_bound():
     assert _locked_wasmtime() >= FLOOR, "uv.lock sits below the declared floor"
 
 
+def test_the_pip_install_path_restates_the_floor():
+    """GIVEN install.sh adds the sandbox extra with pip, a resolver that never reads the uv
+    override THEN the script puts wasmtime back at the floor itself and refuses to finish on
+    a version below it. Measured 2026-11-01: this checkout's `.venv` had resolved 47.0.1 —
+    the release the floor above refuses — while uv.lock resolves 50.0.1, because only uv
+    honours `[tool.uv] override-dependencies`. The lock and the installer are two paths, and
+    a floor that holds on one of them is a floor that ships an unpatched engine on the other.
+    """
+    text = (REPO / "install.sh").read_text(encoding="utf-8")
+    dotted = ".".join(str(part) for part in FLOOR)
+    assert f'pip install "wasmtime>={dotted},<' in text, (
+        f"install.sh does not restate the wasmtime floor {dotted} for the pip path"
+    )
+    assert 'm.version("wasmtime")' in text, "install.sh never reads the engine version back"
+
+
 def test_the_cell_config_still_builds_on_the_patched_engine():
     """GIVEN the patched engine
     WHEN the cell builds its sandbox config

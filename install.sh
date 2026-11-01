@@ -447,6 +447,22 @@ else
     run .venv/bin/python -m pip install -e ".[gui,voice]"
   fi
 fi
+# The sandbox extra carries the cell engine, and its floor needs restating for this
+# install path: ephemora-cell 1.1.0 declares `wasmtime<48` and pyproject's
+# `[tool.uv] override-dependencies` that replaces that bound is read only by uv — a pip
+# resolver follows the wheel's own requirement. Measured 2026-11-01 in this checkout:
+# `.venv` had resolved wasmtime 47.0.1 while uv.lock resolves 50.0.1, and 47.0.1 is the
+# release tests/test_cell_runtime_floor.py refuses (RUSTSEC-2026-0352, a filesystem
+# sandbox escape). So the floor goes back on the machine here, after the extras have
+# landed, and the version that actually installed is read back before anything else runs.
+if [[ "$DRY_RUN" != "1" ]] && .venv/bin/python -c "import ephemora_cell" >/dev/null 2>&1; then
+  run .venv/bin/python -m pip install "wasmtime>=50.0.1,<51"
+  cell_engine="$({ .venv/bin/python -c 'import importlib.metadata as m; print(m.version("wasmtime"))' || true; })"
+  case "$cell_engine" in
+    50.*) ok "cell engine wasmtime ${cell_engine} — at the patched floor" ;;
+    *) fail "cell engine reports '${cell_engine:-nothing}' — the sandbox would ship an engine below 50.0.1; see tests/test_cell_runtime_floor.py" ;;
+  esac
+fi
 # openpyxl: xlsx support (otherwise missing from a Miniconda env, and it costs 10 tests)
 run_quiet "Excel support installed" .venv/bin/python -m pip install -q openpyxl
 
