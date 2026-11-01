@@ -72,14 +72,22 @@ if [[ ! -f "$SIG" ]]; then
 fi
 
 FEED="${BUNDLE}/macos/latest.json"
-node - "$VERSION" "$SIG" "$FEED" "$(basename "$ARTIFACT")" "$RELEASE_REPO" <<'NODE'
-const [version, sigPath, out, assetName, repo] = process.argv.slice(2)
+# The release body comes from the same script the release workflow uses, so the
+# desktop feed's notes and the GitHub release's description are one text. The slice this
+# script used to take off CHANGELOG.md was `split('\n## ')[1]`, which is the
+# `[Unreleased]` block: the update window rendered a sha inventory that named the wave
+# "below" instead of the release the reader is installing.
+NOTES_FILE="$(mktemp)"
+trap 'rm -f "$NOTES_FILE"' EXIT
+if ! python3 scripts/release_notes.py "$VERSION" >"$NOTES_FILE" 2>/dev/null || [ ! -s "$NOTES_FILE" ]; then
+  printf 'Ephe %s' "$VERSION" >"$NOTES_FILE"
+fi
+node - "$VERSION" "$SIG" "$FEED" "$(basename "$ARTIFACT")" "$RELEASE_REPO" "$NOTES_FILE" <<'NODE'
+const [version, sigPath, out, assetName, repo, notesPath] = process.argv.slice(2)
 const fs = require('fs')
 const feed = {
   version,
-  notes: fs.existsSync('CHANGELOG.md')
-    ? fs.readFileSync('CHANGELOG.md', 'utf8').split('\n## ')[1]?.split('\n').slice(1).join('\n').trim().slice(0, 800) || `Ephe ${version}`
-    : `Ephe ${version}`,
+  notes: fs.readFileSync(notesPath, 'utf8').trim(),
   pub_date: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
   platforms: {
     'darwin-aarch64': {
@@ -112,7 +120,7 @@ if [[ "${1:-}" == "--publish" ]]; then
     "${BUNDLE}/macos/latest.json" \
     "${BUNDLE}/dmg/Ephe_${VERSION}_aarch64.dmg" \
     --title "Ephe ${VERSION}" \
-    --notes "$(node -p "require('${FEED/#app\//}').notes" 2>/dev/null || echo "Ephe ${VERSION}")"
+    --notes "$(cat "$NOTES_FILE")"
   echo
   echo "  ✓ $TAG published in $RELEASE_REPO. Verify with:"
   echo "    curl -o /dev/null -w '%{http_code}\n' https://github.com/${RELEASE_REPO}/releases/latest/download/latest.json"

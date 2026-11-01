@@ -1,10 +1,15 @@
-"""The desktop release publishes to one named repository.
+"""The desktop release publishes to one named repository, with one release body.
 
 `scripts/release_desktop.sh` runs where a checkout's first remote is not the repository the
 release belongs to: on the release machine `origin` is the private development history, so a
 bare `gh release create` publishes the updater artifacts there while the feed it writes points
 at the public repository. The script therefore names its target, and the feed's URL and the
 `gh` calls read one variable.
+
+The same script writes the updater feed's `notes`. It used to slice CHANGELOG.md by hand and
+take the block under the first `## ` header, which is `[Unreleased]`, so the update window
+showed a sha inventory instead of the release being installed. The release workflow already
+owns the right instrument for that text, and the script defers to it.
 """
 from __future__ import annotations
 
@@ -50,4 +55,14 @@ def test_the_feed_url_and_the_publish_call_read_the_same_value():
     )
     assert "github.com/bemlerlabs/ephe/releases" not in text, (
         "no second copy of the target may sit in the script"
+    )
+
+
+def test_the_feed_notes_come_from_the_release_body_instrument():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "python3 scripts/release_notes.py" in text, (
+        "the feed's notes and the release description are the text the workflow cuts"
+    )
+    assert "split('\n## ')" not in text, (
+        "the hand slice read [Unreleased], which is not the release being installed"
     )
