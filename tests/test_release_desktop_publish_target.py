@@ -10,6 +10,12 @@ The same script writes the updater feed's `notes`. It used to slice CHANGELOG.md
 take the block under the first `## ` header, which is `[Unreleased]`, so the update window
 showed a sha inventory instead of the release being installed. The release workflow already
 owns the right instrument for that text, and the script defers to it.
+
+And it signs with the key the app trusts. Measured on 2026-11-01: this machine's key carries id
+`6cf6767f2631dfdd` while `tauri.conf.json` pins `e01157dba5c1d5b5` — the release environment's
+key, the one that signed the published 0.5.2 artifact. A bundle signed with the other key
+uploads cleanly and no client installs it, so the run stops on a probe signature before the
+build starts.
 """
 from __future__ import annotations
 
@@ -65,4 +71,16 @@ def test_the_feed_notes_come_from_the_release_body_instrument():
     )
     assert "split('\n## ')" not in text, (
         "the hand slice read [Unreleased], which is not the release being installed"
+    )
+
+
+def test_the_key_guard_runs_before_the_bundle_is_built():
+    text = SCRIPT.read_text(encoding="utf-8")
+    probe = text.find("key-probe")
+    build = text.find("npx tauri build")
+    assert probe != -1 and build != -1, "the probe sign and the bundle build are both here"
+    assert probe < build, "a wrong key has to stop the run before the build spends its minutes"
+    assert "pinned updater key" in text or "the app pins" in text, (
+        "the refusal names both ids, because the reader cannot tell a stale feed from a "
+        "foreign key without them"
     )
