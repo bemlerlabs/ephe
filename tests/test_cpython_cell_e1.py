@@ -196,6 +196,28 @@ def test_doctor_cell_check_is_failsoft(monkeypatch):
     assert "Kernel" in detail or "ephe[sandbox]" in detail
 
 
+#: `ephe doctor` prints an English report, and the two lines this module owns are pinned by their
+#: wording rather than by a word list: a gate that measured the tree could not see a translated
+#: string assembled at runtime, and the guard must not quote the language it refuses.
+@pytest.mark.parametrize(
+    "state,expected",
+    [
+        ({"entry_ok": True, "tree_ok": True, "version": "3.13.18"},
+         "CPython 3.13.18 verified "),
+        ({"installed": True, "reason": "manifest hash mismatch"},
+         "Guest unverified: manifest hash mismatch"),
+    ],
+)
+def test_the_cell_line_reads_in_the_reports_language(monkeypatch, state, expected):
+    full = {"manifest": True, "version": "", "installed": False, "library": True,
+            "entry_ok": False, "tree_ok": False, "path": "/x", "reason": ""}
+    full.update(state)
+    monkeypatch.setattr(cell_policy, "guest_state", lambda **kw: full)
+    _, detail = cell_policy.doctor_snapshot()
+    assert detail.startswith(expected), detail
+    assert detail.isascii(), detail
+
+
 # Seam decision: A (native) instead of B (guest as an MCP tool)
 # A guard instead of a second implementation: choose A, keep B as a cheap test,
 # so the reasoning does not turn into folklore.

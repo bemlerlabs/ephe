@@ -102,7 +102,7 @@ def doctor_snapshot() -> tuple[bool, str]:
         state = guest_state()
         if state["entry_ok"] and state["tree_ok"]:
             return True, (
-                f"CPython {state['version']} verifiziert "
+                f"CPython {state['version']} verified "
                 f"(fuel<={fuel_budget()}, mem<={DEFAULT_MAX_MEMORY_MB}MB, net=none)"
             )
         if not state["library"]:
@@ -115,7 +115,7 @@ def doctor_snapshot() -> tuple[bool, str]:
                 f"Guest missing — execute_code runs in the kernel behind the approval gate. "
                 f"{state['reason']}"
             )
-        return False, f"Gast unverifiziert: {state['reason']}"
+        return False, f"Guest unverified: {state['reason']}"
     except Exception as exc:  # noqa: BLE001 — doctor must never fail on the sandbox
         return True, f"cell check skipped ({exc.__class__.__name__})"
 
