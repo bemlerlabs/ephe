@@ -83,7 +83,7 @@ export interface TaskRowGroupProps extends TaskRowState {
 }
 
 const LABEL =
-  'flex items-center gap-1.5 w-full py-1.5 pl-1 pr-4 font-mono text-scale-data uppercase tracking-wider text-ink-faint hover:text-ink-soft transition-colors'
+  'flex items-center gap-1.5 w-full py-1.5 pl-1 pr-8 font-mono text-scale-data uppercase tracking-wider text-ink-faint hover:text-ink-soft transition-colors'
 const TITLE = 'text-scale-ui'
 const DATA = 'font-mono tabular-nums text-scale-data'
 const RENAME_INPUT =
@@ -153,7 +153,7 @@ function TaskRow({
         onClick={() => state.onSelect(session.id)}
         title={title}
         className={`w-full text-left transition-colors duration-fast ${
-          rail ? 'p-2' : childCount > 0 ? 'pl-6 pr-2.5 py-2' : 'px-2.5 py-2'
+          rail ? 'p-2' : childCount > 0 ? 'pl-6 pr-8 py-2' : 'pl-2.5 pr-8 py-2'
         }`}
       >
         {renaming ? (
@@ -260,9 +260,12 @@ function TaskRow({
                 ? t('sidebar.ready')
                 : `${session.messages.length} ${t('sidebar.messages')}`}
             </span>
-            <span data-testid={`session-age-${session.id}`}>
+            <span data-testid={`session-age-${session.id}`} className="min-w-0 shrink truncate">
               {session.messages.length === 0 ? (
-                t('sidebar.freshCell')
+                /* A word, not a number, so it takes the data step by hand: the row's
+                   trailing slot is 11 px on every row, and at the base step this label
+                   reached over the ⋯ button it sits beside. */
+                <span className={`${DATA} text-ink-faint`}>{t('sidebar.freshCell')}</span>
               ) : (
                 <Num col={1}>
                   {formatDistanceToNowStrict(session.createdAt, {
@@ -335,9 +338,9 @@ export function TaskRowGroup({
         />
         {!rail && label}
         {rail && <span className="sr-only">{label}</span>}
-        {/* The group's own count ends on the same right edge as every row's age:
-            pr-4 above cancels the 6px row indent (ml-1.5) and the row's 10px
-            right padding (pr-2.5), so the two columns share one axis. */}
+        {/* The group's own count ends on the same right edge as every row's age: 32 px,
+            which is the ⋯ button's gutter (right-1.5 plus its 24 px box) and 2 px clear
+            of it. The row's text column stops there, so no title reads through the button. */}
         <Num col={1} className="ml-auto">
           {sessions.length}
         </Num>

@@ -140,7 +140,7 @@ jobs:
         # run time and owns (tests/test_playwright_port_hygiene.py), with no backend, no
         # Vite dev server and no engine.
         #
-        # The eighteen spec files that the default project collects are named here, one by
+        # The nineteen spec files that the default project collects are named here, one by
         # one, so this leg's contents stay readable in the workflow and a spec added
         # tomorrow does not join it by accident (the `chromium` project alone would collect
         # it). The three timing files run in the step above, alone. Until W10-51 four of
@@ -170,6 +170,7 @@ jobs:
             tests/playwright/r41-toolcards.spec.ts \
             tests/playwright/r42-livetakt.spec.ts \
             tests/playwright/r5-perceived-latency.spec.ts \
+            tests/playwright/sidebar-row.spec.ts \
             tests/playwright/u6-keyboard.spec.ts \
             tests/playwright/z16-plan.spec.ts
 
