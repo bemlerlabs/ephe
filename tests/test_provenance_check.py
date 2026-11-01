@@ -52,14 +52,6 @@ def baseline(tmp_path: Path, known: list[str]) -> Path:
     return path
 
 
-def baseline_with_outside(tmp_path: Path, known: list[str], outside: list[str]) -> Path:
-    path = tmp_path / "baseline.json"
-    path.write_text(
-        json.dumps({"known_diverged": known, "not_a_release": outside}), encoding="utf-8"
-    )
-    return path
-
-
 class TestOnAPlant:
     def test_a_tag_on_the_trunk_passes(self, tmp_path):
         repo = make_repo(tmp_path)
@@ -142,55 +134,63 @@ class TestOnAPlant:
         assert "adds v0.2.0" in done.stdout, done.stdout
 
 
-    def test_a_ref_outside_the_release_line_is_skipped_and_says_so(self, tmp_path):
-        """A checkout can carry another lineage's tags. Such a ref is not a diverged
-        release of this project, and judging one would report a defect that is not there."""
-        repo = make_repo(tmp_path)
-        git(repo, "switch", "-q", "-c", "other")
-        (repo / "b.txt").write_text("two\n", encoding="utf-8")
-        git(repo, "add", "b.txt")
-        git(repo, "commit", "-qm", "two")
-        git(repo, "tag", "-a", "v9.9.0", "-m", "another lineage")
-        git(repo, "switch", "-q", "main")
-        git(repo, "tag", "-a", "v0.1.0", "-m", "cut")
-        done = run(
-            repo,
-            "--base",
-            "main",
-            "--baseline",
-            str(baseline_with_outside(tmp_path, [], ["v9.9.0"])),
-        )
-        assert done.returncode == 0, done.stdout + done.stderr
-        assert "v9.9.0 skipped — recorded as outside the release line" in done.stdout, done.stdout
-        assert "DIVERGED" not in done.stdout, done.stdout
-        assert "1 tag(s) on main" in done.stdout, done.stdout
+class TestOnTheReleaseRemoteList:
+    """The tags a release carries are the ones its remote lists.
 
-    def test_a_recorded_ref_that_carries_no_tag_here_is_named(self, tmp_path):
-        repo = make_repo(tmp_path)
-        git(repo, "tag", "-a", "v0.1.0", "-m", "cut")
-        done = run(
-            repo,
-            "--base",
-            "main",
-            "--baseline",
-            str(baseline_with_outside(tmp_path, [], ["v9.9.0"])),
-        )
-        assert done.returncode == 0, done.stdout + done.stderr
-        assert "v9.9.0 is listed as outside the line and carries no tag here" in done.stdout
+    A working clone can hold a second lineage's objects under the same tag names, and the
+    shadow is invisible from `git tag`: the name resolves, the commit is real, and only the
+    verdict is wrong. The gate reads a ref namespace, so a cut can judge the release remote's
+    own list."""
 
-    def test_a_skipped_ref_is_not_counted_as_a_tag_on_the_base(self, tmp_path):
-        repo = make_repo(tmp_path)
-        git(repo, "tag", "-a", "v0.1.0", "-m", "cut")
-        git(repo, "tag", "-a", "v0.2.0", "-m", "cut")
-        done = run(
-            repo,
-            "--base",
-            "main",
-            "--baseline",
-            str(baseline_with_outside(tmp_path, [], ["v0.2.0"])),
+    def test_the_remote_list_is_judged_when_a_local_ref_shadows_it(self, tmp_path):
+        upstream = make_repo(tmp_path)
+        git(upstream, "tag", "-a", "v0.1.0", "-m", "cut on the trunk")
+        work = tmp_path / "work"
+        work.mkdir()
+        git(work, "init", "-q", "-b", "shadow")
+        git(work, "config", "user.email", "test@example.invalid")
+        git(work, "config", "user.name", "Provenance Test")
+        git(work, "remote", "add", "upstream_repo", upstream.as_uri())
+        git(
+            work,
+            "fetch",
+            "-q",
+            "--prune",
+            "upstream_repo",
+            "refs/heads/main:refs/remotes/upstream_repo/main",
+            "+refs/tags/*:refs/remotes/upstream_repo/tags/*",
         )
-        assert done.returncode == 0, done.stdout + done.stderr
-        assert "PASS — 1 tag(s)" in done.stdout, done.stdout
+        (work / "shadow.txt").write_text("mine\n", encoding="utf-8")
+        git(work, "add", "shadow.txt")
+        git(work, "commit", "-qm", "a commit upstream never carried")
+        # -f on purpose: the fetch followed upstream's tag into refs/tags, and the shadow is
+        # the same name landing on an object the trunk never carried.
+        git(work, "tag", "-f", "-a", "v0.1.0", "-m", "the same name, another lineage")
+
+        ns = "refs/remotes/upstream_repo/tags"
+        shadowed = run(work, "--base", "refs/remotes/upstream_repo/main",
+                       "--baseline", str(baseline(tmp_path, [])))
+        assert shadowed.returncode == 1, shadowed.stdout
+        assert "DIVERGED" in shadowed.stdout, shadowed.stdout
+
+        judged = run(work, "--base", "refs/remotes/upstream_repo/main", "--tag-namespace", ns,
+                     "--baseline", str(baseline(tmp_path, [])))
+        assert judged.returncode == 0, judged.stdout + judged.stderr
+        assert "on base" in judged.stdout and "PASS — 1 tag(s)" in judged.stdout, judged.stdout
+
+    def test_an_empty_namespace_is_not_read_as_a_clean_release_line(self, tmp_path):
+        upstream = make_repo(tmp_path)
+        git(upstream, "tag", "-a", "v0.1.0", "-m", "cut")
+        work = tmp_path / "work"
+        work.mkdir()
+        git(work, "init", "-q", "-b", "main")
+        git(work, "remote", "add", "upstream_repo", upstream.as_uri())
+        git(work, "fetch", "-q", "upstream_repo", "refs/heads/main:refs/remotes/upstream_repo/main")
+        done = run(work, "--base", "refs/remotes/upstream_repo/main",
+                   "--tag-namespace", "refs/remotes/upstream_repo/tags",
+                   "--baseline", str(baseline(tmp_path, [])))
+        assert done.returncode == 2, done.stdout
+        assert "lists no v* tag" in done.stdout, done.stdout
 
 
 class TestOnAShallowCopy:
@@ -235,54 +235,47 @@ class TestOnAShallowCopy:
 
 
 class TestOnThisRepository:
-    @staticmethod
-    def _base_ref() -> str:
-        """Which ref the release line is actually cut from.
+    """The published release line, judged from the refs that carry it.
 
-        A working checkout on the owner's machine carries the publication remote as `public`
-        and the private development history as `origin`; a CI clone of the published
-        repository knows the trunk only as `origin/main`. The gate has to judge the tags
-        against the trunk that ships them."""
-        override = os.environ.get("EPHE_PROVENANCE_BASE")
-        if override:
-            return override
-        for candidate in ("public/main", "origin/main"):
-            done = subprocess.run(
-                ("git", "rev-parse", "--verify", candidate),
-                cwd=str(ROOT),
-                capture_output=True,
-                check=False,
-            )
-            if done.returncode == 0:
-                return candidate
-        return "origin/main"
+    A CI clone of the published repository holds one lineage, so `refs/tags` and `origin/main`
+    are the release line and the default namespace answers the question. A development checkout
+    can hold a second lineage's objects under the same tag names, so it judges the publication
+    remote's own ref namespace — the list `scripts/release_cut.sh` fetches before a cut."""
+
+    @staticmethod
+    def _git(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ("git", *args), cwd=str(ROOT), text=True, capture_output=True, check=False
+        )
+
+    @staticmethod
+    def _namespace_listed(ref: str) -> bool:
+        listed = TestOnThisRepository._git("for-each-ref", "--count=1", f"{ref}/")
+        return bool(listed.stdout.strip())
 
     def test_every_tag_is_on_main_or_recorded(self):
-        shallow = subprocess.run(
-            ("git", "rev-parse", "--is-shallow-repository"),
-            cwd=str(ROOT),
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if shallow.stdout.strip() == "true":
+        if self._git("rev-parse", "--is-shallow-repository").stdout.strip() == "true":
             pytest.skip("a shallow checkout cannot judge tag ancestry")
-        base_ref = self._base_ref()
-        base = subprocess.run(
-            ("git", "rev-parse", "--verify", base_ref),
-            cwd=str(ROOT),
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if base.returncode != 0:
-            pytest.skip(f"this checkout has no {base_ref} (shallow clone)")
-        done = subprocess.run(
-            [sys.executable, str(SCRIPT), "--base", base_ref],
-            cwd=str(ROOT),
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+
+        override_base = os.environ.get("EPHE_PROVENANCE_BASE")
+        override_ns = os.environ.get("EPHE_PROVENANCE_TAG_NAMESPACE")
+        if override_base:
+            base_ref, namespace = override_base, override_ns
+        elif self._git("remote", "get-url", "public").returncode == 0:
+            if not self._namespace_listed("refs/remotes/public/tags"):
+                pytest.skip(
+                    "this checkout carries the publication remote and has not fetched its tag "
+                    "refs; run: git fetch public '+refs/tags/*:refs/remotes/public/tags/*'"
+                )
+            base_ref, namespace = "public/main", "refs/remotes/public/tags"
+        else:
+            base_ref, namespace = "origin/main", override_ns
+
+        if self._git("rev-parse", "--verify", "-q", base_ref).returncode != 0:
+            pytest.skip(f"this checkout has no {base_ref}")
+        command = [sys.executable, str(SCRIPT), "--base", base_ref]
+        if namespace:
+            command += ["--tag-namespace", namespace]
+        done = subprocess.run(command, cwd=str(ROOT), text=True, capture_output=True, check=False)
         assert done.returncode == 0, done.stdout + done.stderr
         assert "PASS" in done.stdout, done.stdout
