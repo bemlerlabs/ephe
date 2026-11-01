@@ -31,7 +31,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path("/Users/sanji/Downloads/paper-moth.webp")
+SOURCE = Path.home() / "Downloads" / "paper-moth.webp"
 MEDIA = ROOT / "docs" / "media"
 MASTER = MEDIA / "paper-moth-master.png"
 PROOF = MEDIA / "paper-moth-cut.png"
