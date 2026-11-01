@@ -278,7 +278,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 
 - deps: minimatch moves to the patched 11.0.3 — the advisory covers `< 11.0.1` and no parent
   release asks for it, so the lockfile lane overrides it and the lint run proves the toolchain
-  still matches the same files (`e958ba5c`)
+  still matches the same files (`93844868`)
 
 ## [0.5.2] - 2026-11-01
 
