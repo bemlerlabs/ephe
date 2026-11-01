@@ -42,15 +42,42 @@ def git(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]
     )
 
 
-def tags(root: Path) -> list[str]:
-    done = git("tag", "--list", f"{TAG_PREFIX}*", "--sort=v:refname", cwd=root)
+def tags(root: Path, namespace: str = "refs/tags") -> list[str]:
+    """The tag names to judge, read from a ref namespace.
+
+    `refs/tags` is what a checkout carries, and a working clone can hold names that are not
+    this project's releases at all, or a same-named ref whose object the published repository
+    moved. A release machine therefore judges `refs/remotes/<remote>/tags`, which is the
+    release remote's own list and cannot shadow anything."""
+    if namespace == "refs/tags":
+        done = git("tag", "--list", f"{TAG_PREFIX}*", "--sort=v:refname", cwd=root)
+        if done.returncode != 0:
+            raise ValueError(f"git tag failed: {done.stderr.strip()}")
+        return [line.strip() for line in done.stdout.splitlines() if line.strip()]
+    done = git(
+        "for-each-ref",
+        "--format=%(refname)",
+        f"{namespace}/",
+        "--sort=v:refname",
+        cwd=root,
+    )
     if done.returncode != 0:
-        raise ValueError(f"git tag failed: {done.stderr.strip()}")
-    return [line.strip() for line in done.stdout.splitlines() if line.strip()]
+        raise ValueError(f"git for-each-ref {namespace} failed: {done.stderr.strip()}")
+    prefix = f"{namespace}/"
+    names: list[str] = []
+    for line in done.stdout.splitlines():
+        ref = line.strip()
+        if not ref:
+            continue
+        name = ref[len(prefix) :]
+        if name.startswith(TAG_PREFIX) and not name.endswith("^{}"):
+            names.append(name)
+    return names
 
 
-def commit_of(root: Path, tag: str) -> str:
-    done = git("rev-list", "-n", "1", f"{tag}^{{commit}}", cwd=root)
+def commit_of(root: Path, tag: str, namespace: str = "refs/tags") -> str:
+    ref = tag if namespace == "refs/tags" else f"{namespace}/{tag}"
+    done = git("rev-list", "-n", "1", f"{ref}^{{commit}}", cwd=root)
     if done.returncode != 0 or not done.stdout.strip():
         raise ValueError(f"{tag} does not resolve to a commit")
     return done.stdout.strip()
@@ -91,29 +118,15 @@ def baseline_at(root: Path, ref: str, path: Path) -> list[str] | None:
     return [item for item in known if isinstance(item, str)]
 
 
-def read_not_a_release(path: Path) -> list[str]:
-    """Refs the release line never carried: a clone can hold another lineage's tags.
-
-    `git tag` lists what the *checkout* carries, which on a machine that also hosted the
-    private history is more than the repository being released. Such a ref is not a diverged
-    release — it is not a release of this project at all — and judging one would report a
-    defect that does not exist. The list is written down, printed per ref, and a name that no
-    longer resolves is said out loud, so it cannot rot into a blanket exemption.
-    """
-    if not path.is_file():
-        return []
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
-    items = payload.get("not_a_release") or []
-    return [item for item in items if isinstance(item, str)]
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="checkout to judge")
     parser.add_argument("--base", default="origin/main", help="trunk ref the tags must sit on")
+    parser.add_argument(
+        "--tag-namespace",
+        default="refs/tags",
+        help="ref namespace to read the tag list from, e.g. refs/remotes/public/tags",
+    )
     parser.add_argument("--baseline", type=Path, default=BASELINE_DEFAULT)
     parser.add_argument(
         "--baseline-at",
@@ -132,14 +145,13 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         known = set(read_baseline(args.baseline))
-        names = tags(args.root)
-        outside = read_not_a_release(args.baseline)
+        names = tags(args.root, args.tag_namespace)
     except ValueError as exc:
         print(f"provenance: cannot decide: {exc}")
         return 2
 
     if not names:
-        print("provenance: cannot decide: the checkout lists no v* tag")
+        print(f"provenance: cannot decide: {args.tag_namespace} lists no v* tag")
         return 2
     if git("rev-parse", "--verify", args.base, cwd=args.root).returncode != 0:
         print(f"provenance: cannot decide: base ref {args.base} does not resolve")
@@ -167,18 +179,11 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 return 1
 
-    skipped = [name for name in outside if name in set(names)]
-    for name in sorted(skipped):
-        print(f"provenance: {name:>14} skipped — recorded as outside the release line")
-    for name in sorted(set(outside) - set(names)):
-        print(f"provenance: note: {name} is listed as outside the line and carries no tag here")
-    names = [name for name in names if name not in set(outside)]
-
     diverged: list[tuple[str, str]] = []
     healed: list[str] = []
     for tag in names:
         try:
-            commit = commit_of(args.root, tag)
+            commit = commit_of(args.root, tag, args.tag_namespace)
             on_trunk = is_ancestor(args.root, commit, args.base)
         except ValueError as exc:
             print(f"provenance: cannot decide: {exc}")
@@ -204,8 +209,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print(f"provenance: PASS — {len(names)} tag(s) on {args.base} or recorded in the baseline")
-    if skipped:
-        print(f"provenance: {len(skipped)} ref(s) judged outside the release line are listed above")
     return 0
 
 

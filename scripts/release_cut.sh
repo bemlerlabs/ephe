@@ -278,12 +278,19 @@ else
   if [ "$ALLOW_LOCAL" = 1 ]; then
     printf '  warn     provenance gate skipped (--local: no trunk ref to compare)\n'
   else
-    # The trunk ref is the release remote's, not the literal `origin`: a tag cut for one
-    # repository must be checked against that repository's trunk, or the gate compares
-    # against a lineage the release never claimed. `EPHE_RELEASE_REMOTE` names the repo,
-    # and this is where it has to reach.
+    # The trunk ref is the release remote's, not the literal `origin`, and the tag list comes
+    # from that remote's own refs. A working clone can hold another lineage's objects under the
+    # same tag names, and judging those files a divergence in a release line that never carried
+    # it: measured 2026-11-01, the published v0.1.0, v0.1.1 and v0.1.0-beta.9 sit on
+    # public/main while this machine's refs/tags held the private lineage's commits.
+    if git fetch --quiet --prune "$REMOTE" "+refs/tags/*:refs/remotes/$REMOTE/tags/*" >/dev/null 2>&1; then
+      TAG_NS="refs/remotes/$REMOTE/tags"
+    else
+      TAG_NS="refs/tags"
+      printf '  warn     %s carries no tag refs here — judging this checkout\n' "$REMOTE"
+    fi
     run_gate "provenance" "$PY" "$ROOT/scripts/provenance_check.py" \
-      --base "$REMOTE/$BRANCH" --baseline-at "$REMOTE/$BRANCH"
+      --base "$REMOTE/$BRANCH" --baseline-at "$REMOTE/$BRANCH" --tag-namespace "$TAG_NS"
   fi
   if [ "$FULL_GATES" = 1 ]; then
     run_gate "pytest release bar"   gate_pytest
