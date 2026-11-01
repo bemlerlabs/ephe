@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import Sidebar from './Sidebar'
 import {
   OPEN_TIERS_KEY,
+  RAIL_DESTINATIONS,
   SIDEBAR_ACTION_TIERS,
   SIDEBAR_ACTION_ENTRY_IDS,
 } from './sidebarActionGroups'
@@ -92,27 +93,24 @@ vi.mock('@/lib/api', () => ({
  * ONE list in sidebarActionGroups.ts can only tell us that nothing was dropped,
  * never that a row sits in the right tier — that part has to be read here.
  */
+/**
+ * The tiers as the owner named them, written out — for the width where the frame's rail
+ * stands (this file mocks `useMediaQuery` to true). The five rows that name a page live in
+ * that rail from 1024 px up, so they are absent here and present in the drawer
+ * (`Sidebar.drawerNav.test.tsx`); the rest of the register is the task's own.
+ */
 const TIERS: Record<string, string[]> = {
   // "New Task + aktuelle Tasks/Steps" — headless, always open.
   primary: ['sidebar-action-search', 'sidebar-action-tasks'],
-  // "Tools & Capabilities" — collapsible.
+  // "Tools & Capabilities" — collapsible, minus the pages the rail carries.
   tools: [
     'sidebar-action-skills',
-    'sidebar-action-tools',
     'sidebar-action-helpers',
     'sidebar-action-agents',
-    'sidebar-action-marketplace',
     'sidebar-action-files',
-    'sidebar-action-workspaces',
   ],
-  // "More surfaces" — collapsible, four named rows instead of one catch-all.
-  more: [
-    'sidebar-action-knowledge',
-    'sidebar-action-library',
-    'sidebar-action-artifacts',
-    'sidebar-action-automations',
-    'sidebar-action-connectors',
-  ],
+  // "More surfaces" — collapsible, three named rows next to the rail's places.
+  more: ['sidebar-action-library', 'sidebar-action-automations', 'sidebar-action-connectors'],
 }
 
 const ALL_ROWS: string[] = []
@@ -165,15 +163,19 @@ describe('Sidebar Aktionszeilen + Ansichtsumschalter (Runden-G3)', () => {
       }
     })
 
-    it('no row was lost on the way into a tier: thirteen before, thirteen after', async () => {
+    it('nothing was dropped: the rendered rows plus the rail’s places are the list', async () => {
       mount()
       await screen.findByTestId('sidebar-actions')
 
-      // Completeness read off the ONE list: one rendered row per entry id, in
-      // display order — a dropped row fails here even if the table above is
-      // edited to match, because the table's union is compared to the list.
-      expect(SIDEBAR_ACTION_ENTRY_IDS).toHaveLength(ALL_ROWS.length)
-      expect(SIDEBAR_ACTION_TIERS.flatMap((t) => t.entries)).toHaveLength(ALL_ROWS.length)
+      // Completeness read off the ONE list. The rail takes five of the entries
+      // at this width, so the check is the union — a row that leaves both
+      // surfaces fails here even if the table above is edited to match.
+      const railRows = RAIL_DESTINATIONS.map((id) => `sidebar-action-${id}`)
+      expect(SIDEBAR_ACTION_ENTRY_IDS).toHaveLength(new Set([...ALL_ROWS, ...railRows]).size)
+      expect(SIDEBAR_ACTION_TIERS.flatMap((t) => t.entries)).toHaveLength(
+        new Set([...ALL_ROWS, ...railRows]).size,
+      )
+      expect(railRows.some((row) => ALL_ROWS.includes(row))).toBe(false)
 
       const ids = ALL_ROWS.map((t) => screen.getByTestId(t).getAttribute('data-testid'))
       expect(new Set(ids).size).toBe(ALL_ROWS.length)
@@ -206,9 +208,14 @@ describe('Sidebar Aktionszeilen + Ansichtsumschalter (Runden-G3)', () => {
         ).toBe('false')
         expect(screen.getByTestId(`sidebar-tier-${tier}-rows`)).toHaveAttribute('hidden')
       }
-      // The heads keep the member count, so a closed tier still says what is in it.
-      expect(screen.getByTestId('sidebar-tier-tools-count').textContent).toBe('7')
-      expect(screen.getByTestId('sidebar-tier-more-count').textContent).toBe('5')
+      // The heads keep the member count, so a closed tier still says what is in it —
+      // and the count is the tier's own length at this width, not a number copied in.
+      for (const [tier, rows] of Object.entries(TIERS)) {
+        if (tier === 'primary') continue
+        expect(screen.getByTestId(`sidebar-tier-${tier}-count`).textContent, `tier ${tier}`).toBe(
+          String(rows.length),
+        )
+      }
     })
 
     it('closing a tier hides its rows without unmounting them', async () => {
