@@ -8,8 +8,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.5.2 wave is named below (`bcede857`, `256d626d`, `d66fb9ca`, `5428e1df`, `0f7110f9`,
-`d8dee2ae`, `29016b21`, `2c698aff`, `d52669dc`): the terminal answers a question instead of
-printing it, every
+`d8dee2ae`, `29016b21`, `2c698aff`, `d52669dc`, `2a9445d1`): the terminal answers a
+question instead of printing it, every
 confirmation carries its verb, a workspace row tells when the work last moved, the app gets
 one frame and one rail, the cell guest moves to a patched interpreter and is measured on it,
 the container basis is read instead of assumed, and the pip install path lands on the patched
@@ -271,6 +271,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - tui: A question the run asks is a card, and its JSON leaves the text (`d8dee2ae`)
 - chat: A stored fact stops reading as a failed tool call (`2c698aff`)
 - shell: The status row measures the column it is painted in (`d52669dc`)
+- shell: The rail owns the places and the register keeps the task (`2a9445d1`)
 
 ## [0.5.2] - 2026-11-01
 
@@ -302,6 +303,8 @@ the reader to destroy something says what it will do.
   as failed (`2c698aff`)
 - shell: The status row sheds its figures by column width, after the frame took 56 px
   from every one of them (`d52669dc`)
+- shell: The task register stops repeating the five places the rail carries, and keeps
+  them in the phone drawer (`2a9445d1`)
 
 ### Security
 
