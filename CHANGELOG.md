@@ -296,7 +296,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   only when its diff carries the same patch id (`732c2a0d`)
 - knowledge: One document reader covers the paths that read PDF, Word and PowerPoint text, and a
   workbook now comes back as named cell text instead of bytes; a file with nothing extractable
-  answers with a warning rather than an exception (`0ee48d66`)
+  answers with a warning rather than an exception (`8286fb27`)
 
 ### Fixed
 
