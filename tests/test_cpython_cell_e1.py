@@ -111,7 +111,7 @@ def test_unknown_optout_refuses_instead_of_guessing(monkeypatch):
 def test_missing_guest_fails_closed_never_falls_through_to_kernel(monkeypatch):
     monkeypatch.setenv(cell.ENV_EXEC, cell.RUNTIME_CELL)
     monkeypatch.setattr(cell, "guest_state", lambda **kw: {
-        "manifest": True, "version": "3.13.16", "installed": True, "library": True,
+        "manifest": True, "version": "3.13.18", "installed": True, "library": True,
         "entry_ok": False, "tree_ok": False, "path": "/tmp/gast",
         "reason": "Entry-Hash weicht vom Manifest ab",
     })
@@ -418,7 +418,7 @@ def test_ephemeral_cell_policy_exposes_the_cell_budget():
 
 
 def test_report_text_carries_the_runtime_for_the_panel():
-    text = cell.format_report({"runtime": cell.RUNTIME_CELL, "guest_version": "3.13.16",
+    text = cell.format_report({"runtime": cell.RUNTIME_CELL, "guest_version": "3.13.18",
                                "status": "OK", "exit_code": 0, "fuel_consumed": 1,
                                "fuel_budget": 2, "elapsed_ms": 3.0, "memory_mb": 256,
                                "stdout": "hi", "stderr": "", "names": [], "dropped": []})
