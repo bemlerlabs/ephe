@@ -379,7 +379,12 @@ describe('discover query', () => {
 
 describe('discover author language mark', () => {
   it('passes the loader label onto the item and stays absent without one', () => {
-    const labeled = { name: 'audit', trigger: 'check', description: 'Author words.', language: 'de' }
+    const labeled = {
+      name: 'audit',
+      trigger: 'check',
+      description: 'Author words.',
+      language: 'de',
+    }
     const plain = { name: 'pdf', trigger: 'document', description: 'Reads PDFs' }
     const items = buildItems({ ...base, skills: [labeled, plain] })
     expect(items.find((one) => one.name === 'audit')?.language).toBe('de')
