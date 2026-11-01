@@ -132,7 +132,7 @@ export default function ArtifactsPage() {
   }
 
   return (
-    <div className="h-dvh overflow-y-auto" data-testid="artifacts-page">
+    <div className="h-full min-h-0 overflow-y-auto" data-testid="artifacts-page">
       <div className="mx-auto w-full max-w-[1400px] px-6 py-8">
         {/* The page is its own root space without a sidebar — like /memory.
             Without this way out, the browser back button would be the only exit,

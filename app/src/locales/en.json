@@ -2258,6 +2258,16 @@
     "workOutside": "Work outside a project",
     "neutralWorkspace": "Workspace"
   },
+  "shell": {
+    "navAria": "Places",
+    "navTask": "Task",
+    "navTools": "Tools",
+    "navDiscover": "Discover",
+    "navKnowledge": "Knowledge",
+    "navWorkspaces": "Workspaces",
+    "navArtifacts": "Artifacts",
+    "navSettings": "Settings"
+  },
   "common": {
     "changeFailed": "Change failed",
     "cancel": "Cancel",

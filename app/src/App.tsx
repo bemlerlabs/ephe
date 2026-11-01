@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ui'
 import { Skeleton } from '@/components/ui'
 import { Toaster } from '@/components/ui'
 import PageErrorBoundary from '@/components/dashboard/PageErrorBoundary'
+import { AppShell } from '@/components/shell'
 import { useCommandPalette } from '@/hooks'
 import { CommandPalette, ConfirmHost } from '@/components/ui'
 import { consumeSetupIntent, shouldLeaveSetup } from '@/lib'
@@ -105,18 +106,11 @@ function RouteFallback() {
     <div
       data-testid="route-skeleton"
       aria-hidden="true"
-      className="flex h-dvh w-full bg-background"
+      className="flex h-full w-full flex-col bg-background"
     >
-      <div className="hidden w-64 shrink-0 space-y-3 border-r border-hairline p-4 md:block">
-        <Skeleton className="h-6 w-28" />
-        <div className="space-y-2 pt-2">
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-4/5" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-2/3" />
-          <Skeleton className="h-3 w-5/6" />
-        </div>
-      </div>
+      {/* The frame is already painted around this skeleton — the rail and the tab bar are
+          outside the route table. What is being awaited is the page, so the page is what the
+          skeleton draws. */}
       <div className="mx-auto w-full max-w-5xl flex-1 overflow-hidden px-4 py-6">
         <div className="space-y-6">
           <div className="flex justify-end">
@@ -186,7 +180,7 @@ function DataRoute({ children }: { children: React.ReactNode }) {
       <Suspense fallback={<RouteFallback />}>
         {/* The desktop window is transparent, so a data page that paints no ground
             shows the window material behind it. The wrapper owns the ink. */}
-        <div className="min-h-dvh bg-canvas">
+        <div className="min-h-full">
           <PageErrorBoundary>{children}</PageErrorBoundary>
         </div>
       </Suspense>
@@ -229,114 +223,118 @@ function AppInner() {
       {/* G4: the global toaster (toast feedback for errors/offline/updates) */}
       <Toaster />
 
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <GateRoute>
-              <Suspense fallback={<RouteFallback />}>
-                <ChatPage />
-              </Suspense>
-            </GateRoute>
-          }
-        />
-        <Route path="/setup" element={<SetupGateRoute />} />
-        <Route
-          path="/memory"
-          element={
-            <DataRoute>
-              <MemoryPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/memory/:view"
-          element={
-            <DataRoute>
-              <MemoryPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/artifacts"
-          element={
-            <DataRoute>
-              <ArtifactsPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/artifacts/:view"
-          element={
-            <DataRoute>
-              <ArtifactsPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/tools"
-          element={
-            <DataRoute>
-              <ToolsPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/discover"
-          element={
-            <DataRoute>
-              <DiscoverPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/workspaces"
-          element={
-            <DataRoute>
-              <WorkspacesPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/workspaces/change/:id"
-          element={
-            <DataRoute>
-              <CustodyPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <DataRoute>
-              <SettingsPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/settings/:tab"
-          element={
-            <DataRoute>
-              <SettingsPage />
-            </DataRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <GateRoute>
-              <Suspense fallback={<RouteFallback />}>
-                <ChatPage />
-              </Suspense>
-            </GateRoute>
-          }
-        />
-        {/* D7 kept, silence removed (W10): a hash the app no longer knows — an old
+      {/* Finding #61: one frame for every page — the rail and the tab bar live
+          outside the route table, so they do not remount when the page changes. */}
+      <AppShell>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <GateRoute>
+                <Suspense fallback={<RouteFallback />}>
+                  <ChatPage />
+                </Suspense>
+              </GateRoute>
+            }
+          />
+          <Route path="/setup" element={<SetupGateRoute />} />
+          <Route
+            path="/memory"
+            element={
+              <DataRoute>
+                <MemoryPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/memory/:view"
+            element={
+              <DataRoute>
+                <MemoryPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/artifacts"
+            element={
+              <DataRoute>
+                <ArtifactsPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/artifacts/:view"
+            element={
+              <DataRoute>
+                <ArtifactsPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/tools"
+            element={
+              <DataRoute>
+                <ToolsPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/discover"
+            element={
+              <DataRoute>
+                <DiscoverPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/workspaces"
+            element={
+              <DataRoute>
+                <WorkspacesPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/workspaces/change/:id"
+            element={
+              <DataRoute>
+                <CustodyPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <DataRoute>
+                <SettingsPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/settings/:tab"
+            element={
+              <DataRoute>
+                <SettingsPage />
+              </DataRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <GateRoute>
+                <Suspense fallback={<RouteFallback />}>
+                  <ChatPage />
+                </Suspense>
+              </GateRoute>
+            }
+          />
+          {/* D7 kept, silence removed (W10): a hash the app no longer knows — an old
             bookmark to the deleted #/onboarding is the case here — still reaches the
             first-run gate through the notice's own GateRoute, and now says which
             address it could not open instead of rewriting it without a word. */}
-        <Route path="*" element={<UnknownRoute />} />
-      </Routes>
+          <Route path="*" element={<UnknownRoute />} />
+        </Routes>
+      </AppShell>
 
       <ConfirmHost />
 

@@ -280,7 +280,7 @@ export default function ChatLayout() {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen flex bg-transparent">
+      <div className="flex h-full bg-transparent">
         <ForestBackground />
         {/* Sidebar */}
         <Sidebar

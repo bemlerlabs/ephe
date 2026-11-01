@@ -2258,6 +2258,16 @@
     "workOutside": "Außerhalb eines Projekts arbeiten",
     "neutralWorkspace": "Workspace"
   },
+  "shell": {
+    "navAria": "Bereiche",
+    "navTask": "Aufgabe",
+    "navTools": "Werkzeuge",
+    "navDiscover": "Discover",
+    "navKnowledge": "Wissen",
+    "navWorkspaces": "Workspaces",
+    "navArtifacts": "Artefakte",
+    "navSettings": "Einstellungen"
+  },
   "common": {
     "changeFailed": "Änderung fehlgeschlagen",
     "cancel": "Abbrechen",
