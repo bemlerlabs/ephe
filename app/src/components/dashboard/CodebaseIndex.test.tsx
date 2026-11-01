@@ -53,6 +53,25 @@ describe('CodebaseStatusBarPill', () => {
     fireEvent.click(await screen.findByTestId('codebase-pill'))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
+
+  it('reads a refused status request as idle, not as a failed index', async () => {
+    // The defect this case pins: with no answer to read (no workspace chosen, the
+    // server not up yet, a refused port), the pill used to paint the danger tone and
+    // claim an index had failed. Nothing had run, so nothing had failed.
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed') }))
+    render(<CodebaseStatusBarPill />)
+    const pill = await screen.findByTestId('codebase-pill')
+    expect(pill).toHaveAttribute('data-state', 'idle')
+    expect(pill.textContent).toContain('codebase.pillIdle')
+  })
+
+  it('names the failure the route itself reports', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => statusResponse({ ...idle, state: 'error' })))
+    render(<CodebaseStatusBarPill />)
+    const pill = await screen.findByTestId('codebase-pill')
+    expect(pill).toHaveAttribute('data-state', 'error')
+    expect(pill.textContent).toContain('codebase.pillError')
+  })
 })
 
 describe('CodebaseIndexDialog', () => {
