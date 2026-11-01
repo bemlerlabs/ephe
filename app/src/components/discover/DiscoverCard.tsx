@@ -41,6 +41,23 @@ function Badge({ item }: { item: DiscoverItem }) {
   )
 }
 
+/** The shelf rule on the card: the author's words stay verbatim, and the card
+ *  labels the language they are in whenever it is not the reader's own. */
+function AuthorMark({ item }: { item: DiscoverItem }) {
+  const { i18n } = useTranslation()
+  if (!item.language || item.language === i18n.language.slice(0, 2)) return null
+  return (
+    <span
+      data-testid={`discover-language-${item.id}`}
+      lang={item.language}
+      title={item.language}
+      className="ml-1 shrink-0 rounded border border-hairline px-1 font-mono text-ui-2xs text-ink-faint"
+    >
+      {item.language}
+    </span>
+  )
+}
+
 export function DiscoverCard({
   item,
   fluid = false,
@@ -109,12 +126,14 @@ export function DiscoverCard({
           <p className="mt-0.5 flex min-w-0 items-center text-ui-2xs text-ink-faint">
             <span className="truncate">{provenance}</span>
             <Badge item={item} />
+            <AuthorMark item={item} />
           </p>
         </div>
       </div>
 
       <p
         data-testid={`discover-summary-${item.id}`}
+        lang={item.language}
         className="pointer-events-none relative z-10 mt-3 line-clamp-2 text-ui-xs leading-relaxed text-ink-soft"
       >
         {item.summary || t('discover.noSummary')}
