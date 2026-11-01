@@ -68,7 +68,9 @@
     "age": {
       "minutes": "vor {{n}}m",
       "hours": "vor {{n}}h",
-      "days": "vor {{n}}d"
+      "days": "vor {{n}}d",
+      "created": "erstellt {{when}}",
+      "activity": "letzte Aktivität {{when}}"
     },
     "conflicts": "{{count}} Dateien werden gerade in mehr als einem Arbeitsbereich geändert — wer als Zweiter veröffentlicht, trifft Dateien an, die der andere schon verschoben hat.",
     "conflicts_one": "Eine Datei wird gerade in mehr als einem Arbeitsbereich geändert — wer als Zweiter veröffentlicht, trifft eine Datei an, die der andere schon verschoben hat.",
@@ -451,8 +453,8 @@
     "thisWeek": "Diese Woche",
     "thisMonth": "Diesen Monat",
     "renameHint": "Aufgabe umbenennen",
-    "deleteYes": "Ja",
-    "deleteNo": "Abbrechen",
+    "deleteAction": "Aufgabe löschen",
+    "deleteCancel": "Abbrechen",
     "messages": "Nachrichten",
     "ready": "Bereit",
     "freshCell": "Neue Einweg-Zelle",
@@ -2263,7 +2265,14 @@
     "applying": "Wird übernommen…",
     "discard": "Verwerfen",
     "discarding": "Wird verworfen…",
-    "discardConfirm": "Diesen Hunk verwerfen? Die Änderung wird zurückgenommen."
+    "discardConfirm": "Diesen Hunk verwerfen? Die Änderung wird zurückgenommen.",
+    "actions": {
+      "checkpointDelete": "Checkpoint löschen",
+      "checkpointRollback": "Zurückrollen",
+      "branchSwitch": "Branch wechseln",
+      "hunkDiscard": "Hunk verwerfen",
+      "fileRevert": "Änderungen verwerfen"
+    }
   },
   "update": {
     "details": "Details",

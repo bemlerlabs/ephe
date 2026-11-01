@@ -6,7 +6,7 @@
  * error, or twenty rows and no way to narrow them.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, cleanup, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -56,6 +56,8 @@ interface Row {
   state: string
   owner: string
   created_at: string
+  /** The fleet's own last touch; the list route adds it beside the register's six fields. */
+  last_event?: { kind: string; text: string; op: string; age_seconds: number | null }
 }
 
 function workspace(n: number, over: Partial<Row> = {}): Row {
@@ -206,6 +208,32 @@ describe('one live workspace', () => {
     renderPage()
     const prov = await screen.findByTestId('changeset-provenance-cs-w1-1')
     expect(prov.textContent).toContain('because it had to')
+  })
+
+  it('names the last activity when the fleet saw a touch', async () => {
+    // The tree was created a minute ago and last changed two hours ago: only one of the
+    // two is the age of the work, and the row has to say which one it is showing.
+    api.listWorkspaces.mockResolvedValue({
+      workspaces: [
+        workspace(1, {
+          last_event: { kind: 'file', text: 'values.py', op: 'M', age_seconds: 2 * 3600 },
+        }),
+      ],
+    })
+    renderPage()
+    const row = await screen.findByTestId('workspace-row-w1')
+    const age = within(row).getByTestId('workspace-age')
+    expect(age.getAttribute('data-source')).toBe('activity')
+    expect(age.textContent).toContain('workspaces.age.hours')
+    expect(age.getAttribute('title')).toContain('workspaces.age.activity')
+  })
+
+  it('names the birth when the tree has no recorded touch', async () => {
+    renderPage()
+    const row = await screen.findByTestId('workspace-row-w1')
+    const age = within(row).getByTestId('workspace-age')
+    expect(age.getAttribute('data-source')).toBe('created')
+    expect(age.getAttribute('title')).toContain('workspaces.age.created')
   })
 })
 

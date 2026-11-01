@@ -13,17 +13,36 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui'
 import { formatDuration } from '@/lib/duration'
 import type { Workspace } from '@/lib/api'
-import { ageOf, runStateLabel, runStateTone, vocabLabel, workspaceStateTone } from './labels'
+import {
+  ageOf,
+  ageOfSeconds,
+  ageText,
+  runStateLabel,
+  runStateTone,
+  vocabLabel,
+  workspaceStateTone,
+} from './labels'
 
-/** The age of a checkout as a sentence fragment: "just now", "12m", "3h", "2d". */
-export function AgeText({ iso }: { iso: string }) {
+/** The age of a checkout as a sentence fragment: "just now", "12m", "3h", "2d".
+ *
+ * A row with a last touch tells when something happened there; one without tells how long
+ * the tree has stood. The two used to read the same, so a checkout idle since yesterday
+ * looked like a run that started yesterday. The source travels in the label a reader can
+ * ask for, so a number never claims to be something it is not. */
+export function AgeText({ iso, seconds }: { iso: string; seconds?: number | null }) {
   const { t } = useTranslation()
-  const age = ageOf(iso)
-  if (!age) return null
+  const fromEvent = ageOfSeconds(seconds)
+  const shown = fromEvent ?? ageOf(iso)
+  if (!shown) return null
+  const when = ageText(shown, t)
   return (
-    <>
-      {age.unit === 'now' ? t('workspaces.ageNow') : t(`workspaces.age.${age.unit}`, { n: age.n })}
-    </>
+    <span
+      data-testid="workspace-age"
+      data-source={fromEvent ? 'activity' : 'created'}
+      title={t(fromEvent ? 'workspaces.age.activity' : 'workspaces.age.created', { when })}
+    >
+      {when}
+    </span>
   )
 }
 
@@ -76,7 +95,7 @@ export default function WorkspaceList({
                 {ws.branch && <span className="truncate font-mono">{ws.branch}</span>}
                 {ws.branch && ws.created_at && <span aria-hidden="true">·</span>}
                 <span className="shrink-0 tabular-nums">
-                  <AgeText iso={ws.created_at} />
+                  <AgeText iso={ws.created_at} seconds={ws.last_event?.age_seconds} />
                 </span>
                 {count !== undefined && (
                   <>

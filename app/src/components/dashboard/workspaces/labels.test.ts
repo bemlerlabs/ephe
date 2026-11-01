@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest'
 import {
   ageLabel,
   ageOf,
+  ageOfSeconds,
   changeSetStateTone,
   diffPrefix,
   opTone,
@@ -140,6 +141,23 @@ describe('refusalSentence and a code whose slots cannot be filled', () => {
     const refused = new ApiError('the tree moved after this set was recorded: values.py', 409, '')
 
     expect(refusalSentence(refused)).toBe('the tree moved after this set was recorded: values.py')
+  })
+})
+
+describe('ageOfSeconds', () => {
+  it('steps through the same units as the stamp reading', () => {
+    expect(ageOfSeconds(45)).toEqual({ unit: 'now', n: 0 })
+    expect(ageOfSeconds(90)).toEqual({ unit: 'minutes', n: 1 })
+    expect(ageOfSeconds(2 * 3600 + 5)).toEqual({ unit: 'hours', n: 2 })
+    expect(ageOfSeconds(50 * 3600)).toEqual({ unit: 'days', n: 2 })
+  })
+
+  it('answers nothing for a count that is not a measured age', () => {
+    // The fleet sends null when it saw no event; a row without one falls back to the birth.
+    expect(ageOfSeconds(null)).toBeNull()
+    expect(ageOfSeconds(undefined)).toBeNull()
+    expect(ageOfSeconds(-5)).toBeNull()
+    expect(ageOfSeconds(Number.NaN)).toBeNull()
   })
 })
 
