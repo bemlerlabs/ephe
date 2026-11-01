@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.1/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.2/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -42,7 +42,7 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.5.1` tag. The fetch answers HTTP 200; the
+The one-liner fetches `install.sh` from the public `v0.5.2` tag. The fetch answers HTTP 200; the
 checkout path above is the alternative for reading the script before it runs.
 
 For the end-to-end first-run walkthrough — install, the engine choice (hosted API key or local
@@ -52,13 +52,13 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.1/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.2/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.1/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.2/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

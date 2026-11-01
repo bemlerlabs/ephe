@@ -7,6 +7,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+The 0.5.2 wave is named below (`bcede857`, `256d626d`, `d66fb9ca`, `5428e1df`, `0f7110f9`,
+`d8dee2ae`, `29016b21`): the terminal answers a question instead of printing it, every
+confirmation carries its verb, a workspace row tells when the work last moved, the app gets
+one frame and one rail, the cell guest moves to a patched interpreter and is measured on it,
+the container basis is read instead of assumed, and the pip install path lands on the patched
+engine.
+
 ### Added
 
 - **Self-organised learning.** A turn now has three phases beyond the answer:
@@ -121,6 +128,47 @@ The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
 `36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
+- sol: Name a failed round and keep the rule that ended it (`75e99b8f`)
+- ui: The learned rule arrives as a card and lives in settings (`989e8b07`)
+- chat: The stream shows the rule the turn proved (`e1030324`)
+- chat: The run surface reads as one calm log, and no turn goes silent (`189f755c`)
+- capabilities: User-editable tool switches and sub-agent allow-list (#69) (`4c5f8b43`)
+- brand: The paper moth as the product mark, cut from the owner reference (#70) (`6c79a287`)
+- brand: The moth as a living figure — five states, one glyph, one unfold (#71) (`692c59c2`)
+- brand: The seal on a landable change set, the moth on setup (#72) (`a1b702ee`)
+- persona: The seed persona states the four rules the product leans on (#73) (`fb62ea2e`)
+- tui: The paper moth in braille for the header and the greeting (#74) (`e00e2dee`)
+- update: Untagged merges reach the user on every surface (#78) (`1923d68f`)
+- companion: The pet goes where the hand puts it (#79) (`6d261775`)
+- update: One click takes the merges, not only the releases (#82) (`d6bb1ddd`)
+- artifacts: A deck opens in the chat, and the studio plan is written (#83) (`891b4a8b`)
+- companion: The paper moth is the default species (`677b1b6c`)
+- sol: Count the two runs a rule has to beat (`6722785c`)
+- chat: One calm run line and one preview surface (`fa849d88`)
+- tools: Start the project's own dev command (`24fe8108`)
+- cli: A bare ephe opens the terminal app and the installer leaves a command (`0462557a`)
+- sol: Keep a rule only when the next attempt beat the last one (`1c65f53a`)
+- update: Let the user choose between releases and every merge (`43a7f4da`)
+- settings: Open the active tab's sections beneath its row (`25df732e`)
+- update: Name the commit and the channel in the details (`5b618f68`)
+- settings: Version & Updates on the About page (`55ad6d77`)
+- settings: Give every area the blocks it is built from (`c0e4b163`)
+- audit: Per-tool call counts as a read-only route (`739385fb`)
+- discover: Put capabilities on a page of their own (`c0041a52`)
+- discover: Retire the in-Settings market shelves and their copy (`ab2bf6b9`)
+- discover: The breadth door — registry mirror, curated tier, source routes (`36ca2b02`)
+- discover: One bootstrap frame for the shelf (Y1) (`59b8ded4`)
+- discover: The shelf reads calm and deep (S3 + Y4) (`dd4222ed`)
+- discover: Verify before enable, rehearse before download (S4 + Y2) (`8eb9451f`)
+- discover: The task word finds the entry (Y3) (`83483e7d`)
+- secrets: Type the key where the connector is chosen (Y5) (`e3d7b1c9`)
+- settings: Five groups that fold, and a vault you can see (Y6) (`8c31296d`)
+- discover: The shelf renews weekly and names its sources (Y7) (`5a28fa3a`)
+- discover: The best-liked entries lead, and a pick argues for the shelf (`584c7676`)
+- discover: The shelf reads as a store, one subject at a time (`a95d5369`)
+- ui: The transcript reads at 16, notices stay off the composer, and the tool catalogue reads in families (`addbbc82`)
+- discover: The featured tier lists verified publishers first, with their own icons (`19f74fb9`)
+- shell: One frame, one rail, and a tab bar for the phone (`29016b21`)
 
 ### Added
 
@@ -172,6 +220,95 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - settings: The behaviour tab survives an answer without a subagent (`ee2f911`)
 - shell: The chrome row fits a 320 px phone again (`5d75d4c`)
 - build: Budget the chat seed chunk (`d45cd62`)
+- ui: The inspector loads as its own chunk, and the locale rows catch up (`03a363e8`)
+- settings: An unreadable rule store says so, and the SOL group has a glyph (`53a81a31`)
+- intro: The awakened still stands the moth on the drawn stage (#75) (`4adbdc13`)
+- chat: One run clock per tool block, not one per family (#77) (`2a1405a8`)
+- update: A behind build names its tip and the newest change (#81) (`0117f374`)
+- review: The deck opens in the card, and the update route keeps csrf (#84) (`3d51dfe0`)
+- update: One product sentence, never git's own words (`3763ba47`)
+- settings: Describe the update channel in both languages (`5083a6a9`)
+- deps: Move vite to the patched 6.4.5 (`30777a1e`)
+- settings: Give the check button a surface, not a hairline edge (`59ccc900`)
+- discover: Say what an empty shelf means when nothing was read (`8fa699c2`)
+- update: The documented opt-out now closes the door (`5e810320`)
+- update: The opt-out stops the fetch, the contract stays identical (`0ced8299`)
+- catalog: The mirror filter reuses the language gate's own vocabulary (`db84a46f`)
+- discover: Pin the opened door and keep the docs policy (`0c588b0d`)
+- marketplace: Confine the source cache path and refuse credential files (`faf9c34c`)
+- marketplace: Mark the owner's own index path where the query reads it (`51b39993`)
+- ci: Scope the catalog sync's write permission to its job (`bd24ee34`)
+- marketplace: Keep a local source index inside the owner's home (`3de9eccd`)
+- ci: The sync's token is fenced, and bundled packs keep their own words (`992b8181`)
+- settings: The heading folds beside its rows, and the parity walk keeps walking (`d218a918`)
+- settings: The phone strip keeps every row, and the groups fold beside them (`1457d88e`)
+- settings: The palette's settings row reaches the hub from every page (`8f63c70b`)
+- discover: The intent hit lands on its card, not beside it (`1fed1c0c`)
+- discover: The card keeps its badge, its provenance and its line (`f43a5ef5`)
+- shell: A data route paints its own ground (`8d8a9ca5`)
+- discover: The toolbar holds one line down to the tablet width (`221ee5c0`)
+- update: The dialog stops offering a pull that cannot run, and stops leaking git (`851abd6e`)
+- app: A deploy no longer leaves a dead page, and the model list stops repeating itself (`47b76ee3`)
+- update: The continuous channel reads the comparison from the build's side (`9bf110de`)
+- ci: The update verb names its tree, and a flaky API no longer reddens the timing report (`769bb9f8`)
+- ci: The timing report writes its cause on every path that cannot measure (`e47c21c1`)
+- engine: A model switch keeps the endpoint, and a half choice is never written (`eef472f2`)
+- tui: The session you come back to is the one you see (`a4cd5f7f`)
+- cli: The session list names only what a reader can choose (`af9e48c6`)
+- tui: The status row gives up the session before the endpoint (`995a64d3`)
+- locales: The German build notice uses no transliterated umlaut (`c321189f`)
+- engine: The model chip and the engine page read only this app's own table (`fa55e163`)
+- sync: A finished turn reaches the server mirror before the page goes away (`0e6391db`)
+- discover: Every card now performs the action it offers (`fc1e83b4`)
+- chat: An answer belongs to the task that asked for it (`e85961b1`)
+- cli: The doctor's update row names the budget it actually used (`34cb0b0b`)
+- workspaces: A row's age names the last activity when the fleet saw one (`bcede857`)
+- surface: Every confirmation names the action it performs (`256d626d`)
+- cell: The guest moves to 3.13.18 and is measured on it (`d66fb9ca`)
+- container: The basis is measured and the builder stops shipping pip 25 (`5428e1df`)
+- install: The pip path lands on the patched cell engine (`0f7110f9`)
+- tui: A question the run asks is a card, and its JSON leaves the text (`d8dee2ae`)
+
+## [0.5.2] - 2026-11-01
+
+The marketplace wave and the live-verification wave together: Discover now leads with the
+tools people actually use, shows the publisher's own icon and opens into a product page; the
+app gets one frame instead of eight per-page chrome; the sandbox guest and the container basis
+move to patched interpreters and are measured rather than assumed; and every surface that asks
+the reader to destroy something says what it will do.
+
+### Added
+
+- shell: One frame, one rail across the pages, and a tab bar for the phone (`29016b21`)
+- tui: The run's question becomes an answer card, and its JSON leaves the text (`d8dee2ae`)
+- discover: The curated tier leads the shelf, with the publisher's own icon (`19f74fb9`)
+- discover: One product, one row — a second endpoint of the same host folds into it (`19f74fb9`)
+
+### Changed
+
+- surface: Every confirmation carries the verb of the action it performs (`256d626d`)
+- workspaces: A row's age names the last activity when the fleet saw one (`bcede857`)
+
+### Fixed
+
+- chat: An answer belongs to the task that asked for it (`e85961b1`)
+- discover: Every card performs the action it offers (`fc1e83b4`)
+- sync: A finished turn reaches the server mirror before the page goes away (`0e6391db`)
+- cli: The doctor's update row names the budget it actually used (`34cb0b0b`)
+
+### Security
+
+- cell: The guest moves to CPython 3.13.18 — `tarfile` link hardening, the cookiejar
+  `Version` fix and the tempfile cleanup race — built from the signed archive, whose
+  sigstore digest was checked against the download, and re-measured on wasmtime 50.0.1
+  (`d66fb9ca`)
+- container: The builder reads its own basis (Python 3.12.16, OpenSSL 3.5.7) and replaces the
+  image's pip 25.0.1 with the hash-pinned 26.2.2 before it resolves anything (`5428e1df`)
+- install: The pip path restates the wasmtime floor the uv override cannot reach, so the
+  sandbox no longer ships the engine RUSTSEC-2026-0352 was filed against (`0f7110f9`)
+- marketplace: The minimatch advisory is a written decision in the register — development
+  scope, no fix below 11.0.1, `pnpm audit --prod` as the shipping-scope proof (`5428e1df`)
+
 ## [0.5.1] - 2026-10-29
 
 The repair wave from the live session: the status row stops colliding, a card stops
