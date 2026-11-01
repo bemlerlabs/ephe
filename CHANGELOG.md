@@ -294,6 +294,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   workbench directory, the config root, and an agent lane's copy of the whole tree (`879d8e99`)
 - release: A tool moves the changelog addresses a rebase merge rewrote, and takes a candidate
   only when its diff carries the same patch id (`732c2a0d`)
+- knowledge: One document reader covers the paths that read PDF, Word and PowerPoint text, and a
+  workbook now comes back as named cell text instead of bytes; a file with nothing extractable
+  answers with a warning rather than an exception (`0ee48d66`)
 
 ### Fixed
 
