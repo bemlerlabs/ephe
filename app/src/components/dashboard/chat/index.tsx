@@ -300,14 +300,17 @@ export default function ChatLayout() {
         />
 
         {/* Main chat area — <main> with the skip-link target id (P4-F1):
-          "Zum Inhalt springen" (#main-content) had no target. // language-gate: ignore — the German skip-link label the UI renders (locales/de.json:844) */}
+          "Zum Inhalt springen" (#main-content) had no target. // language-gate: ignore — the German skip-link label the UI renders (locales/de.json:844)
+          The row measures itself against the column it is painted in. The `@container/status`
+          mark sits on the padded column below, where the agent panel's inset is already
+          taken away — a viewport breakpoint fired too late there. */}
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 overflow-hidden relative">
           {/* Judge page-5 finding 2026-09-07 (reference-B split parity): with the panel
           open, the content column frees its width on the dock side —
           the send button, model chips and suggestion cards stay reachable.
           On mobile the panel stays an overlay (reference behaviour), Esc/X closes. */}
           <div
-            className="flex h-full flex-col relative transition-[padding] duration-base"
+            className="@container/status relative flex h-full flex-col transition-[padding] duration-base"
             style={
               panelInsetCss
                 ? panelGeo.dock === 'right'

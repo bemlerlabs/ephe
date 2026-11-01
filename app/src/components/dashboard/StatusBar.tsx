@@ -126,12 +126,12 @@ export default function StatusBar({
       className="border-b border-hairline px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] max-lg:pb-1.5 flex items-center gap-2 flex-shrink-0 select-none overflow-hidden whitespace-nowrap"
     >
       {/* Reference image 2: two pills on the left — 'Expand status' + current activity */}
-      <div className="hidden sm:flex items-center shrink-0">
+      <div className="hidden @md/status:flex items-center shrink-0">
         <AgentStatusButton messages={messages ?? []} sessionId={sessionId} />
       </div>
       {typing === true && (
         <span
-          className="hidden lg:inline-flex items-center gap-1.5 text-ui-xs text-brand/80"
+          className="hidden @2xl/status:inline-flex items-center gap-1.5 text-ui-xs text-brand/80"
           data-testid="ki-activity"
           role="status"
           aria-label={t('metrics.activity')}
@@ -148,7 +148,7 @@ export default function StatusBar({
       {typing === true && (tokPerSec ?? 0) > 0 && (
         <span
           data-testid="statusbar-tok-per-sec"
-          className="hidden sm:inline-flex items-center gap-1 text-ui-xs font-mono tabular-nums text-brand/90 shrink-0"
+          className="hidden @2xl/status:inline-flex items-center gap-1 text-ui-xs font-mono tabular-nums text-brand/90 shrink-0"
           title={t('statusBar.tokPerSecHint')}
         >
           <Zap className="h-3 w-3 text-brand/70" />
@@ -159,7 +159,10 @@ export default function StatusBar({
           the agent-status popover („Status aufklappen") — the visible row stays
           minimal: one pill per fact, nothing more. */}
       <ConnectionPill backendOnline={backendOnline} engineOnline={engineOnline} />
-      <div className="hidden md:inline-flex min-w-0 max-w-[12rem]">
+      {/* The cap is the point: without `overflow-hidden` the pill paints past its box,
+          and with the frame's rail taking 56 px off the column the spill landed on the
+          breakdown toggle at 1100-1440 px (measured on CI, composer-width.spec.ts). */}
+      <div className="hidden min-w-0 max-w-[12rem] overflow-hidden @2xl/status:inline-flex">
         <CodebaseStatusBarPill onOpen={() => setCodebaseOpen(true)} />
       </div>
       {/* Live %-full Meter. R36 (Judge R2): percent lives OUTSIDE the meter
@@ -201,7 +204,7 @@ export default function StatusBar({
       {tokenizer === 'tiktoken-bpe' && (
         <span
           data-testid="statusbar-tokenizer-chip"
-          className="hidden lg:inline text-ui-xs font-mono text-ink-faint shrink-0"
+          className="hidden @4xl/status:inline text-ui-xs font-mono text-ink-faint shrink-0"
           title={t('status.bpeExact')}
         >
           ·bpe
@@ -221,7 +224,7 @@ export default function StatusBar({
         data-testid="statusbar-breakdown-toggle"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        className="hidden lg:flex text-ui-xs font-mono tabular-nums text-ink-faint hover:text-foreground/60 transition-colors items-center gap-1 py-1.5 -my-1.5 px-1 -mx-1 whitespace-nowrap shrink-0"
+        className="hidden items-center gap-1 whitespace-nowrap py-1.5 -my-1.5 px-1 -mx-1 text-ui-xs font-mono tabular-nums text-ink-faint transition-colors hover:text-foreground/60 shrink-0 @4xl/status:flex"
         title={t('statusBar.breakdownHint')}
       >
         <Zap className="h-3 w-3 text-brand/70" />
@@ -250,19 +253,20 @@ export default function StatusBar({
           length, so a nearing quota warns before the silent loss.
           R36: min-w-0 + truncate — as the last pill in the row it yields instead
           of painting over "N free" (judge R2). */}
-      <div className="hidden xl:inline-flex min-w-0">
+      <div className="hidden min-w-0 @6xl/status:inline-flex">
         <StorageFootprint />
       </div>
 
       {/* DD-10: on mobile there was no token figure at all — the breakdown button
-          is md:flex. An equivalent md:hidden counterpart (same toggle) so desktop
-          and mobile show the same information. */}
+          appears at a wide column. Its counterpart here is the same toggle, shown
+          only while that one is hidden, so a narrow column and a wide one state
+          the same fact with the same control. */}
       <button
         onClick={() => setExpanded((v) => !v)}
         data-testid="statusbar-tok-chip"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        className="lg:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
+        className="@4xl/status:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
       >
         {formatNumber(effectiveTokens, i18n.language)} tok
       </button>
@@ -272,7 +276,7 @@ export default function StatusBar({
           QD-015 V1: the remainder is the first figure to give way — below md it
           steps out entirely, and above it `min-w-0 truncate` lets it shrink
           against the cost chips instead of pushing them into a second row. */}
-      <span className="hidden md:inline-block min-w-0 truncate text-ui-xs text-ink-faint font-mono tabular-nums">
+      <span className="hidden min-w-0 truncate text-ui-xs text-ink-faint font-mono tabular-nums @2xl/status:inline-block">
         {effectiveWindow
           ? t('statusBar.contextFreeOf', {
               free: formatNumber(effectiveRemaining, i18n.language),
