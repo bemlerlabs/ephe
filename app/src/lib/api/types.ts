@@ -115,6 +115,8 @@ export interface SkillSummary {
   install?: SkillInstallRecord | null
   /** R4: is the file still what was noted? null = not provable. */
   unchanged?: boolean | null
+  /** The language of the words above, marked by the loader; the card labels with it. */
+  language?: string
 }
 
 export interface SkillInstallResult {
@@ -147,10 +149,7 @@ export interface ImageEndpointProbe {
   base_url_used: string
   detail: string
 }
-/**
- * Active engine status from the backend (single source of truth).
- * Mirrors server/routes/health.py::HealthResponse.
- */
+/** Active engine status from the backend; mirrors server/routes/health.py::HealthResponse. */
 export interface HealthInfo {
   status: string
   version?: string
@@ -186,8 +185,7 @@ export interface HealthInfo {
 }
 
 import type { EngineCandidate, EngineState } from './providers'
-// The engine-answer shapes live next door and stay reachable through this file, so
-// every existing `from './types'` import keeps working.
+// The engine-answer shapes live next door; `from './types'` imports keep working.
 export * from './providers'
 
 /**
