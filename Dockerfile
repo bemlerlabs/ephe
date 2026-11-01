@@ -1,4 +1,13 @@
 # ── Build Stage ──────────────────────────────────────────────────
+# The basis was read from the image, not assumed. Measured 2026-10-28 build, pulled
+# 2026-11-01 as python:3.12-slim@sha256:aa943ce411423c7582288f18707ff66eddcbaeb510502d747a72aeb34f30d159
+# (linux/arm64): `python3 -VV` answers Python 3.12.16 [GCC 14.2.0], ssl reports
+# OpenSSL 3.5.7, and the Debian packages behind it are libssl3t64 3.5.7-1~deb13u3,
+# libc-bin 2.41-12+deb13u4. What the tag does NOT carry is a patched pip: the image
+# ships pip 25.0.1, and 25.1 and every older release still trust the compromised
+# eMudhra intermediate CAs through their vendored certifi (PYSEC-2026-3721). The first
+# RUN below therefore replaces pip with the hash-pinned 26.2.2 wheel before anything
+# is resolved over that trust path — the same step install.sh makes for the same reason.
 FROM python:3.12-slim AS builder
 
 WORKDIR /build
@@ -21,7 +30,10 @@ COPY app/ app/
 COPY knowledge/ knowledge/
 COPY run_server.py ephe.py ephe_cli.py ./
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir --upgrade \
+      "https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70" \
+    && python -c "import sys, pip; sys.exit(0 if pip.__version__ == '26.2.2' else 1)" \
+    && pip install --no-cache-dir .
 
 # ── Frontend Stage ───────────────────────────────────────────────
 # app/dist is a git-ignored build artifact, so an image built without this
@@ -44,6 +56,9 @@ RUN corepack enable \
     && pnpm run build
 
 # ── Runtime Stage ────────────────────────────────────────────────
+# One basis, measured above: the interpreter here is the same Python 3.12.16 /
+# OpenSSL 3.5.7, and the site-packages copy brings the upgraded pip with it, so the
+# running container holds no pip older than 26.2.2 either.
 FROM python:3.12-slim
 
 WORKDIR /app

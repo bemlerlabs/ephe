@@ -166,3 +166,25 @@ def test_resolved_compose_binds_loopback() -> None:
             assert host_ip == "127.0.0.1", (
                 f"{service}: Docker wendet host_ip={host_ip!r} an, erwartet 127.0.0.1"
             )
+
+
+def test_the_builder_replaces_the_image_pip_before_it_resolves_anything() -> None:
+    """The image's own pip is a trust path, and the basis was read rather than assumed.
+
+    Measured 2026-11-01 against the pull of `python:3.12-slim` (image created
+    2026-10-28, digest aa943ce4…): `python3 -VV` answers Python 3.12.16 [GCC 14.2.0] and
+    `ssl.OPENSSL_VERSION` OpenSSL 3.5.7, while `pip --version` inside the image answers
+    25.0.1 — a release PYSEC-2026-3721 lists as still trusting the compromised eMudhra
+    intermediates through its vendored certifi. So the builder upgrades pip from the
+    hash-pinned wheel inside the same RUN, reads the version back, and only then resolves
+    the project.
+    """
+    text = DOCKERFILE.read_text(encoding="utf-8")
+    step = next(part for part in text.split("RUN ") if part.startswith("pip install"))
+    assert "pip-26.2.2-py3-none-any.whl#sha256=" in step, \
+        "the builder resolves the project with the pip the image ships"
+    assert step.index("pip-26.2.2") < step.index("pip install --no-cache-dir ."), \
+        "the pip bootstrap runs after the project install, not before it"
+    assert 'pip.__version__ == "26.2.2"' in step or "pip.__version__ == '26.2.2'" in step, \
+        "the builder never reads the pip version back"
+    assert "3.12.16" in text, "the measured interpreter level of the basis is not recorded"
