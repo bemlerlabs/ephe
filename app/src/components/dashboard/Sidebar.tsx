@@ -56,6 +56,7 @@ import type { TabKey } from '@/components/dashboard/settings/types'
 import { SESSION_MENU_GROUPS, type SessionMenuEntryId } from './sessionMenuEntries'
 import {
   OPEN_TIERS_KEY,
+  RAIL_DESTINATIONS,
   SIDEBAR_ACTION_TIERS,
   readOpenTiers,
   type SidebarActionEntryId,
@@ -919,7 +920,9 @@ export default function Sidebar({
               data-testid="sidebar-actions"
             >
               {SIDEBAR_ACTION_TIERS.map((tier) => {
-                const rows = tier.entries.map((id) => ({ id, ...sideNavRows[id] }))
+                const rows = tier.entries
+                  .filter((id) => !(isDesktop && RAIL_DESTINATIONS.includes(id)))
+                  .map((id) => ({ id, ...sideNavRows[id] }))
                 const renderRow = ({
                   id,
                   testid,

@@ -81,6 +81,23 @@ export const SIDEBAR_ACTION_TIERS: readonly SidebarActionTier[] = [
   },
 ]
 
+/**
+ * The rows that name a page of the app. The frame's rail carries them from 1024 px up
+ * (`components/shell/NavRail.tsx`), so the task register hides them there and keeps them in
+ * the phone drawer, where the tab bar shows only five of the places.
+ *
+ * This is the split the frame asked for: the rail is where you are in the app, the sidebar is
+ * what belongs to the task in front of you. Two columns of the same five destinations read as
+ * an accident (seen in the 1440 px screenshot, 2026-11-01).
+ */
+export const RAIL_DESTINATIONS: readonly SidebarActionEntryId[] = [
+  'tools',
+  'marketplace',
+  'workspaces',
+  'knowledge',
+  'artifacts',
+]
+
 /** Tier id of the disclosures (everything with a head). */
 export type SidebarCollapsibleTierId = Exclude<
   (typeof SIDEBAR_ACTION_TIERS)[number]['id'],
