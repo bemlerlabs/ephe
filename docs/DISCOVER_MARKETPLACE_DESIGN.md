@@ -164,3 +164,31 @@ invariant tests. No third-party content is adopted; this is structure only.
 - Open: S3 surface v2 + detail modal, S4 verification before enable, S5
   settings parity gaps, S6 rebuild both shipping surfaces and the
   four-surface visual check.
+
+## 12. Publisher marks
+
+A listing may name the icon of whoever publishes it. Two rules keep that honest.
+
+- **The mark travels inside the repository.**
+  `scripts/fetch_marketplace_icons.py` asks the publisher's own domain once,
+  resizes what comes back to a 64 px tile, writes
+  `marketplace/icons/providers/<slug>.png`, and records the URL, the fetch date
+  and the SHA-256 of those bytes in `SOURCES.json` beside them. The surface reads
+  `GET /api/discover/icon/<slug>` and that route serves only from this directory,
+  so a render never calls a third party and an offline install still shows the
+  marks it shipped with.
+- **A row can name a mark only in one shape.** `ICON_SLUG` in
+  `core/mcp_catalog.py` is the single rule, shared by the loader (which drops a
+  value the route could never resolve) and the route (which refuses it again).
+  `marketplace/featured.json` carries the slug per row; a curated row takes its
+  slug from the host in its own install line, so the weekly re-sync keeps the
+  field rather than erasing it.
+
+Where a row names no mark, the card, the detail sheet and the hero each render the
+subject glyph for its category. A mark and a glyph sit in the same plate at the
+same size, so turning between a pick with a logo and one without keeps the title
+where it was.
+
+The marks belong to the publishers they identify. They are fetched to label the
+listing of that publisher's own server, and nothing here grants a licence or states
+that Ephe endorses a publisher or is endorsed by one.
