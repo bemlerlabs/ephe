@@ -286,6 +286,18 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   release asks for it, so the lockfile lane overrides it and the lint run proves the toolchain
   still matches the same files (`93844868`)
 
+### Added
+
+- hygiene: The gate names the state this product writes itself — a session store, a capture, the
+  workbench directory, the config root, and an agent lane's copy of the whole tree (`af90becb`)
+
+### Fixed
+
+- docker: The private-state ignores match at every depth, so a dotenv under `app/` cannot ride
+  into the image the way that file's own header says it cannot (`cf4a0ad4`)
+- scripts: The moth generator reaches its source through the home directory, and the published
+  tree names no person (`6001f37d`)
+
 ## [0.5.2] - 2026-11-01
 
 The marketplace wave and the live-verification wave together: Discover now leads with the
