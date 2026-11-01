@@ -59,7 +59,7 @@ from core.profile import UserProfile, load_profile
 from core.corrections import CorrectionJournal
 from core.skills import SkillLoader
 from ui.composer import Composer
-from ui.widgets import ChatView, ConfirmPrompt, StatusBar
+from ui.widgets import AskPrompt, ChatView, ConfirmPrompt, StatusBar
 from ui.context_meter import estimate_context_usage, resolve_window
 from ui.overlays import (
     CommandPalette,
@@ -349,6 +349,54 @@ class EpheApp(App):
         finally:
             if self._streaming:
                 self._set_run_state("working")
+
+    def _tui_ask_cb(self, chat: ChatView):
+        """The terminal's answer field for `ask_user` (finding #66).
+
+        The browser resolves the same question through a token and an HTTP endpoint; here the
+        run and the reader sit in one process, so the gate's callback mounts a card in the
+        transcript and waits on its event. An unanswered question returns the empty string and
+        the gate continues on the value the run stated, exactly as it does with no dialog at all.
+        """
+
+        async def _ask(
+            *,
+            question: str,
+            options: list,
+            recommendation: str,
+            default: str,
+            multi_select: bool,
+            timeout_seconds: float,
+        ) -> str:
+            prompt = await chat.show_ask_prompt(
+                {
+                    "question": question,
+                    "options": [{"label": one} for one in options],
+                    "recommendation": recommendation,
+                    "default": default,
+                    "multi_select": multi_select,
+                },
+                from_tool=True,
+            )
+            try:
+                await asyncio.wait_for(prompt.answered.wait(), timeout=timeout_seconds)
+            except asyncio.TimeoutError:
+                prompt.dismiss()
+                return ""
+            return prompt.result
+
+        return _ask
+
+    def on_ask_prompt_answered(self, event: "AskPrompt.Answered") -> None:
+        """A question that arrived with a finished turn is answered as the next message.
+
+        The tool path needs nothing here: the run is still open and its callback reads the
+        answer off the prompt. `from_tool` is the difference between the two, and it is the
+        reason one card serves both.
+        """
+        if event.from_tool or not event.text:
+            return
+        self._submit_turn(event.text)
 
     def on_confirm_prompt_answered(self, event: "ConfirmPrompt.Answered") -> None:
         """App handler: maintain the session allowlist + show the result in the chat.
@@ -1151,6 +1199,12 @@ class EpheApp(App):
             def on_revision(reason: str) -> None:
                 chat.post_message(ChatView.ResetAnswer())
 
+            # G1 in the terminal: the run pauses on its question here too. Without this the
+            # gate answers itself and says it could not reach anybody.
+            from core.tools.ask_gate import set_ask_cb
+
+            set_ask_cb(self._tui_ask_cb(chat))
+
             # Extract the question safely from pending_history
             if self._pending_history:
                 last_msg = self._pending_history[-1]
@@ -1176,6 +1230,7 @@ class EpheApp(App):
                     approval_policy=self._approval_policy(),
                 )
             finally:
+                set_ask_cb(None)
                 hint_task.cancel()
                 try:
                     await hint_task
