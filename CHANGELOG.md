@@ -289,14 +289,14 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 ### Added
 
 - hygiene: The gate names the state this product writes itself — a session store, a capture, the
-  workbench directory, the config root, and an agent lane's copy of the whole tree (`f8f64504`)
+  workbench directory, the config root, and an agent lane's copy of the whole tree (`879d8e99`)
 
 ### Fixed
 
 - docker: The private-state ignores match at every depth, so a dotenv under `app/` cannot ride
-  into the image the way that file's own header says it cannot (`68f0bf3c`)
+  into the image the way that file's own header says it cannot (`5d2ab908`)
 - scripts: The moth generator reaches its source through the home directory, and the published
-  tree names no person (`5b55dfa5`)
+  tree names no person (`8117ee94`)
 
 ## [0.5.2] - 2026-11-01
 
