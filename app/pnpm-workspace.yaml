@@ -14,3 +14,10 @@ overrides:
   source-map-js: 1.2.2
   brace-expansion@1: 1.1.21
   brace-expansion@5: 5.0.12
+  # GHSA-g3hv-75wg-m249 (CVE-2026-118764): the advisory covers minimatch < 11.0.1, and no
+  # release of eslint 9, @eslint/config-array, @eslint/eslintrc or
+  # @typescript-eslint/typescript-estree asks for 11 — they sit on ^3.1.2 and ^10.0.2.
+  # 11.0.3 is the patched line's newest patch, and its own brace-expansion floor (^5.0.12)
+  # is the pin above, so the override does not open a second advisory.
+  # Held by tests/test_minimatch_override_floor.py.
+  minimatch: 11.0.3

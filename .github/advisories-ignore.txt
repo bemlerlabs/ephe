@@ -160,25 +160,21 @@ GHSA-qhr7-859c-m2p7  # package=brace-expansion ecosystem=npm scope=development s
 GHSA-6j4f-fj2g-mc7p  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.19|>=4.0.0,<5.0.10 fixed_in=1.1.19 recheck=2026-11-06
 GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development state=fixed affected=>=1.0.0,<1.2.2 fixed_in=1.2.2 recheck=2026-11-06
 
-# GHSA-g3hv-75wg-m249 = CVE-2026-118764 — minimatch turns an attacker-controlled glob into
-# a quadratic second-phase pass: `firstPhasePreProcess` clones a globParts entry for every
-# `**/../` it rewrites inside a fixpoint loop, and `secondPhasePreProcess` then compares the
-# grown array pairwise. Published 2026-10-30, so this arrived after the last audit read.
-# Why it is not fixed yet: OSV ranges the flaw `introduced=0, fixed=11.0.1`, and the lock's
-# two copies sit far below that on ranges their parents allow — 3.1.5 under
-# eslint -> @eslint/config-array and @eslint/eslintrc, 10.2.6 under
-# @typescript-eslint/typescript-estree. No release exists inside either parent's range, so
-# the only local move is an override across two majors onto a version nothing here has been
-# run against; when ESLint and typescript-eslint move, this row goes to `state=fixed` the
-# way the eight above it did, and `fixed_in=11.0.1` becomes the floor.
-# Exposure as measured 2026-11-01 in app/, with the gate's own commands:
-#   pnpm audit --prod --json  -> 0 records (the graph that ships)
-#   pnpm audit --json         -> 1 record: minimatch, moderate, development scope
-# Nothing on this path reaches the PWA bundle or the Tauri build. The patterns handed to
-# minimatch are the repository's own tsconfig and eslint includes, and the CVSS:4.0 vector
-# claims availability only (AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L): a slow lint run on a
-# machine that already holds the checkout.
-GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=pending-fix affected=<11.0.1 fixed_in=11.0.1 blocked_by=eslint-and-typescript-estree-pin-below-11 recheck=2026-11-29
+# GHSA-g3hv-75wg-m249 = CVE-2026-118764 — minimatch amplifies an attacker-supplied glob:
+# `firstPhasePreProcess` clones a globParts entry for every `**/../` it rewrites in a fixpoint
+# loop, and `secondPhasePreProcess` compares the grown array pairwise. OSV: fixed=11.0.1.
+# Why it is fixed: no parent asks for 11 — 3.1.5 sat under @eslint/config-array and
+# @eslint/eslintrc on ^3.1.2, 10.2.6 under @typescript-eslint/typescript-estree on ^10.0.2 —
+# so the line was reached the way the eight rows above it were: an override to 11.0.3 in
+# app/pnpm-workspace.yaml, where pnpm 11 reads overrides (the manifest's `pnpm` field is now
+# ignored with a warning). 11.0.3's brace-expansion floor ^5.0.12 is the pin already there,
+# so no second advisory opens. Held by tests/test_minimatch_override_floor.py.
+# Exposure as measured 2026-11-01 in app/, with the workflow's own commands: `pnpm audit
+# --json` and `pnpm audit --prod --json` -> 0 records each (the full graph held 1: minimatch,
+# moderate, development). `eslint . --format json` -> 1010 files, 0 errors, 81 warnings, and
+# the (file, rule, line, column) set is identical to the run on 3.1.5/10.2.6: the ignore
+# globs match the same files. tsc, vite build and vitest (467 files / 3221 tests) unchanged.
+GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=fixed affected=<11.0.1 fixed_in=11.0.1 recheck=2026-11-29
 
 # GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 — glib.
 # Why it is not fixed yet: glib 0.20.0 is the fix and app/src-tauri/Cargo.lock pins 0.18.5,
