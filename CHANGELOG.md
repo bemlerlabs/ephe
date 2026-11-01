@@ -304,6 +304,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   into the image the way that file's own header says it cannot (`5d2ab908`)
 - scripts: The moth generator reaches its source through the home directory, and the published
   tree names no person (`8117ee94`)
+- memory: A stored note reads as the markdown it was written in — a table arrives as a
+  table, a bold line as bold, and a long path shrinks to the card instead of widening
+  it (`eea22778`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
 
