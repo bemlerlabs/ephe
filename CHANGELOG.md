@@ -281,6 +281,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   route answer for the same shape (`8765637c`)
 - cli: `ephe doctor` answers its cell line in the report's own language, and a guard pins the
   wording of both branches so a translated string is caught by a test (`b336e116`)
+- discover: The shelf keeps each skill's own words and the loader marks the language they are
+  in, falling back to the shelf language when there is no evidence; measured 2 of 72 served
+  entries were the user's German, none first-party (`d94ed735`)
 
 ### Security
 
