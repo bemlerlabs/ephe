@@ -128,6 +128,9 @@ export function vocabLabel(
 
 export type AgeUnit = 'now' | 'minutes' | 'hours' | 'days'
 
+/** One age in the largest unit that still reads as a number. */
+export type Age = { unit: AgeUnit; n: number }
+
 /**
  * How long a workspace has existed, in the largest unit that still reads as a number.
  *
@@ -135,7 +138,7 @@ export type AgeUnit = 'now' | 'minutes' | 'hours' | 'days'
  * the fractional part is cut to the three digits every engine parses, so a valid stamp
  * never becomes `NaN` on one browser and a date on another.
  */
-export function ageOf(iso: string, now: number = Date.now()): { unit: AgeUnit; n: number } | null {
+export function ageOf(iso: string, now: number = Date.now()): Age | null {
   if (!iso) return null
   const parsed = Date.parse(iso.replace(/(\.\d{3})\d+/, '$1'))
   if (Number.isNaN(parsed)) return null
@@ -145,6 +148,35 @@ export function ageOf(iso: string, now: number = Date.now()): { unit: AgeUnit; n
   const hours = Math.floor(minutes / 60)
   if (hours < 24) return { unit: 'hours', n: hours }
   return { unit: 'days', n: Math.floor(hours / 24) }
+}
+
+/**
+ * An age the fleet already measured (`last_event.age_seconds`) in the units of `ageOf`.
+ *
+ * The board polls instead of re-reading the register, so the seconds arrive counted and no
+ * stamp is left to parse. Both readings answer in the same largest unit, which lets one row
+ * show a measured activity age and a parsed birth stamp in the same sentence.
+ */
+export function ageOfSeconds(seconds: number | null | undefined): Age | null {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return null
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 1) return { unit: 'now', n: 0 }
+  if (minutes < 60) return { unit: 'minutes', n: minutes }
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return { unit: 'hours', n: hours }
+  return { unit: 'days', n: Math.floor(hours / 24) }
+}
+
+/**
+ * The label of one age, from either source, in the words the reader already knows.
+ * `null` and the unit `now` are the two ways an age is not a number yet.
+ */
+export function ageText(
+  age: Age | null,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (!age) return ''
+  return age.unit === 'now' ? t('workspaces.ageNow') : t(`workspaces.age.${age.unit}`, { n: age.n })
 }
 
 /**
@@ -158,9 +190,7 @@ export function ageLabel(
   t: (key: string, options?: Record<string, unknown>) => string,
   now: number = Date.now(),
 ): string {
-  const age = ageOf(iso, now)
-  if (!age) return ''
-  return age.unit === 'now' ? t('workspaces.ageNow') : t(`workspaces.age.${age.unit}`, { n: age.n })
+  return ageText(ageOf(iso, now), t)
 }
 
 /** `sha256:9f2c…` as the short form a reviewer can compare by eye. */

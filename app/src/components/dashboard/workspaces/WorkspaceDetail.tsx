@@ -61,7 +61,7 @@ export default function WorkspaceDetail({
             )}
             <span aria-hidden="true">·</span>
             <span className="tabular-nums" data-testid="workspace-detail-age">
-              <AgeText iso={workspace.created_at} />
+              <AgeText iso={workspace.created_at} seconds={workspace.last_event?.age_seconds} />
             </span>
           </p>
         </div>

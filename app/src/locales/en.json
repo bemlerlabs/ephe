@@ -68,7 +68,9 @@
     "age": {
       "minutes": "{{n}}m ago",
       "hours": "{{n}}h ago",
-      "days": "{{n}}d ago"
+      "days": "{{n}}d ago",
+      "created": "created {{when}}",
+      "activity": "last activity {{when}}"
     },
     "conflicts": "{{count}} files are being changed in more than one workspace at once — whoever publishes second meets a file the other one already moved.",
     "conflicts_one": "One file is being changed in more than one workspace at once — whoever publishes second meets a file the other one already moved.",
@@ -451,8 +453,8 @@
     "thisWeek": "This Week",
     "thisMonth": "This Month",
     "renameHint": "Rename task",
-    "deleteYes": "Yes",
-    "deleteNo": "Cancel",
+    "deleteAction": "Delete task",
+    "deleteCancel": "Cancel",
     "messages": "messages",
     "ready": "Ready",
     "freshCell": "New one-way cell",
@@ -2263,7 +2265,14 @@
     "applying": "Applying…",
     "discard": "Discard",
     "discarding": "Discarding…",
-    "discardConfirm": "Discard this hunk? The change will be reverted."
+    "discardConfirm": "Discard this hunk? The change will be reverted.",
+    "actions": {
+      "checkpointDelete": "Delete checkpoint",
+      "checkpointRollback": "Roll back",
+      "branchSwitch": "Switch branch",
+      "hunkDiscard": "Discard hunk",
+      "fileRevert": "Discard changes"
+    }
   },
   "update": {
     "details": "Details",
