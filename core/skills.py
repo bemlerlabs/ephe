@@ -54,6 +54,27 @@ def invalidate_skill_cache() -> None:
 # resolved automatically). Persisted separately from the skill list.
 DISABLED_SKILLS_FILE = DEFAULT_USER_SKILLS_DIR.parent / "skills_state.json"
 
+# Shelf rule: every served skill keeps the author's own words, and the loader marks
+# which language those words are in; without evidence it answers in the shelf language.
+SHELF_LANGUAGE = "en"
+
+# Function words no English sentence uses bare; one umlaut-bearing word is
+# already decisive, two of these agree.
+_GERMAN_WORDS = ("und", "mit", "für", "über", "nicht", "eine", "wird", "werden", "auch", "wenn", "dann", "diese", "damit", "oder", "aber", "gegen", "ohne", "vom", "zum", "zur", "beim", "sehr", "wie", "bei")  # language-gate: ignore (the marker words this labeler hunts, as data)
+_GERMAN_WORD = re.compile(
+    r"(?<![A-Za-zÄÖÜäöüß])(" + "|".join(_GERMAN_WORDS) + r")(?![A-Za-zÄÖÜäöüß])",
+    re.IGNORECASE,
+)
+_UMLAUT_WORD = re.compile(r"[A-Za-zÄÖÜ]*(?:[äöüß][A-Za-zÄÖÜäöüß]*)+")
+
+
+def detect_language(*texts: str) -> str:
+    """The language of a skill's own served words, for the card to mark."""
+    joined = " ".join(t for t in texts if t)
+    if _UMLAUT_WORD.search(joined) or len(_GERMAN_WORD.findall(joined)) >= 2:
+        return "de"
+    return SHELF_LANGUAGE
+
 
 # Data Classes
 
@@ -92,6 +113,9 @@ class Skill:
     example_block: str = ""
     # P1-2: declares whether the skill has a deterministic fast path
     # (no tool dialog). Precedence annotation for the model.
+    # Shelf rule: the language the loader read in the served words (name, trigger,
+    # description). Marked, never rewritten; falls back to SHELF_LANGUAGE.
+    language: str = SHELF_LANGUAGE
 
 
 @dataclass
@@ -448,8 +472,18 @@ def _parse_skill(name: str, content: str, *, skill_dir: Path | None = None) -> S
             if marker in lowered
         ]
 
+    served_name = str(meta.get("name", name) or name)
+    # The bold trigger line keeps the author's whole phrase; the stored trigger
+    # is only its first token, so the language is read from the fuller text.
+    _trigger_line = re.search(r"\*\*Trigger\*\*:[^\S\n]*(.+)", body)
+    language = detect_language(
+        served_name,
+        _trigger_line.group(1).strip() if _trigger_line else trigger,
+        description,
+    )
+
     return Skill(
-        name=str(meta.get("name", name) or name),
+        name=served_name,
         trigger=trigger,
         description=description,
         system_prompt=system_prompt,
@@ -465,6 +499,7 @@ def _parse_skill(name: str, content: str, *, skill_dir: Path | None = None) -> S
         reference_text=reference_text,
         example_text=example_text,
         example_block=example_block,
+        language=language,
     )
 
 
