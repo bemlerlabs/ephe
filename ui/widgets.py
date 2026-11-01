@@ -29,12 +29,13 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.message import Message as TextualMessage
 from textual.widget import Widget
-from textual.widgets import Collapsible, Static
+from textual.widgets import Collapsible, Input, Static
 from rich.console import Group, RenderableType
 from rich.markdown import Markdown
 from rich.markup import escape as markup_escape
 from rich.text import Text
 
+from core.ask_block import split_block
 from ui.context_meter import ContextUsage, meter_text
 from ui.palette import ACCENT, DIM, ERROR, OK, TEXT, WARN
 
@@ -466,14 +467,21 @@ class AgentMessageCard(Widget):
         self._phase_line.visible = False
         # Live text → markdown-rendered final answer
         if self._answer_acc:
+            # The block convention (finding #66): a question the model wrote as JSON is
+            # rendered as a card and leaves the answer text. A block this reader cannot
+            # turn into a question stays in the text — showing nothing would be the
+            # quieter loss.
+            cleaned, spec = split_block(self._answer_acc)
             self._answer_md = self.query_one("#answer-md", Static)
             self._answer_md.update(
                 Group(
                     Text("Assistant", style=f"bold {ACCENT}"),
-                    Markdown(self._answer_acc),
+                    Markdown(cleaned),
                 )
             )
             self._answer_md.visible = True
+            if spec is not None:
+                self.post_message(ChatView.AskRequested(spec))
         live = self.query_one("#answer-live", Static)
         live.visible = False
         live.update("")
@@ -573,6 +581,17 @@ class ChatView(Widget):
         def __init__(self, name: str) -> None:
             super().__init__()
             self.name = name
+
+    class AskRequested(TextualMessage):
+        """A finished turn ended on the block convention: the question needs its card.
+
+        The run is no longer waiting, so the answer travels as the next message (the
+        `ask_user` tool path resolves the waiting call instead).
+        """
+
+        def __init__(self, spec: dict) -> None:
+            super().__init__()
+            self.spec = spec
 
     class SetPhase(TextualMessage):
         def __init__(self, text: str) -> None:
@@ -724,6 +743,25 @@ class ChatView(Widget):
         self.call_after_refresh(container.scroll_end, animate=False)
         return prompt
 
+    _ask_prompt: "AskPrompt | None" = None
+
+    async def show_ask_prompt(self, spec: dict, *, from_tool: bool) -> "AskPrompt":
+        """Mount the answer field for a question the run asked (finding #66).
+
+        Same contract as the confirmation above: the worker waits on `prompt.answered`
+        and reads `prompt.result`. It mounts at the end of the transcript and scrolls
+        into view, because a question the reader cannot see is a question that times out.
+        """
+        container = self._container()
+        prompt = AskPrompt(spec, from_tool=from_tool)
+        await container.mount(prompt)
+        self._ask_prompt = prompt
+        self.call_after_refresh(container.scroll_end, animate=False)
+        return prompt
+
+    async def on_chat_view_ask_requested(self, event: "ChatView.AskRequested") -> None:
+        await self.show_ask_prompt(event.spec, from_tool=False)
+
     def on_resize(self, event: object) -> None:
         """A resize keeps the transcript where the reader left it."""
         container = self._container()
@@ -848,6 +886,147 @@ class ConfirmPrompt(Widget):
         self.result = (answer, always)
         self.post_message(ConfirmPrompt.Answered(answer, always, self._tool_name))
         self.answered.set()
+        self.remove()
+
+
+class AskPrompt(Widget):
+    """The answer field for a question the run asked (finding #66).
+
+    The browser has had this since the card in `assistantExtras.tsx`; the terminal printed the
+    block's JSON, so the reader met a question in its wire format:
+
+        Which report should the summary lead with?
+          1. Revenue first  (recommended)
+          2. Churn first
+        1-2 · or type your own answer · Enter sends · Esc leaves it unanswered
+
+    A number picks the option, anything else is the reader's own sentence, and several numbers
+    ("1,3") answer a multi-select. The card answers in two directions at once: `answered`
+    resolves the tool call that is still waiting inside the run, and `Answered` lets the app
+    send the same text as the next message when the question came from a finished turn.
+    """
+
+    can_focus = True
+
+    DEFAULT_CSS = f"""
+    AskPrompt {{
+        height: auto;
+        width: 100%;
+        padding: 0 1;
+        border: round {ACCENT};
+    }}
+    AskPrompt > Input {{
+        width: 1fr;
+    }}
+    """
+
+    class Answered(TextualMessage):
+        """Posted when the reader answers. `from_tool` marks the waiting run."""
+
+        def __init__(self, text: str, from_tool: bool) -> None:
+            super().__init__()
+            self.text = text
+            self.from_tool = from_tool
+
+    def __init__(self, spec: dict, *, from_tool: bool = False, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._spec = spec
+        self._from_tool = from_tool
+        self._answered = False
+        self.result = ""
+        self.answered = asyncio.Event()
+
+    # ── Rendering ────────────────────────────────────────────────────────────
+
+    def _labels(self) -> list[str]:
+        return [str(option.get("label") or "") for option in self._spec.get("options") or []]
+
+    def _body(self) -> Text:
+        out = Text()
+        out.append("?  ", style=f"bold {ACCENT}")
+        out.append(" ".join(str(self._spec.get("question") or "").split()), style=f"bold {TEXT}")
+        out.append("\n")
+        labels = self._labels()
+        recommended = str(self._spec.get("recommendation") or "")
+        for index, label in enumerate(labels, start=1):
+            out.append(f"  {index}. ", style=DIM)
+            out.append(label)
+            if recommended and label == recommended:
+                out.append("  (recommended)", style=f"italic {OK}")
+            description = (self._spec.get("options") or [])[index - 1].get("description")
+            if description:
+                out.append(f" — {description}", style=DIM)
+            out.append("\n")
+        if self._spec.get("default"):
+            out.append("  if nobody answers: ", style=DIM)
+            out.append(str(self._spec["default"]))
+            out.append("\n")
+        out.append(
+            "  ".join(
+                filter(
+                    None,
+                    [
+                        f"1-{len(labels)}" if labels else "",
+                        "or type an answer",
+                        "Enter sends",
+                        "Esc leaves it unanswered",
+                    ],
+                )
+            )
+            + (" · multi: 1,3" if self._spec.get("multi_select") else ""),
+            style=DIM,
+        )
+        return out
+
+    def compose(self) -> ComposeResult:
+        yield Static(self._body(), id="ask-body")
+        yield Input(placeholder="your answer", id="ask-input")
+
+    def on_mount(self) -> None:
+        # The field, not the card, takes the keystrokes: the reader types an answer or a
+        # number, and Esc still reaches the card through the bubbling key event.
+        self.query_one("#ask-input", Input).focus()
+
+    # ── The answer ───────────────────────────────────────────────────────────
+
+    def _resolve(self, raw: str) -> str:
+        """A number picks an option; anything else is the reader's own sentence."""
+        value = (raw or "").strip()
+        if not value:
+            return ""
+        labels = self._labels()
+        picked = {part.strip() for part in re.split(r"[,+]| and ", value) if part.strip()}
+        digits = {str(index) for index in range(1, len(labels) + 1)}
+        if picked and picked <= digits:
+            return ", ".join(labels[int(part) - 1] for part in sorted(picked, key=int))
+        return value
+
+    def on_input_submitted(self, event: "Input.Submitted") -> None:
+        self._finish(self._resolve(event.value))
+
+    def on_key(self, event: object) -> None:
+        from textual.events import Key
+
+        if not isinstance(event, Key) or self._answered:
+            return
+        if event.key == "escape":
+            event.stop()
+            self._finish("")
+
+    def _finish(self, text: str) -> None:
+        if self._answered:
+            return
+        self._answered = True
+        self.result = text
+        self.post_message(AskPrompt.Answered(text, self._from_tool))
+        self.answered.set()
+        self.remove()
+
+    def dismiss(self) -> None:
+        """The run stopped waiting (its timeout came first): the card goes, unanswered."""
+        if self._answered:
+            return
+        self._answered = True
         self.remove()
 
 
