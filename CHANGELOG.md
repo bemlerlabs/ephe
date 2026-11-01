@@ -293,7 +293,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - hygiene: The gate names the state this product writes itself — a session store, a capture, the
   workbench directory, the config root, and an agent lane's copy of the whole tree (`879d8e99`)
 - release: A tool moves the changelog addresses a rebase merge rewrote, and takes a candidate
-  only when its diff carries the same patch id (`84e08b33`)
+  only when its diff carries the same patch id (`732c2a0d`)
 
 ### Fixed
 
@@ -302,7 +302,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - scripts: The moth generator reaches its source through the home directory, and the published
   tree names no person (`8117ee94`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
-  index failed that never ran (`ef2c06db`)
+  index failed that never ran (`d861a859`)
 
 ## [0.5.2] - 2026-11-01
 
