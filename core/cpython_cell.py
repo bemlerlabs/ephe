@@ -19,8 +19,8 @@ Integrity: an installed but unfitting guest is an error case with an actionable
 hint, not a silent fallback into the kernel (AGENTS.md: fail closed, never a
 hidden fallback).
 
-Guest limits (measured on wasmtime 50.0.1, 2026-10-23): bootstrap ~1.43G
-fuel / ~0.88 s wall, 11.0G fuel per guest CPU second, stdout and stderr up to
+Guest limits (measured on the 3.13.18 guest, wasmtime 50.0.1, 2026-11-01): bootstrap
+~1.43G fuel / ~0.89 s wall, 13.4G fuel per guest CPU second, stdout and stderr up to
 ~10,000 bytes per stream — beyond that the sink itself throws an I/O error
 back into the model code, which is why ``core.cell_boot`` tees the full stream
 into /work and the policy cuts it here. No socket, no fork, no OpenSSL/zlib
@@ -60,11 +60,14 @@ from core.cpython_report import (  # noqa: F401  (re-exported: callers read thes
     runtime_of_report_text,
 )
 
-#: Cap of one cell run. Fuel is an engine unit, not time: measured 11.0G fuel
-#: per guest CPU second on wasmtime 50.0.1 (wasi-sdk 24 / arm64, 2026-10-23;
-#: 0.4M/1.6M/3.2M loop iterations gave 10.2–11.0 G/s, and 6.4M exhausted 20G at
-#: 2.3 s wall). The 47.x engine measured 9.0G on the same loop. Bootstrap is
-#: ~1.4G, so 20G is about 1.7 s of guest compute; the wall-clock leash is
+#: Cap of one cell run. Fuel is an engine unit, not time: measured 13.4G fuel
+#: per guest CPU second on the 3.13.18 guest with wasmtime 50.0.1 (wasi-sdk 24 /
+#: arm64, 2026-11-01; counting loops of 0.8M/1.6M/3.2M/4.8M iterations, boot cost
+#: subtracted, gave 12.7–16.7 G/s, while the fuel totals themselves repeat to
+#: 0.04% across runs). The 3.13.16 note recorded 11.0 G/s from a loop series with
+#: other sizes and a different host load, so the two figures are not one series —
+#: the ratio is time-based and the machine was not idle either way. Bootstrap is
+#: ~1.43G, so 20G is about 1.4 s of guest compute; the wall-clock leash is
 #: independent of it: timeout_seconds.
 DEFAULT_MAX_FUEL = 20_000_000_000
 DEFAULT_MAX_MEMORY_MB = 256

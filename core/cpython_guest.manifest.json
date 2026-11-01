@@ -2,21 +2,21 @@
   "schema": "ephe.cpython-cell/1",
   "guest": {
     "name": "cpython-wasi",
-    "version": "3.13.16",
+    "version": "3.13.18",
     "abi": "wasi_snapshot_preview1",
     "license": "PSF-2.0",
-    "install_dir": "cells/cpython-wasi-3.13.16",
+    "install_dir": "cells/cpython-wasi-3.13.18",
     "entry": "python.wasm",
     "stdlib_dir": "root",
-    "entry_sha256": "a8fdd8ef7815fc91255022fad6805859f5e1788a9c75809f8e7f65519f465380",
-    "entry_bytes": 29343587,
-    "root_tree_sha256": "fb0606b110dfd4a900a757d98aed615f158f67dfeb3d239cf98db8d48c57345a",
+    "entry_sha256": "b5555d304f6158396c71ac2223e2df87592754a8bc1254e5982e007775aae9bd",
+    "entry_bytes": 29349085,
+    "root_tree_sha256": "2288f67d5e9824d24d4048481dba33a540f43f093fc13fa01c6f0d519688fbc8",
     "root_tree_files": 1256
   },
   "provenance": {
     "recipe": "build_cpython_guest.py",
-    "source_url": "https://www.python.org/ftp/python/3.13.16/Python-3.13.16.tar.xz",
-    "source_sha256": "f4b1bfb3c79b5bb11b8d228a12504163b4c0dab4d679828d8f5f26b6cb6ab35d",
+    "source_url": "https://www.python.org/ftp/python/3.13.18/Python-3.13.18.tar.xz",
+    "source_sha256": "abb0102e6d4ae027509bcb82327d9dd85515b44a3ba8ad538cfc5e9847029f68",
     "source_license": "PSF-2.0",
     "toolchain": {
       "wasi_sdk_version": "24.0",
@@ -29,7 +29,7 @@
     "build_command": "python3 Tools/wasm/wasi.py configure-build-python && python3 Tools/wasm/wasi.py make-build-python && python3 Tools/wasm/wasi.py configure-host --host-runner echo -- ac_cv_func_fdatasync=no && (cd cross-build/wasm32-wasip1 && python3 Tools/wasm/wasi-env make all)",
     "parallelism": "MAKEFLAGS=-jN in der Umgebung; make-build-python und make kennen kein `--`-Durchreichen an make",
     "staging": {
-      "stdlib_source": "Python-3.13.16/Lib des signierten Quelltext-Archivs (pristine, nicht das Build-Verzeichnis)",
+      "stdlib_source": "Python-3.13.18/Lib des signierten Quelltext-Archivs (pristine, nicht das Build-Verzeichnis)",
       "pruned_dirs": [
         "test",
         "tests",
@@ -56,30 +56,32 @@
       {
         "what": "configure-Option ac_cv_func_fdatasync=no",
         "why": "Ephemora Cell (wasi_runtime.py, P1 #12) verweigert jedes Preview1-Modul, das fd_datasync importiert. CPythons os.fdatasync zieht genau diesen Import; ohne die Option laeuft kein CPython-Gast in der Cell.",
-        "effect": "os.fdatasync fehlt im Gast; os.sync und os.fsync bleiben (fd_sync wird nicht gefiltert)."
+        "effect": "os.fdatasync fehlt im Gast; os.fsync bleibt. os.sync fehlt in diesem Build ebenfalls (gemessen 2026-11-01: hasattr(os, \"sync\") ist False), waehrend der 3.13.16-Build es noch bot."
       }
     ],
     "reproducibility": {
       "recipe": "vollstaendig und wiederausfuehrbar: Quelltext-Archiv und wasi-sdk sind per SHA-256 gepinnt, Befehle und Patch stehen oben",
       "bit_exact": false,
-      "evidence": "Der gepinnte Entry ist byte-identisch mit dem Artefakt des Quelltext-Baums, der ihn hervorgebracht hat (~/.ephe/build/cpython-wasi/Python-3.13.16/cross-build/wasm32-wasip1/python.wasm) und mit der Installation. Ein zweiter, frisch entpackter Baum desselben Archivs im selben Scratch-Ordner ergab 20d9569d…/29.309.917, ein dritter in eigenem Scratch 9658443c…/29.345.624 Bytes; der stdlib-Digest zieht mit (gepinnt e6e393d3…, umgestaged e9a88b24…, je 1256 Dateien), weil .pyc-Header den Staging-Pfad und den Bauzeitstempel enthalten. Der Build-Pfad steckt also im Artefakt.",
+      "evidence": "3.13.18 (2026-11-01): Der Quelltext wurde gegen die Signatur verifiziert, bevor er gebaut wurde — das sigstore-Buendel des Archivs (messageDigest) zeigt auf dasselbe SHA-256 (abb0102e…), das auch der lokale Download hat, und das Fulcio-Zertifikat der Signatur (O=sigstore.dev, Ausweis 25.10.2026 19:28-19:38 UTC) nennt email:thomas@python.org. Der neu gebaute Entry (b5555d30…, 29.349.085 Bytes, 1256 Stdlib-Dateien) wurde installieret und gegen das Manifest geprueft (--verify: entry_ok, tree_ok). Byte-Identitaet ueber zwei Neubaus bleibt versagt: der Build-Pfad sitzt in den .pyc-Headern, wie der 3.13.16-Bau gezeigt hat (zweiter Baum 20d9569d…/29.309.917, dritter 9658443c…/29.345.624). Die gepinnten Hashes beschreiben diesen Installationsstand.",
       "consequence": "Die gepinnten Hashes beschreiben den Installationsstand, gegen den bei jedem Load geprueft wird — nicht eine Erwartung an jede Neubau-Umgebung. Wer neu baut, laesst `record` laufen (genau das schreibt die Hashes zurueck), und `--stage-only` vergleicht gebaut gegen gepinnt, bevor irgendetwas installiert wird."
     },
     "measured": {
-      "boot_fuel": 1433763027,
-      "boot_wall_ms": 880,
-      "cpu_fuel_per_second": 11000000000,
-      "default_budget_guest_seconds": 1.7,
+      "boot_fuel": 1431007958,
+      "boot_wall_ms": 892,
+      "cpu_fuel_per_second": 13350000000,
+      "default_budget_guest_seconds": 1.39,
       "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
-      "measured_at": "2026-10-23",
-      "note": "Measured on wasmtime 50.0.1: 1,433,763,027 fuel and 880 ms wall for `print(1+1)` (process start and module instantiation included). A counting loop of 0.4/1.6/3.2 M iterations cost 10.2-11.0 G fuel per guest CPU second (3.00/6.97/12.88 G fuel against 0.128/0.515/1.025 s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. Fuel is an engine unit, not time; the wall leash stays timeout_seconds.",
+      "measured_at": "2026-11-01",
+      "note": "Re-measured on the 3.13.18 guest. Boot is `print(1+1)` through core.cpython_cell.run_python(reset=True): 4 serial runs read 1,430,793,265 / 1,431,006,278 / 1,431,009,637 / 1,431,350,554 fuel (median 1,431,007,958) and 867 / 884 / 899 / 1,008 ms engine wall (median 892). Fuel is deterministic to 0.04%; wall is not. cpu_fuel_per_second is the slope of fuel against engine-measured time for counting loops of 0.8/1.6/3.2/4.8 M iterations with the boot cost subtracted (13.4G fitted over marginals 12.7-16.7G). It is a ratio over time, so it carries the host load of the run: the 3.13.16 figure of 11.0G came from another loop series on another day and is kept below as the record of that build. The enforced cap stays 20G fuel, which at this fit leaves 1.39 guest CPU seconds after boot (1.1-1.5 across the marginals).",
       "previous": {
-        "engine": "ephemora-cell 1.0.4.3 / wasmtime 47.0.1 / Darwin arm64",
-        "boot_fuel": 1418393708,
-        "boot_wall_ms": 995,
-        "cpu_fuel_per_second": 9000000000,
-        "note": "A 7,276,206-iteration loop cost 18.04 G fuel over 2.0 s of guest CPU, about 9 G per CPU second."
-      }
+        "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
+        "boot_fuel": 1433763027,
+        "boot_wall_ms": 880,
+        "cpu_fuel_per_second": 11000000000,
+        "guest": "3.13.16, measured 2026-10-23",
+        "note": "Measured on wasmtime 50.0.1: 1,433,763,027 fuel and 880 ms wall for `print(1+1)` (process start and module instantiation included). A counting loop of 0.4/1.6/3.2 M iterations cost 10.2-11.0 G fuel per guest CPU second (3.00/6.97/12.88 G fuel against 0.128/0.515/1.025 s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. Fuel is an engine unit, not time; the wall leash stays timeout_seconds."
+      },
+      "guest": "3.13.18"
     },
     "guest_gaps": [
       "_ssl/_hashlib (OpenSSL), zlib, bz2, lzma, _sqlite3, _ctypes und readline fehlen: das wasi-sysroot 24 bringt sie nicht — der Gast hat kein HTTPS und keinen Compressor",

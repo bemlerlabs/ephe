@@ -181,7 +181,7 @@ dressing the guest up as an MCP tool inside `ephemora-cell-mcp`. Evidence:
   `mcp_client` has no `run_python`.
 
 **Procurement:** the guest is not a download but a build from signed source —
-Python 3.13.16 (python.org archive, SHA-256 in the manifest) with wasi-sdk 24.0 (SHA-256 pin),
+Python 3.13.18 (python.org archive, SHA-256 in the manifest, its sigstore digest checked against the local download before the build) with wasi-sdk 24.0 (SHA-256 pin),
 cross-built via `Tools/wasm/wasi.py`, one patch `ac_cv_func_fdatasync=no` (without it
 Ephemora P1 #12 refuses every module that imports `fd_datasync`, and no CPython runs in the cell).
 Recipe, toolchain and licenses are in `core/cpython_guest.manifest.json`; building happens exclusively

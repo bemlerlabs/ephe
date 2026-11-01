@@ -62,7 +62,7 @@ class TestResultDecision:
         "raw",
         [
             "hello world\n",
-            "[execute_code] runtime=cpython-cell/3.13.16 status=OK exit=0",
+            "[execute_code] runtime=cpython-cell/3.13.18 status=OK exit=0",
             "[TOOL-ERROR] read_file: fehlende Pflicht-Parameter: path",
             "",
         ],
@@ -75,7 +75,7 @@ class TestResultDecision:
         """status=GUEST_UNVERIFIED says: no code ran. That is the answer to the question."""
         assert (
             result_decision(
-                "[execute_code] runtime=cpython-cell/3.13.16 status=GUEST_UNVERIFIED exit=-"
+                "[execute_code] runtime=cpython-cell/3.13.18 status=GUEST_UNVERIFIED exit=-"
             )
             == "blocked"
         )
