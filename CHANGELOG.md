@@ -278,7 +278,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 
 - discover: The hero plate wears the publisher's own mark, and the one slug rule
   for `/discover/icon/<slug>` moves beside the loaders so a curated row and the
-  route answer for the same shape (`5b4aefb8`)
+  route answer for the same shape (`8765637c`)
 
 ### Security
 
@@ -289,14 +289,14 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 ### Added
 
 - hygiene: The gate names the state this product writes itself — a session store, a capture, the
-  workbench directory, the config root, and an agent lane's copy of the whole tree (`af90becb`)
+  workbench directory, the config root, and an agent lane's copy of the whole tree (`f8f64504`)
 
 ### Fixed
 
 - docker: The private-state ignores match at every depth, so a dotenv under `app/` cannot ride
-  into the image the way that file's own header says it cannot (`cf4a0ad4`)
+  into the image the way that file's own header says it cannot (`68f0bf3c`)
 - scripts: The moth generator reaches its source through the home directory, and the published
-  tree names no person (`6001f37d`)
+  tree names no person (`5b55dfa5`)
 
 ## [0.5.2] - 2026-11-01
 
