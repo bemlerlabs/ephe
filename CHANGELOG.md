@@ -7,8 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.5.2 wave is named below (`bcede857`, `256d626d`, `d66fb9ca`, `5428e1df`, `0f7110f9`,
-`d8dee2ae`, `29016b21`, `2c698aff`, `d52669dc`, `2a9445d1`): the terminal answers a
+The 0.5.2 wave is named below (`74c8b215`, `24859d47`, `1e75d98b`, `b3be482c`, `a112c987`,
+`2f13f123`, `c104eb32`, `bfdf94d7`, `babda5f9`, `0b5ae7c5`): the terminal answers a
 question instead of printing it, every
 confirmation carries its verb, a workspace row tells when the work last moved, the app gets
 one frame and one rail, the cell guest moves to a patched interpreter and is measured on it,
@@ -169,7 +169,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - discover: The shelf reads as a store, one subject at a time (`a95d5369`)
 - ui: The transcript reads at 16, notices stay off the composer, and the tool catalogue reads in families (`addbbc82`)
 - discover: The featured tier lists verified publishers first, with their own icons (`19f74fb9`)
-- shell: One frame, one rail, and a tab bar for the phone (`29016b21`)
+- shell: One frame, one rail, and a tab bar for the phone (`c104eb32`)
 
 ### Added
 
@@ -263,15 +263,15 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - discover: Every card now performs the action it offers (`fc1e83b4`)
 - chat: An answer belongs to the task that asked for it (`e85961b1`)
 - cli: The doctor's update row names the budget it actually used (`34cb0b0b`)
-- workspaces: A row's age names the last activity when the fleet saw one (`bcede857`)
-- surface: Every confirmation names the action it performs (`256d626d`)
-- cell: The guest moves to 3.13.18 and is measured on it (`d66fb9ca`)
-- container: The basis is measured and the builder stops shipping pip 25 (`5428e1df`)
-- install: The pip path lands on the patched cell engine (`0f7110f9`)
-- tui: A question the run asks is a card, and its JSON leaves the text (`d8dee2ae`)
-- chat: A stored fact stops reading as a failed tool call (`2c698aff`)
-- shell: The status row measures the column it is painted in (`d52669dc`)
-- shell: The rail owns the places and the register keeps the task (`2a9445d1`)
+- workspaces: A row's age names the last activity when the fleet saw one (`74c8b215`)
+- surface: Every confirmation names the action it performs (`24859d47`)
+- cell: The guest moves to 3.13.18 and is measured on it (`1e75d98b`)
+- container: The basis is measured and the builder stops shipping pip 25 (`b3be482c`)
+- install: The pip path lands on the patched cell engine (`a112c987`)
+- tui: A question the run asks is a card, and its JSON leaves the text (`2f13f123`)
+- chat: A stored fact stops reading as a failed tool call (`bfdf94d7`)
+- shell: The status row measures the column it is painted in (`babda5f9`)
+- shell: The rail owns the places and the register keeps the task (`0b5ae7c5`)
 
 ## [0.5.2] - 2026-11-01
 
@@ -283,15 +283,15 @@ the reader to destroy something says what it will do.
 
 ### Added
 
-- shell: One frame, one rail across the pages, and a tab bar for the phone (`29016b21`)
-- tui: The run's question becomes an answer card, and its JSON leaves the text (`d8dee2ae`)
+- shell: One frame, one rail across the pages, and a tab bar for the phone (`c104eb32`)
+- tui: The run's question becomes an answer card, and its JSON leaves the text (`2f13f123`)
 - discover: The curated tier leads the shelf, with the publisher's own icon (`19f74fb9`)
 - discover: One product, one row — a second endpoint of the same host folds into it (`19f74fb9`)
 
 ### Changed
 
-- surface: Every confirmation carries the verb of the action it performs (`256d626d`)
-- workspaces: A row's age names the last activity when the fleet saw one (`bcede857`)
+- surface: Every confirmation carries the verb of the action it performs (`24859d47`)
+- workspaces: A row's age names the last activity when the fleet saw one (`74c8b215`)
 
 ### Fixed
 
@@ -300,24 +300,24 @@ the reader to destroy something says what it will do.
 - sync: A finished turn reaches the server mirror before the page goes away (`0e6391db`)
 - cli: The doctor's update row names the budget it actually used (`34cb0b0b`)
 - chat: A coded success (`[memory] stored (35 entries)`) no longer paints its tool line
-  as failed (`2c698aff`)
+  as failed (`bfdf94d7`)
 - shell: The status row sheds its figures by column width, after the frame took 56 px
-  from every one of them (`d52669dc`)
+  from every one of them (`babda5f9`)
 - shell: The task register stops repeating the five places the rail carries, and keeps
-  them in the phone drawer (`2a9445d1`)
+  them in the phone drawer (`0b5ae7c5`)
 
 ### Security
 
 - cell: The guest moves to CPython 3.13.18 — `tarfile` link hardening, the cookiejar
   `Version` fix and the tempfile cleanup race — built from the signed archive, whose
   sigstore digest was checked against the download, and re-measured on wasmtime 50.0.1
-  (`d66fb9ca`)
+  (`1e75d98b`)
 - container: The builder reads its own basis (Python 3.12.16, OpenSSL 3.5.7) and replaces the
-  image's pip 25.0.1 with the hash-pinned 26.2.2 before it resolves anything (`5428e1df`)
+  image's pip 25.0.1 with the hash-pinned 26.2.2 before it resolves anything (`b3be482c`)
 - install: The pip path restates the wasmtime floor the uv override cannot reach, so the
-  sandbox no longer ships the engine RUSTSEC-2026-0352 was filed against (`0f7110f9`)
+  sandbox no longer ships the engine RUSTSEC-2026-0352 was filed against (`a112c987`)
 - marketplace: The minimatch advisory is a written decision in the register — development
-  scope, no fix below 11.0.1, `pnpm audit --prod` as the shipping-scope proof (`5428e1df`)
+  scope, no fix below 11.0.1, `pnpm audit --prod` as the shipping-scope proof (`b3be482c`)
 
 ## [0.5.1] - 2026-10-29
 
