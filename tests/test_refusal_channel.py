@@ -160,6 +160,27 @@ class TestToolDoneFrame:
         assert "metadata endpoint" in done[0]["result"]
         assert "metadata_host" in de and "metadata_host" in en
 
+    def test_the_code_says_which_line_and_the_flag_says_whether_it_ran(self, client):
+        """A stored fact is not a failure.
+
+        The status used to be read off "does this carry a code", and codes turned out to
+        describe results as often as blockades — `[memory] stored (35 entries)` reached the
+        reader as a failed tool line on the turn that had just stored it. `core/reason.py`
+        now carries the outcome itself, and the frame has to agree with it.
+        """
+        from core.reason import outcome as coded_outcome
+
+        stored = coded_outcome("memory_stored", "[memory] stored (1 entries)", count="1")
+        blocked = Reason("[memory] action must be add|replace|remove|list", "memory_action_unknown", {})
+
+        done = [f for f in self._stream(client, "memory", stored) if f.get("type") == "tool_done"]
+        assert done[0]["reason_code"] == "memory_stored"
+        assert done[0]["status"] == "completed"
+
+        done = [f for f in self._stream(client, "memory", blocked) if f.get("type") == "tool_done"]
+        assert done[0]["reason_code"] == "memory_action_unknown"
+        assert done[0]["status"] == "failed"
+
     def test_an_uncoded_result_adds_no_fields_the_card_has_to_guard(self, client):
         frames = self._stream(client, "read_file", "just a file body")
         done = [f for f in frames if f.get("type") == "tool_done"]
