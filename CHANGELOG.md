@@ -274,6 +274,12 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - shell: The rail owns the places and the register keeps the task (`0b5ae7c5`)
 - sidebar: A task row's text stops where its menu button begins (`81440800`)
 
+### Fixed
+
+- discover: The hero plate wears the publisher's own mark, and the one slug rule
+  for `/discover/icon/<slug>` moves beside the loaders so a curated row and the
+  route answer for the same shape (`5b4aefb8`)
+
 ### Security
 
 - deps: minimatch moves to the patched 11.0.3 — the advisory covers `< 11.0.1` and no parent
