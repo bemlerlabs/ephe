@@ -10,11 +10,13 @@ import type { ChatMessage } from '@/types'
 // give way. These assertions pin the hierarchy that replaced it.
 
 vi.mock('@/store/chatStore', () => ({
-  useChatStore: (sel: (st: {
-    lastTurnUsage: unknown
-    currentSession: unknown
-    enginePricing: unknown
-  }) => unknown) =>
+  useChatStore: (
+    sel: (st: {
+      lastTurnUsage: unknown
+      currentSession: unknown
+      enginePricing: unknown
+    }) => unknown,
+  ) =>
     sel({
       lastTurnUsage: { in: 120, out: 30 },
       currentSession: { usageTotals: { in: 900, out: 300 } },
@@ -51,13 +53,13 @@ describe('StatusBar QD-015 V1 — width hierarchy', () => {
     expect(row.className).not.toContain('flex-wrap')
   })
 
-  it('lets the free-token figure shrink and step out below md', () => {
+  it('lets the free-token figure shrink and step out below a wide-enough column', () => {
     render(<StatusBar messages={messages} windowTokens={16384} />)
     const free = screen.getByText(/free of/)
     expect(free.className).toContain('truncate')
     expect(free.className).toContain('min-w-0')
     expect(free.className).toContain('hidden')
-    expect(free.className).toContain('md:inline-block')
+    expect(free.className).toContain('@2xl/status:inline-block')
     expect(free.className).not.toContain('shrink-0')
   })
 

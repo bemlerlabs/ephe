@@ -142,8 +142,10 @@ describe('StatusBar', () => {
     expect(chip.textContent).toMatch(/\d[\d,.]* tok/)
     // QD-015 V1: the pair moved to lg — md belongs to the free-token figure now,
     // so the compact chip still covers the whole range below the breakdown.
-    expect(chip.className).toContain('lg:hidden')
-    expect(screen.getByTitle(/token breakdown/i).className).toContain('lg:flex')
+    // The row sheds by column, so the compact counterpart is switched by the
+    // container it sits in — the window says nothing once the frame and the panel take width.
+    expect(chip.className).toContain('@4xl/status:hidden')
+    expect(screen.getByTitle(/token breakdown/i).className).toContain('@4xl/status:flex')
   })
 
   it('DD-10b: ein Klick auf den Chip oeffnet das Rollen-Breakdown (U/A/S)', () => {
