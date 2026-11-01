@@ -7,6 +7,7 @@ while still naming that tag as diverged.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -48,6 +49,14 @@ def run(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
 def baseline(tmp_path: Path, known: list[str]) -> Path:
     path = tmp_path / "baseline.json"
     path.write_text(json.dumps({"known_diverged": known}), encoding="utf-8")
+    return path
+
+
+def baseline_with_outside(tmp_path: Path, known: list[str], outside: list[str]) -> Path:
+    path = tmp_path / "baseline.json"
+    path.write_text(
+        json.dumps({"known_diverged": known, "not_a_release": outside}), encoding="utf-8"
+    )
     return path
 
 
@@ -133,6 +142,57 @@ class TestOnAPlant:
         assert "adds v0.2.0" in done.stdout, done.stdout
 
 
+    def test_a_ref_outside_the_release_line_is_skipped_and_says_so(self, tmp_path):
+        """A checkout can carry another lineage's tags. Such a ref is not a diverged
+        release of this project, and judging one would report a defect that is not there."""
+        repo = make_repo(tmp_path)
+        git(repo, "switch", "-q", "-c", "other")
+        (repo / "b.txt").write_text("two\n", encoding="utf-8")
+        git(repo, "add", "b.txt")
+        git(repo, "commit", "-qm", "two")
+        git(repo, "tag", "-a", "v9.9.0", "-m", "another lineage")
+        git(repo, "switch", "-q", "main")
+        git(repo, "tag", "-a", "v0.1.0", "-m", "cut")
+        done = run(
+            repo,
+            "--base",
+            "main",
+            "--baseline",
+            str(baseline_with_outside(tmp_path, [], ["v9.9.0"])),
+        )
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "v9.9.0 skipped — recorded as outside the release line" in done.stdout, done.stdout
+        assert "DIVERGED" not in done.stdout, done.stdout
+        assert "1 tag(s) on main" in done.stdout, done.stdout
+
+    def test_a_recorded_ref_that_carries_no_tag_here_is_named(self, tmp_path):
+        repo = make_repo(tmp_path)
+        git(repo, "tag", "-a", "v0.1.0", "-m", "cut")
+        done = run(
+            repo,
+            "--base",
+            "main",
+            "--baseline",
+            str(baseline_with_outside(tmp_path, [], ["v9.9.0"])),
+        )
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "v9.9.0 is listed as outside the line and carries no tag here" in done.stdout
+
+    def test_a_skipped_ref_is_not_counted_as_a_tag_on_the_base(self, tmp_path):
+        repo = make_repo(tmp_path)
+        git(repo, "tag", "-a", "v0.1.0", "-m", "cut")
+        git(repo, "tag", "-a", "v0.2.0", "-m", "cut")
+        done = run(
+            repo,
+            "--base",
+            "main",
+            "--baseline",
+            str(baseline_with_outside(tmp_path, [], ["v0.2.0"])),
+        )
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "PASS — 1 tag(s)" in done.stdout, done.stdout
+
+
 class TestOnAShallowCopy:
     def test_a_shallow_checkout_is_refused_not_read_as_diverged(self, tmp_path):
         """A depth-1 clone carries every tag but no history, so an older tag's commit
@@ -175,6 +235,28 @@ class TestOnAShallowCopy:
 
 
 class TestOnThisRepository:
+    @staticmethod
+    def _base_ref() -> str:
+        """Which ref the release line is actually cut from.
+
+        A working checkout on the owner's machine carries the publication remote as `public`
+        and the private development history as `origin`; a CI clone of the published
+        repository knows the trunk only as `origin/main`. The gate has to judge the tags
+        against the trunk that ships them."""
+        override = os.environ.get("EPHE_PROVENANCE_BASE")
+        if override:
+            return override
+        for candidate in ("public/main", "origin/main"):
+            done = subprocess.run(
+                ("git", "rev-parse", "--verify", candidate),
+                cwd=str(ROOT),
+                capture_output=True,
+                check=False,
+            )
+            if done.returncode == 0:
+                return candidate
+        return "origin/main"
+
     def test_every_tag_is_on_main_or_recorded(self):
         shallow = subprocess.run(
             ("git", "rev-parse", "--is-shallow-repository"),
@@ -185,17 +267,18 @@ class TestOnThisRepository:
         )
         if shallow.stdout.strip() == "true":
             pytest.skip("a shallow checkout cannot judge tag ancestry")
+        base_ref = self._base_ref()
         base = subprocess.run(
-            ("git", "rev-parse", "--verify", "origin/main"),
+            ("git", "rev-parse", "--verify", base_ref),
             cwd=str(ROOT),
             text=True,
             capture_output=True,
             check=False,
         )
         if base.returncode != 0:
-            pytest.skip("this checkout has no origin/main (shallow clone)")
+            pytest.skip(f"this checkout has no {base_ref} (shallow clone)")
         done = subprocess.run(
-            [sys.executable, str(SCRIPT), "--base", "origin/main"],
+            [sys.executable, str(SCRIPT), "--base", base_ref],
             cwd=str(ROOT),
             text=True,
             capture_output=True,

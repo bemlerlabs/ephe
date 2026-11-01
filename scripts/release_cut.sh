@@ -278,8 +278,12 @@ else
   if [ "$ALLOW_LOCAL" = 1 ]; then
     printf '  warn     provenance gate skipped (--local: no trunk ref to compare)\n'
   else
+    # The trunk ref is the release remote's, not the literal `origin`: a tag cut for one
+    # repository must be checked against that repository's trunk, or the gate compares
+    # against a lineage the release never claimed. `EPHE_RELEASE_REMOTE` names the repo,
+    # and this is where it has to reach.
     run_gate "provenance" "$PY" "$ROOT/scripts/provenance_check.py" \
-      --base "origin/$BRANCH" --baseline-at "origin/$BRANCH"
+      --base "$REMOTE/$BRANCH" --baseline-at "$REMOTE/$BRANCH"
   fi
   if [ "$FULL_GATES" = 1 ]; then
     run_gate "pytest release bar"   gate_pytest

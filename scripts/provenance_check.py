@@ -91,6 +91,25 @@ def baseline_at(root: Path, ref: str, path: Path) -> list[str] | None:
     return [item for item in known if isinstance(item, str)]
 
 
+def read_not_a_release(path: Path) -> list[str]:
+    """Refs the release line never carried: a clone can hold another lineage's tags.
+
+    `git tag` lists what the *checkout* carries, which on a machine that also hosted the
+    private history is more than the repository being released. Such a ref is not a diverged
+    release — it is not a release of this project at all — and judging one would report a
+    defect that does not exist. The list is written down, printed per ref, and a name that no
+    longer resolves is said out loud, so it cannot rot into a blanket exemption.
+    """
+    if not path.is_file():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    items = payload.get("not_a_release") or []
+    return [item for item in items if isinstance(item, str)]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="checkout to judge")
@@ -114,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         known = set(read_baseline(args.baseline))
         names = tags(args.root)
+        outside = read_not_a_release(args.baseline)
     except ValueError as exc:
         print(f"provenance: cannot decide: {exc}")
         return 2
@@ -147,6 +167,13 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 return 1
 
+    skipped = [name for name in outside if name in set(names)]
+    for name in sorted(skipped):
+        print(f"provenance: {name:>14} skipped — recorded as outside the release line")
+    for name in sorted(set(outside) - set(names)):
+        print(f"provenance: note: {name} is listed as outside the line and carries no tag here")
+    names = [name for name in names if name not in set(outside)]
+
     diverged: list[tuple[str, str]] = []
     healed: list[str] = []
     for tag in names:
@@ -177,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print(f"provenance: PASS — {len(names)} tag(s) on {args.base} or recorded in the baseline")
+    if skipped:
+        print(f"provenance: {len(skipped)} ref(s) judged outside the release line are listed above")
     return 0
 
 
