@@ -272,6 +272,11 @@ fi
 if [ "$SKIP_GATES" = 1 ]; then
   printf '  skip     gate set (--skip-gates)\n'
 else
+  # A rebase merge rewrites the commits it lands, so a bullet written on a branch can name an sha
+  # the trunk carries under a different one, and a reader following that link lands nowhere. The
+  # tool proves each move by patch id, so a stale address stops the cut instead of shipping in
+  # the release notes.
+  run_gate "changelog addresses" "$PY" "$ROOT/scripts/changelog_remap.py" --base "$REMOTE/$BRANCH" --check
   run_gate "changelog [Unreleased]" "$PY" "$ROOT/scripts/changelog_unreleased.py" --check
   run_gate "language ratchet"       "$PY" "$ROOT/scripts/language_gate.py"
   run_gate "architecture ratchet"   node  "$ROOT/scripts/architecture_check.mjs" check
