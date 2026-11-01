@@ -207,10 +207,14 @@ describe('discover page', () => {
     fireEvent.click(screen.getByTestId('discover-detail-open-connector:registry:web-search'))
     await waitFor(() => expect(screen.getByTestId('discover-detail-rehearse')).toBeTruthy())
     fireEvent.click(screen.getByTestId('discover-detail-rehearse'))
-    await waitFor(() => expect(api.dryRunEntry).toHaveBeenCalledTimes(1))
-    expect(screen.getByTestId('discover-detail-verdict').textContent).toContain(
-      'discover.verdict.checked-clean',
+    // The verdict is set from `await dryRunEntry(...)`, so the commit lands after the call.
+    // Asserting the DOM synchronously on the call count loses that gap on a loaded runner.
+    await waitFor(() =>
+      expect(screen.getByTestId('discover-detail-verdict').textContent).toContain(
+        'discover.verdict.checked-clean',
+      ),
     )
+    expect(api.dryRunEntry).toHaveBeenCalledTimes(1)
   })
 
   it('takes a required credential in the sheet and never shows it back', async () => {
