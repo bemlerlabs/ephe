@@ -123,7 +123,7 @@ class TestTooling:
         spec.loader.exec_module(module)
         assert set(module.ARTIFACT_PATTERNS) == set(module.ARTIFACT_SOURCES)
         assert all(hasattr(pattern, "search") for pattern in module.ARTIFACT_PATTERNS.values())
-        assert len(module.ARTIFACT_PATTERNS) == 12, len(module.ARTIFACT_PATTERNS)
+        assert len(module.ARTIFACT_PATTERNS) == 23, len(module.ARTIFACT_PATTERNS)
 
 
 class TestTheRealIndex:

@@ -118,6 +118,12 @@ test-results/
 # Local editor artifacts
 .zcode/
 
+# Agent lanes. A run checks out a copy of this tree beside the checkout it was sent from;
+# the three live lanes held 42481, 41436 and 4090 files on 2026-11-01. Nothing under
+# `.qoder/` is tracked, and a broad add here would stage a whole copy of the repository —
+# including whatever state that run's product left inside it.
+.qoder/
+
 # Hermes agent local state (plans, memory)
 .hermes/
 
