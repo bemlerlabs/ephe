@@ -183,7 +183,7 @@ export default function WorkspacesPage() {
   const filtered = Boolean(filter.trim())
 
   return (
-    <div className="h-dvh overflow-y-auto" data-testid="workspaces-page">
+    <div className="h-full min-h-0 overflow-y-auto" data-testid="workspaces-page">
       <div className="mx-auto w-full max-w-[1400px] px-6 py-8">
         {/* Its own root space without a sidebar — the same exit `/memory` and
             `/artifacts` carry, because the desktop has no browser back button. */}

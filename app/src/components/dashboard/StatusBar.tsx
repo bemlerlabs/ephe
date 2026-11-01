@@ -123,7 +123,7 @@ export default function StatusBar({
       // wrapped second line painted into the popover's space while the right
       // panel squeezed the column. The width hierarchy now hides the secondary
       // figures in steps (md, lg, xl) and lets the meter absorb the remainder.
-      className="border-b border-hairline px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-center gap-2 flex-shrink-0 select-none overflow-hidden whitespace-nowrap"
+      className="border-b border-hairline px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] max-lg:pb-1.5 flex items-center gap-2 flex-shrink-0 select-none overflow-hidden whitespace-nowrap"
     >
       {/* Reference image 2: two pills on the left — 'Expand status' + current activity */}
       <div className="hidden sm:flex items-center shrink-0">

@@ -85,7 +85,7 @@ export default function MemoryPage() {
   const corrected = useMemo(() => facts.rows.filter(memoryIsCorrection).length, [facts.rows])
 
   return (
-    <div className="h-dvh overflow-y-auto" data-testid="memory-page">
+    <div className="h-full min-h-0 overflow-y-auto" data-testid="memory-page">
       <div className="mx-auto w-full max-w-3xl px-6 py-8">
         <button
           type="button"

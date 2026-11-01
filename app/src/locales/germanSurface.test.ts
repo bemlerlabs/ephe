@@ -45,6 +45,11 @@ const SAME_BY_DESIGN = new Set<string>([
   'discover.category.cloud', // Cloud
   'discover.category.web', // Web
   'discover.category.sandbox', // Sandbox
+  // The frame's two area names, spelled as the areas are called in both languages: the
+  // German surface already searches "Workspaces durchsuchen" and keeps the Discover shelf
+  // under that name, so a translated row would name a place the reader cannot find.
+  'shell.navDiscover', // Discover
+  'shell.navWorkspaces', // Workspaces
   // Brand and product names.
   'nav.appName', // Ephe
   'welcome.heroTitle', // Ephe Agent
