@@ -301,6 +301,8 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   into the image the way that file's own header says it cannot (`5d2ab908`)
 - scripts: The moth generator reaches its source through the home directory, and the published
   tree names no person (`8117ee94`)
+- status: A refused index read answers idle, so a screen with no workspace stops claiming an
+  index failed that never ran (`794a3aed`)
 
 ## [0.5.2] - 2026-11-01
 
