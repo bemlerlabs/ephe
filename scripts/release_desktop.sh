@@ -18,6 +18,13 @@ cd "$(dirname "$0")/.."
 VERSION="$(node -p "require('./app/package.json').version")"
 KEY_FILE="${EPHE_UPDATER_KEY:-$HOME/.tauri/ephe.key}"
 
+# The repository the release is published to, and the one the updater feed points
+# at — one value, because a feed that names a different repository than the
+# publish target describes artifacts that no client will ever fetch. This checkout
+# resolves `gh` to its first remote, which is the private development repository,
+# so every call below names the target instead of inheriting it.
+RELEASE_REPO="${EPHE_RELEASE_REPO:-bemlerlabs/ephe}"
+
 if [[ ! -f "$KEY_FILE" ]]; then
   echo "  ✗ signing key missing: $KEY_FILE" >&2
   echo "    create it: npx tauri signer generate -w ~/.tauri/ephe.key -p <PASSWORD>" >&2
@@ -65,8 +72,8 @@ if [[ ! -f "$SIG" ]]; then
 fi
 
 FEED="${BUNDLE}/macos/latest.json"
-node - "$VERSION" "$SIG" "$FEED" "$(basename "$ARTIFACT")" <<'NODE'
-const [version, sigPath, out, assetName] = process.argv.slice(2)
+node - "$VERSION" "$SIG" "$FEED" "$(basename "$ARTIFACT")" "$RELEASE_REPO" <<'NODE'
+const [version, sigPath, out, assetName, repo] = process.argv.slice(2)
 const fs = require('fs')
 const feed = {
   version,
@@ -77,7 +84,7 @@ const feed = {
   platforms: {
     'darwin-aarch64': {
       signature: fs.readFileSync(sigPath, 'utf8').trim(),
-      url: `https://github.com/bemlerlabs/ephe/releases/download/v${version}/${assetName}`,
+      url: `https://github.com/${repo}/releases/download/v${version}/${assetName}`,
     },
   },
 }
@@ -90,15 +97,16 @@ ls -1 "${BUNDLE}/macos" "${BUNDLE}/dmg" 2>/dev/null | sed 's/^/      /'
 
 if [[ "${1:-}" == "--publish" ]]; then
   TAG="v${VERSION}"
-  if gh release view "$TAG" >/dev/null 2>&1; then
-    echo "  ⚠ $TAG already exists — nothing created. Upload the artifacts again:"
-    echo "    gh release upload $TAG --clobber $ARTIFACT $SIG ${BUNDLE}/macos/latest.json ${BUNDLE}/dmg/Ephe_${VERSION}_aarch64.dmg"
+  if gh release view "$TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1; then
+    echo "  ⚠ $TAG already exists in $RELEASE_REPO — nothing created. Upload the artifacts again:"
+    echo "    gh release upload --repo $RELEASE_REPO --clobber $TAG $ARTIFACT $SIG ${BUNDLE}/macos/latest.json ${BUNDLE}/dmg/Ephe_${VERSION}_aarch64.dmg"
     exit 0
   fi
   # The updater hangs on two things: the artifact AND the feed in the same
   # release. If either is missing, the endpoint answers 404 and the surface
   # says "check not possible" — which is then rightly what it says.
   gh release create "$TAG" \
+    --repo "$RELEASE_REPO" \
     "$ARTIFACT" \
     "$SIG" \
     "${BUNDLE}/macos/latest.json" \
@@ -106,11 +114,11 @@ if [[ "${1:-}" == "--publish" ]]; then
     --title "Ephe ${VERSION}" \
     --notes "$(node -p "require('${FEED/#app\//}').notes" 2>/dev/null || echo "Ephe ${VERSION}")"
   echo
-  echo "  ✓ $TAG published. Verify with:"
-  echo "    curl -o /dev/null -w '%{http_code}\n' https://github.com/bemlerlabs/ephe/releases/latest/download/latest.json"
+  echo "  ✓ $TAG published in $RELEASE_REPO. Verify with:"
+  echo "    curl -o /dev/null -w '%{http_code}\n' https://github.com/${RELEASE_REPO}/releases/latest/download/latest.json"
   exit 0
 fi
 
 echo
 echo "  Publish with:  scripts/release_desktop.sh --publish"
-echo "  (or only re-upload the artifacts: gh release upload v${VERSION} --clobber …)"
+echo "  (or only re-upload the artifacts: gh release upload --repo $RELEASE_REPO --clobber v${VERSION} …)"
