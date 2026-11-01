@@ -75,6 +75,10 @@ GHSA-hq85-5cpj-mr62  # package=uv ecosystem=PyPI scope=development state=fixed a
 
 # Why it is not fixed yet: the installers bootstrap 26.2.2, but the inventoried miniconda
 # dev environment retains pip 25.1. The migrated CLI no longer uses that environment.
+# The two install paths that used to resolve with the image's own pip now restate the floor
+# themselves: install.sh installs the 26.2.2 wheel by hash before anything else, and
+# Dockerfile's builder does the same inside the RUN that installs the project (measured
+# 2026-11-01: python:3.12-slim from 2026-10-28 ships pip 25.0.1).
 # Exposure as measured: pip is a build/install tool; the product venv has no pip, and the
 # installer path uses the hash-pinned 26.2.2 wheel.
 # CVE-2026-13346 is the NVD/GHSA alias of PYSEC-2026-3721; the OSV CVE record
@@ -155,6 +159,26 @@ GHSA-q2hr-2g5m-vwhr  # package=brace-expansion ecosystem=npm scope=development s
 GHSA-qhr7-859c-m2p7  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.20|>=4.0.0,<5.0.11 fixed_in=1.1.20 recheck=2026-11-06
 GHSA-6j4f-fj2g-mc7p  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.19|>=4.0.0,<5.0.10 fixed_in=1.1.19 recheck=2026-11-06
 GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development state=fixed affected=>=1.0.0,<1.2.2 fixed_in=1.2.2 recheck=2026-11-06
+
+# GHSA-g3hv-75wg-m249 = CVE-2026-118764 — minimatch turns an attacker-controlled glob into
+# a quadratic second-phase pass: `firstPhasePreProcess` clones a globParts entry for every
+# `**/../` it rewrites inside a fixpoint loop, and `secondPhasePreProcess` then compares the
+# grown array pairwise. Published 2026-10-30, so this arrived after the last audit read.
+# Why it is not fixed yet: OSV ranges the flaw `introduced=0, fixed=11.0.1`, and the lock's
+# two copies sit far below that on ranges their parents allow — 3.1.5 under
+# eslint -> @eslint/config-array and @eslint/eslintrc, 10.2.6 under
+# @typescript-eslint/typescript-estree. No release exists inside either parent's range, so
+# the only local move is an override across two majors onto a version nothing here has been
+# run against; when ESLint and typescript-eslint move, this row goes to `state=fixed` the
+# way the eight above it did, and `fixed_in=11.0.1` becomes the floor.
+# Exposure as measured 2026-11-01 in app/, with the gate's own commands:
+#   pnpm audit --prod --json  -> 0 records (the graph that ships)
+#   pnpm audit --json         -> 1 record: minimatch, moderate, development scope
+# Nothing on this path reaches the PWA bundle or the Tauri build. The patterns handed to
+# minimatch are the repository's own tsconfig and eslint includes, and the CVSS:4.0 vector
+# claims availability only (AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L): a slow lint run on a
+# machine that already holds the checkout.
+GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=pending-fix affected=<11.0.1 fixed_in=11.0.1 blocked_by=eslint-and-typescript-estree-pin-below-11 recheck=2026-11-29
 
 # GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 — glib.
 # Why it is not fixed yet: glib 0.20.0 is the fix and app/src-tauri/Cargo.lock pins 0.18.5,
