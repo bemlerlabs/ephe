@@ -14,7 +14,13 @@ Ephe – Bad Liebenzell, Schwarzwald
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
+
+#: The one slug rule for `/discover/icon/{slug}`: a lower-case file name we can
+#: resolve under the providers directory. Kept beside the loaders so curated
+#: rows and the route answer for the same shape.
+ICON_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
 
 _SNAPSHOT_PATH = (
     Path(__file__).resolve().parent.parent / "marketplace" / "registry-snapshot.json"
@@ -138,8 +144,19 @@ def registry_entries() -> list[dict]:
 
 def curated_entries() -> list[dict]:
     """The tier the connector area shows by default: named picks plus the most
-    recently published entries per category, derived from the mirror."""
-    return _load_entries(_CURATED_PATH)
+    recently published entries per category, derived from the mirror.
+
+    A row may carry an optional `icon` slug for `/discover/icon/<slug>`; a
+    value the icon route could never resolve is dropped at load, so the frame
+    stays deterministic and offline whatever the data file holds."""
+    entries = _load_entries(_CURATED_PATH)
+    for entry in entries:
+        slug = str(entry.get("icon") or "")
+        if ICON_SLUG.fullmatch(slug):
+            entry["icon"] = slug
+        else:
+            entry.pop("icon", None)
+    return entries
 
 
 def featured_entries() -> list[dict]:

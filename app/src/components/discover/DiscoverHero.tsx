@@ -2,7 +2,10 @@
  *
  *  It carries the same facts a card carries, set as a summary column, so the
  *  large surface never claims more than the small one. The mark sits behind
- *  the column as a watermark, cropped by the card, never as an illustration. */
+ *  the column as a watermark, cropped by the card, never as an illustration.
+ *  When the entry names a vendor icon the publisher's own mark takes the
+ *  eyebrow slot on the card's plate; the subject glyph is the fallback, so a
+ *  turn between picks of equal shape never moves the title. */
 import { useTranslation } from 'react-i18next'
 import { Check, Plus } from 'lucide-react'
 import { CategoryGlyph } from './categoryGlyph'
@@ -50,8 +53,24 @@ export function DiscoverHero({
         <div className="flex min-w-0 flex-col justify-between gap-6">
           <div>
             <p className="flex items-center gap-2 font-mono text-ui-2xs uppercase tracking-[0.2em] text-ink-faint">
-              <span data-subject={category} className="discover-glyph">
-                <CategoryGlyph category={category} kind={item.kind} className="h-3.5 w-3.5" />
+              <span
+                data-subject={category}
+                data-testid="discover-hero-plate"
+                className="discover-plate grid h-9 w-9 shrink-0 place-items-center rounded-lg border"
+              >
+                {item.icon ? (
+                  <img
+                    src={item.icon}
+                    alt=""
+                    width={28}
+                    height={28}
+                    loading="lazy"
+                    data-testid="discover-hero-icon"
+                    className="h-7 w-7 rounded-md object-contain"
+                  />
+                ) : (
+                  <CategoryGlyph category={category} kind={item.kind} className="h-3.5 w-3.5" />
+                )}
               </span>
               {t('discover.heroEyebrow')}
             </p>

@@ -82,6 +82,8 @@ export interface RegistryEntry {
   /** Names a publisher declares as required; values live in the vault, never here. */
   required_env?: { name: string; secret: boolean }[]
   downloads?: number
+  /** Vendor icon slug; the loader drops anything the icon route could not serve. */
+  icon?: string
 }
 
 export interface DiscoverSources {
@@ -262,6 +264,7 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       badge: entry.curated_reason === 'recent' ? 'recent' : 'pick',
       requiredEnv: entry.required_env ?? [],
       downloads: entry.downloads,
+      icon: entry.icon ? `/api/discover/icon/${entry.icon}` : undefined,
     })
   }
 

@@ -316,6 +316,32 @@ describe('discover names', () => {
   })
 })
 
+describe('discover curated icons', () => {
+  const row = {
+    id: 'r',
+    name: 'Nimbus',
+    description: '',
+    category: 'security',
+    install_hint: 'npx -y nimbus',
+    docs: '',
+    version: '1',
+    published_at: '',
+    source: 'registry',
+  }
+
+  it('routes a curated icon slug to the local icon endpoint', () => {
+    const items = buildItems({ ...base, registry: [{ ...row, icon: 'nimbus' }] })
+    expect(items.find((one) => one.id === 'connector:registry:r')?.icon).toBe(
+      '/api/discover/icon/nimbus',
+    )
+  })
+
+  it('keeps the glyph for a curated row that carries no icon', () => {
+    const items = buildItems({ ...base, registry: [row] })
+    expect(items.find((one) => one.id === 'connector:registry:r')?.icon).toBeUndefined()
+  })
+})
+
 describe('discover query', () => {
   const items = buildItems({
     ...base,

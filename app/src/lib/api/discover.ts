@@ -34,6 +34,8 @@ export interface RegistryEntry {
   published_at: string
   source: string
   curated_reason?: 'pick' | 'recent'
+  /** Vendor icon slug; only served when the file already sits in the tree. */
+  icon?: string
 }
 
 /** One of the two shelves that ship with the app; a preset is readable, not bought. */
