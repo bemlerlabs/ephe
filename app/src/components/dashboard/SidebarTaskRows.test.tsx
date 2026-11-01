@@ -109,6 +109,10 @@ describe('sidebar task rows — the direction, measured', () => {
     })
     const age = screen.getByTestId('session-age-fresh')
     expect(age.textContent).toBe('New one-way cell')
+    // The label is row meta, so it takes the data step and may shrink: at the base step
+    // it reached over the ⋯ button beside it, measured on the desktop build 2026-11-01.
+    expect(age.className).toContain('min-w-0')
+    expect(age.firstElementChild!.className).toContain('text-scale-data')
     expect(document.body.textContent).not.toContain('0 messages')
     expect(document.body.textContent).toContain('Ready')
   })
@@ -131,8 +135,11 @@ describe('sidebar task rows — the direction, measured', () => {
     }
     // The group label's own count sits on the same edge as the rows' ages.
     const label = screen.getByText('Today').closest('button')!
-    expect(label.className).toContain('pr-4')
+    expect(label.className).toContain('pr-8')
     expect(label.querySelector('[class*="--num-col-1"]')).toBeTruthy()
+    // The row's text column stops on that same edge, so the ⋯ box never sits on it.
+    const rowButton = screen.getByTestId('session-row-s1').querySelector('button[title]')!
+    expect(rowButton.className).toContain('pr-8')
   })
 
   it('keeps the tree glyphs on the same step as the title they indent', () => {
