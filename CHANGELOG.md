@@ -8,12 +8,12 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 The 0.5.2 wave is named below (`74c8b215`, `24859d47`, `1e75d98b`, `b3be482c`, `a112c987`,
-`2f13f123`, `c104eb32`, `bfdf94d7`, `babda5f9`, `0b5ae7c5`): the terminal answers a
+`2f13f123`, `c104eb32`, `bfdf94d7`, `babda5f9`, `0b5ae7c5`, `e96374d7`): the terminal answers a
 question instead of printing it, every
 confirmation carries its verb, a workspace row tells when the work last moved, the app gets
 one frame and one rail, the cell guest moves to a patched interpreter and is measured on it,
-the container basis is read instead of assumed, and the pip install path lands on the patched
-engine.
+the container basis is read instead of assumed, the pip install path lands on the patched
+engine, and a task row's text stops where its menu button begins.
 
 ### Added
 
@@ -272,6 +272,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - chat: A stored fact stops reading as a failed tool call (`bfdf94d7`)
 - shell: The status row measures the column it is painted in (`babda5f9`)
 - shell: The rail owns the places and the register keeps the task (`0b5ae7c5`)
+- sidebar: A task row's text stops where its menu button begins (`e96374d7`)
 
 ## [0.5.2] - 2026-11-01
 
@@ -305,6 +306,10 @@ the reader to destroy something says what it will do.
   from every one of them (`babda5f9`)
 - shell: The task register stops repeating the five places the rail carries, and keeps
   them in the phone drawer (`0b5ae7c5`)
+- sidebar: The ⋯ button no longer sits over the row it belongs to. Its box reaches 30 px
+  into the row and the text column stopped 10 px short of that, so the last 20 px of a title
+  — and of a fresh row's label, which also took the base type step — were painted under it
+  (`e96374d7`)
 
 ### Security
 
