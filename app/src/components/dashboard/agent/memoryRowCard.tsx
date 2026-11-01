@@ -3,6 +3,7 @@
 import { useTranslation } from 'react-i18next'
 import { Check, Pencil, RotateCcw, X } from 'lucide-react'
 import { formatDuration } from '@/lib/duration'
+import { MemoryNoteBody } from './memoryNoteBody'
 
 /**
  * D5: a memory row shows what the store knows about the fact.
@@ -154,15 +155,7 @@ export function MemoryRowCard({
             className="flex-1 min-w-0 resize-y rounded-md bg-canvas border border-brand/30 px-2 py-1 text-ui-xs text-foreground outline-none focus-ring"
           />
         ) : (
-          <p
-            className={`flex-1 min-w-0 text-ui-xs leading-relaxed break-words ${
-              trash
-                ? 'text-foreground/60 line-through decoration-status-info/30'
-                : 'text-foreground/80'
-            }`}
-          >
-            {row.text}
-          </p>
+          <MemoryNoteBody text={row.text} trash={trash} />
         )}
         {isEditing ? (
           <>
