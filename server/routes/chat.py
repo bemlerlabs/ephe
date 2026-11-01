@@ -1330,6 +1330,10 @@ def _make_stream_callbacks(
         if _code:
             _extra["reason_code"] = _code
             _extra["reason_params"] = dict(getattr(result, "params", {}) or {})
+        # A code names the result; `happened` says whether the call did the thing. Reading
+        # "carries a code" as "was refused" painted `[memory] stored (35 entries)` as a
+        # failure — the outcome had to move onto the object before the status could trust it.
+        _happened = bool(getattr(result, "happened", False))
         # w10-12: the outcome, in the vocabulary the activity lines already use. Without
         # it every tool_done reached the client as "completed", so a refusal was painted
         # as a success (walkthrough 2026-10-12, FINDINGS §medium: "A deny is visibly
@@ -1343,7 +1347,9 @@ def _make_stream_callbacks(
             _refused[name] = _pending_refusal - 1
         _refused_result = is_error_result(result) or result_decision(result) == "blocked"
         _extra["status"] = (
-            "failed" if (_code or _pending_refusal or _refused_result) else "completed"
+            "failed"
+            if (_pending_refusal or _refused_result or (_code and not _happened))
+            else "completed"
         )
         _stop_beat()
         # E1: the digest of what this frame delivers, so the proof ledger's sha256 can

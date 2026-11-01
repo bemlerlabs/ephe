@@ -12,17 +12,30 @@ from __future__ import annotations
 
 
 class Reason(str):
-    __slots__ = ("code", "params")
+    __slots__ = ("code", "params", "happened")
 
-    def __new__(cls, text: str, code: str, params: dict[str, str]):
+    def __new__(cls, text: str, code: str, params: dict[str, str], happened: bool = False):
         obj = super().__new__(cls, text)
         obj.code = code
         obj.params = params
+        obj.happened = happened
         return obj
 
 
 def reason(code: str, text: str, **params: str) -> Reason:
+    """A result that says the call did not do what was asked.
+
+    A code alone is not an outcome: `reason()` marks a blockade, `outcome()` marks something
+    that happened. The chat surface paints one as failed and the other as completed, and the
+    two used to be told apart by "does this carry a code at all" — which is the rule that made
+    `[memory] stored (35 entries)` read as a failure to the person who had just stored it.
+    """
     return Reason(text, code, params)
+
+
+def outcome(code: str, text: str, **params: str) -> Reason:
+    """A result that names what it achieved — coded for the reader, and not a failure."""
+    return Reason(text, code, params, happened=True)
 
 
 def coded(code: str, exception: BaseException, **params: str) -> BaseException:

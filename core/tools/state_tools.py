@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 
-from core.reason import reason
+from core.reason import outcome, reason
 
 #: P2-1: a hard write budget per tier, so an agent loop does not fill up the
 #: persistent memory. Surplus is trimmed on add (the oldest
@@ -77,7 +77,7 @@ async def memory(action: str, target: str, content: str = "",
             # collection does not grow unbounded.
             _enforce_memory_ceiling(mem)
             mem.store(content.strip(), metadata={"source": "agent"}, **options)
-            return reason("memory_stored", f"[memory] stored ({mem.count()} entries)",
+            return outcome("memory_stored", f"[memory] stored ({mem.count()} entries)",
                           count=str(mem.count()))
         if action == "list":
             # Only leading facts: a superseded fact stays queryable (search),
@@ -87,7 +87,7 @@ async def memory(action: str, target: str, content: str = "",
                 if not (e.get("metadata") or {}).get("superseded_by")
             ]
             if not entries:
-                return reason("memory_empty", "[memory] no entries")
+                return outcome("memory_empty", "[memory] no entries")
             return "\n".join(f"- {e['text']}" for e in entries)
         if action == "remove":
             if not old_text.strip():
@@ -98,7 +98,7 @@ async def memory(action: str, target: str, content: str = "",
                 if old_text.strip() in e["text"]:
                     mem.delete(e["id"])
                     removed += 1
-            return reason("memory_removed", f"[memory] removed {removed} entries",
+            return outcome("memory_removed", f"[memory] removed {removed} entries",
                           count=str(removed))
         # replace = correction. Under Kepta the identified fact is superseded
         # (superseded_by + valid_to, so it stays queryable); Chroma replaces the text
@@ -115,28 +115,28 @@ async def memory(action: str, target: str, content: str = "",
                       supersedes=hit_id, **options)
         else:
             mem.store(content.strip(), metadata={"source": "agent"}, **options)
-        return reason("memory_replaced", f"[memory] replaced ({mem.count()} entries)",
+        return outcome("memory_replaced", f"[memory] replaced ({mem.count()} entries)",
                       count=str(mem.count()))
 
     # Tier "user": structured user profile (JSON, no vector).
     from core.profile import load_profile, save_profile
     profile = load_profile()
     if action == "list":
-        return profile.to_context_string() or reason("profile_empty", "[memory] profile empty")
+        return profile.to_context_string() or outcome("profile_empty", "[memory] profile empty")
     if action == "add":
         if not content.strip():
             return reason("memory_add_needs_content", "[memory] add needs 'content'")
         # Profile fields are lists/strings; we fill the first free field.
         _apply_profile_field(profile, content.strip())
         save_profile(profile)
-        return reason("profile_updated", "[memory] profile updated")
+        return outcome("profile_updated", "[memory] profile updated")
     if action in {"replace", "remove"}:
         if not content.strip():
             return reason("profile_action_needs_content",
                           f"[memory] {action} needs 'content' (field=value)", action=action)
         _apply_profile_field(profile, content.strip())
         save_profile(profile)
-        return reason("profile_action_done", f"[memory] profile {action}d", action=action)
+        return outcome("profile_action_done", f"[memory] profile {action}d", action=action)
     # Unreachable: the action guard above admits exactly the four branches below.
     return "[memory] unknown combination"
 
@@ -179,7 +179,7 @@ async def skill_manage(action: str, name: str = "", trigger: str = "",
     if action == "list":
         skills = loader.load_all()
         if not skills:
-            return reason("skill_list_empty", "[skill_manage] no skills")
+            return outcome("skill_list_empty", "[skill_manage] no skills")
         return "\n".join(f"- {s.name}: {s.description}" for s in skills)
 
     if action == "show":
@@ -219,7 +219,7 @@ async def skill_manage(action: str, name: str = "", trigger: str = "",
         except (SkillLoadError, Exception) as exc:  # noqa: BLE001
             return reason("skill_create_failed", f"[skill_manage] create failed: {exc}",
                           error=str(exc))
-        return reason("skill_saved", f"[skill_manage] skill '{skill.name}' saved",
+        return outcome("skill_saved", f"[skill_manage] skill '{skill.name}' saved",
                       name=skill.name)
 
     if action == "delete":
@@ -230,7 +230,7 @@ async def skill_manage(action: str, name: str = "", trigger: str = "",
         except Exception as exc:  # noqa: BLE001
             return reason("skill_delete_failed", f"[skill_manage] delete failed: {exc}",
                           error=str(exc))
-        return reason("skill_deleted", f"[skill_manage] skill '{name.strip()}' deleted",
+        return outcome("skill_deleted", f"[skill_manage] skill '{name.strip()}' deleted",
                       name=name.strip())
 
     # Unreachable: the four branches above are the whole action set.

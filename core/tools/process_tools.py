@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import time
 
-from core.reason import reason
+from core.reason import outcome, reason
 from core.tools.shell_tools import _BG_TASKS
 
 #: Command preview length in the listing — one line per task, enough to say
@@ -71,7 +71,7 @@ async def process_manage(action: str, task_id: str = "", timeout_s: float = 30.0
     if handle is not None and not handle.done():
         handle.cancel()
         entry["status"] = "stopped"
-        return reason("process_stopped", f"Process {task_id} stopped.", task_id=task_id)
+        return outcome("process_stopped", f"Process {task_id} stopped.", task_id=task_id)
     return reason(
         "process_already_state",
         f"Process {task_id} is already {entry.get('status', 'done')}.",

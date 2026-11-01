@@ -683,3 +683,46 @@ def test_a_read_page_carries_the_two_new_keys_as_neutral_values(client, monkeypa
     data = client.get("/api/reader", params={"url": "https://example.com/x"}).json()
     assert data["ok"] is True
     assert (data["reason"], data["reason_code"], data["reason_params"]) == ("", None, {})
+
+
+#: The codes that say something happened. `core/reason.py` splits the two kinds — `reason()`
+#: for a blockade, `outcome()` for an achieved result — and the chat route reads that flag to
+#: paint the tool line. Before the split it read "carries any code", so `[memory] stored (35
+#: entries)` reached the reader as a failure on a turn that had just stored it. Membership is
+#: checked both ways: a new coded line must be placed in one camp or the gate says so.
+OUTCOME_CODES = frozenset({
+    "memory_stored",
+    "memory_removed",
+    "memory_replaced",
+    "memory_empty",
+    "profile_updated",
+    "profile_action_done",
+    "profile_empty",
+    "skill_saved",
+    "skill_deleted",
+    "skill_list_empty",
+    "todo_list_empty",
+    "process_stopped",
+})
+
+
+@pytest.mark.parametrize("case", ALL_CASES, ids=ALL_IDS)
+def test_a_coded_line_says_whether_the_call_did_the_thing(case, monkeypatch):
+    code = case[0]
+    note = _note(case, monkeypatch)
+    assert note.happened is (code in OUTCOME_CODES), (
+        f"{code} is coded through "
+        f"{'outcome()' if note.happened else 'reason()'} while the surface classifies it the "
+        "other way — a blockade must read as failed and an achieved result as completed"
+    )
+
+
+def test_the_outcome_helper_is_a_sentence_with_the_flag_on():
+    """`outcome()` is `reason()` plus the one bit the status needs; nothing else changes."""
+    from core.reason import outcome as outcome_reason
+    from core.reason import reason
+
+    achieved = outcome_reason("memory_stored", "[memory] stored (1 entries)", count="1")
+    blocked = reason("memory_add_needs_content", "[memory] add needs 'content'")
+    assert isinstance(achieved, str) and isinstance(blocked, str)
+    assert (achieved.happened, blocked.happened) == (True, False)

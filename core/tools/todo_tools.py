@@ -9,7 +9,7 @@ Status: pending | in_progress | completed | cancelled
 """
 from __future__ import annotations
 
-from core.reason import reason
+from core.reason import outcome, reason
 
 # Session ledger: session_id → list (P0-2 isolation, no context leaking).
 _LEDGERS: dict[str, list[dict[str, str]]] = {}
@@ -77,7 +77,7 @@ async def todo_list(
 
 def _render(ledger: list[dict[str, str]]) -> str:
     if not ledger:
-        return reason("todo_list_empty", "Todo list: empty.")
+        return outcome("todo_list_empty", "Todo list: empty.")
     from core.ephe_plan import PLAN_HEADING
 
     done = sum(1 for t in ledger if t["status"] == "completed")
