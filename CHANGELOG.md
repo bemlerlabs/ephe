@@ -280,7 +280,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   for `/discover/icon/<slug>` moves beside the loaders so a curated row and the
   route answer for the same shape (`8765637c`)
 - cli: `ephe doctor` answers its cell line in the report's own language, and a guard pins the
-  wording of both branches so a translated string is caught by a test (`6714dbc1`)
+  wording of both branches so a translated string is caught by a test (`94ad6d23`)
 
 ### Security
 
