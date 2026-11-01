@@ -2,29 +2,27 @@
 from __future__ import annotations
 
 import hashlib
-import html
 import json
 import os
 import re
-import zipfile
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from core.document_text import (
+    MAX_DOC_CHARS,
+    OFFICE_EXTENSIONS,
+    PDF_EXTENSIONS,
+    TEXT_EXTENSIONS,
+    extract_text,
+)
 
-MAX_SOURCE_CHARS = 180_000
+MAX_SOURCE_CHARS = MAX_DOC_CHARS
 MAX_NOTEBOOK_FILES = 80
 DEFAULT_CHUNK_CHARS = 1_200
 NOTEBOOK_SCHEMA_VERSION = 2
 
-TEXT_EXTENSIONS = {
-    ".txt", ".md", ".markdown", ".rst", ".csv", ".tsv", ".json", ".yaml", ".yml",
-    ".toml", ".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".css", ".scss",
-    ".java", ".go", ".rs", ".swift", ".kt", ".php", ".rb", ".sh", ".sql",
-}
-PDF_EXTENSIONS = {".pdf"}
-OFFICE_EXTENSIONS = {".docx", ".pptx"}
 SKIP_DIRS = {
     ".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__",
     "dist", "build", ".next", ".turbo", ".cache", "coverage",
@@ -315,30 +313,8 @@ def _collect_files(paths: list[Path], extensions: list[str] | None) -> list[Path
 
 
 def _read_source_text(path: Path) -> tuple[str, str, str]:
-    if path.suffix.lower() in PDF_EXTENSIONS:
-        try:
-            import pdfplumber
-
-            pages: list[str] = []
-            with pdfplumber.open(str(path)) as pdf:
-                total = len(pdf.pages)
-                for index, page in enumerate(pdf.pages, 1):
-                    text = page.extract_text() or ""
-                    if text.strip():
-                        pages.append(f"--- Page {index}/{total} ---\n{text.strip()}")
-            return "\n\n".join(pages), "" if pages else "PDF has no extractable text.", "pdfplumber"
-        except Exception as exc:
-            return "", f"PDF extraction failed: {exc}", "pdfplumber"
-    if path.suffix.lower() in OFFICE_EXTENSIONS:
-        text, warning = _extract_office_text(path)
-        return text, warning, "office-xml"
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except Exception as exc:
-        return "", f"Text extraction failed: {exc}", "plain"
-    if len(text) > MAX_SOURCE_CHARS:
-        return text[:MAX_SOURCE_CHARS], "Source truncated by per-file character limit.", "plain"
-    return text, "", "plain"
+    """The notebook reads through the one extractor the library shares (`core/document_text.py`)."""
+    return extract_text(path)
 
 
 def _source_record(source_id: str, path: Path, text: str, status: str, warning: str = "", parser: str = "plain") -> SourceRecord:
@@ -383,33 +359,6 @@ def _tokens(text: str) -> list[str]:
         "der", "die", "das", "und", "ist", "mit", "von", "ein", "eine", "auf",
     }
     return [tok for tok in re.findall(r"[a-zA-Z0-9äöüÄÖÜß_-]{3,}", text.lower()) if tok not in stop]
-
-
-def _extract_office_text(path: Path) -> tuple[str, str]:
-    """Extract text from docx/pptx packages without heavyweight dependencies."""
-    try:
-        with zipfile.ZipFile(path) as package:
-            names = package.namelist()
-            if path.suffix.lower() == ".docx":
-                xml_names = [name for name in names if name.startswith("word/") and name.endswith(".xml")]
-            else:
-                xml_names = [name for name in names if name.startswith("ppt/slides/slide") and name.endswith(".xml")]
-            parts: list[str] = []
-            for index, name in enumerate(sorted(xml_names), 1):
-                xml = package.read(name).decode("utf-8", errors="replace")
-                matches = re.findall(r"<a:t>(.*?)</a:t>|<w:t[^>]*>(.*?)</w:t>", xml)
-                flat = [
-                    html.unescape(item).strip()
-                    for pair in matches
-                    for item in pair
-                    if item and item.strip()
-                ]
-                if flat:
-                    marker = f"--- Slide {index} ---" if path.suffix.lower() == ".pptx" else f"--- Part {index} ---"
-                    parts.append(marker + "\n" + "\n".join(flat))
-            return "\n\n".join(parts), "" if parts else "Office file has no extractable text."
-    except Exception as exc:
-        return "", f"Office extraction failed: {exc}"
 
 
 def _text_vector(text: str, dims: int = 48) -> list[float]:
