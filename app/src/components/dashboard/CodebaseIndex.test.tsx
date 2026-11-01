@@ -38,7 +38,10 @@ afterEach(() => {
 
 describe('CodebaseStatusBarPill', () => {
   it('names the symbol count once the index is ready', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => statusResponse(ready)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => statusResponse(ready)),
+    )
     render(<CodebaseStatusBarPill />)
     const pill = await screen.findByTestId('codebase-pill')
     expect(pill).toHaveAttribute('data-state', 'ready')
@@ -47,7 +50,10 @@ describe('CodebaseStatusBarPill', () => {
   })
 
   it('opens the dialog on click', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => statusResponse(ready)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => statusResponse(ready)),
+    )
     const onOpen = vi.fn()
     render(<CodebaseStatusBarPill onOpen={onOpen} />)
     fireEvent.click(await screen.findByTestId('codebase-pill'))
@@ -58,7 +64,12 @@ describe('CodebaseStatusBarPill', () => {
     // The defect this case pins: with no answer to read (no workspace chosen, the
     // server not up yet, a refused port), the pill used to paint the danger tone and
     // claim an index had failed. Nothing had run, so nothing had failed.
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed') }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed')
+      }),
+    )
     render(<CodebaseStatusBarPill />)
     const pill = await screen.findByTestId('codebase-pill')
     expect(pill).toHaveAttribute('data-state', 'idle')
@@ -66,7 +77,10 @@ describe('CodebaseStatusBarPill', () => {
   })
 
   it('names the failure the route itself reports', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => statusResponse({ ...idle, state: 'error' })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => statusResponse({ ...idle, state: 'error' })),
+    )
     render(<CodebaseStatusBarPill />)
     const pill = await screen.findByTestId('codebase-pill')
     expect(pill).toHaveAttribute('data-state', 'error')
@@ -81,7 +95,10 @@ describe('CodebaseIndexDialog', () => {
   })
 
   it('shows the file progress of a running index', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => statusResponse(indexing)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => statusResponse(indexing)),
+    )
     render(<CodebaseIndexDialog open onClose={() => {}} />)
     const dialog = await screen.findByTestId('codebase-dialog')
     expect(dialog.textContent).toContain('codebase.title')
