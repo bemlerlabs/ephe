@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Camera, History, X } from 'lucide-react'
 import type { ChatCheckpoint } from '@/lib/checkpoints'
+import { askConfirm } from '@/lib/confirmAction'
 
 interface CheckpointControlsProps {
   checkpoints: ChatCheckpoint[]
@@ -43,8 +44,13 @@ export default function CheckpointControls({
               className="flex items-center gap-1 text-ui-xs text-ink-soft font-mono px-1.5 py-0.5 rounded bg-surface"
             >
               <button
-                onClick={() => {
-                  if (window.confirm(t('checkpoints.rollbackConfirm', { label: cp.label })))
+                onClick={async () => {
+                  if (
+                    await askConfirm({
+                      title: t('checkpoints.rollbackConfirm', { label: cp.label }),
+                      action: t('common.actions.checkpointRollback'),
+                    })
+                  )
                     onRollback(cp.id)
                 }}
                 title={t('checkpoints.rollback')}
@@ -55,8 +61,13 @@ export default function CheckpointControls({
               </button>
               <span className="max-w-24 truncate">{cp.label}</span>
               <button
-                onClick={() => {
-                  if (window.confirm(t('checkpoints.deleteConfirm', { label: cp.label })))
+                onClick={async () => {
+                  if (
+                    await askConfirm({
+                      title: t('checkpoints.deleteConfirm', { label: cp.label }),
+                      action: t('common.actions.checkpointDelete'),
+                    })
+                  )
                     onDelete(cp.id)
                 }}
                 title={t('checkpoints.delete')}

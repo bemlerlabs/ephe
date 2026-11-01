@@ -12,6 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { LoadingRow } from '@/components/ui'
+import { askConfirm } from '@/lib/confirmAction'
 import { listFs, gitStatus, gitDiff, gitApplyPatch, listChangeSets } from '@/lib/api'
 import type { GitDiffResponse, GitFileChange, GitStatusResponse } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
@@ -129,7 +130,13 @@ export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void
   // DiffView already discards hunks through, so no second write path appears here.
   const revertFile = useCallback(
     async (rel: string) => {
-      if (!window.confirm(t('agentPanel.revertConfirm'))) return
+      if (
+        !(await askConfirm({
+          title: t('agentPanel.revertConfirm'),
+          action: t('common.actions.fileRevert'),
+        }))
+      )
+        return
       setBusy(rel)
       try {
         const patch = patches[rel] ?? (await gitDiff(rel))

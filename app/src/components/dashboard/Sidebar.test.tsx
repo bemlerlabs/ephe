@@ -245,7 +245,7 @@ describe('R26 Session context menu', () => {
     fireEvent.contextMenu(screen.getByText('Alpha'))
     fireEvent.click(screen.getByTestId('menu-delete'))
     expect(screen.queryByTestId('session-context-menu')).toBeNull()
-    expect(screen.getByText('sidebar.deleteYes')).toBeTruthy()
+    expect(screen.getByText('sidebar.deleteAction')).toBeTruthy()
   })
 
   it('⋯ button opens the same menu (touch/mobile path)', () => {

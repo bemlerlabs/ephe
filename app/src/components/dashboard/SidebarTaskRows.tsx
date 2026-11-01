@@ -278,20 +278,21 @@ function TaskRow({
 
       {/* R26: the ⋯ button (hover/touch) opens the session context menu, and the
           inline confirm below replaces it. Both are the same floating surface as
-          before: a transient control over the row is not row chrome. */}
+          before: a transient control over a row is not row chrome. The confirming
+          button carries the verb — a bare "Yes" agrees to a sentence it does not repeat. */}
       {!rail && state.deleteConfirmId === session.id ? (
         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 float-surface p-0.5 z-sticky">
           <button
             onClick={() => state.onDeleteConfirm(session.id)}
             className="bg-status-danger/20 hover:bg-status-danger/30 text-status-danger rounded px-1.5 py-0.5 lg:min-h-6 text-ui-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 max-lg:min-h-11"
           >
-            {t('sidebar.deleteYes')}
+            {t('sidebar.deleteAction')}
           </button>
           <button
             onClick={state.onDeleteCancel}
             className="text-ink-faint hover:text-ink-faint rounded px-1 py-0.5 lg:min-h-6 text-ui-xs transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
           >
-            {t('sidebar.deleteNo')}
+            {t('sidebar.deleteCancel')}
           </button>
         </div>
       ) : (

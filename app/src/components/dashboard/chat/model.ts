@@ -43,6 +43,7 @@ import {
 } from '@/lib/slashCommands'
 import { compositePayload, compositeImages, type ChatAttachment } from '@/lib/attachments'
 import { toastBus } from '@/lib/toast'
+import { askConfirm } from '@/lib/confirmAction'
 import { toggleCompanionEnabled } from '@/lib/companionToggle'
 import { SHORTCUTS_EVENT } from '../ShortcutOverlay'
 import { apiUrl } from '@/lib/api/http'
@@ -190,7 +191,10 @@ export function useChatLayoutModel() {
       if (
         headerMeta &&
         headerMeta.dirty > 0 &&
-        !window.confirm(t('header.checkoutDirtyConfirm', { count: headerMeta.dirty }))
+        !(await askConfirm({
+          title: t('header.checkoutDirtyConfirm', { count: headerMeta.dirty }),
+          action: t('common.actions.branchSwitch'),
+        }))
       ) {
         setBranchMenuOpen(false)
         return
