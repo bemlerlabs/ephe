@@ -125,8 +125,8 @@ The 0.1.10 changes are named below (`f16963e`, `278d717`, `7c468f3`,
 The 0.1.8 fixes are named below (`999d75c`, `ece2522`, `6dce8df`, `c2f49ab`,
 and the packaging gate's `6d0d7ba`).
 The 0.1.7 changes are on main as `a6c97fc`, `8f86bfe`, `f4415e9`, `6869f8c`,
-`7f793d0` and `5d67f19`; the tag names the same work as `a02adcf`, `b831014`,
-`36640f5` and `8e0b7a1`, because v0.1.7 was cut from a rebased copy of main.
+`7f793d0` and `5d67f19`; the tag names the same work as `a6c97fcb`, `8f86bfec`,
+`f4415e9d` and `9f8f4b03`, because v0.1.7 was cut from a rebased copy of main.
 The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 `4c85103`, `c8476be`, `a7930fa`, `86d933b`).
 - sol: Name a failed round and keep the rule that ended it (`75e99b8f`)
@@ -280,7 +280,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   for `/discover/icon/<slug>` moves beside the loaders so a curated row and the
   route answer for the same shape (`8765637c`)
 - cli: `ephe doctor` answers its cell line in the report's own language, and a guard pins the
-  wording of both branches so a translated string is caught by a test (`94ad6d23`)
+  wording of both branches so a translated string is caught by a test (`b336e116`)
 
 ### Security
 
@@ -292,6 +292,8 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 
 - hygiene: The gate names the state this product writes itself — a session store, a capture, the
   workbench directory, the config root, and an agent lane's copy of the whole tree (`879d8e99`)
+- release: A tool moves the changelog addresses a rebase merge rewrote, and takes a candidate
+  only when its diff carries the same patch id (`84e08b33`)
 
 ### Fixed
 
@@ -750,17 +752,17 @@ fixed (`38a9640`).
 ### Fixed
 - `fetch_url` returns the page text and no longer answers a prompt through a
   local model, so a hosted engine no longer fails a fetch behind a card that
-  said Completed (`a02adcf`).
+  said Completed (`a6c97fcb`).
 - A tool call the backend marks failed is shown as Failed with its reason; an
   approval refusal keeps `denied`, and the card no longer turns one into the
-  other (`b831014`).
+  other (`8f86bfec`).
 - Tool names and statuses wrap instead of clipping, and the family hint lives
-  in the card body instead of a hover popup over it (`b831014`).
+  in the card body instead of a hover popup over it (`8f86bfec`).
 - An attached image shows a thumbnail that opens a lightbox; text and binary
   files show their name and size, removal names the file, and a file that is
-  being read or cannot be read says so (`b831014`).
+  being read or cannot be read says so (`8f86bfec`).
 - Fetch failures and refusals carry reader codes in both languages, and the
-  English line of every code is the engine-facing entry (`36640f5`).
+  English line of every code is the engine-facing entry (`f4415e9d`).
 
 ### Security
 - The `pnpm` pin moves to 11.11.0 (`GHSA-vx52-2968-3vc6` covers 11.10.0). The
