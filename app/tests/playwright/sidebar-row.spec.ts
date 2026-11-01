@@ -12,9 +12,9 @@ import { collisionProbe } from './layoutProbe'
  */
 
 const rowIds = (page: import('@playwright/test').Page) =>
-  page.locator('[data-testid^="session-row-"]').evaluateAll((els) =>
-    els.map((el) => el.getAttribute('data-testid'))
-  )
+  page
+    .locator('[data-testid^="session-row-"]')
+    .evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')))
 
 test.describe('the task row trailing slot', () => {
   for (const width of [1100, 1512]) {
