@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import CheckpointControls from './CheckpointControls'
 import type { ChatCheckpoint } from '@/lib/checkpoints'
 
-// jsdom returns undefined for window.confirm (falsy) — the destructive
-// actions are confirm-gated since the deploy-polish round, so force-accept.
+// The confirm helper renders its own sheet only while the app shell hosts it. A component
+// test has no host, so it falls back to window.confirm — and jsdom answers undefined
+// (falsy) there, which would refuse every destructive action. Force-accept it.
 let confirmSpy: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
@@ -65,7 +66,7 @@ describe('CheckpointControls', () => {
     expect(rollbackBtns.length).toBe(2)
   })
 
-  it('fires onRollback after confirm', () => {
+  it('fires onRollback after confirm', async () => {
     const onRollback = vi.fn()
     render(
       <CheckpointControls
@@ -77,10 +78,10 @@ describe('CheckpointControls', () => {
     )
     fireEvent.click(screen.getByTitle('checkpoints.rollback'))
     expect(confirmSpy).toHaveBeenCalled()
-    expect(onRollback).toHaveBeenCalledWith('cp-a')
+    await waitFor(() => expect(onRollback).toHaveBeenCalledWith('cp-a'))
   })
 
-  it('does NOT rollback when confirm is dismissed', () => {
+  it('does NOT rollback when confirm is dismissed', async () => {
     const onRollback = vi.fn()
     confirmSpy.mockReturnValue(false)
     render(
@@ -98,7 +99,7 @@ describe('CheckpointControls', () => {
   // Safety default: an empty snapshot is the most destructive rollback there
   // is (it discards every message in the session), so it must never skip the
   // confirmation the way a benign one might.
-  it('still asks before rolling back to a checkpoint that holds no messages', () => {
+  it('still asks before rolling back to a checkpoint that holds no messages', async () => {
     const onRollback = vi.fn()
     const empty: ChatCheckpoint = {
       id: 'cp-empty',
@@ -116,7 +117,8 @@ describe('CheckpointControls', () => {
     )
     fireEvent.click(screen.getByTitle('checkpoints.rollback'))
     expect(confirmSpy).toHaveBeenCalled()
-    expect(onRollback).toHaveBeenCalledWith('cp-empty')
+    // The sheet answers on a promise, so the callback lands one microtask later.
+    await waitFor(() => expect(onRollback).toHaveBeenCalledWith('cp-empty'))
   })
 
   it('offers no rollback affordance once the list is empty', () => {
@@ -142,7 +144,7 @@ describe('CheckpointControls', () => {
     expect(screen.queryAllByTitle('checkpoints.rollback')).toHaveLength(0)
   })
 
-  it('fires onDelete after confirm', () => {
+  it('fires onDelete after confirm', async () => {
     const onDelete = vi.fn()
     render(
       <CheckpointControls
@@ -154,6 +156,6 @@ describe('CheckpointControls', () => {
     )
     fireEvent.click(screen.getByTitle('checkpoints.delete'))
     expect(confirmSpy).toHaveBeenCalled()
-    expect(onDelete).toHaveBeenCalledWith('cp-a')
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith('cp-a'))
   })
 })

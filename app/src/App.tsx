@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui'
 import { Toaster } from '@/components/ui'
 import PageErrorBoundary from '@/components/dashboard/PageErrorBoundary'
 import { useCommandPalette } from '@/hooks'
-import { CommandPalette } from '@/components/ui'
+import { CommandPalette, ConfirmHost } from '@/components/ui'
 import { consumeSetupIntent, shouldLeaveSetup } from '@/lib'
 import { gateSnapshot, loadSetupGate, subscribeGate, type SetupGate } from '@/lib'
 
@@ -337,6 +337,8 @@ function AppInner() {
             address it could not open instead of rewriting it without a word. */}
         <Route path="*" element={<UnknownRoute />} />
       </Routes>
+
+      <ConfirmHost />
 
       <CommandPalette
         open={open}

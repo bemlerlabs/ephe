@@ -4,6 +4,7 @@
  *  gated). `onApplied` reloads the parent list. Without filePath there are no
  *  actions — it then stays the plain colour readout. */
 import { useState } from 'react'
+import { askConfirm } from '@/lib/confirmAction'
 import { gitApplyPatch } from '@/lib/api'
 import { toastBus } from '@/lib/toast'
 import { useTranslation } from 'react-i18next'
@@ -124,7 +125,14 @@ export default function DiffView({
     if (busy) return
     // F-10: discarding reverts on-disk work — one click from a text link is
     // too cheap for a destructive action, so gate it behind a confirm.
-    if (kind === 'discard' && !window.confirm(t('common.discardConfirm'))) return
+    if (
+      kind === 'discard' &&
+      !(await askConfirm({
+        title: t('common.discardConfirm'),
+        action: t('common.actions.hunkDiscard'),
+      }))
+    )
+      return
     setBusy({ index: hunk.index, kind })
     try {
       await gitApplyPatch(hunk.patch, kind === 'apply' ? { staged: true } : { reverse: true })

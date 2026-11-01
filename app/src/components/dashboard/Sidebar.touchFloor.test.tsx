@@ -267,8 +267,8 @@ describe('Sidebar desktop floor at 1440 px (W13)', () => {
 
     fireEvent.click(menuTrigger)
     fireEvent.click(screen.getByTestId('menu-delete'))
-    expectToken(screen.getByText('sidebar.deleteYes').closest('button'), FLOOR_H)
-    expectToken(screen.getByText('sidebar.deleteNo').closest('button'), FLOOR_H)
+    expectToken(screen.getByText('sidebar.deleteAction').closest('button'), FLOOR_H)
+    expectToken(screen.getByText('sidebar.deleteCancel').closest('button'), FLOOR_H)
 
     // last: typing a query narrows the list, so the tree rows above have to be
     // read before it
