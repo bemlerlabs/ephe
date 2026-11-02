@@ -3,6 +3,7 @@
  * round control in the corner is the only verb it carries, and it says what
  * this machine already decided: add, or on and ready to turn off.
  */
+import { apiUrl } from '@/lib/api/http'
 import { useTranslation } from 'react-i18next'
 import { Check, Plus } from 'lucide-react'
 import { CategoryGlyph } from './categoryGlyph'
@@ -104,7 +105,7 @@ export function DiscoverCard({
         >
           {item.icon ? (
             <img
-              src={item.icon}
+              src={apiUrl(item.icon)}
               alt=""
               width={28}
               height={28}

@@ -6,6 +6,7 @@
  *  When the entry names a vendor icon the publisher's own mark takes the
  *  eyebrow slot on the card's plate; the subject glyph is the fallback, so a
  *  turn between picks of equal shape never moves the title. */
+import { apiUrl } from '@/lib/api/http'
 import { useTranslation } from 'react-i18next'
 import { Check, Plus } from 'lucide-react'
 import { CategoryGlyph } from './categoryGlyph'
@@ -60,7 +61,7 @@ export function DiscoverHero({
               >
                 {item.icon ? (
                   <img
-                    src={item.icon}
+                    src={apiUrl(item.icon)}
                     alt=""
                     width={28}
                     height={28}
