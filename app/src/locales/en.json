@@ -1717,6 +1717,14 @@
     "close": "Close Ephe's Computer",
     "previewUrlLabel": "Browser URL",
     "paneDocument": "Document",
+    "sectionsAria": "Task surfaces",
+    "section": {
+      "output": "Output",
+      "site": "Site",
+      "console": "Console",
+      "notes": "Notes",
+      "review": "Review"
+    },
     "previewBack": "Back",
     "previewForward": "Forward",
     "more": "More",

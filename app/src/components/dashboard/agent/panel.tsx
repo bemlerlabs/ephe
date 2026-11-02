@@ -17,6 +17,8 @@ import { useShellRuns } from './useShellRuns'
 import { usePanelPulse } from './usePanelPulse'
 import { useTabLabels } from './tabChrome'
 import { PanelTabBar } from './panelTabBar'
+import { PanelSections } from './panelSections'
+import { leadTab, sectionOfActive, sectionsOf } from './workbenchModel'
 import { agentTabDomIds } from './tabsTabPill'
 import { PanelAddMenu } from './panelAddMenu'
 import { PanelEmptyState } from './panelEmptyState'
@@ -32,6 +34,9 @@ export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[]
   // toggle stays, the wobble does not.
   const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
+  // C1: the body can fold away while the column stays open, so a reader gets the
+  // width back without losing what is open.
+  const [collapsed, setCollapsed] = useState(false)
 
   const { tabState, openTab, closeTab, selectTab, menuOpen, setMenuOpen, tabQuery, setTabQuery } =
     useTabRegistry()
@@ -83,6 +88,24 @@ export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[]
 
   const { shellRuns, gitRuns, userRuns, busy, submit } = useShellRuns(messages)
   const labels = useTabLabels({ terminal: shellRuns.length, git: gitRuns.length })
+  const sections = sectionsOf(tabState.open)
+  const forwardSection = sectionOfActive(tabState.active)
+  const counts = Object.fromEntries(
+    sections.map((section) => [
+      section,
+      tabState.open.filter((tab) => sectionOfActive(tab) === section).length,
+    ]),
+  ) as Record<string, number>
+
+  const toggleSection = (section: (typeof sections)[number]) => {
+    if (forwardSection === section) {
+      setCollapsed((v) => !v)
+      return
+    }
+    const lead = leadTab(tabState.open, section, tabState.active)
+    if (lead) selectTab(lead)
+    setCollapsed(false)
+  }
   const pulse = usePanelPulse(open)
 
   // DD-09: the panel used to start at top:56 and covered the toolbar and the
@@ -128,13 +151,23 @@ export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[]
         aria-label={t('agentPanel.resizeHandle')}
         className={`absolute top-0 h-full w-1.5 cursor-col-resize hover:bg-brand/20 transition-colors z-sticky ${dock === 'right' ? '-left-0.5' : '-right-0.5'}`}
       />
+      <PanelSections
+        sections={sections}
+        counts={counts}
+        forward={forwardSection}
+        collapsed={collapsed}
+        onToggle={toggleSection}
+      />
       <PanelTabBar
         tabs={tabState.open}
         active={tabState.active}
         labels={labels}
         dock={dock}
         menuOpen={menuOpen}
-        onSelect={selectTab}
+        onSelect={(tab) => {
+          setCollapsed(false)
+          selectTab(tab)
+        }}
         onCloseTab={closeTab}
         onToggleMenu={() => {
           setTabQuery('')
@@ -161,58 +194,61 @@ export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[]
           onDismiss={() => setMenuOpen(false)}
         />
       )}
-      <AnimatePresence mode="wait" initial={false}>
-        <m.div
-          key={tabState.active ?? 'none'}
-          className="flex min-h-0 flex-1 flex-col"
-          initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: reduceMotion ? 0 : 0.14, ease: 'easeOut' }}
-        >
-          {tabState.open.length === 0 ? (
-            <PanelEmptyState labels={labels} onOpenTab={openTab} />
-          ) : tabState.active === 'preview' ? (
-            <PreviewTab
-              url={url}
-              draft={draft}
-              nonce={nonce}
-              inputRef={inputRef}
-              setDraft={setDraft}
-              recent={recent}
-              onPickRecent={pickRecent}
-              onLoad={load}
-              onReload={reload}
-              onBack={back}
-              onForward={forward}
-              canBack={canBack}
-              canForward={canForward}
-            />
-          ) : tabState.active === 'git' ? (
-            <ReviewTab />
-          ) : tabState.active === 'files' ? (
-            <FilesTab
-              onOpenFile={(fileUrl) => {
-                setUrl(fileUrl)
-                setDraft(fileUrl)
-                openTab('preview')
-              }}
-            />
-          ) : tabState.active === 'audit' ? (
-            <AuditTab />
-          ) : tabState.active === 'trajectory' ? (
-            <TrajectoryTab />
-          ) : tabState.active === 'terminal' ? (
-            <TerminalTab runs={[...shellRuns, ...userRuns]} busy={busy} onSubmit={submit} />
-          ) : tabState.active === 'subagents' ? (
-            <SubagentsTab messages={messages} />
-          ) : tabState.active === 'memory' ? (
-            <MemoryTab />
-          ) : tabState.active === 'side' ? (
-            <SideConversationTab />
-          ) : null}
-        </m.div>
-      </AnimatePresence>
+      {!collapsed && (
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={tabState.active ?? 'none'}
+            data-testid="panel-body"
+            className="flex min-h-0 flex-1 flex-col"
+            initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.14, ease: 'easeOut' }}
+          >
+            {tabState.open.length === 0 ? (
+              <PanelEmptyState labels={labels} onOpenTab={openTab} />
+            ) : tabState.active === 'preview' ? (
+              <PreviewTab
+                url={url}
+                draft={draft}
+                nonce={nonce}
+                inputRef={inputRef}
+                setDraft={setDraft}
+                recent={recent}
+                onPickRecent={pickRecent}
+                onLoad={load}
+                onReload={reload}
+                onBack={back}
+                onForward={forward}
+                canBack={canBack}
+                canForward={canForward}
+              />
+            ) : tabState.active === 'git' ? (
+              <ReviewTab />
+            ) : tabState.active === 'files' ? (
+              <FilesTab
+                onOpenFile={(fileUrl) => {
+                  setUrl(fileUrl)
+                  setDraft(fileUrl)
+                  openTab('preview')
+                }}
+              />
+            ) : tabState.active === 'audit' ? (
+              <AuditTab />
+            ) : tabState.active === 'trajectory' ? (
+              <TrajectoryTab />
+            ) : tabState.active === 'terminal' ? (
+              <TerminalTab runs={[...shellRuns, ...userRuns]} busy={busy} onSubmit={submit} />
+            ) : tabState.active === 'subagents' ? (
+              <SubagentsTab messages={messages} />
+            ) : tabState.active === 'memory' ? (
+              <MemoryTab />
+            ) : tabState.active === 'side' ? (
+              <SideConversationTab />
+            ) : null}
+          </m.div>
+        </AnimatePresence>
+      )}
     </m.aside>
   )
 }

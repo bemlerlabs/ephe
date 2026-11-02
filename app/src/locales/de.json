@@ -1717,6 +1717,14 @@
     "close": "Ephes Computer schließen",
     "previewUrlLabel": "Browser-URL",
     "paneDocument": "Dokument",
+    "sectionsAria": "Oberflächen der Aufgabe",
+    "section": {
+      "output": "Ausgabe",
+      "site": "Seite",
+      "console": "Konsole",
+      "notes": "Notizen",
+      "review": "Änderungen"
+    },
     "previewBack": "Zurück",
     "previewForward": "Vor",
     "more": "Mehr",
