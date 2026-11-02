@@ -10,6 +10,9 @@ and the feed notes are the changelog the tree wrote rather than a blank.
 
 Exit codes: 0 the block was printed, 2 the version has no block, the block is empty, or the
 changelog cannot be read.
+
+The body a person reads is the block with the commit addresses taken off its entries; pass
+`--addresses` for the block exactly as the changelog wrote it.
 """
 from __future__ import annotations
 
@@ -21,6 +24,22 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 HEADER = re.compile(r"^##\s*\[(?P<ver>[^\]]+)\]")
+
+# The register's addresses: the commit each entry was landed by, written at the end of the
+# entry as (`1228a4c6`) or (`1228a4c6`, `dd51da76`) — which the formatter may carry onto the
+# next line. They belong to the changelog, where a reader can look a line up and find the
+# commit; in the update window they are eight hex digits standing where a sentence ended.
+ADDRESS_TAIL = re.compile(
+    r"\s*\(\s*`[0-9a-f]{7,40}`(?:\s*,\s*`[0-9a-f]{7,40}`)*\s*\)"
+)
+
+
+def strip_addresses(body: str) -> str:
+    """The same words without the register's addresses at the end of each entry."""
+    stripped = ADDRESS_TAIL.sub("", body)
+    # A trailing address can leave a line ending in the wrap's two-space indent.
+    return "\n".join(line.rstrip() for line in stripped.splitlines())
+
 
 
 def section_body(text: str, version: str) -> str | None:
@@ -47,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("version", help="the version whose changelog block is printed, no leading v")
     parser.add_argument("--changelog", type=Path, default=CHANGELOG, help="the changelog to read")
+    parser.add_argument(
+        "--addresses",
+        action="store_true",
+        help="keep the commit addresses each entry ends with (the register's own rendering)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -62,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     if not body.strip():
         print(f"release-notes: the `## [{args.version}]` section is empty", file=sys.stderr)
         return 2
-    print(body)
+    print(body if args.addresses else strip_addresses(body))
     return 0
 
 
