@@ -28,8 +28,10 @@ const EN: Record<string, string> = {
 const DE: Record<string, string> = {
   'chat.modeSelectorAria': 'Antwort-Modus des Composers', // language-gate: ignore
   'chat.modeHint.ask': 'Fragen — Ephe antwortet nur, keine Werkzeuge laufen', // language-gate: ignore
-  'chat.modeHint.plan': 'Planen — Ephe entwirft erst einen Plan; nichts läuft ohne deine Bestätigung', // language-gate: ignore
-  'chat.modeHint.edit-auto': 'Bearbeiten — die Schreib-Werkzeuge laufen ohne Rückfrage, die übrigen nicht', // language-gate: ignore
+  'chat.modeHint.plan':
+    'Planen — Ephe entwirft erst einen Plan; nichts läuft ohne deine Bestätigung', // language-gate: ignore
+  'chat.modeHint.edit-auto':
+    'Bearbeiten — die Schreib-Werkzeuge laufen ohne Rückfrage, die übrigen nicht', // language-gate: ignore
   'chat.modeHint.full-access': 'Voller Zugriff — jedes Werkzeug läuft ohne Rückfrage', // language-gate: ignore
   'chat.perm.strict': 'Manuell', // language-gate: ignore
 }
