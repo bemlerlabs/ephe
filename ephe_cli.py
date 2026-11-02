@@ -248,25 +248,34 @@ def _desktop_bundles_other_than(installed: Path, seconds: float = 3.0) -> list[s
     return sorted(set(found))
 
 
-def _doctor_desktop_app(server_health: dict[str, Any] | None) -> tuple[bool, str] | None:
+def _doctor_desktop_app(
+    server_health: dict[str, Any] | None,
+    platform: str | None = None,
+    installed: Path | None = None,
+) -> tuple[bool, str] | None:
     """One doctor line: the app a click opens, and whether it carries this run's version.
 
     Measured 2026-11-02: twenty-one bundles answered for `com.ephe.ephe` on the machine
     that ships Ephe — fourteen of them leftovers of mounted DMGs, several Tauri builds in
     worktrees — and the owner's report was "updated, restarted, nothing new". The updater
-    had indeed written the new version; the click had opened a different copy."""
-    if sys.platform != "darwin":
+    had indeed written the new version; the click had opened a different copy.
+
+    `platform` and `installed` arrive as arguments so every branch of this row runs on the
+    machine that tests it. A diagnostic that reads its own host would answer a different
+    question depending on which runner scored it."""
+    if (platform or sys.platform) != "darwin":
         return None
-    app_version = _desktop_bundle_version(DESKTOP_INSTALL_PATH)
+    app = installed or DESKTOP_INSTALL_PATH
+    app_version = _desktop_bundle_version(app)
     if app_version is None:
-        return False, "no /Applications/Ephe.app — the desktop app is not installed here"
-    others = _desktop_bundles_other_than(DESKTOP_INSTALL_PATH)
+        return False, f"no {app} — the desktop app is not installed here"
+    others = _desktop_bundles_other_than(app)
     if others:
         shown = ", ".join(others[:3]) + (" …" if len(others) > 3 else "")
         return False, (
             f"{app_version} installed, but {len(others)} other bundle(s) answer for "
             f"{DESKTOP_BUNDLE_ID}: {shown}. A click can open one of those instead — clear "
-            f"them with: {LSREGISTER} -u <path> then {LSREGISTER} -f {DESKTOP_INSTALL_PATH}"
+            f"them with: {LSREGISTER} -u <path> then {LSREGISTER} -f {app}"
         )
     backend = str((server_health or {}).get("version") or "")
     if backend and app_version != backend:
