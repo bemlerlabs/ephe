@@ -330,6 +330,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   Discover label uses, so a third one cannot arrive quietly (`467234f3`)
 - tools: The search row names the marker its own tool writes — the prompt asked the model for
   a `Reichweite:` line that no output has ever carried (`f84faaa0`)
+- app: A blank-target link leaves the desktop shell through the operating system's browser, so
+  the eleven addresses across the marketplace detail, the setup page and the update dialog stop
+  being text that looks clickable and does nothing (`cb2ce10e`)
 
 ## [0.5.2] - 2026-11-01
 
