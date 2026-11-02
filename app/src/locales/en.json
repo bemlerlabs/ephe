@@ -1711,11 +1711,12 @@
     "fileReading": "Reading {{name}}…",
     "fileUnreadNetwork": "The request never arrived.",
     "error": "Failed to load",
-    "tabPreview": "Browser",
+    "tabPreview": "Preview",
     "tabTerminal": "Terminal",
     "tabGit": "Changes",
     "close": "Close Ephe's Computer",
     "previewUrlLabel": "Browser URL",
+    "paneDocument": "Document",
     "previewBack": "Back",
     "previewForward": "Forward",
     "more": "More",
@@ -1880,7 +1881,7 @@
     "diffFiles_other": "{{count}} files changed",
     "diffUndo": "Undo",
     "tabTipPreview": {
-      "title": "Browser",
+      "title": "Preview",
       "body": "Render URLs, generated files and artifacts right inside Ephe's Computer."
     },
     "tabTipTerminal": {

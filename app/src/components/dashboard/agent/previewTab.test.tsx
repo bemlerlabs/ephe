@@ -71,3 +71,27 @@ describe('PreviewTab Real-Origin (P1-8 Option A)', () => {
     expect(api.proxyFetch).not.toHaveBeenCalled()
   })
 })
+
+describe('PreviewTab modes (A1)', () => {
+  it('reads a workspace file as a document, with no browser row above it', () => {
+    renderPreview('/api/file?path=%2Ftmp%2Fproj%2Fbericht.pdf')
+    const head = screen.getByTestId('preview-document')
+    expect(head.textContent).toContain('bericht.pdf')
+    expect(head.textContent).toContain('tmp/proj')
+    expect(screen.queryByTestId('preview-url-input')).toBeNull()
+    expect(screen.queryByTestId('preview-reload')).toBeNull()
+    expect(screen.queryByTestId('preview-back')).toBeNull()
+  })
+
+  it('keeps the browser row for a site this machine runs', () => {
+    renderPreview('http://localhost:5173/')
+    expect(screen.getByTestId('preview-url-input')).toBeTruthy()
+    expect(screen.queryByTestId('preview-document')).toBeNull()
+  })
+
+  it('keeps the browser row for a page on the internet', () => {
+    renderPreview('https://example.com/page')
+    expect(screen.getByTestId('preview-url-input')).toBeTruthy()
+    expect(screen.queryByTestId('preview-document')).toBeNull()
+  })
+})

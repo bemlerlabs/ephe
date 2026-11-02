@@ -85,10 +85,8 @@ const SAME_BY_DESIGN = new Set<string>([
   'agentPanel.reviewStaged', // Staged
   'agentPanel.subagentPrompt', // Prompt:
   'agentPanel.tabBrowser', // Browser
-  'agentPanel.tabPreview', // Browser
   'agentPanel.tabTerminal', // Terminal
   'agentPanel.tabTipBrowser.title', // Browser
-  'agentPanel.tabTipPreview.title', // Browser
   'agentPanel.tabTipTerminal.title', // Terminal
   'agentPanel.tabTipTrajectory.title', // Replay
   'agentPanel.tabTrajectory', // Replay

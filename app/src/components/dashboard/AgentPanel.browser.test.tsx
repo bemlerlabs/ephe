@@ -111,8 +111,9 @@ describe('AgentPanel Browser-Pane (P6 B5, Preview/Browser-Dedup)', () => {
     openViaUrl('/api/file?path=report.pdf')
     const tab = await screen.findByRole('tab', { name: 'agentPanel.tabPreview' })
     expect(tab.getAttribute('aria-selected')).toBe('true')
-    const input = await screen.findByTestId('preview-url-input')
-    expect((input as HTMLInputElement).value).toContain('report.pdf')
+    // A1: a file names itself in the document head; the address row is for sites.
+    const head = await screen.findByTestId('preview-document')
+    expect(head.textContent).toContain('report.pdf')
     expect(screen.queryByTestId('preview-external-fallback')).toBeNull()
   })
 

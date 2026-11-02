@@ -1711,11 +1711,12 @@
     "fileReading": "Lese {{name}}…",
     "fileUnreadNetwork": "Die Anfrage kam nie an.",
     "error": "Laden fehlgeschlagen",
-    "tabPreview": "Browser",
+    "tabPreview": "Vorschau",
     "tabTerminal": "Terminal",
     "tabGit": "Änderungen",
     "close": "Ephes Computer schließen",
     "previewUrlLabel": "Browser-URL",
+    "paneDocument": "Dokument",
     "previewBack": "Zurück",
     "previewForward": "Vor",
     "more": "Mehr",
@@ -1880,7 +1881,7 @@
     "diffFiles_other": "{{count}} Dateien geändert",
     "diffUndo": "Rückgängig",
     "tabTipPreview": {
-      "title": "Browser",
+      "title": "Vorschau",
       "body": "URLs, generierte Dateien und Artefakte direkt in Ephes Computer."
     },
     "tabTipTerminal": {
