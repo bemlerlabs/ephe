@@ -18,6 +18,8 @@ The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `
   the revocations and the plugin catalogues, with a guard that refuses a build leaving any of
   them out — a packaged install opened an empty shelf while the checkout the desktop runs from
   looked perfectly fine (`6d5be45f`)
+- chat: The context figure is named once per screen — the ring at the send button keeps its
+  arc and drops the duplicate name, the status gauge stays the instrument (`1dd14649`)
 
 ## [0.5.4] - 2026-11-02
 
@@ -63,15 +65,6 @@ name once.
   already in front is the handle that folds the body away (`cf22d029`)
 - chat: The chrome names the task once. The heading carries it and is the renameable identity;
   the run line printed the same sentence again beside `Ready` (`e0c547aa`)
-- sidebar: A row names the last thing that happened, not the hour the task was opened — a
-  session answered at 14:16 and still read `3 hours` (`21e89387`)
-- packaging: The shelf's data travels in the wheel: the marketplace index, the curated tier,
-  the revocations and the plugin catalogues, with a guard that refuses a build leaving any of
-  them out — a packaged install opened an empty shelf while the checkout the desktop runs from
-  looked perfectly fine (`6d5be45f`)
-- chat: The context figure is named once per screen — the ring at the send button keeps its
-  arc and drops the duplicate name, the status gauge stays the instrument (`1dd14649`)
- c4f85a25 (docs(changelog): address the figure with one name)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
