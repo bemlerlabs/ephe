@@ -102,3 +102,19 @@ def test_guard_labels_foreign_words_instead_of_failing_them() -> None:
 def test_every_served_entry_carries_a_nonempty_language(client: TestClient) -> None:
     body = client.get("/api/skills").json()
     assert all(one["language"] for one in body["skills"])
+
+def test_a_repeated_letter_string_is_labelled_without_backtracking() -> None:
+    """The first draft of the umlaut rule nested one quantifier inside another over text a
+    user writes, and the code scanner named it on the pull request. This is the shape that
+    made it stall: thousands of one letter and no match to find.
+    """
+    import time
+
+    from core import skills
+
+    hostile = "A" * 4000 + "!"
+    started = time.perf_counter()
+    assert skills.detect_language(hostile) == "en"
+    elapsed = time.perf_counter() - started
+    assert elapsed < 0.2, f"the labeler took {elapsed:.3f}s over user text"
+    assert skills.detect_language("A" * 2000 + " wä" + "A" * 2000) == "de"
