@@ -42,6 +42,9 @@ const SAME_BY_DESIGN = new Set<string>([
   'discover.category.skills', // Skills — the loanword this surface uses
   'discover.detailDownloads', // Downloads — the same word in both
   'discover.category.code', // Code
+  // The format's own name, which the reader types into a file's name in both languages:
+  // the view switcher says what the text is written in, and that word is Markdown here.
+  'agentPanel.fileViewMarkdown', // Markdown
   'discover.category.cloud', // Cloud
   'discover.category.web', // Web
   'discover.category.sandbox', // Sandbox

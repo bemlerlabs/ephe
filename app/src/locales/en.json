@@ -211,7 +211,8 @@
     "backendUpdated": "The backend code was updated. Restart Ephe to load it.",
     "backendReinstalling": "The backend is refreshing its environment for the new version. Ephe says when it is done.",
     "buildMismatch": "A newer interface is ready. Reload the window to load it.",
-    "buildMismatchShell": "A newer interface is ready. Update the app to load it.",    "toolArgsLabel": "Arguments",
+    "buildMismatchShell": "A newer interface is ready. Update the app to load it.",
+    "toolArgsLabel": "Arguments",
     "toolResultLabel": "Result",
     "toolVerbRun": "Runs",
     "toolVerbEdit": "Edits",
@@ -1902,8 +1903,25 @@
     },
     "tabTipFiles": {
       "title": "Files",
-      "body": "Browse the workspace folder and open files in the browser."
+      "body": "Browse the workspace folder and open any file in the column beside it."
     },
+    "fileTabsLabel": "Open files",
+    "fileCloseAll": "Close all files",
+    "fileTabClose": "Close {{name}}",
+    "fileSlotHint": "Shown in the preview slot: the next single click replaces it. Double-click the row to keep this tab.",
+    "fileOpenHere": "Open in the workspace column — double-click keeps the tab",
+    "fileKeepTab": "Keep this tab",
+    "fileReleaseTab": "Release this tab",
+    "fileBackToTree": "Show the folder",
+    "fileViewGroup": "Reading",
+    "fileViewPage": "Page",
+    "fileViewMarkdown": "Markdown",
+    "fileFrameNote": "This window has no viewer for that page.",
+    "filePackedNote": "{{format}} — the server reads this format; the column does not draw it.",
+    "fileFormatTable": "Spreadsheet",
+    "fileFormatDocument": "Document",
+    "fileFormatDeck": "Presentation",
+    "fileBinaryNote": "Ephe keeps the name, the size and the gestures for a file it cannot draw.",
     "tabTipAudit": {
       "title": "Evidence",
       "body": "The chain of what actually ran: tool, signature, duration, outcome."

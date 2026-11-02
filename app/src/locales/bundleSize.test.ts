@@ -202,8 +202,13 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // now reads the marker table and refuses a kind without a name, so the family is pinned to
 // what the product can actually store. Measured as committed: en 143,546 B, de 155,495 B —
 // both halves move by 1,000 B, which keeps the ~600 B headroom the earlier waves held.
-const EN_CEILING = 144_200
-const DE_CEILING = 156_100
+// 2026-11-02 (#111, the workspace file reader): 15 keys for the column that opens a file —
+// the strip's label and its two close gestures, the preview-slot hint, the row's own words,
+// the page/Markdown pair, and the four sentences that name a format the column cannot draw.
+// Measured as committed: en 144,867 B, de 156,942 B. Both halves move by 800 B, which keeps
+// the ~700 B headroom the earlier waves held for a translation pass of their own.
+const EN_CEILING = 145_600
+const DE_CEILING = 157_700
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

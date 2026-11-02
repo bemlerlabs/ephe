@@ -12,12 +12,14 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { LoadingRow } from '@/components/ui'
-import { askConfirm } from '@/lib/confirmAction'
-import { listFs, gitStatus, gitDiff, gitApplyPatch, listChangeSets } from '@/lib/api'
-import type { GitDiffResponse, GitFileChange, GitStatusResponse } from '@/lib/api'
-import { toastBus } from '@/lib/toast'
+import { listFs, gitStatus, listChangeSets } from '@/lib/api'
+import type { GitFileChange, GitStatusResponse } from '@/lib/api'
 import DiffView from '../DiffView'
 import { useWorkspaceDir, WorkspaceBadge } from './primitives'
+import { openWorkspaceFile, useWorkspaceFiles } from '@/lib/workspaceFiles'
+import { WorkspaceFileReader, workspaceFileUrl } from './workspaceReader'
+import { WorkspaceFileTabs } from './workspaceFileTabs'
+import { useFilePatches } from './useFilePatches'
 import {
   changeState,
   hasPatch,
@@ -39,6 +41,17 @@ export function joinPath(dir: string, name: string): string {
 export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void }) {
   const { t } = useTranslation()
   const workspace = useWorkspaceDir()
+  // #111: the column holds the tree and the file it opened. One of them is on screen at
+  // a time, because the pane is 380–720 px and both need the height.
+  const { files, active, view } = useWorkspaceFiles()
+  const openFile = files.find((f) => f.path === active)
+  const openInBrowser = useCallback(
+    (file: { path: string }) => {
+      const url = workspaceFileUrl(file.path)
+      onOpenFile(url)
+    },
+    [onOpenFile],
+  )
   const [root, setRoot] = useState<{ path: string; entries: import('@/lib/api').FsEntry[] } | null>(
     null,
   )
@@ -50,9 +63,6 @@ export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void
   // out to be the very directory git read.
   const [changes, setChanges] = useState<Record<string, GitFileChange>>({})
   const [origins, setOrigins] = useState<Record<string, OriginMark>>({})
-  const [patches, setPatches] = useState<Record<string, GitDiffResponse>>({})
-  const [diffFor, setDiffFor] = useState('')
-  const [busy, setBusy] = useState('')
   // N1: the tree has three states, not two. `!root` used to stand for
   // "still reading", "the read failed" AND "no workspace set" at once, so the
   // surface could tell a person "No workspace set — pick one in settings" while
@@ -107,60 +117,7 @@ export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void
     void loadMarks()
   }, [loadMarks])
 
-  const toggleDiff = useCallback(
-    async (rel: string) => {
-      if (diffFor === rel) {
-        setDiffFor('')
-        return
-      }
-      setDiffFor(rel)
-      if (patches[rel]) return
-      try {
-        const patch = await gitDiff(rel)
-        setPatches((prev) => ({ ...prev, [rel]: patch }))
-      } catch {
-        setDiffFor('')
-        toastBus.error(t('agentPanel.diffFailed'))
-      }
-    },
-    [diffFor, patches, t],
-  )
-
-  // Reversing the file's own patch is the working-tree revert, and it is the endpoint
-  // DiffView already discards hunks through, so no second write path appears here.
-  const revertFile = useCallback(
-    async (rel: string) => {
-      if (
-        !(await askConfirm({
-          title: t('agentPanel.revertConfirm'),
-          action: t('common.actions.fileRevert'),
-        }))
-      )
-        return
-      setBusy(rel)
-      try {
-        const patch = patches[rel] ?? (await gitDiff(rel))
-        if (patch.binary || !patch.diff) {
-          toastBus.error(t('agentPanel.revertFailed'))
-          return
-        }
-        await gitApplyPatch(patch.diff, { reverse: true })
-        toastBus.success(t('agentPanel.revertDone', { path: rel }))
-        setPatches((prev) => {
-          const next = { ...prev }
-          delete next[rel]
-          return next
-        })
-        setDiffFor('')
-        await loadMarks()
-      } catch {
-        toastBus.error(t('agentPanel.revertFailed'))
-      } finally {
-        setBusy('')
-      }
-    },
-    [patches, loadMarks, t],
-  )
+  const { patches, diffFor, busy, toggleDiff, revertFile } = useFilePatches(loadMarks)
 
   const expand = useCallback((dir: string) => {
     setChildren((prev) => {
@@ -170,7 +127,7 @@ export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void
         const next = { ...prev }
         delete next[dir]
         return next
-      } // toggle zu
+      } // a second click on an open folder closes it
       return { ...prev, [dir]: 'loading' }
     })
     listFs(dir)
@@ -258,8 +215,17 @@ export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void
           >
             <button
               type="button"
-              onClick={() => onOpenFile(`/api/file?path=${encodeURIComponent(full)}`)}
-              title={t('agentPanel.openInPreview')}
+              onClick={(ev) =>
+                openWorkspaceFile({
+                  path: full,
+                  name: e.name,
+                  size: e.size,
+                  // A second click in a pair means "keep"; the row is usually gone by
+                  // then, so the tab and the reader's own line carry the gesture as well.
+                  pin: ev.detail > 1,
+                })
+              }
+              title={t('agentPanel.fileOpenHere')}
               className="flex min-w-0 flex-1 items-center gap-1.5 text-left hover:text-foreground transition-colors"
             >
               <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
@@ -336,65 +302,73 @@ export function FilesTab({ onOpenFile }: { onOpenFile: (fileUrl: string) => void
 
   // N1: what the surface is looking at, in numbers — the read's own result.
   const changedCount = Object.keys(changes).length
+  const showingFile = view === 'file' && openFile ? openFile : null
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <WorkspaceBadge dir={workspace} />
-      {/* N1: the status line the tab was missing. Every other pane in this
-          directory says what it holds (Evidence: "80 of 54,024 records"; Changes:
-          the branch and the pending count); the file tree said nothing, so a
-          person could not tell a read of 44 entries from a read of 4. */}
-      {read === 'ready' && root && (
-        <div
-          data-testid="files-status"
-          className="flex items-center gap-2 px-3 py-1 border-b border-hairline bg-surface text-ui-xs text-ink-faint shrink-0"
-        >
-          <span className="tabular-nums">
-            {t('agentPanel.filesCount', { count: root.entries.length })}
-          </span>
-          <span aria-hidden="true">·</span>
-          <span className="tabular-nums">
-            {changedCount
-              ? t('agentPanel.diffFiles', { count: changedCount })
-              : t('agentPanel.filesUnchanged')}
-          </span>
-          <button
-            type="button"
-            data-testid="files-refresh"
-            onClick={loadRoot}
-            aria-label={t('agentPanel.filesRefresh')}
-            title={t('agentPanel.filesRefresh')}
-            className="ml-auto shrink-0 rounded p-0.5 text-ink-faint hover:text-foreground hover:bg-surface-raised transition-colors min-h-6 min-w-6 inline-flex items-center justify-center"
-          >
-            <RefreshCw className="h-3 w-3" aria-hidden="true" />
-          </button>
-        </div>
-      )}
-      <div className="flex-1 min-h-0 overflow-y-auto py-2">
-        {read === 'loading' ? (
-          <LoadingRow label={t('agentPanel.filesReading')} className="px-3 py-3" />
-        ) : read === 'failed' ? (
-          <div
-            data-testid="files-unread"
-            role="alert"
-            className="h-full flex flex-col items-center justify-center gap-2 text-ui-sm p-6 text-center"
-          >
-            <Folder className="h-10 w-10 opacity-40 text-ink-faint" aria-hidden="true" />
-            <p className="text-status-warning max-w-80">{t('agentPanel.filesUnread')}</p>
-            <button
-              type="button"
-              onClick={loadRoot}
-              className="mt-1 px-3 py-1.5 rounded-lg text-ui-xs font-medium border border-hairline text-foreground/80 hover:bg-surface transition-colors"
+      <WorkspaceFileTabs />
+      {showingFile ? (
+        <WorkspaceFileReader file={showingFile} onOpenInBrowser={openInBrowser} />
+      ) : (
+        <>
+          {/* N1: the status line the tab was missing. Every other pane in this
+              directory says what it holds (Evidence: "80 of 54,024 records"; Changes:
+              the branch and the pending count); the file tree said nothing, so a
+              person could not tell a read of 44 entries from a read of 4. */}
+          {read === 'ready' && root && (
+            <div
+              data-testid="files-status"
+              className="flex items-center gap-2 px-3 py-1 border-b border-hairline bg-surface text-ui-xs text-ink-faint shrink-0"
             >
-              {t('agentPanel.retry')}
-            </button>
+              <span className="tabular-nums">
+                {t('agentPanel.filesCount', { count: root.entries.length })}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">
+                {changedCount
+                  ? t('agentPanel.diffFiles', { count: changedCount })
+                  : t('agentPanel.filesUnchanged')}
+              </span>
+              <button
+                type="button"
+                data-testid="files-refresh"
+                onClick={loadRoot}
+                aria-label={t('agentPanel.filesRefresh')}
+                title={t('agentPanel.filesRefresh')}
+                className="ml-auto shrink-0 rounded p-0.5 text-ink-faint hover:text-foreground hover:bg-surface-raised transition-colors min-h-6 min-w-6 inline-flex items-center justify-center"
+              >
+                <RefreshCw className="h-3 w-3" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-y-auto py-2">
+            {read === 'loading' ? (
+              <LoadingRow label={t('agentPanel.filesReading')} className="px-3 py-3" />
+            ) : read === 'failed' ? (
+              <div
+                data-testid="files-unread"
+                role="alert"
+                className="h-full flex flex-col items-center justify-center gap-2 text-ui-sm p-6 text-center"
+              >
+                <Folder className="h-10 w-10 opacity-40 text-ink-faint" aria-hidden="true" />
+                <p className="text-status-warning max-w-80">{t('agentPanel.filesUnread')}</p>
+                <button
+                  type="button"
+                  onClick={loadRoot}
+                  className="mt-1 px-3 py-1.5 rounded-lg text-ui-xs font-medium border border-hairline text-foreground/80 hover:bg-surface transition-colors"
+                >
+                  {t('agentPanel.retry')}
+                </button>
+              </div>
+            ) : !root ? (
+              <p className="text-ui-xs text-ink-faint px-3 py-3">{t('agentPanel.filesEmpty')}</p>
+            ) : (
+              renderRows(root.entries, root.path, 0)
+            )}
           </div>
-        ) : !root ? (
-          <p className="text-ui-xs text-ink-faint px-3 py-3">{t('agentPanel.filesEmpty')}</p>
-        ) : (
-          renderRows(root.entries, root.path, 0)
-        )}
-      </div>
+        </>
+      )}
     </div>
   )
 }
