@@ -48,6 +48,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # chat, so the composer's seed path became a shared chunk of its own. Measured
     # 13.87 kB gzip in app/dist; the row carries ~10% headroom.
     "chatSeed.js": 15.3,
+    # 2026-11-02: the shelf marks the author language of the words it serves, and the mark is
+    # painted on every card — the page chunk crossed the 12 kB small ceiling at 12.04 kB gzip
+    # (measured by the gate on the CI build, not in a local dist). The row carries ~10% headroom.
+    "DiscoverPage.js": 13.3,
     "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
     "motion.js": 35.2,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion; 2026-10-25: 14.5 measures 31.99)
     "ui-vendor.js": 40.0,    # lucide-react, i18next
