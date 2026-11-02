@@ -196,8 +196,14 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // 2026-10-31 (tools catalogue, then the featured shelf): six family names, then the
 // featured tier's five labels. Measured as committed: en 142,821 B, de 154,687 B —
 // both halves move by 400 B, the step the earlier waves took.
-const EN_CEILING = 143_200
-const DE_CEILING = 155_100
+// 2026-11-02 (the shelf's kind names): 16 artifact kinds had no leaf, so a group header
+// answered MANIFEST, SCORECARD, QA, EVIDENCE_LEDGER, DECK_SPEC, RENDER_QA, VIDEO, … above
+// a surface that otherwise reads the reader's language. `tests/…/artifacts/kindLabels.test.ts`
+// now reads the marker table and refuses a kind without a name, so the family is pinned to
+// what the product can actually store. Measured as committed: en 143,546 B, de 155,495 B —
+// both halves move by 1,000 B, which keeps the ~600 B headroom the earlier waves held.
+const EN_CEILING = 144_200
+const DE_CEILING = 156_100
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on

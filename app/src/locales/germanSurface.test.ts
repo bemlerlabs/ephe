@@ -97,6 +97,8 @@ const SAME_BY_DESIGN = new Set<string>([
   'agentPanel.workspace', // Workspace
   'artifacts.kind.deck', // Deck — the product's own term for a presentation
   'artifacts.kind.screenshot', // Screenshot
+  'artifacts.kind.manifest', // Manifest — German names the file the pipeline writes
+  'artifacts.kind.video', // Video — the same word, the same plural
   'chat.engineOffline', // Engine offline
   'chat.offlineCapableRemote', // Remote
   'chat.perm.autonomous', // Auto
