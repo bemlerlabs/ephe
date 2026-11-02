@@ -79,6 +79,10 @@ def stores(tmp_path, monkeypatch):
 def client(checkout, stores, tmp_path, monkeypatch):
     """The app under test. Its router is registered in ``server/main.py`` like every other."""
     monkeypatch.setenv("EPHE_WORKSPACES_DIR", str(tmp_path / "managed"))
+    # The board names the configured workspace beside the register, and a board this file
+    # believes is empty must answer the same folder every time: the cwd fallback under the
+    # autouse guard depends on where pytest happened to start, the env half does not.
+    monkeypatch.setenv("EPHE_WORKSPACE", str(checkout))
     # The read gained a ``runs`` leg and two of its three sources are process-wide, so a
     # worker that already ran a subagent or an approval case carries its runs into a board
     # this test believes is empty: the helper registry is a cached snapshot under
@@ -94,6 +98,20 @@ def client(checkout, stores, tmp_path, monkeypatch):
     from server.main import create_app
 
     return TestClient(create_app())
+
+
+def _empty_board(root) -> dict:
+    """What an empty register answers in full: no tree, no run, and the one configured folder.
+
+    The board carries `configured_workspace` beside the register — the same path
+    ``GET /api/settings`` names — so a page reading an empty list can say where work happens
+    instead of claiming nowhere does. The client fixture pins that path to the test checkout.
+    """
+    return {
+        "workspaces": [],
+        "runs": [],
+        "configured_workspace": {"path": str(Path(root).resolve()), "exists": True},
+    }
 
 
 def _create(client: TestClient, owner: str = "agent-a", base: str = "main") -> dict:
@@ -147,7 +165,7 @@ def _approve(client: TestClient, change_set: dict, reviewer: str = "agent-b"):
 
 def test_the_tree_surface_answers_the_register(client, checkout):
     """Given no tree yet; When one is created; Then every read names the same tree."""
-    assert client.get("/api/workspaces").json() == {"workspaces": [], "runs": []}
+    assert client.get("/api/workspaces").json() == _empty_board(checkout)
 
     created = _create(client)
     assert created["owner"] == "agent-a"
@@ -168,6 +186,39 @@ def test_the_tree_surface_answers_the_register(client, checkout):
     assert client.get(f"/api/workspaces/{created['id']}").json() == {"workspace": created}
 
 
+def test_an_empty_board_names_the_folder_settings_names(client, checkout):
+    """Given no tree is live and a workspace is configured; Then both routes name one folder.
+
+    The defect this pins: the board claimed nothing was worked in while ``GET /api/settings``
+    answered a folder for the same moment. Both reads go through one function now, so they
+    cannot disagree, and the board carries the folder itself.
+    """
+    board = client.get("/api/workspaces").json()["configured_workspace"]
+    settings = client.get("/api/settings").json()
+    assert board == {"path": str(checkout.resolve()), "exists": True}
+    assert board["path"] == settings["workspace_dir"]
+
+
+def test_a_configured_folder_that_is_gone_is_named_as_gone(client, checkout, tmp_path, monkeypatch):
+    """Given a persisted workspace whose folder was deleted; Then the board says so.
+
+    ``exists`` is the disk's answer beside the folder's name: the page must not send a person
+    to a path that is not there, and the setting is still reported rather than hidden.
+    """
+    gone = tmp_path / "settings-archive"
+    cfg = tmp_path / "engine-home"
+    cfg.mkdir()
+    (cfg / "engine.json").write_text(
+        json.dumps({"provider": "local_ollama", "model": "x", "workspace_dir": str(gone)}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("core.engine_config.CONFIG_DIR", cfg)
+
+    board = client.get("/api/workspaces").json()["configured_workspace"]
+    assert board == {"path": str(gone), "exists": False}
+    assert client.get("/api/settings").json()["workspace_dir"] == str(gone)
+
+
 def test_a_read_takes_the_state_from_the_tree_itself(client):
     """Given a clean tree; When the tree carries an edit; Then the read says dirty."""
     created = _create(client)
@@ -176,14 +227,14 @@ def test_a_read_takes_the_state_from_the_tree_itself(client):
     assert client.get(f"/api/workspaces/{created['id']}").json()["workspace"]["state"] == "dirty"
 
 
-def test_creating_a_tree_refuses_a_base_git_cannot_reach(client):
+def test_creating_a_tree_refuses_a_base_git_cannot_reach(client, checkout):
     """Given a base no ref names; When it is asked for; Then 409 and no live row."""
     res = client.post("/api/workspaces", json={"owner": "agent-a", "base": "no-such-ref"})
     assert res.status_code == 409, res.text
     assert "no-such-ref" in _message(res)
     assert _code(res) == "workspace_create_refused"
 
-    assert client.get("/api/workspaces").json() == {"workspaces": [], "runs": []}
+    assert client.get("/api/workspaces").json() == _empty_board(checkout)
 
 
 @pytest.mark.parametrize("payload", [{}, {"owner": ""}, {"owner": "a", "base": ""}])
@@ -192,7 +243,7 @@ def test_creating_a_tree_refuses_a_blank_argument(client, payload):
     assert client.post("/api/workspaces", json=payload).status_code == 422
 
 
-def test_deleting_a_tree_refuses_a_dirty_one_until_force(client):
+def test_deleting_a_tree_refuses_a_dirty_one_until_force(client, checkout):
     """Given a tree with a local edit; When it is removed; Then 409, then force takes it."""
     created = _create(client)
     _edit_tree(created["path"])
@@ -206,7 +257,7 @@ def test_deleting_a_tree_refuses_a_dirty_one_until_force(client):
         "removed": created["id"]
     }
     assert not Path(created["path"]).exists()
-    assert client.get("/api/workspaces").json() == {"workspaces": [], "runs": []}
+    assert client.get("/api/workspaces").json() == _empty_board(checkout)
 
 
 def test_reaping_collects_the_row_a_failed_create_left_behind(client):

@@ -137,6 +137,44 @@ describe('no workspace is registered', () => {
   })
 })
 
+describe('empty register beside a configured workspace', () => {
+  // The defect: the board read only the register — empty by design when no run opened a
+  // checkout — and claimed nowhere was worked while `GET /api/settings` named a folder.
+  // These cases pin which sentence the page picks for what the route answered.
+  it('names the folder the settings answer with instead of an unqualified nothing', async () => {
+    api.listWorkspaces.mockResolvedValue({
+      workspaces: [],
+      configured_workspace: { path: '/work/agenteval', exists: true },
+    })
+    renderPage()
+    const where = await screen.findByTestId('workspaces-empty-where')
+    expect(where.textContent).toContain('workspaces.emptyConfigured')
+    expect(where.textContent).toContain('/work/agenteval')
+    expect(where.textContent).not.toContain('workspaces.emptyBody')
+  })
+
+  it('says the configured folder is missing when the disk no longer holds it', async () => {
+    api.listWorkspaces.mockResolvedValue({
+      workspaces: [],
+      configured_workspace: { path: '/work/gone', exists: false },
+    })
+    renderPage()
+    const where = await screen.findByTestId('workspaces-empty-where')
+    expect(where.textContent).toContain('workspaces.emptyMissing')
+    expect(where.textContent).toContain('/work/gone')
+  })
+
+  it('keeps the plain explanation when no answer names a folder at all', async () => {
+    api.listWorkspaces.mockResolvedValue({
+      workspaces: [],
+      configured_workspace: { path: '', exists: false },
+    })
+    renderPage()
+    const where = await screen.findByTestId('workspaces-empty-where')
+    expect(where.textContent).toContain('workspaces.emptyBody')
+  })
+})
+
 describe('one live workspace', () => {
   beforeEach(() => {
     api.listWorkspaces.mockResolvedValue({ workspaces: [workspace(1)] })

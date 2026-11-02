@@ -15,18 +15,15 @@ resolve it; ``/api/workspaces/{id}`` is documented with the id form.
 Three refusals are this router's own and none of them answers 500. An unknown id answers 404 the
 way ``DELETE /api/sessions/{id}`` does, a refused argument answers 422, and a request the state
 cannot honour answers 409: a publish with no earned approval in the ledger, one whose tree moved
-after the set was recorded (`core.change_set_read.verify_current`), or one whose paths another
-run is holding (`core.change_set_read.conflicts`) — because the set a reviewer approved would
-otherwise ship different bytes, or write over a run that is still in those files. A ``dry_run``
-publish is exempt from all of them, since it changes nothing. Each is a `Refused` carrying a code
-from ``server.refusals.REASONS`` beside its sentence, so the page answers in the reader's own
-language instead of the one this file is written in.
+after the set was recorded, or one whose paths another run is holding — the set a reviewer
+approved would otherwise ship different bytes, or write over a run still in those files. A
+``dry_run`` publish is exempt. Each refusal is a `Refused` carrying a code from
+``server.refusals.REASONS`` beside its sentence, so the page answers in the reader's own language.
 
 The collision half is answered where it is still a decision. ``GET /change-sets/claims`` names,
 per path, which runs hold it and since when; `POST /change-sets` carries the same reading back
-to the run that just wrote, in its own response; and the publish refusal names the holder it
-would overwrite. Until this existed the store knew all of it and only the page could see it —
-the loser learned at publish, after the work was done.
+to the run that just wrote; and the publish refusal names the holder it would overwrite. The
+store always knew this; the surface to read it is new.
 
 `core.agent_limits` enters through ``POST /api/workspaces`` alone: the width of a wave is the
 one bound a route can read for itself, so the register's live count is handed to
@@ -55,6 +52,7 @@ from server.routes._workspaces_support import (
     WorkspaceRequest,
     _author_of,
     _change_set_rows,
+    _configured_workspace,
     _conflict_names,
     _conflict_rows,
     _custodians,
@@ -76,12 +74,13 @@ router = APIRouter(tags=["Workspaces"])
 async def list_workspaces() -> dict:
     """Every live tree, and behind it the fleet: one row per run, state and last touch.
 
-    Two halves, one read. ``workspaces`` keeps the register's six fields and gains the run
+    Three halves, one read. ``workspaces`` keeps the register's six fields and gains the run
     fields a row needs to say what it is doing (``run_state``, ``needs_you``,
     ``running_for_seconds``, ``owner_alive``, ``last_event``). ``runs`` is the whole board —
     the same trees plus the helper runs and the waits that own no checkout — so a caller
-    polling this one route has the fleet without a second endpoint. Nothing is stored here:
-    `core.fleet` reads the registers that already exist.
+    polling this one route has the fleet without a second endpoint. ``configured_workspace``
+    names the folder `GET /api/settings` answers with, beside the register. Nothing is stored
+    here: `core.fleet` reads the registers that already exist.
     """
     return fleet_payload()
 
@@ -97,6 +96,7 @@ def fleet_payload() -> dict:
     return {
         "workspaces": [fleet.workspace_view(row, pids=owners) for row in rows],
         "runs": fleet.build(waits=waits, owners=owners),
+        "configured_workspace": _configured_workspace(),
     }
 
 
