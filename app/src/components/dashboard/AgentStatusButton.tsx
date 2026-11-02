@@ -209,6 +209,8 @@ export default function AgentStatusButton({
         aria-expanded={open}
         onClick={openPopover}
         title={t('agentStatus.title')}
+        // The run line above reports the state; this control names what it does, not the state.
+        aria-label={t('agentStatus.title')}
         className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full text-ui-sm font-medium transition-colors border min-h-9 max-lg:min-h-11 ${working ? 'border-brand/30 bg-brand/10 text-brand-deep' : 'border-control bg-canvas text-ink-soft hover:text-foreground/80'}`}
       >
         {working ? (

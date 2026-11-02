@@ -60,6 +60,16 @@ describe('AgentStatusButton (H3, Referenz-Paritaet)', () => {
     expect(screen.queryByTestId('agent-status-activity')).toBeNull()
   })
 
+  it('names the pill by the control it is, not by the state it echoes', async () => {
+    // The run line above already reports "Ready" as the app's status. The pill opens
+    // the agent panel, so its accessible name says what using it does; the visible
+    // idle word stays for a glance (textContent still carries it, asserted above).
+    render(<AgentStatusButton messages={IDLE} />)
+    const pill = await screen.findByTestId('agent-status-pill')
+    expect(pill.getAttribute('aria-label')).toBe('agentStatus.title')
+    expect(pill.getAttribute('aria-expanded')).toBe('false')
+  })
+
   it('Arbeitet-Zustand: laufende Aktivitaet sichtbar (Agent + Detail)', async () => {
     render(<AgentStatusButton messages={WORKING} />)
     const pill = await screen.findByTestId('agent-status-pill')
