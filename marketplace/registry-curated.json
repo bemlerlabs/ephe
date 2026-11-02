@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-30T18:53:33+00:00",
+  "generated": "2026-11-01T20:43:19+00:00",
   "source": "https://registry.modelcontextprotocol.io/v0/servers",
-  "count": 358,
+  "count": 360,
   "entries": [
     {
       "id": "com-augur-trade-foresight-web",
@@ -14,6 +14,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "augur-trade-com",
       "curated_reason": "pick"
     },
     {
@@ -528,6 +529,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "alpha402x-com",
       "curated_reason": "pick"
     },
     {
@@ -590,6 +592,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "apple-search-ads-b77-ai",
       "curated_reason": "pick"
     },
     {
@@ -695,6 +698,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "asrmemory-com",
       "curated_reason": "pick"
     },
     {
@@ -722,6 +726,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-atlaso-ai",
       "curated_reason": "pick"
     },
     {
@@ -814,6 +819,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "bibigpt-co",
       "curated_reason": "pick"
     },
     {
@@ -827,6 +833,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-brainmemory-ai",
       "curated_reason": "pick"
     },
     {
@@ -892,6 +899,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-chipp-ai",
       "curated_reason": "pick"
     },
     {
@@ -905,6 +913,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "chrome-stats-com",
       "curated_reason": "pick"
     },
     {
@@ -918,6 +927,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-clawterminal-ai",
       "curated_reason": "pick"
     },
     {
@@ -1023,6 +1033,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mem-borisinc-com",
       "curated_reason": "pick"
     },
     {
@@ -1101,6 +1112,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "dapdip-com",
       "curated_reason": "pick"
     },
     {
@@ -1146,6 +1158,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "github-com",
       "curated_reason": "pick"
     },
     {
@@ -1210,6 +1223,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "crosbynews-com",
       "curated_reason": "pick"
     },
     {
@@ -1236,6 +1250,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "apished-com",
       "curated_reason": "pick"
     },
     {
@@ -1291,6 +1306,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "deepsearch-app",
       "curated_reason": "pick"
     },
     {
@@ -1450,6 +1466,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-ekwo-ai",
       "curated_reason": "pick"
     },
     {
@@ -1477,6 +1494,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-apify-com",
       "curated_reason": "pick"
     },
     {
@@ -1490,6 +1508,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "everythingmeetsai-com",
       "curated_reason": "pick"
     },
     {
@@ -1503,6 +1522,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "exactmods-com",
       "curated_reason": "pick"
     },
     {
@@ -1529,6 +1549,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "examova-com",
       "curated_reason": "pick"
     },
     {
@@ -1556,6 +1577,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "faceabot-com",
       "curated_reason": "pick"
     },
     {
@@ -1569,6 +1591,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "faceabot-com",
       "curated_reason": "pick"
     },
     {
@@ -1622,6 +1645,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "freelancertax-ca",
       "curated_reason": "pick"
     },
     {
@@ -1635,6 +1659,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "gamedayweather-app",
       "curated_reason": "pick"
     },
     {
@@ -1686,6 +1711,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "nova-civai-co",
       "curated_reason": "pick"
     },
     {
@@ -1718,6 +1744,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-hexahq-ai",
       "curated_reason": "pick"
     },
     {
@@ -1744,6 +1771,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-kolect-ai",
       "curated_reason": "pick"
     },
     {
@@ -1815,6 +1843,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "agent-maddegen-art",
       "curated_reason": "pick"
     },
     {
@@ -1952,6 +1981,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-okforest-ai",
       "curated_reason": "recent"
     },
     {
@@ -1991,6 +2021,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "proxy-perfectmemory-ai",
       "curated_reason": "pick"
     },
     {
@@ -2004,6 +2035,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "creatinginai-com",
       "curated_reason": "recent"
     },
     {
@@ -2017,6 +2049,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "github-com",
       "curated_reason": "recent"
     },
     {
@@ -2043,6 +2076,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "plantguide-ae",
       "curated_reason": "pick"
     },
     {
@@ -2056,7 +2090,34 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "prepublish-ai",
       "curated_reason": "pick"
+    },
+    {
+      "id": "com-bottleyourbrand-print-shop",
+      "name": "Print Shop by Bottle Your Brand",
+      "description": "Turn your AI images into die-cut vinyl stickers. Print specs, sizing, and a ready-to-order link.",
+      "category": "cloud",
+      "install_hint": "https://mcp.bottleyourbrand.com/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.bottleyourbrand/print-shop",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "ai-productbay-connect-productbay-connect",
+      "name": "Productbay Connect",
+      "description": "Push products to Shopify, Amazon, eBay, OTTO, Kaufland, Shopware, JTL-Wawi, Xentral and more.",
+      "category": "cloud",
+      "install_hint": "https://connect.productbay.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.productbay.connect/productbay-connect",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
     },
     {
       "id": "ai-productindex-productindex",
@@ -2069,6 +2130,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-productindex-ai",
       "curated_reason": "recent"
     },
     {
@@ -2082,6 +2144,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "pick"
     },
     {
@@ -2095,6 +2158,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "ai-consultants-pulselake-co",
       "curated_reason": "pick"
     },
     {
@@ -2108,6 +2172,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-statemind-ai",
       "curated_reason": "recent"
     },
     {
@@ -2121,6 +2186,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-eu-qlane-ai",
       "curated_reason": "recent"
     },
     {
@@ -2147,6 +2213,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "memory-primaxiom-ai",
       "curated_reason": "pick"
     },
     {
@@ -2160,6 +2227,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "recao-app",
       "curated_reason": "recent"
     },
     {
@@ -2173,6 +2241,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "regulations-ai",
       "curated_reason": "recent"
     },
     {
@@ -2186,6 +2255,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "remnant-dedale-bi-com",
       "curated_reason": "pick"
     },
     {
@@ -2212,6 +2282,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "nova-civai-co",
       "curated_reason": "pick"
     },
     {
@@ -2251,6 +2322,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "robohub-app",
       "curated_reason": "recent"
     },
     {
@@ -2264,6 +2336,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "roterminal-co",
       "curated_reason": "pick"
     },
     {
@@ -2322,6 +2395,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "satohub-ai",
       "curated_reason": "recent"
     },
     {
@@ -2335,6 +2409,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "pick"
     },
     {
@@ -2361,6 +2436,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "screenshot-com-ar",
       "curated_reason": "pick"
     },
     {
@@ -2374,6 +2450,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "sdsentry-0xpi-com",
       "curated_reason": "pick"
     },
     {
@@ -2400,6 +2477,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "searchconsole-ai",
       "curated_reason": "pick"
     },
     {
@@ -2413,6 +2491,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "searcheros-ai",
       "curated_reason": "pick"
     },
     {
@@ -2426,6 +2505,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "models-searchit-agent-ai",
       "curated_reason": "pick"
     },
     {
@@ -2439,6 +2519,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "sekura-ai",
       "curated_reason": "recent"
     },
     {
@@ -2452,6 +2533,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-sellantica-ai",
       "curated_reason": "recent"
     },
     {
@@ -2478,6 +2560,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "sellerforge-ai",
       "curated_reason": "recent"
     },
     {
@@ -2504,6 +2587,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "seo-digitaldarts-com-au",
       "curated_reason": "recent"
     },
     {
@@ -2543,6 +2627,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-singitai-app",
       "curated_reason": "recent"
     },
     {
@@ -2556,6 +2641,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "siteprint-app",
       "curated_reason": "pick"
     },
     {
@@ -2608,6 +2694,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "sorsa-app",
       "curated_reason": "recent"
     },
     {
@@ -2621,6 +2708,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "pick"
     },
     {
@@ -2647,6 +2735,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-specstream-ai",
       "curated_reason": "recent"
     },
     {
@@ -2725,6 +2814,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "surfingdog-ai",
       "curated_reason": "pick"
     },
     {
@@ -2764,6 +2854,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-synlake-ai",
       "curated_reason": "recent"
     },
     {
@@ -2804,6 +2895,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "tallynexa-ai",
       "curated_reason": "pick"
     },
     {
@@ -2830,6 +2922,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "tasg-app",
       "curated_reason": "recent"
     },
     {
@@ -2843,6 +2936,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "tectonicplates-app",
       "curated_reason": "recent"
     },
     {
@@ -2870,6 +2964,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "nova-civai-co",
       "curated_reason": "pick"
     },
     {
@@ -2883,6 +2978,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "theagent-bar",
       "curated_reason": "recent"
     },
     {
@@ -2896,6 +2992,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-thecoindaily-co",
       "curated_reason": "pick"
     },
     {
@@ -2909,6 +3006,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "thecolony-cc",
       "curated_reason": "recent"
     },
     {
@@ -2935,6 +3033,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "there-there-app",
       "curated_reason": "recent"
     },
     {
@@ -2987,6 +3086,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "time-b77-ai",
       "curated_reason": "recent"
     },
     {
@@ -3039,6 +3139,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "topy-ai",
       "curated_reason": "recent"
     },
     {
@@ -3078,6 +3179,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-trayo-ai",
       "curated_reason": "recent"
     },
     {
@@ -3091,6 +3193,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "recent"
     },
     {
@@ -3117,6 +3220,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "pick"
     },
     {
@@ -3169,6 +3273,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "trustgrowth-ai",
       "curated_reason": "recent"
     },
     {
@@ -3182,6 +3287,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-trustydata-app",
       "curated_reason": "recent"
     },
     {
@@ -3208,6 +3314,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "twelvebit-app",
       "curated_reason": "recent"
     },
     {
@@ -3234,6 +3341,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "recent"
     },
     {
@@ -3247,6 +3355,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "unblockd-ai",
       "curated_reason": "recent"
     },
     {
@@ -3317,6 +3426,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "pick"
     },
     {
@@ -3330,6 +3440,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-utmkit-co",
       "curated_reason": "recent"
     },
     {
@@ -3343,6 +3454,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "uviqora-ch",
       "curated_reason": "recent"
     },
     {
@@ -3356,6 +3468,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "uxgen-ai",
       "curated_reason": "recent"
     },
     {
@@ -3396,6 +3509,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "veevid-ai",
       "curated_reason": "recent"
     },
     {
@@ -3435,6 +3549,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "veltake-ai",
       "curated_reason": "recent"
     },
     {
@@ -3448,6 +3563,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "a2awire-com",
       "curated_reason": "recent"
     },
     {
@@ -3474,6 +3590,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-vendwiser-ai",
       "curated_reason": "recent"
     },
     {
@@ -3487,6 +3604,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "veripoint-sens663-chatgpt-site",
       "curated_reason": "pick"
     },
     {
@@ -3500,6 +3618,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-veteranhq-app",
       "curated_reason": "recent"
     },
     {
@@ -3526,6 +3645,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "db-multivoice-ai",
       "curated_reason": "recent"
     },
     {
@@ -3552,6 +3672,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "videoupscaler-co",
       "curated_reason": "recent"
     },
     {
@@ -3617,6 +3738,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "vifo-app",
       "curated_reason": "recent"
     },
     {
@@ -3630,6 +3752,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "cp-appnary-com",
       "curated_reason": "recent"
     },
     {
@@ -3656,6 +3779,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-viralspin-ai",
       "curated_reason": "recent"
     },
     {
@@ -3669,6 +3793,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "vishot-ai",
       "curated_reason": "recent"
     },
     {
@@ -3760,6 +3885,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "void-bible",
       "curated_reason": "recent"
     },
     {
@@ -3799,6 +3925,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-vulx-ai",
       "curated_reason": "recent"
     },
     {
@@ -3838,6 +3965,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "walnutlink-ai",
       "curated_reason": "recent"
     },
     {
@@ -3851,6 +3979,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wandura-ai",
       "curated_reason": "recent"
     },
     {
@@ -3864,6 +3993,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-warplink-app",
       "curated_reason": "recent"
     },
     {
@@ -3877,6 +4007,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wattscope-com-au",
       "curated_reason": "recent"
     },
     {
@@ -3890,6 +4021,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "my-wavn-app",
       "curated_reason": "recent"
     },
     {
@@ -3929,6 +4061,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "avalonai-web-content-url-tools-mcp-apify",
       "curated_reason": "recent"
     },
     {
@@ -3955,6 +4088,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wedkit-ca",
       "curated_reason": "recent"
     },
     {
@@ -3968,6 +4102,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-weeklane-app",
       "curated_reason": "recent"
     },
     {
@@ -3981,6 +4116,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-weftly-ai",
       "curated_reason": "recent"
     },
     {
@@ -3994,6 +4130,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "weio-ai",
       "curated_reason": "recent"
     },
     {
@@ -4007,6 +4144,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wellnessproject-ai",
       "curated_reason": "recent"
     },
     {
@@ -4020,6 +4158,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "werify-app",
       "curated_reason": "recent"
     },
     {
@@ -4033,6 +4172,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "nova-civai-co",
       "curated_reason": "recent"
     },
     {
@@ -4046,6 +4186,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "whatsync-app",
       "curated_reason": "recent"
     },
     {
@@ -4059,6 +4200,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "whatsync-app",
       "curated_reason": "recent"
     },
     {
@@ -4072,6 +4214,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wherethemlogs-app",
       "curated_reason": "recent"
     },
     {
@@ -4085,6 +4228,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-whiteboardanimation-ai",
       "curated_reason": "recent"
     },
     {
@@ -4098,6 +4242,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-wiamotion-ai",
       "curated_reason": "recent"
     },
     {
@@ -4137,6 +4282,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "willder-ai",
       "curated_reason": "recent"
     },
     {
@@ -4233,6 +4379,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wisepenny-app",
       "curated_reason": "recent"
     },
     {
@@ -4246,6 +4393,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "wishlistme-app",
       "curated_reason": "recent"
     },
     {
@@ -4259,6 +4407,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-wiv-ai",
       "curated_reason": "recent"
     },
     {
@@ -4285,6 +4434,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-apify-com",
       "curated_reason": "recent"
     },
     {
@@ -4298,6 +4448,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "workforcegpt-ai",
       "curated_reason": "recent"
     },
     {
@@ -4311,6 +4462,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-worklayer-ai",
       "curated_reason": "recent"
     },
     {
@@ -4324,6 +4476,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "worldmonitor-app",
       "curated_reason": "recent"
     },
     {
@@ -4355,6 +4508,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "writingmate-ai",
       "curated_reason": "recent"
     },
     {
@@ -4434,6 +4588,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-xcut-ai",
       "curated_reason": "pick"
     },
     {
@@ -4460,6 +4615,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-xtiles-app",
       "curated_reason": "recent"
     },
     {
@@ -4473,6 +4629,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-yachtmaster-cloud",
       "curated_reason": "recent"
     },
     {
@@ -4486,6 +4643,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "github-com",
       "curated_reason": "recent"
     },
     {
@@ -4499,6 +4657,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-yapl-app",
       "curated_reason": "recent"
     },
     {
@@ -4512,6 +4671,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "yappy-biz",
       "curated_reason": "recent"
     },
     {
@@ -4557,6 +4717,7 @@
           "secret": true
         }
       ],
+      "icon": "exercise-api-ymove-app",
       "curated_reason": "recent"
     },
     {
@@ -4570,6 +4731,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "youtube-transcript-ai",
       "curated_reason": "pick"
     },
     {
@@ -4622,6 +4784,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "zalcro-ai",
       "curated_reason": "recent"
     },
     {
@@ -4648,6 +4811,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "zarok-app",
       "curated_reason": "recent"
     },
     {
@@ -4674,6 +4838,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "secdb-nttzen-cloud",
       "curated_reason": "recent"
     },
     {
@@ -4700,6 +4865,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "app-zeno-works-ch",
       "curated_reason": "recent"
     },
     {
@@ -4713,6 +4879,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-zerowidth-ai",
       "curated_reason": "recent"
     },
     {
@@ -4726,6 +4893,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "api-zerowidth-ai",
       "curated_reason": "recent"
     },
     {
@@ -4739,6 +4907,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "mcp-zevari-ai",
       "curated_reason": "recent"
     },
     {
@@ -4752,6 +4921,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "claims-zicron-ai",
       "curated_reason": "recent"
     },
     {
@@ -4783,6 +4953,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "zimqi-com-au",
       "curated_reason": "recent"
     },
     {
@@ -4809,6 +4980,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "zuerstzuhause-ch",
       "curated_reason": "recent"
     },
     {
@@ -4874,6 +5046,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "filmai-ai",
       "curated_reason": "recent"
     },
     {
@@ -4887,6 +5060,7 @@
       "published_at": "",
       "source": "registry",
       "required_env": [],
+      "icon": "vote-easykmarket-com",
       "curated_reason": "recent"
     }
   ]
