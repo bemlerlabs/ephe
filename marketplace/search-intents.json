@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated": "2026-10-30T18:53:33+00:00",
+  "generated": "2026-11-01T20:43:19+00:00",
   "intents": [
     "invoices",
     "calendar",
@@ -152,12 +152,6 @@
     ],
     "com-alpha402x-research": [
       "files"
-    ],
-    "aws-api-us-east-1-ecs-mcp-server": [
-      "devops"
-    ],
-    "aws-api-us-east-1-eks-mcp-server": [
-      "devops"
     ],
     "app-hellohop-hellohop": [
       "mail",
@@ -549,6 +543,13 @@
     "ai-prepublish-script-audit": [
       "security",
       "testing"
+    ],
+    "com-bottleyourbrand-print-shop": [
+      "devops",
+      "media"
+    ],
+    "ai-productbay-connect-productbay-connect": [
+      "devops"
     ],
     "ai-productindex-productindex": [
       "devops",

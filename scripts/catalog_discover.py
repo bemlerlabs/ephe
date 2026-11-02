@@ -21,6 +21,7 @@ import hashlib
 import io
 import json
 import math
+import re
 import sys
 import urllib.parse
 import zipfile
@@ -34,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(ROOT))
 from catalog_fetch import fetch  # noqa: E402
 from core.discover_intent import keys as intent_keys, tags_for  # noqa: E402
+from core.mcp_catalog import ICON_SLUG  # noqa: E402
 
 APP_MARKET_INDEX = "https://qoder.com/apphub/api/v1/marketplace/marketplace.json"
 OSS_PLUGIN_INDEX = "https://raw.githubusercontent.com/anthropics/claude-code/main/.claude-plugin/marketplace.json"
@@ -110,6 +112,47 @@ def _mirror_hint(server: dict[str, Any]) -> tuple[str, str]:
             )
             return f"{command} ({transport})", docs
     return "", docs
+
+
+#: The icon PNGs the fetcher writes into the tree. A curated row names an icon only
+#: when the matching file is present, so a missing mark falls back to the subject glyph.
+_ICON_DIR = ROOT / "marketplace" / "icons" / "providers"
+#: ICON_SLUG caps a slug's tail at 40 characters after the leading one; a host that
+#: still runs longer is cut to this length before the final gate, so the truncated
+#: slug is always one the route can resolve.
+_ICON_SLUG_MAX = 40
+
+
+def icon_host(install_hint: str) -> str:
+    """The publisher host a remote install line names; empty for a stdio line.
+
+    Only an `http(s)` first token carries a host: `npx -y pkg (stdio)` names a package,
+    not a domain."""
+    tokens = str(install_hint or "").strip().split()
+    if not tokens:
+        return ""
+    first = tokens[0]
+    if not first.lower().startswith(("http://", "https://")):
+        return ""
+    try:
+        return urllib.parse.urlsplit(first).hostname or ""
+    except ValueError:
+        return ""
+
+
+def icon_slug(install_hint: str) -> str:
+    """A route-resolvable icon slug for the publisher host of one install line.
+
+    Dots, underscores and repeated separators fold to single dashes and a leading
+    `www.` drops, so `github.com` and `www.github.com` both answer `github-com`. Two
+    hosts cut to the same slug by the length cap are the fetcher's one-file-per-slug
+    case. A line with no hostable domain — a stdio launch or a templated
+    `{server_address}` — is no slug at all."""
+    host = icon_host(install_hint).lower()
+    if host.startswith("www."):
+        host = host[len("www."):]
+    slug = re.sub(r"[-_.]+", "-", host).strip("-")[:_ICON_SLUG_MAX].rstrip("-")
+    return slug if ICON_SLUG.fullmatch(slug) else ""
 
 
 #: Where a package's weekly downloads are read from. Both publishers answer one
@@ -317,9 +360,11 @@ def curated_from_mirror(
     one; a named pick keeps the prior it has (these are the servers people ask for
     by name); everything else falls back to how recently it was published. Each
     category keeps a floor, so a broad shelf stays broad instead of filling up with
-    the one category that has the most packages. A row may additionally carry an
-    optional vendor `icon` slug, taken from the mirror row unchanged; the loader
-    drops anything the icon route could not serve."""
+    the one category that has the most packages. A row whose install line names a
+    publisher host carries an `icon` slug for that host, set only when the fetcher has
+    written the matching PNG into the tree; a row with no file keeps no field and the
+    surface draws the subject glyph. The loader still drops any slug the route could
+    not serve, so a value that drifted past the cap never reaches a frame."""
     counts = popularity or {}
     scored: dict[str, dict[str, Any]] = {}
     for entry in entries:
@@ -335,6 +380,9 @@ def curated_from_mirror(
             if hit:
                 row["downloads"] = int(hit["downloads"])
         row["_score"] = _popularity_score(entry, counts)
+        slug = icon_slug(str(entry.get("install_hint") or ""))
+        if slug and (_ICON_DIR / f"{slug}.png").is_file():
+            row["icon"] = slug
         scored[entry["id"]] = row
 
     def reason(row: dict[str, Any]) -> str:

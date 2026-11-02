@@ -270,3 +270,65 @@ def test_the_size_cap_is_enforced(monkeypatch):
     monkeypatch.setattr(catalog_fetch, "_OPENER", SimpleNamespace(open=lambda *_a, **_k: Response()))
     with pytest.raises(ValueError):
         catalog_fetch.fetch("https://example.test/index.json", max_bytes=4)
+
+
+def test_icon_slug_folds_a_publisher_host_and_drops_www():
+    from core.mcp_catalog import ICON_SLUG
+
+    assert discover.icon_host("https://mcp.github.com/mcp (streamable-http)") == "mcp.github.com"
+    assert discover.icon_slug("https://github.com/x (streamable-http)") == "github-com"
+    # A `www.` host and its bare twin name the same publisher, so they share one file.
+    assert discover.icon_slug("https://www.acme.com/x (streamable-http)") == "acme-com"
+    assert discover.icon_slug("https://acme.com/x (streamable-http)") == "acme-com"
+    assert ICON_SLUG.fullmatch(discover.icon_slug("https://acme.com/x (streamable-http)"))
+
+
+def test_icon_slug_gives_nothing_for_a_line_with_no_host():
+    assert discover.icon_slug("npx -y @a/b (stdio)") == ""
+    assert discover.icon_slug("uvx mcp-server-fetch (stdio)") == ""
+    # A templated launch line is not a domain the route could ever resolve a mark for.
+    assert discover.icon_slug("https://{server_address}/mcp (streamable-http)") == ""
+
+
+def test_a_over_long_host_is_cut_to_a_resolvable_slug():
+    from core.mcp_catalog import ICON_SLUG
+
+    slug = discover.icon_slug("https://" + "a" * 45 + ".example.com/mcp (streamable-http)")
+    assert len(slug) == 40
+    assert ICON_SLUG.fullmatch(slug)
+    # Two hosts sharing the kept prefix collapse to the same slug; the fetcher keeps one.
+    other = discover.icon_slug("https://" + "a" * 45 + ".other.com/mcp (streamable-http)")
+    assert other == slug
+
+
+def test_a_curated_row_names_an_icon_only_when_the_png_is_in_the_tree(tmp_path, monkeypatch):
+    from core.mcp_catalog import ICON_SLUG
+
+    icon_dir = tmp_path / "providers"
+    icon_dir.mkdir()
+    monkeypatch.setattr(discover, "_ICON_DIR", icon_dir)
+    entries = [
+        {
+            "id": "has", "name": "Has Mark", "description": "reads documents",
+            "category": "files", "source": "registry",
+            "install_hint": "https://mcp.acme.com/mcp (streamable-http)",
+        },
+        {
+            "id": "missing", "name": "No Mark", "description": "reads documents",
+            "category": "files", "source": "registry",
+            "install_hint": "https://mcp.gone.test/mcp (streamable-http)",
+        },
+        {
+            "id": "stdio", "name": "Stdio Only", "description": "reads documents",
+            "category": "files", "source": "registry",
+            "install_hint": "npx -y some-package (stdio)",
+        },
+    ]
+    present = discover.icon_slug(entries[0]["install_hint"])
+    (icon_dir / f"{present}.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    rows = {row["id"]: row for row in discover.curated_from_mirror(entries, {})}
+
+    assert rows["has"].get("icon") == present
+    assert ICON_SLUG.fullmatch(rows["has"]["icon"])
+    assert "icon" not in rows["missing"]
+    assert "icon" not in rows["stdio"]

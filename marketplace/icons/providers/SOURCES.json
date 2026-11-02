@@ -70,6 +70,666 @@
       "source": "https://www.figma.com/favicon.ico",
       "fetched": "2026-10-31",
       "sha256": "11f0d172b9855e877a5448691f3d71acedbfbad50deaa7d067fd769565f29c66"
+    },
+    "a2awire-com": {
+      "source": "https://a2awire.com/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "514c07d4387490ae9cac525dbb43a67ea836403311ff21ca4823ca1a9e283395"
+    },
+    "agent-maddegen-art": {
+      "source": "https://agent.maddegen.art/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "9092a32ee0ca13485d1b789784bd9e8a0a25f156ef773dc1d0b03dac766366d9"
+    },
+    "ai-consultants-pulselake-co": {
+      "source": "https://ai-consultants.pulselake.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "9a583e1d205b78acad8feac690abdf49af7ce687706de3f95d9a06a6842c4403"
+    },
+    "alpha402x-com": {
+      "source": "https://alpha402x.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "01508b8dd48bb821480552e85e5d32daf2d81d99e5d0861d32374990dc2c6561"
+    },
+    "api-specstream-ai": {
+      "source": "https://api.specstream.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "ef182d64559704c325828d18564331edd8e992e7340a285219257016df4d9fa5"
+    },
+    "api-statemind-ai": {
+      "source": "https://api.statemind.ai/icon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "7d665a8f1f4a19aa71c998212a6a0f016f2678af945874c39b6ef8512fa76f89"
+    },
+    "api-synlake-ai": {
+      "source": "https://api.synlake.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2f229f84db0d9b2a72ba62ec954b7e1fbc2cda1e773d60e7079db0ff6630b635"
+    },
+    "api-trayo-ai": {
+      "source": "https://api.trayo.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "42c600f4d45254254e38e793984ef0bf55a246549db100014fd69dfddef76f29"
+    },
+    "api-veteranhq-app": {
+      "source": "https://api.veteranhq.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8f2388b46b93533f9b31e24db0daa7910b1c7d2737316f15f27c55ad9ab2adcf"
+    },
+    "api-warplink-app": {
+      "source": "https://api.warplink.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "ffcd4b21fe3a1e55441b62af852e74e19e0587e9a64459e739686c1b29d55adb"
+    },
+    "api-weftly-ai": {
+      "source": "https://api.weftly.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "b0072fb36781a8734f4a39d9a9a1ec270ef634438671b981e66c9568a5240152"
+    },
+    "api-zerowidth-ai": {
+      "source": "https://api.zerowidth.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2e8ea2005e8bb622ffed2bafbed5f6a37f561d7eb0d574103825ebc90ea2fa23"
+    },
+    "apished-com": {
+      "source": "https://apished.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "6e74e750a6733ddc6741a0fc946c9eed7f2e7a4e40cdeee3767f35afc45f0490"
+    },
+    "app-kolect-ai": {
+      "source": "https://app.kolect.ai/icon.png?da0d0ca820b8cbb6",
+      "fetched": "2026-11-01",
+      "sha256": "f6dbff970af85838d7265feda2d1d7a555392a0741d5ec61efc9f60c59cacb69"
+    },
+    "app-sellantica-ai": {
+      "source": "https://app.sellantica.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "e189cb4238bd4164642a9da21daa977cf99b0ad22963204549f5717b87021f23"
+    },
+    "app-singitai-app": {
+      "source": "https://app.singitai.app/assets/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "8daa35dca0126a6a1780f647da4e3aa911d252b531e21ea5be14bff71592f0ae"
+    },
+    "app-utmkit-co": {
+      "source": "https://app.utmkit.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "ee5f4ae0aae66a3d9ad8166933132bf2fad25da6220d8f02127f69546b5a4795"
+    },
+    "app-vendwiser-ai": {
+      "source": "https://app.vendwiser.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8a5733bcc08054715d31f6831cbca09b7dd631165ab4018b22def3f9045fe379"
+    },
+    "app-worklayer-ai": {
+      "source": "https://app.worklayer.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "e189cb4238bd4164642a9da21daa977cf99b0ad22963204549f5717b87021f23"
+    },
+    "app-yachtmaster-cloud": {
+      "source": "https://app.yachtmaster.cloud/favicon.png",
+      "fetched": "2026-11-01",
+      "sha256": "791627674da7d760cf1cf4d1387ffe055dd5ee389cd938d9df541196550428cd"
+    },
+    "app-zeno-works-ch": {
+      "source": "https://app.zeno-works.ch/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "83c3c8ad28f25a4a72598e159d22a5bceb8a3b76c253dc38aedcf2919861e1a0"
+    },
+    "apple-search-ads-b77-ai": {
+      "source": "https://apple-search-ads.b77.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "d8304813528915d8b237bfbc0a0bdbe68b50aabb9a3809823906508ee9628d77"
+    },
+    "asrmemory-com": {
+      "source": "https://asrmemory.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2ac8c0868bf2632a5ee4c75751dd42b804fbf6323d0a7d0c717bd0d59a265cca"
+    },
+    "augur-trade-com": {
+      "source": "https://augur-trade.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f653456849d747a128e32ccb286409403e7e2532e4496f66f228da74f68601e4"
+    },
+    "avalonai-web-content-url-tools-mcp-apify": {
+      "source": "https://avalonai--web-content-url-tools-mcp.apify.actor/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8c8f242cf23402e3138f4d40e8500c167feee436504f17aa592b25ed45ea454e"
+    },
+    "bibigpt-co": {
+      "source": "https://bibigpt.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "6100bb94d3773e7ffcb472f039e1c0ba519a82ed736311c1e740c3581c002ac9"
+    },
+    "chrome-stats-com": {
+      "source": "https://chrome-stats.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "174ce05c9f5e996f3764faec8d90ee8b9979290c83857acc87a176724efbcabb"
+    },
+    "claims-zicron-ai": {
+      "source": "https://claims.zicron.ai/icon?74472383090e3fe8",
+      "fetched": "2026-11-01",
+      "sha256": "7a09310ccd1ff42c95f21e16e085fe77db6d035efa2c56479d9056bdc6cea88c"
+    },
+    "cp-appnary-com": {
+      "source": "https://cp.appnary.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "53bd3eabe0bc6dc235a572eda2ff387a4d17a748eac740028a8270459dc7af8e"
+    },
+    "creatinginai-com": {
+      "source": "https://creatinginai.com/favicon.png",
+      "fetched": "2026-11-01",
+      "sha256": "147950ea925f9da85eb88db5a8ceb1ef5c6c465f1d5b667fd655c2aeb3b7d086"
+    },
+    "crosbynews-com": {
+      "source": "https://crosbynews.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "d7e19b113534b479936a4b16b7b4297be597b07cedb9708c403eac9279019348"
+    },
+    "dapdip-com": {
+      "source": "https://www.dapdip.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2e8ea2005e8bb622ffed2bafbed5f6a37f561d7eb0d574103825ebc90ea2fa23"
+    },
+    "db-multivoice-ai": {
+      "source": "https://db.multivoice.ai/favicon-32x32.png",
+      "fetched": "2026-11-01",
+      "sha256": "1f7bbe7864d781f4c3b09cb1b54f44fbfacf1e0826bdc45fea77660b0efe42f0"
+    },
+    "deepsearch-app": {
+      "source": "https://deepsearch.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "34f068e211c5327f507f8fea64b5674696ae946f77afa468cda7b04dd347be8c"
+    },
+    "everythingmeetsai-com": {
+      "source": "https://everythingmeetsai.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "df6fd85ccaf7a0c5a1ba2fe9d2c9a6707433036645da9bd8b677e2beb33e2e06"
+    },
+    "exactmods-com": {
+      "source": "https://exactmods.com/favicon.png",
+      "fetched": "2026-11-01",
+      "sha256": "7d2543299d67d1f2d54046d8928291126d037e9724e31596a2822697b00cbbd7"
+    },
+    "examova-com": {
+      "source": "https://examova.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "33cb005e86fbcaedf14909fa611e5c16d6fa0279a93f7cd2ebc176c47ade26d8"
+    },
+    "exercise-api-ymove-app": {
+      "source": "https://exercise-api.ymove.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f4453df3785f489e3bfbe9b284f610a0f791d986222268fe392fcbfe3e81b90d"
+    },
+    "faceabot-com": {
+      "source": "https://faceabot.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "11c6d45b700775b9f8160b6eecd0ebaf72af88ba5357cb30012866ff60f15de0"
+    },
+    "filmai-ai": {
+      "source": "https://filmai.ai/icon?c0377381aaba3b48",
+      "fetched": "2026-11-01",
+      "sha256": "f9f14d12f9c0132a3ef88a3e3e6a52ce081fbee73399b954eeab53e87273b270"
+    },
+    "freelancertax-ca": {
+      "source": "https://freelancertax.ca/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f2cc1861e1b82c4fb0c91d0f7cf2d3dd7efc759d70448a26b65b01d8cc07f554"
+    },
+    "gamedayweather-app": {
+      "source": "https://gamedayweather.app/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "5875446ea5e4a0bff77a4f2ce41a3bb309154964de7a5b5f5612a391ef65a083"
+    },
+    "github-com": {
+      "source": "https://github.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "3636259a57226e6d6dea9bf8a360e70b41376a12cbe314eaa315d5dacda11b6f"
+    },
+    "mcp-apify-com": {
+      "source": "https://mcp.apify.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8c8f242cf23402e3138f4d40e8500c167feee436504f17aa592b25ed45ea454e"
+    },
+    "mcp-atlaso-ai": {
+      "source": "https://mcp.atlaso.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "cf3941437ef77208e4602073cce44a065334c104ad6fc47025d5e0b3a254af3b"
+    },
+    "mcp-brainmemory-ai": {
+      "source": "https://mcp.brainmemory.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "a5c16e48dd72f28cd9b06a0d3630f2a3d0c4c3d9f7d99a217d6db3418e2cdb87"
+    },
+    "mcp-chipp-ai": {
+      "source": "https://mcp.chipp.ai/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "a0010800268950816a98743d96d92453f39d9e8a08ca32c68979f1d09e44d4dd"
+    },
+    "mcp-clawterminal-ai": {
+      "source": "https://mcp.clawterminal.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2ea9666d707a30da5d00c0d6291148dbbc462f47115de78fbab82345cf57f987"
+    },
+    "mcp-ekwo-ai": {
+      "source": "https://mcp.ekwo.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2d928f4aeec50311761760f5fa0658e9c4042ee4c900645cf256375acd8df016"
+    },
+    "mcp-eu-qlane-ai": {
+      "source": "https://mcp-eu.qlane.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "97416a54dff4e64eb631e86115a38d5d2784ec2457314b37418aa05746e462d9"
+    },
+    "mcp-hexahq-ai": {
+      "source": "https://mcp.hexahq.ai/static/hexa/favicon.46bebe07a925.svg",
+      "fetched": "2026-11-01",
+      "sha256": "381740c4d4ac8b74ff338b739adbfd31f44de5e7b724c7657eef5463e9990020"
+    },
+    "mcp-okforest-ai": {
+      "source": "https://mcp.okforest.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8742b521a9191d80d39796cecbea4547eeb92ca690d61ba9d624eaa0d7db7d81"
+    },
+    "mcp-productindex-ai": {
+      "source": "https://mcp.productindex.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "4050c52e2e891c4c4eedc056f2e2ea6ee2b4662c0d5defb1189a2a0764036c14"
+    },
+    "mcp-thecoindaily-co": {
+      "source": "https://mcp.thecoindaily.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "ca9a9430b246751daf1578d0c7f5bcc4e5fdd07e578ecccc31d8614abaf9d005"
+    },
+    "mcp-trustydata-app": {
+      "source": "https://mcp.trustydata.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2cce825e7bf2afec697ea523d6a2db9fffe135358ff120f29f1ea105cc1f3da7"
+    },
+    "mcp-viralspin-ai": {
+      "source": "https://mcp.viralspin.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "3b17adfc1cfcb74c9143a0c6c8654ceb31a1cab124a0319d236a9749c20dc882"
+    },
+    "mcp-vulx-ai": {
+      "source": "https://mcp.vulx.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "579037abd57d638c7d73c4361795689150542d18773ec327eb2a78bc665a86ac"
+    },
+    "mcp-weeklane-app": {
+      "source": "https://mcp.weeklane.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "d0f18d95e018085a132bd190baab679599cb5c36c2a2c8d603dead7f13ef116c"
+    },
+    "mcp-whiteboardanimation-ai": {
+      "source": "https://mcp.whiteboardanimation.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "3a9abcc6d819368ce7006bca49c699eb49e5732a6a6b05e067a86b780b18e47c"
+    },
+    "mcp-wiamotion-ai": {
+      "source": "https://mcp.wiamotion.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "bcc9a44d19fab4e1746e719b7b648610b00aa5146f8f0d0b008cfc214ff0379d"
+    },
+    "mcp-wiv-ai": {
+      "source": "https://mcp.wiv.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "fdefa33bf32448175a4fe2963c98d50db34c928657327eddf0ddc95b72df3e5f"
+    },
+    "mcp-xcut-ai": {
+      "source": "https://mcp.xcut.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "6c98abcf059f13852c6109cc707955b14944cd9fe83b072db0da31325ec4b69f"
+    },
+    "mcp-xtiles-app": {
+      "source": "https://mcp.xtiles.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "171d933324b0aac460449be1893a0183e4549378844f31cd1bbb029dc824f5c8"
+    },
+    "mcp-yapl-app": {
+      "source": "https://mcp.yapl.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "dcdaa91849cab7ddb37b80fc106611c89f8ca49c63d72791dfcf5450cf9d7ddd"
+    },
+    "mcp-zevari-ai": {
+      "source": "https://mcp.zevari.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8f6f48ae8cdc0a72b58b397e8ede62aa6e9822954f771e8fa3f70b33b4a5ea7a"
+    },
+    "mem-borisinc-com": {
+      "source": "https://mem.borisinc.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f5bdb1f747cf4452f9e8d787785a277a3bb3ad2cac8b4e7c5b474296371a0319"
+    },
+    "memory-primaxiom-ai": {
+      "source": "https://memory.primaxiom.ai/static/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "f9e9a04a16f592923a6601e1a22383045491fb75faf168ce1f5b6c5c10b65103"
+    },
+    "models-searchit-agent-ai": {
+      "source": "https://models.searchit-agent.ai/assets/favicon.png",
+      "fetched": "2026-11-01",
+      "sha256": "dcc73a06b7bf3aa9d54e84adca2c10f253f0cff01d6721806f2ddfc123da49a4"
+    },
+    "my-wavn-app": {
+      "source": "https://my.wavn.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "6fb571de7730eaa61c435716349d85d84c27188abaa5e073995f0daaa7a0232c"
+    },
+    "nova-civai-co": {
+      "source": "https://nova.civai.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f676cab8071c45506ceb699629537e0800a2a8faae62e13ff673cfac5cee0504"
+    },
+    "plantguide-ae": {
+      "source": "https://plantguide.ae/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8a1108839c02b9a63d1bfa645ae26811a8b2a88e7f2b469217e9beeb54b1dfe9"
+    },
+    "prepublish-ai": {
+      "source": "https://prepublish.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "e71d4623d7bb9285418812e912d8747fdcc5ffad1f8c849c1d20cab2d6341147"
+    },
+    "proxy-perfectmemory-ai": {
+      "source": "https://proxy.perfectmemory.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "088315bfbf972cc54b03f01378ec2a2cab56478051fe7bbf1c349bc969180c4d"
+    },
+    "recao-app": {
+      "source": "https://recao.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "95e38d6ef36ff447d8d08d82e6e53fc7bfc7355170adbd8a7bb8de174d96f48d"
+    },
+    "regulations-ai": {
+      "source": "https://regulations.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "a6bbd1e200b098aae6c6052ef74fd89bf62647ad0481cf1aa4bf82c51504a7ac"
+    },
+    "remnant-dedale-bi-com": {
+      "source": "https://remnant.dedale-bi.com/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "e04a1de649a2b04c51ce85446a57ccf7adfe9ab827c21b56068210ef4199b46e"
+    },
+    "robohub-app": {
+      "source": "https://robohub.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2e8ea2005e8bb622ffed2bafbed5f6a37f561d7eb0d574103825ebc90ea2fa23"
+    },
+    "roterminal-co": {
+      "source": "https://roterminal.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8f5b2255cbbe6829d803301d086ae54565aec002a799c250366b36809d805366"
+    },
+    "satohub-ai": {
+      "source": "https://satohub.ai/icon.svg?118473b701050181",
+      "fetched": "2026-11-01",
+      "sha256": "45a3915952660817f651ed5dd3e179a75d12cf944865fefb2a4ae8b867d4cf4c"
+    },
+    "screenshot-com-ar": {
+      "source": "https://screenshot.com.ar/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "a805282b5fa6b4e2c99e9746aaa5b00760df469f55e25222f6c34c64c99f4988"
+    },
+    "sdsentry-0xpi-com": {
+      "source": "https://sdsentry.0xpi.com/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "cbe5416c6124862121e59c0271c0db175562343698f9cdc227d08c6c50b82e44"
+    },
+    "searchconsole-ai": {
+      "source": "https://searchconsole.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "1b3502745718ebe9be6e449e8e5f43609b1d3f6f1638c3b878332db5404147b2"
+    },
+    "searcheros-ai": {
+      "source": "https://searcheros.ai/icon.png?a5d81db6a432940b",
+      "fetched": "2026-11-01",
+      "sha256": "7217a6446b4baaabd8ef52885bc000d95d37f467b8b1e8ed99a2333fb1257be8"
+    },
+    "secdb-nttzen-cloud": {
+      "source": "https://secdb.nttzen.cloud/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8e777eb4b2f1280b489349d9fcab54423d4af50e5f1b79007375a0c4a94f544e"
+    },
+    "sekura-ai": {
+      "source": "https://sekura.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "13e711542c4bd328e27b9156efb008c539f112135e3df10ebb6d8c24471534f2"
+    },
+    "sellerforge-ai": {
+      "source": "https://www.sellerforge.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "3122d8b20e5b4086af84be436dfcbaa0ad186195090f05b733e23fd76fb30a3f"
+    },
+    "seo-digitaldarts-com-au": {
+      "source": "https://seo.digitaldarts.com.au/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "4fd954bbd308dc0d26b583aad8c39098b89488e87f872e0b681a2e5750b541fc"
+    },
+    "siteprint-app": {
+      "source": "https://siteprint.app/icon.png",
+      "fetched": "2026-11-01",
+      "sha256": "e165198375defa6678d76d485988f978380bb7174bd1f5415f8be81d85b73106"
+    },
+    "sorsa-app": {
+      "source": "https://sorsa.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "e189cb4238bd4164642a9da21daa977cf99b0ad22963204549f5717b87021f23"
+    },
+    "surfingdog-ai": {
+      "source": "https://surfingdog.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "4e6d6c4c527d1bc8c8ee501de362d4177ff3e771afbc27ddc1d6a2d0924ea1ac"
+    },
+    "tallynexa-ai": {
+      "source": "https://tallynexa.ai/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "d6a55b165d308e961b8b8a0b38744ec6af6d1716c5da015454304ca754612c55"
+    },
+    "tasg-app": {
+      "source": "https://tasg.app/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "c217fc998a9d9352ef562d0d504a6cac2cd083e6ce4e34af68769053676ca556"
+    },
+    "tectonicplates-app": {
+      "source": "https://tectonicplates.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "bd44a797aa06342f87ca133380c60c423a9b3d81dd4ee8e4c684ff8906f7d5cf"
+    },
+    "theagent-bar": {
+      "source": "https://theagent.bar/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "cb4d24e6b13916255ef29d543d1b2ce4ae234559e16c68b85f25641547f7e06f"
+    },
+    "thecolony-cc": {
+      "source": "https://thecolony.cc/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "00377f856343814b3d8ae76eaab503a7fc9b627813963f99061dd0d5fe524337"
+    },
+    "there-there-app": {
+      "source": "https://there-there.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "ca891c8cdca43ceda6b3603e51589e96d5d88232d273d3530237a2460155e194"
+    },
+    "time-b77-ai": {
+      "source": "https://time.b77.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "d138418216ea1d9a7a024b8f538b05a95b32a5bfb970481b0167dd7862c1f8fd"
+    },
+    "topy-ai": {
+      "source": "https://topy.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "a9cd7fd75b6723f70da72c532933ba71e2de5671887a40bf2443e40b6147ace2"
+    },
+    "trustgrowth-ai": {
+      "source": "https://trustgrowth.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "d1e8ac1cbf0eeb55d121c23ced037c48dc3ca6a34db961c22480217e81cbbfbd"
+    },
+    "twelvebit-app": {
+      "source": "https://twelvebit.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "334720507b0898260e78e4d347970133da9f353c93cbac60460bf4709b6557c0"
+    },
+    "unblockd-ai": {
+      "source": "https://unblockd.ai/icon.svg?icon.2zrqqsz5aqe56.svg",
+      "fetched": "2026-11-01",
+      "sha256": "da79a70f086b5694da3b33978859f03ada8e21a2bff4276320c355069386f3be"
+    },
+    "uviqora-ch": {
+      "source": "https://uviqora.ch/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "a8736f670fe92ac80ac836a106be51f9f8a38f57db6aa4eb830b474c187a4b69"
+    },
+    "uxgen-ai": {
+      "source": "https://www.uxgen.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "da01d684d9dbfceaaac3410603828e65bf49a42dee50dccc3add3ad730352374"
+    },
+    "veevid-ai": {
+      "source": "https://veevid.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "250c7c5d18d8bb92cb306115b3ec5f60800e2d89a28ba3ead9e1867aee7f615f"
+    },
+    "veltake-ai": {
+      "source": "https://veltake.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "094e2bebf457631e3c8903a87f56ad7b0d493b11731db5a96177616262db2908"
+    },
+    "veripoint-sens663-chatgpt-site": {
+      "source": "https://veripoint.sens663.chatgpt.site/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "b39a614686e8195efa86b6dd71b5ba9c2b5fbdbb379f7a0f96471f7cbbd1d78a"
+    },
+    "videoupscaler-co": {
+      "source": "https://videoupscaler.co/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "83ce17c5c82767f6f3a390ce26b19e38b5475769d21d709c88655bd33e33e9fd"
+    },
+    "vifo-app": {
+      "source": "https://vifo.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "cb9519aededb489aabe14005fd63e613b415a68761db266826d9db5b5f1fd30b"
+    },
+    "vishot-ai": {
+      "source": "https://vishot.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "8b9867e710a02b665d705313660c7b5822847e90bfe2febcc04796a03b9dde3e"
+    },
+    "void-bible": {
+      "source": "https://void.bible/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "763892a66530f300ce95160fe0abe1b73cfa8cdcecac47d239e19893391f8515"
+    },
+    "vote-easykmarket-com": {
+      "source": "https://vote.easykmarket.com/icon-32.png",
+      "fetched": "2026-11-01",
+      "sha256": "987158cc17f20df0f162309d5032032847ed6f3a14d6ad5f9566a50047b516f5"
+    },
+    "walnutlink-ai": {
+      "source": "https://walnutlink.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "60f54cdedaf3e74643729f9de15c85dd0c02961f176a7a6e750628ac1b1c4430"
+    },
+    "wandura-ai": {
+      "source": "https://www.wandura.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "e0ff5d8b386f3fff658c09ce58c0db1de386f312171b932753ced20309dc1812"
+    },
+    "wattscope-com-au": {
+      "source": "https://www.wattscope.com.au/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "ce085d3f042f8fbd136af4520c591b091005f03041b8848dfb5e473fb203c9f5"
+    },
+    "wedkit-ca": {
+      "source": "https://wedkit.ca/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "89a1007f9c9a895e84998c1148157c6239af16d296be6a4f4ed5bc16a541c5dd"
+    },
+    "weio-ai": {
+      "source": "https://weio.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "137b4a5d9cc3f7ef6acdac71320a8e5c543a861636648b40ac05061516a315a0"
+    },
+    "wellnessproject-ai": {
+      "source": "https://wellnessproject.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "557f2927eb860c662f2831d406993d401b5271f10fbb0451f2901f2c69003967"
+    },
+    "werify-app": {
+      "source": "https://werify.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "c9193117420bfeae18e14657b966d887ec28cda5220602ab1fe7269d3c140d3b"
+    },
+    "whatsync-app": {
+      "source": "https://whatsync.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "4533409ae54f8ca7c7c5c8e969baa80483641a0d3a7f615eef8c329f957c359f"
+    },
+    "wherethemlogs-app": {
+      "source": "https://wherethemlogs.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "dd051154841113058453ef8d91c8f33bae0f34917d27603437e7c226e4698050"
+    },
+    "willder-ai": {
+      "source": "https://willder.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2e8ea2005e8bb622ffed2bafbed5f6a37f561d7eb0d574103825ebc90ea2fa23"
+    },
+    "wisepenny-app": {
+      "source": "https://www.wisepenny.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f4654e940c7903704ec3affee914ec8eff2d7d4048cd309a6aa5aeb8ebae7a95"
+    },
+    "wishlistme-app": {
+      "source": "https://wishlistme.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "43431defda3479628ec8d2f340225ba9fb2d2740eb2ca1e4b3d571505816b551"
+    },
+    "workforcegpt-ai": {
+      "source": "https://workforcegpt.ai/static/images/favicon.png",
+      "fetched": "2026-11-01",
+      "sha256": "5ee2a85d8815eaeb8ce3ebafb843b8ae42c72c8c8fc88ce11c06a2c568c5777b"
+    },
+    "worldmonitor-app": {
+      "source": "https://worldmonitor.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f05802db31f9a8d854cd9afdfe376913d62bd8928391c1137c25f53cd885d62a"
+    },
+    "writingmate-ai": {
+      "source": "https://writingmate.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "5b335cf8b77465c525a7d953ea58b9656e9beb6d5df89f9556d0ec1ec110e07c"
+    },
+    "yappy-biz": {
+      "source": "https://yappy.biz/assets/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "8d221d19e5e10d6ff358ed4db15a07a4d3fc7ae08356f307974c73877a0b605a"
+    },
+    "youtube-transcript-ai": {
+      "source": "https://youtube-transcript.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "2d47ef23c242270c674a22aa21427c513bdb7e6b1bc3602c1a7a3425d1ed928b"
+    },
+    "zalcro-ai": {
+      "source": "https://zalcro.ai/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "3d3ad0002d2d1c80dd3ba96040403ae2e5467a730a4bee6ceb98e500f740555e"
+    },
+    "zarok-app": {
+      "source": "https://zarok.app/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "a887480fc35d4b527493815436911d993b1ec04c241c9ee987181c5a17db65fb"
+    },
+    "zimqi-com-au": {
+      "source": "https://zimqi.com.au/favicon.ico",
+      "fetched": "2026-11-01",
+      "sha256": "f2eaa2fca17c51d8046646412e471085d04fb5328173871a270857913457ccfd"
+    },
+    "zuerstzuhause-ch": {
+      "source": "https://zuerstzuhause.ch/favicon.svg",
+      "fetched": "2026-11-01",
+      "sha256": "64516002d2169df338517167e37452b00d41f90b782390aa35c1e9e3475e42d0"
     }
   }
 }
