@@ -283,7 +283,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   wording of both branches so a translated string is caught by a test (`b336e116`)
 - discover: The shelf keeps each skill's own words and the loader marks the language they are
   in, falling back to the shelf language when there is no evidence; measured 2 of 72 served
-  entries were the user's German, none first-party (`d94ed735`)
+  entries were the user's German, none first-party (`1b0d3df2`)
 
 ### Security
 
