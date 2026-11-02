@@ -14,7 +14,7 @@ The 0.5.5 wave is named below (`c263c3ab`, `cf7c3f6b`, `91473a8e`, `8fe8670d`, `
 
 - update: The shell names the update instead of a reload that cannot bring it — with the
   new version already written into the `.app`, the toast told the person to reload the
-  window, and a reload re-reads the bundle the window is already running from (`a8a5df59`)
+  window, and a reload re-reads the bundle the window is already running from (`3ac7541a`)
 
 
 ## [0.5.5] - 2026-11-02
