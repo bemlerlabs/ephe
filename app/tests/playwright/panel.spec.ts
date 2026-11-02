@@ -164,15 +164,19 @@ test.describe('Session-Sidebar Toggle (Runde 10)', () => {
     await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeGreaterThan(200)
   })
 
-  test('Expand-Button im Rail: zugeklappt wieder aufklappbar (User-Bug)', async ({ page }) => {
+  test('das Rail-Row ist die Tür: ein zugefaltetes Register öffnet sich', async ({ page }) => {
+    // Register #107: the column folds to nothing and keeps no expand button of its own —
+    // the frame rail's Task row is the door. It has to be reachable and it has to answer.
     const sidebar = page.getByTestId('chat-sidebar')
+    const door = page.getByTestId('nav-rail-task')
     await page.getByTestId('header-sidebar-toggle').click()
     await expect(sidebar).toHaveAttribute('data-collapsed')
-    // The button must be visible AND clickable (no clipping through overflow-hidden)
-    const expand = sidebar.getByRole('button', { name: 'Sidebar ausklappen' })
-    await expect(expand).toBeVisible()
-    await expand.click()
+    await expect(sidebar.getByRole('button', { name: 'Sidebar ausklappen' })).toHaveCount(0)
+    await expect(door).toHaveAttribute('aria-expanded', 'false')
+    await door.click()
     await expect(sidebar).not.toHaveAttribute('data-collapsed')
+    await expect(door).toHaveAttribute('aria-expanded', 'true')
+    await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeGreaterThan(200)
   })
 
   test('⌘B klappt die Sidebar um', async ({ page }) => {
@@ -216,9 +220,12 @@ test.describe('Sidebar Aktionszeilen (Runden-G3, Referenz-Paritaet)', () => {
     page,
   }) => {
     const sidebar = page.getByTestId('chat-sidebar')
-    // R5: the rows are named the way the surface names them — "new/search" existed
-    // once; today Neu (new-session) and Suchen live separately from it. // language-gate: ignore — "Neu"/"Suchen" are the German row labels the sidebar renders (locales/de.json:243 newChat, :285 actionSearch)
-    await expect(sidebar.getByTestId('new-session')).toBeVisible()
+    // R5: the rows are named the way the surface names them. Register #107 moved the two
+    // frame verbs up into the rail — Neu (new-session) and Suchen are the rail's now, and
+    // the column starts at its own filter field. // language-gate: ignore — "Neu"/"Suchen" are the German row labels the rail renders (locales/de.json:243 newChat, :285 actionSearch)
+    await expect(page.getByTestId('new-session')).toBeVisible()
+    await expect(page.getByTestId('nav-rail-search')).toBeVisible()
+    await expect(sidebar.getByTestId('sidebar-search')).toBeVisible()
 
     // #71: the rail is three tiers now. The primary one has no head and is always
     // open; the other two start closed, and a closed tier's rows are hidden (they

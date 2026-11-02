@@ -23,6 +23,11 @@ export async function ensureOnboarded(page: Page) {
     // INTRO_SEEN_KEY). Without it every fresh profile boots underneath an aria-modal
     // dialog, and a keyboard walk never reaches the composer behind it.
     localStorage.setItem('ephe.intro.seen.v1', '1')
+    // Register #107 made the task column the body of the rail's Task row, folded until a
+    // person opens it. The specs here walk that column's rows, so the fixture leaves the
+    // door the way a returning person would; the product default stays folded, and
+    // panel.spec.ts measures the fold itself.
+    localStorage.setItem('ephe.register.open', '1')
   })
 }
 
