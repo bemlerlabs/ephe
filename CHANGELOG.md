@@ -306,11 +306,11 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   tree names no person (`8117ee94`)
 - memory: A stored note reads as the markdown it was written in — a table arrives as a
   table, a bold line as bold, and a long path shrinks to the card instead of widening
-  it (`eea22778`)
+  it (`441a53b8`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
 - chat: A run keeps its break where a tool round ends, so an answer does not arrive as one
-  welded sentence in the chat, in the stored message and in the memory note alike (`0b53a237`)
+  welded sentence in the chat, in the stored message and in the memory note alike (`8c2e2581`)
 
 ## [0.5.2] - 2026-11-01
 
