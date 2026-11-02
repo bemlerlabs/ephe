@@ -137,7 +137,7 @@ export function useNativeBrowserPane(url: string, nonce: number, maxWidth?: numb
       else if (event.kind === 'title') setTitle(event.title)
       else if (event.kind === 'navigation') setLoading(true)
       else if (event.kind === 'new-window' && event.url && lastBounds.current) {
-        // target="_blank" stays inside the pane instead of opening a window
+        // A blank-target request stays inside the pane instead of opening a window
         // nobody controls — the user sees where the link leads.
         setLoading(true)
         void openNativeBrowser(event.url, lastBounds.current).catch(() => setLoading(false))
