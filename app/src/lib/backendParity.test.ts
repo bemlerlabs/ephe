@@ -5,14 +5,20 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { invoke, toast, health } = vi.hoisted(() => ({
+const { invoke, toast, health, guard, relaunch } = vi.hoisted(() => ({
   invoke: vi.fn(),
   toast: { error: vi.fn(), info: vi.fn() },
   health: vi.fn(),
+  guard: { current: { blocked: false, reason: null as 'running' | 'draft' | null } },
+  relaunch: vi.fn(),
 }))
 
 vi.mock('@/lib/toast', () => ({ toastBus: toast }))
 vi.mock('@/lib/api', () => ({ healthCheck: health }))
+vi.mock('@/lib/restartGuard', () => ({
+  restartGuardNow: () => guard.current,
+  relaunchApp: relaunch,
+}))
 
 const bridge = { core: { invoke: (cmd: string) => invoke(cmd) } }
 
@@ -23,6 +29,7 @@ const t = (key: string, opts?: Record<string, unknown>) =>
 
 beforeEach(() => {
   ;(window as unknown as { __TAURI__?: unknown }).__TAURI__ = bridge
+  guard.current = { blocked: false, reason: null }
 })
 
 afterEach(() => {
@@ -30,6 +37,8 @@ afterEach(() => {
   health.mockReset()
   toast.error.mockReset()
   toast.info.mockReset()
+  relaunch.mockReset()
+  vi.useRealTimers()
 })
 
 describe('announceBackendParity', () => {
@@ -59,10 +68,86 @@ describe('announceBackendParity', () => {
     expect(toast.info).toHaveBeenCalledWith(
       'chat.backendUpdated',
       undefined,
-      undefined,
+      { label: 'update.relaunchNow', onClick: expect.any(Function) },
       'backend-parity',
     )
     expect(toast.error).not.toHaveBeenCalled()
+
+    const action = toast.info.mock.calls[0]?.[2] as { onClick: () => void }
+    action.onClick()
+    expect(relaunch).toHaveBeenCalled()
+  })
+
+  it('holds the restart back while a turn still runs', async () => {
+    guard.current = { blocked: true, reason: 'running' }
+    invoke.mockResolvedValue({
+      verdict: 'updated_restart',
+      shell: '0.1.8',
+      backend: '0.1.7',
+      note: '',
+    })
+
+    await announceBackendParity(t)
+
+    expect(toast.info).toHaveBeenCalledWith(
+      'chat.backendUpdated',
+      'update.restartBlockedRunning',
+      undefined,
+      'backend-parity',
+    )
+    expect(relaunch).not.toHaveBeenCalled()
+  })
+
+  it('names the refresh while it runs and follows it without asking again', async () => {
+    vi.useFakeTimers()
+    const refreshing = {
+      verdict: 'updated_reinstalling',
+      shell: '0.1.8',
+      backend: '0.1.7',
+      note: '',
+    }
+    invoke.mockResolvedValue(refreshing)
+
+    await announceBackendParity(t)
+    expect(toast.info).toHaveBeenCalledWith(
+      'chat.backendReinstalling',
+      undefined,
+      undefined,
+      'backend-parity',
+    )
+
+    invoke.mockResolvedValue({ verdict: 'updated_restart', shell: '0.1.8', backend: '', note: '' })
+    toast.info.mockClear()
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    expect(toast.info).toHaveBeenCalledWith(
+      'chat.backendUpdated',
+      undefined,
+      { label: 'update.relaunchNow', onClick: expect.any(Function) },
+      'backend-parity',
+    )
+  })
+
+  it('stops following a refresh that never lands', async () => {
+    vi.useFakeTimers()
+    invoke.mockResolvedValue({
+      verdict: 'updated_reinstalling',
+      shell: '0.1.8',
+      backend: '0.1.7',
+      note: '',
+    })
+
+    await announceBackendParity(t)
+    toast.info.mockClear()
+    for (let i = 0; i < 70; i += 1) await vi.advanceTimersByTimeAsync(30_000)
+
+    const reads = invoke.mock.calls.length
+    expect(reads).toBeGreaterThan(30)
+    // the shell's own bound is 30 minutes; past it the surface stops asking,
+    // because the next start re-reads the verdict on its own
+    for (let i = 0; i < 10; i += 1) await vi.advanceTimersByTimeAsync(30_000)
+    expect(invoke).toHaveBeenCalledTimes(reads)
+    expect(toast.info).not.toHaveBeenCalled()
   })
 
   it('says nothing when there is no measurement to report', async () => {
@@ -85,7 +170,7 @@ describe('announceBackendParity', () => {
 })
 
 describe('announceBuildParity', () => {
-  it('announces an older window without putting commits in the reader\'s face', async () => {
+  it("announces an older window without putting commits in the reader's face", async () => {
     health.mockResolvedValue({ git_sha: 'bbbbbbbbbbbb' })
 
     await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa')).resolves.toEqual({
@@ -94,9 +179,7 @@ describe('announceBuildParity', () => {
       backend: 'bbbbbbbbbbbb',
     })
 
-    expect(toast.error).toHaveBeenCalledWith(
-      'chat.buildMismatch',
-    )
+    expect(toast.error).toHaveBeenCalledWith('chat.buildMismatch')
   })
 
   it('stays quiet when the bundle was built from the commit that serves it', async () => {
