@@ -406,7 +406,7 @@
   "tests/test_pitch_deck_creation.py": 1,
   "tests/test_profile.py": 2,
   "tests/test_provider_persistenz_f3_f4.py": 1,
-  "tests/test_proxy_scope.py": 3,
+  "tests/test_proxy_scope.py": 2,
   "tests/test_pwa_serving.py": 2,
   "tests/test_pwa_visual.py": 13,
   "tests/test_r19_automations.py": 9,
@@ -489,7 +489,6 @@
   "tests/test_w3d_discord.py": 1,
   "tests/test_w8_silent_after_tools.py": 2,
   "tests/test_w9_self_awareness.py": 1,
-  "tests/test_web_search_reach.py": 10,
   "tests/test_welle2_p1.py": 2,
   "tests/test_welle2_p12_repair.py": 2,
   "tests/test_workspace.py": 3,
@@ -498,6 +497,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 2029,
+ "total": 2018,
  "version": 1
 }

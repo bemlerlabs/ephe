@@ -194,5 +194,5 @@ class TestProxyBodyCap:
         from server.routes import proxy
 
         doc = proxy.__doc__ or ""
-        assert "1024" in doc, "die Reichweite steht jetzt in der Zahl, nicht im Adjektiv"
+        assert "1024" in doc, "the bound now states the reach as a number, not an adjective"
         assert "2375" in doc or "Datenbank" in doc

@@ -26,9 +26,9 @@ from tests.web_search_seam import web_search_module
 # 1. reach_by_name: the reach from the name alone
 
 
-def test_oeffentliche_Treffer_sind_erreichbar_und_beklagen_sich_nicht():
+def test_public_targets_are_reachable_and_do_not_complain():
     for url in (
-        "https://example.com/artikel",
+        "https://example.com/article",
         "http://93.184.216.34/x",
         "https://docs.python.org/3/library/socket.html",
     ):
@@ -37,10 +37,10 @@ def test_oeffentliche_Treffer_sind_erreichbar_und_beklagen_sich_nicht():
         assert reason == "", url
 
 
-def test_Schema_ausserhalb_des_Kanals_ist_erreicht_oder_nicht():
+def test_a_scheme_outside_the_channel_is_reachable_or_not():
     reachable, reason = reach_by_name("file:///etc/passwd")
     assert reachable is False
-    assert "Datei" in reason or "file" in reason
+    assert "file" in reason
 
 
 @pytest.mark.parametrize(
@@ -56,15 +56,15 @@ def test_Schema_ausserhalb_des_Kanals_ist_erreicht_oder_nicht():
         "http://[fe80::1]/x",
     ],
 )
-def test_interne_Ziele_sind_als_Treffer_nichts_wert(url):
+def test_internal_targets_are_worthless_as_a_hit(url):
     reachable, reason = reach_by_name(url)
     assert reachable is False
     assert reason
 
 
-def test_interne_Namensraeume_erkennt_man_am_Namen_ohne_Aufloesung(monkeypatch):
+def test_internal_name_spaces_are_known_by_name_without_resolving(monkeypatch):
     def explosion(*_a, **_kw):
-        raise AssertionError("reach_by_name loest nicht auf")
+        raise AssertionError("reach_by_name does not resolve")
 
     monkeypatch.setattr(socket, "getaddrinfo", explosion)
     for host in ("api.internal", "db.svc", "printer.local", "app.svc.cluster.local"):
@@ -73,13 +73,13 @@ def test_interne_Namensraeume_erkennt_man_am_Namen_ohne_Aufloesung(monkeypatch):
     assert reach_by_name("https://example.com/x") == (True, "")
 
 
-def test_Endungs_Tabelle_gilt_fuer_jede_Zeile():
-    assert INTERNAL_NAME_SUFFIXES, "ohne Endungen ist die Namensmauer eine Vermutung"
+def test_the_suffix_table_holds_for_every_line():
+    assert INTERNAL_NAME_SUFFIXES, "without the suffixes the name wall is a guess"
     for suffix in INTERNAL_NAME_SUFFIXES:
         assert suffix.startswith("."), suffix
 
 
-def test_die_private_Option_gilt_auch_hier_aber_nicht_fuer_Metadaten():
+def test_the_private_option_applies_here_but_never_to_metadata():
     assert reach_by_name("http://10.1.2.3/x")[0] is False
     assert reach_by_name("http://10.1.2.3/x", allow_private=True)[0] is True
     # but never the metadata network, even with the option set
@@ -99,17 +99,17 @@ def _fake_ddgs(results: list[dict]):
 
 def _search_with(results: list[dict], monkeypatch) -> str:
     def _boom(*_a, **_kw):
-        raise AssertionError("web_search sucht im Test, es wird nicht aufgelöst")
+        raise AssertionError("web_search resolves nothing in a test")
 
     monkeypatch.setattr(socket, "getaddrinfo", _boom)
     with patch.object(web_search_module, "DDGS", return_value=_fake_ddgs(results)):
         return asyncio.run(web_search("ephe"))
 
 
-def test_interner_Treffer_sagt_es_der_Zeile_statt_dem_Modell_zu_entscheiden(monkeypatch):
+def test_an_internal_hit_says_it_on_the_line_instead_of_the_model(monkeypatch):
     out = _search_with(
         [
-            {"title": "Metadaten", "href": "http://169.254.169.254/latest/meta-data/", "body": "b"},
+            {"title": "Metadata", "href": "http://169.254.169.254/latest/meta-data/", "body": "b"},
             {"title": "Local", "href": "http://localhost:8765/api/file?path=.ssh/id_rsa", "body": "c"},
         ],
         monkeypatch,
@@ -118,29 +118,29 @@ def test_interner_Treffer_sagt_es_der_Zeile_statt_dem_Modell_zu_entscheiden(monk
     assert "fetch_url does not open this target" in out
 
 
-def test_oeffentlicher_Treffer_bekommt_keine_Warnung_aufgeklebt(monkeypatch):
+def test_a_public_hit_gets_no_warning_stuck_on_it(monkeypatch):
     out = _search_with(
-        [{"title": "Doku", "href": "https://docs.python.org/3/library/socket.html", "body": "b"}],
+        [{"title": "Docs", "href": "https://docs.python.org/3/library/socket.html", "body": "b"}],
         monkeypatch,
     )
     assert "Reach:" not in out
     assert "Source quality: official" in out
 
 
-def test_die_Reichweite_Zeile_aendert_nichts_an_der_Reihenfolge(monkeypatch):
+def test_the_reach_line_changes_nothing_about_the_order(monkeypatch):
     out = _search_with(
         [
-            {"title": "Blog", "href": "https://irgendwo.example/x", "body": "b"},
-            {"title": "Doku", "href": "https://python.org/a", "body": "c"},
-            {"title": "Köder", "href": "http://169.254.169.254/latest/meta-data/", "body": "d"},
+            {"title": "Blog", "href": "https://somewhere.example/x", "body": "b"},
+            {"title": "Docs", "href": "https://python.org/a", "body": "c"},
+            {"title": "Bait", "href": "http://169.254.169.254/latest/meta-data/", "body": "d"},
         ],
         monkeypatch,
     )
-    assert out.index("Doku") < out.index("Blog") < out.index("Köder")
+    assert out.index("Docs") < out.index("Blog") < out.index("Bait")
     assert out.count("Reach:") == 1
 
 
-def test_gesunder_Treffer_beruehrt_weder_Netz_noch_Namen(monkeypatch):
+def test_a_healthy_hit_touches_neither_network_nor_name(monkeypatch):
     seen = []
 
     def spy(host, *_a, **_kw):
