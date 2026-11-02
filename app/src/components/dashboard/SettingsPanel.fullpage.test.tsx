@@ -209,7 +209,7 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     expect(screen.getByTestId('settings-nav-language')).not.toHaveClass('bg-brand/10')
   })
 
-  it('area title + Sprach-Pill: the pane title is the view\'s h2 (one level, no stray h1)', async () => {
+  it("area title + Sprach-Pill: the pane title is the view's h2 (one level, no stray h1)", async () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
     // Heading rule: every area title sits at the same level. Discover/Tools/Workspaces/
