@@ -1,4 +1,16 @@
 import { IS_DESKTOP_SHELL } from './desktopBaseUrl'
+import {
+  CODE_EXT,
+  CONTENT_EXT,
+  extensionOf,
+  highlightLanguage,
+  IMAGE_EXT,
+  AUDIO_EXT,
+  VIDEO_EXT,
+  FRAME_EXT,
+  MARKDOWN_EXT,
+  PLAIN_EXT,
+} from './fileFormats'
 
 /**
  * Ephe — DD-12: file preview in the agent panel without raw markup.
@@ -7,28 +19,10 @@ import { IS_DESKTOP_SHELL } from './desktopBaseUrl'
  * a README appeared as an escaped wall of Markdown source and the address bar
  * showed the raw %2F query. These pure helpers decide the delivery (Markdown
  * render / code highlight / iframe) and the human-readable URL chip.
+ *
+ * The extension tables moved to `fileFormats` once the workspace column started
+ * answering for the same formats; what stays here is what this surface does.
  */
-
-const MARKDOWN_EXT = new Set(['md', 'markdown'])
-const CODE_EXT: Record<string, string> = {
-  ts: 'typescript',
-  tsx: 'tsx',
-  js: 'javascript',
-  jsx: 'jsx',
-  mjs: 'javascript',
-  py: 'python',
-  rs: 'rust',
-  go: 'go',
-  java: 'java',
-  json: 'json',
-  yml: 'yaml',
-  yaml: 'yaml',
-  css: 'css',
-  sql: 'sql',
-  sh: 'bash',
-  toml: 'toml',
-}
-const PLAIN_EXT = new Set(['txt', 'log', 'csv', 'ini', 'conf'])
 
 export type FilePreview =
   | { kind: 'markdown'; path: string; filename: string }
@@ -63,36 +57,10 @@ export function resolveFilePreview(url: string): FilePreview | null {
 export type ArtifactPreviewMode =
   'image' | 'frame' | 'audio' | 'video' | 'content' | 'code' | 'none'
 
-const IMAGE_EXT = new Set(['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'chart'])
-const FRAME_EXT = new Set(['pdf', 'html', 'htm'])
-const AUDIO_EXT = new Set(['mp3', 'wav', 'm4a', 'ogg', 'flac'])
-const VIDEO_EXT = new Set(['mp4', 'webm', 'mov'])
-const CONTENT_EXT = new Set([
-  'xlsx',
-  'xls',
-  'csv',
-  'docx',
-  'pptx',
-  'ppt',
-  'odp',
-  'md',
-  'markdown',
-  'txt',
-  'log',
-  'json',
-  'yaml',
-  'yml',
-  'toml',
-  'ini',
-  'conf',
-  'tsv',
-])
-
 export function artifactPreviewMode(name: string, kind = ''): ArtifactPreviewMode {
   // A file without a dot (ephe_chart) carries no extension in its name — then the
   // kind of the producing tool is a better answer than the name.
-  const dot = name.lastIndexOf('.')
-  const ext = (dot >= 0 ? name.slice(dot + 1) : (kind ?? '')).toLowerCase()
+  const ext = extensionOf(name, kind)
   if (IMAGE_EXT.has(ext)) return 'image'
   if (FRAME_EXT.has(ext)) return 'frame'
   if (AUDIO_EXT.has(ext)) return 'audio'
@@ -110,7 +78,7 @@ export function artifactPreviewMode(name: string, kind = ''): ArtifactPreviewMod
  *  Same extension rule as artifactPreviewMode — the name's dot wins, the kind
  *  fills in for names without one. */
 export function codePreviewLanguage(name: string, kind = ''): string | null {
-  return CODE_EXT[extensionOf(name, kind)] ?? null
+  return highlightLanguage(name, kind)
 }
 
 /** Sandbox frame for a preview — one rule, two surfaces.
@@ -138,11 +106,6 @@ export function previewSandbox(name: string, kind = ''): string | undefined {
 export function previewSrc(url: string, name: string, kind = ''): string {
   const ext = extensionOf(name, kind)
   return ext === 'pdf' ? `${url}#toolbar=0&navpanes=0&view=FitH` : url
-}
-
-function extensionOf(name: string, kind: string): string {
-  const dot = name.lastIndexOf('.')
-  return (dot >= 0 ? name.slice(dot + 1) : (kind ?? '')).toLowerCase()
 }
 
 /** Can *this* surface show the format inside a frame?

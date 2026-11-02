@@ -211,7 +211,8 @@
     "backendUpdated": "Der Backend-Code wurde aktualisiert. Starte Ephe neu.",
     "backendReinstalling": "Das Backend aktualisiert seine Umgebung für die neue Version. Ephe sagt, wann es fertig ist.",
     "buildMismatch": "Eine aktualisierte Oberfläche ist bereit — lade das Fenster, um sie zu laden.",
-    "buildMismatchShell": "Eine neue Oberfläche ist bereit. Aktualisiere die App, um sie zu laden.",    "toolArgsLabel": "Parameter",
+    "buildMismatchShell": "Eine neue Oberfläche ist bereit. Aktualisiere die App, um sie zu laden.",
+    "toolArgsLabel": "Parameter",
     "toolResultLabel": "Ergebnis",
     "toolVerbRun": "Führt aus",
     "toolVerbEdit": "Bearbeitet",
@@ -1902,8 +1903,25 @@
     },
     "tabTipFiles": {
       "title": "Dateien",
-      "body": "Workspace-Ordner durchstöbern und Dateien im Browser öffnen."
+      "body": "Workspace-Ordner durchstöbern und jede Datei im Bereich daneben öffnen."
     },
+    "fileTabsLabel": "Geöffnete Dateien",
+    "fileCloseAll": "Alle Dateien schließen",
+    "fileTabClose": "{{name}} schließen",
+    "fileSlotHint": "Im Vorschauplatz: Der nächste einfache Klick ersetzt ihn. Doppelklick auf die Zeile behält diese Registerkarte.",
+    "fileOpenHere": "Im Workspace-Bereich öffnen — Doppelklick behält die Registerkarte",
+    "fileKeepTab": "Registerkarte behalten",
+    "fileReleaseTab": "Registerkarte freigeben",
+    "fileBackToTree": "Ordner zeigen",
+    "fileViewGroup": "Ansicht",
+    "fileViewPage": "Seite",
+    "fileViewMarkdown": "Markdown",
+    "fileFrameNote": "Dieses Fenster hat keinen Betrachter für diese Seite.",
+    "filePackedNote": "{{format}} — der Server liest dieses Format; der Bereich zeichnet es nicht.",
+    "fileFormatTable": "Tabellenkalkulation",
+    "fileFormatDocument": "Dokument",
+    "fileFormatDeck": "Präsentation",
+    "fileBinaryNote": "Ephe zeigt Name, Größe und Gesten für eine Datei, die es nicht zeichnen kann.",
     "tabTipAudit": {
       "title": "Nachweis",
       "body": "Die Kette dessen, was wirklich gelaufen ist: Werkzeug, Signatur-Kürzel, Dauer, Ergebnis."
