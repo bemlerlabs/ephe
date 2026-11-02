@@ -34,7 +34,7 @@ reads an author's words in one pass, and the links that finally leave the deskto
   read afterwards (`e20b55e3`)
 - panel: The side column answers one question now. One icon per section that holds something —
   output, site, console, notes, changes — and only the section in front says its name; the icon
-  already in front is the handle that folds the body away (`74664bd3`)
+  already in front is the handle that folds the body away (`cf22d029`)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
