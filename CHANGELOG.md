@@ -7,13 +7,30 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.5.2 wave is named below (`74c8b215`, `24859d47`, `1e75d98b`, `b3be482c`, `a112c987`,
-`2f13f123`, `c104eb32`, `bfdf94d7`, `babda5f9`, `0b5ae7c5`, `81440800`): the terminal answers a
-question instead of printing it, every
-confirmation carries its verb, a workspace row tells when the work last moved, the app gets
-one frame and one rail, the cell guest moves to a patched interpreter and is measured on it,
-the container basis is read instead of assumed, the pip install path lands on the patched
-engine, and a task row's text stops where its menu button begins.
+The 0.5.3 wave is named below (`93844868`, `8765637c`, `5d2ab908`, `8117ee94`, `b336e116`,
+`732c2a0d`, `0057dd56`, `441a53b8`, `dd193942`, `105edc18`, `251213bf`, `2583811a`, `467234f3`,
+`4adb6f32`, `6f907807`, `bfcf49fb`, `ea4c0b79`, `1bfd76b4`, `769f47c4`): the patched glob
+dependency, the publisher's own mark on the hero plate, the private state that no image may
+carry, the generator that names no person, a doctor that answers in its report's own language,
+a tool that moves the addresses a rebase merge rewrites, a status pill that stops claiming an
+index it never ran, a stored note that reads as the markdown it was written in, a run that keeps
+its paragraph break, the context figure with one home per screen, the shelf's kind names in both
+bundles, the composer mode chip that says the mode it shows, the tool rows that join the shelf
+language, the empty workspace register that names the folder settings names, the labeler that
+reads an author's words in one pass, and the links that finally leave the desktop shell.
+
+## [0.5.3] - 2026-11-02
+
+The live-verification round on 0.5.2, run the way a person uses the app. Five surfaces that
+contradicted themselves are fixed, and each was seen in the running build rather than only in a
+test: the shelf labels an author's own language instead of rewriting it, the context figure has
+one home per screen, an empty workspace register names the folder the settings answer with, the
+composer mode chip says the mode it shows, and every artifact kind the index can store has a word
+in both bundles. Two tool rows and the search row's own marker read in the shelf language, the
+knowledge sub-pages keep their addresses pinned beside their labels, and the links in the
+marketplace, the setup page and the update dialog finally leave the desktop shell — proven by
+clicking one and reading the browser's own window title. The changelog addresses a rebase merge
+rewrote now move by themselves, agreed by patch id, before the tag is taken.
 
 ### Added
 
