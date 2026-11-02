@@ -65,13 +65,22 @@ _GERMAN_WORD = re.compile(
     r"(?<![A-Za-zÄÖÜäöüß])(" + "|".join(_GERMAN_WORDS) + r")(?![A-Za-zÄÖÜäöüß])",
     re.IGNORECASE,
 )
-_UMLAUT_WORD = re.compile(r"[A-Za-zÄÖÜ]*(?:[äöüß][A-Za-zÄÖÜäöüß]*)+")
+#: A word carrying a lowercase umlaut is decisive on its own. Read word by word: the
+#: first draft was a nested quantifier over text a user wrote, and the code scanner named
+#: it for what it is — repeated letters make that backtrack. One quantifier over a class
+#: cannot, and the words it splits are the same ones the labeler looks at.
+_UMLAUTS = frozenset("äöüß")  # language-gate: ignore (the letters this labeler hunts, as data)
+_WORD = re.compile(r"[^\W\d_]+")
+
+
+def _has_umlaut_word(text: str) -> bool:
+    return any(any(ch in _UMLAUTS for ch in word) for word in _WORD.findall(text))
 
 
 def detect_language(*texts: str) -> str:
     """The language of a skill's own served words, for the card to mark."""
     joined = " ".join(t for t in texts if t)
-    if _UMLAUT_WORD.search(joined) or len(_GERMAN_WORD.findall(joined)) >= 2:
+    if _has_umlaut_word(joined) or len(_GERMAN_WORD.findall(joined)) >= 2:
         return "de"
     return SHELF_LANGUAGE
 
