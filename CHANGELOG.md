@@ -10,6 +10,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `13b259ea`, `81094860`, `e20b55e3`, `3614f87a`, `c6f80c93`, `cf22d029`, `6396de75`, `476a436f`): the update that carries the backend's environment, the shell that asks for it, the surface that follows it and ends in a restart, the run ledger a release build can still be read from, the contextual column with one icon per section, the marks that reach the desktop shell as well as the PWA, the register that travels with NOTICE, the chrome that names the task once, and the About page that opens its own sheet.
 
 
+### Fixed
+
+- sidebar: A row names the last thing that happened, not the hour the task was opened — a
+  session answered at 14:16 and still read `3 hours` (`8666c5ca`)
+- packaging: The shelf's data travels in the wheel: the marketplace index, the curated tier,
+  the revocations and the plugin catalogues, with a guard that refuses a build leaving any of
+  them out — a packaged install opened an empty shelf while the checkout the desktop runs from
+  looked perfectly fine (`06d0ea3b`)
+
 ## [0.5.4] - 2026-11-02
 
 The release that carries its own backend. The desktop updater had been replacing the app
@@ -53,7 +62,9 @@ name once.
   output, site, console, notes, changes — and only the section in front says its name; the icon
   already in front is the handle that folds the body away (`cf22d029`)
 - chat: The chrome names the task once. The heading carries it and is the renameable identity;
+ HEAD
   the run line printed the same sentence again beside `Ready` (`6396de75`)
+ 70441a7b (docs(changelog): address the row's clock and the wheel's shelf)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
