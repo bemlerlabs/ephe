@@ -1,5 +1,6 @@
 /** The centred detail surface for one shelf item (S3): provenance, launch
  *  line, version and the actions — the card stays a card. */
+import { apiUrl } from '@/lib/api/http'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
@@ -90,7 +91,7 @@ export function DiscoverDetail({
                 >
                   {item.icon ? (
                     <img
-                      src={item.icon}
+                      src={apiUrl(item.icon)}
                       alt=""
                       width={40}
                       height={40}
