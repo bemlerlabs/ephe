@@ -306,9 +306,12 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   tree names no person (`8117ee94`)
 - memory: A stored note reads as the markdown it was written in — a table arrives as a
   table, a bold line as bold, and a long path shrinks to the card instead of widening
-  it (`eea22778`)
+  it (`441a53b8`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
+- status: The context figure has one home per screen — the row hands the number to the
+  composer from `md` up and takes it back below, instead of printing it four times
+  (`2663805e`)
 
 ## [0.5.2] - 2026-11-01
 
