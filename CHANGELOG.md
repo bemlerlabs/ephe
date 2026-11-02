@@ -329,7 +329,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   poka-yoke pass now runs every tool and parameter sentence through the detector the
   Discover label uses, so a third one cannot arrive quietly (`467234f3`)
 - tools: The search row names the marker its own tool writes — the prompt asked the model for
-  a `Reichweite:` line that no output has ever carried (`f84faaa0`)
+  a `Reichweite:` line that no output has ever carried (`1bfd76b4`)
 - app: A blank-target link leaves the desktop shell through the operating system's browser, so
   the eleven addresses across the marketplace detail, the setup page and the update dialog stop
   being text that looks clickable and does nothing (`cb2ce10e`)
