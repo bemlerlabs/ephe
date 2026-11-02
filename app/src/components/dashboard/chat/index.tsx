@@ -641,7 +641,19 @@ export default function ChatLayout() {
               />
               <div className="flex items-center gap-2 shrink-0 ml-auto">
                 <EngineStatusPill
-                  state={engineOnline === null ? 'checking' : engineOnline ? 'online' : 'offline'}
+                  state={
+                    // The engine is asked through the backend; when that is unreachable the
+                    // answer is not "still checking" — there is no probe running. The status
+                    // strip names the reason on the same screen, so the header says only that
+                    // it cannot know.
+                    backendOnline === false
+                      ? 'unknown'
+                      : engineOnline === null
+                        ? 'checking'
+                        : engineOnline
+                          ? 'online'
+                          : 'offline'
+                  }
                   onClick={() => {
                     setSettingsTab('engine')
                     setSettingsOpen(true)

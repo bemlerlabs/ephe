@@ -21,6 +21,20 @@ describe('the engine status pill', () => {
     expect(screen.getByTestId('engine-status-pill').className).toContain('lg:inline-flex')
   })
 
+  it('names an unreadable answer as itself, not as a probe that is running', () => {
+    const first = render(<EngineStatusPill state="unknown" onClick={vi.fn()} />)
+    const pill = screen.getByTestId('engine-status-pill')
+    expect(pill.getAttribute('data-engine-state')).toBe('unknown')
+    const unknownLabel = pill.getAttribute('aria-label')
+    expect(unknownLabel).toContain('unavailable')
+    first.unmount()
+
+    render(<EngineStatusPill state="checking" onClick={vi.fn()} />)
+    expect(screen.getByTestId('engine-status-pill').getAttribute('aria-label')).not.toBe(
+      unknownLabel,
+    )
+  })
+
   it('opens the engine settings on click', () => {
     const onClick = vi.fn()
     render(<EngineStatusPill state="checking" onClick={onClick} />)

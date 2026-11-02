@@ -5,8 +5,12 @@ import { useTranslation } from 'react-i18next'
  * already reads. The box that used to float over the empty canvas said the same
  * thing on top of the work; this says it once, at the edge, and its click is the
  * way to the engine settings that can change it.
+ *
+ * `unknown` is the state where the answer cannot be read at all — the backend that probes
+ * the engine is itself unreachable. Saying "checking" there would promise a probe that is
+ * not running, and the status strip below already says the true reason on the same screen.
  */
-export type EnginePillState = 'online' | 'offline' | 'checking'
+export type EnginePillState = 'online' | 'offline' | 'checking' | 'unknown'
 
 export default function EngineStatusPill({
   state,
@@ -21,11 +25,13 @@ export default function EngineStatusPill({
       ? t('welcome.modelOnline')
       : state === 'checking'
         ? t('welcome.modelChecking', { defaultValue: 'Checking the engine' })
-        : t('welcome.modelOffline')
+        : state === 'unknown'
+          ? t('welcome.modelStatusUnknown')
+          : t('welcome.modelOffline')
   const dot =
     state === 'online'
       ? 'bg-status-success'
-      : state === 'checking'
+      : state === 'checking' || state === 'unknown'
         ? 'bg-mist/40'
         : 'bg-status-warning'
   return (
