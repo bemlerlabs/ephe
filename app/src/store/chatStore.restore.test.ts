@@ -20,6 +20,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const dbMock = vi.hoisted(() => ({
   sessionsToReturn: [] as unknown[],
   saved: [] as unknown[],
+  // Measured 2026-11-02 on the installed shell: a boot whose cache read rejected came up
+  // with "No tasks yet" while the machine's own store held the history. The read and the
+  // restore share one `try`, so the failure took the durable path down with it.
+  throwOnRead: false,
 }))
 const restoreMock = vi.hoisted(() => ({
   sessions: [] as unknown[],
@@ -31,7 +35,10 @@ const tombstonesMock = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/db', () => ({
-  dbGetAllSessions: async () => dbMock.sessionsToReturn,
+  dbGetAllSessions: async () => {
+    if (dbMock.throwOnRead) throw new Error('storage blocked')
+    return dbMock.sessionsToReturn
+  },
   dbDeleteSession: async () => {},
   dbSaveSession: async (d: unknown) => {
     dbMock.saved.push(d)
@@ -74,6 +81,7 @@ function resetStore() {
   restoreMock.sessions = []
   restoreMock.calls = 0
   restoreMock.shouldThrow = false
+  dbMock.throwOnRead = false
   tombstonesMock.list = []
   useChatStore.setState({
     sessions: [],
@@ -109,6 +117,16 @@ describe('initFromDb restore-on-empty', () => {
     restoreMock.shouldThrow = true
     await useChatStore.getState().initFromDb()
     expect(useChatStore.getState().hydrated).toBe(true)
+  })
+
+  it('a cache that cannot be read still asks the durable store', async () => {
+    dbMock.throwOnRead = true
+    restoreMock.sessions = [dbSession('a', 'What can you do?'), dbSession('b', 'Pitchdeck')]
+    await useChatStore.getState().initFromDb()
+    expect(restoreMock.calls).toBe(1)
+    const s = useChatStore.getState()
+    expect(s.sessions.map((x) => x.id)).toEqual(['a', 'b'])
+    expect(s.hydrated).toBe(true)
   })
 
   it('merges only missing mirror sessions into a non-empty local store', async () => {
