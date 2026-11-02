@@ -7,6 +7,7 @@
  * the page's.
  */
 import { useTranslation } from 'react-i18next'
+import { UpdateDialog } from '@/components/dashboard/UpdateDialog'
 import { useUpdateCheck } from '@/lib/useUpdateCheck'
 
 export function UpdateSection() {
@@ -66,6 +67,20 @@ export function UpdateSection() {
         >
           {t('update.details')}
         </button>
+        {/* The sheet the header opens, on the page that names the version. It sits
+            inside the button's row so the dialog returns focus to the control that
+            opened it; the portal paints it over the page either way. */}
+        <UpdateDialog
+          state={state}
+          open={update.open}
+          onOpenChange={update.setOpen}
+          onCheck={() => void update.check()}
+          onInstall={() => void update.install()}
+          onApply={() => void update.apply()}
+          onRelaunch={() => void update.relaunch()}
+          releasesUrl={state.url}
+          restartBlocked={update.restartBlocked}
+        />
       </div>
     </div>
   )
