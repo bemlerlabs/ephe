@@ -38,11 +38,23 @@ import { buildSessionTree, filterCollapsedRows, type SessionTreeRow } from '@/li
 export interface TaskRowSession {
   id: string
   title: string
-  messages: Array<{ id: string; role: string; content: string }>
+  messages: Array<{ id: string; role: string; content: string; timestamp?: number }>
   createdAt: number
   pinned?: boolean
   unread?: boolean
   parentId?: string
+}
+
+/** When the session last moved. The row's trailing slot answers "how long since
+ *  this task did something", and a task answered an hour after it was opened has
+ *  been doing something for an hour less than its birth says. */
+export function lastActivityAt(session: TaskRowSession): number {
+  let latest = session.createdAt
+  for (const message of session.messages) {
+    if (typeof message.timestamp === 'number' && message.timestamp > latest)
+      latest = message.timestamp
+  }
+  return latest
 }
 
 /** What the screen owns and the rows read: the one active session, the one
@@ -268,7 +280,7 @@ function TaskRow({
                 <span className={`${DATA} text-ink-faint`}>{t('sidebar.freshCell')}</span>
               ) : (
                 <Num col={1}>
-                  {formatDistanceToNowStrict(session.createdAt, {
+                  {formatDistanceToNowStrict(lastActivityAt(session), {
                     locale: dateLocaleFor(i18n?.language),
                     roundingMethod: 'floor',
                   })}
