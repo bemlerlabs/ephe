@@ -44,7 +44,7 @@ Three readings came after the cut: the shell asks for the update rather than a r
   dropped because it cannot be opened, and the places are counted so seventy-three copies
   read as two folders. A read that fails now says it failed: the first version called a
   helper that used `re` without importing it, the bare `except` swallowed the NameError, and
-  the doctor reported a clean machine (`70fc90b5`, `fc5fc139`).
+  the doctor reported a clean machine (`149ddee2`, `7800e7b9`).
 
 
 ## [0.5.5] - 2026-11-02
