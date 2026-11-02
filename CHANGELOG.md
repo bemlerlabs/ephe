@@ -10,11 +10,24 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 The 0.5.5 wave is named below (`c263c3ab`, `cf7c3f6b`, `91473a8e`, `8fe8670d`, `9c6d1169`, `2d4080f3`, `8141f783`, `e662f71b`): the left edge fused into one icon sidebar, the update window's notes freed of the register's addresses, an engine answer that cannot be read named as itself, a cache that cannot be read still asking the durable store, and the three readings from the last round — the row that names its last activity, the shelf's data inside the wheel, the context figure with one home.
 
 
-### Fixed
+Two readings came after the cut: the shell asks for the update rather than a reload that cannot bring it, and the workspace column learned to open the files it lists.
 
-- update: The shell names the update instead of a reload that cannot bring it — with the
+
+### Added
+
+- workspace: Every file the column names, the column opens (`92941327`). The tree listed
+  the folder and then handed the file to the browser pane, so a README arrived with an
+  address bar and a PNG arrived with a download. One question is now asked in one place —
+  the plan answers for markdown, source, plain text, pictures, sound, video, PDF, the
+  office containers and the file nothing can draw — and the open files sit in a strip of
+  their own with a preview slot: a single click looks, a kept file stays until the person
+  closes it. The suffix tables moved into one module the workspace column and the artifact
+  card both read, instead of two lists that had drifted apart.
+
+
+### Fixed
   new version already written into the `.app`, the toast told the person to reload the
-  window, and a reload re-reads the bundle the window is already running from (`a8a5df59`)
+  window, and a reload re-reads the bundle the window is already running from (`3ac7541a`)
 
 
 ## [0.5.5] - 2026-11-02
