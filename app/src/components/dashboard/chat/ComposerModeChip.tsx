@@ -13,7 +13,6 @@ import type { MenuPos } from './composerPopups'
 export default function ComposerModeChip({
   open,
   mode,
-  approval,
   anchorRef,
   menuPos,
   onToggle,
@@ -22,8 +21,6 @@ export default function ComposerModeChip({
 }: {
   open: boolean
   mode: string
-  /** F2: the approval profile the chip states next to the mode. */
-  approval: string
   anchorRef: RefObject<HTMLButtonElement | null>
   menuPos: MenuPos | null
   onToggle: () => void
@@ -32,8 +29,10 @@ export default function ComposerModeChip({
 }) {
   const { t } = useTranslation()
   // P3-7: the short title is cut from the already-translated mode hint, so a raw
-  // key never reaches the interface. F2: the chip names itself as the profile and
-  // carries the mode as its value.
+  // key never reaches the interface. W-3 (2026-11-02): the chip names the mode in
+  // both halves. The security profile is a different setting with its own chip
+  // (ChatInput.tsx, `chat.permissionAria`), and this one used to read the profile
+  // word under a label that showed the mode.
   const activeMode = COMPOSER_MODES.find((m) => m.key === mode) ?? COMPOSER_MODES[0]!
   const modeLabel = modeShortLabel(activeMode, String(t(activeMode.hintKey)))
   return (
@@ -42,16 +41,14 @@ export default function ComposerModeChip({
         type="button"
         ref={anchorRef}
         data-testid="composer-mode-selector"
-        aria-label={`${String(t('chat.modeSelectorAria'))} · ${String(t(`chat.perm.${approval}`))}`}
+        aria-label={`${String(t('chat.modeSelectorAria'))}: ${modeLabel}`}
         aria-haspopup="menu"
         aria-expanded={open}
         title={String(t(activeMode.hintKey))}
         onClick={onToggle}
         className="inline-flex items-center gap-1 rounded-md border border-control bg-surface px-1.5 py-0.5 text-ui-xs text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors shrink-0 min-h-6 max-lg:min-h-11"
       >
-        <span className="truncate">
-          {t('chat.profilePrefix')} {modeLabel}
-        </span>
+        <span className="truncate">{modeLabel}</span>
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"

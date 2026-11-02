@@ -382,7 +382,6 @@
       "expertNoTime": "passed",
       "failed": "✗ Check failed — open the row for the output"
     },
-    "profilePrefix": "Profile:",
     "modeSelectorAria": "Composer response mode",
     "activeMarker": "(current)",
     "contextRing": "Context used: {{percent}}%",
