@@ -211,7 +211,7 @@
     "backendUpdated": "The backend code was updated. Restart Ephe to load it.",
     "backendReinstalling": "The backend is refreshing its environment for the new version. Ephe says when it is done.",
     "buildMismatch": "A newer interface is ready. Reload the window to load it.",
-    "toolArgsLabel": "Arguments",
+    "buildMismatchShell": "A newer interface is ready. Update the app to load it.",    "toolArgsLabel": "Arguments",
     "toolResultLabel": "Result",
     "toolVerbRun": "Runs",
     "toolVerbEdit": "Edits",

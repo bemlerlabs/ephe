@@ -1,4 +1,6 @@
 import { healthCheck } from '@/lib/api'
+import { IS_DESKTOP_SHELL } from '@/lib/desktopBaseUrl'
+import { requestSettingsOpen } from '@/lib/openSettings'
 import { relaunchApp, restartGuardNow } from '@/lib/restartGuard'
 import { toastBus } from '@/lib/toast'
 
@@ -136,6 +138,7 @@ export async function announceBuildParity(
   t: Translate,
   health?: { git_sha?: string } | null,
   build: string = frontendBuildSha(),
+  inShell: boolean = IS_DESKTOP_SHELL,
 ): Promise<BuildParity | null> {
   let info = health
   if (info === undefined) {
@@ -151,6 +154,25 @@ export async function announceBuildParity(
     return { verdict: 'unknown', build: mine, backend }
   }
   if (mine === backend) return { verdict: 'match', build: mine, backend }
-  toastBus.error(t('chat.buildMismatch'))
+  if (inShell) {
+    // The interface is frozen into the `.app`, so reloading the window re-reads the same
+    // files and the newer one stays where it is. Only the app update brings it — so the
+    // shell names the update and opens the page that runs it. The tab is asked for first:
+    // the panel reads a named request as the tab of the open it arrives with.
+    toastBus.error(
+      t('chat.buildMismatchShell'),
+      undefined,
+      {
+        label: t('update.applyNow'),
+        onClick: () => {
+          window.dispatchEvent(new CustomEvent('ephe:settings-tab', { detail: { tab: 'about' } }))
+          requestSettingsOpen()
+        },
+      },
+      'build-parity',
+    )
+  } else {
+    toastBus.error(t('chat.buildMismatch'))
+  }
   return { verdict: 'mismatch', build: mine, backend }
 }

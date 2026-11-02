@@ -211,7 +211,7 @@
     "backendUpdated": "Der Backend-Code wurde aktualisiert. Starte Ephe neu.",
     "backendReinstalling": "Das Backend aktualisiert seine Umgebung für die neue Version. Ephe sagt, wann es fertig ist.",
     "buildMismatch": "Eine aktualisierte Oberfläche ist bereit — lade das Fenster, um sie zu laden.",
-    "toolArgsLabel": "Parameter",
+    "buildMismatchShell": "Eine neue Oberfläche ist bereit. Aktualisiere die App, um sie zu laden.",    "toolArgsLabel": "Parameter",
     "toolResultLabel": "Ergebnis",
     "toolVerbRun": "Führt aus",
     "toolVerbEdit": "Bearbeitet",
