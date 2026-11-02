@@ -51,12 +51,13 @@ import {
 import { useChatStore } from '@/store/chatStore'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { IS_DESKTOP_SHELL } from '@/lib/desktopBaseUrl'
+import { openCommandPalette } from '@/lib/commandPalette'
 import { openExternally } from '@/lib/nativeBrowser'
 import type { TabKey } from '@/components/dashboard/settings/types'
 import { SESSION_MENU_GROUPS, type SessionMenuEntryId } from './sessionMenuEntries'
 import {
   OPEN_TIERS_KEY,
-  RAIL_DESTINATIONS,
+  RAIL_ROW_IDS,
   SIDEBAR_ACTION_TIERS,
   readOpenTiers,
   type SidebarActionEntryId,
@@ -89,7 +90,11 @@ interface SidebarProps {
   onClose: () => void
   /** P6 B7: optional target tab (e.g. 'plugins' for the marketplace). */
   onOpenSettings: (tab?: TabKey | 'model') => void
-  /** Desktop collapse (KI-client style): collapsible down to the icon rail. */
+  /**
+   * Register #107: the column is the body of the frame rail's Task row, so `collapsed`
+   * means that row is closed — the column folds to nothing and the rail is the left edge
+   * on its own. The phone drawer has no rail, so it never collapses.
+   */
   collapsed: boolean
   onToggleCollapsed: () => void
 }
@@ -332,12 +337,6 @@ export default function Sidebar({
   const openPanelTab = (tab: string) => {
     window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab } }))
   }
-  const openPalette = () => {
-    // ⌘K parity: use the same toggle as the hook handler (isPaletteToggle).
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: false, bubbles: true }),
-    )
-  }
   useEffect(() => {
     let cancelled = false
     listProjects()
@@ -473,11 +472,13 @@ export default function Sidebar({
       toastBus.error(t('sidebar.sessionMenu.copyFailed'))
     }
   }
-  // Desktop (lg+ ≥1024px) → permanent column; below that → slide drawer.
+  // Desktop (lg+ ≥1024px) → the register column; below that → slide drawer.
   const isDesktop = useMediaQuery('(min-width: 1024px)')
-  // Rail mode only on desktop; the mobile drawer always renders expanded
-  // (otherwise the X close disappears when collapsed is persisted in the localStorage)
-  const rail = isDesktop && collapsed
+  // The frame rail owns the open/closed choice; a phone drawer is only ever open or gone.
+  const closed = isDesktop && collapsed
+  // On a wide window the rail carries New task and Search, so the column must not repeat
+  // them; the drawer is the only place they can live.
+  const actionsInColumn = !isDesktop
 
   // DD-25: null-message placeholders (automatically created fresh sessions)
   // are not conversations — they skewed the list as a "New Session,
@@ -764,7 +765,7 @@ export default function Sidebar({
       Icon: Search,
       label: t('sidebar.actionSearch'),
       hint: '⌘K',
-      run: () => openPalette(),
+      run: () => openCommandPalette(),
     },
     tasks: {
       testid: 'sidebar-action-tasks',
@@ -798,16 +799,17 @@ export default function Sidebar({
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className={`left-0 top-0 h-full glass-float border-r border-brand/10 flex flex-col ${
           isDesktop ? 'relative z-overlay' : 'fixed z-modal'
-        } ${rail ? 'w-14' : 'w-72'} transition-[width] duration-base overflow-hidden`}
-        style={!rail && isDesktop ? { width: sidebarWidth } : undefined}
+        } w-72 transition-[width] duration-base overflow-hidden`}
+        style={isDesktop ? { width: closed ? 0 : sidebarWidth } : undefined}
+        inert={closed || undefined}
         role={isDesktop ? undefined : 'dialog'}
         aria-modal={isDesktop ? undefined : true}
         aria-label={t('a11y.sidebar')}
         data-testid="chat-sidebar"
-        data-collapsed={rail || undefined}
+        data-collapsed={closed || undefined}
       >
-        {/* K1: drag separator on the outer edge of the sidebar (desktop only, expanded) */}
-        {!rail && isDesktop && (
+        {/* K1: drag separator on the outer edge of the sidebar (desktop only, open) */}
+        {isDesktop && !closed && (
           <div
             onPointerDown={onSidebarResizeDown}
             onDoubleClick={fitSidebar}
@@ -818,193 +820,162 @@ export default function Sidebar({
             className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-brand/20 transition-colors z-sticky"
           />
         )}
-        {/* Header — rail: its own centred expand button (w-14 does not fit
-            logo + button in one row -> the button was clipped).
+        {/* Header — the frame rail owns the mark and the two verbs, so this row carries
+            one control: put the column away again.
             On a phone this is the top of the drawer, under the clock: the top
             inset is carried by `pt-` (0 on desktop, where the drawer is a
             normal column). */}
         <div
           data-tauri-drag-region
-          className={`border-b border-hairline ${
-            rail
-              ? IS_DESKTOP_SHELL
-                ? 'px-2 pt-10 pb-3'
-                : 'px-2 py-3'
-              : IS_DESKTOP_SHELL
-                ? 'px-4 pb-4 pt-[calc(1.75rem+env(safe-area-inset-top))]'
-                : 'px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))]'
+          className={`border-b border-hairline px-4 pb-3 ${
+            IS_DESKTOP_SHELL
+              ? 'pt-[calc(1.75rem+env(safe-area-inset-top))]'
+              : 'pt-[calc(1rem+env(safe-area-inset-top))]'
           }`}
         >
-          {rail ? (
-            <div className="flex flex-col items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg glass-control flex items-center justify-center shrink-0">
-                <Sparkles className="h-3.5 w-3.5 text-brand-deep" />
-              </div>
-              {isDesktop && (
-                <button
-                  onClick={onToggleCollapsed}
-                  className="p-1.5 rounded-lg hover:bg-surface text-ink-soft hover:text-foreground transition-colors"
-                  aria-label={t('sidebar.expand')}
-                  data-testid="sidebar-expand-toggle"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-end gap-1">
-                {isDesktop && (
-                  <button
-                    onClick={onToggleCollapsed}
-                    className="p-1.5 rounded-lg hover:bg-surface text-ink-soft hover:text-foreground transition-colors"
-                    aria-label={t('sidebar.collapse')}
-                    data-testid="sidebar-collapse-toggle"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  onClick={onClose}
-                  aria-label={t('a11y.close')}
-                  className="lg:hidden p-2.5 rounded-lg hover:bg-surface text-ink-soft hover:text-foreground transition-colors max-lg:min-w-11 max-lg:min-h-11"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </>
-          )}
+          <div className="flex items-center justify-end gap-1">
+            {isDesktop && (
+              <button
+                onClick={onToggleCollapsed}
+                className="p-1.5 rounded-lg hover:bg-surface text-ink-soft hover:text-foreground transition-colors"
+                aria-label={t('sidebar.collapse')}
+                data-testid="sidebar-collapse-toggle"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              aria-label={t('a11y.close')}
+              className="lg:hidden p-2.5 rounded-lg hover:bg-surface text-ink-soft hover:text-foreground transition-colors max-lg:min-w-11 max-lg:min-h-11"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-          {/* New Session — the only "New task" entry point: the extra ⌘N row
-              below it was a real duplicate (finding 2026-10-01, t1-audit).
-              The shortcut now lives as a hint inside the pill itself. */}
-          <button
-            onClick={() => {
-              createSession()
-              // The phone drawer has to end the pick with the pick itself
-              // (measured 2026-10-12: the backdrop stayed mounted and the user
-              // had to tap away). The desktop column is permanent — there the
-              // sidebar stays.
-              if (!isDesktop) onClose()
-            }}
-            data-testid="new-session"
-            className="w-full bg-brand/80 hover:bg-brand border border-brand/20 text-black/90 rounded-xl h-9 max-lg:h-11 text-ui-xs font-semibold transition-all duration-base flex items-center justify-center gap-1.5 forest-glow"
-            aria-label={t('sidebar.newChat')}
-            title={t('sidebar.newChat')}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {!rail && <span className="flex-1 text-center">{t('sidebar.newChat')}</span>}
-            {!rail && <span className="text-black/60 font-mono text-xs pr-1">⌘N</span>}
-          </button>
+          {/* New Session — on a phone the drawer is the only place this can live; on a
+              wide window the rail's own + row is the entry point and the pill would be a
+              second one (the extra ⌘N row below it was already a real duplicate,
+              finding 2026-10-01, t1-audit). */}
+          {actionsInColumn && (
+            <button
+              onClick={() => {
+                createSession()
+                // The phone drawer has to end the pick with the pick itself
+                // (measured 2026-10-12: the backdrop stayed mounted and the user
+                // had to tap away). The desktop column is permanent — there the
+                // sidebar stays.
+                if (!isDesktop) onClose()
+              }}
+              data-testid="new-session"
+              className="w-full bg-brand/80 hover:bg-brand border border-brand/20 text-black/90 rounded-xl h-11 text-ui-xs font-semibold transition-all duration-base flex items-center justify-center gap-1.5 forest-glow"
+              aria-label={t('sidebar.newChat')}
+              title={t('sidebar.newChat')}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="flex-1 text-center">{t('sidebar.newChat')}</span>
+            </button>
+          )}
 
           {/* P2-2 → 2026 IA-Sweep : nav in everyday language, every
               entry opens what its name points to — no developer terms
               left on the way. Labels come from i18n, shortcuts only when expanded. */}
-          {!rail && (
-            // #71: three tiers instead of thirteen equal-looking rows. The
-            // primary tier carries no head — the pill above it and the two rows
-            // below it are what "primary" means here. The two lower tiers are
-            // disclosures: the head keeps the member count, and `hidden` takes
-            // the rows out of the flow and the accessibility tree WITHOUT
-            // unmounting them, so a collapsed tier keeps whatever state its
-            // rows hold and the same testids stay in the document.
-            //
-            // The height cap is not decoration. Measured 2026-10-14 on the
-            // 288x800 column: with both tiers open the island wants 503px, the
-            // header takes the room and the task list below it collapsed to 8px
-            // while the rows past the fold were simply clipped (the aside is
-            // overflow-hidden). Capped and scrollable, the list keeps its room
-            // and every row stays reachable.
-            <div
-              className="px-1 pt-1 space-y-0.5 max-h-[45vh] overflow-y-auto overscroll-contain"
-              data-testid="sidebar-actions"
-            >
-              {SIDEBAR_ACTION_TIERS.map((tier) => {
-                const rows = tier.entries
-                  .filter((id) => !(isDesktop && RAIL_DESTINATIONS.includes(id)))
-                  .map((id) => ({ id, ...sideNavRows[id] }))
-                const renderRow = ({
-                  id,
-                  testid,
-                  Icon,
-                  label,
-                  hint,
-                  run,
-                }: (typeof rows)[number]) => (
-                  <button
-                    key={id}
-                    onClick={() => run()}
-                    data-testid={testid}
-                    data-tier={tier.id}
-                    className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-ui-xs text-ink-soft hover:text-foreground hover:bg-surface-interactive transition-colors max-lg:min-h-11"
-                  >
-                    <Icon className="h-3.5 w-3.5 text-ink-faint shrink-0" />
-                    <span className="flex-1 text-left truncate">{label}</span>
-                    {hint && <span className="text-ui-xs text-ink-faint shrink-0">{hint}</span>}
-                  </button>
-                )
+          {/* #71: three tiers instead of thirteen equal-looking rows. The
+              primary tier carries no head — the pill above it and the two rows
+              below it are what "primary" means here. The two lower tiers are
+              disclosures: the head keeps the member count, and `hidden` takes
+              the rows out of the flow and the accessibility tree WITHOUT
+              unmounting them, so a collapsed tier keeps whatever state its
+              rows hold and the same testids stay in the document.
 
-                if (!tier.collapsible) {
-                  return (
-                    <div
-                      key={tier.id}
-                      data-testid={`sidebar-tier-${tier.id}`}
-                      data-tier={tier.id}
-                      className="space-y-0.5"
-                    >
-                      {rows.map(renderRow)}
-                    </div>
-                  )
-                }
+              The height cap is not decoration. Measured 2026-10-14 on the
+              288x800 column: with both tiers open the island wants 503px, the
+              header takes the room and the task list below it collapsed to 8px
+              while the rows past the fold were simply clipped (the aside is
+              overflow-hidden). Capped and scrollable, the list keeps its room
+              and every row stays reachable. */}
+          <div
+            className="px-1 pt-1 space-y-0.5 max-h-[45vh] overflow-y-auto overscroll-contain"
+            data-testid="sidebar-actions"
+          >
+            {SIDEBAR_ACTION_TIERS.map((tier) => {
+              const rows = tier.entries
+                .filter((id) => !(isDesktop && RAIL_ROW_IDS.includes(id)))
+                .map((id) => ({ id, ...sideNavRows[id] }))
+              const renderRow = ({ id, testid, Icon, label, hint, run }: (typeof rows)[number]) => (
+                <button
+                  key={id}
+                  onClick={() => run()}
+                  data-testid={testid}
+                  data-tier={tier.id}
+                  className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-ui-xs text-ink-soft hover:text-foreground hover:bg-surface-interactive transition-colors max-lg:min-h-11"
+                >
+                  <Icon className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+                  <span className="flex-1 text-left truncate">{label}</span>
+                  {hint && <span className="text-ui-xs text-ink-faint shrink-0">{hint}</span>}
+                </button>
+              )
 
-                const open = openTiers[tier.id as SidebarCollapsibleTierId]
+              if (!tier.collapsible) {
                 return (
                   <div
                     key={tier.id}
                     data-testid={`sidebar-tier-${tier.id}`}
                     data-tier={tier.id}
-                    className="pt-1.5"
+                    className="space-y-0.5"
                   >
-                    <button
-                      type="button"
-                      onClick={() => toggleTier(tier.id as SidebarCollapsibleTierId)}
-                      data-testid={`sidebar-tier-${tier.id}-toggle`}
-                      aria-expanded={open}
-                      aria-controls={`sidebar-tier-${tier.id}-rows`}
-                      title={tier.labelKey ? t(tier.labelKey) : undefined}
-                      className="w-full flex items-start gap-1.5 rounded-lg px-1 py-1.5 text-ui-xs font-medium text-ink-faint tracking-wide hover:text-ink-soft hover:bg-surface-interactive transition-colors max-lg:min-h-11"
-                    >
-                      <ChevronRight
-                        className={`h-3 w-3 mt-0.5 shrink-0 transition-transform ${
-                          open ? 'rotate-90' : ''
-                        }`}
-                      />
-                      <span className="flex-1 text-left leading-tight">
-                        {tier.labelKey ? t(tier.labelKey) : ''}
-                      </span>
-                      <span
-                        data-testid={`sidebar-tier-${tier.id}-count`}
-                        className="text-ui-2xs bg-surface-raised px-1.5 py-0.5 rounded-full shrink-0"
-                      >
-                        {rows.length}
-                      </span>
-                    </button>
-                    <div
-                      id={`sidebar-tier-${tier.id}-rows`}
-                      data-testid={`sidebar-tier-${tier.id}-rows`}
-                      hidden={!open}
-                      className="space-y-0.5 mt-0.5 ml-1.5"
-                    >
-                      {rows.map(renderRow)}
-                    </div>
+                    {rows.map(renderRow)}
                   </div>
                 )
-              })}
-            </div>
-          )}
+              }
+
+              const open = openTiers[tier.id as SidebarCollapsibleTierId]
+              return (
+                <div
+                  key={tier.id}
+                  data-testid={`sidebar-tier-${tier.id}`}
+                  data-tier={tier.id}
+                  className="pt-1.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleTier(tier.id as SidebarCollapsibleTierId)}
+                    data-testid={`sidebar-tier-${tier.id}-toggle`}
+                    aria-expanded={open}
+                    aria-controls={`sidebar-tier-${tier.id}-rows`}
+                    title={tier.labelKey ? t(tier.labelKey) : undefined}
+                    className="w-full flex items-start gap-1.5 rounded-lg px-1 py-1.5 text-ui-xs font-medium text-ink-faint tracking-wide hover:text-ink-soft hover:bg-surface-interactive transition-colors max-lg:min-h-11"
+                  >
+                    <ChevronRight
+                      className={`h-3 w-3 mt-0.5 shrink-0 transition-transform ${
+                        open ? 'rotate-90' : ''
+                      }`}
+                    />
+                    <span className="flex-1 text-left leading-tight">
+                      {tier.labelKey ? t(tier.labelKey) : ''}
+                    </span>
+                    <span
+                      data-testid={`sidebar-tier-${tier.id}-count`}
+                      className="text-ui-2xs bg-surface-raised px-1.5 py-0.5 rounded-full shrink-0"
+                    >
+                      {rows.length}
+                    </span>
+                  </button>
+                  <div
+                    id={`sidebar-tier-${tier.id}-rows`}
+                    data-testid={`sidebar-tier-${tier.id}-rows`}
+                    hidden={!open}
+                    className="space-y-0.5 mt-0.5 ml-1.5"
+                  >
+                    {rows.map(renderRow)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
 
           {/* Round-G3: Group|Project view toggle (reference pattern). */}
-          {!rail && (
+          {
             <div className="px-3 pt-2 pb-1 flex items-center gap-1.5">
               <div
                 className="flex items-center rounded-lg border border-hairline bg-surface p-0.5"
@@ -1040,8 +1011,8 @@ export default function Sidebar({
                 <MoreVertical className="h-3.5 w-3.5 lg:h-3 lg:w-3" />
               </button>
             </div>
-          )}
-          {filterOpen && !rail && (
+          }
+          {filterOpen && (
             <div className="px-3 pb-1" data-testid="sidebar-filter-popover">
               <div className="rounded-lg border border-hairline bg-canvas p-2 space-y-1.5">
                 <p className="text-ui-xs font-medium text-ink-faint uppercase tracking-wider px-0.5">
@@ -1121,7 +1092,7 @@ export default function Sidebar({
         </div>
 
         {/* Search (only when expanded) */}
-        {!rail && (
+        {
           <div className="px-3 py-2.5">
             <div
               className={`relative flex items-center rounded-lg border transition-all duration-base ${
@@ -1150,10 +1121,10 @@ export default function Sidebar({
               )}
             </div>
           </div>
-        )}
+        }
 
         {/* K3 Z35: content hits (FTS5) below the filter field — a click opens the session */}
-        {!rail && searchQuery.trim() !== '' && contentHits.length > 0 && (
+        {searchQuery.trim() !== '' && contentHits.length > 0 && (
           <div className="px-3 pb-2 space-y-1" data-testid="sidebar-content-hits">
             {contentHits.map((hit, i) => (
               <button
@@ -1176,7 +1147,7 @@ export default function Sidebar({
 
         {/* R26/G3: PROJECTS tree — in the group view only when projects exist;
             in the project view it is the primary grouping and stays put. */}
-        {!rail && viewMode === 'project' && (projects.length > 0 || schedules.length > 0) && (
+        {viewMode === 'project' && (projects.length > 0 || schedules.length > 0) && (
           <div className="px-3 pb-2" data-testid="sidebar-projects">
             <p className="py-1.5 px-1 text-ui-xs font-medium text-ink-faint uppercase tracking-wider">
               {t('sidebar.projects')}
@@ -1232,7 +1203,7 @@ export default function Sidebar({
 
         {/* Round-G3: TASKS section (reference) — open to-dos from the
             tasks tab, a click opens that tab in the page pane. */}
-        {!rail && tasks.length > 0 && (
+        {tasks.length > 0 && (
           <div className="px-3 pb-2" data-testid="sidebar-tasks">
             <p className="py-1.5 px-1 text-ui-xs font-medium text-ink-faint uppercase tracking-wider">
               {t('sidebar.tasksSection')}
@@ -1263,16 +1234,13 @@ export default function Sidebar({
         )}
 
         {/* Session List — Date Grouped */}
-        <div
-          className={`flex-1 overflow-y-auto pb-2 ${rail ? 'px-1.5' : 'px-3'}`}
-          data-testid="sessions-view"
-        >
+        <div className="flex-1 overflow-y-auto pb-2 px-3" data-testid="sessions-view">
           {dateGroups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-10 h-10 rounded-xl glass-control flex items-center justify-center mb-3">
                 <Sparkles className="h-5 w-5 text-ink-faint" />
               </div>
-              {!rail && <p className="text-ui-xs text-ink-faint">{t('sidebar.noSessions')}</p>}
+              <p className="text-ui-xs text-ink-faint">{t('sidebar.noSessions')}</p>
               {/* P1-F2: only ONE empty state (the hero in the chat) — the sidebar stays
                   plain (icon), no second competing CTA. */}
             </div>
@@ -1285,7 +1253,6 @@ export default function Sidebar({
                   sessions={group.sessions}
                   collapsed={collapsedGroups.has(group.label)}
                   onToggleCollapse={() => toggleGroup(group.label)}
-                  rail={rail}
                   activeSessionId={activeSessionId}
                   runningSessionId={isTyping ? activeSessionId : null}
                   collapsedBranches={collapsedBranches}
@@ -1319,7 +1286,7 @@ export default function Sidebar({
             Toggle inventory 2026-09-07 (reference-B parity): this footer card is the
             ONLY settings entry in the shell — the header gear and its mobile-QR
             shortcut were retired; the panel itself deep-links the mobile tab. */}
-        <div className={`border-t border-hairline ${rail ? 'p-2' : 'p-3'}`}>
+        <div className="border-t border-hairline p-3">
           <button
             onClick={() => onOpenSettings()}
             title={t('sidebar.settingsAndProfile')}
@@ -1333,7 +1300,7 @@ export default function Sidebar({
             >
               <Sparkles className="h-3.5 w-3.5 text-brand-deep" />
             </span>
-            {!rail && (
+            {
               <>
                 <span className="flex-1 min-w-0 text-left">
                   <span className="block text-ui-sm font-medium text-foreground/80 truncate">
@@ -1343,8 +1310,7 @@ export default function Sidebar({
                 </span>
                 <Settings className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               </>
-            )}
-            {rail && <Settings className="h-3.5 w-3.5" aria-hidden="true" />}
+            }
           </button>
         </div>
       </m.aside>

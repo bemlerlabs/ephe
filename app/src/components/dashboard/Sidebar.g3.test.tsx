@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import Sidebar from './Sidebar'
 import {
   OPEN_TIERS_KEY,
-  RAIL_DESTINATIONS,
+  RAIL_ROW_IDS,
   SIDEBAR_ACTION_TIERS,
   SIDEBAR_ACTION_ENTRY_IDS,
 } from './sidebarActionGroups'
@@ -100,8 +100,9 @@ vi.mock('@/lib/api', () => ({
  * (`Sidebar.drawerNav.test.tsx`); the rest of the register is the task's own.
  */
 const TIERS: Record<string, string[]> = {
-  // "New Task + aktuelle Tasks/Steps" — headless, always open.
-  primary: ['sidebar-action-search', 'sidebar-action-tasks'],
+  // "Steps" — headless, always open. Search left for the frame rail in register #107,
+  // so the primary tier is the one row that belongs to the task in front of the reader.
+  primary: ['sidebar-action-tasks'],
   // "Tools & Capabilities" — collapsible, minus the pages the rail carries.
   tools: [
     'sidebar-action-skills',
@@ -170,7 +171,7 @@ describe('Sidebar Aktionszeilen + Ansichtsumschalter (Runden-G3)', () => {
       // Completeness read off the ONE list. The rail takes five of the entries
       // at this width, so the check is the union — a row that leaves both
       // surfaces fails here even if the table above is edited to match.
-      const railRows = RAIL_DESTINATIONS.map((id) => `sidebar-action-${id}`)
+      const railRows = RAIL_ROW_IDS.map((id) => `sidebar-action-${id}`)
       expect(SIDEBAR_ACTION_ENTRY_IDS).toHaveLength(new Set([...ALL_ROWS, ...railRows]).size)
       expect(SIDEBAR_ACTION_TIERS.flatMap((t) => t.entries)).toHaveLength(
         new Set([...ALL_ROWS, ...railRows]).size,
@@ -189,12 +190,11 @@ describe('Sidebar Aktionszeilen + Ansichtsumschalter (Runden-G3)', () => {
       for (const row of TIERS.primary!) {
         expect(screen.getByTestId(row)).toBeVisible()
       }
-      // It is the tier the pill sits directly above.
-      const pill = screen.getByTestId('new-session')
-      expect(pill.textContent).toContain('⌘N')
-      expect(pill.compareDocumentPosition(screen.getByTestId('sidebar-action-search'))).toBe(
-        Node.DOCUMENT_POSITION_FOLLOWING,
-      )
+      // Register #107: the pill and the Search row stand in the frame rail at this
+      // width, so the tier's own row is what sits under the header — and nothing in the
+      // column starts a task beside the rail's + row.
+      expect(screen.queryByTestId('new-session')).toBeNull()
+      expect(screen.queryByTestId('sidebar-action-search')).toBeNull()
       expect(screen.queryByTestId('sidebar-action-new')).toBeNull()
     })
 
@@ -296,25 +296,14 @@ describe('Sidebar Aktionszeilen + Ansichtsumschalter (Runden-G3)', () => {
   })
 
   describe('what the rows do', () => {
-    it('Search keeps ⌘K; the New-task pill creates a session and stays the only way in', async () => {
+    it('the register keeps the list search and no longer answers ⌘K itself', async () => {
       mount()
       await screen.findByTestId('sidebar-actions')
-      expect(screen.getByTestId('sidebar-action-search').textContent).toContain('⌘K')
+      // The palette and the new task are the rail's; what stays is the field that
+      // filters the rows below it.
+      expect(screen.queryByTestId('sidebar-action-search')).toBeNull()
       expect(screen.queryByTestId('sidebar-action-kanban')).toBeNull()
-
-      fireEvent.click(screen.getByTestId('new-session'))
-      expect(storeMocks.createSession).toHaveBeenCalledTimes(1)
-
-      const seen: KeyboardEvent[] = []
-      const catcher = (e: KeyboardEvent) => seen.push(e)
-      window.addEventListener('keydown', catcher)
-      try {
-        fireEvent.click(screen.getByTestId('sidebar-action-search'))
-      } finally {
-        window.removeEventListener('keydown', catcher)
-      }
-      const toggle = seen.find((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')
-      expect(toggle).toBeTruthy()
+      expect(screen.getByPlaceholderText('sidebar.searchPlaceholder')).toBeTruthy()
     })
 
     it('a row in a closed tier is only reachable once the tier is open', async () => {

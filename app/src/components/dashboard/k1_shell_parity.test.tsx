@@ -65,10 +65,13 @@ describe('K1 Sidebar drag-resize + Persistenz', () => {
     expect(screen.getByTestId('chat-sidebar').style.width).toBe('288px')
   })
 
-  it('Rail-Modus: keine Breite uebersteuert, Henkel entfaellt', () => {
+  it('closed: the column folds to nothing and offers no handle', () => {
     localStorage.setItem('ephe.sidebar.width', '320')
     render(<Sidebar {...sidebarProps} collapsed />)
-    expect(screen.getByTestId('chat-sidebar').style.width).toBe('')
+    // Register #107: a closed register is no column at all — the rail is the left edge —
+    // so the seeded width is kept for the next opening and the drag handle is gone.
+    expect(screen.getByTestId('chat-sidebar').style.width).toBe('0px')
+    expect(localStorage.getItem('ephe.sidebar.width')).toBe('320')
     expect(screen.queryByTestId('sidebar-resize-handle')).toBeNull()
   })
 })
