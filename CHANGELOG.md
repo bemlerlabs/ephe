@@ -309,8 +309,17 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   it (`441a53b8`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
+- discover: The shelf keeps each author's own words and labels the language they are in, after
+  measuring that 2 of 72 served entries were a user's German and none of the 51 first-party
+  packs were (`1c37371a`)
+- skills: The language labeler reads user text with one quantifier, and a guard refuses a stall
+  on four thousand repeated letters (`e4c60c91`)
+- status: The context figure has one home per screen — the row hands the number to the composer
+  from `md` up and takes it back below, instead of printing it four times (`a192be00`)
+- workspaces: An empty register names the folder the settings answer with, so the page stops
+  saying nothing is live while a turn works in a folder (`eceba5a0`)
 - chat: A run keeps its break where a tool round ends, so an answer does not arrive as one
-  welded sentence in the chat, in the stored message and in the memory note alike (`8c2e2581`)
+  welded sentence in the chat, in the stored message and in the memory note alike (`dd193942`)
 
 ## [0.5.2] - 2026-11-01
 
