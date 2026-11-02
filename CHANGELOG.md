@@ -19,6 +19,13 @@ bundles, the composer mode chip that says the mode it shows, the tool rows that 
 language, the empty workspace register that names the folder settings names, the labeler that
 reads an author's words in one pass, and the links that finally leave the desktop shell.
 
+### Added
+
+- discover: The curated tier carries its publishers' own marks — 132 icons added to the
+  fourteen the hero already wore, each fetched from that publisher's domain with the URL, the
+  fetch date and the digest recorded in `SOURCES.json` and the brand terms stated in NOTICE
+  (`fecc9b49`)
+
 ### Fixed
 
 - server: The audio route describes its upload in the shelf language, as every other route in
@@ -32,6 +39,10 @@ reads an author's words in one pass, and the links that finally leave the deskto
 - desktop: The shell writes a run ledger — `start`, `exit`, `restart requested` — into the file it
   already owns, because a release build registers no logger and two silent exits left nothing to
   read afterwards (`e20b55e3`)
+- discover: The shelf asks the backend for its marks instead of the app bundle, so the icons the
+  PWA has always shown are no longer missing in the desktop shell — the plates put a
+  root-relative `/api/…` in `src`, which resolves in the browser and asks `tauri://localhost`
+  for a file it never carried (`d2c18772`)
 - panel: The side column answers one question now. One icon per section that holds something —
   output, site, console, notes, changes — and only the section in front says its name; the icon
   already in front is the handle that folds the body away (`74664bd3`)
