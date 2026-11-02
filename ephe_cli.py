@@ -6,6 +6,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -213,13 +214,89 @@ def _desktop_bundle_version(app: Path) -> str | None:
         return None
 
 
-def _desktop_bundles_other_than(installed: Path, seconds: float = 3.0) -> list[str]:
-    """Other bundles answering for the same identifier, as Spotlight sees them.
+def _registered_bundle_paths(seconds: float = 4.0) -> tuple[list[str], str]:
+    """Every path LaunchServices answers for the identifier — the registry itself.
 
-    macOS resolves an identifier when a click or a relaunch chooses the app, and a
-    Tauri build drops a same-identifier bundle into every worktree it is built in,
-    while a mounted DMG adds one more. The copy a click reaches can therefore be an
-    older one, and the updater keeps writing to the copy it already knows."""
+    Spotlight is the wrong instrument here: it does not index `~/.Trash` or `/private/tmp`,
+    and those are exactly where the old copies pile up. Measured 2026-11-02 on the machine
+    that ships Ephe: `mdfind` answered one bundle while `lsregister -dump` named seventy-four
+    for `com.ephe.ephe`, sixty-eight of them in the Trash. A row built on the index said the
+    machine was clean.
+
+    The second value is what the probe could not do. A read that failed has to be said out
+    loud: the first version of this row swallowed its own parse error, and the doctor then
+    reported "the only bundle" on a machine holding seventy-four."""
+    import threading
+
+    box: dict[str, Any] = {"paths": [], "error": ""}
+    done = threading.Event()
+
+    def probe() -> None:
+        try:
+            out = subprocess.run(
+                [LSREGISTER, "-dump"],
+                capture_output=True,
+                text=True,
+                timeout=seconds,
+                check=False,
+            )
+            if out.returncode != 0 and not out.stdout:
+                box["error"] = f"lsregister answered {out.returncode}"
+                return
+            box["paths"] = _dump_paths_for(out.stdout, DESKTOP_BUNDLE_ID)
+        except Exception as exc:  # noqa: BLE001 — the row says what it could not learn
+            box["error"] = f"{type(exc).__name__}: {exc}"
+        finally:
+            done.set()
+
+    threading.Thread(target=probe, daemon=True, name="ephe-registry-scan").start()
+    if not done.wait(seconds):
+        return [], "the registry scan did not answer in time"
+    return box["paths"], str(box["error"])
+
+
+def _dump_paths_for(dump: str, bundle_id: str) -> list[str]:
+    """The `path:` of every record in an `lsregister -dump` that carries this identifier.
+
+    The dump is a run of records separated by a rule of dashes; the identifier and the path
+    sit in the same record, in no order a reader can rely on. Parsing keeps both facts
+    together and refuses to guess from a single line."""
+    paths: list[str] = []
+    for record in re.split(r"^-{4,}.*$", dump, flags=re.M):
+        if not re.search(rf"^identifier:\s+{re.escape(bundle_id)}\s*$", record, flags=re.M):
+            continue
+        match = re.search(r"^path:\s+(.+?)(?:\s+\(0x[0-9a-f]+\))?\s*$", record, flags=re.M)
+        if match:
+            paths.append(match.group(1).strip())
+    return paths
+
+
+def _desktop_bundles_other_than(
+    installed: Path,
+    seconds: float = 4.0,
+) -> tuple[list[str], str]:
+    """Other bundles a click can reach, still on disk, and what the read could not do.
+
+    macOS resolves an identifier when a click or a relaunch chooses the app, and a Tauri
+    build drops a same-identifier bundle into every worktree it is built in, while a dragged
+    copy keeps answering from the Trash. A path that no longer exists cannot be opened, so it
+    is dropped — the row is about what can actually be reached."""
+    registered, error = _registered_bundle_paths(seconds)
+    candidates = set(registered) | set(_indexed_bundle_paths(seconds))
+    out: list[str] = []
+    for path in candidates:
+        if not path.endswith(".app") or Path(path) == installed:
+            continue
+        try:
+            if Path(path).exists():
+                out.append(path)
+        except OSError:
+            continue
+    return sorted(out), error
+
+
+def _indexed_bundle_paths(seconds: float = 2.0) -> list[str]:
+    """What Spotlight answers — a second source, never the only one."""
     import threading
 
     found: list[str] = []
@@ -234,18 +311,27 @@ def _desktop_bundles_other_than(installed: Path, seconds: float = 3.0) -> list[s
                 timeout=seconds,
                 check=False,
             )
-            for line in out.stdout.splitlines():
-                path = line.strip()
-                if path.endswith(".app") and Path(path) != installed:
-                    found.append(path)
-        except Exception:  # noqa: BLE001 — the row reports what it could learn
+            found.extend(line.strip() for line in out.stdout.splitlines() if line.strip())
+        except Exception:  # noqa: BLE001 — the registry already carried the answer
             pass
         finally:
             done.set()
 
-    threading.Thread(target=probe, daemon=True, name="ephe-desktop-scan").start()
+    threading.Thread(target=probe, daemon=True, name="ephe-index-scan").start()
     done.wait(seconds)
-    return sorted(set(found))
+    return found
+
+
+def _bundle_places(paths: list[str]) -> str:
+    """Where the copies sit, counted. Seventy-four separate paths would bury the one fact
+    a reader acts on: which folders are holding old copies."""
+    groups: dict[str, int] = {}
+    for path in paths:
+        groups[str(Path(path).parent)] = groups.get(str(Path(path).parent), 0) + 1
+    ordered = sorted(groups.items(), key=lambda kv: (-kv[1], kv[0]))
+    return ", ".join(f"{n} in {place}" for place, n in ordered[:3]) + (
+        " …" if len(ordered) > 3 else ""
+    )
 
 
 def _doctor_desktop_app(
@@ -269,13 +355,15 @@ def _doctor_desktop_app(
     app_version = _desktop_bundle_version(app)
     if app_version is None:
         return False, f"no {app} — the desktop app is not installed here"
-    others = _desktop_bundles_other_than(app)
+    others, unread = _desktop_bundles_other_than(app)
+    if unread:
+        return False, f"{app_version} installed, but the registry could not be read: {unread}"
     if others:
-        shown = ", ".join(others[:3]) + (" …" if len(others) > 3 else "")
         return False, (
             f"{app_version} installed, but {len(others)} other bundle(s) answer for "
-            f"{DESKTOP_BUNDLE_ID}: {shown}. A click can open one of those instead — clear "
-            f"them with: {LSREGISTER} -u <path> then {LSREGISTER} -f {app}"
+            f"{DESKTOP_BUNDLE_ID} — {_bundle_places(others)}; e.g. {others[0]}. A click can "
+            f"open one of those instead — clear them with: {LSREGISTER} -u <path> for each, "
+            f"then {LSREGISTER} -f {app}"
         )
     backend = str((server_health or {}).get("version") or "")
     if backend and app_version != backend:
