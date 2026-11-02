@@ -10,6 +10,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `13b259ea`, `81094860`, `e20b55e3`, `3614f87a`, `c6f80c93`, `cf22d029`, `6396de75`, `476a436f`): the update that carries the backend's environment, the shell that asks for it, the surface that follows it and ends in a restart, the run ledger a release build can still be read from, the contextual column with one icon per section, the marks that reach the desktop shell as well as the PWA, the register that travels with NOTICE, the chrome that names the task once, and the About page that opens its own sheet.
 
 
+### Changed
+
+- shell: The left edge is one icon sidebar. The frame rail took the task column's two frame
+  verbs — New task and Search — and the column itself became the body of the rail's Task row:
+  one click opens the register, the next folds it to nothing, and the choice is the person's
+  from then on. Measured before: 112 px of chrome stood in front of any content, and the same
+  two verbs were on the screen twice (`9b5cf7da`, `0fc0c163`)
+
 ### Fixed
 
 - sidebar: A row names the last thing that happened, not the hour the task was opened — a
