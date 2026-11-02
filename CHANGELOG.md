@@ -62,9 +62,16 @@ name once.
   output, site, console, notes, changes — and only the section in front says its name; the icon
   already in front is the handle that folds the body away (`cf22d029`)
 - chat: The chrome names the task once. The heading carries it and is the renameable identity;
- HEAD
-  the run line printed the same sentence again beside `Ready` (`6396de75`)
- 70441a7b (docs(changelog): address the row's clock and the wheel's shelf)
+  the run line printed the same sentence again beside `Ready` (`e0c547aa`)
+- sidebar: A row names the last thing that happened, not the hour the task was opened — a
+  session answered at 14:16 and still read `3 hours` (`8666c5ca`)
+- packaging: The shelf's data travels in the wheel: the marketplace index, the curated tier,
+  the revocations and the plugin catalogues, with a guard that refuses a build leaving any of
+  them out — a packaged install opened an empty shelf while the checkout the desktop runs from
+  looked perfectly fine (`06d0ea3b`)
+- chat: The context figure is named once per screen — the ring at the send button keeps its
+  arc and drops the duplicate name, the status gauge stays the instrument (`e0e1786b`)
+ c4f85a25 (docs(changelog): address the figure with one name)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
