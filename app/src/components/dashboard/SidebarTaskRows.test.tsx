@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { TaskRowGroup , lastActivityAt} from './SidebarTaskRows'
+import { TaskRowGroup, lastActivityAt } from './SidebarTaskRows'
 
 /**
  * The reading direction, pinned where it is visible: the sidebar's task rows.
