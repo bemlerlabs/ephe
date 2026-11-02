@@ -9,19 +9,18 @@
  * it lives in the chat page — two components, one state, which is why it sits here
  * rather than in either of them.
  *
- * The value is the person's, not the session's: `ephe-sidebar-collapsed`, the key the
- * column carried before the fusion, is what the first read falls back to, so nobody
- * finds a column they had closed standing open again.
+ * The value is the person's, not the session's, and it starts folded: the layout the old
+ * key described (`ephe-sidebar-collapsed`, a column that was never fully away — 56 px of
+ * icon stub beside the rail) is the thing this replaced, so reading it as a choice about
+ * *this* layout would answer a question nobody was asked. A person who wants the list
+ * open gets it with one click and is remembered from then on.
  */
 import { useSyncExternalStore } from 'react'
 
 const OPEN_KEY = 'ephe.register.open'
-const LEGACY_COLLAPSED_KEY = 'ephe-sidebar-collapsed'
 
 function seed(): boolean {
-  const stored = localStorage.getItem(OPEN_KEY)
-  if (stored === '0' || stored === '1') return stored === '1'
-  return localStorage.getItem(LEGACY_COLLAPSED_KEY) !== '1'
+  return localStorage.getItem(OPEN_KEY) === '1'
 }
 
 let open = seed()
