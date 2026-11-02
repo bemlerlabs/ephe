@@ -43,7 +43,11 @@ test.describe('Mobile Viewport (aktuelle UI: Sidebar-Drawer statt Bottom-Nav)', 
     await gotoHash(page, '/chat', '[data-testid="panel-chat"]')
     await page.locator('header button:has(svg.lucide-menu)').click()
     await expect(page.locator('[data-testid="sessions-view"]')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('[data-testid="new-session"]')).toBeVisible()
+    // The frame rail is CSS-hidden below lg but stays in the document, so the pill is
+    // addressed inside the drawer rather than by a test id two surfaces answer to.
+    await expect(
+      page.locator('[data-testid="chat-sidebar"] [data-testid="new-session"]'),
+    ).toBeVisible()
   })
 
   test('chat workspace has no horizontal overflow on mobile', async ({ page }) => {

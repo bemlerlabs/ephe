@@ -15,19 +15,18 @@ test.describe('Runde 14 — Findings-Umsetzung', () => {
     await page.evaluate(() => localStorage.clear())
     await page.goto('/#/chat')
     await page.waitForTimeout(1500)
-    // The language anchor is the sidebar's new-task button. The labels it carried when
-    // this test was written — "New Session" / "Neue Sitzung" — no longer exist anywhere in
-    // the app: the surface is `nav.newChat`, "New task" (en) / "Neue Aufgabe" (de)
-    // (measured 2026-10-14: with cleared storage the button reads "New task⌘N", with
-    // i18nextLng=de "Neue Aufgabe⌘N"). The subject of the test — the default language — is
-    // unchanged; only the name it looked for was.
-    await expect(page.getByTestId('new-session')).toContainText('New task')
+    // The language anchor is the new-task control's accessible name. It used to carry a
+    // text node ("New Session" / "Neue Sitzung", then "New task⌘N"); register #107 moved
+    // the verb into the frame rail, where a 40 px icon row has no room for a word, so the
+    // name is what the surface still publishes. The subject of the test — the default
+    // language a fresh browser gets — is unchanged.
+    await expect(page.getByRole('button', { name: 'New task' })).toBeVisible()
     await expect(page.getByText('Neue Aufgabe')).toHaveCount(0)
     // DE stays selectable: set the detector key → German (persisted)
     await page.evaluate(() => localStorage.setItem('i18nextLng', 'de'))
     await page.reload()
     await page.waitForTimeout(1200)
-    await expect(page.getByTestId('new-session')).toContainText('Neue Aufgabe')
+    await expect(page.getByRole('button', { name: 'Neue Aufgabe' })).toBeVisible()
   })
 
   test('F8: Skip-Link-Ziel existiert (<main id="main-content">)', async ({ page }) => {
