@@ -1193,6 +1193,15 @@ def _make_stream_callbacks(
     # event (content chunk or tool start), write it as ONE thinking step with
     # its full text body into the trajectory.
     _thinking_buf: list[str] = []
+    # A streamed round ends where a tool call begins, so the model's next text is
+    # a fresh assistant message whose first piece carries no leading space. The
+    # flat ``first_chunks`` join the three consumers read would otherwise weld
+    # ``…anything.`` straight onto ``Workspace…``. One tool request marks that
+    # seam and the next content piece opens with a paragraph break — but only
+    # once some text has already landed, so a run whose first burst follows a
+    # tool keeps no leading break and a run of one burst stays untouched.
+    _ROUND_BREAK = "\n\n"
+    _round_break_pending = {"after_tool": False}
 
     # Live progress: the round comes from the bound observer, the query from the call.
     _progress: dict[str, object] = {"tool": "", "started": 0.0, "task": None}
@@ -1286,6 +1295,11 @@ def _make_stream_callbacks(
 
     def on_chunk(chunk: str) -> None:
         _flush_thinking()
+        if _round_break_pending["after_tool"]:
+            _round_break_pending["after_tool"] = False
+            if first_chunks:
+                first_chunks.append(_ROUND_BREAK)
+                emit({"type": "chunk", "data": _ROUND_BREAK})
         first_chunks.append(chunk)
         emit({"type": "chunk", "data": chunk})
         _plan_from_answer()
@@ -1300,6 +1314,7 @@ def _make_stream_callbacks(
         # I6 P1-2: structured event for the persistent tool-stream lines.
         # W15-P3: key (name, call_id) — each same-named call gets its own start stamp.
         _flush_thinking()
+        _round_break_pending["after_tool"] = True
         _tool_t0[(name, call_id)] = time.perf_counter()
         try:
             from core.redact import args_hash

@@ -306,6 +306,8 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   tree names no person (`8117ee94`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
+- chat: A run keeps its break where a tool round ends, so an answer does not arrive as one
+  welded sentence in the chat, in the stored message and in the memory note alike (`0b53a237`)
 
 ## [0.5.2] - 2026-11-01
 
