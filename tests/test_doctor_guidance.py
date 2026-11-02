@@ -120,3 +120,37 @@ def test_fix_without_a_model_is_a_skip_and_not_a_failure(doctor_box, monkeypatch
     model_rows = [row for row in repairs if row[0] == "Repair model"]
     assert model_rows and model_rows[0][1] is True
     assert all(ok for _name, ok, _detail in repairs)
+
+
+def test_the_desktop_row_reaches_the_report_without_bearing_the_exit_code(doctor_box, capsys):
+    """The row is the instrument for "updated, restarted, nothing changed", so it has to
+    appear where a person reads the doctor — and a machine whose `.app` is an old copy must
+    not turn a working setup red. The same box is run twice: the row's own answer changes,
+    the verdict does not."""
+    doctor_box.setattr(
+        ephe_cli,
+        "_doctor_desktop_app",
+        lambda _health: (False, "0.5.4 while the backend runs 0.5.5"),
+    )
+    with_row = ephe_cli.cmd_doctor(_parser().parse_args(["doctor"]))
+    out_with = capsys.readouterr().out
+
+    doctor_box.setattr(ephe_cli, "_doctor_desktop_app", lambda _health: None)
+    without_row = ephe_cli.cmd_doctor(_parser().parse_args(["doctor"]))
+    out_without = capsys.readouterr().out
+
+    assert "Desktop app - 0.5.4 while the backend runs 0.5.5" in out_with
+    assert "Desktop app" not in out_without
+    assert with_row == without_row
+
+
+def test_the_desktop_row_is_optional_not_a_failure(doctor_box, capsys):
+    """`OPTIONAL`, never `FAIL`: the desktop app is one surface of many, and a box that
+    runs the CLI alone is a valid box."""
+    doctor_box.setattr(ephe_cli, "_doctor_desktop_app", lambda _health: (False, "no bundle here"))
+
+    ephe_cli.cmd_doctor(_parser().parse_args(["doctor"]))
+
+    line = [l for l in capsys.readouterr().out.splitlines() if "Desktop app" in l]
+    assert len(line) == 1
+    assert line[0].lstrip().startswith("OPTIONAL")

@@ -23,20 +23,17 @@ mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(mod)
 
 
-def test_a_machine_that_is_not_a_mac_says_nothing():
-    original = mod.sys.platform
-    try:
-        mod.sys.platform = "linux"
-        assert mod._doctor_desktop_app({"version": "0.5.5"}) is None
-    finally:
-        mod.sys.platform = original
+def test_a_machine_that_is_not_a_mac_says_nothing(tmp_path: Path):
+    # The host facts are arguments, so this runs the same on a Linux runner as on the Mac
+    # that has the app: no ambient read, no test that only passes where the product ships.
+    assert mod._doctor_desktop_app({"version": "0.5.5"}, "linux", tmp_path / "Ephe.app") is None
 
 
-def test_no_installed_app_is_said_plainly(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(mod, "DESKTOP_INSTALL_PATH", tmp_path / "Absent.app")
-    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"})
+def test_no_installed_app_is_said_plainly(tmp_path: Path):
+    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"}, "darwin", tmp_path / "Absent.app")
     assert ok is False
     assert "not installed" in detail
+    assert str(tmp_path / "Absent.app") in detail
 
 
 def test_an_other_bundle_with_the_same_identifier_is_named_with_the_command(
@@ -44,11 +41,10 @@ def test_an_other_bundle_with_the_same_identifier_is_named_with_the_command(
 ):
     installed = tmp_path / "Applications" / "Ephe.app"
     impostor = tmp_path / "ephe-wt" / "night" / "Ephe.app"
-    monkeypatch.setattr(mod, "DESKTOP_INSTALL_PATH", installed)
     monkeypatch.setattr(mod, "_desktop_bundle_version", lambda _p: "0.5.5")
     monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: [str(impostor)])
 
-    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"})
+    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"}, "darwin", installed)
     assert ok is False
     assert str(impostor) in detail
     assert "lsregister" in detail
@@ -56,22 +52,20 @@ def test_an_other_bundle_with_the_same_identifier_is_named_with_the_command(
 
 def test_an_app_older_than_the_backend_names_both_numbers(tmp_path: Path, monkeypatch):
     installed = tmp_path / "Ephe.app"
-    monkeypatch.setattr(mod, "DESKTOP_INSTALL_PATH", installed)
     monkeypatch.setattr(mod, "_desktop_bundle_version", lambda _p: "0.5.4")
     monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: [])
 
-    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"})
+    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"}, "darwin", installed)
     assert ok is False
     assert "0.5.4" in detail and "0.5.5" in detail
 
 
 def test_one_bundle_matching_the_backend_is_the_quiet_answer(tmp_path: Path, monkeypatch):
     installed = tmp_path / "Ephe.app"
-    monkeypatch.setattr(mod, "DESKTOP_INSTALL_PATH", installed)
     monkeypatch.setattr(mod, "_desktop_bundle_version", lambda _p: "0.5.5")
     monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: [])
 
-    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"})
+    ok, detail = mod._doctor_desktop_app({"version": "0.5.5"}, "darwin", installed)
     assert ok is True
     assert "only bundle" in detail
 
@@ -96,6 +90,49 @@ def test_the_row_is_installed_under_the_desktop_checks():
         'informational.append(("Update"'
     )
     assert "checks.append((\"Desktop app\"" not in source
+
+
+def test_the_scan_reports_the_bundles_it_found_and_drops_the_rest(
+    tmp_path: Path, monkeypatch
+):
+    """The loop over the probe's own answer, driven on every platform.
+
+    `mdfind` exists on one operating system, so a test that let the real command answer
+    would leave this branch uncovered wherever the runner is not a Mac — and the branch is
+    where the filtering lives."""
+    import subprocess
+
+    installed = str(tmp_path / "Applications" / "Ephe.app")
+    found = "\n".join(
+        [
+            installed,
+            str(tmp_path / "night" / "Ephe.app"),
+            str(tmp_path / "other" / "Ephe.app"),
+            str(tmp_path / "other" / "Ephe.app"),
+            str(tmp_path / "not" / "a_text_file"),
+            "",
+        ]
+    )
+    monkeypatch.setattr(
+        mod.subprocess,
+        "run",
+        lambda *a, **k: subprocess.CompletedProcess(a, 0, found, ""),
+    )
+    assert mod._desktop_bundles_other_than(Path(installed), seconds=1.0) == [
+        str(tmp_path / "night" / "Ephe.app"),
+        str(tmp_path / "other" / "Ephe.app"),
+    ]
+
+
+def test_a_probe_that_cannot_run_is_an_empty_answer(tmp_path: Path, monkeypatch):
+    """No Spotlight on a Linux runner, and a disabled index on a Mac: the row says nothing
+    rather than saying the machine is broken."""
+
+    def refuse(*_args, **_kwargs):
+        raise OSError("no metadata service here")
+
+    monkeypatch.setattr(mod.subprocess, "run", refuse)
+    assert mod._desktop_bundles_other_than(tmp_path / "Ephe.app", seconds=1.0) == []
 
 
 def test_a_scan_that_never_answers_does_not_hold_the_doctor(tmp_path: Path, monkeypatch):
