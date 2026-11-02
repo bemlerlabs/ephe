@@ -7,8 +7,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `13b259ea`, `81094860`, `e20b55e3`, `3614f87a`, `c6f80c93`, `cf22d029`, `6396de75`, `476a436f`): the update that carries the backend's environment, the shell that asks for it, the surface that follows it and ends in a restart, the run ledger a release build can still be read from, the contextual column with one icon per section, the marks that reach the desktop shell as well as the PWA, the register that travels with NOTICE, the chrome that names the task once, and the About page that opens its own sheet.
+The 0.5.5 wave is named below (`c263c3ab`, `cf7c3f6b`, `91473a8e`, `8fe8670d`, `9c6d1169`, `2d4080f3`, `8141f783`, `e662f71b`): the left edge fused into one icon sidebar, the update window's notes freed of the register's addresses, an engine answer that cannot be read named as itself, a cache that cannot be read still asking the durable store, and the three readings from the last round — the row that names its last activity, the shelf's data inside the wheel, the context figure with one home.
 
+
+## [0.5.5] - 2026-11-02
+
+One column on the left, and three instruments that stopped reporting what they do not know.
+
+The frame's rail had a neighbour: the chat's task column, 288 px open and 56 px folded, carrying its own New task and Search beside the places the rail already named. The rail took the two verbs and the column became the body of the rail's Task row — one click opens the register, the next folds it to nothing, and the choice is remembered per person. Measured before: 112 px of chrome stood in front of any content.
+
+The update window rendered the changelog block whole, so the notes of a version ended in `(3614f87a)` — the register's address, read by a person deciding whether to install. The header promised `Checking the engine` on a screen whose strip said `Disconnected`, because the engine is asked through the backend and the backend was the thing that was gone. And a boot whose local cache could not be read skipped both server restores with it and came up saying `No tasks yet` while the machine's own store held the history; the read now has its own failure path.
+
+Three readings from the previous round travel with them: a task row names its last activity rather than its birth, the marketplace's data ships inside the wheel, and the context figure has one home per screen.
 
 ### Changed
 
@@ -16,27 +26,27 @@ The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `
   verbs — New task and Search — and the column itself became the body of the rail's Task row:
   one click opens the register, the next folds it to nothing, and the choice is the person's
   from then on. Measured before: 112 px of chrome stood in front of any content, and the same
-  two verbs were on the screen twice (`9b5cf7da`, `0fc0c163`)
+  two verbs were on the screen twice (`c263c3ab`, `cf7c3f6b`)
 
 ### Fixed
 
 - sidebar: A row names the last thing that happened, not the hour the task was opened — a
-  session answered at 14:16 and still read `3 hours` (`21e89387`)
+  session answered at 14:16 and still read `3 hours` (`91473a8e`)
 - packaging: The shelf's data travels in the wheel: the marketplace index, the curated tier,
   the revocations and the plugin catalogues, with a guard that refuses a build leaving any of
   them out — a packaged install opened an empty shelf while the checkout the desktop runs from
-  looked perfectly fine (`6d5be45f`)
+  looked perfectly fine (`8fe8670d`)
 - chat: The context figure is named once per screen — the ring at the send button keeps its
-  arc and drops the duplicate name, the status gauge stays the instrument (`1dd14649`)
+  arc and drops the duplicate name, the status gauge stays the instrument (`9c6d1169`)
 - release: The update window's notes are the words of the changelog, without the commit
   address every entry ends with — the register reads a line by its address, the person
-  deciding whether to install read a sentence that stopped in hex digits (`ff309a13`)
+  deciding whether to install read a sentence that stopped in hex digits (`2d4080f3`)
 - chat: A task list that cannot read its own cache still asks the machine's store —
   a boot came up saying `No tasks yet` while the history sat untouched on the disk,
-  because one rejected IndexedDB read skipped both server restores with it (`28ced180`)
+  because one rejected IndexedDB read skipped both server restores with it (`e662f71b`)
 - chat: An engine answer that cannot be read names itself — the header promised
   `Checking the engine` on a screen where the strip said `Disconnected`, because the
-  backend that probes the engine was the thing that was gone (`0b99d522`)
+  backend that probes the engine was the thing that was gone (`8141f783`)
 
 ## [0.5.4] - 2026-11-02
 
