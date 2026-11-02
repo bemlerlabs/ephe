@@ -306,7 +306,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   tree names no person (`8117ee94`)
 - memory: A stored note reads as the markdown it was written in — a table arrives as a
   table, a bold line as bold, and a long path shrinks to the card instead of widening
-  it (`eea22778`)
+  it (`441a53b8`)
+- workspaces: An empty register names the folder the settings answer with, so the page
+  stops saying nothing is live while a turn works in a folder (`8557d548`)
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
 
