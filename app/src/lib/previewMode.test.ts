@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   artifactPreviewMode,
   codePreviewLanguage,
+  documentAddress,
   previewSandbox,
   previewShowsInFrame,
   previewSrc,
@@ -180,5 +181,29 @@ describe('previewShowsInFrame — was dieser Rahmen hier zeigen kann', () => {
       expect(previewShowsInFrame('bild.png', 'png', desktop)).toBe(true)
       expect(previewShowsInFrame('tabelle.xlsx', 'xlsx', desktop)).toBe(true)
     }
+  })
+})
+
+describe('documentAddress — A1', () => {
+  it('splits a file endpoint into the name and the folder it came from', () => {
+    expect(documentAddress('/api/file?path=%2Ftmp%2Fproj%2Fbericht.pdf')).toEqual({
+      name: 'bericht.pdf',
+      folder: 'tmp/proj',
+    })
+  })
+
+  it('names a file at the root with no folder', () => {
+    expect(documentAddress('/api/file?path=%2FREADME.md')).toEqual({
+      name: 'README.md',
+      folder: '',
+    })
+  })
+
+  it('reads a plain path the same way', () => {
+    expect(documentAddress('/srv/app/docs/index.html').name).toBe('index.html')
+  })
+
+  it('keeps a malformed escape instead of throwing', () => {
+    expect(documentAddress('/api/file?path=%25zz%25.pdf').name).toContain('.pdf')
   })
 })

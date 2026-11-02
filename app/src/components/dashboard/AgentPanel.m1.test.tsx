@@ -75,8 +75,10 @@ describe('M1 — Browser-Tab 1:1 (Referenz-Screenshot 3)', () => {
 
   it('Nav-Leiste: zurueck, vor, neu laden, URL-Feld und Ueberlauf-Knopf', async () => {
     render(<AgentPanel messages={[]} />)
+    // A site URL: this row is the browser's, and a workspace file draws its own
+    // head instead (A1) — the document case is covered in previewTab.test.tsx.
     window.dispatchEvent(
-      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: '/api/file?path=/tmp/a.md' } }),
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: 'http://localhost:5173/' } }),
     )
     expect(await screen.findByTestId('preview-reload')).toBeTruthy()
     expect(screen.getByTestId('preview-back')).toBeTruthy()
@@ -99,18 +101,18 @@ describe('M1 — Browser-Tab 1:1 (Referenz-Screenshot 3)', () => {
   it('Vor/Zuruck-Navigation ueber das Session-History des Tabs', async () => {
     render(<AgentPanel messages={[]} />)
     window.dispatchEvent(
-      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: '/api/file?path=/tmp/a.md' } }),
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: 'http://localhost:5173/a' } }),
     )
     await screen.findByTestId('preview-reload')
     // Re-queried per check: the pane subtree remounts when the tab opens, and a node
     // captured before that keeps reporting the detached element's value.
     const address = () => (screen.getByTestId('preview-url-input') as HTMLInputElement).value
     window.dispatchEvent(
-      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: '/api/file?path=/tmp/b.md' } }),
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: 'http://localhost:5173/b' } }),
     )
     // Both forms of the bar identify the target, and the test must hold for either:
-    // unfocused the input shows `prettifyUrl(draft)` = "b.md", focused it shows the raw
-    // draft = "/api/file?path=/tmp/b.md" (previewTab.tsx:208). Opening a target and
+    // unfocused the input shows `prettifyUrl(draft)` = the address itself, focused it
+    // shows the raw draft (previewTab.tsx). Opening a target and
     // navigating both move focus into the bar on a 40/60 ms timer (usePreviewNav.ts:78
     // and :114) — that is the documented follow-through, not a defect.
     //
@@ -119,11 +121,11 @@ describe('M1 — Browser-Tab 1:1 (Referenz-Screenshot 3)', () => {
     // sampling `=== "b.md"` asks whether the focus timer or the assertion poll won, and
     // a 4-core runner under a full vitest load loses that race reproducibly. Waiting
     // longer only waits longer for a state that never converges.
-    await waitFor(() => expect(address()).toContain('b.md'), { timeout: 4000 })
+    await waitFor(() => expect(address()).toContain('5173/b'), { timeout: 4000 })
     fireEvent.click(screen.getByTestId('preview-back'))
-    await waitFor(() => expect(address()).toContain('a.md'), { timeout: 4000 })
+    await waitFor(() => expect(address()).toContain('5173/a'), { timeout: 4000 })
     fireEvent.click(screen.getByTestId('preview-forward'))
-    await waitFor(() => expect(address()).toContain('b.md'), { timeout: 4000 })
+    await waitFor(() => expect(address()).toContain('5173/b'), { timeout: 4000 })
   })
 
   it('Leerzustand dreiteilig: Globus-Titel "Browser" + Hinweis (kein URL-Wert)', async () => {

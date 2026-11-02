@@ -231,7 +231,7 @@ describe('G3 — Browser-Pane: sandbox, Ladezustand, Accessibility', () => {
     // The markdown/code preview reads via fetch and has its own states for that
     // (aria-busy + role="alert" in FilePreviewBody) — the frame line must not show
     // up here on top, since it describes an iframe.
-    expect(await screen.findByTestId('preview-url-input')).toBeTruthy()
+    expect(await screen.findByTestId('preview-document')).toBeTruthy()
     expect(screen.queryByTestId('preview-frame-status')).toBeNull()
     expect(screen.queryByTestId('preview-frame-region')).toBeNull()
   })

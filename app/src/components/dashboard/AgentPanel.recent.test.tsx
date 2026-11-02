@@ -76,10 +76,9 @@ describe('W2 — Preview-Recent-Liste', () => {
     )
     const chip = await screen.findByTestId('preview-recent-0')
     fireEvent.click(chip)
-    const input = screen.getByTestId('preview-url-input') as HTMLInputElement
-    // Chip 0 carries the newest file (b.md) — clicking puts it back into the
-    // address field, which shows prettifyUrl → the file name.
-    expect(input.value).toContain('b.md')
+    // Chip 0 carries the newest file (b.md) — clicking puts it back into the pane,
+    // which names it in the document head (A1).
+    expect(screen.getByTestId('preview-document').textContent).toContain('b.md')
   })
 
   it('nach 9 Dateien: die Liste haelt maximal 8 Eintraege', async () => {

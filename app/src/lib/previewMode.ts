@@ -187,3 +187,21 @@ export function fileLanguage(path: string): string {
   const lang = CODE_EXT[ext]
   return lang ?? 'text'
 }
+
+/** A1: the two words a document needs — its name, and the folder it came from.
+ *  The `%2F` query an address bar shows is neither of them. */
+export function documentAddress(url: string): { name: string; folder: string } {
+  const m = /^\/api\/file\?path=([^&]+)$/.exec(url?.trim() ?? '')
+  let path = (url ?? '').trim()
+  if (m) {
+    try {
+      path = decodeURIComponent(m[1] ?? '')
+    } catch {
+      path = m[1] ?? path
+    }
+  }
+  if (path.startsWith('/')) path = path.slice(1)
+  const parts = path.split('/').filter(Boolean)
+  const name = parts.pop() ?? path
+  return { name, folder: parts.join('/') }
+}

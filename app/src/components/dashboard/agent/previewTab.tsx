@@ -10,10 +10,11 @@ import {
   MoreHorizontal,
   Contrast,
   Smartphone,
+  FileText,
 } from 'lucide-react'
-import { resolveFilePreview, prettifyUrl } from '@/lib/previewMode'
+import { resolveFilePreview, prettifyUrl, documentAddress } from '@/lib/previewMode'
 import { proxyFetch, LAN_TOKEN } from '@/lib/api'
-import { isExternalHttpUrl, FRAME_SLOW_MS } from './previewUrl'
+import { isExternalHttpUrl, paneMode, FRAME_SLOW_MS } from './previewUrl'
 import { nativeBrowserHistory, openExternally } from '@/lib/nativeBrowser'
 import { PreviewFrame, ReaderToggle } from './previewFrame'
 import { useNativeBrowserPane } from './useNativeBrowserPane'
@@ -105,6 +106,11 @@ export function PreviewTab({
   }, [menuOpen])
 
   const preview = resolveFilePreview(url)
+  // A1: a file the workspace holds is read. The browser row above it means
+  // nothing for it, so the mode decides the chrome; the delivery below keeps its
+  // own rules.
+  const mode = paneMode(url)
+  const doc = documentAddress(url)
   const framed = !!url && !preview
   useEffect(() => {
     setFrameState('loading')
@@ -177,70 +183,87 @@ export function PreviewTab({
   return (
     <>
       <div className="relative flex items-center gap-2 px-3 h-12 border-b border-hairline flex-shrink-0">
-        <button
-          type="button"
-          onClick={goBack}
-          disabled={native ? false : !canBack}
-          data-testid="preview-back"
-          aria-label={t('agentPanel.previewBack')}
-          title={t('agentPanel.previewBack')}
-          className={navBtn}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={goForward}
-          disabled={native ? false : !canForward}
-          data-testid="preview-forward"
-          aria-label={t('agentPanel.previewForward')}
-          title={t('agentPanel.previewForward')}
-          className={navBtn}
-        >
-          <ArrowRight className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={goReload}
-          data-testid="preview-reload"
-          aria-label={t('agentPanel.reload')}
-          title={t('agentPanel.reload')}
-          className={navBtn}
-        >
-          <RotateCw className="h-4 w-4" />
-        </button>
-        <input
-          ref={inputRef}
-          type="text"
-          data-testid="preview-url-input"
-          value={editingUrl ? draft : prettifyUrl(draft)}
-          onChange={(e) => setDraft(e.target.value)}
-          onFocus={() => setEditingUrl(true)}
-          onBlur={() => setEditingUrl(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              setEditingUrl(false)
-              onLoad()
-            }
-          }}
-          placeholder={t('agentPanel.previewPlaceholder')}
-          aria-label={t('agentPanel.previewUrlLabel')}
-          title={url || undefined}
-          // G3: an address bar is not a text box — URL keyboard, no autocomplete
-          // from the browser's protocol store, no spell-check squiggles under a
-          // hostname and no capitalisation at the start.
-          inputMode="url"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          className="flex-1 min-w-6 min-h-6 bg-transparent text-ui-sm text-foreground placeholder:text-ink-faint outline-none font-mono"
-        />
-        {/* R2-P1: at a 420 px pane the address bar kept 179 px — 23 characters of
+        {mode === 'document' ? (
+          <div className="flex min-w-0 flex-1 items-center gap-2" data-testid="preview-document">
+            <FileText className="h-4 w-4 shrink-0 text-ink-soft" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-ui-sm text-foreground">{doc.name}</p>
+              <p className="truncate font-mono text-ui-2xs text-ink-faint" title={url}>
+                {doc.folder}
+              </p>
+            </div>
+            <span className="shrink-0 rounded px-1.5 py-0.5 text-ui-2xs text-ink-faint glass-control">
+              {t('agentPanel.paneDocument')}
+            </span>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={goBack}
+              disabled={native ? false : !canBack}
+              data-testid="preview-back"
+              aria-label={t('agentPanel.previewBack')}
+              title={t('agentPanel.previewBack')}
+              className={navBtn}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={goForward}
+              disabled={native ? false : !canForward}
+              data-testid="preview-forward"
+              aria-label={t('agentPanel.previewForward')}
+              title={t('agentPanel.previewForward')}
+              className={navBtn}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={goReload}
+              data-testid="preview-reload"
+              aria-label={t('agentPanel.reload')}
+              title={t('agentPanel.reload')}
+              className={navBtn}
+            >
+              <RotateCw className="h-4 w-4" />
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              data-testid="preview-url-input"
+              value={editingUrl ? draft : prettifyUrl(draft)}
+              onChange={(e) => setDraft(e.target.value)}
+              onFocus={() => setEditingUrl(true)}
+              onBlur={() => setEditingUrl(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setEditingUrl(false)
+                  onLoad()
+                }
+              }}
+              placeholder={t('agentPanel.previewPlaceholder')}
+              aria-label={t('agentPanel.previewUrlLabel')}
+              title={url || undefined}
+              // G3: an address bar is not a text box — URL keyboard, no autocomplete
+              // from the browser's protocol store, no spell-check squiggles under a
+              // hostname and no capitalisation at the start.
+              inputMode="url"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              className="flex-1 min-w-6 min-h-6 bg-transparent text-ui-sm text-foreground placeholder:text-ink-faint outline-none font-mono"
+            />
+            {/* R2-P1: at a 420 px pane the address bar kept 179 px — 23 characters of
             a 66-character URL. The two secondary switches do not belong in the row
             that is supposed to show the address; they live in the ⋯ menu now. */}
-        {isExternalHttpUrl(url) && !preview && (
-          <ReaderToggle active={reading} onToggle={() => setReading((v) => !v)} />
+            {isExternalHttpUrl(url) && !preview && (
+              <ReaderToggle active={reading} onToggle={() => setReading((v) => !v)} />
+            )}
+          </>
         )}
         <button
           type="button"
