@@ -703,6 +703,10 @@ const boot = async (page: Page, theme: string, origin: string, label = 'page') =
     localStorage.setItem('i18nextLng', 'en')
     localStorage.setItem('ephe_onboarded', '1')
     localStorage.setItem('ephe.intro.seen.v1', '1')
+    // Register #107: the task column is the body of the rail's Task row and starts folded.
+    // The sweep measures the surfaces a person walks, so it walks them with the register
+    // open, the way `ensureOnboarded` leaves it for the other specs.
+    localStorage.setItem('ephe.register.open', '1')
   })
   await page.goto(`${origin}/#/chat`, { waitUntil: 'load' })
   await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 20_000 })
@@ -732,7 +736,10 @@ const openSettings = async (page: Page, width: number): Promise<Finding | null> 
       // control beside it is `hidden md:inline-flex` and does not exist on a phone.
       await page.getByTestId('header-menu-toggle').click({ timeout: 5_000 })
     }
-    await page.getByTestId('sidebar-settings-btn').click({ timeout: 5_000 })
+    // On a wide window the frame rail is the settings entry; the drawer's card is what a
+    // phone has. Naming both keeps the instrument on the path the surface actually offers.
+    const entry = width < 1024 ? 'sidebar-settings-btn' : 'nav-rail-settings'
+    await page.getByTestId(entry).click({ timeout: 5_000 })
     await page.waitForSelector('[data-testid="settings-panel"]', { timeout: 8_000 })
   }
   const failure = await reach()
@@ -741,7 +748,7 @@ const openSettings = async (page: Page, width: number): Promise<Finding | null> 
   if (!failure) return null
   return {
     metric: 'render-error',
-    path: width < 768 ? 'header-menu-toggle' : 'sidebar-settings-btn',
+    path: width < 768 ? 'header-menu-toggle' : width < 1024 ? 'sidebar-settings-btn' : 'nav-rail-settings',
     detail: `the register could not be reached: ${failure.slice(0, 120)}${lastPageError ? ` | ${lastPageError}` : ''}`,
     ratio: 0,
   }
