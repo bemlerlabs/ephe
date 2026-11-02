@@ -29,6 +29,9 @@ reads an author's words in one pass, and the links that finally leave the deskto
   `dd51da76`, `13b259ea`)
 - settings: The Version & Updates page opens the update sheet its own Details button promises;
   measured on the installed app, that click answered with nothing at all (`81094860`)
+- desktop: The shell writes a run ledger — `start`, `exit`, `restart requested` — into the file it
+  already owns, because a release build registers no logger and two silent exits left nothing to
+  read afterwards (`9275e433`)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
