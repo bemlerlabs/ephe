@@ -12,7 +12,7 @@
  * with the clock does re-render, which is why the interval is the only timer here.
  */
 import { useEffect, useSyncExternalStore } from 'react'
-import { listWorkspaces, type FleetRun, type Workspace } from '@/lib/api'
+import { listWorkspaces, type ConfiguredWorkspace, type FleetRun, type Workspace } from '@/lib/api'
 import { multiplexIsOpen, subscribeMultiplex } from '@/lib/multiplex'
 import { refusalSentence } from '@/components/dashboard/workspaces/labels'
 
@@ -21,6 +21,9 @@ export interface FleetSnapshot {
   workspaces: Workspace[]
   /** The board: every run, the ones that need a person first. */
   runs: FleetRun[]
+  /** The workspace this app is set to work in — the folder `GET /api/settings` names, read
+   * on the same poll. The register never sees it, so an empty register must borrow its answer. */
+  configured: ConfiguredWorkspace | null
   /** True when the last poll failed. What it read before that failure is still here, so a
    * dropped request does not blank a board that was right a moment ago. */
   failed: boolean
@@ -48,6 +51,7 @@ async function poll(): Promise<void> {
     snapshot = {
       workspaces: answer.workspaces ?? [],
       runs: answer.runs ?? [],
+      configured: answer.configured_workspace ?? null,
       failed: false,
       reason: '',
     }
@@ -55,7 +59,7 @@ async function poll(): Promise<void> {
     const reason = refusalSentence(error)
     snapshot = snapshot
       ? { ...snapshot, failed: true, reason }
-      : { workspaces: [], runs: [], failed: true, reason }
+      : { workspaces: [], runs: [], configured: null, failed: true, reason }
   } finally {
     inflight = false
     emit()
@@ -100,6 +104,7 @@ export function useFleet(): { fleet: FleetSnapshot | null; refresh: () => void }
       snapshot = {
         workspaces: event.fleet.workspaces ?? [],
         runs: event.fleet.runs ?? [],
+        configured: event.fleet.configured_workspace ?? null,
         failed: false,
         reason: '',
       }

@@ -7,11 +7,19 @@
  * without EventSource (or a stream that has not opened yet) leaves the callers'
  * polling fallback in charge — `multiplexIsOpen()` is the switch they read.
  */
-import { apiUrl, type CellLife, type FleetRun, type Workspace } from '@/lib/api'
+import {
+  apiUrl,
+  type CellLife,
+  type ConfiguredWorkspace,
+  type FleetRun,
+  type Workspace,
+} from '@/lib/api'
 
 export interface MultiplexFleet {
   workspaces: Workspace[]
   runs: FleetRun[]
+  /** The configured workspace carried by the same read as the route (`fleet_payload`). */
+  configured_workspace?: ConfiguredWorkspace
 }
 
 export interface MultiplexEvent {
