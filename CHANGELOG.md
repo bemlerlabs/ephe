@@ -23,6 +23,12 @@ reads an author's words in one pass, and the links that finally leave the deskto
 
 - server: The audio route describes its upload in the shelf language, as every other route in
   the file already did (`80558a67`)
+- desktop: The update now carries the backend's environment along with the code it moves, names
+  which of the three outcomes it reached — refreshed, still running, refused with its reason —
+  and ends in a restart the surface offers instead of a sentence about one (`0508fab8`,
+  `926623c4`, `39f23b71`)
+- settings: The Version & Updates page opens the update sheet its own Details button promises;
+  measured on the installed app, that click answered with nothing at all (`9975edf2`)
 
 ## [0.5.3] - 2026-11-02
 
