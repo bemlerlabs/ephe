@@ -332,7 +332,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   a `Reichweite:` line that no output has ever carried (`1bfd76b4`)
 - app: A blank-target link leaves the desktop shell through the operating system's browser, so
   the eleven addresses across the marketplace detail, the setup page and the update dialog stop
-  being text that looks clickable and does nothing (`cb2ce10e`)
+  being text that looks clickable and does nothing (`769f47c4`)
 
 ## [0.5.2] - 2026-11-01
 
