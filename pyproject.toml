@@ -159,6 +159,13 @@ include = [
     ".env.example",
     "engine.example.json",
     "app/src/**",
+    # The shelf and the plugin store read these from the tree they run in, and a
+    # wheel's tree is site-packages: without them a packaged install opens an
+    # empty marketplace and no curated plugin list.
+    "marketplace/**",
+    "ephe-marketplace.json",
+    "plugin-catalog.json",
+    "plugin-marketplace.json",
 ]
 
 [tool.hatch.build.targets.wheel.shared-data]
