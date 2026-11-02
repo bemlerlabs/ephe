@@ -35,7 +35,19 @@ function storedKinds(): string[] {
 const kinds = [...new Set(storedKinds())]
 
 /** For a file type the shout IS the word a reader expects; for a name it is the fallback. */
-const FILE_TYPES = new Set(['pdf', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'xlsx', 'docx', 'pptx', 'csv'])
+const FILE_TYPES = new Set([
+  'pdf',
+  'svg',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'xlsx',
+  'docx',
+  'pptx',
+  'csv',
+])
 
 describe('every artifact kind has a word in both bundles', () => {
   it('reads the marker table, not a hand-copied list', () => {
