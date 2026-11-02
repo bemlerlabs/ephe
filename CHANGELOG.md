@@ -7,17 +7,21 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.5.3 wave is named below (`93844868`, `8765637c`, `5d2ab908`, `8117ee94`, `b336e116`,
-`732c2a0d`, `0057dd56`, `441a53b8`, `dd193942`, `105edc18`, `251213bf`, `2583811a`, `467234f3`,
-`4adb6f32`, `6f907807`, `bfcf49fb`, `ea4c0b79`, `1bfd76b4`, `769f47c4`): the patched glob
-dependency, the publisher's own mark on the hero plate, the private state that no image may
-carry, the generator that names no person, a doctor that answers in its report's own language,
-a tool that moves the addresses a rebase merge rewrites, a status pill that stops claiming an
-index it never ran, a stored note that reads as the markdown it was written in, a run that keeps
-its paragraph break, the context figure with one home per screen, the shelf's kind names in both
-bundles, the composer mode chip that says the mode it shows, the tool rows that join the shelf
-language, the empty workspace register that names the folder settings names, the labeler that
-reads an author's words in one pass, and the links that finally leave the desktop shell.
+The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `13b259ea`, `81094860`, `e20b55e3`, `3614f87a`, `c6f80c93`, `cf22d029`, `6396de75`, `476a436f`): the update that carries the backend's environment, the shell that asks for it, the surface that follows it and ends in a restart, the run ledger a release build can still be read from, the contextual column with one icon per section, the marks that reach the desktop shell as well as the PWA, the register that travels with NOTICE, the chrome that names the task once, and the About page that opens its own sheet.
+
+
+## [0.5.4] - 2026-11-02
+
+The release that carries its own backend. The desktop updater had been replacing the app
+bundle and leaving the Python environment where it was — measured as a 0.5.3 tree running
+beside an `ephe-0.5.2` install — so the shell now asks the backend to refresh that
+environment, the surface follows it, and the path ends in the restart it leads to. The
+shell also writes a run ledger, because four silent exits today left nothing to read. The
+side column became one contextual Workbench: a section per kind of thing a task shows, one
+icon each, and the icon in front folds the body away. The shelf's marks finally reach both
+surfaces, with 132 publishers' own icons behind them and each one's source, date and
+digest recorded. The About page opens the sheet it names, and the chrome says the task's
+name once.
 
 ### Added
 
@@ -49,7 +53,7 @@ reads an author's words in one pass, and the links that finally leave the deskto
   output, site, console, notes, changes — and only the section in front says its name; the icon
   already in front is the handle that folds the body away (`cf22d029`)
 - chat: The chrome names the task once. The heading carries it and is the renameable identity;
-  the run line printed the same sentence again beside `Ready` (`e0c547aa`)
+  the run line printed the same sentence again beside `Ready` (`6396de75`)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
