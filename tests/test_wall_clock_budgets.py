@@ -73,3 +73,29 @@ def test_search_route_cold_call_within_budget() -> None:
     assert body["elapsed_ms"] < SEARCH_ROUTE_BUDGET_MS, (
         f"search route took {body['elapsed_ms']:.1f} ms, budget {SEARCH_ROUTE_BUDGET_MS:.0f} ms"
     )
+
+
+# A tripwire, not a latency budget: the number is the difference between a linear scan and a
+# backtracking one, which is minutes against microseconds. It sits here because it reads a
+# clock, and `tests/test_timing_assertion_guard.py` refuses that shape in the `-n auto` leg.
+LABELER_BUDGET_S = 0.2
+
+
+def test_the_skill_labeler_finishes_on_text_that_has_no_match() -> None:
+    """Budget: a 4000-character run of one letter labels inside LABELER_BUDGET_S.
+
+    Moved out of tests/test_skill_author_language.py on 2026-11-02 by the guard named above.
+    The shape it guards is the first draft of the umlaut rule, which nested one quantifier
+    inside another over text a user writes; the code scanner caught it on the pull request.
+    The number stays where the draft put it — a widened budget would stop proving the claim.
+    """
+    import time
+
+    from core import skills
+
+    hostile = "A" * 4000 + "!"
+    started = time.perf_counter()
+    assert skills.detect_language(hostile) == "en"
+    elapsed = time.perf_counter() - started
+    assert elapsed < LABELER_BUDGET_S, f"the labeler took {elapsed:.3f}s over user text"
+    assert skills.detect_language("A" * 2000 + " wä" + "A" * 2000) == "de"
