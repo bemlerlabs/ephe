@@ -1,6 +1,6 @@
 """W3-39 — the poka-yoke pass over tool schemas: absolute paths, required fields.
 
-A schema is only as mistake-proof as its weakest field. Three invariants, read
+A schema is only as mistake-proof as its weakest field. Four invariants, read
 live from ``get_tool_schemas()`` (no pinned counts — the registry owns those):
 
   * every declared property carries a description — an undescribed field is the
@@ -10,7 +10,9 @@ live from ``get_tool_schemas()`` (no pinned counts — the registry owns those):
     runners, or a bare output name for ``filename`` — so the model cannot
     silently prefix a bare name and land outside the intended folder; and
   * every parameter a handler hard-requires is listed in ``required`` with a
-    declared type, so the registry validator gates the call before dispatch.
+    declared type, so the registry validator gates the call before dispatch; and
+  * every sentence Ephe authors here is in one language, the shelf's, because the
+    same text is the prompt the engine reads and the line the Tools page shows.
 
 The ``mcp_``-prefixed schemas are foreign (an MCP server authors them); this
 contract covers only the schemas Ephe itself authors.
@@ -230,3 +232,31 @@ def test_output_filename_fields_are_names_not_paths():
         if not re.search(r"file ?name|artifact", desc, re.IGNORECASE):
             offenders.append(f"{name}.{key}: {desc!r}")
     assert not offenders, "output filename fields not framed as output names: " + "; ".join(offenders)
+
+
+def test_every_authored_schema_text_keeps_the_shelf_language():
+    """GIVEN a schema Ephe authors
+    WHEN its tool description and every parameter description are read
+    THEN each stays in the shelf language the Discover cards are labelled with.
+
+    Measured 2026-11-02: two of the 74 first-party schemas carried German sentences, so the
+    Tools page and the engine prompt held words no other tool row said, in an app that starts
+    in English. The shelf labels an author's own language instead of rewriting it
+    (`core/skills.detect_language`, the same rule the card mark uses); first-party text has no
+    author to defer to, so it has one language. Foreign `mcp_` schemas are excluded above.
+    """
+    from core.skills import SHELF_LANGUAGE, detect_language
+
+    offenders = []
+    for entry in _schemas():
+        function = entry["function"]
+        texts = [str(function.get("description") or "")]
+        for spec in _properties(function).values():
+            texts.append(str((spec or {}).get("description") or ""))
+        for text in texts:
+            if detect_language(text) != SHELF_LANGUAGE:
+                offenders.append(f"{function['name']}: {text[:60]!r}")
+    # Non-vacuity: the registry answered 74 first-party schemas when this was written, and a
+    # scan that read nothing would pass every sentence below it.
+    assert len(_schemas()) >= 50, "the schema read came back nearly empty"
+    assert not offenders, "tool text left the shelf language: " + "; ".join(offenders)
