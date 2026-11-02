@@ -1,7 +1,6 @@
 import { Send, Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { WARN_THRESHOLD } from '@/lib/contextMeter'
-import { contextRingLabel } from './contextRing'
 
 /**
  * E-UX: the composer's right-hand complex — context ring + send/stop button +
@@ -22,14 +21,14 @@ export default function ComposerSendButton({
   contextPercent: number | null
   queueCount: number
 }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   return (
-    <div
-      className="relative shrink-0"
-      role="img"
-      aria-label={contextRingLabel(t, contextPercent, i18n.language)}
-      title={contextRingLabel(t, contextPercent, i18n.language)}
-    >
+    // One figure, one home. The ring is the affordance at the button that spends the
+    // context and the svg carries no name of its own; the status row's gauge is what
+    // states the number. Measured before, a screen reader read `Context used: 3.0%`
+    // twice on one screen. The wrapper stays an ordinary div: the send and stop
+    // buttons live inside it, and hiding it would hide them with it.
+    <div className="relative shrink-0">
       {/* E-UX: context ring (the reference clients use a circle at the
           composer) — progress = context utilisation, colour green →
           yellow (warn threshold) → red; subtle behind the send button.

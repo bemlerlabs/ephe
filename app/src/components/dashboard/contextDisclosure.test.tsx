@@ -88,11 +88,11 @@ describe('contextRingLabel', () => {
     'utf8',
   )
 
-  it('is wired to the ring wrapper as its accessible name', () => {
-    expect(RING_WRAPPER).toMatch(
-      /aria-label=\{contextRingLabel\(t, contextPercent, i18n\.language\)\}/,
-    )
-    expect(RING_WRAPPER).toMatch(/role="img"/)
+  it("leaves the ring unnamed, because the status gauge is the figure's one home", () => {
+    // Measured on the installed screen: the ring and the gauge both carried
+    // `Context used: 3.0%`, so a screen reader read the same number twice.
+    expect(RING_WRAPPER).not.toMatch(/aria-label=\{contextRingLabel/)
+    expect(RING_WRAPPER).not.toMatch(/role="img"/)
   })
 
   it('names the ring with the percent it draws', () => {
