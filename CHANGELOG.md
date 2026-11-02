@@ -46,6 +46,8 @@ reads an author's words in one pass, and the links that finally leave the deskto
 - panel: The side column answers one question now. One icon per section that holds something —
   output, site, console, notes, changes — and only the section in front says its name; the icon
   already in front is the handle that folds the body away (`cf22d029`)
+- chat: The chrome names the task once. The heading carries it and is the renameable identity;
+  the run line printed the same sentence again beside `Ready` (`e0c547aa`)
 - panel: A document the workspace holds loses the browser row around it — name, folder and one
   word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
   stops calling itself Browser while its own tooltip says it renders files and artifacts
