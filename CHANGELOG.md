@@ -43,6 +43,8 @@ reads an author's words in one pass, and the links that finally leave the deskto
   PWA has always shown are no longer missing in the desktop shell — the plates put a
   root-relative `/api/…` in `src`, which resolves in the browser and asks `tauri://localhost`
   for a file it never carried (`3614f87a`)
+- packaging: The brand-marks register travels into both shipped copies of NOTICE, so the npm
+  package and the app bundle cannot drift from the file in the repository root (`c6f80c93`)
 - panel: The side column answers one question now. One icon per section that holds something —
   output, site, console, notes, changes — and only the section in front says its name; the icon
   already in front is the handle that folds the body away (`cf22d029`)
