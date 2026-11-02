@@ -173,13 +173,37 @@ describe('announceBuildParity', () => {
   it("announces an older window without putting commits in the reader's face", async () => {
     health.mockResolvedValue({ git_sha: 'bbbbbbbbbbbb' })
 
-    await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa')).resolves.toEqual({
+    await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa', false)).resolves.toEqual({
       verdict: 'mismatch',
       build: 'aaaaaaaaaaaa',
       backend: 'bbbbbbbbbbbb',
     })
 
     expect(toast.error).toHaveBeenCalledWith('chat.buildMismatch')
+  })
+
+  // Measured 2026-11-02 on the installed app: the shell said `Reload the window to load
+  // it.` while the newer interface sat in the freshly installed `.app` — a reload re-reads
+  // the same bundle, so the one instruction the toast gave could not do the thing it asked.
+  it('in the shell the same verdict names the update and opens the page that runs it', async () => {
+    await expect(
+      announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'aaaaaaaaaaaa', true),
+    ).resolves.toMatchObject({ verdict: 'mismatch' })
+
+    const call = toast.error.mock.calls.at(-1) ?? []
+    expect(call[0]).toBe('chat.buildMismatchShell')
+    expect(call[2]).toEqual({ label: 'update.applyNow', onClick: expect.any(Function) })
+    expect(call[3]).toBe('build-parity')
+
+    const seen: string[] = []
+    const onTab = (e: Event) => seen.push((e as CustomEvent<{ tab?: string }>).detail?.tab ?? '')
+    window.addEventListener('ephe:settings-tab', onTab)
+    try {
+      ;(call[2] as { onClick: () => void }).onClick()
+    } finally {
+      window.removeEventListener('ephe:settings-tab', onTab)
+    }
+    expect(seen).toEqual(['about'])
   })
 
   it('stays quiet when the bundle was built from the commit that serves it', async () => {
