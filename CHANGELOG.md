@@ -29,6 +29,10 @@ reads an author's words in one pass, and the links that finally leave the deskto
   `dd51da76`, `13b259ea`)
 - settings: The Version & Updates page opens the update sheet its own Details button promises;
   measured on the installed app, that click answered with nothing at all (`81094860`)
+- panel: A document the workspace holds loses the browser row around it — name, folder and one
+  word for what it is take the place of reload, back, forward and a `%2F` query — and the tab
+  stops calling itself Browser while its own tooltip says it renders files and artifacts
+  (`b9f67343`)
 
 ## [0.5.3] - 2026-11-02
 
