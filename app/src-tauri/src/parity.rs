@@ -102,6 +102,52 @@ pub fn move_commands() -> [&'static [&'static str]; 2] {
     [&FETCH[..], &CHECKOUT[..]]
 }
 
+/// What the shell's environment refresh answered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Refresh {
+    /// The installer ran and landed.
+    Done,
+    /// The request went out and the installer still runs.
+    Running,
+    /// The refresh did not run; the sentence names which of the three it was.
+    Held(&'static str),
+}
+
+/// The verdict and its sentence once the checkout has moved.
+///
+/// The code is here; the process that runs it was started before the move, so
+/// every branch ends in a start. What separates them is only whether the
+/// packages beside the tree moved with it.
+pub fn after_move(refresh: Refresh, shell: &str) -> (&'static str, String) {
+    match refresh {
+        Refresh::Done => (
+            "updated_restart",
+            format!("the backend moved to {shell} and its environment was refreshed; restart Ephe to load it"),
+        ),
+        Refresh::Running => (
+            "updated_reinstalling",
+            format!("the backend moved to {shell}; its environment is refreshing, and the refresh needs a restart too"),
+        ),
+        Refresh::Held(why) => (
+            "updated_restart",
+            format!("the backend moved to {shell}; the environment refresh did not run ({why}); restart Ephe to load the code"),
+        ),
+    }
+}
+
+/// The request the refresh is made with. The route demands the same two marks
+/// the apply route does, so they are built here once and tested without a socket.
+pub fn install_request(port: u16) -> Vec<u8> {
+    let body = r#"{"confirm":"install"}"#;
+    format!(
+        "POST /api/update/install HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\
+         X-Requested-With: XMLHttpRequest\r\nContent-Type: application/json\r\n\
+         Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    )
+    .into_bytes()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,13 +250,50 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn a_refreshed_environment_still_needs_the_start_that_loads_it() {
+        let (verdict, note) = after_move(Refresh::Done, "0.5.3");
+        assert_eq!(verdict, "updated_restart");
+        assert!(note.contains("0.5.3"), "{note}");
+        assert!(note.contains("environment was refreshed"), "{note}");
+    }
+
+    #[test]
+    fn a_refresh_still_running_is_a_verdict_of_its_own() {
+        assert_eq!(after_move(Refresh::Running, "0.5.3").0, "updated_reinstalling");
+    }
+
+    #[test]
+    fn a_held_refresh_names_why_and_still_loads_the_code() {
+        let (verdict, note) = after_move(Refresh::Held("the backend did not answer"), "0.5.3");
+        assert_eq!(verdict, "updated_restart");
+        assert!(note.contains("the backend did not answer"), "{note}");
+    }
+
+    #[test]
+    fn the_refresh_request_carries_both_marks_the_route_demands() {
+        let text = String::from_utf8(install_request(8765)).expect("an ascii request line");
+        assert!(text.starts_with("POST /api/update/install HTTP/1.1\r\n"), "{text}");
+        assert!(text.contains("Host: 127.0.0.1:8765\r\n"), "{text}");
+        assert!(text.contains("X-Requested-With: XMLHttpRequest\r\n"), "{text}");
+        assert!(text.ends_with("{\"confirm\":\"install\"}"), "{text}");
+        let stated = text
+            .lines()
+            .find_map(|line| line.strip_prefix("Content-Length: "))
+            .unwrap_or_default()
+            .parse::<usize>()
+            .unwrap_or_default();
+        assert_eq!(stated, text.split("\r\n\r\n").nth(1).unwrap_or_default().len());
+    }
 }
 
 /// What the shell found, in the shape the surface reads.
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
-    /// `current`, `mismatch`, `updated_restart`, `unknown` or `no_backend`.
+    /// `current`, `mismatch`, `updated_reinstalling`, `updated_restart`,
+    /// `unknown` or `no_backend`.
     pub verdict: &'static str,
     pub shell: String,
     pub backend: String,
@@ -269,6 +352,58 @@ mod runtime {
 
     pub fn configured_project() -> Option<std::path::PathBuf> {
         PROJECT.lock().ok().and_then(|g| g.clone())
+    }
+
+    /// How long the environment refresh may take before the shell stops reading.
+    /// The backend's own installer bound is 30 minutes; this waits one minute past
+    /// it, so a refresh that outlives the shell's patience is named as still
+    /// running rather than as failed.
+    const REFRESH_WAIT_MS: u64 = 31 * 60 * 1_000;
+
+    /// Ask the running backend to refresh the environment around the tree it
+    /// serves. The answer is the route's own JSON; anything else is not a refresh.
+    pub fn refresh_environment(port: u16) -> Refresh {
+        use std::io::{ErrorKind, Read, Write};
+        use std::net::{TcpStream, ToSocketAddrs};
+        use std::time::Duration;
+
+        let held = Refresh::Held;
+        let Ok(mut addr) = ("127.0.0.1", port).to_socket_addrs() else {
+            return held("no address for the backend");
+        };
+        let Some(addr) = addr.next() else {
+            return held("no address for the backend");
+        };
+        let Ok(mut stream) = TcpStream::connect_timeout(&addr, Duration::from_millis(1_500)) else {
+            return held("the backend did not answer");
+        };
+        if stream.write_all(&install_request(port)).is_err() {
+            return held("the request did not reach the backend");
+        }
+        let wait = Duration::from_millis(REFRESH_WAIT_MS);
+        if stream.set_read_timeout(Some(wait)).is_err() {
+            return held("the answer could not be waited for");
+        }
+        let mut raw = String::new();
+        if let Err(err) = stream.read_to_string(&mut raw) {
+            // A wait that runs out means the installer still works; a reset or an
+            // unreadable socket means the answer will not arrive at all.
+            return match err.kind() {
+                ErrorKind::WouldBlock | ErrorKind::TimedOut => Refresh::Running,
+                _ => held("the answer did not arrive"),
+            };
+        }
+        let Some(start) = raw.find('{') else {
+            return held("the answer was not an Ephe refresh");
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw[start..]) else {
+            return held("the answer was not an Ephe refresh");
+        };
+        match value.get("ok").and_then(|v| v.as_bool()) {
+            Some(true) => Refresh::Done,
+            Some(false) => held("the backend refused the refresh"),
+            None => held("the answer named no result"),
+        }
     }
 
     /// Run git with the backend root as the working directory. The path is never
@@ -353,21 +488,25 @@ mod runtime {
                 }
                 let [fetch, checkout] = move_commands();
                 let ran = |args: &[&str]| git_in(root, args).is_some();
-                if ran(fetch) && ran(checkout) {
-                    remember(make_status(
-                        "updated_restart",
-                        shell,
-                        &backend,
-                        "the backend checkout moved to the release; restart Ephe to load it",
-                    ))
-                } else {
-                    remember(make_status(
+                if !ran(fetch) || !ran(checkout) {
+                    return remember(make_status(
                         "mismatch",
                         shell,
                         &backend,
                         "the backend could not be moved; check the network or update it by hand",
-                    ))
+                    ));
                 }
+                // The tree is current now; the packages beside it are not, and only
+                // the running backend can move them. Say so before asking, so a
+                // surface that reads the verdict during the wait sees the wait.
+                remember(make_status(
+                    "updated_reinstalling",
+                    shell,
+                    &backend,
+                    &format!("the backend moved to {shell}; its environment is refreshing"),
+                ));
+                let (verdict, note) = after_move(refresh_environment(port), shell);
+                remember(make_status(verdict, shell, &backend, &note))
             }
         }
     }
