@@ -106,7 +106,7 @@ BASE_TOOL_SCHEMAS = [
         "function": {
             "name": "web_search",
             "description": (
-                "Primary web research tool. Searches the internet via DuckDuckGo and returns real, current results with title, URL and content excerpt. Use this tool ALWAYS when you need current information, facts, news or documentation from the internet. Reach: a result whose target is outside fetch_url's reach (cloud metadata, loopback, internal name spaces such as .local/.internal/.svc) is marked with a 'Reichweite:' line instead of being handed over as an openable link."
+                "Primary web research tool. Searches the internet via DuckDuckGo and returns real, current results with title, URL and content excerpt. Use this tool ALWAYS when you need current information, facts, news or documentation from the internet. A result whose target is outside fetch_url's reach (cloud metadata, loopback, internal name spaces such as .local/.internal/.svc) carries a `Reach:` line instead of an openable link."
             ),
             "parameters": {
                 "type": "object",
