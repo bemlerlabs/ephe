@@ -311,23 +311,25 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   index failed that never ran (`0057dd56`)
 - discover: The shelf keeps each author's own words and labels the language they are in, after
   measuring that 2 of 72 served entries were a user's German and none of the 51 first-party
-  packs were (`1c37371a`)
+  packs were (`bfcf49fb`)
 - skills: The language labeler reads user text with one quantifier, and a guard refuses a stall
-  on four thousand repeated letters (`e4c60c91`)
+  on four thousand repeated letters (`ea4c0b79`)
 - status: The context figure has one home per screen — the row hands the number to the composer
-  from `md` up and takes it back below, instead of printing it four times (`a192be00`)
+  from `md` up and takes it back below, instead of printing it four times (`105edc18`)
 - workspaces: An empty register names the folder the settings answer with, so the page stops
-  saying nothing is live while a turn works in a folder (`eceba5a0`)
+  saying nothing is live while a turn works in a folder (`4adb6f32`)
 - chat: A run keeps its break where a tool round ends, so an answer does not arrive as one
   welded sentence in the chat, in the stored message and in the memory note alike (`dd193942`)
 - chat: The composer mode chip says the mode it shows — its accessible name no longer answers
-  with the security profile, which the chip beside it already owns (`4b1271c0`)
+  with the security profile, which the chip beside it already owns (`2583811a`)
 - artifacts: Every kind the marker table stores has a word in both bundles, so a shelf group
   and its filter chip stop answering MANIFEST, SCORECARD, QA and EVIDENCE_LEDGER over the
-  reader's language (`3ec6d6fc`, `b6635596`)
+  reader's language (`6f907807`, `251213bf`)
 - tools: Two first-party rows read their own contract in the shelf language, and the
   poka-yoke pass now runs every tool and parameter sentence through the detector the
-  Discover label uses, so a third one cannot arrive quietly (`c9d57a32`)
+  Discover label uses, so a third one cannot arrive quietly (`467234f3`)
+- tools: The search row names the marker its own tool writes — the prompt asked the model for
+  a `Reichweite:` line that no output has ever carried (`f84faaa0`)
 
 ## [0.5.2] - 2026-11-01
 
