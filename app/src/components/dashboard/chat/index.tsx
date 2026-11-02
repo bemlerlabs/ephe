@@ -637,7 +637,6 @@ export default function ChatLayout() {
                 inline
                 state={runState}
                 plan={runData.plan}
-                goal={runData.goal}
                 onOpenPalette={openPaletteFromHeader}
               />
               <div className="flex items-center gap-2 shrink-0 ml-auto">
