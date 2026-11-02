@@ -382,7 +382,6 @@
       "expertNoTime": "bestanden",
       "failed": "✗ Prüfung fehlgeschlagen — Zeile öffnen für die Ausgabe"
     },
-    "profilePrefix": "Profil:",
     "modeSelectorAria": "Antwort-Modus des Composers",
     "activeMarker": "(aktuell)",
     "contextRing": "Kontext belegt: {{percent}}%",

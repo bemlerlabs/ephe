@@ -514,7 +514,6 @@ export default function ChatInput({
             <ComposerModeChip
               open={modeOpen}
               mode={mode}
-              approval={perm}
               anchorRef={modeChipRef}
               menuPos={modeMenuPos}
               onToggle={() => {
