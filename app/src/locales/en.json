@@ -2172,6 +2172,7 @@
     "introSkip": "Skip",
     "introCta": "Begin",
     "modelChecking": "Checking the engine",
+    "modelStatusUnknown": "Engine status unavailable",
     "modelOnline": "Engine reachable",
     "modelOffline": "Engine unreachable",
     "cards": {
