@@ -20,6 +20,12 @@ The 0.5.4 wave is named below (`be8b96c6`, `86521560`, `1228a4c6`, `dd51da76`, `
   looked perfectly fine (`6d5be45f`)
 - chat: The context figure is named once per screen — the ring at the send button keeps its
   arc and drops the duplicate name, the status gauge stays the instrument (`1dd14649`)
+- release: The update window's notes are the words of the changelog, without the commit
+  address every entry ends with — the register reads a line by its address, the person
+  deciding whether to install read a sentence that stopped in hex digits (`ff309a13`)
+- chat: An engine answer that cannot be read names itself — the header promised
+  `Checking the engine` on a screen where the strip said `Disconnected`, because the
+  backend that probes the engine was the thing that was gone (`0b99d522`)
 
 ## [0.5.4] - 2026-11-02
 
