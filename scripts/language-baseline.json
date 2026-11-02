@@ -57,7 +57,7 @@
   "app/src/components/dashboard/SettingsPanel.code-exec.test.tsx": 10,
   "app/src/components/dashboard/SettingsPanel.dialog.a11y.test.tsx": 4,
   "app/src/components/dashboard/SettingsPanel.engine.test.tsx": 4,
-  "app/src/components/dashboard/SettingsPanel.fullpage.test.tsx": 5,
+  "app/src/components/dashboard/SettingsPanel.fullpage.test.tsx": 4,
   "app/src/components/dashboard/SettingsPanel.mcp.test.tsx": 3,
   "app/src/components/dashboard/SettingsPanel.memory.test.tsx": 2,
   "app/src/components/dashboard/SettingsPanel.mobile.test.tsx": 2,
@@ -75,7 +75,7 @@
   "app/src/components/dashboard/StatusBar.digits.test.tsx": 3,
   "app/src/components/dashboard/StatusBar.r6.test.tsx": 3,
   "app/src/components/dashboard/StatusBar.r6b.test.tsx": 3,
-  "app/src/components/dashboard/StatusBar.test.tsx": 8,
+  "app/src/components/dashboard/StatusBar.test.tsx": 7,
   "app/src/components/dashboard/StatusBar.w14.test.tsx": 3,
   "app/src/components/dashboard/StatusBar.w16.test.tsx": 2,
   "app/src/components/dashboard/ThinkingBlock.test.tsx": 5,
@@ -498,6 +498,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 2031,
+ "total": 2029,
  "version": 1
 }
