@@ -39,6 +39,8 @@ export interface DiscoverItem {
   installed: boolean
   enabled: boolean
   version?: string
+  /** The author's own words stay on the card; this labels the language they are in. */
+  language?: string
   /** Tools a connector brings with it — the only count a connector can show. */
   toolCount?: number
   latencyMs?: number
@@ -157,6 +159,7 @@ export function buildItems(sources: DiscoverSources): DiscoverItem[] {
       installed: true,
       enabled: !skill.disabled,
       version: skill.version,
+      language: skill.language,
       calls: usedCalls.get(skill.name),
     })
   }

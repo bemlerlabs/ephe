@@ -61,6 +61,9 @@ class SkillSummary(BaseModel):
     when_not_to_use: list[str] = []
     version: str = "1.0.0"
     disabled: bool = False
+    # Shelf rule: the words above stay the author's; this labels the language the
+    # loader read in them ("en" when it found no evidence of another).
+    language: str = "en"
     # R4: where an installed package came from — only for user skills, never for
     # built-ins, and never an invented source when the note is missing.
     install: dict | None = None
@@ -156,6 +159,7 @@ async def list_skills() -> SkillsListResponse:
                 when_to_use=s.when_to_use,
                 when_not_to_use=s.when_not_to_use,
                 version=s.version,
+                language=s.language,
                 disabled=loader.is_disabled(s.name),
                 install=install,
                 unchanged=unchanged,
