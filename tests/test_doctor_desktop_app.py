@@ -155,6 +155,23 @@ def test_the_row_names_an_unreadable_registry_instead_of_a_clean_machine(
     assert "lsregister died" in detail
 
 
+def test_a_registry_that_answers_with_nothing_is_an_error(tmp_path: Path, monkeypatch):
+    """The quiet failure this row exists to catch.
+
+    `lsregister` can exit non-zero with an empty body. Parsed, that is a list of zero bundles,
+    which is the same answer a clean machine gives — so the return code is read before the
+    body is trusted."""
+    import subprocess
+
+    def fails(*_a, **_k):
+        return subprocess.CompletedProcess([], 1, "", "registration database unavailable")
+
+    monkeypatch.setattr(mod.subprocess, "run", fails)
+    paths, error = mod._registered_bundle_paths(seconds=1.0)
+    assert paths == []
+    assert "lsregister answered 1" in error
+
+
 def test_the_dump_parser_reads_the_record_that_carries_the_identifier():
     """`lsregister -dump` is a run of records; the identifier and the path sit in the same
     one, so the pair has to be kept together rather than searched line by line."""

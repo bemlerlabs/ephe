@@ -283,15 +283,11 @@ def _desktop_bundles_other_than(
     is dropped — the row is about what can actually be reached."""
     registered, error = _registered_bundle_paths(seconds)
     candidates = set(registered) | set(_indexed_bundle_paths(seconds))
-    out: list[str] = []
-    for path in candidates:
-        if not path.endswith(".app") or Path(path) == installed:
-            continue
-        try:
-            if Path(path).exists():
-                out.append(path)
-        except OSError:
-            continue
+    out = [
+        path
+        for path in candidates
+        if path.endswith(".app") and Path(path) != installed and Path(path).exists()
+    ]
     return sorted(out), error
 
 
