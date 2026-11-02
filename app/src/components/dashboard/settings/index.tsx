@@ -219,12 +219,19 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
               ← {t('settings.back')}
             </button>
             <div className="flex-1 min-w-0 flex items-center gap-2">
-              <h1
+              {/* Heading rule, made explicit: one area title per view, and every area
+                  title sits at the same level. `Discover`, `Tools`, `Workspaces`,
+                  `Workbench` and `What stays` all render through `PageHeader`, which is
+                  an `h2`; the settings pane is an area title too, so it is an `h2` here.
+                  A screen reader builds its outline from these levels — a lone `h1` in
+                  one area would break the outline. The `…-h1` test id is kept because the
+                  walkthrough queries it by text, never by tag. */}
+              <h2
                 data-testid="settings-title-h1"
                 className="text-ui-lg font-semibold text-foreground/90 truncate max-md:sr-only"
               >
                 {t(`settings.${activeTab}`)}
-              </h1>
+              </h2>
               <button
                 type="button"
                 data-testid="settings-lang-pill"

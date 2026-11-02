@@ -209,10 +209,16 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     expect(screen.getByTestId('settings-nav-language')).not.toHaveClass('bg-brand/10')
   })
 
-  it('H1 + Sprach-Pill: Pill zeigt aktive Sprache, Klick schaltet de→en', async () => {
+  it('area title + Sprach-Pill: the pane title is the view\'s h2 (one level, no stray h1)', async () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     await screen.findByTestId('settings-page')
-    expect(screen.getByTestId('settings-title-h1')).toBeInTheDocument()
+    // Heading rule: every area title sits at the same level. Discover/Tools/Workspaces/
+    // Workbench/What-stays all render through PageHeader (an h2), so the settings pane
+    // title is an h2 too — a lone h1 would break the outline a screen reader builds.
+    const title = screen.getByTestId('settings-title-h1')
+    expect(title.tagName).toBe('H2')
+    expect(screen.getByRole('region', { name: 'settings.engine' })).toBeInTheDocument()
+    expect(screen.getByTestId('settings-page').querySelector('h1')).toBeNull()
     const pill = screen.getByTestId('settings-lang-pill')
     expect(pill.textContent).toContain('Deutsch')
     fireEvent.click(pill)
