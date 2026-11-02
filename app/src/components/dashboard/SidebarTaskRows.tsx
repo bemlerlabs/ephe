@@ -90,8 +90,6 @@ export interface TaskRowGroupProps extends TaskRowState {
   collapsed: boolean
   onToggleCollapse: () => void
   collapsedBranches: Set<string>
-  /** Icon rail (collapsed sidebar): icons only, no meta line, no rules. */
-  rail: boolean
 }
 
 const LABEL =
@@ -107,11 +105,7 @@ const FOLD_TRIGGER =
 
 /** One row: the indent, the title at the UI step, the numbers at the data step,
  *  and the one Rule it may carry on its left edge. */
-function TaskRow({
-  row,
-  rail,
-  ...state
-}: { row: SessionTreeRow<TaskRowSession>; rail: boolean } & TaskRowState) {
+function TaskRow({ row, ...state }: { row: SessionTreeRow<TaskRowSession> } & TaskRowState) {
   const { t, i18n } = useTranslation()
   const { session, depth, childCount, rails } = row
   const running = session.id === state.runningSessionId
@@ -119,26 +113,25 @@ function TaskRow({
   // `selected` marks where the reader is, `now` marks what is happening; the
   // running row is both, and the accent outranks the selection line.
   const edge = running ? 'now' : selected ? 'selected' : null
-  const renaming = state.rename.id === session.id && !rail
+  const renaming = state.rename.id === session.id
   const title = session.title === DEFAULT_SESSION_TITLE ? t('sidebar.newChat') : session.title
 
   return (
     <div
       data-session-id={session.id}
       data-testid={`session-row-${session.id}`}
-      style={rail ? undefined : { paddingLeft: depth * 12 }}
-      className={`group relative ${rail ? 'flex justify-center' : ''}`}
+      style={{ paddingLeft: depth * 12 }}
+      className="group relative"
       onContextMenu={(e) => {
-        if (rail) return
         e.preventDefault()
         state.onOpenMenu(session.id, e.clientX, e.clientY)
       }}
     >
       {edge && <Rule orientation="vertical" tone={edge} className="absolute inset-y-0 left-0" />}
-      {/* P1-9: fold toggle, on parents only; the icon rail carries none. A sibling of the
+      {/* P1-9: fold toggle, on parents only. A sibling of the
           select button (no nested button); absolute in the left gutter,
           aria-expanded drives the branch. */}
-      {!rail && childCount > 0 && (
+      {childCount > 0 && (
         <button
           type="button"
           data-testid={`session-fold-${session.id}`}
@@ -165,7 +158,7 @@ function TaskRow({
         onClick={() => state.onSelect(session.id)}
         title={title}
         className={`w-full text-left transition-colors duration-fast ${
-          rail ? 'p-2' : childCount > 0 ? 'pl-6 pr-8 py-2' : 'pl-2.5 pr-8 py-2'
+          childCount > 0 ? 'pl-6 pr-8 py-2' : 'pl-2.5 pr-8 py-2'
         }`}
       >
         {renaming ? (
@@ -188,8 +181,7 @@ function TaskRow({
                 below it) + own connector (├ / └). Column depth-1 = own one. The
                 step matters: these glyphs used to fall back to the 16px root size
                 while the title beside them read 11px. */}
-            {!rail &&
-              depth > 0 &&
+            {depth > 0 &&
               rails.slice(0, depth - 1).map((cont, k) => (
                 <span
                   key={k}
@@ -199,7 +191,7 @@ function TaskRow({
                   {cont ? '│' : ' '}
                 </span>
               ))}
-            {!rail && depth > 0 && (
+            {depth > 0 && (
               <span
                 data-testid={`session-connector-${session.id}`}
                 className={`shrink-0 text-ink-faint ${TITLE} font-mono`}
@@ -210,7 +202,7 @@ function TaskRow({
             )}
             {/* P1-9: branch badge — the number of direct children. A number, so it
                 is set in the data column's figures and wears no pill. */}
-            {!rail && childCount > 0 && (
+            {childCount > 0 && (
               <span
                 data-testid={`session-branch-count-${session.id}`}
                 className={`shrink-0 text-ink-faint ${DATA}`}
@@ -234,7 +226,7 @@ function TaskRow({
             {/* M2: the unread state is typographic now — the title takes an ink
                 step — so the marker itself is the word for it, read out rather
                 than painted as a 1.5px brand dot on a row that is not running. */}
-            {session.unread && !rail && (
+            {session.unread && (
               <span
                 data-testid={`session-unread-dot-${session.id}`}
                 className="sr-only text-scale-data"
@@ -242,60 +234,54 @@ function TaskRow({
                 {t('sidebar.filterUnread')}
               </span>
             )}
-            {session.pinned && !rail && (
+            {session.pinned && (
               <Pin
                 className="h-3 w-3 shrink-0 text-ink-faint"
                 aria-label={t('sidebar.sessionMenu.pinnedAria')}
               />
             )}
-            {!rail && (
-              <p
-                data-testid="session-title-text"
-                className={`flex-1 min-w-0 truncate ${TITLE} ${
-                  session.unread || selected
-                    ? 'text-ink'
-                    : 'text-ink-faint group-hover:text-ink-soft'
-                }`}
-              >
-                {title}
-              </p>
-            )}
+            <p
+              data-testid="session-title-text"
+              className={`flex-1 min-w-0 truncate ${TITLE} ${
+                session.unread || selected ? 'text-ink' : 'text-ink-faint group-hover:text-ink-soft'
+              }`}
+            >
+              {title}
+            </p>
           </div>
         )}
-        {!rail && (
-          <p className="mt-0.5 flex items-baseline justify-between gap-2">
-            {/* The record of the session's work. It is the one number on the row
+        <p className="mt-0.5 flex items-baseline justify-between gap-2">
+          {/* The record of the session's work. It is the one number on the row
                 that moves while a turn runs, so it is the row's "now" — and the
                 only number in this block that carries the accent. */}
-            <span className={`${DATA} ${running ? 'text-brand-deep' : 'text-ink-faint'}`}>
-              {session.messages.length === 0
-                ? t('sidebar.ready')
-                : `${session.messages.length} ${t('sidebar.messages')}`}
-            </span>
-            <span data-testid={`session-age-${session.id}`} className="min-w-0 shrink truncate">
-              {session.messages.length === 0 ? (
-                /* A word, not a number, so it takes the data step by hand: the row's
+          <span className={`${DATA} ${running ? 'text-brand-deep' : 'text-ink-faint'}`}>
+            {session.messages.length === 0
+              ? t('sidebar.ready')
+              : `${session.messages.length} ${t('sidebar.messages')}`}
+          </span>
+          <span data-testid={`session-age-${session.id}`} className="min-w-0 shrink truncate">
+            {session.messages.length === 0 ? (
+              /* A word, not a number, so it takes the data step by hand: the row's
                    trailing slot is 11 px on every row, and at the base step this label
                    reached over the ⋯ button it sits beside. */
-                <span className={`${DATA} text-ink-faint`}>{t('sidebar.freshCell')}</span>
-              ) : (
-                <Num col={1}>
-                  {formatDistanceToNowStrict(lastActivityAt(session), {
-                    locale: dateLocaleFor(i18n?.language),
-                    roundingMethod: 'floor',
-                  })}
-                </Num>
-              )}
-            </span>
-          </p>
-        )}
+              <span className={`${DATA} text-ink-faint`}>{t('sidebar.freshCell')}</span>
+            ) : (
+              <Num col={1}>
+                {formatDistanceToNowStrict(lastActivityAt(session), {
+                  locale: dateLocaleFor(i18n?.language),
+                  roundingMethod: 'floor',
+                })}
+              </Num>
+            )}
+          </span>
+        </p>
       </button>
 
       {/* R26: the ⋯ button (hover/touch) opens the session context menu, and the
           inline confirm below replaces it. Both are the same floating surface as
           before: a transient control over a row is not row chrome. The confirming
           button carries the verb — a bare "Yes" agrees to a sentence it does not repeat. */}
-      {!rail && state.deleteConfirmId === session.id ? (
+      {state.deleteConfirmId === session.id ? (
         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 float-surface p-0.5 z-sticky">
           <button
             onClick={() => state.onDeleteConfirm(session.id)}
@@ -311,21 +297,19 @@ function TaskRow({
           </button>
         </div>
       ) : (
-        !rail && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              state.menuReturnRef.current = e.currentTarget as HTMLElement
-              const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-              state.onOpenMenu(session.id, r.left - 150, r.bottom + 4)
-            }}
-            className={MENU_TRIGGER}
-            aria-label={t('sidebar.sessionMenu.aria')}
-            data-testid={`session-menu-${session.id}`}
-          >
-            <MoreVertical className="h-3.5 w-3.5 lg:h-3 lg:w-3" />
-          </button>
-        )
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            state.menuReturnRef.current = e.currentTarget as HTMLElement
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            state.onOpenMenu(session.id, r.left - 150, r.bottom + 4)
+          }}
+          className={MENU_TRIGGER}
+          aria-label={t('sidebar.sessionMenu.aria')}
+          data-testid={`session-menu-${session.id}`}
+        >
+          <MoreVertical className="h-3.5 w-3.5 lg:h-3 lg:w-3" />
+        </button>
       )}
     </div>
   )
@@ -337,7 +321,6 @@ export function TaskRowGroup({
   sessions,
   collapsed,
   onToggleCollapse,
-  rail,
   ...state
 }: TaskRowGroupProps) {
   const rows = filterCollapsedRows(buildSessionTree(sessions), state.collapsedBranches)
@@ -348,8 +331,7 @@ export function TaskRowGroup({
         <ChevronRight
           className={`h-3 w-3 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
         />
-        {!rail && label}
-        {rail && <span className="sr-only">{label}</span>}
+        {label}
         {/* The group's own count ends on the same right edge as every row's age: 32 px,
             which is the ⋯ button's gutter (right-1.5 plus its 24 px box) and 2 px clear
             of it. The row's text column stops there, so no title reads through the button. */}
@@ -359,13 +341,13 @@ export function TaskRowGroup({
       </button>
 
       {!collapsed && (
-        <div data-testid="task-rows" className={`mt-0.5 ${rail ? '' : 'ml-1.5'}`}>
+        <div data-testid="task-rows" className="mt-0.5 ml-1.5">
           {rows.map((row, i) => (
             <div key={row.session.id}>
               {/* The rule sits BETWEEN two rows, never on both edges of one, so
                   neighbours can never double a line. */}
-              {i > 0 && !rail && <Rule />}
-              <TaskRow row={row} rail={rail} {...state} />
+              {i > 0 && <Rule />}
+              <TaskRow row={row} {...state} />
             </div>
           ))}
         </div>

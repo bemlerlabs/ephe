@@ -72,7 +72,7 @@ vi.mock('@/hooks/useMediaQuery', () => ({
 import Sidebar from './Sidebar'
 
 describe('Sidebar-Desktop-Collapse', () => {
-  it('collapsed: Rail w-14, Titel + Search ausgeblendet, Toggle-Label wechselt', () => {
+  it('closed: the column folds to nothing, inert, and keeps no control of its own', () => {
     render(
       <Sidebar
         isOpen={false}
@@ -83,15 +83,18 @@ describe('Sidebar-Desktop-Collapse', () => {
       />,
     )
     const aside = screen.getByTestId('chat-sidebar')
-    expect(aside.className).toContain('w-14')
-    expect(screen.queryByRole('button', { name: 'Collapse sidebar' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeTruthy()
-    expect(screen.queryByPlaceholderText('Search…')).toBeNull()
-    // Sessions stay clickable (icon rail)
-    expect(screen.getByTitle('Alpha')).toBeTruthy()
+    // Register #107: the frame rail is the left edge; a closed register is 0 px wide and
+    // inert, so its rows cannot be tabbed into. It is not a 56 px icon column any more.
+    expect(aside.getAttribute('data-collapsed')).toBe('true')
+    expect(aside.style.width).toBe('0px')
+    expect(aside.hasAttribute('inert')).toBe(true)
+    // The door belongs to the rail, so the column offers no expand button of its own;
+    // its chevron is still there, but the inert column puts it out of every reach.
+    expect(screen.queryByRole('button', { name: 'Expand sidebar' })).toBeNull()
+    expect(screen.getByTestId('sidebar-collapse-toggle').closest('[inert]')).toBe(aside)
   })
 
-  it('collapsed: Expand-Button klickbar und feuert onToggleCollapsed (Regression: war im w-14-Rail geklippt)', () => {
+  it('closed: the rail row is what opens it again — the column carries no toggle', () => {
     const onToggle = vi.fn()
     render(
       <Sidebar
@@ -102,29 +105,30 @@ describe('Sidebar-Desktop-Collapse', () => {
         onToggleCollapsed={onToggle}
       />,
     )
-    const expand = screen.getByTestId('sidebar-expand-toggle')
-    expect(expand).toBeTruthy()
-    fireEvent.click(expand)
-    expect(onToggle).toHaveBeenCalledTimes(1)
+    expect(screen.queryByTestId('sidebar-expand-toggle')).toBeNull()
+    expect(onToggle).not.toHaveBeenCalled()
   })
 
-  it('expanded: w-72 + Sessionstitel + Search sichtbar', () => {
+  it('open: w-72 + session titles + the list search, and a chevron that closes', () => {
+    const onToggle = vi.fn()
     render(
       <Sidebar
         isOpen={false}
         onClose={vi.fn()}
         onOpenSettings={vi.fn()}
         collapsed={false}
-        onToggleCollapsed={vi.fn()}
+        onToggleCollapsed={onToggle}
       />,
     )
     expect(screen.getByTestId('chat-sidebar').className).toContain('w-72')
     expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeTruthy()
     expect(screen.getByText('Alpha')).toBeTruthy()
     expect(screen.getByPlaceholderText('Search…')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('sidebar-collapse-toggle'))
+    expect(onToggle).toHaveBeenCalledTimes(1)
   })
 
-  it('expanded: Logo-Block entfernt — kein hero-frost-h2, kein nav.appName/sidebar.edition-Doppel (R38)', () => {
+  it('expanded: no logo block, and no New-task pill beside the rail’s own + row (R38, #107)', () => {
     render(
       <Sidebar
         isOpen={false}
@@ -141,8 +145,9 @@ describe('Sidebar-Desktop-Collapse', () => {
     expect(screen.queryByText('nav.appName')).toBeNull()
     expect(screen.queryByText('sidebar.edition')).toBeNull()
     expect(document.querySelector('.hero-frost')).toBeNull()
-    // The new-session structure remains as the first interactive block.
-    expect(screen.getByTestId('new-session')).toBeTruthy()
+    // Register #107: on a wide window the rail starts the task; a second pill in the
+    // column would be the duplicate the owner named. The phone drawer keeps it.
+    expect(screen.queryByTestId('new-session')).toBeNull()
   })
 
   it('Group-Collapse: Header-Klick einklappen, zweiter Klick ausklappen', () => {

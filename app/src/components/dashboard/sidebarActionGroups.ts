@@ -98,6 +98,13 @@ export const RAIL_DESTINATIONS: readonly SidebarActionEntryId[] = [
   'artifacts',
 ]
 
+/**
+ * Register #107 adds the two frame verbs the rail took over: New task sits above the
+ * places (it starts one, whatever page you are on) and Search is the ⌘K palette. They
+ * leave the column on a wide window and stay in the phone drawer, which has no rail.
+ */
+export const RAIL_ROW_IDS: readonly SidebarActionEntryId[] = [...RAIL_DESTINATIONS, 'search']
+
 /** Tier id of the disclosures (everything with a head). */
 export type SidebarCollapsibleTierId = Exclude<
   (typeof SIDEBAR_ACTION_TIERS)[number]['id'],

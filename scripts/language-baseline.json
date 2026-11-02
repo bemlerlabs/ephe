@@ -68,7 +68,6 @@
   "app/src/components/dashboard/Sidebar.g3.test.tsx": 2,
   "app/src/components/dashboard/Sidebar.helper.test.tsx": 1,
   "app/src/components/dashboard/Sidebar.projects.test.tsx": 1,
-  "app/src/components/dashboard/Sidebar.test.tsx": 2,
   "app/src/components/dashboard/Sidebar.w17.test.tsx": 3,
   "app/src/components/dashboard/SkyCard.test.tsx": 7,
   "app/src/components/dashboard/SmartTip.test.tsx": 4,
@@ -104,7 +103,7 @@
   "app/src/components/dashboard/chat/ChatSkeleton.test.tsx": 1,
   "app/src/components/dashboard/chat/composerModes.locale.test.ts": 3,
   "app/src/components/dashboard/chat/useTaskDeepLink.test.tsx": 3,
-  "app/src/components/dashboard/k1_shell_parity.test.tsx": 4,
+  "app/src/components/dashboard/k1_shell_parity.test.tsx": 3,
   "app/src/components/dashboard/k2_components.test.tsx": 2,
   "app/src/components/dashboard/k3_p1_wave.test.tsx": 4,
   "app/src/components/dashboard/mutedContrast.gate.test.ts": 2,
@@ -497,6 +496,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 2018,
+ "total": 2015,
  "version": 1
 }

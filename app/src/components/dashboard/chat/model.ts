@@ -28,6 +28,7 @@ import type { TabKey } from '@/components/dashboard/settings/types'
 import { applyStreamEvent } from '@/lib/streamActions'
 import { estimateContextUsage, WARN_THRESHOLD } from '@/lib/contextMeter'
 import { PREVIEW_OPEN_EVENT, PANEL_STATE_EVENT, QUERY_JUMP_EVENT } from '@/lib/panelEvents'
+import { toggleRegister, useRegisterOpen } from '@/lib/taskRegister'
 import { createChunkBatcher } from '@/lib/chunkBatcher'
 import { ToolCall } from '@/types'
 import { useTranslation } from 'react-i18next'
@@ -100,16 +101,12 @@ export function useChatLayoutModel() {
   // settings cap (cron, mcp, …); 'model' stays a legacy alias and the caller
   // maps it onto 'engine'.
   const [settingsTab, setSettingsTab] = useState<TabKey | 'model'>('model')
-  // Sidebar desktop collapse (KI-client style) — persisted
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem('ephe-sidebar-collapsed') === '1',
-  )
-  const toggleSidebarCollapsed = useCallback(() => {
-    setSidebarCollapsed((v) => {
-      localStorage.setItem('ephe-sidebar-collapsed', v ? '0' : '1')
-      return !v
-    })
-  }, [])
+  // Register #107: the task column is the body of the frame rail's Task row, so the
+  // choice of showing it lives in `lib/taskRegister` — the rail and this page read one
+  // value, and a person who had the column closed keeps it closed.
+  const registerOpen = useRegisterOpen()
+  const sidebarCollapsed = !registerOpen
+  const toggleSidebarCollapsed = useCallback(() => toggleRegister(), [])
 
   // P1-16: ⌘B/⌘N and ⌘⇧F/⌘U/⌘J used to be two hand-written key listeners here,
   // comparing `e.key` by hand. They are rows in `lib/shortcuts.ts` now and are
@@ -1263,7 +1260,6 @@ export function useChatLayoutModel() {
     settingsTab,
     setSettingsTab,
     sidebarCollapsed,
-    setSidebarCollapsed,
     toggleSidebarCollapsed,
     headerMeta,
     setHeaderMeta,

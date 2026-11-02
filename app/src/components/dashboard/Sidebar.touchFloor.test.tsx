@@ -142,11 +142,18 @@ describe('Sidebar touch floor at 390 px (W10 g8)', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('the desktop column stays when New task is picked', () => {
-    stubDesktopViewport()
+  it('the drawer ends the pick with the pick itself', () => {
     const onClose = renderSidebar()
     fireEvent.click(screen.getByTestId('new-session'))
-    expect(onClose).not.toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  // Register #107: at the desktop width the frame rail starts the task, so the column
+  // holds no second entry point and nothing in it can close a drawer that is not there.
+  it('the desktop column holds no New-task pill beside the rail', () => {
+    stubDesktopViewport()
+    renderSidebar()
+    expect(screen.queryByTestId('new-session')).toBeNull()
   })
 
   it('Report issue leaves through the shell bridge, not a raw window.open', async () => {
