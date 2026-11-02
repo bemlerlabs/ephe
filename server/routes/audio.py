@@ -72,7 +72,7 @@ class TranscribeResponse(BaseModel):
 
 @router.post("/audio/transcribe", response_model=TranscribeResponse)
 async def transcribe_audio(
-    file: UploadFile = File(..., description="Audio-Datei (webm, mp4, wav, m4a)"),
+    file: UploadFile = File(..., description="Audio file (webm, mp4, wav, m4a)"),
 ):
     """
     Receives audio from the frontend, stores it safely and transcribes it locally.
