@@ -283,7 +283,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   wording of both branches so a translated string is caught by a test (`b336e116`)
 - discover: The shelf keeps each skill's own words and the loader marks the language they are
   in, falling back to the shelf language when there is no evidence; measured 2 of 72 served
-  entries were the user's German, none first-party (`1b0d3df2`)
+  entries were the user's German, none first-party (`bd7a518d`)
+- discover: The labeler reads a user's own words with one quantifier, and a guard refuses a
+  stall on four thousand letters (`6c2319fc`)
 
 ### Security
 
@@ -313,7 +315,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
 - status: A refused index read answers idle, so a screen with no workspace stops claiming an
   index failed that never ran (`0057dd56`)
 - chat: A run keeps its break where a tool round ends, so an answer does not arrive as one
-  welded sentence in the chat, in the stored message and in the memory note alike (`8c2e2581`)
+  welded sentence in the chat, in the stored message and in the memory note alike (`dd193942`)
 
 ## [0.5.2] - 2026-11-01
 
