@@ -49,14 +49,7 @@ describe('runStateOf — the state, read off the session', () => {
 describe('AgenticBar — one chrome line states the run', () => {
   const render_bar = (props: Partial<Parameters<typeof AgenticBar>[0]> = {}) => {
     const onOpenPalette = vi.fn()
-    render(
-      <AgenticBar
-        state="working"
-        plan={PLAN}
-        onOpenPalette={onOpenPalette}
-        {...props}
-      />,
-    )
+    render(<AgenticBar state="working" plan={PLAN} onOpenPalette={onOpenPalette} {...props} />)
     return onOpenPalette
   }
 
