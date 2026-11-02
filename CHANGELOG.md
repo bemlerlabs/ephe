@@ -324,7 +324,7 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   with the security profile, which the chip beside it already owns (`4b1271c0`)
 - artifacts: Every kind the marker table stores has a word in both bundles, so a shelf group
   and its filter chip stop answering MANIFEST, SCORECARD, QA and EVIDENCE_LEDGER over the
-  reader's language (`3ec6d6fc`)
+  reader's language (`3ec6d6fc`, `b6635596`)
 
 ## [0.5.2] - 2026-11-01
 
