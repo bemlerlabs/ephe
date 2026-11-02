@@ -27,6 +27,7 @@ mod vision;
 mod instance;
 mod parity;
 mod quicklook;
+mod runlog;
 
 /// Keep-awake (P2-B Automations): the `caffeinate` child process (macOS) that
 /// `set_keep_awake(true)` starts. Held statically so the command itself stays
@@ -52,6 +53,9 @@ fn keep_awake_stop() {
 /// the shell, so the next version does not inherit this one's Python process.
 #[tauri::command]
 fn stop_backend() {
+    // The update surface calls this on its way to a relaunch, so the ledger can
+    // tell a restart the user asked for from an end nothing reported.
+    runlog::note_here("restart requested");
     backend::stop_backend();
 }
 
@@ -766,6 +770,10 @@ pub fn run() {
                 )?;
             }
 
+            // A release build registers no logger, so the run itself is written
+            // where the shell can still be read afterwards.
+            runlog::note_here("start");
+
             // R7: the app icon alone has to be enough. Without this follow-up
             // check the window opens against a missing backend and reports
             // "Disconnected" — measured 2026-10-08 on the installed app.
@@ -930,6 +938,7 @@ pub fn run() {
             // calls would otherwise leave `caffeinate` running after the shell.
             keep_awake_stop();
             backend::stop_backend();
+            runlog::note_here("exit");
         }
         // ⌘W and the red button both end here. Letting Tauri destroy `main` left
         // `get_webview_window("main")` empty, and no Dock reopen and no tray click
