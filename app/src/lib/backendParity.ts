@@ -1,4 +1,5 @@
 import { healthCheck } from '@/lib/api'
+import { relaunchApp, restartGuardNow } from '@/lib/restartGuard'
 import { toastBus } from '@/lib/toast'
 
 export interface BackendParity {
@@ -31,7 +32,9 @@ async function invokeParity(): Promise<BackendParity> {
 /**
  * The updater replaces the `.app` and nothing else, so the Python backend can
  * still be running the version before the shell's. The shell compares the two
- * when it starts the backend; this reads what it found and says it out loud.
+ * when it starts the backend, moves the checkout when they disagree and asks
+ * that backend to refresh the environment around the tree it just moved; this
+ * reads what the shell found and says it out loud.
  *
  * Only a measured disagreement is reported. `unknown` and `no_backend` stay
  * silent because there is nothing there to name — an older shell without the
@@ -44,15 +47,75 @@ export async function announceBackendParity(t: Translate): Promise<BackendParity
   } catch {
     return null
   }
+  report(status, t)
+  if (status.verdict === 'updated_reinstalling') followRefresh(t)
+  return status
+}
+
+/** One verdict, in the user's words.
+ *
+ * The shell's own note stays out of the restart branch on purpose: it names a
+ * git state in the shell's language, and what a person needs here is the action.
+ * The mismatch keeps its note because that sentence is the reason nothing moved.
+ */
+function report(status: BackendParity, t: Translate): void {
   if (status.verdict === 'mismatch') {
     toastBus.error(
       t('chat.backendMismatch', { shell: status.shell, backend: status.backend }),
       status.note,
     )
-  } else if (status.verdict === 'updated_restart') {
-    toastBus.info(t('chat.backendUpdated'), undefined, undefined, 'backend-parity')
+    return
   }
-  return status
+  if (status.verdict === 'updated_reinstalling') {
+    toastBus.info(t('chat.backendReinstalling'), undefined, undefined, 'backend-parity')
+    return
+  }
+  if (status.verdict !== 'updated_restart') return
+  const block = restartGuardNow()
+  if (block.blocked) {
+    toastBus.info(
+      t('chat.backendUpdated'),
+      t(block.reason === 'running' ? 'update.restartBlockedRunning' : 'update.restartBlockedDraft'),
+      undefined,
+      'backend-parity',
+    )
+    return
+  }
+  toastBus.info(
+    t('chat.backendUpdated'),
+    undefined,
+    { label: t('update.relaunchNow'), onClick: () => void relaunchApp() },
+    'backend-parity',
+  )
+}
+
+/** The shell waits on the installer it asked for; the surface waits on the
+ * shell. The same bound, read at the same distance, and a start that comes
+ * later re-reads the verdict on its own. */
+const REFRESH_POLL_MS = 30_000
+const REFRESH_POLLS = 60
+
+let followTimer: ReturnType<typeof setTimeout> | undefined
+
+function followRefresh(t: Translate): void {
+  if (followTimer) clearTimeout(followTimer)
+  let left = REFRESH_POLLS
+  const step = async (): Promise<void> => {
+    followTimer = undefined
+    let next: BackendParity
+    try {
+      next = await invokeParity()
+    } catch {
+      return
+    }
+    if (next.verdict === 'updated_reinstalling') {
+      left -= 1
+      if (left > 0) followTimer = setTimeout(step, REFRESH_POLL_MS)
+      return
+    }
+    report(next, t)
+  }
+  followTimer = setTimeout(step, REFRESH_POLL_MS)
 }
 
 /** The commit this bundle was built from. Empty in a development build whose define
