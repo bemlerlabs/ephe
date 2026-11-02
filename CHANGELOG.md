@@ -9,8 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.5.5 wave is named below (`c263c3ab`, `cf7c3f6b`, `91473a8e`, `8fe8670d`, `9c6d1169`, `2d4080f3`, `8141f783`, `e662f71b`): the left edge fused into one icon sidebar, the update window's notes freed of the register's addresses, an engine answer that cannot be read named as itself, a cache that cannot be read still asking the durable store, and the three readings from the last round — the row that names its last activity, the shelf's data inside the wheel, the context figure with one home.
 
-
-Two readings came after the cut: the shell asks for the update rather than a reload that cannot bring it, and the workspace column learned to open the files it lists.
+Three readings came after the cut: the shell asks for the update rather than a reload that cannot bring it (`3ac7541a`), the workspace column learned to open the files it lists (`92941327`), and the doctor names the app a click actually opens (`a39bcc37`).
 
 
 ### Added
@@ -26,8 +25,16 @@ Two readings came after the cut: the shell asks for the update rather than a rel
 
 
 ### Fixed
+
+- update: The shell names the update instead of a reload that cannot bring it — with the
   new version already written into the `.app`, the toast told the person to reload the
   window, and a reload re-reads the bundle the window is already running from (`3ac7541a`)
+- doctor: The report names the app a click opens and every other bundle answering for the
+  same identifier. macOS resolves an identifier rather than a path, and twenty-one bundles
+  carried `com.ephe.ephe` on the machine that ships Ephe — leftovers of mounted disk images
+  and Tauri builds inside worktrees. The updater had written the new version where it always
+  does; the relaunch reached one of those other copies, so "updated" and "nothing changed"
+  were both true at once, and no surface could see it (`a39bcc37`)
 
 
 ## [0.5.5] - 2026-11-02
