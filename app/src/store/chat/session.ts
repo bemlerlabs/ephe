@@ -8,7 +8,7 @@ import {
 import { restoreFromServer, restoreServerStore } from '@/lib/restore'
 import { isSessionSyncEnabled, isTombstoned } from '@/lib/sessionSync'
 import { compactMessages } from '@/lib/compact'
-import type { ChatMessage, Session } from '@/types'
+import type { ChatMessage, DbSession, Session } from '@/types'
 import type { ChatState, GetFn, SetFn } from './types'
 import {
   closeThinkingPhases,
@@ -50,7 +50,21 @@ export function makeSessionActions(
     // Load persisted sessions from IndexedDB on first mount
     initFromDb: async () => {
       try {
-        let dbSessions = await dbGetAllSessions()
+        // The cache is a cache. A boot that cannot read it still has the machine's own
+        // store, and what the person wrote lives there — so the read gets its own failure
+        // path instead of sharing this `try` with the restores beneath it. Measured
+        // 2026-11-02 on the installed shell: the rejection skipped both restores and the
+        // register came up saying "No tasks yet" while `/api/sessions` answered with the
+        // history and the transcript endpoint handed back its 21 messages.
+        let dbSessions: DbSession[] = []
+        try {
+          dbSessions = await dbGetAllSessions()
+        } catch (err) {
+          console.warn(
+            '[ChatStore] The local cache is unreadable; the durable store is asked anyway:',
+            err,
+          )
+        }
         // W19 (storage model): the server copy (~/.ephe/sessions/) is the durable
         // store per device — the browser is only a cache. Always merge with the
         // mirror: sessions missing locally come back (cache loss, storage eviction,
