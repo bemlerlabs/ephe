@@ -320,6 +320,8 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   saying nothing is live while a turn works in a folder (`eceba5a0`)
 - chat: A run keeps its break where a tool round ends, so an answer does not arrive as one
   welded sentence in the chat, in the stored message and in the memory note alike (`dd193942`)
+- chat: The composer mode chip says the mode it shows — its accessible name no longer answers
+  with the security profile, which the chip beside it already owns (`4b1271c0`)
 
 ## [0.5.2] - 2026-11-01
 
