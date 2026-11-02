@@ -193,6 +193,90 @@ def _doctor_image_endpoint() -> tuple[bool, str]:
     return False, f"{base} not reachable — /image returns an honest error (setup: docs/LOCAL_IMAGE_ENGINE.md)"
 
 
+DESKTOP_BUNDLE_ID = "com.ephe.ephe"
+DESKTOP_INSTALL_PATH = Path("/Applications/Ephe.app")
+LSREGISTER = (
+    "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/"
+    "LaunchServices.framework/Versions/A/Support/lsregister"
+)
+
+
+def _desktop_bundle_version(app: Path) -> str | None:
+    """The version a `.app` carries, read from its own Info.plist."""
+    try:
+        import plistlib
+
+        with (app / "Contents" / "Info.plist").open("rb") as handle:
+            value = plistlib.load(handle).get("CFBundleShortVersionString")
+        return str(value) if value else None
+    except Exception:  # noqa: BLE001 — an unreadable bundle is reported as one
+        return None
+
+
+def _desktop_bundles_other_than(installed: Path, seconds: float = 3.0) -> list[str]:
+    """Other bundles answering for the same identifier, as Spotlight sees them.
+
+    macOS resolves an identifier when a click or a relaunch chooses the app, and a
+    Tauri build drops a same-identifier bundle into every worktree it is built in,
+    while a mounted DMG adds one more. The copy a click reaches can therefore be an
+    older one, and the updater keeps writing to the copy it already knows."""
+    import threading
+
+    found: list[str] = []
+    done = threading.Event()
+
+    def probe() -> None:
+        try:
+            out = subprocess.run(
+                ["mdfind", f"kMDItemCFBundleIdentifier == '{DESKTOP_BUNDLE_ID}'"],
+                capture_output=True,
+                text=True,
+                timeout=seconds,
+                check=False,
+            )
+            for line in out.stdout.splitlines():
+                path = line.strip()
+                if path.endswith(".app") and Path(path) != installed:
+                    found.append(path)
+        except Exception:  # noqa: BLE001 — the row reports what it could learn
+            pass
+        finally:
+            done.set()
+
+    threading.Thread(target=probe, daemon=True, name="ephe-desktop-scan").start()
+    done.wait(seconds)
+    return sorted(set(found))
+
+
+def _doctor_desktop_app(server_health: dict[str, Any] | None) -> tuple[bool, str] | None:
+    """One doctor line: the app a click opens, and whether it carries this run's version.
+
+    Measured 2026-11-02: twenty-one bundles answered for `com.ephe.ephe` on the machine
+    that ships Ephe — fourteen of them leftovers of mounted DMGs, several Tauri builds in
+    worktrees — and the owner's report was "updated, restarted, nothing new". The updater
+    had indeed written the new version; the click had opened a different copy."""
+    if sys.platform != "darwin":
+        return None
+    app_version = _desktop_bundle_version(DESKTOP_INSTALL_PATH)
+    if app_version is None:
+        return False, "no /Applications/Ephe.app — the desktop app is not installed here"
+    others = _desktop_bundles_other_than(DESKTOP_INSTALL_PATH)
+    if others:
+        shown = ", ".join(others[:3]) + (" …" if len(others) > 3 else "")
+        return False, (
+            f"{app_version} installed, but {len(others)} other bundle(s) answer for "
+            f"{DESKTOP_BUNDLE_ID}: {shown}. A click can open one of those instead — clear "
+            f"them with: {LSREGISTER} -u <path> then {LSREGISTER} -f {DESKTOP_INSTALL_PATH}"
+        )
+    backend = str((server_health or {}).get("version") or "")
+    if backend and app_version != backend:
+        return False, (
+            f"the app reads {app_version} while the backend runs {backend} — finish it in "
+            "Settings → Version & Updates"
+        )
+    return True, f"{app_version} — the only bundle for {DESKTOP_BUNDLE_ID}, matching the backend"
+
+
 def _doctor_update_row(seconds: float = 3.0) -> str:
     """What the update check knows, as one doctor line.
 
@@ -949,6 +1033,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # default branch before the next tag. Being behind is a state; it may never
     # decide this command's exit code.
     informational.append(("Update", True, _doctor_update_row()))
+
+    # The app a click opens, and whether it is the version this run carries. Measured
+    # 2026-11-02: the machine had one installed app and twenty other bundles sharing its
+    # identifier, so "updated" and "nothing changed" were both true at once.
+    desktop = _doctor_desktop_app(server_health)
+    if desktop is not None:
+        informational.append(("Desktop app", desktop[0], desktop[1]))
 
     # R16/R18/E1: the informative checks (Image/Voice/ephemora-cell/CPython-Cell) do
     # NOT flow into `ok` — a text-only or cloud-fallback setup is valid, and an
