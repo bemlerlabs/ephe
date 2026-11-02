@@ -3,6 +3,7 @@ import { Suspense, lazy, useState } from 'react'
 // Side-effect import: i18n must be initialized before App renders.
 import './i18n'
 import { installDbAutoFlush } from '@/lib'
+import { installExternalLinks } from '@/lib/openExternal'
 import { deepBool, initDeepSettings } from '@/lib'
 import { ensureGlobalShortcut } from '@/lib'
 import { saveSections } from '@/lib/api'
@@ -123,6 +124,11 @@ initPwa({ dev: import.meta.env.DEV })
 // and page unload — otherwise a reload mid-stream loses the part of the
 // answer so far.
 installDbAutoFlush()
+
+// A blank-target link has no window to open inside the desktop shell, so one delegate turns
+// it into the operating system's browser. Installed here, at the entry, because every surface
+// that shows an address needs it and none should have to remember it: lib/openExternal.ts.
+installExternalLinks()
 
 // Mount the app — i18n must be imported above; wrapped in Suspense for lazy init
 const rootElement = document.getElementById('root')

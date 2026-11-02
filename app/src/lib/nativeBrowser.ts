@@ -17,6 +17,7 @@
  * the surface has to know.
  */
 import { isExternalHttpUrl } from '@/components/dashboard/agent/previewUrl'
+import { bridge } from './openExternal'
 
 export type BrowserBounds = { x: number; y: number; width: number; height: number }
 
@@ -25,25 +26,6 @@ export type BrowserEvent =
   | { kind: 'load'; phase: 'started' | 'finished'; url: string }
   | { kind: 'title'; title: string }
   | { kind: 'new-window'; url: string }
-
-type Invoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>
-type Listen = (event: string, handler: (e: { payload: unknown }) => void) => Promise<() => void>
-type TauriBridge = { core: Invoke; listen: Listen }
-
-function bridge(): TauriBridge | null {
-  if (typeof window === 'undefined') return null
-  // @tauri-apps/api is not a dependency of this project — the globally
-  // injected bridge (withGlobalTauri) is the only way into the shell.
-  const tauri = (
-    window as unknown as {
-      __TAURI__?: { core?: { invoke?: unknown }; event?: { listen?: unknown } }
-    }
-  ).__TAURI__
-  const core = tauri?.core?.invoke
-  const listen = tauri?.event?.listen
-  if (typeof core !== 'function' || typeof listen !== 'function') return null
-  return { core: core as Invoke, listen: listen as Listen }
-}
 
 /** Only the desktop has a real engine behind the pane. */
 export const hasNativeBrowser = (): boolean => bridge() !== null
@@ -80,18 +62,10 @@ export async function closeNativeBrowser(): Promise<void> {
 }
 
 /**
- * "Open in browser": inside the shell `window.open` leads nowhere (no way
- * outside), hence the detour over the operating system. Without a shell (PWA)
- * `window.open` is exactly right.
+ * "Open in browser" lives in `openExternal.ts`, beside the bridge it needs; the pane's
+ * own calls stay here. Re-exported so every surface keeps one import path for the pane.
  */
-export async function openExternally(url: string): Promise<void> {
-  const b = bridge()
-  if (!b) {
-    window.open(url, '_blank', 'noopener,noreferrer')
-    return
-  }
-  await b.core('browser_open_external', { url })
-}
+export { openExternally } from './openExternal'
 
 const EVENTS: { name: string; map: (p: Record<string, unknown>) => BrowserEvent }[] = [
   { name: 'browser:navigation', map: (p) => ({ kind: 'navigation', url: String(p.url ?? '') }) },
@@ -109,16 +83,15 @@ const EVENTS: { name: string; map: (p: Record<string, unknown>) => BrowserEvent 
 
 /** Subscription to every pane event; returns the cleanup function. */
 export function listenNativeBrowser(onEvent: (e: BrowserEvent) => void): () => void {
-  const b = bridge()
-  if (!b) return () => {}
+  const listen = bridge()?.listen
+  if (!listen) return () => {}
   let dead = false
   const unlisten: (() => void)[] = []
   for (const spec of EVENTS) {
-    void b
-      .listen(spec.name, (e) => {
-        if (dead) return
-        onEvent(spec.map((e.payload ?? {}) as Record<string, unknown>))
-      })
+    void listen(spec.name, (e) => {
+      if (dead) return
+      onEvent(spec.map((e.payload ?? {}) as Record<string, unknown>))
+    })
       .then((fn) => {
         if (dead) fn()
         else unlisten.push(fn)

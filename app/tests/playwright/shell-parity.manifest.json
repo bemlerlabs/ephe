@@ -177,12 +177,12 @@
       "desktop": "save_engine_key / clear_engine_key / engine_key_state in the shell"
     },
     {
-      "file": "app/src/lib/nativeBrowser.ts",
+      "file": "app/src/lib/openExternal.ts",
       "marker": "__TAURI__",
       "count": 2,
-      "surface": "external pages in the agent panel",
-      "web": "an iframe with the frame-refusal notice",
-      "desktop": "a child WebView placed through browser_open"
+      "surface": "the one shell test: the agent panel's external pages and every link that leaves the app",
+      "web": "an iframe with the frame-refusal notice, and window.open in a new tab",
+      "desktop": "a child WebView placed through browser_open, and browser_open_external for the operating system's own browser"
     },
     {
       "file": "app/src/lib/restartGuard.ts",
