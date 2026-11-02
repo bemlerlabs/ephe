@@ -247,6 +247,9 @@ export const AE_OE_UE_ALLOW = new Set([
   'quelle',
   'quellen',
   'quellenliste',
+  // the same stem with a second half: a note about a source, spelled with "ue"
+  // because "Quelle" is the word, not because an umlaut was typed away
+  'quellennotiz',
   'steuern',
   'steuerung',
   'steuerungen',

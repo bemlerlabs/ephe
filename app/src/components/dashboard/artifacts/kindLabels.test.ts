@@ -57,16 +57,17 @@ describe('every artifact kind has a word in both bundles', () => {
   })
 
   it.each(kinds)('%s is named, not uppercased', (kind) => {
-    const enLeaf = (en.artifacts.kind as Record<string, string>)[kind]
-    const deLeaf = (de.artifacts.kind as Record<string, string>)[kind]
-    expect(enLeaf, `en.json artifacts.kind.${kind}`).toBeTruthy()
-    expect(deLeaf, `de.json artifacts.kind.${kind}`).toBeTruthy()
+    const enWord = (en.artifacts.kind as Record<string, string>)[kind] ?? ''
+    const deWord = (de.artifacts.kind as Record<string, string>)[kind] ?? ''
+    expect(enWord, `en.json artifacts.kind.${kind}`).toBeTruthy()
+    expect(deWord, `de.json artifacts.kind.${kind}`).toBeTruthy()
     if (!FILE_TYPES.has(kind)) {
       // A label that is the kind shouting is the fallback, not a name.
-      expect(enLeaf).not.toBe(kind.toUpperCase())
-      expect(deLeaf).not.toBe(kind.toUpperCase())
+      expect(enWord).not.toBe(kind.toUpperCase())
+      expect(deWord).not.toBe(kind.toUpperCase())
     }
-    expect(enLeaf[0]).toBe(enLeaf[0]!.toUpperCase())
-    expect(deLeaf[0]).toBe(deLeaf[0]!.toUpperCase())
+    // Sentence case in both bundles: a chip that shouts is the fallback shape.
+    expect(enWord.slice(0, 1)).toBe(enWord.slice(0, 1).toUpperCase())
+    expect(deWord.slice(0, 1)).toBe(deWord.slice(0, 1).toUpperCase())
   })
 })
