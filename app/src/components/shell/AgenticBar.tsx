@@ -38,13 +38,11 @@ export function runStateOf({ typing, engineOnline, askWaiting, plan }: RunSignal
 export default function AgenticBar({
   state,
   plan,
-  goal,
   onOpenPalette,
   inline = false,
 }: {
   state: RunState
   plan?: PlanCardSpec | null
-  goal?: string | null
   onOpenPalette: () => void
   /** B1: rendered inside the chat header instead of as a row of its own. */
   inline?: boolean
@@ -68,15 +66,6 @@ export default function AgenticBar({
         <PaperMothGlyph size="18px" className="ephe-run-mark" testId="agentic-moth" />
         {t(`workbench.${state}`)}
       </span>
-      {goal && (
-        <span
-          data-testid="workbench-goal"
-          className="min-w-0 flex-1 truncate text-ui-xs text-ink-faint max-md:hidden"
-          title={goal}
-        >
-          {goal}
-        </span>
-      )}
       {plan && plan.total > 0 && (
         <span
           data-testid="workbench-plan"

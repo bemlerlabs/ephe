@@ -53,7 +53,6 @@ describe('AgenticBar — one chrome line states the run', () => {
       <AgenticBar
         state="working"
         plan={PLAN}
-        goal="Ship the wave"
         onOpenPalette={onOpenPalette}
         {...props}
       />,
