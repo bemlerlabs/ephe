@@ -1246,9 +1246,9 @@ _UTILITY_TOOL_SCHEMAS = [
         "function": {
             "name": "extract_pdf_text",
             "description": (
-                "Extrahiert den Volltext aus einer lokalen PDF-Datei. "
-                "Gibt den seitenweisen Text zurueck (Page-Marker inklusive). "
-                "Nur bei vorhandenem PDF-Dateipfad verwenden."
+                "Reads the full text out of a local PDF file. "
+                "Returns the text page by page, page markers included. "
+                "Use only when a PDF path exists."
             ),
             "parameters": {
                 "type": "object",
@@ -1259,7 +1259,7 @@ _UTILITY_TOOL_SCHEMAS = [
                     },
                     "max_chars": {
                         "type": "integer",
-                        "description": "Maximale Zeichenanzahl (Default 8000).",
+                        "description": "Maximum number of characters (default 8000).",
                     },
                 },
                 "required": ["path"],
@@ -1295,8 +1295,8 @@ _UTILITY_TOOL_SCHEMAS = [
         "function": {
             "name": "run_linter",
             "description": (
-                "Fuehrt ruff check (statische Code-Analyse) auf einer Datei oder "
-                "einem Verzeichnis aus. fix=True wendet automatische Korrekturen an."
+                "Runs ruff check (static analysis) over a file or a directory. "
+                "fix=True applies the automatic corrections."
             ),
             "parameters": {
                 "type": "object",
@@ -1307,11 +1307,11 @@ _UTILITY_TOOL_SCHEMAS = [
                     },
                     "fix": {
                         "type": "boolean",
-                        "description": "True = --fix (automatische Korrekturen).",
+                        "description": "True = --fix (apply the automatic corrections).",
                     },
                     "max_issues": {
                         "type": "integer",
-                        "description": "Maximale Anzahl angezeigter Issues (Default 50).",
+                        "description": "Maximum number of issues shown (default 50).",
                     },
                 },
                 "required": ["path"],
