@@ -90,6 +90,15 @@ def client(checkout, stores, tmp_path, monkeypatch):
     # test's own directory and clear both, or the two empty-board cases below only hold on a
     # tree where nothing else has run.
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    # The env half is not enough for the board's own line. `_configured_workspace` reads
+    # engine.json through ``default_config_path()``, which is built from
+    # ``engine_config.CONFIG_DIR`` — a constant frozen at import, before the autouse guard
+    # sets the env. Measured 2026-11-02: any suite that imported a ``core`` module during
+    # collection (most of them do) answered these four cases with the developer's own
+    # workspace folder, so they held only when this file ran alone. Pin the constant too.
+    from core import engine_config
+
+    monkeypatch.setattr(engine_config, "CONFIG_DIR", tmp_path)
     from core import subagent_history
     from server.routes import chat as chat_routes
 
