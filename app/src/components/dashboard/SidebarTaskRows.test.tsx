@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { TaskRowGroup } from './SidebarTaskRows'
+import { TaskRowGroup , lastActivityAt} from './SidebarTaskRows'
 
 /**
  * The reading direction, pinned where it is visible: the sidebar's task rows.
@@ -189,5 +189,43 @@ describe('sidebar task rows — the direction, measured', () => {
     expect(label.className).toContain('text-scale-data')
     expect(label.className).toContain('font-mono')
     expect(label.className).toContain('uppercase')
+  })
+})
+
+describe('lastActivityAt — the row answers the last thing that happened', () => {
+  it('names the newest message, not the birth', () => {
+    const born = base - 3 * 60 * 60 * 1000
+    const answered = base
+    const session = {
+      id: 'x',
+      title: 'x',
+      createdAt: born,
+      messages: [{ id: 'm', role: 'user', content: 'a', timestamp: answered }],
+    }
+    expect(lastActivityAt(session)).toBe(answered)
+  })
+
+  it('falls back to the birth when no message carries a stamp', () => {
+    const session = {
+      id: 'y',
+      title: 'y',
+      createdAt: base,
+      messages: [{ id: 'm', role: 'user', content: 'a' }],
+    }
+    expect(lastActivityAt(session)).toBe(base)
+  })
+
+  it('takes the latest of several stamps', () => {
+    const session = {
+      id: 'z',
+      title: 'z',
+      createdAt: base - 5000,
+      messages: [
+        { id: 'm1', role: 'user', content: 'a', timestamp: base - 4000 },
+        { id: 'm2', role: 'assistant', content: 'b', timestamp: base - 100 },
+        { id: 'm3', role: 'user', content: 'c', timestamp: base - 900 },
+      ],
+    }
+    expect(lastActivityAt(session)).toBe(base - 100)
   })
 })
