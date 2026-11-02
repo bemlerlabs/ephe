@@ -74,6 +74,9 @@ export default function WorkspacesPage() {
   /** The register as the last poll read it; null until the first answer arrives. */
   const workspaces = fleet?.workspaces ?? null
   const runs = fleet?.runs ?? []
+  /** The folder the settings name as where work happens. The register never sees it: an
+   * empty register with a configured folder is a full board saying "no one is working". */
+  const configured = fleet?.configured ?? null
   /** A refusal takes the page only when there is nothing behind it: a poll that failed with
    * a good answer still in hand must not blank a board that was right a moment ago. */
   const failed = Boolean(fleet?.failed && (fleet?.workspaces.length ?? 0) === 0)
@@ -307,7 +310,19 @@ export default function WorkspacesPage() {
             <p className="text-ui-sm font-medium text-foreground/90">
               {t('workspaces.emptyTitle')}
             </p>
-            <p className="max-w-[60ch] text-ui-xs text-ink-faint">{t('workspaces.emptyBody')}</p>
+            {/* The register is empty; the settings may still name a folder. Saying "no
+                checkout" beside the folder work happens in is the whole difference between
+                this block and the old one that contradicted the settings panel. */}
+            <p
+              data-testid="workspaces-empty-where"
+              className="max-w-[60ch] text-ui-xs text-ink-faint"
+            >
+              {configured?.path
+                ? t(configured.exists ? 'workspaces.emptyConfigured' : 'workspaces.emptyMissing', {
+                    path: configured.path,
+                  })
+                : t('workspaces.emptyBody')}
+            </p>
             <button
               type="button"
               onClick={() => navigate('/chat')}

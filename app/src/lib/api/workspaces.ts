@@ -194,10 +194,24 @@ export interface Custody {
   refusal: CustodyRefusal | null
 }
 
+/** The workspace this app is set to work in — the same folder `GET /api/settings` answers
+ * with as `workspace_dir`, read beside the register (`server/routes/workspaces.py`). The
+ * register lists the checkouts agent runs opened and never sees this folder; a surface that
+ * reads only the register must not claim nowhere is worked while the settings name one. */
+export interface ConfiguredWorkspace {
+  path: string
+  /** Whether that folder is on disk right now; a persisted choice can outlive its directory. */
+  exists: boolean
+}
+
 /** The register, and the fleet behind it: `runs` is every run this app can see, the ones
  * that need a person first (`server/routes/workspaces.py`, `core/fleet.py`). One poll of
  * this route is the whole board — there is no second endpoint to keep in step. */
-export function listWorkspaces(): Promise<{ workspaces: Workspace[]; runs: FleetRun[] }> {
+export function listWorkspaces(): Promise<{
+  workspaces: Workspace[]
+  runs: FleetRun[]
+  configured_workspace?: ConfiguredWorkspace
+}> {
   return request('/api/workspaces')
 }
 

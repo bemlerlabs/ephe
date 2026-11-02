@@ -297,6 +297,26 @@ def _pending_waits() -> list[dict]:
         return []
 
 
+def _configured_workspace() -> dict:
+    """The workspace the app is set to work in, beside the register of live trees.
+
+    The register answers which checkouts agent runs opened; it never sees the folder a
+    chat turn works in. `GET /api/settings` names that folder as ``workspace_dir`` through
+    ``_workspace_dir_dict``, so this route reads it through the same function — the two
+    answers cannot then claim different folders at the same moment, which is the
+    contradiction the empty board showed a person. ``exists`` is the disk's own half: a
+    persisted folder that was deleted since is named truthfully rather than as a workspace.
+    """
+    try:
+        from server.routes.settings import _workspace_dir_dict
+
+        path = str(_workspace_dir_dict() or "").strip()
+    except Exception:  # noqa: BLE001 — a settings read that fails costs only its own line
+        logger.warning("fleet: configured workspace unreadable", exc_info=True)
+        path = ""
+    return {"path": path, "exists": bool(path) and Path(path).is_dir()}
+
+
 def _preview(code: str, **params) -> dict:
     """The refusal a route would raise for ``code``, as data: code, sentence, params.
 
