@@ -55,7 +55,10 @@ Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
   One update addition: ``POST /api/update/apply`` runs the same pull and installer
   ``ephe update`` runs, so a user on a checkout can take the merges between two
   tags from the dialog instead of a terminal. It refuses a dirty tree, another
-  branch and a second click, and it is the only route under /api/update that writes.
+  branch and a second click. ``POST /api/update/install`` is its second half on
+  its own — the installer, no git — for the desktop shell that has already moved
+  the checkout and must not leave the tree newer than the packages around it.
+  These are the two routes under /api/update that write.
 
 The routing table carries one more /api surface than the schema documents —
 ``GET /api/docs`` (``docs_url``), pinned below — and the proxy catch-all is
@@ -282,6 +285,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/tasks",
     "POST /api/tour",
     "POST /api/update/apply",
+    "POST /api/update/install",
     "POST /api/vision/analyze",
     "POST /api/vision/base64",
     "POST /api/workspaces",

@@ -6,6 +6,9 @@ GET /api/update/check  → contract from core.update_check (fail-soft, TTL-cache
 switchable off through the appearance.update_check deep setting).
 POST /api/update/apply → fast-forward this checkout and reinstall it
 (core.update_apply), for the merges a release has not been cut from yet.
+POST /api/update/install → the environment step alone, for the desktop shell
+that has already moved the checkout and must not leave the tree newer than the
+packages around it.
 
 Ephe – Bad Liebenzell, Schwarzwald
 """
@@ -30,12 +33,12 @@ def get_update_check(force: bool = False) -> dict:
     return update_check.check_for_update(force=force)
 
 
-class UpdateApplyRequest(BaseModel):
+class UpdateConfirmRequest(BaseModel):
     confirm: str = ""
 
 
 @router.post("/update/apply")
-def post_update_apply(body: UpdateApplyRequest, request: Request) -> dict:
+def post_update_apply(body: UpdateConfirmRequest, request: Request) -> dict:
     """Pull the newest commits and reinstall, on the user's click.
 
     Two gates, because this body starts a `git pull` and an installer: the
@@ -48,3 +51,21 @@ def post_update_apply(body: UpdateApplyRequest, request: Request) -> dict:
     if not update_check.update_check_enabled():
         raise HTTPException(status_code=403, detail="update check is switched off")
     return update_apply.apply_update()
+
+
+@router.post("/update/install")
+def post_update_install(body: UpdateConfirmRequest, request: Request) -> dict:
+    """Refresh the environment from the tree as it stands, on the shell's call.
+
+    The desktop updater replaces the app bundle and the shell then moves the
+    checkout, so the code can be newer than the packages beside it. This route
+    is that one step, and it is deliberately not gated by
+    `appearance.update_check`: a tree the shell has already moved has to get its
+    environment, or the refusal leaves the installation half-updated. The two
+    gates the apply route demands are the gates here too.
+    """
+    if request.headers.get(XHR_HEADER, "") != "XMLHttpRequest":
+        raise HTTPException(status_code=403, detail="missing X-Requested-With")
+    if body.confirm != "install":
+        raise HTTPException(status_code=400, detail="missing confirm: install")
+    return update_apply.reinstall()

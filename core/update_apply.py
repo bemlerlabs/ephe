@@ -3,7 +3,8 @@
 A release the signed updater can install is one path; a checkout that runs the
 backend is the other. Both end in the same place — the user clicks once — so
 `apply_update` fast-forwards the checkout and then lets `install.sh --no-start`
-refresh the environment and the PWA bundle.
+refresh the environment and the PWA bundle. `reinstall` is that second half on
+its own, for a tree the desktop shell has already moved.
 
 Every refusal is a sentence with a reason code, and none of them runs a command:
 a dirty tree, another branch or a second click while one runs stops first. The
@@ -96,28 +97,10 @@ def apply_update(root: Path | None = None) -> dict[str, Any]:
             return {"ok": False, "reason": "pull_failed", "detail": "git pull was refused",
                     "steps": steps}
         after = _git(base, "rev-parse", "--short", "HEAD").stdout.strip()
-        installer = base / "install.sh"
-        if installer.exists():
-            try:
-                done = subprocess.run(
-                    ["bash", str(installer), "--no-start"],
-                    cwd=str(base),
-                    capture_output=True,
-                    text=True,
-                    timeout=INSTALL_TIMEOUT_S,
-                    check=False,
-                    env={**_env(), "EPHE_NO_START": "1"},
-                )
-            except subprocess.TimeoutExpired:
-                steps.append(_step("install", False, "the installer did not finish in 30 minutes"))
-                return {"ok": False, "reason": "install_timeout", "detail": "installer timed out",
-                        "steps": steps}
-            steps.append(
-                _step("install", done.returncode == 0, (done.stdout + done.stderr).strip()[-600:])
-            )
-            if done.returncode != 0:
-                return {"ok": False, "reason": "install_failed",
-                        "detail": "the installer stopped with an error", "steps": steps}
+        if (base / "install.sh").exists():
+            refused = _installer_run(base, steps)
+            if refused is not None:
+                return refused
         return {
             "ok": True,
             "reason": "",
@@ -126,6 +109,68 @@ def apply_update(root: Path | None = None) -> dict[str, Any]:
             "before": before,
             "after": after,
             "restart": before != after,
+        }
+    finally:
+        _BUSY.release()
+
+
+def _installer_run(base: Path, steps: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Run this tree's installer and append the step. `None` means it landed.
+
+    The tree is the working directory, so the installer resolves its own paths
+    and the checkout's location never travels in a command line.
+    """
+    try:
+        done = subprocess.run(
+            ["bash", str(base / "install.sh"), "--no-start"],
+            cwd=str(base),
+            capture_output=True,
+            text=True,
+            timeout=INSTALL_TIMEOUT_S,
+            check=False,
+            env={**_env(), "EPHE_NO_START": "1"},
+        )
+    except subprocess.TimeoutExpired:
+        steps.append(_step("install", False, "the installer did not finish in 30 minutes"))
+        return {"ok": False, "reason": "install_timeout", "detail": "installer timed out",
+                "steps": steps}
+    steps.append(_step("install", done.returncode == 0, (done.stdout + done.stderr).strip()[-600:]))
+    if done.returncode != 0:
+        return {"ok": False, "reason": "install_failed",
+                "detail": "the installer stopped with an error", "steps": steps}
+    return None
+
+
+def reinstall(root: Path | None = None) -> dict[str, Any]:
+    """Refresh the environment around this tree, issuing no git of its own.
+
+    The desktop shell owns the release: it replaces the app bundle and moves the
+    checkout the backend runs from. That leaves the tree newer than the
+    environment around it — the same version number, a different dependency set.
+    This is the step that closes that gap: the installer `apply_update` runs,
+    called on its own, over a tree the shell has already moved.
+    """
+    base = root or project_root()
+    ready = probe(base)
+    if not ready["ok"]:
+        return _refusal(ready["code"], _REFUSAL_DETAIL.get(ready["code"], ""))
+    if not (base / "install.sh").exists():
+        return _refusal("no_installer", "this installation carries no installer to run")
+    if not _BUSY.acquire(blocking=False):
+        return _refusal("busy", "an update is already running")
+    try:
+        steps: list[dict[str, Any]] = []
+        refused = _installer_run(base, steps)
+        if refused is not None:
+            return refused
+        return {
+            "ok": True,
+            "reason": "",
+            "detail": "the environment was refreshed from this tree",
+            "steps": steps,
+            # The process that answers here still holds the imports it made at
+            # its own start; the refresh only reaches it over a start.
+            "restart": True,
         }
     finally:
         _BUSY.release()

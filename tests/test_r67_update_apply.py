@@ -139,3 +139,117 @@ class TestRoute:
             assert r.status_code == 200
             assert r.json()["ok"] is True
         assert seen == [True]
+
+
+# The environment step on its own
+# The desktop updater replaces the app bundle and the shell then moves the
+# checkout. That leaves the tree newer than the packages beside it, which a
+# version number cannot show. `reinstall` is that one step, without the git.
+
+
+def test_the_environment_step_runs_the_installer_and_no_git(tmp_path):
+    work = make_checkout(tmp_path)
+    out = update_apply.reinstall(work)
+    assert out["ok"] is True, out
+    assert [s["name"] for s in out["steps"]] == ["install"]
+    assert out["restart"] is True
+    # moving the tree is not this step's job: what upstream added stays away
+    assert not (work / "b.txt").exists()
+
+
+def test_the_environment_step_needs_a_checkout(tmp_path):
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    out = update_apply.reinstall(plain)
+    assert out["ok"] is False and out["reason"] == "not_a_checkout"
+
+
+def test_a_tree_without_an_installer_says_so(tmp_path):
+    plain = tmp_path / "nogit-here"
+    plain.mkdir()
+    git(plain, "init", "-q", "-b", "main")
+    commit(plain, "a.txt", "one\n")
+    out = update_apply.reinstall(plain)
+    assert out["ok"] is False and out["reason"] == "no_installer"
+
+
+def test_a_dirty_tree_is_not_reinstalled_over(tmp_path):
+    work = make_checkout(tmp_path)
+    (work / "a.txt").write_text("changed\n")
+    out = update_apply.reinstall(work)
+    assert out["ok"] is False and out["reason"] == "dirty_tree"
+
+
+def test_a_failing_installer_is_reported_with_its_step(tmp_path):
+    work = make_checkout(tmp_path, installer_exit=4)
+    out = update_apply.reinstall(work)
+    assert out["ok"] is False and out["reason"] == "install_failed"
+    assert out["steps"][0]["name"] == "install" and out["steps"][0]["ok"] is False
+
+
+def test_a_second_refresh_is_refused_while_one_runs(tmp_path):
+    work = make_checkout(tmp_path)
+    assert update_apply._BUSY.acquire(blocking=False)
+    try:
+        out = update_apply.reinstall(work)
+    finally:
+        update_apply._BUSY.release()
+    assert out["ok"] is False and out["reason"] == "busy"
+
+
+class TestInstallRoute:
+
+    def _client(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
+        from server.main import create_app
+
+        return TestClient(create_app())
+
+    def test_the_route_needs_the_browser_marker(self, tmp_path, monkeypatch):
+        with self._client(tmp_path, monkeypatch) as client:
+            r = client.post("/api/update/install", json={"confirm": "install"})
+            assert r.status_code == 403
+
+    def test_the_route_requires_the_confirm_word(self, tmp_path, monkeypatch):
+        with self._client(tmp_path, monkeypatch) as client:
+            r = client.post(
+                "/api/update/install", json={}, headers={"X-Requested-With": "XMLHttpRequest"}
+            )
+            assert r.status_code == 400
+
+    def test_the_route_runs_the_reinstall(self, tmp_path, monkeypatch):
+        seen: list[bool] = []
+
+        def fake(**_: object) -> dict:
+            seen.append(True)
+            return {"ok": True, "steps": [{"name": "install", "ok": True, "detail": ""}]}
+
+        monkeypatch.setattr(update_apply, "reinstall", fake)
+        with self._client(tmp_path, monkeypatch) as client:
+            r = client.post(
+                "/api/update/install",
+                json={"confirm": "install"},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+            )
+            assert r.status_code == 200
+            assert r.json()["ok"] is True
+        assert seen == [True]
+
+    def test_the_route_runs_even_when_the_check_is_switched_off(self, tmp_path, monkeypatch):
+        """The shell moved the tree already; refusing here would leave it half-updated."""
+        seen: list[bool] = []
+
+        def fake(**_: object) -> dict:
+            seen.append(True)
+            return {"ok": True, "steps": []}
+
+        monkeypatch.setattr(update_apply, "reinstall", fake)
+        monkeypatch.setattr("core.update_check.update_check_enabled", lambda: False)
+        with self._client(tmp_path, monkeypatch) as client:
+            r = client.post(
+                "/api/update/install",
+                json={"confirm": "install"},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+            )
+            assert r.status_code == 200
+        assert seen == [True]
