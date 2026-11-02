@@ -82,11 +82,13 @@ describe('StatusBar', () => {
     expect(screen.getByText(/12%/)).toBeTruthy()
   })
 
-  it('shows the breakdown when expanded', () => {
+  it('opens the context popover from the breakdown control', () => {
     const msgs = makeMsgs('assistant', 'a'.repeat(420)) // ~100 tok
     render(<StatusBar messages={msgs} />)
-    fireEvent.click(screen.getByTitle(/token breakdown/i))
-    expect(screen.getByText(/U \d|A \d|S \d/)).toBeTruthy()
+    // The row no longer prints the breakdown inline — the popover is its home, so the
+    // one control that opens it now just opens it (the number lives in the composer).
+    fireEvent.click(screen.getByTestId('statusbar-breakdown-toggle'))
+    expect(screen.getByTestId('context-popover')).toBeTruthy()
   })
 
   it('zeigt tokens/sec nur während Streaming (aktive Assistant-Message)', () => {
@@ -136,22 +138,22 @@ describe('StatusBar', () => {
     expect(btn.getAttribute('title')).toBe('Token breakdown')
   })
 
-  it('DD-10: kompakter tok-Chip ist auch auf Mobile da (lg:hidden Gegenstueck zum Breakdown-Button)', () => {
+  it('DD-10: the compact tok chip is the phone home for the figure', () => {
     render(<StatusBar messages={makeMsgs('user', 'x'.repeat(420))} />)
     const chip = screen.getByTestId('statusbar-tok-chip')
     expect(chip.textContent).toMatch(/\d[\d,.]* tok/)
-    // QD-015 V1: the pair moved to lg — md belongs to the free-token figure now,
-    // so the compact chip still covers the whole range below the breakdown.
-    // The row sheds by column, so the compact counterpart is switched by the
-    // container it sits in — the window says nothing once the frame and the panel take width.
-    expect(chip.className).toContain('@4xl/status:hidden')
-    expect(screen.getByTitle(/token breakdown/i).className).toContain('@4xl/status:flex')
+    // The figure has exactly one home per width: the composer meter prints it from `md`
+    // up, so the row's chip is the counterpart only below `md`. The split follows the
+    // composer's own breakpoint (not a container tier) — they are complementary by
+    // construction, so a column never shows the number twice and never loses it.
+    expect(chip.className).toContain('md:hidden')
+    expect(screen.getByTitle(/token breakdown/i).className).toContain('md:flex')
   })
 
-  it('DD-10b: ein Klick auf den Chip oeffnet das Rollen-Breakdown (U/A/S)', () => {
+  it('DD-10b: a click on the chip opens the breakdown popover', () => {
     render(<StatusBar messages={makeMsgs('user', 'x'.repeat(420))} />)
     fireEvent.click(screen.getByTestId('statusbar-tok-chip'))
-    expect(screen.getByText(/U \d|A \d|S \d/)).toBeTruthy()
+    expect(screen.getByTestId('context-popover')).toBeTruthy()
   })
 
   it('R44/P3: Speicher-Pille zaehlt Sessions mit MB-Schaetzung aus dem Store', () => {

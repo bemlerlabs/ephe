@@ -55,7 +55,6 @@ export default function StatusBar({
   const {
     budget,
     window: effectiveWindow,
-    usage,
     percent: effectivePercent,
     tokens: effectiveTokens,
     remaining: effectiveRemaining,
@@ -186,9 +185,14 @@ export default function StatusBar({
           />
         </div>
       </div>
+      {/* One figure, one home. The composer meter (the row the person is about to
+          spend the context in) prints the percentage from `md` up; this row prints it
+          only below `md`, where that meter steps out, so the number is never offered
+          twice in one screen. The bar above stays the machine's own gauge at every
+          width — its `role="img"` name is the reading for a screen reader. */}
       <span
         data-testid="statusbar-percent"
-        className={`text-ui-xs font-mono tabular-nums shrink-0 ${danger ? 'text-status-danger' : warn ? 'text-status-warning' : 'text-ink-soft'}`}
+        className={`md:hidden text-ui-xs font-mono tabular-nums shrink-0 ${danger ? 'text-status-danger' : warn ? 'text-status-warning' : 'text-ink-soft'}`}
       >
         {formatPercent(effectivePercent, i18n.language)}
         {compactionActive && (
@@ -216,29 +220,21 @@ export default function StatusBar({
           the redundancy stood out as visual load in the deep dive.
           The toolbar row (ToolbarRow) is the only place for it. */}
 
-      {/* Token breakdown (toggle on click) — W19 F5: the secondary metrics
-          tok/s and TTFT now live in the context popover instead of their own
-          pills in the row (compact status bar). */}
+      {/* The token breakdown stays reachable, but its opener no longer doubles as a
+          second readout of the figure — the composer prints the number, this button
+          only opens the popover. It is the desktop opener; below `md` the phone chip
+          below takes its place. */}
       <button
+        type="button"
         onClick={() => setExpanded((v) => !v)}
         data-testid="statusbar-breakdown-toggle"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        className="hidden items-center gap-1 whitespace-nowrap py-1.5 -my-1.5 px-1 -mx-1 text-ui-xs font-mono tabular-nums text-ink-faint transition-colors hover:text-foreground/60 shrink-0 @4xl/status:flex"
+        aria-label={t('statusBar.breakdownHint')}
+        className="hidden items-center justify-center whitespace-nowrap py-1.5 -my-1.5 px-1 -mx-1 text-ink-faint transition-colors hover:text-foreground/60 shrink-0 md:flex"
         title={t('statusBar.breakdownHint')}
       >
-        <Zap className="h-3 w-3 text-brand/70" />
-        <span>
-          {formatNumber(effectiveTokens, i18n.language)} tok
-          {expanded && (
-            <span className="text-ink-faint">
-              {' '}
-              (U {formatNumber(usage.tokens.user, i18n.language)} · A{' '}
-              {formatNumber(usage.tokens.assistant, i18n.language)} · S{' '}
-              {formatNumber(usage.tokens.system, i18n.language)})
-            </span>
-          )}
-        </span>
+        <Zap className="h-3 w-3 text-brand/70" aria-hidden="true" />
       </button>
 
       <CostChips
@@ -257,16 +253,18 @@ export default function StatusBar({
         <StorageFootprint />
       </div>
 
-      {/* DD-10: on mobile there was no token figure at all — the breakdown button
-          appears at a wide column. Its counterpart here is the same toggle, shown
-          only while that one is hidden, so a narrow column and a wide one state
-          the same fact with the same control. */}
+      {/* Below `md` the composer meter steps out, so this chip is the phone's home for
+          the token figure — and its opener for the same breakdown popover the desktop
+          button opens. From `md` up the composer owns the number and the chip yields to
+          that button, so one row never states the figure twice. Its visible number is
+          the affordance on touch, so it carries no tooltip (one `Token breakdown` title). */}
       <button
+        type="button"
         onClick={() => setExpanded((v) => !v)}
         data-testid="statusbar-tok-chip"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        className="@4xl/status:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
+        className="md:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
       >
         {formatNumber(effectiveTokens, i18n.language)} tok
       </button>
