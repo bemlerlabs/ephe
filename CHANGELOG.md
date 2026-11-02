@@ -35,6 +35,16 @@ Three readings came after the cut: the shell asks for the update rather than a r
   and Tauri builds inside worktrees. The updater had written the new version where it always
   does; the relaunch reached one of those other copies, so "updated" and "nothing changed"
   were both true at once, and no surface could see it (`9521e399`, `629e23b5`)
+- doctor: The bundle scan reads the LaunchServices registry. The row above asked Spotlight
+  instead, and Spotlight does not index `~/.Trash` or `/private/tmp` — the two places old
+  copies collect. Measured the same evening on the machine that ships Ephe: the row said
+  "the only bundle for com.ephe.ephe" while the registry named seventy-four, seventy-two of
+  them in the Trash and one in `/private/tmp`, every one reachable by a click. The dump is
+  read as records so an identifier and its path stay paired, a path that no longer exists is
+  dropped because it cannot be opened, and the places are counted so seventy-three copies
+  read as two folders. A read that fails now says it failed: the first version called a
+  helper that used `re` without importing it, the bare `except` swallowed the NameError, and
+  the doctor reported a clean machine (`70fc90b5`).
 
 
 ## [0.5.5] - 2026-11-02
