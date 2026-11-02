@@ -322,6 +322,9 @@ The six 0.1.6 fixes are folded into their own section (`408d1e2`, `be4f90f`,
   welded sentence in the chat, in the stored message and in the memory note alike (`dd193942`)
 - chat: The composer mode chip says the mode it shows — its accessible name no longer answers
   with the security profile, which the chip beside it already owns (`4b1271c0`)
+- artifacts: Every kind the marker table stores has a word in both bundles, so a shelf group
+  and its filter chip stop answering MANIFEST, SCORECARD, QA and EVIDENCE_LEDGER over the
+  reader's language (`3ec6d6fc`)
 
 ## [0.5.2] - 2026-11-01
 
