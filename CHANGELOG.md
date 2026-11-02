@@ -22,7 +22,7 @@ reads an author's words in one pass, and the links that finally leave the deskto
 ### Fixed
 
 - server: The audio route describes its upload in the shelf language, as every other route in
-  the file already did (`80558a67`)
+  the file already did (`86521560`)
 - desktop: The update now carries the backend's environment along with the code it moves, names
   which of the three outcomes it reached — refreshed, still running, refused with its reason —
   and ends in a restart the surface offers instead of a sentence about one (`0508fab8`,
