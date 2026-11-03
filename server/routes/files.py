@@ -75,11 +75,16 @@ def _relative_bases() -> list[Path]:
     return bases
 
 
-@router.get("/file", tags=["Files"])
-async def get_file(
-    path: str = Query(..., description="Absolute or workspace-relative artifact path"),
-):
-    """Serve a generated file from the allowed roots, for the preview."""
+def _guarded_file(path: str) -> Path:
+    """The one answer for "may this path be read here", or the HTTP refusal that says why.
+
+    The route that streams the bytes and the route that renders them cannot each carry
+    their own copy of this chain — the second one would be a way to read a protected file
+    past the first. Everything that decides containment lives here: the expansion, the
+    relative resolve against the workspace and output bases, the real-path probe against
+    the governing root, the credential-shaped name, the allowed-roots re-check, and the
+    size ceiling.
+    """
     expanded = os.path.expanduser(path)
     if os.path.isabs(expanded):
         real = os.path.realpath(expanded)
@@ -124,6 +129,15 @@ async def get_file(
         raise HTTPException(status_code=404, detail="file not found")
     if resolved.stat().st_size > MAX_FILE_BYTES:
         raise HTTPException(status_code=413, detail="File too large for preview")
+    return resolved
+
+
+@router.get("/file", tags=["Files"])
+async def get_file(
+    path: str = Query(..., description="Absolute or workspace-relative artifact path"),
+):
+    """Serve a generated file from the allowed roots, for the preview."""
+    resolved = _guarded_file(path)
     media_type = mimetypes.guess_type(str(resolved))[0] or "application/octet-stream"
     # inline instead of attachment: FileResponse(filename=...) sets
     # Content-Disposition: attachment — the AgentPanel iframe then started a
@@ -134,3 +148,21 @@ async def get_file(
         media_type=media_type,
         headers={"Content-Disposition": f'inline; filename="{resolved.name}"'},
     )
+
+
+@router.get("/file/preview", tags=["Files"])
+async def get_file_preview(
+    path: str = Query(..., description="Absolute or workspace-relative artifact path"),
+):
+    """Render the formats a browser cannot show, for a path rather than a card.
+
+    The workbench has had this answer since R4/A5 through
+    `GET /api/artifacts/{id}/preview`: a spreadsheet as rows, a document as text, a deck
+    as slides. The workspace column lists the same files by path, and until now it could
+    only name them — clicking a `.docx` handed the person a download. One guard, one
+    renderer, two ways to point at a file.
+    """
+    from core.artifact_preview import preview_payload
+
+    resolved = _guarded_file(path)
+    return preview_payload(resolved, resolved.suffix.lstrip("."))

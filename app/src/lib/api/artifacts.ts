@@ -196,6 +196,15 @@ export function artifactPreview(id: string): Promise<ArtifactContentPreview> {
   return request(`/api/artifacts/${encodeURIComponent(id)}/preview`)
 }
 
+/** The same answer for a file the workspace column listed by path (`GET /api/file/preview`).
+ *
+ * Two doors, one guard: the server refuses exactly what `GET /api/file` refuses before it
+ * opens the bytes, so a protected name cannot be read by asking for a preview of it.
+ */
+export function filePreviewByPath(path: string): Promise<ArtifactContentPreview> {
+  return request(`/api/file/preview?path=${encodeURIComponent(path)}`)
+}
+
 /** Remove. `deleteFile` deletes the file only when it sits inside an allowed
  * root — the answer says so, the surface claims nothing. */
 export function removeArtifact(

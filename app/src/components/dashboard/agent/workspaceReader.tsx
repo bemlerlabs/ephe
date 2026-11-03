@@ -13,6 +13,8 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { apiUrl } from '@/lib/api/http'
+import { filePreviewByPath, type ArtifactContentPreview } from '@/lib/api'
+import { LoadingRow } from '@/components/ui'
 import { formatBytes } from '@/lib/dateLocale'
 import {
   setWorkspaceFilePinned,
@@ -28,6 +30,7 @@ import {
   type FileView,
 } from '@/lib/fileOpen'
 import { previewSandbox, previewShowsInFrame, previewSrc } from '@/lib/previewMode'
+import { PayloadView } from '@/components/dashboard/artifacts/preview'
 import { FilePreviewBody } from './filePreview'
 
 /**
@@ -111,6 +114,55 @@ function FileHeld({
       </button>
     </div>
   )
+}
+
+/** A packed office file, read by the server: rows, running text or slides.
+ *
+ * The column named these formats and stopped; a `.docx` click handed the person a download
+ * because no browser draws a Word body, a deck or a sheet as content. The workbench card has
+ * asked the server for exactly those three answers since R4/A5, so the column asks the same
+ * question by path and shares the renderer. Where the server has nothing to show — a deck
+ * with no text, a file the guard refuses, a sheet it cannot open — the held panel returns
+ * with the gesture that still reaches the file, because a decline is an answer.
+ */
+function FileParsed({
+  file,
+  plan,
+  nonce,
+  onOpenInBrowser,
+}: {
+  file: OpenFile
+  plan: FileOpenPlan
+  nonce: number
+  onOpenInBrowser: (file: OpenFile) => void
+}) {
+  const { t } = useTranslation()
+  const [data, setData] = useState<ArtifactContentPreview | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setData(null)
+    setFailed(false)
+    filePreviewByPath(file.path)
+      .then((answer) => {
+        if (!cancelled) setData(answer)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [file.path, nonce])
+
+  if (failed || (data && data.mode === 'none')) {
+    return <FileHeld file={file} plan={plan} reason="packed" onOpenInBrowser={onOpenInBrowser} />
+  }
+  if (!data) {
+    return <LoadingRow label={t('artifacts.preview.loading')} className="h-full justify-center" />
+  }
+  return <PayloadView data={data} name={file.name} />
 }
 
 /** What a browser draws by itself: the media it plays, and the page a frame shows. */
@@ -287,18 +339,15 @@ export function WorkspaceFileReader({
             }
             onReload={reload}
           />
+        ) : plan.kind === 'packed' ? (
+          <FileParsed file={file} plan={plan} nonce={nonce} onOpenInBrowser={onOpenInBrowser} />
         ) : plan.kind === 'image' ||
           plan.kind === 'audio' ||
           plan.kind === 'video' ||
           plan.kind === 'frame' ? (
           <FileMedia file={file} plan={plan} nonce={nonce} onOpenInBrowser={onOpenInBrowser} />
         ) : (
-          <FileHeld
-            file={file}
-            plan={plan}
-            reason={plan.kind === 'packed' ? 'packed' : 'binary'}
-            onOpenInBrowser={onOpenInBrowser}
-          />
+          <FileHeld file={file} plan={plan} reason="binary" onOpenInBrowser={onOpenInBrowser} />
         )}
       </div>
     </div>
