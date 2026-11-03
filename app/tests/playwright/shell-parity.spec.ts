@@ -183,9 +183,39 @@ async function prepare(page: Page, anchor: string, probe: string) {
   await page.goto(`/#${probe}`, { waitUntil: 'load' })
   await page.waitForSelector(anchor, { timeout: 15000 })
   await expect(page.locator('[data-testid="route-skeleton"]')).toHaveCount(0)
-  // The anchor is the route's first paint; one beat lets the reads behind it land. Both sides get
-  // the same beat, so a difference is content, not timing.
-  await page.waitForTimeout(600)
+}
+
+/**
+ * The reads behind the first paint, counted the way the comparison can see them.
+ *
+ * The beat this replaces held a fixed 600 ms after the route's first paint, on the argument
+ * that both sides get the same beat so a difference is content. That held only while the beat
+ * was longer than every read behind it. Measured 2026-11-02 in the full parallel run: the PWA
+ * context had painted the context figure (`0% 0 tok`) and the shell context had not, so the two
+ * differed by a number that arrives when the health read lands — 17/17 green alone, red under
+ * load. The signature of a budget, not of a defect.
+ *
+ * A DOM observer cannot settle here: the status line carries per-second figures, so the tree
+ * never stops changing. What has to settle is the thing being compared, so the snapshot is
+ * taken twice and held until two consecutive reads agree. The clock is frozen for the run,
+ * which is what makes the repeated read a statement about the async fills rather than about
+ * the timers.
+ */
+async function settle(page: Page, excluded: string[]): Promise<Snapshot> {
+  const attempts = 20
+  let previous = await snapshot(page, excluded)
+  for (let attempt = 1; attempt < attempts; attempt += 1) {
+    await page.waitForTimeout(150)
+    const next = await snapshot(page, excluded)
+    if (next.text === previous.text && next.landmarks.join("|") === previous.landmarks.join("|")) {
+      return next
+    }
+    previous = next
+  }
+  throw new Error(
+    `the surface at ${page.url()} was still changing after ${attempts * 150} ms — ` +
+      "a page that never settles is a defect to name, not a race to average away",
+  )
 }
 
 type Snapshot = { text: string; landmarks: string[] }
@@ -271,13 +301,13 @@ test.describe('shell parity at 1280x800', () => {
       try {
         const web = await webContext.newPage()
         await prepare(web, route.anchor, route.probe)
-        const asWeb = await snapshot(web, excluded)
+        const asWeb = await settle(web, excluded)
 
         const desktop = await desktopContext.newPage()
         const bridged = await desktop.evaluate(() => '__TAURI__' in window)
         expect(bridged, 'the desktop context must boot with the shell bridge').toBe(true)
         await prepare(desktop, route.anchor, route.probe)
-        const asDesktop = await snapshot(desktop, excluded)
+        const asDesktop = await settle(desktop, excluded)
 
         expect(
           asDesktop.text,
