@@ -21,6 +21,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from core.engine_config import config_root
 
 #: Roots no agent tool may read, whatever approval it carries. The app's own state is
 #: in here (`~/.ephe`), and so are the credential stores the machine already holds.
@@ -192,8 +193,7 @@ def secret_shaped(candidate: Path | str) -> bool:
 
 def artifact_root() -> Path:
     """The product's artifact output directory, under the config root."""
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base).expanduser() / "artifacts"
+    return config_root().expanduser() / "artifacts"
 
 
 def product_image_root() -> Path:
@@ -201,8 +201,7 @@ def product_image_root() -> Path:
     configured = os.environ.get("EPHE_IMAGE_DIR")
     if configured:
         return Path(configured).expanduser()
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base).expanduser() / "sessions" / "images"
+    return (config_root() / "sessions" / "images").expanduser()
 
 
 def verifiable_artifact(candidate: Path | str) -> bool:

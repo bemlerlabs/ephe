@@ -23,6 +23,7 @@ from core.channels.pairing import (
     load_pairing,
 )
 from core.channels.pairing_tokens import ConsumeOutcome, consume_pairing_token
+from core.engine_config import config_root
 
 ANSWER_FN = Callable[[str, str], Awaitable[str]]
 
@@ -49,7 +50,7 @@ def _now_iso() -> str:
 def _channels_dir_env() -> Path:
     import os
 
-    return Path(os.environ.get("EPHE_DIR", str(Path.home() / ".ephe")))
+    return Path(os.environ.get("EPHE_DIR") or config_root())
 
 
 def _atomic_json(path: Path, payload: dict[str, Any]) -> None:

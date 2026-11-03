@@ -22,6 +22,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any
+from core.engine_config import config_root
 
 TIMEOUT_MIN_S = 30
 TIMEOUT_MAX_S = 900
@@ -29,8 +30,7 @@ TIMEOUT_DEFAULT_S = 180
 
 
 def agents_root() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base) / "agents"
+    return config_root() / "agents"
 
 
 def _valid_tools(tools: Any, known: set[str]) -> list[str] | None:

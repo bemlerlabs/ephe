@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from core.reason import reason
+from core.engine_config import config_root
 
 # URL-Policy: what the headless browser is allowed to load at all
 # The browser cluster does NOT gate itself through a dialog (SELF_GATED_TOOLS
@@ -26,8 +27,8 @@ def _artifact_roots() -> list[Path]:
     is not an artifact.
     """
     roots = [
-        Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")),
-        Path(os.environ.get("EPHE_IMAGE_DIR") or str(Path.home() / ".ephe" / "sessions" / "images")),
+        config_root(),
+        Path(os.environ.get("EPHE_IMAGE_DIR") or config_root() / "sessions" / "images"),
         Path("/tmp"),
         Path(os.environ.get("TMPDIR") or "/tmp"),
     ]

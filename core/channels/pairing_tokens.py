@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from core.audit_log import audit_event
+from core.engine_config import config_root
 
 TOKENS_FILENAME = "channel_pairing_tokens.json"
 DEFAULT_TTL_SECONDS = 600          # 10 minutes (the Cleeng „PIN-Pair" band of 1–15 min)
@@ -60,7 +61,7 @@ class ConsumeOutcome:
 def tokens_path(path: Path | None = None) -> Path:
     if path is not None:
         return path
-    ephe_dir = Path(os.environ.get("EPHE_DIR", str(Path.home() / ".ephe")))
+    ephe_dir = Path(os.environ.get("EPHE_DIR") or config_root())
     return ephe_dir / TOKENS_FILENAME
 
 

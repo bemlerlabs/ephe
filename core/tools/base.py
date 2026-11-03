@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from contextvars import ContextVar
 from pathlib import Path
+from core.engine_config import config_root
 from typing import Any
 
 
@@ -129,7 +130,7 @@ _STATIC_ALLOWED_ROOTS: tuple[Path, ...] = (
     Path.home() / "Documents",
     Path.home() / "Desktop",
     Path.home() / "Downloads",
-    Path.home() / ".ephe",
+    config_root(),
 )
 
 

@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from core.secret_broker import child_env
+from core.engine_config import config_root
 
 HOOKS_FILENAME = "hooks.json"
 _HOOK_TIMEOUT_S = 10.0
@@ -42,8 +43,7 @@ _cache: dict[str, Any] = {"mtime": None, "hooks": {}}
 
 
 def hooks_path() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base) / HOOKS_FILENAME
+    return config_root() / HOOKS_FILENAME
 
 
 def reset_cache() -> None:

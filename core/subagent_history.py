@@ -20,6 +20,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any
+from core.engine_config import config_root
 
 #: How many records survive a restart (file truncation).
 MAX_RECORDS = 50
@@ -45,8 +46,7 @@ _loaded = False
 
 
 def _path() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base) / "subagent_history.json"
+    return config_root() / "subagent_history.json"
 
 
 def _ensure_loaded() -> None:

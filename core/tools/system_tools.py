@@ -20,6 +20,7 @@ from core.tools.base import (
     _get_shared_client,
     _is_path_allowed,
 )
+from core.engine_config import config_root
 
 
 EN_WEEKDAYS = [
@@ -191,7 +192,7 @@ async def analyze_image(
 
 
 async def take_screenshot() -> str:
-    image_dir = Path(os.environ.get("EPHE_IMAGE_DIR", str(Path.home() / ".ephe" / "sessions" / "images")))
+    image_dir = Path(os.environ.get("EPHE_IMAGE_DIR") or config_root() / "sessions" / "images")
     image_dir.mkdir(parents=True, exist_ok=True)
 
     filename = f"screenshot_{int(time_module.time())}.png"

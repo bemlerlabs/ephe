@@ -19,7 +19,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from core.engine_config import EngineNotConfigured
+from core.engine_config import EngineNotConfigured, config_root
 from core.model_provider import (
     ProviderSetupError,
     build_provider_client,
@@ -84,10 +84,7 @@ async def analyze_uploaded_image(
         raise HTTPException(status_code=400, detail="file too small or empty.")
 
     # Store the temporary file (for analyze_image tool compatibility)
-    tmp_dir = Path(os.environ.get(
-        "EPHE_IMAGE_DIR",
-        str(Path.home() / ".ephe" / "sessions" / "images")
-    ))
+    tmp_dir = Path(os.environ.get("EPHE_IMAGE_DIR") or config_root() / "sessions" / "images")
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     ext = Path(file.filename or "upload.png").suffix.lower() or ".png"

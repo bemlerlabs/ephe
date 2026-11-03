@@ -6,6 +6,7 @@ import base64 as base64_mod
 import os
 import time
 from pathlib import Path
+from core.engine_config import config_root
 
 
 def _get_vision_click():
@@ -45,7 +46,7 @@ async def browser_go(url: str) -> str:
 async def browser_screenshot() -> str:
     bm = _get_browser_manager()
     b64 = await bm.screenshot()
-    image_dir = Path(os.environ.get("EPHE_IMAGE_DIR") or str(Path.home() / ".ephe" / "sessions" / "images"))
+    image_dir = Path(os.environ.get("EPHE_IMAGE_DIR") or config_root() / "sessions" / "images")
     image_dir.mkdir(parents=True, exist_ok=True)
     filename = f"browser_{int(time.time())}.jpeg"
     shot = image_dir / filename

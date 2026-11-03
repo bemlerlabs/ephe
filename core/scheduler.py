@@ -17,23 +17,20 @@ from pathlib import Path
 from typing import Callable
 
 from core.scheduler_config import (history_keep, history_rows, max_parallel_jobs,
-                         misfire_grace_seconds)
+                                   misfire_grace_seconds)
+from core.engine_config import config_root
 
 logger = logging.getLogger(__name__)
 
 
 def _jobs_file() -> Path:
     """Jobs persistence path, resolved lazily so tests can redirect it via env."""
-    return Path(
-        os.environ.get("EPHE_SCHEDULE_JOBS", str(Path.home() / ".ephe" / "scheduled_jobs.json"))
-    )
+    return Path(os.environ.get("EPHE_SCHEDULE_JOBS") or config_root() / "scheduled_jobs.json")
 
 
 def _results_file() -> Path:
     """Run-history path, resolved lazily so tests can redirect it via env."""
-    return Path(
-        os.environ.get("EPHE_SCHEDULE_RESULTS", str(Path.home() / ".ephe" / "schedule_results.json"))
-    )
+    return Path(os.environ.get("EPHE_SCHEDULE_RESULTS") or config_root() / "schedule_results.json")
 
 # Registry for live results (in-memory, per server session)
 _job_results: list[dict] = []

@@ -28,6 +28,7 @@ import os
 import re
 from pathlib import Path
 from typing import Any, Callable
+from core.engine_config import config_root
 
 # Schema version of the catalogue (identifies the format independently of versions).
 CATALOG_VERSION = 1
@@ -53,11 +54,6 @@ def _repo_root() -> Path:
 def catalog_path() -> Path:
     """Canonical path of the curated catalogue (repo root)."""
     return _repo_root() / CATALOG_FILENAME
-
-
-def config_root() -> Path:
-    """Device folder — identical rule to core.engine_config.config_root()."""
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
 
 
 def registry_path() -> Path:

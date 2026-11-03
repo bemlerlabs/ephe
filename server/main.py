@@ -27,6 +27,7 @@ from core.observability import (
     error_payload,
     make_observability_middleware,
 )
+from core.engine_config import config_root
 
 from server.routes import (
     agents,
@@ -417,19 +418,13 @@ def create_app(lan_mode: bool = False) -> FastAPI:
 
     # Static files (audio recordings for playback)
     audio_dir = Path(
-        os.environ.get(
-            "EPHE_AUDIO_DIR", str(Path.home() / ".ephe" / "sessions" / "audio")
-        )
+        os.environ.get("EPHE_AUDIO_DIR") or config_root() / "sessions" / "audio"
     )
     audio_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/audio", StaticFiles(directory=str(audio_dir)), name="audio")
 
     # Static files (images/screenshots for remote)
-    image_dir = Path(
-        os.environ.get(
-            "EPHE_IMAGE_DIR", str(Path.home() / ".ephe" / "sessions" / "images")
-        )
-    )
+    image_dir = Path(os.environ.get("EPHE_IMAGE_DIR") or config_root() / "sessions" / "images")
     image_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/images", StaticFiles(directory=str(image_dir)), name="images")
 

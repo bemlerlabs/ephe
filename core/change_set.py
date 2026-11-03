@@ -12,9 +12,8 @@ Because the digest covers the diff and not the file, an edit made after the fact
 detectable while this store never holds the file's bytes: ``core.change_set_read.verify_current``
 recomputes the digests and names the paths that moved.
 
-Storage is one JSON file per change set under ``~/.ephe/changesets`` (``EPHE_CHANGESETS_DIR``
-or ``EPHE_CONFIG_DIR`` override, module attribute monkeypatchable in tests), keyed by id the
-way ``core/artifact_store.py`` keys its rows. Errors are raised, never swallowed.
+Storage is one JSON file per change set under ``changesets`` in the device folder, which
+``EPHE_CONFIG_DIR`` moves and ``EPHE_CHANGESETS_DIR`` overrides; errors are raised, never swallowed.
 """
 from __future__ import annotations
 
@@ -30,6 +29,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
+from core.engine_config import config_root
 
 #: Operations a single path can carry. `build` maps git's status letters onto these three.
 OPS = ("create", "modify", "delete")
@@ -56,7 +56,7 @@ class ChangeSetError(ValueError):
 
 
 def _default_dir() -> Path:
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")) / "changesets"
+    return config_root() / "changesets"
 
 
 CHANGESETS_DIR: Path = Path(os.environ.get("EPHE_CHANGESETS_DIR") or _default_dir())

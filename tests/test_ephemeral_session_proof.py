@@ -21,14 +21,17 @@ this wave has landed. These are the numbers the contract carries:
   `config_subdir()`; `core/audit_log.py` now shares that root instead of carrying a private
   reading of the same env name. The tenth slot names `core.memory_provider`, because the
   `DEFAULT_CHROMA_PATH` it used to check left the tree with the vector client.
-* 47 `Path.home() / ".ephe"` literals exist in `core/`, `server/` and `ephe_cli.py`, and 22
-  of them carry no env fallback on the line that builds the path.
+* 25 sites held their own copy of the root's rule — read `EPHE_CONFIG_DIR`, otherwise
+  `~/.ephe` — and are folded onto `config_root()` / `config_subdir()`. Two expressions that
+  spell the folder out of the home directory remain, both in `core/engine_config.py`, which
+  is where the root is defined; the scan reads the expression tree, so a docstring that
+  names the literal is no longer counted as a path.
 * `evals/bench_option_b.py` sets no `EPHE_CONFIG_DIR` (its own root is `SCRATCH`,
   `:75`), so bench reps read and append the owner's real memory store.
 
-These tests are the contract. Two remain marked `xfail(strict=True)`, and the folder-count
-row keeps its non-strict mark: they must not be weakened to pass, and once the product
-satisfies one, the run turns red at XPASS and the mark has to come off. Widening the
+These tests are the contract. One row is still marked `xfail(strict=True)`, and the
+folder-count row keeps its non-strict mark: they must not be weakened to pass, and once the
+product satisfies one, the run turns red at XPASS and the mark has to come off. Widening the
 declared set here would be the same error as an unenforced cap — a claim that grades itself.
 
 Sources: `docs/EPHEMERAL_PROOF_2026-10-11.md`.
@@ -80,6 +83,11 @@ ACCESSORS = [
 MEASURED_UNDECLARED = 21
 
 
+#: The one file allowed to spell the device folder out of the home directory: it is where
+#: `config_root()` is defined, so the expression has to live there.
+ROOT_DEFINITION_FILE = "core/engine_config.py"
+
+
 def product_files() -> list[Path]:
     out = subprocess.run(["git", "ls-files", "core", "server", "ephe_cli.py"],
                          cwd=str(REPO), capture_output=True, text=True).stdout.split()
@@ -87,6 +95,52 @@ def product_files() -> list[Path]:
     # A tracked file can be deleted in the working tree before the deletion lands;
     # reading it would abort collection, so the tree's real state is what counts.
     return [path for path in files if path.is_file()]
+
+
+def _is_home_ephe(node: ast.AST) -> bool:
+    """True for the expression `Path.home() / ".ephe"`, and nothing else."""
+    if not (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div)):
+        return False
+    right = node.right
+    if not (isinstance(right, ast.Constant) and right.value == ".ephe"):
+        return False
+    left = node.left
+    return (
+        isinstance(left, ast.Call)
+        and isinstance(left.func, ast.Attribute)
+        and left.func.attr == "home"
+        and isinstance(left.func.value, ast.Name)
+        and left.func.value.id == "Path"
+        and not left.args
+    )
+
+
+def device_root_expressions() -> list[str]:
+    """Every place the code builds the device folder beside the root, read off the tree.
+
+    The scan used to read lines, which counted a docstring that merely names the expression
+    and missed an expression wrapped across two lines. The tree is what the interpreter runs:
+    a string in prose is not a path, and a path in prose would be found nowhere else.
+    """
+    sites: list[str] = []
+    unparsed: list[str] = []
+    for path in product_files():
+        rel = path.relative_to(REPO).as_posix()
+        try:
+            tree = ast.parse(path.read_text(errors="ignore"))
+        except SyntaxError:
+            unparsed.append(rel)  # a product file the interpreter itself could not read
+            continue
+        for node in ast.walk(tree):
+            if _is_home_ephe(node):
+                sites.append(f"{rel}:{node.lineno}")
+    return sorted(sites) + [f"{rel}:0 (unparseable)" for rel in sorted(unparsed)]
+
+
+def root_expressions_outside_the_definition() -> list[str]:
+    """The device folder built anywhere other than the file that defines the root."""
+    return [site for site in device_root_expressions()
+            if not site.startswith(ROOT_DEFINITION_FILE + ":")]
 
 
 def declared_names() -> set[str]:
@@ -97,32 +151,6 @@ def declared_names() -> set[str]:
             for match in pattern.finditer(path.read_text(errors="ignore")):
                 found.add(match.group(1).split("/")[0])
     return {name for name in found if name}
-
-
-def all_home_literals() -> list[str]:
-    """Every `Path.home() / ".ephe"` site in the product, whatever it does with the root."""
-    sites: list[str] = []
-    for path in product_files():
-        rel = path.relative_to(REPO).as_posix()
-        for number, line in enumerate(path.read_text(errors="ignore").splitlines(), 1):
-            if 'Path.home() / ".ephe"' in line:
-                sites.append(f"{rel}:{number}")
-    return sorted(sites)
-
-
-def home_literals_bypassing_the_root() -> list[str]:
-    """`Path.home() / ".ephe"` uses that are not the fallback half of an env read."""
-    offenders: list[str] = []
-    for path in product_files():
-        rel = path.relative_to(REPO).as_posix()
-        for number, line in enumerate(path.read_text(errors="ignore").splitlines(), 1):
-            if 'Path.home() / ".ephe"' not in line:
-                continue
-            if "EPHE_CONFIG_DIR" in line or "EPHE_AUDIT_LOG" in line or "EPHE_IMAGE_DIR" in line \
-                    or "EPHE_PERSONA_DIR" in line:
-                continue
-            offenders.append(f"{rel}:{number}")
-    return sorted(offenders)
 
 
 def resolve_in_child(temp_home: Path) -> dict[str, str]:
@@ -189,13 +217,20 @@ def test_a_temp_device_root_captures_every_state_writer(tmp_path):
     assert not outside, f"{len(outside)} state paths escape the root: {outside}"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    f"{len(all_home_literals())} literals reach the device folder and "
-    f"{len(home_literals_bypassing_the_root())} of them do it without an env fallback; the "
-    f"scan prints the file:line pairs, so the fix is a list rather than a hunt"))
 def test_state_paths_reach_the_device_folder_only_through_the_root():
-    offenders = home_literals_bypassing_the_root()
-    assert not offenders, f"{len(offenders)} sites build an .ephe path with no env fallback"
+    """One file may spell the folder out of the home directory: the one that defines it.
+
+    Twenty-five sites re-implemented the root's own rule — read `EPHE_CONFIG_DIR`,
+    otherwise `~/.ephe` — as an expression of their own. Each agreed with `config_root()`
+    on the day it was written and owed that agreement to nobody afterwards, so a change to
+    the rule would have landed in one place out of twenty-six while the other twenty-five
+    kept answering for the old one. Every state path now comes from `config_root()` or
+    `config_subdir()`, and the scan reads the expression tree, which is what the
+    interpreter runs: prose that names the literal is a sentence, and a path built across
+    two lines is a path.
+    """
+    offenders = root_expressions_outside_the_definition()
+    assert not offenders, f"{len(offenders)} sites build the device folder beside the root: {offenders}"
 
 
 @pytest.mark.xfail(strict=False, reason=(

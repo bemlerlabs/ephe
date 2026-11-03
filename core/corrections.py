@@ -16,8 +16,9 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from core.engine_config import config_root
 
-DEFAULT_CORRECTIONS_PATH = Path.home() / ".ephe" / "memory" / "corrections.md"
+DEFAULT_CORRECTIONS_PATH = config_root() / "memory" / "corrections.md"
 
 ENTRY_SEPARATOR = "---"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

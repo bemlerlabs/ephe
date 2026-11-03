@@ -593,13 +593,16 @@ def test_backend_listening_oserror(monkeypatch):
 
 
 def test_spawn_backend_writes_log(monkeypatch, tmp_path):
-    monkeypatch.setenv("HOME", str(tmp_path))
+    # The log goes where the run declared its device folder, which is the one rule
+    # `ephe doctor` and the settings card read the same way.
+    device = tmp_path / ".ephe"
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
     monkeypatch.setattr(ephe_cli, "PROJECT_ROOT", tmp_path)
     calls: list[list[str]] = []
     monkeypatch.setattr(ephe_cli.subprocess, "Popen", lambda cmd, **_k: calls.append(cmd))
     ephe_cli._spawn_backend(9100)
     assert calls and calls[0][-1] == "9100"
-    assert (tmp_path / ".ephe" / "logs" / "desktop-backend.log").exists()
+    assert (device / "logs" / "desktop-backend.log").exists()
 
 
 def test_ensure_backend_ready(monkeypatch):
@@ -1435,9 +1438,11 @@ def test_cmd_sky_prints_chart(monkeypatch, capsys):
     assert "chart days=3 events=1" in capsys.readouterr().out
 
 
-def test_cmd_amber_explicit_and_default_month(monkeypatch, capsys):
+def test_cmd_amber_explicit_and_default_month(monkeypatch, capsys, tmp_path):
     import core.ephemeris as eph
 
+    device = tmp_path / "ephe"
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
     monkeypatch.setattr(eph, "default_store", lambda: Path("/nope"))
     monkeypatch.setattr(eph, "load", lambda _store: [])
     captured: dict = {}
@@ -1452,7 +1457,7 @@ def test_cmd_amber_explicit_and_default_month(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "2026-05" in out and "sitzungen  1" in out and "spitzstunde —" in out
     assert captured["month"] == "2026-05"
-    assert captured["amber_dir"] == Path.home() / ".ephe" / "amber"
+    assert captured["amber_dir"] == device / "amber"
 
     # no --month -> the current month is crystallised
     import time

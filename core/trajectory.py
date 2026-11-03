@@ -22,6 +22,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any
+from core.engine_config import config_root
 
 MAX_TURNS_PER_SESSION = 20
 MAX_STEPS_PER_TURN = 60
@@ -40,8 +41,7 @@ _loaded = False
 
 
 def _path() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base) / "trajectory.json"
+    return config_root() / "trajectory.json"
 
 
 def _ensure_loaded() -> None:

@@ -29,6 +29,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from core.engine_config import config_root
 
 #: The enumeration the first macOS profile used. The profile now denies the
 #: whole home and keeps this list as the record of what it used to name.
@@ -72,8 +73,7 @@ def is_available() -> bool:
 
 def home_for(server: str) -> Path:
     """A per-server HOME under the config root, created 0700."""
-    base = os.environ.get("EPHE_CONFIG_DIR")
-    root = (Path(base) if base else Path.home() / ".ephe") / "mcp" / "homes"
+    root = config_root() / "mcp" / "homes"
     slug = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in server)[:60] or "server"
     home = root / slug
     home.mkdir(parents=True, exist_ok=True, mode=0o700)

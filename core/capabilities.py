@@ -20,6 +20,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from core.engine_config import config_root
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +47,7 @@ SUBAGENT_BASE_WHITELIST = (
 
 
 def store_path() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR")
-    root = Path(base) if base else Path.home() / ".ephe"
-    return root / FILE_NAME
+    return config_root() / FILE_NAME
 
 
 def _read() -> dict:

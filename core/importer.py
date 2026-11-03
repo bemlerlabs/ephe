@@ -29,6 +29,7 @@ import json
 import shutil
 from pathlib import Path
 from typing import Any
+from core.engine_config import config_root
 
 PERSONA_CANDIDATES = ("SOUL.md", "persona.md", "AGENT.md", "IDENTITY.md")
 TOOLSERVER_CANDIDATES = (".mcp.json", "mcp.json")
@@ -50,7 +51,7 @@ SETTING_KEY_MAP: dict[str, str] = {
 def _config_root() -> Path:
     import os
 
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
+    return config_root()
 
 
 def _find_persona(source: Path) -> Path | None:

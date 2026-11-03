@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import threading
 import time
 from pathlib import Path
+from core.engine_config import config_root
 import uuid
 from dataclasses import dataclass
 from typing import Callable
@@ -48,8 +48,7 @@ _LOCAL_CANCELS: dict[str, float] = {}
 
 
 def _marker_path() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR")
-    return (Path(base) if base else Path.home() / ".ephe") / "plugin-cancel.json"
+    return config_root() / "plugin-cancel.json"
 
 
 def _record_cancel(plugin: str) -> None:
