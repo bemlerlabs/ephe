@@ -22,11 +22,13 @@ import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from core.engine_config import config_root
+
 _FIELDS = frozenset({"d", "h", "in", "out", "cached", "est"})
 
 
 def default_store() -> Path:
-    return Path.home() / ".ephe" / "usage.jsonl"
+    return config_root() / "usage.jsonl"
 
 
 def record_usage(

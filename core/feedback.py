@@ -23,7 +23,9 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-DEFAULT_BASE_DIR = Path.home() / ".ephe" / "memory"
+from core.engine_config import config_subdir
+
+DEFAULT_BASE_DIR = config_subdir("memory")
 
 
 @dataclass

@@ -15,9 +15,11 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.engine_config import config_root
+
 logger = logging.getLogger(__name__)
 
-DEFAULT_PROFILE_PATH = Path.home() / ".ephe" / "memory" / "user_profile.json"
+DEFAULT_PROFILE_PATH = config_root() / "memory" / "user_profile.json"
 
 
 @dataclass

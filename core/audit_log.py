@@ -1,7 +1,7 @@
 """Ephe – audit_log: append-only tool-/approval audit (R23).
 
-A JSONL file (~/.ephe/audit.log, env EPHE_AUDIT_LOG): time, tool,
-argument hash + redacted short form, approval decision, exit status, duration.
+A JSONL file in the device folder (audit.log under `config_root()`, env EPHE_AUDIT_LOG):
+time, tool, argument hash + redacted short form, approval decision, exit status, duration.
 Append-only — no deleting/rotating from inside the product (inspection via
 GET /api/audit). Every payload runs through core.redact (no secret in the log).
 
@@ -36,13 +36,13 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.engine_config import config_root
 from core.redact import args_hash, args_summary, redact
 
 logger = logging.getLogger(__name__)
 
 def _default_audit_file() -> Path:
-    base = os.environ.get("EPHE_CONFIG_DIR")
-    return (Path(base) if base else Path.home() / ".ephe") / "audit.log"
+    return config_root() / "audit.log"
 
 
 AUDIT_LOG_FILE = Path(

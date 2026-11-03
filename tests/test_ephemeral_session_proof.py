@@ -9,26 +9,27 @@ release whose enforcement was read (`.github/cell-runtime-fence.json`, ephemora-
 1.0.4.3, wheel_sha256 556e9fca…). Nothing in Ephe applies that same rule to what a session
 leaves on disk.
 
-Measured on the owner's Mac on 2026-10-11, which is the number this contract carries:
+Measured on the owner's Mac — first on 2026-10-11, re-read on 2026-11-03 wherever a step of
+this wave has landed. These are the numbers the contract carries:
 
-* 46 entries live in the device folder, 36 of them nameable through a config-root
-  expression; **19 are not** — 5 written by product code through another expression shape
-  (`settings.json`, `desktop.json`, `plugins.json`, `skills_state.json`,
-  `ephe-desktop.sock`) and 14 that no product code writes at all.
-* **7 of 10 state accessors still resolve into the real home when `EPHE_CONFIG_DIR` points
-  somewhere else**: `core/session.py:25`, `core/usage_ledger.py:28`, `core/feedback.py:24`,
-  `core/vision_memory.py:14`, `core/profile.py:20`, `core/session_search.py:44`,
-  `core/persona.py:108`. `core/audit_log.py:32` is an eighth that honours only its own
-  `EPHE_AUDIT_LOG`.
-* 42 `Path.home() / ".ephe"` literals exist in `core/`, `server/` and `ephe_cli.py`, and
-  23 of them carry no env fallback at all.
+* 50 entries live in the device folder and 21 of them answer to no config-root expression
+  the code carries.
+* **The state accessors honour the device root** (`ACCESSORS`, ten of them). Seven of the
+  ten resolved into the real home when this contract was first written — `core/session.py`,
+  `core/usage_ledger.py`, `core/feedback.py`, `core/vision_memory.py`, `core/profile.py`,
+  `core/session_search.py`, `core/persona.py` — and were moved onto `config_root()` /
+  `config_subdir()`; `core/audit_log.py` now shares that root instead of carrying a private
+  reading of the same env name. The tenth slot names `core.memory_provider`, because the
+  `DEFAULT_CHROMA_PATH` it used to check left the tree with the vector client.
+* 47 `Path.home() / ".ephe"` literals exist in `core/`, `server/` and `ephe_cli.py`, and 22
+  of them carry no env fallback on the line that builds the path.
 * `evals/bench_option_b.py` sets no `EPHE_CONFIG_DIR` (its own root is `SCRATCH`,
   `:75`), so bench reps read and append the owner's real memory store.
 
-These tests are the contract. They are marked `xfail(strict=True)`: they must not be
-weakened to pass, and once the product satisfies one, the run turns red at XPASS and the
-mark has to come off. Widening the declared set here would be the same error as an
-unenforced cap — a claim that grades itself.
+These tests are the contract. Two remain marked `xfail(strict=True)`, and the folder-count
+row keeps its non-strict mark: they must not be weakened to pass, and once the product
+satisfies one, the run turns red at XPASS and the mark has to come off. Widening the
+declared set here would be the same error as an unenforced cap — a claim that grades itself.
 
 Sources: `docs/EPHEMERAL_PROOF_2026-10-11.md`.
 """
@@ -59,6 +60,10 @@ ROOT_PATTERNS = [
 ]
 
 #: State the product keeps per device, as the modules themselves name it.
+#: `core.vision_memory` held this list's tenth entry as `DEFAULT_CHROMA_PATH` until the
+#: vector client was retired (its own docstring records the removal); the rules it stores
+#: now travel through `core.memory_provider`, which names the file the provider reads and
+#: writes next to them, so the slot moved to a name that exists and covers one more module.
 ACCESSORS = [
     ("core.engine_config", "config_root"),
     ("core.settings_schema", "settings_path"),
@@ -68,12 +73,11 @@ ACCESSORS = [
     ("core.session_search", "_db_path"),
     ("core.persona", "_persona_dir"),
     ("core.feedback", "DEFAULT_BASE_DIR"),
-    ("core.vision_memory", "DEFAULT_CHROMA_PATH"),
     ("core.profile", "DEFAULT_PROFILE_PATH"),
+    ("core.memory_provider", "provider_record_path"),
 ]
 
-MEASURED_UNDECLARED = 19
-MEASURED_OUTSIDE_ROOT = 7
+MEASURED_UNDECLARED = 21
 
 
 def product_files() -> list[Path]:
@@ -168,15 +172,15 @@ def test_a_persistence_declaration_exists():
     assert manifest, "the device folder has no declared set the product itself publishes"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    f"state writers ignore the device root: {MEASURED_OUTSIDE_ROOT} of {len(ACCESSORS)} "
-    f"accessors resolve into the real home under a temp EPHE_CONFIG_DIR "
-    f"(core/session.py:25, core/usage_ledger.py:28, core/feedback.py:24, "
-    f"core/vision_memory.py:14, core/profile.py:20, core/session_search.py:44, "
-    f"core/persona.py:108; core/audit_log.py:32 honours only EPHE_AUDIT_LOG). A run that "
-    f"sets EPHE_CONFIG_DIR somewhere else is therefore not ephemeral, it is a second writer "
-    f"into the owner's folder"))
 def test_a_temp_device_root_captures_every_state_writer(tmp_path):
+    """The writer half of the contract, green since 2026-11-03.
+
+    Ten accessors are asked, in a fresh interpreter whose `EPHE_CONFIG_DIR` points at an
+    empty folder while `HOME` stays the host's. A redirected `HOME` would hide the escape,
+    so the test keeps the home real and watches where each module puts its file: any answer
+    outside the declared root is a second writer into the owner's folder, and a run that
+    promises ephemerality while doing that is the claim this file exists to refuse.
+    """
     home = tmp_path / "home"
     home.mkdir()
     resolved = resolve_in_child(home)
@@ -197,13 +201,10 @@ def test_state_paths_reach_the_device_folder_only_through_the_root():
 @pytest.mark.xfail(strict=False, reason=(
     "not strict: a CI runner whose device folder is clean would turn a passing walk into a "
     "false red, and this test exists to report a count. Run it with --runxfail to see the "
-    f"names. Measured on the owner's device folder on 2026-10-11: {MEASURED_UNDECLARED} of 46 "
-    f"top-level entries are outside every set the code can name — 5 written by product code "
-    f"(settings.json, desktop.json, plugins.json, skills_state.json, ephe-desktop.sock) and "
-    f"14 left behind by build agents and manual backups (bench, build, ci-probe.4ZFeiD, "
-    f"ci-probe.uv.lock.new, ci-probe310, ci_probe_dir, engine.json.bak2, engine.json.bak3, "
-    f"engine.json.openrouter-backup, headcheck2, lang-sweep, mcp.json.test-debris-2026-10-09, "
-    f"output, wt-arch-5820). Until the folder can be listed from a declaration and emptied "
+    f"names. Measured on the owner's device folder on 2026-11-03: {MEASURED_UNDECLARED} of 50 "
+    f"top-level entries are outside every set the code can name — some written by product "
+    f"code through an expression shape this scan does not read, some left behind by build "
+    f"agents and manual backups. Until the folder can be listed from a declaration and emptied "
     f"by a delete, the product's ephemerality claim is a sentence"))
 def test_the_device_folder_holds_nothing_unnamed():
     root = device_folder()

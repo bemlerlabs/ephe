@@ -28,6 +28,7 @@ import re
 import sqlite3
 
 from core import sqlite_util
+from core.engine_config import config_root
 from pathlib import Path
 from typing import Any
 
@@ -60,10 +61,7 @@ CREATE TABLE IF NOT EXISTS index_meta (
 
 
 def _db_path() -> Path:
-    return Path(
-        os.environ.get("EPHE_SEARCH_DB")
-        or Path.home() / ".ephe" / "search.db"
-    )
+    return Path(os.environ.get("EPHE_SEARCH_DB") or config_root() / "search.db")
 
 
 def _sessions_dir(sessions_dir: Path | None = None) -> Path:
