@@ -20,7 +20,19 @@ A folder's name and the version inside it are two separate facts (`33b54a6a`). T
   reads the version out of the tree at that path, and prints the two beside each other. Five
   shapes of a failed read each get their own sentence — no record, a record that is not JSON,
   one naming no checkout, a folder that is gone, a folder reporting nothing — so a machine the
-  instrument could not read is never shown as a machine that is up to date. Measured live: `Installed checkout - …/0.1.4 — reports 0.5.6`.
+  instrument could not read is never shown as a machine that is up to date. Measured live:
+  `Installed checkout - …/0.1.4 — reports 0.5.6`.
+
+
+### Fixed
+
+- cli: A row stops claiming a match it never read (`5f106882`). With the server stopped, the
+  doctor printed `Desktop app — the only bundle for com.ephe.ephe, matching the backend` two
+  rows under its own `Ephe server — not running`: an absent answer left the comparison
+  unrun, and the sentence went out anyway. The row now names the version it compared when a
+  backend answered and says plainly when none did. The same instrument already refuses this
+  shape for the bundle registry, and the rule is the same one — a read that failed is said
+  out loud.
 
 
 ## [0.5.7] - 2026-11-03
