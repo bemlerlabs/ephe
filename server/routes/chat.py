@@ -1938,7 +1938,7 @@ async def chat_stream(
         # RL-1: open the run ledger and emit its first snapshot.
         from core.run import ledger as run_ledger
 
-        run_ledger.start(turn_id, request_id)
+        run_ledger.start(turn_id, request_id, request.session_id)
         queue.put_nowait(
             ("event", {"type": "run_snapshot", **run_ledger.snapshot(turn_id)})
         )

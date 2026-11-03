@@ -2,9 +2,10 @@
 
 One JSONL file per run under the config root, one line per fact. The ledger is
 content-free by default: a line may name a tool, a call id, an argument digest, a
-duration, a status and a failure class, and it may never carry a prompt, an answer
-or a tool's raw output. `SEC-1` redaction runs over every line regardless, so even a
-field that slips through the whitelist cannot carry a key.
+duration, a status, a failure class, the session the run belongs to and the path it
+wrote, and it may never carry a prompt, an answer or a tool's raw output. `SEC-1`
+redaction runs over every line regardless, so even a field that slips through the
+whitelist cannot carry a key.
 
 The five phases the surface reads are a projection of the same lines:
 
@@ -54,6 +55,7 @@ PAYLOAD_KEYS = frozenset(
         "budget_cap",
         "wait_seconds",
         "activity",
+        "session_id",
     }
 )
 
@@ -64,6 +66,7 @@ _PHASE_FOR_EVENT = {
     "sandbox_confirm": "waiting",
     "ask": "waiting",
     "artifact": "changed",
+    "file_result": "changed",
     "error": "result",
     "done": "next",
 }
@@ -74,9 +77,10 @@ def _root() -> Path:
 
 
 class RunLedger:
-    def __init__(self, run_id: str, request_id: str = "") -> None:
+    def __init__(self, run_id: str, request_id: str = "", session_id: str = "") -> None:
         self.run_id = run_id
         self.request_id = request_id
+        self.session_id = session_id
         self.seq = 0
         self._lock = threading.Lock()
         self._path = _root() / f"{run_id}.jsonl"
@@ -142,7 +146,8 @@ class RunLedger:
             return line
 
     def start(self, **payload: Any) -> dict:
-        return self.append("now", "run_started", **payload)
+        named = {"session_id": self.session_id} if self.session_id else {}
+        return self.append("now", "run_started", **named, **payload)
 
     def finish(self, finish_reason: str, failure_class: str = "") -> dict | None:
         if not self.mark_terminal():
@@ -162,8 +167,8 @@ def _current() -> RunLedger | None:
 _LEDGER: ContextVar[RunLedger | None] = ContextVar("ephe_run_ledger", default=None)
 
 
-def start(run_id: str, request_id: str = "") -> RunLedger:
-    ledger = RunLedger(run_id, request_id)
+def start(run_id: str, request_id: str = "", session_id: str = "") -> RunLedger:
+    ledger = RunLedger(run_id, request_id, session_id)
     _LEDGER.set(ledger)
     ledger.start()
     return ledger
@@ -207,12 +212,19 @@ def record_event(event: dict) -> dict | None:
         }
     elif kind == "sandbox_confirm":
         payload = {"tool": str(event.get("tool") or ""), "status": "awaiting"}
-    elif kind == "artifact":
-        artifact = event.get("artifact") or {}
+    elif kind in ("artifact", "file_result"):
+        # Both frames announce the same fact — a file this run wrote — from two producers:
+        # the detector over the answer text and the marker table of a tool result. The
+        # `changed` phase promises the path, and `paths` sits on the whitelist for it; a
+        # register that named only an opaque id could not be read.
+        body = event.get("artifact") if kind == "artifact" else event
+        written = str(body.get("path") or "") if isinstance(body, dict) else ""
         payload = {
-            "artifact_ids": [str(artifact.get("id") or "")][:20] if isinstance(artifact, dict) else [],
+            "artifact_ids": [str(body.get("id") or "")][:20] if isinstance(body, dict) else [],
             "count": 1,
         }
+        if written:
+            payload["paths"] = [written][:20]
     elif kind == "error":
         payload = {"status": "error", "reason_code": str(event.get("reason_code") or "")}
     elif kind == "done":
@@ -246,13 +258,13 @@ def read_run(run_id: str) -> list[dict]:
     return out
 
 
-def snapshot(run_id: str) -> dict:
-    """The five-phase projection the surface reads.
+def project(rows: list[dict], *, run_id: str = "") -> dict:
+    """The five-phase projection of lines already read, newest line per phase.
 
-    Every phase is present with a null body when the run never reached it, so a
-    client renders the same shape for a new run and a finished one.
+    `snapshot` reads the file and hands the rows here, so a reader that has the rows
+    for its own purposes — the fleet board, which ages a run off them — projects the
+    same view without a second read of the disk.
     """
-    rows = read_run(run_id)
     now = waiting = changed = result = next_ = None
     for row in rows:
         phase = row.get("phase")
@@ -267,7 +279,7 @@ def snapshot(run_id: str) -> dict:
         elif phase == "next":
             next_ = row
     return {
-        "run_id": run_id,
+        "run_id": run_id or (str(rows[-1].get("run_id") or "") if rows else ""),
         "seq": rows[-1].get("seq") if rows else 0,
         "phases": {
             "Now": now,
@@ -278,6 +290,15 @@ def snapshot(run_id: str) -> dict:
         },
         "lines": len(rows),
     }
+
+
+def snapshot(run_id: str) -> dict:
+    """The five-phase projection the surface reads.
+
+    Every phase is present with a null body when the run never reached it, so a
+    client renders the same shape for a new run and a finished one.
+    """
+    return project(read_run(run_id), run_id=run_id)
 
 
 def snapshot_if_present(run_id: str) -> dict | None:
