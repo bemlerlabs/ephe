@@ -345,3 +345,47 @@ def test_a_repair_never_touches_the_host_it_is_tested_on(tmp_path: Path, monkeyp
     assert ok is True
     assert untouched == []
     assert "does not run inside the suite" in detail
+
+
+def test_the_default_runner_reports_a_missing_tool_instead_of_raising(
+    tmp_path: Path, monkeypatch
+):
+    """The repair's own command path, with no runner injected.
+
+    Every other case hands the repair a fake because the real `lsregister` exists on one
+    operating system. This one answers the question the fake never asks: what happens on a
+    machine where the tool is simply not there. The answer has to be a sentence the person can
+    read, and never a traceback out of a repair they asked for — and the re-register is the
+    command that says so first, because a forget that never ran leaves nothing to report."""
+    installed = tmp_path / "Applications" / "Ephe.app"
+    stale = str(tmp_path / ".Trash" / "Ephe-old.app")
+
+    def absent(*_a, **_k):
+        raise FileNotFoundError("no lsregister here")
+
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: ([stale], ""))
+    monkeypatch.setattr(mod.subprocess, "run", absent)
+
+    ok, detail = mod._repair_desktop_bundles(installed=installed, platform="darwin")
+    assert ok is False
+    assert "could not re-register" in detail
+
+
+def test_a_repair_that_cannot_re_read_after_clearing_says_that(
+    tmp_path: Path, monkeypatch
+):
+    """Success has to be seen before it is claimed.
+
+    The forget commands all answered zero; the registry then would not say what it holds now.
+    Reporting "cleared" from that state is the same claim the row was built to stop making."""
+    installed = tmp_path / "Applications" / "Ephe.app"
+    stale = [str(tmp_path / ".Trash" / "Ephe-old.app")]
+    reads = iter([(stale, ""), ([], "the dump stopped answering")])
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: next(reads))
+
+    ok, detail = mod._repair_desktop_bundles(
+        installed=installed, runner=lambda _a: 0, platform="darwin"
+    )
+    assert ok is False
+    assert "could not be re-read" in detail
+    assert "cleared 1" in detail
