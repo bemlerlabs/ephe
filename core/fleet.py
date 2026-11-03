@@ -14,6 +14,9 @@ the registers that already answer them, and answered in one list:
   will not move until a person answers, so it is `waiting_on_human` and nothing else: no
   status in any registry can say it, because that run is alive and idle. The waits arrive as
   plain rows rather than imports, so this module never reaches into `server`.
+* **turn runs** — one chat turn, from the run ledger (`core/fleet_rows.session_runs`). This
+  is the only register a chat turn writes, so it is the only one that can say what the
+  person's own task is doing; the row shape and the state words live in `core/fleet_rows`.
 
 A state is one of four words. `blocked` is not "broken": it is a run whose owning process is
 gone, or one that ended in an error or a step limit — work that will not continue on its own.
@@ -24,31 +27,33 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timezone
 from typing import Any, Callable, Iterable
 
-#: The closed vocabulary. `app/src/lib/api/workspaces.ts` and the surface over it name the
-#: same four, so a word that reaches the screen still means what it means here.
-RUNNING = "running"
-WAITING_ON_HUMAN = "waiting_on_human"
-BLOCKED = "blocked"
-DONE = "done"
-RUN_STATES = (RUNNING, WAITING_ON_HUMAN, BLOCKED, DONE)
+from core.fleet_rows import (
+    AGENT_LIMIT,
+    BLOCKED,
+    DONE,
+    NEEDS_YOU_STATES,
+    RECENT_SECONDS,
+    RUNNING,
+    RUN_STATES,
+    WAITING_ON_HUMAN,
+    awaiting_event,
+    needs_you,
+    row as _row,
+    seconds_since,
+    session_runs,
+)
 
-#: States that are a decision a person owes, and the window a finished run stays on the
-#: board for (long enough to see that it landed, short enough that this is a fleet, not a
-#: history). AGENT_LIMIT is the newest-first page size of the only paginated register.
-NEEDS_YOU_STATES = (WAITING_ON_HUMAN, BLOCKED)
-RECENT_SECONDS = 900
-AGENT_LIMIT = 50
+__all__ = [
+    "AGENT_LIMIT", "BLOCKED", "DONE", "NEEDS_YOU_STATES", "RECENT_SECONDS", "RUNNING",
+    "RUN_STATES", "WAITING_ON_HUMAN", "agent_runs", "build", "needs_you", "owner_alive",
+    "register_owners", "run_state", "seconds_since", "wait_runs", "workspace_runs",
+    "workspace_view",
+]
 
 #: Where a state sorts: the one that needs an answer first, then the stuck, then the busy.
 _SORT_ORDER = {WAITING_ON_HUMAN: 0, BLOCKED: 1, RUNNING: 2, DONE: 3}
-
-
-def needs_you(state: str) -> bool:
-    """Whether this state is a thing a person has to do."""
-    return state in NEEDS_YOU_STATES
 
 
 def run_state(*, status: str = "", tree_state: str = "", owner_alive: bool | None = None) -> str:
@@ -77,28 +82,6 @@ def run_state(*, status: str = "", tree_state: str = "", owner_alive: bool | Non
     if owner_alive is False:
         return BLOCKED
     return RUNNING
-
-
-def seconds_since(stamp: Any, now: float | None = None) -> int | None:
-    """How long ago an ISO stamp was, in whole seconds; None when it cannot be read.
-
-    The register writes microseconds with a `+00:00` offset, `core.subagent_history` writes
-    epoch seconds. Both reach here. A stamp this cannot read answers None, never a zero.
-    """
-    if isinstance(stamp, (int, float)) and not isinstance(stamp, bool):
-        base = float(stamp)
-    elif isinstance(stamp, str) and stamp.strip():
-        try:
-            parsed = datetime.fromisoformat(stamp.strip().replace("Z", "+00:00"))
-        except ValueError:
-            return None
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        base = parsed.timestamp()
-    else:
-        return None
-    moment = time.time() if now is None else now
-    return max(0, int(moment - base))
 
 
 def owner_alive(pid: Any) -> bool | None:
@@ -150,54 +133,6 @@ def register_owners(register_file_path: str | os.PathLike[str] | None = None) ->
         if tree_id:
             out[tree_id] = row.get("pid")
     return out
-
-
-def _ledger_of(run_id: str) -> dict | None:
-    """The run ledger as a fleet view; None for a run whose ledger has no lines."""
-    try:
-        from core.run.ledger import snapshot_if_present
-
-        return snapshot_if_present(run_id)
-    except Exception:
-        return None
-
-
-def _row(
-    *,
-    run_id: str,
-    kind: str,
-    agent: str,
-    task: str = "",
-    workspace_id: str = "",
-    path: str = "",
-    state: str,
-    running_for_seconds: int | None,
-    last_event: dict | None = None,
-) -> dict:
-    """One fleet row, with every field present so the client never guesses a missing one."""
-    return {
-        "run_id": run_id,
-        "kind": kind,
-        "agent": agent,
-        "task": task,
-        "workspace_id": workspace_id,
-        "path": path,
-        "state": state,
-        "needs_you": needs_you(state),
-        "running_for_seconds": running_for_seconds,
-        "last_event": last_event or {"kind": "none", "text": "", "op": "", "age_seconds": None},
-        "ledger": _ledger_of(run_id),
-    }
-
-
-def _awaiting(tool: str, seconds: Any) -> dict:
-    """The last event of a run that stopped on an unanswered approval."""
-    return {
-        "kind": "awaiting",
-        "text": str(tool or ""),
-        "op": "",
-        "age_seconds": int(seconds) if isinstance(seconds, int) else None,
-    }
 
 
 def _newest_change_set(path: str) -> dict:
@@ -332,7 +267,7 @@ def wait_runs(*, waits: Iterable[dict] = (), now: float | None = None) -> list[d
                 agent=session or "unknown",
                 state=WAITING_ON_HUMAN,
                 running_for_seconds=int(seconds) if isinstance(seconds, int) else None,
-                last_event=_awaiting(str(wait.get("tool") or ""), seconds),
+                last_event=awaiting_event(str(wait.get("tool") or ""), seconds),
             )
         )
     return rows
@@ -348,12 +283,15 @@ def build(
     """The board: every run, the ones that need a person first, then longest-running first.
 
     The wait rows are added last and then sorted to the front, so a run that is waiting on a
-    human never sits under four rows that are merely busy.
+    human never sits under four rows that are merely busy. A turn and the wait it stopped on
+    are one run seen from two registers, so the ledger leg yields its id to the wait.
     """
     pending = list(waits)
     rows = workspace_runs(now=now, owners=owners, alive=alive)
     rows += agent_runs(now=now)
     rows += wait_runs(waits=pending, now=now)
+    held = {str(item["run_id"]) for item in rows}
+    rows += [item for item in session_runs(now=now) if str(item["run_id"]) not in held]
     rows.sort(
         key=lambda row: (
             _SORT_ORDER.get(str(row.get("state")), 9),

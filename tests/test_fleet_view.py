@@ -465,3 +465,113 @@ def test_a_waiting_session_is_its_own_row_and_never_its_helpers(client, monkeypa
     # The helpers of that session are what their own registry says they are.
     assert _row(client, "agent:subagent-201")["state"] == "done"
     assert _row(client, "agent:subagent-202")["state"] == "running"
+
+
+# The run a chat turn wrote to disk
+
+
+def test_a_turn_that_wrote_a_file_is_on_the_board(client, tmp_path, monkeypatch):
+    """Given a session the product created and one streamed turn that wrote a file;
+       When the register is asked;
+       Then the board carries that run, names its session and the file it wrote.
+
+    Measured 2026-11-03 on the machine that ships Ephe: after a real run with a produced
+    file `GET /api/workspaces` answered `{"workspaces": [], "runs": []}`. The turn was on
+    disk — `core/run/ledger.py` writes one file per run — while the read selected only
+    `core/workspace_lifecycle.list_live()`, the git-worktree register no chat turn writes.
+    """
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from core import artifact_store
+    from core import multi_session as ms
+    from server.routes import chat
+
+    monkeypatch.setattr(artifact_store, "ARTIFACTS_DB", tmp_path / "artifacts.db")
+    session = ms.create_session("the register must show this run")
+    report = tmp_path / "report.md"
+
+    async def fake_tools(**kwargs):
+        report.write_text("# the report\n", encoding="utf-8")
+        kwargs["on_tool_done"]("write_file", f"WRITE_FILE: {report}")
+        kwargs["on_chunk"]("the report is written")
+        return "the report is written"
+
+    monkeypatch.setattr(chat, "chat_with_tools", fake_tools)
+    monkeypatch.setattr(
+        chat, "reflect",
+        AsyncMock(return_value=SimpleNamespace(needs_revision=False, reason="ok")),
+    )
+    res = client.post(
+        "/api/chat/stream",
+        json={"message": "write the report", "session_id": session["id"]},
+    )
+    assert res.status_code == 200, res.text
+
+    row = _row(client, f"session:{session['id']}")
+    assert row["kind"] == "session"
+    assert row["agent"] == session["id"], "the row names the task it ran in"
+    assert row["state"] == "done", row
+    assert row["needs_you"] is False
+    assert row["last_event"]["kind"] == "file"
+    assert row["last_event"]["text"] == str(report)
+    ledger = row["ledger"]
+    assert ledger and ledger["lines"] > 0 and ledger["phases"]["Changed"], "the row carries its own ledger"
+    assert ledger["run_id"] != session["id"], "the ledger is the turn's, not the session's file"
+
+
+def test_the_turn_of_a_session_already_on_the_board_is_not_a_second_row(client, monkeypatch):
+    """Given a session whose approval is open and whose turn is in the ledger;
+       When the board is read;
+       Then that session holds one row, and it is the one that says who is owed an answer.
+
+    The wait registry and the run ledger describe the same live turn from two sides. Two
+    rows for one turn would put a `running` line beside the `waiting_on_human` line the
+    person has to act on, which is the disagreement this board exists to end.
+    """
+    from core.run import ledger
+    from server.routes import chat
+
+    ledger.start("turn-of-wait", "req-1", session_id=WAITING_SESSION)
+    ledger.record_event({"type": "tool_start", "tool": "run_shell", "call_id": "c1"})
+    monkeypatch.setattr(
+        chat,
+        "pending_approvals",
+        lambda: [{"token": "t-9", "session_id": WAITING_SESSION, "tool": "run_shell",
+                  "waiting_seconds": 4}],
+    )
+
+    rows = [row for row in _board(client) if row["run_id"] == f"session:{WAITING_SESSION}"]
+    assert len(rows) == 1, rows
+    assert rows[0]["state"] == "waiting_on_human"
+
+
+def test_the_turn_that_kept_writing_stands_first(monkeypatch):
+    """Given two ledger turns whose newest lines differ by nine minutes;
+       When the board is read;
+       Then the turn that kept writing is the first row.
+
+    The window ages a run off the board from its last line, so the order has to answer the
+    same question. Measured on the first draft of this read: sorting by how long a run has
+    been going put the oldest turn on top, which is the board upside down — a finished run
+    from before the person's coffee outranked the one writing files now.
+    """
+    from core import fleet_rows
+    from core.run import ledger
+
+    moment = 1_800_000_000.0
+    lines = {
+        "run-quiet": [
+            {"kind": "run_started", "ts": moment - 800, "session_id": "s-quiet"},
+            {"kind": "done", "ts": moment - 700, "finish_reason": "completed"},
+        ],
+        "run-live": [
+            {"kind": "run_started", "ts": moment - 200, "session_id": "s-live"},
+            {"kind": "file_result", "ts": moment - 60, "paths": ["/tmp/now.md"]},
+        ],
+    }
+    monkeypatch.setattr(ledger, "active_run_ids", lambda: ["run-quiet", "run-live"])
+    monkeypatch.setattr(ledger, "read_run", lambda run_id: lines[run_id])
+
+    rows = fleet_rows.session_runs(now=moment)
+    assert [item["agent"] for item in rows] == ["s-live", "s-quiet"]

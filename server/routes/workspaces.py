@@ -77,10 +77,10 @@ async def list_workspaces() -> dict:
     Three halves, one read. ``workspaces`` keeps the register's six fields and gains the run
     fields a row needs to say what it is doing (``run_state``, ``needs_you``,
     ``running_for_seconds``, ``owner_alive``, ``last_event``). ``runs`` is the whole board —
-    the same trees plus the helper runs and the waits that own no checkout — so a caller
-    polling this one route has the fleet without a second endpoint. ``configured_workspace``
-    names the folder `GET /api/settings` answers with, beside the register. Nothing is stored
-    here: `core.fleet` reads the registers that already exist.
+    the trees, the helper runs, the waits that own no checkout and the turn the run ledger
+    recorded — so a caller polling this one route has the fleet without a second endpoint.
+    ``configured_workspace`` names the folder `GET /api/settings` answers with, beside the
+    register. Nothing is stored here: `core.fleet` reads the registers that already exist.
     """
     return fleet_payload()
 
