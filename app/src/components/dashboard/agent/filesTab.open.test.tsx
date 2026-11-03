@@ -46,9 +46,10 @@ type PreviewAnswer = {
   text?: string
 }
 
-const filePreviewByPath = vi.fn(
-  async (_path: string): Promise<PreviewAnswer> => ({ mode: 'none', reason: 'no-text-preview' }),
-)
+const filePreviewByPath = vi.fn(async (_path: string): Promise<PreviewAnswer> => ({
+  mode: 'none',
+  reason: 'no-text-preview',
+}))
 
 vi.mock('@/lib/api', () => ({
   listFs: (...args: unknown[]) => listFs(...(args as [string | undefined])),
