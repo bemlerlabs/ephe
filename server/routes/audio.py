@@ -19,6 +19,7 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
+from core.engine_config import config_root
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -57,9 +58,7 @@ CONTENT_TYPE_EXT = {
 
 def _get_audio_dir() -> Path:
     """Audio directory from the env variable (for test isolation)."""
-    return Path(
-        os.environ.get("EPHE_AUDIO_DIR", str(Path.home() / ".ephe" / "sessions" / "audio"))
-    )
+    return Path(os.environ.get("EPHE_AUDIO_DIR") or config_root() / "sessions" / "audio")
 
 
 # Response Models

@@ -48,6 +48,7 @@ from core.channels.telegram_bot import (
     TelegramChannelRunner,
     SESSIONS_FILENAME,
 )
+from core.engine_config import config_root
 
 router = APIRouter(prefix="/channels", tags=["Channels"])
 
@@ -61,7 +62,7 @@ _bot_username: str | None = None
 
 
 def _ephe_dir() -> Path:
-    return Path(os.environ.get("EPHE_DIR", str(Path.home() / ".ephe")))
+    return Path(os.environ.get("EPHE_DIR") or config_root())
 
 
 def _sessions_path() -> Path:

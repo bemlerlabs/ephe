@@ -17,6 +17,7 @@ from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
+from core.engine_config import config_root as _device_root
 
 router = APIRouter(tags=["Tour"])
 
@@ -28,7 +29,8 @@ MAX_STEP = 5
 
 
 def config_root() -> Path:
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
+    """The device folder, on the one rule core.engine_config owns."""
+    return _device_root()
 
 
 def marker_path() -> Path:

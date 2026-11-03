@@ -19,6 +19,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from core.importer import apply_import, build_import_plan
+from core.engine_config import config_root
 
 router = APIRouter(tags=["Import"])
 
@@ -31,7 +32,7 @@ class ImportRequest(BaseModel):
 
 
 def _selection_file() -> Path:
-    root = Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
+    root = config_root()
     return root / "import-source.json"
 
 

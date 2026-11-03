@@ -34,6 +34,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Any
+from core.engine_config import config_root
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ def _env_flag(name: str) -> bool:
 
 def config_dir() -> Path:
     """The device folder — `EPHE_CONFIG_DIR`, otherwise `~/.ephe`."""
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
+    return config_root()
 
 
 def model_dir() -> Path:

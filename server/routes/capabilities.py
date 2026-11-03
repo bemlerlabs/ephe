@@ -6,9 +6,6 @@ letting a view carry a copy that can drift from the guard that enforces it.
 """
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -17,6 +14,7 @@ from core.subagent import SUBAGENT_MAX_ITERATIONS, SUBAGENT_TOOL_WHITELIST
 from core.mcp_sandbox import platform_boundary
 from core.tools import get_tool_schemas
 from core.tools.approval_rules import SAFE_TOOLS
+from core.engine_config import config_root
 
 router = APIRouter(tags=["Agents"])
 
@@ -46,8 +44,7 @@ def _mcp_sandbox() -> dict:
     `pid_isolated` follows the same argv: only bubblewrap carries `--unshare-pid`.
     """
     platform = platform_boundary()
-    base = os.environ.get("EPHE_CONFIG_DIR")
-    homes = (Path(base) if base else Path.home() / ".ephe") / "mcp" / "homes"
+    homes = config_root() / "mcp" / "homes"
     return {
         "platform": platform,
         "available": platform != "unavailable",

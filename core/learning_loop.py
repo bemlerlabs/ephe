@@ -22,6 +22,7 @@ import os
 import re
 import time
 from pathlib import Path
+from core.engine_config import config_root
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ def detect_patterns(messages: list[dict]) -> list[dict]:
 
 def _learning_dir() -> Path:
     """Storage resolved LAZILY from env so tests can redirect after import."""
-    return Path(os.environ.get("EPHE_LEARNING_DIR", str(Path.home() / ".ephe" / "learning")))
+    return Path(os.environ.get("EPHE_LEARNING_DIR") or config_root() / "learning")
 
 
 class ProposalStore:

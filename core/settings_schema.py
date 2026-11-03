@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from core.settings_hints import HINTS
+from core.engine_config import config_root
 
 SCHEMA_VERSION = 1
 
@@ -372,7 +373,7 @@ def deep_defaults() -> dict[str, dict[str, Any]]:
 # Persistence (settings.json in the device folder)
 
 def settings_path() -> Path:
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")) / "settings.json"
+    return config_root() / "settings.json"
 
 
 def load_deep_settings() -> dict[str, dict[str, Any]]:

@@ -19,6 +19,7 @@ from playwright.async_api import async_playwright, Page, Browser, Playwright
 from core.browser_url import url_policy
 from core.tool_markers import BROWSER_DENIED_MARKER
 from core.vision import _get_bounding_box
+from core.engine_config import config_root
 
 # One long-lived event loop per session (in a dedicated thread), so
 # Playwright objects stay bound to the same loop throughout.
@@ -289,7 +290,7 @@ class PlaywrightBrowserManager:
         import os
         import time
         b64 = await self.screenshot(session)
-        image_dir = Path(os.environ.get("EPHE_IMAGE_DIR", str(Path.home() / ".ephe" / "sessions" / "images")))
+        image_dir = Path(os.environ.get("EPHE_IMAGE_DIR") or config_root() / "sessions" / "images")
         image_dir.mkdir(parents=True, exist_ok=True)
         filename = f"browser_{int(time.time())}.jpeg"
         target = image_dir / filename

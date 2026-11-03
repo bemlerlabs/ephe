@@ -9,6 +9,7 @@ import uuid
 import os
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+from core.engine_config import config_root
 
 
 def _device_dir() -> Path:
@@ -17,7 +18,7 @@ def _device_dir() -> Path:
     Resolved at construction time so a server started with a moved root owns a task
     list of its own; tests that build the manager after setting the env get the same.
     """
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
+    return config_root()
 
 
 class TaskManager:

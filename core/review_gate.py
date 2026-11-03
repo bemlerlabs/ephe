@@ -33,6 +33,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from core.engine_config import config_root
 from typing import Any
 
 APPROVE = "approve"
@@ -41,9 +42,7 @@ REJECT = "reject"
 VERDICTS = (APPROVE, REQUEST_CHANGES, REJECT)
 
 LEDGER_SCHEMA = 1
-LEDGER_FILE = Path(
-    os.environ.get("EPHE_REVIEW_LEDGER", str(Path.home() / ".ephe" / "reviews.jsonl"))
-)
+LEDGER_FILE = Path(os.environ.get("EPHE_REVIEW_LEDGER") or config_root() / "reviews.jsonl")
 REASON_KEYS = frozenset({"path", "line", "why"})
 
 

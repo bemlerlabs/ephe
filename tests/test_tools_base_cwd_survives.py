@@ -66,11 +66,13 @@ else:
     later = None
 
 roots = [str(p) for p in base.ALLOWED_ROOTS]
+from core.engine_config import config_root
 print(json.dumps({
     "cwd_gone": gone,
     "here": here,
     "later": later,
     "roots": roots,
+    "device": str(config_root()),
     "has_here": here in roots,
     "has_later": later in roots if later else None,
 }))
@@ -92,8 +94,10 @@ def _run(mode: str) -> dict:
     return json.loads(proc.stdout.strip().splitlines()[-1])
 
 
-#: The four roots that do not depend on the working directory.
-STATIC = ("Documents", "Desktop", "Downloads", ".ephe")
+#: The three roots named by the home directory, whatever the run declares as its device
+#: folder. The device root itself is checked by name below, because the suite points
+#: `EPHE_CONFIG_DIR` at a temp directory and a suffix test would then read a false absence.
+STATIC = ("Documents", "Desktop", "Downloads")
 
 
 def test_the_import_survives_a_working_directory_that_was_removed():
@@ -106,6 +110,7 @@ def test_the_static_roots_are_still_there_after_the_directory_vanished():
     out = _run("gone")
     for name in STATIC:
         assert any(root.endswith(f"/{name}") for root in out["roots"]), f"{name} missing"
+    assert out["device"] in out["roots"], "the device folder the run declared is not a root"
     assert out["has_here"] is False, "a working directory that is gone cannot be a root"
 
 
@@ -115,6 +120,7 @@ def test_a_read_after_the_directory_vanished_does_not_raise():
     assert out["has_here"] is False, "the dead directory is still listed as a root"
     for name in STATIC:
         assert any(root.endswith(f"/{name}") for root in out["roots"])
+    assert out["device"] in out["roots"], "the device folder the run declared is not a root"
 
 
 def test_the_roots_are_read_where_they_are_used_not_where_the_module_is_imported():

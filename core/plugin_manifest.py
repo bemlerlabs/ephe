@@ -27,6 +27,7 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+from core.engine_config import config_root
 
 MANIFEST_FILENAME = "ephe-plugin.json"
 SIG_FILENAME = "ephe-plugin.sig.json"
@@ -102,8 +103,7 @@ PLUGINS_ROOT_OVERRIDE: Path | None = None
 def plugins_root() -> Path:
     if PLUGINS_ROOT_OVERRIDE is not None:
         return Path(PLUGINS_ROOT_OVERRIDE)
-    base = os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")
-    return Path(base) / PLUGINS_DIRNAME
+    return config_root() / PLUGINS_DIRNAME
 
 
 # Validation

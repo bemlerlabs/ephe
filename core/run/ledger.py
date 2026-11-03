@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from core.redact import args_hash, redact_deep
+from core.engine_config import config_root
 
 SCHEMA = 1
 PHASES = ("now", "waiting", "changed", "result", "next")
@@ -69,7 +70,7 @@ _PHASE_FOR_EVENT = {
 
 
 def _root() -> Path:
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")) / "run"
+    return config_root() / "run"
 
 
 class RunLedger:

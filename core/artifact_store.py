@@ -26,6 +26,7 @@ from pathlib import Path
 
 from core import sqlite_util
 from core.artifact_workbench import artifact_target, content_hash, iso, now_iso, schedule_for
+from core.engine_config import config_root
 
 # Env override (deployment/tests), otherwise ~/.ephe/artifacts.db — pattern like
 # EPHE_AUDIO_DIR. Tests may additionally monkeypatch the module attribute.
@@ -33,7 +34,7 @@ def _default_db() -> Path:
     """The index lives with the workbench. An EPHE_CONFIG_DIR that only moved the
     birthplace and left the library in the real ~/.ephe was the bug behind this
     sentence: a redirect test wrote a row into the real DB."""
-    return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe")) / "artifacts.db"
+    return config_root() / "artifacts.db"
 
 
 ARTIFACTS_DB = Path(os.environ.get("EPHE_ARTIFACTS_DB") or _default_db())

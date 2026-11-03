@@ -180,7 +180,7 @@ class TestCli:
         store = tmp_path / "e.jsonl"
         em2.record("tool", count=4, now=NOW, store=store)
         monkeypatch.setattr(em2, "default_store", lambda: store)
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / ".ephe"))
         from ephe_cli import cmd_amber
 
         r = cmd_amber(argparse.Namespace(month="2026-09"))

@@ -1425,7 +1425,9 @@ def _backend_listening(port: int = 8765, host: str = "127.0.0.1") -> bool:
 
 def _spawn_backend(port: int = 8765) -> None:
     """Starts the product server detached (survives the CLI window)."""
-    log_dir = Path.home() / ".ephe" / "logs"
+    from core.engine_config import config_root
+
+    log_dir = config_root() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     with open(log_dir / "desktop-backend.log", "ab") as log:
         subprocess.Popen(  # noqa: S603 — fixed argv, no shell
@@ -1596,12 +1598,13 @@ def cmd_sky(args: argparse.Namespace) -> int:
 def cmd_amber(args: argparse.Namespace) -> int:
     """Monthly crystal of the ephemeris as an amber file (JSON)."""
     from core import ephemeris as ephemeris
+    from core.engine_config import config_root
 
     month = args.month or datetime.now().strftime("%Y-%m")
     amber = ephemeris.crystallize(
         ephemeris.load(ephemeris.default_store()),
         month=month,
-        amber_dir=Path.home() / ".ephe" / "amber",
+        amber_dir=config_root() / "amber",
     )
     print(f"◍ Bernstein {month}")
     print(f"  sitzungen  {amber['sitzungen']}")
@@ -1617,6 +1620,7 @@ def cmd_amber(args: argparse.Namespace) -> int:
 def cmd_bench(args: argparse.Namespace) -> int:
     """E4 Golden-Matrix: verify gate (default) or the pass³ measurement (--run)."""
     from core import plugin_golden as pg
+    from core.engine_config import config_root
 
     plugins_dir = PROJECT_ROOT / "plugins"
     if args.run is None:
@@ -1635,7 +1639,7 @@ def cmd_bench(args: argparse.Namespace) -> int:
         return 1 if fails else 0
 
     names = args.run or sorted(p.name for p in plugins_dir.iterdir() if (p / "ephe-plugin.json").is_file())
-    out_dir = Path.home() / ".ephe" / "benchmarks"
+    out_dir = config_root() / "benchmarks"
     gate_failures = 0
     for name in names:
         pdir = plugins_dir / name

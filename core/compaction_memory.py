@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from core.conversation_compactor import DEFAULT_MAX_MESSAGES, MemorySink
+from core.engine_config import config_root
 
 CHECKPOINT_FILENAME = "compaction_checkpoints.json"
 
@@ -61,7 +62,7 @@ def _prefix_fingerprint(pairs: list[tuple[str, str]], count: int) -> str:
 def _checkpoint_path(path: Path | None = None) -> Path:
     if path is not None:
         return path
-    ephe_dir = Path(os.environ.get("EPHE_DIR", str(Path.home() / ".ephe")))
+    ephe_dir = Path(os.environ.get("EPHE_DIR") or config_root())
     return ephe_dir / CHECKPOINT_FILENAME
 
 
