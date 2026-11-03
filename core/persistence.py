@@ -303,7 +303,8 @@ def listing(base: Path | None = None) -> list[dict[str, object]]:
     return rows
 
 
-def forget(base: Path | None = None, *, dry_run: bool = True) -> dict[str, list[str]]:
+def forget(base: Path | None = None, *, dry_run: bool = True,
+           names: list[str] | None = None) -> dict[str, list[str]]:
     """Clear the entries the declaration marks forgettable; keep the rest and say why.
 
     Three questions, and the answer to each is a list a surface can print: what went (or
@@ -312,11 +313,17 @@ def forget(base: Path | None = None, *, dry_run: bool = True) -> dict[str, list[
     said the product writes it. That last list is the honest one: a leftover is a person's
     file to judge, and a verb that deletes what it cannot name would be the product
     claiming more of the folder than the code can account for.
+
+    `names` limits the run to rows a caller asked for; a name carrying no row matches
+    nothing here, so a scoped run cannot reach past the declaration either.
     """
     folder = base or root()
+    wanted = None if names is None else set(names)
     removed: list[str] = []
     kept: list[str] = []
     for entry in EPHE_PERSISTENCE:
+        if wanted is not None and entry.name not in wanted:
+            continue
         path = folder / entry.name
         if not path.exists():
             continue

@@ -124,6 +124,14 @@ SERVER_SENTENCES = {
         "README.md is held by agent-b (draft since 2026-10-14T16:05) "
         "— check that run on the Workspaces page, then publish with force=True to write over it"
     ),
+    "device_forget_undeclared": (
+        "notes-backup is named by no row of the device declaration — check the listing "
+        "under Settings - Privacy and run the clear on entries it does name"
+    ),
+    "device_forget_kept": (
+        "audit.log stands under the device declaration's keep — check the listing "
+        "under Settings - Privacy and clear only what it marks forgettable"
+    ),
 }
 
 #: the slots each template fills, and therefore the keys `reason_params` has to carry
@@ -165,6 +173,8 @@ PARAMS = {
         "paths": "README.md",
         "holders": "agent-b (draft since 2026-10-14T16:05)",
     },
+    "device_forget_undeclared": {"names": "notes-backup"},
+    "device_forget_kept": {"names": "audit.log"},
 }
 
 #: the status each route answered with before the code existed, and still answers with
@@ -198,6 +208,8 @@ STATUSES = {
     "change_set_approval_superseded": 409,
     "change_set_unpublish_refused": 409,
     "publish_path_claimed": 409,
+    "device_forget_undeclared": 400,
+    "device_forget_kept": 409,
 }
 
 
