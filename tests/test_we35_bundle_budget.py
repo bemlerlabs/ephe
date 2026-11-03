@@ -161,3 +161,18 @@ def test_shipped_build_respects_every_chunk_budget() -> None:
     """GIVEN the built app/dist WHEN running the gate THEN every gated chunk is within budget."""
     rc, out = _run(DIST)
     assert rc == 0, f"chunk budget breached:\n{out}"
+
+
+@pytest.mark.skipif(not DIST.is_dir(), reason="no frontend build present (run `cd app && npm run build`)")
+def test_no_budget_row_names_a_chunk_the_real_build_drops() -> None:
+    """GIVEN the built app/dist WHEN the gate reads its own table THEN no row is left behind.
+
+    Measured 2026-11-03: the table carried `SchedulerPanel.js` at 14.8 kB while the build
+    emitted no such chunk, because the panel is painted through its parent again. A row like
+    that reports a ceiling for bytes no chunk holds, and the count of watched chunks stops
+    matching the build. The gate only prints this as a note, since its fixtures are partial
+    dists by design, so the real build is where the table is held to.
+    """
+    rc, out = _run(DIST)
+    assert "stale budget" not in out, f"budget rows naming no chunk:\n{out}"
+    assert rc == 0, out
