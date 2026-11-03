@@ -30,10 +30,12 @@ rebuild, and the trusted keys are what every installed plugin is verified agains
 """
 from __future__ import annotations
 
+import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from core._version import version_at
 from core.engine_config import config_root
 
 
@@ -180,6 +182,11 @@ def root() -> Path:
     return config_root()
 
 
+#: The declared entry the desktop shell starts from, named here so the read below and the
+#: row above agree on one file.
+DESKTOP_RECORD = "desktop.json"
+
+
 def declared_names() -> frozenset[str]:
     return {entry.name for entry in EPHE_PERSISTENCE}
 
@@ -219,6 +226,49 @@ def summary(base: Path | None = None) -> dict[str, object]:
         "unnamed": unnamed(folder),
         "forgettable": sum(1 for entry in EPHE_PERSISTENCE if entry.forgettable),
     }
+
+
+def installed_checkout(base: Path | None = None) -> dict[str, object]:
+    """Which checkout the desktop record reads, and which version that path answers with.
+
+    `desktop.json` is the line the app icon starts from, so the `project_root` it names is
+    the tree this installation actually runs. Measured 2026-11-03 on the machine that ships
+    Ephe: the record pointed at `<home>/.local/share/ephe/current`, a folder whose name came
+    out of the first provisioning while the tree inside it carried a newer manifest. A name
+    and a manifest are two separate facts, so the version here is the one read out of the
+    tree at that path by `core._version`, and the path is printed as the path it is.
+
+    `unreadable` holds the sentence for a read that did not answer, and it stays empty only
+    when the version came back. A surface that shows an empty version as a clean machine is
+    the failure this shape refuses: "I pressed Update, it said current" and "the checkout I
+    read is the one you already have" have to be two different answers.
+    """
+    folder = base or root()
+    record = folder / DESKTOP_RECORD
+    blank: dict[str, object] = {
+        "record": str(record),
+        "root": "",
+        "present": False,
+        "version": "",
+        "unreadable": "",
+    }
+    try:
+        payload = json.loads(record.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {**blank, "unreadable": "holds no record"}
+    except (OSError, ValueError) as exc:
+        return {**blank, "unreadable": f"could not be read ({exc.__class__.__name__})"}
+    named = str(payload.get("project_root") or "") if isinstance(payload, dict) else ""
+    if not named:
+        return {**blank, "unreadable": "names no project_root"}
+    state = {**blank, "root": named}
+    path = Path(named)
+    if not path.is_dir():
+        return {**state, "unreadable": "is not a folder on this machine"}
+    version = version_at(path)
+    if version is None:
+        return {**state, "present": True, "unreadable": "reports no version for itself"}
+    return {**state, "present": True, "version": version}
 
 
 def _size(path: Path) -> int:

@@ -15,7 +15,7 @@ try:
 except ModuleNotFoundError:  # 3.10: tomli is the marker-scoped main dependency
     import tomli as tomllib  # type: ignore[no-redef]
 
-__all__ = ["__version__", "source_tree_version", "version_string", "API_CONTRACT"]
+__all__ = ["__version__", "source_tree_version", "version_at", "version_string", "API_CONTRACT"]
 
 #: The wire contract the desktop shell checks before it reuses a backend. Bump when a
 #: route shape or a health field changes in a way an older shell cannot read.
@@ -31,13 +31,22 @@ def _installed_version() -> str | None:
         return None
 
 
-def source_tree_version() -> str | None:
-    """`[project].version` of the repo-root pyproject.toml, or None off the tree."""
+def version_at(root: Path) -> str | None:
+    """`[project].version` of the pyproject.toml lying at `root`, or None when it answers nothing.
+
+    A folder's name is a label someone chose once; this is the only reading that says what
+    the tree inside it claims to be.
+    """
     try:
-        with _PYPROJECT.open("rb") as fh:
+        with (Path(root) / "pyproject.toml").open("rb") as fh:
             return str(tomllib.load(fh)["project"]["version"])
     except (OSError, KeyError, tomllib.TOMLDecodeError):
         return None
+
+
+def source_tree_version() -> str | None:
+    """`[project].version` of the repo-root pyproject.toml, or None off the tree."""
+    return version_at(_PYPROJECT.parent)
 
 
 def version_string() -> str:
