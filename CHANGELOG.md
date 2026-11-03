@@ -41,6 +41,12 @@ One reading came after the wave (`fa7126ba`): the column that lists a Word file,
 
 ### Fixed
 
+- files: A reload reaches the server instead of answering from the cache (`c1ee4144`). The
+  file route sent `ETag` and `Last-Modified` with no `Cache-Control`, so the desktop shell
+  answered a re-read of an open file from its own cache by heuristic freshness: a document
+  deleted on disk kept showing its old bytes while the same URL had already turned to 404. A
+  reload that cannot fail is a reload that did nothing. The route now answers `no-store`, and
+  the test writes, rewrites and unlinks the same path across three reads.
 - core: Every state writer answers to the device root (`3579e36e`, `e50922dd`). Seven of the
   ten accessors the ephemerality contract asks resolved into the real home while
   `EPHE_CONFIG_DIR` pointed elsewhere, so a run that was told to keep to itself wrote the
