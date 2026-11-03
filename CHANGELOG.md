@@ -7,11 +7,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.5.6 wave is named below (`3ac7541a`, `d16f66c1`, `9521e399`, `629e23b5`, `149ddee2`, `7800e7b9`, `431aef78`, `1301b457`, `a1785b32`): the workspace column that opens every file it lists, the doctor that names the app a click reaches and then reads the registry behind it, the repair that forgets the copies that were answering, the shell that asks for the update it can bring, and the toast rail that steps aside.
+The 0.5.7 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac061aa`, `38e33fde`, `8635f627`, `4aa51a81`): the device folder says what it keeps, every state writer answers to the one root, the column that lists an office file reads it, and a reload reaches the server.
 
-The F1 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac061aa`): the device folder says what it keeps, every writer answers to one root, and the four expected failures the suite carried as unpaid work are gone. The product had said Ephe forgets while nothing could show which files stay; the cell runtime had already solved that problem for its own caps, and the same instrument now exists for the disk.
 
-One reading came after the wave (`38e33fde`): the column that lists a Word file, a sheet or a deck now opens it.
+## [0.5.7] - 2026-11-03
+
+The folder Ephe writes to now names itself, and every writer answers to it.
+
+The product has said Ephe forgets since the first sentence, and nothing on the machine could show which files actually stay. The device folder carries that list in code now: fifty-seven entries, each saying whether it is a folder, a file or the socket the desktop shell binds, what a person loses with it in plain words, and which file in this tree writes it. `ephe device` reads the declaration — what is present, how much room it takes, and what the folder holds that no row names — and clears it on the word, dry run first, the way `ephe prune` works. The audit log, the cell guest and the signing anchors are marked kept by the declaration itself, and an undeclared leftover is kept too: a verb that deletes files it cannot name would claim more of the folder than the code accounts for.
+
+The other half is what that list made visible. Seven of the ten state accessors the ephemerality contract asks resolved into the real home while `EPHE_CONFIG_DIR` pointed elsewhere, so a run told to keep to itself still wrote the session, the usage ledger, the feedback memory, the profile, the search index and the persona into the owner's folder; twenty-five more sites each carried their own copy of the root's rule, agreeing with the helper on the day they were written and owing that agreement to nothing afterwards. All of it folds onto `config_root()`, and the four expected failures the suite had been carrying as unpaid work are gone. Measured on the machine that ships Ephe: 44 of 57 declared entries present, 2240.9 MB, 6 entries nobody declared.
+
+Two readings travel with them. The column that lists a Word file, a sheet or a deck now opens it: the workbench card has turned those three into a real table, running text and a slide list since R4/A5, and the column asks the same question by path through a new door — with one guard answering both doors, so the two routes cannot disagree about what they will show. And a reload of an open file reaches the server instead of answering from the shell's own cache, which had kept showing the bytes of a document already deleted on disk.
 
 
 ### Added
