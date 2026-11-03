@@ -334,6 +334,25 @@ def _bundle_places(paths: list[str]) -> str:
     )
 
 
+def _doctor_device_state() -> str:
+    """One doctor line: the device folder read from its own declaration.
+
+    `core.persistence` names every entry the product creates there. An entry the folder
+    holds and the declaration does not is either code nobody declared or debris a build, a
+    backup or a hand left behind — the row prints the first three of those so the reader
+    can tell which, and never decides the exit code."""
+    from core import persistence
+
+    info = persistence.summary()
+    unnamed = list(info["unnamed"])
+    line = f"{info['root']} — {info['declared']} declared, {info['present']} present"
+    if unnamed:
+        shown = ", ".join(unnamed[:3])
+        more = f", +{len(unnamed) - 3} more" if len(unnamed) > 3 else ""
+        line += f", {len(unnamed)} unnamed ({shown}{more})"
+    return line
+
+
 def _doctor_desktop_app(
     server_health: dict[str, Any] | None,
     platform: str | None = None,
@@ -1192,6 +1211,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     if desktop is not None:
         informational.append(("Desktop app", desktop[0], desktop[1]))
 
+    # F1: the device folder read from its own declaration. What lives here is a fact the
+    # product can state; whether a leftover belongs there is a question this row answers
+    # with names, and neither decides the exit code.
+    informational.append(("Device state", True, _doctor_device_state()))
+
     # R16/R18/E1: the informative checks (Image/Voice/ephemora-cell/CPython-Cell) do
     # NOT flow into `ok` — a text-only or cloud-fallback setup is valid, and an
     # updatable optional package contradicts no working setup (offline-first: the
@@ -1515,10 +1539,12 @@ def _schreibe_desktop_konfig(
     The app now probes its port at start and starts what is written here: interpreter,
     project, port. Without this line it touches nothing.
     """
-    ziel_dir = (home or Path.home()) / ".ephe"
-    ziel_dir.mkdir(parents=True, exist_ok=True)
-    pfad = ziel_dir / "desktop.json"
-    pfad.write_text(
+    from core.engine_config import config_root
+
+    device_dir = (Path(home) / ".ephe") if home is not None else config_root()
+    device_dir.mkdir(parents=True, exist_ok=True)
+    config_path = device_dir / "desktop.json"
+    config_path.write_text(
         json.dumps(
             {"python": python, "project_root": str(project_root), "port": port},
             ensure_ascii=False,
@@ -1527,7 +1553,7 @@ def _schreibe_desktop_konfig(
         + "\n",
         encoding="utf-8",
     )
-    return pfad
+    return config_path
 
 
 def cmd_desktop(args: argparse.Namespace) -> int:

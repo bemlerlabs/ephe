@@ -6,14 +6,18 @@ already an artifact: `core/cpython_cell.py:62-64` writes the WASIConfig from its
 `core/cell_policy.policy_snapshot()` reports exactly those numbers to the settings card,
 `ephe doctor` and the status page under one rule, report == enforced, fenced to the single
 release whose enforcement was read (`.github/cell-runtime-fence.json`, ephemora-cell
-1.0.4.3, wheel_sha256 556e9fca…). Nothing in Ephe applies that same rule to what a session
-leaves on disk.
+1.0.4.3, wheel_sha256 556e9fca…). Nothing in Ephe applied that same rule to what a session
+leaves on disk until this wave wrote `core/persistence.py`; these tests are what made the
+gap measurable.
 
 Measured on the owner's Mac — first on 2026-10-11, re-read on 2026-11-03 wherever a step of
 this wave has landed. These are the numbers the contract carries:
 
-* 50 entries live in the device folder and 21 of them answer to no config-root expression
-  the code carries.
+* **The device keeps a declaration**: `core/persistence.py` carries 57 rows, each naming the
+  code that writes it, and `ephe doctor` renders them as one row. Measured on the owner's
+  folder, 44 of the 57 are present and 6 entries answer to nobody — five config and key
+  backups a hand kept and one private signing key. Retention in `core/store_retention.py`
+  is cross-checked against the same list, so the two cannot drift.
 * **The state accessors honour the device root** (`ACCESSORS`, ten of them). Seven of the
   ten resolved into the real home when this contract was first written — `core/session.py`,
   `core/usage_ledger.py`, `core/feedback.py`, `core/vision_memory.py`, `core/profile.py`,
@@ -29,10 +33,11 @@ this wave has landed. These are the numbers the contract carries:
 * `evals/bench_option_b.py` sets no `EPHE_CONFIG_DIR` (its own root is `SCRATCH`,
   `:75`), so bench reps read and append the owner's real memory store.
 
-These tests are the contract. One row is still marked `xfail(strict=True)`, and the
-folder-count row keeps its non-strict mark: they must not be weakened to pass, and once the
-product satisfies one, the run turns red at XPASS and the mark has to come off. Widening the
-declared set here would be the same error as an unenforced cap — a claim that grades itself.
+These tests are the contract. Every row passes except the folder-count one, which keeps a
+non-strict mark because a runner whose device folder is clean would otherwise read a passing
+walk as a red. The strict marks came off as the product satisfied each row, which is what a
+strict mark exists to force. Widening the declared set here would be the same error as an
+unenforced cap — a claim that grades itself.
 
 Sources: `docs/EPHEMERAL_PROOF_2026-10-11.md`.
 """
@@ -80,7 +85,7 @@ ACCESSORS = [
     ("core.memory_provider", "provider_record_path"),
 ]
 
-MEASURED_UNDECLARED = 21
+MEASURED_UNDECLARED = 6
 
 
 #: The one file allowed to spell the device folder out of the home directory: it is where
@@ -149,7 +154,10 @@ def declared_names() -> set[str]:
     for path in product_files():
         for pattern in ROOT_PATTERNS:
             for match in pattern.finditer(path.read_text(errors="ignore")):
-                found.add(match.group(1).split("/")[0])
+                # `~/.ephe/engine.json.` at the end of a sentence names the file, and the
+                # period belongs to the prose: the character class runs over both.
+                name = match.group(1).split("/")[0].rstrip(".")
+                found.add(name)
     return {name for name in found if name}
 
 
@@ -184,20 +192,125 @@ def device_folder() -> Path | None:
     return root if root.is_dir() else None
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    f"no declaration exists to check a session against: the product publishes cell caps "
-    f"through policy_snapshot() but nothing that names what persists per device, so the "
-    f"only available declared set has to be reverse-engineered from {len(declared_names())} "
-    f"code expressions. F1 owes the product a machine-readable manifest the settings card, "
-    f"doctor and status page can render, the way the caps are rendered"))
 def test_a_persistence_declaration_exists():
-    manifest = [path for path in product_files()
-                if any(isinstance(node, ast.Assign)
-                       and any(isinstance(target, ast.Name)
-                               and target.id in {"PERSISTED_PATHS", "EPHE_PERSISTENCE"}
-                               for target in node.targets)
-                       for node in ast.walk(ast.parse(path.read_text(errors="ignore"))))]
+    """The declaration the contract asked for, found where the product keeps it.
+
+    `core/persistence.py` carries it, and `ephe doctor` renders it as a row, so the numbers
+    a person reads about their own disk come from the code that writes that disk.
+    """
+    def assigned_names(node: ast.AST) -> set[str]:
+        """The names a binding gives a value, whether or not the target carries a type."""
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            return set()
+        return {t.id for t in targets if isinstance(t, ast.Name)}
+
+    manifest = [
+        path for path in product_files()
+        if {"PERSISTED_PATHS", "EPHE_PERSISTENCE"} & {
+            name
+            for node in ast.walk(ast.parse(path.read_text(errors="ignore")))
+            for name in assigned_names(node)
+        }
+    ]
     assert manifest, "the device folder has no declared set the product itself publishes"
+
+
+def test_every_declared_entry_names_code_that_is_in_the_tree():
+    """A row with no writer is a claim, so the writer is checked to exist.
+
+    The path in `writer` is the file that resolves the entry; `app/src-tauri/src/instance.rs`
+    is the one row whose writer is the desktop shell, which is honest about a socket Python
+    never opens.
+    """
+    from core.persistence import EPHE_PERSISTENCE
+
+    missing = []
+    for entry in EPHE_PERSISTENCE:
+        if entry.kind not in {"dir", "file", "socket"}:
+            missing.append(f"{entry.name}: kind {entry.kind!r}")
+        elif not entry.holds or not entry.writer:
+            missing.append(f"{entry.name}: an empty field")
+        elif not (REPO / entry.writer).exists():
+            missing.append(f"{entry.name}: no such writer {entry.writer}")
+    assert not missing, f"{len(missing)} declaration rows are unsupported: {missing}"
+    names = [entry.name for entry in EPHE_PERSISTENCE]
+    assert len(set(names)) == len(names), "one name declared twice resolves to one path"
+
+
+def test_the_code_declares_nothing_the_manifest_does_not_cover():
+    """The reverse-engineered set and the written one have to answer the same question.
+
+    Three names come from prose about a *project's* own `.ephe` folder — a workspace keeps
+    its search index, its rules and its learning map beside itself, and `declared_names()`
+    reads a mention of `.ephe/<name>` the same way it reads a `config_root() / <name>`
+    expression. They are excluded here with their reason rather than by teaching the scan
+    to guess which sentence is a path.
+    """
+    from core.persistence import declared_names as manifest_names
+
+    workspace_local = {"index.db", "rules"}
+    scanned = declared_names() - workspace_local
+    undeclared = sorted(scanned - set(manifest_names()))
+    assert not undeclared, f"{len(undeclared)} names the code reaches are undeclared: {undeclared}"
+
+
+def test_the_retention_verdicts_answer_to_the_declaration():
+    """`core/store_retention.py` decides how long a store lives; it may not invent one.
+
+    Retention and persistence are two questions about the same folder, and a store that
+    only one of them knows about is a folder someone will prune, or forget, by accident.
+    """
+    from core import store_retention
+    from core.persistence import declared_names
+
+    relatives = {store.relative.split("/")[0] for store in store_retention.STORES}
+    unexplained = sorted(relatives - set(declared_names()))
+    assert not unexplained, f"retention walks stores nobody declared: {unexplained}"
+
+
+def test_the_doctor_row_reads_the_declaration(tmp_path, monkeypatch):
+    """One line, three numbers and the names of whatever does not belong.
+
+    The row is measured against a folder the test builds, so the counts are the module's
+    arithmetic over a known ground rather than a photograph of the owner's disk.
+    """
+    import ephe_cli
+    from core.persistence import EPHE_PERSISTENCE
+
+    device = tmp_path / "ephe"
+    (device / "sessions").mkdir(parents=True)
+    (device / "settings.json").write_text("{}\n", encoding="utf-8")
+    (device / "engine.json.bak-2").write_text("{}\n", encoding="utf-8")
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    line = ephe_cli._doctor_device_state()
+    assert str(device) in line
+    assert f"{len(EPHE_PERSISTENCE)} declared, 2 present" in line
+    assert "1 unnamed (engine.json.bak-2)" in line
+
+    # A device that never ran anything still gets a line, and it says nothing about leftovers.
+    quiet = tmp_path / "quiet"
+    quiet.mkdir()
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(quiet))
+    assert "unnamed" not in ephe_cli._doctor_device_state()
+
+
+def test_a_long_unnamed_list_is_counted_and_cut(tmp_path, monkeypatch):
+    """Five leftovers read as three names and a count, because the row is one line."""
+    import ephe_cli
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    for index in range(5):
+        (device / f"leftover-{index}").write_text("", encoding="utf-8")
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    line = ephe_cli._doctor_device_state()
+    assert "5 unnamed (leftover-0, leftover-1, leftover-2, +2 more)" in line
 
 
 def test_a_temp_device_root_captures_every_state_writer(tmp_path):
@@ -236,18 +349,26 @@ def test_state_paths_reach_the_device_folder_only_through_the_root():
 @pytest.mark.xfail(strict=False, reason=(
     "not strict: a CI runner whose device folder is clean would turn a passing walk into a "
     "false red, and this test exists to report a count. Run it with --runxfail to see the "
-    f"names. Measured on the owner's device folder on 2026-11-03: {MEASURED_UNDECLARED} of 50 "
-    f"top-level entries are outside every set the code can name — some written by product "
-    f"code through an expression shape this scan does not read, some left behind by build "
-    f"agents and manual backups. Until the folder can be listed from a declaration and emptied "
-    f"by a delete, the product's ephemerality claim is a sentence"))
+    f"names. Measured on the owner's device folder on 2026-11-03: {MEASURED_UNDECLARED} entries "
+    f"answer to no row in `core.persistence.EPHE_PERSISTENCE` — five engine-config and key "
+    f"backups a hand kept, and one private signing key. Those are the entries a person should "
+    f"be able to list from the declaration and clear with one word, which is the fourth step "
+    f"of this wave; until that verb exists the product's ephemerality claim is a sentence"))
 def test_the_device_folder_holds_nothing_unnamed():
+    """The folder read against the declaration it is supposed to match.
+
+    The scan in `declared_names()` answers what the code can reach; this answers what the
+    product says it keeps. The two agree by `test_the_code_declares_nothing_the_manifest_does_not_cover`,
+    so a leftover named here is a leftover nobody declared.
+    """
+    from core.persistence import declared_names as manifest_names
+
     root = device_folder()
     if root is None:
         pytest.skip(f"no device folder on this host; the measured count is "
                     f"{MEASURED_UNDECLARED} on the owner's Mac")
-    declared = declared_names()
+    declared = set(manifest_names())
     entries = sorted(name for name in os.listdir(root) if not name.startswith("."))
     unknown = [name for name in entries if name not in declared]
     assert not unknown, (f"{len(unknown)} of {len(entries)} entries in {root} are unnamed "
-                         f"by the code: {unknown}")
+                         f"by the declaration: {unknown}")
