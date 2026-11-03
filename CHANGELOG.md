@@ -70,6 +70,17 @@ Two readings travel with them. The column that lists a Word file, a sheet or a d
   real-path probe, the credential-shaped name and the size ceiling, and a test asks each door
   the same two refusals. Proved against a live server: a sheet came back as its rows with the
   sheet name, a document as its text, `/etc/passwd` as 403, a missing file as 404.
+- settings: The device folder shows what it keeps, on the screen (`1773097e`, `083dfb10`).
+  Under Settings - Privacy & Security a person now reads the entries Ephe leaves on the
+  machine: each declared folder and file with the words for what it holds, the bytes it
+  takes, the total between them, the rows the declaration protects, and the count of
+  leftovers no row names. The clear beside it says what it will forget and what will stay
+  before it acts, and it runs only on the second click: the audit log, the cell guest and
+  the signing anchors stay, the undeclared leftovers stay untouched, and the answer names
+  the counts of the run that was just done. Two routes carry it — `GET /api/device` reads
+  the declaration, `POST /api/device/forget` runs the clear dry-run-first and refuses by
+  name anything the declaration keeps or never names — and a card that cannot read the
+  folder says so and offers the retry, because an unreadable folder is not an empty one.
 
 
 ### Fixed
