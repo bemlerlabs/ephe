@@ -10,6 +10,7 @@ import { resetTourMarker } from '@/lib/firstRunTour'
 import { markSetupIntent } from '@/lib/setupGate'
 import { toastBus } from '@/lib/toast'
 import { SkyPanel } from '../../SkyCard'
+import { DeviceStateCard } from './DeviceStateCard'
 import { SessionStoreSection } from './sections-sessions'
 import type { SettingsModel } from './types'
 import { UpdateSectionLazy } from './UpdateSectionLazy'
@@ -185,6 +186,12 @@ export function renderPrivacy(model: SettingsModel) {
           server's machine — the store `GET /api/sessions` counts. It sits on the
           data surface, not in the design area, because it deletes files. */}
       <SessionStoreSection />
+
+      {/* F2: the whole device folder, read from its own declaration
+          (`core/persistence.py` through `GET /api/device`). Same reason the row
+          above has: what lives here is files on the server's machine, and the
+          gesture that clears them belongs on the data surface. */}
+      <DeviceStateCard />
 
       {/* I6-8: the old bullet list claimed the server listened only on
           127.0.0.1 — starting it with --lan made that line wrong. What the
