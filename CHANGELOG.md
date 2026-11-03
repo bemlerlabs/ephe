@@ -70,7 +70,7 @@ Two readings travel with them. The column that lists a Word file, a sheet or a d
   real-path probe, the credential-shaped name and the size ceiling, and a test asks each door
   the same two refusals. Proved against a live server: a sheet came back as its rows with the
   sheet name, a document as its text, `/etc/passwd` as 403, a missing file as 404.
-- settings: The device folder shows what it keeps, on the screen (`1773097e`, `083dfb10`).
+- settings: The device folder shows what it keeps, on the screen (`f6ea4d1f`, `69ec8e7b`).
   Under Settings - Privacy & Security a person now reads the entries Ephe leaves on the
   machine: each declared folder and file with the words for what it holds, the bytes it
   takes, the total between them, the rows the declaration protects, and the count of
