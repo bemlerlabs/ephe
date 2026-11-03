@@ -2,10 +2,40 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { subscribeToast, type ToastItem } from '@/lib/toast'
+import { PANEL_STATE_EVENT } from '@/lib/panelEvents'
 
 const AUTO_DISMISS_MS = 5000
 const ERROR_DISMISS_MS = 8000
 const MAX_VISIBLE = 4
+
+/**
+ * The right-hand clearance. The panel is a fixed column at the window's right edge and its
+ * tab bar sits at the very top of that edge — the same corner the stack occupies, so a toast
+ * covered the controls the reader needs next (seen in every capture of the right column,
+ * 2026-11-02: "60 messages restored from earlier sessions" printed straight over the tab
+ * row). The panel already broadcasts its width and dock on every change for the content
+ * column's padding; the stack reads the same fact and steps aside.
+ */
+function useRightClearance(): string | undefined {
+  const [panel, setPanel] = useState<{ width: number; dock: string } | null>(null)
+  useEffect(() => {
+    const onState = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { open?: boolean; width?: number; dock?: string }
+      if (!detail?.open || detail.dock !== 'right' || typeof detail.width !== 'number') {
+        setPanel(null)
+        return
+      }
+      setPanel({ width: detail.width, dock: detail.dock })
+    }
+    window.addEventListener(PANEL_STATE_EVENT, onState)
+    return () => window.removeEventListener(PANEL_STATE_EVENT, onState)
+  }, [])
+  if (!panel) return undefined
+  // The panel itself clamps to `min(width, 95vw)`; the stack answers for that clamp so a
+  // wide panel on a narrow window cannot push the toast off the left edge.
+  const taken = Math.min(panel.width, Math.round(window.innerWidth * 0.95))
+  return `${taken + 16}px`
+}
 
 /**
  * G4 — global toaster (mounted once in App/Main).
@@ -30,6 +60,7 @@ export function Toaster() {
   const { t } = useTranslation()
   const [items, setItems] = useState<ToastItem[]>([])
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const right = useRightClearance()
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((x) => x.id !== id))
@@ -72,7 +103,13 @@ export function Toaster() {
   return (
     <div
       data-inert-exempt=""
-      className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:right-4 lg:top-[calc(env(safe-area-inset-top)+3.75rem)]"
+      data-testid="toaster-rail"
+      data-cleared={right ? 'true' : 'false'}
+      // The clearance is a custom property, so the phone rule keeps its centring: only
+      // the wide layout reads a right offset, and below lg the rail stays where the
+      // composer measurement put it.
+      style={{ ['--toast-right']: right ?? '1rem' } as React.CSSProperties}
+      className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:right-[var(--toast-right)] lg:top-[calc(env(safe-area-inset-top)+3.75rem)]"
     >
       {items.map((item) => {
         const Icon =

@@ -74,7 +74,12 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     "index.css": 24.6,
     "app-vendor.js": 28.0,   # react-router, zustand, tanstack, clsx, cva
     "radix.js": 39.0,        # P1-8: 33 @radix-ui packages + @floating-ui + the tail
-    "ui.js": 17.0,           # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette)
+    # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette).
+    # 2026-11-03 (the toast rail beside the panel): the rail now reads the panel's own
+    # width broadcast so it cannot cover the right column's tab bar — seen over those
+    # controls in every capture of the panel. Measured 16.87 kB before, 17.10 kB after:
+    # 0.23 kB for one hook, and the row was 0.13 kB above the chunk already.
+    "ui.js": 17.3,
     "dates.js": 6.4,         # P1-8: date-fns + the de/en-US locale modules (2026-10-15: 9.0 before the format split)
     "dates-format.js": 3.0,  # 2026-10-15: `format()` + `_lib/format/*`, the sidebar's dated list
     # WD-33: the two translation catalogs, one chunk each. `i18n.ts` awaits the
@@ -186,7 +191,7 @@ MEASURED_GZIP_KB: dict[str, float] = {
     "index.css": 24.24,
     "app-vendor.js": 23.17,
     "radix.js": 34.6,
-    "ui.js": 15.09,
+    "ui.js": 17.10,
     # 2026-10-15: `dates-format` carries `format()` + `_lib/format/*`, which only the
     # sidebar's dated list reads; the entry keeps the locales and relative time.
     "dates.js": 5.8,
