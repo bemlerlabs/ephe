@@ -9,18 +9,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.5.6 wave is named below (`3ac7541a`, `d16f66c1`, `9521e399`, `629e23b5`, `149ddee2`, `7800e7b9`, `431aef78`, `1301b457`, `a1785b32`): the workspace column that opens every file it lists, the doctor that names the app a click reaches and then reads the registry behind it, the repair that forgets the copies that were answering, the shell that asks for the update it can bring, and the toast rail that steps aside.
 
-The F1 wave is named below (`733043bd`, `3a176e36`, `a09bb321`, `bdd2c9db`, `a7682b2e`): the device folder says what it keeps, every writer answers to one root, and the four expected failures the suite carried as unpaid work are gone. The product had said Ephe forgets while nothing could show which files stay; the cell runtime had already solved that problem for its own caps, and the same instrument now exists for the disk.
+The F1 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac061aa`): the device folder says what it keeps, every writer answers to one root, and the four expected failures the suite carried as unpaid work are gone. The product had said Ephe forgets while nothing could show which files stay; the cell runtime had already solved that problem for its own caps, and the same instrument now exists for the disk.
 
 
 ### Added
 
-- core: The device folder declares what it keeps (`bdd2c9db`). Fifty-seven rows, each naming
+- core: The device folder declares what it keeps (`079d0f94`). Fifty-seven rows, each naming
   the entry, whether it is a folder, a file or the socket the desktop shell binds, the plain
   words for what a person loses with it, and the file in this tree that writes it. Retention
   has to answer to the same list, a row's writer has to exist, and the code has to reach
   nothing the rows miss — three tests, so the declaration cannot drift from the disk.
   `ephe doctor` renders it as a row that never decides the exit code.
-- cli: `ephe device` reads that declaration and clears it (`a7682b2e`). The entries present,
+- cli: `ephe device` reads that declaration and clears it (`3ac061aa`). The entries present,
   what each holds, the room between them, and the entries the folder keeps that no row names.
   Dry run first, the way `ephe prune` works: without `--apply` nothing is unlinked. The audit
   log, the cell guest and the signing anchors are marked kept by the declaration, and an
@@ -30,7 +30,7 @@ The F1 wave is named below (`733043bd`, `3a176e36`, `a09bb321`, `bdd2c9db`, `a76
 
 ### Fixed
 
-- core: Every state writer answers to the device root (`3a176e36`, `a09bb321`). Seven of the
+- core: Every state writer answers to the device root (`3579e36e`, `e50922dd`). Seven of the
   ten accessors the ephemerality contract asks resolved into the real home while
   `EPHE_CONFIG_DIR` pointed elsewhere, so a run that was told to keep to itself wrote the
   session, the usage ledger, the feedback memory, the profile, the search index and the
@@ -39,7 +39,7 @@ The F1 wave is named below (`733043bd`, `3a176e36`, `a09bb321`, `bdd2c9db`, `a76
   agreement to nothing afterwards; they are folded onto `config_root()`, and the folder built
   from the home directory now exists in the one file that defines it. Measured on a machine
   that runs Ephe: 44 of 57 declared entries present, 2240.9 MB, 6 entries nobody declared.
-- plugins: The code-shell pack says the same thing in all three places (`733043bd`). Its body
+- plugins: The code-shell pack says the same thing in all three places (`e4b6e7b1`). Its body
   and its `allowed_tools` named `execute_code` while `tools` — the list the chat turn takes as
   its whitelist — left it out, so `/fix` advertised an instrument it was never offered and a
   boot warning was the only trace. A new test loads every shipped pack and refuses such a
