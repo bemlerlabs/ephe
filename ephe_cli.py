@@ -405,7 +405,15 @@ def _repair_desktop_bundles(
     if not others:
         return True, f"nothing to clear — {app} is the only bundle for {DESKTOP_BUNDLE_ID}"
 
-    run = runner or (lambda argv: subprocess.run(argv, check=False, capture_output=True).returncode)
+    def default_runner(argv: list[str]) -> int:
+        # A machine without the tool answers 127 rather than raising out of a repair the
+        # person asked for: the row then says which paths it could not forget.
+        try:
+            return subprocess.run(argv, check=False, capture_output=True).returncode
+        except OSError:
+            return 127
+
+    run = runner or default_runner
     refused = [path for path in others if run([LSREGISTER, "-u", path]) != 0]
     if run([LSREGISTER, "-f", str(app)]) != 0:
         return False, f"{LSREGISTER} could not re-register {app}"
