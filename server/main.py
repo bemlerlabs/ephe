@@ -277,8 +277,10 @@ def create_app(lan_mode: bool = False) -> FastAPI:
             return ErrorCode.AUTH
         if status_code == 409:
             return ErrorCode.SETUP_REQUIRED  # W19: chat without an engine in setup mode
-        if status_code in (404, 405):
+        if status_code == 404:
             return ErrorCode.NOT_FOUND
+        if status_code == 405:
+            return ErrorCode.METHOD_NOT_ALLOWED
         if status_code in (400, 422):
             return ErrorCode.VALIDATION
         if status_code == 429:
@@ -286,6 +288,23 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         if status_code in (502, 503):
             return ErrorCode.UPSTREAM
         return ErrorCode.INTERNAL
+
+    def _allowed_verbs(exc: Exception) -> str | None:
+        """The methods the matched route itself answers with, or None when nothing knows.
+
+        The router raises its 405 with an Allow header built from the matched route's
+        own `methods`; that set has no stable order, so re-join it sorted.
+        """
+        raw = next(
+            (
+                value
+                for name, value in (getattr(exc, "headers", None) or {}).items()
+                if name.lower() == "allow"
+            ),
+            "",
+        )
+        verbs = sorted({verb.strip().upper() for verb in raw.split(",") if verb.strip()})
+        return ", ".join(verbs) if verbs else None
 
     async def _http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         # Starlette/FastAPI HTTPException carry status_code + detail;
@@ -299,13 +318,23 @@ def create_app(lan_mode: bool = False) -> FastAPI:
             message = detail if isinstance(detail, str) else str(detail or "Error")
         status_code = int(getattr(exc, "status_code", 500))
         code_id = _transport_code(status_code)
+        headers = {REQUEST_ID_HEADER: rid or ""}
+        if status_code == 405:
+            # RFC 9110 15.0.5: a 405 names the methods the target supports. Send the
+            # list only when the router derived one; silence says the answer is unknown.
+            allowed = _allowed_verbs(exc)
+            if allowed is not None:
+                headers["Allow"] = allowed
+                message = f"{request.method} is refused on this path — it answers {allowed}. Retry with one of those."
+            else:
+                message = f"{request.method} is refused on this path — the route table named no methods for it."
         body = error_payload(code_id, message, rid)
         if extra is not None:
             body["error"]["detail"] = extra
         return JSONResponse(
             body,
             status_code=status_code,
-            headers={REQUEST_ID_HEADER: rid or ""},
+            headers=headers,
         )
 
     # Starlette base (router 404/405) + FastAPI subclass (raised in routes)
