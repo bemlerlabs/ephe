@@ -66,6 +66,12 @@ published without its ``:path`` converter; neither is a second route.
   The Discover bench reads one route of its own, ``GET /api/audit/usage``: the audit log
   already held per-tool call counts and only a CLI script summed them, so the number a
   card shows had no reader on the product side. Read-only, newest window first.
+  Two more landed with the device card (F2): ``GET /api/device`` is the persistence
+  declaration read against this folder — every entry present with its bytes and what it
+  holds, the total between them, and the names no row declares — and
+  ``POST /api/device/forget`` runs ``core.persistence.forget`` under the CLI's own
+  dry-run-first promise, refusing whole a request that names an entry the declaration
+  keeps or never names.
 """
 from __future__ import annotations
 
@@ -117,6 +123,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/channels/telegram/status",
     "GET /api/context/budget",
     "GET /api/context/stages",
+    "GET /api/device",
     "GET /api/discover/bootstrap",
     "GET /api/discover/icon/{slug}",
     "GET /api/discover/registry",
@@ -229,6 +236,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/chat",
     "POST /api/chat/steer",
     "POST /api/chat/stream",
+    "POST /api/device/forget",
     "POST /api/discover/dry-run",
     "POST /api/export",
     "POST /api/feedback/thumbs_down",

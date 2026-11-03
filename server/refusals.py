@@ -156,6 +156,19 @@ REASONS: dict[str, tuple[int, str]] = {
         "{paths} is held by {holders} — check that run on the Workspaces page, "
         "then publish with force=True to write over it",
     ),
+    # The device clear (`POST /api/device/forget`): the declaration decides what may go,
+    # so a request naming an entry it does not carry, or one it marks kept, is turned
+    # down whole before anything is unlinked.
+    "device_forget_undeclared": (
+        400,
+        "{names} is named by no row of the device declaration — check the listing "
+        "under Settings - Privacy and run the clear on entries it does name",
+    ),
+    "device_forget_kept": (
+        409,
+        "{names} stands under the device declaration's keep — check the listing "
+        "under Settings - Privacy and clear only what it marks forgettable",
+    ),
 }
 
 

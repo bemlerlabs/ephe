@@ -75,6 +75,7 @@ from server.routes import (
     vision,
     context,
     discover,
+    device,
     secrets,
     update,
     reader,
@@ -414,6 +415,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(learning.router, prefix="/api")
     app.include_router(sol.router, prefix="/api")
     app.include_router(discover.router, prefix="/api")
+    app.include_router(device.router, prefix="/api")
     app.include_router(secrets.router, prefix="/api")
     app.include_router(context.router, prefix="/api")
     app.include_router(metrics.router, prefix="/api")

@@ -75,6 +75,8 @@ HTTP_PARAMS = {
         "paths": "a.txt",
         "holders": "agent-b (draft since 2026-10-14T16:05)",
     },
+    "device_forget_undeclared": {"names": "notes-backup"},
+    "device_forget_kept": {"names": "audit.log"},
 }
 
 DENIAL_PARAMS = {
