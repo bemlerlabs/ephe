@@ -143,3 +143,71 @@ class TestFileRoute:
         f.write_bytes(b"x" * 11)
         r = client.get("/api/file", params={"path": str(f)})
         assert r.status_code == 413
+
+
+class TestFilePreviewRoute:
+    """The same guard, the workbench renderer: the column points at a path, not a card.
+
+    `GET /api/artifacts/{id}/preview` has turned a spreadsheet into rows and a document into
+    text since R4/A5. The workspace column lists the same files by path and could only name
+    them, so a `.docx` arrived as a download. These cases pin the one thing that makes the
+    second door safe: it refuses exactly what the streaming door refuses, before a parser
+    ever opens the file.
+    """
+
+    def test_a_spreadsheet_comes_back_as_rows(self, client, monkeypatch, tmp_path):
+        from openpyxl import Workbook
+
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        book = Workbook()
+        sheet = book.active
+        sheet.title = "Prices"
+        sheet.append(["item", "euros"])
+        sheet.append(["bread", 3])
+        sheet.append(["butter", 5])
+        path = tmp_path / "ledger.xlsx"
+        book.save(str(path))
+
+        body = client.get("/api/file/preview", params={"path": str(path)}).json()
+        assert body["mode"] == "table"
+        assert body["header"] == ["item", "euros"]
+        assert body["rows"] == [["bread", "3"], ["butter", "5"]]
+        assert body["sheets"] == ["Prices"]
+
+    def test_a_document_comes_back_as_running_text(self, client, monkeypatch, tmp_path):
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        note = tmp_path / "notes.md"
+        note.write_text("# Goals\n\n- ship the column\n", encoding="utf-8")
+
+        body = client.get("/api/file/preview", params={"path": str(note)}).json()
+        assert body["mode"] == "text"
+        assert body["format"] == "markdown"
+        assert "ship the column" in body["text"]
+
+    def test_a_format_the_renderer_has_no_view_for_says_so(self, client, monkeypatch, tmp_path):
+        """A PDF is not an error: the browser draws it, the renderer declines it."""
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        doc = tmp_path / "handout.pdf"
+        doc.write_bytes(b"%PDF-1.4 fixture")
+
+        body = client.get("/api/file/preview", params={"path": str(doc)}).json()
+        assert body == {"mode": "none", "reason": "no-text-preview"}
+
+    def test_the_preview_door_refuses_what_the_streaming_door_refuses(
+        self, client, monkeypatch, tmp_path
+    ):
+        """One guard, two doors — the parity the refactor exists to guarantee."""
+        home = tmp_path / "home"
+        home.mkdir()
+        (home / ".env").write_text("API_KEY=fixture", encoding="utf-8")
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [home])
+
+        for route in ("/api/file", "/api/file/preview"):
+            assert client.get(route, params={"path": "/etc/passwd"}).status_code == 403, route
+            secret = client.get(route, params={"path": str(home / ".env")})
+            assert secret.status_code == 403, route
+
+    def test_a_missing_path_is_a_404_before_the_renderer_runs(self, client, monkeypatch, tmp_path):
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        answer = client.get("/api/file/preview", params={"path": str(tmp_path / "gone.docx")})
+        assert answer.status_code == 404

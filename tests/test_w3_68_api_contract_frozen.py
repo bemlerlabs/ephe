@@ -124,6 +124,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/ephemeris",
     "GET /api/events/multiplex",
     "GET /api/file",
+    "GET /api/file/preview",
     "GET /api/fs",
     "GET /api/git/branches",
     "GET /api/git/diff",

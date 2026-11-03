@@ -34,8 +34,25 @@ const listFs = vi.fn(async (dir?: string) => ({
 }))
 const onOpenFile = vi.fn()
 
+/** The server's answer for a packed file, set per case: table, text, or the decline. */
+type PreviewAnswer = {
+  mode: string
+  reason?: string
+  sheets?: string[]
+  header?: string[]
+  rows?: string[][]
+  truncated?: boolean
+  format?: string
+  text?: string
+}
+
+const filePreviewByPath = vi.fn(
+  async (_path: string): Promise<PreviewAnswer> => ({ mode: 'none', reason: 'no-text-preview' }),
+)
+
 vi.mock('@/lib/api', () => ({
   listFs: (...args: unknown[]) => listFs(...(args as [string | undefined])),
+  filePreviewByPath: (...args: unknown[]) => filePreviewByPath(...(args as [string])),
   getSettings: vi.fn(async () => ({ workspace_dir: '/werk' })),
   gitStatus: vi.fn(async () => ({ root: '/werk', changes: [], branch: 'main' })),
   gitDiff: vi.fn(async () => ({ diff: '', path: '', binary: false })),
@@ -66,6 +83,8 @@ beforeEach(() => {
   closeAllWorkspaceFiles()
   listFs.mockClear()
   onOpenFile.mockClear()
+  filePreviewByPath.mockReset()
+  filePreviewByPath.mockResolvedValue({ mode: 'none', reason: 'no-text-preview' })
   stubFetch()
 })
 
@@ -148,7 +167,27 @@ describe('a row click', () => {
     expect(img.getAttribute('alt')).toBe('karte.png')
   })
 
-  it('says what a spreadsheet is when the column cannot draw it', async () => {
+  it('asks the server for a sheet and shows the rows it answers', async () => {
+    filePreviewByPath.mockResolvedValue({
+      mode: 'table',
+      sheets: ['Prices'],
+      header: ['item', 'euros'],
+      rows: [['bread', '3']],
+      truncated: false,
+    })
+    renderTab()
+    await awaitTree()
+    fireEvent.click(screen.getByText('zahlen.xlsx'))
+
+    const table = await screen.findByRole('table')
+    expect(within(table).getByRole('columnheader', { name: 'euros' })).toBeTruthy()
+    expect(within(table).getByText('bread')).toBeTruthy()
+    expect(table.textContent).toContain('Prices')
+    expect(filePreviewByPath).toHaveBeenCalledWith('/werk/zahlen.xlsx')
+    expect(screen.queryByTestId('workspace-file-held')).toBeNull()
+  })
+
+  it('says what a spreadsheet is when even the server has no view for it', async () => {
     renderTab()
     await awaitTree()
     fireEvent.click(screen.getByText('zahlen.xlsx'))
@@ -158,6 +197,17 @@ describe('a row click', () => {
     // The size travels as a number: the words around it belong to the locale.
     expect(held.getAttribute('data-size')).toBe('4096')
     expect(within(held).getByRole('button').textContent).toContain('agentPanel.openInPreview')
+  })
+
+  it('holds the sheet when the preview request itself fails', async () => {
+    filePreviewByPath.mockRejectedValue(new Error('413'))
+    renderTab()
+    await awaitTree()
+    fireEvent.click(screen.getByText('zahlen.xlsx'))
+
+    const held = await screen.findByTestId('workspace-file-held')
+    expect(held.getAttribute('data-reason')).toBe('packed')
+    expect(held.textContent).toContain('zahlen.xlsx')
   })
 
   it('empties the strip in one gesture and leaves the folder on screen', async () => {

@@ -1,11 +1,11 @@
 /**
- * Ephe — the preview of a workbench card (R4/A5), one core for two surfaces.
+ * Ephe — the preview of a workbench card (R4/A5), one core for three surfaces.
  *
- * The mechanism is the same in the chat pop-up and on the archive page: the kind
- * decides what gets loaded, and **nothing** is ever emitted as an empty area.
- * Where a browser is blind (xlsx, docx) this surface asks the server (`/preview`)
- * and shows a real table or real text. Where even the server has nothing to say,
- * the card says it — instead of a white frame.
+ * The mechanism is the same in the chat pop-up, on the archive page and in the workspace
+ * column: the kind decides what gets loaded, and **nothing** is ever emitted as an empty
+ * area. Where a browser is blind (xlsx, docx) `PayloadView` shows a real table, real text
+ * or real slides from the server's answer. Where even the server has nothing to say, the
+ * card says it — instead of a white frame.
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,47 +29,16 @@ import {
   previewSrc,
 } from '@/lib/previewMode'
 
-export function ContentPreview({
-  art,
+export function PayloadView({
+  data,
+  name,
+  reasonFallback,
 }: {
-  art: Pick<ArtifactEntry, 'id' | 'version' | 'name'>
+  data: ArtifactContentPreview
+  name: string
+  reasonFallback?: string
 }) {
   const { t } = useTranslation()
-  const [data, setData] = useState<ArtifactContentPreview | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [nonce, setNonce] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    setData(null)
-    setFailed(false)
-    artifactPreview(art.id)
-      .then((r) => !cancelled && setData(r))
-      .catch(() => !cancelled && setFailed(true))
-    return () => {
-      cancelled = true
-    }
-  }, [art.id, art.version, nonce])
-
-  if (failed) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 text-ui-xs text-ink-faint">
-        <span role="alert">{t('artifacts.preview.failed')}</span>
-        <button
-          type="button"
-          onClick={() => setNonce((n) => n + 1)}
-          data-testid="artifact-preview-retry"
-          className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-hairline px-2.5 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground focus-ring"
-        >
-          <RefreshCw className="h-3 w-3" />
-          {t('agentPanel.retry')}
-        </button>
-      </div>
-    )
-  }
-  if (!data) {
-    return <LoadingRow label={t('artifacts.preview.loading')} className="h-full justify-center" />
-  }
   if (data.mode === 'slides') {
     const slides = data.slides ?? []
     return (
@@ -165,7 +134,47 @@ export function ContentPreview({
       </pre>
     )
   }
-  return <NoPreview art={art} reason={data.reason} />
+  return <NoPreview art={{ name }} reason={data.reason ?? reasonFallback} />
+}
+
+export function ContentPreview({ art }: { art: Pick<ArtifactEntry, 'id' | 'version' | 'name'> }) {
+  const { t } = useTranslation()
+  const [data, setData] = useState<ArtifactContentPreview | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [nonce, setNonce] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    setData(null)
+    setFailed(false)
+    artifactPreview(art.id)
+      .then((r) => !cancelled && setData(r))
+      .catch(() => !cancelled && setFailed(true))
+    return () => {
+      cancelled = true
+    }
+  }, [art.id, art.version, nonce])
+
+  if (failed) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-ui-xs text-ink-faint">
+        <span role="alert">{t('artifacts.preview.failed')}</span>
+        <button
+          type="button"
+          onClick={() => setNonce((n) => n + 1)}
+          data-testid="artifact-preview-retry"
+          className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-hairline px-2.5 text-ui-2xs font-medium text-ink-soft transition-colors hover:bg-surface hover:text-foreground focus-ring"
+        >
+          <RefreshCw className="h-3 w-3" />
+          {t('agentPanel.retry')}
+        </button>
+      </div>
+    )
+  }
+  if (!data) {
+    return <LoadingRow label={t('artifacts.preview.loading')} className="h-full justify-center" />
+  }
+  return <PayloadView data={data} name={art.name} />
 }
 
 /** Code as source: the bytes come from the file endpoint, so .ts/.py/.sh cards
