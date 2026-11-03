@@ -190,3 +190,85 @@ def test_the_scratch_run_declines_when_no_guest_is_installed(store, capsys, tmp_
     assert code == 0
     assert "no installed guest" in out  # the decline names itself
     assert (home / "build" / "t0").exists()
+
+
+def _device_argv(capsys, *argv: str):
+    """Run the device verb through the real parser and hand back (code, stdout)."""
+    args = ephe_cli.build_parser().parse_args(["device", *argv])
+    code = args.func(args)
+    captured = capsys.readouterr()
+    return code, captured.out
+
+
+@pytest.fixture
+def device(tmp_path, monkeypatch):
+    """A device folder with one entry of each answer the declaration gives."""
+    home = tmp_path / "ephe-home"
+    (home / "sessions").mkdir(parents=True)
+    (home / "sessions" / "one.json").write_text("[]", encoding="utf-8")
+    (home / "settings.json").write_text("{}\n", encoding="utf-8")
+    (home / "audit.log").write_text("x\n", encoding="utf-8")
+    (home / "hand-kept-backup").write_text("x", encoding="utf-8")
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(home))
+    return home
+
+
+def test_the_device_verb_lists_the_declaration_in_its_own_words(device, capsys):
+    code, out = _device_argv(capsys)
+
+    assert code == 0
+    assert str(device) in out
+    assert "entries are present" in out and "declared entries" in out
+    assert "[forget] sessions" in out
+    assert "[forget] settings.json" in out
+    assert "[keep] audit.log" in out, "the append-only log must be marked kept"
+    assert "1 entry the declaration does not name" in out
+    assert "[keep] hand-kept-backup" in out
+    assert "Nothing left the folder." in out
+    assert (device / "sessions").is_dir(), "the dry run deleted"
+
+
+def test_the_device_verb_removes_only_what_it_declared_forgettable(device, capsys):
+    code, out = _device_argv(capsys, "--apply")
+
+    assert code == 0
+    assert "Removed " in out and "stay." in out
+    assert not (device / "sessions").exists()
+    assert not (device / "settings.json").exists()
+    assert (device / "audit.log").exists(), "a kept row may not be deleted"
+    assert (device / "hand-kept-backup").exists(), "an undeclared file is the person's to judge"
+
+
+def test_the_device_verb_answers_in_json(device, capsys):
+    code, out = _device_argv(capsys, "--json")
+
+    payload = json.loads(out)
+    assert code == 0 and payload["applied"] is False
+    names = {row["name"] for row in payload["listing"]}
+    assert {"sessions", "settings.json", "audit.log"} <= names
+    assert payload["forget"]["unnamed"] == ["hand-kept-backup"]
+    row = {r["name"]: r for r in payload["listing"]}["sessions"]
+    assert row["bytes"] == 2 and row["writer"] == "core/session.py"
+
+
+def test_an_entry_that_refuses_to_go_is_counted_as_kept(device, monkeypatch, capsys):
+    """A file another process holds is not this verb's to force.
+
+    The declaration said `settings.json` may go, the machine said no. The run reports the
+    entry under `kept` and carries on with the rest of the folder, because a delete that
+    meets a busy file has to leave the verb answering rather than aborting halfway.
+    """
+    real_unlink = Path.unlink
+
+    def refuse(path, *args, **kwargs):
+        if path.name == "settings.json":
+            raise OSError("busy")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", refuse)
+    code, out = _device_argv(capsys, "--apply")
+
+    assert code == 0
+    assert (device / "settings.json").exists(), "the refusal was forced through"
+    assert not (device / "sessions").exists(), "the rest of the folder was left undone"
+    assert "stay." in out
