@@ -45,7 +45,7 @@ Three readings came after the cut: the shell asks for the update rather than a r
   read as two folders. A read that fails now says it failed: the first version called a
   helper that used `re` without importing it, the bare `except` swallowed the NameError, and
   the doctor reported a clean machine (`149ddee2`, `7800e7b9`).
-- toast: The rail steps aside when the right column is open (`183fdc29`). The stack anchors
+- toast: The rail steps aside when the right column is open (`431aef78`). The stack anchors
   top-right and the panel is a fixed column whose tab bar sits at the top of that same edge,
   so every capture of the panel showed the restore message printed over the row of tabs — the
   control the reader needs next, covered by news of something that had already happened. The
@@ -57,7 +57,7 @@ Three readings came after the cut: the shell asks for the update rather than a r
   every install adds one more copy the Dock icon can choose — 72 of them measured on the
   machine that ships Ephe. The script now unregisters the copy it trashes, and the repair
   clears a pile already there. Nothing is deleted: the files stay, and a bundle the registry
-  forgot comes back with `lsregister -f` (`b3bf18ca`, `64947ed1`).
+  forgot comes back with `lsregister -f` (`fe520618`, `a1e15426`).
 
 
 ## [0.5.5] - 2026-11-02
