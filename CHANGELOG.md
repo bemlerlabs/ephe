@@ -51,6 +51,13 @@ Three readings came after the cut: the shell asks for the update rather than a r
   control the reader needs next, covered by news of something that had already happened. The
   rail reads the panel's own width broadcast and moves to its left edge, and the phone layout
   keeps its centring.
+- doctor: `ephe doctor --fix` forgets the desktop bundles a click can reach. The pile has a
+  maker: the installer moves the previous `/Applications/Ephe.app` into the Trash, and
+  LaunchServices keeps answering for a bundle it has already seen wherever it is moved to, so
+  every install adds one more copy the Dock icon can choose — 72 of them measured on the
+  machine that ships Ephe. The script now unregisters the copy it trashes, and the repair
+  clears a pile already there. Nothing is deleted: the files stay, and a bundle the registry
+  forgot comes back with `lsregister -f` (`b3bf18ca`).
 
 
 ## [0.5.5] - 2026-11-02
