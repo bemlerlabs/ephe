@@ -408,7 +408,16 @@ def _doctor_desktop_app(
             f"the app reads {app_version} while the backend runs {backend} — finish it in "
             "Settings → Version & Updates"
         )
-    return True, f"{app_version} — the only bundle for {DESKTOP_BUNDLE_ID}, matching the backend"
+    # A row that says the app matches the backend has to have read a backend. Measured
+    # 2026-11-03 with the server stopped: this line claimed "matching the backend" two rows
+    # under "Ephe server — not running", because an absent answer left `backend` empty and
+    # the comparison above never ran. Same file, same rule the registry row already carries:
+    # a read that failed is said out loud.
+    if backend:
+        compared = f"the backend runs the same {backend}"
+    else:
+        compared = "no backend answered, so nothing here was compared with it"
+    return True, f"{app_version} — the only bundle for {DESKTOP_BUNDLE_ID}; {compared}"
 
 
 def _repair_desktop_bundles(
