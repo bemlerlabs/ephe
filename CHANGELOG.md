@@ -33,7 +33,7 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   backend answered and says plainly when none did. The same instrument already refuses this
   shape for the bundle registry, and the rule is the same one — a read that failed is said
   out loud.
-- api: A refused method now says what it means (`a2098e9c`). `POST /api/file` and `HEAD /api/file` used to answer 405 with the code `not_found` and no `Allow` header — a client reading that concluded the file did not exist, while the path was there and only the verb was refused. The answer now carries its own code `method_not_allowed`, an `Allow` header naming the methods the path actually supports, and a message that tells the caller which verb to retry with. A real 404 keeps answering `not_found`, so the two refusals stay distinguishable.
+- api: A refused method now says what it means (`65f9fc48`). `POST /api/file` and `HEAD /api/file` used to answer 405 with the code `not_found` and no `Allow` header — a client reading that concluded the file did not exist, while the path was there and only the verb was refused. The answer now carries its own code `method_not_allowed`, an `Allow` header naming the methods the path actually supports, and a message that tells the caller which verb to retry with. A real 404 keeps answering `not_found`, so the two refusals stay distinguishable.
 
 
 ## [0.5.7] - 2026-11-03
