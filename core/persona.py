@@ -24,6 +24,8 @@ import os
 from datetime import datetime as _dt_now
 from pathlib import Path
 
+from core.engine_config import config_root
+
 logger = logging.getLogger(__name__)
 
 PERSONA_FILENAME = "persona.md"
@@ -169,7 +171,7 @@ def needs_page_guard(text: str) -> bool:
 
 def _persona_dir() -> Path:
     """Persona storage dir, resolved lazily so tests can redirect via env."""
-    return Path(os.environ.get("EPHE_PERSONA_DIR", str(Path.home() / ".ephe")))
+    return Path(os.environ.get("EPHE_PERSONA_DIR") or config_root())
 
 
 def persona_path() -> Path:

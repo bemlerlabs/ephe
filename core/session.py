@@ -1,7 +1,8 @@
 """
 ◑ Ephe – Session Persistence
 
-JSON-based session persistence in ~/.ephe/sessions/default.json
+JSON-based session persistence in the device folder: sessions/default.json under
+`config_root()`, which `EPHE_CONFIG_DIR` moves and `~/.ephe` is the default of.
 
 Key design decisions:
 - Atomic writes (tmp + rename) to prevent corruption on crash
@@ -18,11 +19,12 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.engine_config import config_subdir
 from core.types import Message
 
 # Paths
 
-SESSION_DIR: Path = Path.home() / ".ephe" / "sessions"
+SESSION_DIR: Path = config_subdir("sessions")
 SESSION_FILE: Path = SESSION_DIR / "default.json"
 
 
