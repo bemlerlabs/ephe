@@ -61,10 +61,19 @@ if pgrep -f "Ephe.app/Contents/MacOS" >/dev/null 2>&1; then
   echo "  running windows keep the old code (there is no instance guard)."
 fi
 
+LSR=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
+
 if [[ -d "$INSTALL_TO" ]]; then
   TRASH="$HOME/.Trash/Ephe-$STAMP.app"
   echo "… previous version → $TRASH"
   mv "$INSTALL_TO" "$TRASH"
+  # LaunchServices keeps answering for a bundle it has already seen, wherever it is moved
+  # to, so every install that trashes its predecessor adds one more copy a click can reach.
+  # Measured 2026-11-02: 72 registered bundles in the Trash on the machine that ships Ephe.
+  if [[ -x "$LSR" ]]; then
+    echo "… forgetting the trashed copy"
+    "$LSR" -u "$TRASH" >/dev/null 2>&1 || true
+  fi
 fi
 
 echo "… installing $BUNDLE → $INSTALL_TO"
@@ -72,7 +81,6 @@ ditto "$BUNDLE" "$INSTALL_TO"
 
 # LaunchServices: one address per product. Without this, dead build paths and DMG
 # shells stay in the register and win when `open -a Ephe` runs.
-LSR=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 if [[ -x "$LSR" ]]; then
   echo "… LaunchServices reset"
   "$LSR" -kill -r -domain local -domain system -domain user >/dev/null 2>&1 || true

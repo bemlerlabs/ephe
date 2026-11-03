@@ -341,6 +341,7 @@ def test_given_ephe_doctor_fix_when_invoked_then_repairs_repo_deps_and_model(cap
          patch("ephe_cli._repair_dependencies", return_value=(True, "dependencies installed")) as deps, \
          patch("ephe_cli._ensure_model_ready_for_start", return_value=(True, "test generation ok")) as model, \
          patch("ephe_cli.ensure_pwa_built", return_value=True), \
+         patch("ephe_cli._repair_desktop_bundles", return_value=(True, "nothing to clear")), \
          patch("ephe_cli._ollama_binary", return_value="/usr/local/bin/ollama"), \
          patch("ephe_cli._model_installed", return_value=True), \
          patch("ephe_cli._json_get") as json_get, \
