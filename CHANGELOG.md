@@ -9,6 +9,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 The 0.5.7 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac061aa`, `38e33fde`, `8635f627`, `4aa51a81`): the device folder says what it keeps, every state writer answers to the one root, the column that lists an office file reads it, and a reload reaches the server.
 
+A folder's name and the version inside it are two separate facts (`33b54a6a`). The record the desktop starts from names the checkout an installation reads, and on the machine that ships Ephe that name came out of the first provisioning while the tree inside it had moved on — so "it says current" and "nothing is new" were both true at once. `ephe doctor` now prints the path beside the version the manifest at that path reports for itself, and prints the read that failed when nothing came back.
+
+
+### Added
+
+- cli: The doctor says which checkout this install reads (`33b54a6a`). The desktop record
+  names a folder, a folder's name was chosen once by whoever provisioned the machine, and the
+  number a release carries lives in the manifest inside it. The new row reads the record, then
+  reads the version out of the tree at that path, and prints the two beside each other. Five
+  shapes of a failed read each get their own sentence — no record, a record that is not JSON,
+  one naming no checkout, a folder that is gone, a folder reporting nothing — so a machine the
+  instrument could not read is never shown as a machine that is up to date. Measured live: `Installed checkout - …/0.1.4 — reports 0.5.6`.
+
 
 ## [0.5.7] - 2026-11-03
 
