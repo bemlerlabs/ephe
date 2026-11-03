@@ -207,8 +207,14 @@ const size = (name: string) => statSync(resolve(LOCALES, name)).size
 // the page/Markdown pair, and the four sentences that name a format the column cannot draw.
 // Measured as committed: en 144,867 B, de 156,942 B. Both halves move by 800 B, which keeps
 // the ~700 B headroom the earlier waves held for a translation pass of their own.
-const EN_CEILING = 145_600
-const DE_CEILING = 157_700
+// 2026-11-03 (F2, the device card): the settings register's device folder card adds 16
+// `settings.deviceState*` leaves (listing, protected note, unnamed pair, the two-step clear
+// and its answer) and the two coded refusals add `serverError.device_forget_undeclared` and
+// `serverError.device_forget_kept` — 18 leaves per file. Measured as committed: en 146,521 B
+// and de 158,775 B, which is +1,575 B / +1,738 B over the numbers this slice inherited.
+// Both halves move by 2,000 B, the step keeps the ~1,000 B headroom the earlier waves held.
+const EN_CEILING = 147_600
+const DE_CEILING = 159_700
 // The pair may reach what its two halves allow. It was 200_000 from the 2026-10-11
 // snapshot, which made it stricter than the two numbers it sums — a total that can only
 // fire where no per-file ceiling does says nothing the halves do not say. Raised on
