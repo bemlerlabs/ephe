@@ -144,6 +144,26 @@ class TestFileRoute:
         r = client.get("/api/file", params={"path": str(f)})
         assert r.status_code == 413
 
+    def test_the_bytes_come_back_no_store(self, client, monkeypatch, tmp_path):
+        """A reload must reach the server, or it reports bytes that are already gone."""
+        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        note = tmp_path / "notiz.md"
+        note.write_text("# Erst\n", encoding="utf-8")
+
+        answer = client.get("/api/file", params={"path": str(note)})
+        assert answer.status_code == 200
+        assert answer.headers["cache-control"] == "no-store"
+
+        note.write_text("# Zweit\n", encoding="utf-8")
+        again = client.get("/api/file", params={"path": str(note)})
+        assert again.text == "# Zweit\n"
+
+        note.unlink()
+        gone = client.get("/api/file", params={"path": str(note)})
+        assert gone.status_code == 404, "a deleted file may not answer from a cache"
+
+
+
 
 class TestFilePreviewRoute:
     """The same guard, the workbench renderer: the column points at a path, not a card.
