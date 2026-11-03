@@ -37,9 +37,10 @@ class ErrorCode(str, Enum):
     STREAM = "stream_error"      # SSE: error in the middle of a stream
     UPSTREAM = "upstream_error"  # provider/backend (Ollama/ds4) unreachable
     INTERNAL = "internal_error"  # unexpected exception (500)
-    NOT_FOUND = "not_found"      # HTTP 404/405: unknown route
+    NOT_FOUND = "not_found"      # HTTP 404: unknown route
     SETUP_REQUIRED = "setup_required"  # HTTP 409: no engine chosen (W19 setup mode)
     SKILLS_LOCK_MISMATCH = "skills_lock_mismatch"  # W4 S2: skills-lock.json vs. disk (append-only)
+    METHOD_NOT_ALLOWED = "method_not_allowed"  # HTTP 405: known path, refused verb (append-only)
 
 
 # W4 S4: scope-logger cache — identical calls return identical objects.
