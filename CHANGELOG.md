@@ -57,7 +57,7 @@ Three readings came after the cut: the shell asks for the update rather than a r
   every install adds one more copy the Dock icon can choose — 72 of them measured on the
   machine that ships Ephe. The script now unregisters the copy it trashes, and the repair
   clears a pile already there. Nothing is deleted: the files stay, and a bundle the registry
-  forgot comes back with `lsregister -f` (`b3bf18ca`).
+  forgot comes back with `lsregister -f` (`b3bf18ca`, `64947ed1`).
 
 
 ## [0.5.5] - 2026-11-02
