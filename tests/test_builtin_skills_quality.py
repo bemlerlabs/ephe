@@ -99,6 +99,37 @@ def test_given_builtin_skills_when_tools_declared_then_every_tool_exists():
     assert missing == {}
 
 
+def test_given_shipped_packs_when_loaded_then_none_warns_about_its_own_text():
+    """One pack contradicted itself, and the warning said less than the file did.
+
+    The loader reads the frontmatter as the truth and warns when the bold line in the
+    body answers differently. The warning was the smaller half of the symptom:
+    `code-shell` promised `execute_code` in its body and in `allowed_tools`, while
+    `tools` — the list `server/routes/chat.py` hands to the turn — left it out, so the
+    skill advertised an instrument it was never offered. Every other pack that names
+    the tool carries it in both fields, so the disagreement was an edit that landed in
+    two of three places.
+
+    The cache is emptied first: a warm read returns the parsed list without parsing,
+    and the warning is a fact about parsing.
+    """
+    import warnings
+
+    from core.skills import BUILTIN_SKILLS_DIR, SkillLoader, invalidate_skill_cache
+
+    invalidate_skill_cache()
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        loaded = SkillLoader(
+            skills_dir=Path("/tmp/ephe-no-user-skills"), builtin_dir=BUILTIN_SKILLS_DIR
+        ).load_all()
+
+    mismatched = sorted({str(w.message) for w in caught if "bold mismatch" in str(w.message)})
+
+    assert mismatched == []
+    assert len(loaded) > 1  # the answer is about the packs, and there have to be some
+
+
 def test_given_high_impact_builtin_skills_when_loaded_then_they_require_real_tool_outputs():
     from core.skills import BUILTIN_SKILLS_DIR, SkillLoader
 

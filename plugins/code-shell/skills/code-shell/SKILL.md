@@ -5,7 +5,7 @@ trigger: /fix
 description: "Reproduces a defect, applies the smallest fix and proves it with a real test run."
 when_to_use: [fix defect, run tests, review change]
 when_not_to_use: [write document, research topic]
-tools: [run_shell, read_file, write_file, edit_file, run_tests, run_linter, format_code, scaffold_project, analyze_project, file_search, load_workspace, list_directory]
+tools: [run_shell, read_file, write_file, edit_file, run_tests, run_linter, format_code, scaffold_project, analyze_project, file_search, load_workspace, list_directory, execute_code]
 quality_profile: standard
 allowed_tools: [run_shell, read_file, write_file, edit_file, run_tests, run_linter, format_code, scaffold_project, analyze_project, file_search, load_workspace, list_directory, execute_code]
 artifact_types: []

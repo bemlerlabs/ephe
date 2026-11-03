@@ -17,7 +17,7 @@
       "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
       "tags": [],
       "enabled": true,
-      "sha256": "722e12c3e53e06ec7fec5b9ef3712a7803ac6f13b5368302f0844b0d44d79820",
+      "sha256": "926e95cfc6504e8ea58fac54a0706bfbb348bb0422ca97292ef69bf2b4df20ea",
       "url": "",
       "manifest": true,
       "version": "1.1.0",
