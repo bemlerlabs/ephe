@@ -2300,6 +2300,66 @@ def cmd_prune(args: argparse.Namespace) -> int:
     return 0
 
 
+def device_report(rows: list[dict], result: dict, *, applied: bool) -> list[str]:
+    """The device verb's words — pure, so a test reads the lines the user reads.
+
+    ``rows`` is ``core.persistence.listing()`` and ``result`` is its ``forget()`` answer.
+    Every number printed comes from one of those two, and the only verb in the text is the
+    one the ``--apply`` flag decided.
+    """
+    lines = [f"Device folder  {result['root']}"]
+    here = [row for row in rows if row["present"]]
+    total = sum(int(row["bytes"]) for row in here)
+    lines.append(
+        f"{len(here)} of {len(rows)} declared entries are present, {_mb(total)} between them."
+    )
+    for row in here:
+        mark = "forget" if row["forgettable"] else "keep"
+        lines.append(f"  [{mark}] {row['name']:<26} {row['holds']}")
+    if result["unnamed"]:
+        count = len(result["unnamed"])
+        noun = "entry" if count == 1 else "entries"
+        lines.append(f"{count} {noun} the declaration does not name:")
+        for name in result["unnamed"]:
+            lines.append(f"  [keep] {name:<26} the product never claims it")
+    gone = len(result["removed"])
+    lines.append(
+        f"{'Removed' if applied else 'Would remove'} {gone} "
+        f"{'entry' if gone == 1 else 'entries'}; {len(result['kept'])} stay."
+    )
+    if not applied and gone:
+        lines.append("Nothing left the folder. Repeat with --apply and the verb runs.")
+    return lines
+
+
+def cmd_device(args: argparse.Namespace) -> int:
+    """F1: the device folder read from its own declaration, and cleared on the word.
+
+    Listing is the safe half of the promise that Ephe forgets: every entry the product says
+    it keeps, what each one holds, and how much room it takes. Clearing is dry-run-first the
+    way `ephe prune` is, and it reaches only the rows the declaration marks forgettable. The
+    audit log stays because it is append-only by its own contract, the cell guest stays
+    because removing it costs a full interpreter rebuild, the signing anchors stay because
+    every installed plugin is checked against them — and a leftover nobody declared stays too,
+    because a verb that deletes files it cannot name would claim more of the folder than the
+    code accounts for.
+    """
+    from core import persistence
+
+    rows = persistence.listing()
+    result = persistence.forget(dry_run=not args.apply)
+    if args.json:
+        print(json.dumps(
+            {"listing": rows, "forget": result, "applied": args.apply},
+            ensure_ascii=False,
+            indent=2,
+        ))
+        return 0
+    for line in device_report(rows, result, applied=args.apply):
+        print(line)
+    return 0
+
+
 def _life_defaults() -> dict:
     """`core.session_lifecycle.DEFAULT_KEEP`, read where the parser needs it.
 
@@ -3123,6 +3183,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prune.add_argument("--json", action="store_true", help="Machine-readable output")
     prune.set_defaults(func=cmd_prune)
+
+    # F1: the device folder's own verb. Reading it is the default; emptying it is the word.
+    device = sub.add_parser(
+        "device",
+        help="List what this device keeps (dry run unless --apply)",
+        description=(
+            "Every entry the product declares under the device folder, with the plain words\n"
+            "for what it holds and the room it takes, plus the entries the folder holds that\n"
+            "no declaration names. Without --apply nothing is removed: the run only says what\n"
+            "it would take. The audit log, the cell guest and the plugin signing anchors are\n"
+            "never removed, and neither is a leftover the code cannot name."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    device.add_argument(
+        "--apply",
+        action="store_true",
+        help="Remove the declared, forgettable entries; without it the run changes nothing",
+    )
+    device.add_argument("--json", action="store_true", help="Machine-readable output")
+    device.set_defaults(func=cmd_device)
 
     return parser
 

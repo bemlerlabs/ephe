@@ -30,10 +30,12 @@ rebuild, and the trusted keys are what every installed plugin is verified agains
 """
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
 from core.engine_config import config_root
+
 
 @dataclass(frozen=True)
 class Persisted:
@@ -216,4 +218,74 @@ def summary(base: Path | None = None) -> dict[str, object]:
         "present": len(present(folder)),
         "unnamed": unnamed(folder),
         "forgettable": sum(1 for entry in EPHE_PERSISTENCE if entry.forgettable),
+    }
+
+
+def _size(path: Path) -> int:
+    """Bytes for one entry: a file reports its own length, a folder reports its tree."""
+    if path.is_file():
+        return path.stat().st_size
+    from core.cell_output import dir_bytes
+
+    return dir_bytes(path)
+
+
+def listing(base: Path | None = None) -> list[dict[str, object]]:
+    """One row per declared entry: whether this folder holds it, how big it is, what it holds.
+
+    Bytes come from the same helper the retention report reads, so the figure a person sees
+    for `sessions` is the figure `ephe prune` reasons about.
+    """
+    folder = base or root()
+    rows: list[dict[str, object]] = []
+    for entry in EPHE_PERSISTENCE:
+        path = folder / entry.name
+        here = path.exists()
+        rows.append({
+            "name": entry.name,
+            "kind": entry.kind,
+            "holds": entry.holds,
+            "writer": entry.writer,
+            "forgettable": entry.forgettable,
+            "present": here,
+            "bytes": _size(path) if here else 0,
+        })
+    return rows
+
+
+def forget(base: Path | None = None, *, dry_run: bool = True) -> dict[str, list[str]]:
+    """Clear the entries the declaration marks forgettable; keep the rest and say why.
+
+    Three questions, and the answer to each is a list a surface can print: what went (or
+    would have gone), what stayed because removing it costs the box its audit trail, its
+    cell guest or its verification anchors, and what stayed because the declaration never
+    said the product writes it. That last list is the honest one: a leftover is a person's
+    file to judge, and a verb that deletes what it cannot name would be the product
+    claiming more of the folder than the code can account for.
+    """
+    folder = base or root()
+    removed: list[str] = []
+    kept: list[str] = []
+    for entry in EPHE_PERSISTENCE:
+        path = folder / entry.name
+        if not path.exists():
+            continue
+        if not entry.forgettable:
+            kept.append(entry.name)
+            continue
+        removed.append(entry.name)
+        if dry_run:
+            continue
+        try:
+            if path.is_dir():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+        except OSError:
+            kept.append(entry.name)
+    return {
+        "removed": removed,
+        "kept": kept,
+        "unnamed": unnamed(folder),
+        "root": str(folder),
     }
