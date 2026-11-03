@@ -141,10 +141,19 @@ describe('DeviceStateCard', () => {
   })
 
   it('says nothing here yet for a folder with no declared entry on disk', async () => {
-    getDeviceState.mockResolvedValue({ ...STATE, present: 0, entries: [], total_bytes: 0, unnamed: [] })
+    getDeviceState.mockResolvedValue({
+      ...STATE,
+      present: 0,
+      entries: [],
+      total_bytes: 0,
+      unnamed: [],
+    })
     render(<DeviceStateCard />)
-    await waitFor(() => expect(screen.getByTestId('device-state-row').textContent)
-      .toContain('settings.deviceStateEmpty'))
+    await waitFor(() =>
+      expect(screen.getByTestId('device-state-row').textContent).toContain(
+        'settings.deviceStateEmpty',
+      ),
+    )
     expect(screen.queryByTestId('device-state-clear')).toBeNull()
   })
 })

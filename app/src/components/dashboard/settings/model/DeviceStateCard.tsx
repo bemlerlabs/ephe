@@ -78,7 +78,11 @@ export function DeviceStateCard() {
 
   if (phase === 'failed') {
     return (
-      <SettingsGroup icon={HardDrive} title={t('settings.deviceStateGroup')} testid="device-state-group">
+      <SettingsGroup
+        icon={HardDrive}
+        title={t('settings.deviceStateGroup')}
+        testid="device-state-group"
+      >
         <SettingsRow
           icon={HardDrive}
           title={t('settings.deviceStateRow')}
@@ -100,7 +104,11 @@ export function DeviceStateCard() {
 
   if (phase === 'loading' || !state) {
     return (
-      <SettingsGroup icon={HardDrive} title={t('settings.deviceStateGroup')} testid="device-state-group">
+      <SettingsGroup
+        icon={HardDrive}
+        title={t('settings.deviceStateGroup')}
+        testid="device-state-group"
+      >
         <SettingsRow
           icon={HardDrive}
           title={t('settings.deviceStateRow')}
@@ -114,7 +122,11 @@ export function DeviceStateCard() {
   }
 
   return (
-    <SettingsGroup icon={HardDrive} title={t('settings.deviceStateGroup')} testid="device-state-group">
+    <SettingsGroup
+      icon={HardDrive}
+      title={t('settings.deviceStateGroup')}
+      testid="device-state-group"
+    >
       <SettingsRow
         icon={HardDrive}
         title={t('settings.deviceStateRow')}
@@ -149,13 +161,18 @@ export function DeviceStateCard() {
                 data-testid={`device-entry-size-${entry.name}`}
                 className="font-mono text-ui-2xs text-ink-faint"
               >
-                {entry.forgettable ? formatBytes(entry.bytes, lang) : t('settings.deviceStateProtected')}
+                {entry.forgettable
+                  ? formatBytes(entry.bytes, lang)
+                  : t('settings.deviceStateProtected')}
               </span>
             </SettingsRow>
           ))}
 
           {protectedHere.length > 0 && (
-            <p data-testid="device-state-protected-note" className="px-3 py-2 text-ui-xs text-ink-soft">
+            <p
+              data-testid="device-state-protected-note"
+              className="px-3 py-2 text-ui-xs text-ink-soft"
+            >
               {t('settings.deviceStateProtectedHint')}
             </p>
           )}
@@ -201,7 +218,9 @@ export function DeviceStateCard() {
                     onClick={() => void clearNow()}
                     className="flex items-center gap-1.5 rounded-lg border border-status-danger/30 bg-status-danger/20 px-3 py-1.5 text-ui-xs font-medium text-status-danger transition-colors hover:bg-status-danger/30 disabled:opacity-50 max-lg:min-h-11"
                   >
-                    {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : null}
                     {t('settings.deviceStateConfirm')}
                   </button>
                   <button
@@ -218,7 +237,11 @@ export function DeviceStateCard() {
           </SettingsRow>
 
           {outcome ? (
-            <p data-testid="device-state-outcome" role="status" className="px-3 pb-2 pt-1 text-ui-xs text-ink-soft">
+            <p
+              data-testid="device-state-outcome"
+              role="status"
+              className="px-3 pb-2 pt-1 text-ui-xs text-ink-soft"
+            >
               {outcome}
             </p>
           ) : null}

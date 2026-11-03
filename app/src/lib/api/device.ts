@@ -51,7 +51,9 @@ export function getDeviceState(): Promise<DeviceState> {
  * promise the CLI verb keeps. The answer lists what went, what the declaration
  * keeps, and what it never named; the undeclared list is report-only.
  */
-export function forgetDevice(body: { names?: string[]; dry_run?: boolean } = {}): Promise<DeviceForgetAnswer> {
+export function forgetDevice(
+  body: { names?: string[]; dry_run?: boolean } = {},
+): Promise<DeviceForgetAnswer> {
   return request<DeviceForgetAnswer>('/api/device/forget', {
     method: 'POST',
     body: JSON.stringify(body),
