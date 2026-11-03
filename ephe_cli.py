@@ -353,6 +353,24 @@ def _doctor_device_state() -> str:
     return line
 
 
+def _doctor_installed_checkout() -> str:
+    """One doctor line: which checkout this install reads, and which version it reports.
+
+    The desktop record names a folder, and a folder's name was chosen once by whoever
+    provisioned the machine. Measured 2026-11-03: the record named
+    `<home>/.local/share/ephe/current` and the tree sitting inside that folder reported a
+    different number, so "it says current" and "nothing is new" were both true at once. The
+    line prints the path next to the version read out of the tree at that path, and prints
+    the read that failed when the version did not come back."""
+    from core import persistence
+
+    state = persistence.installed_checkout()
+    failed = str(state["unreadable"])
+    if failed:
+        return f"{state['root'] or state['record']} — {failed}"
+    return f"{state['root']} — reports {state['version']}"
+
+
 def _doctor_desktop_app(
     server_health: dict[str, Any] | None,
     platform: str | None = None,
@@ -1215,6 +1233,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # product can state; whether a leftover belongs there is a question this row answers
     # with names, and neither decides the exit code.
     informational.append(("Device state", True, _doctor_device_state()))
+
+    # Which checkout the desktop record points at, and the version the tree there reports for
+    # itself: the row keeps a folder's name and a release number as the two facts they are.
+    informational.append(("Installed checkout", True, _doctor_installed_checkout()))
 
     # R16/R18/E1: the informative checks (Image/Voice/ephemora-cell/CPython-Cell) do
     # NOT flow into `ok` — a text-only or cloud-fallback setup is valid, and an

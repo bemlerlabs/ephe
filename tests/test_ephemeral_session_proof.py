@@ -44,6 +44,7 @@ Sources: `docs/EPHEMERAL_PROOF_2026-10-11.md`.
 from __future__ import annotations
 
 import ast
+import json
 import os
 import re
 import subprocess
@@ -311,6 +312,137 @@ def test_a_long_unnamed_list_is_counted_and_cut(tmp_path, monkeypatch):
 
     line = ephe_cli._doctor_device_state()
     assert "5 unnamed (leftover-0, leftover-1, leftover-2, +2 more)" in line
+
+
+def test_the_recorded_checkout_answers_with_the_version_inside_it(tmp_path, monkeypatch):
+    """A folder's name is a label; the number comes from the manifest sitting in that folder.
+
+    The shape is the one measured on the machine that ships Ephe on 2026-11-03: a checkout
+    named after the release that first provisioned it, holding a tree whose manifest has
+    moved on since. The read answers with what the tree reports.
+    """
+    from core.persistence import installed_checkout
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    checkout = tmp_path / "0.1.4"
+    checkout.mkdir()
+    (checkout / "pyproject.toml").write_text('[project]\nversion = "9.9.9"\n', encoding="utf-8")
+    (device / "desktop.json").write_text(
+        json.dumps({"project_root": str(checkout)}), encoding="utf-8"
+    )
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    state = installed_checkout()
+    assert state["root"] == str(checkout)
+    assert state["present"] is True
+    assert state["version"] == "9.9.9"
+    assert state["unreadable"] == ""
+
+
+def test_a_recorded_checkout_that_is_gone_says_so(tmp_path, monkeypatch):
+    """The record may name a folder that no longer exists, and then no version is knowable."""
+    from core.persistence import installed_checkout
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    (device / "desktop.json").write_text(
+        json.dumps({"project_root": str(tmp_path / "removed")}), encoding="utf-8"
+    )
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    state = installed_checkout()
+    assert state["root"] == str(tmp_path / "removed")
+    assert state["present"] is False
+    assert state["version"] == ""
+    assert state["unreadable"] == "is not a folder on this machine"
+
+
+def test_a_checkout_whose_manifest_answers_nothing_is_read_as_a_failed_read(tmp_path, monkeypatch):
+    """A folder that is there and reports nothing stays a failure the surface has to show.
+
+    An unparsable manifest is the same answer as a missing one, and neither may come back as
+    an empty version a reader would take for a machine that is up to date.
+    """
+    from core.persistence import installed_checkout
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    checkout = tmp_path / "current"
+    checkout.mkdir()
+    (checkout / "pyproject.toml").write_text("[project\nversion =", encoding="utf-8")
+    (device / "desktop.json").write_text(
+        json.dumps({"project_root": str(checkout)}), encoding="utf-8"
+    )
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    state = installed_checkout()
+    assert state["present"] is True
+    assert state["version"] == ""
+    assert state["unreadable"] == "reports no version for itself"
+
+
+def test_a_record_that_names_no_checkout_is_refused_in_either_shape(tmp_path, monkeypatch):
+    """A record with no `project_root` answers nothing, whether it is an object or a list."""
+    from core.persistence import installed_checkout
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+    record = device / "desktop.json"
+    for payload in ({}, ["project_root"]):
+        record.write_text(json.dumps(payload), encoding="utf-8")
+        state = installed_checkout()
+        assert state["root"] == ""
+        assert state["unreadable"] == "names no project_root"
+
+
+def test_a_record_that_is_not_json_names_the_read_that_failed(tmp_path, monkeypatch):
+    """A torn file is a failed read with the reader's own reason attached."""
+    from core.persistence import installed_checkout
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    (device / "desktop.json").write_text("{ project_root ", encoding="utf-8")
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    state = installed_checkout()
+    assert state["record"] == str(device / "desktop.json")
+    assert state["unreadable"].startswith("could not be read (")
+
+
+def test_the_checkout_row_prints_the_path_next_to_the_version(tmp_path, monkeypatch):
+    """One line, two facts: where this install reads from, and what that place reports."""
+    import ephe_cli
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    checkout = tmp_path / "0.1.4"
+    checkout.mkdir()
+    (checkout / "pyproject.toml").write_text('[project]\nversion = "9.9.9"\n', encoding="utf-8")
+    (device / "desktop.json").write_text(
+        json.dumps({"project_root": str(checkout)}), encoding="utf-8"
+    )
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    assert ephe_cli._doctor_installed_checkout() == f"{checkout} — reports 9.9.9"
+
+
+def test_the_checkout_row_names_the_record_it_could_not_read(tmp_path, monkeypatch):
+    """An empty device folder gets the sentence about the record that is missing.
+
+    The row is the instrument for a question about the machine, so a machine it cannot read
+    is answered with the path it looked at and the read that came back empty.
+    """
+    import ephe_cli
+
+    device = tmp_path / "ephe"
+    device.mkdir()
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
+
+    line = ephe_cli._doctor_installed_checkout()
+    assert str(device / "desktop.json") in line
+    assert "holds no record" in line
 
 
 def test_a_temp_device_root_captures_every_state_writer(tmp_path):
