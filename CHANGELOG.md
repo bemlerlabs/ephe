@@ -11,6 +11,8 @@ The 0.5.6 wave is named below (`3ac7541a`, `d16f66c1`, `9521e399`, `629e23b5`, `
 
 The F1 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac061aa`): the device folder says what it keeps, every writer answers to one root, and the four expected failures the suite carried as unpaid work are gone. The product had said Ephe forgets while nothing could show which files stay; the cell runtime had already solved that problem for its own caps, and the same instrument now exists for the disk.
 
+One reading came after the wave (`fa7126ba`): the column that lists a Word file, a sheet or a deck now opens it.
+
 
 ### Added
 
@@ -26,6 +28,15 @@ The F1 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac
   log, the cell guest and the signing anchors are marked kept by the declaration, and an
   undeclared leftover is kept too — a verb that deletes files it cannot name would claim more
   of the folder than the code accounts for.
+- panel: The column reads the office file it listed (`fa7126ba`, `5aff6e76`). A Word
+  document, a spreadsheet and a deck arrived as a name, a size and a download, because no
+  browser draws those three as content. The workbench card has turned them into a real table,
+  running text and a slide list since R4/A5; the column now asks the same question by path
+  through `GET /api/file/preview`, and one guard answers both doors — the streaming route and
+  the preview route call the same function for the expansion, the relative resolve, the
+  real-path probe, the credential-shaped name and the size ceiling, and a test asks each door
+  the same two refusals. Proved against a live server: a sheet came back as its rows with the
+  sheet name, a document as its text, `/etc/passwd` as 403, a missing file as 404.
 
 
 ### Fixed
