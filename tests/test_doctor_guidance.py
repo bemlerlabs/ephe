@@ -114,6 +114,7 @@ def test_fix_without_a_model_is_a_skip_and_not_a_failure(doctor_box, monkeypatch
     monkeypatch.setattr(ephe_cli, "_repair_repo", lambda: (True, "ok"))
     monkeypatch.setattr(ephe_cli, "_repair_dependencies", lambda: (True, "ok"))
     monkeypatch.setattr(ephe_cli, "ensure_pwa_built", lambda: True)
+    monkeypatch.setattr(ephe_cli, "_repair_desktop_bundles", lambda: (True, "nothing to clear"))
 
     repairs = ephe_cli._run_doctor_repairs(_parser().parse_args(["doctor"]))
 

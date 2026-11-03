@@ -708,6 +708,9 @@ def test_run_doctor_repairs(monkeypatch):
     monkeypatch.setattr(ephe_cli, "_repair_repo", lambda: (True, "ok"))
     monkeypatch.setattr(ephe_cli, "_repair_dependencies", lambda: (True, "ok"))
     monkeypatch.setattr(ephe_cli, "ensure_pwa_built", lambda: True)
+    # The desktop repair runs real `lsregister` commands on a Mac; a test must not
+    # change the machine it measures.
+    monkeypatch.setattr(ephe_cli, "_repair_desktop_bundles", lambda: (True, "nothing to clear"))
     reps = ephe_cli._run_doctor_repairs(_parser().parse_args(["doctor"]))
     names = [r[0] for r in reps]
     assert "Normalize OLLAMA_HOST" in names
@@ -719,6 +722,7 @@ def test_run_doctor_repairs_with_model(monkeypatch):
     monkeypatch.setattr(ephe_cli, "_repair_dependencies", lambda: (True, "ok"))
     monkeypatch.setattr(ephe_cli, "_ensure_model_ready_for_start", lambda _m: (True, "ready"))
     monkeypatch.setattr(ephe_cli, "ensure_pwa_built", lambda: True)
+    monkeypatch.setattr(ephe_cli, "_repair_desktop_bundles", lambda: (True, "nothing to clear"))
     reps = ephe_cli._run_doctor_repairs(_parser().parse_args(["doctor", "--model", "m"]))
     assert any(n == "Repair model m" for n, _ok, _d in reps)
 

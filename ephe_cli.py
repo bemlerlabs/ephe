@@ -121,6 +121,10 @@ def _run_doctor_repairs(args: argparse.Namespace) -> list[tuple[str, bool, str]]
 
     pwa_ok = ensure_pwa_built()
     repairs.append(("Repair PWA build", pwa_ok, "app/dist/index.html vorhanden" if pwa_ok else "PWA build not possible (see output)"))
+
+    # The stale desktop bundles: the one repair that answers "I updated and nothing changed".
+    bundles_ok, bundles_detail = _repair_desktop_bundles()
+    repairs.append(("Repair desktop bundles", bundles_ok, bundles_detail))
     return repairs
 
 
@@ -368,6 +372,52 @@ def _doctor_desktop_app(
             "Settings → Version & Updates"
         )
     return True, f"{app_version} — the only bundle for {DESKTOP_BUNDLE_ID}, matching the backend"
+
+
+def _repair_desktop_bundles(
+    installed: Path | None = None,
+    runner: Callable[[list[str]], int] | None = None,
+    platform: str | None = None,
+) -> tuple[bool, str]:
+    """Forget every bundle that answers for the product identifier except the one installed.
+
+    The pile is not an accident of other people's machines: `scripts/install_desktop.sh` moves
+    the previous `/Applications/Ephe.app` to `~/.Trash/Ephe-<stamp>.app`, and LaunchServices
+    keeps answering for a bundle it has already seen, wherever it is moved to. Thirty installs
+    is thirty registered copies, and a click on the Dock icon can reach any of them.
+
+    Nothing is deleted. A bundle the registry forgets can be re-added with
+    `lsregister -f <path>`; a copy the person wanted to keep is still on disk. The installed
+    app is re-registered last so the one path that must answer does answer."""
+    if (platform or sys.platform) != "darwin":
+        return True, "skipped — this machine has no desktop bundle registry"
+    # The repair changes the machine it is running on. Every test that reaches it today
+    # patches it away, and this line is the reason that stays true: a forgotten stub would
+    # otherwise unregister real applications from the developer's own Mac, mid-suite. A
+    # caller that names the bundle is asking about a path, and has already said it will not
+    # be answered by changing a host.
+    if installed is None and os.environ.get("PYTEST_CURRENT_TEST"):
+        return True, "skipped — a repair does not run inside the suite that measures it"
+    app = installed or DESKTOP_INSTALL_PATH
+    others, unread = _desktop_bundles_other_than(app)
+    if unread:
+        return False, f"the registry could not be read: {unread}"
+    if not others:
+        return True, f"nothing to clear — {app} is the only bundle for {DESKTOP_BUNDLE_ID}"
+
+    run = runner or (lambda argv: subprocess.run(argv, check=False, capture_output=True).returncode)
+    refused = [path for path in others if run([LSREGISTER, "-u", path]) != 0]
+    if run([LSREGISTER, "-f", str(app)]) != 0:
+        return False, f"{LSREGISTER} could not re-register {app}"
+    after, unread_again = _desktop_bundles_other_than(app)
+    if unread_again:
+        return False, f"cleared {len(others)} but the registry could not be re-read: {unread_again}"
+    if after:
+        return False, (
+            f"{len(after)} of {len(others)} still answer for {DESKTOP_BUNDLE_ID} "
+            f"(refused: {len(refused)}) — the person who owns those paths must clear them"
+        )
+    return True, f"unregistered {len(others)} stale bundle(s); {app} is the only one left"
 
 
 def _doctor_update_row(seconds: float = 3.0) -> str:

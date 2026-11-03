@@ -221,3 +221,127 @@ def test_the_constants_name_the_bundle_and_the_install_path():
     assert mod.DESKTOP_BUNDLE_ID == "com.ephe.ephe"
     assert mod.DESKTOP_INSTALL_PATH == Path("/Applications/Ephe.app")
     assert mod.LSREGISTER.endswith("/lsregister")
+
+
+def test_the_repair_is_silent_where_there_is_no_bundle_registry(tmp_path: Path):
+    ok, detail = mod._repair_desktop_bundles(
+        installed=tmp_path / "Ephe.app", runner=lambda _a: 0, platform="linux"
+    )
+    assert ok is True
+    assert "skipped" in detail
+
+
+def test_the_repair_says_so_when_there_is_nothing_to_clear(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: ([], ""))
+    calls: list[list[str]] = []
+    ok, detail = mod._repair_desktop_bundles(
+        installed=tmp_path / "Ephe.app", runner=lambda a: calls.append(a) or 0, platform="darwin"
+    )
+    assert ok is True
+    assert "nothing to clear" in detail
+    assert calls == []
+
+
+def test_the_repair_forgets_each_stale_bundle_and_keeps_the_installed_one(
+    tmp_path: Path, monkeypatch
+):
+    """The order the person depends on: forget the copies, then make sure the real app answers."""
+    installed = tmp_path / "Applications" / "Ephe.app"
+    stale = [
+        str(tmp_path / ".Trash" / "Ephe-0.3.0.app"),
+        str(tmp_path / "tmp" / "buildA.app"),
+    ]
+    reads = iter([(stale, ""), ([], "")])
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: next(reads))
+    calls: list[list[str]] = []
+
+    def runner(argv: list[str]) -> int:
+        calls.append(argv)
+        return 0
+
+    ok, detail = mod._repair_desktop_bundles(
+        installed=installed, runner=runner, platform="darwin"
+    )
+    assert ok is True
+    assert "unregistered 2" in detail
+    assert [c[2] for c in calls[:2]] == [stale[0], stale[1]]
+    assert calls[0][0] == mod.LSREGISTER and calls[0][1] == "-u"
+    assert calls[-1][1] == "-f" and calls[-1][2] == str(installed)
+    assert str(installed) not in [c[2] for c in calls if c[1] == "-u"]
+    assert all(c[0] == mod.LSREGISTER for c in calls)
+
+
+def test_the_repair_reports_a_registry_it_cannot_read(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(
+        mod, "_desktop_bundles_other_than", lambda _p: ([], "lsregister answered 1")
+    )
+    ok, detail = mod._repair_desktop_bundles(
+        installed=tmp_path / "Ephe.app", runner=lambda _a: 0, platform="darwin"
+    )
+    assert ok is False
+    assert "could not be read" in detail
+
+
+def test_the_repair_says_when_the_copies_are_still_there(tmp_path: Path, monkeypatch):
+    """A forget that the registry refused is not reported as a clean machine."""
+    installed = tmp_path / "Applications" / "Ephe.app"
+    stale = [
+        str(tmp_path / ".Trash" / "Ephe-0.3.0.app"),
+        str(tmp_path / ".Trash" / "Ephe-old.app"),
+    ]
+    reads = iter([(stale, ""), ([stale[1]], "")])
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: next(reads))
+
+    ok, detail = mod._repair_desktop_bundles(
+        installed=installed,
+        runner=lambda argv: 1 if argv[1] == "-u" and argv[2] == stale[1] else 0,
+        platform="darwin",
+    )
+    assert ok is False
+    assert "1 of 2 still answer" in detail
+    assert "refused: 1" in detail
+
+
+def test_the_repair_names_a_installed_app_it_cannot_re_register(tmp_path: Path, monkeypatch):
+    installed = tmp_path / "Applications" / "Ephe.app"
+    reads = iter((([str(tmp_path / "a.app")], ""), ([], "")))
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: next(reads))
+
+    ok, detail = mod._repair_desktop_bundles(
+        installed=installed,
+        runner=lambda argv: 1 if argv[1] == "-f" else 0,
+        platform="darwin",
+    )
+    assert ok is False
+    assert "could not re-register" in detail
+
+
+def test_the_repair_is_wired_into_the_fix_run():
+    source = (ROOT / "ephe_cli.py").read_text(encoding="utf-8")
+    assert '("Repair desktop bundles", bundles_ok, bundles_detail)' in source
+    # A repair, so it belongs to `--fix` — and it is the one that answers the owner's
+    # standing complaint, so it must not be buried behind a flag nobody reads.
+    assert "_repair_desktop_bundles()" in source
+
+
+def test_a_repair_never_touches_the_host_it_is_tested_on(tmp_path: Path, monkeypatch):
+    """The guard, and the way a caller steps around it.
+
+    `_run_doctor_repairs` calls this with no arguments, so a forgotten stub would run real
+    `lsregister -u` commands against the developer's own applications. Naming the bundle is
+    the signal that the caller is answering a question about a path, not fixing a machine."""
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls: list[list[str]] = []
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p: ([str(tmp_path / "a.app")], ""))
+    mod._repair_desktop_bundles(runner=lambda a: calls.append(a) or 0, platform="darwin")
+    assert calls, "a named host is repaired when the suite is not running"
+
+    # Under the suite, with no bundle named, the same call changes nothing.
+    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests/test_doctor_desktop_app.py::x")
+    untouched: list[list[str]] = []
+    ok, detail = mod._repair_desktop_bundles(
+        runner=lambda a: untouched.append(a) or 0, platform="darwin"
+    )
+    assert ok is True
+    assert untouched == []
+    assert "does not run inside the suite" in detail
