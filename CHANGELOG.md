@@ -7,9 +7,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.5.5 wave is named below (`c263c3ab`, `cf7c3f6b`, `91473a8e`, `8fe8670d`, `9c6d1169`, `2d4080f3`, `8141f783`, `e662f71b`): the left edge fused into one icon sidebar, the update window's notes freed of the register's addresses, an engine answer that cannot be read named as itself, a cache that cannot be read still asking the durable store, and the three readings from the last round — the row that names its last activity, the shelf's data inside the wheel, the context figure with one home.
+The 0.5.6 wave is named below (`3ac7541a`, `d16f66c1`, `9521e399`, `629e23b5`, `149ddee2`, `7800e7b9`, `431aef78`, `1301b457`, `a1785b32`): the workspace column that opens every file it lists, the doctor that names the app a click reaches and then reads the registry behind it, the repair that forgets the copies that were answering, the shell that asks for the update it can bring, and the toast rail that steps aside.
 
-Three readings came after the cut: the shell asks for the update rather than a reload that cannot bring it (`3ac7541a`), the workspace column learned to open the files it lists (`d16f66c1`), and the doctor names the app a click actually opens (`9521e399`, `629e23b5`).
+
+## [0.5.6] - 2026-11-03
+
+The column opens the file you clicked, and the doctor names the app your click reaches.
+
+The workspace tree already listed every file and then handed it to the browser pane, so a README arrived with an address bar and a PNG arrived with a download. One question is asked in one place now, and every format has an answer: the page a Markdown means or the source that made it, highlighted code, plain words, the picture, the player, the frame, the office container named with the gesture that reaches it, and a file nothing can draw described by name and size. Open files sit in a strip of their own with the part of an editor worth keeping — a single click looks, a kept file stays until the person closes it.
+
+The other half of this release is the instrument. The owner's standing complaint was "I press Update, it says current, I restart, and nothing is new." Measured: twenty-one bundles answered for `com.ephe.ephe` on the machine that ships Ephe, and a click resolves an identifier rather than a path, so the updater wrote the new version where it always does while the relaunch reached somebody else's copy. `ephe doctor` now names the app it can open, reads the LaunchServices registry rather than the index that cannot see the Trash, says when a read failed instead of claiming a clean machine, and `--fix` forgets the copies that were answering. The pile has a maker: the installer moves the app it replaces into the Trash, and the registry keeps answering for it there.
+
+Two readings travel with them: the shell asks for the update it can actually bring, and the toast rail steps aside when the right column is open.
 
 
 ### Added
@@ -57,7 +66,7 @@ Three readings came after the cut: the shell asks for the update rather than a r
   every install adds one more copy the Dock icon can choose — 72 of them measured on the
   machine that ships Ephe. The script now unregisters the copy it trashes, and the repair
   clears a pile already there. Nothing is deleted: the files stay, and a bundle the registry
-  forgot comes back with `lsregister -f` (`fe520618`, `a1e15426`).
+  forgot comes back with `lsregister -f` (`1301b457`, `a1785b32`).
 
 
 ## [0.5.5] - 2026-11-02
