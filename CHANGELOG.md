@@ -11,7 +11,7 @@ The 0.5.6 wave is named below (`3ac7541a`, `d16f66c1`, `9521e399`, `629e23b5`, `
 
 The F1 wave is named below (`e4b6e7b1`, `3579e36e`, `e50922dd`, `079d0f94`, `3ac061aa`): the device folder says what it keeps, every writer answers to one root, and the four expected failures the suite carried as unpaid work are gone. The product had said Ephe forgets while nothing could show which files stay; the cell runtime had already solved that problem for its own caps, and the same instrument now exists for the disk.
 
-One reading came after the wave (`bba9e4d3`): the column that lists a Word file, a sheet or a deck now opens it.
+One reading came after the wave (`38e33fde`): the column that lists a Word file, a sheet or a deck now opens it.
 
 
 ### Added
@@ -28,7 +28,7 @@ One reading came after the wave (`bba9e4d3`): the column that lists a Word file,
   log, the cell guest and the signing anchors are marked kept by the declaration, and an
   undeclared leftover is kept too — a verb that deletes files it cannot name would claim more
   of the folder than the code accounts for.
-- panel: The column reads the office file it listed (`bba9e4d3`, `e596b7cf`). A Word
+- panel: The column reads the office file it listed (`38e33fde`, `8635f627`). A Word
   document, a spreadsheet and a deck arrived as a name, a size and a download, because no
   browser draws those three as content. The workbench card has turned them into a real table,
   running text and a slide list since R4/A5; the column now asks the same question by path
@@ -41,7 +41,7 @@ One reading came after the wave (`bba9e4d3`): the column that lists a Word file,
 
 ### Fixed
 
-- files: A reload reaches the server instead of answering from the cache (`c1ee4144`). The
+- files: A reload reaches the server instead of answering from the cache (`4aa51a81`). The
   file route sent `ETag` and `Last-Modified` with no `Cache-Control`, so the desktop shell
   answered a re-read of an open file from its own cache by heuristic freshness: a document
   deleted on disk kept showing its old bytes while the same URL had already turned to 404. A
