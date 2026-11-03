@@ -143,10 +143,19 @@ async def get_file(
     # Content-Disposition: attachment — the AgentPanel iframe then started a
     # download instead of rendering (a white preview). Downloads go through the
     # download attribute of the rail button (same-origin).
+    #
+    # no-store: the file changes under the person's feet. Measured 2026-11-03 in the
+    # desktop shell — a file deleted on disk and re-read through the column's reload kept
+    # showing its old bytes, because an `ETag` plus `Last-Modified` without any
+    # `Cache-Control` lets WKWebView answer from its own cache by heuristic freshness and
+    # never reach the server, which had already turned to 404 for that path.
     return FileResponse(
         str(resolved),
         media_type=media_type,
-        headers={"Content-Disposition": f'inline; filename="{resolved.name}"'},
+        headers={
+            "Content-Disposition": f'inline; filename="{resolved.name}"',
+            "Cache-Control": "no-store",
+        },
     )
 
 
