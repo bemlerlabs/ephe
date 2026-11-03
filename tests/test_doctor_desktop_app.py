@@ -70,6 +70,21 @@ def test_one_bundle_matching_the_backend_is_the_quiet_answer(tmp_path: Path, mon
     ok, detail = mod._doctor_desktop_app({"version": "0.5.5"}, "darwin", installed)
     assert ok is True
     assert "only bundle" in detail
+    assert "the backend runs the same 0.5.5" in detail
+
+
+def test_a_backend_that_never_answered_is_not_reported_as_a_match(tmp_path: Path, monkeypatch):
+    """The row compares the backend it actually read."""
+    # Measured 2026-11-03 with the server stopped: this row claimed "matching the backend"
+    # two rows under the doctor's own "Ephe server — not running".
+    installed = tmp_path / "Ephe.app"
+    monkeypatch.setattr(mod, "_desktop_bundle_version", lambda _p: "0.5.5")
+    monkeypatch.setattr(mod, "_desktop_bundles_other_than", lambda _p, **_k: ([], ""))
+
+    ok, detail = mod._doctor_desktop_app(None, "darwin", installed)
+    assert ok is True
+    assert "no backend answered" in detail
+    assert "matching" not in detail
 
 
 def test_the_version_is_read_from_the_bundle_itself(tmp_path: Path):
