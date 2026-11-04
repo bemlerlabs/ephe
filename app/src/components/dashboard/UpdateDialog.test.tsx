@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { UpdateDialog } from './UpdateDialog'
+import { updateActionOf } from '@/lib/useUpdateCheck'
 import type { UpdateState } from '@/lib/updateCheckRun'
 
 vi.mock('react-i18next', () => ({
@@ -259,6 +260,15 @@ describe('applying a merge that has no release yet', () => {
     render(<UpdateDialog {...base} state={found} onApply={onApply} />)
     fireEvent.click(screen.getByTestId('update-apply'))
     expect(onApply).toHaveBeenCalledTimes(1)
+  })
+
+  it('the button the sheet offers is the one the shared contract names', () => {
+    // Settings → Version & Updates reads the same function; a gesture the two
+    // surfaces disagree about is the defect this closes.
+    expect(updateActionOf(found)?.labelKey).toBe('update.applyNow')
+    expect(updateActionOf({ ...found, applyBlocked: 'not_on_main' })).toBeNull()
+    render(<UpdateDialog {...base} state={found} />)
+    expect(screen.getByTestId('update-apply').textContent).toBe('Update now')
   })
 
   it('names the steps and offers the relaunch once it landed', () => {

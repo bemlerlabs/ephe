@@ -254,6 +254,27 @@ describe('U-1 — automatic detection', () => {
     })
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('a surface that mounts after the first one reads its answer', async () => {
+    const fetchMock = fetchStub({
+      enabled: true,
+      available: true,
+      channel: 'main',
+      latest: 'deadbeefcafe',
+    })
+    global.fetch = fetchMock as unknown as typeof fetch
+    const header = await mount()
+    await flush()
+    expect(header.state()?.phase).toBe('available')
+    // Settings opens a minute later, on a page the live gate had already closed
+    // for a second machine: it holds the answer, and the action its button draws.
+    const { updateActionOf } = await import('@/lib/useUpdateCheck')
+    const settings = await mount()
+    await flush()
+    expect(settings.state()?.phase).toBe('available')
+    expect(updateActionOf(settings.state() ?? { phase: 'idle', progress: null })?.run).toBe('apply')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('U-3 — the install path names its own phases', () => {

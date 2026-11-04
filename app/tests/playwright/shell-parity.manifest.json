@@ -227,10 +227,10 @@
     {
       "file": "app/src/lib/useUpdateCheck.ts",
       "marker": "isDesktopShell",
-      "count": 2,
-      "surface": "update check",
-      "web": "false; the feed decides",
-      "desktop": "true; install and relaunch are offered"
+      "count": 4,
+      "surface": "update check, and the two readings every update surface draws from its answer",
+      "web": "false; nothing installs here, so the action a release offers is the release page and the row says the browser only points at it",
+      "desktop": "true; install takes the signed updater, and the update button on the row and in the sheet carries its word"
     },
     {
       "file": "app/src/lib/updateCheckRun.ts",

@@ -13,8 +13,15 @@
  * The surface asks the first question of a session by itself, at start, at the
  * moment the window is in front again and on a half-hour tick. Every one of
  * those answers arrives live (see `runLive`).
+ *
+ * One machine, every surface. The header's sheet and Settings → Version &
+ * Updates each ran an instance, and an instance kept its own state: the surface
+ * that mounted second inherited the live gate the first had closed, answered
+ * nothing, and offered no update while the header was naming one. The state and
+ * its runs live here now, every mount subscribes to them, and `updateActionOf`
+ * with `updateNoticeOf` are the two readings a surface draws from the answer.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   relaunchApp,
   restartGuardNow,
@@ -60,70 +67,215 @@ const SETTLED: readonly UpdatePhase[] = [
   'applied',
 ]
 
-/** The gate lives on the module. The chat panel mounts and unmounts as the
- *  user moves through the app, and a remount must not reopen a gate the last
- *  mount closed. */
-let liveGateAt = 0
+/** The closures that end the retry loop rather than inviting another click. */
+const BLOCKED_CODES = ['not_a_checkout', 'not_on_main', 'dirty_tree']
 
 function initialState(): UpdateState {
   return { phase: 'idle', progress: null }
 }
 
-export function useUpdateCheck() {
-  const [state, setState] = useState<UpdateState>(initialState)
-  const [dismissed, setDismissed] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  /** One click questions the feed once, however fast the hand is. */
-  const busyRef = useRef(false)
-  /** The phase a live run reads before it writes, and the write that keeps it
-   *  current. `phaseRef` cannot wait for a re-render: a live run asks its
-   *  question and both belong to the run that is already in flight. */
-  const phaseRef = useRef<UpdatePhase>('idle')
-  /** A run that is overtaken must not land. A click during a live question,
-   *  or an installation during one, takes the state over. */
-  const tokenRef = useRef(0)
+let state: UpdateState = initialState()
+const subscribers = new Set<() => void>()
+/** The gate and the runs sit on the module. The chat panel mounts and unmounts
+ *  as the user moves through the app, and a remount must not reopen a gate the
+ *  last mount closed, nor ask a question the app has already asked. */
+let liveGateAt = 0
+let busy = false
+/** A run that is overtaken must not land: a click during a live question, or an
+ *  installation during one, takes the answer over. */
+let token = 0
+let mountedSurfaces = 0
+let stopDrivers: (() => void) | null = null
 
-  const setPhase = useCallback((phase: UpdatePhase, patch: Partial<UpdateState> = {}) => {
-    phaseRef.current = phase
-    setState((s) => ({ ...s, phase, ...patch }))
-  }, [])
+function write(next: UpdateState): void {
+  state = next
+  for (const notify of [...subscribers]) notify()
+}
 
-  /** The user asked: always a live answer, never gated. */
-  const check = useCallback(async () => {
-    if (busyRef.current) return
-    busyRef.current = true
-    // A window switch one second after a click would answer the same question.
-    liveGateAt = Date.now() + LIVE_GAP_MS
-    const token = ++tokenRef.current
-    setPhase('checking', { progress: null })
-    try {
-      const next = await runCheck(true)
-      if (token === tokenRef.current) {
-        phaseRef.current = next.phase
-        setState(next)
-      }
-    } finally {
-      busyRef.current = false
-    }
-  }, [setPhase])
+function setPhase(phase: UpdatePhase, patch: Partial<UpdateState> = {}): void {
+  write({ ...state, phase, ...patch })
+}
 
-  /**
-   * A question the surface asks by itself — at start, when the window is in
-   * front again, and on the half-hour tick. All three want a live answer; the
-   * gate above keeps the feed from seeing a hand that switches windows all
-   * day, and a phase that is already settled carries no question at all.
-   */
-  const runLive = useCallback(async () => {
-    if (SETTLED.includes(phaseRef.current)) return
-    const now = Date.now()
-    if (now < liveGateAt) return
-    liveGateAt = now + LIVE_GAP_MS
-    const token = ++tokenRef.current
+function subscribe(notify: () => void): () => void {
+  subscribers.add(notify)
+  return () => subscribers.delete(notify)
+}
+
+/** The user asked: always a live answer, never gated. */
+async function check(): Promise<void> {
+  if (busy) return
+  busy = true
+  // A window switch one second after a click would answer the same question.
+  liveGateAt = Date.now() + LIVE_GAP_MS
+  const run = ++token
+  setPhase('checking', { progress: null })
+  try {
     const next = await runCheck(true)
-    if (next.phase === 'failed') liveGateAt = Date.now() + FAILED_BACKOFF_MS
-    if (token !== tokenRef.current || SETTLED.includes(phaseRef.current)) return
-    phaseRef.current = next.phase
-    setState(next)
+    if (run === token) write(next)
+  } finally {
+    busy = false
+  }
+}
+
+/**
+ * A question the surface asks by itself — at start, when the window is in
+ * front again, and on the half-hour tick. All three want a live answer; the
+ * gate above keeps the feed from seeing a hand that switches windows all
+ * day, and a phase that is already settled carries no question at all.
+ */
+async function runLive(): Promise<void> {
+  if (SETTLED.includes(state.phase)) return
+  const now = Date.now()
+  if (now < liveGateAt) return
+  liveGateAt = now + LIVE_GAP_MS
+  const run = ++token
+  const next = await runCheck(true)
+  if (next.phase === 'failed') liveGateAt = Date.now() + FAILED_BACKOFF_MS
+  if (run !== token || SETTLED.includes(state.phase)) return
+  write(next)
+}
+
+/**
+ * Download and installation through the signed updater, as two calls: that is
+ * what lets the surface name whichever of the two is running, where
+ * downloadAndInstall folds them into one and the installing phase would be a
+ * guess. The installation itself reports no percentage at all.
+ */
+async function install(): Promise<boolean> {
+  if (!isDesktopShell()) return false
+  token += 1 // a live answer still in flight must not land here
+  setPhase('downloading', { progress: 0 })
+  try {
+    const updater = await import('@tauri-apps/plugin-updater')
+    const update = await updater.check()
+    if (!update?.available) {
+      setPhase('current', { progress: null })
+      return false
+    }
+    // The manifest names the package and often carries notes of its own; the
+    // feed is asked first, so the release's own words win either way.
+    const asset = readAsset(update.rawJson)
+    const platform = readPlatform()
+    const manifestNotes = readManifestNotes(update.body)
+    if (!state.notes) write({ ...state, notes: manifestNotes })
+    let done = 0
+    let total = 0
+    await update.download((event) => {
+      if (event.event === 'Started') {
+        total = event.data.contentLength ?? 0
+        // Without a total the bar has no scale: progress stays null and the
+        // surface shows the indeterminate state it really is in.
+        setPhase('downloading', {
+          progress: total > 0 ? 0 : null,
+          sizeBytes: total > 0 ? total : undefined,
+          asset,
+          platform,
+        })
+        return
+      }
+      if (event.event !== 'Progress') return
+      done += event.data.chunkLength
+      setPhase('downloading', { progress: total > 0 ? Math.min(1, done / total) : null })
+    })
+    setPhase('installing', { progress: 1 })
+    await update.install()
+    setPhase('ready', { progress: 1 })
+    return true
+  } catch (e) {
+    setPhase('failed', {
+      progress: null,
+      reason: e instanceof Error ? e.message : String(e),
+      failedAt: 'install',
+    })
+    return false
+  }
+}
+
+/**
+ * Restart the app so the installed bundle takes over.
+ *
+ * The guard is read when the click arrives, so a turn that started after the
+ * dialog opened still holds the restart back. The dialog draws the reason
+ * from `restartBlocked`.
+ */
+async function relaunch(): Promise<boolean> {
+  if (restartGuardNow().blocked) return false
+  try {
+    return await relaunchApp()
+  } catch {
+    /* The shell may already be on its way out; a stayed surface is better
+       than a surface that reports a restart it did not get. */
+    return false
+  }
+}
+
+/**
+ * Take the newest commits the check found. The backend owns the guards; the
+ * surface owns the words, so a refusal arrives as a sentence with its reason
+ * rather than as a silent no-op.
+ */
+async function apply(): Promise<boolean> {
+  token += 1
+  setPhase('applying', { progress: null })
+  const result = await applyUpdate()
+  if (!result.ok) {
+    // The code travels beside the prose: the surface owns the sentence the
+    // user reads, the backend's detail stays as the technical line.
+    setPhase('failed', {
+      progress: null,
+      reason: result.detail || result.reason || '',
+      reasonCode: result.reason,
+      failedAt: 'install',
+    })
+    return false
+  }
+  setPhase('applied', {
+    progress: null,
+    steps: result.steps,
+    restart: result.restart,
+    current: result.after ?? undefined,
+  })
+  return true
+}
+
+/** The machine's three self-asked moments, started with the first surface and
+ *  stopped with the last one so no unmounted page keeps a timer. */
+function startDrivers(): () => void {
+  const askIfVisible = () => {
+    if (document.visibilityState === 'visible') void runLive()
+  }
+  document.addEventListener('visibilitychange', askIfVisible)
+  // A hidden tab throttles its timers anyway; the interval skips the tick it
+  // cannot see, and the return to the front is the moment that matters.
+  const handle = setInterval(askIfVisible, POLL_MS)
+  return () => {
+    document.removeEventListener('visibilitychange', askIfVisible)
+    clearInterval(handle)
+  }
+}
+
+export function useUpdateCheck() {
+  const current = useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => state,
+  )
+  const [open, setOpen] = useState(false)
+  const [dismissed, setDismissed] = useState<string | null>(null)
+
+  useEffect(() => {
+    mountedSurfaces += 1
+    stopDrivers ??= startDrivers()
+    // Every mount asks its surface's own first question; the gate keeps that
+    // from becoming a second request while the machine already has an answer.
+    void runLive()
+    return () => {
+      mountedSurfaces -= 1
+      if (mountedSurfaces === 0) {
+        stopDrivers?.()
+        stopDrivers = null
+      }
+    }
   }, [])
 
   // The native menu (next to the Apple mark) and the tray fire the same event as
@@ -155,132 +307,13 @@ export function useUpdateCheck() {
       dead = true
       unlisten?.()
     }
-  }, [check])
-
-  useEffect(() => {
-    void runLive()
-    const askIfVisible = () => {
-      if (document.visibilityState === 'visible') void runLive()
-    }
-    document.addEventListener('visibilitychange', askIfVisible)
-    // A hidden tab throttles its timers anyway; the interval skips the tick it
-    // cannot see, and the return to the front is the moment that matters.
-    const handle = setInterval(askIfVisible, POLL_MS)
-    return () => {
-      document.removeEventListener('visibilitychange', askIfVisible)
-      clearInterval(handle)
-    }
-  }, [runLive])
-
-  /**
-   * Download and installation through the signed updater, as two calls: that is
-   * what lets the surface name whichever of the two is running, where
-   * downloadAndInstall folds them into one and the installing phase would be a
-   * guess. The installation itself reports no percentage at all.
-   */
-  const install = useCallback(async () => {
-    if (!isDesktopShell()) return false
-    tokenRef.current += 1 // a live answer still in flight must not land here
-    setPhase('downloading', { progress: 0 })
-    try {
-      const updater = await import('@tauri-apps/plugin-updater')
-      const update = await updater.check()
-      if (!update?.available) {
-        setPhase('current', { progress: null })
-        return false
-      }
-      // The manifest names the package and often carries notes of its own; the
-      // feed is asked first, so the release's own words win either way.
-      const asset = readAsset(update.rawJson)
-      const platform = readPlatform()
-      const manifestNotes = readManifestNotes(update.body)
-      if (manifestNotes) setState((s) => (s.notes ? s : { ...s, notes: manifestNotes }))
-      let done = 0
-      let total = 0
-      await update.download((event) => {
-        if (event.event === 'Started') {
-          total = event.data.contentLength ?? 0
-          // Without a total the bar has no scale: progress stays null and the
-          // surface shows the indeterminate state it really is in.
-          setPhase('downloading', {
-            progress: total > 0 ? 0 : null,
-            sizeBytes: total > 0 ? total : undefined,
-            asset,
-            platform,
-          })
-          return
-        }
-        if (event.event !== 'Progress') return
-        done += event.data.chunkLength
-        setPhase('downloading', { progress: total > 0 ? Math.min(1, done / total) : null })
-      })
-      setPhase('installing', { progress: 1 })
-      await update.install()
-      setPhase('ready', { progress: 1 })
-      return true
-    } catch (e) {
-      setPhase('failed', {
-        progress: null,
-        reason: e instanceof Error ? e.message : String(e),
-        failedAt: 'install',
-      })
-      return false
-    }
-  }, [setPhase])
-
-  /**
-   * Restart the app so the installed bundle takes over.
-   *
-   * The guard is read when the click arrives, so a turn that started after the
-   * dialog opened still holds the restart back. The dialog draws the reason
-   * from `restartBlocked`.
-   */
-  const relaunch = useCallback(async () => {
-    if (restartGuardNow().blocked) return false
-    try {
-      return await relaunchApp()
-    } catch {
-      /* The shell may already be on its way out; a stayed surface is better
-         than a surface that reports a restart it did not get. */
-      return false
-    }
   }, [])
 
-  /**
-   * Take the newest commits the check found. The backend owns the guards; the
-   * surface owns the words, so a refusal arrives as a sentence with its reason
-   * rather than as a silent no-op.
-   */
-  const apply = useCallback(async () => {
-    tokenRef.current += 1
-    setPhase('applying', { progress: null })
-    const result = await applyUpdate()
-    if (!result.ok) {
-      // The code travels beside the prose: the surface owns the sentence the
-      // user reads, the backend's detail stays as the technical line.
-      setPhase('failed', {
-        progress: null,
-        reason: result.detail || result.reason || '',
-        reasonCode: result.reason,
-        failedAt: 'install',
-      })
-      return false
-    }
-    setPhase('applied', {
-      progress: null,
-      steps: result.steps,
-      restart: result.restart,
-      current: result.after ?? undefined,
-    })
-    return true
-  }, [setPhase])
-
   const restartBlocked: RestartBlock | null = useRestartGuard().reason
-
-  const show = state.phase === 'available' && !!state.latest && dismissed !== state.latest
+  const show = current.phase === 'available' && !!current.latest && dismissed !== current.latest
 
   return {
-    state,
+    state: current,
     show,
     open,
     setOpen,
@@ -289,24 +322,75 @@ export function useUpdateCheck() {
     apply,
     relaunch,
     restartBlocked,
-    dismiss: () => state.latest && setDismissed(state.latest),
+    dismiss: () => current.latest && setDismissed(current.latest),
   }
 }
 
+/** What one click can do about the answer, and the words the click carries. */
+export interface UpdateAction {
+  /** Which run of the machine the click starts. */
+  run: 'apply' | 'install'
+  /** The label: the sheet and the settings page say the same words because they
+   *  read the same answer. */
+  labelKey: string
+  /** Whether the click changes anything where it is made — a release the browser
+   *  surface cannot install is a page it points at. */
+  takesEffect: boolean
+}
+
+export function updateActionOf(answer: UpdateState): UpdateAction | null {
+  if (answer.phase !== 'available') return null
+  if (answer.channel === 'main') {
+    return answer.applyBlocked
+      ? null
+      : { run: 'apply', labelKey: 'update.applyNow', takesEffect: true }
+  }
+  const desktop = isDesktopShell()
+  return {
+    run: 'install',
+    labelKey: desktop ? 'update.installAndRestart' : 'update.viewReleases',
+    takesEffect: desktop,
+  }
+}
+
+/** The sentence for an answer with nothing to click: why the update cannot run
+ *  here and what the reader does next. Null when the answer needs no explaining. */
+export function updateNoticeOf(answer: UpdateState, desktop = isDesktopShell()): string | null {
+  if (answer.phase === 'failed') return updateFailureKey(answer)
+  if (answer.phase === 'unsupported') return 'update.disabledHint'
+  if (answer.phase !== 'available') return null
+  if (answer.channel === 'main')
+    return answer.applyBlocked ? `update.blocked.${updateBlockedKey(answer.applyBlocked)}` : null
+  return desktop ? null : 'update.browserNote'
+}
+
+/** Which of the closed-commit-path sentences a refusal or a block answers with. */
+export function updateBlockedKey(code?: string): string {
+  return BLOCKED_CODES.includes(code ?? '') ? (code as string) : 'other'
+}
+
+/** The failure sentence: an installer that refused names its own reason, and a
+ *  release source that did not answer names that one. */
+export function updateFailureKey(answer: UpdateState): string {
+  if (answer.failedAt !== 'install') return 'update.checkFailed'
+  const code = answer.reasonCode ?? ''
+  return BLOCKED_CODES.includes(code) ? `update.blocked.${code}` : 'update.installFailed'
+}
+
 /** Compatibility read for older callers (header pill). */
-export function updateInfoOf(state: UpdateState): UpdateCheckInfo | null {
-  if (state.phase === 'idle' || state.phase === 'checking') return null
+export function updateInfoOf(answer: UpdateState): UpdateCheckInfo | null {
+  if (answer.phase === 'idle' || answer.phase === 'checking') return null
   return {
     enabled: true,
     available:
-      state.phase === 'available' || state.phase === 'downloading' || state.phase === 'ready',
-    current: state.current,
-    latest: state.latest,
-    url: state.url,
-    notes: state.notes,
-    error: state.phase === 'failed' ? state.reason : undefined,
-    channel: state.channel,
-    commitsBehind: state.commitsBehind,
-    commit: state.commit,
+      answer.phase === 'available' || answer.phase === 'downloading' || answer.phase === 'ready',
+    current: answer.current,
+    latest: answer.latest,
+    url: answer.url,
+    notes: answer.notes,
+    error: answer.phase === 'failed' ? answer.reason : undefined,
+    channel: answer.channel,
+    commitsBehind: answer.commitsBehind,
+    commit: answer.commit,
   }
 }

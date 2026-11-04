@@ -1,30 +1,43 @@
 /**
  * Version & Updates on the About page: the answer the app already has, the one
- * button that asks again, and the three facts that make the answer checkable.
+ * button that asks again, the action that takes the update when the answer says
+ * it can be taken, and the three facts that make the answer checkable.
  *
  * Its own module because `sections-misc.tsx` sits close to the 400-line wall and
- * this block owns its own state (the update hook), so it leaves without touching
- * the page's.
+ * this block reads its state from the update machine on `@/lib/useUpdateCheck`,
+ * the one the header's sheet reads too, so the two surfaces cannot reach the
+ * same answer by two different routes.
  */
 import { useTranslation } from 'react-i18next'
 import { UpdateDialog } from '@/components/dashboard/UpdateDialog'
-import { useUpdateCheck } from '@/lib/useUpdateCheck'
+import { updateActionOf, updateNoticeOf, useUpdateCheck } from '@/lib/useUpdateCheck'
 
 export function UpdateSection() {
   const { t } = useTranslation()
   const update = useUpdateCheck()
   const { state } = update
 
-  const status =
-    state.phase === 'current'
-      ? t('update.titleCurrent')
-      : state.phase === 'available'
-        ? state.channel === 'main'
-          ? t('update.mainChannel', { count: state.commitsBehind ?? 0 })
-          : t('update.titleAvailable')
-        : state.phase === 'failed'
-          ? t('update.titleFailed')
-          : t('update.title')
+  /** Every phase has its word here: a surface that goes quiet while the machine
+   *  is running is the no-op this page was reported for. */
+  const status = {
+    idle: t('update.checking'),
+    checking: t('update.checking'),
+    current: t('update.titleCurrent'),
+    available:
+      state.channel === 'main'
+        ? t('update.mainChannel', { count: state.commitsBehind ?? 0 })
+        : t('update.titleAvailable'),
+    downloading: t('update.titleDownloading'),
+    installing: t('update.titleInstalling'),
+    ready: t('update.titleReady'),
+    applying: t('update.titleApplying'),
+    applied: t('update.titleApplied'),
+    failed: t('update.titleFailed'),
+    unsupported: t('update.title'),
+  }[state.phase]
+
+  const action = updateActionOf(state)
+  const notice = updateNoticeOf(state)
 
   const facts: [string, string | undefined][] = [
     [t('update.detailsVersion'), state.current],
@@ -50,7 +63,22 @@ export function UpdateSection() {
             </div>
           ))}
       </div>
-      <div className="flex items-center gap-2">
+      {notice ? (
+        <p data-testid="settings-updates-notice" className="text-ui-xs text-ink-soft">
+          {t(notice)}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {action?.takesEffect ? (
+          <button
+            type="button"
+            data-testid="settings-updates-apply"
+            onClick={() => void (action.run === 'apply' ? update.apply() : update.install())}
+            className="focus-ring rounded-md bg-brand px-2.5 py-1 text-ui-xs font-medium text-white hover:bg-brand-glow"
+          >
+            {t(action.labelKey)}
+          </button>
+        ) : null}
         <button
           type="button"
           data-testid="settings-updates-check"
