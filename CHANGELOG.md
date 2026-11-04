@@ -37,6 +37,10 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
 
 ### Fixed
 
+- api: The `/v1` surface names a refused method (`1176d239`). `POST /v1/models` is a wrong verb
+  on a path that exists, and it answered `code: not_found` — a client reading that concludes the
+  model list has gone. The two doors now agree: a refused verb carries `method_not_allowed`, and
+  `not_found` is reserved for the path that is unknown.
 - cli: A row stops claiming a match it never read (`ec493c65`). With the server stopped, the
   doctor printed `Desktop app — the only bundle for com.ephe.ephe, matching the backend` two
   rows under its own `Ephe server — not running`: an absent answer left the comparison
