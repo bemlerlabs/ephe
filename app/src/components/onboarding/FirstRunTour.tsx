@@ -121,6 +121,15 @@ function Toggle({
   )
 }
 
+/**
+ * A control's label names its destination: the desk's one forward action says
+ * "Open the workspace", so closing the tour leaves the workspace hash in place
+ * of the `#/setup` hash the first-run gate bounced the app to.
+ */
+function landOnWorkspace(): void {
+  if (window.location.hash === '#/setup') window.location.hash = '#/'
+}
+
 export default function FirstRunTour() {
   const { t } = useTranslation()
   const gate = useSyncExternalStore(subscribeGate, gateSnapshot)
@@ -236,12 +245,13 @@ export default function FirstRunTour() {
     if (!(gate.configured || engine?.model)) await skipSetupGate()
     if (still) {
       await closeTour(true, false)
+      landOnWorkspace()
       return
     }
     // Scene 7: the live moth flies from where it is into the header corner.
     setFinale(true)
     guideRef.current?.finale()
-    window.setTimeout(() => void closeTour(true, false), 1300)
+    window.setTimeout(() => void closeTour(true, false).then(landOnWorkspace), 1300)
   }, [closeTour, engine?.model, gate.configured, still])
 
   useEffect(() => {

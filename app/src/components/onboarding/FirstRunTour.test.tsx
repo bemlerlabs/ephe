@@ -1,7 +1,8 @@
 /**
- * The tour's four audit fixes: the skip reaches the setup gate, the carry step has
- * an honest footer, the guard step shows the approval card, and the stage is the
- * keyframe scene rather than a second drawing.
+ * The tour's audit fixes: the skip reaches the setup gate, the carry step has
+ * an honest footer, the guard step shows the approval card, the stage is the
+ * keyframe scene rather than a second drawing, and the desk's forward action
+ * lands where its label says.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -105,5 +106,18 @@ describe('FirstRunTour — audit fixes', () => {
     await screen.findByTestId('tour-panel')
     const frame = document.querySelector('img.tour-stage-frame')
     expect(frame?.getAttribute('src')).toBe('/onboarding/scene-1-ignition.jpg')
+  })
+
+  it('takes the label at its word: the desk action opens the workspace', async () => {
+    markerStep.value = 5
+    window.location.hash = '#/setup'
+    render(<FirstRunTour />)
+    const finish = await screen.findByTestId('tour-finish')
+    expect(finish.textContent).toBe('tour.desk.cta')
+    fireEvent.click(finish)
+    await waitFor(() => expect(window.location.hash).toBe('#/'))
+    await waitFor(() => expect(writeTourMarker).toHaveBeenCalled())
+    window.location.hash = ''
+    markerStep.value = 4
   })
 })
