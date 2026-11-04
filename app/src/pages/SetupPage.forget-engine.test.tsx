@@ -20,7 +20,7 @@ const status = vi.hoisted(() => ({
     configured: false,
     skipped: false,
     provider: '',
-    model: null,
+    model: null as string | null,
     url: null,
     reachable: false,
     available_models: [] as string[],
