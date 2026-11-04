@@ -193,6 +193,7 @@
     "placeholder": "What can I do for you?",
     "stop": "Stop",
     "send": "Send",
+    "sendNeedsEngine": "No engine yet — choose one with the engine chip, then Send works",
     "copied": "Copied",
     "copy": "Copy message",
     "speak": "Read aloud",

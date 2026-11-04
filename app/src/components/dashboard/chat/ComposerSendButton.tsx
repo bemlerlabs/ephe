@@ -9,6 +9,7 @@ import { WARN_THRESHOLD } from '@/lib/contextMeter'
 export default function ComposerSendButton({
   streaming,
   sendDisabled,
+  disabledReason,
   onSend,
   onStop,
   contextPercent,
@@ -16,6 +17,8 @@ export default function ComposerSendButton({
 }: {
   streaming: boolean
   sendDisabled: boolean
+  /** Why the send is refused; it belongs on the control the person points at. */
+  disabledReason?: string
   onSend: () => void
   onStop?: () => void
   contextPercent: number | null
@@ -73,6 +76,7 @@ export default function ComposerSendButton({
         onClick={streaming ? onStop : onSend}
         disabled={sendDisabled}
         aria-label={streaming ? t('chat.stop') : t('chat.send')}
+        title={disabledReason}
         data-testid={streaming ? 'stop-btn' : 'send-btn'}
         className={
           streaming
