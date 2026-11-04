@@ -7,14 +7,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const { skipSetupGate, writeTourMarker, skipSetup, markerStep, gateState, motion } = vi.hoisted(() => ({
-  skipSetupGate: vi.fn(async () => {}),
-  writeTourMarker: vi.fn(async (marker: unknown) => marker),
-  skipSetup: vi.fn(),
-  markerStep: { value: 4 },
-  gateState: { snapshot: { ready: true, configured: false, skipped: false } },
-  motion: { reduced: true },
-}))
+const { skipSetupGate, writeTourMarker, skipSetup, markerStep, gateState, motion } = vi.hoisted(
+  () => ({
+    skipSetupGate: vi.fn(async () => {}),
+    writeTourMarker: vi.fn(async (marker: unknown) => marker),
+    skipSetup: vi.fn(),
+    markerStep: { value: 4 },
+    gateState: { snapshot: { ready: true, configured: false, skipped: false } },
+    motion: { reduced: true },
+  }),
+)
 
 vi.mock('framer-motion', () => ({ useReducedMotion: () => motion.reduced }))
 vi.mock('@/lib/deepSettings', () => ({ useDeepBool: () => false }))
