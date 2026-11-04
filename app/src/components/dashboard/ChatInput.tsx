@@ -175,6 +175,11 @@ export default function ChatInput({
     engineLabel,
   } = useComposerModelSelection()
 
+  // W19: the setup screen promises the chat stays read-only until an engine is
+  // chosen, and the route refuses the turn (409 setup_required) — the composer
+  // must not look sendable while the backend says it is not.
+  const engineBlocked = needsSetup && !streaming
+
   useEffect(() => {
     getSettings()
       .then((s) => {
@@ -189,7 +194,7 @@ export default function ChatInput({
   // the stream-settle auto-flush — see chat/useComposerSendPipeline.
   const { handleSend, queueCount, recall, recallPrev, recallNext, resetRecall, enqueueCurrent } =
     useComposerSendPipeline({
-      disabled,
+      disabled: disabled || engineBlocked,
       streaming,
       allowInputWhileStreaming,
       message,
@@ -634,7 +639,8 @@ export default function ChatInput({
             </span>
             <ComposerSendButton
               streaming={streaming}
-              sendDisabled={disabled || (!streaming && !message.trim())}
+              sendDisabled={disabled || engineBlocked || (!streaming && !message.trim())}
+              disabledReason={engineBlocked ? t('chat.sendNeedsEngine') : undefined}
               onSend={handleSend}
               onStop={onStop}
               contextPercent={contextPercent}

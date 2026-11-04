@@ -193,3 +193,22 @@ def test_chat_endpoint_returns_409_in_setup_mode(monkeypatch):
     body = resp.json()["error"]
     assert "Setup page" in body["message"]
     assert body["code"] == "setup_required"
+
+
+def test_chat_stream_endpoint_returns_409_in_setup_mode(monkeypatch):
+    """The refusal behind the composer's read-only promise, measured on the route the
+    PWA actually posts to: with no engine chosen, /api/chat/stream answers
+    409 setup_required — the same refusal as /api/chat, so the sentence on the
+    setup screen ("the chat stays read-only until then") holds at the server."""
+    from fastapi.testclient import TestClient
+
+    from server.main import app
+
+    monkeypatch.setenv("EPHE_SETUP_MODE", "1")
+    monkeypatch.setattr("core.engine_config.load_engine_config", lambda *a, **kw: None)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        resp = client.post("/api/chat/stream", json={"message": "hi", "history": []})
+    assert resp.status_code == 409
+    body = resp.json()["error"]
+    assert "Setup page" in body["message"]
+    assert body["code"] == "setup_required"

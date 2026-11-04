@@ -262,6 +262,10 @@ def store_state(
 ) -> StoreState:
     """Switch truth for the store view: one lifecycle read for every name.
 
+    A name whose switch the device never recorded stays out of the lookup — the
+    caller then falls back to the catalogue's declared default, the way the
+    other readers do (see ``has_committed_state``).
+
     ``unproven`` means the state file was structurally invalid. The store view
     then presents every switch as off; it never falls back to the legacy
     ``master_enabled`` value.
@@ -279,10 +283,16 @@ def store_state(
         name = str(raw_name)
         if not name:
             continue
-        if name in versions:
-            enabled[name] = state.effective(name).enabled
+        if unproven:
+            enabled[name] = False
+        elif name in versions:
+            if (
+                state.has_committed_state(name)
+                or state.has_committed_state(name, "workspace")
+            ):
+                enabled[name] = state.effective(name).enabled
         else:
-            enabled[name] = not unproven
+            enabled[name] = True
     return StoreState(
         enabled=enabled,
         pause_all=state.pause_all(),

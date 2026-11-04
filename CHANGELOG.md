@@ -56,6 +56,21 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   that would have tied a run to its task carried neither the session nor the path — the
   `changed` phase promised one and held an id. A turn now records its session when it opens
   and its written path when it lands.
+- chat: The composer keeps its read-only promise until an engine is chosen (`454a34ac`). The
+  setup screen says the chat stays read-only until a model is picked, and the send control was
+  live anyway: pressing it posted the message, created a task that could never run, and answered
+  "stream could not be started". Sending now waits, and the control says what it is waiting for.
+- onboarding: The desk's one action goes where its label says (`a907fd19`). The tour's final
+  screen offered "Open the workspace" and left the person on engine selection.
+- setup: An undo row appears when there is something to undo (`45bd3110`). A first run showed
+  "Forget engine selection (choose again)" before any choice had been made.
+- setup: One skip leads somewhere (`be03fe56`). Skipping the engine question inside the tour
+  completed the tour and then asked the same question again on the next screen.
+- setup: A switch that reaches outside the machine starts off (`ac48d260`). The tour's switches
+  step arrived with "Live web research" already on, on a local-first product and on a device with
+  no key for it. The catalogue declares the default off, a switch the device never recorded keeps
+  that declared answer, and the tour now writes the step's answer even when it is off — leaving
+  something off is a decision the device has to hear about.
 - cli: A row stops claiming a match it never read (`ec493c65`). With the server stopped, the
   doctor printed `Desktop app — the only bundle for com.ephe.ephe, matching the backend` two
   rows under its own `Ephe server — not running`: an absent answer left the comparison

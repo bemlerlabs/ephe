@@ -166,6 +166,9 @@ export default function SetupPage({ onDone }: SetupPageProps) {
   // wrong, and the repair must not depend on it passing.
   const [repairKey, setRepairKey] = useState('')
   const [repairReplacing, setRepairReplacing] = useState(false)
+  // The forget row only makes sense where a choice exists to forget; the mount
+  // status read is the one answer that says whether this device has one.
+  const [hasSelection, setHasSelection] = useState(false)
   // W19: optional authentication for OpenAI-compatible providers — the key stays
   // on this device (server env); Ephe never presets a provider for the user.
   const [apiKey, setApiKey] = useState('')
@@ -440,6 +443,7 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     void getSetupStatus()
       .then((status) => {
         const found = status.repair
+        setHasSelection(Boolean(status.configured || status.provider))
         if (cancelled || found?.code !== 'engine_key_mismatch') return
         setRepair(found)
         // The engine below is the one the configuration already names; the repair
@@ -1204,13 +1208,16 @@ export default function SetupPage({ onDone }: SetupPageProps) {
             {t('setup.skipHint')}
           </p>
 
-          <button
-            type="button"
-            onClick={() => void handleReset()}
-            className="mt-4 w-full text-center text-ui-xs text-ink-soft transition-colors hover:text-ink"
-          >
-            {t('setup.reset')}
-          </button>
+          {hasSelection && (
+            <button
+              type="button"
+              data-testid="setup-reset"
+              onClick={() => void handleReset()}
+              className="mt-4 w-full text-center text-ui-xs text-ink-soft transition-colors hover:text-ink"
+            >
+              {t('setup.reset')}
+            </button>
+          )}
         </div>
       </main>
     </ErrorBoundary>

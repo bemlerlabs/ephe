@@ -193,6 +193,7 @@
     "placeholder": "Womit kann ich dir helfen?",
     "stop": "Stopp",
     "send": "Senden",
+    "sendNeedsEngine": "Noch keine Engine — wähle zuerst eine über den Engine-Chip, dann kannst du senden",
     "copied": "Kopiert",
     "copy": "Inhalte kopieren",
     "speak": "Vorlesen",

@@ -284,8 +284,10 @@ def _mapp_entry(entry: dict[str, Any], enabled_lookup: dict[str, bool]) -> dict[
 def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = None) -> dict[str, Any]:
     """Aggregated view: catalogue (both segments) + lifecycle switches.
 
-    The lifecycle state is the only switch truth; a missing per-plugin entry
-    keeps the one-release default. If the state cannot be read, the view is
+    The lifecycle state is the only switch truth once the device has recorded
+    one; a switch the device never recorded keeps the catalogue's declared
+    default (``entry.enabled``, on unless the entry says otherwise — an egress
+    plugin says otherwise). If the state cannot be read, the view is
     ``unproven``: every switch is off, a stable notice explains it, and the
     legacy ``master_enabled`` value is never consulted. ``read_only`` mirrors the
     operator brake on the switch surface.
