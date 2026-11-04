@@ -56,7 +56,7 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   that would have tied a run to its task carried neither the session nor the path — the
   `changed` phase promised one and held an id. A turn now records its session when it opens
   and its written path when it lands.
-- panel: A CSV opens as the table it is, with its bytes beside it (`6d4667e7`). The workbench
+- panel: A CSV opens as the table it is, with its bytes beside it (`2df5fb9a`. The workbench
   card has drawn a `.csv` as rows since the server put the suffix in its table kinds, while the
   workspace column asked its own classifier and got a code block of commas. The column now keeps
   both readings the way it keeps a Markdown page and its source — the table asks the server and
