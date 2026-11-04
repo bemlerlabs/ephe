@@ -28,6 +28,7 @@ import {
   type MenuPos,
 } from './chat/composerPopups'
 import { useComposerAttachments } from './chat/useComposerAttachments'
+import { useComposerGrow } from './chat/composerGrow'
 import { useComposerMentions } from './chat/useComposerMentions'
 import { useComposerModelSelection } from './chat/useComposerModelSelection'
 import { useComposerSendPipeline } from './chat/useComposerSendPipeline'
@@ -147,16 +148,9 @@ export default function ChatInput({
   }, [message])
   useEffect(() => () => setComposerDraft(''), [])
 
-  // EPHE-UI-001 (P0): composer auto-grow — the textarea grows with its content up
-  // to max-h-32 (~8 lines), then scrolls internally. Otherwise rows={1} pins the
-  // height to a single line (parity gap versus the reference clients: multi-line
-  // prompts are effectively invisible while editing).
-  useEffect(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 128)}px`
-  }, [message])
+  // EPHE-UI-001 (P0): the composer grows with its draft from one line of the input
+  // ramp to six, then the field scrolls — chat/composerGrow.
+  useComposerGrow(textareaRef, message)
 
   // K3 Z24 / W19 / P1-10: model + provider selection (chip state, provider list,
   // setup re-entry, live-provider switch) — see chat/useComposerModelSelection.
@@ -460,11 +454,11 @@ export default function ChatInput({
                 ? `slash-opt-${slashFlat[slashIndex].cmd}`
                 : undefined
           }
-          className="w-full bg-transparent text-foreground placeholder:text-ink-faint resize-none outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 text-ui-input min-h-[48px] max-h-32"
+          className="block w-full bg-transparent py-1 text-foreground placeholder:text-ink-faint resize-none outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 text-ui-input max-sm:min-h-11 pointer-coarse:min-h-11 max-h-32"
           rows={1}
         />
         <div
-          className="flex flex-wrap max-sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2 max-sm:gap-x-1 mt-2"
+          className="flex flex-wrap max-sm:flex-nowrap items-center justify-between gap-x-1 gap-y-2 max-sm:gap-x-1 mt-2"
           data-testid="composer-actions-row"
         >
           {/* G3: hidden file inputs (browser path; Tauri uses the native picker) */}
@@ -489,7 +483,8 @@ export default function ChatInput({
               e.target.value = ''
             }}
           />
-          <div className="flex min-w-0 flex-wrap max-sm:flex-nowrap items-center gap-1 max-lg:gap-2">
+          {/* Narrow column gap keeps the controls on one line; the wide gap moves to the rows a wrapped rail needs. */}
+          <div className="flex min-w-0 flex-wrap max-sm:flex-nowrap items-center gap-x-1 gap-y-2">
             {/* P6 (ref-23): ONE plus for all attachments — file/image/screenshot
                 live in the menu, the main row stays narrow. */}
             <ComposerAttachButton
@@ -588,7 +583,7 @@ export default function ChatInput({
           </div>
           {/* M3 (reference pattern): model chip + thinking chip + send in one
               right-hand group — like the reference composer pattern. */}
-          <div className="relative flex min-w-0 shrink-0 items-center gap-2 ml-auto max-sm:max-w-[8rem] max-sm:overflow-hidden">
+          <div className="relative flex min-w-0 shrink-0 items-center gap-1 ml-auto max-sm:max-w-[8rem] max-sm:overflow-hidden">
             <ComposerContextMeter
               percent={contextPercent}
               used={contextTokens?.used ?? null}

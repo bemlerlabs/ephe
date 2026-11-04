@@ -79,13 +79,25 @@ describe('composer mobile layout — the 44px touch floor below lg', () => {
     expect(cls('composer-thinking-chip')).toContain('max-lg:min-h-11')
   })
 
-  it('the action row reflows and the left group widens its gap below lg', () => {
+  it('the action row reflows and keeps thumb separation when it does', () => {
     render(<ChatInput onSend={vi.fn()} />)
     const row = screen.getByTestId('composer-actions-row')
     expect(row.className).toContain('flex-wrap')
-    // the left sub-group is `gap-1 … max-lg:gap-2` — the wider gap is what the
-    // wrapped mobile row needs
-    expect(row.querySelector('.max-lg\\:gap-2')).not.toBeNull()
+    // The column gap is narrow so the controls keep one line; the wider gap sits
+    // on the rows, which is where a wrapped rail needs the thumb separation.
+    const left = row.querySelector('.gap-x-1.gap-y-2')
+    expect(left, 'left sub-group: narrow columns, wide rows').not.toBeNull()
+  })
+
+  it('the empty field is one line, and the touch floor holds it below sm and on touch', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const field = screen.getByTestId('chat-input')
+    // No height is written before the draft is measured, so the class list owns
+    // the floor: one line of the ramp plus py-1, raised to 44px where a thumb works.
+    for (const token of ['py-1', 'max-sm:min-h-11', 'pointer-coarse:min-h-11', 'max-h-32']) {
+      expect(cls('chat-input'), `field keeps ${token}`).toContain(token)
+    }
+    expect(field.className).not.toContain('min-h-[48px]')
   })
 
   it('the command-palette button drops below sm so the row stays narrow', () => {
