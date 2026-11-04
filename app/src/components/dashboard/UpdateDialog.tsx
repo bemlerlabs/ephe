@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Rule } from '@/components/ui/Rule'
 import { NotesBody } from './UpdateNotes'
 import { UpdateDetailRows } from './UpdateDetailRows'
+import { updateActionOf, updateBlockedKey, updateFailureKey } from '@/lib/useUpdateCheck'
 import { isDesktopShell, type UpdateState } from '@/lib/updateCheckRun'
 import type { RestartBlock } from '@/lib/restartGuard'
 
@@ -77,17 +78,13 @@ export function UpdateDialog({
    *  move, a branch checkout is not one a pull may take. The surface states
    *  that instead of offering a button guaranteed to refuse. */
   const blocked = state.applyBlocked ?? ''
-  const blockedKey = ['not_a_checkout', 'not_on_main', 'dirty_tree'].includes(blocked)
-    ? blocked
-    : 'other'
+  const blockedKey = updateBlockedKey(blocked)
   const failedStructural =
     state.failedAt === 'install' &&
     (state.reasonCode === 'not_a_checkout' || state.reasonCode === 'not_on_main')
-  const failedCode = ['not_a_checkout', 'not_on_main', 'dirty_tree'].includes(
-    state.reasonCode ?? '',
-  )
-    ? (state.reasonCode as string)
-    : 'other'
+  /** The one action and its words, read from the same contract the settings page
+   *  reads so the two surfaces cannot offer one answer two different gestures. */
+  const action = updateActionOf(state)
   /** The Details block is worth opening wherever the release carries facts —
    *  not only in the desktop build: the browser can read the versions and the
    *  notes just as well. */
@@ -138,11 +135,7 @@ export function UpdateDialog({
             {state.phase === 'current' && t('update.isCurrent', { version: state.current ?? '' })}
             {state.phase === 'failed' &&
               (state.failedAt === 'install' ? (
-                <span data-testid="update-failed-sentence">
-                  {failedCode === 'other'
-                    ? t('update.installFailed')
-                    : t(`update.blocked.${failedCode}`)}
-                </span>
+                <span data-testid="update-failed-sentence">{t(updateFailureKey(state))}</span>
               ) : (
                 t('update.checkFailed')
               ))}
@@ -276,14 +269,14 @@ export function UpdateDialog({
 
           <Rule className="mt-3" tone={running ? 'now' : 'rule'} />
           <div className="flex items-center gap-2 pt-3">
-            {mainChannel && !blocked && (
+            {action?.run === 'apply' && (
               <button
                 type="button"
                 data-testid="update-apply"
                 onClick={onApply}
                 className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
               >
-                {t('update.applyNow')}
+                {t(action.labelKey)}
               </button>
             )}
             {mainChannel && blocked && state.releaseUrl && (
@@ -308,14 +301,14 @@ export function UpdateDialog({
                 {t('update.viewChanges')}
               </a>
             )}
-            {state.phase === 'available' && !mainChannel && (
+            {action?.run === 'install' && (
               <button
                 type="button"
                 data-testid="update-install"
                 onClick={onInstall}
                 className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
               >
-                {desktop ? t('update.installAndRestart') : t('update.viewReleases')}
+                {t(action.labelKey)}
               </button>
             )}
             {state.phase === 'available' && (
