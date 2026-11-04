@@ -172,7 +172,7 @@
       "name": "web-research",
       "description": "Live web research for the agent (opt-in, needs an API key).",
       "tags": [],
-      "enabled": false,
+      "enabled": true,
       "sha256": "c0a9277fc9cce1a74ee485b4afc32720f948f76a0d19a8c9384fd8f43e5bd887",
       "url": "",
       "manifest": true,
