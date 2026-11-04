@@ -343,7 +343,8 @@ def is_retryable(error: object) -> bool:
 
 #: Statuses an HTTP route answers with when the path itself is unknown. The serve
 #: app maps them to ``not_found`` instead of leaking the framework's detail body.
-NOT_FOUND_STATUSES = frozenset({404, 405})
+#: 405 is deliberately absent: the path is known there, and only the verb was refused.
+NOT_FOUND_STATUSES = frozenset({404})
 
 #: The HTTP status a served answer carries for a failure kind: the engine's own
 #: 429/401 pass through, a backend that did not answer is 502, a timeout 504, a
@@ -374,11 +375,14 @@ def http_status_for(error: object) -> int:
 
 
 def status_error_code(status: int) -> ErrorCode:
-    """The code for an HTTP status a route itself raises: auth, not found, else validation."""
+    """The code for an HTTP status a route itself raises: auth, missing path, refused verb."""
     if status in AUTH_STATUSES:
         return ErrorCode.AUTH
     if status in NOT_FOUND_STATUSES:
         return ErrorCode.NOT_FOUND
+    if status == 405:
+        # A client parsing not_found would conclude the resource is gone; only the method is.
+        return ErrorCode.METHOD_NOT_ALLOWED
     return ErrorCode.VALIDATION
 
 
