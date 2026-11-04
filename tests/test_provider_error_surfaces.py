@@ -65,7 +65,7 @@ def test_every_surface_reads_one_table(error, code, status, exit_code):
         (401, ErrorCode.AUTH),
         (403, ErrorCode.AUTH),
         (404, ErrorCode.NOT_FOUND),
-        (405, ErrorCode.NOT_FOUND),
+        (405, ErrorCode.METHOD_NOT_ALLOWED),
         (409, ErrorCode.VALIDATION),
         (500, ErrorCode.VALIDATION),
     ],
@@ -82,6 +82,15 @@ def test_unknown_route_reads_the_not_found_code():
         resp = client.get("/v1/nope")
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == ErrorCode.NOT_FOUND.value
+
+
+def test_a_refused_method_on_the_serve_surface_names_the_method():
+    """`/v1/models` answers GET. A POST there is a refused verb on a known path, and a client
+    parsing `not_found` would conclude the model list has gone."""
+    with TestClient(create_openai_app()) as client:
+        resp = client.post("/v1/models")
+    assert resp.status_code == 405
+    assert resp.json()["error"]["code"] == ErrorCode.METHOD_NOT_ALLOWED.value
 
 
 def test_missing_auth_reads_the_auth_code():
