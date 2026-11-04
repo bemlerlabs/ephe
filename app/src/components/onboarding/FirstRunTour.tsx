@@ -381,7 +381,9 @@ export default function FirstRunTour() {
           ),
         )
       }
-      if (activateStart && activate.web !== activateStart.web) {
+      // The step's answer belongs on the device: leaving the egress switch off is
+      // a decision too, and it must not survive only on the screen.
+      if (activateStart) {
         await setPluginEnabled('web-research', activate.web)
       }
       goTo(4, { activate })
