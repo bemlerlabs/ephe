@@ -37,7 +37,7 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
 
 ### Fixed
 
-- api: The `/v1` surface names a refused method (`d585221f`). `POST /v1/models` is a wrong verb
+- api: The `/v1` surface names a refused method (`fcb88daa`). `POST /v1/models` is a wrong verb
   on a path that exists, and it answered `code: not_found` — a client reading that concludes the
   model list has gone. The two doors now agree: a refused verb carries `method_not_allowed`, and
   `not_found` is reserved for the path that is unknown.
