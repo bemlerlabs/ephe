@@ -40,7 +40,9 @@ export function consumeSetupIntent(): boolean {
 }
 
 export function shouldLeaveSetup(gate: SetupGate, intent: boolean): boolean {
-  return gate.ready && gate.configured && !intent
+  // A recorded skip answers the engine question too: the person already said
+  // "later", and re-showing the page would ask it a second time.
+  return gate.ready && (gate.configured || gate.skipped) && !intent
 }
 
 // R25 (perceived latency): one answer per app load, and no paint that waits for it.

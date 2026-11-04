@@ -41,6 +41,14 @@ describe('shouldLeaveSetup', () => {
   it('bleibt bei unkonfigurierter Engine — sonst kaeme niemand je zur Auswahl', () => {
     expect(shouldLeaveSetup({ ready: true, configured: false, skipped: false }, false)).toBe(false)
   })
+
+  it('leaves a deliberate skip alone: a recorded skip does not re-ask the engine', () => {
+    expect(shouldLeaveSetup({ ready: true, configured: false, skipped: true }, false)).toBe(true)
+  })
+
+  it('still honors the intent when the engine chip names the setup page', () => {
+    expect(shouldLeaveSetup({ ready: true, configured: false, skipped: true }, true)).toBe(false)
+  })
 })
 
 describe('Absicht markieren und verbrauchen', () => {
