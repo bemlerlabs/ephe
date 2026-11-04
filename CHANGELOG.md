@@ -14,7 +14,7 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
 
 ### Added
 
-- workspaces: The board reads the run ledger as its fourth register (`26be44a5`). A chat turn
+- workspaces: The board reads the run ledger as its fourth register (`7b3961c3`). A chat turn
   writes one ledger file per run and nothing else, so the board now asks the ledger which
   turns exist: each row names the session it ran in, the state the lines say it reached, the
   file it last touched and its own five-phase view, ordered so the turn that keeps writing
@@ -49,7 +49,7 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   on a path that exists, and it answered `code: not_found` — a client reading that concludes the
   model list has gone. The two doors now agree: a refused verb carries `method_not_allowed`, and
   `not_found` is reserved for the path that is unknown.
-- workspaces: The register fills while the turn is still running (`6f4b5cf5`). Measured on
+- workspaces: The register fills while the turn is still running (`c1afdcd0`). Measured on
   the machine that ships Ephe: after a real run that produced a file, `GET /api/workspaces`
   answered `{"workspaces": [], "runs": []}` while the transcript above it showed the file. The
   read stopped at the git-worktree register, which no chat turn writes, and the ledger line
