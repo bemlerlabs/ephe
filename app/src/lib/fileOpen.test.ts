@@ -22,7 +22,7 @@ describe('fileOpenPlan — the format families', () => {
     }
   })
 
-  it('reads a CSV as the server\'s table and keeps its bytes beside it', () => {
+  it("reads a CSV as the server's table and keeps its bytes beside it", () => {
     // The card draws a .csv as rows (core/artifact_preview.py TABLE_KINDS); the column now
     // agrees — the table is the rendered view, the source text the second one, exactly as
     // Markdown keeps page and source.
@@ -133,7 +133,7 @@ describe('withFileView — the choice stays inside what the file can show', () =
     expect(rendered('source')).toBe('source')
   })
 
-  it('moves a CSV between the server\'s table and its own bytes', () => {
+  it("moves a CSV between the server's table and its own bytes", () => {
     const plan = fileOpenPlan('daten.csv')
     if (plan.kind !== 'table') throw new Error('daten.csv should read as a table')
     const source = withFileView(plan, 'source')
