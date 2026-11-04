@@ -21,6 +21,7 @@ const ENTRIES = [
   { name: 'README.md', type: 'file', size: 18 },
   { name: 'karte.png', type: 'file', size: 2048 },
   { name: 'zahlen.xlsx', type: 'file', size: 4096 },
+  { name: 'daten.csv', type: 'file', size: 24 },
   { name: 'app.py', type: 'file', size: 4 },
   { name: 'src', type: 'dir' },
 ] as const
@@ -209,6 +210,66 @@ describe('a row click', () => {
     const held = await screen.findByTestId('workspace-file-held')
     expect(held.getAttribute('data-reason')).toBe('packed')
     expect(held.textContent).toContain('zahlen.xlsx')
+  })
+
+  it('draws a CSV as the table the server answers, with the bytes beside it', async () => {
+    // The measured defect: the workbench card showed a .csv as rows while the column,
+    // reading the same bytes through PLAIN_EXT, only ever gave a code block headed TEXT.
+    filePreviewByPath.mockResolvedValue({
+      mode: 'table',
+      sheets: [],
+      header: ['datum', 'wert'],
+      rows: [['2026-11-03', '42']],
+      truncated: false,
+    })
+    renderTab()
+    await awaitTree()
+    fireEvent.click(screen.getByText('daten.csv'))
+
+    const table = await screen.findByRole('table')
+    expect(within(table).getByRole('columnheader', { name: 'wert' })).toBeTruthy()
+    expect(within(table).getByText('42')).toBeTruthy()
+    expect(filePreviewByPath).toHaveBeenCalledWith('/werk/daten.csv')
+    expect(screen.queryByTestId('workspace-file-held')).toBeNull()
+  })
+
+  it('keeps the source view reachable beside a CSV table, and it reads as text', async () => {
+    filePreviewByPath.mockResolvedValue({
+      mode: 'table',
+      header: ['a'],
+      rows: [['1']],
+      truncated: false,
+    })
+    stubFetch('a,b\n1,2\n')
+    renderTab()
+    await awaitTree()
+    fireEvent.click(screen.getByText('daten.csv'))
+    await screen.findByRole('table')
+    expect(screen.getByTestId('workspace-file-view-source').getAttribute('aria-pressed')).toBe(
+      'false',
+    )
+
+    fireEvent.click(screen.getByTestId('workspace-file-view-source'))
+    const source = await screen.findByTestId('file-preview-body')
+    expect(source.getAttribute('data-kind')).toBe('code')
+    expect(source.textContent).toContain('1,2')
+    // The bytes stay copyable: the source view keeps them as the code block.
+    expect(screen.queryByRole('table')).toBeNull()
+  })
+
+  it('falls back to the bytes when the server declines a CSV, never an empty frame', async () => {
+    // The default answer is mode:'none' — a file the server has no table for. The decline
+    // must show a readable file. A held panel or a blank pane would both be a wrong
+    // answer here.
+    stubFetch('spalte,anderes\n1,2\n')
+    renderTab()
+    await awaitTree()
+    fireEvent.click(screen.getByText('daten.csv'))
+
+    const body = await screen.findByTestId('file-preview-body')
+    expect(body.getAttribute('data-kind')).toBe('code')
+    expect(body.textContent).toContain('spalte')
+    expect(screen.queryByTestId('workspace-file-held')).toBeNull()
   })
 
   it('empties the strip in one gesture and leaves the folder on screen', async () => {

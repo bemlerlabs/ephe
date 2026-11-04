@@ -1932,6 +1932,8 @@
     "fileViewGroup": "Ansicht",
     "fileViewPage": "Seite",
     "fileViewMarkdown": "Markdown",
+    "fileViewTable": "Tabelle",
+    "fileViewSource": "Quelle",
     "fileFrameNote": "Dieses Fenster hat keinen Betrachter für diese Seite.",
     "filePackedNote": "{{format}} — der Server liest dieses Format; der Bereich zeichnet es nicht.",
     "fileFormatTable": "Tabellenkalkulation",
