@@ -40,7 +40,8 @@ export type WorkspaceFileState = {
   active: string | null
   view: WorkspaceFileView
   /** The chosen reading for a file that has more than one — Markdown as a page or as
-   *  the text that made it. Keyed by path so two open READMEs decide for themselves. */
+   *  the text that made it, a CSV as the server's table or as its own bytes. Keyed by
+   *  path so two open READMEs decide for themselves. */
   modes: Record<string, FileView>
 }
 
@@ -193,7 +194,8 @@ export function showWorkspaceView(view: WorkspaceFileView): void {
   persist({ ...state, view })
 }
 
-/** The reading a file is in. Only Markdown has a second one, so this is the whole rule. */
+/** The reading a file is in. Markdown (page / source) and a CSV (table / source) carry a
+ *  second one; every other format has one view and stores nothing here. */
 export function setWorkspaceFileView(path: string, mode: FileView): void {
   if (state.modes[path] === mode) return
   persist({ ...state, modes: { ...state.modes, [path]: mode } })

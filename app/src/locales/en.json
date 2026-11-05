@@ -1932,6 +1932,8 @@
     "fileViewGroup": "Reading",
     "fileViewPage": "Page",
     "fileViewMarkdown": "Markdown",
+    "fileViewTable": "Table",
+    "fileViewSource": "Source",
     "fileFrameNote": "This window has no viewer for that page.",
     "filePackedNote": "{{format}} — the server reads this format; the column does not draw it.",
     "fileFormatTable": "Spreadsheet",

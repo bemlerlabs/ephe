@@ -51,6 +51,9 @@ export const VIDEO_EXT = new Set(['mp4', 'webm', 'mov'])
 /** The office containers: a zip of parts, so no browser draws them and no reader in the
  *  column can. A server that unpacks them answers; the column asks or says it cannot. */
 export const TABLE_EXT = new Set(['xlsx', 'xls'])
+/** The plain-text table: the server's rows reader answers for it (`TABLE_KINDS` in
+ *  `core/artifact_preview.py` carries the same suffix) and its bytes stay readable text. */
+export const CSV_EXT = new Set(['csv'])
 export const DOCUMENT_EXT = new Set(['docx'])
 export const DECK_EXT = new Set(['pptx', 'ppt', 'odp'])
 

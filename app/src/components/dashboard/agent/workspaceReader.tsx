@@ -25,6 +25,7 @@ import {
 import {
   fileIsText,
   fileOpenPlan,
+  fileViews,
   withFileView,
   type FileOpenPlan,
   type FileView,
@@ -32,6 +33,7 @@ import {
 import { previewSandbox, previewShowsInFrame, previewSrc } from '@/lib/previewMode'
 import { PayloadView } from '@/components/dashboard/artifacts/preview'
 import { FilePreviewBody } from './filePreview'
+import { FileTableBody } from './fileTableBody'
 
 /**
  * Ephe — the workspace column's file reader (#111).
@@ -245,7 +247,7 @@ export function WorkspaceFileReader({
   const { modes } = useWorkspaceFiles()
   const [nonce, setNonce] = useState(0)
   const plan = withFileView(fileOpenPlan(file.name), modes[file.path])
-  const views: readonly FileView[] = plan.kind === 'markdown' ? plan.views : []
+  const views: readonly FileView[] = fileViews(plan)
   const folder = file.path.slice(0, Math.max(0, file.path.length - file.name.length - 1))
   const reload = useCallback(() => setNonce((n) => n + 1), [])
 
@@ -266,7 +268,7 @@ export function WorkspaceFileReader({
             className="flex shrink-0 items-center gap-0.5 rounded-md border border-hairline p-0.5"
           >
             {views.map((view) => {
-              const chosen = plan.kind === 'markdown' && plan.view === view
+              const chosen = 'view' in plan && plan.view === view
               return (
                 <button
                   key={view}
@@ -281,7 +283,13 @@ export function WorkspaceFileReader({
                   }`}
                 >
                   {t(
-                    view === 'rendered' ? 'agentPanel.fileViewPage' : 'agentPanel.fileViewMarkdown',
+                    view === 'rendered'
+                      ? plan.kind === 'table'
+                        ? 'agentPanel.fileViewTable'
+                        : 'agentPanel.fileViewPage'
+                      : plan.kind === 'table'
+                        ? 'agentPanel.fileViewSource'
+                        : 'agentPanel.fileViewMarkdown',
                   )}
                 </button>
               )
@@ -325,7 +333,9 @@ export function WorkspaceFileReader({
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-auto" key={`${file.path}:${nonce}`}>
-        {fileIsText(plan) ? (
+        {plan.kind === 'table' ? (
+          <FileTableBody file={file} view={plan.view} nonce={nonce} onReload={reload} />
+        ) : fileIsText(plan) ? (
           <FilePreviewBody
             preview={
               plan.kind === 'markdown' && plan.view === 'rendered'
