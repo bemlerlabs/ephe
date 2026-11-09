@@ -4,7 +4,7 @@ One source: ~/.ephe/security.json (not a secret, still 0600).
   - approval_profile: "strict" (default — always ask on mutating) | "session"
     ("remember for this session" allowed — the EXCEPTION is run_shell: per
     command a tool-type remember is never enough)
-  - sandbox_enabled: Seatbelt around the shell (opt-in, macOS sandbox-exec)
+  - sandbox_enabled: Seatbelt around the shell (opt-in; sandbox-exec or bwrap)
 
 Release bar stays: mutating tools without a session profile are ALWAYS asked;
 run_shell is never freed by a tool-type remember, not even in the session profile.

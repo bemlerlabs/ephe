@@ -16,13 +16,14 @@ export {
   fromDbSession,
   updateActiveMessage,
   closeThinkingPhases,
-  indicatorMessage,
   deriveSessionTitle,
   DEFAULT_SESSION_TITLE,
   DEFAULT_COMPOSER_MODE,
+  MIGRATABLE_LEGACY_MODES,
+  normalizeComposerMode,
 } from './helpers'
 export { makePersistActive, makeSetTransientMeta, makeMarkSandboxStatus } from './persist'
-export { makeSessionActions } from './session'
+export { makeSessionActions, indicatorMessage } from './session'
 export {
   SESSION_MODEL_FIELDS,
   isTrashed,
@@ -43,3 +44,4 @@ export { makeStreamActions } from './stream'
 export { makeHelperActions } from './helper'
 export { makeToolActions } from './tools'
 export { makeCheckpointActions } from './checkpoints'
+export { makeOverlayActions } from './overlay'

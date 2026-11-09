@@ -32,8 +32,6 @@ from collections.abc import Callable
 import ollama  # seam: tests patch core.chat.ollama.AsyncClient
 
 from core.chat_context import (  # noqa: F401
-    _TOOL_SCHEMA_CACHE,
-    TOOL_SCHEMA_CACHE_TTL_SECONDS,
     _active_context_window,
     _budget_exhausted_note,
     _cached_tool_schemas,

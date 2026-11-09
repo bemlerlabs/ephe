@@ -83,7 +83,7 @@ const storeState = vi.hoisted(() => ({
 }))
 vi.mock('@/store/chatStore', () => ({
   DEFAULT_SESSION_TITLE: 'New Session',
-  DEFAULT_COMPOSER_MODE: 'full-access',
+  DEFAULT_COMPOSER_MODE: 'operator',
   useChatStore: (sel?: (s: Record<string, unknown>) => unknown) => {
     const st: Record<string, unknown> = {
       sessions: storeState.sessions,

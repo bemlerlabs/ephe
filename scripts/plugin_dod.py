@@ -1,10 +1,29 @@
 #!/usr/bin/env python3
 """Definition-of-done gate for the first-party catalogue.
 
-A plugin label is only allowed when the manifest is v1 and carries 3–8
-commands with a description and a non-empty template, at least two non-empty
-few-shot examples with input, tool call and answer, a changelog line naming
-the manifest version, a README section and at least six valid golden cases.
+A plugin label is only allowed when the bundle carries its version's DoD.
+
+v1 (a command-and-skill bundle): the manifest is v1 and carries 3–8 commands
+with a description and a non-empty template, at least two non-empty few-shot
+examples with input, tool call and answer, a changelog line naming the manifest
+version, a README section and at least six valid golden cases.
+
+v2 (a declarative bundle, Tier 1 and Tier 2): `core.plugin_manifest.load_manifest`
+answers no error — which is where the shipped contract checks the descriptor, the
+capability vocabulary, the entry document, the vendored-library hashes, the data roots
+and the shape of every declared tool. A v2 bundle declares a `components.ui` surface,
+contributed tools, or both. A declared surface is checked: every file its entry
+document names arrives from the bundle. A bundle that declares neither is named here.
+What a `components.tools` declaration promises is read by `scripts/plugin_dod_tools.py`
+against the same claims the activation scan makes: each entry names a Python file that
+ships, a callable that file binds, a family the manifest itself asks permission for,
+and a served name no second declaration takes. The escalation approval and the
+signature of the Tier-2 path stay outside this gate; the declaration does not.
+
+The assertions with no version in them — the changelog line, the README reference and
+the golden suite — apply here unchanged, and so do the command and example rules
+to a v2 bundle that declares commands or skill packs of its own.
+
 The five bundled skill packs carry their own DoD: every member skill ships a
 SKILL.md with a system prompt and an example, a rubric and a golden file.
 
@@ -21,11 +40,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+SCRIPTS = Path(__file__).resolve().parent
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 
 from core.plugin_golden import load_golden  # noqa: E402
+from core.plugin_tools_contract import tool_claims  # noqa: E402
+from plugin_dod_surface import surface_problems  # noqa: E402
+from plugin_dod_tools import tool_problems  # noqa: E402
 
 LABELS = {"plugin", "capability-preset"}
 MANIFEST_VERSION = 1
+MANIFEST_VERSION_V2 = 2
+#: The two versions this gate reads. A bundle on another one is answered with the
+#: version it declares, so a v3 never passes here unread.
+ACCEPTED_MANIFEST_VERSIONS = (MANIFEST_VERSION, MANIFEST_VERSION_V2)
 COMMAND_NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 EXAMPLE = re.compile(r"^##\s+Example\b[^\n]*\n(.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
 SYSTEM = re.compile(r"^##\s+System Prompt\s*\n(.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
@@ -117,10 +146,9 @@ def _allowed_tools(plugin_dir: Path, packs: list[str]) -> set[str]:
 def _tool_grant_problems(plugin_dir: Path, manifest: dict, cases: list[dict]) -> list[str]:
     packs = [str(pack) for pack in (manifest.get("components") or {}).get("skills") or []]
     allowed = _allowed_tools(plugin_dir, packs)
-    declared = {
-        str(tool)
-        for tool in (manifest.get("components") or {}).get("tools") or []
-    }
+    # A kernel activation is a name the skill pack has to grant; a contributed tool brings
+    # its own owner and answers to `tool_problems`, so the two are not mixed here.
+    declared = {claim.name for claim in tool_claims(manifest) if not claim.contributed}
     problems = [f"declared tool {tool!r} is outside the skill grant" for tool in sorted(declared - allowed)]
     used: set[str] = set()
     for case in cases:
@@ -131,7 +159,17 @@ def _tool_grant_problems(plugin_dir: Path, manifest: dict, cases: list[dict]) ->
     return problems
 
 
-def _golden_problems(plugin_dir: Path, name: str, commands: list[dict], manifest: dict) -> list[str]:
+def _golden_problems(
+    plugin_dir: Path, name: str, commands: list[dict], manifest: dict, *, grant: bool = True
+) -> list[str]:
+    """The graded suite: ≥ 6 valid cases, every command reference known.
+
+    `grant` is the skill-grant cross-check, and it is switched off only by the v2
+    surface branch: a Tier-1 bundle declares no skill pack, so there is no grant
+    list to compare a named tool against. Ownership of a tool a surface bundle
+    calls is the runtime gate's question (core/plugin_runtime.py), and Wave 2's
+    registry is where a plugin-owned tool gets an owner to be checked against.
+    """
     path = plugin_dir / "prompts" / "golden.jsonl"
     if not path.is_file():
         return ["golden: prompts/golden.jsonl is missing"]
@@ -147,7 +185,8 @@ def _golden_problems(plugin_dir: Path, name: str, commands: list[dict], manifest
         command = case.get("command")
         if command is not None and command not in names:
             problems.append(f"golden {case['id']}: unknown command {command!r}")
-    problems.extend(_tool_grant_problems(plugin_dir, manifest, cases))
+    if grant:
+        problems.extend(_tool_grant_problems(plugin_dir, manifest, cases))
     return problems
 
 
@@ -218,7 +257,8 @@ def audit(root: Path = ROOT) -> list[dict]:
             rows.append({
                 "kind": "plugin", "name": plugin_dir.name, "label": labels.get(plugin_dir.name, "plugin"),
                 "commands": 0, "examples": 0, "changelog": False, "readme": False, "golden": 0,
-                "manifest_v1": False, "dod": False, "problem": f"manifest is not valid JSON: {exc}",
+                "manifest_v1": False, "manifest_version": 0, "surface": False,
+                "dod": False, "problem": f"manifest is not valid JSON: {exc}",
             })
             continue
         name = str(manifest.get("name") or plugin_dir.name)
@@ -237,21 +277,45 @@ def audit(root: Path = ROOT) -> list[dict]:
         readme_ref = f"plugins/{name}" in readme
         golden_path = plugin_dir / "prompts" / "golden.jsonl"
         golden = sum(1 for line in golden_path.read_text(encoding="utf-8").splitlines() if line.strip()) if golden_path.is_file() else 0
-        manifest_v1 = manifest.get("manifest_version") == MANIFEST_VERSION
+        manifest_version = manifest.get("manifest_version")
+        declarative_v2 = manifest_version == MANIFEST_VERSION_V2
+        manifest_v1 = manifest_version == MANIFEST_VERSION
         problems: list[str] = []
-        if not manifest_v1:
-            problems.append(f"manifest v{manifest.get('manifest_version')} (v{MANIFEST_VERSION} required)")
-        if not skill_packs:
-            problems.append("no declared skill pack")
-        problems.extend(_command_problems(commands))
-        problems.extend(_example_problems(skill_text))
+        if manifest_version not in ACCEPTED_MANIFEST_VERSIONS:
+            problems.append(
+                f"manifest v{manifest_version} "
+                f"(v{MANIFEST_VERSION} or v{MANIFEST_VERSION_V2} is read here)"
+            )
+        contributed = [claim for claim in tool_claims(manifest) if claim.contributed]
+        problems.extend(tool_problems(plugin_dir, manifest))
         if not changelog_text:
             problems.append("no changelog")
         elif not changelog:
             problems.append(f"changelog does not name version {version or '?'}")
         if not readme_ref:
             problems.append("no README reference")
-        problems.extend(_golden_problems(plugin_dir, name, commands, manifest))
+        if declarative_v2:
+            # A tool bundle has a contribution. A surface bundle has a document.
+            # Either one is a v2 bundle. Neither one is the hole this gate names.
+            surface = components.get("ui") if isinstance(components, dict) else None
+            if isinstance(surface, dict) or not contributed:
+                problems.extend(surface_problems(plugin_dir))
+            problems.extend(
+                _golden_problems(plugin_dir, name, commands, manifest, grant=False)
+            )
+            # Held to the same wording as v1 whenever a v2 bundle declares the
+            # component at all: the branch is about what a surface bundle need
+            # not carry, and never about what it may carry sloppily.
+            if skill_packs:
+                problems.extend(_example_problems(skill_text))
+            if commands:
+                problems.extend(_command_problems(commands))
+        else:
+            if not skill_packs:
+                problems.append("no declared skill pack")
+            problems.extend(_command_problems(commands))
+            problems.extend(_example_problems(skill_text))
+            problems.extend(_golden_problems(plugin_dir, name, commands, manifest))
         dod = not problems
         label = labels.get(name, "plugin")
         problem = ""
@@ -265,10 +329,13 @@ def audit(root: Path = ROOT) -> list[dict]:
             "label": label,
             "commands": len(commands) if isinstance(commands, list) else 0,
             "examples": examples,
+            "tools": len(contributed),
             "changelog": changelog,
             "readme": readme_ref,
             "golden": golden,
             "manifest_v1": manifest_v1,
+            "manifest_version": manifest_version if type(manifest_version) is int else 0,
+            "surface": declarative_v2,
             "dod": dod,
             "problem": problem,
         })
@@ -293,6 +360,10 @@ def main(argv: list[str] | None = None) -> int:
                     f"changelog={int(row['changelog'])} readme={int(row['readme'])} "
                     f"golden={row['golden']}"
                 )
+                if row.get("surface"):
+                    detail = f"v{row.get('manifest_version')} surface " + detail
+                if row.get("tools"):
+                    detail = f"tools={row['tools']} " + detail
             print(
                 f"{mark:4} {row['name']:14} {row['label']:18} {detail}"
                 + (f" | {row['problem']}" if row["problem"] else "")

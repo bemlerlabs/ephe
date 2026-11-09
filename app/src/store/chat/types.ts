@@ -13,6 +13,13 @@ import type {
 import type { HelperChat } from '@/lib/helperSession'
 import type { CompactStats } from '@/lib/compact'
 import type { ChatCheckpoint } from '@/lib/checkpoints'
+import type {
+  OverlayStack,
+  Rect,
+  Size,
+  SurfaceSpec,
+  Viewport,
+} from '@/components/shell/overlayModel'
 
 export type {
   ToolCall,
@@ -246,6 +253,26 @@ export interface ChatState {
   createCheckpoint: (label?: string) => void
   rollbackToCheckpoint: (id: string) => void
   deleteCheckpoint: (id: string) => void
+  /**
+   * W1-4: the plugin surfaces the browser half shows as overlay windows (#44).
+   * Transient shell state — the geometry a user dragged is never part of a
+   * transcript, so nothing in this slice reaches the persist path.
+   */
+  overlay: OverlayStack
+  /** Returns the key it settled on, and whether the surface had to be built. */
+  openOverlay: (
+    spec: SurfaceSpec,
+    viewport: Viewport,
+    placement?: Rect,
+  ) => { key: string; created: boolean }
+  closeOverlay: (key: string) => void
+  /** Replace the mount URL after the standing credential has died. */
+  retargetOverlay: (pluginId: string, url: string) => void
+  focusOverlay: (key: string) => void
+  minimizeOverlay: (key: string) => void
+  restoreOverlay: (key: string, viewport: Viewport) => void
+  moveOverlay: (key: string, to: { x: number; y: number }, viewport: Viewport) => void
+  resizeOverlay: (key: string, size: Size, viewport: Viewport) => void
   /** IndexedDB hydration + server mirror (P0-3), once per app start. */
   initFromDb: () => Promise<void>
 }

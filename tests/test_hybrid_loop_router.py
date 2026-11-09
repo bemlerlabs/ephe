@@ -78,6 +78,13 @@ def test_GIVEN_an_unregistered_tool_name_WHEN_decided_THEN_it_stays_on_the_activ
     assert route.reason == "router-loop-unknown-tool"
 
 
+def test_GIVEN_a_contributed_research_tool_WHEN_decided_THEN_it_stays_off_the_small_tier():
+    route = _step(tools_used_this_turn=[], next_tool="web_search", calls_so_far=0)
+
+    assert route.tier is None
+    assert route.reason == "router-loop-mutating"
+
+
 def test_GIVEN_a_repair_step_WHEN_decided_THEN_the_small_tier_is_skipped():
     assert _step(is_repair=True).reason == "router-loop-repair"
 

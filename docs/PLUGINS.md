@@ -1,4 +1,4 @@
-# Ephe Plugins — Manifest Format v1 (E2)
+# Ephe Plugins — Manifest Format v1 and v2 (E2)
 
 > Spec for `ephe-plugin.json`. Autoren-Einstieg: `docs/PLUGIN_SDK.md`. A
 > plugin is a directory under
@@ -11,6 +11,7 @@
 ~/.ephe/plugins/
 └── research-suite/
     ├── ephe-plugin.json          # manifest (required)
+    ├── ephe-libraries.json       # optional: declared vendor files (W1-6 #46)
     └── skills/
         └── deep-dive/
             └── SKILL.md          # a regular skill pack (agentskills-style)
@@ -42,16 +43,152 @@
 
 | Field | Rules |
 |---|---|
-| `manifest_version` | Must be `1` |
+| `manifest_version` | `1` or `2`; `2` adds the identity fields and the tool shape under **Manifest v2** below |
 | `name` | Lowercase slug `^[a-z0-9][a-z0-9-]*$`; MUST equal the directory name |
 | `version` | Semver `X.Y.Z` |
 | `description` | Non-empty string |
 | `permissions.tool_families` | Subset of `read, write, shell, network, memory, vision, docs, browser` |
-| `permissions.data_roots` | List of path strings (display/intent; runtime roots stay governed by the security config) |
+| `permissions.state_cap_mb` | Optional positive whole number of megabytes, at most 16384. The ceiling on the folder the confined worker keeps state in; `core/plugin_state.py` holds the default (512 MiB). A bundle at its ceiling is refused before a worker starts, with the code `plugin_state_full` and both numbers in the sentence. A value that is not a whole number — including `true`, which Python reads as 1 — quarantines the manifest |
+| `permissions.data_roots` | List of path strings, read-granted to both rails: the kernel file scope a bundle calls through, and the confined worker's boundary. Absolute paths must be existing directories and may not be a home or system root; a relative name resolves inside the current workspace and an escape quarantines the manifest. Grants read, never write |
 | `components.skills` | Pack directory names that MUST ship a `SKILL.md` under `skills/` |
 | `components.commands` | `{ name (slug), description (non-empty), template? }` — template placeholders are expanded server-side |
 | `components.agents` | Agent profiles: `{ name, description?, tools (⊆ TOOL_MAP), model?, timeout? }` — bundle helper agents; fail-closed validation (unknown tool quarantines the agent) |
 | `components.hooks` / `mcp` | **Reserved** (E4b/E6): accepted structurally, never executed by the current runtime |
+
+## Manifest v2 (`manifest_version: 2`)
+
+A v2 manifest adds the identity fields an artifact is judged by — `publisher` (a name),
+`license` (an SPDX id), optional `engines.ephe` (a SemVer range) — and changes one
+component's shape. `components.tools` is a list of **objects**, one per tool the bundle
+contributes. A bare kernel-tool name is the v1 shape and is refused in a v2 list: the
+shape follows the version, never the entry.
+
+```json
+"permissions": { "tool_families": ["read"], "data_roots": [] },
+"components": {
+  "ui": { "type": "floating-window", "entry": "ui/index.html", "title": "Acme" },
+  "tools": [
+    {
+      "name": "tick",
+      "entry": "handlers.py:run",
+      "family": "read",
+      "description": "Report how many seconds are left.",
+      "parameters": { "type": "object", "properties": { "unit": { "type": "string" } } }
+    }
+  ]
+}
+```
+
+| Field | Rules |
+|---|---|
+| `name` | `^[a-z][a-z0-9_]*$`, and this is the name the tool is served under — declared, not derived. Past `MAX_SERVED_NAME_CHARS` it is refused at validation |
+| `entry` | `path.py:callable` inside the plugin directory. Absolute, escaping or non-`.py` paths, a missing `:`, a callable that is not an identifier and a module segment that cannot be imported are refused. Validation stays lexical — whether the file ships is the DoD gate's question |
+| `family` | One `core/plugin_manifest.py` knows, and one this manifest's own `permissions.tool_families` declares |
+| `description` | Non-empty string; it is what the model is offered |
+| `parameters` | Optional object schema, `type` must be `object`; with the description it is the contract the fingerprint is taken over |
+
+- **The name is declared, and two guards make that safe.** A bundle serves the name it
+  writes — `web_search`, `tick` — because that is the name the model was taught, the prompts
+  carry and saved sessions hold; taking a capability over must not rename it. The namespace
+  lives on the plugin package, not inside the tool name. What stops one bundle answering for
+  another is read, not spelled: `reserved_namespace(name)` consults the live kernel map and
+  the MCP rail and refuses a name either holds, and `scan_tool_activations` marks a name two
+  manifests both declare as contested, so `refuse_contested_names` denies the mount with a
+  reason naming both claimants. `served_tool_name` in `core/tools/dynamic_registry.py` stays
+  the one place a served name is produced, so the rule has one home if it changes again.
+  It used to build `plugin_<id>_<name>`, and dropping that also dropped a collision the
+  spelling created: `timer` + `lite_x` and `timer-lite` + `x` used to be one string.
+- **Nothing imports a plugin to check it.** The entry stays text the whole way: the
+  confined worker resolves the same dotted module inside the plugin directory when a call
+  arrives, and a tool whose file is absent is refused before any process starts.
+- **The bridge grants against the declaration.** A contributed tool that takes a third
+  parameter is handed the host bridge (`docs/PLUGIN_SDK.md` §3a), and a call over it is
+  allowed when the method's family sits in this manifest's `permissions.tool_families`. The
+  set travels as `ToolDescriptor.families`, read off the mount, so a child naming a family
+  inside its own arguments changes nothing; every call, granted or refused, leaves one
+  `bridge_call` audit row naming the plugin, the tool, the method and the host it was asked
+  for.
+- **The gate asks for the byte.** `scripts/plugin_dod.py` reads every declaration through
+  `scripts/plugin_dod_tools.py`, over the same claims `scan_tool_activations` makes: the
+  entry file ships, the callable is bound in it (an `ast` read, still no import), the
+  family is one the manifest declares, and no two declarations inside the bundle serve one
+  name. Across bundles a name claimed twice is contested and both claimants lose it; the
+  mount that refuses on it is #15. A bundle declaring a name the kernel still owns is
+  refused the same way, which is why moving a capability into a bundle retires the kernel
+  entry in the same commit rather than in a later one.
+
+## Vendored libraries (W1-6 #46)
+
+A surface that needs a third-party runtime ships it inside its own directory and
+loads it by relative path. Nothing in this contract reaches a network: the policy a
+surface document is served under keeps `script-src 'self'` closed for every
+capability a manifest can declare, so a remote `<script>` never runs and a remote
+`fetch` never leaves (pinned per capability name in
+`tests/test_plugin_libraries.py::test_no_capability_declaration_names_a_remote_source`).
+Remote code would be a network permission and a privacy event on every load; a
+surface that wants either asks for the existing `network` capability and stays
+visible.
+
+```text
+my-scene/
+├── ephe-plugin.json
+├── ephe-libraries.json
+└── ui/
+    ├── index.html                    # <script type="module" src="vendor/….mjs">
+    └── vendor/
+        └── renderer.mjs
+```
+
+```json
+{
+  "schema": 1,
+  "libraries": [
+    {
+      "name": "renderer",
+      "version": "0.169.0",
+      "path": "ui/vendor/renderer.mjs",
+      "sha256": "5df2…949f16",
+      "kind": "module"
+    }
+  ]
+}
+```
+
+| Field | Rules (`core/plugin_libraries.py`) |
+|---|---|
+| `schema` | Must be `1` |
+| `libraries[]` | Non-empty list; every entry names all five fields |
+| `name` | Lowercase slug `^[a-z0-9][a-z0-9-]*$` |
+| `version` | Non-empty string, at most 64 characters (the width of the `sha256` slot) |
+| `path` | Relative path inside the plugin directory, at or below the `components.ui.entry` document's directory — the asset route refuses a `..` segment, so a library above the entry has no URL that loads it |
+| `kind` | `script` (`.js`), `module` (`.js`, `.mjs`) or `wasm` (`.wasm`) |
+| `sha256` | 64 lowercase hex, compared against the shipped bytes |
+
+- **Fail-closed, whole-plugin.** A hash mismatch, a declared file that does not
+  ship, a file under `vendor/` that nothing declared, a `.wasm` entry with no
+  `wasm` capability, or a byte past a cap quarantines the plugin exactly like a bad
+  manifest field, and the surface route re-reads the manifest on every request: a
+  vendored file edited after install stops being served on the next fetch.
+- **Caps, measured on 2026-11-05.** `MAX_LIBRARY_FILE_BYTES` is 8 MiB and equals
+  `MAX_SURFACE_ASSET_BYTES` in `server/plugin_surface.py` (a test pins the two
+  together): a bigger file is undeliverable by this route, so declaring one would be
+  a promise the serve layer breaks. The largest minified single-file engine bundle
+  measured against it is 6,312,709 bytes; its unminified sibling measures
+  44,021,669 bytes and is refused. `MAX_LIBRARY_TOTAL_BYTES` is 24 MiB (three files
+  at the ceiling); hashing that much measures 7.44 ms at the 3.38 GB/s rate measured
+  on the same machine, and a realistic declared set of 973,587 bytes measures 0.88 ms
+  for a whole manifest read.
+- **What the hash does, and what it does not.** It pins which bytes shipped: drift
+  between the reviewed file and the file on disk is detected (an editor, a packing
+  step, a swapped file). A publisher who declares the hash of code the reviewer
+  disliked passes, so review of the declared bytes stays the gate — this check
+  detects drift and vouches for nothing else. `dir_sha256` already covers the same
+  bytes for catalog-vs-disk drift in `plugin-lock.json`.
+- **WebAssembly is the one type a capability pays for.** `.wasm` arrives at the
+  mount only for a surface that declared `wasm`, at both layers: validation refuses
+  the declaration, and `server/plugin_surface.ASSET_REQUIRED_CAPABILITIES` refuses
+  the asset, because a wasm module the policy will not compile is a download that
+  never runs.
 
 ## Enforcement semantics
 
@@ -76,8 +213,38 @@
 |---|---|
 | `GET /api/plugins` | Catalog + registry + master switch |
 | `POST /api/plugins/{id}/enable` | Toggle one plugin |
+| `POST /api/plugins/{id}/hot-mount` | Publish the tools one bundle declares |
+| `DELETE /api/plugins/{id}/hot-mount` | Remove exactly that bundle's tool names |
 | `POST /api/plugins/master` | Kill-switch (false = stock Ephe) |
 | `GET /api/plugins/commands` | Slash commands of active manifest plugins |
+
+### Mount trust classes
+
+A mount states the class it published under, in its answer, in the state record and in
+the audit line: `signed` when a signature record came with the bundle directory, `local`
+when the author is the user — the ordinary case for a bundle Creator Mode generated. The
+signature gate has nothing to verify for `local`, so the class is said out loud rather
+than left implied.
+
+The mount also records the hash of the directory it read. A bundle accepted under a
+`signed` record whose bytes then move is refused until the caller acknowledges the change
+(`mount_artifact_changed`, with both hashes). A `local` bundle's bytes move every time its
+author saves, so that change is reported (`artifact_changed`) and still mounts; the
+tool-contract pin keeps guarding the schema, which is the part the model is shown.
+
+### What a restart brings back
+
+The mount record lives in the state document; the tools it published live in the process's
+descriptor registry. On the first read of the tool set after a start, each recorded bundle
+is re-mounted through the same transition a user-facing mount uses, so the name scan, the
+pin, the atomic swap and the audit row are not duplicated — and one `mount_replay` line
+says what came back and what did not.
+
+Nothing is acknowledged on the user's behalf during that replay. A `local` bundle whose
+code was edited between runs comes back running the new bytes; a bundle accepted under a
+signature record whose files then moved stays refused, and the refusal is the reason its
+tools are missing. A bundle that left the disk is reported the same way instead of raising
+in the middle of a turn.
 
 ## Marketplace (E4a)
 
@@ -109,6 +276,12 @@ ephe plugin enable web-search    # takes effect on the next agent turn
 ephe plugin disable web-search
 ephe plugin install web-search   # from plugin-marketplace.json
 ```
+
+A bundle made on this machine leaves as a zip and comes back through the
+same installer. The member layout, the signature call, the check against
+an installed identity, and the lockfile path are specified in
+[PLUGIN_EXPORT.md](PLUGIN_EXPORT.md). The export and file-import commands
+are the next change. This build has `list`, `enable`, `disable` and `install`.
 
 ## Signatures (E4b)
 

@@ -33,7 +33,7 @@ pub fn clipboard_bytes(plain: &str, html: Option<&str>) -> Result<usize, String>
 /// The roots a file action may reach, given the home directory and the project
 /// the shell was configured with.
 pub fn allowed_roots(home: &Path, project: Option<&Path>) -> Vec<PathBuf> {
-    let mut roots = vec![home.join(".ephe").join("artifacts")];
+    let mut roots = vec![crate::instance::device_dir_for(home).join("artifacts")];
     for folder in ["Desktop", "Downloads", "Documents"] {
         roots.push(home.join(folder));
     }

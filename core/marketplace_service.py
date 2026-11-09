@@ -35,7 +35,7 @@ from core.marketplace_planner import (
     plan,
 )
 from core import plugin_manifest
-from core.plugin_lockfile import LOCK_FILENAME, build_lockfile, write_lockfile
+from core.plugin_lockfile import LOCK_FILENAME, rebuild_lockfile
 from core.plugin_store import config_root
 
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
@@ -131,7 +131,7 @@ def _invalidate() -> None:
 
 def _write_lock() -> str:
     try:
-        write_lockfile(config_root() / LOCK_FILENAME, build_lockfile())
+        rebuild_lockfile(config_root() / LOCK_FILENAME)
         return ""
     except Exception:  # noqa: BLE001 — the package change already happened
         return "lockfile_update_failed"

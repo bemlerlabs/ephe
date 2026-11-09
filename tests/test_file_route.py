@@ -1,9 +1,9 @@
 """
 tests/test_file_route.py — P2-1 artifact delivery (GET /api/file)
 
-Security: only files from the allowed roots (the core.tools.base whitelist),
-no path escape, 404 for missing ones. Relative paths resolve against the
-workspace/output folder (found 2026-10-01: black preview panel).
+Security: only files from the artifact whitelist (`_get_artifact_roots`: the workspace and
+its output folder, narrowed by #120), no path escape, 404 for missing ones. Relative paths
+resolve against the workspace/output folder (found 2026-10-01: black preview panel).
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class TestFileRoute:
         """GIVEN file in an allowed root WHEN GET /api/file THEN 200 + content."""
         # Widen the whitelist to tmp_path (the test stand-in for ~/tmp)
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         f = tmp_path / "chart.svg"
         f.write_text("<svg/>", encoding="utf-8")
@@ -45,7 +45,7 @@ class TestFileRoute:
         THEN Content-Disposition inline — attachment made the
         AgentPanel iframe start a download (white preview)."""
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         f = tmp_path / "qr.png"
         f.write_bytes(b"\x89PNG fake")
@@ -66,7 +66,7 @@ class TestFileRoute:
         home.mkdir()
         env_file = home / ".env"
         env_file.write_text("API_KEY=fixture", encoding="utf-8")
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [home])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [home])
         assert client.get("/api/file", params={"path": str(env_file)}).status_code == 403
 
     def test_a_protected_root_is_refused(self, client, monkeypatch, tmp_path):
@@ -79,7 +79,7 @@ class TestFileRoute:
         ssh_key = home / ".ssh" / "id_rsa"
         ssh_key.write_text("fixture", encoding="utf-8")
         monkeypatch.setenv("HOME", str(home))
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [home])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [home])
 
         assert client.get("/api/file", params={"path": str(engine_key)}).status_code == 403
         assert client.get("/api/file", params={"path": str(ssh_key)}).status_code == 403
@@ -89,7 +89,7 @@ class TestFileRoute:
         Found 2026-10-01: the artifact detector reports "document.md" relative
         to the workspace — the preview iframe otherwise got 400 + a black panel."""
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         monkeypatch.setattr(
             "server.routes.files._relative_bases", lambda: [tmp_path]
@@ -103,7 +103,7 @@ class TestFileRoute:
     def test_relative_path_resolves_against_output_dir(self, client, monkeypatch, tmp_path):
         """GIVEN a relative artifact file in the output dir WHEN GET /api/file THEN 200."""
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         out = tmp_path / "output"
         out.mkdir()
@@ -119,7 +119,7 @@ class TestFileRoute:
         """GIVEN a relative path, the file exists in no base WHEN GET THEN 404
         (instead of 400 — the user then at least sees a clear not-found message)."""
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         monkeypatch.setattr(
             "server.routes.files._relative_bases", lambda: [tmp_path]
@@ -129,14 +129,14 @@ class TestFileRoute:
 
     def test_missing_file_404(self, client, monkeypatch, tmp_path):
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         r = client.get("/api/file", params={"path": str(tmp_path / "nope.txt")})
         assert r.status_code == 404
 
     def test_too_large_413(self, client, monkeypatch, tmp_path):
         monkeypatch.setattr(
-            "server.routes.files._get_allowed_roots", lambda: [tmp_path]
+            "server.routes.files._get_artifact_roots", lambda: [tmp_path]
         )
         monkeypatch.setattr("server.routes.files.MAX_FILE_BYTES", 10)
         f = tmp_path / "big.bin"
@@ -146,7 +146,7 @@ class TestFileRoute:
 
     def test_the_bytes_come_back_no_store(self, client, monkeypatch, tmp_path):
         """A reload must reach the server, or it reports bytes that are already gone."""
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [tmp_path])
         note = tmp_path / "notiz.md"
         note.write_text("# Erst\n", encoding="utf-8")
 
@@ -178,7 +178,7 @@ class TestFilePreviewRoute:
     def test_a_spreadsheet_comes_back_as_rows(self, client, monkeypatch, tmp_path):
         from openpyxl import Workbook
 
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [tmp_path])
         book = Workbook()
         sheet = book.active
         sheet.title = "Prices"
@@ -195,7 +195,7 @@ class TestFilePreviewRoute:
         assert body["sheets"] == ["Prices"]
 
     def test_a_document_comes_back_as_running_text(self, client, monkeypatch, tmp_path):
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [tmp_path])
         note = tmp_path / "notes.md"
         note.write_text("# Goals\n\n- ship the column\n", encoding="utf-8")
 
@@ -206,12 +206,19 @@ class TestFilePreviewRoute:
 
     def test_a_format_the_renderer_has_no_view_for_says_so(self, client, monkeypatch, tmp_path):
         """A PDF is not an error: the browser draws it, the renderer declines it."""
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [tmp_path])
         doc = tmp_path / "handout.pdf"
         doc.write_bytes(b"%PDF-1.4 fixture")
 
         body = client.get("/api/file/preview", params={"path": str(doc)}).json()
-        assert body == {"mode": "none", "reason": "no-text-preview"}
+        # `size_bytes` came with #80 so the surface can show a file's size without a
+        # second request. The assertion reads the file's own stat rather than a number
+        # this test invents.
+        assert body == {
+            "mode": "none",
+            "reason": "no-text-preview",
+            "size_bytes": doc.stat().st_size,
+        }
 
     def test_the_preview_door_refuses_what_the_streaming_door_refuses(
         self, client, monkeypatch, tmp_path
@@ -220,7 +227,7 @@ class TestFilePreviewRoute:
         home = tmp_path / "home"
         home.mkdir()
         (home / ".env").write_text("API_KEY=fixture", encoding="utf-8")
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [home])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [home])
 
         for route in ("/api/file", "/api/file/preview"):
             assert client.get(route, params={"path": "/etc/passwd"}).status_code == 403, route
@@ -228,6 +235,6 @@ class TestFilePreviewRoute:
             assert secret.status_code == 403, route
 
     def test_a_missing_path_is_a_404_before_the_renderer_runs(self, client, monkeypatch, tmp_path):
-        monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+        monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [tmp_path])
         answer = client.get("/api/file/preview", params={"path": str(tmp_path / "gone.docx")})
         assert answer.status_code == 404

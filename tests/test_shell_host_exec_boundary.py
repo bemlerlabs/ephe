@@ -220,10 +220,9 @@ def test_recorded_the_pty_route_stays_on_the_host(tmp_path, monkeypatch):
 
 
 def test_given_sandbox_configured_without_a_wrapper_then_the_audit_records_it(tmp_path, monkeypatch):
-    """GIVEN sandbox_enabled and a host without the OS wrapper (sandbox-exec is macOS-only)
-    WHEN a command runs THEN it executes unsandboxed and the audit detail carries
-    'sandbox-unavailable'. That detail is the close of finding G4: the fallback is visible
-    in the shell audit line instead of disappearing.
+    """GIVEN sandbox_enabled and a host without the OS wrapper
+    WHEN a command is requested THEN it does not run and the audit status is
+    sandbox-unavailable.
     """
     from types import SimpleNamespace
 
@@ -241,10 +240,10 @@ def test_given_sandbox_configured_without_a_wrapper_then_the_audit_records_it(tm
 
     out = asyncio.run(_shell_exec.execute_confirmed_shell("echo still-here", True))
 
-    assert "still-here" in out
+    assert "still-here" not in out
+    assert "[TOOL-DENIED]" in out
     shell = [e for e in events if e["kind"] == "shell"]
-    assert shell and shell[-1]["status"] == "executed"
-    assert "sandbox-unavailable" in shell[-1]["detail"]
+    assert shell and shell[-1]["status"] == "sandbox-unavailable"
 
 
 # WB-16: the sandbox target decision is one host-independent resolver. A host that
@@ -303,7 +302,7 @@ def test_resolve_sandbox_on_without_a_wrapper_reads_unavailable_on_any_host(monk
 def test_resolve_sandbox_on_with_a_wrapper_returns_argv_and_no_detail(monkeypatch):
     _set_sandbox(monkeypatch, enabled=True, wrapper=True)
     argv, detail = _shell_proc.resolve_sandbox("echo hi", "/tmp")
-    assert argv is not None and argv[0] == "sandbox-exec"
+    assert argv is not None and argv[0] in {"sandbox-exec", "bwrap"}
     assert detail == ""
 
 
@@ -336,18 +335,18 @@ def test_sandbox_active_runs_wrapped_and_records_sandboxed(tmp_path, monkeypatch
     assert line["detail"] == ""
 
 
-def test_local_fallback_without_a_wrapper_records_sandbox_unavailable(tmp_path, monkeypatch):
-    """The G4 surface again, this time through the real wrap_command rather than a stub."""
+def test_local_path_without_a_wrapper_refuses_and_records_sandbox_unavailable(tmp_path, monkeypatch):
+    """The same refusal through the real wrap_command rather than a stub."""
     events = _capture_shell_audit(monkeypatch)
     _set_sandbox(monkeypatch, enabled=True, wrapper=False)
     monkeypatch.setattr(_shell_exec, "_resolve_cwd", lambda _cwd: str(tmp_path))
 
     out = asyncio.run(_shell_exec.execute_confirmed_shell("echo still-here", True))
 
-    assert "still-here" in out
+    assert "still-here" not in out
+    assert "[TOOL-DENIED]" in out
     line = _last_shell_line(events)
-    assert line["status"] == "executed"
-    assert line["detail"] == "sandbox-unavailable"
+    assert line["status"] == "sandbox-unavailable"
 
 
 def test_docker_backend_without_a_wrapper_records_the_missing_sandbox(tmp_path, monkeypatch):

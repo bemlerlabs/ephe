@@ -307,6 +307,10 @@ def _gate_with(
 ) -> Gate:
     if tool_name in conflicts:
         return Gate(False)
+    # `activations` is built from every installed manifest, and #15's mount transition is
+    # the only writer of a contributed tool, so a plugin's own name is answered here —
+    # this gate never asks the descriptor registry who owns a name. Two authorities over
+    # one verdict is how a disabled plugin quietly becomes an executable one.
     owner = activations.get(tool_name)
     if owner is not None:
         return Gate(owner in active, owner)
@@ -335,9 +339,12 @@ def filter_schemas(schemas: list[dict], path=None) -> list[dict]:
     activations, conflicts = _activations()
     if not conflicts and len(active) == len(_installed_versions()):
         return schemas
+    from core.tools.dynamic_wiring import MARKER_ALIASES
+
     out: list[dict] = []
     for entry in schemas:
         name = entry.get("function", {}).get("name", "")
+        name = MARKER_ALIASES.get(name, name)
         if _gate_with(active, activations, conflicts, name).visible:
             out.append(entry)
     return out

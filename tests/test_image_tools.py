@@ -198,7 +198,7 @@ class TestRegistryIntegration:
         from core.tools.approval import classify_tool
         from core.tools.registry import TOOL_MAP, get_tool_schemas
 
-        assert "generate_image" in TOOL_MAP
+        assert "generate_image" not in TOOL_MAP
         cls = classify_tool("generate_image")
         assert cls.is_mutating is True
         assert cls.auto_approve_by_default is False

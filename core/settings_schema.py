@@ -196,6 +196,16 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # Advanced
     "advanced.api_timeout": {"type": "number", "default": 120, "min": 10, "max": 1800,
                              "label": "API-Zeitüberschreitung (s)", "labelEn": "API timeout (s)"},
+    # The agent-team activator: the main agent delegates only while this is on.
+    # Default on keeps the behaviour an installation that sets nothing already had.
+    "advanced.agent_team_enabled": {
+        "type": "bool",
+        "default": True,
+        "label": "Agent team / delegation",
+        "labelEn": "Agent team / delegation",
+        "labelKey": "settings.agentTeamEnabled",
+        "hintKey": "settings.agentTeamEnabledHint",
+    },
     # Plugins (catalog policy)
     "plugins.plugin_autorun": {"type": "bool", "default": False,
                                "label": "Plugins automatisch starten", "labelEn": "Autorun plugins"},
@@ -550,12 +560,14 @@ def validate_sections(
                     raise ValueError(f"{field_key}: number expected") from None
                 if not (meta["min"] <= num <= meta["max"]):
                     raise ValueError(
-                        f"{field_key}: {num} ausserhalb [{meta['min']}, {meta['max']}]"
+                        f"{field_key}: {num} outside [{meta['min']}, {meta['max']}]"
                     )
                 sec[field_key] = int(num) if float(num).is_integer() else num
             elif meta["type"] == "select":
                 if value not in meta["options"]:
-                    raise ValueError(f"{field_key}: {value!r} nicht in {meta['options']}")
+                    raise ValueError(
+                        f"{field_key}: {value!r} is not one of {meta['options']}"
+                    )
                 sec[field_key] = value
             elif meta["type"] == "bool":
                 sec[field_key] = _coerce_bool(value)

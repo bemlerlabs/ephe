@@ -180,6 +180,22 @@ def _drop_from_index(session_id: str) -> None:
         logger.debug("session index drop skipped", exc_info=True)
 
 
+def _forget_grants(session_id: str) -> None:
+    """A deleted session loses its Creator consent row too.
+
+    The row answers "which permissions did the user tick", and a session that no longer
+    exists has no answer to keep. Both delete paths call this, and nothing else does: the
+    rule at the top of this file is that pruning is a deliberate call, so a write never
+    clears a grant behind the user's back.
+    """
+    try:
+        from core.tools.creator_guard import forget_session
+
+        forget_session(session_id)
+    except Exception:
+        logger.debug("creator consent row kept", exc_info=True)
+
+
 def _count_by_namespace(sdir: Path) -> dict:
     counts = {ns: 0 for ns in (*MIRROR_NAMESPACES, "")}
     for path in session_files(sdir):
@@ -229,6 +245,10 @@ def prune_store(keep: dict | None = None, *, namespaces=None, dry_run: bool = Fa
 
     if not dry_run and deleted:
         _forget_registry_rows(sdir, deleted)
+        # A retained consent row would describe a run that no longer exists, and the
+        # store would be the only place left that still claims somebody granted it.
+        for stem in deleted:
+            _forget_grants(stem)
     remaining = _count_by_namespace(sdir)
     if dry_run:
         # Nothing was unlinked, so report the state the run would leave behind.
@@ -289,6 +309,7 @@ def remove_sessions(ids) -> dict:
             continue
         deleted.append(session_id)
         _drop_from_index(session_id)
+        _forget_grants(session_id)
         if registry is None:
             registry = read_registry(sdir)
         entries = registry.get("sessions", [])

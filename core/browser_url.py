@@ -19,6 +19,69 @@ from core.engine_config import config_root
 # through its reach: a model line "open file://~/.ssh/id_rsa" was, right up to
 # here, an ordinary file reader without any question.
 
+# What the session HOLDS: the second bound, and the one that is not about reach.
+
+#: Empty in this build. Nothing the browser is launched with keeps a credential
+#: across runs: no profile directory, no stored sign-in state, so every cookie and
+#: every token dies with the process and the agent acts as nobody but itself.
+#:
+#: The session-persistence programme fills one of these two keys, and this dict is
+#: the only place it may do it, because both halves read the answer from here:
+#: `core/browser.py` launches from it, and the approval gate asks
+#: `browser_session_is_credentialed()` before it hands a browser tool the no-dialog
+#: licence.
+#:
+#: Two things still have to be DECIDED before that flip ships, and neither is made
+#: true by wiring:
+#:   1. who consents to the agent acting AS the user on the user's accounts — a
+#:      stored sign-in turns "navigate and click" into a person's identity, which is
+#:      a different risk class from "which pages may load" (docs/SECURITY_AND_PRIVACY.md,
+#:      the "Tool approval" row);
+#:   2. which session gets which profile, since one manager already carries several
+#:      session contexts (sub-agents among them) and a shared profile would hand each
+#:      of them the same identity.
+_BROWSER_PROFILE: dict[str, str] = {}
+
+#: What a profile directory would need before `core/browser.py` may start one: the
+#: decision above, plus the per-session shape question. Kept as one line so the
+#: refusal names the gap instead of pretending the setting is unsupported.
+PERSISTENT_PROFILE_UNWIRED = (
+    "A browser profile directory is configured, and this build does not start one: "
+    "who consents to the agent acting as the user has not been decided, and the "
+    "per-session profile shape is open. Decide both in core/browser_url.py "
+    "(_BROWSER_PROFILE) and wire the launch in core/browser.py, or clear the setting. "
+    "The browser tools are refused rather than run under a licence they no longer hold."
+)
+
+
+def browser_profile_settings() -> dict[str, str]:
+    """The launch settings of a session that keeps state across runs; empty keys today."""
+    return {
+        "user_data_dir": str(_BROWSER_PROFILE.get("user_data_dir") or ""),
+        "storage_state": str(_BROWSER_PROFILE.get("storage_state") or ""),
+    }
+
+
+def browser_session_is_credentialed() -> bool:
+    """True when the browser session carries an identity the user did not grant here.
+
+    About the launch rather than the page it is on: a stored sign-in, a
+    cookie jar or a profile directory means the agent's clicks and typed text go out
+    as the user's own, and that is the condition the browser cluster's no-dialog
+    licence depends on (`_CREDENTIAL_BOUND_TOOLS` in core/tools/approval_rules.py).
+    False while `_BROWSER_PROFILE` stays empty.
+
+    Fail-closed, the same direction as every other default in the gate: a profile
+    this code cannot read is a profile that holds something, so it is treated as
+    credentialed and the dialog comes back.
+    """
+    try:
+        settings = browser_profile_settings()
+    except Exception:  # noqa: BLE001 — an unreadable session shape is not an approval
+        return True
+    return bool(settings["user_data_dir"] or settings["storage_state"])
+
+
 def _artifact_roots() -> list[Path]:
     """Ephe's own storage folders — the only ones whose content gets rendered.
 

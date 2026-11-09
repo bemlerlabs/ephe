@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   listenNativeBrowser,
   openNativeBrowser,
+  refusalCode,
+  schemeOf,
   setNativeBrowserBounds,
   setNativeBrowserVisible,
   usesNativeBrowser,
   type BrowserBounds,
+  type BrowserRefusal,
 } from '@/lib/nativeBrowser'
 
 /**
@@ -20,7 +23,9 @@ import {
  *     (dialog, menu, palette) would sit on top of it — no z-index of the app can
  *     overtake a child WebView,
  *  3. honesty: the loading state comes from the real load events, not from the
- *     `onLoad` of an iframe that reports "done" for an empty box too.
+ *     `onLoad` of an iframe that reports "done" for an empty box too, and an
+ *     address the shell would not take is reported as a refusal the surface can
+ *     show — never as a link that quietly did nothing.
  */
 
 /** Everything that may sit on top of a child WebView in the surface. */
@@ -39,6 +44,7 @@ export function useNativeBrowserPane(url: string, nonce: number, maxWidth?: numb
   const [loading, setLoading] = useState(false)
   const [title, setTitle] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [refusal, setRefusal] = useState<BrowserRefusal | null>(null)
   const lastBounds = useRef<BrowserBounds | null>(null)
   const shownRef = useRef(false)
 
@@ -110,15 +116,28 @@ export function useNativeBrowserPane(url: string, nonce: number, maxWidth?: numb
     lastBounds.current = bounds
     setLoading(true)
     setError(null)
+    // A new address answers the last refusal; keeping one would say the pane is
+    // still holding something back when it is not.
+    setRefusal(null)
     shownRef.current = true
+    // A refusal arrives on `browser:refused` — the shell emits it at both doors —
+    // so this promise resolving is not what ends the loading state here.
     void openNativeBrowser(url, bounds).catch((e: unknown) => {
       setLoading(false)
-      setError(e instanceof Error ? e.message : String(e))
+      const message = e instanceof Error ? e.message : String(e)
+      const code = refusalCode(message)
+      if (code) {
+        // The command's own no, at the same door the event arrives at. Kept out of
+        // `error` because a sentence from the shell is not this surface's copy.
+        setRefusal({ url, scheme: schemeOf(url), reason: code })
+        return
+      }
+      setError(message)
     })
   }, [native, url, nonce, measure])
 
   // the tab leaves the view: hide it but keep the page state — coming back means
-  // being at the top of google.com again, not loading it from scratch.
+  // being on the page that was already loaded, not fetching it again from scratch.
   useEffect(
     () => () => {
       if (shownRef.current) {
@@ -136,14 +155,20 @@ export function useNativeBrowserPane(url: string, nonce: number, maxWidth?: numb
       if (event.kind === 'load') setLoading(event.phase === 'started')
       else if (event.kind === 'title') setTitle(event.title)
       else if (event.kind === 'navigation') setLoading(true)
-      else if (event.kind === 'new-window' && event.url && lastBounds.current) {
+      else if (event.kind === 'refused') {
+        // The pane could not be told what to show, so the surface says that itself:
+        // the address, and the reason it was not taken. The page it was showing stays.
+        setLoading(false)
+        setRefusal({ url: event.url, scheme: event.scheme, reason: event.reason })
+      } else if (event.kind === 'new-window' && event.url && lastBounds.current) {
         // A blank-target request stays inside the pane instead of opening a window
-        // nobody controls — the user sees where the link leads.
+        // nobody controls — the user sees where the link leads. The address is the
+        // page's own, so it goes through the shell's allowlist with it.
         setLoading(true)
         void openNativeBrowser(event.url, lastBounds.current).catch(() => setLoading(false))
       }
     })
   }, [native])
 
-  return { regionRef, native, loading, title, error }
+  return { regionRef, native, loading, title, error, refusal }
 }

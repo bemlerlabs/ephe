@@ -9,6 +9,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from core.plugin_mount_records import load_mounts, merge_mounts
+from core.plugin_surface_host import load_surfaces, merge_surfaces, parse_host_record
 from core.plugin_lifecycle_types import (
     LifecycleError,
     PluginState,
@@ -77,6 +79,8 @@ class LifecyclePersistence:
                 "legacy_imported": False,
                 "notices": [],
                 "plugins": {},
+                "mounts": {},
+                "surfaces": {},
                 "idempotency": {},
             }
             self._unproven = False
@@ -142,6 +146,13 @@ class LifecyclePersistence:
                         self._data["plugins"].setdefault(str(name), {})[scope_value] = (
                             entry
                         )
+        if not load_mounts(raw, self._data):
+            # The activation records a hot mount wrote (#15) live beside the switches,
+            # never inside one: an entry with no committed value would read as a plugin
+            # switched off. A section that cannot be read marks the file unproven, the
+            # same rule every other part of it follows.
+            self._unproven = True
+        load_surfaces(raw, self._data)
         if "pause_all" in raw:
             if isinstance(raw["pause_all"], bool):
                 self._data["pause_all"] = raw["pause_all"]
@@ -307,6 +318,8 @@ class LifecyclePersistence:
                 if notice not in notices:
                     notices.append(notice)
             merged["notices"] = notices
+        merge_mounts(merged, local.get("mounts"), loaded.get("mounts"))
+        merge_surfaces(merged, local.get("surfaces"), loaded.get("surfaces"))
         local_idempotency = local.get("idempotency") if isinstance(local, dict) else {}
         loaded_idempotency = (
             loaded.get("idempotency") if isinstance(loaded, dict) else {}
@@ -383,3 +396,27 @@ class LifecyclePersistence:
             except OSError:
                 pass
             raise LifecycleError("state_write_failed", 500, str(exc)) from exc
+
+    def remember_surface(self, plugin_id: str, record: dict[str, Any]) -> dict[str, Any]:
+        """Stores one host record and returns the value that was written."""
+        stored = parse_host_record(record)
+        with self._lock:
+            surfaces = self._data.get("surfaces")
+            if not isinstance(surfaces, dict):
+                surfaces = {}
+                self._data["surfaces"] = surfaces
+            surfaces[plugin_id] = stored
+            self._persist()
+            return dict(stored)
+
+    def surface_hosts(self) -> dict[str, dict[str, Any]]:
+        """Every host record this process loaded or wrote."""
+        with self._lock:
+            raw = self._data.get("surfaces")
+            if not isinstance(raw, dict):
+                return {}
+            return {
+                str(plugin_id): dict(record)
+                for plugin_id, record in raw.items()
+                if isinstance(record, dict)
+            }

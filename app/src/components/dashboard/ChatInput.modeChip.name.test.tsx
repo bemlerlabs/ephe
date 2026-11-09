@@ -18,26 +18,25 @@ import { useRef } from 'react'
 
 const EN: Record<string, string> = {
   'chat.modeSelectorAria': 'Composer response mode',
-  'chat.modeHint.ask': 'Ask — Ephe only answers, no tools run',
-  'chat.modeHint.plan': 'Plan — Ephe drafts a plan first; nothing runs until you confirm',
-  'chat.modeHint.edit-auto': 'Edit auto — the write tools run without asking, the rest still asks',
-  'chat.modeHint.full-access': 'Full access — every tool runs without asking',
+  'chat.modeHint.analyst': 'Analyst — Ephe answers, no tools run',
+  'chat.modeHint.architect': 'Architect — Ephe drafts a plan first; nothing runs until you confirm',
+  'chat.modeHint.operator': 'Operator — every tool runs without asking',
+  'chat.modeSection.write': 'With write access',
   'chat.perm.strict': 'Manual',
 }
 
 const DE: Record<string, string> = {
   'chat.modeSelectorAria': 'Antwort-Modus des Composers', // language-gate: ignore
-  'chat.modeHint.ask': 'Fragen — Ephe antwortet nur, keine Werkzeuge laufen', // language-gate: ignore
-  'chat.modeHint.plan':
-    'Planen — Ephe entwirft erst einen Plan; nichts läuft ohne deine Bestätigung', // language-gate: ignore
-  'chat.modeHint.edit-auto':
-    'Bearbeiten — die Schreib-Werkzeuge laufen ohne Rückfrage, die übrigen nicht', // language-gate: ignore
-  'chat.modeHint.full-access': 'Voller Zugriff — jedes Werkzeug läuft ohne Rückfrage', // language-gate: ignore
+  'chat.modeHint.analyst': 'Analyst — Ephe antwortet nur, keine Werkzeuge laufen', // language-gate: ignore
+  'chat.modeHint.architect':
+    'Architekt — Ephe entwirft erst einen Plan; nichts läuft ohne deine Bestätigung', // language-gate: ignore
+  'chat.modeHint.operator': 'Operator — jedes Werkzeug läuft ohne Rückfrage', // language-gate: ignore
+  'chat.modeSection.write': 'Mit Schreibzugriff', // language-gate: ignore
   'chat.perm.strict': 'Manuell', // language-gate: ignore
 }
 
-/** The four modes, in the order the menu lists them. */
-const MODES = ['ask', 'plan', 'edit-auto', 'full-access'] as const
+/** The three modes, in the order the menu lists them. */
+const MODES = ['analyst', 'architect', 'operator'] as const
 
 let table: Record<string, string> = EN
 
@@ -89,7 +88,7 @@ describe.each([
   })
 
   it('keeps the approval profile out of both halves', () => {
-    renderChip('full-access')
+    renderChip('operator')
     const chip = screen.getByTestId('composer-mode-selector')
     const profileWord = catalog['chat.perm.strict']!
     // The profile has its own chip; naming it here is the contradiction the finding saw.
@@ -97,7 +96,19 @@ describe.each([
     expect(chip.getAttribute('aria-label')).not.toContain(profileWord)
     // The visible text is the mode alone — no word over it that names a different setting.
     expect(chip.textContent, 'the chip shows the mode and nothing else').toBe(
-      shortLabel(catalog, 'full-access'),
+      shortLabel(catalog, 'operator'),
     )
+  })
+
+  it('names the section, with no raw key, for a stored mode that owns no tile', () => {
+    // Task 3: the retired `edit-auto` stays on the wire for the sessions that
+    // stored it. The chip renders the section wording the locale already owns.
+    renderChip('edit-auto')
+    const chip = screen.getByTestId('composer-mode-selector')
+    expect(chip.textContent, 'visible text').toBe(catalog['chat.modeSection.write'])
+    expect(chip.getAttribute('aria-label'), 'accessible name').toContain(
+      catalog['chat.modeSection.write'],
+    )
+    expect(chip.textContent).not.toContain('edit-auto')
   })
 })

@@ -1,16 +1,64 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "voice",
-  "version": "1.0.0",
-  "description": "Text-to-speech for answers and read-aloud.",
+  "version": "1.1.0",
+  "origin": "first-party",
+  "description": "Local speech. One WAV from text, and a transcript from a session audio file.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
-    "tool_families": [],
+    "tool_families": [
+      "voice"
+    ],
     "data_roots": []
   },
   "components": {
     "skills": [],
-    "commands": []
+    "commands": [],
+    "tools": [
+      {
+        "name": "synthesize",
+        "entry": "tools/handlers.py:synthesize",
+        "family": "voice",
+        "description": "Speaks text with the local piper voice and saves a WAV. Use this when the user wants the answer read aloud as a file. An empty text or a missing piper setup returns an error line and no file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "The sentence to speak"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "transcribe",
+        "entry": "tools/handlers.py:transcribe",
+        "family": "voice",
+        "description": "Transcribes one audio file already stored for this session. Pass the file name from that folder. A missing file or a missing speech model returns an error line.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "File name in the session audio folder"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      }
+    ]
   },
-  "origin": "first-party",
+  "changelog": "1.1.0 - synthesize and transcribe ask the host. The spoken text and the transcript stay out of the bridge row.",
   "icon": "icon.svg"
 }

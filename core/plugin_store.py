@@ -346,6 +346,7 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
     # the detail sheet shows what a plugin declares, best-effort, never fatal.
     try:
         from core import plugin_manifest
+        from core.plugin_ui_capabilities import ui_descriptor
 
         by_name = {
             str(e["manifest"]["name"]): e
@@ -371,6 +372,53 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
                         entry["shadowed_builtin"] = True
                 families = found["manifest"].get("permissions", {}).get("tool_families", [])
                 entry["permissions"] = [str(f) for f in families] if isinstance(families, list) else []
+                # The rail this bundle runs on, read off its own manifest. A catalog entry
+                # with no directory behind it carries no rail: the surface shows nothing
+                # rather than a guess about code it has not seen.
+                from core import plugin_rail
+
+                fact = plugin_rail.rail_fact(found["manifest"])
+                entry["rail"] = fact["rail"]
+                entry["contributed_tools"] = fact["contributed"]
+                entry["activated_tools"] = fact["activated"]
+                # W1-7: the one surface this bundle declares, already defaulted and
+                # flattened by the contract's own view. A bundle without a surface
+                # carries no `surface` key at all, which is what the switch row
+                # reads as "there is nothing here to open".
+                descriptor = ui_descriptor(found["manifest"])
+                if descriptor.get("entry"):
+                    entry["surface"] = descriptor
     except Exception:
         pass
+    # #106: the Extensions row says how much of its ceiling a bundle has spent.
+    # Names and the host path stay off this payload; the state route lists files.
+    from core import plugin_state
+
+    manifests: dict = {}
+    try:
+        from core import plugin_manifest
+
+        manifests = {
+            str(item["manifest"]["name"]): item["manifest"]
+            for item in plugin_manifest.scan_plugins()
+            if item.get("manifest")
+        }
+    except Exception:
+        manifests = {}
+    for seg in ("public", "personal"):
+        for entry in view[seg]:
+            plugin_id = str(entry.get("id") or "")
+            try:
+                entry["state_usage"] = plugin_state.summary_for(
+                    plugin_id, manifests.get(plugin_id)
+                )
+            except Exception:
+                entry["state_usage"] = {
+                    "used_mb": 0,
+                    "cap_mb": plugin_state.DEFAULT_STATE_CAP_MB,
+                    "file_count": 0,
+                }
+    from core.plugin_scope import annotate_view
+
+    annotate_view(view, manifests)
     return view

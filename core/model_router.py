@@ -258,9 +258,9 @@ def _is_safe(name: str) -> bool:
 
 
 def _is_known(name: str) -> bool:
-    from core.tools.registry import TOOL_MAP
+    from core.tools.registry import addressable_tool_names
 
-    return name in TOOL_MAP
+    return name in addressable_tool_names()
 
 
 def decide_loop_step(

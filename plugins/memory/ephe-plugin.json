@@ -1,8 +1,15 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "memory",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Short- and long-term memory across sessions.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "memory"
@@ -31,10 +38,48 @@
       }
     ],
     "tools": [
-      "memory"
+      {
+        "name": "memory",
+        "entry": "tools/handlers.py:memory",
+        "family": "memory",
+        "description": "Writes to persistent memory that survives across sessions. Two tiers: 'user' = the user profile (name, expertise, language, style, topics, projects); 'memory' = the fact collection (environment facts, conventions, lessons). Keep entries compact and high-signal. On the 'memory' tier 'replace' supersedes the identified fact instead of forgetting it (the old fact stays askable as history), and 'memory_type' classifies the fact kind.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["add", "replace", "remove", "list"],
+              "description": "Operation."
+            },
+            "target": {
+              "type": "string",
+              "enum": ["user", "memory"],
+              "description": "Which tier to write."
+            },
+            "content": {
+              "type": "string",
+              "description": "Entry text (add/replace). For target=user use 'field=value', e.g. 'name=Test User'."
+            },
+            "old_text": {
+              "type": "string",
+              "description": "Substring identifying the entry (replace/remove)."
+            },
+            "memory_type": {
+              "type": "string",
+              "enum": ["semantic", "episodic", "procedural"],
+              "description": "Fact kind for target=memory: semantic=state of things, episodic=something that happened, procedural=how to do it."
+            },
+            "supersedes": {
+              "type": "string",
+              "description": "Entry id that this write corrects (target=memory, action=replace). Optional; 'old_text' identifies it otherwise."
+            }
+          },
+          "required": ["action", "target"]
+        }
+      }
     ]
   },
   "origin": "first-party",
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - The memory tool asks the host. 1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

@@ -2,6 +2,11 @@
 ◑ Ephe – plugin store and lifecycle routes (wave 5 P3, P1 lifecycle)
 
 GET  /api/plugins                     → aggregated view (catalog + switch state)
+GET  /api/plugins/{id}/state          → bytes kept against the bundle ceiling, and the file list
+POST /api/plugins/{id}/state/remove   → delete one stored file inside that folder
+GET  /api/plugins/{id}/client/storage → one page-sdk value, by key
+PUT  /api/plugins/{id}/client/storage → write or clear that key
+POST /api/plugins/{id}/client/tool    → run one tool this bundle owns
 PUT  /api/plugins/{id}/enabled        → the lifecycle switch (scope, version, ETag)
 POST /api/plugins/{id}/cancel         → cancel a pending activation
 POST /api/plugins/{id}/enable         → one-release compatibility shim
@@ -9,6 +14,8 @@ POST /api/plugins/master              → legacy control; off pauses every plugi
 GET  /api/plugins/events              → SSE state/pending/failed/paused events
 GET  /api/plugins/commands            → commands of enabled plugins
 GET  /api/plugins/icon/{id}           → plugin icon
+GET  /api/plugins/surface-hosts       → host placement for open surfaces
+PUT  /api/plugins/{id}/surface-host   → record that placement
 
 A failed write is an HTTP error, never 200 with saved:false.
 
@@ -33,6 +40,7 @@ from core.plugin_lifecycle import (
     unsubscribe,
 )
 from core.plugin_store import config_root, plugins_view
+from server.refusals import Refused
 
 _SCOPES = ("user", "workspace")
 
@@ -135,6 +143,134 @@ def _scope_from(body: dict) -> str:
 def get_plugins() -> dict:
     """Curated list + installed registry, with the enabled toggles."""
     return plugins_view()
+
+
+@router.get("/plugins/surface-hosts")
+def get_plugin_surface_hosts() -> dict:
+    """Host placement for every plugin surface. No page state, no mount URL."""
+    from core import plugin_runtime
+
+    return {"surfaces": plugin_runtime.lifecycle().surface_hosts()}
+
+
+@router.put("/plugins/{plugin_id}/surface-host")
+def put_plugin_surface_host(plugin_id: str, body: dict) -> dict:
+    """Record where the shell put this surface. The page's own state stays out."""
+    from core.plugin_surface_host import parse_host_record
+
+    _known_bundle(plugin_id)
+    if not isinstance(body, dict):
+        raise Refused("invalid_request")
+    try:
+        record = parse_host_record(body)
+    except ValueError:
+        raise Refused("invalid_request") from None
+    stored = plugin_runtime.lifecycle().remember_surface(plugin_id, record)
+    return {"plugin": plugin_id, "surface": stored}
+
+
+def _unknown_bundle(plugin_id: str) -> None:
+    from core.plugin_state import is_addressable
+
+    if is_addressable(plugin_id):
+        return
+    raise HTTPException(status_code=404, detail={"code": "plugin_unknown"})
+
+
+@router.get("/plugins/{plugin_id}/state")
+def get_plugin_state(plugin_id: str) -> dict:
+    """Bytes kept, bytes allowed, and the stored-file names. No host path."""
+    from core.plugin_state import report
+
+    _unknown_bundle(plugin_id)
+    return report(plugin_id)
+
+
+@router.post("/plugins/{plugin_id}/state/remove")
+def post_plugin_state_remove(plugin_id: str, body: dict) -> dict:
+    """Delete one stored file the reader named, then return the report."""
+    from core.plugin_state import remove_stored_file
+    from server.refusals import Refused
+
+    _read_only_guard("remove", plugin_id, _audit_scope(body))
+    _unknown_bundle(plugin_id)
+    name = body.get("name") if isinstance(body, dict) else None
+    try:
+        return remove_stored_file(plugin_id, name)
+    except ValueError:
+        raise Refused("plugin_state_name") from None
+
+
+def _known_bundle(plugin_id: str) -> None:
+    from core.plugin_state import is_addressable
+
+    if not is_addressable(plugin_id):
+        raise Refused("plugin_unknown")
+
+
+@router.get("/plugins/{plugin_id}/client/storage")
+def get_plugin_client_storage(plugin_id: str, key: str = "") -> dict:
+    """One stored page value. A missing key is present=false and creates nothing."""
+    from core.plugin_state import client_get
+
+    _known_bundle(plugin_id)
+    try:
+        value, present = client_get(plugin_id, key)
+    except ValueError:
+        raise Refused("invalid_request") from None
+    return {"value": value, "present": present}
+
+
+@router.put("/plugins/{plugin_id}/client/storage")
+def put_plugin_client_storage(plugin_id: str, body: dict) -> dict:
+    """Write one JSON value, or drop the key when value is null."""
+    from core.plugin_state import client_set, report
+
+    _read_only_guard("client_store", plugin_id)
+    _known_bundle(plugin_id)
+    if not isinstance(body, dict) or "key" not in body:
+        raise Refused("invalid_request")
+    try:
+        present = client_set(plugin_id, body.get("key"), body.get("value"))
+    except ValueError as exc:
+        if str(exc) == "cap":
+            usage = report(plugin_id)
+            raise Refused(
+                "plugin_state_full",
+                plugin=plugin_id,
+                used_mb=usage["used_mb"],
+                cap_mb=usage["cap_mb"],
+            ) from None
+        raise Refused("invalid_request") from None
+    return {"present": present}
+
+
+@router.post("/plugins/{plugin_id}/client/tool")
+async def post_plugin_client_tool(plugin_id: str, body: dict) -> dict:
+    """Run one tool this bundle owns. The chat approval gate still applies."""
+    from core.plugin_runtime import tool_gate
+    from core.tools.chat_gate import confirm_for_chat
+    from core.tools.registry import execute_tool
+    from core.tools.session_ctx import get_current_policy
+
+    _read_only_guard("client_tool", plugin_id)
+    _known_bundle(plugin_id)
+    if not isinstance(body, dict):
+        raise Refused("invalid_request")
+    name = body.get("name")
+    arguments = body.get("arguments", {})
+    if not isinstance(name, str) or not name or not isinstance(arguments, dict):
+        raise Refused("invalid_request")
+    gate = tool_gate(name)
+    if gate.plugin != plugin_id or not gate.visible:
+        raise Refused("tool_not_available", plugin=plugin_id, transport="plugin")
+    policy = get_current_policy()
+    if policy is None:
+        approved, denial = await confirm_for_chat(name, arguments)
+        if not approved:
+            return {"result": denial}
+    result = await execute_tool(name, arguments, policy=policy)
+    return {"result": result}
 
 
 @router.put("/plugins/{plugin_id}/enabled")

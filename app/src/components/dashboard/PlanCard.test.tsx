@@ -24,12 +24,15 @@ vi.mock('react-i18next', async (importOriginal) => {
           'chat.planEditMsg': 'Adjust the plan to exactly these steps:',
           'chat.planEditSend': 'Send the edited plan',
           'chat.planEditCancel': 'Cancel',
-          'chat.planAccepted': 'Accepted — the composer left Plan mode; the steps run in {{mode}}.',
+          'chat.planAccepted':
+            'Accepted — the composer left the read-only mode; the steps run now ({{mode}}).',
           'chat.planRunning': 'Running.',
           'chat.planStepAria': 'Plan step {{n}}',
-          // The card reads the mode's short title from the same hint the mode menu uses.
-          'chat.modeHint.edit-auto':
-            'Edit auto — the write tools run without asking, the rest still asks',
+          // Task 3: the accepted line names the execution mode as the chip does.
+          // `edit-auto` owns no tile after the rename, and the card follows the
+          // chip's rule: the section wording of an untiled stored value, never a
+          // raw key and never a tile it does not have.
+          'chat.modeSection.write': 'With write access',
         }
         const raw = map[key] ?? key
         return opts
@@ -89,7 +92,8 @@ describe('PlanCard', () => {
     fireEvent.click(screen.getByTestId('plan-accept'))
 
     // The exit the user can read: the session's composer mode moved off `plan` — the chip
-    // is bound to this value, and a turn sent now carries it to the engine.
+    // is bound to this value, and a turn sent now carries it to the engine. The stored
+    // wire value is the compatibility one, unchanged by the rename.
     expect(useChatStore.getState().sessions.find((s) => s.id === sessionId)?.mode).toBe('edit-auto')
     expect(useChatStore.getState().currentSession?.mode).toBe('edit-auto')
 
@@ -103,7 +107,8 @@ describe('PlanCard', () => {
 
     expect(screen.queryByTestId('plan-accept')).toBeNull()
     expect(screen.getByTestId('plan-card').getAttribute('data-state')).toBe('accepted')
-    expect(screen.getByTestId('plan-accepted').textContent).toContain('Edit auto')
+    expect(screen.getByTestId('plan-accepted').textContent).toContain('With write access')
+    expect(screen.getByTestId('plan-accepted').textContent).not.toContain('edit-auto')
   })
 
   it('offers no gate once a step has moved', () => {

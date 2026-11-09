@@ -25,10 +25,12 @@ from core.usage import estimate_tokens, serialize_prompt
 
 @pytest.fixture(autouse=True)
 def _clean_module_state(monkeypatch):
-    """Each test starts from an empty reserve, an empty schema cache, and a pinned counter.
+    """Each test starts from an empty reserve, a cold schema cache and a pinned counter.
 
-    The two globals live on the module, and ``_tools_for_messages`` sets the reserve on the
-    running context — a leak would silently shift the next test's boundary.
+    The reserve lives on the module as a ContextVar, and ``_tools_for_messages`` sets it
+    on the running context — a leak would silently shift the next test's boundary. The
+    offer array itself is cached in ``core.tools.registry``, so that is the cache to
+    cold-start here.
 
     The counter is pinned because ``estimate_tokens`` prefers tiktoken whenever it is
     importable and falls back to the two-bucket heuristic otherwise. BPE prices a repeated
@@ -36,13 +38,13 @@ def _clean_module_state(monkeypatch):
     boundary in this file. This module pins the fitting; the counter stays free to differ.
     """
     from core import usage as usage_mod
+    from core.tools import registry
 
     monkeypatch.setattr(usage_mod, "_get_tiktoken_encoding", lambda: None)
     cc._TOOL_SCHEMA_TOKENS.set(None)
-    cc._TOOL_SCHEMA_CACHE = None
+    monkeypatch.setattr(registry, "_TOOL_SCHEMA_CACHE", None)
     yield
     cc._TOOL_SCHEMA_TOKENS.set(None)
-    cc._TOOL_SCHEMA_CACHE = None
 
 
 def _history(count: int, *, size: int = 800) -> list[dict]:
@@ -158,9 +160,15 @@ class TestToolSchemaShare:
             list(messages), 2000
         )
 
-    def test_cached_schemas_are_served_within_ttl_and_refreshed_after(self, monkeypatch):
-        """GIVEN the tool-schema cache WHEN the TTL has not elapsed THEN the same
-        list is served; WHEN it has elapsed THEN the registry is asked again."""
+    def test_the_offer_comes_from_the_registry_on_every_read(self, monkeypatch):
+        """GIVEN two reads of the base array WHEN no turn bound them THEN the registry
+        answers both.
+
+        The chat path used to keep a window of its own over the *filtered* answer, which
+        served one session's offer to the next for a minute. Cost is still bounded — the
+        registry caches the unfiltered base and `tests/test_tool_schema_cache_gate.py`
+        holds that the three runtime filters run outside it.
+        """
         calls: list[int] = []
 
         def fake_schemas():
@@ -168,15 +176,8 @@ class TestToolSchemaShare:
             return [{"function": {"name": "read_file", "description": "ok"}}]
 
         monkeypatch.setattr(cc, "get_tool_schemas", fake_schemas)
-        clock = {"t": 1000.0}
-        monkeypatch.setattr(cc.time, "monotonic", lambda: clock["t"])
 
         first = cc._cached_tool_schemas()
         second = cc._cached_tool_schemas()
-        assert first is second
-        assert len(calls) == 1
-
-        clock["t"] += cc.TOOL_SCHEMA_CACHE_TTL_SECONDS + 1
-        third = cc._cached_tool_schemas()
-        assert third == first
-        assert len(calls) == 2
+        assert len(calls) == 2, "the chat path kept its own window again"
+        assert first == second

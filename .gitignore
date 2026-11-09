@@ -176,3 +176,9 @@ out/
 
 # Live-cell demo output (scripts/ephemeral_demo.py)
 .cell-demo/
+
+# Subagent-driven-development workspace: ledger, task briefs, implementer reports, review
+# packages for the plan being executed. Scratch of the running lane, never a product artifact,
+# and it has to survive `git clean -fdx` — an unignored `.superpowers/` was erased mid-plan on
+# 2026-11-04 and the recovery map had to be rebuilt from git log.
+.superpowers/

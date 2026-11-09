@@ -133,12 +133,13 @@ export function listAgentRuns(id: string, limit = 20): Promise<{ runs: AgentRun[
   return request<{ runs: AgentRun[] }>(`/api/agents/${encodeURIComponent(id)}/runs?limit=${limit}`)
 }
 
-export type TeamOrchestration = 'leader' | 'parallel' | 'sequential' | 'review'
+export type TeamOrchestration = 'leader' | 'parallel' | 'sequential' | 'review' | 'iterative'
 export type TeamModelPolicy = 'inherit' | 'team' | 'per_member'
 
 export interface TeamBudget {
   max_rounds: number
   wall_timeout: number
+  max_iterations?: number
 }
 
 export interface TeamRecord {

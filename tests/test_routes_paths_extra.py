@@ -110,12 +110,18 @@ class TestFileRoutePathBases:
         monkeypatch.setenv("EPHE_WORKSPACE", str(tmp_path / "empty"))
         r = client.get("/api/file", params={"path": "nowhere.md"})
         assert r.status_code == 404
-        assert "relative path resolved" in r.json()["error"]["message"]
+        # The envelope keeps `error.code` at the transport word a 404 always carried and
+        # puts the route's own code in `reason_code`, which is what this pins.
+        assert r.json()["error"]["reason_code"] == "file_not_found"
 
     def test_absolute_path_outside_roots_is_403(self, client):
         r = client.get("/api/file", params={"path": "/etc/hosts"})
         assert r.status_code == 403
-        assert "allowed roots" in r.json()["error"]["message"]
+        body = r.json()["error"]
+        assert body["reason_code"] == "file_path_not_allowed"
+        # #120: the sentence names the two folders the guard reads. A copy that lists
+        # the kernel's wider roots promises a read this route refuses.
+        assert "workspace" in body["message"] and "output" in body["message"]
 
     def test_symlink_escape_is_403(self, client, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
@@ -140,19 +146,47 @@ class TestFileRoutePathBases:
 
     def test_oversized_file_is_413(self, client, tmp_path, monkeypatch):
         import server.routes.files as fm
+
+        ws = tmp_path / "ws"
+        ws.mkdir()
+        monkeypatch.setenv("EPHE_WORKSPACE", str(ws))
         monkeypatch.setattr(fm, "MAX_FILE_BYTES", 4)
-        big = tmp_path / "big.md"
+        big = ws / "big.md"
         big.write_text("too long", encoding="utf-8")
         r = client.get("/api/file", params={"path": str(big)})
         assert r.status_code == 413
 
     def test_home_expansion_is_resolved(self, client, tmp_path, monkeypatch):
+        """A `~` path reaches the guard as the folder it stands for.
+
+        #120 moved the artifact read inside the declared scope, so the file the
+        expansion names sits in the workspace: the pin here is the expansion, and a
+        `~` outside the scope would answer 403 for a different reason than this test
+        proves anything about.
+        """
         home = tmp_path / "home"
-        home.mkdir()
+        workspace = home / "projects" / "ephe"
+        workspace.mkdir(parents=True)
+        (workspace / "note.md").write_text("hi", encoding="utf-8")
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
+        r = client.get("/api/file", params={"path": "~/projects/ephe/note.md"})
+        assert r.status_code == 200
+
+    def test_a_home_file_the_scope_excludes_is_refused_by_name(self, client, tmp_path, monkeypatch):
+        """GIVEN ~/note.md, workspace elsewhere
+        WHEN GET /api/file
+        THEN 403 — the expansion is resolved before the scope decides, so a `~` path
+        is no way past the guard."""
+        home = tmp_path / "home"
+        workspace = home / "projects" / "ephe"
+        workspace.mkdir(parents=True)
         (home / "note.md").write_text("hi", encoding="utf-8")
         monkeypatch.setenv("HOME", str(home))
+        monkeypatch.setenv("EPHE_WORKSPACE", str(workspace))
         r = client.get("/api/file", params={"path": "~/note.md"})
-        assert r.status_code == 200
+        assert r.status_code == 403
+        assert r.json()["error"]["reason_code"] == "file_path_not_allowed"
 
 
 # server/routes/fs.py — listing quirks, workspace helpers, mkdir edges

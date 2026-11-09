@@ -170,3 +170,43 @@ class TestIconRoute:
         assert response.headers["x-content-type-options"] == "nosniff"
         assert "default-src 'none'" in response.headers["content-security-policy"]
         assert "frame-ancestors 'self'" in response.headers["content-security-policy"]
+
+    def test_a_remote_client_reads_the_icon_only_through_the_header(self):
+        """Off loopback the icon bytes come back with the header. A query token does not."""
+        import asyncio
+
+        import httpx
+
+        from server import middleware
+        from server.main import create_app
+
+        app = create_app(lan_mode=True)
+        peer = "203.0.113.7"
+        host = f"{peer}:8765"
+
+        def call(headers=None, params=None):
+            transport = httpx.ASGITransport(app=app, client=(peer, 54321))
+
+            async def run():
+                async with httpx.AsyncClient(transport=transport, base_url=f"http://{host}") as client:
+                    return await client.get(
+                        "/api/plugins/icon/documents", headers=headers, params=params
+                    )
+
+            return asyncio.run(run())
+
+        try:
+            token = middleware.LAN_AUTH_TOKEN
+            assert token
+            bare = call()
+            assert bare.status_code == 401
+            assert b"<svg" not in bare.content.lower()
+            queried = call(params={"token": token})
+            assert queried.status_code == 401
+            assert b"<svg" not in queried.content.lower()
+            headed = call(headers={"X-Auth-Token": token})
+            assert headed.status_code == 200
+            assert headed.headers["content-type"].startswith("image/svg+xml")
+            assert b"<svg" in headed.content.lower()
+        finally:
+            middleware.init_auth(lan_mode=False)

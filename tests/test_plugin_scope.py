@@ -6,8 +6,6 @@ User and workspace switch state resolve workspace-first.
 """
 from __future__ import annotations
 
-import json
-import os
 import sys
 from pathlib import Path
 
@@ -95,32 +93,30 @@ async def test_a_plugin_file_tool_fails_closed_without_a_valid_workspace(
 
 
 @pytest.mark.asyncio
-async def test_a_relative_data_root_cannot_follow_a_workspace_symlink(scoped) -> None:
-    """GAP-01: `shared` is a workspace-relative root; resolving it must stay inside."""
-    from core import plugin_runtime
+async def test_a_relative_data_root_cannot_follow_a_workspace_symlink(
+    scoped, monkeypatch
+) -> None:
+    """GAP-01: `shared` is a workspace-relative root; resolving it must stay inside.
+
+    The shipped bundle declares no data root. This test lends it `shared` for one
+    call. A symlink from that name to a folder beside the workspace is dropped, so
+    the file tool still reads the workspace and still refuses the outside file.
+    """
+    from core import capability_policy
     from core.tools.registry import execute_tool
 
     workspace, outside = scoped
     (workspace / "inside.txt").write_text("INSIDE-OK", encoding="utf-8")
     (outside / "secret.txt").write_text("OUTSIDE-SECRET", encoding="utf-8")
+    original = capability_policy.declared_data_roots
 
-    plugin_dir = Path(os.environ["EPHE_CONFIG_DIR"]) / "plugins" / "code-shell"
-    plugin_dir.mkdir(parents=True)
-    (plugin_dir / "ephe-plugin.json").write_text(
-        json.dumps(
-            {
-                "manifest_version": 1,
-                "name": "code-shell",
-                "version": "9.9.9",
-                "description": "scope probe",
-                "permissions": {"tool_families": ["read"], "data_roots": ["shared"]},
-                "components": {"skills": [], "commands": [], "tools": ["read_file"]},
-            }
-        ),
-        encoding="utf-8",
-    )
+    def _roots(plugin: str) -> tuple[str, ...]:
+        if plugin == "code-shell":
+            return ("shared",)
+        return original(plugin)
+
+    monkeypatch.setattr(capability_policy, "declared_data_roots", _roots)
     (workspace / "shared").symlink_to(outside)
-    plugin_runtime.invalidate_ownership_cache()
 
     inside = await execute_tool("read_file", {"path": str(workspace / "inside.txt")})
     assert "INSIDE-OK" in inside

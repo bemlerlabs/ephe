@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from core import mcp_catalog, plugin_manifest
+from core import mcp_catalog, plugin_manifest, plugin_tools_contract
 from core.skills import Skill, SkillLoader
 
 #: Command/skill pairs that keep the skill and remove the duplicate command.
@@ -33,6 +33,7 @@ class CapabilityKind(str, Enum):
     COMMAND = "command"
     MCP_SERVER = "mcp_server"
     BUILTIN_TOOL = "builtin_tool"
+    PLUGIN_TOOL = "plugin_tool"
 
 
 class RegistryError(Exception):
@@ -47,28 +48,47 @@ def load_tool_activations(
 ) -> tuple[tuple[str, str], ...]:
     """Tool name → activating plugin, derived from the manifests.
 
-    The tool capability stays kernel-owned; the plugin only activates it. Two
-    plugins declaring the same tool fail closed instead of silently winning.
+    A version 1 manifest activates a kernel tool and the capability stays kernel-owned; a
+    version 2 manifest contributes a tool of its own, served under the name its plugin id
+    derives. Two claimants of one served name fail closed instead of silently winning.
     """
+    return _scan_or_raise(plugins_root).owners
+
+
+def _scan_or_raise(plugins_root: Path | None) -> ToolActivations:
     scanned = scan_tool_activations(plugins_root)
     if scanned.conflicts:
         raise RegistryError(
-            "duplicate_tool_activation",
-            f"{scanned.conflicts[0]}: declared by more than one plugin",
+            "duplicate_tool_activation", scanned.reason_for(scanned.conflicts[0])
         )
-    return scanned.owners
+    return scanned
 
 
 @dataclass(frozen=True)
 class ToolActivations:
+    """Who owns which served tool name, across the whole scanned portfolio.
+
+    ``owners`` maps every name a manifest speaks of to one plugin; ``conflicts`` lists
+    the names with more than one claim, or one claim and a kernel or MCP name already
+    using it. The runtime gate hides every conflicted name from everyone, so the list has
+    to say what met: ``reason_for`` names both plugins and both declarations.
+    """
+
     owners: tuple[tuple[str, str], ...]
     conflicts: tuple[str, ...]
+    contributed: tuple[str, ...] = ()
+    _reasons: tuple[tuple[str, str], ...] = ()
+
+    def reason_for(self, tool_name: str) -> str:
+        return dict(self._reasons).get(tool_name, f"{tool_name}: claimed by more than one plugin")
 
 
 def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
     """Like load_tool_activations, but reports conflicting tools instead of raising."""
     owners: dict[str, str] = {}
+    claimants: dict[str, list[tuple[str, str]]] = {}
     conflicts: set[str] = set()
+    contributed: set[str] = set()
     for entry in plugin_manifest.scan_plugins(
         None if plugins_root is None else Path(plugins_root)
     ):
@@ -76,16 +96,34 @@ def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
         if entry["error"] or not manifest:
             continue
         plugin = str(manifest["name"])
-        for tool in manifest.get("components", {}).get("tools", []):
-            tool_name = str(tool)
+        for claim in plugin_tools_contract.tool_claims(manifest):
+            tool_name = claim.name
             if tool_name in owners and owners[tool_name] != plugin:
                 conflicts.add(tool_name)
             else:
                 owners[tool_name] = plugin
+            claimants.setdefault(tool_name, []).append((plugin, claim.suffix))
+            if claim.contributed:
+                contributed.add(tool_name)
+                if plugin_tools_contract.reserved_namespace(tool_name):
+                    conflicts.add(tool_name)
+    reasons = tuple(
+        (name, _conflict_reason(name, claimants.get(name, ()))) for name in sorted(conflicts)
+    )
     return ToolActivations(
         owners=tuple(sorted(owners.items())),
         conflicts=tuple(sorted(conflicts)),
+        contributed=tuple(sorted(contributed)),
+        _reasons=reasons,
     )
+
+
+def _conflict_reason(tool_name: str, claims: list[tuple[str, str]]) -> str:
+    """The sentence a reader needs to find the two declarations that met on one name."""
+    claimed = ", ".join(f"{plugin!r} declares {suffix!r}" for plugin, suffix in claims)
+    if not claimed:
+        return f"{tool_name}: claimed by more than one plugin"
+    return f"{tool_name}: claimed by {claimed}"
 
 
 @dataclass(frozen=True)
@@ -138,7 +176,9 @@ class PluginRegistry:
         plugins: list[PluginDescriptor] = []
         capabilities: list[CapabilityDescriptor] = []
         owners: set[str] = {"core-skills", "mcp-catalog", "kernel"}
-        activations = load_tool_activations(plugins_root)
+        scanned = _scan_or_raise(plugins_root)
+        activations = scanned.owners
+        contributed = set(scanned.contributed)
 
         for entry in plugin_manifest.scan_plugins(
             None if plugins_root is None else Path(plugins_root)
@@ -172,13 +212,22 @@ class PluginRegistry:
         )
         capabilities.extend(McpAdapter(mcp_catalog.catalog_entries()).capabilities())
         for tool, plugin_id in activations:
+            is_contributed = tool in contributed
             capabilities.append(
                 CapabilityDescriptor(
                     id=f"tool:{tool}",
-                    kind=CapabilityKind.BUILTIN_TOOL,
-                    owner="kernel",
+                    kind=(
+                        CapabilityKind.PLUGIN_TOOL
+                        if is_contributed
+                        else CapabilityKind.BUILTIN_TOOL
+                    ),
+                    owner=plugin_id if is_contributed else "kernel",
                     name=tool,
-                    description=f"activated by {plugin_id}",
+                    description=(
+                        f"contributed by {plugin_id}"
+                        if is_contributed
+                        else f"activated by {plugin_id}"
+                    ),
                     source=f"plugins/{plugin_id}/{plugin_manifest.MANIFEST_FILENAME}",
                 )
             )

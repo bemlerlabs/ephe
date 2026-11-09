@@ -1,6 +1,6 @@
 {
   "name": "ephe-frontend",
-  "version": "0.5.7",
+  "version": "0.6.0",
   "private": true,
   "license": "BUSL-1.1",
   "type": "module",
@@ -16,8 +16,12 @@
     "format": "prettier --write src/",
     "test": "vitest run",
     "test:perf": "vitest run --config vitest.perf.config.ts",
+    "e2e:browsers": "playwright install chromium",
+    "pretest:e2e": "pnpm run e2e:browsers",
     "test:e2e": "playwright test -c tests/playwright/playwright.config.ts",
+    "pretest:e2e:real": "pnpm run e2e:browsers",
     "test:e2e:real": "playwright test -c tests/playwright/playwright.real.config.ts",
+    "pretest:dogfood": "pnpm run e2e:browsers",
     "test:dogfood": "playwright test -c tests/playwright/dogfood.config.ts",
     "tauri": "tauri"
   },

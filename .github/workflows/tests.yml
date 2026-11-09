@@ -233,6 +233,7 @@ jobs:
           tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
           --benchmark-json=.benchmarks/bench-timing-py${{ matrix.python-version }}.json
 
       - name: Upload timing benchmark report
@@ -272,6 +273,7 @@ jobs:
           --deselect=tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           --deselect=tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           --deselect=tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          --deselect=tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
 
   # R25: the macOS leg. The shell-guard and Seatbelt tests are POSIX-heavy and `sandbox-exec` (SBPL)
   # exists only on macOS, so this is where the macOS-only live guards run for real instead of
@@ -377,6 +379,7 @@ jobs:
           tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
           --benchmark-json=.benchmarks/bench-timing-macos.json
 
       - name: Upload timing benchmark report (macOS)
@@ -401,6 +404,7 @@ jobs:
           --deselect=tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           --deselect=tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           --deselect=tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          --deselect=tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
 
   integration:
     name: Integration checks

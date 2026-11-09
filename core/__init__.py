@@ -5,6 +5,9 @@
 # pyproject-coupled fallback value — every UI reading (Sidebar, Onboarding,
 # About tab) takes its version from this value via /api/health.
 from core._version import __version__
+from core.proxy_env import install_proxy_normalizer
+
+install_proxy_normalizer()
 
 __edition__  = "◑ Ephe"
 __product__  = "Ephe"

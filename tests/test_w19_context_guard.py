@@ -7,7 +7,7 @@ system prompt (the fast-path detection tests were dropped with R36, together wit
 the deleted `core/skill_fastpath` module).
 
 Pins:
-1. ASK_MODE_GUARD exists and forbids success claims strictly.
+1. ANALYST_MODE_GUARD exists and forbids success claims strictly.
 2. needs_compute_guard recognizes file arithmetic; COMPUTE_GUARD names run_shell.
 3. The stream wiring mixes the guard into the extra system block.
 """
@@ -18,11 +18,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.persona import ASK_MODE_GUARD  # noqa: E402
+from core.persona import ANALYST_MODE_GUARD  # noqa: E402
 
 
 def test_ask_mode_guard_forbids_success_claims():
-    low = ASK_MODE_GUARD.lower()
+    low = ANALYST_MODE_GUARD.lower()
     assert "never claim" in low and "no tool access" in low
     assert "never" in low and "created" in low and "fetched" in low
 

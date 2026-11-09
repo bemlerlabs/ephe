@@ -6,12 +6,21 @@
  *
  * Short titles: NO new text is invented — the existing hint text, already
  * translated into both languages (`chat.modeHint.*`), begins with the short
- * title («Fragen — Ephe antwortet nur…» → «Fragen»). Without a resolved // language-gate: ignore — the German hint text and its short label (de.json:210 ask)
+ * title («Analyst — Ephe antwortet nur…» → «Analyst»). Without a resolved // language-gate: ignore — the German hint text and its short label (de.json chat.modeHint.analyst)
  * translation (tests, missing key) the hard-coded fallback name takes over.
  *
- * Sections: ask runs no tools, plan permits only read-only inspection,
- * edit-auto and full-access may write — exactly the semantics of
- * `server/routes/chat.py::_mode_context`.
+ * Sections: analyst runs no tools, architect permits only read-only inspection,
+ * operator may write and run — exactly the semantics of
+ * `server/routes/chat.py::_mode_context`. Task 3: three tiles. The retired
+ * edit-auto has none (its stored value keeps its wire spelling on purpose, and
+ * the migratable legacy values rewrite through `normalizeComposerMode`).
+ *
+ * Wave 5 added the fourth tile: `creator` had been a resolver value since Task 2
+ * and now has the guard (`core/tools/creator_guard.py`, `80e3852f`) and the four
+ * bundle tools (`b4daa41c`) behind its name, which was the condition the tile was
+ * held to. Its entry is not a plain switch: picking it asks for the permissions
+ * first (`CreatorConsentDialog.tsx`), so the menu's `onPick` still names the key
+ * and the surface decides what entering it costs.
  */
 import { useMemo, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,32 +45,32 @@ export interface ComposerMode {
 /** Order == reading direction == keyboard ring. */
 export const COMPOSER_MODES: ComposerMode[] = [
   {
-    key: 'ask',
-    fallback: 'Ask',
-    hintKey: 'chat.modeHint.ask',
+    key: 'analyst',
+    fallback: 'Analyst',
+    hintKey: 'chat.modeHint.analyst',
     sectionKey: 'chat.modeSection.none',
     sectionDefault: 'Without tools',
   },
   {
-    key: 'plan',
-    fallback: 'Plan',
-    hintKey: 'chat.modeHint.plan',
+    key: 'architect',
+    fallback: 'Architect',
+    hintKey: 'chat.modeHint.architect',
     sectionKey: 'chat.modeSection.read',
     sectionDefault: 'Read only',
   },
   {
-    key: 'edit-auto',
-    fallback: 'Edit auto',
-    hintKey: 'chat.modeHint.edit-auto',
+    key: 'operator',
+    fallback: 'Operator',
+    hintKey: 'chat.modeHint.operator',
     sectionKey: 'chat.modeSection.write',
     sectionDefault: 'With write access',
   },
   {
-    key: 'full-access',
-    fallback: 'Full access',
-    hintKey: 'chat.modeHint.full-access',
-    sectionKey: 'chat.modeSection.write',
-    sectionDefault: 'With write access',
+    key: 'creator',
+    fallback: 'Creator',
+    hintKey: 'chat.modeHint.creator',
+    sectionKey: 'chat.modeSection.create',
+    sectionDefault: 'Creates plugins',
   },
 ]
 

@@ -72,7 +72,7 @@ Ephe is designed with **privacy and security as core principles**:
 - **Zero Telemetry in this repository** — No analytics or tracking pipeline is included
 - **No Engine Default** — the engine is the user's declared choice (a local Ollama or an
   OpenAI-compatible endpoint); nothing picks one in code, and the online providers are opt-in
-- **Tool approval and optional OS sandbox** — The default strict profile requires approval for shell, screenshot and GUI actions. On macOS the optional Seatbelt sandbox wraps approved commands; Linux has no OS wrapper.
+- **Tool approval and optional OS sandbox** — The default strict profile requires approval for shell, screenshot and GUI actions. The optional shell sandbox stays off until it is turned on. On macOS it wraps approved commands in `sandbox-exec`; on Linux it uses `bwrap` when that program is installed. Writes stay in the workspace, temp and the device nodes. The rest of the home directory is closed, and the network is denied. A requested sandbox with no boundary does not run the command.
 - **Per-Segment Shell Whitelist** — Every segment of a chained shell command (`;`, `&&`, `||`, `|`) must start with a whitelisted binary. Command substitution (`$(…)`, backticks, process substitution), shell redirects, and network binaries (`curl`/`wget`) are rejected outright. The default strict profile asks before mutations. Opt-in modes and remembered approvals can allow execution without another prompt.
 - **File Whitelist** — Access restricted to safe directories only
 - **Hardened Response Headers** — `Content-Security-Policy: frame-ancestors 'self'` (own artifact previews render, foreign framing blocked), `X-Content-Type-Options: nosniff`, strict `Referrer-Policy`

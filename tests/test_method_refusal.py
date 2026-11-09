@@ -30,7 +30,7 @@ def client(tmp_path, monkeypatch):
 @pytest.fixture
 def served_file(client, monkeypatch, tmp_path):
     """A real file inside an allowed root — the GET side of /api/file works here."""
-    monkeypatch.setattr("server.routes.files._get_allowed_roots", lambda: [tmp_path])
+    monkeypatch.setattr("server.routes.files._get_artifact_roots", lambda: [tmp_path])
     f = tmp_path / "chart.svg"
     f.write_text("<svg/>", encoding="utf-8")
     return f
@@ -48,12 +48,16 @@ class TestRefusedMethod:
         assert "GET" in r.headers["allow"].split(", ")
         assert "POST" in error["message"] and "GET" in error["message"]
 
-    def test_head_on_the_same_path_refuses_the_same_way(self, client, served_file):
-        """GIVEN the same route WHEN HEAD /api/file THEN 405 with Allow naming GET.
-        HEAD answers with headers only, so the code is pinned on the POST twin."""
+    def test_head_on_the_same_path_answers_with_metadata_only(self, client, served_file):
+        """GIVEN the same route WHEN HEAD /api/file THEN 200 with the file's own size and
+        its range support, and no body. #80 gave the route a HEAD verb so a surface can ask
+        what a file weighs without downloading it; the refused-method contract stays pinned
+        on the POST twin above, which is where a body could not hide the code anyway."""
         r = client.head("/api/file", params={"path": str(served_file)})
-        assert r.status_code == 405
-        assert "GET" in r.headers["allow"].split(", ")
+        assert r.status_code == 200
+        assert r.headers["content-length"] == str(served_file.stat().st_size)
+        assert r.headers["accept-ranges"] == "bytes"
+        assert r.content == b""
 
     def test_the_working_verb_is_undisturbed(self, client, served_file):
         """GIVEN the refusal above WHEN GET /api/file?path=… THEN 200 + content."""

@@ -47,11 +47,25 @@ DENIAL_REASONS = {
     "approval_channel_failed": "the approval channel failed ({error})",
     "not_approved": "",
     # W10: the mode's own promise, refused where the call would run.
-    "mode_read_only": "this mode is read-only (Plan) and that tool writes — leave Plan mode to run it",
-    "mode_no_tools": "this mode (Ask) runs without tools",
+    "mode_read_only": "this mode is read-only (Architect) and that tool writes — leave Architect mode to run it",
+    "mode_no_tools": "this mode (Analyst) runs without tools",
     # SEC-1: a path under a protected root is refused before a dialog; a
     # credential-shaped file needs the dialog even when the tool only reads.
     "secret_path_denied": "the path is inside a protected root ({path})",
+    # W2-11 (#11): a contributed tool carries the family it wants to run under, and the
+    # plugin's own manifest is what grants it. A family nobody asked for is refused here,
+    # at the call that would run, and the reader still has the two moves below.
+    "plugin_family_undeclared": (
+        "the plugin behind this tool never declared the '{family}' tool family — change "
+        "its manifest and reload the plugin, or choose a tool its permissions cover"
+    ),
+    # #26: the Creator mode's own promise. The mode asked for three permissions and this
+    # session holds a set that does not cover the call. The move is the user's, so the
+    # sentence asks for it instead of naming a surface that may not be on screen.
+    "creator_privilege_missing": (
+        "this Creator session was not granted the '{privilege}' permission — ask the user "
+        "to grant it, or choose a call that needs less"
+    ),
 }
 
 #: The move a denied run leaves open. Every denial carries it — a bare "was not executed"
@@ -60,7 +74,7 @@ DENIAL_REASONS = {
 NEXT_STEP = "Ask, or choose a read-only path."
 
 
-#: The tool names a read-only mode (Plan) still executes. The offer filter in
+#: The tool names a read-only mode (Architect) still executes. The offer filter in
 #: ``server/routes/chat.py`` is the subset the model is shown; this set is what the
 #: execution gate admits, and it is deliberately wider in exactly two ways:
 #:   - ``tool_search``/``tool_describe`` only read the tool index;
@@ -87,10 +101,21 @@ def mode_denial(name: str) -> Optional[Denied]:
     point where the write would have happened, whatever route the model took to ask.
     """
     mode = get_current_mode()
-    if mode == "ask":
+    # The rename keeps both spellings: stored clients send the old names, fresh
+    # ones the new, and each pair must refuse identically — analyst is ask,
+    # architect is plan. A drifted refusal here would move a privilege.
+    if mode in ("ask", "analyst"):
         return denial_message(name, "mode_no_tools")
-    if mode == "plan" and name not in READ_ONLY_MODE_TOOLS:
-        return denial_message(name, "mode_read_only")
+    if mode in ("plan", "architect") and name not in READ_ONLY_MODE_TOOLS:
+        # A contributed tool is judged by the family it declares. Only a dynamic tool
+        # whose family is `read`, whose plugin's manifest declared `read`, and whose
+        # descriptor the registry still holds passes here (core.tools.dynamic_gate) —
+        # the same promise `read_file` makes. An undeclared family, a plugin no manifest
+        # speaks of yet, and an unknown name keep the refusal this function gave before.
+        from core.tools.dynamic_gate import runs_read_only
+
+        if not runs_read_only(name):
+            return denial_message(name, "mode_read_only")
     return None
 
 

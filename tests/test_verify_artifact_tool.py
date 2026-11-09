@@ -93,9 +93,10 @@ def make_project(root, with_readme=True, empty_file=False):
 
 class TestRegistration:
     def test_given_registry_when_resolved_then_verify_artifact_is_registered(self):
-        from core.tools.registry import TOOL_MAP, get_tool_schemas
+        from core.tools.registry import TOOL_MAP, addressable_tool_names, get_tool_schemas
 
-        assert "verify_artifact" in TOOL_MAP
+        assert "verify_artifact" not in TOOL_MAP
+        assert "verify_artifact" in addressable_tool_names()
         names = {s["function"]["name"] for s in get_tool_schemas()}
         assert "verify_artifact" in names
 

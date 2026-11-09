@@ -98,13 +98,13 @@ def gated_home(tmp_path, monkeypatch, request):
 
     from core.plugin_registry import PluginRegistry
     from core.tools import registry
-    from core.tools._schemas import BASE_TOOL_SCHEMAS
+    from core.tools.registry import addressable_tool_names
 
     root = Path(__file__).resolve().parents[1]
     activations: dict[str, list[str]] = {}
     for tool, plugin in PluginRegistry.load(root / "plugins", root / "skills").tool_activations():
         activations.setdefault(plugin, []).append(tool)
-    advertised = {entry.get("function", {}).get("name", "") for entry in BASE_TOOL_SCHEMAS}
+    advertised = set(addressable_tool_names())
     catalog = [
         (plugin_id, sorted(tools))
         for plugin_id, tools in sorted(activations.items())

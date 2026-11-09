@@ -193,9 +193,13 @@ class Subagent:
                     break
 
                 messages.append(msg)
-                for call in tool_calls:
+                for i, call in enumerate(tool_calls):
                     name = call.function.name
                     args = call.function.arguments or {}
+                    # The wire registers each call as its id, or a positional
+                    # fallback when the engine sent none. The result must name
+                    # that same id or the converter refuses it as orphaned.
+                    call_id = call.id or f"call_{i}"
                     args_preview = json.dumps(args, default=str)[:160]
                     self.tool_calls.append({"tool": name, "args_preview": args_preview[:120]})
                     t_tool = time.perf_counter()
@@ -225,7 +229,7 @@ class Subagent:
                         "gate": gate_note,
                     })
                     if not allowed:
-                        messages.append({"role": "tool", "content": denial})
+                        messages.append({"role": "tool", "tool_call_id": call_id, "content": denial})
                         subagent_history.tool_call(
                             self.agent_id, name, args_preview, 0, gate=gate_note
                         )
@@ -234,7 +238,7 @@ class Subagent:
                         result = await execute_tool(name, args)
                     except Exception as exc:  # noqa: BLE001 — tool errors feed back to the model
                         result = f"[tool-error: {exc}]"
-                    messages.append({"role": "tool", "content": str(result)[:8000]})
+                    messages.append({"role": "tool", "tool_call_id": call_id, "content": str(result)[:8000]})
                     subagent_history.tool_call(
                         self.agent_id, name, args_preview,
                         int((time.perf_counter() - t_tool) * 1000),

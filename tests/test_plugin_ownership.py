@@ -64,6 +64,8 @@ EXPECTED_ACTIVATIONS = {
     "run_shell": "code-shell",
     "run_tests": "code-shell",
     "scaffold_project": "code-shell",
+    "synthesize": "voice",
+    "transcribe": "voice",
     "verify_artifact": "documents",
     "vision_click": "vision",
     "vision_type": "vision",

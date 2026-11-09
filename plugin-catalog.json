@@ -6,10 +6,10 @@
       "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
       "tags": [],
       "enabled": true,
-      "sha256": "782f1c9c8d3ebec038dd7ab39400e177e0325dcf5389583dad315e3972e854b1",
+      "sha256": "976e47fa308f413347404d0ab131e9caf5b68fc96de49eeb9dbdc5b725a7c1d2",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
@@ -17,10 +17,21 @@
       "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
       "tags": [],
       "enabled": true,
-      "sha256": "926e95cfc6504e8ea58fac54a0706bfbb348bb0422ca97292ef69bf2b4df20ea",
+      "sha256": "b9cfc18a6428a2521da1bcc96e347dbc2ff6faa4979874cf0aa53f07939fff66",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "countdown",
+      "description": "A countdown widget: one declarative surface the shell can show, and a timer the agent can set and read back.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "0cd5ea8ffbee92d68fdc78b99765fa0d2ebdde71becac7b99837edcb0b77ebc2",
+      "url": "",
+      "manifest": true,
+      "version": "0.1.0",
       "origin": "first-party"
     },
     {
@@ -28,10 +39,10 @@
       "description": "Real document production: PDF, DOCX, QR codes, source notebooks and report-grade briefs.",
       "tags": [],
       "enabled": true,
-      "sha256": "344cd55957661fef2153ee8a693e0571e6300d7173f7d2cd9004fdc9ae5152dc",
+      "sha256": "3e86e98f4241855472e682591ddbe6a2d825ca78af0408815a86e04c4d053c52",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
@@ -47,13 +58,13 @@
     },
     {
       "name": "image-studio",
-      "description": "Image endpoint (opt-in) generates pictures from prompts.",
+      "description": "Opt-in image endpoint. One picture from a prompt, saved under a name that ends in .png.",
       "tags": [],
       "enabled": true,
-      "sha256": "6c6851840b90654cf5a54c93d10ff282b4a513fec214fa5a506c2868566db026",
+      "sha256": "e6854ae62631a4339e9c9cbca14e2c89042e50cbbaccb7e2dc1cb00d5a075afa",
       "url": "",
       "manifest": true,
-      "version": "1.0.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
@@ -61,7 +72,7 @@
       "description": "One fact pack, four formats, one evidence gate: verified PDF, DOCX, XLSX and PPTX documents built locally.",
       "tags": [],
       "enabled": true,
-      "sha256": "3aa9d5ea9d612af6ffdbd006127b34a4a226bce5cd6fefe83ab730c908f9fec0",
+      "sha256": "9e2a52915049d53e3d80e15f91b87d1f9698cfa7dacdc294a7fa6f201db7a0ef",
       "url": "",
       "manifest": true,
       "version": "1.0.0",
@@ -83,10 +94,10 @@
       "description": "Short- and long-term memory across sessions.",
       "tags": [],
       "enabled": true,
-      "sha256": "0cd02818cd0ad1a3db64ac7efdb73fed37ee1918d179173984da10cb7a376540",
+      "sha256": "9fc0f1741aa20550bc47cbeefade3779b8a600bd29c6cf556464e9b5dbe87d8d",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
@@ -94,7 +105,7 @@
       "description": "Create and validate Ephe plugins: manifest scaffolds, permission reviews, signing guidance.",
       "tags": [],
       "enabled": true,
-      "sha256": "d659d232b413f61622a5863d6d7946055b6f665f8432b027db2c0f7e51354bbe",
+      "sha256": "a3516e4accac87abb949cb18f642fd2b9737fe09f91a046a713364a08b0371f8",
       "url": "",
       "manifest": true,
       "version": "1.0.0",
@@ -102,13 +113,13 @@
     },
     {
       "name": "presentations",
-      "description": "Real deck production: PPTX presentations, pitch decks, diagrams and SVG assets.",
+      "description": "Real deck production: a widescreen PPTX, a PDF pitch, a diagram and an SVG.",
       "tags": [],
       "enabled": true,
-      "sha256": "d3f64ca334bbf7da839314aa629469b1f6579ce7025ffaa0d5eae63500377889",
+      "sha256": "3317282d865df1d47a14fbbe245e24d2782d42ee799daca275e8c5898fd23e94",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
@@ -116,7 +127,7 @@
       "description": "A private research notebook: index local sources, answer with citations, export an evidence brief and a deck, audit the gaps.",
       "tags": [],
       "enabled": true,
-      "sha256": "f518cf8b0085fe6bd9bde16f6d6b86ab7e6829c11e09d9dbbe9d26f6d505db7f",
+      "sha256": "5bdd46eb3360bc95b73fbcb21aa6efea9c3237778adab42237317486eef4d0fc",
       "url": "",
       "manifest": true,
       "version": "1.0.0",
@@ -135,13 +146,13 @@
     },
     {
       "name": "spreadsheets",
-      "description": "Real spreadsheet production: formatted XLSX workbooks, charts and tabular evaluations.",
+      "description": "Real spreadsheet production: one formatted sheet, live formulas and a separate chart.",
       "tags": [],
       "enabled": true,
-      "sha256": "fc133c2d5ef27820aa2391f4203a3a815e07d2185a6c2e17e2177731d790c160",
+      "sha256": "83b84e20404ddf24bd4a93851722e6f8b533f370c4a32a015b72ae24d80610bb",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
@@ -151,21 +162,21 @@
         "multimodal"
       ],
       "enabled": true,
-      "sha256": "7aa5a30b2796e9883c0e00d2f1912240d0deb1063a075505e7d1b32df983f895",
+      "sha256": "279d3e696870450564dab2d929a1e67da2e4f0738f90b4ca334d7f9b49c8f187",
       "url": "",
       "manifest": true,
-      "version": "1.0.0",
+      "version": "1.2.0",
       "origin": "first-party"
     },
     {
       "name": "voice",
-      "description": "Text-to-speech for answers and read-aloud.",
+      "description": "Local speech. One WAV from text, and a transcript from a session audio file.",
       "tags": [],
       "enabled": true,
-      "sha256": "a811355ee49bcce2199386edef21ca161c559a028e36ff578e23a081584bd4c2",
+      "sha256": "f8afe696ba5a8d51c60e37e86ad425e7f48d919a983e5792b494d0fd324b46d2",
       "url": "",
       "manifest": true,
-      "version": "1.0.0",
+      "version": "1.1.0",
       "origin": "first-party"
     },
     {
@@ -173,10 +184,10 @@
       "description": "Live web research for the agent (opt-in, needs an API key).",
       "tags": [],
       "enabled": true,
-      "sha256": "c0a9277fc9cce1a74ee485b4afc32720f948f76a0d19a8c9384fd8f43e5bd887",
+      "sha256": "342859ed18cf5dbad4c7962c328b06427b5ff8d25940c08d40e0683a0734f9f3",
       "url": "",
       "manifest": true,
-      "version": "1.1.0",
+      "version": "1.2.0",
       "origin": "first-party"
     }
   ],

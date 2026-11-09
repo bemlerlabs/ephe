@@ -1,8 +1,15 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "web-research",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Live web research for the agent (opt-in, needs an API key).",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "read",
@@ -32,11 +39,50 @@
       }
     ],
     "tools": [
-      "web_search",
-      "fetch_url"
+      {
+        "name": "web_search",
+        "entry": "tools/handlers.py:web_search",
+        "family": "network",
+        "description": "Primary web research tool. Searches the internet via DuckDuckGo and returns real, current results with title, URL and content excerpt. Use this tool ALWAYS when you need current information, facts, news or documentation from the internet. A result whose target is outside fetch_url's reach (cloud metadata, loopback, internal name spaces such as .local/.internal/.svc) carries a `Reach:` line instead of an openable link.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The search query, e.g. 'Python asyncio tutorial 2026'"
+            },
+            "max_results": {
+              "type": "integer",
+              "description": "Number of results (default: 5, max: 10)",
+              "default": 5
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "fetch_url",
+        "entry": "tools/handlers.py:fetch_url",
+        "family": "network",
+        "description": "Fetches one URL and converts the page to plain text. It returns the extracted text; answer the user's question from it. Uses a 15-minute response cache. A failed fetch starts with '[fetch failed]' and a refused target with '[fetch refused]'.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The URL to fetch, e.g. 'https://example.com/docs'."
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Accepted for older callers and ignored; the fetched text is returned either way."
+            }
+          },
+          "required": ["url"]
+        }
+      }
     ]
   },
   "origin": "first-party",
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - web_search and fetch_url run in the confined worker and ask the host for the sentence the kernel tools already write."
 }

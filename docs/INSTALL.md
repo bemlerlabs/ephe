@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.7/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.0/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -42,8 +42,9 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.5.7` tag. The fetch answers HTTP 200; the
-checkout path above is the alternative for reading the script before it runs.
+The one-liner fetches `install.sh` from the public `v0.6.0` tag. The fetch answers HTTP 200 once
+that tag is published; the checkout path above is the alternative for reading the script before
+it runs.
 
 For the end-to-end first-run walkthrough — install, the engine choice (hosted API key or local
 Ollama runtime), and the first answer — see [FIRST_RUN.md](FIRST_RUN.md).
@@ -52,13 +53,13 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.7/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.0/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.7/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.0/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -235,16 +236,22 @@ them.
 
 ## Host shell sandbox
 
-Confirmed shell commands run under an OS sandbox only where one exists.
+Confirmed shell commands run under an OS sandbox when the switch is on and this host
+has a boundary. The switch stays off until you turn it on.
 
-On macOS the opt-in Seatbelt sandbox (Settings → Security) wraps them in `sandbox-exec`:
-writes are limited to the workspace, the system temp directory and `$HOME`, and the network
-is denied.
+On macOS the opt-in Seatbelt sandbox (Settings → Security) wraps them in `sandbox-exec`.
+Writes are limited to the workspace, the system temp directory and the device nodes a
+toolchain needs. The rest of the home directory is closed. The network is denied,
+including a listener on loopback.
 
-On Linux there is no OS wrapper. The toggle has no effect and the command runs with your
-user's rights; the shell audit line records it as `sandbox-unavailable`. If you want
-isolation, start the server with `EPHE_SHELL_BACKEND=docker` — confirmed commands then run
-inside a container that mounts only your workspace at `/workspace`. Two limits apply: the
+On Linux the same switch wraps the command in `bwrap` when that program is installed.
+The root is read-only, the home directory is an empty mount, the workspace is bound
+back, and the network namespace is dropped.
+
+When the switch is on and neither boundary exists, the command does not run. The shell
+audit line records `sandbox-unavailable`. `EPHE_SHELL_BACKEND=docker` is a boundary of
+its own: confirmed commands then run inside a container that mounts only the workspace
+at `/workspace`, including when the OS sandbox is missing. Two limits apply: the
 container keeps the Docker daemon's default network and user, and the interactive terminal
 panel still runs on the host. The boundary review is
 the dated host-exec boundary review.

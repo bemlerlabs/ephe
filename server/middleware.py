@@ -17,6 +17,7 @@ from fastapi import Header, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from core.observability import REQUEST_ID_HEADER, ErrorCode, error_payload
+from server import plugin_surface_nonce
 
 LAN_AUTH_TOKEN: str | None = None
 
@@ -72,17 +73,79 @@ def _app_origins() -> set[str]:
     return origins
 
 
-def origin_allowed(origin: str | None) -> bool:
-    """True for an absent origin (non-browser client) or one this app serves.
+#: GET routes that do more than read stored state. Measured with the route
+#: table on 2026-11-07. A null-origin document on loopback would otherwise run
+#: them with the desktop's authority and never see the body. The method guard
+#: below still refuses mutations. These prefixes are the GET half of that class:
+#: the image proxy writes a cache file, the pairing QR resets the connected
+#: flag and may open a tunnel, the update check stores an answer and contacts
+#: the release source, and the preview proxy opens another local port.
+AUTHORITY_GET_PREFIXES = (
+    "/api/artifacts/proxy",
+    "/api/mobile/qr",
+    "/api/update/check",
+    "/api/proxy/",
+)
 
-    A browser sends Origin on every WebSocket handshake and on every mutation;
-    a page from another site cannot make its origin look like ours. This is the
-    control the XHR marker only pretended to be: after DNS rebinding the page is
-    same-origin, so it can set any header it likes.
+
+def get_spends_local_authority(path: str) -> bool:
+    """True when a GET of `path` writes state or opens another service."""
+    raw = path or ""
+    for prefix in AUTHORITY_GET_PREFIXES:
+        if prefix.endswith("/"):
+            if raw.startswith(prefix):
+                return True
+        elif raw == prefix or raw.startswith(prefix + "/"):
+            return True
+    return False
+
+
+def origin_allowed(origin: str | None) -> bool:
+    """True when `origin` is one this server serves.
+
+    A browser sends Origin on a fetch and on every WebSocket handshake. A page
+    from another site cannot make its origin look like ours. A missing or blank
+    header is a non-browser client, and `caller_holds_app_authority` is where
+    that client is decided. After DNS rebinding the page is same-origin, so it
+    can set any header it likes. The Origin value itself is what this check
+    compares.
     """
-    if not origin:
-        return True
+    if not origin or not str(origin).strip():
+        return False
     return origin.strip().lower() in {value.lower() for value in _app_origins()}
+
+
+def _suite_host(host: str | None) -> bool:
+    """The synthetic host the suite uses. A packaged server has no such marker."""
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    return _host_without_port(host or "").lower() == "testserver"
+
+
+def caller_holds_app_authority(
+    origin: str | None, host: str | None, offered_token: str | None
+) -> bool:
+    """Whether this caller may mutate, open a socket, or spend a GET's authority.
+
+    An origin this server serves is the desktop app and the PWA, and those
+    calls stay token-free. The suite's synthetic host stands in for that app,
+    and only when the request brought no Origin of its own: a disallowed
+    Origin stays disallowed there too. Anyone else presents the LAN token.
+    With LAN mode off there is no token. A read-only GET does not ask this
+    question. A program can type the app's Origin. That limit is named in
+    `docs/SECURITY_AND_PRIVACY.md`.
+    """
+    if origin is not None and str(origin).strip():
+        return origin_allowed(origin)
+    if _suite_host(host):
+        return True
+    if (
+        offered_token
+        and LAN_AUTH_TOKEN is not None
+        and tokens_match(str(offered_token), LAN_AUTH_TOKEN)
+    ):
+        return True
+    return False
 
 
 def host_allowed(host: str | None) -> bool:
@@ -123,6 +186,28 @@ def _is_loopback_client(request: Request) -> bool:
     return host in _LOOPBACK_HOSTS or host.startswith("127.")
 
 
+def tokens_match(offered: str, expected: str) -> bool:
+    """Compare two tokens without letting an attacker turn the check into a server error.
+
+    `hmac.compare_digest` refuses non-ASCII text outright — measured here: comparing
+    "ä" against a token raises `TypeError: comparing strings with non-ASCII characters is
+    not supported`. Both of this file's call sites compare a value that came off the wire:
+    a phone's `?token=` in a query string and the same parameter on a WebSocket handshake.
+    A percent-encoded non-ASCII byte therefore produced a 500 where the answer is 401, and
+    on the WS path an exception where the answer is a closed handshake. Encoding both sides
+    first makes the comparison total: matching strings still match, everything else is a
+    plain mismatch, and nothing the client sends can raise inside the gate.
+
+    The `errors="replace"` on the offered value is deliberate. A token this server issued is
+    `secrets.token_urlsafe` and therefore ASCII; anything unrepresentable on the way in is
+    not that token and must not match it.
+    """
+    return hmac.compare_digest(
+        offered.encode("utf-8", errors="replace"),
+        expected.encode("utf-8", errors="strict"),
+    )
+
+
 def ws_client_authorized(websocket) -> bool:
     """Auth gate for WebSocket handshakes (P1-5).
 
@@ -131,23 +216,27 @@ def ws_client_authorized(websocket) -> bool:
     gate, every WS route would be reachable unauthenticated in LAN mode
     (that also held for the proxy_ws HMR tunnel).
 
-    The handshake carries an Origin; it is checked before the loopback shortcut.
-    The shortcut without a token is desktop-only. A rebinding page presents a
-    foreign Host and Origin even though the TCP peer is loopback, and it cannot
-    guess the LAN token; both paths fail closed.
+    The app's handshake carries an Origin this server serves, and that call
+    stays token-free. A handshake with no Origin is a local process: it needs
+    the LAN token, and with LAN mode off the handshake is refused. The suite's
+    synthetic host stands in for the app. A rebinding page presents a foreign
+    Host and Origin even though the TCP peer is loopback, and it cannot guess
+    the LAN token; both paths fail closed.
     """
     origin = websocket.headers.get("origin")
     host = websocket.headers.get("host", "")
 
     if LAN_AUTH_TOKEN is None:
-        return host_allowed(host) and origin_allowed(origin)
+        if not host_allowed(host):
+            return False
+        return caller_holds_app_authority(origin, host, None)
 
     client_host = websocket.client.host if getattr(websocket, "client", None) else ""
     loopback = client_host in _LOOPBACK_HOSTS and host_allowed(host)
-    if loopback and origin_allowed(origin):
+    if loopback and caller_holds_app_authority(origin, host, None):
         return True
     offered = websocket.query_params.get("token") or ""
-    return hmac.compare_digest(offered, LAN_AUTH_TOKEN)
+    return bool(offered) and tokens_match(str(offered), LAN_AUTH_TOKEN)
 
 
 class LocalRequestGuardMiddleware(BaseHTTPMiddleware):
@@ -158,6 +247,10 @@ class LocalRequestGuardMiddleware(BaseHTTPMiddleware):
     The peer address alone is therefore not a boundary. In LAN mode a
     non-loopback client is authenticated by the token; that path is left to
     AuthMiddleware.
+
+    A mutation and a GET that spends authority also require an origin this
+    server serves, or the LAN token. A missing Origin on those routes is a
+    local process. Read-only GETs stay open for the app's own token-free fetch.
     """
 
     async def dispatch(self, request: Request, call_next):
@@ -173,10 +266,12 @@ class LocalRequestGuardMiddleware(BaseHTTPMiddleware):
             # AuthMiddleware. A genuine loopback client keeps the host check.
             return await call_next(request)
         origin = request.headers.get("origin")
-        if (
-            request.method not in {"GET", "HEAD", "OPTIONS"}
-            and origin is not None
-            and not origin_allowed(origin)
+        spends = request.method not in {"GET", "HEAD", "OPTIONS"} or (
+            request.method in {"GET", "HEAD"}
+            and get_spends_local_authority(request.url.path)
+        )
+        if spends and not caller_holds_app_authority(
+            origin, host, request.headers.get("X-Auth-Token")
         ):
             return self._refusal(request, "untrusted_origin", host)
         return await call_next(request)
@@ -306,7 +401,27 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     # Media elements (img/iframe) cannot send headers —
                     # token fallback via query string only for the file-read routes.
                     token = request.query_params.get("token")
-                if token is None or not hmac.compare_digest(str(token), LAN_AUTH_TOKEN):
+                if token is None or not tokens_match(str(token), LAN_AUTH_TOKEN):
+                    # R21 (2026-11-04): a plugin surface is an iframe or a native
+                    # webview, and neither can send a header. The long-lived LAN token
+                    # stays out of URLs — logs, history and screenshots all keep a
+                    # query string — so the surface carries its per-mount nonce in a
+                    # *path segment*: `/api/plugins/ui/{plugin_id}/{nonce}/…`, one
+                    # prefix the browser hands to every sub-resource the document
+                    # derives. Here only the shape is read, and only for GET and
+                    # HEAD: a mutation wearing a nonce-shaped segment is not a
+                    # surface load and still faces the token. The route decides the
+                    # value, the plugin binding and the expiry, and a refused
+                    # segment is audited there, so guessing surfaces at the same
+                    # throttle a guessed token gets. That throttle covers the audit
+                    # line, and the line is a smaller cost than the request: a caller
+                    # holding no token was handed the route's 401 off loopback as often
+                    # as the shared 400-a-minute budget allowed. The family therefore
+                    # rides its own budget below, keyed on the prefix read here.
+                    if request.method in ("GET", "HEAD") and (
+                        plugin_surface_nonce.surface_nonce_candidate(path) is not None
+                    ):
+                        return await call_next(request)
                     rid = getattr(request.state, "rid", None)
                     _audit_token_refusal(request, "token_missing" if token is None else "token_invalid")
                     return JSONResponse(
@@ -406,15 +521,32 @@ _RATE_LIMIT_EXEMPT_PATHS = {
     "/api/model/providers",
 }
 
+#: The plugin surface family, off loopback: `AuthMiddleware` hands a GET or HEAD
+#: whose path *shape* carries a nonce segment straight to the route, which owns the
+#: value. The audit line behind a guessed nonce is throttled to one per client per
+#: minute, and a sweep of guesses costs only the shared 400-a-minute budget — the
+#: limit the whole API shares, which a guessing run spends at will. The family gets
+#: its own per-client budget instead, separate because a mount is a burst of
+#: one-page-plus-its-assets: charged to the costly bucket at 20 a minute, a real
+#: surface would be denied to its own user. The loopback desktop path stays outside
+#: this bucket. The route still requires the nonce there.
+_SURFACE_FAMILY_PREFIX = plugin_surface_nonce.SURFACE_PATH_ROOT
+SURFACE_FAMILY_MAX_REQUESTS = 60
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, max_requests: int = 240, window: int = 60, costly_max_requests: int = 20):
+    def __init__(
+        self, app, max_requests: int = 240, window: int = 60, costly_max_requests: int = 20,
+        surface_max_requests: int = SURFACE_FAMILY_MAX_REQUESTS,
+    ):
         super().__init__(app)
         self.max_requests = max_requests
         self.window = window
         self.costly_max_requests = costly_max_requests
+        self.surface_max_requests = surface_max_requests
         self.requests: dict[str, list[float]] = defaultdict(list)
         self.costly: dict[str, list[float]] = defaultdict(list)
+        self.surface: dict[str, list[float]] = defaultdict(list)
 
     def _over(self, bucket: dict[str, list[float]], key: str, limit: int) -> bool:
         """One time window per client: drop the old entries, count, add the new entry
@@ -431,6 +563,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         client_ip = request.client.host if request.client else "unknown"
+
+        # The surface family off loopback: the token check above handed a
+        # nonce-shaped GET to the route on its shape alone, so a guess costs this
+        # client a budget of its own before the route answers. Loopback and a server
+        # without a token never entered the bypass, and never enter this bucket.
+        if (
+            path.startswith(_SURFACE_FAMILY_PREFIX)
+            and LAN_AUTH_TOKEN is not None
+            and not _is_loopback_client(request)
+            and self._over(self.surface, client_ip, self.surface_max_requests)
+        ):
+            return Response(
+                f"Rate limit exceeded for {path}. Try again later.",
+                status_code=429,
+                headers={"Retry-After": str(self.window)},
+            )
 
         # Costly routes apply ALWAYS, even without an access token. Desktop sets
         # none: here the case is not the stranger on the network but the local

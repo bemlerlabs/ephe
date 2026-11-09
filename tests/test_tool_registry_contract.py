@@ -57,6 +57,17 @@ def _plugin_gated(name: str) -> bool:
     return (not gate.visible) and bool(getattr(gate, "plugin", None))
 
 
+def _creator_only(name: str) -> bool:
+    """True for the calls Creator mode owns and no other mode is offered.
+
+    The same predicate that removes them from the array below (`creator_guard.filter_offer`,
+    task #26) answers here, so this is the registry's rule and not a name list held twice.
+    """
+    from core.tools import creator_guard
+
+    return creator_guard.is_creator_tool(name)
+
+
 def _sample_value(spec: dict) -> object:
     """A value that satisfies one property spec (enum first, then the type)."""
     enum = spec.get("enum")
@@ -137,13 +148,16 @@ class TestSchemaValidity:
 class TestHandlerReachability:
     def test_every_schema_name_has_a_handler(self):
         """GIVEN a schema WHEN it is called by name THEN a handler or an MCP tool exists."""
+        from core.tools.dynamic_registry import default_registry
         from core.tools.mcp_client import get_mcp_tools
         from core.tools.registry import TOOL_MAP
 
+        schemas = _schemas()
         mcp_names = set(get_mcp_tools())
-        for entry in _schemas():
+        mounted = {item.name for item in default_registry().descriptor_snapshot()}
+        for entry in schemas:
             name = entry["function"]["name"]
-            assert name in TOOL_MAP or name in mcp_names, (
+            assert name in TOOL_MAP or name in mcp_names or name in mounted, (
                 f"{name} has no dispatch target"
             )
 
@@ -156,7 +170,7 @@ class TestHandlerReachability:
 
     def test_every_handler_is_reachable(self):
         """GIVEN a handler WHEN reachability is checked THEN it is visible, an alias, or gated."""
-        from core.tools.registry import TOOL_MAP
+        from core.tools.registry import TOOL_MAP, get_all_tool_schemas
         from core.tools.sandbox_tools import is_available as sandbox_is_available
 
         # A handler behind an optional runtime is advertised only while that runtime is
@@ -164,11 +178,18 @@ class TestHandlerReachability:
         # instead of a claim about the machine the suite happens to run on.
         optional_runtime_absent = {"run_sandboxed_code": not sandbox_is_available()}
         schema_backed = {entry["function"]["name"] for entry in _schemas()}
+        # The catalog is every array the app could hand out, including the modes that are
+        # not currently offering. A creator-only name is excused from the offer below, so
+        # this is where the exemption proves the handler is addressed somewhere.
+        catalog = {entry["function"]["name"] for entry in get_all_tool_schemas()}
         unreachable = []
         for name, handler in TOOL_MAP.items():
             if name in schema_backed:
                 continue
             if optional_runtime_absent.get(name):
+                continue
+            if _creator_only(name):
+                assert name in catalog, f"{name} is Creator-only but in no catalog"
                 continue
             aliases = {n for n in schema_backed if TOOL_MAP.get(n) is handler}
             if aliases or _plugin_gated(name):
@@ -192,21 +213,93 @@ class TestHandlerReachability:
                 f"alias '{name}' is not the same object as a schema-backed tool"
             )
 
+    def test_marker_schemas_copy_the_bundle_tool(self):
+        """The marker the model can call carries the bundle tool's parameters."""
+        from core.tools.dynamic_wiring import MARKER_ALIASES
+
+        by_name = {entry["function"]["name"]: entry["function"] for entry in _schemas()}
+        for alias, canonical in MARKER_ALIASES.items():
+            assert alias in by_name, alias
+            assert by_name[alias]["parameters"] == by_name[canonical]["parameters"]
+
+    async def test_marker_call_dispatches_the_bundle_name(self, monkeypatch):
+        """A marker call is the bundle tool. The kernel object on the marker stays unread."""
+        from core.tools import dynamic_wiring
+        from core.tools.dynamic_wiring import MARKER_ALIASES
+        from core.tools.registry import TOOL_MAP, execute_tool
+
+        seen: list[str] = []
+
+        async def record(name, _arguments):
+            seen.append(name)
+            return "marker-recorded"
+
+        def boom(*_args, _alias, **_kwargs):
+            raise AssertionError(_alias)
+
+        monkeypatch.setattr(dynamic_wiring, "dispatch_dynamic_call", record)
+        for alias in MARKER_ALIASES:
+            monkeypatch.setitem(
+                TOOL_MAP,
+                alias,
+                lambda *a, _alias=alias, **k: boom(*a, _alias=_alias, **k),
+            )
+
+        samples = {
+            "bash": {"command": "echo ok"},
+            "read": {"path": "README.md"},
+            "edit": {"path": "README.md", "old_string": "a", "new_string": "b"},
+        }
+        for alias, canonical in MARKER_ALIASES.items():
+            seen.clear()
+            result = await execute_tool(alias, samples[alias])
+            assert seen == [canonical], (alias, seen, result)
+            assert result == "marker-recorded"
+
+    def test_a_disabled_code_shell_hides_the_markers(self, monkeypatch):
+        """The marker follows the bundle. A switched-off code-shell hides both names."""
+        from core import plugin_runtime
+        from core.tools.registry import get_tool_schemas
+
+        real = plugin_runtime.active_plugin_ids
+
+        def without_shell(path=None):
+            return frozenset(name for name in real(path) if name != "code-shell")
+
+        monkeypatch.setattr(plugin_runtime, "active_plugin_ids", without_shell)
+        names = {entry["function"]["name"] for entry in get_tool_schemas()}
+        for name in ("bash", "read", "edit", "run_shell", "read_file", "edit_file"):
+            assert name not in names, name
+
     def test_core_tools_stay_dispatchable_and_visible(self):
         """GIVEN CORE_TOOLS WHEN the array is built THEN each is a live, visible name."""
         from core.tools.discovery import CORE_TOOLS
+        from core.tools.dynamic_registry import default_registry
         from core.tools.registry import TOOL_MAP
 
         schema_backed = {entry["function"]["name"] for entry in _schemas()}
+        mounted = {item.name for item in default_registry().descriptor_snapshot()}
         for name in CORE_TOOLS:
-            assert name in TOOL_MAP, f"core tool '{name}' has no handler"
             assert name in schema_backed, (
                 f"core tool '{name}' is missing from the array"
             )
             assert not _plugin_gated(name), f"core tool '{name}' is hidden by a plugin"
+            assert name in TOOL_MAP or name in mounted, (
+                f"core tool '{name}' has no handler"
+            )
+
+    def test_the_research_sentences_stay_in_the_offer_list(self):
+        """The manifest is the schema source, and the sentences the model reads stay put."""
+        schemas = {
+            entry["function"]["name"]: entry["function"]["description"]
+            for entry in _schemas()
+        }
+        assert "Reach:" in schemas["web_search"]
+        assert "15-minute" in schemas["fetch_url"]
 
     def test_meta_tools_are_in_the_array(self):
-        """GIVEN the discovery meta tools WHEN the array is read THEN all three are present."""
+        """GIVEN the discovery meta tools WHEN the array is read THEN every name the
+        frozen set carries is in it — the set is the source, so no count belongs here."""
         from core.tools.discovery import META_TOOL_NAMES
 
         schema_backed = {entry["function"]["name"] for entry in _schemas()}

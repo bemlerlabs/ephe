@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { EMPTY_STACK } from '@/components/shell/overlayModel'
 import {
   type ChatState,
   type StoreCtx,
@@ -10,13 +11,14 @@ import {
   makeHelperActions,
   makeToolActions,
   makeCheckpointActions,
+  makeOverlayActions,
 } from './chat'
 
 /**
  * Chat store (facade). The body is split 1:1 across ./chat/*:
  *   types.ts        — ChatState, StoreCtx, SetFn/GetFn, ToolCallModel
  *   helpers.ts      — toDbSession, fromDbSession, updateActiveMessage,
- *                     closeThinkingPhases, indicatorMessage, deriveSessionTitle, defaults
+ *                     closeThinkingPhases, deriveSessionTitle, defaults (pure: no i18n)
  *   sessionModel.ts — Z53: tags / folders / trash — shapes, field operations,
  *                     the persisted-shape migration (sessionModel.ts, no store, no IO)
  *   persist.ts      — makePersistActive, makeSetTransientMeta, makeMarkSandboxStatus
@@ -25,6 +27,7 @@ import {
  *   helper.ts       — makeHelperActions (visibility: the helper as its own session)
  *   tools.ts        — makeToolActions (tool-call upserts, activities, sandbox tokens)
  *   checkpoints.ts  — makeCheckpointActions (P2-7)
+ *   overlay.ts      — makeOverlayActions (W1-4: the plugin overlay stack, #44)
  */
 export const useChatStore = create<ChatState>((set, get) => {
   const setFn = set as unknown as import('./chat').SetFn
@@ -49,17 +52,24 @@ export const useChatStore = create<ChatState>((set, get) => {
     budgetNotice: null,
     solInsights: [],
     enginePricing: null,
+    overlay: EMPTY_STACK,
     setEnginePricing: (p) => set({ enginePricing: p }),
     ...makeSessionActions(setFn, getFn, persistActive),
     ...makeStreamActions(ctx),
     ...makeHelperActions(setFn, getFn),
     ...makeToolActions(ctx),
     ...makeCheckpointActions(ctx),
+    ...makeOverlayActions(ctx),
   } as ChatState
 })
 
 export type { ChatState, ChatStore, ChatMessage, ToolCall, PendingToolCall } from './chat'
-export { DEFAULT_SESSION_TITLE, DEFAULT_COMPOSER_MODE } from './chat'
+export {
+  DEFAULT_SESSION_TITLE,
+  DEFAULT_COMPOSER_MODE,
+  MIGRATABLE_LEGACY_MODES,
+  normalizeComposerMode,
+} from './chat'
 
 /**
  * `window.__epheStore` — the store handle the dev-only specs seed through.

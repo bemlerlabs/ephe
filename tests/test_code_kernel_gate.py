@@ -101,6 +101,14 @@ class TestComputeAffordanceBleibt:
         out = _run("import ephe_tools\nprint(ephe_tools.tool_call('gibt_es_nicht'))")
         assert "unknown tool" in out
 
+    def test_a_contributed_name_answers_with_the_refusal(self, spies):
+        out = _run(
+            "import ephe_tools\nprint(ephe_tools.tool_call('web_search', query='x'))"
+        )
+        assert "unknown tool" not in out
+        assert "web_search" in out
+        assert spies == []
+
     def test_unknown_attribute_raises_instead_of_returning_none(self, spies):
         # A silent None would be a phantom tool; AttributeError is the honest answer.
         out = _run("import ephe_tools\nprint(ephe_tools.gibt_es_nicht)")

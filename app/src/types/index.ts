@@ -8,6 +8,17 @@
 
 export type MessageRole = 'user' | 'assistant' | 'system'
 
+/**
+ * The composer modes the menu offers (Task 3 rename: ask → analyst, plan →
+ * architect, full-access → operator; edit-auto retired; `creator` entered with
+ * Wave 5, when the consent gate and the four bundle tools behind the name
+ * landed). Stored sessions keep their legacy value as a plain `string` on the
+ * wire: `normalizeComposerMode` maps the three migratable values to their
+ * canonical key at load, while the retired `edit-auto` and other untiled values
+ * keep their stored spelling (app/src/store/chat/helpers.ts).
+ */
+export type ComposerMode = 'analyst' | 'architect' | 'operator' | 'creator'
+
 // ── Remote / REST-API shapes ───────────────────────────────────────────────
 
 /** The session as the REST API returns it */
@@ -253,7 +264,12 @@ export interface Session {
   unread?: boolean
   /** Z37: fork origin (id of the session this branch was cut from) */
   parentId?: string
-  /** W19: composer mode (ask | edit-auto | plan | full-access) — persisted per session */
+  /** W19: composer mode (analyst | architect | operator) — persisted per session.
+   *  Kept a plain `string` while the menu offers a typed union: sessions stored
+   *  before the rename carry the legacy values (ask | plan | edit-auto |
+   *  full-access), and the load-time migration in store/chat/session.ts rewrites
+   *  the three menu-writable ones to a canonical key; a stored `edit-auto` keeps
+   *  its wire value, which the server resolves to the edit-family factor. */
   mode?: string
   /** Wave 3 (cost monitor): the session's accumulated measured token balance —
    *  the sum of all usage frames; the base for the USD chip in the status bar. */
@@ -831,7 +847,8 @@ export interface StreamChatRequest {
   autonomous?: boolean
   skill?: string | null
   images?: string[]
-  /** W19: UI mode — backend skips the fast path + sets the anti-hallucination guard on 'ask' */
+  /** W19: UI mode — backend skips the fast path + sets the anti-hallucination guard
+   *  on the analyst mode (stored clients may still send its legacy name, `ask`). */
   mode?: string
   /** QD-015 Z2: per-turn tool rounds. The budget card sends the cap it read
    *  plus the rounds the button adds; unset keeps the class default. */

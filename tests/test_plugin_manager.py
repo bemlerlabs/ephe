@@ -34,8 +34,8 @@ def device(tmp_path, monkeypatch):
 def test_list_reports_the_whole_portfolio(device) -> None:
     payload = _call(action="list")
     assert payload["read_only"] is True
-    assert payload["counts"] == {"plugins": 16, "skills": 51, "mcp": 7, "commands": 32}
-    assert len(payload["plugins"]) == 16
+    assert payload["counts"] == {"plugins": 17, "skills": 51, "mcp": 7, "commands": 32}
+    assert len(payload["plugins"]) == 17
     assert [p["name"] for p in payload["plugins"]] == sorted(
         p["name"] for p in payload["plugins"]
     )
@@ -44,6 +44,33 @@ def test_list_reports_the_whole_portfolio(device) -> None:
     )
     web = next(p for p in payload["plugins"] if p["name"] == "web-research")
     assert web["activated_tools"] == ["fetch_url", "web_search"]
+
+
+def test_omitting_the_action_lists_the_portfolio(device) -> None:
+    payload = _call()
+    assert payload["read_only"] is True
+    assert payload == _call(action="list")
+
+
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_a_blank_action_lists_the_portfolio_too(device, blank) -> None:
+    assert _call(action=blank) == _call(action="list")
+
+
+def test_the_schema_makes_action_optional_and_names_the_default(device) -> None:
+    function = PLUGIN_MANAGER_SCHEMA["function"]
+    parameters = function["parameters"]
+    assert "action" in parameters["properties"]
+    assert "action" not in (parameters.get("required") or [])
+    assert parameters["properties"]["action"].get("default") == "list"
+    description = function["description"].lower()
+    assert "list" in description and "omit" in description
+
+
+def test_the_engine_validator_accepts_a_call_without_action(device) -> None:
+    from core.tools.registry import _validate_tool_arguments
+
+    assert _validate_tool_arguments("plugin_manager", {}) is None
 
 
 def test_list_reads_the_committed_switch_state(device) -> None:
@@ -73,7 +100,19 @@ def test_inspect_returns_declared_and_registered_capabilities(device) -> None:
     detail = _call(action="inspect", name="documents")
     assert detail["plugin"]["name"] == "documents"
     assert [c["name"] for c in detail["declared_commands"]] == ["pdf", "docx", "report"]
-    assert detail["capabilities"] == ["documents.report"]
+    # Inspect lists every capability this bundle owns, the command and the tools.
+    assert detail["capabilities"] == [
+        "documents.report",
+        "tool:build_document",
+        "tool:create_docx",
+        "tool:create_pdf",
+        "tool:create_qrcode",
+        "tool:create_source_notebook",
+        "tool:export_source_brief",
+        "tool:extract_pdf_text",
+        "tool:query_source_notebook",
+        "tool:verify_artifact",
+    ]
     assert "create_pdf" in detail["activated_tools"]
 
 
@@ -145,4 +184,34 @@ def test_the_tool_is_registered_and_safe(device) -> None:
     assert "plugin_manager" in CHAT_AUTO_RUN_TOOLS
     schemas = {s["function"]["name"]: s for s in get_tool_schemas()}
     assert schemas["plugin_manager"] == PLUGIN_MANAGER_SCHEMA
-    assert PLUGIN_MANAGER_SCHEMA["function"]["parameters"]["required"] == ["action"]
+    required = PLUGIN_MANAGER_SCHEMA["function"]["parameters"].get("required") or []
+    assert "action" not in required
+
+
+def test_an_isolated_run_catalog_names_no_checkout_path_or_plugin(tmp_path, monkeypatch) -> None:
+    """A proof run is graded on what the engine did, so its plugin catalog may not carry
+    the developer's working tree: neither an absolute path from the checkout nor a
+    first-party bundle that only exists there. The env comes from the run itself
+    (`engine_environment`), so the test asks the harness to build the environment rather
+    than assembling one by hand."""
+    from evals.creation_transcript import engine_environment
+
+    repo_root = Path(__file__).resolve().parents[1]
+    key = tmp_path / "engine.key"
+    key.write_text("sk-" + "0" * 32 + "\n", encoding="utf-8")
+    env = engine_environment(
+        key_file=key,
+        config_dir=tmp_path / "config",
+        base_url="https://api.deepseek.example/v1",
+        model="deepseek-test",
+        port=8801,
+    )
+    for name in ("EPHE_CONFIG_DIR", "EPHE_BUILTIN_PLUGINS_ROOT"):
+        if name in env:
+            monkeypatch.setenv(name, env[name])
+
+    payload = _call(action="list")
+    names = [plugin["name"] for plugin in payload["plugins"]]
+    assert names == []
+    assert "countdown" not in names
+    assert str(repo_root) not in json.dumps(payload)

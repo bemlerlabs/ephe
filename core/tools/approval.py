@@ -28,9 +28,12 @@ from core.tools.approval_rules import (
     ToolClassification,
     _confidence_value,
     _runs_uncontained,  # noqa: F401  (core.cpython_guest cites this path in prose)
+    browser_session_is_credentialed,
     category_forces_confirm,
+    chat_no_confirm_tools,
     chat_tool_requires_confirm,
     classify_tool,
+    credential_licence_voided,
     low_confidence_escalation,
 )
 
@@ -302,7 +305,10 @@ __all__ = [
     "CHAT_AUTO_RUN_TOOLS",
     "SELF_GATED_TOOLS",
     "DEFAULT_CONFIDENCE_THRESHOLD",
+    "browser_session_is_credentialed",
+    "chat_no_confirm_tools",
     "chat_tool_requires_confirm",
+    "credential_licence_voided",
     "ToolClassification",
     "classify_tool",
     "low_confidence_escalation",

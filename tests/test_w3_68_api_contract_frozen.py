@@ -72,6 +72,11 @@ published without its ``:path`` converter; neither is a second route.
   ``POST /api/device/forget`` runs ``core.persistence.forget`` under the CLI's own
   dry-run-first promise, refusing whole a request that names an entry the declaration
   keeps or never names.
+  Two consent routes land with the Creator gate (#26): ``GET /api/creator/consent`` is
+  what a consent surface reads — the permissions the guard states, and the ones this
+  session holds — and ``PUT /api/creator/consent`` writes that answer into the same store
+  the enforcement reads. Neither keeps a copy of its own, because a consent a page
+  remembered apart from the gate is how a dialog comes to promise a refused call.
 """
 from __future__ import annotations
 
@@ -84,6 +89,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "DELETE /api/channels/telegram/token",
     "DELETE /api/memory",
     "DELETE /api/memory/{doc_id}",
+    "DELETE /api/plugins/{plugin_id}/hot-mount",
     "DELETE /api/schedule/{job_id}",
     "DELETE /api/sessions/{session_id}",
     "DELETE /api/skills/{name}",
@@ -111,6 +117,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/artifacts/{artifact_id}/versions",
     "GET /api/audit",
     "GET /api/audit/usage",
+    "GET /api/browser/watch/{session}",
     "GET /api/capabilities",
     "GET /api/cell",
     "GET /api/change-sets",
@@ -123,6 +130,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/channels/telegram/status",
     "GET /api/context/budget",
     "GET /api/context/stages",
+    "GET /api/creator/consent",
     "GET /api/device",
     "GET /api/discover/bootstrap",
     "GET /api/discover/icon/{slug}",
@@ -161,6 +169,11 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/plugins/commands",
     "GET /api/plugins/events",
     "GET /api/plugins/icon/{plugin_id}",
+    "GET /api/plugins/surface-hosts",
+    "GET /api/plugins/ui/{plugin_id}",
+    "GET /api/plugins/ui/{plugin_id}/{asset_path}",
+    "GET /api/plugins/{plugin_id}/client/storage",
+    "GET /api/plugins/{plugin_id}/state",
     "GET /api/profile",
     "GET /api/profile/export",
     "GET /api/project/index/status",
@@ -220,6 +233,8 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/ask/answer",
     "POST /api/audio/synthesize",
     "POST /api/audio/transcribe",
+    "POST /api/browser/watch/{session}/act",
+    "POST /api/browser/watch/{session}/hold",
     "POST /api/change-sets",
     "POST /api/change-sets/{id}/amend",
     "POST /api/change-sets/{id}/publish",
@@ -266,7 +281,11 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/model/providers/probe",
     "POST /api/plugins/master",
     "POST /api/plugins/{plugin_id}/cancel",
+    "POST /api/plugins/{plugin_id}/client/tool",
     "POST /api/plugins/{plugin_id}/enable",
+    "POST /api/plugins/{plugin_id}/hot-mount",
+    "POST /api/plugins/{plugin_id}/state/remove",
+    "POST /api/plugins/{plugin_id}/surface-token",
     "POST /api/project/index",
     "POST /api/project/search",
     "POST /api/sandbox/approve",
@@ -303,10 +322,13 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "PUT /api/agents/{agent_id}",
     "PUT /api/artifacts/{artifact_id}/tags",
     "PUT /api/capabilities/subagent-allowlist",
+    "PUT /api/creator/consent",
     "PUT /api/memory/provider",
     "PUT /api/memory/{doc_id}",
     "PUT /api/model/provider",
+    "PUT /api/plugins/{plugin_id}/client/storage",
     "PUT /api/plugins/{plugin_id}/enabled",
+    "PUT /api/plugins/{plugin_id}/surface-host",
     "PUT /api/profile",
     "PUT /api/profile/import",
     "PUT /api/settings/image",

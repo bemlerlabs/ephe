@@ -27,7 +27,7 @@ Workflow:
 2. ASK: call query_source_notebook for source-specific questions. Cite every grounded claim as `[Sxxx-Cxxx]`; a claim without a returned chunk is not grounded.
 3. CLASSIFY: label each claim with an evidence level - primary source, secondary source, user-provided fact or assumption. Never promote an assumption to a finding.
 4. BRIEF: for a deliverable, call export_source_brief and report the `SOURCE_BRIEF_FILE` path, the evidence register and the open gaps.
-5. DECK: when slides are asked for, call create_pptx_deck; each slide carries one claim and a citation in its speaker notes.
+5. DECK: when slides are asked for, call create_pptx_deck. Each slide carries one claim, and the citation sits on the slide. A speaker note stays in the deck spec. The pptx has no notes page.
 6. AUDIT: list supported claims, unsupported claims and missing sources. An empty evidence set is a valid finding, not a failure to hide.
 
 Rules:

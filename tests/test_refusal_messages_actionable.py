@@ -75,8 +75,38 @@ HTTP_PARAMS = {
         "paths": "a.txt",
         "holders": "agent-b (draft since 2026-10-14T16:05)",
     },
+    # The plugin surface route (#42): the mount credential, the path that leaves the
+    # plugin directory, and the plugin with nothing to mount.
+    "plugin_ui_unavailable": {"plugin": "acme", "reason": "the plugin is switched off"},
+    # #24's state ceiling: both numbers name themselves, and the move is on Extensions.
+    "plugin_state_full": {"plugin": "acme", "used_mb": "129", "cap_mb": "128"},
+    "plugin_state_name": {},
+    "plugin_unknown": {},
+    "invalid_request": {},
+    "plugin_ui_unauthorized": {"plugin": "acme"},
+    "plugin_ui_asset_refused": {"plugin": "acme", "reason": "the path leaves the plugin directory"},
+    # The dynamic-tool rail (#10): the four codes the confined worker and its budget
+    # answer with. `reason` is the emitter's own sentence, framed by the move left.
+    "tool_not_available": {"plugin": "acme", "transport": "plugin"},
+    "sandbox_unavailable": {"plugin": "acme"},
+    "plugin_worker_restart_exhausted": {
+        "reason": "plugin worker died 3 times in a row (restart budget 3) — the tool is refused"
+    },
+    "plugin_entry_refused": {
+        "plugin": "acme",
+        "reason": "the entry 'tools.runner:run' is not a file inside the plugin directory",
+    },
+    # The watch channel (#88): a session that was never opened, and an engine that will not
+    # cast one. `{reason}` carries the engine's own sentence, so the sample reads like his.
+    "browser_session_unknown": {"session": "task-7"},
+    "browser_watch_unavailable": {"reason": "TimeoutError"},
     "device_forget_undeclared": {"names": "notes-backup"},
     "device_forget_kept": {"names": "audit.log"},
+    # The file route's four (#80). `max_mb` is the route's own MAX_FILE_BYTES // 1 MiB.
+    "file_path_not_allowed": {},
+    "file_path_protected": {},
+    "file_not_found": {},
+    "file_too_large": {"max_mb": 50},
 }
 
 DENIAL_PARAMS = {
@@ -87,6 +117,8 @@ DENIAL_PARAMS = {
     "mode_read_only": {},
     "mode_no_tools": {},
     "secret_path_denied": {"path": "~/.ssh/id_rsa"},
+    "plugin_family_undeclared": {"family": "write"},
+    "creator_privilege_missing": {"privilege": "files"},
 }
 
 #: per bundle: the directive set and the surface name to look for

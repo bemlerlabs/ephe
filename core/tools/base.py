@@ -107,6 +107,9 @@ ALLOWED_COMMANDS: set[str] = {
     # R39: media conversion (demo pipeline + artifact postprocessing); heads stay
     # checked segment-wise, redirects/substitutions apply as before.
     "ffmpeg", "ffprobe",
+    # Interpreter head, same eval lock as python and node. A pipe into bash
+    # stays in BLOCKED_PATTERNS.
+    "bash",
     # deliberately NOT whitelisted (repo-hygiene audit 2026-09-06):
     #   curl/wget  → network exit from the shell; research runs through the
     #                web tools (web_search/browser_*), otherwise curl|sh class.
@@ -215,21 +218,11 @@ def _get_allowed_roots() -> list[Path]:
             return []
         root = Path(workspace)
         resolved_root = root.resolve()
-        roots = [resolved_root]
-        from core.capability_policy import declared_data_roots
+        from core.capability_policy import resolved_data_roots
 
-        for declared in declared_data_roots(plugin):
-            candidate = Path(declared).expanduser()
-            if candidate.is_absolute():
-                roots.append(candidate.resolve())
-                continue
-            resolved = (resolved_root / candidate).resolve()
-            if not resolved.is_relative_to(resolved_root):
-                # A relative root is a name inside the workspace; a symlink that
-                # leaves it must not widen the file scope.
-                continue
-            roots.append(resolved)
-        return roots
+        # One resolution, shared with the confined worker: a relative root is a name inside
+        # the workspace, and a symlink that leaves it does not widen the file scope.
+        return [resolved_root, *resolved_data_roots(plugin, resolved_root)]
     home = Path.home()
     roots = [
         home,

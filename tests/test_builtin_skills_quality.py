@@ -87,11 +87,12 @@ def test_loaded_skill_triggers_are_unique_across_builtin_and_plugin_packs():
 
 def test_given_builtin_skills_when_tools_declared_then_every_tool_exists():
     from core.skills import BUILTIN_SKILLS_DIR, SkillLoader
-    from core.tools import TOOL_MAP
+    from core.tools.registry import addressable_tool_names
 
+    known = addressable_tool_names()
     skills = SkillLoader(skills_dir=Path("/tmp/ephe-no-user-skills"), builtin_dir=BUILTIN_SKILLS_DIR).load_all()
     missing = {
-        skill.name: [tool for tool in skill.tools if tool not in TOOL_MAP]
+        skill.name: [tool for tool in skill.tools if tool not in known]
         for skill in skills
     }
     missing = {name: tools for name, tools in missing.items() if tools}

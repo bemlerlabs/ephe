@@ -1,8 +1,16 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "image-studio",
-  "version": "1.0.0",
-  "description": "Image endpoint (opt-in) generates pictures from prompts.",
+  "version": "1.2.0",
+  "origin": "first-party",
+  "description": "Opt-in image endpoint. One picture from a prompt, saved under a name that ends in .png.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "network"
@@ -10,12 +18,39 @@
     "data_roots": []
   },
   "components": {
-    "skills": [],
+    "skills": [
+      "image-studio"
+    ],
     "commands": [],
     "tools": [
-      "generate_image"
+      {
+        "name": "generate_image",
+        "entry": "tools/handlers.py:generate_image",
+        "family": "network",
+        "description": "Generates a real image from a text description and saves a file whose name ends in .png. Use this when the user wants an image, an illustration or a photo motif. Runs via an OpenAI-compatible /images/generations endpoint. Provide a detailed English image description. An empty prompt or a missing endpoint returns an error line and no file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "prompt": {
+              "type": "string",
+              "description": "Detaillierte Bildbeschreibung (Motiv, Stil, Licht)"
+            },
+            "filename": {
+              "type": "string",
+              "description": "Target file name (optional, ends with .png)"
+            },
+            "size": {
+              "type": "string",
+              "description": "Image size, e.g. '1024x1024' (optional)"
+            }
+          },
+          "required": [
+            "prompt"
+          ]
+        }
+      }
     ]
   },
-  "origin": "first-party",
+  "changelog": "1.2.0 - generate_image asks the host. The prompt stays out of the bridge row. The skill prompt carries an output contract and a quality gate.",
   "icon": "icon.svg"
 }

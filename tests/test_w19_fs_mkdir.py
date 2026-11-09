@@ -54,11 +54,13 @@ def test_mkdir_rejects_outside_allowed_roots(client, tmp_path, monkeypatch):
     "elsewhere" really WAS inside a root and the route answered 200. It passed on
     macOS only because pytest puts its basetemp in /var/folders there — the assertion
     was measuring the runner, not the boundary. Redirecting TMPDIR could not help:
-    the literal /tmp entry is unconditional.
+    the literal /tmp entry is unconditional. The pin sits on the kernel, which is
+    where the route reads its list from — one list decides both the governing root
+    and the containment here.
     """
     allowed = tmp_path / "allowed"
     allowed.mkdir()
-    monkeypatch.setattr("server.routes.fs._get_allowed_roots", lambda: [allowed])
+    monkeypatch.setattr("core.tools.base._get_allowed_roots", lambda: [allowed])
 
     outside = tmp_path / "elsewhere"
     outside.mkdir()

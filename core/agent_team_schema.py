@@ -17,7 +17,7 @@ NAME_MAX = 80
 DESCRIPTION_MAX = 500
 INSTRUCTIONS_MAX = 32000
 MEMBERS_MAX = 4
-ORCHESTRATIONS = ("leader", "parallel", "sequential", "review")
+ORCHESTRATIONS = ("leader", "parallel", "sequential", "review", "iterative")
 MODEL_POLICIES = ("inherit", "team", "per_member")
 RUNS_KEEP = 50
 TEAM_TIMEOUT_MIN_S = 30
@@ -26,6 +26,9 @@ TEAM_TIMEOUT_DEFAULT_S = 300
 ROUNDS_MIN = 1
 ROUNDS_MAX = 12
 ROUNDS_DEFAULT = 4
+ITERATIONS_MIN = 1
+ITERATIONS_MAX = 8
+ITERATIONS_DEFAULT = 3
 REPORT_MAX_CHARS = 8000
 
 class TeamError(ValueError):
@@ -75,9 +78,14 @@ def _budget(raw: Any) -> dict[str, int]:
         wall = int(data.get("wall_timeout", TEAM_TIMEOUT_DEFAULT_S))
     except (TypeError, ValueError):
         wall = TEAM_TIMEOUT_DEFAULT_S
+    try:
+        iterations = int(data.get("max_iterations", ITERATIONS_DEFAULT))
+    except (TypeError, ValueError):
+        iterations = ITERATIONS_DEFAULT
     return {
         "max_rounds": max(ROUNDS_MIN, min(ROUNDS_MAX, rounds)),
         "wall_timeout": max(TEAM_TIMEOUT_MIN_S, min(TEAM_TIMEOUT_MAX_S, wall)),
+        "max_iterations": max(ITERATIONS_MIN, min(ITERATIONS_MAX, iterations)),
     }
 
 

@@ -109,7 +109,7 @@ describe('composer mobile layout — the 44px touch floor below lg', () => {
 
   it('the ask-mode hint only appears from md up', () => {
     useChatStore.setState({
-      sessions: [{ id: 's1', mode: 'ask' }],
+      sessions: [{ id: 's1', mode: 'analyst' }],
       activeSessionId: 's1',
       currentSession: null,
     } as never)

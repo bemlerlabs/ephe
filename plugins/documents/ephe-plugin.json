@@ -1,9 +1,16 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "documents",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "origin": "first-party",
   "description": "Real document production: PDF, DOCX, QR codes, source notebooks and report-grade briefs.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "docs",
@@ -19,31 +26,287 @@
       {
         "name": "pdf",
         "description": "Produce a real PDF document",
-        "template": "Create a real PDF about: {input}. Use create_pdf and deliver a structured, artifact-based document with figures and sources."
+        "template": "Create a real PDF about: {input}. Pass the title and the full body, with headings and a table where the facts are tabular. For a report with several sections, set document mode so the file has a cover and a table of contents. Then verify the file."
       },
       {
         "name": "docx",
         "description": "Produce a real DOCX document",
-        "template": "Create a real DOCX about: {input}. Use create_docx and deliver a cleanly formatted document."
+        "template": "Create a real DOCX about: {input}. Pass the title and the full body as headings, lists and tables. This call creates a new file. Then verify the file."
       },
       {
         "name": "report",
-        "description": "Build a report-grade PDF brief",
-        "template": "Create a McKinsey-style report on: {input}. Deliver real artifacts (PDF) with structure, figures and sources."
+        "description": "Build a sourced briefing",
+        "template": "Create a sourced briefing on: {input}. Read every local source first. Deliver a PDF with sections, figures and a source line, then verify the file. A URL you have not read is a gap."
       }
     ],
     "tools": [
-      "create_pdf",
-      "create_docx",
-      "create_qrcode",
-      "extract_pdf_text",
-      "build_document",
-      "export_source_brief",
-      "create_source_notebook",
-      "query_source_notebook",
-      "verify_artifact"
+      {
+        "name": "create_pdf",
+        "entry": "tools/handlers.py:create_pdf",
+        "family": "docs",
+        "description": "Creates a quality-checked PDF document from markdown-like text. The result names the finished file — never guess or invent a path, and never tell the user which folder it went to. Use this for Executive Summary documents, structured reports, source references, attachments and high-quality summaries.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Document title (also the file-name base)."
+            },
+            "content": {
+              "type": "string",
+              "description": "Body content as markdown-like text (# headings, bullets, paragraphs). A whole line ![chart](/absolute/path.svg) embeds a local chart or diagram; create it with generate_chart or create_diagram using theme='light' so it matches the page."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            },
+            "template": {
+              "type": "string",
+              "enum": [
+                "report",
+                "brief",
+                "analysis",
+                "checklist"
+              ],
+              "description": "Layout preset: one of report, brief, analysis, checklist."
+            },
+            "document": {
+              "type": "boolean",
+              "description": "When true, the file opens with a cover and a table of contents, then the body. Use this for a report with several sections."
+            }
+          },
+          "required": [
+            "title",
+            "content"
+          ]
+        }
+      },
+      {
+        "name": "create_docx",
+        "entry": "tools/handlers.py:create_docx",
+        "family": "docs",
+        "description": "Creates a real Word document (.docx) from a markdown subset: # headings, bullets, numbered lists, tables (| a | b |), paragraphs. Use this for letters, reports and documentation as an editable Word file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Title shown as the heading (also the file-name base)."
+            },
+            "content": {
+              "type": "string",
+              "description": "Body content as markdown-like text (# headings, bullets, paragraphs)."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            }
+          },
+          "required": [
+            "title",
+            "content"
+          ]
+        }
+      },
+      {
+        "name": "create_qrcode",
+        "entry": "tools/handlers.py:create_qrcode",
+        "family": "docs",
+        "description": "Creates a real, scannable QR code as PNG. Use this for URLs, WiFi access data, contact data, texts.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "description": "Content of the QR code (URL, text, WiFi data)"
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            },
+            "fill_color": {
+              "type": "string",
+              "description": "Mark colour. Default is the product green."
+            },
+            "back_color": {
+              "type": "string",
+              "description": "Ground colour. Default is white."
+            }
+          },
+          "required": [
+            "data"
+          ]
+        }
+      },
+      {
+        "name": "extract_pdf_text",
+        "entry": "tools/handlers.py:extract_pdf_text",
+        "family": "docs",
+        "description": "Reads the full text out of a local PDF file. Returns the text page by page, page markers included. Use only when a PDF path exists.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the PDF file."
+            },
+            "max_chars": {
+              "type": "integer",
+              "description": "Maximum number of characters (default 8000)."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "build_document",
+        "entry": "tools/handlers.py:build_document",
+        "family": "docs",
+        "description": "Document Factory: builds a report-grade briefing PDF from local source files and optional web research — executive summary, key findings, analysis, next steps and source notes — then verifies the PDF really has pages. Returns DOCUMENT_BUILT_VERIFIED with the file path only on success.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "Topic/question the briefing answers"
+            },
+            "source_paths": {
+              "type": "string",
+              "description": "Comma-separated absolute or ~-relative paths to local files (txt/md/py/html/pdf) used as evidence."
+            },
+            "include_web_research": {
+              "type": "boolean",
+              "description": "Add web research to the evidence base (default true)"
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output filename — the file is delivered as an artifact; the result line names it"
+            }
+          },
+          "required": [
+            "topic"
+          ]
+        }
+      },
+      {
+        "name": "export_source_brief",
+        "entry": "tools/handlers.py:export_source_brief",
+        "family": "docs",
+        "description": "Exports a high-quality markdown briefing from a local source notebook: executive summary, evidence register and source manifest. Use this for reliable reports, study guides, project briefings and source documentation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "notebook_path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the SOURCE_NOTEBOOK_FILE JSON manifest."
+            },
+            "question": {
+              "type": "string",
+              "description": "Optional focus question the brief must answer."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            }
+          },
+          "required": [
+            "notebook_path"
+          ]
+        }
+      },
+      {
+        "name": "create_source_notebook",
+        "entry": "tools/handlers.py:create_source_notebook",
+        "family": "docs",
+        "description": "Creates a local source notebook from files or folders. Indexes text/PDF/code into citable evidence chunks and stores a local manifest. Use this when the user wants to work with documents, sources, knowledge, source grounding, study notes or citable quotes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "paths": {
+              "type": [
+                "array",
+                "string"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "description": "One or more local files/folders — absolute or ~-relative, e.g. ['~/Documents/report.pdf', '~/Documents/project']."
+            },
+            "title": {
+              "type": "string",
+              "description": "Notebook title."
+            },
+            "notebook_id": {
+              "type": "string",
+              "description": "Optional stable file name or slug."
+            },
+            "extensions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Optional allowed extensions, e.g. ['.pdf', '.md', '.py']."
+            }
+          },
+          "required": [
+            "paths"
+          ]
+        }
+      },
+      {
+        "name": "query_source_notebook",
+        "entry": "tools/handlers.py:query_source_notebook",
+        "family": "docs",
+        "description": "Queries a local source notebook and returns a conservative, source-grounded answer with evidence chunks in the format [S001-C001]. Use this after create_source_notebook or when an existing notebook manifest is given.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "notebook_path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the SOURCE_NOTEBOOK_FILE JSON manifest returned by create_source_notebook."
+            },
+            "question": {
+              "type": "string",
+              "description": "Question that must only be answered from the indexed sources."
+            },
+            "max_chunks": {
+              "type": "integer",
+              "description": "Maximum evidence chunks, default 6.",
+              "default": 6
+            }
+          },
+          "required": [
+            "notebook_path",
+            "question"
+          ]
+        }
+      },
+      {
+        "name": "verify_artifact",
+        "entry": "tools/handlers.py:verify_artifact",
+        "family": "docs",
+        "description": "Evidence gate for generated deliverables. Verifies that a file or project directory really exists and is complete (PDF page count, deck slide count, DOCX/XLSX content, project required files). Returns ARTIFACT_VERIFIED or ARTIFACT_FAILED with metrics. Always call this before announcing an artifact as finished.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the file or project directory to verify."
+            },
+            "checks": {
+              "type": "string",
+              "description": "JSON object with optional keys: kind (auto|pdf|pptx|docx|xlsx|project|file|image), min_pages, min_slides, min_words, min_sheets, min_rows, min_files, min_bytes, required_files (array of relative paths)"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
     ]
   },
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - the document tools ask the host. The body, the path and the source text stay out of the bridge row. 1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

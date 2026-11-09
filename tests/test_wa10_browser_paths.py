@@ -16,6 +16,7 @@ import pytest
 
 import core.browser as browser_mod
 from core.browser import (
+    STEP_EVIDENCE_PREFIX,
     BROWSER_INSTALL_HINT,
     BrowserUnavailable,
     PlaywrightBrowserManager,
@@ -152,7 +153,9 @@ def test_go_returns_the_page_text_after_a_load(fast_sleep):
     out = asyncio.run(mgr.go("https://example.com"))
 
     assert fake.goto_calls == ["https://example.com"]
-    assert out == "hello page"
+    # #92 prefixes the environment's own account; the page text arrives behind it
+    assert out.startswith(STEP_EVIDENCE_PREFIX), out[:60]
+    assert out.endswith("\n\nhello page")
 
 
 def test_a_load_failure_is_a_readable_line(fast_sleep):
@@ -191,8 +194,10 @@ def test_new_tab_and_goto_url_go_through_go(fast_sleep):
     fake = _FakePage(evaluate="reached")
     mgr = _manager(fake)
 
-    assert asyncio.run(mgr.new_tab("https://a.test")) == "reached"
-    assert asyncio.run(mgr.goto_url("https://b.test")) == "reached"
+    tab = asyncio.run(mgr.new_tab("https://a.test"))
+    assert tab.startswith(STEP_EVIDENCE_PREFIX) and tab.endswith("\n\nreached"), tab
+    second = asyncio.run(mgr.goto_url("https://b.test"))
+    assert second.startswith(STEP_EVIDENCE_PREFIX) and second.endswith("\n\nreached"), second
     assert fake.goto_calls == ["https://a.test", "https://b.test"]
 
 
@@ -237,7 +242,7 @@ def test_click_scales_normalized_coords_into_the_viewport(monkeypatch, fast_slee
 
     out = asyncio.run(mgr.click("Save"))
 
-    assert out == "Click executed successfully."
+    assert out.startswith(STEP_EVIDENCE_PREFIX) and out.endswith("\nClick executed.")
     # center of the box is (0.5, 0.3) of a 1000x500 viewport -> (500, 150)
     assert fake.mouse.moves == [pytest.approx((500.0, 150.0))]
     assert fake.mouse.clicks == [pytest.approx((500.0, 150.0))]
@@ -263,7 +268,9 @@ def test_type_text_types_into_the_keyboard(fast_sleep):
     out = asyncio.run(mgr.type_text("hello"))
 
     assert fake.keyboard.typed == [("hello", 20)]
-    assert "hello" in out
+    # the answer used to echo what was typed, which put a password into the model
+    # context as readily as a search box; #92 replaced the echo with the page's account
+    assert out.endswith("\nText typed.") and STEP_EVIDENCE_PREFIX in out
 
 
 def test_press_sends_the_key(fast_sleep):
@@ -273,7 +280,7 @@ def test_press_sends_the_key(fast_sleep):
     out = asyncio.run(mgr.press("Enter"))
 
     assert fake.keyboard.pressed == ["Enter"]
-    assert "Enter" in out
+    assert out.endswith("\nKey pressed.") and STEP_EVIDENCE_PREFIX in out
 
 
 # scroll
@@ -441,7 +448,7 @@ def test_click_at_xy_clicks_the_given_point(fast_sleep):
     out = asyncio.run(mgr.click_at_xy(10, 20))
     assert fake.mouse.moves == [(10, 20)]
     assert fake.mouse.clicks == [(10, 20)]
-    assert out == "clicked at 10,20"
+    assert out.startswith(STEP_EVIDENCE_PREFIX) and out.endswith("\nclicked at 10,20")
 
 
 # screenshot capture to disk

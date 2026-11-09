@@ -223,7 +223,7 @@
   "core/mcp_catalog.py": 11,
   "core/memory_kepta_ranking.py": 2,
   "core/settings_hints.py": 69,
-  "core/settings_schema.py": 4,
+  "core/settings_schema.py": 2,
   "core/skills.py": 10,
   "core/source_notebook.py": 1,
   "core/swarm_v2.py": 1,
@@ -496,6 +496,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 2015,
+ "total": 2013,
  "version": 1
 }

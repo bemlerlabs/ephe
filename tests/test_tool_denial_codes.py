@@ -18,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from core.chat import chat_with_tools
 from core.quality import BLOCKED_RESULT_PREFIXES, result_decision
 from core.tools.chat_gate import DENIAL_PREFIX, DENIAL_REASONS, confirm_for_chat, denial_message
+from tests.tool_dispatch_seam import patched_tool
 
 #: what the engine is instructed with, per gate outcome. A wording change here is a change
 #: to model input, so it is decided in the open instead of inside a template.
@@ -38,16 +39,30 @@ ENGINE_SENTENCES = {
         "[TOOL-DENIED] write_file was not executed. Ask, or choose a read-only path."
     ),
     "mode_read_only": (
-        "[TOOL-DENIED] write_file was not executed: this mode is read-only (Plan) and that "
-        "tool writes — leave Plan mode to run it. Ask, or choose a read-only path."
+        "[TOOL-DENIED] write_file was not executed: this mode is read-only (Architect) and "
+        "that tool writes — leave Architect mode to run it. Ask, or choose a read-only path."
     ),
     "mode_no_tools": (
-        "[TOOL-DENIED] write_file was not executed: this mode (Ask) runs without tools. "
+        "[TOOL-DENIED] write_file was not executed: this mode (Analyst) runs without tools. "
         "Ask, or choose a read-only path."
     ),
     "secret_path_denied": (
         "[TOOL-DENIED] write_file was not executed: the path is inside a protected root "
         "(~/.ssh/id_rsa). Ask, or choose a read-only path."
+    ),
+    # W2-11 (#11): the family a contributed tool wants to run under, refused where the
+    # call would run. The wording names the two moves that actually end the refusal.
+    "plugin_family_undeclared": (
+        "[TOOL-DENIED] write_file was not executed: the plugin behind this tool never "
+        "declared the 'write' tool family — change its manifest and reload the plugin, or "
+        "choose a tool its permissions cover. Ask, or choose a read-only path."
+    ),
+    # #26: the Creator consent gate. The sentence names the permission that is missing,
+    # so a card can show which of the three the user has to tick.
+    "creator_privilege_missing": (
+        "[TOOL-DENIED] write_file was not executed: this Creator session was not granted "
+        "the 'files' permission — ask the user to grant it, or choose a call that needs "
+        "less. Ask, or choose a read-only path."
     ),
 }
 
@@ -59,6 +74,8 @@ PARAMS = {
     "mode_read_only": {},
     "mode_no_tools": {},
     "secret_path_denied": {"path": "~/.ssh/id_rsa"},
+    "plugin_family_undeclared": {"family": "write"},
+    "creator_privilege_missing": {"privilege": "files"},
 }
 
 
@@ -159,7 +176,7 @@ async def test_one_denial_feeds_the_model_and_the_card_carries_its_code():
         client.chat = AsyncMock(side_effect=[first, second])
         MockClient.return_value = client
         executor = AsyncMock(return_value="written")
-        with patch.dict("core.tools.registry.TOOL_MAP", {"write_file": executor}, clear=False):
+        with patched_tool("write_file", executor):
             answer = await chat_with_tools(
                 model="phi4-mini",
                 history=[{"role": "user", "content": "Write x.txt"}],

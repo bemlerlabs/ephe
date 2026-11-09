@@ -42,12 +42,12 @@
  *
  * The composer mode is a SESSION attribute shared by every client (server
  * mirror) — a sibling walkthrough shares this one server, so every test RESTORES
- * the mode to the default (`full-access`) when it ends.
+ * the mode to the default (`operator`) when it ends.
  *
  * Selectors (all read from source, so they survive a copy refactor):
  *   mode selector   app/src/components/dashboard/chat/ComposerModeChip.tsx:41   data-testid="composer-mode-selector"
  *   mode menu list  app/src/components/dashboard/chat/ComposerModeMenu.tsx:124  data-testid="composer-mode-list"
- *   mode option     app/src/components/dashboard/chat/ComposerModeMenu.tsx:160  data-testid="composer-mode-<key>"  (key ∈ ask|plan|edit-auto|full-access, ComposerModeMenu.tsx:37-66)
+ *   mode option     app/src/components/dashboard/chat/ComposerModeMenu.tsx:160  data-testid="composer-mode-<key>"  (key ∈ analyst|architect|operator, ComposerModeMenu.tsx COMPOSER_MODES)
  *   chat input      app/src/components/dashboard/ChatInput.tsx:433              data-testid="chat-input"
  *   send / stop     app/src/components/dashboard/chat/ComposerSendButton.tsx:77  data-testid="send-btn" | "stop-btn"
  *   assistant       app/src/components/dashboard/MessageBubble.tsx:118-119      data-testid="message-bubble" data-role="assistant"
@@ -71,7 +71,7 @@
  *   status popover  app/src/components/dashboard/AgentStatusButton.tsx:199,236  data-testid="agent-status-pill" → "agent-status-popover"
  *   plan semantics  docs/COMPOSER_MODES.md + server/routes/chat.py:445-472 (_mode_context),
  *                   server/routes/chat.py:1008-1022 (auto-approval is gated on the global
- *                   approval profile: mode_auto = profile != "strict"; autonomous=full-access,
+ *                   approval profile: mode_auto = profile != "strict"; autonomous=operator,
  *                   app/src/components/dashboard/chat/model.ts:909)
  */
 import { test, expect } from '@playwright/test'
@@ -114,19 +114,19 @@ const PLAN_BLOCK_RE = /^\s*(?:#+\s*)?\*{0,2}\s*Plan\s*\*{0,2}\s*$|^\s*[-*+]\s*\[
 
 type TraceFn = (event: string, data?: Record<string, unknown>) => void
 
-// The four, kept as a value so the type below is derived rather than restated.
-const _MODES = ['ask', 'plan', 'edit-auto', 'full-access'] as const
+// The three tiles of the renamed menu (Task 3: ask→analyst, plan→architect,
+// full-access→operator; edit-auto retired, creator stays tile-less until Wave 5).
+const _MODES = ['analyst', 'architect', 'operator'] as const
 type Mode = (typeof _MODES)[number]
 
 // The short chip label a mode resolves to (ComposerModeMenu.modeShortLabel reads
-// the head of chat.modeHint.<key>, locales/en.json:215-220).
+// the head of chat.modeHint.<key>, locales/en.json modeHint).
 const EXPECTED_CHIP: Record<Mode, string> = {
-  ask: 'ask',
-  plan: 'plan',
-  'edit-auto': 'edit auto',
-  'full-access': 'full access',
+  analyst: 'analyst',
+  architect: 'architect',
+  operator: 'operator',
 }
-const DEFAULT_MODE: Mode = 'full-access'
+const DEFAULT_MODE: Mode = 'operator'
 
 // ── observations.json: one fact block per mode, merged across the four tests ──
 type Obs = {
@@ -796,30 +796,23 @@ async function runMode(
   if (unsettledMsg) throw new Error(unsettledMsg)
 }
 
-test(`composer mode ask: tool task, write task, plan — what really happens`, async ({
+test(`composer mode analyst: tool task, write task, plan — what really happens`, async ({
   page,
   request,
 }) => {
-  await runMode(page, request, 'ask')
+  await runMode(page, request, 'analyst')
 })
 
-test(`composer mode plan: does it write nothing and really present a plan?`, async ({
+test(`composer mode architect: does it write nothing and really present a plan?`, async ({
   page,
   request,
 }) => {
-  await runMode(page, request, 'plan')
+  await runMode(page, request, 'architect')
 })
 
-test(`composer mode edit-auto: tool task, write task, plan — what really happens`, async ({
+test(`composer mode operator: tool task, write task, plan — what really happens`, async ({
   page,
   request,
 }) => {
-  await runMode(page, request, 'edit-auto')
-})
-
-test(`composer mode full-access: tool task, write task, plan — what really happens`, async ({
-  page,
-  request,
-}) => {
-  await runMode(page, request, 'full-access')
+  await runMode(page, request, 'operator')
 })

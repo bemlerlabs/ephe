@@ -4,8 +4,10 @@ The plugin store's toggles become real: the runtime consults plugin state
 and hides/disables the mapped tool families. Keystone honesty properties:
 
 1. Catalog → tool-family mapping: web-research→{web_search, fetch_url},
-   memory→{memory}, vision→{analyze_image, vision_click, vision_type},
-   image-studio→{generate_image}, code-shell→{run_shell},
+   memory→{memory}, browser-use→{browser_go, browser_screenshot, browser_click,
+   browser_type, browser_press, browser_scroll, browser_evaluate, browser_exec},
+   vision→{analyze_image, vision_click, vision_type},
+   image-studio→{generate_image}, code-shell serves the shell and file tools,
    mcp-connector→prefix "mcp_".
 2. Only EXPLICIT registry entries gate (plugins.json via the store UI);
    catalog defaults never hide tools silently (no behavior change until the
@@ -13,8 +15,9 @@ and hides/disables the mapped tool families. Keystone honesty properties:
 3. Legacy master switch (plugins.json top-level `master_enabled`): the gating
    bypass retired with O-1. Explicit per-plugin states win; pause all is the
    separate global control.
-4. TOOL_MAP stays complete (userspace); gating applies to the SCHEMA view
+4. TOOL_MAP stays the kernel dispatch map; gating applies to the SCHEMA view
    (model-facing) and to EXECUTION (fail-closed, honest denial + audit).
+   A contributed name is dispatched from the descriptor registry.
 5. Unknown plugin ids / unknown tool names never crash — fail-closed means
    execution denial for explicitly disabled plugins only.
 """
@@ -99,12 +102,26 @@ class TestSchemaView:
         assert "web_search" not in names
         assert "read_file" in names
 
-    def test_tool_map_stays_complete(self, cfg):
-        """G: plugins disabled W: TOOL_MAP T: unchanged size (userspace)."""
+    def test_the_dispatch_map_stays_the_whole_map_while_a_plugin_is_off(self, cfg):
+        """G: web-research disabled W: TOOL_MAP is counted T: the gate cannot thin it.
+
+        The anchored key count is the kernel dispatch map. Contributed names live
+        in the descriptor registry. The offer list is the schema blocks after this
+        gate and the user's own switches. docs/COMPOSER_MODES.md points here for
+        the figure.
+        """
         _write_registry(cfg.parent, [{"name": "web-research", "enabled": False}])
         from core.tools.registry import TOOL_MAP
 
-        assert len(TOOL_MAP) == 77
+        counted = len(TOOL_MAP)
+        assert counted == 37, (
+            f"TOOL_MAP holds {counted} names; the anchor is the literal on this line. "
+            "A disabled plugin must never thin the dispatch map — check the gate first. "
+            "If a tool really was added or removed from the kernel map, land it in "
+            "core/tools/registry.py and then re-anchor this number and the one in "
+            "tests/test_w9_self_awareness.py deliberately, in the same commit. "
+            "Editing the figure alone is what makes this test stop protecting the answer."
+        )
 
 
 class TestExecution:

@@ -15,10 +15,10 @@ const DE: Record<string, string> = {
   'chat.placeholder': 'Womit kann ich dir helfen?',
   'chat.attachFile': 'Datei anhängen',
   'chat.attachImage': 'Bild anhängen',
-  'chat.modeHint.ask': 'Fragen — Ephe antwortet nur, keine Werkzeuge laufen',
-  'chat.modeHint.edit-auto': 'Bearbeiten — Ephe nutzt Werkzeuge und editiert Dateien im Workspace',
-  'chat.modeHint.plan': 'Planen — Ephe entwirft erst einen Plan; nichts läuft ohne Bestätigung',
-  'chat.modeHint.full-access': 'Vollzugriff — Ephe arbeitet autonom mit allen Werkzeugen',
+  'chat.modeHint.analyst': 'Analyst — Ephe antwortet nur, keine Werkzeuge laufen',
+  'chat.modeHint.architect':
+    'Architekt — Ephe entwirft erst einen Plan; nichts läuft ohne Bestätigung',
+  'chat.modeHint.operator': 'Operator — jedes Werkzeug läuft ohne Rückfrage',
   'chat.modeSelectorAria': 'Antwort-Modus des Composers',
   'chat.thinkingChipAria': 'Denk-Modus',
   'chat.thinkingOn': 'An',
@@ -40,6 +40,7 @@ const DE: Record<string, string> = {
   'chat.modeSection.none': 'Ohne Werkzeuge', // language-gate: ignore
   'chat.modeSection.read': 'Nur lesend', // language-gate: ignore
   'chat.modeSection.write': 'Mit Schreibzugriff', // language-gate: ignore
+  'chat.modeSection.create': 'Erstellt Plugins', // language-gate: ignore
 }
 
 vi.mock('react-i18next', () => ({
@@ -432,22 +433,27 @@ describe('P3-6 Denk-Chip ist reiner Status ohne Schalter-Optik', () => {
 // ── 7 · Mode menu ──────────────────────────────────────────────────────────
 describe('P3-7 Modus-Menü: deutsch, Sektionen, Tastatur', () => {
   it('Kurz-Titel aus der Übersetzung, Notname ohne Auflösung', () => {
-    const ask = COMPOSER_MODES.find((m) => m.key === 'ask')!
-    expect(modeShortLabel(ask, 'Fragen — Ephe antwortet nur')).toBe('Fragen')
-    expect(modeShortLabel(ask, 'chat.modeHint.ask')).toBe('Ask')
-    expect(modeShortLabel(ask, '')).toBe('Ask')
-    expect(modeShortLabel(ask, 'Ganz langer Satz ohne Trenner, der alles verdeckt')).toBe('Ask')
+    // Architect: the one renamed tile whose German title differs from the fallback —
+    // Analyst and Operator are the same words in both languages by ruling.
+    const architect = COMPOSER_MODES.find((m) => m.key === 'architect')!
+    expect(modeShortLabel(architect, 'Architekt — Ephe entwirft erst einen Plan')).toBe('Architekt')
+    expect(modeShortLabel(architect, 'chat.modeHint.architect')).toBe('Architect')
+    expect(modeShortLabel(architect, '')).toBe('Architect')
+    expect(modeShortLabel(architect, 'Ganz langer Satz ohne Trenner, der alles verdeckt')).toBe(
+      'Architect',
+    )
   })
 
   it('Chip und Zeilen tragen die deutschen Kurz-Titel', async () => {
     useChatStore.getState().createSession('S')
     render(<ChatInput onSend={vi.fn()} />)
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Vollzugriff')
+    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Operator')
     fireEvent.click(screen.getByTestId('composer-mode-selector'))
     const menu = await screen.findByTestId('composer-mode-menu')
-    expect(menu.textContent).toContain('Fragen')
-    expect(menu.textContent).toContain('Bearbeiten')
-    expect(menu.textContent).not.toContain('Ask —')
+    expect(menu.textContent).toContain('Analyst')
+    expect(menu.textContent).toContain('Architekt')
+    // A resolved German title wins: the English remainder message never shows.
+    expect(menu.textContent).not.toContain('Architect —')
   })
 
   it('Sektionen nach Ausführungsrecht', async () => {
@@ -459,15 +465,19 @@ describe('P3-7 Modus-Menü: deutsch, Sektionen, Tastatur', () => {
     expect(screen.getByTestId('composer-mode-section-write').textContent).toContain(
       'Mit Schreibzugriff',
     )
+    // The fourth group is Wave 5's `creator` tile (`chat.modeSection.create`).
+    expect(screen.getByTestId('composer-mode-section-create').textContent).toContain(
+      'Erstellt Plugins',
+    )
     expect(
       document.querySelectorAll('[data-testid="composer-mode-menu"] [role="group"]').length,
-    ).toBe(3)
+    ).toBe(4)
   })
 
   it('Tastatur: Highlight ab Zeile 1, Enter wählt', async () => {
     useChatStore.getState().createSession('S')
     const st = useChatStore.getState()
-    useChatStore.getState().setSessionMode(st.activeSessionId!, 'ask')
+    useChatStore.getState().setSessionMode(st.activeSessionId!, 'analyst')
     render(<ChatInput onSend={vi.fn()} />)
     fireEvent.click(screen.getByTestId('composer-mode-selector'))
     await screen.findByTestId('composer-mode-menu')
@@ -484,7 +494,7 @@ describe('P3-7 Modus-Menü: deutsch, Sektionen, Tastatur', () => {
         useChatStore
           .getState()
           .sessions.find((x) => x.id === useChatStore.getState().activeSessionId)?.mode,
-      ).toBe('plan'),
+      ).toBe('architect'),
     )
     expect(screen.queryByTestId('composer-mode-menu')).toBeNull()
   })

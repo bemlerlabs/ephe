@@ -396,3 +396,18 @@ export interface CellLife {
   ttl_seconds?: number
   seconds_left?: number
 }
+
+/** The three permissions `core/tools/creator_guard.py` enforces, by its own names. */
+export type CreatorPrivilege = 'code' | 'files' | 'network'
+
+/** What one session was granted, read from the gate that enforces it.
+ *  The guard answers both halves: `privileges` is the closed set it knows,
+ *  `held` the subset this session holds, so a surface can render three rows and
+ *  check the granted ones from one read. `mode` says what the session actually
+ *  runs, because a grant without the mode is inert. */
+export interface CreatorConsent {
+  session_id: string
+  privileges: CreatorPrivilege[]
+  held: CreatorPrivilege[]
+  mode: string
+}

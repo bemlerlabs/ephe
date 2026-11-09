@@ -50,7 +50,9 @@ pub fn last_run(text: &str) -> LastRun {
 /// Append one line to the file the shell owns. A ledger that cannot be written
 /// stays silent: it must never be the reason a start fails.
 pub fn write(home: &Path, text: &str) {
-    let path = home.join(".ephe").join("logs").join("desktop.log");
+    let path = crate::instance::device_dir_for(home)
+        .join("logs")
+        .join("desktop.log");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }

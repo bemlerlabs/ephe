@@ -58,7 +58,7 @@ wish.
 |---|---|---|
 | Hand-written prose (`prose_tells.py --strict`) | Rejection 3 and 5: generated-code tells in comments and docstrings, counted per file against a baseline that only ever lowers | `ci-gates.yml` |
 | English-only (`language_gate.py`) | Every developer and machine-facing artifact is English; German exists only in the product's own locale | `ci-gates.yml` |
-| Architecture wall (`architecture_check.mjs`) | The 400-line ceiling, import cycles, and the contracts the tree pins | `ci-gates.yml` |
+| Architecture wall (`architecture_check.mjs`) | Import cycles block: any cycle is an error. The four count rules — file lines, contract lines, public methods, deep imports — report a hint and never escalate: no size budgets, decided by the owner on 2026-11-05 | `ci-gates.yml` |
 | Author register (`attribution_check.py`) | Every new commit's author address is one the register accepts; history stays as the clean-room decision wrote it | `hygiene.yml` |
 | Repository hygiene | No tracked `node_modules`, local databases, WAL/SHM, secrets, caches, or generated artifacts; no case-collision paths | `hygiene.yml` |
 | Workflow self-audit (zizmor) | Every workflow file, under its strictest reading | `ci-gates.yml` |

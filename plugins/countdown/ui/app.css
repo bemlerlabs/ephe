@@ -1,0 +1,68 @@
+/* The countdown surface paints on a transparent window: the page background is
+   the widget, and everything the widget needs is drawn here. No remote font, no
+   remote image — the mount's content security policy is `default-src 'self'`
+   over the bundle's own files, so a fetched asset would fail closed anyway. */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: transparent;
+  color: #f4f4f5;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+.countdown {
+  margin: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 14px;
+  background: rgb(24 24 27 / 88%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.remaining {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: 1px;
+}
+
+.phase {
+  margin: 2px 0 10px;
+  color: #a1a1aa;
+  font-size: 12px;
+}
+
+.running .remaining {
+  color: #34d399;
+}
+
+.done .remaining {
+  color: #fbbf24;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.controls button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 10px;
+  background: rgb(39 39 42 / 92%);
+  color: inherit;
+  font-size: 12px;
+}
+
+.controls button:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}

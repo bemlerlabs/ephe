@@ -142,7 +142,6 @@ class TestSynthesizeEngines:
         assert "piper" in r.json()["error"]["message"].lower()
 
     def test_given_piper_binary_when_synthesize_then_wav_produced(self, audio_client, monkeypatch, tmp_path):
-        import asyncio
         from core.voice_config import save_voice_config, voices_dir
 
         save_voice_config(tts_engine="piper", piper_voice="en_US-amy-medium")
@@ -152,19 +151,14 @@ class TestSynthesizeEngines:
         (vdir / "en_US-amy-medium.onnx").write_bytes(b"onnx")
         (vdir / "en_US-amy-medium.onnx.json").write_bytes(b"{}")
 
-        class _Proc:
-            returncode = 0
-
-            async def communicate(self, stdin, timeout=None):
-                return b"", b""
-
-        async def _fake_exec(*cmd, **kw):
-            # piper simulation: writes the WAV file to the --output_file argument
+        def _fake_run(cmd, **_kwargs):
             out = cmd[cmd.index("--output_file") + 1]
             pathlib.Path(out).write_bytes(b"RIFF" + b"\x00" * 100)
-            return _Proc()
+            import subprocess
 
-        monkeypatch.setattr(asyncio, "create_subprocess_exec", _fake_exec)
+            return subprocess.CompletedProcess(cmd, 0, b"", b"")
+
+        monkeypatch.setattr("core.voice_synth.subprocess.run", _fake_run)
         r = audio_client.post("/api/audio/synthesize", json={"text": "Hello local voice"})
         assert r.status_code == 200, r.text
         assert r.json()["audio_url"].endswith("_piper.wav")

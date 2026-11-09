@@ -28,13 +28,21 @@ export default function ComposerModeChip({
   onPick: (key: string) => void
 }) {
   const { t } = useTranslation()
-  // P3-7: the short title is cut from the already-translated mode hint, so a raw
-  // key never reaches the interface. W-3 (2026-11-02): the chip names the mode in
-  // both halves. The security profile is a different setting with its own chip
-  // (ChatInput.tsx, `chat.permissionAria`), and this one used to read the profile
-  // word under a label that showed the mode.
-  const activeMode = COMPOSER_MODES.find((m) => m.key === mode) ?? COMPOSER_MODES[0]!
-  const modeLabel = modeShortLabel(activeMode, String(t(activeMode.hintKey)))
+  // P3-7: the short title is cut from the already-translated mode hint, so for a
+  // menu mode a raw key never reaches the interface. W-3 (2026-11-02): the chip
+  // names the mode in both halves. The security profile is a different setting
+  // with its own chip (ChatInput.tsx, `chat.permissionAria`), and this one used
+  // to read the profile word under a label that showed the mode.
+  // Task 3 (2026-11-04): a stored value that owns no tile — a kept `edit-auto` or
+  // another client's mode — renders its section wording from the existing locale
+  // leaves (`chat.modeSection.*`). Every untiled value the rename left behind is
+  // an edit-family session, so "With write access" is true of it; a raw stored
+  // key names nothing a user can read, and a tile title would name a mode the
+  // session does not run.
+  const activeMode = COMPOSER_MODES.find((m) => m.key === mode)
+  const untiledSection = String(t('chat.modeSection.write'))
+  const hint = activeMode ? String(t(activeMode.hintKey)) : untiledSection
+  const modeLabel = activeMode ? modeShortLabel(activeMode, hint) : untiledSection
   return (
     <div className="relative inline-flex items-center shrink-0">
       <button
@@ -44,7 +52,7 @@ export default function ComposerModeChip({
         aria-label={`${String(t('chat.modeSelectorAria'))}: ${modeLabel}`}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={String(t(activeMode.hintKey))}
+        title={hint}
         onClick={onToggle}
         className="inline-flex items-center gap-1 rounded-md border border-control bg-surface px-1.5 py-0.5 text-ui-xs text-ink-faint hover:text-foreground hover:border-brand/30 transition-colors shrink-0 min-h-6 max-lg:min-h-11"
       >

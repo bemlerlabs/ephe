@@ -20,6 +20,16 @@ The same class also lived in ``tests/test_hybrid_loop_router.py``'s ``separate_h
 fixture, whose teardown reloaded the modules before ``monkeypatch.undo()`` had put the
 environment back, leaving them rebuilt for a foreign host; that teardown now restores the
 variables itself first.
+
+A third occurrence, found while closing the register sweep: four files reload
+``core.model_provider`` to read the provider choice under different environment variables,
+and a reload re-executes the module into the same dict, which mints a second
+``ProviderMessage``. The converter's ``isinstance`` guard resolves its class name through
+that dict at call time, so it sees the second class while a test file that imported the
+name at collection time builds messages of the first. The message then falls to the dict
+branch and dies as ``'ProviderMessage' object has no attribute 'get'``. The wire test
+resolved every provider name up front; it now resolves them from the live module when it
+needs them, so whichever generation the reloader left behind is the one both sides use.
 """
 from __future__ import annotations
 
@@ -78,3 +88,41 @@ def test_loop_tier_is_the_config_module_fast_tier() -> None:
     import core.model_router as model_router
 
     assert model_router.LOOP_TIER is model_config.ModelTier.FAST
+
+
+# The order that reproduced the provider-message defect: the reloader first, the wire
+# test last. One reloader is enough to prove the class, and the four files that reload
+# core.model_provider (test_model_provider, test_generation_reaches_request_i25,
+# test_openai_provider_tools, test_thinking_passthrough) all reach it the same way.
+BREAK_ORDER_PROVIDER = (
+    "tests/test_model_provider.py",
+    "tests/test_subagent_tool_wire.py",
+)
+
+
+def test_the_provider_message_identity_holds_in_the_order_that_breaks() -> None:
+    """GIVEN a file that reloads core.model_provider ahead of the wire test
+    WHEN the two run together as one child pytest
+    THEN the converter still recognises the messages the helper sends."""
+    env = {**os.environ}
+    env.pop("PYTEST_ADDOPTS", None)
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "pytest", "-q", "--no-header",
+            "-p", "no:cacheprovider", *BREAK_ORDER_PROVIDER,
+        ],
+        cwd=str(ROOT),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, (
+        "the provider message identity broke under selection order again — an "
+        "importlib.reload(core.model_provider) mints a second ProviderMessage in the "
+        "same module dict, so a test that imported the name at collection time sends "
+        "messages the reloaded converter no longer recognises: resolve the provider "
+        "names from the live module at call time:\n"
+        + result.stdout
+        + result.stderr
+    )

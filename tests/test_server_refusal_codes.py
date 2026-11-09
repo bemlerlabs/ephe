@@ -124,6 +124,69 @@ SERVER_SENTENCES = {
         "README.md is held by agent-b (draft since 2026-10-14T16:05) "
         "— check that run on the Workspaces page, then publish with force=True to write over it"
     ),
+    # The plugin surface route (#42, 2026-11-04): the three ways an iframe-mounted
+    # plugin document fails, each with the move the surface still has.
+    "plugin_ui_unavailable": (
+        "plugin 'acme' has no surface to serve here — the plugin is switched off "
+        "— check the plugin on the Extensions page, then reopen the surface"
+    ),
+    "plugin_ui_unauthorized": (
+        "the plugin surface for 'acme' lost its mount credential — request a fresh "
+        "surface token and reload the surface"
+    ),
+    "plugin_ui_asset_refused": (
+        "the plugin surface for 'acme' asked for a file this route does not serve "
+        "— the path leaves the plugin directory — reload the surface so its assets "
+        "arrive by relative path"
+    ),
+    # The dynamic-tool rail (#10, 2026-11-05): the confined worker's four refusals. The
+    # restart one and the entry one frame the emitter's own words in `{reason}`, exactly
+    # as the workspaces family above does.
+    "tool_not_available": (
+        "the tool plugin 'acme' contributes over the plugin transport is not available "
+        "right now — check that plugin on the Extensions page, then call the tool again"
+    ),
+    "sandbox_unavailable": (
+        "plugin 'acme' was not started: this machine offers no OS boundary to confine a "
+        "plugin worker in, and a plugin tool runs nowhere else — check the confinement of "
+        "the backend host, then run the tool again"
+    ),
+    "plugin_worker_restart_exhausted": (
+        "plugin worker died 3 times in a row (restart budget 3) — the tool is refused for "
+        "this turn instead of respawning again — check that worker's exit status in the "
+        "audit view, then start a new turn"
+    ),
+    "plugin_entry_refused": (
+        "plugin 'acme' names a tool entry this build will not open: the entry "
+        "'tools.runner:run' is not a file inside the plugin directory — correct the entry "
+        "in the plugin manifest, then mount the plugin again"
+    ),
+    "plugin_state_full": (
+        "plugin 'acme' is refused: its stored data holds 129 MB of the 128 MB this bundle "
+        "may keep — open this bundle on Extensions and remove a stored file there, then "
+        "run the tool again"
+    ),
+    "plugin_state_name": (
+        "that stored file is not in this bundle — open this bundle on Extensions "
+        "and pick a file the list shows"
+    ),
+    "plugin_unknown": (
+        "no bundle by that name is installed — open Extensions and pick a bundle "
+        "the list shows"
+    ),
+    "invalid_request": (
+        "this request is not a shape the route takes — check the field the answer "
+        "names and send it again"
+    ),
+    "browser_session_unknown": (
+        "no browser session 'ghost' is open to watch — run the step that opens one, then open "
+        "the view again; watching never starts a browser by itself"
+    ),
+    "browser_watch_unavailable": (
+        "this browser session cannot send its frames right now: TimeoutError — the task keeps "
+        "running and every step lands in the audit view, so check the engine under "
+        "Settings - Browser and reopen the view"
+    ),
     "device_forget_undeclared": (
         "notes-backup is named by no row of the device declaration — check the listing "
         "under Settings - Privacy and run the clear on entries it does name"
@@ -132,6 +195,19 @@ SERVER_SENTENCES = {
         "audit.log stands under the device declaration's keep — check the listing "
         "under Settings - Privacy and clear only what it marks forgettable"
     ),
+    # The file route (#80): one guard decides whether a path may be read, and every
+    # refusal it hands back rides the coded envelope. `max_mb` is the route's own
+    # MAX_FILE_BYTES // 1 MiB, so the sentence carries the number the route sends.
+    "file_path_not_allowed": (
+        "path is outside the workspace and its output folder — pick a file from "
+        "one of those two"
+    ),
+    "file_path_protected": (
+        "path is protected (credential or system file) — this route cannot read it; "
+        "choose another file"
+    ),
+    "file_not_found": "file not found — check the path or whether the file still exists",
+    "file_too_large": "file is larger than the preview limit (50 MB) — open it directly instead",
 }
 
 #: the slots each template fills, and therefore the keys `reason_params` has to carry
@@ -173,8 +249,37 @@ PARAMS = {
         "paths": "README.md",
         "holders": "agent-b (draft since 2026-10-14T16:05)",
     },
+    "plugin_ui_unavailable": {"plugin": "acme", "reason": "the plugin is switched off"},
+    "plugin_ui_unauthorized": {"plugin": "acme"},
+    "plugin_ui_asset_refused": {"plugin": "acme", "reason": "the path leaves the plugin directory"},
+    "tool_not_available": {"plugin": "acme", "transport": "plugin"},
+    "sandbox_unavailable": {"plugin": "acme"},
+    "plugin_worker_restart_exhausted": {
+        "reason": (
+            "plugin worker died 3 times in a row (restart budget 3) — the tool is refused "
+            "for this turn instead of respawning again"
+        )
+    },
+    "plugin_entry_refused": {
+        "plugin": "acme",
+        "reason": "the entry 'tools.runner:run' is not a file inside the plugin directory",
+    },
+    "plugin_state_full": {"plugin": "acme", "used_mb": "129", "cap_mb": "128"},
+    "plugin_state_name": {},
+    "plugin_unknown": {},
+    "invalid_request": {},
+    # The watch channel (#88): the session a name did not open, and the engine that will not
+    # cast one. `reason` is the engine's own word, so the sample reads like a real answer.
+    "browser_session_unknown": {"session": "ghost"},
+    "browser_watch_unavailable": {"reason": "TimeoutError"},
     "device_forget_undeclared": {"names": "notes-backup"},
     "device_forget_kept": {"names": "audit.log"},
+    # The file route's four (#80). Only `file_too_large` fills a slot, and it fills it
+    # with the route's own MAX_FILE_BYTES // 1 MiB rather than a round guess.
+    "file_path_not_allowed": {},
+    "file_path_protected": {},
+    "file_not_found": {},
+    "file_too_large": {"max_mb": 50},
 }
 
 #: the status each route answered with before the code existed, and still answers with
@@ -208,8 +313,27 @@ STATUSES = {
     "change_set_approval_superseded": 409,
     "change_set_unpublish_refused": 409,
     "publish_path_claimed": 409,
+    "plugin_ui_unavailable": 404,
+    "plugin_ui_unauthorized": 401,
+    "plugin_ui_asset_refused": 400,
+    "tool_not_available": 409,
+    "sandbox_unavailable": 503,
+    "plugin_worker_restart_exhausted": 429,
+    "plugin_entry_refused": 422,
+    "plugin_state_full": 507,
+    "plugin_state_name": 400,
+    "plugin_unknown": 404,
+    "invalid_request": 400,
+    "browser_session_unknown": 404,
+    "browser_watch_unavailable": 409,
     "device_forget_undeclared": 400,
     "device_forget_kept": 409,
+    # The file route's four (#80): 403 for the two the guard refuses, 404 for a path
+    # that is not there, 413 for one too big to preview.
+    "file_path_not_allowed": 403,
+    "file_path_protected": 403,
+    "file_not_found": 404,
+    "file_too_large": 413,
 }
 
 

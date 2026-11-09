@@ -45,9 +45,9 @@ def now_iso() -> str:
 
 
 def _known_tools() -> set[str]:
-    from core.tools.registry import TOOL_MAP
+    from core.tools.registry import addressable_tool_names
 
-    return set(TOOL_MAP.keys())
+    return set(addressable_tool_names())
 
 
 def _str_list(raw: Any, *, field: str, limit: int = 64) -> list[str]:

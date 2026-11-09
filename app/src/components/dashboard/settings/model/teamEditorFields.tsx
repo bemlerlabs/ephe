@@ -159,6 +159,7 @@ export function TeamMode({
             <option value="sequential">{t('settings.teamOrchSequential')}</option>
             <option value="review">{t('settings.teamOrchReview')}</option>
             <option value="leader">{t('settings.teamOrchLeader')}</option>
+            <option value="iterative">{t('settings.teamOrchIterative')}</option>
           </select>
         </Field>
         <Field label={t('settings.teamModelPolicy')}>
@@ -200,6 +201,7 @@ export function TeamMode({
               onChange={(e) =>
                 set({
                   budget: {
+                    ...draft.budget,
                     max_rounds: Number(e.target.value) || 1,
                     wall_timeout: draft.budget?.wall_timeout ?? 300,
                   },
@@ -219,6 +221,7 @@ export function TeamMode({
               onChange={(e) =>
                 set({
                   budget: {
+                    ...draft.budget,
                     max_rounds: draft.budget?.max_rounds ?? 4,
                     wall_timeout: Number(e.target.value) || 30,
                   },
@@ -227,6 +230,31 @@ export function TeamMode({
               data-testid="team-wall"
             />
           </Field>
+          {draft.orchestration === 'iterative' && (
+            <Field
+              label={t('settings.teamMaxIterations')}
+              hint={t('settings.teamMaxIterationsHint')}
+            >
+              <input
+                type="number"
+                min={1}
+                max={8}
+                className={FIELD}
+                value={draft.budget?.max_iterations ?? 3}
+                onChange={(e) =>
+                  set({
+                    budget: {
+                      ...draft.budget,
+                      max_rounds: draft.budget?.max_rounds ?? 4,
+                      wall_timeout: draft.budget?.wall_timeout ?? 300,
+                      max_iterations: Number(e.target.value) || 1,
+                    },
+                  })
+                }
+                data-testid="team-max-iterations"
+              />
+            </Field>
+          )}
         </div>
       </div>
     </SettingsGroup>

@@ -1,10 +1,10 @@
 """Server-confirmed plugin lifecycle (P1).
 
-One state machine for enable and disable: a request stages a pending intent,
-runs the activation hook, commits a versioned state and writes exactly one audit
-entry. A stale expected version and a reused idempotency key fail closed. State
-writes go through a temp file, fsync and replace, so a crash leaves the old or
-the new file and never a truncated one.
+One state machine for enable, disable and the hot mount of a bundle's tools (#15): a
+request stages a pending intent, runs the activation hook, commits a versioned state and
+writes exactly one audit entry. A stale expected version and a reused idempotency key
+fail closed. State writes go through a temp file, fsync and replace, so a crash leaves
+the old or the new file and never a truncated one.
 
 The state file is separate from the legacy ``plugins.json``; migration imports
 the legacy map once. The HTTP route, SSE and the UI switch map
@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from core.plugin_lifecycle_events import subscribe, unsubscribe
+from core.plugin_lifecycle_mount import LifecycleMount
 from core.plugin_lifecycle_reads import LifecycleReads
 from core.plugin_lifecycle_store import LifecyclePersistence
 from core.plugin_lifecycle_transitions import LifecycleTransitions
@@ -63,7 +64,9 @@ def _audit_refusal(plugin: str, code: str, detail: str) -> None:
     )
 
 
-class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions):
+class PluginLifecycle(
+    LifecyclePersistence, LifecycleReads, LifecycleTransitions, LifecycleMount
+):
     def __init__(
         self,
         state_path: Path | None,
@@ -98,6 +101,8 @@ class PluginLifecycle(LifecyclePersistence, LifecycleReads, LifecycleTransitions
             "legacy_imported": False,
             "notices": [],
             "plugins": {},
+            "mounts": {},
+            "surfaces": {},
             "idempotency": {},
         }
         self._load()

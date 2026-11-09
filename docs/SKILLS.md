@@ -19,7 +19,7 @@ has verified the artifact.
 | `/chart` | Create chart-ready output |
 | `/shell` | Prepare shell commands; execution requires approval |
 | `/research` | Optional online research; confirmation required before sending |
-| `/image` | Generate real PNG/JPEG images through an OpenAI-compatible image endpoint you configure (free & local via [LocalAI](LOCAL_IMAGE_ENGINE.md)) |
+| `/image` | Save one picture through an OpenAI-compatible image endpoint you configure (free and local via [LocalAI](LOCAL_IMAGE_ENGINE.md)). The file name ends in .png and the tool prints PNG_FILE. |
 
 Settings → Skills installs your own packs (zip/tar.gz, path-traversal-guarded), toggles skills off,
 and removes user packs.

@@ -84,13 +84,14 @@ class TestFactorySkillPacks:
             assert skill.version and skill.version[0].isdigit()
 
     def test_given_new_packs_when_tools_declared_then_all_registered(self, loader):
-        from core.tools import TOOL_MAP
+        from core.tools.registry import addressable_tool_names
 
+        known = addressable_tool_names()
         for name in ("project-factory", "document-factory"):
             skill = loader.load(name)
             assert skill.tools
             for tool in skill.tools:
-                assert tool in TOOL_MAP, f"{name} declares unknown tool {tool}"
+                assert tool in known, f"{name} declares unknown tool {tool}"
 
     def test_given_new_tools_when_registry_resolved_then_schemas_complete(self):
         from core.tools import get_tool_schemas

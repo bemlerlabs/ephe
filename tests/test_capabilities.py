@@ -55,6 +55,44 @@ class TestOfferList:
         # It stays in the known set: the settings view has to be able to switch it back.
         assert "web_search" in capabilities.tool_names()
 
+    def test_a_switched_off_bundle_tool_hides_its_marker(self):
+        """The marker follows the bundle switch. bash has no switch of its own."""
+        from core.tools.registry import execute_tool, get_tool_schemas
+
+        def offered() -> set[str]:
+            return {str((s.get("function") or {}).get("name") or "") for s in get_tool_schemas()}
+
+        assert "bash" in offered()
+        assert "run_shell" in offered()
+        assert "bash" not in capabilities.tool_names()
+        assert "run_shell" in capabilities.tool_names()
+        capabilities.set_enabled("run_shell", False)
+        names = offered()
+        assert "run_shell" not in names
+        assert "bash" not in names
+        out = asyncio.run(execute_tool("bash", {"command": "echo ok"}))
+        assert "switched off in Settings" in out
+        assert "run_shell" in out
+
+    def test_a_marker_name_is_the_bundle_switch(self):
+        """Writing the marker moves the bundle switch. The catalog has one row."""
+        from core.tools.registry import execute_tool, get_tool_schemas
+
+        names = {row["name"] for row in capabilities.catalog()}
+        assert {"run_shell", "read_file", "edit_file"} <= names
+        assert {"bash", "read", "edit"}.isdisjoint(names)
+        assert capabilities.set_enabled("bash", False) is True
+        assert capabilities.disabled() == {"run_shell"}
+        offered = {
+            str((item.get("function") or {}).get("name") or "") for item in get_tool_schemas()
+        }
+        assert "bash" not in offered
+        assert "run_shell" not in offered
+        out = asyncio.run(execute_tool("bash", {"command": "echo ok"}))
+        assert "switched off in Settings" in out
+        assert capabilities.set_enabled("bash", True) is True
+        assert capabilities.disabled() == set()
+
     def test_the_catalog_names_the_state_and_the_kind(self):
         capabilities.set_enabled("web_search", False)
         rows = {row["name"]: row for row in capabilities.catalog()}
@@ -115,6 +153,12 @@ class TestRoutes:
 
     def test_an_unknown_capability_is_404(self, client):
         assert client.patch("/api/capabilities/no_such_tool", json={"enabled": False}).status_code == 404
+
+    def test_a_marker_name_is_not_its_own_route(self, client):
+        assert client.patch("/api/capabilities/bash", json={"enabled": False}).status_code == 404
+        names = [row["name"] for row in client.get("/api/capabilities").json()["tools"]["tools"]]
+        assert "run_shell" in names
+        assert "bash" not in names
 
     def test_a_bridge_tool_refuses_the_switch_with_409(self, client):
         assert client.patch("/api/capabilities/ask_user", json={"enabled": False}).status_code == 409

@@ -1,27 +1,50 @@
-"""The sandbox lets a workspace start its own dev server, and nothing else.
+"""The opted-in shell profile writes the workspace and closes the rest.
 
-"Look at my project and start it" ends in a server the user opens in a browser.
-The Seatbelt profile denied every network operation, so `python3 -m http.server`
-died with "Operation not permitted" and the model retried instead of serving the
-project. Loopback bind/inbound is allowed now; outbound connections and every
-other bind stay refused.
+Network is denied, including a listener on loopback. A write inside the
+canonical workspace succeeds. A write under the home directory, outside that
+workspace, fails and leaves no file. The product switch stays off.
 """
 from __future__ import annotations
 
+import os
+import shlex
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 from core import shell_sandbox
+from core.security_config import SecurityConfig
 
 
-def test_the_profile_allows_a_loopback_listener_and_denies_outbound():
+def test_the_profile_denies_network_and_the_rest_of_home():
     profile = shell_sandbox.build_profile("/tmp/ws")
+    home = os.path.realpath(os.path.expanduser("~"))
     assert "(deny network*)" in profile
-    assert '(allow network-bind network-inbound (local ip "localhost:*"))' in profile
-    # The narrower allow must come after the deny, or the deny wins.
-    assert profile.index("(deny network*)") < profile.index("network-bind")
+    assert "network-bind" not in profile
+    assert '(subpath "/tmp/ws")' in profile or '(subpath "/private/tmp/ws")' in profile
+    assert f'(subpath "{home}")' not in profile
+    assert '(literal "/dev/null")' in profile
+
+
+def test_the_sandbox_switch_defaults_off():
+    assert SecurityConfig().sandbox_enabled is False
+
+
+def test_bwrap_hides_home_and_binds_the_workspace(monkeypatch, tmp_path):
+    def _which(name: str) -> str | None:
+        return "/usr/bin/bwrap" if name == "bwrap" else None
+
+    monkeypatch.setattr(shell_sandbox, "_which", _which)
+    argv = shell_sandbox.wrap_command("echo hi", str(tmp_path))
+    assert argv is not None and argv[0] == "bwrap"
+    assert "--unshare-net" in argv
+    home = os.path.realpath(os.path.expanduser("~"))
+    workspace = os.path.realpath(tmp_path)
+    assert argv.index(home) < argv.index("--bind")
+    bind = argv.index("--bind")
+    assert argv[bind + 1] == workspace and argv[bind + 2] == workspace
 
 
 pytestmark_sandbox = pytest.mark.skipif(
@@ -36,7 +59,7 @@ def _run_in_sandbox(workspace, script: str) -> subprocess.CompletedProcess[str]:
 
 
 @pytestmark_sandbox
-def test_a_bind_on_loopback_succeeds_inside_the_sandbox(tmp_path):
+def test_a_bind_on_loopback_stays_refused(tmp_path):
     script = tmp_path / "bind.py"
     script.write_text(
         "import socket\n"
@@ -47,8 +70,8 @@ def test_a_bind_on_loopback_succeeds_inside_the_sandbox(tmp_path):
         encoding="utf-8",
     )
     done = _run_in_sandbox(tmp_path, script)
-    assert done.returncode == 0, done.stderr
-    assert "bound" in done.stdout
+    assert done.returncode != 0, done.stderr
+    assert "bound" not in done.stdout
 
 
 @pytestmark_sandbox
@@ -63,3 +86,30 @@ def test_an_outbound_connection_stays_refused(tmp_path):
     done = _run_in_sandbox(tmp_path, script)
     assert done.returncode != 0
     assert "connected" not in done.stdout
+
+
+@pytestmark_sandbox
+def test_a_write_inside_the_workspace_succeeds(tmp_path):
+    argv = shell_sandbox.wrap_command("echo ok > inside.txt", str(tmp_path))
+    assert argv is not None and argv[0] in {"sandbox-exec", "bwrap"}
+    done = subprocess.run(
+        argv, capture_output=True, text=True, timeout=30, check=False, cwd=tmp_path,
+    )
+    assert done.returncode == 0, done.stderr
+    assert (tmp_path / "inside.txt").read_text(encoding="utf-8") == "ok\n"
+
+
+@pytestmark_sandbox
+def test_a_write_under_home_outside_the_workspace_fails(tmp_path):
+    probe = Path.home() / f".ephe-sandbox-probe-{os.getpid()}"
+    probe.unlink(missing_ok=True)
+    try:
+        argv = shell_sandbox.wrap_command(
+            f"echo leaked > {shlex.quote(str(probe))}", str(tmp_path),
+        )
+        assert argv is not None
+        done = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)
+        assert done.returncode != 0, done.stdout
+        assert not probe.exists()
+    finally:
+        probe.unlink(missing_ok=True)

@@ -220,6 +220,32 @@ def test_the_allowlist_file_exists_and_documents_its_format() -> None:
     assert "secret-scan" in text or "secret_scan" in text
 
 
+def test_a_reason_block_that_answers_no_entry_is_refused() -> None:
+    """Each reason sits in the comment line above the entry it accepts.
+
+    A block left after the last entry names an acceptance whose finding left this
+    tree, and the file cannot carry that as an unexplained exemption.
+    """
+    rows = ALLOWLIST.read_text(encoding="utf-8").splitlines()
+    entries = [
+        i for i, row in enumerate(rows)
+        if row.strip() and not row.strip().startswith("#")
+    ]
+    orphans: list[str] = []
+    index = entries[0] if entries else len(rows)
+    while index < len(rows):
+        if not rows[index].strip().startswith("#"):
+            index += 1
+            continue
+        start = index
+        while index < len(rows) and rows[index].strip().startswith("#"):
+            index += 1
+        following = next((row.strip() for row in rows[index:] if row.strip()), "")
+        if not following or following.startswith("#"):
+            orphans.append(f"line {start + 1}: {rows[start].strip()}")
+    assert not orphans, "reason block(s) with no entry: " + "; ".join(orphans)
+
+
 def test_a_removed_binary_blob_is_skipped_not_fatal(sandbox) -> None:
     """A tracked PNG deleted from the worktree is read from the index; decoding
     that blob as text crashed the whole scan (0x89 at position 0)."""

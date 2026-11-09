@@ -87,7 +87,27 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: ['**/visual.spec.ts', '**/composer-width.spec.ts', '**/r4-motion-paint.spec.ts'],
+      // Playwright REPLACES the top-level `testIgnore` with a project's own; it does not
+      // merge the two. Measured 2026-11-09 on this tree: the four globs at `:49` were dead
+      // in this leg, so `pnpm run test:e2e` collected 160 tests in 31 files instead of the
+      // 139 in 27 the config describes, and the 21 extras were exactly those four files —
+      // setup-e2e (a real DGX call whose beforeAll aborts without
+      // EPHE_EPHE_E2E_DGX_URL), dogfood (needs the Vite dev server on :5173),
+      // artifact-export (POSTs through that proxy) and u6-focus (self-skips). The Python
+      // guard could not see it: tests/test_playwright_port_hygiene.py:declared_test_ignore
+      // reads the first literal `testIgnore:` in this file, which is the top-level one, so
+      // its model of this leg was the merged rule the runtime never built. The list is
+      // therefore repeated here rather than inherited: a file added at `:49` must be added
+      // here too, and `--list` is the check that the two still agree.
+      testIgnore: [
+        '**/setup-e2e/**',
+        '**/dogfood.spec.ts',
+        '**/artifact-export.spec.ts',
+        '**/u6-focus.spec.ts',
+        '**/visual.spec.ts',
+        '**/composer-width.spec.ts',
+        '**/r4-motion-paint.spec.ts',
+      ],
     },
     // The serial segment this repo's rule demands for a budget that only fails under load — the
     // guard in tests/test_timing_assertion_guard.py holds that line for pytest, and the browser

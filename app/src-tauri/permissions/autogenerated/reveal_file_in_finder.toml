@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reveal-file-in-finder"
+description = "Enables the reveal_file_in_finder command without any pre-configured scope."
+commands.allow = ["reveal_file_in_finder"]
+
+[[permission]]
+identifier = "deny-reveal-file-in-finder"
+description = "Denies the reveal_file_in_finder command without any pre-configured scope."
+commands.deny = ["reveal_file_in_finder"]

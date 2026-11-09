@@ -93,19 +93,23 @@ def test_check_mode_exits_zero_without_baseline(tmp_path: Path) -> None:
     assert "0 errors" in r.stdout, r.stdout
 
 
-def test_check_flips_findings_to_errors_above_the_freeze(tmp_path: Path) -> None:
-    """A per-rule count above the frozen value turns that rule's findings into errors.
+def test_no_count_rule_escalates_above_the_freeze(tmp_path: Path) -> None:
+    """No size budgets: the owner lifted them on 2026-11-05, and this pins the lift.
 
-    The freeze is private and built from the live report with every count lowered by one,
-    so the error path is pinned no matter how the tracked freeze and the checked-out tree
-    currently line up.
+    The freeze is built from the live report with every rule's count lowered by one, so
+    each ratcheted rule would fire if it still could. It must not: the exit stays clean and
+    the summary reads 0 errors. Before the lift this was the programme's most expensive
+    false alarm — the 57th long file made all 56 earlier hints errors and reddened the gate
+    on files the change never touched, and the cheap way out was to move code between
+    modules to hold a number steady. The rules still report; a long file or a wide facade is
+    worth knowing about. Only cycles stop a push.
     """
     data = json.loads(_run("report", "--baseline", str(tmp_path / "absent.json")).stdout)
     per_rule: dict[str, int] = {}
     for finding in data["findings"]:
         per_rule[finding["rule"]] = per_rule.get(finding["rule"], 0) + 1
     if not per_rule:
-        pytest.skip("no findings in this tree; nothing to ratchet")
+        pytest.skip("no count findings in this tree; nothing to pin")
     frozen = tmp_path / "frozen.json"
     frozen.write_text(
         json.dumps(
@@ -119,10 +123,23 @@ def test_check_flips_findings_to_errors_above_the_freeze(tmp_path: Path) -> None
         encoding="utf-8",
     )
     r = _run("check", "--baseline", str(frozen))
-    assert r.returncode == 1, f"stdout={r.stdout}\nstderr={r.stderr}"
-    # With every rule count one below, no finding can stay a hint: the summary's hint
-    # count reads zero (a plain `"0 errors" not in` would also match "50 errors").
-    assert ", 0 hints)" in r.stdout, r.stdout
+    assert r.returncode == 0, f"stdout={r.stdout}\nstderr={r.stderr}"
+    assert "0 errors" in r.stdout, r.stdout
+    after = json.loads(_run("report", "--baseline", str(frozen)).stdout)
+    assert [f["severity"] for f in after["findings"]].count("error") == 0, after["findings"]
+
+
+def test_only_cycles_can_still_stop_a_push() -> None:
+    """The escalating set is exactly one rule, named by the tool itself.
+
+    Read from the report rather than from the script's source, so the exemption list and
+    this assertion cannot drift apart without going red here.
+    """
+    data = json.loads(_run("report").stdout)
+    assert "escalatingRules" in data, "the report stopped naming which rules escalate"
+    assert data["escalatingRules"] == ["forbidCycles"], data["escalatingRules"]
+    for rule in ("maxFileLines", "maxContractLines", "maxPublicMethods", "forbidDeepImports"):
+        assert rule not in data["escalatingRules"], f"{rule} is unbudgeted and still binds"
 
 
 def test_report_json_contract():

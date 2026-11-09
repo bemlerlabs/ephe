@@ -74,7 +74,7 @@ def test_a_rebuild_without_the_previous_output_keeps_the_labels(tmp_path):
     )
     generated = _generator().generate(tmp_path)
     by_name = {entry["name"]: entry for entry in generated["plugins"]}
-    assert len(by_name) == 16
+    assert len(by_name) == 17
     presets = [name for name, entry in by_name.items() if entry.get("quality_label") == "capability-preset"]
     assert len(presets) == 7
     assert by_name["documents"]["measurement"]["pass3"]
@@ -95,9 +95,9 @@ class TestBuild:
         parsed = marketplace_index.validate_index(index, source_kind="bundled")
         plugins = [entry for entry in parsed["plugins"] if entry["kind"] == "plugin"]
         packs = [entry for entry in parsed["plugins"] if entry["kind"] == "skill-pack"]
-        # 16 first-party plugins; five first-party packs and the adapted
+        # 17 first-party plugins; five first-party packs and the adapted
         # Superpowers pack, which is bundled third-party content.
-        assert len(plugins) == 16
+        assert len(plugins) == 17
         assert len(packs) == 6
         for entry in parsed["plugins"]:
             assert len(entry["versions"]) == 1

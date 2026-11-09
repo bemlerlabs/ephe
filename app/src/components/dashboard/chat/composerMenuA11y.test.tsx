@@ -47,7 +47,7 @@ describe('mode menu — one menu, named highlight, checked single choice', () =>
       <ComposerModeMenu
         pos={POS}
         anchorRef={anchorRef}
-        mode="ask"
+        mode="analyst"
         onClose={vi.fn()}
         onPick={vi.fn()}
       />
@@ -65,19 +65,19 @@ describe('mode menu — one menu, named highlight, checked single choice', () =>
       <ComposerModeMenu
         pos={POS}
         anchorRef={anchorRef}
-        mode="ask"
+        mode="analyst"
         onClose={vi.fn()}
         onPick={vi.fn()}
       />
     ))
     const menu = screen.getByTestId('composer-mode-list')
-    expect(menu.getAttribute('aria-activedescendant')).toBe('mode-opt-ask')
+    expect(menu.getAttribute('aria-activedescendant')).toBe('mode-opt-analyst')
     // The referenced row is in the document, otherwise the name points at nothing.
-    expect(document.getElementById('mode-opt-ask')).not.toBeNull()
+    expect(document.getElementById('mode-opt-analyst')).not.toBeNull()
 
     fireEvent.keyDown(menu, { key: 'ArrowDown' })
-    expect(menu.getAttribute('aria-activedescendant')).toBe('mode-opt-plan')
-    expect(document.getElementById('mode-opt-plan')).not.toBeNull()
+    expect(menu.getAttribute('aria-activedescendant')).toBe('mode-opt-architect')
+    expect(document.getElementById('mode-opt-architect')).not.toBeNull()
   })
 
   it('exposes the active mode as a checked menuitemradio', () => {
@@ -85,17 +85,19 @@ describe('mode menu — one menu, named highlight, checked single choice', () =>
       <ComposerModeMenu
         pos={POS}
         anchorRef={anchorRef}
-        mode="plan"
+        mode="architect"
         onClose={vi.fn()}
         onPick={vi.fn()}
       />
     ))
     const rows = screen.getAllByRole('menuitemradio')
+    // Four since Wave 5 put `creator` on a tile (the guard `80e3852f` and the four
+    // bundle tools `b4daa41c` were the condition the tile was held to).
     expect(rows).toHaveLength(4)
-    expect(screen.getByTestId('composer-mode-plan').getAttribute('aria-checked')).toBe('true')
-    expect(screen.getByTestId('composer-mode-ask').getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByTestId('composer-mode-architect').getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByTestId('composer-mode-analyst').getAttribute('aria-checked')).toBe('false')
     // A menuitemradio never claims aria-selected — that is the listbox role's.
-    expect(screen.getByTestId('composer-mode-plan').getAttribute('aria-selected')).toBeNull()
+    expect(screen.getByTestId('composer-mode-architect').getAttribute('aria-selected')).toBeNull()
   })
 })
 

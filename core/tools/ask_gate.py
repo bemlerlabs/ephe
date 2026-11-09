@@ -1,16 +1,19 @@
 """The ask gate: the run pauses on a real question and goes on with the answer.
 
-What this replaces: `core/persona.py` hands the model the `AskUserQuestion` JSON
-block. The block lands in the finished answer text, `app/src/lib/askUserQuestion.ts`
-parses it, and `AskUserQuestionCard` renders it. Two limits came with that
-convention. The card sits behind `!m.streaming`
+What this replaces: the `AskUserQuestion` JSON block `core/persona.py` used to hand
+the model for every turn. The block lands in the finished answer text,
+`app/src/lib/askUserQuestion.ts` parses it, and `AskUserQuestionCard` renders it. Two
+limits came with that convention. The card sits behind `!m.streaming`
 (`app/src/components/dashboard/bubble/assistantExtras.tsx`), so the question can only
 appear after the turn is over. And a click sends the label as a NEW turn
 (`handlePickOption` -> `handleSend`), so the run that asked never hears the answer.
 
 Here the question is a tool call. The engine awaits it inside the running turn, the
 SSE handler renders it while the turn is still open, and the answer arrives as this
-tool's result — in context, in the same tool loop.
+tool's result — in context, in the same tool loop. The tool rides in the offer list of
+every turn that has tools at all (`core/tools/discovery.py`, `CORE_TOOLS`), because a
+turn without it can only put the question in the answer text; the block convention
+stays the asking route of ask mode, the one mode that holds no tool.
 
 The waiting machinery is the sandbox approval gate (`server/routes/chat.py`,
 `_sandbox_confirm`) with the same three parts: the dialog callback travels in a

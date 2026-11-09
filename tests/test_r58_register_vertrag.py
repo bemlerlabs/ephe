@@ -63,7 +63,9 @@ def test_jedes_feld_ist_beschrieben() -> None:
     cards = {"chat.custom_instructions": ("settings.customInstructionsTitle",
                                           "settings.customInstructionsHint"),
              "plugins.plugin_lifecycle_read_only": ("settings.pluginReadOnly",
-                                                    "settings.pluginReadOnlyHint")}
+                                                    "settings.pluginReadOnlyHint"),
+             "advanced.agent_team_enabled": ("settings.agentTeamEnabled",
+                                             "settings.agentTeamEnabledHint")}
     for key, keys in cards.items():
         import json
         from pathlib import Path as _P

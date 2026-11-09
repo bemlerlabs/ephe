@@ -571,7 +571,12 @@ class TestContentPreview:
             client, tmp_path, monkeypatch, f"PDF_FILE:{_file(tmp_path, 'x.pdf', b'%PDF')}", "pdf"
         )
         body = client.get(f"/api/artifacts/{art['id']}/preview").json()
-        assert body == {"mode": "none", "reason": "no-text-preview"}
+        # `size_bytes` came with #80: every preview payload carries the file's own size.
+        assert body == {
+            "mode": "none",
+            "reason": "no-text-preview",
+            "size_bytes": len(b"%PDF"),
+        }
 
     def test_given_vanished_file_when_previewed_then_404(self, client, tmp_path, monkeypatch):
         import pathlib

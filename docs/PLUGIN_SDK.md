@@ -16,6 +16,10 @@ slash commands and helper agent profiles **from the next turn on**, without leak
 into other sessions. There is no silent fallback: what is not in the manifest
 does not exist for the agent.
 
+Handing that folder to someone else is specified in
+[PLUGIN_EXPORT.md](PLUGIN_EXPORT.md). The export and file-import commands
+are the next change.
+
 ## 1. A minimal plugin in 3 steps
 
 1. Create the folder: `~/.ephe/plugins/my-tool/`
@@ -64,6 +68,9 @@ curl -s localhost:8765/api/plugins/commands             # is /my-tool in the sla
 | Helper agents | `components.agents[]` | `{name, description?, tools ⊆ TOOL_MAP, model?, timeout?}`; `timeout` clamp 30–900 s; an unknown tool ⇒ the profile is quarantined; an empty tool set never loads |
 | Hooks | `components.hooks` | reserved — accepted structurally, never executed; the active hook API is `~/.ephe/hooks.json` (E5) |
 | MCP | `components.mcp` | reserved |
+| Surface | `components.ui` | one descriptor `{type, entry, title, default_size?, capabilities?}`; `entry` is an `.html` document inside the bundle, and `capabilities` is the closed vocabulary of `core/plugin_ui_capabilities.py` |
+| Contributed tools | `components.tools[]` (a manifest v2 list) | one object per tool `{name, entry, family, description, parameters?}`; `entry` is a `path.py:callable` inside the bundle and the served name is the declared one (`web_search` is served as `web_search`; the namespace is the package, not the name); `family` has to be one `permissions.tool_families` declares; rules and the DoD checks in `docs/PLUGINS.md` |
+| Vendored libraries | `ephe-libraries.json` (a file beside the manifest) | one entry per shipped code file `{name, version, path, sha256, kind}`; every byte under `vendor/` has to be declared or the plugin is quarantined (§4) |
 
 The hook contract (`~/.ephe/hooks.json`, E5): one JSON line on stdin
 (`{"event","tool","args","result"}`), one JSON line on stdout — `pre_tool`:
@@ -76,11 +83,153 @@ run audit-logged.
 `permissions.tool_families` ⊆ `read | write | shell | network | memory | vision | docs | browser`.
 The declared families are declarative: the app's security profile
 (strict / session / autonomous) remains the hard approval boundary.
-`data_roots` carries entries for display/intent only. Declare only the
-families your own skill really needs — smaller surfaces =
-less approval friction.
+`permissions.data_roots` is a read grant, and both rails honour it: the kernel file tools a
+bundle calls, and the confined worker a v2 tool runs in, which used to see nothing of the
+line. Absolute paths are taken as written after `validate_data_roots` has refused a home or
+system root and a name that is not a folder; a relative entry is a folder inside the current
+workspace, and a `..` that leaves it quarantines the manifest at load. Nothing declared this
+way becomes writable — a worker writes in its own state directory, the folder its `state_dir`
+argument names. Declare only the families and the folders your skill really needs; smaller
+surfaces mean less approval friction.
 
-## 4. Distribution through the store
+That state folder is bounded by `permissions.state_cap_mb`, a whole number of megabytes, and
+the default is **512 MiB** whether or not the line is written. A bundle at or past its ceiling
+is refused before a worker starts, with the bytes it holds and the bytes it may keep named,
+and the move the reader has is on Extensions: that row names the megabytes kept and the
+megabytes allowed, and lists the stored files so one of them can be removed. The folder
+path stays off the row. The run that crosses the ceiling is
+allowed and measured — its row in the audit view carries `state_bytes=` and
+`state_cap_bytes=` — and the call after it is the one refused, because a per-directory quota
+exists on neither rail this product runs on, and a child that found itself unable to write
+would report that as a failure of its own.
+
+```json
+"permissions": {
+  "tool_families": ["read", "network"],
+  "data_roots": ["cache"],
+  "state_cap_mb": 512
+}
+```
+
+### 3a. The tool callable, and the bridge it may ask the host through
+
+A contributed tool is a Python callable inside your bundle. It runs in a worker process the OS
+boundary created — no network, no host paths, a scrubbed environment, a wall clock — and never
+inside the application. The host hands it two arguments and reads one value back:
+
+```python
+def run(arguments: dict, state_dir: str):
+    ...
+    return {"summary": "..."}          # JSON-serialisable, capped at 64 KiB
+```
+
+A tool that needs something the boundary cannot do — reading a URL, or running a search — takes
+a third argument. The host inspects the signature when it calls you and passes a bridge handle
+when the callable asks for one; nothing else about the call changes.
+
+```python
+def run(arguments: dict, state_dir: str, bridge):
+    page = bridge.fetch("https://example.com/spec.md")   # {"status": 200, "text": "...", …}
+    return {"chars": len(page["text"]), "truncated": page["truncated"]}
+```
+
+What the handle offers, and what it will not:
+
+| | |
+|---|---|
+| Methods today | `fetch(url)` — the host's guarded reader, redirects re-checked hop by hop, HTML reduced to text. `search(query, max_results=None)` — the host's search function, the same one the kernel tool runs. `fetch_url(url, prompt=None)` — the kernel page tool. The text is that function's own sentence, including its failure lines. `prompt` stays off the wire when the caller left it out. `memory_add`, `memory_replace`, `memory_remove` and `memory_list` — the kernel memory tool, one method per action. `memory_action(action, target, ...)` carries an action outside those four to the same function and refuses a known action. A field the caller left out stays off the wire. `browser_go(url)`, `browser_screenshot()`, `browser_click(target_description)`, `browser_type(text)`, `browser_press(key)`, `browser_scroll(direction=None, amount=None)`, `browser_evaluate(js)` and `browser_exec(code, session=None, timeout_s=None)` run the kernel browser tools, one method per action. `direction`, `amount`, `session` and `timeout_s` stay off the wire when the caller left them out. The address check and the release gate stay in the kernel functions. `vision_click(target_description)` and `vision_type(text, press_enter=None)` run the kernel desktop tools. `press_enter` stays off the wire when the caller left it out. The confirmation stays inside those functions. `analyze_image(path, question=None, region=None)` runs the kernel image tool. `question` and `region` stay off the wire when the caller left them out. The path check stays in that function. `run_shell(command, cwd=None)`, `read_file(path, offset=None, limit=None)`, `write_file(path, content)`, `edit_file(path, old_string, new_string, replace_all=None)`, `list_directory(path)`, `file_search(query, path=None)`, `load_workspace(path, extensions=None)`, `analyze_project(path)`, `run_tests(command, cwd=None)`, `run_linter(path, fix=None, max_issues=None)`, `format_code(path, check_only=None)` and `scaffold_project(target_dir, template=None, project_name=None, description=None, author=None)` run the kernel shell and file tools. A field the caller left out stays off the wire. The command check and the path check stay in those functions. `create_pdf(title, content, filename=None, template=None, document=None)`, `create_docx(title, content, filename=None)`, `create_qrcode(data, filename=None, fill_color=None, back_color=None)`, `extract_pdf_text(path, max_chars=None)`, `build_document(topic, source_paths=None, include_web_research=None, filename=None)`, `export_source_brief(notebook_path, question=None, filename=None)`, `create_source_notebook(paths, title=None, notebook_id=None, extensions=None)`, `query_source_notebook(notebook_path, question, max_chunks=None)` and `verify_artifact(path, checks=None)` run the kernel document tools. A field the caller left out stays off the wire. The body check stays in those functions. `create_xlsx(title, data, filename=None, path=None, formats=None)` and `generate_chart(chart_type, title, labels, values=None, xlabel=None, ylabel=None, color=None, theme=None, series=None)` run the kernel sheet and chart tools. A field the caller left out stays off the wire. The formula check stays in those functions. `create_pptx_deck(topic, audience=None, thesis=None, slides=None, filename=None, deck_profile=None, design_theme=None, source_notes=None, evidence_level=None, enterprise_grade=None, template_path=None, brand_name=None, brand_primary=None, brand_secondary=None, deck_quality_profile=None, source_notebook_path=None, asset_paths=None)`, `create_pitch_deck(topic, audience=None, thesis=None, slides=None, filename=None, include_animation_preview=None, deck_profile=None, design_theme=None, source_notes=None, evidence_level=None, enterprise_grade=None, deck_quality_profile=None, brand_kit=None, source_notebook_path=None, asset_paths=None)`, `inspect_pptx_template(path, filename=None)`, `edit_pptx_template(template_path, replacements, filename=None)`, `qa_pptx_deck(pptx_path)`, `create_diagram(kind, title, items, filename=None, theme=None)` and `create_svg(svg_code, filename=None)` run the kernel deck tools. A field the caller left out stays off the wire. The slide check stays in those functions. `generate_image(prompt, filename=None, size=None)` runs the kernel picture tool. `filename` and `size` stay off the wire when the caller left them out. The endpoint check stays in that function. `synthesize(text)` runs the local piper writer. `transcribe(name)` runs the kernel speech reader on one file already stored for this session |
+| Grant | the method's family has to be in this bundle's `permissions.tool_families`; a family named in the arguments is ignored, and the mount's declaration is what answers |
+| Calls | 32 per tool run — a loop of host calls is a second agent run the manifest never declared |
+| Size | 64 KiB per message in either direction; a `fetch`, `search` or `fetch_url` answer is cut to what fits and says `truncated` |
+| Audit | every call writes one `bridge_call` row naming the plugin, the tool, the method and the decision. A fetch row names the host and drops the path and the query of the URL. A `fetch_url` row names the host the same way, and the prompt stays out of the row. A search row records the method and no query. A memory row records the method and no entry body. A browser row records the method. A navigation row names the host. Typed text, a script and a code block stay out of the row. A vision row records the method. The target description and the typed text stay out of the row. An image row records the method. The path and the question stay out of the row. A shell row records the method. The command, the path and the file body stay out of the row. A document row records the method. The body, the path and the source text stay out of the row. A sheet row records the method. The rows, the labels and the path stay out of the row. A deck row records the method. The slide text, the notes and the path stay out of the row. A picture row records the method. The prompt stays out of the row. A voice row records the method. The spoken text and the transcript stay out of the row |
+
+A refusal is an exception with a `code` attribute, and the code is the part you can act on:
+
+| Code | What happened |
+|---|---|
+| `bridge_method_unknown` | No such method in this build; the text names what exists |
+| `bridge_method_denied` | The method works in a family this bundle did not declare, or the host's own guard refused the address |
+| `bridge_args_invalid` | A required argument was missing or blank |
+| `bridge_payload_too_large` | The message is past the byte ceiling |
+| `bridge_call_limit` | The 32 calls of this run are spent |
+| `bridge_internal` | The host could not complete it. The text is an exception class name. A search whose backends refused carries the status line the kernel tool already writes |
+
+A `fetch_url` refusal keeps the code the kernel tool put on the sentence. The worker hands that code back with the text, and the host puts it on the sentence again. The model still reads the sentence. A memory sentence does the same, and keeps the flag that says whether the action happened, so a stored entry is a completion.
+
+`docs/SANDBOX_EXECUTION.md` states which ceiling each layer actually enforces, per platform.
+
+## 3b. The page SDK
+
+A surface loads one file, `ephe.js`, from its own mount:
+
+```html
+<script src="ephe.js"></script>
+```
+
+The mount serves the copy that ships with this build. A file of the same name inside the bundle is not the one that loads. There is no package to install. The field lists stay in `docs/PLUGINS.md`.
+
+The page is sandboxed, so the file asks the frame that embedded it. The overlay answers. A native window is its own top-level document in this build, and a page there has no embedding frame to ask. Each call waits 120 seconds.
+
+| Call | What it does |
+|---|---|
+| `ephe.storage.get(key)` | The value stored under that key, or `null` when the key is absent. Asking does not create the state folder |
+| `ephe.storage.set(key, value)` | Stores one JSON value. `null` removes the key. A key is one token of letters, digits, `.`, `_` and `-`, at most 64 characters. A slash is refused |
+| `ephe.callTool(name, args)` | Runs one tool this bundle owns. The answer is the tool's own sentence. A tool another bundle owns is refused. A tool that needs a confirmation still needs one, and with nobody asking the user the sentence says the call was not executed |
+| `ephe.subscribe(listener)` | Calls `listener` with `{event, data}` for this bundle's lifecycle events, and for the global pause. Returns the function that removes the listener |
+
+`sdk/ephe.d.ts` is the type of that global for a strict checker. The runtime file is `sdk/ephe.js`.
+
+## 4. Vendored libraries (the offline runtime)
+
+A surface that needs a third-party renderer or game runtime ships it inside its own
+directory. No CDN path exists: the `Content-Security-Policy` the surface route serves
+keeps `script-src 'self'` closed for every capability name in
+`core/plugin_ui_capabilities.py`, so a `<script src="https://…">` in a generated
+document loads nothing, and `fetch` to a remote host is refused by the same header.
+The offline path below is the one that answers.
+
+1. Put the file under `vendor/`, at or below the directory of `components.ui.entry`
+   (a surface resolves relative URLs against its own directory and the asset route
+   refuses a `..` segment, so a library above the entry document has no URL that
+   reaches it).
+2. Declare it in `ephe-libraries.json`, beside `ephe-plugin.json`: `name` (slug),
+   `version`, `path`, `kind` (`script`, `module`, `wasm`) and the `sha256` of the
+   bytes that ship.
+3. Load it relatively from the entry: `<script type="module" src="vendor/renderer.mjs">`.
+
+```json
+{
+  "schema": 1,
+  "libraries": [
+    {
+      "name": "renderer",
+      "version": "0.169.0",
+      "path": "ui/vendor/renderer.mjs",
+      "sha256": "<64 hex of the shipped bytes>",
+      "kind": "module"
+    }
+  ]
+}
+```
+
+What validation refuses, each one quarantining the whole plugin: a hash that does not
+match, a declared file that never shipped, a file under `vendor/` nobody declared, a
+`.wasm` entry whose surface did not declare the `wasm` capability, a file past the
+8 MiB per-file cap, and a bundle past the 24 MiB total. The two caps are stated in
+`core/plugin_libraries.py`; the per-file number is the same ceiling the asset route
+already applies to any file it reads (`MAX_SURFACE_ASSET_BYTES`), and the totals come
+from measured engine bundles — `docs/PLUGINS.md` carries the byte counts and where
+they came from.
+
+The hash answers one question: did the bytes change since they were declared? It
+detects drift (an editor, a packing step, a swapped file on disk). A declared hash
+says nothing about whether the code is welcome, so keep the library small, keep it
+versioned, and expect the review to read it.
+
+A `.wasm` file needs `components.ui.capabilities: ["wasm"]`: the route only hands
+those bytes to a mount whose policy may compile them.
+
+## 5. Distribution through the store
 
 - Pack the plugin as a ZIP with **one** top-level folder = the plugin folder name (`my-tool/` holding
   `ephe-plugin.json` + `skills/` inside it). Zip-slip guard: every member has to stay
@@ -104,7 +253,7 @@ Install result values: `extracted` (then enabled), `hash_mismatch`
 (nothing extracted), `unsafe_archive` (discarded), `quarantined` (folder
 backed out), `unknown_plugin` / `no_url` (honest, no crash).
 
-## 5. Debugging table
+## 6. Debugging table
 
 | Symptom | Most likely cause | First look |
 |---|---|---|
@@ -114,10 +263,12 @@ backed out), `unknown_plugin` / `no_url` (honest, no crash).
 | The command does not appear in the composer | `name` without the leading `/`? only validated plugins return entries | `GET /api/plugins/commands` |
 | 404/43-style load errors | nested folder: `plugins/<x>/<name>/ephe-plugin.json` | exactly one level: `plugins/<name>/ephe-plugin.json` |
 
-## 6. Checklist before the release pack
+## 7. Checklist before the release pack
 
 - [ ] `name` = folder name, slug-conformant (`^[a-z0-9][a-z0-9-]*$`), `version` = `X.Y.Z`
 - [ ] every declared skill pack has `skills/<pack>/SKILL.md`
+- [ ] every file under `vendor/` is declared in `ephe-libraries.json`, and every
+      `sha256` there was computed from the bytes that ship in this pack (§4)
 - [ ] tool families kept minimal; only real TOOL_MAP names in `components.agents.tools`
 - [ ] the ZIP's `sha256` computed freshly and maintained in `plugin-marketplace.json`
 - [ ] the signature record (`ephe-plugin.sig.json`) matches the current `ephe plugin list` version

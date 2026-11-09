@@ -77,7 +77,11 @@ def test_the_five_collisions_keep_the_skill_name(command_home) -> None:
 
 def test_a_non_colliding_command_expands(command_home) -> None:
     expanded = expand_plugin_command("/report Q3 numbers")
-    assert expanded.startswith("Create a McKinsey-style report on: Q3 numbers.")
+    assert expanded == (
+        "Create a sourced briefing on: Q3 numbers. Read every local source "
+        "first. Deliver a PDF with sections, figures and a source line, then "
+        "verify the file. A URL you have not read is a gap."
+    )
     assert "{input}" not in expanded
 
 

@@ -20,7 +20,11 @@ import os
 from fastapi import APIRouter
 
 from core.net_guard import allow_private_by_default
-from core.tools.base import _get_allowed_roots
+
+# Read through the module: `file_roots` below answers what the file guard enforces
+# right now, and a name copied in at import time can go stale once a caller has
+# patched the kernel and undone it.
+from core.tools import base as kernel
 
 router = APIRouter(tags=["Network"])
 
@@ -42,7 +46,7 @@ def network_status() -> dict:
         "lan": lan,
         "setup_mode": os.environ.get("EPHE_SETUP_MODE") == "1",
         "token_required": LAN_AUTH_TOKEN is not None,
-        "file_roots": [str(root) for root in _get_allowed_roots()],
+        "file_roots": [str(root) for root in kernel._get_allowed_roots()],
         "proxy_extra_ports": [p for p in extra if p],
         "allow_private_fetches": allow_private_by_default(),
     }

@@ -2,7 +2,7 @@
 name: image-creator
 version: "1.0.0"
 trigger: /image
-description: "Generates real images (PNG/JPEG) via text-to-image - locally through an OpenAI-compatible image endpoint (e.g. LocalAI with Stable Diffusion) or a cloud provider of your choice."
+description: "Saves one picture from a text prompt. The tool forces a .png name and prints PNG_FILE."
 when_to_use: [generate image, create image, generate photo, text-to-image, bild erzeugen, foto generieren, text-zu-bild]
 when_not_to_use: [svg, diagramm, qr code]
 tools: [generate_image, memory, skill_manage]
@@ -13,7 +13,7 @@ allowed_tools: [generate_image, memory, skill_manage]
 # image-creator
 
 **Trigger**: /image
-**Description**: Generates real images (PNG/JPEG) via text-to-image - locally through an OpenAI-compatible image endpoint (e.g. LocalAI with Stable Diffusion) or a cloud provider of your choice.
+**Description**: Saves one picture from a text prompt. The tool forces a .png name and prints PNG_FILE.
 **Tools**: generate_image, memory, skill_manage
 
 ## System Prompt
@@ -25,12 +25,12 @@ Your task: turn the user's request into a real generated image by calling the ge
 Rules:
 - Always call generate_image for image requests. Never answer with text only when the user asked for a picture.
 - Write the prompt argument as a detailed ENGLISH description (subject, style, lighting, composition) — image models perform best in English, regardless of the chat language.
-- Pick a descriptive ASCII-safe filename ending in .png (or .jpg if the user asks for JPEG).
+- Pass a bare filename when the user named a file. The tool forces the suffix .png. A name that already ends in another suffix is saved with .png added.
 - Keep the default size 1024x1024 unless the user explicitly asks for another ratio.
-- If the tool returns an error because no image endpoint is configured: answer honestly, explain the one-line setup (set EPHE_IMAGE_BASE_URL to a local OpenAI-compatible image server such as LocalAI with Stable Diffusion, or a cloud provider), and DO NOT pretend an image was created. You may offer a deterministic SVG graphic or diagram as an explicit vector alternative — clearly labeled as SVG, not as a generated photo.
+- If the tool returns an error, relay that line and claim no picture. This skill does not draw an SVG. A vector drawing belongs to the presentations bundle.
 
 Output Contract:
-- Relay the real file path from the tool result (PNG_FILE: marker). Never invent paths or claim a generated image exists without real tool output.
+- Relay the real file path from the tool result (PNG_FILE marker). Never invent paths or claim a generated image exists without real tool output.
 Quality Gate:
 - Do not simulate: if generate_image did not return a real artifact, say so and explain the setup instead. Ground every claim in real tool output.
 
@@ -43,12 +43,11 @@ Quality Gate:
     {
       "tool": "generate_image",
       "args": {
-        "prompt": "Watercolor logo",
-        "size": "512x512"
+        "prompt": "Watercolor logo, centered mark, soft paper texture, even light"
       }
     }
   ],
-  "output": "IMAGE_FILE: /tmp/logo.png"
+  "output": "PNG_FILE: <path the tool printed>"
 }
 ```
 

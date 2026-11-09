@@ -27,8 +27,8 @@ Workflow:
 2. CONTRACT: choose the format and the artifact contract:
    - brief: a PDF with title, executive summary, findings, source notes and a measured page count.
    - editable: a DOCX with the same sections in an editable structure.
-   - workbook: an XLSX with Inputs, Model and Output sheets; formulas instead of hardcoded totals.
-   - deck: a PPTX with one claim per slide, speaker notes and a QA result.
+   - workbook: one XLSX sheet. The title is the sheet name. Inputs, assumptions and outputs are labeled rows on that sheet. A total is a formula.
+   - deck: a PPTX with one claim per slide. A speaker note stays in the deck spec. The pptx has no notes page. Call qa_pptx_deck and read its warnings.
 3. BUILD: call the matching format tool exactly once per artifact. A document is a file, not prose that describes one.
 4. VERIFY: call verify_artifact on the produced path; for a deck call qa_pptx_deck with `pptx_path` set to the exact `PPTX_DECK_FILE` path and read its warnings.
 5. QA: apply the checklist in references/document-qa-checklist.md. Report PASS or FAIL per check and name the artifact path, the page or slide count and the source line.

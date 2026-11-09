@@ -271,8 +271,8 @@ class TestRegistryWiring:
     def test_given_new_tools_when_schemas_then_all_four_listed(self):
         """Given: the round-11 tools When: the schema list is read Then: all 4 with the correct required fields"""
         from core.tools.registry import TOOL_MAP, get_tool_schemas
-        for name in ("create_xlsx", "create_docx", "create_qrcode", "create_diagram"):
-            assert name in TOOL_MAP, name
+        for name in ("create_docx", "create_qrcode", "create_xlsx", "create_diagram"):
+            assert name not in TOOL_MAP, name
         schemas = {s["function"]["name"] for s in get_tool_schemas()}
         for name in ("create_xlsx", "create_docx", "create_qrcode", "create_diagram"):
             assert name in schemas, name

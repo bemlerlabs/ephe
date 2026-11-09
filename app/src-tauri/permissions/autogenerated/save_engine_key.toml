@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-engine-key"
+description = "Enables the save_engine_key command without any pre-configured scope."
+commands.allow = ["save_engine_key"]
+
+[[permission]]
+identifier = "deny-save-engine-key"
+description = "Denies the save_engine_key command without any pre-configured scope."
+commands.deny = ["save_engine_key"]

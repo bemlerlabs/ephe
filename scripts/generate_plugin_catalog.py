@@ -27,24 +27,38 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS = ROOT / "plugins"
 
 
-def build_catalog() -> tuple[dict[str, object], list[str]]:
-    old_path = catalog_path()
+def build_catalog(
+    plugins: Path | None = None, committed: Path | None = None
+) -> tuple[dict[str, object], list[str]]:
+    """The catalog the shipped plugins imply, carrying forward two curated fields.
+
+    `tags` and `enabled` are decisions a human made in the committed catalog: a curated `enabled`
+    is how an egress plugin ships switched off. Writing `enabled: True` for every plugin made one
+    regeneration flip that decision back, silently - so both fields are read from the committed
+    file and only a plugin the file never named starts at its default.
+    """
+    root = plugins if plugins is not None else PLUGINS
+    old_path = committed if committed is not None else catalog_path()
     old_tags: dict[str, list[str]] = {}
+    old_enabled: dict[str, bool] = {}
     if old_path.is_file():
         try:
             old = json.loads(old_path.read_text(encoding="utf-8"))
             for seg in ("public", "personal"):
                 for e in old.get(seg, []):
                     if isinstance(e, dict) and e.get("name"):
-                        old_tags[str(e["name"])] = [
+                        name = str(e["name"])
+                        old_tags[name] = [
                             str(t) for t in e.get("tags", []) if isinstance(t, str)
                         ]
+                        if isinstance(e.get("enabled"), bool):
+                            old_enabled[name] = e["enabled"]
         except (OSError, ValueError):
             pass
 
     skips: list[str] = []
     public: list[dict[str, object]] = []
-    for plugin_dir in sorted(p for p in PLUGINS.iterdir() if p.is_dir()):
+    for plugin_dir in sorted(p for p in root.iterdir() if p.is_dir()):
         manifest, err = load_manifest(plugin_dir)
         if manifest is None:
             skips.append(f"{plugin_dir.name}: {err}")
@@ -55,7 +69,7 @@ def build_catalog() -> tuple[dict[str, object], list[str]]:
                 "name": slug,
                 "description": str(manifest["description"]),
                 "tags": old_tags.get(slug, []),
-                "enabled": True,
+                "enabled": old_enabled.get(slug, True),
                 "sha256": dir_sha256(plugin_dir),
                 "url": "",
                 "manifest": True,

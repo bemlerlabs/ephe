@@ -180,9 +180,9 @@
       "file": "app/src/lib/openExternal.ts",
       "marker": "__TAURI__",
       "count": 2,
-      "surface": "the one shell test: the agent panel's external pages and every link that leaves the app",
-      "web": "an iframe with the frame-refusal notice, and window.open in a new tab",
-      "desktop": "a child WebView placed through browser_open, and browser_open_external for the operating system's own browser"
+      "surface": "the one shell test, read through `bridge()`: the agent panel's external pages, every link that leaves the app, and the command channel a plugin surface is opened from (`pluginSurface.ts`, `pluginDisplay.ts`)",
+      "web": "no bridge: window.open in a new tab, an iframe with the frame-refusal notice, and a plugin surface shown by the overlay dock",
+      "desktop": "the injected core.invoke: a child WebView placed through browser_open, browser_open_external for the operating system's own browser, and the window commands a native plugin surface is built from"
     },
     {
       "file": "app/src/lib/restartGuard.ts",

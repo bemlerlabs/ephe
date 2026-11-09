@@ -12,6 +12,8 @@ clause → the skill resolves DIRECTLY, with higher priority than the scoring.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from core.skills import SkillLoader
@@ -89,6 +91,35 @@ class TestArtifactIntentResolution:
         """G: generic 'Diagramm' W: resolve T: chart-creator (a data chart)"""
         skill = loader.resolve_for_message("Erstell mir ein Diagramm vom Umsatz 2025.")
         assert skill is not None and skill.name == "chart-creator"
+
+    def test_workbook_and_deck_skills_stay_inside_the_writers(self):
+        """create_xlsx writes one sheet. The pptx writer emits no notes page."""
+        root = Path(__file__).resolve().parents[1]
+        paths = [
+            "plugins/local-document-factory/skills/local-document-factory/SKILL.md",
+            "plugins/local-document-factory/skills/local-document-factory/references/artifact-contract.md",
+            "plugins/local-document-factory/ephe-plugin.json",
+            "plugins/private-research-notebook/skills/private-research-notebook/SKILL.md",
+            "plugins/private-research-notebook/skills/private-research-notebook/references/rubric.md",
+            "plugins/private-research-notebook/ephe-plugin.json",
+            "README.md",
+        ]
+        for rel in paths:
+            body = (root / rel).read_text()
+            assert "Output sheets" not in body
+            assert "Inputs, Model and Output" not in body
+            assert "no notes page" in body
+
+    def test_the_image_skill_names_the_marker_the_tool_prints(self):
+        """The tool forces a .png name and prints PNG_FILE. The skill must say that."""
+        root = Path(__file__).resolve().parents[1]
+        skill = (root / "skills" / "image-creator" / "SKILL.md").read_text()
+        rubric = (root / "skills" / "image-creator" / "references" / "rubric.md").read_text()
+        for text in (skill, rubric):
+            assert "PNG_FILE" in text
+            assert "IMAGE_FILE" not in text
+            assert ".jpg" not in text
+            assert "JPEG" not in text
 
     def test_given_image_request_then_image_creator(self, loader):
         """G: 'Bild erstellen' W: resolve T: image-creator (generate_image)"""

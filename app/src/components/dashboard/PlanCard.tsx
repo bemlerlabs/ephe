@@ -53,10 +53,12 @@ export default function PlanCard({ spec, onPick, streaming = false }: PlanCardPr
 
   // The chip the user reads has to name the mode the plan runs in: the short title comes
   // from the same translated hint the mode menu uses, so card and chip cannot disagree.
+  // The compatibility mode owns no tile after the rename, and the chip's rule holds here
+  // too: its section wording, from the same locale leaf, in place of a raw stored key.
   const executionMode = COMPOSER_MODES.find((m) => m.key === PLAN_EXECUTION_MODE)
   const executionLabel = executionMode
     ? modeShortLabel(executionMode, String(t(executionMode.hintKey)))
-    : PLAN_EXECUTION_MODE
+    : String(t('chat.modeSection.write'))
 
   /**
    * Accept is the exit from Plan mode, not a message into it. Plan mode is read-only by

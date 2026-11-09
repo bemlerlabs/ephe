@@ -30,12 +30,12 @@
       {
         "name": "doc-workbook",
         "description": "Turn supplied facts into an XLSX with inputs, model and outputs",
-        "template": "Build an XLSX model for: {input}. Use create_xlsx with separate Inputs, Model and Output sheets, formulas over hardcoded totals, then verify_artifact."
+        "template": "Build an XLSX model for: {input}. Use create_xlsx. The workbook has one sheet, and the title is the sheet name. Put inputs, assumptions and outputs on labeled rows. Totals are formulas. Then verify_artifact."
       },
       {
         "name": "doc-deck",
-        "description": "Turn a brief into a PPTX deck with speaker notes and QA",
-        "template": "Build a PPTX deck for: {input}. Use create_pptx_deck with one claim per slide and speaker notes, then call qa_pptx_deck and verify_artifact."
+        "description": "Turn a brief into a PPTX deck and run QA",
+        "template": "Build a PPTX deck for: {input}. Use create_pptx_deck with one claim per slide. A speaker note stays in the deck spec. The pptx has no notes page. Then call qa_pptx_deck and verify_artifact."
       },
       {
         "name": "doc-qa",

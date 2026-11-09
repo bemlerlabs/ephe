@@ -74,7 +74,6 @@
   "app/src/pages/MemoryPage.tsx": 2,
   "app/src/pages/SetupPage.tsx": 1,
   "app/src/store/chat/persist.ts": 2,
-  "app/src/store/chat/session.ts": 4,
   "app/src/store/chat/types.ts": 1,
   "app/src/styles/globals.css": 10,
   "app/src/types/index.ts": 7,
@@ -182,6 +181,6 @@
  "instrument": "scripts/prose_tells.py",
  "policy": "prose-tells-ratchet",
  "scope": "ratchet",
- "total": 384,
+ "total": 380,
  "version": 1
 }

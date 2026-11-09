@@ -67,15 +67,16 @@ async def list_agent_tools() -> dict:
     """The read-only tools an agent may be granted, with their kernel family."""
     from core.capability_policy import TOOL_FAMILIES
     from core.subagent import SUBAGENT_TOOL_WHITELIST
-    from core.tools.registry import TOOL_MAP
+    from core.tools.registry import addressable_tool_names
 
+    known = addressable_tool_names()
     rows = [
         {
             "name": name,
             "families": sorted(TOOL_FAMILIES.get(name, frozenset())),
         }
         for name in sorted(SUBAGENT_TOOL_WHITELIST)
-        if name in TOOL_MAP
+        if name in known
     ]
     return {"tools": rows}
 

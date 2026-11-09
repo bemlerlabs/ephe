@@ -68,6 +68,32 @@ def _four_mutations(client) -> list:
     ]
 
 
+def test_a_missing_stored_file_carries_the_registered_reason(client) -> None:
+    _set_read_only(False)
+    response = client.post(
+        "/api/plugins/web-research/state/remove",
+        json={"name": "no-such-file"},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["reason_code"] == "plugin_state_name"
+
+
+def test_read_only_on_refuses_a_stored_file_removal(client, device) -> None:
+    """The delete route takes the same brake and the same refusal audit."""
+    _set_read_only(True)
+    response = client.post(
+        "/api/plugins/web-research/state/remove",
+        json={"name": "kept.bin"},
+    )
+    assert response.status_code == 423
+    assert response.json()["error"]["detail"]["code"] == READ_ONLY_CODE
+    refusals = _refusals(device[1])
+    assert len(refusals) == 1
+    assert refusals[0]["tool"] == "web-research"
+    assert "action=remove" in refusals[0]["detail"]
+    assert READ_ONLY_CODE in refusals[0]["detail"]
+
+
 def test_read_only_off_keeps_the_normal_switch(client) -> None:
     _set_read_only(False)
     response = client.put("/api/plugins/web-research/enabled", json={"enabled": False})

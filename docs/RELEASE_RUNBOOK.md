@@ -27,6 +27,14 @@ with a new pull request.
 `uv.lock` and `app/src-tauri/Cargo.lock` follow. `tests/test_version_sync.py`
 names all six.
 
+The install lines carry the same number: the three root READMEs and the four
+start documents (`docs/QUICKSTART.md`, `docs/INSTALL.md`,
+`docs/INSTALL_OPTIONS.md`, `docs/FIRST_RUN.md`) name the release tag in the
+`raw.githubusercontent.com` URL and in the sentence beneath it. They name the
+new tag *before* it exists — `scripts/release_cut.sh` tags the commit that
+carries them — so `readme_check.py --public` is what proves the tag now exists
+(step 6). Flip all seven files in the version commit, not after the tag.
+
 ## 3. Local gates
 
 ```bash
@@ -35,7 +43,63 @@ python scripts/language_gate.py
 node scripts/architecture_check.mjs
 python scripts/readme_check.py --root .
 python scripts/readme_check.py --public   # the install tag exists on GitHub
+python scripts/changelog_unreleased.py --check   # every feat/fix commit since the last tag is named
+python scripts/catalog_freshness.py              # the committed catalogs are what their sources imply
 ```
+
+## 3a. The signing key
+
+The updater pubkey in `app/src-tauri/tauri.conf.json` belongs to the `ephe2` key pair
+
+```
+minisign key id  B5D5C1A5DB5711E0     ->  ~/.tauri/ephe2.key.pub  (matches the config, byte for byte)
+                                        ~/.tauri/ephe.key.pub    (key id DDDF31267F76F66C, matches nothing)
+```
+
+A build signed with the default path produces a bundle the client refuses, so the local signed
+build names the pair explicitly and the release checklist confirms it:
+
+```bash
+EPHE_UPDATER_KEY="$HOME/.tauri/ephe2.key" python scripts/release_checklist.py --version X.Y.Z
+# release-check: PASS signing-key    signing key matches the updater pubkey
+```
+
+The private key is passphrase-protected: the passphrase is an owner input, entered when the build
+signs, and CI carries the same pair as the `TAURI_SIGNING_PRIVATE_KEY` secret. `ephe.key` stays on
+disk as the retired pair, which is why the check names a matching sibling instead of failing
+outright.
+
+### The browser the frontend gate drives
+
+`pnpm install` installs no browser. The revision is pinned but the binary is not
+shipped: `@playwright/test` is `1.64.0` in `app/package.json` and the lockfile, and
+that `playwright-core` asks for exactly `chromium` / `chromium-headless-shell`
+revision **1248** (`app/node_modules/playwright-core/browsers.json`). A machine whose
+`ms-playwright` cache predates it fails every browser test with
+`Executable doesn't exist at .../chromium_headless_shell-1248/...` — measured on an
+empty cache 2026-11-09: 124 of the 139 collected tests red in 10 s, none of them a
+product defect. Nothing in the config can fetch the binary, so the step is an
+environment one and it is automated at the command that needs it:
+
+```bash
+cd app
+pnpm run test:e2e        # pretest:e2e runs `playwright install chromium`, a no-op once 1248 is cached
+```
+
+On a fresh Linux box install the OS libraries too. `--with-deps` looks for `sudo`
+before it looks for a missing library, so on a runner without passwordless sudo it
+exits 1 and downloads nothing — the probe the frontend gate in
+`.github/workflows/frontend-build.yml:95` carries:
+
+```bash
+cd app
+if sudo -n true 2>/dev/null; then pnpm exec playwright install --with-deps chromium
+else pnpm exec playwright install chromium; fi
+```
+
+`--list` is the check that the leg collects what the config says: 139 tests in 27
+files (127 `chromium` + 12 `load-sensitive`), and no `setup-e2e`, `dogfood`,
+`artifact-export` or `u6-focus`.
 
 ## 4. Dry run
 

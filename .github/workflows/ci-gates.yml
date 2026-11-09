@@ -3,7 +3,7 @@ name: CI Gates
 # The repo enforces its own invariants locally (a pre-commit hook, a set of gate
 # scripts) but CI never ran any of them — a push that skipped the hook, or a clone
 # where the hook was not installed, could break the architecture wall, the English
-# rule or the 400-line ceiling and still go green. This workflow closes that gap and
+# rule or the import-cycle guard and still go green. This workflow closes that gap and
 # audits the workflows themselves while it is at it.
 #
 # Deliberately NOT here yet: `pip-audit` and `pnpm audit` as blocking gates. Measured
@@ -127,9 +127,14 @@ jobs:
           python-version: '3.12'
 
       - name: Architecture wall (400 lines, cycles, contracts)
-        # Ratchet against .architecture-baseline.json: it reports 48 findings and
-        # 0 errors today, and one NEW finding flips every hint into an error — which
-        # is the point. Nothing is installed for this; the script is plain node.
+        # Ratchet against .architecture-baseline.json for the one rule that still binds:
+        # `forbidCycles` has no frozen count, so any cycle at all is an error. The four
+        # count rules (file lines, contract lines, public methods, deep imports) were
+        # unbudgeted by the owner on 2026-11-05 and only ever report a hint. Their old
+        # mechanism compared a *count* against a frozen number, so one new finding turned
+        # every hint of that rule into an error and reddened this leg on files the change
+        # had never touched. The step name keeps the number it reports (branch protection
+        # matches on it, and 400 is still the figure the hint prints). Plain node.
         run: node scripts/architecture_check.mjs
 
       - name: English-only rule for repository artifacts

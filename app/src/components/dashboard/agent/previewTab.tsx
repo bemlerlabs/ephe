@@ -76,6 +76,7 @@ export function PreviewTab({
     loading: nativeLoading,
     title: nativeTitle,
     error: nativeError,
+    refusal: nativeRefusal,
   } = useNativeBrowserPane(url, nonce, narrow ? 390 : undefined)
   const overflowRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -360,6 +361,7 @@ export function PreviewTab({
         native={native}
         nativeTitle={nativeTitle}
         nativeError={nativeError}
+        nativeRefusal={nativeRefusal}
         phase={phase}
         slow={slow}
         contrast={contrast}

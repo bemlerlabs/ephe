@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 import {
   dbDeleteSession,
   dbGetAllSessions,
@@ -5,9 +6,9 @@ import {
   dbSaveSession,
   debouncedSaveSession,
 } from '@/lib/db'
+import { compactMessages, type CompactStats } from '@/lib/compact'
 import { restoreFromServer, restoreServerStore } from '@/lib/restore'
 import { isSessionSyncEnabled, isTombstoned } from '@/lib/sessionSync'
-import { compactMessages } from '@/lib/compact'
 import type { ChatMessage, DbSession, Session } from '@/types'
 import type { ChatState, GetFn, SetFn } from './types'
 import {
@@ -16,9 +17,27 @@ import {
   DEFAULT_SESSION_TITLE,
   deriveSessionTitle,
   fromDbSession,
-  indicatorMessage,
+  MIGRATABLE_LEGACY_MODES,
+  normalizeComposerMode,
   toDbSession,
 } from './helpers'
+
+/** Indicator message after compaction (AI-client style: a compaction note in the log).
+ * It reads the active catalog, so it sits with the action that writes it rather than in
+ * the pure `helpers.ts`, which the presentation layer and `lib/` reach without booting
+ * i18n. */
+export function indicatorMessage(stats: CompactStats): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: 'system',
+    content: i18n.t('chat.compactIndicator', {
+      count: stats.compactedCount,
+      after: stats.after,
+      before: stats.before,
+    }),
+    timestamp: Date.now(),
+  }
+}
 
 /** On load, heals a bubble left streaming (streaming=true) by a dead tab. */
 function healOrphan(m: ChatMessage): ChatMessage {
@@ -117,11 +136,27 @@ export function makeSessionActions(
           // just chosen, not flushed yet) outranks the persisted snapshot,
           // otherwise the late-arriving hydrate overwrites a mode set by a click.
           const memById = new Map(get().sessions.map((m) => [m.id, m]))
+          // Task 3 migration (one-time rewrite on load): a stored value from
+          // before the composer rename becomes its canonical mode key, once, and
+          // the rewrite is persisted — otherwise the surface names a mode the
+          // menu no longer offers. Only `MIGRATABLE_LEGACY_MODES` (the three
+          // values the retired menu could write) are touched; each lands on a
+          // mode whose factors the server resolver already gave it. The retired
+          // `edit-auto` keeps its stored value: the alias table resolves it to
+          // the edit-family factor (ask for everything outside the family), and
+          // any tile on this side would name a ceiling the session never had.
           const sessions = dbSessions.map((d) => {
             const s = fromDbSession(d)
             const healed: Session = { ...s, messages: s.messages.map(healOrphan) }
             const mem = memById.get(s.id)
             if (mem?.mode) healed.mode = mem.mode
+            if (healed.mode && MIGRATABLE_LEGACY_MODES.has(healed.mode)) {
+              const canonical = normalizeComposerMode(healed.mode)
+              if (canonical !== healed.mode) {
+                healed.mode = canonical
+                debouncedSaveSession(toDbSession(healed))
+              }
+            }
             return healed
           })
           // Found 2026-10-01 (F-AB): getAll() returns primary-key order — without
@@ -146,7 +181,6 @@ export function makeSessionActions(
             first.id
           const active = sessions.find((x) => x.id === activeId) ?? first
           set({ sessions, activeSessionId: active.id, currentSession: active })
-          // Load the checkpoints of the active session
           const cps = await dbGetCheckpoints(active.id)
           if (cps.length > 0) {
             set((state) => ({ checkpoints: { ...state.checkpoints, [first.id]: cps } }))
@@ -179,7 +213,7 @@ export function makeSessionActions(
       }
     },
     // W19: the composer mode is a session attribute — it survives a reload and a
-    // server restore, instead of falling back to 'ask' on every unmount.
+    // server restore. Nothing resets it to the no-tools mode on every unmount.
     setSessionMode: (id, mode) => {
       set((s) => {
         const sessions = s.sessions.map((sess) => (sess.id === id ? { ...sess, mode } : sess))
@@ -353,9 +387,8 @@ export function makeSessionActions(
     setTyping: (typing) => set({ isTyping: typing }),
     setPendingToolCall: (tool) => set({ pendingToolCall: tool }),
 
-    // ── Z37: session fork (parity) ───────────────────────────────────────
-    // A prefix copy following the truncateAfter pattern: identical objects are
-    // enough, because messages are treated as immutable records.
+    // Z37: the fork is a prefix copy in the shape truncateAfter writes; the copied
+    // messages are shallow clones because records are treated as immutable.
     branchSession: (fromMsgId) => {
       const st = get()
       const src = st.currentSession ?? st.sessions.find((x) => x.id === st.activeSessionId)
@@ -377,7 +410,8 @@ export function makeSessionActions(
       debouncedSaveSession(toDbSession(fork))
     },
 
-    // ── Edit / Regenerate / Retry (G1 messaging parity) ───────────────────
+    // G1: edit, regenerate and retry share this single cut — the message they act on
+    // stays, everything after it goes, and the shortened history is persisted.
     truncateAfter: (messageId) => {
       set((state) => {
         if (!state.activeSessionId) return state

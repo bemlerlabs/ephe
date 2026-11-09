@@ -1,11 +1,11 @@
 'use client'
 
 import { useTranslation } from 'react-i18next'
-import { BookOpen, Globe, Loader2 } from 'lucide-react'
+import { BookOpen, Globe, Loader2, ShieldAlert } from 'lucide-react'
 import { isExternalHttpUrl } from './previewUrl'
 import { FilePreviewBody } from './filePreview'
 import { ReaderView } from './readerView'
-import { openExternally } from '@/lib/nativeBrowser'
+import { openExternally, type BrowserRefusal } from '@/lib/nativeBrowser'
 import type { FilePreview } from '@/lib/previewMode'
 
 /**
@@ -14,7 +14,8 @@ import type { FilePreview } from '@/lib/previewMode'
  *
  * Three states that must stay distinguishable: a file preview, a web page (an
  * iframe in the PWA, a child WebView above this node on the desktop), and the
- * reader view that fetches the same material as text.
+ * reader view that fetches the same material as text. The native path adds a
+ * fourth: an address the shell would not take, said out loud in its own row.
  */
 export function PreviewFrame({
   url,
@@ -23,6 +24,7 @@ export function PreviewFrame({
   native,
   nativeTitle,
   nativeError,
+  nativeRefusal,
   phase,
   slow,
   contrast,
@@ -39,6 +41,7 @@ export function PreviewFrame({
   native: boolean
   nativeTitle: string
   nativeError: string | null
+  nativeRefusal: BrowserRefusal | null
   phase: 'loading' | 'ready' | 'error'
   slow: boolean
   contrast: boolean
@@ -101,6 +104,34 @@ export function PreviewFrame({
             <Globe className="h-3 w-3" aria-hidden="true" />
             {t('agentPanel.openExternal', { defaultValue: 'Open externally' })}
           </button>
+        </div>
+      )}
+      {/* SEC-A: an address the shell would not take. The page already in the pane
+          stays there, so this is a row beside it — the load state below still
+          describes what is showing. No "open externally" here: a refusal is a
+          refusal, and handing the same address to the operating system would undo
+          the decision that just made it visible. */}
+      {native && nativeRefusal && (
+        <div
+          data-testid="preview-frame-refused"
+          role="status"
+          data-state="refused"
+          className="px-3 py-1 flex items-center gap-2 border-b border-hairline flex-shrink-0 text-ui-xs text-ink-soft"
+        >
+          <ShieldAlert className="h-3 w-3 shrink-0 opacity-70" aria-hidden="true" />
+          <p className="flex-1 min-w-0">
+            {t(
+              nativeRefusal.reason === 'app-own-origin'
+                ? 'agentPanel.browserRefusedOrigin'
+                : 'agentPanel.browserRefusedScheme',
+              {
+                url: nativeRefusal.url,
+                scheme: nativeRefusal.scheme,
+                defaultValue:
+                  'Ephe left {{url}} out of this pane — {{scheme}}: is not an address a web page comes from.',
+              },
+            )}
+          </p>
         </div>
       )}
       {/* G3: a landing row for the frame state. role="status" (polite) while

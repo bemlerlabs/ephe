@@ -186,18 +186,19 @@ def _health() -> dict[str, Any]:
     }
 
 
-def plugin_manager(action: str, query: str = "", name: str = "") -> str:
+def plugin_manager(action: str = "list", query: str = "", name: str = "") -> str:
     """Read-only view of installed plugins, capabilities and switch state.
 
     Args:
-        action: 'list', 'search', 'inspect' or 'health'.
+        action: 'list', 'search', 'inspect' or 'health'. Defaults to 'list'.
         query: search text for 'search' (matches name and description).
         name: plugin id for 'inspect'.
 
     Returns:
-        A JSON document. Unknown or mutating actions return a read_only error.
+        A JSON document. Omitted or blank action answers with the list. Unknown
+        or mutating actions return a read_only error.
     """
-    normalized = (action or "").strip().lower()
+    normalized = (action or "").strip().lower() or "list"
     if normalized not in _ACTIONS:
         return json.dumps(
             {
@@ -238,8 +239,9 @@ PLUGIN_MANAGER_SCHEMA = {
             "Read-only view of installed plugins, their capabilities, switch state "
             "and health. Actions: 'list' (whole portfolio), 'search' (name and "
             "description), 'inspect' (one plugin), 'health' (quarantine, missing "
-            "dependencies, failed switches). It never installs, enables, disables, "
-            "updates or removes a plugin — those need explicit user approval."
+            "dependencies, failed switches). Omit the action and it answers with "
+            "'list'. It never installs, enables, disables, updates or removes a "
+            "plugin — those need explicit user approval."
         ),
         "parameters": {
             "type": "object",
@@ -247,7 +249,8 @@ PLUGIN_MANAGER_SCHEMA = {
                 "action": {
                     "type": "string",
                     "enum": list(_ACTIONS),
-                    "description": "Read action to run.",
+                    "default": "list",
+                    "description": "Read action to run; defaults to 'list'.",
                 },
                 "query": {
                     "type": "string",
@@ -258,7 +261,7 @@ PLUGIN_MANAGER_SCHEMA = {
                     "description": "Plugin id for action='inspect'.",
                 },
             },
-            "required": ["action"],
+            "required": [],
         },
     },
 }

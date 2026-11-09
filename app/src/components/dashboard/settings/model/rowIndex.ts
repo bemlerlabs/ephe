@@ -92,8 +92,8 @@ export const ROW_INDEX: readonly RowIndexEntry[] = [
   { tab: 'mcp', key: 'settings.mcpCatalog' },
   // Plugin Store
   { tab: 'plugins', key: 'settings.pluginsMaster' },
-  { tab: 'plugins', key: 'settings.plugins.public' },
-  { tab: 'plugins', key: 'settings.plugins.personal' },
+  { tab: 'plugins', key: 'settings.plugins.global' },
+  { tab: 'plugins', key: 'settings.plugins.session' },
   { tab: 'plugins', key: 'settings.plugins.orphans' },
   // Hooks
   { tab: 'hooks', key: 'settings.hooksEvent.pre_tool' },

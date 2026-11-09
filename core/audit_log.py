@@ -134,6 +134,11 @@ def _current_turn() -> str:
         return ""
 _MAX_LINE = 4096  # single-line cap (the detail is redacted + truncated)
 
+#: How much of a `detail` survives the write. Named because a surface that packs a
+#: machine-readable line into the audit trail has to fit it — a truncation there cuts the
+#: line mid-JSON, and a reader that cannot parse it learns nothing.
+DETAIL_MAX_CHARS = 300
+
 
 def _append_private(path: Path, payload: str) -> None:
     """Append one already-redacted line to an owner-only file.
@@ -188,7 +193,7 @@ def audit_event(
             "decision": redact(decision)[:80],
             "status": redact(status)[:120],
             "duration_ms": duration_ms,
-            "detail": redact((detail or ""))[:300],
+            "detail": redact((detail or ""))[:DETAIL_MAX_CHARS],
             # Taken under the lock below: two writers that read the same tail
             # would fork the chain.
             "prev": "",
@@ -246,6 +251,19 @@ def _note_drop(exc: BaseException) -> None:
     )
 
 
+def _served(entry: dict) -> dict:
+    """An entry as a reader sees it: every text field through the masker again.
+
+    `redact()` runs at the write, and its pattern set has grown since — the
+    GitLab, AWS and Google shapes entered `_KEY_LITERALS` after months of lines
+    were already on disk. Those stale lines hold the secret in the clear, and
+    rewriting them is not the fix: each line carries the digest of the one
+    before it, so re-writing history is what `verify_chain` exists to notice.
+    The mask therefore sits on the read, where it changes no byte of the file.
+    """
+    return {k: (redact(v) if isinstance(v, str) else v) for k, v in entry.items()}
+
+
 def tail(limit: int = 100, kind: str = "", turn_id: str = "") -> list[dict]:
     """Last entries (newest first). Lines that are not JSON objects are skipped.
 
@@ -276,7 +294,7 @@ def tail(limit: int = 100, kind: str = "", turn_id: str = "") -> list[dict]:
                     continue
                 if turn_id and entry.get("turn_id") != turn_id:
                     continue
-                out.append(entry)
+                out.append(_served(entry))
         return list(reversed(out[-limit:]))
     except Exception:
         return []

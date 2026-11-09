@@ -167,6 +167,37 @@ else
     skip+=("tauri parity: no plugin package, Rust lock file or frontend path in scope")
 fi
 
+# --- the catalog rows, over the index entries this commit carries ---
+# A bundle edit that leaves its catalog row behind makes the store name bytes the
+# directory no longer holds; a skill pack edit does the same to skills-lock.json,
+# which `ephe doctor` also reads. Measured on 0ef1c8e6: two plugin rows and one
+# pack row drifted, the gates exited 1 and the full suite carried 12 failures,
+# while this hook stayed green because it had no catalog check. The whole-tree
+# `--check` stays out of here: it reads the disk, and on a shared tree that is
+# another strand's unfinished edit. This reads the index, and only the slugs and
+# packs the commit touches.
+catalog_needed=0
+for path in "${scope[@]:-}"; do
+    case "$path" in
+        plugins/*|plugin-catalog.json|skills/*|skills-lock.json)
+            catalog_needed=1
+            ;;
+    esac
+done
+if [ "$catalog_needed" -eq 1 ]; then
+    python3 scripts/catalog_staged.py "${scope[@]:-}"
+    catalog_status=$?
+    if [ "$catalog_status" -ge 128 ]; then
+        died+=("catalog_staged.py died with signal $((catalog_status - 128)): the catalog rows were not checked")
+    elif [ "$catalog_status" -eq 2 ]; then
+        died+=("catalog_staged.py could not read its inputs, so it reported no verdict instead of a pass")
+    elif [ "$catalog_status" -ne 0 ]; then
+        fail+=("catalog drift: a staged bundle or skill pack does not match the row this commit leaves behind")
+    fi
+else
+    skip+=("plugin catalog: no bundle, pack or catalog path in scope")
+fi
+
 # --- the prose ratchet, over the blobs in scope ---
 # The tree-wide `--strict` run stays in ci-gates.yml, where a clean checkout of one commit is what
 # gets judged. Measured on this tree 2026-10-11: 5.4 s for the whole-tree pass, and its verdict

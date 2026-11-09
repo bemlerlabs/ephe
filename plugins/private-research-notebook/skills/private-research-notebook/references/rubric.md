@@ -8,5 +8,5 @@
 6. The notebook stays local; no cloud upload is required.
 7. Credential material is summarised as redacted, never reproduced.
 8. A gap in the sources is reported as a gap, not filled with general knowledge.
-9. A deck carries one claim per slide and a citation in the speaker notes.
+9. A deck carries one claim per slide, and the citation sits on the slide. The pptx has no notes page.
 10. The answer ends with an evidence register and the open gaps.

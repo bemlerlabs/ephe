@@ -69,10 +69,10 @@ def test_unique_owner_and_tool_owner_from_the_descriptor() -> None:
     assert registry.activation_owner("read_file") == "code-shell"
     tool = next(
         capability
-        for capability in registry.capabilities(CapabilityKind.BUILTIN_TOOL)
+        for capability in registry.capabilities(CapabilityKind.PLUGIN_TOOL)
         if capability.name == "web_search"
     )
-    assert tool.owner == "kernel"
+    assert tool.owner == "web-research"
 
 
 def test_an_orphan_capability_owner_is_refused() -> None:

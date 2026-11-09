@@ -16,15 +16,28 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 from core import plugin_manifest
 
+#: Covers a read-modify-write of one lockfile, so two writers in this process cannot each
+#: rebuild from a copy that predates the other's change. A cross-process writer is outside
+#: this lock, and the mount's own rebuild-carry (#rebuild_lockfile) is what makes a lost
+#: pin recoverable rather than silent.
+LOCK_WRITE = threading.Lock()
+
 SCHEMA_VERSION = 1
 LOCK_FILENAME = "plugin-lock.json"
 SCOPES = ("user", "workspace")
+
+#: The entry field a hot mount (#15) writes its accepted tool contracts into: one record
+#: per served name with the sha256 over the canonical schema bytes, the description those
+#: bytes carried and a digest of the parameter object. It is the memory of what was
+#: agreed to, so it is not something a rebuild from disk may recompute.
+TOOL_PINS_FIELD = "tools"
 
 
 class LockfileError(Exception):
@@ -36,6 +49,16 @@ class LockfileError(Exception):
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _sorted_records(records) -> list[dict]:
+    """The pin records in served-name order, so one contract writes one byte string."""
+    out = []
+    for record in records:
+        body = dict(record)
+        body["name"] = str(body.get("name", ""))
+        out.append(body)
+    return sorted(out, key=lambda item: item["name"])
 
 
 def _source(plugin_dir: Path) -> str:
@@ -151,7 +174,12 @@ def read_lockfile(path: Path) -> dict[str, Any]:
 def write_lockfile(path: Path, lock: dict[str, Any]) -> None:
     target = Path(path)
     body = json.dumps(lock, ensure_ascii=False, indent=2, sort_keys=True)
-    tmp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    # The temp name carries the thread ident because two threads of one process share
+    # a pid: one shared temp file means the first rename consumes what the second is
+    # about to rename, which is a lost write or an ENOENT.
+    tmp = target.with_name(
+        f".{target.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+    )
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -205,6 +233,98 @@ def diff_lockfile(
             {"name": name, "kind": "extra", "version": present[name]["version"]}
         )
     return drift
+
+
+def with_tool_pins(
+    lock: dict[str, Any], plugin_id: str, records: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """A copy of `lock` with one plugin's accepted tool contracts written into its entry."""
+    body = json.loads(json.dumps(lock))
+    entries = body.setdefault("plugins", [])
+    for entry in entries:
+        if isinstance(entry, dict) and str(entry.get("name")) == str(plugin_id):
+            entry[TOOL_PINS_FIELD] = _sorted_records(records)
+            return body
+    entries.append(
+        {
+            "name": str(plugin_id),
+            "version": "",
+            "source": "user",
+            "path": "",
+            "sha256": "",
+            "signature_sha256": "",
+            "dependencies": [],
+            "scope": "user",
+            "trust_class": "user",
+            TOOL_PINS_FIELD: _sorted_records(records),
+        }
+    )
+    entries.sort(key=lambda item: str(item.get("name", "")))
+    return body
+
+
+def preserve_tool_pins(
+    rebuilt: dict[str, Any], previous: dict[str, Any]
+) -> dict[str, Any]:
+    """Carries the accepted contracts across a rebuild from disk.
+
+    `build_lockfile` describes what is on disk right now; the pins describe what a
+    reader agreed to earlier. Rebuilding without carrying them would silently drop the
+    only memory of the previous contract, which is the moment a rug pull becomes
+    invisible. A plugin the rebuild does not list keeps nothing: it is gone from disk.
+    """
+    carried = {
+        str(entry.get("name")): entry.get(TOOL_PINS_FIELD)
+        for entry in (previous.get("plugins") or [])
+        if isinstance(entry, dict) and entry.get(TOOL_PINS_FIELD)
+    }
+    if not carried:
+        return rebuilt
+    for entry in rebuilt.get("plugins", []):
+        if isinstance(entry, dict) and str(entry.get("name")) in carried:
+            entry[TOOL_PINS_FIELD] = _sorted_records(carried[str(entry["name"])])
+    return rebuilt
+
+
+def rebuild_lockfile(
+    path: Path, plugins_root: Path | None = None
+) -> dict[str, Any]:
+    """Rebuild from disk, carry the accepted tool pins forward and write.
+
+    The two release-time call sites want a lock that describes what is on disk. A
+    hot mount's pins (#15) describe what a reader agreed to, so a rebuild that dropped
+    them would erase the only evidence a changed contract was ever refused.
+    """
+    target = Path(path)
+    with LOCK_WRITE:
+        previous = read_lockfile(target)
+        lock = preserve_tool_pins(build_lockfile(plugins_root), previous)
+        write_lockfile(target, lock)
+    return lock
+
+
+def pinned_tools(lock: dict[str, Any], plugin_id: str) -> tuple[dict[str, Any], ...]:
+    """The tool contracts one plugin has on record, in served-name order.
+
+    The read side of a hot mount's pin (#15): the mount diffs a bundle against exactly
+    these records, and the surface that shows the alarm shows the same list. A plugin with
+    no entry, or an entry that never mounted, has none — which is not an error and not a
+    diff, it is a first mount. The shape is read defensively because a lockfile is
+    user-writable data.
+    """
+    for entry in lock.get("plugins") or []:
+        if not isinstance(entry, dict) or str(entry.get("name")) != str(plugin_id):
+            continue
+        records = entry.get(TOOL_PINS_FIELD)
+        if not isinstance(records, list):
+            return ()
+        return tuple(
+            dict(record)
+            for record in _sorted_records(
+                [r for r in records if isinstance(r, dict) and r.get("name")]
+            )
+        )
+    return ()
 
 
 def dependency_order(entries: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:

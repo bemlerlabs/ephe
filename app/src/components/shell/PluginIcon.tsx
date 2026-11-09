@@ -1,12 +1,57 @@
 /**
- * Ephe — S wave: PluginIcon (extensions v2, E2, out/plan.md [S1]-[S4]).
+ * Ephe — plugin icon tile.
  *
- * Loads the vendor icon from the plugin directory (/api/plugins/icon/{id}) and on
- * 404/load failure falls back to a deterministic lettermark (first letter on a
- * moss gradient, angle from the slug hash) — the tile stays ordered, never broken.
+ * An img element cannot send a header. Off loopback the icon route answers
+ * 401 unless X-Auth-Token is present, and that token stays out of the URL.
+ * The tile fetches the bytes with the same header the API client uses and
+ * paints a blob. A missed fetch falls back to the lettermark.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { BASE_URL, LAN_TOKEN } from '@/lib/api'
 import slugAngle from './slugAngle'
+
+const loads = new Map<string, Promise<string>>()
+
+function loadPluginIcon(pluginId: string): Promise<string> {
+  const hit = loads.get(pluginId)
+  if (hit) return hit
+  const headers: Record<string, string> = { 'X-Requested-With': 'XMLHttpRequest' }
+  if (LAN_TOKEN) headers['X-Auth-Token'] = LAN_TOKEN
+  const pending = fetch(`${BASE_URL}/api/plugins/icon/${encodeURIComponent(pluginId)}`, {
+    headers,
+  }).then(async (response) => {
+    if (!response.ok) throw new Error(String(response.status))
+    return URL.createObjectURL(await response.blob())
+  })
+  loads.set(pluginId, pending)
+  pending.catch(() => {
+    if (loads.get(pluginId) === pending) loads.delete(pluginId)
+  })
+  return pending
+}
+
+function Lettermark({
+  pluginId,
+  initial,
+  edge,
+}: {
+  pluginId: string
+  initial: string
+  edge: { width: number; height: number } | undefined
+}) {
+  return (
+    <span
+      data-testid={`plugin-icon-${pluginId}`}
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand/20 text-ui-base font-semibold text-foreground/90"
+      style={{
+        ...edge,
+        background: `linear-gradient(${slugAngle(pluginId)}deg, color-mix(in oklab, var(--color-brand) 22%, var(--color-canvas)), var(--color-canvas))`,
+      }}
+    >
+      {initial}
+    </span>
+  )
+}
 
 export default function PluginIcon({
   pluginId,
@@ -18,29 +63,35 @@ export default function PluginIcon({
   /** Rendered edge in px; the default keeps the 44 px tile of the installed list. */
   size?: number
 }) {
+  const [src, setSrc] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const initial = (name || pluginId || '?').trim().charAt(0).toUpperCase()
-  const angle = slugAngle(pluginId)
   const edge = size ? { width: size, height: size } : undefined
 
-  if (failed) {
-    return (
-      <span
-        data-testid={`plugin-icon-${pluginId}`}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand/20 text-ui-base font-semibold text-foreground/90"
-        style={{
-          ...edge,
-          background: `linear-gradient(${angle}deg, color-mix(in oklab, var(--color-brand) 22%, var(--color-canvas)), var(--color-canvas))`,
-        }}
-      >
-        {initial}
-      </span>
+  useEffect(() => {
+    let live = true
+    setSrc(null)
+    setFailed(false)
+    loadPluginIcon(pluginId).then(
+      (url) => {
+        if (live) setSrc(url)
+      },
+      () => {
+        if (live) setFailed(true)
+      },
     )
+    return () => {
+      live = false
+    }
+  }, [pluginId])
+
+  if (failed || !src) {
+    return <Lettermark pluginId={pluginId} initial={initial} edge={edge} />
   }
   return (
     <img
       data-testid={`plugin-icon-${pluginId}`}
-      src={`/api/plugins/icon/${pluginId}`}
+      src={src}
       alt=""
       aria-hidden="true"
       onError={() => setFailed(true)}

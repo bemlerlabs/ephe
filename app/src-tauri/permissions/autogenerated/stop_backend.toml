@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stop-backend"
+description = "Enables the stop_backend command without any pre-configured scope."
+commands.allow = ["stop_backend"]
+
+[[permission]]
+identifier = "deny-stop-backend"
+description = "Denies the stop_backend command without any pre-configured scope."
+commands.deny = ["stop_backend"]

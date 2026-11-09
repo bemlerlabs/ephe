@@ -26,8 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core import plugin_manifest  # noqa: E402
-from core.plugin_store import REGISTRY_FILENAME  # noqa: E402
+from core import plugin_manifest
+from core.plugin_store import REGISTRY_FILENAME
 
 VALID_MANIFEST = {
     "manifest_version": 1,
@@ -205,3 +205,60 @@ class TestCatalogPassthrough:
         assert entry["manifest"] is True
         assert entry["sha256"] == "abc"
         assert entry["version"] == "1.0.0"
+
+
+class TestBuiltinRootSeam:
+    """The builtin root is a named seam, not a constant baked into the scan.
+
+    An isolated eval run has to be able to point the second scan root somewhere it owns,
+    so the harness that grades a turn never reads the checkout it was built from. Unset,
+    the shipped root is scanned exactly as before: the user root first, the repo second.
+    """
+
+    def test_a_set_seam_is_the_only_builtin_root_scanned(self, tmp_path, monkeypatch):
+        _make_plugin(
+            tmp_path / "seam",
+            "seam-only",
+            manifest={
+                "manifest_version": 1,
+                "name": "seam-only",
+                "version": "1.0.0",
+                "description": "the only plugin this root holds",
+                "permissions": {"tool_families": []},
+                "components": {},
+            },
+            with_skill=False,
+        )
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "device"))
+        monkeypatch.setenv(
+            plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(tmp_path / "seam")
+        )
+        assert plugin_manifest.builtin_plugins_root() == tmp_path / "seam"
+        dirs = [Path(entry["dir"]) for entry in plugin_manifest.scan_plugins(None)]
+        assert dirs == [tmp_path / "seam" / "seam-only"]
+
+    def test_an_unset_seam_keeps_the_user_root_then_the_repo_root(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.delenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, raising=False)
+        _make_plugin(
+            tmp_path / "device" / "plugins",
+            "user-only",
+            manifest={
+                "manifest_version": 1,
+                "name": "user-only",
+                "version": "1.0.0",
+                "description": "an installed bundle in the device folder",
+                "permissions": {"tool_families": []},
+                "components": {},
+            },
+            with_skill=False,
+        )
+        monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "device"))
+        assert (
+            plugin_manifest.builtin_plugins_root()
+            == plugin_manifest.BUILTIN_PLUGINS_ROOT
+        )
+        dirs = [Path(entry["dir"]) for entry in plugin_manifest.scan_plugins(None)]
+        assert dirs[0] == tmp_path / "device" / "plugins" / "user-only"
+        assert plugin_manifest.BUILTIN_PLUGINS_ROOT / "countdown" in dirs

@@ -42,6 +42,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `PLUGINS_OVERVIEW.md` | The first-party plugin bundles |
 | `PLUGINS.md` | The plugin manifest format, v1 |
 | `PLUGIN_SDK.md` | Guide for plugin authors |
+| `PLUGIN_EXPORT.md` | How a made bundle is packed, signed, and checked against an installed identity, and where the lockfile is written |
 
 ## Measurement and project
 
@@ -52,6 +53,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `DEMOS.md` | The demo clips |
 | `DEVELOPMENT.md` | Dev setup, project structure, the CI gates and repository hygiene |
 | `RELEASE_RUNBOOK.md` | Branch, required checks, fast-forward, tag and publish; no export or snapshot |
+| `RELEASE_NOTES_0.6.0.md` | What this release carries, what it leaves out, and what an upgrade has to know |
 | `AI_CONTRIBUTION_POLICY.md` | How AI-assisted contributions are reviewed here |
 
 ## Where the pictures live

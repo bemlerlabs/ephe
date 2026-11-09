@@ -7,6 +7,7 @@ import { deepBool, initDeepSettings } from '@/lib'
 import { ensureGlobalShortcut } from '@/lib'
 import { saveSections } from '@/lib/api'
 import { hasSeenFirstRunIntro, loadSetupGate, readSetupGateHint } from '@/lib'
+import { closeOrphanedBrowserPane } from '@/lib/nativeBrowser'
 import { initPwa } from './registerSW'
 import App from './App'
 import { IconScale } from './components/ui/iconScale'
@@ -128,6 +129,13 @@ installDbAutoFlush()
 // it into the operating system's browser. Installed here, at the entry, because every surface
 // that shows an address needs it and none should have to remember it: lib/openExternal.ts.
 installExternalLinks()
+
+// The browser pane is a child WebView of the desktop window: it paints above this page
+// and outlives a reload of it (`browser.rs`). A new page life that did not open the pane
+// has to let it go, or the page a previous life showed floats over the chat. The entry
+// owns this because a left-over pane can exist on any route; portable no-op in the PWA
+// (`lib/nativeBrowser.ts`).
+closeOrphanedBrowserPane()
 
 // Mount the app — i18n must be imported above; wrapped in Suspense for lazy init
 const rootElement = document.getElementById('root')

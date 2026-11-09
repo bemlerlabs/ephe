@@ -45,8 +45,8 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     # A) import + registry + schema
     from core.tools import generate_image, TOOL_MAP, get_tool_schemas
-    assert "generate_image" in TOOL_MAP, "nicht in TOOL_MAP"
-    assert "generate_image" in get_tool_schemas()[0].keys() or any(
+    assert "generate_image" not in TOOL_MAP
+    assert any(
         s["function"]["name"] == "generate_image" for s in get_tool_schemas()
     ), "Schema fehlt"
     print("OK import+registry+schema")

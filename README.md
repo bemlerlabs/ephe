@@ -37,10 +37,12 @@ The workbench keeps the files the agent produced. You can open, download or adop
 These workflows ship as first-party plugins. The chat names the tool result behind each step.
 
 1. **Write a document from a source pack.** The [documents](plugins/documents) and [local-document-factory](plugins/local-document-factory) plugins produce PDF or DOCX files with sources and a verification step.
-2. **Build a deck or a spreadsheet.** [presentations](plugins/presentations) writes PPTX decks with evidence and speaker notes; [spreadsheets](plugins/spreadsheets) builds XLSX models with separated inputs and assumptions.
+2. **Build a deck or a spreadsheet.** [presentations](plugins/presentations) writes PPTX decks with evidence. A speaker note stays in the deck spec, and the pptx has no notes page. [spreadsheets](plugins/spreadsheets) builds one XLSX sheet. Inputs, assumptions and formulas are labeled rows.
 3. **Research with dated sources.** [web-research](plugins/web-research) keeps direct URLs, dates and quoted evidence. Web access is an opt-in path.
 4. **Reproduce a bug and prove the fix.** [code-shell](plugins/code-shell) reproduces a defect, applies the smallest fix and proves it with a test run.
 5. **Keep notes you can recall.** [memory](plugins/memory) stores, recalls and deletes durable facts after confirmation; [private-research-notebook](plugins/private-research-notebook) builds cited answers and briefs from local sources.
+6. **Keep a countdown in view.** [countdown](plugins/countdown) is the walking-skeleton bundle: one declared floating surface, and one timer the agent sets and reads back through a tool.
+7. **Save a picture from a prompt.** [image-studio](plugins/image-studio) calls an image endpoint and writes a file whose name ends in .png.
 
 Choose the engine that fits your machine:
 
@@ -72,7 +74,7 @@ The terminal (`ephe`) uses the engine choice from `~/.ephe/engine.json` and offe
 #### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.7/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.0/install.sh | bash
 ```
 
 To read the script before it runs, use the checkout:
@@ -88,7 +90,7 @@ The installer prepares Python and the local environment, builds the web app, and
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.5.7/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.0/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -100,7 +102,7 @@ Windows installation is not yet verified end to end for this revision. The comma
 
 Docker and every installer flag are described in [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-The command points to the current public release, `v0.5.7`. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
+The command points to the current public release, `v0.6.0`. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
 
 Before using `ephe` in a new terminal, activate the installed environment.
 For the default installation on macOS or Linux:
@@ -161,7 +163,7 @@ There is no account and no sign-up. The update check asks GitHub for the newest 
 
 Ephe ships nine first-party plugins, seven capability presets, five first-party skill packs and one bundled third-party skill pack (Superpowers, MIT). A plugin adds commands and a skill pack; a skill is a reusable instruction set; a preset is a capability without a plugin quality claim. The app also ships its built-in skills; see [docs/SKILLS.md](docs/SKILLS.md).
 
-The plugin set covers documents, presentations, spreadsheets, code-shell, browser-use, web-research, memory, local-document-factory and private-research-notebook. The presets cover image work, Model Context Protocol (MCP) tools, vision, voice, guides, plugin creation and skill creation.
+The plugin set covers documents, presentations, spreadsheets, code-shell, [browser-use](plugins/browser-use), web-research, memory, local-document-factory and private-research-notebook. The presets cover image work, Model Context Protocol (MCP) tools, vision, voice, guides, plugin creation and skill creation.
 
 The nine first-party plugins and the five first-party skill packs ship with the app. The Extension Center shows what each entry can do. The Superpowers pack ships as bundled third-party content and installs into your own profile after a confirmation, because it is not signed. A public catalogue for external publishers is planned.
 

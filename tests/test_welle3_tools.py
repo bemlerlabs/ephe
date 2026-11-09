@@ -148,10 +148,11 @@ def test_t4_array_schema_ok():
 
 # Registry integration
 
-def test_t1_t4_registered_in_tool_map():
+def test_json_stays_on_the_kernel_map():
     from core.tools.registry import TOOL_MAP
-    for name in ("extract_pdf_text", "format_code", "run_linter", "validate_json"):
-        assert name in TOOL_MAP, f"{name} missing from TOOL_MAP"
+    assert "validate_json" in TOOL_MAP
+    for name in ("extract_pdf_text", "format_code", "run_linter"):
+        assert name not in TOOL_MAP, f"{name} is served by its bundle"
 
 
 def test_t1_t4_have_schemas():

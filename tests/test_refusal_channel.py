@@ -195,3 +195,31 @@ class TestToolDoneFrame:
         done = [f for f in self._stream(client, "fetch_url", refusal) if f.get("type") == "tool_done"]
         assert done[0]["reason_code"] == "not_in_any_bundle"
         assert "some brand new wording." in done[0]["result"]
+
+    def test_a_denial_through_the_route_sets_reason_code_and_status_failed(self, client):
+        """The gate's Denied object reaches the stream as a failed tool_done frame.
+
+        Denied is a str subclass with .code and .params — the same shape Reason uses,
+        but produced by the chat gate instead of the tool itself. The route reads
+        getattr(result, "code", "") and sets reason_code; Denied has no .happened, so
+        _happened is False and status becomes "failed". A stdout frame must not follow
+        — a refused call produced no output to stream.
+        """
+        from core.tools.chat_gate import Denied
+
+        denial = Denied(
+            "[TOOL-DENIED] run_shell was not executed: shell access is disabled in this mode. "
+            "The next step is to ask the user for approval.",
+            "mode_denied",
+            {"mode": "analyst"},
+        )
+        frames = self._stream(client, "run_shell", denial)
+        done = [f for f in frames if f.get("type") == "tool_done"]
+        assert done, f"no tool_done frame in {[f.get('type') for f in frames]}"
+        assert done[0]["reason_code"] == "mode_denied"
+        assert done[0]["reason_params"] == {"mode": "analyst"}
+        assert done[0]["status"] == "failed"
+        assert "TOOL-DENIED" in done[0]["result"]
+
+        stdout = [f for f in frames if f.get("type") == "stdout"]
+        assert not stdout, f"refused call produced stdout: {stdout}"
