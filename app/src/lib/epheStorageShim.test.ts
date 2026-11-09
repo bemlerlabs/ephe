@@ -106,7 +106,7 @@ describe('the page-storage shim', () => {
 
     localStorage.setItem('note', 'first')
     expect(localStorage.getItem('note')).toBe('first')
-    localStorage.setItem('note', 2)
+    localStorage.setItem('note', String(2))
     expect(localStorage.getItem('note')).toBe('2')
     expect(localStorage.length).toBe(1)
     expect(localStorage.key(0)).toBe('note')
@@ -151,8 +151,8 @@ describe('the page-storage shim', () => {
     expect(localStorage.getItem('note')).toBe('optimistic')
 
     await vi.waitFor(() => expect(heard).toHaveLength(1))
-    expect(heard[0].detail).toMatchObject({ key: 'note', code: 'storage_refused' })
-    expect(thrown(() => localStorage.getItem('note'))).toMatchObject({
+    expect(heard[0]?.detail).toMatchObject({ key: 'note', code: 'storage_refused' })
+    expect(thrown(() => localStorage.getItem('note') ?? '')).toMatchObject({
       name: 'EpheStorageError',
       code: 'storage_refused',
     })
@@ -170,7 +170,11 @@ describe('the page-storage shim', () => {
         ? Promise.reject(refused)
         : Promise.resolve({ present: true }),
     )
-    window.EpheStorageShim.install({ force: true, snapshot: {}, send })
+    ;(window as unknown as { EpheStorageShim: Shim }).EpheStorageShim.install({
+      force: true,
+      snapshot: {},
+      send,
+    })
 
     localStorage.setItem('a', '1')
     localStorage.setItem('b', '2')
