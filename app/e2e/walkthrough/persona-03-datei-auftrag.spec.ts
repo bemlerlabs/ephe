@@ -18,9 +18,11 @@
  *   - playwright.config.ts starts Vite on 127.0.0.1:5174, which proxies /api/* to
  *     8765. If the walkthrough harness instead serves app/dist on 8765 directly,
  *     set EPHE_WALKTHROUGH_BASE=http://127.0.0.1:8765.
- *   - override the write mode with EPHE_WALKTHROUGH_MODE (ask|plan|edit-auto|
- *     full-access; default full-access — the mode most likely to actually write
- *     without an approval gate blocking the turn).
+ *   - override the write mode with EPHE_WALKTHROUGH_MODE (analyst|architect|operator|
+ *     creator; default operator — the tile that lets a tool run without a mode-level
+ *     gate, so the turn is likely to actually write). `edit-auto` is not a tile any
+ *     more; a stored value still resolves to the edit-family compatibility factor
+ *     (docs/COMPOSER_MODES.md) but the menu cannot select it.
  *
  * Running this spends a real engine turn. It is not part of the mocked suite.
  *
@@ -51,7 +53,7 @@ import { walkthroughOutDir } from './walkthrough-out.ts'
 import { openTier } from './rail.ts'
 
 const BASE = process.env.EPHE_WALKTHROUGH_BASE ?? 'http://127.0.0.1:5174'
-const MODE = process.env.EPHE_WALKTHROUGH_MODE ?? 'full-access'
+const MODE = process.env.EPHE_WALKTHROUGH_MODE ?? 'operator'
 const OUT = walkthroughOutDir('persona-03-datei-auftrag')
 
 const CHAT_INPUT = '[data-testid="chat-input"]'
@@ -223,7 +225,7 @@ test('PERSONA-03: file task — create a real file, then find it again', async (
       .getByTestId('composer-mode-selector')
       .innerText()
       .catch(() => '')
-    if (modeChip && !/full access|vollzugriff/i.test(modeChip)) {
+    if (modeChip && !/operator/i.test(modeChip)) {
       findings.push({
         step: 'mode-effective',
         ok: false,

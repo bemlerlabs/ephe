@@ -1569,10 +1569,13 @@ def _schreibe_desktop_konfig(
     desktop, opening the window only hit a closed door (reported as "Disconnected").
     The app now probes its port at start and starts what is written here: interpreter,
     project, port. Without this line it touches nothing.
+    The line belongs to the folder the shell reads: `EPHE_CONFIG_DIR` when the
+    variable is set, otherwise `$HOME/.ephe`. A caller that hands in another home
+    keeps that home's own tree.
     """
-    from core.engine_config import config_root
+    from core.engine_config import device_dir_for
 
-    device_dir = (Path(home) / ".ephe") if home is not None else config_root()
+    device_dir = device_dir_for(home)
     device_dir.mkdir(parents=True, exist_ok=True)
     config_path = device_dir / "desktop.json"
     config_path.write_text(

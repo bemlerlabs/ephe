@@ -477,7 +477,7 @@
     },
     "modeMenuNote": "The composer mode decides what this chat may run. The approval profile in Settings is the ceiling above it: with Strict, every tool still asks, whatever the mode says.",
     "taskProgress": "Steps · {{done}}/{{total}} done",
-    "planAcceptMsg": "Plan accepted — the composer left Plan mode, so the write tools are available now. Run this plan now, step by step, and do each file write in one tool call:",
+    "planAcceptMsg": "Plan accepted — the composer left Architect and now runs with write access: the edit family (write_file, edit_file) is available, and the approval profile decides whether it asks — nothing outside that family is auto-approved. Run this plan now, step by step, and do each file write in one tool call:",
     "planEditMsg": "Adjust the plan to exactly these steps:",
     "planEditSend": "Send the edited plan",
     "planEditCancel": "Cancel",

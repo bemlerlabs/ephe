@@ -38,9 +38,15 @@ try:
 except ImportError:  # RSS sampling degrades to a no-op with a recorded reason
     psutil = None
 
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from core.engine_config import config_root  # noqa: E402
+
 BASE_DEFAULT = "http://localhost:8765"
 STATE_DIR = Path("/tmp/ephe_stress_2026-09-06")
-SERVER_DATA_HOME = Path.home() / ".ephe"
+SERVER_DATA_HOME = config_root()
 SERVER_LOG = Path("/tmp/ephe_server_r28.log")
 
 PER_REQUEST_TIMEOUT = 90.0

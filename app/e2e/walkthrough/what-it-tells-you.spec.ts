@@ -4,7 +4,7 @@
  *
  * The product offers two independent stores that both decide whether a tool
  * runs without asking:
- *   - the composer's response mode  (Ask / Plan / Edit auto / Full access),
+ *   - the composer's response mode  (Analyst / Architect / Operator / Creator),
  *     `data-testid="composer-mode-selector"`, session attribute;
  *   - the approval profile           (Strict / Session / […]),
  *     `data-testid="privacy-profile"` in Settings › Privacy, plus the amber
@@ -19,7 +19,7 @@
  *
  * The five questions this run answers with evidence:
  *  (1) composer mode selector + permission badge — is there ANY explanation of
- *      what "Plan" or "Full access" does, or only the label?
+ *      what "Architect" or "Operator" does, or only the label?
  *  (2) the settings surfaces that govern this — Privacy (privacy-profile,
  *      security-profile-strict|session) and the shell's help/about surface.
  *      Exact wording a user finds.
@@ -277,7 +277,7 @@ test.describe('what it tells you — modes, profiles and shortcuts', () => {
       '1',
       'composer-ask-hint present in the current mode',
       String(askHintPresent),
-      'chat.askNoTools ("no tools run in Ask mode") renders next to the chip only while the mode is ask (ChatInput.tsx:515-522); the mode was deliberately NOT switched — it is a persisted session attribute',
+      'chat.askNoTools ("no tools run in Analyst mode") renders next to the chip only while the mode is analyst (ChatInput.tsx:552-558); the mode was deliberately NOT switched — it is a persisted session attribute',
     )
     await shot(page, 'composer-mode-chip-closed')
 
@@ -290,7 +290,7 @@ test.describe('what it tells you — modes, profiles and shortcuts', () => {
     const sections = await allTexts(page, MODE_SECTIONS)
     record('1', 'composer mode menu — section labels (visible text)', sections.join(' | '))
 
-    for (const key of ['ask', 'plan', 'edit-auto', 'full-access']) {
+    for (const key of ['analyst', 'architect', 'operator', 'creator']) {
       const sel = `[data-testid="composer-mode-${key}"]`
       record('1', `mode option "${key}" — visible label`, await textOf(page, sel))
       record(
@@ -303,7 +303,7 @@ test.describe('what it tells you — modes, profiles and shortcuts', () => {
     record(
       '1',
       'verdict — where the meaning of a mode lives',
-      'The menu shows only the short label under a section heading; the sentence that says what the mode does exists solely as a native `title` tooltip (and, doubled, in the aria-label). There is no always-visible explanation of "Plan" or "Full access" in the composer.',
+      'The menu shows only the short label under a section heading; the sentence that says what the mode does exists solely as a native `title` tooltip (and, doubled, in the aria-label). There is no always-visible explanation of "Architect" or "Operator" in the composer.',
     )
     await page.keyboard.press('Escape')
     await page.waitForTimeout(200)
@@ -487,7 +487,7 @@ test.describe('what it tells you — modes, profiles and shortcuts', () => {
     record(
       '5',
       'verdict — shortcuts and capabilities ARE documented in the UI',
-      'Keyboard shortcuts: yes, two places (the header help overlay and Settings › Keyboard shortcuts, both drawn from one table). Capabilities: the composer slash list names the commands with a one-line description each. Modes and approval profiles are NOT documented in the same way — there is no equivalent list that says what "Plan" or "Full access" or a profile does.',
+      'Keyboard shortcuts: yes, two places (the header help overlay and Settings › Keyboard shortcuts, both drawn from one table). Capabilities: the composer slash list names the commands with a one-line description each. Modes and approval profiles are NOT documented in the same way — there is no equivalent list that says what "Architect" or "Operator" or a profile does.',
     )
   })
 
@@ -507,13 +507,18 @@ test.describe('what it tells you — modes, profiles and shortcuts', () => {
     record(
       '3',
       'README.md — what it says about the profiles',
-      excerpt(README, 'security profile you control'),
+      excerpt(README, 'default strict profile asks before'),
     )
-    record('3', 'README.md — what it says about a mode', excerpt(README, 'Ask mode runs no tools'))
+    record(
+      '3',
+      'README.md — what it says about a mode',
+      excerpt(README, 'approval profile in the composer'),
+    )
     record('3', 'docs/INSTALL.md — the word "mode" there', excerpt(INSTALL, 'What each mode needs'))
     record('3', 'docs/CLI.md — the word "approval" there', excerpt(CLI, 'approval gate'))
     record('3', 'docs/COMPOSER_MODES.md — the mode table header', excerpt(MODES, '| Mode (UI) |'))
-    record('3', 'docs/COMPOSER_MODES.md — the Plan row', excerpt(MODES, '| Plan |'))
+    record('3', 'docs/COMPOSER_MODES.md — the Architect row', excerpt(MODES, '| Architect |'))
+    record('3', 'docs/COMPOSER_MODES.md — the legacy Plan row', excerpt(MODES, '| Plan |'))
     record(
       '3',
       'docs/COMPOSER_MODES.md — the profile axis',
@@ -619,7 +624,7 @@ test.describe('what it tells you — modes, profiles and shortcuts', () => {
     questions['2'] =
       'Settings › Privacy explains exactly two profile values in visible prose ("Strict — always ask", "Session — remember per tool"); the shell’s help surface is the keyboard-shortcut overlay, and Settings › About only reports version/provider/model.'
     questions['3'] =
-      'The four modes and the approval profiles are documented only in repo files, and incompletely: README names three profiles (strict/session/autonomous) and one mode ("Ask mode runs no tools at all"); INSTALL.md and CLI.md say nothing about them; docs/COMPOSER_MODES.md holds the real matrix but is a developer doc. A user with only the app cannot read any of it — the sole in-app pointer, the palette item "Documentation", leaves for an external URL.'
+      'The four modes and the approval profiles are documented only in repo files, and incompletely: README names three profiles (strict/session/autonomous) and no mode by name; INSTALL.md and CLI.md say nothing about them; docs/COMPOSER_MODES.md holds the real matrix but is a developer doc. A user with only the app cannot read any of it — the sole in-app pointer, the palette item "Documentation", leaves for an external URL.'
     questions['4'] =
       'Nothing in the UI says the composer mode and the settings profile are two different stores that both gate tools. The distinction lives only in docs/COMPOSER_MODES.md.'
     questions['5'] =

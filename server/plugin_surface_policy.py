@@ -54,7 +54,11 @@ _BASELINE_DIRECTIVES = (
 #: opaque, and every authority test in the browser suite leans on it. Sub-resource
 #: responses (`.js`, `.css`, fonts, images) carry no sandbox; nested HTML
 #: documents re-add it, because a sandbox applies to documents and the asset
-#: route can serve one.
+#: route can serve one. Page storage is what an opaque origin takes away from a
+#: bundle that needs it, and the mount restores the API rather than the origin:
+#: `server/plugin_surface_storage.py` serves a shim whose reads come from a
+#: snapshot embedded in the document and whose writes ride the `ephe.sdk` bridge
+#: to the bundle's own state root. This directive is unchanged by that.
 _ISOLATION_DIRECTIVE = "sandbox allow-scripts allow-popups"
 
 #: A plugin SVG is script-capable as a document. Served as an image it runs nothing;

@@ -66,7 +66,7 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # the trim that was owed anyway — `max-h-[26rem]` onto the `max-h-96` step, and
     # `max-h-full` in place of the `h-[100dvh]`/`max-h-[100dvh]` pair, where only the
     # second of the three was actually doing work against the dialog's own 90dvh.
-    # 20.94 -> 23.05 is the picker; the row is the number, not the measurement.
+    # 20.94 -> 23.05 is the picker; the row records the ceiling this build holds to.
     # 2026-10-30 (discover): /discover is one entry-stylesheet surface — hero glow,
     # kind badge, chip row and the bench bars — and it replaces three market panels
     # whose card CSS is now gone. Net after both sides: 23.03 -> 23.82 kB gzip,
@@ -105,8 +105,11 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # without this row moving: de.js 44.66 kB, en.js 40.39 kB — the German half
     # carried the studio, market and repair copy as well. The ~10% headroom rule
     # gives both rows their new numbers.
-    "de.js": 49.1,           # measured 44.66
-    "en.js": 44.4,           # measured 40.39
+    # 2026-11-09: measured from app/dist at 0.6.0: de.js 49.98 kB, en.js 45.17 kB.
+    # Creator mode added the consent, guard and staging copy the German half
+    # carries twice over. The same ~10% rule gives both rows their new numbers.
+    "de.js": 55.0,           # measured 49.98
+    "en.js": 49.7,           # measured 45.17
     # 2026-10-14: the chat's fence highlighter is on demand, so these are lazy
     # chunks like any route chunk — but each one that passes the small ceiling
     # ships unwatched without a row here. A fence fetches core, the JS engine,
@@ -128,7 +131,7 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     "css.js": 13.5,
     # The two on-demand renderers and, below them, mermaid's own diagram chunks.
     # Each of those is fetched only for the diagram type a message actually uses, so
-    # the numbers are ceilings per diagram, not a page weight. `katex.js` covers two
+    # the numbers are ceilings per diagram. `katex.js` covers two
     # chunks of the same name, measured 2026-10-14 at 75.35 kB each: the copy the
     # formula loader pulls (katex 0.19.0) and the copy mermaid reaches for math in
     # labels (mermaid asks for katex ^0.18.0; pnpm resolved 0.18.11 beside ours). They
@@ -166,7 +169,7 @@ BUDGETS_GZIP_KB: dict[str, float] = {
 # Measured on 2026-10-14 from app/dist (vite build, gzip -9), after WD-33 moved the
 # two translation catalogs out of the entry into chunks of their own: index.js
 # 148.28 -> 88.62 kB, and `de.js`/`en.js` appear with rows of their own. The gate
-# compares against the budget, not this baseline; the numbers document the headroom.
+# compares against the budget; the numbers document the headroom this build holds.
 # Earlier, for the record: P1-8 split the 608 kB entry so `radix`, `ui` and `dates`
 # (all three modulepreloaded by index.html) are their own chunks; W3-1 split the
 # ChatPage chunk by lazy-loading the agent panel and the artifact rail inside the

@@ -50,8 +50,12 @@ from bench_manifests import STAMP_NAME, manifest_paths  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+from core.engine_config import config_root  # noqa: E402
+
 DEFAULT_RUNS = Path("/tmp/bench-option-b/runs")
-DEFAULT_ENGINE = Path.home() / ".ephe" / "engine.json"
+DEFAULT_ENGINE = config_root() / "engine.json"
 
 #: The point `evals/bench_trend.py --out <cohort>/point.json` scores the cohort into.
 COHORT_POINT = "point.json"

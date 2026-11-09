@@ -34,7 +34,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-DEFAULT_ROOTS = (Path.home() / ".ephe" / "memory" / "kepta", Path.home() / ".kepta")
+from core.engine_config import config_subdir  # noqa: E402
+
+#: The product's store lives in the device folder, so `EPHE_CONFIG_DIR` moves it. The
+#: second root is another tool's own folder: the variable does not reach it, and a run
+#: that wants that store names it with `--db`.
+DEFAULT_ROOTS = (config_subdir("memory") / "kepta", Path.home() / ".kepta")
 
 
 def stores(argv_paths: list[str]) -> list[Path]:

@@ -182,3 +182,6 @@ out/
 # and it has to survive `git clean -fdx` — an unignored `.superpowers/` was erased mid-plan on
 # 2026-11-04 and the recovery map had to be rebuilt from git log.
 .superpowers/
+
+# the window-state cost harness is built here
+scripts/bench_window_state/target/

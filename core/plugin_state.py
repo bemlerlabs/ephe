@@ -290,6 +290,18 @@ def client_get(plugin_id: str, key: object) -> tuple[object, bool]:
     return store[name], True
 
 
+def client_snapshot(plugin_id: str) -> dict[str, object]:
+    """Every key the bundle's page store holds, for the mount's startup snapshot.
+
+    Read-only by construction: the folder is not created, and a missing or damaged
+    store answers `{}`. The caller is the surface route, which embeds this one
+    bundle's view into its own document ahead of the storage shim; no other bundle
+    reaches it, because the lookup is the plugin id the mount credential was minted
+    for.
+    """
+    return _read_client_store(state_home(plugin_id) / CLIENT_STORE_NAME)
+
+
 def client_set(plugin_id: str, key: object, value: object) -> bool:
     """Store one JSON value, or drop the key when the value is null.
 

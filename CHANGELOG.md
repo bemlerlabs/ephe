@@ -7,7 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.6.0 wave is named below (`aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
+The 0.6.0 wave is named below (`75384975`, `0ef4b969`, `bc927dda`, `aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
 
 ## [0.6.0] - 2026-11-09
 
@@ -179,6 +179,23 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   that reached nothing - the paid run's `read_file` failure. The neutral default is a folder under
   the home now, the legacy folder migrates once, and a name that resolves to the product's own
   checkout moves to a sibling so a first write never lands in the source tree.
+
+- config: every reader of the device folder asks the config root (`75384975`).
+  With `EPHE_CONFIG_DIR` set, the sandbox launcher, the CLI's desktop config, two eval scripts and
+  three maintenance scripts still resolved `$HOME/.ephe`, so a proof run read the real device folder.
+  Each site asks the authority now, and a test pins it against a temporary home.
+- surfaces: a bundle keeps its page state inside the sandbox (`0ef4b969`).
+  Page storage threw `SecurityError` because the surface's origin is opaque; `allow-same-origin`
+  would hand a bundle the app's storage and tokens, so the mount carries a storage bridge instead:
+  a snapshot before the first script, `sdk/ephe-storage.js` for `localStorage`/`sessionStorage`, reads
+  from the snapshot, writes over the existing SDK channel into a per-plugin state root. The limits
+  are written down in `docs/PLUGIN_SDK.md` §3c and the decision record.
+- docs: the startup cost is measured, and the plan-accept words match the modes (`bc927dda`).
+  `scripts/bench_startup.py`, `scripts/bench_panel_state.py` and the Rust window-state harness fill
+  `docs/PERFORMANCE_BASELINE.md` with numbers that carry their machine, date and command; the same
+  measurement names a defect (valid JSON of the wrong type makes the panel boot throw). The
+  plan-accept sentence, its spec and three walkthrough files now name Analyst, Architect, Operator
+  and Creator, and `app/src/lib/planAcceptAnchor.test.ts` holds the three together.
 
 ### Added
 

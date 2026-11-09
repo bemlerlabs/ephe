@@ -74,6 +74,36 @@ describe('attachPluginClient', () => {
     })
   })
 
+  it('writes one key through the storage route and answers the frame', async () => {
+    request.mockResolvedValue({ present: true })
+    const mounted = frame()
+    attachPluginClient(mounted.node, 'web-research')
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          channel: SDK_CHANNEL,
+          id: '8',
+          method: 'storage.set',
+          key: 'note',
+          value: { n: 1 },
+        },
+        source: mounted.child,
+      }),
+    )
+    await vi.waitFor(() => expect(mounted.posted).toHaveLength(1))
+    // The page-storage shim sends exactly this message for `localStorage.setItem`.
+    expect(request).toHaveBeenCalledWith('/api/plugins/web-research/client/storage', {
+      method: 'PUT',
+      body: JSON.stringify({ key: 'note', value: { n: 1 } }),
+    })
+    expect(mounted.posted[0]).toMatchObject({
+      channel: SDK_CHANNEL,
+      id: '8',
+      ok: true,
+      result: { present: true },
+    })
+  })
+
   it('drops a lifecycle event that names another bundle', () => {
     const mounted = frame()
     attachPluginClient(mounted.node, 'web-research')

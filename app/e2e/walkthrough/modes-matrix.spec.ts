@@ -1,18 +1,20 @@
 /**
  * modes-matrix.spec.ts — user walkthrough: "what does each composer mode really do?"
  *
- * PERSONA: a user who is told there are four modes («Ask», «Plan», «Edit auto»,
- * «Full access») and wants to know, per mode, what actually happens when a task
- * needs a tool and a task needs a write. The question this run answers with
+ * PERSONA: a user who is told there are four modes («Analyst», «Architect»,
+ * «Operator», «Creator») and wants to know, per mode, what actually happens when a
+ * task needs a tool and a task needs a write. The question this run answers with
  * evidence — per mode:
  *   - does a tool run at all,
  *   - does an approval dialog appear (and what does it say),
  *   - is a file really written to disk,
  *   - what does the assistant answer, what do the tool rows say,
- *   - and for `plan` (the mode this spec exists for): does it truly write
+ *   - and for `architect` (the mode this spec exists for): does it truly write
  *     nothing, does it PRESENT a plan before acting, is that plan rendered as a
  *     card a user can read and act on, and does accepting it actually run the
- *     work — or does nothing ever execute the plan.
+ *     work — or does nothing ever execute the plan. (The three tiled modes are
+ *     walked; `creator` is the fourth tile and asks for consent first, so a run
+ *     that does not grant it cannot measure that mode.)
  *
  * This spec runs against the LIVE stack — real backend, real engine
  * (openai_compatible / deepseek-v4-pro over the DeepSeek API). It does NOT mock
@@ -47,7 +49,7 @@
  * Selectors (all read from source, so they survive a copy refactor):
  *   mode selector   app/src/components/dashboard/chat/ComposerModeChip.tsx:41   data-testid="composer-mode-selector"
  *   mode menu list  app/src/components/dashboard/chat/ComposerModeMenu.tsx:124  data-testid="composer-mode-list"
- *   mode option     app/src/components/dashboard/chat/ComposerModeMenu.tsx:160  data-testid="composer-mode-<key>"  (key ∈ analyst|architect|operator, ComposerModeMenu.tsx COMPOSER_MODES)
+ *   mode option     app/src/components/dashboard/chat/ComposerModeMenu.tsx:160  data-testid="composer-mode-<key>"  (key ∈ analyst|architect|operator|creator, ComposerModeMenu.tsx COMPOSER_MODES)
  *   chat input      app/src/components/dashboard/ChatInput.tsx:433              data-testid="chat-input"
  *   send / stop     app/src/components/dashboard/chat/ComposerSendButton.tsx:77  data-testid="send-btn" | "stop-btn"
  *   assistant       app/src/components/dashboard/MessageBubble.tsx:118-119      data-testid="message-bubble" data-role="assistant"
@@ -60,7 +62,7 @@
  *   plan card       app/src/components/dashboard/PlanCard.tsx:52                data-testid="plan-card" (data-state draft|running|accepted)
  *   plan progress   app/src/components/dashboard/PlanCard.tsx:57                data-testid="plan-progress"
  *   plan item       app/src/components/dashboard/PlanCard.tsx:107               data-testid="plan-item-<i>" (data-status)
- *   plan accept     app/src/components/dashboard/PlanCard.tsx:131               data-testid="plan-accept"  → sends "Plan accepted — proceed." (locales/en.json:227)
+ *   plan accept     app/src/components/dashboard/PlanCard.tsx:131               data-testid="plan-accept"  → sends chat.planAcceptMsg (locales/en.json) and moves the composer to PLAN_EXECUTION_MODE (`edit-auto`, chip "With write access")
  *   plan edit       app/src/components/dashboard/PlanCard.tsx:142               data-testid="plan-edit"
  *   (card renders only when the ANSWER text carries a `## Plan` / `- [ ]` block:
  *    app/src/components/dashboard/bubble/assistantExtras.tsx:53-57 → parsePlanCard,
@@ -114,8 +116,9 @@ const PLAN_BLOCK_RE = /^\s*(?:#+\s*)?\*{0,2}\s*Plan\s*\*{0,2}\s*$|^\s*[-*+]\s*\[
 
 type TraceFn = (event: string, data?: Record<string, unknown>) => void
 
-// The three tiles of the renamed menu (Task 3: ask→analyst, plan→architect,
-// full-access→operator; edit-auto retired, creator stays tile-less until Wave 5).
+// The three tiles this run walks (Task 3: ask→analyst, plan→architect,
+// full-access→operator; edit-auto retired). `creator` is the fourth tile and asks for
+// consent before the session takes the mode, so this run does not measure it.
 const _MODES = ['analyst', 'architect', 'operator'] as const
 type Mode = (typeof _MODES)[number]
 

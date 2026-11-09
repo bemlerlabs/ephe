@@ -179,6 +179,57 @@ The page is sandboxed, so the file asks the frame that embedded it. The overlay 
 
 `sdk/ephe.d.ts` is the type of that global for a strict checker. The runtime file is `sdk/ephe.js`.
 
+### 3c. Page storage for a mounted surface (existing bundles)
+
+A mounted document has an opaque origin — `sandbox allow-scripts allow-popups` with no
+`allow-same-origin` — so the engine's own `localStorage` and `sessionStorage` throw a
+`SecurityError`. The mount restores the *API* without restoring the origin: it serves
+`sdk/ephe-storage.js` under a reserved name and places it, with a snapshot of this
+bundle's own page store, ahead of the first script the bundle ships. A bundle that was
+written against the Storage API keeps working; that is the bridge for existing bundles,
+and `ephe.storage` above stays the path a new bundle should use.
+
+What the shim guarantees:
+
+- `localStorage.getItem`, `setItem`, `removeItem`, `clear`, `key` and `length`, with
+  synchronous reads served from the snapshot the mount embedded.
+- A read straight after a write returns the written value (`setItem` updates the view
+  at once and sends the write over the `ephe.sdk` bridge; the shell stores it in this
+  bundle's own state root). A reload sees it in the new snapshot.
+- Only this bundle's store is in the snapshot, and the frame's host is bound to this
+  bundle's id, so no frame can read a sibling's keys.
+- A refused or unanswered write is never silent: the key falls back to its confirmed
+  value, `window` dispatches `ephestorageerror` with `{key, code, message}`, and the
+  next call that touches the key throws an `EpheStorageError` whose `name` is
+  `EpheStorageError` and whose `code` names the failure (`storage_refused`,
+  `storage_timeout`, `storage_write_failed`, `storage_no_host`, `storage_unavailable`).
+- `sessionStorage` has the same methods and is a memory area for this document. The
+  sandbox gives every document a fresh opaque origin, so a session area would not have
+  survived a reload anyway.
+
+What it does not do, and a bundle must not rely on:
+
+- Named-property access (`localStorage.theme`), `for...in`, `JSON.stringify(localStorage)`
+  and the cross-document `storage` event are not emulated. Use the methods above.
+- A key must be 1–64 characters from `A-Z a-z 0-9 . _ -`, starting with a letter or
+  digit (the page store's rule). Any other key throws `storage_key_invalid`; it is never
+  silently stored.
+- The store is a string store: `setItem` writes the string form of its value, and a
+  non-string value written through `ephe.storage.set` reads here as its JSON text. The
+  two APIs share the store but not a value type, so pick one per key.
+- The snapshot is taken when the document loads. A write from another document (or a
+  reload in another window) is not pushed into this one, and `clear()` removes the keys
+  this document knows — the snapshot it started with plus its own writes. Use
+  `ephe.storage` when a page must see a sibling's latest value.
+- The shell's store ceilings still apply: 8 KiB per value and 64 KiB per bundle
+  (`core/plugin_state.py`). A value past the ceiling arrives as a refused write through the
+  same `ephestorageerror` path, so a page reads one error shape for every refusal.
+- A native window (slot `native`) is its own top-level document with no embedding frame,
+  so there is no host for the bridge. The shim's reads still come from the snapshot, but
+  a write there fails with `storage_no_host` instead of pretending it landed. A
+  host-mediated store for the native slot is a separate package; the decision record
+  (`docs/decisions/PLUGIN_SURFACE_PAGE_STORAGE.md`) says so.
+
 ## 4. Vendored libraries (the offline runtime)
 
 A surface that needs a third-party renderer or game runtime ships it inside its own

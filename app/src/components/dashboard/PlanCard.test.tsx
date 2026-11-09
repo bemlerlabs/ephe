@@ -17,10 +17,12 @@ vi.mock('react-i18next', async (importOriginal) => {
           'chat.planTitle': 'Plan',
           'chat.planAccept': 'Accept',
           'chat.planEdit': 'Modify',
-          // The accept line the engine now reads: it names the mode change instead of the
-          // bare "Plan accepted — proceed." that left the composer in `plan`.
+          // The accept line the engine reads: it names the mode it left (Architect) and
+          // the access it now has, the same words `chat.modeHint.architect` and
+          // `chat.modeSection.write` carry in locales/en.json. `planAcceptAnchor.test.ts`
+          // holds the real catalogs to that.
           'chat.planAcceptMsg':
-            'Plan accepted — the composer left Plan mode, so the write tools are available now. Run this plan now, step by step, and do each file write in one tool call:',
+            'Plan accepted — the composer left Architect and now runs with write access: the edit family (write_file, edit_file) is available, and the approval profile decides whether it asks — nothing outside that family is auto-approved. Run this plan now, step by step, and do each file write in one tool call:',
           'chat.planEditMsg': 'Adjust the plan to exactly these steps:',
           'chat.planEditSend': 'Send the edited plan',
           'chat.planEditCancel': 'Cancel',
@@ -83,15 +85,15 @@ describe('PlanCard', () => {
     expect(screen.getByTestId('plan-item-2').getAttribute('data-status')).toBe('cancelled')
   })
 
-  it('accept leaves Plan mode and hands the plan to the turn that runs it', () => {
+  it('accept leaves Architect and hands the plan to the turn that runs it', () => {
     const onPick = vi.fn()
     useChatStore.getState().createSession('Plan accept')
     const sessionId = useChatStore.getState().activeSessionId!
-    useChatStore.getState().setSessionMode(sessionId, 'plan')
+    useChatStore.getState().setSessionMode(sessionId, 'architect')
     render(<PlanCard spec={DRAFT} onPick={onPick} />)
     fireEvent.click(screen.getByTestId('plan-accept'))
 
-    // The exit the user can read: the session's composer mode moved off `plan` — the chip
+    // The exit the user can read: the session's composer mode moved off `architect` — the chip
     // is bound to this value, and a turn sent now carries it to the engine. The stored
     // wire value is the compatibility one, unchanged by the rename.
     expect(useChatStore.getState().sessions.find((s) => s.id === sessionId)?.mode).toBe('edit-auto')

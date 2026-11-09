@@ -477,7 +477,7 @@
     },
     "modeMenuNote": "Der Antwort-Modus legt fest, was dieser Chat nutzen darf. Das Freigabe-Profil in den Einstellungen ist die Obergrenze darüber: bei Streng fragt jedes Werkzeug nach, unabhängig vom Modus.",
     "taskProgress": "Schritte · {{done}}/{{total}} erledigt",
-    "planAcceptMsg": "Plan angenommen — der Composer hat den Plan-Modus verlassen, die Schreib-Werkzeuge sind jetzt verfügbar. Arbeite diesen Plan jetzt Schritt für Schritt ab und erledige jeden Datei-Schreibvorgang in einem Werkzeug-Aufruf:",
+    "planAcceptMsg": "Plan angenommen — der Composer hat den Architekten verlassen und läuft jetzt mit Schreibzugriff: die Schreib-Familie (write_file, edit_file) ist verfügbar, und das Freigabe-Profil entscheidet, ob sie nachfragt — nichts außerhalb dieser Familie wird automatisch freigegeben. Arbeite diesen Plan jetzt Schritt für Schritt ab und erledige jeden Datei-Schreibvorgang in einem Werkzeug-Aufruf:",
     "planEditMsg": "Passe den Plan genau auf diese Schritte an:",
     "planEditSend": "Geänderten Plan senden",
     "planEditCancel": "Abbrechen",

@@ -49,6 +49,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | File | Content |
 |---|---|
 | `BENCHMARKS.md` | The published figures and how they are produced |
+| `PERFORMANCE_BASELINE.md` | Measured start-up and window-memory numbers, with the commands that take them |
 | `benchmark-mapping.md` | Why Ephe measures its own harness instead of attaching to an external suite |
 | `DEMOS.md` | The demo clips |
 | `DEVELOPMENT.md` | Dev setup, project structure, the CI gates and repository hygiene |

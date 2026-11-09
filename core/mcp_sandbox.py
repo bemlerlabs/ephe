@@ -177,17 +177,15 @@ def build_profile(home: str, command: str | None = None, *, deny_network: bool =
     """
     real_home = os.path.realpath(os.path.expanduser("~"))
     child_home = os.path.realpath(home)
-    config_root = os.path.realpath(
-        os.environ.get("EPHE_CONFIG_DIR") or os.path.join(real_home, ".ephe")
-    )
+    device_root = os.path.realpath(config_root())
     tmp = os.path.realpath(tempfile.gettempdir())
     runtime = "".join(
         f'(allow file-read* (subpath "{prefix}"))\n'
         for prefix in _runtime_prefixes(command, real_home)
     )
     outside_config = ""
-    if config_root != real_home and not config_root.startswith(real_home + os.sep):
-        outside_config = f'(deny file-read* (subpath "{config_root}"))\n'
+    if device_root != real_home and not device_root.startswith(real_home + os.sep):
+        outside_config = f'(deny file-read* (subpath "{device_root}"))\n'
     network = NETWORK_DENY_RULE if deny_network else ""
     return (
         "(version 1)\n"
@@ -231,9 +229,7 @@ def build_bwrap(home: str, command: str | None = None, *, deny_network: bool = F
     """
     real_home = os.path.realpath(os.path.expanduser("~"))
     child_home = os.path.realpath(home)
-    config_root = os.path.realpath(
-        os.environ.get("EPHE_CONFIG_DIR") or os.path.join(real_home, ".ephe")
-    )
+    device_root = os.path.realpath(config_root())
     argv = [
         "bwrap",
         "--die-with-parent",
@@ -251,8 +247,8 @@ def build_bwrap(home: str, command: str | None = None, *, deny_network: bool = F
     if os.path.isdir(run_user):
         argv += ["--tmpfs", run_user]
     hidden = [real_home]
-    if config_root != real_home and not config_root.startswith(real_home + os.sep):
-        hidden.append(config_root)
+    if device_root != real_home and not device_root.startswith(real_home + os.sep):
+        hidden.append(device_root)
     for path in hidden:
         argv += ["--tmpfs", path]
     for prefix in _runtime_prefixes(command, real_home):

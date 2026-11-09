@@ -1,10 +1,45 @@
 # Decision: page storage inside a plugin surface
 
-- Status: open, owner decision
+- Status: decided (2026-11-09) — **Option C, the page-storage shim**. The two options
+  weighed below were both rejected: A for the authority it spends, B because the owner's
+  order is that an existing bundle keeps its state instead of being regenerated.
 - Raised by: the paid creation run, whose three bundles wrote `localStorage` from a mounted surface
-- Touches, under Option A: `server/plugin_surface_policy.py` and
-  `app/src/components/shell/OverlayHost.tsx`; under Option B:
-  `scripts/plugin_dod_surface.py` and the creator guidance
+- Touches, under Option C: `server/plugin_surface_storage.py`, `server/routes/plugin_ui.py`,
+  `core/plugin_state.py` (one read-only accessor), `sdk/ephe-storage.js`, and the browser
+  and unit tests beside them. Under Option A: `server/plugin_surface_policy.py` and
+  `app/src/components/shell/OverlayHost.tsx`; under Option B: `scripts/plugin_dod_surface.py`
+  and the creator guidance.
+
+## Decision (2026-11-09): Option C — a shim over the bridge, never the origin
+
+The sandbox stays exactly as it is: `sandbox allow-scripts allow-popups`, no
+`allow-same-origin`, opaque origin, and the isolation suite keeps measuring that a null
+origin reads none of the user's authority. What the mount adds is the API:
+
+- The route serves `sdk/ephe-storage.js` under a reserved name (a bundle file of the same
+  name is ignored, like `ephe.js`).
+- The document is served with that script plus a `type="application/json"` data block
+  holding **this bundle's own** page store, placed directly after the doctype so it runs
+  before the bundle's first script. The block is escaped (`\u003c` and friends), so a
+  stored value can never close it.
+- Reads are synchronous from that snapshot. Writes go over the existing `ephe.sdk`
+  channel as `storage.set`; the shell already routes that message to
+  `/api/plugins/{id}/client/storage`, which writes this bundle's state root and nothing
+  else's. The host side needed no new method: `attachPluginClient` is bound to the frame's
+  plugin id, so the page cannot name another bundle.
+- A read straight after a write returns the written value (the view is updated before the
+  bridge round-trip). A refused or unanswered write reverts the key, dispatches
+  `ephestorageerror`, and the next call that touches the key throws a named
+  `EpheStorageError`. Nothing is silently wrong.
+- `sessionStorage` is a per-document memory area: a sandboxed document's opaque origin is
+  fresh per document, so a session area would not have survived a reload anyway.
+
+Stated limits (also in `docs/PLUGIN_SDK.md` §3c): the store is string-only and shares its
+keys with `ephe.storage`; named-property access, `for...in` and the `storage` event are not
+emulated; the snapshot is taken at load, so a sibling document's later write is not pushed
+into this one; `clear()` removes the keys this document knows; and the shell's 8 KiB/64 KiB
+ceilings arrive as refused writes. New bundles still use `ephe.storage` — the shim is the
+bridge that keeps a bundle written against the Storage API from losing the user's work.
 
 ## Problem, with the engine's proof
 
@@ -125,14 +160,14 @@ native window — belongs in its own package.
 - unchanged: the browser suite keeps reporting the refusal, so a bundle that regresses is
   caught after install as well as before.
 
-| | A: `allow-same-origin` | B: DoD ban |
-|---|---|---|
-| Mount origin | the app origin | opaque |
-| Bundle state | the shell's storage | host bridge, 64 KiB |
-| Product change | two files | one scan plus guidance |
-| Isolation suite | red | green |
+| | A: `allow-same-origin` | B: DoD ban | C: shim (chosen) |
+|---|---|---|---|
+| Mount origin | the app origin | opaque | opaque |
+| Bundle state | the shell's storage | host bridge, 64 KiB | host bridge, 64 KiB, via the shim |
+| Product change | two files | one scan plus guidance | route, shim, docs |
+| Isolation suite | red | green | green |
 
-## Recommendation: B
+## Recommendation at the time (superseded by the decision above): B
 
 The null origin is the mechanism the surface design, the embedder contract and the per-engine
 isolation measurements all rest on; it is what makes a mount a document with no authority
@@ -143,4 +178,6 @@ test and document that describes the boundary to be rewritten around a claim tha
 holds.
 
 Left for the owner: which wave regenerates the three bundles, whether the DoD rule is a hard
-gate or a warning, and whether a larger host-mediated store gets its own package.
+gate or a warning, and whether a larger host-mediated store gets its own package. The
+2026-11-09 ruling answered the first by not requiring a regeneration: the shim serves
+existing bundles, and `state_bridge_used` still asks a new bundle to use `ephe.storage`.

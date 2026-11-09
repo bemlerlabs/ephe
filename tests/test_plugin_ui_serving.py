@@ -217,7 +217,10 @@ def _reason(response) -> str:
 def test_an_active_surface_serves_its_document_with_the_header_set(tmp_path, monkeypatch):
     response = _document(_app(tmp_path, monkeypatch))
     assert response.status_code == 200, response.text
-    assert ENTRY_MARK in response.text
+    # The mount places the storage shim directly after the doctype, so the entry's
+    # own bytes follow it rather than starting the body.
+    assert response.text.startswith("<!doctype html>")
+    assert "<title>Countdown</title>" in response.text
     assert response.headers["content-type"].startswith("text/html")
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["cache-control"] == "no-store"
@@ -720,7 +723,7 @@ def test_an_authenticated_renewal_keeps_the_same_nonce_past_its_first_window(
     assert lan_doc.status_code == 200, lan_doc.text
     desktop_doc = _document(app, nonce=surface)
     assert desktop_doc.status_code == 200, desktop_doc.text
-    assert ENTRY_MARK in desktop_doc.text
+    assert "<title>Countdown</title>" in desktop_doc.text
     lan_asset = _remote(_asset(PLUGIN_ID, "app.js", surface), app)
     assert lan_asset.status_code == 200, lan_asset.text
     ended = started + 200 + plugin_surface_nonce.SURFACE_NONCE_TTL_SECONDS + 1

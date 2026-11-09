@@ -3,9 +3,18 @@
 Three bundles of the paid creation run wrote `localStorage` from inside the mount.
 The mount document carries `sandbox allow-scripts allow-popups` from
 `server/plugin_surface_policy.py`, so its origin is opaque and the engine refuses
-the storage API with a `SecurityError` that names the missing flag. This file pins
-that measured refusal: the write raises, the value never reaches the app origin's
-storage, and the same call from an unsandboxed document on that origin succeeds.
+its *native* storage API with a `SecurityError` that names the missing flag. The
+product answer is the page-storage shim, not `allow-same-origin`: the mount embeds
+`sdk/ephe-storage.js` and a snapshot of the bundle's own store, and the bundle's
+Storage calls are answered by that area and written over the `ephe.sdk` bridge.
+
+Two claims are pinned. The document's own `localStorage` answers
+the write, while the value never reaches the app origin's storage, and the
+unsandboxed parent keeps its API on that origin. A nested sandboxed document that
+never loaded the shim is the control: the engine still refuses its native
+`localStorage`, so "the API works here" is the shim and not the sandbox having
+quietly gone away. The browser loop that proves a write survives a read and a
+reload is `tests/test_plugin_surface_storage_shim_browser.py`.
 
 The engine is skipped by name when it cannot boot, so a green row is never a row
 nobody watched.
@@ -38,31 +47,48 @@ SURFACE_ENTRY = """<!doctype html><title>Page Storage Surface</title>
 <script src="probe.js"></script>
 """
 
-#: The probe mirrors a generated bundle: one uncaught write at the end is what a
-#: bundle without a `try` produces, and the listener above it records the message
-#: the eval's own error hook would collect.
+#: The probe is a bundle written against the Storage API, plus one control: a
+#: nested sandboxed document that never loaded the shim, so the engine's own
+#: refusal is still measured beside the shim's answer.
 PROBE_SCRIPT = """
 window.__STORAGE__ = [];
-window.addEventListener("error", function (event) {
-  window.__STORAGE__.push("uncaught:" + String((event && event.message) || ""));
-});
-window.__STORAGE__.push("origin:" + String(window.origin));
+function push(value) { window.__STORAGE__.push(String(value)); }
+push("origin:" + String(window.origin));
+push("shim:" + (window.EpheStorageShim ? "yes" : "no"));
 try {
   window.localStorage.setItem("__FRAME_KEY__", "written");
-  window.__STORAGE__.push("write:OK");
+  push("write:OK");
 } catch (error) {
-  window.__STORAGE__.push("write:" + String(error && error.name) + " " + String(error && error.message));
+  push("write:" + String(error && error.name) + " " + String(error && error.message));
 }
 try {
-  window.__STORAGE__.push("read:" + String(window.localStorage.getItem("__FRAME_KEY__")));
+  push("read:" + String(window.localStorage.getItem("__FRAME_KEY__")));
 } catch (error) {
-  window.__STORAGE__.push("read:" + String(error && error.name) + " " + String(error && error.message));
+  push("read:" + String(error && error.name) + " " + String(error && error.message));
 }
-window.__STORAGE__.push(
-  "content:" + String(((document.body && document.body.innerText) || "").replace(/\\s+/g, "").length)
-);
+push("content:" + String(((document.body && document.body.innerText) || "").replace(/\\s+/g, "").length));
+window.addEventListener("message", function (event) {
+  if (event.data && event.data.browserStorage) push("native:" + String(event.data.browserStorage));
+});
+var control = document.createElement("iframe");
+control.setAttribute("sandbox", "allow-scripts");
+control.srcdoc = '<script src="native-probe.js"></scr' + 'ipt>';
+document.body.appendChild(control);
 window.localStorage.removeItem("__FRAME_KEY__");
 """
+
+#: The control document's script: it runs in a sandboxed nested document that got
+#: no shim, so its `localStorage` is the engine's own area and the read throws. It
+#: reports the engine's own words to the surface above it.
+NATIVE_PROBE_SCRIPT = """
+try {
+  window.localStorage.setItem("probe", "1");
+  parent.postMessage({browserStorage: "OK"}, "*");
+} catch (error) {
+  parent.postMessage({browserStorage: String(error && error.name) + " " + String(error && error.message)}, "*");
+}
+"""
+
 
 #: The control document: same engine, same app origin, no sandbox on its own
 #: response. The frame around the surface carries the embedder's own sandbox list,
@@ -110,6 +136,7 @@ def live(tmp_path_factory):
     (plugin / "ui" / "probe.js").write_text(
         PROBE_SCRIPT.replace("__FRAME_KEY__", FRAME_KEY), encoding="utf-8"
     )
+    (plugin / "ui" / "native-probe.js").write_text(NATIVE_PROBE_SCRIPT, encoding="utf-8")
     manifest = {
         "manifest_version": 1, "name": PLUGIN_ID, "version": "1.0.0",
         "description": "A bundle whose only client state is page storage",
@@ -189,9 +216,9 @@ def _frame_results(frame, wanted: int, timeout: float = 15.0) -> list[str]:
     return results
 
 
-def test_the_mount_refuses_page_storage_and_names_the_missing_flag(live):
-    """Pin: the write raises, the value never lands, and the control document keeps
-    the same API on the same origin."""
+def test_the_mount_gives_page_storage_without_giving_the_origin(live):
+    """Pin: the shim answers the write, the value never lands in the app's store,
+    the engine still refuses the native area in a document without the shim."""
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as playwright:
@@ -207,26 +234,28 @@ def test_the_mount_refuses_page_storage_and_names_the_missing_flag(live):
             # The record's combination: the embedder mounts the frame with its own
             # sandbox list, so the pin mounts that attribute beside the header.
             assert page.locator("#f").get_attribute("sandbox") == "allow-scripts allow-popups"
-            # origin, write, read, content, the uncaught write = the full picture.
-            results = _frame_results(frame, wanted=5)
+            # origin, shim, write, read, content, the control document = the picture.
+            results = _frame_results(frame, wanted=6)
             joined = " | ".join(results)
             assert "origin:null" in joined, joined
-            # the write and the read both raise, and the engine names the reason.
-            assert "write:SecurityError" in joined, joined
-            assert "sandboxed" in joined.lower(), joined
-            assert "allow-same-origin" in joined, joined
-            assert "read:SecurityError" in joined, joined
-            # a bundle without a `try` produces an uncaught error event as well; its
-            # message arrives masked as "Script error." across the opaque origin.
-            assert "uncaught:Script error." in joined, joined
+            # the mount's own document finds the shim, and the write reads back.
+            assert "shim:yes" in joined, joined
+            assert "write:OK" in joined, joined
+            assert "read:written" in joined, joined
             # the document still renders, and the record quotes this exact row.
             assert "content:12" in joined, joined
+            # the control: a nested sandboxed document that loaded no shim still gets
+            # the engine's refusal, so the success above belongs to the shim.
+            assert "native:SecurityError" in joined, joined
+            assert "sandboxed" in joined.lower(), joined
+            assert "allow-same-origin" in joined, joined
 
             # the control: the unsandboxed document on the app origin keeps the API.
             parent = page.evaluate("window.__PARENT__ || {}")
             assert parent.get("write") == "OK", parent
             assert parent.get("read") == "parent-value", parent
-            # and the mount's write reached no key in that origin's storage.
+            # and the mount's write reached no key in that origin's storage: it
+            # travels over the bridge to the bundle's own state root instead.
             landed = page.evaluate(f"window.localStorage.getItem({FRAME_KEY!r})")
             assert landed is None, landed
 

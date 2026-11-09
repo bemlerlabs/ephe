@@ -32,6 +32,15 @@ and the sandbox says whose authority the mount holds. Loosening the shell's
 policy in `app/src-tauri/tauri.conf.json` for the whole app to fit plugin code
 would be a product-wide downgrade, so both answers ride this route's header.
 
+Page storage is the one authority the sandbox takes away that a surface still
+needs, and it is restored without giving the origin back. The route serves
+`sdk/ephe-storage.js` under a reserved name and places it, with a snapshot of
+this bundle's own page store, at the top of every HTML document it delivers; the
+shim answers synchronous reads from that snapshot and sends writes over the
+existing `ephe.sdk` bridge to the bundle's state root
+(`server/plugin_surface_storage.py`). The policy below is unchanged: `sandbox
+allow-scripts allow-popups`, and never `allow-same-origin`.
+
 Nothing is read from disk before the credential and the path have been decided,
 and a refusal is a coded `Refused`, so the reader gets the envelope every other
 route in this app gives.
@@ -48,9 +57,16 @@ from fastapi.responses import RedirectResponse, Response
 
 from core import path_guard, plugin_runtime
 from core.plugin_manifest import BUILTIN_PLUGINS_ROOT, load_manifest, plugins_root
+from core.plugin_state import client_snapshot
 from core.plugin_store import PLUGIN_NAME_RE
 from core.plugin_ui_capabilities import UI_ENTRY_SUFFIX, ui_descriptor
-from server import middleware, plugin_surface, plugin_surface_nonce, plugin_surface_policy
+from server import (
+    middleware,
+    plugin_surface,
+    plugin_surface_nonce,
+    plugin_surface_policy,
+    plugin_surface_storage,
+)
 from server.refusals import Refused
 from server.routes.plugins import _mutation_guard
 
@@ -237,7 +253,10 @@ def _served_document(plugin_dir: Path, descriptor: dict, plugin_id: str) -> Resp
 
     The entry is resolved through the same containment the asset branch uses. The
     manifest contract already refused an entry that leaves the directory, and a
-    route that serves attacker-influenced paths checks for itself.
+    route that serves attacker-influenced paths checks for itself. The page-storage
+    shim and this bundle's own store snapshot ride at the top of the document, so a
+    bundle written against `localStorage` finds an area before its first script runs
+    while the policy keeps the opaque origin the sandbox gives it.
     """
     document, reason = plugin_surface.resolve_surface_file(plugin_dir, descriptor["entry"])
     if document is None:
@@ -250,10 +269,12 @@ def _served_document(plugin_dir: Path, descriptor: dict, plugin_id: str) -> Resp
             reason="the declared entry is not an HTML document this route may serve",
         )
     body = _read(plugin_dir, descriptor["entry"], plugin_id, "plugin_ui_unavailable")
+    body = plugin_surface_storage.install_shim(body, client_snapshot(plugin_id))
     return _served(body, media_type, _policy(descriptor, isolate=True))
 
 
 _SDK_FILE = Path(__file__).resolve().parents[2] / "sdk" / "ephe.js"
+_STORAGE_SHIM_FILE = Path(__file__).resolve().parents[2] / "sdk" / "ephe-storage.js"
 
 
 def _served_sdk(descriptor: dict, plugin_id: str, request: Request) -> Response:
@@ -265,6 +286,28 @@ def _served_sdk(descriptor: dict, plugin_id: str, request: Request) -> Response:
             "plugin_ui_asset_refused",
             plugin=plugin_id,
             reason="the page sdk is not in this build",
+        ) from None
+    return _served(
+        body, "application/javascript", _policy(descriptor, isolate=False),
+        _opaque_origin_cors_headers(request),
+    )
+
+
+def _served_storage_shim(descriptor: dict, plugin_id: str, request: Request) -> Response:
+    """The build's page-storage shim, under the same reserved-name rule as the sdk.
+
+    A bundle that ships `ephe-storage.js` of its own does not replace this copy:
+    the mount is the one that decides what a sandboxed document's `localStorage`
+    is, so a bundle-authored replacement would only let a plugin lie to itself
+    about where its state goes.
+    """
+    try:
+        body = _STORAGE_SHIM_FILE.read_bytes()
+    except OSError:
+        raise Refused(
+            "plugin_ui_asset_refused",
+            plugin=plugin_id,
+            reason="the page-storage shim is not in this build",
         ) from None
     return _served(
         body, "application/javascript", _policy(descriptor, isolate=False),
@@ -306,8 +349,14 @@ def _served_asset(
         policy = plugin_surface_policy.SVG_DOCUMENT_CSP
     else:
         policy = _policy(descriptor, isolate=media_type == "text/html")
+    body = _read(plugin_dir, within, plugin_id, "plugin_ui_asset_refused")
+    if media_type == "text/html":
+        # A nested document is a document of its own, sandboxed like the entry, so
+        # it gets the same shim and the same bundle's snapshot. A non-HTML asset is
+        # never rewritten: this route delivers bytes, it does not author them.
+        body = plugin_surface_storage.install_shim(body, client_snapshot(plugin_id))
     return _served(
-        _read(plugin_dir, within, plugin_id, "plugin_ui_asset_refused"),
+        body,
         media_type,
         policy,
         _opaque_origin_cors_headers(request),
@@ -345,6 +394,12 @@ def get_surface_file(plugin_id: str, request: Request, asset_path: str) -> Respo
         return _served_document(plugin_dir, descriptor, plugin_id)
     if relative == "ephe.js":
         return _served_sdk(descriptor, plugin_id, request)
+    # The shim rides a *relative* `src` in every document the route injects it
+    # into, so a nested document in a subdirectory asks for `sub/ephe-storage.js`
+    # rather than the mount root. The name is reserved at every depth for that
+    # reason; a bundle cannot shadow it anywhere.
+    if PurePosixPath(relative).name == plugin_surface_storage.SHIM_NAME:
+        return _served_storage_shim(descriptor, plugin_id, request)
     return _served_asset(plugin_dir, descriptor, plugin_id, relative, request)
 
 

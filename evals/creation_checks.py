@@ -69,7 +69,10 @@ LISTED_NAMES = 3
 #: routes them to the bundle's own state roots.
 STATE_BRIDGE_CALLS: tuple[str, ...] = ("ephe.storage.get", "ephe.storage.set")
 
-#: What a bundle can persist through that dies with its mount.
+#: The page APIs a bundle may reach for instead of the SDK. The mount's storage
+#: shim (`sdk/ephe-storage.js`) keeps an existing bundle's `localStorage` alive,
+#: but the graded path above stays `ephe.storage`, and the detail line still names
+#: these calls so the author can see what the turn chose.
 PAGE_STORAGE_CALLS: tuple[str, ...] = (
     "localStorage", "sessionStorage", "indexedDB", "caches.open",
 )

@@ -253,19 +253,16 @@ def _delete_engine_keyring() -> None:
 
 
 def key_file_path(home: "Path | None" = None) -> Path:
-    """Where the engine token file sits.
+    """Where the engine token file sits, in the folder the desktop reads it from.
 
-    A caller who passes ``home`` gets ``<home>/.ephe/engine.key``. A caller
-    who passes nothing gets ``config_root() / "engine.key"``, so
-    ``EPHE_CONFIG_DIR`` moves the file with the device folder.
+    A caller who passes the process home gets ``config_root() / "engine.key"``, the
+    folder ``EPHE_CONFIG_DIR`` moves. Another home keeps ``<home>/.ephe/engine.key``.
     """
-    if home is not None:
-        return Path(home) / ".ephe" / "engine.key"
-    return config_root() / "engine.key"
+    return device_dir_for(home) / "engine.key"
 
 
 def _key_file(home: "Path | None" = None) -> str:
-    """The stored token: one owner-only line in ``~/.ephe/engine.key``, or nothing.
+    """The stored token: one owner-only line in the device folder's ``engine.key``, or nothing.
 
     The rules are the desktop spawn's rules (`app/src-tauri/src/backend.rs::key_from_file`)
     because the file is one promise and every surface has to keep it: a mode that lets group or
@@ -399,10 +396,10 @@ def engine_api_key_for(url: str | None, home: "Path | None" = None) -> str:
     No literal default, and no third source. ``EPHE_OPENAI_COMPAT_API_KEY`` wins wherever it is
     set — an inherited value names what whoever started this process chose, and a stored secret
     never replaces it quietly. The keychain entry (``ephe/engine_api_key``, written by
-    ``store_engine_api_key``) comes next, then ``~/.ephe/engine.key``. The file exists because the
-    env cannot reach an icon-launched app (measured: that backend carried no ``EPHE_`` variable at
-    all), and it now covers every start, the desktop one included: `core/model_provider.py` has
-    been sending users to that path on surfaces that never read it.
+    ``store_engine_api_key``) comes next, then ``config_root() / "engine.key"``. The file
+    exists because the env cannot reach an icon-launched app (measured: that backend carried
+    no ``EPHE_`` variable at all), and it now covers every start, the desktop one included:
+    `core/model_provider.py` has been sending users to that path on surfaces that never read it.
 
     Until 2026-10-10 an empty env fell back to another tool's credential store
     (``~/.local/share/opencode/auth.json``), which AGENTS.md did not name as a key source. It is
@@ -671,7 +668,6 @@ def delete_engine_api_key(home: "Path | None" = None) -> None:
     )
 
 
-CONFIG_DIR = Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
 CONFIG_FILE = "engine.json"
 
 
@@ -684,9 +680,32 @@ def config_root() -> Path:
     return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
 
 
+#: The folder as it stood when this module was imported. Tests patch this attribute to
+#: redirect a store whose path was frozen here; new code asks `config_root()` instead,
+#: so a variable set later still moves the folder.
+CONFIG_DIR = config_root()
+
+
 def config_subdir(name: str) -> Path:
     """Subfolder of the device folder, e.g. config_subdir("sessions")."""
     return config_root() / name
+
+
+def device_dir_for(home: "Path | None" = None) -> Path:
+    """The device folder for a caller that was handed a home directory.
+
+    The process home follows :func:`config_root`, so an isolated run that names the
+    variable keeps reading and writing there. Another home — the kind a unit test
+    hands in — stays ``<home>/.ephe`` and keeps its own tree. The desktop shell's
+    ``instance.rs::device_dir_for`` is the same rule, and both surfaces have to name
+    one folder or the shell reads a record Python wrote somewhere else.
+    """
+    if home is None:
+        return config_root()
+    candidate = Path(home)
+    if candidate.expanduser().resolve() == Path.home().resolve():
+        return config_root()
+    return candidate / ".ephe"
 
 
 @dataclass
