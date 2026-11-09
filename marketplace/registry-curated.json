@@ -1,8 +1,21 @@
 {
-  "generated": "2026-11-01T20:43:19+00:00",
+  "generated": "2026-11-09T12:22:11+00:00",
   "source": "https://registry.modelcontextprotocol.io/v0/servers",
   "count": 360,
   "entries": [
+    {
+      "id": "com-0dteconfluence-confluence",
+      "name": "0DTE Confluence",
+      "description": "Gamma rails, options flow tape, and graded 0DTE setups for SPY/QQQ/IWM. Advisory only.",
+      "category": "other",
+      "install_hint": "https://mcp.0dteconfluence.com/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.0dteconfluence/confluence",
+      "version": "1.29.1",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
     {
       "id": "com-augur-trade-foresight-web",
       "name": "A.U.G.U.R Foresight · Web & Research",
@@ -99,6 +112,45 @@
       "required_env": [],
       "downloads": 223,
       "curated_reason": "popular"
+    },
+    {
+      "id": "ai-getvda-minio-postgres-redis-stack-generator",
+      "name": "ai.getvda/minio-postgres-redis-stack-generator",
+      "description": "MinIO + Postgres + Redis Stack Generator",
+      "category": "database",
+      "install_hint": "https://minio-postgres-redis-stack-generator.getvda.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.getvda/minio-postgres-redis-stack-generator",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
+      "id": "ai-getvda-mysql-redis-compose-generator",
+      "name": "ai.getvda/mysql-redis-compose-generator",
+      "description": "MySQL + Redis Compose Generator",
+      "category": "database",
+      "install_hint": "https://mysql-redis-compose-generator.getvda.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.getvda/mysql-redis-compose-generator",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
+      "id": "ai-getvda-mysql-redis-compose-generator-adminer",
+      "name": "ai.getvda/mysql-redis-compose-generator-adminer",
+      "description": "MySQL + Redis Compose Generator (Adminer)",
+      "category": "database",
+      "install_hint": "https://mysql-redis-compose-generator-adminer.getvda.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.getvda/mysql-redis-compose-generator-adminer",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
     },
     {
       "id": "ai-getvda-mysql-redis-compose-generator-nginx",
@@ -440,6 +492,19 @@
       "curated_reason": "popular"
     },
     {
+      "id": "ai-waystation-airtable",
+      "name": "ai.waystation/airtable",
+      "description": "Access and manage your Airtable bases, tables, and records seamlessly",
+      "category": "other",
+      "install_hint": "https://waystation.ai/airtable/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.waystation/airtable",
+      "version": "0.3.1",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "ai-waystation-gmail",
       "name": "ai.waystation/gmail",
       "description": "Read emails, send messages, and manage labels in your Gmail account.",
@@ -505,6 +570,19 @@
       "curated_reason": "pick"
     },
     {
+      "id": "com-allscreenshots-allscreenshots",
+      "name": "Allscreenshots",
+      "description": "Capture website screenshots, run bulk captures, and manage screenshot schedules and history.",
+      "category": "other",
+      "install_hint": "https://mcp.allscreenshots.com/mcp/v1 (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.allscreenshots/allscreenshots",
+      "version": "1.0.1",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "com-allyotter-allyotter-lite",
       "name": "AllyOtter Lite",
       "description": "Get a digital product ready for affiliate networks: requirements, sales-page audit, checklists.",
@@ -530,6 +608,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "alpha402x-com",
+      "curated_reason": "pick"
+    },
+    {
+      "id": "com-animalmath-animal-math",
+      "name": "Animal Math",
+      "description": "Free Pre-K to 5th grade math worksheets, worksheet makers, quizzes, teaching tools and curricula.",
+      "category": "utility",
+      "install_hint": "https://animalmath.com/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.animalmath/animal-math",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -575,6 +666,19 @@
       "category": "cloud",
       "install_hint": "https://stripecheckup.vercel.app/api/mcp (streamable-http)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.vercel.stripecheckup/stripecheckup",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
+      "id": "click-appdesigns-screenshots",
+      "name": "appdesigns App Store screenshots",
+      "description": "App Store and Google Play screenshots MCP: your agent captures the app, you edit and export. Free.",
+      "category": "other",
+      "install_hint": "https://appdesigns.click/api/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/click.appdesigns/screenshots",
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
@@ -823,6 +927,19 @@
       "curated_reason": "pick"
     },
     {
+      "id": "com-bondterminal-bondterminal",
+      "name": "BondTerminal",
+      "description": "Prices, yields, spreads and history for 4,400+ sovereign and corporate bonds.",
+      "category": "other",
+      "install_hint": "https://bondterminal.com/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.bondterminal/bondterminal",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "ai-brainmemory-brain",
       "name": "Brain Memory",
       "description": "Persistent memory for AI agents: one brain shared across Claude, Cursor, Codex and more.",
@@ -959,25 +1076,6 @@
       "curated_reason": "popular"
     },
     {
-      "id": "com-collhub-collhub",
-      "name": "CollHub",
-      "description": "Documents, projects, comments, workflows and data sources of your CollHub instance, as tools.",
-      "category": "files",
-      "install_hint": "npx -y @collhub/mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.collhub/collhub",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "COLLHUB_URL",
-          "secret": false
-        }
-      ],
-      "downloads": 133,
-      "curated_reason": "popular"
-    },
-    {
       "id": "com-adrianczuczka-mason",
       "name": "com.adrianczuczka/mason",
       "description": "Engineering decisions, change impact, documentation audits, and CI evidence for coding assistants.",
@@ -1023,6 +1121,20 @@
       "curated_reason": "pick"
     },
     {
+      "id": "com-beacio-mcp",
+      "name": "com.beacio/mcp",
+      "description": "MCP server for Web Bluetooth on iOS Safari: scaffolding, UUID lookup, extension detection.",
+      "category": "other",
+      "install_hint": "npx -y @beacio/mcp (stdio)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.beacio/mcp",
+      "version": "1.0.1",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "downloads": 83,
+      "curated_reason": "popular"
+    },
+    {
       "id": "com-borisinc-memory",
       "name": "com.borisinc/memory",
       "description": "Persistent agent memory paid per call via x402 USDC. Your wallet is your private memory namespace.",
@@ -1035,154 +1147,6 @@
       "required_env": [],
       "icon": "mem-borisinc-com",
       "curated_reason": "pick"
-    },
-    {
-      "id": "com-clauxel-agentmemorymcp-agentmemorymcp-mcp",
-      "name": "com.clauxel.agentmemorymcp/agentmemorymcp-mcp",
-      "description": "A paid remote MCP for agent memory MCP, built to return verdicts, receipts, usage logs, and audit-re",
-      "category": "security",
-      "install_hint": "https://agentmemorymcp.clauxel.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.clauxel.agentmemorymcp/agentmemorymcp-mcp",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-clauxel-byterovermemory-byterovermemory-mcp",
-      "name": "com.clauxel.byterovermemory/byterovermemory-mcp",
-      "description": "A paid remote MCP for OpenAI Codex memory MCP, built to return verdicts, receipts, usage logs, and a",
-      "category": "memory",
-      "install_hint": "https://byterovermemory.clauxel.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.clauxel.byterovermemory/byterovermemory-mcp",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-clauxel-context7docs-context7docs-mcp",
-      "name": "com.clauxel.context7docs/context7docs-mcp",
-      "description": "A paid remote MCP for Context7 MCP docs, built to return verdicts, receipts, usage logs, and audit-r",
-      "category": "security",
-      "install_hint": "https://context7docs.clauxel.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.clauxel.context7docs/context7docs-mcp",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-clauxel-semblecodesearchgate-semblecodesearchgate-mcp",
-      "name": "com.clauxel.semblecodesearchgate/semblecodesearchgate-mcp",
-      "description": "Paid remote MCP for agent code search routing MCP, structured receipts, audit logs, and reviewer-rea",
-      "category": "security",
-      "install_hint": "https://semblecodesearchgate.clauxel.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.clauxel.semblecodesearchgate/semblecodesearchgate-mcp",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-containermath-cbm",
-      "name": "com.containermath/cbm",
-      "description": "Calculate shipment volume (CBM/CFT), weight, and how cargo fits standard shipping containers.",
-      "category": "utility",
-      "install_hint": "https://mcp.containermath.com (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.containermath/cbm",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-dapdip-youtube-growth",
-      "name": "com.dapdip/youtube-growth",
-      "description": "Audits any YouTube channel against its own history. Every claim carries its sample size.",
-      "category": "security",
-      "install_hint": "https://www.dapdip.com/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.dapdip/youtube-growth",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "dapdip-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-deepsearch-x402-korean-stocks",
-      "name": "com.deepsearch.x402/korean-stocks",
-      "description": "Korean stock & crypto for AI agents. KRX news, financials, risk via x402 USDC payments.",
-      "category": "web",
-      "install_hint": "npx -y deepsearch-x402-mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.deepsearch.x402/korean-stocks",
-      "version": "1.2.1",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "MCP_WALLET_PRIVATE_KEY",
-          "secret": true
-        }
-      ],
-      "downloads": 104,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "com-digitalnomadindex-coliving-search",
-      "name": "com.digitalnomadindex/coliving-search",
-      "description": "Search 14,000+ verified coliving and coworking spaces with pricing, amenities, and reviews.",
-      "category": "code",
-      "install_hint": "",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.digitalnomadindex/coliving-search",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-engagedviews-youtube-thumbnail-sizes",
-      "name": "com.engagedviews/youtube-thumbnail-sizes",
-      "description": "YouTube thumbnail and title shelf sizes, measured. Not affiliated with YouTube or Google.",
-      "category": "other",
-      "install_hint": "https://github.com/Jesse-Lucas1996/agentic-business/releases/download/v1.1.0/engagedviews-youtube-thumbnail-sizes.mcpb (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.engagedviews/youtube-thumbnail-sizes",
-      "version": "1.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "github-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-conduyt-mcp",
-      "name": "Conduyt CRM",
-      "description": "Conduyt CRM tools for AI agents: contacts, deals, pipelines, tasks, automations, messaging, reports",
-      "category": "communication",
-      "install_hint": "npx -y conduyt-mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.conduyt/mcp",
-      "version": "4.100.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "CONDUYT_API_KEY",
-          "secret": true
-        },
-        {
-          "name": "CONDUYT_API_URL",
-          "secret": false
-        }
-      ],
-      "downloads": 1708,
-      "curated_reason": "popular"
     },
     {
       "id": "ai-cookwala-cookwala",
@@ -1211,20 +1175,6 @@
       "required_env": [],
       "downloads": 163,
       "curated_reason": "popular"
-    },
-    {
-      "id": "com-crosbynews-weather",
-      "name": "Crosby, TX Weather",
-      "description": "Live Crosby, TX weather, river flood levels, local news & Crosby ISD school calendar.",
-      "category": "productivity",
-      "install_hint": "https://crosbynews.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.crosbynews/weather",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "crosbynews-com",
-      "curated_reason": "pick"
     },
     {
       "id": "ai-ctxstore-ctxstore-mcp",
@@ -1268,20 +1218,6 @@
       "curated_reason": "popular"
     },
     {
-      "id": "com-decionis-commerce-gate",
-      "name": "Decionis CommerceGate MCP",
-      "description": "Commerce MCP for order and price preflight, signed dossiers, proof packets, and Shadow Mode reports",
-      "category": "other",
-      "install_hint": "npx -y @decionis/commerce (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.decionis/commerce-gate",
-      "version": "0.1.1",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 215,
-      "curated_reason": "popular"
-    },
-    {
       "id": "ai-deepdna-local",
       "name": "DeepDNA local",
       "description": "Reads a raw DNA file on your computer and reports the variants DeepDNA curates, with sources.",
@@ -1310,61 +1246,6 @@
       "curated_reason": "pick"
     },
     {
-      "id": "com-deployangel-deployangel",
-      "name": "DeployAngel",
-      "description": "Wait for production to clear each deploy, and read the evidence when a release fails.",
-      "category": "other",
-      "install_hint": "uvx deployangel (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.deployangel/deployangel",
-      "version": "0.1.19",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "DEPLOYANGEL_API_TOKEN",
-          "secret": true
-        }
-      ],
-      "downloads": 214,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "com-devart-mcp-postgresql",
-      "name": "Devart MCP Server for PostgreSQL (ADO.NET)",
-      "description": "Schema-aware read/write access to PostgreSQL through Devart dotConnect ADO.NET data provider.",
-      "category": "database",
-      "install_hint": "Devart.Mcp.PostgreSql (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.devart/mcp-postgresql",
-      "version": "1.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "DEVART_MCP_POSTGRESQL_CONNECTION",
-          "secret": true
-        }
-      ],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-devart-mcp-sqlite",
-      "name": "Devart MCP Server for SQLite (ADO.NET)",
-      "description": "Schema-aware read/write access to SQLite through Devart dotConnect ADO.NET data provider.",
-      "category": "database",
-      "install_hint": "Devart.Mcp.SQLite (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.devart/mcp-sqlite",
-      "version": "1.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "DEVART_MCP_SQLITE_CONNECTION",
-          "secret": true
-        }
-      ],
-      "curated_reason": "pick"
-    },
-    {
       "id": "co-dijin-memory",
       "name": "Dijin Memory",
       "description": "Dijin is a Memory Layer: recall notes, decisions, and evidence-backed answers across every AI.",
@@ -1376,20 +1257,6 @@
       "source": "registry",
       "required_env": [],
       "curated_reason": "pick"
-    },
-    {
-      "id": "com-dakaio-domainscout",
-      "name": "DomainScout",
-      "description": "Domain research for AI agents: checks hundreds of names in one call, with prices and where to buy.",
-      "category": "web",
-      "install_hint": "npx -y @dakaio/domainscout-mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.dakaio/domainscout",
-      "version": "1.1.2",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 252,
-      "curated_reason": "popular"
     },
     {
       "id": "app-durely-garmin-insights-mcp",
@@ -1411,51 +1278,6 @@
       "curated_reason": "popular"
     },
     {
-      "id": "com-easyship-mcp",
-      "name": "Easyship",
-      "description": "Unlock global e-commerce shipping with Easyship's automated tools and worldwide courier network.",
-      "category": "other",
-      "install_hint": "uvx easyship-mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.easyship/mcp",
-      "version": "0.1.1",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "EASYSHIP_API_ACCESS_TOKEN",
-          "secret": true
-        }
-      ],
-      "downloads": 215,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "com-echo-mem-echo-mem",
-      "name": "Echo Memory",
-      "description": "Shared memory for AI agents, as a graph in your own Postgres. Writes never call an LLM.",
-      "category": "database",
-      "install_hint": "https://api.echo-mem.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.echo-mem/echo-mem",
-      "version": "0.5.6",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [
-        {
-          "name": "ECHO_MEMORY_AGENT_ID",
-          "secret": false
-        },
-        {
-          "name": "ECHO_MEMORY_DATABASE_URL",
-          "secret": true
-        },
-        {
-          "name": "ECHO_MEMORY_USER_ID",
-          "secret": false
-        }
-      ],
-      "curated_reason": "pick"
-    },
-    {
       "id": "ai-ekwo-mcp",
       "name": "Ekwo OS — open source accounting: ledger, invoices and VAT on your own Supabase or Postgres",
       "description": "Double-entry books an agent keeps as the user: invoices, VAT returns, 130 country packs.",
@@ -1467,144 +1289,6 @@
       "source": "registry",
       "required_env": [],
       "icon": "mcp-ekwo-ai",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-enconvert-mcp",
-      "name": "Enconvert",
-      "description": "MCP server for the Enconvert API. Convert URLs and files to PDF, screenshots, and markdown.",
-      "category": "files",
-      "install_hint": "npx -y @enconvert/mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.enconvert/mcp",
-      "version": "0.2.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 147,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "com-errandkit-seo-ai-audit",
-      "name": "Errandkit SEO & AI Search Readiness Audit",
-      "description": "Audit pages for SEO and AI search: scores, fixes, AI crawler access, llms.txt. Pay per use.",
-      "category": "security",
-      "install_hint": "https://mcp.apify.com/?tools=errandkit/seo-ai-readiness-audit (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.errandkit/seo-ai-audit",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "mcp-apify-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-everythingmeetsai-archive",
-      "name": "EverythingMeetsAI",
-      "description": "AI's impact on real-world sectors: source-linked headlines in 18 sectors. Free, read-only, no text.",
-      "category": "other",
-      "install_hint": "https://everythingmeetsai.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.everythingmeetsai/archive",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "everythingmeetsai-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-exactmods-exactmods",
-      "name": "ExactMods",
-      "description": "Source-cited ARRMA 3S / 4x4 parts fitment with revision scope, confidence, sources, and guides.",
-      "category": "other",
-      "install_hint": "https://exactmods.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.exactmods/exactmods",
-      "version": "0.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "exactmods-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-exactpdf-mcp",
-      "name": "ExactPDF",
-      "description": "ExactPDF local stdio MCP client: hosted API PDF merge, split, compress, Markdown source packs.",
-      "category": "files",
-      "install_hint": "@exactpdf/mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.exactpdf/mcp",
-      "version": "0.2.19",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-examova-mcp",
-      "name": "Examova — Exam Prep",
-      "description": "Practice questions, exam facts & study guides for professional certification exams.",
-      "category": "other",
-      "install_hint": "https://examova.com/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.examova/mcp",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "examova-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-execbro-execbro",
-      "name": "ExecBro",
-      "description": "Gives AI agents eyes and hands into running React Native apps: logs, REPL, tap, screenshots",
-      "category": "other",
-      "install_hint": "npx -y execbro (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.execbro/execbro",
-      "version": "2.1.2",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 1691,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "com-faceabot-deep-search",
-      "name": "Faceabot Deep search",
-      "description": "One question searched in science, world news, Internet Archive, GitHub and discussions. Free.",
-      "category": "code",
-      "install_hint": "https://faceabot.com/tools-mcp/deep-search (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.faceabot/deep-search",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "faceabot-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-faceabot-weather",
-      "name": "Faceabot Weather",
-      "description": "Weather forecast for any city, UV index, sunrise and sunset, pollen and air quality. Free, no key.",
-      "category": "utility",
-      "install_hint": "https://faceabot.com/tools-mcp/weather (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.faceabot/weather",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "faceabot-com",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-faceabot-youtube",
-      "name": "Faceabot YouTube transcript",
-      "description": "What is said in a YouTube video: transcript with timestamps, title and channel. Free, no key.",
-      "category": "media",
-      "install_hint": "https://youtube.faceabot.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.faceabot/youtube",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1701,6 +1385,20 @@
       "curated_reason": "popular"
     },
     {
+      "id": "app-tuper-github-repos",
+      "name": "GitHub Repos (Apify Actor) by Tuper",
+      "description": "GitHub repository search past the 1,000 cap, with your own token. Runs on Apify.",
+      "category": "code",
+      "install_hint": "https://mcp.apify.com?tools=tuper/github-repos (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.tuper/github-repos",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "icon": "mcp-apify-com",
+      "curated_reason": "pick"
+    },
+    {
       "id": "co-civai-nova-gmail-agent",
       "name": "Gmail Agent by Nova (CIVAI)",
       "description": "I do everything related to Gmail and productivity",
@@ -1748,6 +1446,19 @@
       "curated_reason": "pick"
     },
     {
+      "id": "ai-homouniversalis-four-pillars-tzolkin-dreamspell-hexagram-gene-keys-genekeys-sephiroth-tree-of-life-gematria-arcana-chakras-kundalini-ayurveda-elements-relationship-matchmaking-couple-lineage",
+      "name": "Homo Universalis — Tzolkin, Gene Keys, Hexagrams, Tree of Life, 4 Elements & Soul Matchmaking MCP",
+      "description": "Four Pillars, Tzolkin, Hexagrams, Tree of Life, 4 Elements, Couple Matchmaking & Family Lineage MCP.",
+      "category": "other",
+      "install_hint": "https://homouniversalis.ai/mcp?pillar=sacred-keys (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.homouniversalis/four-pillars-tzolkin-dreamspell-hexagram-gene-keys-genekeys-sephiroth-tree-of-life-gematria-arcana-chakras-kundalini-ayurveda-elements-relationship-matchmaking-couple-lineage",
+      "version": "1.5.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "app-kezai-memory",
       "name": "KEZAI Cultural Memory",
       "description": "Private cross-media memory for AI assistants: recommendations, progress and controlled actions.",
@@ -1772,6 +1483,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "app-kolect-ai",
+      "curated_reason": "pick"
+    },
+    {
+      "id": "ai-konshus-memory",
+      "name": "Konshus — your personal AI memory",
+      "description": "Your own memory for every AI: Claude, ChatGPT, Cursor, Zed and more. Brings in 20+ sources.",
+      "category": "communication",
+      "install_hint": "https://konshus.ai/api/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.konshus/memory",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "pick"
     },
     {
@@ -1800,6 +1524,20 @@
       "required_env": [],
       "downloads": 95,
       "curated_reason": "popular"
+    },
+    {
+      "id": "co-civai-nova-mcp-linear",
+      "name": "Linear by Nova (CIVAI)",
+      "description": "Issues, projects, cycles, and roadmaps via the official Linear hosted MCP server.",
+      "category": "productivity",
+      "install_hint": "https://nova.civai.co/mcp/agents/mcp-linear (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/co.civai.nova/mcp-linear",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "icon": "nova-civai-co",
+      "curated_reason": "pick"
     },
     {
       "id": "ai-lithtrix-lithtrix-mcp",
@@ -1916,6 +1654,32 @@
       "curated_reason": "pick"
     },
     {
+      "id": "ai-memexa-brain",
+      "name": "Memexa",
+      "description": "Hosted memory for AI assistants: notes and docs as a knowledge graph, EU-hosted, via MCP.",
+      "category": "memory",
+      "install_hint": "https://brain.memexa.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.memexa/brain",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
+      "id": "ai-memorybrain-memorybrain",
+      "name": "MemoryBrain",
+      "description": "Your own memory inside ChatGPT and Claude, with the source of every note.",
+      "category": "communication",
+      "install_hint": "https://app.memorybrain.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.memorybrain/memorybrain",
+      "version": "0.9.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "ai-memoryrouter-memoryrouter",
       "name": "MemoryRouter",
       "description": "Persistent AI memory shared across Claude, ChatGPT, coding agents, and compatible MCP clients.",
@@ -1935,7 +1699,7 @@
       "category": "other",
       "install_hint": "uvx mirobody (stdio)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.thetahealth/mirobody",
-      "version": "1.5.9",
+      "version": "1.5.10",
       "published_at": "",
       "source": "registry",
       "required_env": [],
@@ -1971,6 +1735,19 @@
       "curated_reason": "popular"
     },
     {
+      "id": "ai-ohmybug-bughunter",
+      "name": "OhMyBug",
+      "description": "The code review for your coding agent's changes: a cloud bug hunt. From $4, $0 when no real bug.",
+      "category": "code",
+      "install_hint": "https://mcp.ohmybug.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.ohmybug/bughunter",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "ai-okforest-okforest",
       "name": "OKForest",
       "description": "Your organization's knowledge as OKF trees in Git, for AI assistants to search, read, and cite",
@@ -1996,47 +1773,6 @@
       "source": "registry",
       "required_env": [],
       "curated_reason": "pick"
-    },
-    {
-      "id": "ai-parallel-search-mcp",
-      "name": "Parallel Search MCP",
-      "description": "The best web search for your AI Agent",
-      "category": "web",
-      "install_hint": "https://search-mcp.parallel.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.parallel/search-mcp",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "ai-perfectmemory-perfect-memory",
-      "name": "Perfect Memory",
-      "description": "Search what you've seen on screen and heard in meetings, recorded on your own Mac or PC.",
-      "category": "web",
-      "install_hint": "https://proxy.perfectmemory.ai/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.perfectmemory/perfect-memory",
-      "version": "1.3.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "proxy-perfectmemory-ai",
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-creatinginai-performance-atlas",
-      "name": "Performance Atlas",
-      "description": "Acting direction for AI video and voice: state-based behaviour kits and a free prompt linter.",
-      "category": "code",
-      "install_hint": "https://creatinginai.com/agents/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.creatinginai/performance-atlas",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "creatinginai-com",
-      "curated_reason": "recent"
     },
     {
       "id": "ai-qompass-periscope",
@@ -2066,20 +1802,6 @@
       "curated_reason": "recent"
     },
     {
-      "id": "ae-plantguide-dubai-gardening",
-      "name": "Plant Guide: Dubai gardening research",
-      "description": "What to plant in Dubai each month, plant care in the heat, garden styles and Garden Care prices.",
-      "category": "web",
-      "install_hint": "https://plantguide.ae/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ae.plantguide/dubai-gardening",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "plantguide-ae",
-      "curated_reason": "pick"
-    },
-    {
       "id": "ai-prepublish-script-audit",
       "name": "PrePublish - YouTube script QA",
       "description": "Audit a YouTube script before recording: hook, pacing, drop-off risk, copy-paste rewrites.",
@@ -2094,43 +1816,29 @@
       "curated_reason": "pick"
     },
     {
-      "id": "com-bottleyourbrand-print-shop",
-      "name": "Print Shop by Bottle Your Brand",
-      "description": "Turn your AI images into die-cut vinyl stickers. Print specs, sizing, and a ready-to-order link.",
-      "category": "cloud",
-      "install_hint": "https://mcp.bottleyourbrand.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.bottleyourbrand/print-shop",
+      "id": "ai-privasearch-privasearch",
+      "name": "PrivaSearch",
+      "description": "Search your own case files from Claude, ChatGPT or Mistral Vibe with personal data pseudonymised.",
+      "category": "files",
+      "install_hint": "https://{organisation}.privasearch.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.privasearch/privasearch",
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
-      "curated_reason": "recent"
+      "curated_reason": "pick"
     },
     {
-      "id": "ai-productbay-connect-productbay-connect",
-      "name": "Productbay Connect",
-      "description": "Push products to Shopify, Amazon, eBay, OTTO, Kaufland, Shopware, JTL-Wawi, Xentral and more.",
+      "id": "ai-propamp-mcp",
+      "name": "Propamp.ai",
+      "description": "Connect your Amazon Seller Central data to Claude, Codex, Cursor, and other AI tools via MCP.",
       "category": "cloud",
-      "install_hint": "https://connect.productbay.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.productbay.connect/productbay-connect",
+      "install_hint": "https://mcp.propamp.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.propamp/mcp",
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
-      "id": "ai-productindex-productindex",
-      "name": "ProductIndex",
-      "description": "Product research for AI agents: review-synthesized verdicts, specs, prices and seller quotes.",
-      "category": "cloud",
-      "install_hint": "https://mcp.productindex.ai/mcp/ (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.productindex/productindex",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "mcp-productindex-ai",
       "curated_reason": "recent"
     },
     {
@@ -2203,6 +1911,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "ai-wefetch-rco",
+      "name": "rco.wefetch.ai",
+      "description": "Every receipt wefetch issues. Anyone can verify one.",
+      "category": "web",
+      "install_hint": "https://rco.wefetch.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wefetch/rco",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "ai-primaxiom-memory-reasongraph",
       "name": "ReasonGraph Cloud memory",
       "description": "Graph memory for AI agents: entities, cause-effect links, cross-session recall, time travel.",
@@ -2245,20 +1966,6 @@
       "curated_reason": "recent"
     },
     {
-      "id": "com-dedale-bi-remnant-remnant",
-      "name": "Remnant — Collective Memory and Evidence-Backed Trust for AI Agents",
-      "description": "Collective memory, reusable knowledge, agent discovery, and evidence-backed Trust Passports.",
-      "category": "memory",
-      "install_hint": "https://remnant.dedale-bi.com/mcp?source=mcp_registry (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.dedale-bi.remnant/remnant",
-      "version": "0.1.0-beta.3",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "remnant-dedale-bi-com",
-      "curated_reason": "pick"
-    },
-    {
       "id": "app-repopilot-repopilot",
       "name": "RepoPilot",
       "description": "Repository evidence for agents before they adopt dependencies, enter codebases, compare, or merge.",
@@ -2286,25 +1993,25 @@
       "curated_reason": "pick"
     },
     {
-      "id": "com-eclipsesource-review-guard",
-      "name": "ReviewGuard",
-      "description": "Safety boundary for agent written GitHub PR reviews: pending and invisible, submitting is opt-in",
-      "category": "code",
-      "install_hint": "npx -y @eclipsesource/review-guard-mcp (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.eclipsesource/review-guard",
-      "version": "0.3.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
       "id": "app-rezee-rezee",
       "name": "rezee",
       "description": "Issues, pull requests, docs, chat and CI runs across a rezee workspace.",
       "category": "code",
       "install_hint": "https://api.rezee.app/api/mcp (streamable-http)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.rezee/rezee",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "app-ripey-ripey",
+      "name": "Ripey",
+      "description": "Let your agent open a store, list digital products and share USDC checkout links. Test mode.",
+      "category": "code",
+      "install_hint": "https://ripey.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.ripey/ripey",
       "version": "0.1.0",
       "published_at": "",
       "source": "registry",
@@ -2323,6 +2030,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "robohub-app",
+      "curated_reason": "recent"
+    },
+    {
+      "id": "app-rosegold-rosegold",
+      "name": "rosegold: offers and rewards matched to what you buy on Amazon",
+      "description": "Get offers and rewards matched to what you buy on Amazon, with a single prompt to your AI assistant.",
+      "category": "cloud",
+      "install_hint": "https://rosegold.app/mcp/v1 (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.rosegold/rosegold",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -2378,6 +2098,19 @@
       "category": "cloud",
       "install_hint": "https://timer.cloudforbots.com/mcp (streamable-http)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.botrecipe/timer",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "ai-satcoach-satcoach",
+      "name": "SATCoach",
+      "description": "Digital SAT prep for high school students: a full diagnostic, then practice aimed at weak skills.",
+      "category": "code",
+      "install_hint": "https://mcp.satcoach.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.satcoach/satcoach",
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
@@ -2591,6 +2324,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "ai-sharpest-sharpest",
+      "name": "Sharpest price search",
+      "description": "Current new and used prices for GPUs, electronics, trading cards, LEGO and everyday staples.",
+      "category": "web",
+      "install_hint": "https://sharpest.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.sharpest/sharpest",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "ai-letsship-ship",
       "name": "SHIP",
       "description": "Assign Linear, Jira or GitHub issues to an AI coding agent team that plans, builds, reviews, tests.",
@@ -2602,6 +2348,19 @@
       "source": "registry",
       "required_env": [],
       "curated_reason": "recent"
+    },
+    {
+      "id": "ai-shopfetch-shopfetch",
+      "name": "shopfetch",
+      "description": "Did your AI pick the right product?",
+      "category": "web",
+      "install_hint": "https://shopfetch.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.shopfetch/shopfetch",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
     },
     {
       "id": "com-aibitious-silent-repository-safety-preflight",
@@ -2645,6 +2404,45 @@
       "curated_reason": "pick"
     },
     {
+      "id": "ai-wakeshift-slackline",
+      "name": "Slackline",
+      "description": "Chat with your AI agents from Slack: each gets a thread in your DM, and your replies there wake it.",
+      "category": "communication",
+      "install_hint": "https://slackline.wakeshift.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wakeshift/slackline",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
+      "id": "ai-slashml-slashml-robotics",
+      "name": "SlashML (/ ml) Embodied Robotics Trajectory Memory",
+      "description": "Sub-millisecond 7-DoF trajectory episode memory and kinematic safety gates for robotics.",
+      "category": "memory",
+      "install_hint": "https://api.slashml.ai/robotics/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.slashml/slashml-robotics",
+      "version": "1.0.3",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
+      "id": "ai-slashml-ml-memory",
+      "name": "SlashML (/ ml) Persistent Agent Memory & Code Localization",
+      "description": "Sub-millisecond persistent memory, behavioral code search, and bug localization for AI agents.",
+      "category": "web",
+      "install_hint": "https://api.slashml.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.slashml/ml-memory",
+      "version": "1.0.12",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "ai-smartmemory-smartmemory-mcp",
       "name": "SmartMemory",
       "description": "Graph + vector memory for agents: recall, ingest, search, distill. Local or remote backend.",
@@ -2652,19 +2450,6 @@
       "install_hint": "smartmemory-mcp (stdio)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.smartmemory/smartmemory-mcp",
       "version": "1.4.94",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
-      "id": "com-duoleads-social-social-media-data",
-      "name": "Social Media Data API: Posts, Profiles, Comments, Search and Mentions",
-      "description": "Social media posts, profiles, comments, search and mentions across 10 platforms. Pay per call (x402)",
-      "category": "files",
-      "install_hint": "https://social.duoleads.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.duoleads.social/social-media-data",
-      "version": "1.0.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
@@ -2737,6 +2522,24 @@
       "required_env": [],
       "icon": "api-specstream-ai",
       "curated_reason": "recent"
+    },
+    {
+      "id": "cc-checkleaked-spotify-data",
+      "name": "Spotify Data",
+      "description": "Spotify play counts, monthly listeners, charts, artist stats, albums, playlists and ISRC lookup.",
+      "category": "other",
+      "install_hint": "docker ghcr.io/eduair94/spotify-data-mcp:0.1.0 (stdio)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/cc.checkleaked/spotify-data",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [
+        {
+          "name": "SPOTIFY_API_KEY",
+          "secret": true
+        }
+      ],
+      "curated_reason": "pick"
     },
     {
       "id": "ai-trendsapi-spotify",
@@ -2872,19 +2675,6 @@
       "curated_reason": "popular"
     },
     {
-      "id": "app-tahona-mcp-tahona",
-      "name": "Tahona",
-      "description": "Your agave spirits shelf, tasting notes and the collectors you follow, from Tahona.",
-      "category": "memory",
-      "install_hint": "https://mcp.tahona.app/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.tahona.mcp/tahona",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
       "id": "ai-tallynexa-tallynexa",
       "name": "TallyNexa",
       "description": "Ask about your TallyPrime books: who owes you, what you owe, sales, stock, GST and 40+ reports.",
@@ -2937,6 +2727,32 @@
       "source": "registry",
       "required_env": [],
       "icon": "tectonicplates-app",
+      "curated_reason": "recent"
+    },
+    {
+      "id": "ai-teneks-teneks",
+      "name": "TENEKS",
+      "description": "Find recorded calls and meetings, read transcripts, and ask questions grounded in your recordings.",
+      "category": "cloud",
+      "install_hint": "https://api.teneks.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.teneks/teneks",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "cloud-tenkai-tenkai",
+      "name": "Tenkai",
+      "description": "Deploy apps to servers you own: projects, deployments, logs, health and pull request previews.",
+      "category": "code",
+      "install_hint": "https://tenkai.cloud/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/cloud.tenkai/tenkai",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3037,56 +2853,16 @@
       "curated_reason": "recent"
     },
     {
-      "id": "ai-thestrat-thestrat",
-      "name": "TheStrat for agents",
-      "description": "Quant price analysis for agents: TheStrat price action, multi-timeframe signals, simultaneous breaks",
+      "id": "ai-timefire-record",
+      "name": "Timefire",
+      "description": "Timefire's public record of AI stock forecasts: graded books, track record and proof.",
       "category": "utility",
-      "install_hint": "https://mcp.thestrat.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.thestrat/thestrat",
-      "version": "0.2.0",
+      "install_hint": "https://api.timefire.ai/mcp/ (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.timefire/record",
+      "version": "0.1.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
-      "id": "ai-trendsapi-tiktok",
-      "name": "TikTok Trends API",
-      "description": "TikTok hashtag volume over time, with growth for any hashtag. Free key at trendsapi.ai",
-      "category": "utility",
-      "install_hint": "https://tiktok.api.trendsapi.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.trendsapi/tiktok",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
-      "id": "ai-trendsmcp-tiktok",
-      "name": "TikTok Trends MCP",
-      "description": "TikTok hashtag volume over time, with growth for any hashtag. Free key at trendsmcp.ai",
-      "category": "utility",
-      "install_hint": "https://tiktok.api.trendsmcp.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.trendsmcp/tiktok",
-      "version": "1.0.3",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
-      "id": "ai-b77-time",
-      "name": "Time",
-      "description": "A live clock for your assistant.",
-      "category": "utility",
-      "install_hint": "https://time.b77.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.b77/time",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "time-b77-ai",
       "curated_reason": "recent"
     },
     {
@@ -3129,6 +2905,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "app-topoalpin-mcp",
+      "name": "topo^alpin",
+      "description": "Avalanche bulletins, mountain weather, stations, huts, ski and snowshoe tours in the Alps.",
+      "category": "utility",
+      "install_hint": "https://api.topoalpin.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.topoalpin/mcp",
+      "version": "1.10.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "ai-topy-cto",
       "name": "TOPY.AI · AI CTO",
       "description": "Founders' AI CTO: CI failures explained, PRs and checks, release notes, alerts.",
@@ -3140,6 +2929,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "topy-ai",
+      "curated_reason": "recent"
+    },
+    {
+      "id": "co-trak-trak",
+      "name": "Trak",
+      "description": "Job management for trades: jobs, schedules, quotes, invoices, timesheets via OAuth.",
+      "category": "security",
+      "install_hint": "https://mcp.trak.co/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/co.trak/trak",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3250,6 +3052,32 @@
       "curated_reason": "recent"
     },
     {
+      "id": "ai-trent-trent",
+      "name": "Trent",
+      "description": "Security reviews, threat models over a repo or website, and remediation tracking, in your editor.",
+      "category": "security",
+      "install_hint": "https://mcp.trent.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.trent/trent",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "ai-triggerfetch-triggerfetch",
+      "name": "triggerfetch",
+      "description": "When a shopper asks ChatGPT, Gemini, Claude or Copilot for a product, is yours in the answer?",
+      "category": "communication",
+      "install_hint": "https://triggerfetch.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.triggerfetch/triggerfetch",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
+    },
+    {
       "id": "co-truemarkets-marketdata",
       "name": "True Markets Market Data",
       "description": "Real-time crypto market data",
@@ -3304,6 +3132,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "app-tuper-maps",
+      "name": "Tuper maps",
+      "description": "Accurate SVG maps, each region a named path: find country, state and county maps; free blank SVGs.",
+      "category": "utility",
+      "install_hint": "https://mcp-maps.tuper.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.tuper/maps",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "app-twelvebit-analytics",
       "name": "twelvebit Analytics",
       "description": "Web and revenue analytics: traffic, goals, funnels, journeys and revenue by source. OAuth sign-in.",
@@ -3331,6 +3172,19 @@
       "curated_reason": "pick"
     },
     {
+      "id": "com-carsalestax-car-sales-tax",
+      "name": "U.S. Car Sales Tax",
+      "description": "Car sales tax, title and registration fees: TX, CA, FL, NY, PA calculators and all 50 state rates.",
+      "category": "utility",
+      "install_hint": "uvx us-car-sales-tax (stdio)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.carsalestax/car-sales-tax",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "com-a2awire-data-ubuntu-security-linux-vulnerability",
       "name": "Ubuntu Security Notices / USN (usnwatch) — buy per-query in-session",
       "description": "Ubuntu security notices (USN): Linux kernel & package vulnerability fixes with CVE lists.",
@@ -3342,20 +3196,6 @@
       "source": "registry",
       "required_env": [],
       "icon": "a2awire-com",
-      "curated_reason": "recent"
-    },
-    {
-      "id": "ai-unblockd-unblockd",
-      "name": "Unblockd",
-      "description": "Plan, tasks, proof, and blockers for a project, plus sponsor asks a person on the team sends.",
-      "category": "productivity",
-      "install_hint": "https://unblockd.ai/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.unblockd/unblockd",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "unblockd-ai",
       "curated_reason": "recent"
     },
     {
@@ -3403,19 +3243,6 @@
       "curated_reason": "recent"
     },
     {
-      "id": "app-wishpool-uruguay-invoice-mcp",
-      "name": "Uruguay Invoices (DGI e-Factura CFE, merchant-signed SOAP relay)",
-      "description": "Uruguay DGI e-Factura (CFE): AI agents submit signed sobres to DGI e-invoicing, stateless forwarder.",
-      "category": "productivity",
-      "install_hint": "https://inv-uy.wishpool.app/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.wishpool/uruguay-invoice-mcp",
-      "version": "0.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
       "id": "com-a2awire-data-us-weather-alerts-nws",
       "name": "US Weather Alerts (NWS Warnings & Watches) — buy per-query in-session (usweather)",
       "description": "US weather alerts from NWS: warnings, watches, advisories by state. $0.01/query.",
@@ -3428,6 +3255,19 @@
       "required_env": [],
       "icon": "a2awire-com",
       "curated_reason": "pick"
+    },
+    {
+      "id": "app-usefulwork-useful-work",
+      "name": "Useful Work",
+      "description": "Find and fix mistakes on your live website: wording, broken links, slow pages, certificate, domain.",
+      "category": "security",
+      "install_hint": "https://usefulwork.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.usefulwork/useful-work",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
     },
     {
       "id": "co-utmkit-mcp",
@@ -3485,47 +3325,6 @@
       "curated_reason": "recent"
     },
     {
-      "id": "com-erseni-vault-ask",
-      "name": "vault-ask",
-      "description": "Request and send secrets for AI agents, end-to-end encrypted and never shown in the chat.",
-      "category": "communication",
-      "install_hint": "npx -y @erseni/vault-ask (stdio)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.erseni/vault-ask",
-      "version": "0.2.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "downloads": 164,
-      "curated_reason": "popular"
-    },
-    {
-      "id": "ai-veevid-veevid",
-      "name": "Veevid AI",
-      "description": "Generate AI videos, images and audio on Veevid with Veo 3.1, Kling 3.0, Seedance 2.5 and more.",
-      "category": "media",
-      "install_hint": "https://veevid.ai/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.veevid/veevid",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "veevid-ai",
-      "curated_reason": "recent"
-    },
-    {
-      "id": "app-vellm-vellm",
-      "name": "Vellm",
-      "description": "Create AI videos from photos with templates, track jobs, and download results using Vellm points.",
-      "category": "media",
-      "install_hint": "https://api.vellm.app/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.vellm/vellm",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
       "id": "ai-veltake-design",
       "name": "Veltake Design",
       "description": "Shot breakdowns of video clips, plus logos and brand kits, for any AI assistant.",
@@ -3567,19 +3366,6 @@
       "curated_reason": "recent"
     },
     {
-      "id": "com-dropwatchhq-legit-check",
-      "name": "Vendor Legit Check",
-      "description": "Screen a vendor, store, or group-buy for legitimacy: reputation, red flags, Reddit sentiment.",
-      "category": "code",
-      "install_hint": "https://legit.dropwatchhq.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.dropwatchhq/legit-check",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
       "id": "ai-vendwiser-vendwiser",
       "name": "Vendwiser",
       "description": "Run your eMAG Romania shop and Oblio invoices from AI; every change waits for your approval.",
@@ -3591,6 +3377,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "app-vendwiser-ai",
+      "curated_reason": "recent"
+    },
+    {
+      "id": "ai-getverde-verde",
+      "name": "Verde",
+      "description": "Shared, permission-aware memory for teams and their AI: recall, save, and keep knowledge current.",
+      "category": "memory",
+      "install_hint": "https://www.getverde.ai/api/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.getverde/verde",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3606,6 +3405,37 @@
       "required_env": [],
       "icon": "veripoint-sens663-chatgpt-site",
       "curated_reason": "pick"
+    },
+    {
+      "id": "app-veriql-veriql-mcp",
+      "name": "Veriql Risk",
+      "description": "Rug, honeypot and wallet-approval risk checks on Solana and EVM, with every penalty driver shown.",
+      "category": "files",
+      "install_hint": "npx -y veriql-mcp (stdio)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.veriql/veriql-mcp",
+      "version": "1.0.1",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [
+        {
+          "name": "VERIQL_API_KEY",
+          "secret": true
+        }
+      ],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "app-verli-verli",
+      "name": "Verli",
+      "description": "Search and read your saved Verli transcripts, translations, and AI summaries. OAuth, read-only.",
+      "category": "security",
+      "install_hint": "https://app.verli.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.verli/verli",
+      "version": "0.2.65",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
     },
     {
       "id": "app-veteranhq-va-disability-benefits",
@@ -3633,6 +3463,19 @@
       "source": "registry",
       "required_env": [],
       "curated_reason": "pick"
+    },
+    {
+      "id": "app-floot-via-router-via-gateway",
+      "name": "VIA - Web/PDF extraction and API comparison",
+      "description": "Web/PDF extraction and API comparison. x402 payments or prepaid comparison credit. Free discovery.",
+      "category": "files",
+      "install_hint": "https://via-router.floot.app/_api/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.floot.via-router/via-gateway",
+      "version": "1.2.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
     },
     {
       "id": "ai-multivoice-video-dubbing-subtitles-transcription-audiobooks",
@@ -3756,6 +3599,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "ai-vinano-mcp",
+      "name": "ViNano",
+      "description": "Image generation, image editing and text/image-to-video with credit quotes and connection budgets.",
+      "category": "media",
+      "install_hint": "https://mcp.vinano.ai/api/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.vinano/mcp",
+      "version": "0.2.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "bible-vineverse-vineverse",
       "name": "VineVerse — Bible Knowledge Graph",
       "description": "Bible knowledge graph: 31,102 verses, 341,289 cross references, people, places, themes.",
@@ -3794,6 +3650,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "vishot-ai",
+      "curated_reason": "recent"
+    },
+    {
+      "id": "com-ascent-partners-vision-driven-design",
+      "name": "Vision Driven Design (VDD) MCP Server",
+      "description": "Spec-driven development MCP server: 8 phases, bi-directional traceability, 7 quality gates.",
+      "category": "files",
+      "install_hint": "https://vdd.simonmak.com/api/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.ascent-partners/vision-driven-design",
+      "version": "1.9.4",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -3997,6 +3866,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "app-vercel-watchesinstock-mcp-watches-in-stock",
+      "name": "Watches in Stock",
+      "description": "Live luxury watch listings from watchesinstock.com, with photos, prices and trade nicknames.",
+      "category": "media",
+      "install_hint": "https://watchesinstock-mcp.vercel.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.vercel.watchesinstock-mcp/watches-in-stock",
+      "version": "0.3.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "au-com-wattscope-wattscope",
       "name": "WattScope",
       "description": "Tracks the estimated carbon footprint of AI model usage, per org and project.",
@@ -4025,19 +3907,6 @@
       "curated_reason": "recent"
     },
     {
-      "id": "com-datakoot-us-weather-forecast-alerts",
-      "name": "Weather & Geo Intel MCP",
-      "description": "US weather & geo for AI agents: forecasts, alerts, earthquakes, elevation, geocoding. No keys.",
-      "category": "utility",
-      "install_hint": "https://weather.datakoot.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.datakoot/us-weather-forecast-alerts",
-      "version": "2.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "pick"
-    },
-    {
       "id": "cn-pianam-mcp-weather-mcp-china",
       "name": "Weather Forecast MCP",
       "description": "MCP server for current weather and multi-day forecasts worldwide, Chinese city names and output.",
@@ -4051,20 +3920,6 @@
       "curated_reason": "pick"
     },
     {
-      "id": "ai-avaloncompany-web-content-url-tools",
-      "name": "Web Content & URL Tools",
-      "description": "26 tools: web pages to Markdown, metadata, tech stack, SSL, SEO, domains, email auth and SSO checks.",
-      "category": "communication",
-      "install_hint": "https://avalonai--web-content-url-tools-mcp.apify.actor/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.avaloncompany/web-content-url-tools",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "avalonai-web-content-url-tools-mcp-apify",
-      "curated_reason": "recent"
-    },
-    {
       "id": "ai-blopus-search",
       "name": "Web Search API for all your agents and LLMs",
       "description": "Live web search, image search, topic filters and full-text fetch over our own crawled index.",
@@ -4076,20 +3931,6 @@
       "source": "registry",
       "required_env": [],
       "curated_reason": "pick"
-    },
-    {
-      "id": "ca-wedkit-wedkit",
-      "name": "WedKit",
-      "description": "Run your wedding from Claude or ChatGPT: guests, RSVPs, meals, seating and your wedding site.",
-      "category": "communication",
-      "install_hint": "https://wedkit.ca/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ca.wedkit/wedkit",
-      "version": "1.0.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "wedkit-ca",
-      "curated_reason": "recent"
     },
     {
       "id": "app-weeklane-weeklane",
@@ -4134,31 +3975,29 @@
       "curated_reason": "recent"
     },
     {
-      "id": "ai-wellnessproject-wellness-project",
-      "name": "Wellness Project",
-      "description": "Hosted MCP server connecting Apple Health, Fitbit, Oura & Health Connect to Claude and ChatGPT.",
-      "category": "communication",
-      "install_hint": "https://wellnessproject.ai/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wellnessproject/wellness-project",
-      "version": "1.0.0",
+      "id": "ai-weir-weir-ai",
+      "name": "WEIR AI",
+      "description": "Read identity license terms and find possible name mentions. A listing is never permission.",
+      "category": "security",
+      "install_hint": "https://wapi.weir.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.weir/weir-ai",
+      "version": "1.3.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
-      "icon": "wellnessproject-ai",
       "curated_reason": "recent"
     },
     {
-      "id": "app-werify-werify",
-      "name": "Werify",
-      "description": "Your WhatsApp history in Claude and ChatGPT: search years of chats, voice notes transcribed.",
+      "id": "app-whatsable-mcp",
+      "name": "WhatsAble for WhatsApp Business",
+      "description": "Send WhatsApp messages and templates, manage chats, contacts, broadcasts and AI agents.",
       "category": "communication",
-      "install_hint": "https://werify.app/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.werify/werify",
+      "install_hint": "https://api.whatsable.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.whatsable/mcp",
       "version": "1.0.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
-      "icon": "werify-app",
       "curated_reason": "recent"
     },
     {
@@ -4325,6 +4164,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "cash-wire-wire-cash",
+      "name": "Wire Cash: bank wire fees and transfer costs",
+      "description": "US bank wire fees, cutoff times and the cheapest ways to send money to Mexico, India, Philippines.",
+      "category": "utility",
+      "install_hint": "https://wire.cash/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/cash.wire/wire-cash",
+      "version": "1.2026.1101.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "ca-wiremi-marketing-mcp",
       "name": "Wiremi Marketing MCP",
       "description": "Read-only ROSCA and savings-circle answers and calculators, from Wiremi's public facts.",
@@ -4383,6 +4235,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "ai-wiserhuman-escalate-escalation-line",
+      "name": "Wiser Human Agent Escalation Line",
+      "description": "Help for AI agents when their task conflicts with ethical, legal, safety or policy constraints.",
+      "category": "productivity",
+      "install_hint": "https://escalate.wiserhuman.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wiserhuman.escalate/escalation-line",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "app-wishlistme-wishlistme",
       "name": "Wishlistme",
       "description": "Manage gift wishlists, reserve gifts on friends' lists and run a Secret Santa from a chat.",
@@ -4411,6 +4276,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "ai-wondel-wizzair",
+      "name": "Wizzair MCP",
+      "description": "Wizzair fares, routes, timetables and flight details across its network.",
+      "category": "utility",
+      "install_hint": "https://mcp.wondel.ai/wizzair/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wondel/wizzair",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "club-worldorder-cube-playground",
       "name": "WOCLUB Cube Playground",
       "description": "Shared persistent voxel world for AI agents. Build with cubes over HTTP or MCP; no auth.",
@@ -4418,6 +4296,19 @@
       "install_hint": "https://worldorder.club/mcp (streamable-http)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/club.worldorder/cube-playground",
       "version": "2.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
+      "id": "ai-wondel-mcp",
+      "name": "Wondel.ai MCP servers",
+      "description": "26 authless MCP servers: flights, stays, maps, shopping, web search, Polish web (Allegro, OLX, NBP).",
+      "category": "security",
+      "install_hint": "https://mcp.wondel.ai/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wondel/mcp",
+      "version": "1.0.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
@@ -4498,6 +4389,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "cloud-wrenchboard-wrenchboard",
+      "name": "WrenchBoard",
+      "description": "Board repair in your chat: open boardviews and schematics, trace nets and rails, plan measurements.",
+      "category": "communication",
+      "install_hint": "https://app.wrenchboard.cloud/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/cloud.wrenchboard/wrenchboard",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "ai-writingmate-writingmate-mcp",
       "name": "Writingmate MCP",
       "description": "Use AI models for chat, image, and video generation from Claude Code and other MCP hosts.",
@@ -4545,19 +4449,6 @@
       "install_hint": "https://x-twitter.api.trendsmcp.ai/mcp (streamable-http)",
       "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.trendsmcp/x-twitter",
       "version": "1.0.3",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "curated_reason": "recent"
-    },
-    {
-      "id": "com-crewofthecaptain-format-checker",
-      "name": "x402 Format Checker",
-      "description": "IBAN, EU VAT, NIP, REGON, PESEL, email checks. Only $0.001 (0.1 cent) per check via x402 on Base",
-      "category": "communication",
-      "install_hint": "https://x402-test.crewofthecaptain.com/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.crewofthecaptain/format-checker",
-      "version": "1.2.0",
       "published_at": "",
       "source": "registry",
       "required_env": [],
@@ -4675,6 +4566,20 @@
       "curated_reason": "recent"
     },
     {
+      "id": "co-civai-nova-mcp-bgpt-yarngpt",
+      "name": "YarnGPT MCP by Nova (CIVAI)",
+      "description": "Turn text into speech with Nigerian and African-accented voices.",
+      "category": "media",
+      "install_hint": "https://nova.civai.co/mcp/agents/mcp-bgpt-yarngpt (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/co.civai.nova/mcp-bgpt-yarngpt",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "icon": "nova-civai-co",
+      "curated_reason": "recent"
+    },
+    {
       "id": "ai-dinglebear-yarr",
       "name": "Yarr MCP",
       "description": "Self-hosted media fleet operations across Sonarr, Radarr, Plex, and related apps over MCP and CLI.",
@@ -4719,6 +4624,19 @@
       ],
       "icon": "exercise-api-ymove-app",
       "curated_reason": "recent"
+    },
+    {
+      "id": "ai-wondel-youtube",
+      "name": "YouTube MCP",
+      "description": "YouTube search: find videos, fetch details and comments, pull full transcripts.",
+      "category": "web",
+      "install_hint": "https://mcp.wondel.ai/youtube/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/ai.wondel/youtube",
+      "version": "1.0.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "pick"
     },
     {
       "id": "ai-youtube-transcript-youtube-transcript",
@@ -4970,6 +4888,19 @@
       "curated_reason": "recent"
     },
     {
+      "id": "chat-zorgverzekering-mcp-zorgverzekering",
+      "name": "Zorgverzekering.chat: Dutch health insurance",
+      "description": "Dutch health insurance (zorgverzekering): premiums, coverage, providers, yearly cost. Not advice.",
+      "category": "communication",
+      "install_hint": "https://mcp.zorgverzekering.chat/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/chat.zorgverzekering.mcp/zorgverzekering",
+      "version": "1.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
+      "curated_reason": "recent"
+    },
+    {
       "id": "ch-zuerstzuhause-neubauprojekte",
       "name": "Zuerst zuhause – Swiss new-build projects",
       "description": "Swiss building applications: new residential projects, months before they are advertised.",
@@ -4981,6 +4912,19 @@
       "source": "registry",
       "required_env": [],
       "icon": "zuerstzuhause-ch",
+      "curated_reason": "recent"
+    },
+    {
+      "id": "app-zuzia-my-mcp",
+      "name": "Zuzia",
+      "description": "Monitor servers and websites with Zuzia: hosts, uptime, metrics, alerts, logs, services and tasks.",
+      "category": "productivity",
+      "install_hint": "https://my.zuzia.app/mcp (streamable-http)",
+      "docs": "https://registry.modelcontextprotocol.io/v0/servers/app.zuzia.my/mcp",
+      "version": "0.1.0",
+      "published_at": "",
+      "source": "registry",
+      "required_env": [],
       "curated_reason": "recent"
     },
     {
@@ -5047,20 +4991,6 @@
       "source": "registry",
       "required_env": [],
       "icon": "filmai-ai",
-      "curated_reason": "recent"
-    },
-    {
-      "id": "com-easykmarket-vote-votebox-law",
-      "name": "투표함 — 전자투표 법령 자료 · AI 투표함 (Korean e-voting statutes, quorum & ballot drafting)",
-      "description": "Korean e-voting statutes, quorum checks and ballot drafting. 18 tools, no auth, no fee.",
-      "category": "security",
-      "install_hint": "https://vote.easykmarket.com/api/mcp (streamable-http)",
-      "docs": "https://registry.modelcontextprotocol.io/v0/servers/com.easykmarket.vote/votebox-law",
-      "version": "1.1.0",
-      "published_at": "",
-      "source": "registry",
-      "required_env": [],
-      "icon": "vote-easykmarket-com",
       "curated_reason": "recent"
     }
   ]

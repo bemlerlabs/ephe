@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated": "2026-11-01T20:43:19+00:00",
+  "generated": "2026-11-09T12:22:11+00:00",
   "intents": [
     "invoices",
     "calendar",
@@ -27,6 +27,7 @@
     "time"
   ],
   "entries": {
+    "com-0dteconfluence-confluence": [],
     "com-augur-trade-foresight-web": [
       "browser",
       "code",
@@ -49,6 +50,15 @@
       "mail"
     ],
     "ai-clize-storefront": [],
+    "ai-getvda-minio-postgres-redis-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-mysql-redis-compose-generator": [
+      "database"
+    ],
+    "ai-getvda-mysql-redis-compose-generator-adminer": [
+      "database"
+    ],
     "ai-getvda-mysql-redis-compose-generator-nginx": [
       "database"
     ],
@@ -130,6 +140,9 @@
       "devops",
       "memory"
     ],
+    "ai-waystation-airtable": [
+      "tables"
+    ],
     "ai-waystation-gmail": [
       "mail"
     ],
@@ -145,6 +158,10 @@
     "ai-waystation-supabase": [
       "database"
     ],
+    "com-allscreenshots-allscreenshots": [
+      "calendar",
+      "web"
+    ],
     "com-allyotter-allyotter-lite": [
       "browser",
       "code",
@@ -153,6 +170,7 @@
     "com-alpha402x-research": [
       "files"
     ],
+    "com-animalmath-animal-math": [],
     "app-hellohop-hellohop": [
       "mail",
       "team"
@@ -164,6 +182,7 @@
       "code",
       "devops"
     ],
+    "click-appdesigns-screenshots": [],
     "ai-b77-apple-search-ads": [
       "analytics",
       "team",
@@ -229,6 +248,9 @@
     "co-bibigpt-youtube-video-summarizer": [
       "media"
     ],
+    "com-bondterminal-bondterminal": [
+      "finance"
+    ],
     "ai-brainmemory-brain": [
       "memory"
     ],
@@ -263,10 +285,6 @@
     "ai-codenib-codenib": [
       "web"
     ],
-    "com-collhub-collhub": [
-      "code",
-      "files"
-    ],
     "com-adrianczuczka-mason": [
       "files",
       "security"
@@ -277,47 +295,12 @@
       "security"
     ],
     "com-appscreenshotstudio-mcp": [],
+    "com-beacio-mcp": [
+      "devops",
+      "web"
+    ],
     "com-borisinc-memory": [
       "memory"
-    ],
-    "com-clauxel-agentmemorymcp-agentmemorymcp-mcp": [
-      "invoices",
-      "memory",
-      "security"
-    ],
-    "com-clauxel-byterovermemory-byterovermemory-mcp": [
-      "invoices",
-      "memory"
-    ],
-    "com-clauxel-context7docs-context7docs-mcp": [
-      "invoices",
-      "security"
-    ],
-    "com-clauxel-semblecodesearchgate-semblecodesearchgate-mcp": [
-      "code",
-      "invoices",
-      "security",
-      "web"
-    ],
-    "com-containermath-cbm": [
-      "devops"
-    ],
-    "com-dapdip-youtube-growth": [
-      "security",
-      "team"
-    ],
-    "com-deepsearch-x402-korean-stocks": [
-      "finance",
-      "web"
-    ],
-    "com-digitalnomadindex-coliving-search": [
-      "code",
-      "web"
-    ],
-    "com-engagedviews-youtube-thumbnail-sizes": [],
-    "com-conduyt-mcp": [
-      "analytics",
-      "browser"
     ],
     "ai-cookwala-cookwala": [
       "home",
@@ -326,10 +309,6 @@
     ],
     "ai-dinglebear-cortex": [
       "database"
-    ],
-    "com-crosbynews-weather": [
-      "calendar",
-      "weather"
     ],
     "ai-ctxstore-ctxstore-mcp": [
       "memory",
@@ -341,10 +320,6 @@
     "co-datummarket-datum-mcp-server": [
       "time"
     ],
-    "com-decionis-commerce-gate": [
-      "analytics",
-      "finance"
-    ],
     "ai-deepdna-local": [
       "analytics",
       "code",
@@ -353,69 +328,14 @@
     "app-deepsearch-deepsearch": [
       "mail"
     ],
-    "com-deployangel-deployangel": [
-      "devops"
-    ],
-    "com-devart-mcp-postgresql": [
-      "database",
-      "devops"
-    ],
-    "com-devart-mcp-sqlite": [
-      "database",
-      "devops"
-    ],
     "co-dijin-memory": [
       "memory"
     ],
-    "com-dakaio-domainscout": [
-      "finance",
-      "testing",
-      "web"
-    ],
     "app-durely-garmin-insights-mcp": [],
-    "com-easyship-mcp": [],
-    "com-echo-mem-echo-mem": [
-      "database",
-      "memory"
-    ],
     "ai-ekwo-mcp": [
       "code",
       "database",
       "invoices"
-    ],
-    "com-enconvert-mcp": [
-      "devops",
-      "files"
-    ],
-    "com-errandkit-seo-ai-audit": [
-      "browser",
-      "security",
-      "web"
-    ],
-    "com-everythingmeetsai-archive": [
-      "code"
-    ],
-    "com-exactmods-exactmods": [
-      "code"
-    ],
-    "com-exactpdf-mcp": [
-      "code",
-      "files"
-    ],
-    "com-examova-mcp": [],
-    "com-execbro-execbro": [],
-    "com-faceabot-deep-search": [
-      "code",
-      "web"
-    ],
-    "com-faceabot-weather": [
-      "security",
-      "weather"
-    ],
-    "com-faceabot-youtube": [
-      "media",
-      "security",
-      "team"
     ],
     "ai-fgac-fgac": [
       "tables"
@@ -435,6 +355,10 @@
       "finance",
       "media"
     ],
+    "app-tuper-github-repos": [
+      "code",
+      "web"
+    ],
     "co-civai-nova-gmail-agent": [],
     "ai-hashgrid-sdk": [
       "database",
@@ -445,6 +369,9 @@
       "memory",
       "team"
     ],
+    "ai-homouniversalis-four-pillars-tzolkin-dreamspell-hexagram-gene-keys-genekeys-sephiroth-tree-of-life-gematria-arcana-chakras-kundalini-ayurveda-elements-relationship-matchmaking-couple-lineage": [
+      "security"
+    ],
     "app-kezai-memory": [
       "media",
       "memory"
@@ -454,6 +381,10 @@
       "testing",
       "web"
     ],
+    "ai-konshus-memory": [
+      "code",
+      "memory"
+    ],
     "ai-korely-memory": [
       "memory"
     ],
@@ -462,6 +393,9 @@
       "memory",
       "security",
       "time"
+    ],
+    "co-civai-nova-mcp-linear": [
+      "devops"
     ],
     "ai-lithtrix-lithtrix-mcp": [
       "memory",
@@ -494,6 +428,13 @@
     "ca-mathter-mathter": [
       "files"
     ],
+    "ai-memexa-brain": [
+      "memory"
+    ],
+    "ai-memorybrain-memorybrain": [
+      "code",
+      "memory"
+    ],
     "ai-memoryrouter-memoryrouter": [
       "memory"
     ],
@@ -506,6 +447,10 @@
       "testing"
     ],
     "ai-nauro-nauro": [],
+    "ai-ohmybug-bughunter": [
+      "code",
+      "devops"
+    ],
     "ai-okforest-okforest": [
       "code",
       "memory",
@@ -515,19 +460,6 @@
       "devops",
       "memory"
     ],
-    "ai-parallel-search-mcp": [
-      "web"
-    ],
-    "ai-perfectmemory-perfect-memory": [
-      "calendar",
-      "memory",
-      "web"
-    ],
-    "com-creatinginai-performance-atlas": [
-      "code",
-      "media",
-      "testing"
-    ],
     "ai-qompass-periscope": [
       "code"
     ],
@@ -536,24 +468,16 @@
       "media",
       "web"
     ],
-    "ae-plantguide-dubai-gardening": [
-      "finance",
-      "web"
-    ],
     "ai-prepublish-script-audit": [
       "security",
       "testing"
     ],
-    "com-bottleyourbrand-print-shop": [
-      "devops",
-      "media"
+    "ai-privasearch-privasearch": [
+      "files",
+      "web"
     ],
-    "ai-productbay-connect-productbay-connect": [
+    "ai-propamp-mcp": [
       "devops"
-    ],
-    "ai-productindex-productindex": [
-      "devops",
-      "finance"
     ],
     "com-a2awire-data-pubmed-biomedical-paper-research-article": [
       "database",
@@ -578,6 +502,11 @@
       "invoices",
       "team"
     ],
+    "ai-wefetch-rco": [
+      "invoices",
+      "testing",
+      "web"
+    ],
     "ai-primaxiom-memory-reasongraph": [
       "devops",
       "maps",
@@ -591,9 +520,6 @@
       "devops",
       "security"
     ],
-    "com-dedale-bi-remnant-remnant": [
-      "memory"
-    ],
     "app-repopilot-repopilot": [
       "code"
     ],
@@ -601,16 +527,20 @@
       "analytics",
       "web"
     ],
-    "com-eclipsesource-review-guard": [
-      "code"
-    ],
     "app-rezee-rezee": [
       "code",
       "team"
     ],
+    "app-ripey-ripey": [
+      "code",
+      "testing"
+    ],
     "app-robohub-robohub": [
       "devops",
       "web"
+    ],
+    "app-rosegold-rosegold": [
+      "devops"
     ],
     "co-roterminal-roterminal": [],
     "ai-roxels-roxels-mcp": [
@@ -621,6 +551,9 @@
     ],
     "com-botrecipe-timer": [
       "devops"
+    ],
+    "ai-satcoach-satcoach": [
+      "code"
     ],
     "ai-satohub-onchain-agents": [
       "devops",
@@ -677,10 +610,17 @@
       "team",
       "web"
     ],
+    "ai-sharpest-sharpest": [
+      "finance",
+      "web"
+    ],
     "ai-letsship-ship": [
       "code",
       "team",
       "testing"
+    ],
+    "ai-shopfetch-shopfetch": [
+      "web"
     ],
     "com-aibitious-silent-repository-safety-preflight": [
       "code",
@@ -696,14 +636,20 @@
     "app-siteprint-examples": [
       "web"
     ],
-    "ai-smartmemory-smartmemory-mcp": [
-      "database",
+    "ai-wakeshift-slackline": [
+      "team"
+    ],
+    "ai-slashml-slashml-robotics": [
+      "memory"
+    ],
+    "ai-slashml-ml-memory": [
+      "code",
       "memory",
       "web"
     ],
-    "com-duoleads-social-social-media-data": [
-      "files",
-      "media",
+    "ai-smartmemory-smartmemory-mcp": [
+      "database",
+      "memory",
       "web"
     ],
     "com-52choujiang-youtube-insights": [
@@ -729,6 +675,7 @@
       "devops",
       "web"
     ],
+    "cc-checkleaked-spotify-data": [],
     "ai-trendsapi-spotify": [
       "media",
       "security"
@@ -770,9 +717,6 @@
     "ai-taasky-common-ground": [
       "code"
     ],
-    "app-tahona-mcp-tahona": [
-      "memory"
-    ],
     "ai-tallynexa-tallynexa": [
       "analytics",
       "finance"
@@ -784,6 +728,14 @@
       "memory"
     ],
     "app-tectonicplates-tectonic-plates": [
+      "devops"
+    ],
+    "ai-teneks-teneks": [
+      "calendar",
+      "devops"
+    ],
+    "cloud-tenkai-tenkai": [
+      "code",
       "devops"
     ],
     "ai-tensorfeed-x402-base-mcp": [
@@ -811,20 +763,9 @@
     "app-there-there-there-there": [
       "memory"
     ],
-    "ai-thestrat-thestrat": [
-      "analytics",
-      "finance"
-    ],
-    "ai-trendsapi-tiktok": [
-      "security",
-      "time"
-    ],
-    "ai-trendsmcp-tiktok": [
-      "security",
-      "time"
-    ],
-    "ai-b77-time": [
-      "time"
+    "ai-timefire-record": [
+      "finance",
+      "weather"
     ],
     "app-tomelet-tomelet": [
       "browser",
@@ -838,9 +779,17 @@
       "code",
       "testing"
     ],
+    "app-topoalpin-mcp": [
+      "weather"
+    ],
     "ai-topy-cto": [
       "memory",
       "testing"
+    ],
+    "co-trak-trak": [
+      "calendar",
+      "invoices",
+      "security"
     ],
     "app-openkrill-transcript-kit": [],
     "app-openkrill-travel": [
@@ -870,6 +819,11 @@
       "devops",
       "time"
     ],
+    "ai-trent-trent": [
+      "security",
+      "web"
+    ],
+    "ai-triggerfetch-triggerfetch": [],
     "co-truemarkets-marketdata": [
       "time"
     ],
@@ -884,6 +838,9 @@
       "finance",
       "weather"
     ],
+    "app-tuper-maps": [
+      "maps"
+    ],
     "app-twelvebit-analytics": [
       "analytics",
       "code",
@@ -894,12 +851,10 @@
       "translation",
       "web"
     ],
+    "com-carsalestax-car-sales-tax": [],
     "com-a2awire-data-ubuntu-security-linux-vulnerability": [
       "database",
       "security"
-    ],
-    "ai-unblockd-unblockd": [
-      "team"
     ],
     "ai-dinglebear-unraid": [
       "devops",
@@ -909,12 +864,15 @@
       "devops",
       "files"
     ],
-    "app-wishpool-uruguay-invoice-mcp": [
-      "invoices"
-    ],
     "com-a2awire-data-us-weather-alerts-nws": [
       "database",
       "weather"
+    ],
+    "app-usefulwork-useful-work": [
+      "browser",
+      "office",
+      "security",
+      "web"
     ],
     "co-utmkit-mcp": [
       "analytics",
@@ -927,16 +885,6 @@
       "security"
     ],
     "co-getvalyou-valyou": [],
-    "com-erseni-vault-ask": [
-      "security",
-      "team"
-    ],
-    "ai-veevid-veevid": [
-      "media"
-    ],
-    "app-vellm-vellm": [
-      "media"
-    ],
     "ai-veltake-design": [
       "media"
     ],
@@ -946,15 +894,24 @@
     "com-a2awire-benchmark-vendor-clearance-audit-v1": [
       "security"
     ],
-    "com-dropwatchhq-legit-check": [
-      "code",
-      "testing"
-    ],
     "ai-vendwiser-vendwiser": [
       "invoices"
     ],
+    "ai-getverde-verde": [
+      "memory",
+      "team"
+    ],
     "ai-veripoint-mcp": [
       "analytics",
+      "web"
+    ],
+    "app-veriql-veriql-mcp": [
+      "files",
+      "testing"
+    ],
+    "app-verli-verli": [
+      "security",
+      "translation",
       "web"
     ],
     "app-veteranhq-va-disability-benefits": [
@@ -964,6 +921,11 @@
     "ai-vexa-vexa": [
       "calendar",
       "team"
+    ],
+    "app-floot-via-router-via-gateway": [
+      "files",
+      "finance",
+      "web"
     ],
     "ai-multivoice-video-dubbing-subtitles-transcription-audiobooks": [
       "finance",
@@ -996,6 +958,9 @@
     "com-appnary-vigil": [
       "security"
     ],
+    "ai-vinano-mcp": [
+      "media"
+    ],
     "bible-vineverse-vineverse": [
       "memory"
     ],
@@ -1004,6 +969,10 @@
     ],
     "ai-vishot-vishot": [
       "media"
+    ],
+    "com-ascent-partners-vision-driven-design": [
+      "devops",
+      "files"
     ],
     "ai-visuary-actuarial-value-calculator": [
       "files"
@@ -1060,30 +1029,22 @@
       "team",
       "time"
     ],
+    "app-vercel-watchesinstock-mcp-watches-in-stock": [
+      "finance",
+      "media"
+    ],
     "au-com-wattscope-wattscope": [],
     "ai-wavn-wavn": [
       "files"
-    ],
-    "com-datakoot-us-weather-forecast-alerts": [
-      "maps",
-      "security",
-      "weather"
     ],
     "cn-pianam-mcp-weather-mcp-china": [
       "devops",
       "weather"
     ],
-    "ai-avaloncompany-web-content-url-tools": [
-      "browser",
-      "mail",
-      "testing",
-      "web"
-    ],
     "ai-blopus-search": [
       "media",
       "web"
     ],
-    "ca-wedkit-wedkit": [],
     "app-weeklane-weeklane": [],
     "ai-weftly-weftly": [
       "media"
@@ -1094,13 +1055,12 @@
       "testing",
       "web"
     ],
-    "ai-wellnessproject-wellness-project": [
-      "devops"
+    "ai-weir-weir-ai": [
+      "security"
     ],
-    "app-werify-werify": [
-      "memory",
-      "team",
-      "web"
+    "app-whatsable-mcp": [
+      "mail",
+      "team"
     ],
     "co-civai-nova-whatsapp-web-agent": [
       "mail",
@@ -1150,6 +1110,10 @@
     "ai-wiplash-wiplash": [
       "files"
     ],
+    "cash-wire-wire-cash": [
+      "finance",
+      "time"
+    ],
     "ca-wiremi-marketing-mcp": [],
     "ai-wiro-mcp": [
       "media"
@@ -1159,6 +1123,7 @@
       "finance",
       "team"
     ],
+    "ai-wiserhuman-escalate-escalation-line": [],
     "app-wishlistme-wishlistme": [
       "security",
       "team"
@@ -1166,8 +1131,17 @@
     "ai-wiv-mcp": [
       "devops"
     ],
+    "ai-wondel-wizzair": [
+      "maps"
+    ],
     "club-worldorder-cube-playground": [
       "security"
+    ],
+    "ai-wondel-mcp": [
+      "devops",
+      "maps",
+      "security",
+      "web"
     ],
     "app-workalong-data-tools": [
       "files",
@@ -1188,6 +1162,9 @@
     "ai-wpconvert-mcp": [
       "files"
     ],
+    "cloud-wrenchboard-wrenchboard": [
+      "team"
+    ],
     "ai-writingmate-writingmate-mcp": [
       "code",
       "media",
@@ -1203,10 +1180,6 @@
     "ai-trendsmcp-x-twitter": [
       "security",
       "time"
-    ],
-    "com-crewofthecaptain-format-checker": [
-      "mail",
-      "testing"
     ],
     "ai-robosystems-xbrlkit": [],
     "ai-xcut-xcutai": [
@@ -1236,6 +1209,9 @@
       "files",
       "web"
     ],
+    "co-civai-nova-mcp-bgpt-yarngpt": [
+      "media"
+    ],
     "ai-dinglebear-yarr": [
       "media"
     ],
@@ -1244,6 +1220,10 @@
     ],
     "app-ymove-exercise-api": [
       "media"
+    ],
+    "ai-wondel-youtube": [
+      "media",
+      "web"
     ],
     "ai-youtube-transcript-youtube-transcript": [
       "media",
@@ -1311,8 +1291,16 @@
       "code",
       "files"
     ],
+    "chat-zorgverzekering-mcp-zorgverzekering": [
+      "team"
+    ],
     "ch-zuerstzuhause-neubauprojekte": [
       "home"
+    ],
+    "app-zuzia-my-mcp": [
+      "analytics",
+      "devops",
+      "web"
     ],
     "app-zwier-mcp": [
       "calendar",
@@ -1330,10 +1318,6 @@
     "ai-filmai-filmai": [
       "media",
       "security"
-    ],
-    "com-easykmarket-vote-votebox-law": [
-      "security",
-      "testing"
     ]
   }
 }
