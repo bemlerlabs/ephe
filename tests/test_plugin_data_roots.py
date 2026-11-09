@@ -495,3 +495,50 @@ def test_the_extensions_row_carries_usage_and_the_route_removes_one_file(lane, m
     missing = client.get("/api/plugins/not-a-bundle/state")
     assert missing.status_code == 404
     assert plugin_state.LISTED_FILES == 200
+
+
+# the id in the URL, and the folder it names
+
+
+def test_a_state_folder_that_is_a_link_out_of_the_homes_root_is_never_followed(lane):
+    """The one shape a name filter cannot see: the folder itself is a link.
+
+    `home_path` makes `..` unrepresentable, so the id is the boring half. The folder the
+    id names is the other: a link at `<homes>/plugin_<id>` pointing at a directory outside
+    the homes root used to be followed by every reader in `core/plugin_state.py`, so the
+    Extensions row listed that directory's file names and `remove_stored_file` unlinked a
+    file in it. The path is now resolved and proven against the homes root before any
+    syscall, and a folder that leaves it is refused instead of resolved.
+    """
+    from core import plugin_state
+
+    homes = mcp_sandbox.homes_root()
+    homes.mkdir(parents=True, exist_ok=True)
+    outside = lane["tmp"] / "not-the-state-folder"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("keep", encoding="utf-8")
+    (homes / f"plugin_{PLUGIN_ID}").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError):
+        plugin_state.state_home(PLUGIN_ID)
+    with pytest.raises(ValueError):
+        plugin_state.report(PLUGIN_ID)
+    with pytest.raises(ValueError):
+        plugin_state.remove_stored_file(PLUGIN_ID, "keep.txt")
+    # A snapshot is a read of a store: "no store I trust" is the empty answer, and the
+    # document the mount serves stays served.
+    assert plugin_state.client_snapshot(PLUGIN_ID) == {}
+    assert (outside / "keep.txt").read_text(encoding="utf-8") == "keep"
+
+
+def test_the_state_path_is_the_folder_the_worker_got_and_stays_under_the_homes_root(lane):
+    """A valid id keeps the exact folder `home_for()` hands the worker, and no id at all
+    — however it is spelled — makes the reader act outside the homes root."""
+    from core import path_guard, plugin_state
+
+    home = plugin_state.state_home(PLUGIN_ID)
+    assert path_guard.within(home, mcp_sandbox.homes_root())
+    assert home == mcp_sandbox.home_path(f"plugin_{PLUGIN_ID}").resolve()
+    for hostile in ("..", "../..", "/etc", "a/b", "..\\..", "..%2F..", "nul\x00"):
+        answered = plugin_state.state_home(hostile)
+        assert path_guard.within(answered, mcp_sandbox.homes_root()), hostile

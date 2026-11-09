@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.support.capabilities import node_tsc_path, requires_node_toolchain
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -171,9 +173,10 @@ def test_the_sdk_file_names_the_three_operations_and_the_guide_names_them():
     assert "docs/PLUGINS.md" in guide
 
 
+@requires_node_toolchain
 def test_the_sdk_types_pass_the_strict_checker():
-    tsc = ROOT / "app" / "node_modules" / ".bin" / "tsc"
-    assert tsc.is_file(), "the app toolchain carries the type checker"
+    tsc = node_tsc_path()
+    assert tsc is not None
     assert TYPES.is_file() and CHECK.is_file()
     result = subprocess.run(
         [

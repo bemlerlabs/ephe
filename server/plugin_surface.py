@@ -240,9 +240,21 @@ def _open_below(plugin_dir: Path, parts: list[str]) -> tuple[int | None, str]:
     opens the second, and each step carries `O_NOFOLLOW`, so a swapped component dies
     at the step that is a link. A step that is no directory gives `missing`. Every
     descriptor but the returned one is closed here, refusal and exception alike.
+
+    The join is also proven as text before the walk, on the separator boundary: the
+    segments arrive in a URL, and the path-injection query does not model `dir_fd`, so
+    the shape it recognises is stated here instead of being left to the descriptor walk.
+    It cannot refuse a request that reached this function (`_request_parts` has already
+    refused `..`, a separator and a NUL), and it is not what makes the walk safe — the
+    `O_NOFOLLOW` steps are. It is the assertion that the two agree, one string compare
+    wide, and a `None` here is the same `walkout` the text layer answers.
     """
+    root = os.path.realpath(plugin_dir)
+    reached = os.path.normpath(os.path.join(root, *parts))
+    if reached != root and not reached.startswith(root + os.sep):
+        return None, REFUSED_SHAPES["walkout"]
     try:
-        current = os.open(os.path.realpath(plugin_dir), _ROOT_FLAGS)
+        current = os.open(root, _ROOT_FLAGS)
     except OSError as refused:
         return None, _refusal_for(refused)
     leaf = None

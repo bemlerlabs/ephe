@@ -459,6 +459,12 @@ class TestConsentRoute:
         )
         assert answer.status_code == 422
         assert creator_guard.privileges_for("s9") == frozenset()
+        # The 422 carries the route's own sentence and the field the caller has to fix,
+        # never the exception's text: a response built from `str(exc)` is the shape
+        # `py/stack-trace-exposure` reports, and the reader loses nothing without it.
+        detail = answer.json()["detail"]
+        assert detail["unknown"] == ["root"]
+        assert detail["reason"] == "unknown privilege(s): root"
 
     def test_the_route_records_the_change_in_the_audit(self, client, home, monkeypatch):
         rows: list = []

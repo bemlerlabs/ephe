@@ -7,7 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.6.0 wave is named below (`75384975`, `0ef4b969`, `bc927dda`, `aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
+The 0.6.0 wave is named below (`40830e86`, `5ba67a73`, `75384975`, `0ef4b969`, `bc927dda`, `aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
 
 ## [0.6.0] - 2026-11-09
 
@@ -196,6 +196,25 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   measurement names a defect (valid JSON of the wrong type makes the panel boot throw). The
   plan-accept sentence, its spec and three walkthrough files now name Analyst, Architect, Operator
   and Creator, and `app/src/lib/planAcceptAnchor.test.ts` holds the three together.
+
+- security: the paths a request names are confined where the analyzer can see it (`5ba67a73`).
+  CodeQL turned the release pull request red with thirty-nine alerts. The plugin store confines its
+  state home through `path_guard.confine`, a bundle named `..` can no longer answer its parent
+  folder, the asset walk refuses a `..` segment before it opens a descriptor, four CSP checks parse
+  the header instead of matching a substring, and the consent route answers a validated kind instead
+  of the exception text. Two alerts stay and carry a written dismissal reason in the security tab.
+- tests: a missing tool is a stated skip, and the CI job brings the tool (`5ba67a73`).
+  `tests/support/capabilities.py` detects the node toolchain, rustc and the OS boundary so a test
+  that needs one skips with its reason; the pytest legs install node, rust and bubblewrap so the
+  proof runs there. The workspace-authority test builds its checkout at the candidate name, which is
+  why it only failed on Linux.
+
+- tests: a missing OS boundary is a stated skip, and the CI job proves the boundary (`40830e86`).
+  Twenty-two confinement tests were red on Ubuntu because bubblewrap is absent there and the worker
+  answers `sandbox_unavailable` (the product's fail-closed behaviour). One capability detection now
+  names what the machine lacks, the neighbour families use it, the refusal itself stays proven
+  without any boundary, and the pytest legs install bubblewrap, rust and node and assert them usable
+  with `EPHE_REQUIRE_OS_BOUNDARY=1`.
 
 ### Added
 

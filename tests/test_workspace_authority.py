@@ -189,15 +189,18 @@ def test_the_prompt_resolver_delegates_to_the_one_authority(
 
 
 def test_the_neutral_folder_steps_aside_when_the_home_holds_the_checkout(monkeypatch, tmp_path):
-    """`~/Ephe` and a source checkout named `~/ephe` are one folder on macOS.
+    """A source checkout already sitting at the neutral default's own name is not handed out.
 
-    A workspace that resolves into the product's own source tree would hand file writes to the
-    checkout, so the neutral default moves to a sibling name instead of sharing it.
+    On a case-insensitive volume `~/Ephe` and a checkout named `~/ephe` are one folder; on
+    Linux and on a case-sensitive volume they are two. The property is the same on both: when
+    the candidate `~/Ephe` *is* the checkout, the default moves to a sibling and no file write
+    can reach the source tree. The fixture builds the checkout at that candidate, so the test
+    asserts the property instead of relying on the filesystem's case rules.
     """
     from core import engine_config as cfg
 
     home = tmp_path / "home"
-    checkout = home / "ephe"
+    checkout = home / "Ephe"
     (checkout / "core").mkdir(parents=True)
     (checkout / "pyproject.toml").write_text(
         '[project]\nname = "ephe"\nversion = "0.0.0"\n', encoding="utf-8"
@@ -207,5 +210,6 @@ def test_the_neutral_folder_steps_aside_when_the_home_holds_the_checkout(monkeyp
 
     resolved = cfg.neutral_workspace_dir()
 
-    assert resolved != home / "Ephe", resolved
+    assert resolved != checkout, resolved
+    assert resolved.parent == home, resolved
     assert resolved.name.lower().startswith("ephe"), resolved

@@ -25,7 +25,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 import pytest
@@ -141,6 +141,24 @@ def _call(
 def _auth_stays_off():
     yield
     init_auth(lan_mode=False)
+
+
+def _origins(entries) -> list[str]:
+    """A `frame-ancestors` list as scheme+authority, parsed instead of substring-matched.
+
+    `"https://a.example" in kept` answers yes for `https://a.example.evil.example` and
+    for `https://user:pass@a.example` — the incomplete-URL-substring shape, and a weaker
+    assertion than a header deserves. `urlsplit` compares the two parts a CSP entry is;
+    a keyword (`'self'`) or a non-URL scheme (`javascript:`) passes through as written.
+    """
+    out: list[str] = []
+    for entry in entries:
+        parsed = urlsplit(entry)
+        if parsed.scheme and parsed.netloc:
+            out.append(f"{parsed.scheme}://{parsed.netloc}")
+        else:
+            out.append(entry)
+    return out
 
 
 def _lan_headers(app):
@@ -337,7 +355,7 @@ def test_frame_ancestors_names_our_origins_and_never_a_wildcard(tmp_path, monkey
     csp = _csp_of(_document(_app(tmp_path, monkeypatch)))
     assert "*" not in csp["frame-ancestors"]
     assert "'self'" in csp["frame-ancestors"]
-    assert "tauri://localhost" in csp["frame-ancestors"]
+    assert "tauri://localhost" in _origins(csp["frame-ancestors"].split())
 
 
 def test_the_ancestor_filter_keeps_authorities_and_drops_everything_else():
@@ -352,10 +370,14 @@ def test_the_ancestor_filter_keeps_authorities_and_drops_everything_else():
         "javascript:alert(1)", "https://user:pass@creep.example",
     ])
     assert kept[0] == "'self'"
-    assert "https://a.example" in kept and "https://pad.example" in kept
-    assert "http://b.example:8123" in kept and "tauri://localhost" in kept
-    for refused in ("*", "'none'", "https://x.example/../", "javascript:alert(1)",
-                    "https://user:pass@creep.example", ""):
+    # The whole list, by origin: a path-walk entry (`https://x.example/../`) and one
+    # carrying userinfo (`https://user:pass@creep.example`) are dropped, and a sibling
+    # host that merely starts with an allowed one cannot match a substring here.
+    assert _origins(kept) == [
+        "'self'", "http://b.example:8123", "https://a.example",
+        "https://pad.example", "tauri://localhost",
+    ]
+    for refused in ("*", "'none'", "javascript:alert(1)", ""):
         assert refused not in kept, kept
 
 
@@ -364,7 +386,7 @@ def test_a_wildcard_dev_origin_never_reaches_the_served_header(tmp_path, monkeyp
     in that list is dropped by the filter before the header is assembled."""
     monkeypatch.setenv("EPHE_DEV_ORIGINS", "* ,https://dev.example")
     csp = _csp_of(_document(_app(tmp_path, monkeypatch)))
-    assert "https://dev.example" in csp["frame-ancestors"], csp
+    assert "https://dev.example" in _origins(csp["frame-ancestors"].split()), csp
     assert "*" not in csp["frame-ancestors"], csp
 
 
@@ -1115,3 +1137,21 @@ def test_the_whole_flow_serves_a_surface_with_lan_auth_off(tmp_path, monkeypatch
     bare = _document(app, credential=False, params={"surface": "forged-while-lan-is-off"})
     assert bare.status_code == 401, bare.text
     assert bare.json()["error"]["reason_code"] == "plugin_ui_unauthorized"
+
+
+def test_the_component_walk_proves_the_join_before_it_opens_anything(tmp_path, monkeypatch):
+    """The walk opens segments one at a time relative to a descriptor, which a scanner
+    cannot read as "inside the plugin directory". The join is therefore also proven as
+    text, on the separator boundary, before the first `os.open` — and `..` answers the
+    same `walkout` the text layer does instead of walking the descriptor's parent."""
+    from server import plugin_surface
+
+    plugin = _home(tmp_path, monkeypatch, {PLUGIN_ID: {}}) / "plugins" / PLUGIN_ID
+    assert plugin_surface._open_below(plugin, ["..", "app.js"]) == (
+        None,
+        plugin_surface.REFUSED_SHAPES["walkout"],
+    )
+    assert plugin_surface._open_below(plugin, ["ui", "..", "..", "ephe-plugin.json"]) == (
+        None,
+        plugin_surface.REFUSED_SHAPES["walkout"],
+    )

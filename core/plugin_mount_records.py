@@ -291,16 +291,27 @@ def plugin_directory(plugin: str) -> Path | None:
     Read from the roots rather than through `scan_plugins`, because the scan drops a
     bundle whose manifest does not validate: a mount asked for such a bundle has to say
     the manifest is broken, not pretend the plugin was never installed.
+
+    `plugin` is the id in `POST /api/plugins/{id}/hot-mount`, so the join is done by
+    `path_guard.child`: the slug pattern refuses `..`, a separator and an empty name,
+    and `confine` proves the joined path against the root it was joined to
+    (`core/path_guard.py:142`). Without that, `Path(base) / plugin` with `plugin = ".."`
+    answers the *parent* of the plugins root — a directory that holds a manifest and was
+    never installed — and the mount would publish tools from it. A valid slug is
+    unchanged, and the returned path is the resolved directory the caller already used.
     """
-    from core import plugin_manifest
+    from core import path_guard, plugin_manifest
     from core.plugin_manifest import MANIFEST_FILENAME
+    from core.plugin_store import PLUGIN_NAME_RE
 
     for base in (
         plugin_manifest.plugins_root(),
         plugin_manifest.BUILTIN_PLUGINS_ROOT,
     ):
-        candidate = Path(base) / plugin
-        if candidate.is_dir() and (candidate / MANIFEST_FILENAME).is_file():
+        candidate = path_guard.child(base, plugin, pattern=PLUGIN_NAME_RE)
+        if candidate is not None and candidate.is_dir() and (
+            candidate / MANIFEST_FILENAME
+        ).is_file():
             return candidate
     return None
 

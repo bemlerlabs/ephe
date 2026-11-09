@@ -181,9 +181,17 @@ def _unknown_bundle(plugin_id: str) -> None:
 def get_plugin_state(plugin_id: str) -> dict:
     """Bytes kept, bytes allowed, and the stored-file names. No host path."""
     from core.plugin_state import report
+    from server.refusals import Refused
 
     _unknown_bundle(plugin_id)
-    return report(plugin_id)
+    try:
+        return report(plugin_id)
+    except ValueError:
+        # The bundle is installed but its state folder is not the folder the module
+        # proved (a link out of the homes root, `core/plugin_state.py` `state_home`).
+        # Nothing about it is addressable, so the answer is the one a name this install
+        # does not know already gets.
+        raise Refused("plugin_unknown") from None
 
 
 @router.post("/plugins/{plugin_id}/state/remove")
@@ -197,7 +205,9 @@ def post_plugin_state_remove(plugin_id: str, body: dict) -> dict:
     name = body.get("name") if isinstance(body, dict) else None
     try:
         return remove_stored_file(plugin_id, name)
-    except ValueError:
+    except ValueError as exc:
+        if str(exc) == "plugin":
+            raise Refused("plugin_unknown") from None
         raise Refused("plugin_state_name") from None
 
 

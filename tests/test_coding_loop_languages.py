@@ -1,12 +1,12 @@
 """Language coverage of the edit-time checker."""
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
 
 from core import coding_loop
+from tests.support.capabilities import requires_rustc
 
 
 def _fake_which(monkeypatch: pytest.MonkeyPatch, present: set[str]) -> None:
@@ -67,7 +67,7 @@ def test_missing_toolchain_means_no_checker(
         assert coding_loop.verification_command(path) is None
 
 
-@pytest.mark.skipif(shutil.which("rustc") is None, reason="rustc is not installed")
+@requires_rustc
 def test_rust_repair_loop_reads_a_real_compile_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

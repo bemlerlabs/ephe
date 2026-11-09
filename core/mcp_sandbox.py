@@ -71,9 +71,14 @@ def is_available() -> bool:
     return platform_boundary() != "unavailable"
 
 
+def homes_root() -> Path:
+    """The directory every per-server HOME sits under — the root a caller confines to."""
+    return config_root() / "mcp" / "homes"
+
+
 def home_path(server: str) -> Path:
     """The per-server HOME path. Asking for it does not create the folder."""
-    root = config_root() / "mcp" / "homes"
+    root = homes_root()
     slug = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in server)[:60] or "server"
     return root / slug
 

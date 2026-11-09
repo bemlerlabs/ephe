@@ -64,12 +64,21 @@ def write_consent(body: ConsentEdit) -> dict:
         after = creator_guard.set_privileges(body.session_id, body.privileges)
     except creator_guard.UnknownPrivilege as exc:
         wanted = {str(value) for value in body.privileges}
+        unknown = sorted(wanted - creator_guard.PRIVILEGES)
+        # The sentence is built from the asked-for set, not from `str(exc)`: a response
+        # that carries the exception's own text is what `py/stack-trace-exposure` reads
+        # as an internals leak, and the validation message is one the route can state
+        # itself. Same three fields, and the thing the caller has to fix is still named.
         raise HTTPException(
             status_code=422,
             detail={
-                "unknown": sorted(wanted - creator_guard.PRIVILEGES),
+                "unknown": unknown,
                 "privileges": sorted(creator_guard.PRIVILEGES),
-                "reason": str(exc),
+                "reason": (
+                    "unknown privilege(s): " + ", ".join(unknown)
+                    if unknown
+                    else "a privilege outside the ones this dialog states"
+                ),
             },
         ) from exc
     except creator_guard.UnknownSession as exc:

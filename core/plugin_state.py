@@ -102,10 +102,36 @@ _PLUGIN_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
 
 def state_home(plugin_id: str) -> Path:
-    """The folder a confined worker is handed, resolved without creating it."""
-    from core.mcp_sandbox import home_path
+    """The folder a confined worker is handed, resolved and proven under the homes root.
 
-    return home_path(f"plugin_{plugin_id}")
+    The id arrives in a URL (`/api/plugins/{id}/state`, `/client/storage`, the mount's
+    `client_snapshot`), so the path built from it is the one place this module has to be
+    closed against `py/path-injection`. Two layers, and neither changes a valid id:
+
+    - `home_path` munges the id to a slug: every character outside `[A-Za-z0-9_-]` becomes
+      `_`, and the slug is cut at 60. That already makes `..`, `/` and `\\` unrepresentable
+      (`core/mcp_sandbox.py:82`).
+    - `path_guard.confine` then *re-proves* it on the text the filesystem will be asked
+      about: it resolves the candidate and compares it with the root on a separator
+      boundary. That function is the tree's one primitive for "is this inside that root"
+      (`core/path_guard.py:109`), and its docstring records why the check is spelled as a
+      prefix test rather than `Path.is_relative_to`: the query does not model the latter
+      (`core/path_guard.py:8-12`).
+
+    What the second layer adds over the first is the case a filter cannot see: a state
+    folder that is itself a symlink out of the homes root. `resolve()` follows it, the
+    boundary test refuses it, and the caller gets `ValueError` instead of a folder it
+    never proved. No valid id is affected — a slug never resolves outside the root — and
+    the folder's name still comes from `home_path`, so the worker's `home_for()` and this
+    reader name the same directory.
+    """
+    from core import path_guard
+    from core.mcp_sandbox import home_path, homes_root
+
+    home = path_guard.confine(home_path(f"plugin_{plugin_id}"), homes_root())
+    if home is None:
+        raise ValueError("plugin")
+    return home
 
 
 def cap_bytes_from_manifest(manifest: dict | None) -> int:
@@ -230,23 +256,29 @@ def remove_stored_file(plugin_id: str, name: object) -> dict:
 
     A directory stays. A name that leaves the state folder stays. A symlink is
     unlinked as a symlink, so the thing it points at is left where it is.
+
+    `name` is the second value in this module that arrives in a request body, so the
+    proof happens before the first syscall instead of after it: `_relative_name` refuses
+    a separator, a dot-segment, a NUL and an absolute name as text, and
+    `path_guard.confine` proves the directory the leaf lives in against the state folder.
+    The leaf is deliberately left unresolved: a stored symlink is removed as a link, and
+    resolving it first would either refuse a link that points out (it is unlinked today)
+    or unlink the thing it points at (it is not).
     """
+    from core import path_guard
+
     rel = _relative_name(name)
     home = state_home(plugin_id)
-    target = home.joinpath(*PurePosixPath(rel).parts)
-    try:
-        target.relative_to(home)
-    except ValueError as exc:
-        raise ValueError("name") from exc
+    path = PurePosixPath(rel)
+    parent = path_guard.confine(home.joinpath(*path.parts[:-1]), home)
+    if parent is None:
+        raise ValueError("name")
+    target = parent / path.name
     if target.is_symlink():
         target.unlink()
         return report(plugin_id)
     if not target.is_file():
         raise ValueError("missing")
-    resolved = target.resolve()
-    root = home.resolve()
-    if resolved != root and root not in resolved.parents:
-        raise ValueError("name")
     target.unlink()
     return report(plugin_id)
 
@@ -298,8 +330,16 @@ def client_snapshot(plugin_id: str) -> dict[str, object]:
     bundle's view into its own document ahead of the storage shim; no other bundle
     reaches it, because the lookup is the plugin id the mount credential was minted
     for.
+
+    A folder `state_home` refuses (a link out of the homes root) answers `{}` like a
+    missing one: this function is a read of a store, and "no store I trust" is the
+    answer the document already knows how to render.
     """
-    return _read_client_store(state_home(plugin_id) / CLIENT_STORE_NAME)
+    try:
+        home = state_home(plugin_id)
+    except ValueError:
+        return {}
+    return _read_client_store(home / CLIENT_STORE_NAME)
 
 
 def client_set(plugin_id: str, key: object, value: object) -> bool:

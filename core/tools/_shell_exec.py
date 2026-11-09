@@ -52,6 +52,20 @@ def _resolve_cwd(cwd: str | None) -> str:
     return base_norm
 
 
+def _docker_mount_root() -> str | None:
+    """The host folder the docker backend exposes as ``/workspace``, if it is on.
+
+    Validation runs before the backend is chosen at exec time, so it has to be told
+    the same mount the container will carry; otherwise `ls /workspace` — the
+    documented way to see the mounted workspace — is refused as a host path.
+    """
+    if _shell_backend() != "docker":
+        return None
+    from core.engine_config import get_workspace_dir
+
+    return get_workspace_dir()
+
+
 def _sandbox_args(command: str, cwd: str | None) -> list[str] | None:
     """W16: Seatbelt wrapper arguments, ONLY when the real wrapper takes effect.
 
@@ -86,10 +100,14 @@ async def run_shell(command: str, run_in_background: bool = False, cwd: str | No
     """
     global _BG_COUNTER
 
+    # The Seatbelt wrapper runs the command on this host, so the container mount
+    # only names a real folder when the docker backend is the branch that executes.
+    sandbox_args = _sandbox_args(command, cwd)
     rejection = validate_shell_command(
         command,
-        sandboxed=_sandbox_args(command, cwd) is not None,
+        sandboxed=sandbox_args is not None,
         root=_resolve_cwd(cwd),
+        container_workspace=_docker_mount_root() if sandbox_args is None else None,
     )
     if rejection is not None:
         return rejection
@@ -203,7 +221,10 @@ async def execute_confirmed_shell(command: str, confirmed: bool, cwd: str | None
     # flag, the exec path and the audit detail, so no host reads a different surface.
     sandbox_args, sandbox_detail = resolve_sandbox(command, workspace)
     rejection = validate_shell_command(
-        command, sandboxed=sandbox_args is not None, root=workspace
+        command,
+        sandboxed=sandbox_args is not None,
+        root=workspace,
+        container_workspace=_docker_mount_root() if sandbox_args is None else None,
     )
     if rejection is not None:
         return rejection

@@ -255,3 +255,18 @@ def test_the_digest_follows_the_bytes_the_worker_would_run(lane) -> None:
     )
     assert content_digest(directory) != before
     assert content_digest(directory) == content_digest(directory), "one digest per content"
+
+
+def test_a_mount_id_never_names_the_parent_of_the_plugins_root(lane) -> None:
+    """`plugin_directory` joins the id from the hot-mount URL to a root, and `..` joins to
+    the parent of that root: a directory that can hold a manifest and was never installed.
+    The slug guard refuses the name before the join can answer it, and a real bundle still
+    locates to the same resolved directory (the worker and the mount read one folder)."""
+    from core.plugin_mount_records import plugin_directory
+
+    (lane["tmp"] / "ephe-plugin.json").write_text("{}", encoding="utf-8")
+    assert plugin_directory("..") is None
+    assert plugin_directory("../..") is None
+    assert plugin_directory("not installed") is None
+    directory = _bundle(lane["root"])
+    assert plugin_directory(_PLUGIN) == directory.resolve()

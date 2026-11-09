@@ -81,6 +81,34 @@ def _shell_segments(command: str) -> list[list[str]] | None:
     return segments
 
 
+#: The one mount point the docker backend creates: the host workspace, seen from
+#: inside the container. Validation translates exactly this prefix, so a command
+#: that names the mounted files is judged against the folder it really touches.
+CONTAINER_WORKSPACE = "/workspace"
+
+
+def _container_path(token: str, container_workspace: str | None) -> tuple[str, bool]:
+    """Translate a container path under ``/workspace`` to its host folder.
+
+    Returns ``(token, escaped)``: the host path for a token inside the mount, the
+    token unchanged for anything else, and ``escaped=True`` for a ``/workspace``
+    spelling whose ``..`` segments would leave the mount. The last case is refused
+    rather than read as a host path: inside the container it reaches a folder the
+    mount does not name, which is the boundary the path door exists to hold.
+    """
+    if not container_workspace:
+        return token, False
+    alias = CONTAINER_WORKSPACE
+    if token != alias and not token.startswith(alias + "/"):
+        return token, False
+    rest = token[len(alias):].lstrip("/")
+    host = os.path.normpath(container_workspace)
+    candidate = os.path.normpath(os.path.join(host, rest)) if rest else host
+    if candidate != host and not candidate.startswith(host + os.sep):
+        return token, True
+    return candidate, False
+
+
 def _validate_interpreter_segment(seg: list[str]) -> str | None:
     """Hardening of the interpreter segments (W16).
 
@@ -311,7 +339,9 @@ def _glob_refusal(token: str, root: str) -> str | None:
     return None
 
 
-def _check_path_token(token: str, root: str) -> str | None:
+def _check_path_token(
+    token: str, root: str, container_workspace: str | None = None
+) -> str | None:
     if not token:
         return None
     if "$" in token:
@@ -319,6 +349,9 @@ def _check_path_token(token: str, root: str) -> str | None:
         if "$" in expanded:
             return _PATH_REFUSAL
         token = expanded
+    token, escaped = _container_path(token, container_workspace)
+    if escaped:
+        return _PATH_REFUSAL
     if any(ch in token for ch in "*?["):
         return _glob_refusal(token, root)
     if secret_shaped(token):
@@ -392,17 +425,17 @@ def _chmod_paths(paths: list[str]) -> list[str]:
     return paths
 
 
-def _body_token(token: str, root: str) -> str | None:
+def _body_token(token: str, root: str, container_workspace: str | None = None) -> str | None:
     if not token or token.startswith("-") or token in "()[]{}.,:;":
         return None
     if _named_secret(token):
         return _PATH_REFUSAL
     if token.startswith(("~", "/", ".")) or "/" in token or "\\" in token:
-        return _check_path_token(token, root)
+        return _check_path_token(token, root, container_workspace)
     return None
 
 
-def _body_refusal(body: str, root: str) -> str | None:
+def _body_refusal(body: str, root: str, container_workspace: str | None = None) -> str | None:
     quoted: list[str] = []
     collected = ""
     marker = ""
@@ -424,7 +457,7 @@ def _body_refusal(body: str, root: str) -> str | None:
     except ValueError:
         tokens = body.split()
     for token in [*tokens, *quoted]:
-        refusal = _body_token(token, root)
+        refusal = _body_token(token, root, container_workspace)
         if refusal is not None:
             return refusal
     return None
@@ -436,7 +469,9 @@ def _eval_cluster(token: str) -> bool:
     return bool(set(token.lstrip("-").casefold()) & _EVAL_LETTERS)
 
 
-def _interpreter_paths(args: list[str], root: str) -> str | None:
+def _interpreter_paths(
+    args: list[str], root: str, container_workspace: str | None = None
+) -> str | None:
     paths: list[str] = []
     bodies: list[str] = []
     index = 0
@@ -456,17 +491,17 @@ def _interpreter_paths(args: list[str], root: str) -> str | None:
             paths.append(token)
         index += 1
     for token in paths:
-        refusal = _check_path_token(token, root)
+        refusal = _check_path_token(token, root, container_workspace)
         if refusal is not None:
             return refusal
     for body in bodies:
-        refusal = _body_refusal(body, root)
+        refusal = _body_refusal(body, root, container_workspace)
         if refusal is not None:
             return refusal
     return None
 
 
-def _git_paths(args: list[str], root: str) -> str | None:
+def _git_paths(args: list[str], root: str, container_workspace: str | None = None) -> str | None:
     for token in _positional_paths("git", args):
         candidates = [token]
         if ":" in token:
@@ -475,7 +510,7 @@ def _git_paths(args: list[str], root: str) -> str | None:
             if _named_secret(candidate):
                 return _PATH_REFUSAL
             if _path_shaped(candidate):
-                refusal = _check_path_token(candidate, root)
+                refusal = _check_path_token(candidate, root, container_workspace)
                 if refusal is not None:
                     return refusal
     return None
@@ -489,7 +524,9 @@ def _find_blocked(args: list[str]) -> str | None:
     return None
 
 
-def _refuse_segment_paths(seg: list[str], root: str) -> str | None:
+def _refuse_segment_paths(
+    seg: list[str], root: str, container_workspace: str | None = None
+) -> str | None:
     head = seg[0]
     args = seg[1:]
     if head == "find":
@@ -497,9 +534,9 @@ def _refuse_segment_paths(seg: list[str], root: str) -> str | None:
         if blocked is not None:
             return blocked
     if head in _INTERPRETER_HEADS:
-        return _interpreter_paths(args, root)
+        return _interpreter_paths(args, root, container_workspace)
     if head == "git":
-        return _git_paths(args, root)
+        return _git_paths(args, root, container_workspace)
     if head not in _FILE_HEADS:
         return None
     paths = _positional_paths(head, args)
@@ -508,7 +545,7 @@ def _refuse_segment_paths(seg: list[str], root: str) -> str | None:
     if head == "chmod":
         paths = _chmod_paths(paths)
     for token in paths:
-        refusal = _check_path_token(token, root)
+        refusal = _check_path_token(token, root, container_workspace)
         if refusal is not None:
             return refusal
     return None
@@ -529,6 +566,7 @@ def validate_shell_command(
     command: str,
     sandboxed: bool = False,
     root: str | None = None,
+    container_workspace: str | None = None,
 ) -> str | None:
     """Check a shell command against the security barriers.
 
@@ -545,7 +583,9 @@ def validate_shell_command(
        an active Seatbelt sandbox ('sandboxed=True' from the caller).
     6. File arguments stay inside the file-tool roots. A credential-shaped
        name is refused with the sandbox on and with it off. An interpreter
-       eval body is scanned for the same names.
+       eval body is scanned for the same names. Under the docker backend the
+       container's ``/workspace`` mount is translated to the host folder that
+       is mounted there; a spelling that would leave the mount is refused.
     """
     if not command or not command.strip():
         return "⚠️ Security: Empty command."
@@ -597,7 +637,7 @@ def validate_shell_command(
     for seg in segments:
         if not seg:
             continue
-        refusal = _refuse_segment_paths(seg, base)
+        refusal = _refuse_segment_paths(seg, base, container_workspace)
         if refusal is not None:
             return refusal
     return None
