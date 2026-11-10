@@ -25,6 +25,9 @@ from pathlib import Path
 
 import pytest
 
+#: Repository root, for the app toolchain the SDK check needs.
+ROOT = Path(__file__).resolve().parents[2]
+
 #: Set by a CI leg that is supposed to provide the boundary. A missing capability then
 #: fails the leg instead of skipping every proof under it.
 REQUIRE_BOUNDARY_ENV = "EPHE_REQUIRE_OS_BOUNDARY"
@@ -202,7 +205,15 @@ def rustc_path() -> Path | None:
 
 
 def node_tsc_path() -> Path | None:
-    return _tool_path("tsc")
+    """The app toolchain's ``tsc``, or None when ``app/`` was never installed.
+
+    The checker lives in the app's own node_modules, so it is found there first: a
+    `tsc` on PATH would be a different compiler version than the one the app pins.
+    """
+    tsc = ROOT / "app" / "node_modules" / ".bin" / "tsc"
+    if not tsc.is_file():
+        return None
+    return tsc if _runs([str(tsc), "--version"]) else None
 
 
 def _tool_path(name: str) -> Path | None:
