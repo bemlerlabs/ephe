@@ -59,3 +59,30 @@ def test_the_block_keeps_its_own_shape():
 def test_the_register_rendering_is_untouched():
     raw = mod.section_body(BLOCK, "0.5.5")
     assert "(`86521560`)" in raw
+
+
+def test_a_body_past_the_host_limit_is_cut_at_a_paragraph_and_says_where_the_rest_is():
+    """GitHub refuses a release body over 125 000 characters.
+
+    The 0.6.0 section measured 146 794, so the draft was never created and the tag stood without a
+    release. A truncation the reader cannot see would be worse than no note at all, so the cut lands
+    between entries and a line names the file that holds the rest.
+    """
+    from scripts.release_notes import MAX_BODY_CHARS, cap_body
+
+    entry = "- an entry that runs long enough to matter. " + ("x" * 400) + "\n\n"
+    body = entry * ((MAX_BODY_CHARS // len(entry)) + 40)
+
+    capped = cap_body(body, "9.9.9")
+
+    assert len(capped) <= MAX_BODY_CHARS, len(capped)
+    assert "CHANGELOG.md" in capped
+    assert capped.rstrip().endswith("CHANGELOG.md`."), capped[-80:]
+    assert body.startswith(capped.split("\n\n---\n\n")[0])
+
+
+def test_a_body_inside_the_limit_is_left_alone():
+    from scripts.release_notes import cap_body
+
+    body = "- one entry\n\n- another entry"
+    assert cap_body(body, "9.9.9") == body
