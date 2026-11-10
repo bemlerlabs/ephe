@@ -163,3 +163,62 @@ def test_a_write_under_home_outside_the_workspace_never_reaches_the_host(tmp_pat
             assert done.returncode != 0, done.stdout
     finally:
         probe.unlink(missing_ok=True)
+
+
+def _fake_leg(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """A venv under a stand-in home, shaped like the pull-request leg's `ephe-leg`."""
+    home = tmp_path / "home"
+    venv = home / "work" / "_temp" / "ephe-leg"
+    (venv / "bin").mkdir(parents=True)
+    python = venv / "bin" / "python"
+    python.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n', encoding="utf-8")
+    python.chmod(0o755)
+    return home, venv, python
+
+
+def test_bwrap_reopens_the_interpreter_its_home_tmpfs_hides(monkeypatch, tmp_path):
+    """The venv lives under the home the hide replaces; the hide must not reach it.
+
+    Public CI measured `/bin/sh: 1: /home/runner/work/_temp/ephe-leg/bin/python: not
+    found` for an interpreter the host has, because `--tmpfs <home>` removes the whole
+    home and nothing bound the interpreter back. The re-open is an ro-bind after the
+    hide: the compiler is readable, the home stays closed.
+    """
+    home, venv, python = _fake_leg(tmp_path)
+    monkeypatch.setenv("HOME", str(home))
+
+    def _which(name: str) -> str | None:
+        return "/usr/bin/bwrap" if name == "bwrap" else None
+
+    monkeypatch.setattr(shell_sandbox, "_which", _which)
+    argv = shell_sandbox.wrap_command(f"{python} -m py_compile x.py", str(tmp_path / "ws"))
+    assert argv is not None and argv[0] == "bwrap"
+    real_home = os.path.realpath(home)
+    real_venv = os.path.realpath(venv)
+    hide = argv.index("--tmpfs")
+    assert argv[hide + 1] == real_home, "the home is hidden first"
+    reread = [(argv[i + 1], argv[i + 2]) for i, arg in enumerate(argv) if arg == "--ro-bind"]
+    assert (real_venv, real_venv) in reread, "the interpreter's install root is re-opened"
+    assert (real_home, real_home) not in reread, "the whole home is never bound back"
+    assert hide < argv.index(real_venv) < argv.index("--bind"), (
+        "the re-open sits after the hide and before the one writable mount"
+    )
+
+
+@capabilities.requires_boundary
+def test_a_program_under_the_home_is_not_mistaken_for_missing(tmp_path, monkeypatch):
+    """The checker's own shape: an interpreter under the home compiles a workspace file.
+
+    Without the re-open, bubblewrap answers 127 with `not found`; with it the boundary
+    keeps its deny on the rest of the home and the program starts.
+    """
+    home, _venv, python = _fake_leg(tmp_path)
+    monkeypatch.setenv("HOME", str(home))
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    argv = shell_sandbox.wrap_command(f"{python} -V", str(workspace))
+    assert argv is not None, "the capability marker promised a boundary, so this is a bug"
+    done = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)
+    assert "not found" not in f"{done.stdout}{done.stderr}".lower()
+    assert done.returncode == 0, done.stderr
+    assert "Python 3" in f"{done.stdout}{done.stderr}"
