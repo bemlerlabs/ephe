@@ -174,3 +174,9 @@ include = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# The capability markers are applied by `tests/conftest.py` from
+# `tests/support/capabilities.py`; naming them here keeps `--strict-markers` usable.
+markers = [
+  "requires_boundary: the claim is about code running inside the OS boundary; skips with the probe's reason where the host has none, and fails where EPHE_REQUIRE_OS_BOUNDARY=1 says the leg must provide one",
+  "requires_seatbelt: the claim is about Seatbelt's syscall-level deny and does not transfer to bubblewrap's private namespaces",
+]

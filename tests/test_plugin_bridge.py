@@ -27,7 +27,13 @@ from core.sandbox import bridge, bridge_client, bridge_host
 from core.sandbox.runner import run_plugin_tool
 from core.sandbox.supervisor import BoundedBuffer, run_worker
 from core.sandbox.worker_spec import build_spec
-from core.tools.dynamic_registry import ToolDescriptor, fingerprint_for, served_tool_name
+from core.tools.dynamic_registry import (
+    ToolDescriptor,
+    fingerprint_for,
+    served_tool_name,
+)
+from tests.support import capabilities
+
 
 def _search_module():
     """The module behind the kernel tool.
@@ -804,6 +810,7 @@ def _bridge_rows(rows: list[dict]) -> list[dict]:
     return [row for row in rows if row["kind"] == "bridge_call"]
 
 
+@capabilities.requires_boundary
 def test_a_confined_worker_searches_through_the_host(tmp_path, monkeypatch):
     """One real child asks for a search. The host function runs, and the query stays out of the row.
 
@@ -838,6 +845,7 @@ def test_a_confined_worker_searches_through_the_host(tmp_path, monkeypatch):
     assert "method=search" in detail and "secret-query-token" not in detail, detail
 
 
+@capabilities.requires_boundary
 def test_the_shipped_research_bundle_asks_the_host_for_both_sentences(monkeypatch):
     """The handlers that ship are the ones the child runs.
 
@@ -896,6 +904,7 @@ def test_the_shipped_research_bundle_asks_the_host_for_both_sentences(monkeypatc
     assert "prompt-must-stay-out" not in fetch_detail, fetch_detail
 
 
+@capabilities.requires_boundary
 def test_the_shipped_memory_bundle_asks_the_host_and_keeps_the_body_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -954,6 +963,7 @@ def test_the_shipped_memory_bundle_asks_the_host_and_keeps_the_body_out(monkeypa
     assert getattr(empty.text, "code", None) == "memory_add_needs_content"
 
 
+@capabilities.requires_boundary
 def test_the_shipped_browser_bundle_asks_the_host_and_keeps_the_action_out(monkeypatch):
     """The handlers that ship are the ones the child runs.
 
@@ -1041,6 +1051,7 @@ def _vision_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_vision_bundle_asks_the_host_and_keeps_the_action_out(monkeypatch):
     """The handlers that ship are the ones the child runs.
 
@@ -1104,6 +1115,7 @@ def test_the_shipped_vision_bundle_asks_the_host_and_keeps_the_action_out(monkey
     assert seen["type"][-1] == ("with-enter", True)
 
 
+@capabilities.requires_boundary
 def test_a_missing_desktop_callback_raises_through_the_worker(monkeypatch):
     """No callback is the kernel's own raise, including from the drain thread."""
     from core.vision import SandboxConfirmationRequired, check_sandbox
@@ -1132,6 +1144,7 @@ def test_a_missing_desktop_callback_raises_through_the_worker(monkeypatch):
     assert "Save-button-must-stay-out" not in click_row
 
 
+@capabilities.requires_boundary
 def test_execute_tool_surfaces_a_missing_desktop_callback(monkeypatch):
     """The turn's execute path raises the kernel's own confirmation.
 
@@ -1161,6 +1174,7 @@ def test_execute_tool_surfaces_a_missing_desktop_callback(monkeypatch):
     assert "Save-button-must-stay-out" not in str(excinfo.value)
 
 
+@capabilities.requires_boundary
 def test_a_refused_desktop_call_keeps_the_abort_sentence(monkeypatch):
     """A no from the callback is the sentence the kernel already writes."""
     from core.vision import check_sandbox, set_sandbox_confirm_cb
@@ -1191,6 +1205,7 @@ def test_a_refused_desktop_call_keeps_the_abort_sentence(monkeypatch):
     assert "Save-button-must-stay-out" not in refused.text
 
 
+@capabilities.requires_boundary
 def test_the_desktop_callback_runs_on_the_caller_loop(monkeypatch):
     """The callback is awaited on the loop that published it.
 
@@ -1243,6 +1258,7 @@ def test_the_desktop_callback_runs_on_the_caller_loop(monkeypatch):
     assert seen["target_arg"] == "Save-button-must-stay-out"
 
 
+@capabilities.requires_boundary
 def test_the_shipped_image_read_asks_the_host_and_keeps_the_path_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1301,6 +1317,7 @@ def test_the_shipped_image_read_asks_the_host_and_keeps_the_path_out(monkeypatch
     assert "shot-must-stay-out" not in asked_row
 
 
+@capabilities.requires_boundary
 def test_a_refused_image_path_keeps_the_kernel_sentence(monkeypatch):
     """A path the kernel refuses comes back as the sentence it already raises."""
     root, by_name = _vision_bundle()
@@ -1334,6 +1351,7 @@ def _code_shell_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_shell_asks_the_host_and_keeps_the_command_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1391,6 +1409,7 @@ def _documents_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_document_asks_the_host_and_keeps_the_body_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1473,6 +1492,7 @@ def _spreadsheets_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_sheet_asks_the_host_and_keeps_the_rows_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1549,6 +1569,7 @@ def _presentations_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_deck_asks_the_host_and_keeps_the_slides_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1634,6 +1655,7 @@ def _image_studio_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_picture_asks_the_host_and_keeps_the_prompt_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1720,6 +1742,7 @@ def _voice_bundle():
     return root, {item.name: item for item in descriptors_for(manifest)}
 
 
+@capabilities.requires_boundary
 def test_the_shipped_voice_asks_the_host_and_keeps_the_speech_out(monkeypatch):
     """The handler that ships is the one the child runs.
 
@@ -1787,6 +1810,7 @@ def test_the_shipped_voice_asks_the_host_and_keeps_the_speech_out(monkeypatch):
     assert captured["timeout"] == 110.0
 
 
+@capabilities.requires_boundary
 def test_list_directory_joins_the_names(monkeypatch):
     root, by_name = _code_shell_bundle()
 
@@ -1805,6 +1829,7 @@ def test_list_directory_joins_the_names(monkeypatch):
     assert listed.text == "a.txt\nb.txt"
 
 
+@capabilities.requires_boundary
 def test_a_refused_file_path_keeps_the_kernel_sentence(monkeypatch):
     """A path the kernel refuses comes back as the sentence it already raises."""
     root, by_name = _code_shell_bundle()
@@ -1827,6 +1852,7 @@ def test_a_refused_file_path_keeps_the_kernel_sentence(monkeypatch):
     assert "file-must-stay-out" not in row
 
 
+@capabilities.requires_boundary
 def test_a_confined_worker_reaches_the_host_only_through_its_pipes(tmp_path, echo_rail):
     """One real Seatbelt child, one request line out, one answer line back, one result read.
 
@@ -1846,6 +1872,7 @@ def test_a_confined_worker_reaches_the_host_only_through_its_pipes(tmp_path, ech
     assert row["status"] == "ok"
 
 
+@capabilities.requires_boundary
 def test_a_confined_worker_with_a_memory_cap_still_finds_its_bridge(tmp_path, echo_rail):
     """The capped form starts through a bootstrap, and that form has to reach the same pipes."""
     root = _plugin(tmp_path, BRIDGE_BODY)
@@ -1857,6 +1884,7 @@ def test_a_confined_worker_with_a_memory_cap_still_finds_its_bridge(tmp_path, ec
     assert json.loads(result.text)["echoed"] == "CAPPED"
 
 
+@capabilities.requires_boundary
 def test_a_family_the_bundle_never_declared_denies_the_worker_too(tmp_path, echo_rail):
     """The same child, the same call, a manifest that did not ask for the family."""
     root = _plugin(tmp_path, DENIED_BODY)
@@ -1872,6 +1900,7 @@ def test_a_family_the_bundle_never_declared_denies_the_worker_too(tmp_path, echo
     assert "cause=undeclared-family" in row["detail"]
 
 
+@capabilities.requires_boundary
 def test_a_tool_that_never_asks_sees_the_stream_it_always_saw(tmp_path, echo_rail):
     """No bridge line, no call, and the answer is still exactly one JSON object."""
     root = _plugin(tmp_path, PLAIN_BODY)
@@ -1881,6 +1910,7 @@ def test_a_tool_that_never_asks_sees_the_stream_it_always_saw(tmp_path, echo_rai
     assert _bridge_rows(echo_rail.rows) == []
 
 
+@capabilities.requires_boundary
 def test_a_handle_the_tool_never_uses_changes_nothing(tmp_path):
     """A three-argument callable that never calls the bridge runs the plain run.
 
@@ -1900,10 +1930,9 @@ def test_a_handle_the_tool_never_uses_changes_nothing(tmp_path):
 
 def test_a_malformed_request_from_a_real_child_is_answered(tmp_path):
     """A child writes bytes that look like a request, and the host answers with a code."""
-    from core import mcp_sandbox
 
-    if mcp_sandbox.platform_boundary() == "unavailable":
-        pytest.skip("no OS boundary on this machine — the confined child cannot start")
+    if not capabilities.has_boundary():
+        pytest.skip(capabilities.boundary_skip_reason())
     entry = tmp_path / "plugin"
     entry.mkdir()
     script = entry / "tool.py"

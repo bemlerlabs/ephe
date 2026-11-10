@@ -19,6 +19,7 @@ import pytest
 
 from core import mcp_sandbox
 from core.secret_broker import child_env
+from tests.support import capabilities
 
 PROBE = r"""
 import json, os, pathlib
@@ -58,9 +59,8 @@ def _run(probe: Path, home: Path, protected: list[str] | None = None) -> dict:
     argv = mcp_sandbox.wrap(sys.executable, [str(probe)], str(home))
     if argv is None:
         pytest.skip(
-            "no OS boundary on this platform "
-            f"({sys.platform}, boundary={mcp_sandbox.platform_boundary()}): "
-            "a green result would be the claim this test exists to stop"
+            capabilities.boundary_skip_reason()
+            + ": a green result here would be the claim this test exists to stop"
         )
     (home / "own.txt").write_text("ok", encoding="utf-8")
     env = child_env(
@@ -268,7 +268,7 @@ def test_node_and_python_start_under_the_boundary(monkeypatch, tmp_path):
     for command in commands:
         argv = mcp_sandbox.wrap(command[0], command[1:], str(home))
         if argv is None:
-            pytest.skip("no OS boundary on this platform")
+            pytest.skip(capabilities.boundary_skip_reason())
         run = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=60)
         assert run.returncode == 0, (command[0], run.stderr)
 

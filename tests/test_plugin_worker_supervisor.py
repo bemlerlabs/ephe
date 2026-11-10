@@ -1,16 +1,21 @@
 """Task #47: the plugin worker supervisor — crash, timeout, OOM, exit classification.
 
-Every test drives a real confined child through `core.sandbox.run_worker` on this
-machine's boundary (Seatbelt on macOS; the same rail the MCP children already
-run under). The vocabulary asserted here is the vocabulary tasks #9 and #38
-consume: a fixed status, never an exception string.
+Two layers, and the difference is the point of `tests/support/capabilities.py`. The
+classification tests spawn a plainly forked child, so `crashed`, `oom`, `nonzero` and the
+timeout translation are provable on any host; the tests marked `requires_boundary` drive a
+really confined child and prove what the boundary itself delivers, skipping (with the
+probe's reason) where the host has none.
+
+One measured difference is named rather than smoothed over: `bwrap --unshare-pid` reports a
+child killed by SIGTERM as exit 143 (128+15), so on Linux the confined rail reads `nonzero`
+where Seatbelt's exec'd child reports `crashed`. The classifier is therefore proven on the
+plain child, and the confined test claims only what survives both boundaries.
 """
 from __future__ import annotations
 
 import os
 import signal
 import sys
-
 import time
 from pathlib import Path
 
@@ -18,17 +23,25 @@ import pytest
 
 from core import mcp_sandbox
 from core.sandbox import (
+    STATUSES,
     Refusal,
     RestartBudget,
-    STATUSES,
     WorkerSpec,
     build_spec,
     confined_argv,
     policy_snapshot,
     run_worker,
 )
+from tests.support import capabilities
 
 PLUGIN_ID = "w47demo"
+
+
+@pytest.fixture
+def plain_child(tmp_path, monkeypatch):
+    """The supervisor's child with no boundary; the subject is the classifier."""
+    with capabilities.spawn_without_boundary(monkeypatch, tmp_path / "plain-home"):
+        yield
 
 
 def _plugin(tmp_path: Path, body: str, name: str = "tool.py") -> Path:
@@ -45,6 +58,7 @@ def _spec(root: Path, **kw) -> WorkerSpec:
     return spec
 
 
+@capabilities.requires_boundary
 def test_ok_child_exit_and_output(tmp_path):
     spec = _spec(_plugin(tmp_path, "print('hello worker')"), timeout_seconds=30.0)
     outcome = run_worker(spec)
@@ -53,14 +67,21 @@ def test_ok_child_exit_and_output(tmp_path):
     assert outcome.exit_code == 0
 
 
-def test_nonzero_exit_is_classified_not_raised(tmp_path):
+def test_nonzero_exit_is_classified_not_raised(tmp_path, plain_child):
+    """The exit status is read after the spawn, so the classifier needs no boundary."""
     spec = _spec(_plugin(tmp_path, "import sys; sys.exit(3)"), timeout_seconds=30.0)
     outcome = run_worker(spec)
     assert outcome.status == "nonzero"
     assert outcome.exit_code == 3
 
 
-def test_signal_death_is_crashed(tmp_path):
+def test_signal_death_is_crashed(tmp_path, plain_child):
+    """A signal death is `crashed` and carries the number, proven on a plain child.
+
+    The confined rail is not used here because bubblewrap does not forward the signal:
+    measured in a Linux container, `bwrap` exits 143 for a child that took SIGTERM, and
+    the confined test below states the part of the classification both boundaries keep.
+    """
     body = "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"
     spec = _spec(_plugin(tmp_path, body), timeout_seconds=30.0)
     outcome = run_worker(spec)
@@ -68,6 +89,7 @@ def test_signal_death_is_crashed(tmp_path):
     assert outcome.signal_number == int(signal.SIGTERM)
 
 
+@capabilities.requires_boundary
 def test_timeout_kills_the_whole_process_group(tmp_path):
     body = (
         "import subprocess, time\n"
@@ -85,6 +107,7 @@ def test_timeout_kills_the_whole_process_group(tmp_path):
         os.killpg(outcome.pgid, 0)
 
 
+@capabilities.requires_boundary
 def test_output_cap_keeps_the_tail_and_states_itself(tmp_path):
     body = "import sys\nfor i in range(20000):\n    sys.stdout.write('x')\nsys.stdout.write('\\nDONE\\n')\n"
     spec = _spec(_plugin(tmp_path, body), timeout_seconds=30.0, output_cap_bytes=600)
@@ -97,7 +120,7 @@ def test_output_cap_keeps_the_tail_and_states_itself(tmp_path):
     assert len(outcome.stdout) < 20000
 
 
-def test_oom_path_classified_from_exit_status(tmp_path):
+def test_oom_path_classified_from_exit_status(tmp_path, plain_child):
     # An unasked-for SIGKILL is the kernel OOM-killer's signature on Linux. The
     # kernel path itself is unmeasured on this machine (macOS has no such kill);
     # the classification is provoked through the exit status, exactly as the
@@ -107,6 +130,41 @@ def test_oom_path_classified_from_exit_status(tmp_path):
     outcome = run_worker(spec)
     assert outcome.status == "oom"
     assert outcome.signal_number == int(signal.SIGKILL)
+
+
+@capabilities.requires_boundary
+def test_a_confined_signal_death_reads_as_the_boundary_reports_it(tmp_path):
+    """The difference the classification tests above stand aside for, measured.
+
+    Seatbelt execs the child, so the supervisor sees `-15` and says `crashed`. bubblewrap
+    keeps a supervisor process, so the same death arrives as exit 143 (128+15) and the
+    status is `nonzero`. Pinning both here keeps the platform's answer a measurement and
+    keeps a future edit from asserting one boundary's shape on the other.
+    """
+    body = "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"
+    spec = _spec(_plugin(tmp_path, body), timeout_seconds=30.0)
+    outcome = run_worker(spec)
+    if outcome.boundary == "bubblewrap":
+        assert outcome.exit_code == 128 + int(signal.SIGTERM) and outcome.signal_number is None
+        assert outcome.status == "nonzero"
+    else:
+        assert outcome.signal_number == int(signal.SIGTERM) and outcome.status == "crashed"
+
+
+@capabilities.requires_boundary
+def test_a_confined_child_exit_status_reaches_the_classifier(tmp_path):
+    """Through the real boundary, the child's own exit code arrives and classifies.
+
+    A signal death is left out on purpose: bubblewrap reports 128+N for one, so the same
+    run reads `nonzero` on Linux and `crashed` on macOS. That difference is the platform's,
+    and the two classification tests above pin the vocabulary on a child neither boundary
+    wraps.
+    """
+    spec = _spec(_plugin(tmp_path, "import sys; sys.exit(9)"), timeout_seconds=30.0)
+    outcome = run_worker(spec)
+    assert outcome.boundary in ("seatbelt", "bubblewrap")
+    assert outcome.status == "nonzero" and outcome.exit_code == 9
+    assert outcome.pgid is not None
 
 
 def test_no_confinement_means_no_execution(tmp_path, monkeypatch):
@@ -121,6 +179,7 @@ def test_no_confinement_means_no_execution(tmp_path, monkeypatch):
     assert outcome.pgid is None
 
 
+@capabilities.requires_boundary
 def test_protocol_error_when_stdout_fails_framing(tmp_path):
     spec = _spec(_plugin(tmp_path, "print('not a framed reply')"), timeout_seconds=30.0)
     outcome = run_worker(spec, protocol_check=lambda text: text.startswith("{"))
@@ -181,6 +240,7 @@ def test_policy_snapshot_states_every_ceiling_in_the_fixed_words():
     assert set(snapshot["statuses"]) == set(STATUSES)
 
 
+@capabilities.requires_boundary
 def test_a_declared_memory_ceiling_runs_the_tool_and_says_what_the_os_allowed(tmp_path):
     """Measured here: macOS refuses every finite RLIMIT_AS, so a declared cap cannot kill a run.
 
@@ -199,6 +259,7 @@ def test_a_declared_memory_ceiling_runs_the_tool_and_says_what_the_os_allowed(tm
         assert outcome.memory_ceiling == "refused", outcome.stderr
 
 
+@capabilities.requires_boundary
 def test_a_run_that_declared_no_ceiling_reports_no_verdict(tmp_path):
     spec = _spec(_plugin(tmp_path, "print(1)"), timeout_seconds=30.0)
     outcome = run_worker(spec)

@@ -25,12 +25,11 @@ import json
 import socket
 import threading
 
-import pytest
-
 from core import mcp_sandbox
 from core.sandbox import supervisor
 from core.sandbox.runner import run_plugin_tool
 from core.tools.dynamic_registry import ToolDescriptor, fingerprint_for
+from tests.support import capabilities
 
 
 def _descriptor(name: str = "plugin_reachprobe_tick") -> ToolDescriptor:
@@ -102,11 +101,12 @@ def _child_home(tmp_path):
 def test_the_plugin_rail_asks_for_the_network_deny_on_both_boundaries(tmp_path) -> None:
     """The argv is the policy, so it is checked without spawning anything.
 
-    `confined_argv` is the function that decides what the OS sees. Asserting the rule here
-    means a platform with no boundary, or a machine where the child path is slow, still
-    fails the change rather than passing it quietly.
+    `confined_argv` is the function that decides what the OS sees. The builders are asked
+    directly on this host, and the live answer is then checked in the shape it comes in:
+    no boundary, a Seatbelt profile, or a bubblewrap argv. A later edit that drops the flag
+    from the launcher fails here without a child having to start.
     """
-    seatbelt = supervisor.confined_argv("/bin/echo", ["hi"], str(tmp_path))
+    live = supervisor.confined_argv("/bin/echo", ["hi"], str(tmp_path))
     bwrap_home = str(tmp_path)
 
     profile = mcp_sandbox.build_profile(bwrap_home, "/bin/echo", deny_network=True)
@@ -118,7 +118,13 @@ def test_the_plugin_rail_asks_for_the_network_deny_on_both_boundaries(tmp_path) 
     argv = mcp_sandbox.build_bwrap(bwrap_home, "/bin/echo", deny_network=True)
     assert "--unshare-net" in argv
     assert "--unshare-net" not in mcp_sandbox.build_bwrap(bwrap_home, "/bin/echo")
-    assert seatbelt is None or any("(deny network*)" in part for part in seatbelt)
+    if live is None:
+        # The product's own answer is the one this test is about: no builder, no spawn.
+        assert mcp_sandbox.platform_boundary() == "unavailable"
+    elif live[0] == "sandbox-exec":
+        assert any("(deny network*)" in part for part in live)
+    else:
+        assert live[0] == "bwrap" and "--unshare-net" in live
 
 
 def test_confined_argv_asks_for_the_network_deny_on_both_boundaries(tmp_path, monkeypatch):
@@ -160,12 +166,9 @@ def test_confined_argv_asks_for_the_network_deny_on_both_boundaries(tmp_path, mo
     assert "a local process with no Origin cannot spend that authority" in note
 
 
+@capabilities.requires_boundary
 def test_a_confined_child_cannot_answer_a_host_listener(tmp_path) -> None:
     """The reach itself, measured: the child is refused, and the host hears nothing."""
-    boundary = mcp_sandbox.platform_boundary()
-    if boundary not in ("seatbelt", "bubblewrap"):
-        pytest.skip(f"no OS boundary on this platform ({boundary!r}); the worker would not spawn")
-
     port, reached, seen = _listener()
     result = run_plugin_tool(
         _descriptor(), {"port": port}, _child_home(tmp_path), timeout_seconds=20

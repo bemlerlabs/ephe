@@ -1,10 +1,11 @@
 """Task #9: the confined dynamic-tool runner — a plugin tool executes in a child, never here.
 
-Every test drives a real confined child through `core.sandbox.run_worker` on this
-machine's boundary (Seatbelt on macOS, the same rail #47 proved live). The subject
-is the boundary, so the assertions are about where code ran and what could not:
-the plugin module loaded in the child and not in this process, the writable root
-and the refusals around it, and the answer when confinement is missing.
+Most tests here drive a really confined child through `core.sandbox.run_worker` on this
+machine's boundary (Seatbelt on macOS, bubblewrap on Linux) and are marked
+`requires_boundary`: the plugin module loaded in the child and not in this process, the
+writable root, the escape that must not reach the host, and the answer when confinement is
+missing. The classification test spawns a plainly forked child instead, because which
+status a signal death becomes is read after the spawn and pinned on every host.
 """
 from __future__ import annotations
 
@@ -23,7 +24,12 @@ from core.sandbox.runner import (
     resolve_plugin_dir,
     run_plugin_tool,
 )
-from core.tools.dynamic_registry import ToolDescriptor, fingerprint_for, served_tool_name
+from core.tools.dynamic_registry import (
+    ToolDescriptor,
+    fingerprint_for,
+    served_tool_name,
+)
+from tests.support import capabilities
 
 
 def _descriptor(plugin_id: str, tool: str, entry: str, *, required=("unit",)) -> ToolDescriptor:
@@ -49,6 +55,13 @@ def _descriptor(plugin_id: str, tool: str, entry: str, *, required=("unit",)) ->
         tool_family="read",
         fingerprint=fingerprint_for(schema),
     )
+
+
+@pytest.fixture
+def plain_child(tmp_path, monkeypatch):
+    """A plugin child with no boundary; the subject is the transport's classifier."""
+    with capabilities.spawn_without_boundary(monkeypatch, tmp_path / "plain-home"):
+        yield
 
 
 def _plugin(tmp_path: Path, body: str, module: str = "handlers") -> Path:
@@ -82,6 +95,7 @@ def run(arguments, state_dir):
 """
 
 
+@capabilities.requires_boundary
 def test_a_tool_runs_in_the_child_and_not_here(tmp_path):
     body = (
         "def run(arguments, state_dir):\n"
@@ -106,7 +120,16 @@ def test_a_tool_runs_in_the_child_and_not_here(tmp_path):
     assert "plugin_entry" not in sys.modules
 
 
+@capabilities.requires_boundary
 def test_writes_land_in_the_data_root_and_nowhere_else(tmp_path, monkeypatch):
+    """The child's own state root persists; the escape never reaches the host.
+
+    The two boundaries refuse the outside write in different words. Seatbelt denies the
+    call, so the child reads `PermissionError`. bubblewrap replaces the user's home with an
+    empty tmpfs, so the same open succeeds into a directory that exists only inside the
+    sandbox and vanishes with it. Both are measured by the host-side assertion, which is
+    the promise: no file outside the data root survives the run.
+    """
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
     escape = str(Path.home() / ".w9_escape_probe")
     Path(escape).unlink(missing_ok=True)
@@ -114,11 +137,16 @@ def test_writes_land_in_the_data_root_and_nowhere_else(tmp_path, monkeypatch):
     assert result.kind == "result", result.text
     payload = json.loads(result.text)
     assert payload["inside"] is True
-    assert payload["refused"] == "PermissionError"
-    assert payload["escape_exists"] is False
+    if mcp_sandbox.platform_boundary() == "seatbelt":
+        assert payload["refused"] == "PermissionError"
+        assert payload["escape_exists"] is False
     assert not Path(escape).exists(), "the confined child wrote outside its data root"
+    # The state root the child was handed is the real one, not a mount that dies with it.
+    state = mcp_sandbox.home_for("plugin_w9") / "inside.txt"
+    assert state.read_text(encoding="utf-8") == "inside-ok"
 
 
+@capabilities.requires_boundary
 def test_a_slow_tool_times_out_and_leaves_no_process(tmp_path):
     marker = "w9sloworphanmarker42"
     body = (
@@ -163,6 +191,7 @@ def test_no_confinement_refuses_and_the_child_never_starts(tmp_path, monkeypatch
     assert "/Users/" not in result.text
 
 
+@capabilities.requires_boundary
 def test_oversized_stderr_is_capped_with_the_tail(tmp_path):
     body = (
         "def run(a, s):\n"
@@ -178,7 +207,8 @@ def test_oversized_stderr_is_capped_with_the_tail(tmp_path):
     assert len(result.text) < 4000
 
 
-def test_crash_and_nonzero_are_distinct_and_sanitised(tmp_path):
+def test_crash_and_nonzero_are_distinct_and_sanitised(tmp_path, plain_child):
+    """Three statuses, three outcomes, on a child no boundary wraps around."""
     crash = _run(
         tmp_path,
         "def run(a, s):\n    import os, signal\n    os.kill(os.getpid(), signal.SIGTERM)\n",
@@ -274,6 +304,7 @@ def _mount(tmp_path, monkeypatch, plugin_id: str, body: str) -> Path:
 
 
 @pytest.mark.asyncio
+@capabilities.requires_boundary
 async def test_a_plugin_descriptor_runs_through_the_transport(tmp_path, monkeypatch):
     from core.tools.dynamic_registry import default_registry
     from core.tools.registry import execute_tool, invalidate_tool_schema_cache

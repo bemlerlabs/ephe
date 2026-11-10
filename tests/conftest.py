@@ -13,6 +13,7 @@ import pytest
 
 from core.types import Message
 from tests import timing_segment
+from tests.support import capabilities
 
 
 def pytest_configure(config: pytest.Config) -> None:  # noqa: ARG001 (pytest hook signature)
@@ -91,6 +92,15 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in marked:
         if not timing_segment.skips_in_this_session(item):
             item.add_marker(marker)
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Let the two capability markers decide, with the probe's reason or a CI failure.
+
+    The decision lives in `tests/support/capabilities.py` so one file answers "does this
+    host have the boundary" and every test file asks it the same way.
+    """
+    capabilities.gate(item)
 
 
 @pytest.fixture(autouse=True)

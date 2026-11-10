@@ -7,8 +7,9 @@ called it "for display/intent only", and the confined worker — the rail a v2 t
 bundle runs on — read nothing of it. Both halves now answer to one resolution function, which
 is what these tests hold: a declaration means the same set of paths whoever reads it.
 
-The confined cases run a real child on this machine's boundary (Seatbelt here, the rail #9,
-#47 and #23 proved live), because the claim is about what the OS lets the process open.
+The confined cases run a real child on this machine's boundary (the rail #9, #47 and #23
+proved live), because the claim is about what the OS lets the process open. Where the host
+has none they skip with `tests/support/capabilities.py`'s reason instead of failing.
 
 The second half of #24 is the ceiling beside that folder: 512 MiB per bundle unless the
 manifest asks for another number, measured after every run and refused before the next one.
@@ -25,6 +26,7 @@ from core.capability_policy import resolved_data_roots
 from core.plugin_state import usage as state_usage
 from core.sandbox.runner import _data_roots, run_plugin_tool
 from core.sandbox.worker_spec import build_spec
+from tests.support import capabilities
 
 PLUGIN_ID = "acme-notebook"
 
@@ -192,9 +194,11 @@ def fenced(lane, monkeypatch):
 # the confined child
 
 
-def _skip_without_boundary():
-    if mcp_sandbox.platform_boundary() == "unavailable":
-        pytest.skip("no OS boundary on this machine — the confined child cannot start")
+def _skip_without_boundary() -> None:
+    """The shared probe, in the shape these tests were written with."""
+    if capabilities.has_boundary():
+        return
+    pytest.skip(capabilities.boundary_skip_reason())
 
 
 def test_the_declaration_opens_one_folder_and_leaves_its_sibling_shut(fenced, monkeypatch):

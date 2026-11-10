@@ -48,6 +48,12 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 25
+    env:
+      # The sandbox families prove a confined child on the boundary this job installs
+      # below. Without the variable a host without the capability skips those proofs and
+      # the leg still goes green; with it, the absence is red. `tests/support/capabilities.py`
+      # reads it, so no test file decides this on its own.
+      EPHE_REQUIRE_OS_BOUNDARY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -217,16 +223,34 @@ jobs:
         # node directory to point at.
         run: bash scripts/ci_preflight.sh
 
-      - name: Enable user namespaces for the MCP sandbox
-        # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
-        # map a uid there and every stdio MCP server refuses to start. The product keeps that
-        # refusal; the test host provides the kernel setting the sandbox needs. Older images
-        # without the key stay green.
+      - name: Provide the OS boundary the sandbox tests prove
+        # Five families drive a really confined child and are marked `requires_boundary` in
+        # tests/support/capabilities.py. Where the capability is missing they skip with the
+        # probe's reason, which is right on a laptop and wrong here: this leg exists to run
+        # those proofs, so bubblewrap is installed instead of assumed. Ubuntu 24.04 also
+        # restricts unprivileged user namespaces (AppArmor), and bwrap then cannot map a uid;
+        # the product keeps that refusal, the runner provides the kernel setting. Older
+        # images without the key stay green.
         run: |
           if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          bwrap --version
+
+      - name: Assert the sandbox boundary is usable
+        # `bwrap` on PATH is not the capability: the probe creates the namespaces the rails
+        # ask for (`--unshare-pid`, `--unshare-net`) and names the missing half here, before
+        # the suite spends minutes reaching its first sandbox test.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import capability_report
+          report = capability_report()
+          print(f"os_boundary={report['boundary']} {report['skip_reason']}".strip())
+          if report["boundary"] == "unavailable":
+              raise SystemExit(f"the sandbox proofs cannot run: {report['skip_reason']}")
+          PY
 
       # Timing gates run alone, ahead of the parallel legs. They measure a wall clock
       # (startup p90 < 150 ms, TTFB < 500 ms), and xdist workers share the machine while
@@ -328,6 +352,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
     timeout-minutes: 25
+    env:
+      # Seatbelt is this leg's boundary. Same rule as the Linux job: a host that cannot
+      # prove it fails here instead of skipping the proofs under a green check.
+      EPHE_REQUIRE_OS_BOUNDARY: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -398,6 +426,18 @@ jobs:
           corepack enable
           corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
           pnpm --version
+
+      - name: Assert the sandbox boundary is usable (macOS)
+        # This leg's boundary is Seatbelt. The step above proves the job landed on Darwin;
+        # this proves the mechanism itself, with the same probe the Linux leg runs.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import capability_report
+          report = capability_report()
+          print(f"os_boundary={report['boundary']} {report['skip_reason']}".strip())
+          if report["boundary"] == "unavailable":
+              raise SystemExit(f"the sandbox proofs cannot run: {report['skip_reason']}")
+          PY
 
       # Copied from `pytest-linux`, both halves, by the owner's decision of 2026-10-10: two jobs
       # with a literal matrix rather than one job with a `fromJSON` matrix, because the literal form
