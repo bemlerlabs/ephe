@@ -14,7 +14,8 @@ import uuid
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from core import __version__
@@ -26,6 +27,7 @@ from core.model_provider import (
     key_challenge_reason,
 )
 from core.model_router import get_router
+from server.middleware import health_may_name_the_host
 
 router = APIRouter(tags=["Health"])
 
@@ -246,8 +248,28 @@ def _unavailable_engine_answer(exc: Exception) -> HealthResponse:
     )
 
 
+#: The liveness shape a caller without the LAN token gets (issue #196).
+_LIVENESS_FIELDS = ("status", "version", "api_contract")
+
+
 @router.get("/health", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+async def health_check(request: Request):
+    """Liveness, plus the engine state — and the host identity only for a trusted caller.
+
+    The answer follows `health_may_name_the_host`: on `--lan` a caller without the token
+    gets `{status, version, api_contract}` instead of the checkout path, the pid, the git
+    sha and the instance id (`server/middleware.py`). The state itself (200, `degraded`,
+    the reason in `detail`) stays on both shapes, because the Setup page has to load to
+    explain a broken engine environment.
+    """
+    answer = await _health_answer()
+    if health_may_name_the_host(request):
+        return answer
+    body = {field: getattr(answer, field) for field in _LIVENESS_FIELDS}
+    return JSONResponse(body)
+
+
+async def _health_answer() -> HealthResponse:
     """
     Checks whether the server, Ollama and optionally the DGX are reachable.
     Always returns status 200.

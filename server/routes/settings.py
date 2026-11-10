@@ -679,8 +679,9 @@ def _setup_provider_dict() -> dict:
     took 316-533 ms while `_setup_candidates()` beside it took 0.1 ms. That number sat on
     the PWA's first-paint path, because the app gated its first render on this route.
 
-    The answer is a discovery aid. `configured`/`skipped` come from the local engine.json and
-    do not change under the user's hands, and the live engine truth has its own home in
+    The answer is a discovery aid. `configured`/`skipped` come from the local engine.json
+    (or a complete explicit engine env) and do not change under the user's hands, and the
+    live engine truth has its own home in
     `GET /api/health` (measured 3-14 ms, polled every 10 s). So the probe result is memoised
     for `_SETUP_PROBE_TTL_S` — a reload, a second mount or a route change no longer re-pays
     it, and the app stops waiting on an upstream round trip to be told something a file
@@ -700,6 +701,18 @@ def _setup_provider_dict() -> dict:
     url = persisted.api_url if persisted else (active.base_url if active.provider == "openai_compatible" else None)
     reachable, available_models = _probe_memoised(provider, url)
     complete = _engine_choice_is_complete(persisted)
+    if not complete and persisted is None:
+        # #204: the explicit engine env is a chosen engine too (docs/CLI.md names it
+        # for scripted and headless setups), and /api/chat answers with it. The gate
+        # must not send the browser to setup for an engine this process already has.
+        # engine.json still wins when present: a half-written persisted choice keeps
+        # the setup page reachable instead of being masked by a working env.
+        try:
+            from core.engine_config import engine_choice_from_env
+
+            complete = _engine_choice_is_complete(engine_choice_from_env())
+        except Exception:  # noqa: BLE001 — an unreadable env is not a configured engine
+            complete = False
     # T2: a stored key for another engine keeps the setup screen open. The state is
     # re-read on every call, so re-entering the key or restoring the bound engine
     # clears it here.
@@ -802,7 +815,8 @@ def _probe_remote(url: str):
 def get_setup_status() -> dict:
     """Reports whether the user has already chosen an engine.
 
-    configured=True  → engine.json exists → the PWA goes straight into the chat.
+    configured=True  → engine.json exists, or a complete engine env names the engine →
+    the PWA goes straight into the chat.
     configured=False → the PWA shows the engine choice (end-user choice).
     reachable/available_models are a bonus: the PWA can offer the detected
     models directly as a choice (e.g. all local Ollama models).

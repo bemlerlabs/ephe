@@ -4,9 +4,12 @@
 # install.sh leaves exactly two things on a machine: a checkout in
 # EPHE_INSTALL_DIR (default $HOME/Documents/Ephe) and the app's state tree in
 # EPHE_CONFIG_DIR (default $HOME/.ephe — engine.json, engine.key, sessions,
-# memory, artifacts, workspaces, changesets, bench runs, caches). This script
-# removes those two trees and NOTHING else, and it refuses to run when either
-# path looks like something other than what it names.
+# memory, artifacts, workspaces, changesets, bench runs, caches). The desktop app
+# adds a third set: the three directories it writes under `$HOME/Library` — the
+# window geometry in Application Support, the WebKit store and the Caches tree,
+# all named by the bundle identifier (issue #197). This script removes those and
+# NOTHING else, and it refuses to run when a path looks like something other than
+# what it names.
 #
 # Why the paranoia: `rm -rf "$SOMETHING"` is the one command in this repo that
 # cannot be undone or code-reviewed after the fact, and both paths are
@@ -46,6 +49,13 @@ INSTALL_DIR="${EPHE_INSTALL_DIR:-$HOME/Documents/Ephe}"
 # $HOME/.ephe unconditionally; this script honours the override so a user who
 # relocated the tree can still uninstall it.
 DATA_DIR="${EPHE_CONFIG_DIR:-$HOME/.ephe}"
+# The desktop app's own state under `$HOME/Library`, named by the bundle identifier
+# from `app/src-tauri/tauri.conf.json`. None of it is reachable from the two trees
+# above, which is why the uninstaller used to leave it behind: the window-state
+# plugin (.window-state.json), WebKit's per-app store and the URL cache all survive a
+# `rm -rf ~/.ephe` (issue #197). They follow the same rule as the data tree: removed
+# with --yes, kept with --keep-data, named by a dry run.
+BUNDLE_ID="${EPHE_BUNDLE_ID:-com.ephe.ephe}"
 DRY_RUN="${EPHE_DRY_RUN:-0}"
 KEEP_DATA="${EPHE_KEEP_DATA:-0}"
 ASSUME_YES=0
@@ -62,17 +72,18 @@ for arg in "$@"; do
       printf '%s\n' "Usage: ./uninstall.sh [--dry-run] [--keep-data] [--yes] [--force]"
       printf '%s\n' "Env: EPHE_INSTALL_DIR, EPHE_CONFIG_DIR, EPHE_DRY_RUN, EPHE_KEEP_DATA"
       printf '%s\n' ""
-      printf '%s\n' "Removes the two things install.sh leaves behind:"
+      printf '%s\n' "Removes the three things Ephe leaves behind:"
       printf '%s\n' "  checkout  $INSTALL_DIR"
       printf '%s\n' "  data      $DATA_DIR   (engine key, sessions, memory, artifacts)"
+      printf '%s\n' "  app       $HOME/Library/{Application Support,WebKit,Caches}/$BUNDLE_ID"
       printf '%s\n' ""
-      printf '%s\n' "Nothing outside those two paths is ever touched, and the script refuses"
+      printf '%s\n' "Nothing outside those paths is ever touched, and the script refuses"
       printf '%s\n' "when a path is a filesystem root, your home directory, an ancestor of it,"
       printf '%s\n' "a directory shallower than /a/b, or not an Ephe checkout."
       printf '%s\n' ""
       printf '%s\n' "Flags:"
       printf '%s\n' "  --dry-run    list what would be removed, remove nothing"
-      printf '%s\n' "  --keep-data  remove the checkout, keep $DATA_DIR"
+      printf '%s\n' "  --keep-data  remove the checkout, keep $DATA_DIR and the app's Library state"
       printf '%s\n' "  --yes        do not ask about the data tree; remove it too"
       printf '%s\n' "  --force      proceed even if the checkout carries no Ephe markers"
       printf '%s\n' ""
@@ -224,11 +235,24 @@ remove_tree() {
 }
 
 # --- Refuse a bad environment before any step runs --------------------------
+# The bundle identifier is the leaf of three paths this script removes, so a value
+# carrying a separator or `..` would aim the removal at a directory that is not the
+# app's (an empty one would aim it at `~/Library/Caches` itself). It has to look like a
+# bundle id: dot-separated, no slash.
+if [[ ! "$BUNDLE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z0-9.-]+$ ]]; then
+  refuse "EPHE_BUNDLE_ID must look like a bundle identifier (for example com.ephe.ephe), got '$BUNDLE_ID'."
+fi
+APP_LIBRARY_DIRS=(
+  "$HOME/Library/Application Support/$BUNDLE_ID"
+  "$HOME/Library/WebKit/$BUNDLE_ID"
+  "$HOME/Library/Caches/$BUNDLE_ID"
+)
+
 assert_disjoint "$(norm_path "$(resolve_path "$INSTALL_DIR")")" "$(norm_path "$(resolve_path "$DATA_DIR")")"
 
 printf '%s\n' ""
 printf '%b\n' "${GREEN}${BOLD}Ephe uninstaller${NC}"
-printf '%b\n' "${DIM}Removes exactly two trees: the checkout and the state tree. Nothing else.${NC}"
+printf '%b\n' "${DIM}Removes the checkout and the state tree, plus the app's own Library state. Nothing else.${NC}"
 printf '%s\n' ""
 
 # --- The checkout ------------------------------------------------------------
@@ -279,31 +303,83 @@ else
   fi
 fi
 
+# The desktop app's Library state.
+# Asked about with the data tree, because it is the same kind of thing: the app's own
+# state. A machine that never opened the app has none of it, and that case is stated.
+step "The desktop app's Library state"
+app_state_present=0
+for dir in "${APP_LIBRARY_DIRS[@]}"; do
+  if [[ -e "$dir" || -L "$dir" ]]; then
+    app_state_present=1
+    break
+  fi
+done
+if [[ "$app_state_present" == "0" ]]; then
+  info "none of the three directories exists — the app was never opened on this machine"
+else
+  for dir in "${APP_LIBRARY_DIRS[@]}"; do
+    if [[ ! -e "$dir" && ! -L "$dir" ]]; then
+      info "app state: $dir does not exist — nothing to remove"
+      continue
+    fi
+    if [[ ! -d "$dir" ]]; then
+      warn "app state: $dir is not a directory; leaving it alone"
+      continue
+    fi
+    size="$(tree_size "$dir")"
+    files="$(tree_files "$dir")"
+    if [[ "$KEEP_DATA" == "1" ]]; then
+      info "keeping $dir ($size, $files files) because of --keep-data"
+    elif [[ "$REMOVE_DATA" == "1" ]]; then
+      remove_tree "$dir" "app state"
+    elif [[ "$DRY_RUN" == "1" ]]; then
+      info "app state: would remove $dir ($size, $files files) with --yes"
+    else
+      info "no terminal to ask on, and no --yes: keeping $dir ($size, $files files)"
+    fi
+  done
+fi
+
+# The closing banner tells the truth only about what is still there, so the presence is
+# recomputed after the removals rather than remembered from before them.
+app_state_remaining=0
+for dir in "${APP_LIBRARY_DIRS[@]}"; do
+  if [[ -e "$dir" || -L "$dir" ]]; then
+    app_state_remaining=1
+  fi
+done
+
 # --- What is left ------------------------------------------------------------
 printf '%s\n' ""
 step "What was left alone"
-info "any other checkout: this run only touched the two paths named above"
+info "any other checkout: this run only touched the paths named above"
 info "Ollama and its models: untouched (the installer never installed them either)"
 if [[ -e "$DATA_DIR" ]]; then
   info "your data: $DATA_DIR ($(tree_size "$DATA_DIR"), $(tree_files "$DATA_DIR") files)"
 fi
+for dir in "${APP_LIBRARY_DIRS[@]}"; do
+  if [[ -e "$dir" || -L "$dir" ]]; then
+    info "the app's Library state: $dir ($(tree_size "$dir"), $(tree_files "$dir") files)"
+  fi
+done
 # An engine key may also live in the OS keychain (ENGINE_KEYRING_SERVICE = "ephe",
 # core/engine_config.py), which is outside both trees by design — this script does
 # not reach outside them, so the entry is reported rather than removed.
 info "the OS keychain item 'ephe' / 'engine_api_key', if your engine key was stored there: not removed (remove it in Keychain Access if you want it gone)"
 if command -v ephe >/dev/null 2>&1; then
-  info "the 'ephe' on your PATH at $(command -v ephe): untouched (it is not inside the two paths)"
+  info "the 'ephe' on your PATH at $(command -v ephe): untouched (it is not inside those paths)"
 fi
 
 printf '%s\n' ""
 if [[ "$DRY_RUN" == "1" ]]; then
   printf '%b\n' "${GREEN}${BOLD}Dry run — nothing was removed.${NC}"
   printf '%s\n' "Run the same command without --dry-run to remove what is listed above."
-elif [[ -e "$DATA_DIR" || -L "$DATA_DIR" ]]; then
+elif [[ -e "$DATA_DIR" || -L "$DATA_DIR" ]] || [[ "$app_state_remaining" == "1" ]]; then
   printf '%b\n' "${GREEN}${BOLD}The checkout is gone; your data is still at $DATA_DIR.${NC}"
   printf '%s\n' "Remove it too with: ./uninstall.sh --yes    (or: rm -rf \"$DATA_DIR\")"
+  printf '%s\n' "That run also clears the app's Library state under $HOME/Library."
 else
   printf '%b\n' "${GREEN}${BOLD}Ephe is gone from this machine.${NC}"
-  printf '%s\n' "Reinstall at any time with: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.sh | bash"
+  printf '%s\n' "Reinstall at any time with: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash"
 fi
 printf '%s\n' ""

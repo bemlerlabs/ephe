@@ -19,7 +19,7 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-import ComposerModeMenu from './ComposerModeMenu'
+import ModeMenu from './ModeMenu'
 import ComposerAttachMenu from './ComposerAttachMenu'
 import ComposerFooterHints from './ComposerFooterHints'
 import ComposerMicButton from './ComposerMicButton'
@@ -41,36 +41,24 @@ function withAnchor(ui: (ref: RefObject<HTMLButtonElement | null>) => ReactNode)
   return render(<Host />)
 }
 
-describe('mode menu — one menu, named highlight, checked single choice', () => {
+describe('header mode menu — one menu, named highlight, checked single choice', () => {
   it('renders one role=menu and carries the label on it, not on a second menu', () => {
     withAnchor((anchorRef) => (
-      <ComposerModeMenu
-        pos={POS}
-        anchorRef={anchorRef}
-        mode="analyst"
-        onClose={vi.fn()}
-        onPick={vi.fn()}
-      />
+      <ModeMenu anchorRef={anchorRef} mode="analyst" onClose={vi.fn()} onPick={vi.fn()} />
     ))
     expect(document.querySelectorAll('[role="menu"]')).toHaveLength(1)
-    const menu = screen.getByTestId('composer-mode-list')
+    const menu = screen.getByTestId('mode-list')
     expect(menu.getAttribute('role')).toBe('menu')
     expect(menu.getAttribute('aria-label')).toBe('chat.modeSelectorAria')
     // No role on the portal wrapper — the duplicate menu is gone.
-    expect(screen.getByTestId('composer-mode-menu').getAttribute('role')).toBeNull()
+    expect(screen.getByTestId('mode-menu').getAttribute('role')).toBeNull()
   })
 
   it('names the highlighted row and follows it on ArrowDown', () => {
     withAnchor((anchorRef) => (
-      <ComposerModeMenu
-        pos={POS}
-        anchorRef={anchorRef}
-        mode="analyst"
-        onClose={vi.fn()}
-        onPick={vi.fn()}
-      />
+      <ModeMenu anchorRef={anchorRef} mode="analyst" onClose={vi.fn()} onPick={vi.fn()} />
     ))
-    const menu = screen.getByTestId('composer-mode-list')
+    const menu = screen.getByTestId('mode-list')
     expect(menu.getAttribute('aria-activedescendant')).toBe('mode-opt-analyst')
     // The referenced row is in the document, otherwise the name points at nothing.
     expect(document.getElementById('mode-opt-analyst')).not.toBeNull()
@@ -82,22 +70,16 @@ describe('mode menu — one menu, named highlight, checked single choice', () =>
 
   it('exposes the active mode as a checked menuitemradio', () => {
     withAnchor((anchorRef) => (
-      <ComposerModeMenu
-        pos={POS}
-        anchorRef={anchorRef}
-        mode="architect"
-        onClose={vi.fn()}
-        onPick={vi.fn()}
-      />
+      <ModeMenu anchorRef={anchorRef} mode="architect" onClose={vi.fn()} onPick={vi.fn()} />
     ))
     const rows = screen.getAllByRole('menuitemradio')
     // Four since Wave 5 put `creator` on a tile (the guard `80e3852f` and the four
     // bundle tools `b4daa41c` were the condition the tile was held to).
     expect(rows).toHaveLength(4)
-    expect(screen.getByTestId('composer-mode-architect').getAttribute('aria-checked')).toBe('true')
-    expect(screen.getByTestId('composer-mode-analyst').getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByTestId('mode-option-architect').getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByTestId('mode-option-analyst').getAttribute('aria-checked')).toBe('false')
     // A menuitemradio never claims aria-selected — that is the listbox role's.
-    expect(screen.getByTestId('composer-mode-architect').getAttribute('aria-selected')).toBeNull()
+    expect(screen.getByTestId('mode-option-architect').getAttribute('aria-selected')).toBeNull()
   })
 })
 

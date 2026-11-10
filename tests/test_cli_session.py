@@ -182,3 +182,23 @@ def test_main_help_lists_session_subcommand(sessions_dir: Path):
     r = _run("--help", sessions_dir=sessions_dir)
     assert r.returncode == 0
     assert "session" in r.stdout
+
+
+def test_the_empty_list_hint_names_a_command_the_cli_accepts(sessions_dir: Path):
+    """The hint a first-run reader copies must parse. It used to say `ephe session new
+    <title>`, while `session new` only takes `--title`: following it exited 2."""
+    import re
+    import shlex
+
+    listed = _run("session", "list", sessions_dir=sessions_dir)
+    hint = next(line for line in listed.stdout.splitlines() if "No sessions" in line)
+    match = re.search(r"`([^`]+)`", hint)
+    assert match is not None, f"the hint names no command: {hint!r}"
+
+    argv = [part.replace("<title>", "Probe A") for part in shlex.split(match.group(1))]
+    assert argv[0] == "ephe"
+
+    created = _run(*argv[1:], sessions_dir=sessions_dir)
+
+    assert created.returncode == 0, created.stderr
+    assert "Probe A" in created.stdout

@@ -1,8 +1,8 @@
 /**
- * The composer asks for Creator Mode; it does not hand it out.
+ * The header asks for Creator Mode; it does not hand it out.
  *
- * The tile is the entry point, and the guard behind it refuses every call the
- * session has not been granted (`80e3852f`). So the two halves have to meet in
+ * The menu row is the entry point (in the header since 2026-11-10), and the guard
+ * behind it refuses every call the session has not been granted (`80e3852f`). So the two halves have to meet in
  * one honest sequence on the surface: picking Creator opens the consent sheet
  * and leaves the session on the mode it was already using, the sheet's answer
  * is written for that session, and only then does the session switch. A tile
@@ -43,14 +43,14 @@ const api = vi.hoisted(() => ({
 
 vi.mock('@/lib/api', () => api)
 
-import ChatInput from '../ChatInput'
+import HeaderModeControl from './HeaderModeControl'
 import { useChatStore } from '@/store/chatStore'
 
 const storedMode = (): string =>
   String((useChatStore.getState().sessions[0] as { mode?: string }).mode)
 
 const openModeMenu = () => {
-  fireEvent.click(screen.getByTestId('composer-mode-selector'))
+  fireEvent.click(screen.getByTestId('header-mode-control'))
 }
 
 beforeEach(() => {
@@ -85,13 +85,13 @@ beforeEach(() => {
   } as never)
 })
 
-describe('entering Creator Mode from the composer', () => {
+describe('entering Creator Mode from the header', () => {
   it('opens the sheet and leaves the session on the mode it had', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
-    await waitFor(() => expect(screen.getByTestId('chat-input')).toBeTruthy())
+    render(<HeaderModeControl />)
+    await waitFor(() => expect(screen.getByTestId('header-mode-control')).toBeTruthy())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-creator'))
+    fireEvent.click(screen.getByTestId('mode-option-creator'))
 
     await waitFor(() => expect(screen.getByTestId('creator-consent-code')).toBeTruthy())
     expect(storedMode()).toBe('operator')
@@ -99,11 +99,11 @@ describe('entering Creator Mode from the composer', () => {
   })
 
   it('writes the answer for this session, then switches it', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
-    await waitFor(() => expect(screen.getByTestId('chat-input')).toBeTruthy())
+    render(<HeaderModeControl />)
+    await waitFor(() => expect(screen.getByTestId('header-mode-control')).toBeTruthy())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-creator'))
+    fireEvent.click(screen.getByTestId('mode-option-creator'))
     await waitFor(() => expect(screen.getByTestId('creator-consent-code')).toBeTruthy())
 
     fireEvent.click(screen.getByTestId('creator-consent-code-input'))
@@ -114,11 +114,11 @@ describe('entering Creator Mode from the composer', () => {
   })
 
   it('keeps the session where it was when the user closes the sheet', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
-    await waitFor(() => expect(screen.getByTestId('chat-input')).toBeTruthy())
+    render(<HeaderModeControl />)
+    await waitFor(() => expect(screen.getByTestId('header-mode-control')).toBeTruthy())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-creator'))
+    fireEvent.click(screen.getByTestId('mode-option-creator'))
     await waitFor(() => expect(screen.getByTestId('creator-consent-code')).toBeTruthy())
 
     fireEvent.click(screen.getByTestId('creator-consent-cancel'))
@@ -129,28 +129,28 @@ describe('entering Creator Mode from the composer', () => {
   })
 
   it("asks again the next time, because the grant is the session's, not the app's", async () => {
-    render(<ChatInput onSend={vi.fn()} />)
-    await waitFor(() => expect(screen.getByTestId('chat-input')).toBeTruthy())
+    render(<HeaderModeControl />)
+    await waitFor(() => expect(screen.getByTestId('header-mode-control')).toBeTruthy())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-creator'))
+    fireEvent.click(screen.getByTestId('mode-option-creator'))
     await waitFor(() => expect(screen.getByTestId('creator-consent-code')).toBeTruthy())
     fireEvent.click(screen.getByTestId('creator-consent-cancel'))
     await waitFor(() => expect(screen.queryByTestId('creator-consent-code')).toBeNull())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-creator'))
+    fireEvent.click(screen.getByTestId('mode-option-creator'))
     await waitFor(() => expect(screen.getByTestId('creator-consent-code')).toBeTruthy())
     expect(api.getCreatorConsent).toHaveBeenCalledTimes(2)
   })
 
   it('leaves the session on its old mode when the consent write fails', async () => {
     api.putCreatorConsent.mockRejectedValue(new Error('backend down'))
-    render(<ChatInput onSend={vi.fn()} />)
-    await waitFor(() => expect(screen.getByTestId('chat-input')).toBeTruthy())
+    render(<HeaderModeControl />)
+    await waitFor(() => expect(screen.getByTestId('header-mode-control')).toBeTruthy())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-creator'))
+    fireEvent.click(screen.getByTestId('mode-option-creator'))
     await waitFor(() => expect(screen.getByTestId('creator-consent-code')).toBeTruthy())
 
     fireEvent.click(screen.getByTestId('creator-consent-code-input'))
@@ -161,11 +161,11 @@ describe('entering Creator Mode from the composer', () => {
   })
 
   it('switches the other three tiles without a sheet', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
-    await waitFor(() => expect(screen.getByTestId('chat-input')).toBeTruthy())
+    render(<HeaderModeControl />)
+    await waitFor(() => expect(screen.getByTestId('header-mode-control')).toBeTruthy())
 
     openModeMenu()
-    fireEvent.click(screen.getByTestId('composer-mode-architect'))
+    fireEvent.click(screen.getByTestId('mode-option-architect'))
 
     await waitFor(() => expect(storedMode()).toBe('architect'))
     expect(screen.queryByTestId('creator-consent-code')).toBeNull()

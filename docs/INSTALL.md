@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -42,7 +42,7 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.6.2` tag. The fetch answers HTTP 200 once
+The one-liner fetches `install.sh` from the public `v0.6.3` tag. The fetch answers HTTP 200 once
 that tag is published; the checkout path above is the alternative for reading the script before
 it runs.
 
@@ -53,13 +53,13 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -108,10 +108,36 @@ ephe start --open # desktop mode: start the local app, then open http://127.0.0.
 | Desktop / PWA (default) | `--desktop` (`--gui`, `--web`, `--pwa`) | Python 3.11+ and Node.js 20+ with `npm` (or `pnpm`) | `.[gui,voice]` plus the built PWA | `ephe start --open` |
 | CLI | `--cli` (`--headless`, `--tui`) | Python 3.11+ only | `.[tui]` only | `ephe tui` |
 
-`--no-start` installs without launching anything. `--dry-run` prints the plan without changing
-anything. The Bash installer defaults to Desktop; choose `--cli` or `EPHE_MODE=cli` for
-terminal-only use. The default piped installation needs Node.js.
+`--no-start` installs without launching anything. The Bash installer defaults to Desktop; choose
+`--cli` or `EPHE_MODE=cli` for terminal-only use. The default piped installation needs Node.js.
 Windows uses `-Cli` and `-Desktop` for these modes.
+
+`--dry-run` prints the plan and writes nothing: no checkout, no `.venv`, no data folder, no
+launcher symlink, no PWA build — and no `uv` cache. The interpreter lookup runs `uv python find`,
+which caches its answer, so a dry run points `UV_CACHE_DIR` at a temporary directory it removes
+again. Steps it skips are reported as "would build…" / "would create…" rather than as success, and
+the run ends with `Dry run complete. Nothing was installed, built or written.` (Measured before the
+fix: a dry run left `~/.cache/uv` behind and printed `PWA built → app/dist` for a build it never
+ran.)
+
+### Building the PWA without pnpm
+
+`app/` is a pnpm workspace with `app/pnpm-lock.yaml` as its only lockfile. When `pnpm` is missing
+or does not run — Homebrew's pnpm is a corepack shim, and the shim can fail to resolve the pinned
+version from another directory — the installer installs and builds with npm:
+
+```bash
+npm --prefix app install --no-package-lock --legacy-peer-deps
+npm --prefix app run build
+```
+
+`--no-package-lock` keeps `app/package-lock.json` from appearing (`pnpm` stays the one lockfile),
+and `--legacy-peer-deps` installs the peer tree npm otherwise refuses or crashes on. The peers the
+app needs are declared in `app/package.json`, and `@vitest/coverage-v8`/`vitest` are pinned to the
+same exact version because the coverage package peers on `vitest@<its own version>`; the tauri
+plugin wrapper versions are pinned to the crate versions in `app/src-tauri/Cargo.lock`, because
+`tauri build` refuses to bundle when the two disagree. `pnpm install --frozen-lockfile` remains the
+path CI uses.
 
 ### Environment variables
 
@@ -153,6 +179,56 @@ vendor rotation is not a failure of the install.
 
 `install.ps1` runs the same `EPHE_PORT`/`EPHE_MODE` pre-flight (exit 2, naming the offending value)
 and reports the failing step; a failed update of an existing checkout warns and continues, as above.
+
+## The macOS bundle seal
+
+A `.app` that fails `codesign --verify` is not a cosmetic warning: macOS binds every privacy grant
+(the microphone among them) to the code requirement, and an unsealed bundle loses those grants on
+every rebuild. The build therefore signs the **whole** bundle, and the release records what it
+signed:
+
+```bash
+scripts/macos_sign_audit.sh /Applications/Ephe.app
+```
+
+That prints the four answers that matter — `codesign --verify --deep --strict`, `codesign -dv
+--verbose=2`, `spctl -a -vv` and `xcrun stapler validate` — and exits non-zero only when the seal
+itself is invalid. Two states are legal and mean different things:
+
+| State | `codesign --verify --deep --strict` | Gatekeeper on a downloaded copy |
+|---|---|---|
+| Ad-hoc (no Apple secrets in the release) | passes; `Identifier=com.ephe.ephe`, `flags=0x10002(adhoc,runtime)`, sealed resources | rejects: no Developer ID and no ticket |
+| Developer ID + notarized | passes; `TeamIdentifier` set | accepts: the ticket is stapled |
+
+The released DMG is ad-hoc signed unless the repository carries the Apple signing secrets
+(`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`) **and** the
+notarization ones (`APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, or `APPLE_API_KEY` with
+`APPLE_API_ISSUER`). Without the notarization pair the bundle is signed but not notarized, the
+release workflow says so in its step summary, and Gatekeeper still refuses a download that arrives
+with a quarantine flag. That is the honest state, not a bug report: the seal is valid, the
+distribution is not notarized.
+
+What to do as a user, while a release is not notarized:
+
+1. Drag `Ephe.app` into `/Applications`.
+2. Right-click (or Control-click) the app and choose **Open**, then **Open** again in the dialog.
+   Double-clicking the same app afterwards works.
+3. System Settings → Privacy & Security also offers **Open Anyway** for the blocked app. Both
+   paths bypass Gatekeeper's first-launch check; neither repairs or replaces the seal, and neither
+   creates a notarization ticket.
+
+A local build gets the same sealed bundle. `ephe desktop` builds with the default ad-hoc identity;
+if you build by hand, pass it explicitly:
+
+```bash
+cd app && npm run tauri build -- --config '{"bundle":{"macOS":{"signingIdentity":"-"}}}'
+```
+
+`app/src-tauri/tauri.conf.json` deliberately carries no `signingIdentity`: a committed identity
+would be used by every local build, and the release passes its own through `--config`. Without the
+override the build keeps the linker signature the toolchain writes, which is the state that fails
+`codesign --verify --deep --strict` with `code has no resources but signature indicates they must
+be present`.
 
 ## Docker
 
@@ -210,15 +286,22 @@ Explicit `--model` and `--api-url` flags always override the persisted choice. S
 
 ## Uninstall
 
-`uninstall.sh` in the repository root is the way back out. It removes two trees and nothing else:
-the checkout in `EPHE_INSTALL_DIR` (default `~/Documents/Ephe`) and the state tree in
-`EPHE_CONFIG_DIR` (default `~/.ephe`).
+`uninstall.sh` in the repository root is the way back out. It removes three things and nothing
+else: the checkout in `EPHE_INSTALL_DIR` (default `~/Documents/Ephe`), the state tree in
+`EPHE_CONFIG_DIR` (default `~/.ephe`), and the desktop app's own state under `~/Library` —
+`Application Support`, `WebKit` and `Caches`, each under the bundle identifier `com.ephe.ephe`
+(override the identifier with `EPHE_BUNDLE_ID`). That third set is what a `rm -rf ~/.ephe` never
+reached: the window geometry the app restores, WebKit's store and the URL cache.
 
 ```bash
-./uninstall.sh --dry-run     # list both trees with size and file count, remove nothing
-./uninstall.sh --keep-data   # remove the checkout, keep ~/.ephe
-./uninstall.sh --yes         # remove both without asking about the data tree
+./uninstall.sh --dry-run     # list all three with size and file count, remove nothing
+./uninstall.sh --keep-data   # remove the checkout, keep the state tree and the Library state
+./uninstall.sh --yes         # remove all three without asking about the data tree
 ```
+
+`~/Library` state follows the same rule as `~/.ephe`: it is app state, not a product file, so it
+goes only with `--yes` (or after the prompt answered yes), stays with `--keep-data`, and a machine
+where the app was never opened is told that none of the three directories exists.
 
 The checkout is reconstructible from git; `~/.ephe` is not. It holds `engine.json` and
 `engine.key` (the engine choice and its key, bound by `engine.key.binding.json`), `memory/`, `sessions/`, `artifacts/`, `changesets/`,
@@ -227,10 +310,10 @@ non-interactive run without `--yes` keeps it and prints the command that removes
 ends by naming what it left behind, the engine key inside the OS keychain and an `ephe` that came
 from somewhere else included.
 
-The script refuses — exit 2, nothing removed — when either path is a filesystem root, your home
-directory or an ancestor of it, a top-level directory such as `/tmp`, a path the other tree sits
-inside, or a directory that carries no Ephe markers (`pyproject.toml`, `app/src`,
-`run_server.py`). `--force` overrides the marker check for a damaged checkout; it does not override
+The script refuses — exit 2, nothing removed — when a path is a filesystem root, your home
+directory or an ancestor of it, a top-level directory such as `/tmp`, a path another tree sits
+inside, a directory that carries no Ephe markers (`pyproject.toml`, `app/src`, `run_server.py`), or
+a value of `EPHE_BUNDLE_ID` that does not look like a bundle identifier. `--force` overrides the marker check for a damaged checkout; it does not override
 the path guards. Ollama and its models are never touched, because `install.sh` never installed
 them.
 

@@ -60,6 +60,7 @@ from core.observability import (
     structured_log,
 )
 from core.usage import build_usage, extract_measured_counts, serialize_prompt
+from server.middleware import offered_token, tokens_match
 
 STREAM_MARKER = "[DONE]"
 OWNED_BY = "ephe"
@@ -458,11 +459,21 @@ def create_openai_app(api_token: str | None = None) -> FastAPI:
     )
 
     async def _require_token(request: Request) -> None:
+        """The one gate of this surface, in either accepted spelling.
+
+        `X-Auth-Token` is what the docs name; an OpenAI client sets a base URL and an
+        API key and sends the key as `Authorization: Bearer <key>`, because it cannot add
+        a custom header. Both are the same credential (issue #201); a wrong or missing
+        one stays the coded 401.
+        """
         if not api_token:
             return
-        header = request.headers.get("x-auth-token")
-        if header != api_token:
-            raise HTTPException(status_code=401, detail="Invalid or missing X-Auth-Token")
+        offered = offered_token(request.headers)
+        if offered is None or not tokens_match(offered, api_token):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or missing token — send X-Auth-Token or Authorization: Bearer",
+            )
 
     # Idempotency-Key replay cache and the remote retry policy. Both hang off the
     # app instance, so a test app and the served app never share state.
@@ -471,7 +482,21 @@ def create_openai_app(api_token: str | None = None) -> FastAPI:
     app.state.retry_policy = DEFAULT_RETRY_POLICY
 
     async def _parse_body(request: Request) -> dict:
-        body = await request.json()
+        """The request body as a JSON object, or the 400 this surface answers.
+
+        `request.json()` raises `json.JSONDecodeError` / `UnicodeDecodeError` for a body
+        that is not JSON. Both used to escape to the global handler, which mapped every
+        uncaught exception to `500 internal_error` and put the decoder's own sentence on
+        the wire (issue #199). A malformed local request is bad input: an
+        OpenAI-compatible client retries a 5xx, so it joins the 400 the rest of this
+        surface already answers bad input with.
+        """
+        try:
+            body = await request.json()
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise HTTPException(
+                status_code=400, detail="Request body is not valid JSON"
+            ) from None
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="Request body must be a JSON object")
         return body

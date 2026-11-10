@@ -319,6 +319,75 @@ jobs:
             echo 'EPHE_RELEASE_BODY'
           } >> "$GITHUB_OUTPUT"
 
+      - name: Decide the macOS signature
+        id: macsign
+        # Two documented outcomes, and the file says which one this run got:
+        #   - Apple secrets present: the Developer ID identity signs the bundle and the
+        #     notarization variables hand the app and its DMG a ticket. Tauri's bundler
+        #     does that work itself; its own warning names the variables it reads
+        #     ("no APPLE_ID & APPLE_PASSWORD & APPLE_TEAM_ID or APPLE_API_KEY &
+        #     APPLE_API_ISSUER & APPLE_API_KEY_PATH").
+        #   - No secrets: `signingIdentity: "-"` signs the WHOLE bundle ad-hoc. That is
+        #     the fix for issue #192: the bundle used to keep the linker signature
+        #     (`flags=0x20002(adhoc,linker-signed)`, `Info.plist=not bound`,
+        #     `Sealed Resources=none`), so `codesign --verify --strict` failed with
+        #     "code has no resources but signature indicates they must be present" and
+        #     every privacy grant was keyed to a build hash. Measured on macOS
+        #     2026-11-10: with this override the same build produces
+        #     `flags=0x10002(adhoc,runtime)`, a bound Info.plist, sealed resources and
+        #     `codesign --verify --deep --strict` exit 0.
+        # Gatekeeper still rejects the ad-hoc copy (no Developer ID, no ticket), which
+        # is what docs/INSTALL.md tells the user to expect and how to open it.
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          if [ -z "${APPLE_CERTIFICATE:-}" ] || [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "macconfig=--config '{\"bundle\":{\"macOS\":{\"signingIdentity\":\"-\"}}}'" >> "$GITHUB_OUTPUT"
+            echo 'mode=adhoc' >> "$GITHUB_OUTPUT"
+            {
+              echo "No Apple signing secrets: the bundle is signed ad-hoc (sealed, no Developer ID, no notarization)."
+              echo "A downloaded copy needs right-click → Open; docs/INSTALL.md carries the sentence."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo 'mode=developer-id' >> "$GITHUB_OUTPUT"
+          echo "macconfig=" >> "$GITHUB_OUTPUT"
+          # Written into the environment of the later steps rather than into this one:
+          # tauri reads them while it signs and notarizes. A secret echoed into a log is
+          # masked by the runner, and the file form keeps a multi-line value intact.
+          # The certificate is a base64 blob and GitHub's own runner does not promise it is
+          # one line, so it goes in through the heredoc form; a wrapped value written with
+          # `NAME=value` would be truncated at the first newline and the build would fail
+          # with a decryption error that names nothing.
+          {
+            echo "APPLE_CERTIFICATE<<EPHE_APPLE_CERTIFICATE"
+            printf '%s\n' "$APPLE_CERTIFICATE"
+            echo "EPHE_APPLE_CERTIFICATE"
+            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+          } >> "$GITHUB_ENV"
+          if [ -n "${APPLE_ID:-}" ]; then
+            { echo "APPLE_ID=$APPLE_ID"; echo "APPLE_PASSWORD=$APPLE_PASSWORD"; echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"; } >> "$GITHUB_ENV"
+          fi
+          if [ -n "${APPLE_API_KEY:-}" ]; then
+            { echo "APPLE_API_KEY=$APPLE_API_KEY"; echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"; } >> "$GITHUB_ENV"
+          fi
+          if [ -z "${APPLE_ID:-}" ] && [ -z "${APPLE_API_KEY:-}" ]; then
+            echo "::warning::A signing certificate is present but neither APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID nor APPLE_API_KEY/APPLE_API_ISSUER: the bundle is signed but NOT notarized, so Gatekeeper still refuses a downloaded copy."
+            echo "Signed but not notarized: add the notarization secrets." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Developer ID signing and notarization: the bundle and its DMG get a ticket." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Build Tauri bundles (draft release)
         uses: tauri-apps/tauri-action@2d3036b306d86c3198f05a460dcd23cf55ef41b9 # v0.5.23
         env:
@@ -343,8 +412,39 @@ jobs:
           # is what the action parses.
           includeUpdaterJson: ${{ steps.updater.outputs.signed }}
           # matrix.args carries the mac target; the second half is the createUpdaterArtifacts switch,
-          # empty on an unsigned run.
-          args: ${{ matrix.args }} ${{ steps.updater.outputs.config }}
+          # empty on an unsigned run; the third is the macOS signing decision (empty off the mac
+          # leg, the ad-hoc identity there unless the Apple secrets exist). Repeated `--config`
+          # flags are merged in the order given, so the two switches compose.
+          args: ${{ matrix.args }} ${{ steps.updater.outputs.config }} ${{ steps.macsign.outputs.macconfig }}
+
+      - name: Audit the macOS bundle seal
+        # The gate issue #192 asked for. `codesign --verify --deep --strict` is the one
+        # verdict that fails this step: an ad-hoc seal passes it (and is reported), a
+        # linker-signed or unsigned bundle does not. `spctl` and `stapler` are reported
+        # beside it, so the release notes cannot claim more than the bundle carries.
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in \
+            "app/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Ephe.app" \
+            "app/src-tauri/target/release/bundle/macos/Ephe.app"; do
+            if [ -d "$candidate" ]; then bundle="$candidate"; break; fi
+          done
+          if [ -z "${bundle:-}" ]; then
+            echo "::error::no macOS bundle was produced — nothing to audit, and the release has no app."
+            exit 1
+          fi
+          echo "Auditing $bundle"
+          scripts/macos_sign_audit.sh "$bundle"
+          { echo "### macOS bundle seal"; echo '```'; scripts/macos_sign_audit.sh --quiet "$bundle"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          dmg="$(find app/src-tauri/target -path '*bundle/dmg/*.dmg' -print -quit || true)"
+          if [ -n "$dmg" ]; then
+            echo "Auditing $dmg"
+            scripts/macos_sign_audit.sh "$dmg"
+          else
+            echo "::warning::no DMG was produced, so the downloaded-shape audit could not run."
+          fi
 
       - name: Bundle the RPM with an RPM-valid version
         # rpm-rs 0.30, pulled in by tauri-bundler 2.10.3 with CLI 2.12.3, rejects the hyphen a

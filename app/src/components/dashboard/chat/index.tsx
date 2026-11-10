@@ -1,4 +1,11 @@
-import { lazy, Suspense, useRef, useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import {
+  lazy,
+  Suspense,
+  useRef,
+  useEffect,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import {
   Menu,
   Download,
@@ -33,6 +40,7 @@ import WorkspaceBar from '../WorkspaceBar'
 import { useWorkspaceState } from '../WorkspacePicker'
 import { UpdateDialog } from '../UpdateDialog'
 import ChatInput from '../ChatInput'
+import HeaderModeControl from './HeaderModeControl'
 import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
 import HeaderCompanion from '@/components/shell/HeaderCompanion'
 import { CellLifeLine } from '../CellLifeLine'
@@ -44,6 +52,12 @@ import TimelineRail from '../TimelineRail'
 import { useStatusPanelData } from '../AgentStatusSections'
 import AgenticBar, { runStateOf } from '@/components/shell/AgenticBar'
 import EngineStatusPill from '@/components/shell/EngineStatusPill'
+import {
+  readBackendReadiness,
+  onBackendReadiness,
+  type BackendReadiness,
+} from '@/lib/backendReadiness'
+import BackendNotReady from '@/components/shell/BackendNotReady'
 import RunRail from '@/components/shell/RunRail'
 import CheckpointControls from '../CheckpointControls'
 import SchedulerPanel, { SchedulerMobilePill } from '../SchedulerPanel'
@@ -95,6 +109,20 @@ export function messageRowKey(msg: { id?: string }, index: number): string {
 
 export default function ChatLayout() {
   const update = useUpdateCheck()
+  // #193/#194: the shell decides whether a backend exists for this window; the surface reads that
+  // answer instead of assuming "Ready". Outside the shell (a browser tab) there is nothing to ask.
+  const [readiness, setReadiness] = useState<BackendReadiness | null>(null)
+  useEffect(() => {
+    let alive = true
+    void readBackendReadiness().then((value) => {
+      if (alive) setReadiness(value)
+    })
+    const off = onBackendReadiness((value) => setReadiness(value))
+    return () => {
+      alive = false
+      off()
+    }
+  }, [])
   useTaskDeepLink()
   // Git surfaces belong to a project the user chose. The neutral default must
   // never turn the Ephe checkout (or any cwd) into the header's branch chip.
@@ -427,6 +455,10 @@ export default function ChatLayout() {
                     )}
                     <CellLifeLine sessionId={currentSession?.id ?? ''} />
                   </div>
+                  {/* 2026-11-10: the response mode belongs to the session whose
+                      title stands beside it — one control, and the composer keeps
+                      the access side. */}
+                  <HeaderModeControl />
                   {currentSession?.parentId && parentLoaded && (
                     // Z37: fork indicator — the chip leads to the origin session.
                     // Gate on parentLoaded: a parent half outside the
@@ -851,7 +883,9 @@ export default function ChatLayout() {
                 hasMessages={(currentSession?.messages.length ?? 0) > 0}
                 contextPercent={contextPercent}
               />
+              {readiness?.ready === false && <BackendNotReady readiness={readiness} />}
               <ChatInput
+                disabled={readiness?.ready === false}
                 onSend={(msg, att) => void handleSend(msg, att)}
                 streaming={isTyping}
                 onStop={handleStop}

@@ -11,7 +11,7 @@
  * that it builds.
  */
 import { describe, it, expect } from 'vitest'
-import { COMPOSER_MODES } from './ComposerModeMenu'
+import { SESSION_MODES } from './modeCatalog'
 import de from '@/locales/de.json'
 import en from '@/locales/en.json'
 
@@ -29,7 +29,7 @@ const enChat = (en as unknown as Bundle).chat
 const SAME_TITLE_BY_DESIGN = new Set(['analyst', 'operator'])
 
 describe('Composer-Modi: jeder Titel hat einen Text in beiden Sprachen', () => {
-  it.each(COMPOSER_MODES.map((m) => [m.key, m] as const))('%s', (_key, mode) => {
+  it.each(SESSION_MODES.map((m) => [m.key, m] as const))('%s', (_key, mode) => {
     const pfad = (key: string): [string, string] => {
       const [gruppe = '', schluessel = ''] = key.replace('chat.', '').split('.')
       return [gruppe, schluessel]

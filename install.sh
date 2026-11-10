@@ -165,14 +165,34 @@ as_root() {
 # reject that spelling outright as a bad substitution — on the Ubuntu 24.04 leg the
 # trap printed `bad substitution` and no diagnostic line at all.
 EPHE_VENDOR_TMP=""
+EPHE_DRY_TMP=""
 cleanup_temp() {
   if [[ -n "$EPHE_VENDOR_TMP" ]]; then
     rm -f "$EPHE_VENDOR_TMP"
+  fi
+  if [[ -n "$EPHE_DRY_TMP" ]]; then
+    rm -rf "$EPHE_DRY_TMP"
   fi
 }
 # shellcheck disable=SC2154  # the ERR trap assigns cmd, own, line and note before reading them
 trap 'cmd=$BASH_COMMAND; own=$LINENO; n=${#BASH_LINENO[@]}; i=$(( n > 2 ? n - 2 : 0 )); line=$(( ${BASH_LINENO[$i]:-0} ? ${BASH_LINENO[$i]} : own )); note=""; if (( line != own )); then note=" (inside ${FUNCNAME[0]}())"; fi; echo -e "  ${RED}✗${NC} install.sh failed at line $line: $cmd$note" >&2' ERR
 trap cleanup_temp EXIT
+
+# A dry run writes nothing, not even a cache.
+# `--dry-run` promises "prints the plan and changes nothing". It left a 16K
+# `~/.cache/uv` behind anyway: the interpreter lookup below RUNS `uv python find`
+# to answer a question, and uv caches the lookup (measured 2026-11-10, issue #198).
+# A read that writes into the caller's HOME is still a write, so in a dry run every
+# uv the script would run is aimed at a temporary cache directory, and the EXIT
+# trap removes it. `UV_CACHE_DIR` is uv's own override (it wins over
+# `XDG_CACHE_HOME` and over `~/Library/Caches/uv` on macOS); `XDG_CACHE_HOME` is
+# exported beside it for the tools that only read that one.
+if [[ "$DRY_RUN" == "1" ]]; then
+  EPHE_DRY_TMP="$(mktemp -d "${TMPDIR:-/tmp}/ephe-dry-run-XXXXXX")" \
+    || fail "No temporary directory for the dry run, so it cannot promise to write nothing."
+  export UV_CACHE_DIR="$EPHE_DRY_TMP/uv-cache"
+  export XDG_CACHE_HOME="$EPHE_DRY_TMP/xdg-cache"
+fi
 
 # portable sha256 sum (macOS shasum / Linux sha256sum)
 sha256_of() {
@@ -520,7 +540,8 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
       if [[ "$pnpm_ok" == "1" ]]; then
         run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install
       else
-        run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock
+        run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock --legacy-peer-deps \
+          || fail "npm could not resolve the dependencies in app/ — the package manifest and the pnpm lock disagree (see the lines above). Install pnpm (https://pnpm.io) and run the installer again, or fix the conflict npm names and retry."
       fi
     elif [[ "$pnpm_ok" == "1" ]]; then
       run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install --frozen-lockfile || run_quiet "Dependencies installed (app, relaxed lockfile)" pnpm --dir "$PROJECT_DIR/app" install
@@ -533,14 +554,32 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
       # `npm install` does work but writes app/package-lock.json, the second lockfile
       # tests/test_r46_pnpm_single_source.py forbids. The flag is the shape that both
       # runs without a lockfile and leaves the pnpm-only contract alone.
+      #
+      # `--legacy-peer-deps` is the second half, measured 2026-11-10 (issue #191):
+      # with the vitest pair aligned in app/package.json, plain `npm install` on npm
+      # 10.9.9 still dies inside its own resolver (`TypeError: Cannot read properties
+      # of null (reading 'edgesOut')` from @npmcli/arborist's peer-set walk), and the
+      # earlier unaligned tree answered `ERESOLVE … peer vitest@4.1.11 from
+      # @vitest/coverage-v8@4.1.11`. The peers this app needs are declared in
+      # package.json (`@testing-library/dom` is one of them), so installing without
+      # npm's peer solver produces the tree pnpm already resolved; the declared pair
+      # is what tests/test_installer_cli.py holds to the lock and the Cargo lock.
       info "pnpm is not usable here — building with npm (no package-lock.json will be written)"
-      run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock
+      run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock --legacy-peer-deps \
+        || fail "npm could not resolve the dependencies in app/ — the package manifest and the pnpm lock disagree (see the lines above). Install pnpm (https://pnpm.io) and run the installer again, or fix the conflict npm names and retry."
       run_quiet "Frontend built" npm --prefix "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
     fi
     if [[ "$DRY_RUN" != "1" && ! -f "$PROJECT_DIR/app/dist/index.html" ]]; then
       fail "PWA build failed: app/dist/index.html does not exist."
     fi
-    ok "PWA built → app/dist"
+    # A dry run builds nothing, so it may not report a build. "PWA built → app/dist"
+    # was printed there while app/dist stayed absent (issue #198): the line a person
+    # reads after an install has to be the line describing what happened.
+    if [[ "$DRY_RUN" == "1" ]]; then
+      info "would build the PWA into app/dist (nothing was built)"
+    else
+      ok "PWA built → app/dist"
+    fi
   }
   build_pwa
 else
@@ -550,10 +589,11 @@ fi
 step "Creating the local data folders"
 if [[ "$DRY_RUN" == "1" ]]; then
   info "DRY-RUN: mkdir -p $HOME/.ephe/memory $HOME/.ephe/skills $HOME/.ephe/sessions"
+  info "would create $HOME/.ephe (not created)"
 else
   mkdir -p "$HOME/.ephe/memory" "$HOME/.ephe/skills" "$HOME/.ephe/sessions/audio" "$HOME/.ephe/sessions/images"
+  ok "$HOME/.ephe ready"
 fi
-ok "$HOME/.ephe ready"
 
 # The `ephe` console script lives in `.venv/bin`, and nothing here edits a shell
 # rc, so a bare `ephe` in a NEW terminal used to answer "command not found"
@@ -575,10 +615,19 @@ case ":$PATH:" in
 esac
 
 echo ""
-echo -e "${GREEN}${BOLD}Setup complete.${NC}"
+if [[ "$DRY_RUN" == "1" ]]; then
+  # The closing banner is the last thing a reader believes. A dry run installed
+  # nothing, so it cannot say "Setup complete" (issue #198): what it can say is
+  # that the plan ran through and that a real run is the next command.
+  echo -e "${GREEN}${BOLD}Dry run complete.${NC} Nothing was installed, built or written."
+else
+  echo -e "${GREEN}${BOLD}Setup complete.${NC}"
+fi
 echo "Project: $PROJECT_DIR"
 echo ""
-if [[ "$launcher_ready" == "1" && "$on_path" == "1" ]]; then
+if [[ "$DRY_RUN" == "1" ]]; then
+  info "the launcher would be $LAUNCHER (nothing was linked)"
+elif [[ "$launcher_ready" == "1" && "$on_path" == "1" ]]; then
   ok "Ready — the launcher answers to ephe."
 elif [[ "$launcher_ready" == "1" ]]; then
   ok "Launcher installed: $LAUNCHER"
@@ -590,6 +639,10 @@ else
   echo "  source \"$PROJECT_DIR/.venv/bin/activate\""
 fi
 echo ""
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "Run the same command without --dry-run to install, build and start."
+  echo ""
+fi
 echo "No engine is needed to start: the terminal app opens its own setup"
 echo "(provider, endpoint, API key, model) and sends nothing until you choose one."
 echo ""

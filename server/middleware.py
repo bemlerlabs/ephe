@@ -13,6 +13,7 @@ import secrets
 import threading
 import time
 from collections import defaultdict
+from collections.abc import Mapping
 
 from fastapi import Header, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
@@ -36,9 +37,12 @@ def init_auth(lan_mode: bool = False) -> str | None:
 async def verify_auth(request: Request) -> None:
     if LAN_AUTH_TOKEN is None:
         return
-    token = request.headers.get("X-Auth-Token")
-    if token != LAN_AUTH_TOKEN:
-        raise HTTPException(status_code=401, detail="Unauthorized — invalid or missing X-Auth-Token")
+    token = offered_token(request.headers)
+    if token is None or not tokens_match(str(token), LAN_AUTH_TOKEN):
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized — invalid or missing token (X-Auth-Token or Authorization: Bearer)",
+        )
 
 
 _LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
@@ -214,6 +218,61 @@ def _is_loopback_client(request: Request) -> bool:
     return host in _LOOPBACK_HOSTS or host.startswith("127.")
 
 
+#: `Authorization: Bearer <token>` — the spelling every OpenAI-compatible client uses.
+_BEARER_CREDENTIAL = re.compile(r"bearer[ \t]+", re.IGNORECASE)
+
+
+def bearer_token(value: str | None) -> str | None:
+    """The credential an `Authorization: Bearer <token>` value carries, or None.
+
+    RFC 9110 makes the scheme case-insensitive, so `bearer` and `Bearer` are the same
+    credential. Anything else (`Basic …`, a bare token without a scheme) is not a
+    bearer value and grants nothing.
+    """
+    if not value:
+        return None
+    text = str(value).strip()
+    match = _BEARER_CREDENTIAL.match(text)
+    if match is None:
+        return None
+    token = text[match.end():].strip()
+    return token or None
+
+
+def offered_token(headers: Mapping[str, str]) -> str | None:
+    """The credential a request presents, in either accepted spelling.
+
+    `X-Auth-Token` is this product's own header; the QR link, the PWA and the desktop
+    send it. An OpenAI-compatible client sets only a base URL and an API key and sends
+    the key as `Authorization: Bearer <key>` — it cannot add a custom header, so that
+    value is the same credential (issue #201). `X-Auth-Token` wins when both are present.
+    """
+    token = headers.get("X-Auth-Token") or headers.get("x-auth-token")
+    if token:
+        return str(token)
+    authorization = headers.get("Authorization") or headers.get("authorization")
+    return bearer_token(authorization)
+
+
+def health_may_name_the_host(request: Request) -> bool:
+    """Whether a `/api/health` answer may carry the host's identity.
+
+    The identity is the absolute checkout path, the pid, the git sha and the instance id
+    — the values that name this machine and this process (issue #196). On `--lan` they
+    travel only to a caller the token admits, and to the desktop on the machine: the
+    loopback peer *and* loopback `Host` pair `_is_loopback_client` trusts for `/api/chat`
+    (a tunnel reuses the loopback peer but not the `Host`, so the token stays its gate).
+    Without a token there is nothing to gate; the full answer stays.
+    """
+    token = LAN_AUTH_TOKEN
+    if token is None:
+        return True
+    if _is_loopback_client(request):
+        return True
+    offered = offered_token(request.headers)
+    return bool(offered) and tokens_match(str(offered), token)
+
+
 def tokens_match(offered: str, expected: str) -> bool:
     """Compare two tokens without letting an attacker turn the check into a server error.
 
@@ -301,7 +360,7 @@ class LocalRequestGuardMiddleware(BaseHTTPMiddleware):
         if spends and not caller_holds_app_authority(
             origin,
             host,
-            request.headers.get("X-Auth-Token"),
+            offered_token(request.headers),
             same_origin=same_origin_proof(request),
         ):
             return self._refusal(request, "untrusted_origin", host)
@@ -427,7 +486,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             # `/charts` is not under /api and was therefore never checked: the mount
             # served the whole system temp directory to anyone who could reach the port.
             if path.startswith(("/api/", "/charts")) and path != "/api/health":
-                token = request.headers.get("X-Auth-Token")
+                token = offered_token(request.headers)
                 if token is None and path.startswith(("/api/file", "/charts")):
                     # Media elements (img/iframe) cannot send headers —
                     # token fallback via query string only for the file-read routes.
@@ -456,7 +515,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     rid = getattr(request.state, "rid", None)
                     _audit_token_refusal(request, "token_missing" if token is None else "token_invalid")
                     return JSONResponse(
-                        error_payload(ErrorCode.AUTH, "Unauthorized — invalid or missing X-Auth-Token", rid),
+                        error_payload(
+                            ErrorCode.AUTH,
+                            "Unauthorized — invalid or missing token "
+                            "(X-Auth-Token or Authorization: Bearer)",
+                            rid,
+                        ),
                         status_code=401,
                         headers={REQUEST_ID_HEADER: rid or ""},
                     )

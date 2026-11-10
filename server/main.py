@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.routing import compile_path
 from core.observability import (
     REQUEST_ID_HEADER,
     ErrorCode,
@@ -294,59 +295,79 @@ def create_app(lan_mode: bool = False) -> FastAPI:
             return ErrorCode.UPSTREAM
         return ErrorCode.INTERNAL
 
-    def _allowed_verbs(exc: Exception, request: Request | None = None) -> str | None:
-        """The methods the matched route itself answers with, or None when nothing knows.
+    def _declared_routes(router) -> list[tuple[str, set[str]]]:
+        """Every `(path, methods)` the router carries, with included routers flattened.
 
-        The router raises its 405 with an Allow header built from the matched route's
-        own `methods`; that set has no stable order, so re-join it sorted. When the
-        exception doesn't carry headers (a FastAPI/Starlette quirk), fall back to
-        inspecting the request's matched route.
+        `include_router` keeps a family behind `_IncludedRouter`, whose own `routes` is
+        empty and whose `original_router.routes` carry the relative paths, so the prefix
+        has to be joined here.
         """
-        raw = next(
-            (
-                value
-                for name, value in (getattr(exc, "headers", None) or {}).items()
-                if name.lower() == "allow"
-            ),
-            "",
-        )
-        if not raw and request is not None:
-            # FastAPI doesn't put "route" in scope for 405s, so we search the router
-            router = request.scope.get("router")
-            if router:
-                import re
-                from starlette.routing import Match
-                request_path = request.scope.get("path", "")
-                for route in router.routes:
-                    # Handle _IncludedRouter by checking its original_router and prefix
-                    routes_to_check = []
-                    prefix = ""
-                    if hasattr(route, "include_context") and hasattr(route.include_context, "prefix"):
-                        prefix = route.include_context.prefix or ""
-                    if hasattr(route, "original_router") and hasattr(route.original_router, "routes"):
-                        routes_to_check = route.original_router.routes
-                    elif hasattr(route, "routes"):
-                        routes_to_check = route.routes
-                    else:
-                        routes_to_check = [route]
-                    
-                    for subroute in routes_to_check:
-                        if hasattr(subroute, "path"):
-                            subroute_path = subroute.path
-                            full_path = prefix + subroute_path
-                            # Convert FastAPI path params to regex
-                            path_regex = re.sub(r'\{[^}]+\}', r'[^/]+', full_path)
-                            path_regex = f'^{path_regex}$'
-                            if re.match(path_regex, request_path):
-                                if hasattr(subroute, "methods") and subroute.methods:
-                                    raw = ", ".join(sorted(subroute.methods))
-                                    break
-                        if raw:
-                            break
-                    if raw:
-                        break
-        verbs = sorted({verb.strip().upper() for verb in raw.split(",") if verb.strip()})
-        return ", ".join(verbs) if verbs else None
+        declared: list[tuple[str, set[str]]] = []
+
+        def walk(routes, prefix: str) -> None:
+            for route in routes:
+                context = getattr(route, "include_context", None)
+                inner = getattr(route, "original_router", None)
+                if context is not None and inner is not None:
+                    walk(inner.routes, prefix + (getattr(context, "prefix", "") or ""))
+                    continue
+                path = getattr(route, "path", None)
+                methods = getattr(route, "methods", None)
+                if path and methods:
+                    declared.append((prefix + path, {m.upper() for m in methods}))
+
+        walk(getattr(router, "routes", None) or [], "")
+        return declared
+
+    def _verbs_the_request_could_use(request: Request | None) -> set[str]:
+        """The methods whose routes match this path but not this method.
+
+        Starlette keeps only the **first** partial match and its 405 carries that one
+        route's `Allow` set — so a path split over two routes (`GET /api/settings` +
+        `POST /api/settings`, or the six `GET`+`PUT` settings twins) lost the second
+        method and a client never learnt what it could retry with (issue #200). The union
+        over every partial match is the answer the path actually gives. A route that does
+        declare the request method is a route that ran instead of refusing, so it is not
+        part of the union.
+        """
+        if request is None:
+            return set()
+        router = request.scope.get("router")
+        path = request.scope.get("path", "")
+        method = (request.scope.get("method") or "").upper()
+        if router is None:
+            return set()
+        verbs: set[str] = set()
+        for full_path, methods in _declared_routes(router):
+            if method in methods:
+                continue
+            try:
+                pattern, _, _ = compile_path(full_path)
+            except ValueError:
+                continue
+            if pattern.match(path):
+                verbs |= methods
+        return verbs
+
+    def _allowed_verbs(exc: Exception, request: Request | None = None) -> str | None:
+        """The methods the matched path itself answers with, or None when nothing knows.
+
+        The route table is asked first, because the `Allow` header the router raised with
+        names one route only when a path is declared twice. The header stays the fallback
+        for a 405 raised inside a route on a path the table does not carry.
+        """
+        verbs = _verbs_the_request_could_use(request)
+        if not verbs:
+            raw = next(
+                (
+                    value
+                    for name, value in (getattr(exc, "headers", None) or {}).items()
+                    if name.lower() == "allow"
+                ),
+                "",
+            )
+            verbs = {verb.strip().upper() for verb in raw.split(",") if verb.strip()}
+        return ", ".join(sorted(verbs)) if verbs else None
 
     async def _http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         # Starlette/FastAPI HTTPException carry status_code + detail;
@@ -383,6 +404,31 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     # — the exception middleware's MRO lookup is exact per class, hence both.
     app.add_exception_handler(StarletteHTTPException, _http_exception_handler)
     app.add_exception_handler(HTTPException, _http_exception_handler)
+
+    from fastapi.exception_handlers import request_validation_exception_handler
+    from fastapi.exceptions import RequestValidationError
+
+    async def _request_validation_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """A body that does not parse is answered as bad input, before any field.
+
+        FastAPI's default 422 echoes the decoder's own sentence in `ctx.error`
+        ("Expecting property name enclosed in double quotes …") — Python's text on the
+        wire, the shape issue #199 removed from `/v1`. Only `json_invalid` is rerouted;
+        every other validation error keeps the 422 body the clients already parse.
+        """
+        rid = getattr(request.state, "rid", None)
+        errors = exc.errors()
+        if errors and all(error.get("type") == "json_invalid" for error in errors):
+            return JSONResponse(
+                error_payload(ErrorCode.VALIDATION, "Request body is not valid JSON", rid),
+                status_code=400,
+                headers={REQUEST_ID_HEADER: rid or ""},
+            )
+        return await request_validation_exception_handler(request, exc)
+
+    app.add_exception_handler(RequestValidationError, _request_validation_handler)
 
     from server.refusals import Refused
 

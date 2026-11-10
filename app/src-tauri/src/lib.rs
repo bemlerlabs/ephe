@@ -150,6 +150,63 @@ async fn backend_parity() -> parity::Status {
     .unwrap_or(status)
 }
 
+/// The state the window may render about its backend (issue #193).
+///
+/// The shell starts nothing without `~/.ephe/desktop.json` — that is the promise — and
+/// the surface used to answer "Ready" with a live composer while nothing ran. Only this
+/// process knows whether the line exists and what its start attempt answered, so it
+/// answers with one value: `bereit`, the state, the address, the file, a sentence and
+/// the one action that would change it (`backend::Readiness`). The state is decided
+/// where the start is decided; this reads the recorded answer and never waits on a
+/// socket.
+#[tauri::command]
+fn backend_readiness() -> Result<serde_json::Value, String> {
+    #[cfg(unix)]
+    {
+        let home = shell_home()?;
+        serde_json::to_value(backend::last_readiness(&home)).map_err(|e| e.to_string())
+    }
+    #[cfg(not(unix))]
+    {
+        // The shell starts a backend on Unix only (`mod backend`), so on another
+        // platform the honest answer is that this window cannot serve one at all.
+        Ok(serde_json::json!({
+            "bereit": false,
+            "state": "unsupported",
+            "port": 8765,
+            "base_url": "http://127.0.0.1:8765",
+            "config": "",
+            "sentence": "This build of the window cannot start a backend.",
+            "action": "Start the server yourself and open the web app from it.",
+        }))
+    }
+}
+
+/// The first-run statement, and the only place the shell itself says "nothing is
+/// running" instead of leaving that to the surface.
+///
+/// Shown only where the product is used from an icon: a debug build runs against
+/// `devUrl` and the developer reads the log. `blocking_show` belongs on its own thread —
+/// the plugin documents that running it on the main thread freezes the app — and this
+/// thread exists for the dialog alone.
+fn announce_unconfigured(app: &tauri::AppHandle, state: &str, sentence: &str, action: &str) {
+    if state != "unconfigured" || cfg!(debug_assertions) {
+        return;
+    }
+    use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+    let text = format!("{sentence}\n\n{action}");
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        handle
+            .dialog()
+            .message(text)
+            .title("Ephe — no backend configured")
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::Ok)
+            .blocking_show();
+    });
+}
+
 /// Writes the native selection where the backend alone reads it. The token is
 /// the whole HTTP-side capability: without it, `/api/import` cannot name a
 /// folder, so a page on this machine cannot point the importer at one.
@@ -792,6 +849,7 @@ fn guarded_command_handlers(
         quit_app,
         stop_backend,
         backend_parity,
+        backend_readiness,
         write_rich_clipboard,
         reveal_file_in_finder,
         open_file_in_default_app,
@@ -901,8 +959,21 @@ pub fn run() {
                     if let Some(project) = project.as_deref() {
                         parity::remember_project(project);
                     }
+                    let handle = app.handle().clone();
                     std::thread::spawn(move || {
-                        let _ = backend::sicherstellen(&home, backend::PORT);
+                        // One attempt, one recorded state: the surface command and the
+                        // event below must never tell two different stories about the
+                        // same start (issue #193).
+                        let ergebnis = backend::sicherstellen(&home, backend::PORT);
+                        let readiness =
+                            backend::remember(backend::Readiness::after(&home, &ergebnis));
+                        let _ = handle.emit("ephe:backend-state", &readiness);
+                        announce_unconfigured(
+                            &handle,
+                            readiness.state,
+                            &readiness.sentence,
+                            &readiness.action,
+                        );
                         // The updater replaces the shell and nothing else, so the
                         // backend has to be asked what version it actually runs.
                         let Some(project) = project else {

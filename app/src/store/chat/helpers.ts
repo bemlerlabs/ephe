@@ -73,7 +73,7 @@ const TILED_COMPOSER_MODES: readonly ComposerMode[] = [
  * A value with no tile — the retired `edit-auto`, the legacy `agent`, another
  * client's mode — keeps its stored spelling, so an unchecked string never enters
  * `ComposerMode`; the surfaces that name it fall back to its section wording
- * (`ComposerModeChip.tsx`).
+ * (`HeaderModeControl.tsx`).
  */
 export function normalizeComposerMode(value: string | undefined): string {
   if (!value) return DEFAULT_COMPOSER_MODE

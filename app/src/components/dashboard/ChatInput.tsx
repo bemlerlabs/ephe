@@ -1,22 +1,21 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Command, ShieldCheck, Brain, UploadCloud } from 'lucide-react'
+import { Brain, UploadCloud } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui'
-import { getSettings } from '@/lib/api'
+import { getSettings, saveSecuritySettings } from '@/lib/api'
 import { markSetupIntent } from '@/lib/setupGate'
 import { useDeepBool } from '@/lib/deepSettings'
 import { type ChatAttachment } from '@/lib/attachments'
 import { setComposerDraft } from '@/lib/restartGuard'
 import AttachmentPreview from './AttachmentPreview'
-import { useChatStore, DEFAULT_COMPOSER_MODE } from '@/store/chatStore'
 import ComposerAttachButton from './chat/ComposerAttachButton'
 import ComposerFooterHints from './chat/ComposerFooterHints'
 import ComposerMentionList from './chat/ComposerMentionList'
 import ComposerMicButton from './chat/ComposerMicButton'
-import ComposerModeChip from './chat/ComposerModeChip'
+import ComposerAccessControl from './chat/ComposerAccessControl'
+import type { AccessProfile } from './chat/accessProfiles'
 import ComposerModelChip from './chat/ComposerModelChip'
-import CreatorConsentDialog from './chat/CreatorConsentDialog'
 import ComposerContextMeter from './chat/ComposerContextMeter'
 import ComposerSendButton from './chat/ComposerSendButton'
 import ComposerSlashMenu from './chat/ComposerSlashMenu'
@@ -63,10 +62,12 @@ interface ChatInputProps {
   contextTokens?: { used: number; window: number } | null
 }
 
-/** G-A → 2026 IA sweep → P3 wave 2026-10-05: the composer modes live in
- *  chat/ComposerModeMenu (sections + short title taken from the real hint text).
- *  The active mode mirrors the security profile; 'analyst' is the conservative
- *  mode, and DEFAULT_COMPOSER_MODE decides what a fresh session starts on. */
+/**
+ * The composer keeps the access side only: the response mode is chosen in the
+ * header (`chat/HeaderModeControl`), and this row states the approval profile
+ * that sits above the mode as its ceiling. See `core/security_config.py` for the
+ * four values and `server/routes/chat.py::_mode_context` for what a mode offers.
+ */
 
 export default function ChatInput({
   onSend,
@@ -95,61 +96,32 @@ export default function ChatInput({
   const [message, setMessage] = useState('')
   // F1: the composer states no rule. A blank draft disables send; the field's
   // own label and the button's label still name the controls for a reader.
-  // M3 (reference pattern): amber permission badge driven by the security profile.
+  // M3 → 2026-11-10: the approval profile, read once per mount and written back
+  // by the composer's access control (the ceiling above the mode).
   const [perm, setPerm] = useState('strict')
-  // G-A (reference parity): interactive mode selector — Analyst / Architect / Operator.
-  // W19: the mode is a session attribute (IndexedDB + server mirror) — it survives
-  // reload/session switches; nothing drops it back to the no-tools mode on unmount.
-  // typeof guard: storeMode is a string|undefined (real store); only adopt it when
-  // it is one, otherwise old store mocks without a selector re-render forever here.
-  const activeSessionId = useChatStore((s) => s.activeSessionId)
-  const storeMode = useChatStore((s) => s.sessions.find((x) => x.id === s.activeSessionId)?.mode)
-  const [mode, setModeState] = useState<string>(() =>
-    typeof storeMode === 'string' && storeMode ? storeMode : DEFAULT_COMPOSER_MODE,
-  )
-  useEffect(() => {
-    if (typeof storeMode === 'string' && storeMode) setModeState(storeMode)
-  }, [activeSessionId, storeMode])
-  /** W19: the mode is a session attribute, so a pick writes through to the store
-   *  as well as to this composer's view of it. */
-  const commitMode = useCallback(
-    (key: string) => {
-      setModeState(key)
-      if (activeSessionId) {
-        const store = useChatStore.getState() as unknown as {
-          setSessionMode?: (id: string, mode: string) => void
-        }
-        store.setSessionMode?.(activeSessionId, key)
-      }
-    },
-    [activeSessionId],
-  )
-  // Pop-up menu state for the mode selector (consistent with the model-chip pattern).
-  const [modeOpen, setModeOpen] = useState(false)
-  // Wave 5: Creator enters through a sheet — its tile opens the consent dialog and the
-  // session switches only on the answer written for that session.
-  const [consentOpen, setConsentOpen] = useState(false)
   // F3/quieting: the token figures and /compact are secondary; the thinking control
   // is their one door. Closed by default so the composer reads as one row of controls.
   const [detailsOpen, setDetailsOpen] = useState(false)
   // P6 (ref-23): the plus menu bundles file/image/screenshot attachments
   const [attachOpen, setAttachOpen] = useState(false)
+  // The access control opens its own menu; the composer keeps one escape chain.
+  const [accessOpen, setAccessOpen] = useState(false)
   // W19 → P3 wave 2026-10-05: composer menus as a body portal — the overhang into
   // the welcome area (panel-chat, overflow-y-auto) was clipped by that container,
   // and the absolute plus menu sat BEHIND the composer window (the first two items
-  // were unreachable). All three menus now portal to the body, clip-immune; the
-  // position comes from the chip rect, opens upward and is pulled back
-  // horizontally into the viewport (ComposerMenu).
-  const modeChipRef = useRef<HTMLButtonElement | null>(null)
+  // were unreachable). Every menu portals to the body, clip-immune; the position
+  // comes from the chip rect, opens upward and is pulled back horizontally into
+  // the viewport (ComposerMenu).
+  const accessChipRef = useRef<HTMLButtonElement | null>(null)
   const attachChipRef = useRef<HTMLButtonElement | null>(null)
-  const [modeMenuPos, setModeMenuPos] = useState<MenuPos | null>(null)
+  const [accessMenuPos, setAccessMenuPos] = useState<MenuPos | null>(null)
   const [attachMenuPos, setAttachMenuPos] = useState<MenuPos | null>(null)
   const syncMenuPos = useCallback((el: HTMLElement | null, set: (pos: MenuPos) => void) => {
     if (!el) return
     set(anchorAbove(el.getBoundingClientRect()))
   }, [])
-  const syncModeMenuPos = useCallback(() => {
-    syncMenuPos(modeChipRef.current, setModeMenuPos)
+  const syncAccessMenuPos = useCallback(() => {
+    syncMenuPos(accessChipRef.current, setAccessMenuPos)
   }, [syncMenuPos])
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -247,23 +219,23 @@ export default function ChatInput({
   // ── P3 wave 2026-10-05: ONE escape chain for all composer popups ────────
   // The overlay promises «Esc — Panel / Dialog schließen · Generierung // language-gate: ignore — quoted shortcut-overlay copy, app/src/locales/de.json:1297 close (the shipped text reads «Ephes Computer», not «Panel»)
   // stoppen». <!-- language-gate: ignore (quoted shortcut-overlay copy, app/src/locales/de.json:1297) --> Order (chat/composerPopups.ts): palette/dialog > model menu >
-  // mode menu > plus menu > @ popup > slash list. Only when nothing is open
+  // access menu > plus menu > @ popup > slash list. Only when nothing is open
   // anymore does Escape stop generation.
   const popupsOpen: Record<ComposerPopupKey, boolean> = useMemo(
     () => ({
       model: chipOpen,
-      mode: modeOpen,
+      access: accessOpen,
       attach: attachOpen,
       details: detailsOpen,
       mention: mentionOpen,
       slash: slashOpen,
     }),
-    [chipOpen, modeOpen, attachOpen, detailsOpen, mentionOpen, slashOpen],
+    [chipOpen, accessOpen, attachOpen, detailsOpen, mentionOpen, slashOpen],
   )
   const closePopup = useCallback(
     (which: ComposerPopupKey) => {
       if (which === 'model') setChipOpen(false)
-      else if (which === 'mode') setModeOpen(false)
+      else if (which === 'access') setAccessOpen(false)
       else if (which === 'attach') setAttachOpen(false)
       else if (which === 'details') setDetailsOpen(false)
       else if (which === 'mention') dismissMention()
@@ -376,7 +348,7 @@ export default function ChatInput({
       recallNext()
       return
     }
-    // Escape — the topmost popup closes first (plus/mode/model: focus is still in
+    // Escape — the topmost popup closes first (plus/access/model: focus is still in
     // the text field here), only after that does the recall reset.
     if (e.key === 'Escape') {
       if (closeTopPopup()) {
@@ -400,18 +372,6 @@ export default function ChatInput({
       e.preventDefault()
       handleSend()
     }
-  }
-
-  // Command button: open the Cmd+K palette (G3: no dead button)
-  const openPalette = () => {
-    const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent)
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        key: 'k',
-        metaKey: isMac,
-        ctrlKey: !isMac,
-      }),
-    )
   }
 
   return (
@@ -527,62 +487,23 @@ export default function ChatInput({
                 textareaRef.current?.focus()
               }}
             />
-            {/* M3/G-A (reference pattern): interactive mode selector as a pop-up menu
-                (like the model chip) — compact, one chip + a dropdown picker. */}
-            <ComposerModeChip
-              open={modeOpen}
-              mode={mode}
-              anchorRef={modeChipRef}
-              menuPos={modeMenuPos}
+            {/* 2026-11-10: the mode left for the header; this is the access side —
+                the approval profile that ceilings what the mode may run. */}
+            <ComposerAccessControl
+              profile={perm}
+              open={accessOpen}
+              anchorRef={accessChipRef}
+              menuPos={accessMenuPos}
               onToggle={() => {
-                setModeOpen((v) => !v)
-                syncModeMenuPos()
+                setAccessOpen((v) => !v)
+                syncAccessMenuPos()
               }}
-              onClose={() => setModeOpen(false)}
-              onPick={(key) => {
-                // Consent is a Creator thing: the other three tiles switch as they
-                // did. With no session there is nothing to grant, so the tile takes
-                // the plain path and the guard behind it refuses every privileged
-                // call until a grant exists.
-                setModeOpen(false)
-                if (key === 'creator' && activeSessionId) {
-                  setConsentOpen(true)
-                  return
-                }
-                commitMode(key)
+              onClose={() => setAccessOpen(false)}
+              onPick={async (key: AccessProfile) => {
+                // The write lands first: a refused profile must not read as set.
+                await saveSecuritySettings({ approval_profile: key })
+                setPerm(key)
               }}
-            />
-            {mode === 'analyst' && (
-              <span
-                className="hidden md:inline text-ui-xs text-ink-faint whitespace-nowrap"
-                title={t('chat.askNoTools')}
-                data-testid="composer-ask-hint"
-              >
-                {t('chat.askNoTools')}
-              </span>
-            )}
-            {/* F2: the chip above states the mode; this states who approves. */}
-            <span
-              data-testid="composer-permission-badge"
-              role="status"
-              aria-label={`${t('chat.permissionAria', { defaultValue: 'Approvals' })}: ${String(t(`chat.perm.${perm}`))}`}
-              title={t(`chat.perm.${perm}`)}
-              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-ui-xs text-status-warning shrink-0 max-lg:min-h-11 max-lg:max-w-20 max-sm:hidden overflow-hidden"
-            >
-              <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden="true" />
-              <span className="truncate min-w-0">{t(`chat.perm.${perm}`)}</span>
-            </span>
-            {/* WP2b keep: the dot reports the engine's real offline capability. */}
-            <span
-              data-testid="composer-status-dot"
-              role="img"
-              aria-label={
-                offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')
-              }
-              title={
-                offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')
-              }
-              className={`h-1.5 w-1.5 rounded-full shrink-0 ${offlineCapable ? 'bg-status-success' : 'bg-mist/40'}`}
             />
             {/* P6 (ref-23): the image/screenshot/file buttons live in the plus menu —
                 the main row stays reduced to the slim anatomy. */}
@@ -598,13 +519,6 @@ export default function ChatInput({
                 />
               </span>
             )}
-            <button
-              onClick={openPalette}
-              aria-label={t('chat.openPalette')}
-              className="p-2.5 rounded-lg shrink-0 hover:bg-brand/10 text-ink-soft hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 max-lg:min-w-11 max-lg:min-h-11 max-sm:hidden"
-            >
-              <Command className="h-4 w-4" />
-            </button>
           </div>
           {/* M3 (reference pattern): model chip + the details door + send in one
               right-hand group. The token figures and /compact sit behind that door —
@@ -676,6 +590,26 @@ export default function ChatInput({
                   <span aria-hidden="true">·</span>
                 </>
               )}
+            {/* WP2b keep: the dot reports the engine's real offline capability.
+                2026-11-10: it sits behind the details door — the header model chip
+                and the engine badge under the composer already name the engine. */}
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                data-testid="composer-status-dot"
+                role="img"
+                aria-label={
+                  offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')
+                }
+                title={
+                  offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')
+                }
+                className={`h-1.5 w-1.5 rounded-full shrink-0 ${offlineCapable ? 'bg-status-success' : 'bg-mist/40'}`}
+              />
+              <span>
+                {offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')}
+              </span>
+            </span>
+            <span aria-hidden="true">·</span>
             <span data-testid="composer-thinking-detail">
               {t('chat.thinkingChipAria')}: {t(thinkingChipKey)}
             </span>
@@ -696,17 +630,6 @@ export default function ChatInput({
         <div className="flex items-center justify-center gap-2 mt-2">
           <Badge variant="success">{engineLabel}</Badge>
         </div>
-      )}
-      {consentOpen && activeSessionId && (
-        <CreatorConsentDialog
-          open
-          sessionId={activeSessionId}
-          onConfirm={() => {
-            setConsentOpen(false)
-            commitMode('creator')
-          }}
-          onClosed={() => setConsentOpen(false)}
-        />
       )}
     </div>
   )

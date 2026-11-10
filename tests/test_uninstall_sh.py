@@ -60,6 +60,7 @@ def _run(
     shell: str = "bash",
     checkout: str | Path | None = None,
     data: str | Path | None = None,
+    bundle_id: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run uninstall.sh with HOME pinned to `home`; nothing else is inherited.
 
@@ -73,12 +74,15 @@ def _run(
         "EPHE_CONFIG_DIR",
         "EPHE_DRY_RUN",
         "EPHE_KEEP_DATA",
+        "EPHE_BUNDLE_ID",
     ):
         env.pop(key, None)
     if checkout is not None:
         env["EPHE_INSTALL_DIR"] = str(checkout)
     if data is not None:
         env["EPHE_CONFIG_DIR"] = str(data)
+    if bundle_id is not None:
+        env["EPHE_BUNDLE_ID"] = bundle_id
     return subprocess.run(
         [shell, str(SCRIPT), *args],
         capture_output=True,
@@ -270,6 +274,155 @@ def test_given_a_directory_that_is_no_checkout_when_it_runs_then_it_refuses(fake
     assert "not an Ephe checkout" in out, out
     assert (fake["decoy"] / "notes.txt").is_file()
     assert (fake["decoy"] / "keepme.txt").is_file()
+
+
+# Issue #197: the desktop app's state under ~/Library.
+# The app writes three directories, all named by the bundle identifier: the window
+# geometry in Application Support (tauri-plugin-window-state), WebKit's per-app store
+# and the URL cache. None of them is inside the checkout or `~/.ephe`, which is why
+# `rm -rf ~/.ephe` left ~760K of the app behind.
+_LIBRARY_SUFFIXES = (
+    Path("Library/Application Support/com.ephe.ephe"),
+    Path("Library/WebKit/com.ephe.ephe"),
+    Path("Library/Caches/com.ephe.ephe"),
+)
+
+
+def plant_app_library_state(home: Path) -> list[Path]:
+    """The three trees the app writes, populated, plus three neighbours it does not own."""
+    planted: list[Path] = []
+    for suffix in _LIBRARY_SUFFIXES:
+        directory = home / suffix
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "state.bin").write_bytes(b"app state\n")
+        planted.append(directory)
+    (home / ".ephe").mkdir(parents=True, exist_ok=True)
+    # A checkout the script accepts, so the run reaches the Library section instead of
+    # stopping at the "not an Ephe checkout" refusal.
+    checkout = home / "Documents" / "Ephe"
+    (checkout / "app" / "src").mkdir(parents=True, exist_ok=True)
+    (checkout / "pyproject.toml").write_text('name = "ephe"\n', encoding="utf-8")
+    (checkout / "run_server.py").write_text("", encoding="utf-8")
+    # Neighbours: a different bundle id under the same parents, and a preferences file
+    # the declaration does not name. A removal that took either would be wider than the
+    # three documented directories.
+    for other in (
+        home / "Library" / "Application Support" / "com.ephe.other",
+        home / "Library" / "WebKit" / "com.ephe.other",
+        home / "Library" / "Caches" / "com.ephe.other",
+    ):
+        other.mkdir(parents=True, exist_ok=True)
+        (other / "keep.bin").write_bytes(b"not ours\n")
+    (home / "Library" / "Preferences").mkdir(parents=True, exist_ok=True)
+    (home / "Library" / "Preferences" / "com.ephe.ephe.plist").write_text(
+        "<plist/>", encoding="utf-8"
+    )
+    return planted
+
+
+def test_given_app_library_state_when_yes_then_the_three_trees_go_and_neighbours_stay(tmp_path):
+    """
+    GIVEN the three directories the desktop app writes under ~/Library, next to a
+         different bundle id and a preferences file neither of them declares
+    WHEN uninstall.sh runs with --yes
+    THEN all three are removed, the neighbours and the preferences file stay, and each
+         removal is reported — the app's state is the part a `rm -rf ~/.ephe` never
+         reached (issue #197)
+    """
+    home = tmp_path / "home"
+    planted = plant_app_library_state(home)
+    result = _run(home, "--yes")
+    out = _plain(result)
+
+    assert result.returncode == 0, out
+    for directory in planted:
+        assert not directory.exists(), f"{directory} survived --yes"
+        assert f"app state: removed {directory}" in out, out
+    for other in (
+        home / "Library" / "Application Support" / "com.ephe.other",
+        home / "Library" / "WebKit" / "com.ephe.other",
+        home / "Library" / "Caches" / "com.ephe.other",
+    ):
+        assert (other / "keep.bin").is_file(), f"a removal reached past the bundle id: {other}"
+    assert (home / "Library" / "Preferences" / "com.ephe.ephe.plist").is_file()
+    assert "Ephe is gone from this machine." in out, (
+        "a run that removed everything still reported data as kept: " + out
+    )
+
+
+def test_given_app_library_state_when_keep_data_then_it_stays_and_says_so(tmp_path):
+    """
+    GIVEN the same three directories
+    WHEN uninstall.sh runs with --keep-data
+    THEN they are kept with their reason printed, so "I asked to keep my data" covers
+         the app's Library state too
+    """
+    home = tmp_path / "home"
+    planted = plant_app_library_state(home)
+    result = _run(home, "--keep-data")
+    out = _plain(result)
+
+    assert result.returncode == 0, out
+    for directory in planted:
+        assert (directory / "state.bin").is_file(), f"--keep-data removed {directory}"
+        assert f"keeping {directory}" in out, out
+
+
+def test_given_app_library_state_when_dry_run_then_it_is_named_and_nothing_goes(tmp_path):
+    """
+    GIVEN the three directories
+    WHEN uninstall.sh runs with --dry-run
+    THEN each is named as what --yes would remove, and every file is still there
+    """
+    home = tmp_path / "home"
+    planted = plant_app_library_state(home)
+    result = _run(home, "--dry-run")
+    out = _plain(result)
+
+    assert result.returncode == 0, out
+    for directory in planted:
+        assert str(directory) in out, out
+        assert "would remove" in out, out
+        assert (directory / "state.bin").is_file()
+    assert "DRY-RUN: rm -rf" in out, out
+
+
+def test_given_no_app_library_state_when_it_runs_then_it_says_so_instead_of_staying_silent(tmp_path):
+    """
+    GIVEN a machine where the desktop app was never opened (no ~/Library state)
+    WHEN uninstall.sh runs
+    THEN it states that none of the three directories exists, so a reader can tell
+         "nothing there" from "forgot to look"
+    """
+    home = tmp_path / "home"
+    (home / "Documents" / "Ephe").mkdir(parents=True)
+    (home / "Documents" / "Ephe" / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
+    (home / "Documents" / "Ephe" / "app" / "src").mkdir(parents=True)
+    (home / "Documents" / "Ephe" / "run_server.py").write_text("", encoding="utf-8")
+    result = _run(home, "--dry-run")
+    out = _plain(result)
+
+    assert result.returncode == 0, out
+    assert "the app was never opened on this machine" in out, out
+
+
+@pytest.mark.parametrize("bad", ["..", "com.ephe.ephe/../..", "/abs", ".ephe"])
+def test_given_a_bundle_id_that_is_not_one_when_it_runs_then_it_refuses(tmp_path, bad):
+    """
+    GIVEN EPHE_BUNDLE_ID set to an empty string, a traversing value or an absolute path
+    WHEN uninstall.sh runs, even with --dry-run
+    THEN it refuses (exit 2) and removes nothing: the identifier is the leaf of the three
+         paths this script removes, so a wrong value aims the removal somewhere else
+    """
+    home = tmp_path / "home"
+    planted = plant_app_library_state(home)
+    result = _run(home, "--dry-run", "--yes", bundle_id=bad)
+    out = _plain(result)
+
+    assert result.returncode == 2, out
+    assert "EPHE_BUNDLE_ID" in out, out
+    for directory in planted:
+        assert (directory / "state.bin").is_file(), f"a refusal removed {directory}"
 
 
 def test_given_the_readme_when_read_then_the_way_out_is_documented():

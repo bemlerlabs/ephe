@@ -191,7 +191,7 @@ vi.mock('react-i18next', async (importOriginal) => {
   }
 })
 
-describe('ChatLayout composer mode switch (P4)', () => {
+describe('ChatLayout header mode switch (2026-11-10)', () => {
   let cleanup: () => void
 
   beforeEach(() => {
@@ -236,13 +236,13 @@ describe('ChatLayout composer mode switch (P4)', () => {
 
   afterEach(() => cleanup())
 
-  it('Frische Session startet Operator (Paritaet); Architect-Klick wechselt Chip + session.mode', () => {
+  it('Frische Session startet Operator (Paritaet); Architect-Klick im Kopf wechselt die Session', () => {
     // The default of fresh sessions is a tool-capable mode (DEFAULT_COMPOSER_MODE).
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Operator')
-    expect(screen.queryByTestId('composer-ask-hint')).toBeNull()
-    fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    fireEvent.click(screen.getByTestId('composer-mode-architect'))
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Architect')
+    expect(screen.getByTestId('header-mode-control').textContent).toContain('Operator')
+    expect(screen.queryByTestId('composer-mode-selector')).toBeNull()
+    fireEvent.click(screen.getByTestId('header-mode-control'))
+    fireEvent.click(screen.getByTestId('mode-option-architect'))
+    expect(screen.getByTestId('header-mode-control').textContent).toContain('Architect')
     const st = useChatStore.getState()
     expect(st.sessions.find((x) => x.id === st.activeSessionId)?.mode).toBe('architect')
   })

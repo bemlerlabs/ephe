@@ -1,5 +1,5 @@
 /**
- * The mode menu has to say what a mode does, inside the interface.
+ * The header mode menu has to say what a mode does, inside the interface.
  *
  * Walkthrough 2026-10-12 (medium): the open menu listed the four bare short
  * labels under `WITHOUT TOOLS | READ ONLY | WITH WRITE ACCESS`, and the sentence
@@ -12,7 +12,8 @@
  * Held here, in English, against the shipped bundle: every row carries its
  * sentence as visible text, the accessible name is that sentence once, and the
  * menu names the second store (the approval profile) and which of the two is the
- * ceiling.
+ * ceiling. 2026-11-10: the menu moved to the header trigger; the rows kept their
+ * promise and gained the access the mode grants.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -47,37 +48,27 @@ vi.mock('react-i18next', async () => {
   }
 })
 
-import ComposerModeChip from './ComposerModeChip'
-import { COMPOSER_MODES } from './ComposerModeMenu'
+import ModeMenu from './ModeMenu'
+import { SESSION_MODES } from './modeCatalog'
 
-const KEYS = COMPOSER_MODES.map((m) => [m.key] as const)
+const KEYS = SESSION_MODES.map((m) => [m.key] as const)
 
 function OpenMenu({ mode }: { mode: string }) {
   const ref = useRef<HTMLButtonElement>(null)
-  return (
-    <ComposerModeChip
-      open
-      mode={mode}
-      anchorRef={ref}
-      menuPos={{ left: 120, bottom: 120 }}
-      onToggle={() => undefined}
-      onClose={() => undefined}
-      onPick={() => undefined}
-    />
-  )
+  return <ModeMenu anchorRef={ref} mode={mode} onClose={() => undefined} onPick={() => undefined} />
 }
 
-describe('the composer mode menu', () => {
+describe('the header mode menu', () => {
   it.each(KEYS)('%s shows its sentence without a hover', (key) => {
     render(<OpenMenu mode={key} />)
-    const row = screen.getByTestId(`composer-mode-${key}`)
+    const row = screen.getByTestId(`mode-option-${key}`)
     expect(row.textContent).toContain(meaning(key))
     expect(meaning(key).length).toBeGreaterThan(10)
   })
 
   it.each(KEYS)('%s names the mode exactly once for a screen reader', (key) => {
     render(<OpenMenu mode={key} />)
-    const row = screen.getByTestId(`composer-mode-${key}`)
+    const row = screen.getByTestId(`mode-option-${key}`)
     const label = row.getAttribute('aria-label') ?? ''
     // The whole sentence, and the em dash that separates it from the label only once.
     expect(label).toBe(HINTS[key])
@@ -86,7 +77,7 @@ describe('the composer mode menu', () => {
 
   it('says what each surface decides and which one is the ceiling', () => {
     render(<OpenMenu mode="architect" />)
-    const note = screen.getByTestId('composer-mode-note')
+    const note = screen.getByTestId('mode-menu-note')
     expect(note.textContent).toContain('approval profile')
     expect(note.textContent).toContain('mode')
   })

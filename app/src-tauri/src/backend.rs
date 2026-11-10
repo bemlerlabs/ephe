@@ -21,7 +21,21 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+/// The one port this shell serves, and the number every other place names.
+///
+/// Three places have to agree: this spawn/probe, the window's Content-Security-Policy
+/// in `app/src-tauri/tauri.conf.json` (`connect-src`, `img-src`, `media-src`,
+/// `frame-src`) and the surface's default base URL in
+/// `app/src/lib/desktopBaseUrl.ts`. A `desktop.json` that names another port used to
+/// start a backend the window could not reach (issue #194); `sicherstellen` refuses
+/// that value now, and tests/test_tauri_conf_csp.py holds the three numbers equal.
 pub const PORT: u16 = 8765;
+
+/// The origin the policy and the surface both name. Kept beside `PORT` so a surface
+/// that has to print an address never spells the number a second time.
+pub fn base_url_for(port: u16) -> String {
+    format!("http://127.0.0.1:{port}")
+}
 
 //: The wire contract this shell can read. Mirrors `core._version.API_CONTRACT`; a
 //: backend that speaks another one is refused with both numbers, not reused.
@@ -87,6 +101,11 @@ fn is_replaceable_orphan(peer: &PeerStatement, project: &Path) -> bool {
 /// next version with the code it loaded at start.
 static BACKEND_CHILD: Mutex<Option<Child>> = Mutex::new(None);
 
+/// The pidfile belonging to the child in `BACKEND_CHILD`. The Python server
+/// removes it on a clean exit; a SIGKILL skips that, so the shell removes it
+/// after it has reaped the child it killed.
+static BACKEND_PIDFILE: Mutex<Option<PathBuf>> = Mutex::new(None);
+
 /// The one variable a keyed endpoint is authenticated by, and the one place the
 /// desktop app reads it from.
 ///
@@ -118,6 +137,9 @@ pub struct Startbefehl {
     pub projekt: PathBuf,
     pub port: u16,
     pub log: PathBuf,
+    /// `~/.ephe/run/backend-<port>.json` — the record the Python server writes
+    /// about itself, and the one this shell removes when it stops that child.
+    pub pidfile: PathBuf,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -133,8 +155,149 @@ pub enum Ergebnis {
     /// an Ephe backend, but not one this shell can own: another contract or owner.
     /// The sentence names both versions, so the surface can say what it found.
     Inkompatibel(String),
+    /// `desktop.json` names a port this shell does not serve. The window's policy and
+    /// the surface's default base URL both name `PORT`, so a backend somewhere else is
+    /// one the window cannot talk to — refused rather than started into a dead end
+    /// (issue #194). Both numbers travel with it, because the sentence has to say what
+    /// was asked for and what is served.
+    PortAnders { named: u16, served: u16 },
     Gestartet,
     StartFehler(String),
+}
+
+/// What the window may say about its backend: one state, one sentence, one action.
+///
+/// The shell promises to start nothing without `~/.ephe/desktop.json`, and the surface
+/// promised nothing back — it showed "Ready" with a live composer while no backend
+/// existed (issue #193). Only the shell knows whether that line exists and what the
+/// start attempt answered, so the answer is built here, where `Ergebnis` is decided,
+/// and handed to the surface as one value. `ready` stays false unless a backend
+/// answered for itself: "not ready" is the honest default, and the action says what
+/// would change it.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Readiness {
+    pub ready: bool,
+    /// `ready`, `starting`, `configured`, `unreachable`, `refused` or `unconfigured`.
+    pub state: &'static str,
+    pub port: u16,
+    pub base_url: String,
+    /// The file this shell reads. A surface can print it without knowing the layout.
+    pub config: String,
+    /// What is true, in the words a person reads.
+    pub sentence: String,
+    /// The one thing that would change the state, empty when nothing is missing.
+    pub action: String,
+}
+
+impl Readiness {
+    /// The state a start attempt left, as the surface may render it.
+    pub fn after(home: &Path, ergebnis: &Ergebnis) -> Self {
+        let config_path = konfig_pfad(home).display().to_string();
+        let base_url = base_url_for(PORT);
+        let verdict = |ready: bool, state: &'static str, sentence: String, action: String| Self {
+            ready,
+            state,
+            port: PORT,
+            base_url: base_url.clone(),
+            config: config_path.clone(),
+            sentence,
+            action,
+        };
+        match ergebnis {
+            Ergebnis::KeinBefehl => verdict(
+                false,
+                "unconfigured",
+                format!("No backend is configured, so nothing was started (this window reads {config_path})."),
+                r#"Run "ephe desktop" once to write that file, or write {"python": …, "project_root": …} into it yourself."#.into(),
+            ),
+            Ergebnis::SchonDa => verdict(
+                true,
+                "ready",
+                format!("A backend answers on {base_url}."),
+                String::new(),
+            ),
+            Ergebnis::Gestartet => verdict(
+                true,
+                "starting",
+                format!("This window started the backend on {base_url}; it answers after a few seconds."),
+                String::new(),
+            ),
+            Ergebnis::PortAnders { named, served } => verdict(
+                false,
+                "refused",
+                format!("{config_path} names port {named}, and this window serves only {served} — so nothing was started."),
+                format!("Set \"port\": {served} in {config_path}, or remove the field."),
+            ),
+            Ergebnis::Inkompatibel(sentence) => verdict(
+                false,
+                "refused",
+                sentence.clone(),
+                "Update the app or the backend so both speak the same API contract.".into(),
+            ),
+            Ergebnis::FremderPort => verdict(
+                false,
+                "unreachable",
+                format!("Something other than this window's backend holds {base_url}; it was not taken over."),
+                r#"Quit that process, or run "ephe doctor" to see who holds the port."#.into(),
+            ),
+            Ergebnis::StartFehler(sentence) => verdict(
+                false,
+                "unreachable",
+                format!("The backend did not start: {sentence}"),
+                r#"Run "ephe doctor" to see why, and check {config_path}."#.into(),
+            ),
+        }
+    }
+
+    /// The state before any attempt: does the line exist, and does it name this port?
+    ///
+    /// A surface that asks early gets the same shape as one that asks after a start.
+    /// An unreadable file reads as unconfigured here, because nothing can be started
+    /// from it either way; `sicherstellen` records which of the two it saw.
+    pub fn unattempted(home: &Path) -> Self {
+        let text = fs::read_to_string(konfig_pfad(home)).ok();
+        let Some(befehl) = text.as_deref().and_then(|t| befehl_aus(t, home)) else {
+            return Self::after(home, &Ergebnis::KeinBefehl);
+        };
+        if befehl.port != PORT {
+            return Self::after(
+                home,
+                &Ergebnis::PortAnders { named: befehl.port, served: PORT },
+            );
+        }
+        Self {
+            ready: false,
+            state: "configured",
+            port: PORT,
+            base_url: base_url_for(PORT),
+            config: konfig_pfad(home).display().to_string(),
+            sentence: format!(
+                "A backend is configured ({}), and this window has not tried to start it yet.",
+                befehl.programm.display()
+            ),
+            action: String::new(),
+        }
+    }
+}
+
+/// The last state a start attempt reached, for a surface command that must not wait.
+static LAST_READINESS: Mutex<Option<Readiness>> = Mutex::new(None);
+
+/// Store the state the attempt produced and hand the same value back, so the caller
+/// announces exactly what was recorded.
+pub fn remember(readiness: Readiness) -> Readiness {
+    if let Ok(mut guard) = LAST_READINESS.lock() {
+        *guard = Some(readiness.clone());
+    }
+    readiness
+}
+
+/// The recorded state, or the config-only reading when nothing ran yet in this process.
+pub fn last_readiness(home: &Path) -> Readiness {
+    match LAST_READINESS.lock().ok().and_then(|guard| guard.clone()) {
+        Some(readiness) => readiness,
+        None => Readiness::unattempted(home),
+    }
 }
 
 pub fn konfig_pfad(home: &Path) -> PathBuf {
@@ -244,7 +407,201 @@ pub fn befehl_aus(text: &str, home: &Path) -> Option<Startbefehl> {
         log: crate::instance::device_dir_for(home)
             .join("logs")
             .join("desktop-backend.log"),
+        pidfile: pidfile_path(home, e.port.unwrap_or(PORT)),
     })
+}
+
+/// One record per port: the same path Python's `core/backend_lifecycle.py` writes.
+pub fn pidfile_path(home: &Path, port: u16) -> PathBuf {
+    crate::instance::device_dir_for(home)
+        .join("run")
+        .join(format!("backend-{port}.json"))
+}
+
+/// What the running server wrote about itself.
+#[derive(Debug, Clone, Deserialize)]
+struct PidRecord {
+    pid: u32,
+    #[serde(default)]
+    port: u16,
+    #[serde(default)]
+    owner: String,
+    #[serde(default)]
+    root: String,
+    #[serde(default)]
+    start_time: String,
+    #[serde(default)]
+    started_at: f64,
+}
+
+fn read_pidfile(home: &Path, port: u16) -> Option<PidRecord> {
+    let text = fs::read_to_string(pidfile_path(home, port)).ok()?;
+    let record: PidRecord = serde_json::from_str(&text).ok()?;
+    if record.pid <= 1 || (record.port != 0 && record.port != port) {
+        return None;
+    }
+    Some(record)
+}
+
+/// The kernel's start stamp — the fact that makes a recycled pid harmless.
+fn current_start_time(pid: u32) -> Option<String> {
+    let out = Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "lstart="])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if text.is_empty() { None } else { Some(text) }
+}
+
+/// A backend the pidfile proves was left behind by this installation: same
+/// project, same pid the health answer names, same start time, dead owner.
+fn pidfile_orphan(
+    home: &Path,
+    port: u16,
+    project: &Path,
+    peer: &PeerStatement,
+) -> Option<u32> {
+    let record = read_pidfile(home, port)?;
+    if record.pid != peer.pid as u32 || record.pid <= 1 {
+        return None;
+    }
+    if !same_project(&peer.root, project) {
+        return None;
+    }
+    if !record.root.is_empty() && !same_project(&record.root, project) {
+        return None;
+    }
+    if !record.start_time.is_empty() {
+        match current_start_time(record.pid) {
+            Some(live) if live == record.start_time => {}
+            _ => return None,
+        }
+    }
+    if record.owner.is_empty() || owner_is_dead(&record.owner) {
+        Some(record.pid)
+    } else {
+        None
+    }
+}
+
+/// SIGTERM, wait for the port, SIGKILL, wait again. True once the port is free.
+/// Only a pid the caller proved is ever signalled.
+fn stop_process(pid: u32, port: u16) -> bool {
+    if pid <= 1 {
+        return !lauscht(port);
+    }
+    if !lauscht(port) && !pid_alive(pid) {
+        return true;
+    }
+    let _ = Command::new("kill")
+        .arg("-TERM")
+        .arg(pid.to_string())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    for _ in 0..50 {
+        if !lauscht(port) {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    if pid_alive(pid) {
+        let _ = Command::new("kill")
+            .arg("-KILL")
+            .arg(pid.to_string())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    for _ in 0..30 {
+        if !lauscht(port) {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    !lauscht(port)
+}
+
+fn clear_pidfile(path: &Path, pid: u32) {
+    let Ok(text) = fs::read_to_string(path) else {
+        return;
+    };
+    let Ok(record) = serde_json::from_str::<PidRecord>(&text) else {
+        return;
+    };
+    if record.pid == pid {
+        let _ = fs::remove_file(path);
+    }
+}
+
+fn process_command(pid: u32) -> Option<String> {
+    let out = Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "command="])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+/// The desktop's own leftovers from the last run, without a listener to ask:
+/// a live `run_server.py` of this project whose owning shell is gone, or any
+/// record whose pid is dead. A backend that starts answering within the grace
+/// window is left alone — it is not an orphan, it is starting.
+fn clean_orphan_pidfile(home: &Path, port: u16, project: &Path) {
+    let Some(record) = read_pidfile(home, port) else {
+        return;
+    };
+    if !pid_alive(record.pid) {
+        let _ = fs::remove_file(pidfile_path(home, port));
+        return;
+    }
+    if !record.start_time.is_empty() {
+        match current_start_time(record.pid) {
+            Some(live) if live == record.start_time => {}
+            _ => return,
+        }
+    }
+    if !record.root.is_empty() && !same_project(&record.root, project) {
+        return;
+    }
+    if !(record.owner.is_empty() || owner_is_dead(&record.owner)) {
+        return;
+    }
+    // A record written moments ago may be a backend that is still importing
+    // FastAPI; it is starting, not orphaned. Only a record older than the grace
+    // is settled this way.
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    if record.started_at > 0.0 && now - record.started_at < 30.0 {
+        return;
+    }
+    match process_command(record.pid) {
+        Some(command) if command.contains("run_server.py") => {}
+        _ => return,
+    }
+    for _ in 0..15 {
+        if lauscht(port) {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    if stop_process(record.pid, port) {
+        let _ = fs::remove_file(pidfile_path(home, port));
+        notiz(
+            home,
+            &format!(
+                "removed orphaned backend pid {} on port {port} from the last run",
+                record.pid
+            ),
+        );
+    }
 }
 
 /// Is someone listening? Only a completed handshake counts — a socket that
@@ -265,7 +622,7 @@ pub fn braucht_start(port_offen: bool, befehl: Option<&Startbefehl>) -> bool {
 }
 
 /// What a process on the port reports about its own engine.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PeerStatement {
     pub key_challenge: bool,
     pub detail: String,
@@ -379,24 +736,20 @@ fn ergebnis_fur_besetzten_port(
             Ergebnis::Inkompatibel(found)
         }
         Some(s) if s.owner != owner_token() => {
-            if is_replaceable_orphan(&s, &befehl.projekt) {
-                // The owning shell is gone; the backend is this project's leftover.
-                // Ask it to stop, wait for the port, and start a watched child.
-                let _ = Command::new("kill")
-                    .arg(s.pid.to_string())
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status();
-                for _ in 0..20 {
-                    if !lauscht(port) {
-                        break;
-                    }
-                    std::thread::sleep(Duration::from_millis(100));
-                }
-                if !lauscht(port) {
+            let orphan = if is_replaceable_orphan(&s, &befehl.projekt) {
+                Some(s.pid as u32)
+            } else {
+                pidfile_orphan(home, port, &befehl.projekt, &s)
+            };
+            if let Some(pid) = orphan {
+                // The owning shell is gone; the backend is this installation's
+                // leftover, proven by the owner token or by the pidfile's pid,
+                // start time and root. Ask it to stop, wait for the port, and
+                // start a watched child.
+                if stop_process(pid, port) {
                     notiz(
                         home,
-                        &format!("replaced orphaned backend pid {} on port {port}", s.pid),
+                        &format!("replaced orphaned backend pid {pid} on port {port}"),
                     );
                     return match starten(befehl, key) {
                         Ok(()) => Ergebnis::Gestartet,
@@ -406,8 +759,7 @@ fn ergebnis_fur_besetzten_port(
                 notiz(
                     home,
                     &format!(
-                        "orphaned backend pid {} on port {port} did not stop; stop it with: kill {}",
-                        s.pid, s.pid
+                        "orphaned backend pid {pid} on port {port} did not stop; stop it with: kill {pid}"
                     ),
                 );
                 return Ergebnis::FremderPort;
@@ -464,6 +816,9 @@ fn starten(befehl: &Startbefehl, key: Option<&str>) -> std::io::Result<()> {
     if let Ok(mut guard) = BACKEND_CHILD.lock() {
         *guard = Some(child);
     }
+    if let Ok(mut slot) = BACKEND_PIDFILE.lock() {
+        *slot = Some(befehl.pidfile.clone());
+    }
     Ok(())
 }
 
@@ -472,8 +827,14 @@ fn starten(befehl: &Startbefehl, key: Option<&str>) -> std::io::Result<()> {
 pub fn stop_backend() {
     if let Ok(mut guard) = BACKEND_CHILD.lock() {
         if let Some(mut child) = guard.take() {
+            let pid = child.id();
             let _ = child.kill();
             let _ = child.wait();
+            if let Ok(mut slot) = BACKEND_PIDFILE.lock() {
+                if let Some(path) = slot.take() {
+                    clear_pidfile(&path, pid);
+                }
+            }
         }
     }
 }
@@ -488,6 +849,31 @@ pub fn sicherstellen(home: &Path, port: u16) -> Ergebnis {
     let Some(befehl) = befehl_aus(&text, home) else {
         return Ergebnis::KeinBefehl;
     };
+    // The window, its policy and the surface's default base URL all name `PORT`, so a
+    // backend on another port is one this window cannot talk to. It used to be started
+    // anyway, and the surface then reported "Disconnected" about a backend the shell
+    // had started itself (issue #194). Refuse the value and name both numbers.
+    if befehl.port != port {
+        notiz(
+            home,
+            &format!(
+                "{} names port {}; this window serves {} — nothing was started. Set \"port\": {} or remove the field.",
+                konfig_pfad(home).display(),
+                befehl.port,
+                port,
+                port
+            ),
+        );
+        return Ergebnis::PortAnders {
+            named: befehl.port,
+            served: port,
+        };
+    }
+    // Last run's leftovers are settled before this run decides anything. A
+    // backend that is already serving keeps the port and is handled below.
+    if !lauscht(port) {
+        clean_orphan_pidfile(home, port, &befehl.projekt);
+    }
     let key = key_for_start(home, std::env::var_os(KEY_ENV).as_deref());
     if !braucht_start(lauscht(port), Some(&befehl)) {
         return ergebnis_fur_besetzten_port(home, port, &befehl, key.as_deref());
@@ -741,6 +1127,104 @@ mod tests {
         assert!(!is_replaceable_orphan(&peer, Path::new("/other")));
     }
 
+    fn peer_for(pid: u32, owner: &str) -> PeerStatement {
+        PeerStatement {
+            key_challenge: false,
+            detail: String::new(),
+            version: "0.1.0".into(),
+            api_contract: API_CONTRACT,
+            owner: owner.into(),
+            instance_id: "i".into(),
+            pid: pid as u64,
+            root: "/x".into(),
+        }
+    }
+
+    fn write_pid_record(home: &Path, port: u16, pid: u32, owner: &str, start_time: &str) {
+        let dir = home.join(".ephe").join("run");
+        fs::create_dir_all(&dir).expect("pidfile dir");
+        fs::write(
+            pidfile_path(home, port),
+            format!(
+                r#"{{"pid":{pid},"port":{port},"owner":"{owner}","root":"/x","start_time":"{start_time}"}}"#
+            ),
+        )
+        .expect("pidfile");
+    }
+
+    #[test]
+    fn a_pidfile_proves_an_orphan_the_owner_token_cannot() {
+        let home = temp_home("pidfile-orphan");
+        let port = 47999u16;
+        let mut dead = Command::new("true").spawn().expect("spawn");
+        let dead_pid = dead.id();
+        dead.wait().expect("wait");
+        let owner = format!("abc-{dead_pid:x}");
+        let start = current_start_time(std::process::id()).expect("own start stamp");
+        let me = std::process::id();
+        write_pid_record(&home, port, me, &owner, &start);
+
+        let peer = peer_for(me, &owner);
+        assert_eq!(pidfile_orphan(&home, port, Path::new("/x"), &peer), Some(me));
+        assert_eq!(
+            pidfile_orphan(&home, port, Path::new("/other"), &peer),
+            None,
+            "another project's record is not ours"
+        );
+        let mut wrong_pid = peer.clone();
+        wrong_pid.pid += 1;
+        assert_eq!(
+            pidfile_orphan(&home, port, Path::new("/x"), &wrong_pid),
+            None,
+            "the health pid and the pidfile pid must agree"
+        );
+
+        // A start stamp that disagrees with the live process is a recycled pid.
+        write_pid_record(&home, port, me, &owner, "not-this-process");
+        assert_eq!(pidfile_orphan(&home, port, Path::new("/x"), &peer), None);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_live_owner_in_the_pidfile_is_not_an_orphan() {
+        let home = temp_home("pidfile-live");
+        let port = 47998u16;
+        let me = std::process::id();
+        let start = current_start_time(me).expect("own start stamp");
+        let live = format!("abc-{me:x}");
+        write_pid_record(&home, port, me, &live, &start);
+        let peer = peer_for(me, &live);
+        assert_eq!(pidfile_orphan(&home, port, Path::new("/x"), &peer), None);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_dead_pidfile_disappears_without_a_listener() {
+        let home = temp_home("pidfile-dead");
+        let port = 47997u16;
+        let mut dead = Command::new("true").spawn().expect("spawn");
+        let dead_pid = dead.id();
+        dead.wait().expect("wait");
+        write_pid_record(&home, port, dead_pid, "abc-1", "gone");
+        assert!(pidfile_path(&home, port).is_file());
+        clean_orphan_pidfile(&home, port, Path::new("/x"));
+        assert!(!pidfile_path(&home, port).exists());
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn stop_process_ends_a_child_and_hands_the_port_back() {
+        let port = {
+            let probe = std::net::TcpListener::bind("127.0.0.1:0").expect("free port");
+            probe.local_addr().expect("addr").port()
+        };
+        let mut child = Command::new("sleep").arg("30").spawn().expect("spawn sleep");
+        let pid = child.id();
+        assert!(stop_process(pid, port));
+        let _ = child.wait();
+        assert!(!lauscht(port));
+    }
+
     #[test]
     fn a_live_or_unlabelled_owner_is_never_replaceable() {
         let live = format!("abc-{:x}", std::process::id());
@@ -927,6 +1411,108 @@ mod tests {
 
     /// A run aimed at another device folder must leave `$HOME/.ephe` with the
     /// same names it had. The listing is the proof. The variable only aims the run.
+    /// The state a surface renders has to be the state a start left. These are the
+    /// words, not a string that happens to contain "ready": a surface that shows
+    /// "Ready" while nothing runs is the defect of issue #193.
+    #[test]
+    fn without_a_configuration_the_window_is_not_ready_and_names_the_command() {
+        let home = temp_home("unconfigured");
+        let readiness = last_readiness(&home);
+        assert!(!readiness.ready, "no config must never read as ready");
+        assert_eq!(readiness.state, "unconfigured");
+        assert!(readiness.sentence.contains("nothing was started"), "{}", readiness.sentence);
+        assert!(
+            readiness.action.contains("ephe desktop"),
+            "the action has to name the command that writes the file: {}",
+            readiness.action
+        );
+        assert!(
+            readiness.config.ends_with("desktop.json"),
+            "{}",
+            readiness.config
+        );
+        assert_eq!(readiness.base_url, base_url_for(PORT));
+        assert_eq!(readiness.port, PORT);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_failed_start_is_not_ready_and_points_at_the_doctor() {
+        let home = temp_home("start-fehler");
+        let ergebnis = Ergebnis::StartFehler("No such file or directory".into());
+        let readiness = Readiness::after(&home, &ergebnis);
+        assert!(!readiness.ready);
+        assert_eq!(readiness.state, "unreachable");
+        assert!(readiness.sentence.contains("No such file"), "{}", readiness.sentence);
+        assert!(readiness.action.contains("ephe doctor"), "{}", readiness.action);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn only_a_backend_that_answered_is_ready() {
+        let home = temp_home("ready");
+        for (ergebnis, state, ready) in [
+            (Ergebnis::SchonDa, "ready", true),
+            (Ergebnis::Gestartet, "starting", true),
+            (Ergebnis::FremderPort, "unreachable", false),
+            (Ergebnis::Inkompatibel("contract 2 vs 1".into()), "refused", false),
+        ] {
+            let b = Readiness::after(&home, &ergebnis);
+            assert_eq!(b.state, state, "{ergebnis:?}");
+            assert_eq!(b.ready, ready, "{ergebnis:?}");
+        }
+        let _ = fs::remove_dir_all(home);
+    }
+
+    /// Issue #194: the configured port and the served port are one number. A file
+    /// naming another port used to start a backend the window could not reach.
+    #[test]
+    fn a_configured_port_this_shell_does_not_serve_is_refused_and_starts_nothing() {
+        let home = temp_home("port");
+        fs::write(
+            konfig_pfad(&home),
+            r#"{"python":"/nonexistent/python","project_root":"/nonexistent","port":8808}"#,
+        )
+        .expect("config");
+        let ergebnis = sicherstellen(&home, PORT);
+        assert_eq!(
+            ergebnis,
+            Ergebnis::PortAnders { named: 8808, served: PORT },
+            "a foreign port has to be refused, not started"
+        );
+        let note = note_text(&home).expect("a refusal is worth one line");
+        assert!(note.contains("8808") && note.contains(&PORT.to_string()), "{note}");
+        let readiness = Readiness::after(&home, &ergebnis);
+        assert!(!readiness.ready);
+        assert_eq!(readiness.state, "refused");
+        assert!(readiness.action.contains("\"port\""), "{}", readiness.action);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    /// The same file read early, before any attempt, already answers "refused": a
+    /// surface that asks first must not be told the window is about to be ready.
+    #[test]
+    fn the_early_reading_of_a_foreign_port_is_the_same_refusal() {
+        let home = temp_home("port-frueh");
+        fs::write(konfig_pfad(&home), held_port_config(8808)).expect("config");
+        let readiness = Readiness::unattempted(&home);
+        assert!(!readiness.ready);
+        assert_eq!(readiness.state, "refused");
+        assert!(readiness.sentence.contains("8808"), "{}", readiness.sentence);
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn a_configured_backend_that_was_not_tried_is_not_ready_yet() {
+        let home = temp_home("configured");
+        fs::write(konfig_pfad(&home), ZEILE).expect("config");
+        let readiness = Readiness::unattempted(&home);
+        assert!(!readiness.ready, "configured is not started");
+        assert_eq!(readiness.state, "configured");
+        assert_eq!(readiness.port, PORT);
+        let _ = fs::remove_dir_all(home);
+    }
+
     #[test]
     fn an_isolated_config_dir_leaves_the_home_folder_unchanged() {
         let scratch = std::env::temp_dir().join(format!(

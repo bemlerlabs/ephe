@@ -27,6 +27,14 @@ environment. `docs/SECURITY_THREAT_MODEL.md` §1a holds the three lifetimes and 
 ## `ephe start`
 Starts backend + PWA locally (backend :8765, PWA build). Loads `engine.json`, starts the scheduler and makes sure the model is loaded. `--model <tag>` overrides the model inside the chosen engine and picks no engine itself; with no engine chosen it names nothing, so the PWA starts in setup mode and takes over the selection in the browser.
 
+The port is inspected first. A backend from this installation is reused; one from another checkout, another version, or without a matching pidfile is named and the start exits 1 instead of moving to the next port. `--takeover` is the explicit permission to stop such an Ephe backend first. A listener that is not Ephe is never killed. See `docs/OPERATIONS.md`.
+
+## `ephe stop [--port <p>] [--timeout <s>] [--json]`
+Stops the backend that `~/.ephe/run/backend-<port>.json` and `/api/health` agree is this installation's: `SIGTERM`, wait, `SIGKILL`, then verify the port has no listener. Exit 0 when nothing was running; a process the record does not prove is named, never killed.
+
+## `ephe status [--json]`
+Prints pid, version, root and owner of the backend on the port, and whether the pidfile proves ownership. Exit 0 when an Ephe backend answers, 1 when nothing does.
+
 ## `ephe doctor [--fix] [--json]`
 Diagnoses the local setup: Python, project files, the engine (chosen, reachable, key bound), model (installed + load test), the **image endpoint** (R16, informational) and **voice (TTS)** (R18, informational).
 
@@ -106,8 +114,10 @@ re-turn on failure. The exit code follows success. Needs a chosen engine.
 
 ## `ephe serve [--host <h>] [--port <p>] [--lan] [--token <t>]`
 OpenAI-compatible engine (`/v1/chat/completions`, `/v1/models`) for other coding CLIs.
-Binds only to localhost by default; `--lan` generates an auth token. The engine it passes
-through is the chosen one — without a choice the server does not start (I2-2).
+Binds only to localhost by default; `--lan` generates an auth token. With `--token` a
+client sends that token as `X-Auth-Token` or as `Authorization: Bearer <token>`, so an
+OpenAI SDK reaches the engine with `api_key=` alone. The engine it passes through is the
+chosen one — without a choice the server does not start (I2-2).
 
 ## `ephe tool <name> [--arg k=v ...] [--dry-run]`
 Run a single tool directly (e.g. `ephe tool generate_image --arg prompt="…" --dry-run`). `generate_image` ships in the **image-studio** plugin: with that switch off (Settings → Plugins) the tool is not offered at all, `ephe tool generate_image` fails naming the tools that are, and `ephe tool --help` prints that same list.
@@ -126,6 +136,8 @@ Three entry points, one codebase:
 ephe --version                 # the version of this checkout (pyproject [project].version)
 ephe --help                    # all subcommands, examples, exit codes
 ephe start --open              # start the local web app + open browser (port 8765)
+ephe stop                      # stop the backend this installation started, verify the port
+ephe status                    # running? which pid, version and owner?
 ephe desktop                   # build, install to /Applications and open (Tauri); --dev = live shell, --no-install = keep the build copy
 ephe configure                 # choose the engine once (saved to ~/.ephe/engine.json)
 ephe configure --force         # change the engine later

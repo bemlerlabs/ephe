@@ -271,9 +271,11 @@ Ok "Dependencies installed"
 if (-not $Cli) {
   Step "Building the PWA (web app)"
   if ($script:DryRun) {
-    Info "DRY-RUN: npm install --no-package-lock"
+    # A dry run builds nothing, so it may not report a build (issue #198, the same
+    # claim the Bash installer made).
+    Info "DRY-RUN: npm install --no-package-lock --legacy-peer-deps"
     Info "DRY-RUN: npm run build"
-    Ok "PWA built -> app/dist"
+    Info "would build the PWA into app/dist (nothing was built)"
   } else {
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
       Fail "npm is missing - Node.js is required for the PWA build. Install Node.js (https://nodejs.org) and run the installer again."
@@ -285,7 +287,10 @@ if (-not $Cli) {
       # `npm install` would write app/package-lock.json, the second lockfile that
       # tests/test_r46_pnpm_single_source.py forbids.
       Info "Building with npm (no package-lock.json is written)"
-      Run "npm install --no-package-lock" { npm install --no-package-lock }
+      # `--legacy-peer-deps` is part of the shipped command since issue #191: npm 10.9.9
+      # dies inside its own resolver on this peer tree, and the peers the app needs are
+      # declared in package.json (see the comment in install.sh, build_pwa()).
+      Run "npm install --no-package-lock --legacy-peer-deps" { npm install --no-package-lock --legacy-peer-deps }
       Run "npm run build" { npm run build }
       if (-not (Test-Path -LiteralPath "dist/index.html")) {
         Fail "PWA build failed: dist/index.html does not exist."

@@ -20,7 +20,7 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 This path has not been verified end to end on Windows for this revision.
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -61,21 +61,23 @@ EPHE_PUBLISH_HOST=0.0.0.0 docker compose up   # then scan the in-app QR code
 ## Uninstall
 
 `uninstall.sh` is the way back out. It removes the checkout in `EPHE_INSTALL_DIR` (default
-`$HOME/Documents/Ephe`) and the state tree in `~/.ephe` — sessions, memory, artifacts, change sets
-and the engine key — and it refuses when a path is a filesystem root, your home directory or an
-ancestor of it, a top-level directory, or not an Ephe checkout, so an `EPHE_INSTALL_DIR=/` cannot
-reach `rm -rf /`:
+`$HOME/Documents/Ephe`), the state tree in `~/.ephe` — sessions, memory, artifacts, change sets and
+the engine key — and the desktop app's own state under `$HOME/Library` (`Application Support`,
+`WebKit` and `Caches`, each under the bundle identifier `com.ephe.ephe`). It refuses when a path is
+a filesystem root, your home directory or an ancestor of it, a top-level directory, not an Ephe
+checkout, or a bundle identifier that is not one, so an `EPHE_INSTALL_DIR=/` cannot reach `rm -rf
+/`:
 
 ```bash
 ./uninstall.sh --dry-run     # list what would go, remove nothing
-./uninstall.sh --keep-data   # drop the checkout, keep the state tree
-./uninstall.sh --yes         # remove both, the state tree included
+./uninstall.sh --keep-data   # drop the checkout, keep the state tree and the Library state
+./uninstall.sh --yes         # remove all of it, the state tree and the Library state included
 ```
 
-The checkout is reconstructible from git, the state tree is not: without `--yes` the data tree goes
-only after a prompt, and a non-interactive run keeps it and prints the one command that removes it.
-Nothing outside those two paths is touched, Ollama and its models included, and the run ends by
-naming what it left behind.
+The checkout is reconstructible from git, the state tree is not: without `--yes` the data tree and
+the `~/Library` state go only after a prompt, and a non-interactive run keeps them and prints the
+one command that removes them. Nothing outside those paths is touched, Ollama and its models
+included, and the run ends by naming what it left behind.
 
 ## What the installer does
 

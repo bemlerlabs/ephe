@@ -113,7 +113,7 @@ import ChatInput from './ChatInput'
 import { useChatStore } from '@/store/chatStore'
 import { groupModelEntries, isUnconfiguredEntry } from './chat/composerModelEntries'
 import { detectMentionToken, filterMentionEntries, topmostPopup } from './chat/composerPopups'
-import { modeShortLabel, COMPOSER_MODES } from './chat/ComposerModeMenu'
+import { modeShortLabel, SESSION_MODES } from './chat/modeCatalog'
 import {
   hasUnfilledTemplate,
   isJunkModel,
@@ -175,15 +175,16 @@ describe('P3-1 Escape schließt zuerst das oberste Popup', () => {
     dialog.remove()
   })
 
-  it('Reihenfolge der Kette: Modell > Modus > Plus > @ > Slash', () => {
+  it('Reihenfolge der Kette: Modell > Zugriff > Plus > @ > Slash', () => {
     expect(
-      topmostPopup({ model: false, mode: false, attach: true, mention: true, slash: true }),
+      topmostPopup({ model: false, access: false, attach: true, mention: true, slash: true }),
     ).toBe('attach')
-    expect(topmostPopup({ model: false, mode: false, attach: false, mention: true })).toBe(
+    expect(topmostPopup({ model: false, access: false, attach: false, mention: true })).toBe(
       'mention',
     )
     expect(topmostPopup({ slash: true })).toBe('slash')
-    expect(topmostPopup({ model: true, mode: true, attach: true })).toBe('model')
+    expect(topmostPopup({ model: true, access: true, attach: true })).toBe('model')
+    expect(topmostPopup({ access: true, attach: true })).toBe('access')
     expect(topmostPopup({})).toBeNull()
   })
 })
@@ -442,7 +443,7 @@ describe('P3-7 Modus-Menü: deutsch, Sektionen, Tastatur', () => {
   it('Kurz-Titel aus der Übersetzung, Notname ohne Auflösung', () => {
     // Architect: the one renamed tile whose German title differs from the fallback —
     // Analyst and Operator are the same words in both languages by ruling.
-    const architect = COMPOSER_MODES.find((m) => m.key === 'architect')!
+    const architect = SESSION_MODES.find((m) => m.key === 'architect')!
     expect(modeShortLabel(architect, 'Architekt — Ephe entwirft erst einen Plan')).toBe('Architekt')
     expect(modeShortLabel(architect, 'chat.modeHint.architect')).toBe('Architect')
     expect(modeShortLabel(architect, '')).toBe('Architect')
@@ -451,59 +452,10 @@ describe('P3-7 Modus-Menü: deutsch, Sektionen, Tastatur', () => {
     )
   })
 
-  it('Chip und Zeilen tragen die deutschen Kurz-Titel', async () => {
+  it('kein Modus-Chip mehr im Composer — der Modus sitzt im Kopf', async () => {
     useChatStore.getState().createSession('S')
     render(<ChatInput onSend={vi.fn()} />)
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Operator')
-    fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    const menu = await screen.findByTestId('composer-mode-menu')
-    expect(menu.textContent).toContain('Analyst')
-    expect(menu.textContent).toContain('Architekt')
-    // A resolved German title wins: the English remainder message never shows.
-    expect(menu.textContent).not.toContain('Architect —')
-  })
-
-  it('Sektionen nach Ausführungsrecht', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
-    fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    await screen.findByTestId('composer-mode-menu')
-    expect(screen.getByTestId('composer-mode-section-none').textContent).toContain('Ohne Werkzeuge')
-    expect(screen.getByTestId('composer-mode-section-read').textContent).toContain('Nur lesend')
-    expect(screen.getByTestId('composer-mode-section-write').textContent).toContain(
-      'Mit Schreibzugriff',
-    )
-    // The fourth group is Wave 5's `creator` tile (`chat.modeSection.create`).
-    expect(screen.getByTestId('composer-mode-section-create').textContent).toContain(
-      'Erstellt Plugins',
-    )
-    expect(
-      document.querySelectorAll('[data-testid="composer-mode-menu"] [role="group"]').length,
-    ).toBe(4)
-  })
-
-  it('Tastatur: Highlight ab Zeile 1, Enter wählt', async () => {
-    useChatStore.getState().createSession('S')
-    const st = useChatStore.getState()
-    useChatStore.getState().setSessionMode(st.activeSessionId!, 'analyst')
-    render(<ChatInput onSend={vi.fn()} />)
-    fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    await screen.findByTestId('composer-mode-menu')
-    const marked = () =>
-      [
-        ...document.querySelectorAll('[data-testid="composer-mode-menu"] [role="menuitemradio"]'),
-      ].findIndex((el) => el.getAttribute('aria-current') === 'true')
-    expect(marked()).toBe(0)
-    fireEvent.keyDown(screen.getByTestId('composer-mode-list'), { key: 'ArrowDown' })
-    expect(marked()).toBe(1)
-    fireEvent.keyDown(screen.getByTestId('composer-mode-list'), { key: 'Enter' })
-    await waitFor(() =>
-      expect(
-        useChatStore
-          .getState()
-          .sessions.find((x) => x.id === useChatStore.getState().activeSessionId)?.mode,
-      ).toBe('architect'),
-    )
-    expect(screen.queryByTestId('composer-mode-menu')).toBeNull()
+    expect(screen.queryByTestId('composer-mode-selector')).toBeNull()
   })
 })
 
@@ -521,13 +473,17 @@ describe('P3-8 Microcopy: Zähler nur mit Leser, Badge-Namen', () => {
     expect(counter.getAttribute('aria-label')).toContain('History: position 1 of 1')
   })
 
-  it('Status-Punkt und Berechtigungs-Badge haben einen zugaenglichen Namen', async () => {
+  it('Zugriffs-Kontrolle und Engine-Punkt haben einen zugaenglichen Namen', async () => {
     render(<ChatInput onSend={vi.fn()} />)
+    const access = await screen.findByTestId('composer-access-control')
+    // The profile leaves the row as a control; the engine's local/remote dot moved
+    // behind the details door and still names itself there.
+    expect(access.getAttribute('aria-label')).toContain('chat.permissionAria')
+    expect(access.getAttribute('aria-label')).toContain('Manuell')
+    fireEvent.click(screen.getByTestId('composer-thinking-chip'))
     const dot = await screen.findByTestId('composer-status-dot')
     expect(dot.getAttribute('role')).toBe('img')
     expect(dot.getAttribute('aria-label')).toBeTruthy()
-    const badge = screen.getByTestId('composer-permission-badge')
-    expect(badge.getAttribute('aria-label')).toContain('Manuell')
   })
 })
 

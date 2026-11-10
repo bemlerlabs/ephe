@@ -327,7 +327,7 @@ def _download_piper_voice(name: str) -> Path:
     """
     import httpx
 
-    from core.voice_config import voices_dir
+    from core.voice_config import ensure_voices_dir
 
     parts = name.split("-")
     if len(parts) != 3:
@@ -335,7 +335,7 @@ def _download_piper_voice(name: str) -> Path:
     locale, voice_name, quality = parts
     lang = locale.split("_")[0]
     base = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/{lang}/{locale}/{voice_name}/{quality}/{name}"
-    out_dir = voices_dir()
+    out_dir = ensure_voices_dir()
 
     def _fetch(url: str, dest: Path, max_bytes: int) -> None:
         resp = httpx.get(url, follow_redirects=True, timeout=httpx.Timeout(300.0, connect=15.0))

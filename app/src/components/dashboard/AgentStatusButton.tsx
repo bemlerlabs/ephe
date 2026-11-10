@@ -42,9 +42,13 @@ export default function AgentStatusButton({
   messages = [],
   sessionId,
   details,
+  engineOnline,
 }: {
   messages?: ChatMessage[]
   sessionId?: string
+  /** The engine's reachability, so the idle word does not claim readiness it cannot know
+   *  (issue #202: the pill said "Ready" while the engine was offline). */
+  engineOnline?: boolean | null
   /** The row's raw figures (storage, free-of-window, index) — one quiet block in the
    *  popover instead of five chips in the footer the reader looks at all day. */
   details?: ReactNode
@@ -216,6 +220,14 @@ export default function AgentStatusButton({
         {working ? (
           <span data-testid="agent-status-activity" className="max-w-40 truncate">
             {current ? current.label : t('agentStatus.workingFor', { time: elapsed ?? '' })}
+          </span>
+        ) : engineOnline === false ? (
+          <span
+            data-testid="agent-status-offline"
+            className="max-w-32 truncate"
+            title={t('agentStatus.offlineHint')}
+          >
+            {t('agentStatus.offline')}
           </span>
         ) : (
           <span className="max-w-32 truncate">{t('agentStatus.idle')}</span>

@@ -165,7 +165,10 @@ const LEAK_GUARDED = [
   // WS7-45 (2026-10-11): the composer/reader keep-awake surfaces. Their last
   // German literals were `defaultValue` fallbacks — dead for a resolved key, but
   // a German last resort for one that goes missing; now English.
-  'components/dashboard/chat/ComposerModeMenu.tsx',
+  'components/dashboard/chat/ModeMenu.tsx',
+  'components/dashboard/chat/HeaderModeControl.tsx',
+  'components/dashboard/chat/ComposerAccessControl.tsx',
+  'components/dashboard/chat/modeCatalog.ts',
   'components/dashboard/chat/ComposerModelMenu.tsx',
   'components/dashboard/chat/ComposerAttachMenu.tsx',
   'components/dashboard/KeepAwakeToggle.tsx',

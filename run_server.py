@@ -17,6 +17,13 @@ from pathlib import Path
 # Keep the Ephe directory on the import path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from core.backend_lifecycle import (  # noqa: E402 — sys.path is prepared above
+    OWNER_ENV,
+    new_owner_token,
+    remove_pidfile,
+    write_pidfile,
+)
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="◑ Ephe API Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host (default: 127.0.0.1)")
@@ -243,6 +250,31 @@ def main() -> None:
     os.environ["EPHE_HOST"] = os.environ["EPHE_HOST"] = args.host
     os.environ["EPHE_PORT"] = os.environ["EPHE_PORT"] = str(args.port)
 
+    # The record `ephe stop` and the next start read. The owner token is what
+    # /api/health reports, and the process start time makes a recycled pid
+    # harmless; both are written before the port is served, so a backend that is
+    # already answering can always be identified.
+    _owner = (os.environ.get(OWNER_ENV) or "").strip() or new_owner_token()
+    os.environ[OWNER_ENV] = _owner
+    try:
+        from core._version import API_CONTRACT as _api_contract
+        from core._version import __version__ as _ephe_version
+
+        write_pidfile(
+            args.port,
+            pid=os.getpid(),
+            owner=_owner,
+            root=str(Path(__file__).resolve().parent),
+            version=_ephe_version,
+            api_contract=_api_contract,
+            host=args.host,
+        )
+    except OSError as exc:
+        # The server still serves; only the ability to stop it later is reduced,
+        # and that has to be said where the person starting it can read it.
+        print(f"  ⚠ Could not write the backend pidfile: {exc}")
+        print("    `ephe stop` will need the pid from `ephe status` / lsof.")
+
     print(f"\n  ◑ Ephe API Server")
     print(f"  ─────────────────────────────────────")
     # W18: the active engine is shown in the start banner (chosen, not
@@ -282,14 +314,20 @@ def main() -> None:
     # P0-1: the approval registry (_active_sandbox_events) and the ContextVar
     # isolation are process-local. With >1 worker an approve token from worker A
     # would 404 in worker B → approval divergence. Deliberately 1 worker.
-    uvicorn.run(
-        "server.main:app",
-        host=args.host,
-        port=args.port,
-        reload=args.reload,
-        log_level="info",
-        workers=1,
-    )
+    try:
+        uvicorn.run(
+            "server.main:app",
+            host=args.host,
+            port=args.port,
+            reload=args.reload,
+            log_level="info",
+            workers=1,
+        )
+    finally:
+        # A clean shutdown gives the port back and takes its record with it. A
+        # SIGKILL skips this on purpose: the pidfile that remains is what lets
+        # the next start recognise the orphan.
+        remove_pidfile(args.port, pid=os.getpid())
 
 
 if __name__ == "__main__":

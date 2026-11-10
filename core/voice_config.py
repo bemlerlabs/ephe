@@ -131,7 +131,15 @@ def piper_binary_available() -> bool:
 
 
 def voices_dir() -> Path:
-    d = engine_config.CONFIG_DIR / "voices"
+    """Where the Piper voices live. Reading this path must never create the folder:
+    `ephe doctor` checks it on a fresh machine, and a probe that makes the state it
+    reports turns "0 voices" into a folder the check itself brought into being."""
+    return engine_config.CONFIG_DIR / "voices"
+
+
+def ensure_voices_dir() -> Path:
+    """The voices folder, created for the one caller that writes into it."""
+    d = voices_dir()
     d.mkdir(parents=True, exist_ok=True)
     return d
 
