@@ -62,6 +62,37 @@ def section_body(text: str, version: str) -> str | None:
     return "\n".join(body)
 
 
+#: GitHub refuses a release body over 125 000 characters. The 0.6.0 section crossed it at 146 794,
+#: so the draft was never created and the tag stood without a release. The body is cut at a paragraph
+#: boundary below that ceiling and says where the rest lives, because a truncation the reader cannot
+#: see is the one thing a release note must not do.
+MAX_BODY_CHARS = 120_000
+
+TRUNCATION_NOTE = (
+    "\n\n---\n\n"
+    "This release note is the head of the `## [{version}]` section: it is longer than the "
+    "125 000-character limit GitHub accepts. The full section, entry by entry with its commit "
+    "addresses, is in `CHANGELOG.md`."
+)
+
+
+def cap_body(body: str, version: str, limit: int = MAX_BODY_CHARS) -> str:
+    """Cut a release body to the host's limit at a paragraph boundary.
+
+    The cut lands on the last blank line before the limit, so an entry is never split mid-sentence,
+    and the note that follows names the file the rest is in.
+    """
+    if len(body) <= limit:
+        return body
+    note = TRUNCATION_NOTE.format(version=version)
+    room = limit - len(note)
+    cut = body.rfind("\n\n", 0, room)
+    if cut <= 0:
+        cut = room
+    head = body[:cut].rstrip()
+    return head + note
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("version", help="the version whose changelog block is printed, no leading v")
@@ -86,7 +117,8 @@ def main(argv: list[str] | None = None) -> int:
     if not body.strip():
         print(f"release-notes: the `## [{args.version}]` section is empty", file=sys.stderr)
         return 2
-    print(body if args.addresses else strip_addresses(body))
+    rendered = body if args.addresses else strip_addresses(body)
+    print(cap_body(rendered, args.version))
     return 0
 
 
