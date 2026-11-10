@@ -178,6 +178,10 @@ SERVER_SENTENCES = {
         "this request is not a shape the route takes — check the field the answer "
         "names and send it again"
     ),
+    "tool_failed": (
+        "the tool stopped with an error this page cannot show — the reason is in the run's "
+        "log; try it again, and if it stays, check the tool under Extensions"
+    ),
     "browser_session_unknown": (
         "no browser session 'ghost' is open to watch — run the step that opens one, then open "
         "the view again; watching never starts a browser by itself"
@@ -268,6 +272,7 @@ PARAMS = {
     "plugin_state_name": {},
     "plugin_unknown": {},
     "invalid_request": {},
+    "tool_failed": {},
     # The watch channel (#88): the session a name did not open, and the engine that will not
     # cast one. `reason` is the engine's own word, so the sample reads like a real answer.
     "browser_session_unknown": {"session": "ghost"},
@@ -324,6 +329,7 @@ STATUSES = {
     "plugin_state_name": 400,
     "plugin_unknown": 404,
     "invalid_request": 400,
+    "tool_failed": 500,
     "browser_session_unknown": 404,
     "browser_watch_unavailable": 409,
     "device_forget_undeclared": 400,

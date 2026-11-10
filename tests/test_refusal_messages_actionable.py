@@ -83,6 +83,7 @@ HTTP_PARAMS = {
     "plugin_state_name": {},
     "plugin_unknown": {},
     "invalid_request": {},
+    "tool_failed": {},
     "plugin_ui_unauthorized": {"plugin": "acme"},
     "plugin_ui_asset_refused": {"plugin": "acme", "reason": "the path leaves the plugin directory"},
     # The dynamic-tool rail (#10): the four codes the confined worker and its budget
