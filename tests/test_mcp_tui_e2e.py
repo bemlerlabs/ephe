@@ -137,7 +137,10 @@ def test_cli_code_startup_registers_mcp_tools(chosen_engine, tmp_path, monkeypat
     (tmp_path / "ws").mkdir()
 
     import core.react
+    import core.tools.mcp_client as mcp
     import ephe_cli
+
+    before = set(mcp._LIVE_CLIENTS)
 
     async def _fake_loop(**kwargs):
         return "done"
@@ -148,9 +151,61 @@ def test_cli_code_startup_registers_mcp_tools(chosen_engine, tmp_path, monkeypat
         task=["echo", "through", "mcp"], model=None, verify=None, rep=0,
     ))
 
-    import core.tools.mcp_client as mcp
     assert rc == 0
     assert "mcp_echo" in mcp.get_mcp_tools()
+    # The other half of the attach: the child belongs to the loop `cmd_code` opened,
+    # so the run has to close it before that loop ends. A client left in the
+    # register outlives the loop, and its `BaseSubprocessTransport` is collected
+    # after the loop is closed — the unraisable `RuntimeError: Event loop is closed`
+    # that failed the coverage leg with every test green.
+    assert set(mcp._LIVE_CLIENTS) == before, (
+        "ephe code ended its event loop with the MCP child still registered"
+    )
+
+
+def test_cli_run_closes_the_mcp_clients_on_its_own_loop(chosen_engine, monkeypatch, tmp_path):
+    """GIVEN a CLI run that attached an MCP client
+    WHEN `ephe code`'s loop ends
+    THEN the client's `close()` ran in that loop and it left the register.
+
+    Hermetic: the attached client is a spy, so the claim does not depend on an OS
+    boundary being available to spawn a real stdio child. This is the regression
+    guard for the teardown half of `_init_cli_mcp`."""
+    import core.mcp_config
+    import core.react
+    import core.run_evidence
+    import core.tools.mcp_client as mcp
+    import ephe_cli
+
+    closed: list[str] = []
+
+    class _SpyClient:
+        async def close(self) -> None:
+            closed.append("closed")
+
+    attached: list[bool] = []
+
+    async def _attach():
+        attached.append(True)
+        mcp._LIVE_CLIENTS["spy:mcp"] = _SpyClient()
+        return ["mcp_echo"]
+
+    async def _fake_loop(**kwargs):
+        return "done"
+
+    monkeypatch.setattr(core.mcp_config, "init_mcp_from_config", _attach)
+    monkeypatch.setattr(core.react, "react_loop", _fake_loop)
+    monkeypatch.setattr(core.run_evidence, "active_worktree", lambda: str(tmp_path / "ws"))
+    (tmp_path / "ws").mkdir()
+
+    rc = ephe_cli.cmd_code(argparse.Namespace(
+        task=["echo", "through", "mcp"], model=None, verify=None, rep=0,
+    ))
+
+    assert rc == 0
+    assert attached == [True], "the run never attached the MCP client"
+    assert closed == ["closed"], "the attached client was never closed"
+    assert "spy:mcp" not in mcp._LIVE_CLIENTS
 
 
 def test_cli_init_helper_is_fail_tolerant(monkeypatch):
