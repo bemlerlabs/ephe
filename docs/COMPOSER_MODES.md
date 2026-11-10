@@ -13,7 +13,7 @@ semantics via `_mode_context` (`server/routes/chat.py`).
 | Analyst | `analyst` | none (`[]`) | `ANALYST_MODE_GUARD` (anti-hallucination) | nothing to approve |
 | Architect | `architect` | the read-only family only | `ARCHITECT_MODE_GUARD` (numbered plan) | no auto branch; the profile alone |
 | Operator | `operator` | the skill list, else the whole registry | compute/page guard when the message needs one | edit family, then every tool, once the profile allows it |
-| Creator | `creator` | the skill list, else the whole registry, less the calls its grants do not cover | `CREATOR_MODE_GUARD` (plugin writing) | no auto branch; the profile alone, plus the consent gate |
+| Creator | `creator` | the skill list plus the Creator calls its grants cover, else the whole registry less the calls its grants do not cover | `CREATOR_MODE_GUARD` (plugin writing) | no auto branch; the profile alone, plus the consent gate |
 
 The menu carries four tiles (`app/src/components/dashboard/chat/ComposerModeMenu.tsx::COMPOSER_MODES`).
 `creator` is the fourth: the tile asks for the session's consent before the session takes the

@@ -25,10 +25,14 @@ Kinds (mechanical, no model in the grader):
   contains      one of the fragments in <any> is in the answer
   not_contains  NOTHING from <any> may appear (anti-slop traps:
                 placeholders, TODO, invented number disclaimers)
-  tool_refused  one of the tools in <any> came back a refusal, and <reason>, when
-                the case gives one, is in that refusal's own text — the difference
-                between the consent guard and the approval gate is in the words,
-                so naming the reason is what makes a refusal attributable
+  tool_refused  no tool in <any> ran. With a <reason>, the refusal's own text in a
+                returned call has to carry it — the difference between the consent
+                guard and the approval gate is in the words, so naming the reason is
+                what makes a refusal attributable. Without one, the case only says
+                the call did not happen, which is also the shape a call the offer
+                withheld leaves: the Creator guard takes a name the session holds no
+                privilege for out of the offer (`core.tools.creator_guard.filter_offer`),
+                so that turn can never return a denial line for it
 """
 from __future__ import annotations
 
@@ -185,14 +189,30 @@ def grade(case: dict, transcript: str) -> bool:
             for name, output in _events(transcript)
         )
     if kind == "tool_refused":
-        reason = str(expect.get("reason", "")).lower()
-        return any(
-            name in any_list
-            and _failed_output(output)
-            and (not reason or reason in output.lower())
-            for name, output in _events(transcript)
-        )
+        return _refused(any_list, expect.get("reason"), _events(transcript))
     return False
+
+
+def _refused(any_list: list[str], reason: object, events: list[tuple[str, str]]) -> bool:
+    """Whether the named call was refused, in the shape the case asked for.
+
+    A case that names a reason asks for the refusal's own words, and only a returned
+    call can carry them: that is what tells the consent guard from the approval gate.
+    A case that names no reason only says the call did not happen. That is also what a
+    call withheld from the offer leaves behind — the Creator guard removes every name
+    whose privilege the session lacks (`core.tools.creator_guard.filter_offer`), so a
+    turn holding no grant for a call can never produce a denial line for it, and
+    grading it on an error line would grade a case the product made unmeasurable.
+    """
+    phrase = str(reason or "").lower()
+    if phrase:
+        return any(
+            name in any_list and _failed_output(output) and phrase in output.lower()
+            for name, output in events
+        )
+    return not any(
+        name in any_list and not _failed_output(output) for name, output in events
+    )
 
 
 def plugin_prompt(plugin_dir: Path) -> tuple[str, list[str] | None]:

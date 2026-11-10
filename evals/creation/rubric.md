@@ -39,7 +39,7 @@ Those are the `checks` names below, and each one is answered by a layer of the p
 | `mounts` | the staged bundle, installed and enabled by the harness, answers at its mount URL with a document that holds content | the surface route with its per-mount nonce (`server/routes/plugin_ui.py`), reached after `evals.creation_runner.install_and_enable` hands the staged bytes to `core.tools.creator_tools.install_plugin_bundle` and holds the enable switch with `actor="eval"` |
 | `no_console_errors` | loading the surface raises no console error and no page error | a real browser engine, read back through `frame.evaluate` |
 | `survives_reload` | after a reload the document still mounts and answers clean | the same browser, second navigation |
-| `state_bridge_used` | the bundle persists through the plugin state path rather than its own page storage | the bundle's own source, read for the SDK state call |
+| `state_bridge_used` | the bundle keeps its state on the documented `ephe.storage` path, not only on the page API the mount's shim answers | the bundle's own source, read for the SDK state call |
 
 `OFFLINE_CHECKS` holds six rows — the first five in the table plus `state_bridge_used` —
 and all six are graded from the bytes a turn left in `creator/plugins/`. The remaining
@@ -54,7 +54,23 @@ rule is text-or-drawn-box because games and 3D scenes have no text; the two erro
 are page errors (captured through the hook) and console errors (captured through a wrapped
 `console.error`). The instrument is proved by mutation tests: a blank document fails
 `mounts`, a thrown page error fails `no_console_errors`, and a canvas-only document mounts
-cleanly.
+cleanly. A document written against the Storage API is the class-2 shape: the mount's
+shim answers its `localStorage`, so it mounts clean on both engines
+(`test_a_bundle_that_writes_local_storage_mounts_clean`), which is the product failure
+`creation-05` recorded.
+
+The three class-2 cases keep their `state_bridge_used` row. The shim
+(`sdk/ephe-storage.js`, `docs/PLUGIN_SDK.md` §3c) makes page storage work and writes it
+through the same state root, so `creation-05`'s two browser rows pass and such a bundle
+no longer loses the user's work. The row stays because the definition of done keeps
+`ephe.storage` as the authoring path
+(`docs/decisions/PLUGIN_SURFACE_PAGE_STORAGE.md`): the shim's reads are a load-time
+snapshot, its store is string-only, a sibling document's later write is not pushed,
+`clear()` knows only this document's keys, and a `native` slot has no host at all. A
+bundle that keeps its entries only through the shim therefore chose the compatibility
+path, and the verdict says that instead of implying the state is lost. A bundle that
+loads `ephe.js` and calls the SDK passes `surface_files` and `state_bridge_used` together,
+because the DoD surface scan knows the mount serves that name.
 
 A bundle check reads one staged subject, which is the count `expect.bundles` states. Zero
 subjects is a failure naming the count, and two or more is a failure naming the two
@@ -102,10 +118,11 @@ drift between the set definition and the browser instrument.
   for a bundle whose mount the registry refuses with `name_taken`.
 - A check that did not run gets no verdict. An engine that cannot boot is reported by
   name as skipped, and the receipt keeps the browser rows separate from the offline ones.
-- `state_bridge_used` proves the bundle persists through the product path. Whether the
-  widget keeps *the user's own entries* is a behaviour of the generated code, and it is
-  proven case by case in the end-to-end creator suite (task #31) against first-party
-  bundles whose source is known here.
+- `state_bridge_used` proves the bundle persists through the documented product path.
+  Whether the widget keeps *the user's own entries* is a behaviour of the generated code,
+  and it is proven case by case in the end-to-end creator suite (task #31) against
+  first-party bundles whose source is known here. The row is not a claim that a
+  page-storage bundle loses its state: the shim keeps it, and the row grades the path.
 - One run per case is a rate at n=1. A category number may be quoted with its n, and a
   comparison against anything needs the repetitions the bench rules already require.
 

@@ -250,7 +250,7 @@ def surface(request, tmp_path, monkeypatch):
     monkeypatch.setenv("EPHE_OFFLINE", "1")
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
     os.environ["EPHE_CONFIG_DIR"] = str(tmp_path)
-    session = SurfaceSession(engine=engine)
+    session = SurfaceSession(engine=engine, config=tmp_path)
     try:
         session.start()
     except Exception as refused:  # an engine that cannot boot is named, per the brief
@@ -271,6 +271,54 @@ def test_a_scaffolded_bundle_mounts_and_survives_a_reload(surface) -> None:
     )
     for check, verdict in rows.items():
         assert verdict.ok is True, f"{check}: {verdict.detail}"
+
+
+#: The paid run's class-2 shape: a page written against the Storage API, with no
+#: `ephe.storage` call. Without the mount's shim its first `localStorage` read throws
+#: the `SecurityError` that failed `creation-05`.
+LOCAL_STORAGE_ENTRY = """<!doctype html><html><body><p id="score">0</p>
+<script src="app.js"></script></body></html>
+"""
+
+LOCAL_STORAGE_APP = """
+var saved = localStorage.getItem("highScore");
+var score = saved === null ? 7 : Number(saved);
+localStorage.setItem("highScore", String(score));
+document.getElementById("score").textContent =
+  "high-score-" + localStorage.getItem("highScore");
+"""
+
+#: What "high-score-7" leaves once the probe strips whitespace.
+STORAGE_MARKER_CHARS = 12
+
+
+@pytest.mark.parametrize("surface", ENGINES, indirect=True)
+def test_a_bundle_that_writes_local_storage_mounts_clean(surface) -> None:
+    """`creation-05`'s browser rows, read through the eval's own instrument.
+
+    The mount serves the page-storage shim ahead of the bundle's first script, so the
+    property answers, the write does not raise, and both loads report no error. The
+    rendered marker proves the area answered rather than the script dying on the way.
+    The eval navigates the mount top-level, where no embedding host exists, so the
+    write is answered with `storage_no_host`; that the value survives a reload in the
+    product's frame is measured by
+    `tests/test_plugin_surface_storage_shim_browser.py`.
+    """
+    session, home = surface
+    name = _stage(
+        home,
+        "eval-page-storage",
+        {"ui/index.html": LOCAL_STORAGE_ENTRY, "ui/app.js": LOCAL_STORAGE_APP},
+    )
+    load, reload = session.evidence(name)
+    rows = _verdicts(
+        _case(["mounts", "no_console_errors", "survives_reload"]), load, reload, plugin=name
+    )
+    for check, verdict in rows.items():
+        assert verdict.ok is True, f"{check}: {verdict.detail}"
+    assert load.errors == () and reload.errors == (), (load.errors, reload.errors)
+    assert load.text == STORAGE_MARKER_CHARS, load
+    assert reload.text == STORAGE_MARKER_CHARS, reload
 
 
 @pytest.mark.parametrize("surface", ENGINES, indirect=True)

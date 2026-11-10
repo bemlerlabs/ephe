@@ -117,3 +117,46 @@ def test_a_read_only_get_cannot_flip_stored_state(desktop):
     assert mutation.status_code == 403, mutation.text
     assert mutation.json()["error"]["detail"]["code"] == "untrusted_origin"
     _unchanged(stamp)
+
+
+def test_the_apps_own_same_origin_fetch_reaches_an_authority_get(desktop, monkeypatch):
+    """A page this server serves fetches its own update check without an Origin header.
+
+    The browser omits `Origin` on a same-origin GET, so the origin rule answered 403 and the
+    Settings' update check never ran in the PWA or in the desktop webview. In the suite the
+    synthetic host stood in for the app, which is why this only ever failed against a real
+    browser. `Sec-Fetch-Site: same-origin` is set by the browser and cannot be forged by another
+    site, so it names the same caller the Origin header names.
+    """
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    same = desktop.get(
+        "/api/update/check",
+        headers={"Host": "127.0.0.1:8765", "Sec-Fetch-Site": "same-origin"},
+    )
+    assert same.status_code == 200, same.text
+
+
+def test_a_cross_site_fetch_stays_refused_even_without_an_origin(desktop, monkeypatch):
+    """A page from another site reaches an authority GET with `Sec-Fetch-Site: cross-site`."""
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    cross = desktop.get(
+        "/api/update/check",
+        headers={"Host": "127.0.0.1:8765", "Sec-Fetch-Site": "cross-site"},
+    )
+    assert cross.status_code == 403, cross.text
+    assert cross.json()["error"]["detail"]["code"] == "untrusted_origin"
+
+
+def test_a_referer_from_a_served_origin_also_names_the_app(desktop, monkeypatch):
+    """Older and non-browser callers send `Referer` rather than the fetch metadata."""
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    ok = desktop.get(
+        "/api/update/check",
+        headers={"Host": "127.0.0.1:8765", "Referer": "http://127.0.0.1:8765/settings"},
+    )
+    assert ok.status_code == 200, ok.text
+    foreign = desktop.get(
+        "/api/update/check",
+        headers={"Host": "127.0.0.1:8765", "Referer": "https://evil.example/settings"},
+    )
+    assert foreign.status_code == 403, foreign.text

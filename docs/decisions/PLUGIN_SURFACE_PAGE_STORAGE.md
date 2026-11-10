@@ -181,3 +181,37 @@ Left for the owner: which wave regenerates the three bundles, whether the DoD ru
 gate or a warning, and whether a larger host-mediated store gets its own package. The
 2026-11-09 ruling answered the first by not requiring a regeneration: the shim serves
 existing bundles, and `state_bridge_used` still asks a new bundle to use `ephe.storage`.
+
+## Case disposition, 2026-11-10 (the eval's class 2)
+
+The ruling and the creation eval are one direction now.
+
+- `creation-05`'s product failure is closed. A page written against the Storage API —
+  the shape the paid run left — mounts with `no_console_errors` and `survives_reload`
+  green on Chromium and WebKit
+  (`tests/test_creation_checks_browser.py::test_a_bundle_that_writes_local_storage_mounts_clean`),
+  and in the embedded frame its write survives a read and a reload while the origin stays
+  `null` (`tests/test_plugin_surface_storage_shim_browser.py`, 2 passed).
+- `creation-01`, `-05` and `-08` keep the `state_bridge_used` row, and the paid run's
+  three bundles still fail it. The definition of done is unchanged and still grades
+  `ephe.storage`, so a bundle that keeps its entries only through the shim chose the
+  compatibility path. The check now says that — page storage works and the graded path is
+  the SDK — instead of implying the state is lost. No case was rewritten and no
+  expectation moved: the browser rows that failed went green, the source row that failed
+  was already correct.
+- Accepting both paths (Option B after the fact) was rejected. The limits in
+  `docs/PLUGIN_SDK.md` §3c are why the shim is a bridge: reads are a load-time snapshot,
+  the store is string-only, a sibling document's write is not pushed, `clear()` knows
+  only this document's keys, and a `native` slot has no host. A green row would bless a
+  path whose gaps the row cannot see, and the eval grades new bundles.
+- A hard DoD ban on page storage was rejected the way this record already rejected it:
+  the three existing bundles have to keep working without a regeneration.
+- The authoring path states the rule. `CREATOR_MODE_GUARD` names
+  `<script src="ephe.js">` and `ephe.storage.get`/`set`, and says that `localStorage`
+  works through the shim while the definition of done grades the SDK path
+  (`tests/test_creator_guard.py::test_the_guard_names_the_state_path_the_eval_grades`).
+- The surface scan knows the mount's two served names. `scripts/plugin_dod_surface.py`
+  used to refuse `<script src="ephe.js">` as a file that does not ship, so the graded
+  path failed `surface_files` on the one bundle that used it; the scan now resolves
+  `ephe.js` at the mount root and `ephe-storage.js` at any depth, and still refuses a
+  nested `sub/ephe.js` (`tests/test_plugin_dod.py`).

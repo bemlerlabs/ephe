@@ -119,9 +119,24 @@ def offer_of(requests: list[dict]) -> list[str]:
     return [str(t.get("function", {}).get("name")) for t in (requests[0].get("tools") or [])]
 
 
-def describe(requests: list[dict]) -> dict:
+def covered_calls(privileges: list[str] | tuple[str, ...] = ()) -> list[str]:
+    """The Creator calls the stated grant covers, read from the guard that refuses them.
+
+    The probe used to answer "which of the five are absent" against every name, so a
+    turn holding `code` alone read as defective for the four `files` calls the guard
+    is *supposed* to withhold. The answer here is the `judge` ruling the tool loop
+    refuses on, so the probe cannot drift from the gate it is measuring.
+    """
+    from core.tools.creator_guard import judge
+
+    held = frozenset(str(p) for p in (privileges or ()))
+    return sorted(name for name in CREATOR_CALLS if judge(name)[0] in held)
+
+
+def describe(requests: list[dict], privileges: list[str] | tuple[str, ...] = ()) -> dict:
     first = requests[0] if requests else {}
     names = offer_of(requests)
+    covered = covered_calls(privileges)
     system = next(
         (str(m.get("content") or "") for m in (first.get("messages") or []) if m.get("role") == "system"),
         "",
@@ -130,7 +145,12 @@ def describe(requests: list[dict]) -> dict:
         "calls": len(requests),
         "offered": names,
         "creator_offered": sorted(n for n in names if n in CREATOR_CALLS),
+        # Every one of the five that is absent: the reading a live case is judged by,
+        # and the one a grant can never satisfy for names it does not buy.
         "creator_missing": sorted(n for n in CREATOR_CALLS if n not in names),
+        # The defect: a call the grant *does* cover, and the array still does not carry.
+        "creator_covered": covered,
+        "creator_missing_from_grant": [n for n in covered if n not in names],
         "system_chars": len(system),
         "system_head": system[:400],
         "model": first.get("model"),
@@ -174,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         if "http_error" in consent:
             raise SystemExit(f"consent refused: {consent['http_error']} {consent.get('body', '')[:200]}")
         _run_turn(base, args.message)
-        reading = describe(handler.requests)
+        reading = describe(handler.requests, privileges)
         reading["privileges"] = privileges
         (out / "offer.json").write_text(json.dumps(reading, indent=1), encoding="utf-8")
         (out / "requests.json").write_text(
@@ -187,11 +207,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"array size         : {len(reading['offered'])}")
             print(f"creator in array   : {', '.join(reading['creator_offered']) or '(none)'}")
             print(f"creator missing    : {', '.join(reading['creator_missing']) or '(none)'}")
+            print(
+                "covered and absent : "
+                f"{', '.join(reading['creator_missing_from_grant']) or '(none)'}"
+            )
             print(f"model addressed    : {reading['model']}")
             print(f"system prompt head : {reading['system_head'][:220]}")
             print(f"full reading       : {out / 'offer.json'}")
             print(f"the request itself : {out / 'requests.json'}")
-        code = 0 if not reading["creator_missing"] and reading["calls"] else 1
+        code = 0 if not reading["creator_missing_from_grant"] and reading["calls"] else 1
     finally:
         proc.terminate()
         try:

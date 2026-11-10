@@ -7,7 +7,41 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-The 0.6.0 wave is named below (`6c50104d`, `6c3f9b2c`, `5ed12dc7`, `f0cba82b`, `adc7d454`, `24891ea9`, `b10967e7`, `40830e86`, `5ba67a73`, `75384975`, `0ef4b969`, `bc927dda`, `aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
+The 0.6.1 wave is named in the section below. The lane's history and the public tag share no
+commits - the public trunk is one squashed release commit - so the addresses of every fix the
+release tree carries are named here as well.
+
+Every commit the release tree carries is named here (`57b494cc`, `c52ab52f`, `b23e92fa`, `831d2835`, `b72b9201`, `ab5d51a5`, `03faf061`, `6c3f9b2c`, `5ed12dc7`, `f0cba82b`, `adc7d454`, `24891ea9`, `b10967e7`, `40830e86`, `5ba67a73`, `75384975`, `0ef4b969`, `bc927dda`, `aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
+
+## [0.6.1] - 2026-11-10
+
+The release after 0.6.0: the desktop app's own fetches, the installer's collision with a
+person's files, and the two eval outcomes that the paid run left open. Every row names its
+commit; the wave that 0.6.0 shipped is named in the block below this one.
+
+### Fixed
+
+- desktop: the installed app's own fetch reaches an authority GET again (`b23e92fa`).
+  The Settings update check answered 403 in the PWA and in the desktop webview: the authority GETs
+  refuse a caller that proves nothing, the browser omits `Origin` on a same-origin GET, and the
+  suite's synthetic host stood in for the app. `Sec-Fetch-Site: same-origin` or a served `Referer`
+  together with a loopback Host holds the authority now; a cross-site fetch stays refused.
+- installer: the default folder steps aside from the person's own files (`b23e92fa`'s round).
+  `~/Documents/Ephe` is both the default install folder and where notebooks live; with files and no
+  clone the installer refused, so the install never ran and the desktop app outlived its backend.
+  The install goes to `<folder>-install` and says so; an explicit `EPHE_INSTALL_DIR` still refuses.
+- eval: the page-storage class closes where the bridge already closed it (`c52ab52f`).
+  A bundle that touches `localStorage` mounts, logs no console error and survives a reload on
+  Chromium and WebKit through the storage bridge; the definition of done still scores `ephe.storage`,
+  and the verdict says so. A browser fixture that silently skipped eight live checks is pinned, and
+  `plugin_dod_surface.py` knows the shim files the documented bridge ships.
+- eval: the page-storage class closes where the bridge already closed it (`c52ab52f`).
+  A bundle that touches `localStorage` mounts, logs no console error and survives a reload on
+  Chromium and WebKit through the storage bridge; the definition of done still scores `ephe.storage`,
+  and the verdict says so. A browser fixture that silently skipped eight live checks is pinned, and
+  `plugin_dod_surface.py` knows the shim files the documented bridge ships.
+
+The 0.6.0 wave is named below (`57b494cc`, `c52ab52f`, `b23e92fa`, `831d2835`, `b72b9201`, `ab5d51a5`, `03faf061`, `6c3f9b2c`, `5ed12dc7`, `f0cba82b`, `adc7d454`, `24891ea9`, `b10967e7`, `40830e86`, `5ba67a73`, `75384975`, `0ef4b969`, `bc927dda`, `aa5c6c9c`, `9649f55e`, `33f010db`, `19b84e65`, `9bf4f3e2`, `f98572f0`, `e030bb6d`, `6a7fb799`, `d534b963`, `b68ae21e`, `6f1ae8ff`, `bbd8e549`, `a2ab651b`, `456be950`, `ec493c65`, `b5d42de1`, `8395cd95`, `71236902`, `fcb88daa`, `c2658b22`, `971896e9`, `6dbd1d12`, `ae2f1a6d`, `360e6b8c`, `84171304`, `430c8a7b`, `53373610`, `b4775433`, `2c162621`, `2b215004`, `b9e247ff`, `54f66d24`, `497c4f8e`, `4064bff4`, `067ae706`, `7af07bd6`, `bd284ae1`, `a3646844`, `472570f8`, `e2e22d58`, `e7d9d968`, `67a538c5`, `f028d493`, `eae937d9`, `d77efda6`, `aba7c645`, `87467f21`, `f7298530`, `24ab5d99`, `64bb90c0`, `0afe6397`, `45ffc36d`, `67850254`, `76f26571`, `d26c1eff`, `b7600c11`, `e951801e`, `d16ef4b0`, `a75deb13`, `dd782d5f`, `95ead535`, `91a003a6`, `dde17371`, `fc147137`, `493f9966`, `ed64a3ed`, `5a156e8a`, `aa64edcb`, `ac7cb427`, `49a2e7d7`, `6be3edeb`, `bf872fe1`, `e7d2cc2a`, `fa88f333`, `c6c07c08`, `af06fefc`, `dde4ef8a`, `03a1eebe`, `7125e3cb`, `51a797b2`, `c831dfdf`, `8a8ebcff`, `cc8661f0`, `05fb0a8b`, `601790f9`, `e096bcf3`, `fc49ce6b`, `3ebe432b`, `b7c9e658`, `6817a76a`, `fc5a3183`, `31ffba5e`, `c4330ba3`, `3e22561b`, `de9ed9c4`, `e5aa8f91`, `2cef6bef`, `32317339`, `f06042a5`, `113bd5b4`, `50a5d5b0`, `8abe285b`, `c91de054`, `4e569812`, `982d22b2`, `61fa7b79`, `2ae31ffe`, `7d851e33`, `df202b03`, `2f18fe6f`, `2616e4fb`, `36faf16a`, `74e87e09`, `87863bb8`, `789faaa6`, `84280eb5`, `deb4c0d8`, `5f3e8e29`, `08e192d5`, `36a2cc3a`, `2d0919c1`, `a720fb15`, `84c845f8`, `df466ee9`, `793f9708`, `e1ec1e68`, `da5a7f2b`, `928b21d5`, `7463a532`, `3e9a38dc`, `b4114acd`, `407b0e7f`, `2867fcfe`, `caa057ee`, `783f768e`, `c41e5bb0`, `43d20ae2`, `ccfadf26`, `94c2b60e`, `b4daa41c`, `80e3852f`, `9e55aaf4`, `83e05c4f`, `c21f8428`, `be290ebe`, `f62cdcfa`, `86279bb5`, `9a0e5e41`, `cb52a2d8`, `2f017582`, `7d59aeba`, `358734d2`, `1cfbcc67`, `2d6fc7ff`, `c8db491e`, `ddd9b1d9`, `b72f10e5`, `cecb0dee`, `ea244a20`, `6f6b0c9b`, `ef56e57f`, `78859a31`, `1b59de25`, `626ec7e7`, `5bfa26b9`, `8b2e9b96`, `7fefe776`, `454577a5`, `7e63af4b`, `0ac4bbb9`, `ad48c2fc`, `f574aff9`, `1855ea0b`, `dcfbe87f`, `ad088632`, `32d6ad04`, `ebdcc7ba`): every `feat` and `fix` commit since `v0.5.7`, each with its own row under its heading here.
 
 ## [0.6.0] - 2026-11-09
 
@@ -243,6 +277,41 @@ A folder's name and the version inside it are two separate facts (`456be950`). T
   `ephe_cli.py` measures 100.00% (floor 100) and `server` 96.10% (floor 94). The lines that no honest
   test reaches - a POSIX `IsADirectoryError`, a FIFO that blocks the open, a dead break - are named in
   the suite rather than hidden behind a pragma.
+
+- panel: a stored value of the wrong shape falls back instead of breaking the boot (`03faf061`).
+  The five `ephe.panel` keys were read with a bare JSON parse, so valid JSON of the wrong type threw
+  where invalid JSON fell back. One read path now checks the shape (array/object, field types, the
+  dock enum, a bounded finite width) and returns the caller's default; 43 cases hold it, and the
+  measurement that found it is in `docs/PERFORMANCE_BASELINE.md`.
+
+- creator: the five calls stay offered when a skill whitelist narrows the turn (`b72b9201`).
+  Evaluation class 4a: a build message that fuzzy-routes to a skill replaced the tool array with the
+  skill's own names, so the five creator calls were covered by the grant and absent from the array
+  (-04 0/1, -24 0/4, -20 with code+files 0/5 - which rules out the consent guard). The whitelist
+  union carries them, still intersected with the guard-filtered set, and an invariant test walks all
+  eight grant subsets. Two instrument defects are fixed beside it: a withheld call needs no denial
+  line, and the offer probe judges only calls the grant covers; 11 new tests, 439 pass.
+
+- release: the release body is cut to the size the host accepts (`831d2835`).
+  The v0.6.0 tag fired the workflow and both bundle jobs compiled, then the draft was never created:
+  GitHub refuses a body over 125 000 characters and the `## [0.6.0]` section measures 146 794. The
+  generator cuts at the last paragraph boundary under 120 000 and a closing line names
+  `CHANGELOG.md` for the rest; a body inside the limit is untouched. Measured: 119 070 characters.
+
+- desktop: the installed app's own fetch reaches an authority GET again (`b23e92fa`).
+  The Settings update check answered 403 in the PWA and in the desktop webview: the authority GETs
+  refuse a caller that proves nothing, the browser omits `Origin` on a same-origin GET, and the
+  suite's synthetic host stood in for the app. `Sec-Fetch-Site: same-origin` or a served `Referer`
+  together with a loopback Host holds the authority now; a cross-site fetch stays refused.
+- installer: the default folder steps aside from the person's own files (`b23e92fa`'s round).
+  `~/Documents/Ephe` is both the default install folder and where notebooks live; with files and no
+  clone the installer refused, so the install never ran and the desktop app outlived its backend.
+  The install goes to `<folder>-install` and says so; an explicit `EPHE_INSTALL_DIR` still refuses.
+- eval: the page-storage class closes where the bridge already closed it (`c52ab52f`).
+  A bundle that touches `localStorage` mounts, logs no console error and survives a reload on
+  Chromium and WebKit through the storage bridge; the definition of done still scores `ephe.storage`,
+  and the verdict says so. A browser fixture that silently skipped eight live checks is pinned, and
+  `plugin_dod_surface.py` knows the shim files the documented bridge ships.
 
 ### Added
 

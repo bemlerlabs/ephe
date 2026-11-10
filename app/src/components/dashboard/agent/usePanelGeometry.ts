@@ -2,25 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { FIT_WIDTH, MIN_WIDTH, readDock, readWidth } from './panelStorage'
+import type { Dock } from './panelStorage'
 
-export type Dock = 'left' | 'right'
+// Dock travels with the pane (panelTabBar takes it); panelStorage owns the type
+// and the shape-checked read of the persisted side.
+export type { Dock } from './panelStorage'
 
 const WIDTH_STEPS = [420, 560, 720]
-const FIT_WIDTH = 420
-const MIN_WIDTH = 360
 const MAX_WIDTH_RATIO = 0.6
 
 /**
  * Dock side, width and drag-resize of the agent pane — all of it persisted
  * (ephe.panel.dock / ephe.panel.width), AI-client parity.
+ *
+ * Both values are read through panelStorage's shape check (#39): a hand-edited or
+ * version-skewed value can only produce the documented default, never `Infinity`
+ * or an unknown dock side in the style.
  */
 export function usePanelGeometry(open: boolean) {
-  const [dock, setDock] = useState<Dock>(
-    () => (localStorage.getItem('ephe.panel.dock') as Dock) || 'right',
-  )
-  const [width, setWidth] = useState<number>(
-    () => Number(localStorage.getItem('ephe.panel.width')) || FIT_WIDTH,
-  )
+  const [dock, setDock] = useState<Dock>(() => readDock())
+  const [width, setWidth] = useState<number>(() => readWidth())
   const [leftOffset, setLeftOffset] = useState(0)
 
   // Round 9 hotfix: the left dock must NOT cover the sidebar (release bar: no

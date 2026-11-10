@@ -32,6 +32,16 @@ The frame is the product's own: the mount header carries a `sandbox` directive w
 `allow-same-origin`, so the document runs with an opaque origin and its reads of the
 user's authority are refused. `tests/test_plugin_surface_isolation_browser.py:1` measured
 that confinement; nothing here repeats it, and nothing here depends on it.
+
+A document written against the Storage API is one row of that same measurement now: the
+mount injects its page-storage shim (`sdk/ephe-storage.js`) ahead of the bundle's first
+script, so `localStorage` answers and neither error channel sees the `SecurityError` that
+failed `creation-05`. The session navigates the mount at the top level, where
+`window.parent` is the page itself and no embedding host exists, so a shim write is
+answered with `storage_no_host` and does not land; these two rows witness that the
+refusal is gone, not that the value reached the state root. The landing is measured in
+the product's frame by `tests/test_plugin_surface_storage_shim_browser.py`, and the
+eval's own persistence witness stays `state_bridge_used`.
 """
 from __future__ import annotations
 

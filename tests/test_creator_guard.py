@@ -372,6 +372,54 @@ class TestModelOfferArray:
             "verify_plugin_bundle",
         } <= self._shipped(chat_context)
 
+    def test_a_grant_covering_all_five_ships_all_five(self, turn):
+        """GIVEN a Creator session holding `code` and `files` WHEN the array is shipped
+        THEN every one of the five calls is in it.
+
+        This is the offer the creation eval's bundle cases run on, and the one the
+        offer probe reads back. A missing name here is the offer's own defect; a name
+        the grant does not cover is not (see the test below).
+        """
+        from core import chat_context
+
+        turn(privileges={"code", "files"})
+        assert set(CREATOR_NAMES) <= self._shipped(chat_context)
+
+    def test_no_grant_ships_none_of_the_five(self, turn):
+        """GIVEN a Creator session holding no permission WHEN the array is shipped THEN
+        none of the five calls is in it.
+
+        The guard rule is the authority and the offer may not deviate from it: the
+        call the guard would refuse is not offered, so the turn names the missing
+        step and its privilege in prose instead (CREATOR_MODE_GUARD).
+        """
+        from core import chat_context
+
+        turn(privileges=set())
+        assert not CREATOR_NAMES & self._shipped(chat_context)
+
+    def test_the_offer_never_deviates_from_the_refusal_rule(self, turn):
+        """GIVEN any subset of the three privileges WHEN the array is shipped THEN a
+        Creator call is in it exactly when the guard would not refuse it.
+
+        The offer is a list, the guard is the authority. A name the guard refuses must
+        not be offered, and a name it would run must not be missing; anything else is
+        two rules where the product promises one.
+        """
+        from itertools import combinations
+
+        from core import chat_context
+
+        for size in range(len(creator_guard.PRIVILEGES) + 1):
+            for held in combinations(sorted(creator_guard.PRIVILEGES), size):
+                turn(privileges=set(held))
+                names = self._shipped(chat_context)
+                for name in sorted(CREATOR_NAMES):
+                    assert (name in names) == (creator_guard.denial_for(name) is None), (
+                        f"{name} with {sorted(held)}: offered={name in names}, "
+                        f"refused={creator_guard.denial_for(name) is not None}"
+                    )
+
     def test_a_call_beyond_the_grant_stays_out_of_the_shipped_array(self, turn):
         from core import chat_context
 
@@ -393,6 +441,51 @@ class TestModelOfferArray:
         names = self._shipped(chat_context)
         for deferred in ("scaffold_project", "create_qrcode"):
             assert deferred not in names, f"{deferred} shipped outside CORE_TOOLS"
+
+    def test_a_skill_whitelist_keeps_every_creator_call_the_grant_covers(self, turn):
+        """GIVEN a Creator session holding `code` and `files` with a skill whitelist
+        WHEN the array is shipped THEN the five calls are still in it.
+
+        The whitelist narrows the kernel to the skill's own tools. It was written
+        before Creator mode existed, and without the Creator calls re-joining it a
+        build message that fuzzy-routes to a skill ships none of the five even when
+        the grant covers all of them — the paid run's class 4a, reproduced with
+        `evals/creation_offer_probe.py` on creation-20's own message.
+        """
+        from core import chat_context
+
+        turn(privileges={"code", "files"})
+        names = self._shipped(
+            chat_context, allowed=["list_directory", "read_file", "run_shell"]
+        )
+        assert set(CREATOR_NAMES) <= names
+
+    def test_a_skill_whitelist_cannot_smuggle_a_call_past_the_grant(self, turn):
+        """The whitelist does not outrank the guard: with `files` held, the code call
+        stays out even though the five join the whitelist."""
+        from core import chat_context
+
+        turn(privileges={"files"})
+        names = self._shipped(
+            chat_context, allowed=["list_directory", "read_file", "run_shell"]
+        )
+        assert "install_plugin_bundle" not in names
+        assert {
+            "create_plugin_scaffold",
+            "read_plugin_source",
+            "verify_plugin_bundle",
+            "write_plugin_source",
+        } <= names
+
+    def test_the_prompt_tool_list_names_the_same_five_a_whitelist_turn_ships(self, turn):
+        """The system text and the array are one list: a name in the array that the
+        prompt's tool block omits is a name the model is told does not exist."""
+        from core.persona import build_tool_guidelines
+
+        turn(privileges={"code", "files"})
+        text = build_tool_guidelines(["list_directory", "read_file", "run_shell"])
+        for name in sorted(CREATOR_NAMES):
+            assert name in text, name
 
     def test_a_skill_whitelist_keeps_the_creator_call_it_declares(self, turn):
         """GIVEN a whitelist naming a Creator call WHEN the array is shipped THEN the
@@ -548,3 +641,21 @@ def test_the_guard_runs_the_calls_it_has_when_one_is_missing():
     assert "run the ones you have" in text, "the guard throws away the available calls"
     assert "name the step" in text, "the blocked half of the job is never reported"
     assert "stop there" not in text, "the guard still asks for a full stop"
+
+
+def test_the_guard_names_the_state_path_the_eval_grades():
+    """GIVEN a Creator turn whose plugin must remember something WHEN the guard is read
+    THEN the graded state path is stated, so a page-storage bundle is not failed for a
+    rule the turn never read.
+
+    The class-2 register row names the gap: `creation-01`, `-05` and `-08` wrote
+    `localStorage` and lost the `state_bridge_used` row, and nothing in the turn's
+    prompt named `ephe.storage`. The mount's shim now keeps those bundles working, so
+    the guard has to state which of the two paths the definition of done grades.
+    """
+    from core.persona import CREATOR_MODE_GUARD
+
+    text = " ".join(CREATOR_MODE_GUARD.split())
+    assert "ephe.storage" in text, "the graded state path is never named"
+    assert "ephe.js" in text, "the script that carries the SDK is never named"
+    assert "localStorage" in text, "the shimmed path is not distinguished from the graded one"
