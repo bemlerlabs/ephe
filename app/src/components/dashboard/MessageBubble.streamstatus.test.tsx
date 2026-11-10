@@ -58,7 +58,7 @@ describe('MessageBubble — Tool-Zeilen Spinner + Status-Suffix (P3 Ephe-Norm)',
     const row = screen.getByTestId('tool-stream-row-shell')
     expect(row.textContent).toContain('1/2')
     expect(row.textContent).toContain('· Working')
-    expect(screen.getByTestId('tool-row-status').className).toContain('text-status-info')
+    expect(screen.getByTestId('tool-row-status').className).toContain('text-brand')
   })
 
   it('fertige Gruppe: kein Spinner, ein ruhiges „ok" als Ergebnis', () => {

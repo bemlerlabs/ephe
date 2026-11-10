@@ -1,43 +1,4 @@
-/* The rail is one column of icons; the purpose of a place has to be readable
-   without guessing. A real tooltip (not the browser's slow `title`) opens to the
-   right on hover and on keyboard focus, in the reader's language: the text is the
-   same string that names the control for a screen reader. */
-
-.nav-rail-tip {
-  position: relative;
-}
-
-.nav-rail-tip::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  z-index: var(--z-index-overlay, 20);
-  transform: translate(-3px, -50%);
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-hairline);
-  border-radius: 0.375rem;
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.1;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease;
-}
-
-.nav-rail-tip:hover::after,
-.nav-rail-tip:focus-visible::after {
-  opacity: 1;
-  transform: translate(0, -50%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nav-rail-tip::after {
-    transition: none;
-  }
-}
+.nav-rail-tip{position:relative}
+.nav-rail-tip::after{content:attr(data-tooltip);position:absolute;left:calc(100% + 10px);top:50%;z-index:var(--z-index-overlay,20);padding:.3rem .5rem;border:1px solid var(--color-hairline);border-radius:.375rem;background:var(--color-canvas);color:var(--color-ink);font-size:.75rem;font-weight:500;line-height:1.1;pointer-events:none;opacity:0;transition:opacity 120ms ease}
+.nav-rail-tip:hover::after,.nav-rail-tip:focus-visible::after{opacity:1;transform:translate(0,-50%)}
+@media(prefers-reduced-motion:reduce){.nav-rail-tip::after{transition:none}}

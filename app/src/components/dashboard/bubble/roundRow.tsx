@@ -127,7 +127,7 @@ export function RoundRow({
         aria-label={
           calls.length > 0 ? `${calls.map((call) => call.name).join(', ')} Details` : thoughtLabel
         }
-        className="group flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-surface-interactive"
+        className="group flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-surface"
       >
         {running ? (
           <Loader2
@@ -167,7 +167,7 @@ export function RoundRow({
               data-testid="tool-row-status"
               className={`shrink-0 text-ui-xs ${
                 running
-                  ? 'text-status-info'
+                  ? 'text-brand'
                   : failed
                     ? 'text-status-danger'
                     : 'text-ink-faint group-hover:text-ink-soft'
