@@ -386,8 +386,9 @@ def test_a_wildcard_dev_origin_never_reaches_the_served_header(tmp_path, monkeyp
     in that list is dropped by the filter before the header is assembled."""
     monkeypatch.setenv("EPHE_DEV_ORIGINS", "* ,https://dev.example")
     csp = _csp_of(_document(_app(tmp_path, monkeypatch)))
-    assert "https://dev.example" in _origins(csp["frame-ancestors"].split()), csp
-    assert "*" not in csp["frame-ancestors"], csp
+    origins = _origins(csp["frame-ancestors"].split())
+    assert any(entry == "https://dev.example" for entry in origins), csp
+    assert all(entry != "*" for entry in origins), csp
 
 
 def test_the_sandbox_lands_on_documents_and_on_nothing_a_mount_has_to_load(

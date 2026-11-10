@@ -261,6 +261,11 @@ def _open_below(plugin_dir: Path, parts: list[str]) -> tuple[int | None, str]:
     handed_off = False
     try:
         for depth, part in enumerate(parts):
+            # One segment, one name: the walk reads a plugin's own files, so a
+            # separator or a dot-only segment ends the request here instead of
+            # asking the descriptor walk to notice.
+            if not part or part in (".", "..") or "/" in part or "\\" in part:
+                return None, REFUSED_SHAPES["walkout"]
             leaf = os.open(part, _STEP_FLAGS, dir_fd=current)
             if depth == len(parts) - 1:
                 handed_off = True
