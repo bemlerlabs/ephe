@@ -182,6 +182,13 @@ export interface HealthInfo {
   engine_key_challenge?: boolean
   /** Whether this process can resolve a credential for the active endpoint at all. */
   engine_key_configured?: boolean
+  /**
+   * QA 2026-11-10 (F5b): the engine configuration cannot be resolved at all (a
+   * provider named without its model, an unknown provider type). `status` is
+   * `degraded` then, `detail` carries the reason and the fix, and the Setup page
+   * stays reachable instead of failing on a 500.
+   */
+  engine_unavailable?: boolean
 }
 
 import type { EngineCandidate, EngineState } from './providers'
@@ -193,6 +200,16 @@ export * from './providers'
  * configured=false → the PWA shows the engine selection (SetupPage).
  */
 export interface SetupStatus {
+  /** `degraded` when the engine configuration cannot be resolved (F5b); else `ok`. */
+  status?: 'ok' | 'degraded'
+  /**
+   * F5b: a provider named without its model (or an unknown provider type) is a
+   * state the page can explain — `problem` is the resolver's reason, `hint` the fix
+   * line every fail-closed start prints, and `candidates` still offer another engine.
+   */
+  engine_unavailable?: boolean
+  problem?: string
+  hint?: string
   configured: boolean
   /** W19: the user consciously skipped onboarding → gate open, chat fail-closed. */
   skipped?: boolean

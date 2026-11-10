@@ -3,9 +3,9 @@ import { useDeepBool } from '@/lib/deepSettings'
 import { stripRenderedCards } from '@/lib/cardText'
 import type { MessageBlock, ThinkingPhase, ToolCall } from '@/types'
 import { MarkdownBody } from './messageMarkdown'
-import ThinkingBlock from '../ThinkingBlock'
-import { ToolStreamRows } from './toolStreamRows'
 import { SourcesBar } from './sourcesBar'
+import { RoundRow } from './roundRow'
+import { buildCalmSegments } from './calmRounds'
 
 /**
  * R1 (2026-09-09): markdown segment from the chronology list (identical
@@ -29,10 +29,11 @@ function TextBlockView({ text, streaming }: { text: string; streaming?: boolean 
 }
 
 /**
- * R1 (reference parity): the chat stream renders at the pace of the events.
- * The store's ordered blocks fold into segments: consecutive tool blocks form ONE
- * ToolStreamRows run (family group), text in between keeps its position —
- * 1:1 as in the reference harness.
+ * R1 (reference parity) + UI-CHAT: the chat stream renders at the pace of the
+ * events, but a working step is ONE row. The store's ordered blocks fold into
+ * rounds (thoughts + tool calls, in arrival order) and text segments; the
+ * thought of a round lives inside that round's expandable body, never as a
+ * separate line above it.
  */
 export function StreamBlocks({
   blocks,
@@ -45,57 +46,28 @@ export function StreamBlocks({
   tool_calls: ToolCall[]
   thinkingPhases: ThinkingPhase[]
   streaming?: boolean
-  /** The turn's first frame: the running block counts its elapsed time from it. */
+  /** The turn's first frame (kept in the signature for the callers). */
   startTs?: number
 }) {
-  const byId = useMemo(() => {
-    const map = new Map<string, ToolCall>()
-    for (const c of tool_calls) map.set(c.id, c)
-    return map
-  }, [tool_calls])
-
+  void startTs
   const showReasoning = useDeepBool('chat.show_reasoning', true)
 
-  const segments = useMemo(() => {
-    const out: Array<
-      | { kind: 'text'; text: string }
-      | { kind: 'tools'; calls: ToolCall[] }
-      | { kind: 'thinking'; phase: ThinkingPhase }
-    > = []
-    for (const b of blocks) {
-      if (b.kind === 'text') {
-        out.push({ kind: 'text', text: b.text })
-        continue
-      }
-      if (b.kind === 'thinking') {
-        const phase = thinkingPhases[b.index]
-        // I3-5: chat.show_reasoning — without permission there is no thinking phase,
-        // not even at its chronology position.
-        if (phase && showReasoning) out.push({ kind: 'thinking', phase })
-        continue
-      }
-      const call = byId.get(b.callId)
-      if (!call) continue
-      const last = out[out.length - 1]
-      if (last && last.kind === 'tools') last.calls.push(call)
-      else out.push({ kind: 'tools', calls: [call] })
-    }
-    return out
-  }, [blocks, byId, thinkingPhases, showReasoning])
+  const segments = useMemo(
+    () => buildCalmSegments(blocks, thinkingPhases, tool_calls, showReasoning),
+    [blocks, thinkingPhases, tool_calls, showReasoning],
+  )
 
   return (
     <>
-      {segments.map((seg, i) =>
-        seg.kind === 'text' ? (
-          <TextBlockView key={`t-${i}`} text={seg.text} streaming={streaming} />
-        ) : seg.kind === 'thinking' ? (
-          <ThinkingBlock key={`h-${i}`} thinking={seg.phase} />
+      {segments.map((segment, index) =>
+        segment.kind === 'text' ? (
+          <TextBlockView key={`t-${index}`} text={segment.text} streaming={streaming} />
         ) : (
-          <ToolStreamRows
-            key={`g-${i}`}
-            tool_calls={seg.calls}
+          <RoundRow
+            key={`r-${index}`}
+            events={segment.events}
             streaming={streaming}
-            startTs={startTs}
+            defaultOpen={false}
           />
         ),
       )}

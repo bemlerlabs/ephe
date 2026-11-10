@@ -238,7 +238,12 @@ def test_a_turn_with_no_engine_ends_on_the_offline_message(offline_home, monkeyp
 
     error = _first(events, type="error")
     assert error is not None, f"no error event; events={events}"
-    assert "not reachable" in error["msg"].lower(), error
+    # The offline answer names what to do rather than only what failed: the coded turn
+    # sentence is "no engine answered at <url> - start it ... then run `ephe doctor`"
+    # (F5, QA 2026-11-10). Pin the actionable half, not one wording.
+    message = error["msg"].lower()
+    assert "no engine answered" in message or "not reachable" in message, error
+    assert "ephe doctor" in message, error
     assert _first(events, type="done") is not None, f"stream never closed: {events}"
     assert fence.off_loopback() == [], (
         f"the offline path reached a host outside this machine: {fence.off_loopback()}"

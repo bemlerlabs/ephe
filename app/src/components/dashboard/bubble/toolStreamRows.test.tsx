@@ -1,22 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { ToolStreamRows } from './toolStreamRows'
 import { useDeepBool, useDeepSelect } from '@/lib/deepSettings'
 
-// The run surface: a finished step is one line ("Ran 16 tools"); the detail, the
-// proof and the measurement appear only when the reader opens it, and once.
+// UI-CHAT: a finished round is ONE line — tool name · duration · outcome. The
+// arguments, the output and the proof appear only when the reader opens it,
+// and the thought of the round travels inside the same row.
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) => {
       const map: Record<string, string> = {
-        'chat.ranOneTool': 'Ran 1 tool',
-        'chat.ranTools': 'Ran {{count}} tools',
+        'chat.roundOk': 'ok',
         'chat.rowWorking': 'Working',
-        'chat.runRunning': 'Running',
         'chat.rowFailed': 'Failed',
-        'streamGroup.terminal': 'Terminal',
-        'streamGroup.count': '{{count}} calls',
+        'chat.toolWaiting': 'Waiting for approval',
+        'chat.thoughtForSeconds': 'Thought for {{duration}}',
+        'chat.thoughtForSecondsCount': 'Thought for {{duration}} · {{count}} pauses',
+        'chat.thinkingEmpty': 'No reasoning recorded',
         'chat.proof.expert': 'passed · {{ms}} ms',
         'chat.proof.expertNoTime': 'passed',
         'chat.proof.everyday': 'checked · {{seconds}} s',
@@ -31,79 +32,112 @@ vi.mock('react-i18next', () => ({
 }))
 
 vi.mock('@/lib/deepSettings', () => ({
-  // count on, auto-expand off: the tests open the group themselves.
   useDeepBool: vi.fn((key: string) => key === 'chat.show_tool_count'),
   useDeepSelect: vi.fn(() => 'expanded'),
 }))
 
 vi.mock('../ToolCallDisplay', () => ({
+  ToolCallDetails: () => <div data-testid="tool-details" />,
+  TaskBody: () => null,
   default: () => <div data-testid="tool-cards" />,
-  ICONS: new Proxy({}, { get: () => () => <svg aria-hidden="true" /> }),
 }))
 
 const calls = [
   { id: 't1', name: 'run_shell', args: { command: 'pytest -q' }, status: 'done', duration_ms: 13 },
-  { id: 't2', name: 'run_shell', args: { command: 'ruff check .' }, status: 'done', duration_ms: 21 },
+  {
+    id: 't2',
+    name: 'run_shell',
+    args: { command: 'ruff check .' },
+    status: 'done',
+    duration_ms: 21,
+  },
   { id: 't3', name: 'run_shell', args: { command: 'echo ok' }, status: 'done', duration_ms: 4 },
 ]
 
-describe('ToolStreamRows — a finished step is one calm line', () => {
+describe('ToolStreamRows — a finished round is one calm line', () => {
   beforeEach(() => {
     vi.mocked(useDeepBool).mockImplementation((key: string) => key === 'chat.show_tool_count')
     vi.mocked(useDeepSelect).mockReturnValue('expanded')
   })
 
-  it('summarises a finished group as "Ran N tools"', () => {
+  it('summarises the round as name · duration · outcome', () => {
     render(<ToolStreamRows tool_calls={calls as never} streaming={false} />)
-    expect(screen.getByText('Ran 3 tools')).toBeTruthy()
+    const row = screen.getByTestId('tool-stream-row-shell')
+    expect(row.textContent).toContain('run_shell')
+    expect(row.textContent).toContain('3×')
+    expect(row.textContent).toContain('38ms')
+    expect(row.textContent).toContain('ok')
   })
 
-  it('keeps the proof and the status out of the collapsed row', () => {
+  it('keeps the proof and the details out of the collapsed row', () => {
     render(<ToolStreamRows tool_calls={calls as never} streaming={false} />)
     expect(screen.queryByTestId('tool-row-proof')).toBeNull()
-    expect(screen.queryByTestId('tool-row-status')).toBeNull()
-    expect(screen.queryByTestId('tool-duration-chip')).toBeNull()
+    expect(screen.queryByTestId('tool-details')).toBeNull()
   })
 
-  it('shows the one measurement and the proof once the reader opens it', () => {
+  it('shows the one proof once the reader opens it', () => {
     render(<ToolStreamRows tool_calls={calls as never} streaming={false} />)
-    fireEvent.click(screen.getByText('Ran 3 tools'))
-    expect(screen.getByTestId('tool-row-proof').textContent).toBe('passed · 38 ms')
-    // The proof carries the number; a second duration chip would state it twice.
-    expect(screen.queryByTestId('tool-duration-chip')).toBeNull()
-    expect(screen.getByTestId('tool-cards')).toBeTruthy()
+    const row = screen.getByTestId('tool-stream-row-shell')
+    fireEvent.click(within(row).getByRole('button'))
+    expect(within(row).getByTestId('tool-row-proof').textContent).toBe('passed · 38 ms')
+    expect(within(row).getAllByTestId('tool-details')).toHaveLength(3)
   })
 
   it('renders no template placeholder anywhere in the row', () => {
     const { container } = render(<ToolStreamRows tool_calls={calls as never} streaming={false} />)
-    fireEvent.click(screen.getByText('Ran 3 tools'))
+    fireEvent.click(screen.getByTestId('tool-stream-row-shell').querySelector('button')!)
     expect(container.textContent ?? '').not.toContain('{{')
   })
 
-  it('prints the run clock once for a block with two running families', () => {
+  it('folds the thought that belongs to the run into the first row', () => {
+    const now = Date.now()
+    render(
+      <ToolStreamRows
+        tool_calls={calls as never}
+        thoughts={[{ start: now - 6000, end: now, text: 'erst planen' }]}
+        streaming={false}
+      />,
+    )
+    const row = screen.getByTestId('tool-stream-row-shell')
+    expect(within(row).getByTestId('round-thought').textContent).toBe('6s')
+    // no second chrome line for the thought
+    expect(screen.getAllByTestId('round-thought')).toHaveLength(1)
+  })
+
+  it('one running row per family, each with its own spinner', () => {
     const running = [
       { id: 'a1', name: 'run_shell', args: { command: 'pytest -q' }, status: 'pending' },
       { id: 'a2', name: 'read_file', args: { path: 'README.md' }, status: 'pending' },
     ]
     render(<ToolStreamRows tool_calls={running as never} streaming startTs={Date.now()} />)
-    expect(screen.getAllByTestId('tool-run-header')).toHaveLength(1)
+    expect(screen.queryByTestId('tool-run-header')).toBeNull()
     expect(screen.getAllByTestId('tool-row-spinner')).toHaveLength(2)
+    expect(screen.getAllByTestId('tool-stream-row-active')).toHaveLength(2)
   })
 
-  it('opens the running step, counts its time and keeps one live duration', () => {
+  it('counts a running round done/total and keeps the live tail in the row', () => {
     const running = [
-      { id: 't1', name: 'run_shell', args: { command: 'pytest -q' }, status: 'done', duration_ms: 13 },
-      { id: 't2', name: 'run_shell', args: { command: 'ruff check .' }, status: 'pending' },
+      {
+        id: 't1',
+        name: 'run_shell',
+        args: { command: 'pytest -q' },
+        status: 'done',
+        duration_ms: 13,
+      },
+      {
+        id: 't2',
+        name: 'run_shell',
+        args: { command: 'ruff check .' },
+        status: 'pending',
+        stdout: 'a\nb\nLAST',
+      },
     ]
-    render(<ToolStreamRows tool_calls={running as never} streaming startTs={Date.now() - 245_000} />)
-    // The running step shows its work without a click, and the header counts from
-    // the turn's first frame (the reference block reads "Running · 245s").
-    expect(screen.getByTestId('tool-run-header').textContent).toContain('Running')
-    expect(screen.getByTestId('tool-run-header').textContent).toContain('4m 5s')
-    expect(screen.getByTestId('tool-cards')).toBeTruthy()
-    expect(screen.getByTestId('tool-row-spinner')).toBeTruthy()
-    expect(screen.getByTestId('tool-row-status').textContent).toContain('Working')
-    expect(screen.getByTestId('tool-duration-chip')).toBeTruthy()
-    expect(screen.queryByTestId('tool-row-proof')).toBeNull()
+    render(
+      <ToolStreamRows tool_calls={running as never} streaming startTs={Date.now() - 245_000} />,
+    )
+    const row = screen.getByTestId('tool-stream-row-shell')
+    expect(row.textContent).toContain('1/2')
+    expect(within(row).getByTestId('tool-row-tail').textContent).toContain('LAST')
+    expect(within(row).getByTestId('tool-row-status').textContent).toContain('Working')
   })
 })

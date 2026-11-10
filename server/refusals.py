@@ -77,6 +77,32 @@ REASONS: dict[str, tuple[int, str]] = {
         "The audit log exists but cannot be read — check the file's permissions, then reload "
         "the view.",
     ),
+    # The engine boundary (QA 2026-11-10, F5): a turn that never got an answer used to
+    # leave the stream with the raw client line ("All connection attempts failed") and
+    # the synchronous twin with a 500 `internal_error`. The code lives in the registry
+    # the routes already answer with, so the reason and the move are written once:
+    # `core.provider_errors` decides which of the two it was, the sentence says what to
+    # do. `{endpoint}` is the address the turn dialled — never a guess, and never a
+    # provider's own wording (that rides in `reason_params.detail` beside it).
+    "engine_unreachable": (
+        502,
+        "no engine answered at {endpoint} — start it or check the address under "
+        "Settings - Engine, then run `ephe doctor`",
+    ),
+    "engine_server_error": (
+        502,
+        "the engine answered with an error (HTTP {status}) — send the turn again, and if "
+        "it stays, check the engine under Settings - Engine",
+    ),
+    # The same boundary, before any turn can run: the choice exists but cannot be used
+    # (a provider named, its model missing). Setup mode already answers this door with
+    # a coded 409; the half-written env used to answer 500 instead. `{reason}` is the
+    # resolver's own sentence — it names the variable — and rides in `reason_params`.
+    "engine_unconfigured": (
+        409,
+        "the engine choice is incomplete — pick an engine under Settings - Engine, or "
+        "run `ephe configure`, then send the message again",
+    ),
     # The workspaces routes (2026-10-14): an unknown id, an argument a `core` module turned
     # down, a state that cannot carry the operation, a bound already reached. Where the route
     # worded the sentence it is the template; where the words came from the module that refused

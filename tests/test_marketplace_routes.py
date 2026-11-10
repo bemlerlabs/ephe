@@ -19,22 +19,31 @@ if str(ROOT) not in sys.path:
 
 from core import marketplace_sources  # noqa: E402
 from core.plugin_store import sha256_hex  # noqa: E402
+from tests.support.skill_pack import SKILL_PACK  # noqa: E402
 
 HEADERS = {"X-Requested-With": "XMLHttpRequest"}
 
-
-def artifact(root: Path, version: str, families: tuple[str, ...] = ("read",)) -> tuple[str, str]:
+def artifact(
+    root: Path,
+    version: str,
+    families: tuple[str, ...] = ("read",),
+    *,
+    skills: list[str] | None = None,
+    files: dict[str, str] | None = None,
+) -> tuple[str, str]:
     manifest = {
         "manifest_version": 1,
         "name": "alpha",
         "version": version,
         "description": f"alpha {version}",
         "permissions": {"tool_families": list(families), "data_roots": []},
-        "components": {"skills": [], "commands": []},
+        "components": {"skills": list(skills or []), "commands": []},
     }
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w") as zf:
         zf.writestr("alpha/ephe-plugin.json", json.dumps(manifest))
+        for rel, text in (files or {}).items():
+            zf.writestr(f"alpha/{rel}", text)
     data = payload.getvalue()
     path = root / "artifacts" / f"alpha-{version}.zip"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,6 +194,50 @@ class TestIcons:
 
 
 class TestInstallFlow:
+
+    def test_a_community_bundle_with_a_valid_skill_pack_installs(self, client):
+        """QA's reproducer, flipped: the same POST that answered 409
+        `static_check_failed` now installs and leaves a clean verdict."""
+        market = client.index_path.parent
+        v3 = artifact(
+            market,
+            "3.0.0",
+            skills=["pack-tool"],
+            files={"skills/pack-tool/SKILL.md": SKILL_PACK},
+        )
+        write_index(
+            market,
+            [
+                entry("1.0.0", *artifact(market, "1.0.0")),
+                entry("2.0.0", *artifact(market, "2.0.0")),
+                entry("3.0.0", *v3),
+            ],
+        )
+        source_id = provision_source(client)
+        plan = client.post(
+            "/api/market/plan",
+            json={
+                "source_id": source_id,
+                "name": "alpha",
+                "version": "3.0.0",
+                "allow_local_trust": True,
+                "approve_permissions": True,
+            },
+            headers=HEADERS,
+        )
+        assert plan.status_code == 200, plan.text
+        installed = client.post(
+            "/api/market/install", json={"plan": plan.json()}, headers=HEADERS
+        )
+        assert installed.status_code == 200, installed.text
+        assert installed.json()["status"] == "extracted"
+
+        from core import plugin_manifest
+        from core.plugin_versions import plugin_dir
+
+        artifact_dir = plugin_dir(plugin_manifest.plugins_root(), "alpha")
+        verdict = json.loads((artifact_dir / "VERIFY.json").read_text(encoding="utf-8"))
+        assert verdict["verdict"] == "checked-clean", verdict["findings"]
 
     def test_plan_install_update_and_rollback(self, client):
         source_id = provision_source(client)

@@ -18,7 +18,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from core.observability import structured_log
+from core.observability import ErrorCode, structured_log
+from server.refusals import Refused
 
 from core.chat import (
     OllamaNotReachableError,
@@ -944,6 +945,105 @@ def _error_msg(exc: Exception) -> str:
     return msg if msg else type(exc).__name__
 
 
+def _bounded_error_detail(exc: Exception) -> str:
+    """The engine's own line for ``reason_params``: redacted, folded, bounded.
+
+    The sentence a reader sees comes from the registry; this is the evidence beside
+    it. It is capped like the provider detail, so neither the bubble nor the model
+    context receives an unbounded body.
+    """
+    from core.redact import redact
+
+    flat = " ".join(str(redact(_error_msg(exc))).split())
+    if len(flat) > PROVIDER_DETAIL_LIMIT:
+        flat = flat[: PROVIDER_DETAIL_LIMIT - 3].rstrip() + "..."
+    return flat
+
+
+def _engine_refusal(
+    exc: Exception, provider: ModelProviderConfig | None = None, *, stream: bool = False
+) -> Refused | None:
+    """The coded refusal for an engine failure at the boundary, or None.
+
+    QA 2026-11-10 (F5): the turn's own error classes already name their cause, but a
+    transport drop or a 5xx reached the routes as a bare ``httpx`` exception — the
+    stream printed the client line and the REST twin answered 500 ``internal_error``.
+    The failure kind comes from the one classifier (``core/provider_errors``); only
+    the kinds the classifier *places* become a refusal, so an ordinary bug in the
+    turn stays the 500 with the stack trace the log holds.
+
+    ``stream`` keeps one existing contract: a 5xx *frame* answers with the exception's
+    own line, which `tests/test_chat_stream_errors.py` and
+    `tests/test_stream_4xx_provider_body.py` pin twice. The synchronous envelope had no
+    such promise and answered 500 for the same engine — that half is coded here.
+    """
+    from core import provider_errors
+    from core.engine_config import EngineNotConfigured
+
+    if isinstance(exc, EngineNotConfigured):
+        return Refused("engine_unconfigured", reason=str(exc))
+    failure = provider_errors.classify(exc)
+    if failure.kind is provider_errors.ProviderFailureKind.SERVER_ERROR:
+        if stream:
+            return None
+        status = failure.status
+        return Refused(
+            "engine_server_error",
+            status=status if status is not None else "unknown",
+            detail=_bounded_error_detail(exc),
+        )
+    if failure.kind in (
+        provider_errors.ProviderFailureKind.TRANSPORT,
+        provider_errors.ProviderFailureKind.TIMEOUT,
+    ):
+        active = provider or get_active_provider()
+        endpoint = (getattr(active, "base_url", "") or "").rstrip("/")
+        return Refused(
+            "engine_unreachable",
+            endpoint=endpoint or "the configured endpoint",
+            detail=_bounded_error_detail(exc),
+        )
+    return None
+
+
+def _engine_unconfigured_refusal(exc: Exception) -> Refused:
+    """The coded 409 for an engine choice that exists but cannot be used.
+
+    ``EngineNotConfigured`` is the resolver's fail-closed answer: a provider named
+    without its model, or no choice at all. `_ensure_engine_ready` answers that for
+    setup mode; QA 2026-11-10 (F5b) found the half-written env still reached the route
+    as a 500. The reason rides in the params, so the missing variable is readable.
+    """
+    return Refused("engine_unconfigured", reason=str(exc))
+
+
+def _engine_error_frame(
+    exc: Exception, provider: ModelProviderConfig | None = None
+) -> dict | None:
+    """The coded SSE ``error`` frame for a boundary failure, or None.
+
+    One refusal builds both answers: the synchronous route raises it, the stream puts
+    the same code, parameters and envelope code on the frame. The UI's
+    ``streamActions`` already prefers ``reason_code``/``reason_params`` over ``msg``,
+    so the reader gets the bundle's sentence and ``msg`` stays the English fallback.
+    """
+    refusal = _engine_refusal(exc, provider, stream=True)
+    if refusal is None:
+        return None
+    # The synchronous twin derives this from the status in `server/main.py`; the two
+    # codes this frame can carry are a 409 (setup) and a 502 (upstream).
+    code = (
+        ErrorCode.SETUP_REQUIRED if refusal.status_code == 409 else ErrorCode.UPSTREAM
+    )
+    return {
+        "type": "error",
+        "msg": refusal.message,
+        "code": code.value,
+        "reason_code": refusal.code,
+        "reason_params": dict(refusal.params),
+    }
+
+
 def sandbox_auto_approval_allowed(*, autonomous: bool) -> bool:
     """R37: the opt-in autonomous flag is respected.
 
@@ -993,7 +1093,12 @@ async def chat(request: ChatRequest) -> ChatResponse:
     from core.plugin_commands import expand_plugin_command
 
     request.message = expand_plugin_command(request.message)
-    provider = get_active_provider()
+    from core.engine_config import EngineNotConfigured
+
+    try:
+        provider = get_active_provider()
+    except EngineNotConfigured as exc:
+        raise _engine_unconfigured_refusal(exc) from exc
     model = provider.model if request.model == DEFAULT_MODEL else request.model
     # R33 (P1-1): REST callers may omit `history` — the server then feeds back
     # the turns it persisted for this session id (rest- mirror). The
@@ -1049,6 +1154,15 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=503, detail=_unreachable_engine_message(provider))
     except OllamaModelNotFoundError as exc:
         raise HTTPException(status_code=503, detail=f"model '{exc.model}' is not installed.")
+    except Exception as exc:
+        # QA 2026-11-10 (F5): the REST twin answered 500 `internal_error` with the raw
+        # client line for an engine that never answered. The same refusal the stream
+        # frame carries becomes the envelope here — and a bug that is not an engine
+        # failure stays the 500 with its stack trace.
+        refusal = _engine_refusal(exc, provider)
+        if refusal is None:
+            raise
+        raise refusal
     finally:
         from core.tools.session_ctx import reset_current_mode
 
@@ -2571,7 +2685,15 @@ async def chat_stream(
                 # The class is the transport-down bucket of every provider, so the
                 # sentence asks which engine this turn was pointed at (a remote
                 # engine named as Ollama sends the reader to the wrong machine).
-                emit({"type": "error", "msg": _unreachable_engine_message(active_provider)})
+                # QA 2026-11-10 (F5): the frame is coded too — the surface keys on
+                # the machine-readable `code`; the English sentence may be reworded.
+                emit(
+                    {
+                        "type": "error",
+                        "msg": _unreachable_engine_message(active_provider),
+                        "code": ErrorCode.UPSTREAM.value,
+                    }
+                )
             except OllamaModelBusyError as exc:
                 emit({"type": "progress", "phase": "engine_error", "tool": "", "turn_id": turn_id, "elapsed_ms": 0})
                 emit({"type": "error", "msg": f"⏳ Model busy — please retry (timeout after {exc.timeout:.0f}s)"})
@@ -2583,8 +2705,12 @@ async def chat_stream(
                 # resolution) — the fallback may never throw itself, otherwise
                 # the task dies silently again.
                 try:
+                    # QA 2026-11-10 (F5): a transport drop or a 5xx used to arrive
+                    # here as the raw client line. The classifier names the kind and
+                    # the registry carries the sentence, the reason code and the move.
                     emit(
-                        {
+                        _engine_error_frame(exc, active_provider)
+                        or {
                             "type": "error",
                             "msg": _friendly_model_error(exc, active_provider),
                             **provider_refusal_frame(exc),

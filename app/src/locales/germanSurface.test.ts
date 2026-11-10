@@ -105,6 +105,7 @@ const SAME_BY_DESIGN = new Set<string>([
   'chat.perm.autonomous', // Auto
   'chat.planTitle', // Plan
   'chat.replayTitle', // Replay
+  'chat.roundOk', // ok — the technical outcome token, the same in both languages
   'chat.skillsTitle', // Skills
   'chat.watchBound', // {{kind}} {{tool}} {{ts}} — placeholders, not prose
   'chat.watchPause', // Pause — the same word in both languages

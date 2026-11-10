@@ -95,6 +95,11 @@ class HealthResponse(BaseModel):
     # thereby shows "busy" honestly (the engine answers, but the probe runs into
     # the timeout: model loading / GPU occupied) apart from "unreachable".
     engine_state: str = "unreachable"
+    # QA 2026-11-10 (F5b): "the configuration cannot name an engine" is its own
+    # state, not "the engine is down". It travels as `status: degraded` + the reason
+    # in `detail` + this flag; `engine_state` keeps its probe vocabulary ("ok" |
+    # "busy" | "unreachable") because every client switch over it has three arms.
+    engine_unavailable: bool = False
     # The engine answered and refused the credential this process holds (or has
     # none). Not the same fact as "unreachable", and the desktop reuse path reads
     # exactly this field: a backend it did not start cannot be handed a token
@@ -150,7 +155,7 @@ async def _quick_engine_status(
 
     Returns ``(online, detail, models, state, key_challenge)`` with ``state`` out
     of ``ok`` | ``busy`` | ``unreachable`` — the same three-valued logic as
-    ``core.chat._engine_reachable`` (timeout = busy, not offline). The fifth
+    ``core.chat._engine_reachable`` (a timeout reads as busy). The fifth
     field says what the state cannot: the endpoint is up and turned *us* away.
     """
     now = asyncio.get_event_loop().time()
@@ -193,7 +198,7 @@ async def _quick_engine_status(
             return True, detail, models, "ok", False
         except (httpx.TimeoutException, TimeoutError) as exc:
             # Reachable, but the probe runs into the timeout (model loading,
-            # GPU occupied) → "busy", NOT "offline"/unreachable.
+            # GPU occupied) reads as "busy".
             return False, f"engine busy (probe timeout): {exc}", [], "busy", False
         except Exception as exc:
             return False, f"engine unreachable: {exc}", [], "unreachable", False
@@ -201,6 +206,44 @@ async def _quick_engine_status(
     result = await asyncio.to_thread(_fetch)
     _ENGINE_CACHE[base_url] = (now, *result)
     return result
+
+
+def _unavailable_engine_answer(exc: Exception) -> HealthResponse:
+    """200 + `degraded` for an engine configuration this process cannot resolve.
+
+    The sentence is the resolver's own (it names the missing variable); the fix line
+    is the one every fail-closed start already prints (`ENGINE_SETUP_HINT`), so the
+    reader meets the same words here and in the CLI.
+    """
+    import os
+
+    reason = str(exc).strip() or type(exc).__name__
+    hint = str(getattr(exc, "hint", "") or "").strip()
+    detail = f"engine configuration incomplete: {reason}" + (f" {hint}" if hint else "")
+    raw_provider = (os.environ.get("EPHE_MODEL_PROVIDER") or "").strip()
+    return HealthResponse(
+        status="degraded",
+        version=__version__,
+        instance_id=_INSTANCE_ID,
+        pid=os.getpid(),
+        root=_ROOT,
+        git_sha=_GIT_SHA,
+        api_contract=API_CONTRACT,
+        owner=os.environ.get("EPHE_BACKEND_OWNER", ""),
+        ollama=False,
+        models=[],
+        active_tier="offline",
+        active_model=(os.environ.get("EPHE_MODEL") or "").strip(),
+        dgx_online=False,
+        active_provider=raw_provider,
+        offline_capable=False,
+        requires_internet=bool(raw_provider and raw_provider != "local_ollama"),
+        model_installed=False,
+        detail=detail,
+        engine_online=False,
+        engine_state="unreachable",
+        engine_unavailable=True,
+    )
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -219,7 +262,17 @@ async def health_check() -> HealthResponse:
     """
     import os
 
-    provider = get_active_provider()
+    from core.engine_config import EngineNotConfigured
+
+    try:
+        provider = get_active_provider()
+    except (EngineNotConfigured, ValueError) as exc:
+        # QA 2026-11-10 (F5b): a half-written engine env (EPHE_MODEL_PROVIDER set,
+        # the model variable missing) used to raise out of this handler and answer
+        # 500 — the Setup page, whose job is to explain that mistake, could not
+        # load to explain it. The condition is an answer: state + reason, 200.
+        return _unavailable_engine_answer(exc)
+
     active_model = provider.model
     connected = False
     model_installed = True

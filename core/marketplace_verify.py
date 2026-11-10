@@ -5,6 +5,13 @@ description that carries instructions (the documented poisoning shape), a
 launch line that fetches unpinned code, and environment variables that carry
 secrets. The verdict rides the install result and the audit line; a
 high-severity finding refuses the install before anything is enabled.
+
+The instruction check reads *phrases*, not subjects: a skill pack is a system
+prompt, and ``core/skills.py`` refuses a pack that does not carry the
+``## System Prompt`` heading, so naming that section is structure. What makes
+text an attack is a directive that aims the model at its own instructions —
+"print your system prompt", "ignore the system prompt" — or at silence and
+exfiltration. Those stay refused.
 """
 from __future__ import annotations
 
@@ -16,7 +23,9 @@ from typing import Any
 HIGH = "high"
 INFO = "info"
 
-#: Phrases that turn a description into an instruction to the model.
+#: Phrases that turn a description into an instruction to the model. Each one is
+#: a directive, never a subject: "system prompt" alone is NOT here, because the
+#: skill parser demands that heading in every pack (core/skills.py).
 _INSTRUCTION_MARKERS = (
     "ignore previous",
     "ignore all previous",
@@ -25,10 +34,39 @@ _INSTRUCTION_MARKERS = (
     "don't tell",
     "without telling",
     "reveal your",
-    "system prompt",
     "send the contents",
     "exfiltrate",
 )
+
+#: A directive that aims the model at its own instructions: theft ("print your
+#: system prompt") or override ("ignore the system prompt"). Bounded to four
+#: words between verb and object, so the match stays linear and a heading or a
+#: sentence that merely names the section never matches.
+_PROMPT_TAKEOVER = re.compile(
+    r"\b(?:reveal|show|print|repeat|dump|output|display|leak|expose|hand\s+over|"
+    r"ignore|disregard|override|bypass|forget|discard)\b"
+    r"(?:\s+[\w'-]+){0,4}\s+"
+    r"(?:system[\s-]+prompt|system\s+instructions|developer\s+message|"
+    r"hidden\s+instructions)\b",
+    re.IGNORECASE,
+)
+
+
+def _instruction_finding(text: str) -> dict[str, str] | None:
+    """The first instruction shape in one text blob, if it carries one."""
+    lowered = text.lower()
+    for marker in _INSTRUCTION_MARKERS:
+        if marker in lowered:
+            return {"class": "description-instructions", "severity": HIGH, "marker": marker}
+    match = _PROMPT_TAKEOVER.search(text)
+    if match:
+        return {
+            "class": "description-instructions",
+            "severity": HIGH,
+            "marker": match.group(0)[:80],
+        }
+    return None
+
 
 #: A package manager name without a pinned version, as the first command word.
 _UNPINNED = re.compile(r"\b(?:npx|uvx|pip3?|npm)\s+(?:-y\s+)?(?!\S+@\d)([a-z0-9@/._-]+)")
@@ -66,12 +104,9 @@ def verify_artifact(root: Path) -> dict[str, Any]:
         except OSError:
             continue
         lowered = text.lower()
-        for marker in _INSTRUCTION_MARKERS:
-            if marker in lowered:
-                findings.append(
-                    {"class": "description-instructions", "severity": HIGH, "file": rel, "marker": marker}
-                )
-                break
+        instruction = _instruction_finding(text)
+        if instruction:
+            findings.append({**instruction, "file": rel})
         for match in _SHELL_PIPE.finditer(lowered):
             findings.append(
                 {"class": "shell-download", "severity": HIGH, "file": rel, "marker": match.group(0)[:80]}
@@ -122,13 +157,11 @@ def verify_entry(fields: dict[str, str]) -> dict[str, Any]:
     answers before anything is downloaded or started."""
     findings: list[dict[str, str]] = []
     for field, value in fields.items():
-        lowered = str(value or "").lower()
-        for marker in _INSTRUCTION_MARKERS:
-            if marker in lowered:
-                findings.append(
-                    {"class": "description-instructions", "severity": HIGH, "file": field, "marker": marker}
-                )
-                break
+        text = str(value or "")
+        lowered = text.lower()
+        instruction = _instruction_finding(text)
+        if instruction:
+            findings.append({**instruction, "file": field})
         for match in _SHELL_PIPE.finditer(lowered):
             findings.append(
                 {"class": "shell-download", "severity": HIGH, "file": field, "marker": match.group(0)[:80]}

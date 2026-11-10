@@ -162,6 +162,10 @@ export default function SetupPage({ onDone }: SetupPageProps) {
   // T2: the backend refused this start because the stored key belongs to another
   // engine. Put the reason and the four ways out on the screen that repairs it.
   const [repair, setRepair] = useState<SetupRepair | null>(null)
+  // F5b (QA 2026-11-10): a half-written engine env used to make the status call a
+  // 500, so this page could not load to explain it. The answer is now a state —
+  // `engine_unavailable` with the resolver's reason — and the page shows it.
+  const [engineProblem, setEngineProblem] = useState('')
   // The replacement key is typed here: the probe cannot pass while the stored key is
   // wrong, and the repair must not depend on it passing.
   const [repairKey, setRepairKey] = useState('')
@@ -439,8 +443,13 @@ export default function SetupPage({ onDone }: SetupPageProps) {
     let cancelled = false
     void getSetupStatus()
       .then((status) => {
+        if (cancelled) return
+        if (status.engine_unavailable) {
+          setEngineProblem(status.problem || '')
+          return
+        }
         const found = status.repair
-        if (cancelled || found?.code !== 'engine_key_mismatch') return
+        if (found?.code !== 'engine_key_mismatch') return
         setRepair(found)
         // The engine below is the one the configuration already names; the repair
         // form stays on the engine that has to change.
@@ -720,6 +729,28 @@ export default function SetupPage({ onDone }: SetupPageProps) {
               {oneClick === 'none' ? t('setup.oneClickNone') : t('setup.oneClickHint')}
             </p>
           </div>
+
+          {engineProblem && (
+            <div
+              role="alert"
+              data-testid="setup-engine-unavailable"
+              className="mb-5 rounded-xl border border-warning/40 bg-warning/10 p-3"
+            >
+              <div className="flex gap-2">
+                <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
+                <div className="min-w-0">
+                  <p className="text-ui-sm text-foreground">{t('setup.engineUnavailable')}</p>
+                  <p
+                    className="mt-1 break-words font-mono text-ui-xs text-ink-soft"
+                    data-testid="setup-engine-unavailable-problem"
+                  >
+                    {engineProblem}
+                  </p>
+                  <p className="mt-1 text-ui-xs text-ink-soft">{t('setup.engineUnavailableFix')}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {repair && (
             <div

@@ -2115,10 +2115,15 @@ def cmd_tool(args: argparse.Namespace) -> int:
     else:
         print(result)
 
-    # Exit-code contract:
+    # Exit-code contract (docs/CLI.md):
     #   0 = executed, dry-run preview, or SAFE auto-approval
-    #   1 = blocked by the approval policy (mutating, no --yes / --no / non-interactive)
-    if result.startswith("[Denied]"):
+    #   1 = runtime/repair error — blocked by the approval policy (mutating, no
+    #       --yes / --no / non-interactive), or the tool itself reported a failure
+    #       (a refused path, a bad argument, a handler error). The tool's own
+    #       classifier decides, so `[TOOL-ERROR]`/`ARTIFACT_FAILED` count too.
+    from core.quality import is_error_result
+
+    if result.startswith("[Denied]") or is_error_result(result):
         return 1
     return 0
 

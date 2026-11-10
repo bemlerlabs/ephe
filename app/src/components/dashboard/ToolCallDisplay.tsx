@@ -3,34 +3,20 @@ import DiffView from './DiffView'
 import CodeBlock from './CodeBlock'
 import {
   ChevronRight,
-  Terminal,
-  Pencil,
-  FilePlus,
-  FileText,
-  Search,
-  Globe,
   ListTodo,
-  Package,
-  Wrench,
   Loader2,
   Copy,
   Eye,
   Check,
   Circle,
-  Network,
   AlertCircle,
 } from 'lucide-react'
-import { Badge } from '@/components/ui'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
+import { fmtMs } from '@/lib/format'
 import type { TFunction } from 'i18next'
 import type { ToolCall } from '@/store/chatStore'
-import {
-  classifyToolCall,
-  isDiffLike,
-  type ToolCardModel,
-  type ToolIconKind,
-} from '@/lib/toolCardModel'
+import { classifyToolCall, isDiffLike, type ToolCardModel } from '@/lib/toolCardModel'
+import { ICONS, isToolError, shouldAutoOpen, toolOutcome } from '@/lib/toolRound'
 import { useTasks } from '@/hooks/useTasks'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { readerText } from '@/lib/readerText'
@@ -39,15 +25,16 @@ import { RunWatch } from './agent/RunWatch'
 import { StepEvidence } from './agent/StepEvidence'
 import './ToolCallDisplay.css'
 /**
- * Ephe — tool activities in the chat stream (reference-B parity Z01–Z06, round E).
+ * Ephe — tool activities in the chat stream (UI-CHAT: one calm row per call).
  *
- * One card per tool call, with a summary row (icon + verb + human target +
- * status chips) and expandable details. The classification cases were decided
- * in the pure model (lib/toolCardModel); this file only renders.
+ * The summary is a single quiet line: status mark · tool name · duration ·
+ * outcome (ok/failed/running). No second name, no verb word, no "completed"
+ * suffix. Everything else — arguments, output, diff, digest, preview — lives
+ * one level down in `ToolCallDetails`, behind the row's chevron.
  *
+ * The family bodies are unchanged:
  * - shell:    `$ command` row with a copy button, output block, `exit N` chip.
- * - edit:     path basename + `+N`/`−N` stats, unified diff coloured,
- *             opened automatically on success; the "open in preview" action.
+ * - edit:     path basename + `+N`/`−N` stats, unified diff coloured.
  * - write:    file content in a syntax view (language by file extension).
  * - task:     task checklist taken from the real /api/tasks list.
  * - rest:     name badge + args/result details as before (honest JSON).
@@ -66,7 +53,7 @@ function liveBrowserSession(tools: ToolCall[]): string | null {
 export default function ToolCallDisplay({ tool_calls }: { tool_calls: ToolCall[] }) {
   const liveSession = liveBrowserSession(tool_calls)
   return (
-    <div className="mt-2 space-y-1">
+    <div className="mt-1 space-y-1">
       {liveSession && <RunWatch session={liveSession} />}
       {tool_calls.map((tool) => (
         <ToolCallEntry
@@ -83,64 +70,145 @@ export default function ToolCallDisplay({ tool_calls }: { tool_calls: ToolCall[]
   )
 }
 
-function statusVariant(
-  status: ToolCall['status'],
-): 'success' | 'destructive' | 'info' | 'warning' | 'default' {
-  switch (status) {
-    case 'approved':
-      return 'success'
-    case 'denied':
-    case 'failed':
-      return 'destructive'
-    case 'completed':
-      return 'info'
-    case 'waiting':
-      return 'warning'
-    default:
-      return 'default'
-  }
-}
-
-export const ICONS: Record<ToolIconKind, typeof Terminal> = {
-  terminal: Terminal,
-  filePen: Pencil,
-  filePlus: FilePlus,
-  fileText: FileText,
-  search: Search,
-  globe: Globe,
-  tasks: ListTodo,
-  package: Package,
-  subagent: Network,
-  wrench: Wrench,
+/** The shared left-hand read of a call: running, failed, or settled. */
+export function ToolStatusMark({ tool }: { tool: ToolCall }) {
+  const kind =
+    tool.status === 'pending' || tool.status === 'waiting'
+      ? 'is-running'
+      : isToolError(tool)
+        ? 'is-error'
+        : 'is-done'
+  return (
+    <span className={`tool-status ${kind}`} aria-hidden="true" data-testid="tool-status-mark">
+      {kind === 'is-running' ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : kind === 'is-error' ? (
+        <AlertCircle className="h-3.5 w-3.5" />
+      ) : (
+        <Check className="h-3.5 w-3.5" />
+      )}
+    </span>
+  )
 }
 
 function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch: boolean }) {
   const { t } = useTranslation()
   const model = classifyToolCall(tool)
+  const [open, setOpen] = useState(() => shouldAutoOpen(tool))
+  const hasArgs = Object.keys(tool.args ?? {}).length > 0
+  const result = typeof tool.result === 'string' ? tool.result : null
+  const hasContent =
+    hasArgs ||
+    result !== null ||
+    model.family === 'task' ||
+    (typeof tool.reason_code === 'string' && tool.reason_code !== '')
+  const Icon = ICONS[model.icon]
+  const outcome = toolOutcome(tool, t)
+
+  return (
+    <div
+      className="tool-row rounded-md"
+      data-testid="tool-card"
+      data-family={model.family}
+      data-status={tool.status}
+    >
+      {hasContent ? (
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-controls={`tool-body-${tool.id ?? tool.name}`}
+          aria-label={`${tool.name} Details`}
+          className="flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-surface-interactive"
+        >
+          <ToolStatusMark tool={tool} />
+          <Icon className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
+          <span
+            data-testid="tool-name"
+            className="min-w-0 truncate font-mono text-ui-xs text-foreground/80"
+          >
+            {tool.name}
+          </span>
+          {tool.duration_ms != null && (
+            <span
+              data-testid="round-duration"
+              className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
+            >
+              {fmtMs(Math.round(tool.duration_ms))}
+            </span>
+          )}
+          <span
+            data-testid="tool-outcome"
+            className={`shrink-0 text-ui-xs ${isToolError(tool) ? 'text-status-danger' : 'text-ink-soft'}`}
+          >
+            · {outcome}
+          </span>
+          {model.runtime !== null && <RuntimeChip model={model} />}
+          {model.stats !== null && (model.family === 'edit' || model.family === 'write') && (
+            <StatsChip model={model} />
+          )}
+          <ChevronRight
+            className={`ml-auto h-3 w-3 shrink-0 text-ink-faint transition-transform ${open ? 'rotate-90' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+      ) : (
+        <div className="flex w-full min-w-0 items-center gap-1.5 px-1 py-0.5">
+          <ToolStatusMark tool={tool} />
+          <Icon className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
+          <span
+            data-testid="tool-name"
+            className="min-w-0 truncate font-mono text-ui-xs text-foreground/80"
+          >
+            {tool.name}
+          </span>
+          {tool.duration_ms != null && (
+            <span
+              data-testid="round-duration"
+              className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
+            >
+              {fmtMs(Math.round(tool.duration_ms))}
+            </span>
+          )}
+          <span
+            data-testid="tool-outcome"
+            className={`shrink-0 text-ui-xs ${isToolError(tool) ? 'text-status-danger' : 'text-ink-soft'}`}
+          >
+            · {outcome}
+          </span>
+          {model.runtime !== null && <RuntimeChip model={model} />}
+        </div>
+      )}
+
+      {open && hasContent && (
+        <div id={`tool-body-${tool.id ?? tool.name}`}>
+          <ToolCallDetails tool={tool} suppressWatch={suppressWatch} />
+        </div>
+      )}
+
+      {/* 2026 task focus: the task checklist always lives visibly in the
+          stream (todo anchor pattern) — never behind a chevron. */}
+      {model.family === 'task' && (tool.status === 'pending' || tool.status === 'completed') && (
+        <div className="ml-5 mt-2">
+          <TaskBody completed={tool.status === 'completed'} live={tool.status === 'pending'} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** The body of one call: everything the summary line left out. */
+export function ToolCallDetails({
+  tool,
+  suppressWatch = false,
+}: {
+  tool: ToolCall
+  suppressWatch?: boolean
+}) {
+  const { t } = useTranslation()
+  const model = classifyToolCall(tool)
   const result = typeof tool.result === 'string' ? tool.result : null
   const isDiffResult = result !== null && isDiffLike(result)
-
-  const hasArgs = Object.keys(tool.args ?? {}).length > 0
-  const isTask = model.family === 'task'
-  const hasContent = hasArgs || result !== null || isTask
-
-  // Auto-open rule (parity with the reference behaviour): a finished document —
-  // edited (diff result) or created (content arg) — shows its body
-  // immediately; a failed shell run surfaces its output; a running call stays
-  // open so the spinner/terminal line is visible.
-  const writeHasContent =
-    model.family === 'write' &&
-    typeof tool.args?.['content'] === 'string' &&
-    (tool.args['content'] as string).trim() !== ''
-  // A failed run: a non-zero shell exit, an outright refusal, or a failure the
-  // backend named (a fetch that timed out, an HTTP error, a tool error).
-  const isError =
-    tool.status === 'denied' ||
-    tool.status === 'failed' ||
-    (tool.status === 'completed' &&
-      model.family === 'shell' &&
-      model.exit !== null &&
-      model.exit.code !== 0)
   const reasonText =
     tool.status === 'failed'
       ? readerText(
@@ -150,40 +218,7 @@ function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch:
           (result ?? '').split('\n')[0]?.replace(/^\[fetch failed\]\s*/, '') ?? '',
         )
       : ''
-  // Compact pill default; the body opens on click, on a running call, on a
-  // finished document, on a failed run, and on an approval the user must answer.
-  const [open, setOpen] = useState(
-    tool.status === 'waiting' ||
-      tool.status === 'pending' ||
-      isError ||
-      (tool.status === 'completed' &&
-        ((model.family === 'edit' && isDiffResult) ||
-          (model.family === 'write' && writeHasContent))),
-  )
 
-  // I6 P2c: the status is NEVER rendered raw from the enum — 'approved'/
-  // 'denied'/waiting showed up as raw EN values in the German UI (deep-test finding).
-  const statusLabel =
-    tool.status === 'waiting'
-      ? t('chat.toolWaiting')
-      : tool.status === 'pending'
-        ? t('chat.toolRunning', { tool: tool.name })
-        : tool.status === 'completed'
-          ? t('chat.toolCompleted', { tool: tool.name })
-          : tool.status === 'approved'
-            ? t('chat.toolApproved', { tool: tool.name })
-            : tool.status === 'denied'
-              ? t('chat.toolDenied', { tool: tool.name })
-              : tool.status === 'failed'
-                ? t('chat.toolFailed', { tool: tool.name })
-                : tool.status
-
-  const Icon = ICONS[model.icon]
-  const monoTarget =
-    model.family === 'shell' ||
-    model.family === 'edit' ||
-    model.family === 'write' ||
-    model.family === 'read'
   const canPreview =
     model.filePath !== null &&
     model.previewable &&
@@ -201,53 +236,21 @@ function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch:
   }
   const tipKey = familyTipKey[model.family] ?? 'chat.toolTipGeneric'
 
-  // The leading status mark: an amber spinner while it runs or waits on an
-  // approval, a red alert on a failed or denied call, a settled green check once done.
-  const statusKind =
-    tool.status === 'pending' || tool.status === 'waiting'
-      ? 'is-running'
-      : isError
-        ? 'is-error'
-        : 'is-done'
-
   return (
-    <div
-      className="tool-pill rounded-lg px-2.5 py-1"
-      data-testid="tool-card"
-      data-family={model.family}
-      data-status={tool.status}
-    >
-      <div className="flex flex-wrap items-center gap-2 min-w-0">
-        <span className={`tool-status ${statusKind}`} aria-hidden="true">
-          {statusKind === 'is-running' ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : statusKind === 'is-error' ? (
-            <AlertCircle className="h-3.5 w-3.5" />
-          ) : (
-            <Check className="h-3.5 w-3.5" />
-          )}
-        </span>
-        {hasContent && (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-controls={`tool-body-${tool.id ?? tool.name}`}
-            className="shrink-0 text-ink-soft hover:text-foreground/70 transition-colors"
-            aria-label={`${tool.name} Details`}
-          >
-            <ChevronRight
-              className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`}
-            />
-          </button>
-        )}
-        <Icon className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
-        <span className="text-ui-xs uppercase tracking-wide text-foreground/70 shrink-0">
-          {t(model.verbKey)}
-        </span>
-        {model.target !== '' && (
+    <div className="tool-body mt-1 space-y-2" data-testid="tool-details">
+      {reasonText !== '' && (
+        <div
+          data-testid="tool-failure-reason"
+          className="break-words text-ui-xs text-status-danger"
+        >
+          {reasonText}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="tool-meta">
+        {model.target !== '' && model.target !== tool.name && (
           <span
-            className={`min-w-0 flex-1 break-words text-ui-xs text-foreground/80 ${monoTarget ? 'font-mono' : ''}`}
+            className="min-w-0 break-words font-mono text-ui-2xs text-ink-soft"
             title={model.target}
             data-testid="tool-target"
           >
@@ -257,7 +260,7 @@ function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch:
         {model.family === 'shell' && model.exit !== null && (
           <span
             data-testid="tool-exit-chip"
-            className={`shrink-0 rounded px-1.5 py-0.5 text-ui-xs font-mono ${
+            className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-ui-2xs ${
               model.exit.code === 0
                 ? 'text-status-success bg-status-success/20'
                 : 'text-status-danger bg-status-danger/20'
@@ -266,112 +269,82 @@ function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch:
             exit {model.exit.code}
           </span>
         )}
-        {/* WP2b keep: user-land (green) vs kernel (danger) = harmlessness readout. */}
-        {model.runtime !== null && (
+        {tool.sha256 && (
           <span
-            data-testid="tool-runtime-chip"
-            data-runtime={model.runtime}
-            className={`shrink-0 rounded px-1.5 py-0.5 text-ui-xs font-mono ${
-              model.runtime === 'kernel'
-                ? 'text-status-danger bg-status-danger/20'
-                : 'text-status-success bg-status-success/20'
-            }`}
-            title={
-              model.runtime === 'kernel'
-                ? t('chat.toolRuntimeKernelHint')
-                : t('chat.toolRuntimeCellHint')
+            data-testid="tool-digest"
+            className="shrink-0 font-mono text-ui-2xs text-ink-faint"
+            title={`sha256:${tool.sha256}`}
+          >
+            sha256:{tool.sha256.slice(0, 8)}
+          </span>
+        )}
+        {canPreview && (
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent(PREVIEW_OPEN_EVENT, {
+                  detail: {
+                    tab: 'preview',
+                    url: `/api/file?path=${encodeURIComponent(model.filePath ?? '')}`,
+                  },
+                }),
+              )
             }
+            aria-label={t('chat.toolOpenPreview')}
+            title={t('chat.toolOpenPreview')}
+            data-testid="tool-open-preview"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-ui-2xs text-ink-soft transition-colors hover:bg-surface-interactive hover:text-foreground/80"
           >
-            {model.runtime === 'kernel' ? t('chat.toolRuntimeKernel') : t('chat.toolRuntimeCell')}
-          </span>
+            <Eye className="h-3 w-3" aria-hidden="true" />
+          </button>
         )}
-        {model.stats !== null && (model.family === 'edit' || model.family === 'write') && (
-          <span
-            data-testid="tool-stats"
-            className="shrink-0 text-ui-xs font-mono flex items-center gap-1"
-          >
-            <span className="text-status-success">+{model.stats.added}</span>
-            <span className="text-status-danger">−{model.stats.removed}</span>
-          </span>
-        )}
-        {/* The right group may shrink on narrow screens: the status label is
-            the truncation victim (ellipsised), while badge and buttons keep
-            their intrinsic width. Without this the card clipped the label. */}
-        <div className="ml-auto flex items-center gap-1.5 min-w-0">
-          {canPreview && (
-            <button
-              type="button"
-              onClick={() =>
-                window.dispatchEvent(
-                  new CustomEvent(PREVIEW_OPEN_EVENT, {
-                    detail: {
-                      tab: 'preview',
-                      url: `/api/file?path=${encodeURIComponent(model.filePath ?? '')}`,
-                    },
-                  }),
-                )
-              }
-              aria-label={t('chat.toolOpenPreview')}
-              title={t('chat.toolOpenPreview')}
-              data-testid="tool-open-preview"
-              className="inline-flex items-center gap-1 shrink-0 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground/80 hover:bg-surface-interactive transition-colors"
-            >
-              <Eye className="h-3 w-3" aria-hidden="true" />
-            </button>
-          )}
-          {tool.duration_ms != null && (
-            <span
-              data-testid="tool-duration"
-              className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
-            >
-              {(tool.duration_ms / 1000).toFixed(1)}s
-            </span>
-          )}
-          <Badge
-            variant={statusVariant(tool.status)}
-            className={cn('shrink-0', tool.status === 'pending' && 'text-brand-glow')}
-          >
-            {tool.name}
-          </Badge>
-          <span className="text-ui-xs text-foreground/70 shrink-0" title={statusLabel}>
-            {statusLabel}
-          </span>
-        </div>
       </div>
 
-      {reasonText !== '' && (
-        <div
-          data-testid="tool-failure-reason"
-          className="mt-1 break-words text-ui-xs text-status-danger"
-        >
-          {reasonText}
-        </div>
-      )}
-
-      {open && hasContent && (
-        <div className="tool-body mt-1.5 space-y-2" id={`tool-body-${tool.id ?? tool.name}`}>
-          <div data-testid="tool-card-hint" className="break-words text-ui-2xs text-ink-faint">
-            {t(`${tipKey}.title`)} — {t(`${tipKey}.body`)}
-          </div>
-          {model.family === 'shell' && <ShellBody model={model} result={result} />}
-          {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
-          {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}
-          {model.family === 'web' && <WebBody tool={tool} suppressWatch={suppressWatch} />}
-          {!['shell', 'edit', 'write', 'task', 'web'].includes(model.family) && (
-            <GenericBody tool={tool} />
-          )}
-        </div>
-      )}
-
-      {/* 2026 task focus: the task checklist always lives visibly in the
-          stream (todo anchor pattern) — never behind a chevron. While the task
-          is still running the list follows live; otherwise it shows the final state. */}
-      {isTask && (tool.status === 'pending' || tool.status === 'completed') && (
-        <div className="ml-5 mt-2">
-          <TaskBody completed={tool.status === 'completed'} live={tool.status === 'pending'} />
-        </div>
+      <div data-testid="tool-card-hint" className="break-words text-ui-2xs text-ink-faint">
+        {t(`${tipKey}.title`)} — {t(`${tipKey}.body`)}
+      </div>
+      {model.family === 'shell' && <ShellBody model={model} result={result} />}
+      {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
+      {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}
+      {model.family === 'web' && <WebBody tool={tool} suppressWatch={suppressWatch} />}
+      {!['shell', 'edit', 'write', 'task', 'web'].includes(model.family) && (
+        <GenericBody tool={tool} />
       )}
     </div>
+  )
+}
+
+function RuntimeChip({ model }: { model: ToolCardModel }) {
+  const { t } = useTranslation()
+  return (
+    <span
+      data-testid="tool-runtime-chip"
+      data-runtime={model.runtime}
+      className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-ui-2xs ${
+        model.runtime === 'kernel'
+          ? 'text-status-danger bg-status-danger/20'
+          : 'text-status-success bg-status-success/20'
+      }`}
+      title={
+        model.runtime === 'kernel' ? t('chat.toolRuntimeKernelHint') : t('chat.toolRuntimeCellHint')
+      }
+    >
+      {model.runtime === 'kernel' ? t('chat.toolRuntimeKernel') : t('chat.toolRuntimeCell')}
+    </span>
+  )
+}
+
+function StatsChip({ model }: { model: ToolCardModel }) {
+  if (model.stats === null) return null
+  return (
+    <span
+      data-testid="tool-stats"
+      className="flex shrink-0 items-center gap-1 font-mono text-ui-2xs"
+    >
+      <span className="text-status-success">+{model.stats.added}</span>
+      <span className="text-status-danger">−{model.stats.removed}</span>
+    </span>
   )
 }
 
@@ -414,7 +387,10 @@ function ShellBody({ model, result }: { model: ToolCardModel; result: string | n
         </div>
       )}
       {body !== null && body !== '' ? (
-        <pre className="mt-1.5 text-ui-xs text-ink-soft max-h-52 overflow-auto rounded bg-canvas p-2 whitespace-pre-wrap font-mono">
+        <pre
+          data-testid="tool-result"
+          className="mt-1.5 text-ui-xs text-ink-soft max-h-52 overflow-auto rounded bg-canvas p-2 whitespace-pre-wrap font-mono"
+        >
           {body}
           {model.exit !== null && model.exit.err !== '' && (
             <span className="block text-status-danger mt-1">{model.exit.err}</span>
@@ -460,7 +436,7 @@ function WriteBody({
  *  (poll 2.5 s) while the task is still running — the todo anchor.
  *  P1-11: tasks are global (no session scope in /api/tasks) — the poll
  *  runs through the shared useTasks store, ONE interval for all cards. */
-function TaskBody({ completed, live = false }: { completed: boolean; live?: boolean }) {
+export function TaskBody({ completed, live = false }: { completed: boolean; live?: boolean }) {
   const { t } = useTranslation()
   const { tasks, failed } = useTasks(live)
 
@@ -528,14 +504,16 @@ function ResultPre({ result }: { result: string }) {
       <div className="text-ui-xs uppercase tracking-wide text-foreground/70 mb-1">
         {t('chat.toolResultLabel')}
       </div>
-      <pre className="text-ui-xs text-ink-faint max-h-40 overflow-auto rounded bg-canvas p-2 whitespace-pre-wrap">
+      <pre
+        data-testid="tool-result"
+        className="text-ui-xs text-ink-faint max-h-40 overflow-auto rounded bg-canvas p-2 whitespace-pre-wrap"
+      >
         {result}
       </pre>
     </div>
   )
 }
 
-/** Long-standing behaviour for all remaining families: args + result as details. */
 /** A coded refusal reads in the user's language; an unknown code keeps the server's
  * sentence, because a newer app meets an older backend. */
 function refusalLine(tool: ToolCall, t: TFunction, result: string): string {
@@ -575,7 +553,10 @@ function GenericBody({ tool }: { tool: ToolCall }) {
           <div className="text-ui-xs uppercase tracking-wide text-foreground/70 mb-1">
             {t('chat.toolArgsLabel')}
           </div>
-          <pre className="text-ui-xs text-ink-faint max-h-40 overflow-auto rounded bg-canvas p-2">
+          <pre
+            data-testid="tool-args"
+            className="text-ui-xs text-ink-faint max-h-40 overflow-auto rounded bg-canvas p-2"
+          >
             {JSON.stringify(tool.args, null, 2)}
           </pre>
         </div>

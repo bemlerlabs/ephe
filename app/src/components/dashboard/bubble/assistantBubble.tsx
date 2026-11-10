@@ -17,7 +17,6 @@ import { StreamBlocks } from './streamBlocks'
 import { SourcesBar } from './sourcesBar'
 import { ToolStreamRows } from './toolStreamRows'
 import { SwarmDeck } from './SwarmDeck'
-import { ProofLedger } from './ProofLedger'
 import LiveAskCard from './liveAskCard'
 
 interface AssistantBubbleProps {
@@ -137,6 +136,13 @@ export function AssistantBubble({
     })
   }, [m.content])
 
+  // UI-CHAT: a finished thought that precedes the tools is part of the round —
+  // the round row carries it and the transcript does not print a second line.
+  const toolThoughts =
+    showReasoning && m.thinking && m.thinking.end !== null && (m.tool_calls?.length ?? 0) > 0
+      ? [m.thinking]
+      : []
+
   const waitingTool = m.tool_calls?.find((t) => t.status === 'waiting')
 
   return (
@@ -169,8 +175,6 @@ export function AssistantBubble({
                   Without blocks (legacy/seed messages) the old fixed sequence applies. */}
       {m.blocks && m.blocks.length > 0 ? (
         <>
-          {/* E1: the proof sits above the chronology, which ends in the answer text. */}
-          <ProofLedger tools={m.tool_calls ?? []} />
           <div data-testid="bubble-timeline" className={timelineCollapsed ? 'hidden' : undefined}>
             <StreamBlocks
               blocks={m.blocks}
@@ -184,17 +188,23 @@ export function AssistantBubble({
       ) : (
         <>
           <div data-testid="bubble-timeline" className={timelineCollapsed ? 'hidden' : undefined}>
-            {/* 1. Thinking (KI-client order: first thinking, then activity, then content) */}
-            {showReasoning && <ThinkingBlock thinking={m.thinking ?? null} />}
+            {/* 1. Thinking — folded into the tool round when a finished thought
+                belongs to it; only a live phase keeps its own line. */}
+            {showReasoning && (!toolThoughts.length || m.thinking?.end === null) && (
+              <ThinkingBlock thinking={m.thinking ?? null} />
+            )}
 
             {/* I1 (reference parity): aggregated tool rows before the text */}
             {m.tool_calls && m.tool_calls.length > 0 && (
-              <ToolStreamRows tool_calls={m.tool_calls} streaming={m.streaming} />
+              <ToolStreamRows
+                tool_calls={m.tool_calls}
+                thoughts={toolThoughts}
+                streaming={m.streaming}
+              />
             )}
           </div>
 
           {/* 3. Content (+ streaming cursor) */}
-          <ProofLedger tools={m.tool_calls ?? []} />
           {(m.content || m.streaming) && (
             <div
               className="chat-reading-type text-foreground/90 prose prose-invert max-w-none break-words prose-p:mb-2 prose-code:bg-surface prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-ui-xs prose-strong:text-foreground prose-em:text-foreground/90"

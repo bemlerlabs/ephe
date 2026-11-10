@@ -51,6 +51,11 @@ HTTP_PARAMS = {
     "vision_failed": {"error": "boom"},
     "settings_register_unwritable": {},
     "audit_log_unreadable": {},
+    # The engine boundary (QA 2026-11-10, F5): the address the turn dialled, and the
+    # status the engine answered with.
+    "engine_unreachable": {"endpoint": "http://127.0.0.1:9/v1"},
+    "engine_server_error": {"status": 503},
+    "engine_unconfigured": {"reason": "EPHE_MODEL is missing."},
     # The workspaces routes' fourteen raise sites, added 2026-10-14 with the reason-code wave:
     # this table is a completeness guard, so a new code that forgets its parameters fails here.
     "workspace_id_required": {},

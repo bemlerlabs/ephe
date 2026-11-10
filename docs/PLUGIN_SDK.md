@@ -3,10 +3,12 @@
 > Working doc for plugin authors. The authoritative field specification stays
 > `docs/PLUGINS.md` (manifest v1); this document is the practical entry point
 > along the real install/verify path. Modules:
-> `core/plugin_manifest.py` (validation), `core/plugin_store.py` (registry +
-> scan), `core/plugin_market.py` (marketplace install), `core/plugin_signing.py`
-> (ES256), `core/plugin_runtime.py` (activation); REST:
-> `server/routes/plugins.py`.
+> `core/plugin_manifest.py` (loading and scanning),
+> `core/plugin_manifest_contract.py` (the manifest contract),
+> `core/plugin_memory_contract.py` (a declared memory provider),
+> `core/plugin_store.py` (registry + scan), `core/plugin_market.py`
+> (marketplace install), `core/plugin_signing.py` (ES256),
+> `core/plugin_runtime.py` (activation); REST: `server/routes/plugins.py`.
 
 ## 0. Mental model
 
@@ -71,6 +73,7 @@ curl -s localhost:8765/api/plugins/commands             # is /my-tool in the sla
 | Surface | `components.ui` | one descriptor `{type, entry, title, default_size?, capabilities?}`; `entry` is an `.html` document inside the bundle, and `capabilities` is the closed vocabulary of `core/plugin_ui_capabilities.py` |
 | Contributed tools | `components.tools[]` (a manifest v2 list) | one object per tool `{name, entry, family, description, parameters?}`; `entry` is a `path.py:callable` inside the bundle and the served name is the declared one (`web_search` is served as `web_search`; the namespace is the package, not the name); `family` has to be one `permissions.tool_families` declares; rules and the DoD checks in `docs/PLUGINS.md` |
 | Vendored libraries | `ephe-libraries.json` (a file beside the manifest) | one entry per shipped code file `{name, version, path, sha256, kind}`; every byte under `vendor/` has to be declared or the plugin is quarantined (§4) |
+| Memory provider | `capabilities.memory` (a manifest v2 object) | one descriptor `{id, transport, url, scope?, description?}`; registered from the same manifest scan the tool gate reads, and reachable only while the bundle is active (§3d) |
 
 The hook contract (`~/.ephe/hooks.json`, E5): one JSON line on stdin
 (`{"event","tool","args","result"}`), one JSON line on stdout — `pre_tool`:
@@ -232,6 +235,45 @@ What it does not do, and a bundle must not rely on:
   a write there fails with `storage_no_host` instead of pretending it landed. A
   host-mediated store for the native slot is a separate package; the decision record
   (`docs/decisions/PLUGIN_SURFACE_PAGE_STORAGE.md`) says so.
+
+### 3d. A memory provider (manifest v2)
+
+A version 2 bundle may point the agent's memory at a backend of its own. It declares one
+descriptor, `core/plugin_memory_contract.py` holds every rule, and the kernel never imports
+the bundle:
+
+```json
+"permissions": { "tool_families": ["network"], "data_roots": [] },
+"capabilities": {
+  "memory": {
+    "id": "team-memory",
+    "transport": "kepta-bridge",
+    "url": "http://127.0.0.1:3010",
+    "scope": "team",
+    "description": "Shared notes for the team."
+  }
+}
+```
+
+| Field | Rule |
+|---|---|
+| `id` | Lowercase slug, at most 40 characters; `kepta` and `kepta-bridge` belong to the kernel and are refused |
+| `transport` | `kepta-bridge`, the HTTP protocol `core/memory_kepta_bridge.py` implements — a provider answers inside the turn, where no plugin module may be imported |
+| `url` | http(s), no credentials, no fragment. This URL is the whole reach of the provider |
+| `scope` | Optional slug, written into every call; without it the workspace hash names the scope |
+| `description` | Optional, and non-empty when present |
+
+`permissions.tool_families` has to declare `network`, or the bundle is quarantined. Two
+bundles declaring one `id` make that id contested, and contested and unknown are answered
+the same way — both fall back. Registration is the manifest scan the tool gate already runs
+(`core/plugin_runtime.py`), so a mount or an edit retires the table.
+
+A user reaches a declared provider through `EPHE_MEMORY_PROVIDER=<id>` or through the
+written record (`~/.ephe/memory/provider.json`). With the bundle switched off the env value
+is ignored with a warning, and a record naming that provider stays on disk while `kepta`
+serves the memory: the choice applies again the moment the bundle is back. The settings
+route still offers the two kernel ids, so a declared provider is selected by env or record
+in this version.
 
 ## 4. Vendored libraries (the offline runtime)
 

@@ -35,8 +35,13 @@ from core.model_provider import (
     validate_provider_type,
 )
 from core.engine_config import (
+    ENV_BASE_URL,
+    ENV_MODEL,
+    ENV_PROVIDER,
     OPENAI_COMPAT,
+    VALID_PROVIDERS,
     EngineChoice,
+    EngineNotConfigured,
     clear_engine_config,
     load_engine_config,
     save_engine_config,
@@ -627,6 +632,44 @@ def _engine_choice_is_complete(choice: EngineChoice | None) -> bool:
     return True
 
 
+def _setup_unavailable_dict(exc: Exception, persisted) -> dict:
+    """The setup answer for an engine configuration this process cannot resolve.
+
+    200 with the state (`degraded`), the resolver's reason (it names the missing
+    variable), the fix line every fail-closed start prints, and the candidates — the
+    page must be able to offer another engine while it explains this one. Nothing is
+    probed: the configuration never named an endpoint to probe.
+    """
+    reason = str(exc).strip() or type(exc).__name__
+    hint = str(getattr(exc, "hint", "") or "").strip()
+    raw_provider = (os.environ.get(ENV_PROVIDER) or "").strip()
+    if raw_provider not in VALID_PROVIDERS:
+        raw_provider = ""
+    model = ""
+    url = None
+    if raw_provider:
+        model = (os.environ.get(ENV_MODEL.get(raw_provider, "")) or "").strip()
+        url = (os.environ.get(ENV_BASE_URL.get(raw_provider, "")) or "").strip() or None
+    if persisted is not None:
+        model = model or persisted.model
+        url = url or persisted.api_url
+    return {
+        "status": "degraded",
+        "engine_unavailable": True,
+        "configured": False,
+        "skipped": False,
+        "provider": raw_provider or (persisted.provider if persisted else ""),
+        "model": model,
+        "url": url,
+        "reachable": False,
+        "available_models": [],
+        "candidates": _setup_candidates(),
+        "repair": None,
+        "problem": reason,
+        "hint": hint,
+    }
+
+
 def _setup_provider_dict() -> dict:
     """Active engine + reachability status for the setup UI.
 
@@ -644,7 +687,14 @@ def _setup_provider_dict() -> dict:
     already says.
     """
     persisted = load_engine_config()
-    active = get_active_provider()
+    try:
+        active = get_active_provider()
+    except (EngineNotConfigured, ValueError) as exc:
+        # QA 2026-11-10 (F5b): a half-written engine env made this answer 500, and the
+        # Setup page — the one surface that can repair it — could not load. The
+        # condition is an answer: the state, the resolver's reason, the fix line, and
+        # the candidates the page needs to offer another engine.
+        return _setup_unavailable_dict(exc, persisted)
     provider = persisted.provider if persisted else active.provider
     model = persisted.model if (persisted and persisted.model) else active.model
     url = persisted.api_url if persisted else (active.base_url if active.provider == "openai_compatible" else None)
@@ -660,6 +710,8 @@ def _setup_provider_dict() -> dict:
         complete = False
     incomplete = persisted is not None and not complete
     return {
+        "status": "ok",
+        "engine_unavailable": False,
         "configured": complete,
         # A deliberate skip with no engine at all still opens the chat (which
         # stays fail-closed). A half-written persisted engine is different: it
