@@ -1,8 +1,8 @@
 # Plugin export and import
 
-Measured 2026-11-07 on `feat/creator-mode-wave0`. This page is the specification.
-The build has the install path below. The export command and the file-import
-command are the next change.
+Measured 2026-11-07 against this tree. This page is the specification. The build
+has the install path below; the export command and the file-import command are
+the next change.
 
 ## 1. What is in the tree
 

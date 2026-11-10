@@ -61,7 +61,10 @@ A self-signed certificate in the login keychain is enough for a local or source
 build: create a `Code Signing` certificate whose common name is stable (for
 example `Ephe Local Signing`), then build with that name. A Developer ID
 Application certificate gives the same stability and is what a notarized build
-needs; notarization remains optional and belongs to paid distribution.
+needs; notarization remains optional and belongs to paid distribution. The
+released bundles are ad-hoc signed and Apple has not notarized them, and the
+first launch of a downloaded copy is the right-click → Open step in
+[`INSTALL.md`](INSTALL.md). Nothing in the build requires an Apple account.
 
 ```
 APPLE_SIGNING_IDENTITY="Ephe Local Signing" npm run tauri build

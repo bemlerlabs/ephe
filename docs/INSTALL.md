@@ -69,6 +69,13 @@ From a checkout:
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
+A release ships macOS and Linux artifacts only: an `aarch64` `.dmg`, and the Linux `deb`,
+`AppImage` and `rpm` packages. There is no Windows binary, so there is no `.exe` for SmartScreen to
+check and nothing for a publisher signature to cover; the Windows path is a source install through
+`install.ps1`, which fetches the tag archive and builds locally. The gate you meet there is
+PowerShell's execution policy (`-ExecutionPolicy Bypass -File`), not a code signature. This path
+has not been verified end to end for this revision.
+
 Switches mirror the environment: `-InstallDir`, `-Port`, `-Cli`, `-Desktop`, `-NoStart`, `-DryRun`,
 `-Help`. `-DryRun` (or `EPHE_DRY_RUN=1`) prints the plan and changes nothing, `EPHE_MODE` selects the
 mode from the environment, and a bad `EPHE_PORT` or `EPHE_MODE` is refused with exit 2 before the
@@ -116,9 +123,7 @@ Windows uses `-Cli` and `-Desktop` for these modes.
 launcher symlink, no PWA build — and no `uv` cache. The interpreter lookup runs `uv python find`,
 which caches its answer, so a dry run points `UV_CACHE_DIR` at a temporary directory it removes
 again. Steps it skips are reported as "would build…" / "would create…" rather than as success, and
-the run ends with `Dry run complete. Nothing was installed, built or written.` (Measured before the
-fix: a dry run left `~/.cache/uv` behind and printed `PWA built → app/dist` for a build it never
-ran.)
+the run ends with `Dry run complete. Nothing was installed, built or written.`
 
 ### Building the PWA without pnpm
 
@@ -180,6 +185,29 @@ vendor rotation is not a failure of the install.
 `install.ps1` runs the same `EPHE_PORT`/`EPHE_MODE` pre-flight (exit 2, naming the offending value)
 and reports the failing step; a failed update of an existing checkout warns and continues, as above.
 
+## The macOS app (DMG)
+
+A release attaches the packaged app as `Ephe_<version>_aarch64.dmg` to its GitHub release at
+<https://github.com/bemlerlabs/ephe/releases>; that page is where the `.app` comes from. The bundle
+is ad-hoc signed and Apple has not notarized it, which is the normal state for an app that anyone
+can build and install from source without an Apple developer account.
+
+1. Open the `.dmg`, drag `Ephe.app` into `/Applications`, and eject the image.
+2. Right-click (or Control-click) `Ephe.app` and choose **Open**, then **Open** again in the dialog.
+   macOS asks this once for an app it has not seen before and cannot verify through a Developer ID;
+   a double-click afterwards works.
+3. The scripted equivalent of step 2, for a terminal or a provisioning script:
+
+```bash
+xattr -d com.apple.quarantine /Applications/Ephe.app
+```
+
+Right-click → Open records the app with Gatekeeper as allowed, System Settings → Privacy & Security
+→ **Open Anyway** does the same, and the `xattr` line removes the quarantine attribute macOS puts on
+a downloaded file. None of the three repairs or weakens the signature, and `codesign --verify
+--deep --strict` still passes on the installed copy. The Homebrew cask in
+[INSTALL_OPTIONS.md](INSTALL_OPTIONS.md) runs the `xattr` line itself.
+
 ## The macOS bundle seal
 
 A `.app` that fails `codesign --verify` is not a cosmetic warning: macOS binds every privacy grant
@@ -197,25 +225,21 @@ itself is invalid. Two states are legal and mean different things:
 
 | State | `codesign --verify --deep --strict` | Gatekeeper on a downloaded copy |
 |---|---|---|
-| Ad-hoc (no Apple secrets in the release) | passes; `Identifier=com.ephe.ephe`, `flags=0x10002(adhoc,runtime)`, sealed resources | rejects: no Developer ID and no ticket |
-| Developer ID + notarized | passes; `TeamIdentifier` set | accepts: the ticket is stapled |
+| Ad-hoc (the default: no Apple secrets in the release) | passes; `Identifier=com.ephe.ephe`, `flags=0x10002(adhoc,runtime)`, sealed resources | rejects: no Developer ID and no ticket |
+| Developer ID + notarized (optional) | passes; `TeamIdentifier` set | accepts: the ticket is stapled |
 
-The released DMG is ad-hoc signed unless the repository carries the Apple signing secrets
-(`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`) **and** the
-notarization ones (`APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, or `APPLE_API_KEY` with
-`APPLE_API_ISSUER`). Without the notarization pair the bundle is signed but not notarized, the
-release workflow says so in its step summary, and Gatekeeper still refuses a download that arrives
-with a quarantine flag. That is the honest state, not a bug report: the seal is valid, the
-distribution is not notarized.
+The released DMG is ad-hoc signed. Notarization is an optional bonus, not a requirement: no Apple
+account is involved in a release, and a release without one is a supported release, not a degraded
+one. A repository that carries the Apple signing secrets (`APPLE_CERTIFICATE`,
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`) **and** the notarization ones (`APPLE_ID`,
+`APPLE_PASSWORD`, `APPLE_TEAM_ID`, or `APPLE_API_KEY` with `APPLE_API_ISSUER`) gets a Developer ID
+signature with a stapled ticket instead. The release workflow writes which of the two states the
+run produced into its step summary, and the seal audit names it as `state=adhoc-not-notarized` or
+`state=developer-id-notarized`; both pass `codesign --verify --deep --strict`.
 
-What to do as a user, while a release is not notarized:
-
-1. Drag `Ephe.app` into `/Applications`.
-2. Right-click (or Control-click) the app and choose **Open**, then **Open** again in the dialog.
-   Double-clicking the same app afterwards works.
-3. System Settings → Privacy & Security also offers **Open Anyway** for the blocked app. Both
-   paths bypass Gatekeeper's first-launch check; neither repairs or replaces the seal, and neither
-   creates a notarization ticket.
+The first-launch step for a downloaded copy is in [The macOS app (DMG)](#the-macos-app-dmg) above.
+It is the normal install path for a build macOS has not seen before, not a workaround for a broken
+release.
 
 A local build gets the same sealed bundle. `ephe desktop` builds with the default ad-hoc identity;
 if you build by hand, pass it explicitly:
@@ -267,6 +291,10 @@ ephe start --open # desktop mode: start the local app, then open http://127.0.0.
 No engine is needed for the first start: the terminal app opens its own setup (provider,
 endpoint, API key, model) and sends nothing until you choose one.
 
+Once a backend runs, `ephe status` says whether one answers on the port and whether this
+installation owns it, and `ephe stop` ends the one it started. See
+[OPERATIONS.md](OPERATIONS.md) for the pidfile and the takeover rule.
+
 If `~/.local/bin` is not on your `PATH`, the installer prints the one `export` line. If no
 launcher could be placed at all, it prints the activation line instead:
 
@@ -281,8 +309,9 @@ ephe doctor --fix      # apply safe local repairs
 ephe update            # repo pull and dependencies; models stay your choice
 ```
 
-Explicit `--model` and `--api-url` flags always override the persisted choice. See the
-[README](../README.md) for the full CLI reference and Docker/desktop notes.
+Explicit `--model` and `--api-url` flags always override the persisted choice. See
+[CLI.md](CLI.md) for the full command reference and [OPERATIONS.md](OPERATIONS.md) for the
+port lifecycle, and the [README](../README.md) for the Docker and desktop notes.
 
 ## Uninstall
 
@@ -336,8 +365,7 @@ audit line records `sandbox-unavailable`. `EPHE_SHELL_BACKEND=docker` is a bound
 its own: confirmed commands then run inside a container that mounts only the workspace
 at `/workspace`, including when the OS sandbox is missing. Two limits apply: the
 container keeps the Docker daemon's default network and user, and the interactive terminal
-panel still runs on the host. The boundary review is
-the dated host-exec boundary review.
+panel still runs on the host.
 
 ## MCP server boundary
 

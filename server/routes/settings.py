@@ -35,6 +35,7 @@ from core.model_provider import (
     validate_provider_type,
 )
 from core.engine_config import (
+    ENGINE_SETUP_HINT,
     ENV_BASE_URL,
     ENV_MODEL,
     ENV_PROVIDER,
@@ -632,16 +633,71 @@ def _engine_choice_is_complete(choice: EngineChoice | None) -> bool:
     return True
 
 
+#: The answer a resolver failure gets when it is none of our own classes: one fixed
+#: sentence and a code. The exception's own text never travels, however harmless it
+#: looks — a message can quote an environment value, a key or a path.
+_SETUP_UNREADABLE_TEXT = "the engine configuration could not be read"
+_SETUP_UNREADABLE_CODE = "engine_config_unreadable"
+
+
+def _setup_engine_gap() -> tuple[str, str] | None:
+    """The missing piece of an explicit engine env, named from the env itself.
+
+    Reading the env instead of `str(exc)` is what closes CodeQL #173
+    (`py/stack-trace-exposure`): the resolver's sentence carries the same information,
+    but a sentence assembled from variable names cannot carry a path or a quoted value.
+    None = the env names a complete engine, so the reader cannot fix this one here.
+    """
+    provider = (os.environ.get(ENV_PROVIDER) or "").strip()
+    if not provider:
+        return (
+            f"{ENV_PROVIDER} is not set — no engine was chosen for this start.",
+            "engine_not_configured",
+        )
+    if provider not in VALID_PROVIDERS:
+        return (
+            f"{ENV_PROVIDER}={provider} is not a known engine — set it to "
+            f"{', '.join(VALID_PROVIDERS)}.",
+            "engine_provider_invalid",
+        )
+    model_var = ENV_MODEL[provider]
+    if not (os.environ.get(model_var) or "").strip():
+        return (
+            f"{ENV_PROVIDER}={provider} is set, but {model_var} is missing.",
+            "engine_model_missing",
+        )
+    return None
+
+
+def _setup_unavailable_reason(exc: Exception) -> tuple[str, str]:
+    """(problem, problem_code) for the setup answer, built without the exception text.
+
+    Our own refusal names the field the reader has to set; a `ValueError` from the same
+    resolution is told apart from a bug; everything else gets the fixed sentence.
+    """
+    if isinstance(exc, (EngineNotConfigured, ValueError)):
+        gap = _setup_engine_gap()
+        if gap is not None:
+            return gap
+        if isinstance(exc, ValueError):
+            return "the engine configuration is invalid", "engine_config_invalid"
+        return "no engine is configured", "engine_not_configured"
+    return _SETUP_UNREADABLE_TEXT, _SETUP_UNREADABLE_CODE
+
+
 def _setup_unavailable_dict(exc: Exception, persisted) -> dict:
     """The setup answer for an engine configuration this process cannot resolve.
 
-    200 with the state (`degraded`), the resolver's reason (it names the missing
+    200 with the state (`degraded`), a reason built from the env (it names the missing
     variable), the fix line every fail-closed start prints, and the candidates — the
     page must be able to offer another engine while it explains this one. Nothing is
     probed: the configuration never named an endpoint to probe.
+
+    Only the exception's class decides which sentence is used; `str(exc)` and
+    `exc.hint` stay out of the answer (CodeQL #173). The trace goes to the log instead.
     """
-    reason = str(exc).strip() or type(exc).__name__
-    hint = str(getattr(exc, "hint", "") or "").strip()
+    problem, problem_code = _setup_unavailable_reason(exc)
+    hint = ENGINE_SETUP_HINT if isinstance(exc, EngineNotConfigured) else ""
     raw_provider = (os.environ.get(ENV_PROVIDER) or "").strip()
     if raw_provider not in VALID_PROVIDERS:
         raw_provider = ""
@@ -665,7 +721,8 @@ def _setup_unavailable_dict(exc: Exception, persisted) -> dict:
         "available_models": [],
         "candidates": _setup_candidates(),
         "repair": None,
-        "problem": reason,
+        "problem": problem,
+        "problem_code": problem_code,
         "hint": hint,
     }
 
@@ -690,11 +747,13 @@ def _setup_provider_dict() -> dict:
     persisted = load_engine_config()
     try:
         active = get_active_provider()
-    except (EngineNotConfigured, ValueError) as exc:
+    except Exception as exc:  # noqa: BLE001 — the state stays a state; the log keeps the trace
         # QA 2026-11-10 (F5b): a half-written engine env made this answer 500, and the
         # Setup page — the one surface that can repair it — could not load. The
-        # condition is an answer: the state, the resolver's reason, the fix line, and
-        # the candidates the page needs to offer another engine.
+        # condition is an answer: the state, a reason the reader can act on, the fix
+        # line, and the candidates the page needs to offer another engine. A failure
+        # that is not ours answers the fixed sentence too: its text may quote a path.
+        logger.warning("setup: engine configuration unavailable", exc_info=True)
         return _setup_unavailable_dict(exc, persisted)
     provider = persisted.provider if persisted else active.provider
     model = persisted.model if (persisted and persisted.model) else active.model

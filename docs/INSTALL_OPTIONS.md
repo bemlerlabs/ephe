@@ -6,6 +6,7 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 | Path | Command | For |
 |---|---|---|
 | Existing checkout | `./install.sh` | the default first run, macOS and Linux |
+| macOS app (DMG) | the `.dmg` from the GitHub release, then right-click → Open | a prebuilt app, no toolchain |
 | Windows (PowerShell) | the one-liner under [Windows PowerShell](#windows-powershell-one-liner) | Windows, with or without a checkout |
 | Docker | `docker compose up` | development and advanced setups |
 
@@ -14,6 +15,19 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 ```bash
 ./install.sh
 ```
+
+## macOS App (DMG)
+
+The packaged `.app` is released as `Ephe_<version>_aarch64.dmg` on the
+[GitHub releases page](https://github.com/bemlerlabs/ephe/releases). It is ad-hoc signed and Apple
+has not notarized it, which is the normal state for a build anyone can reproduce from source, so
+the first launch is right-click → Open, System Settings → Privacy & Security → **Open Anyway**, or
+the scripted `xattr -d com.apple.quarantine` — all three are in
+[`INSTALL.md`](INSTALL.md#the-macos-app-dmg) together with the reason macOS asks. The Homebrew
+cask applies the `xattr` line in its postflight, so `brew install --cask` opens without a prompt.
+
+No Apple account and no notarization step is involved in this path; that is the default and a
+supported one.
 
 ## Windows PowerShell (One-Liner)
 
@@ -29,6 +43,11 @@ Or run it straight from a local checkout:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+A release ships no Windows binary — macOS and Linux artifacts only — so this source install is the
+only Windows path: it fetches the tag archive and builds on the machine, and the gate is
+PowerShell's execution policy rather than a code signature (see the artifact list in
+[`INSTALL.md`](INSTALL.md#windows-powershell)).
 
 On Windows, choose `-Cli` for the terminal interface or `-Desktop` for the web app and voice.
 On macOS and Linux, Bash defaults to Desktop; choose `--cli` or `EPHE_MODE=cli` for terminal-only use.

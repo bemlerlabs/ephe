@@ -1,8 +1,8 @@
 # Demos
 
-Recordings of the real product — the React PWA against the FastAPI backend, and the terminal
-against the same engine — captured by the maintainers' recorder, which is not in the public tree. The artifact clips drive
-the real local tools and need no network; the chat clips stream from the configured engine.
+Short recordings of the React PWA against the FastAPI backend, and of the terminal
+against the same engine. The artifact clips drive the real local tools and need no
+network; the chat clips stream from the configured engine.
 
 | Onboarding | Chat & thinking | Artifacts (SVG + Excel) |
 |---|---|---|
@@ -19,13 +19,14 @@ the real local tools and need no network; the chat clips stream from the configu
 | ![Terminal demo](media/ephe-demo-tui.webp) | ![Budget demo](media/ephe-demo-budget.webp) | ![Launch checklist demo](media/ephe-demo-launch.webp) |
 | `ephe tui` in a real pty: approvals, tool rows, the answer | A CSV in the workspace, answered in euros from the rows | plan.md turned into launch_checklist.md, opened as a file |
 
-The terminal clip is the one exception to the Playwright route: the recorder forks a pty,
-types the keyboard the product documents, and renders the byte stream with `agg`, so the
-frames are the terminal. The other clips record the PWA at a desktop viewport, which is the
-same web content the Tauri app embeds.
+The terminal clip forks a pty, types the keyboard the product documents, and renders the
+byte stream with `agg`, so the frames are the terminal. The other clips record the PWA at a
+desktop viewport, which is the same web content the Tauri app embeds.
 
-Regenerate them with `./dev.sh` running, plus `ffmpeg`, `gif2webp`, `agg` and Python `playwright`:
+## Provenance
 
-```bash
-# The recorder is maintainer-only; the published clips above are the artifact.
-```
+All clips were captured on 2026-10-23 from the built PWA (`app/dist`) served by a local
+backend with an isolated temporary `HOME` and a local stub engine. No paid model was called
+and no key was used. They predate 0.6.3, which moved the response mode from the composer to
+the header, so the top bar in the clips still shows the old control. Re-record them with the
+header mode control before the next release.

@@ -14,6 +14,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `FIRST_RUN.md` | The same walkthrough at length, with the screens and the measured sequence |
 | `SWITCHING.md` | Import an existing local-agent setup into Ephe |
 | `CLI.md` | `ephe` command reference and the engine-resolution rule |
+| `OPERATIONS.md` | Start, stop and own the backend: the port lifecycle, `ephe stop`, `ephe status`, the pidfile |
 | `MOBILE.md` | Pairing a phone over the LAN, the QR walkthrough and the public-access rule |
 | `TELEGRAM.md` | The Telegram channel: gateway status, pairing, hardening |
 | `VOICE.md` | The offline voice loop (Piper TTS) |
@@ -28,7 +29,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `SECURITY_AND_PRIVACY.md` | The security and privacy mechanisms in one table |
 | `SECURITY_THREAT_MODEL.md` | STRIDE threat model, including the engine-token paths |
 | `SANDBOX_EXECUTION.md` | The Ephemora cell sandbox (opt-in) |
-| `COMPOSER_MODES.md` | The composer modes and what each one sends |
+| `COMPOSER_MODES.md` | The four response modes, the header control and what each mode sends |
 | `COMPOSER_MOBILE.md` | The composer's mobile lane and its measured floors |
 | `EPHEMERIDES.md` | The Ephemerides |
 | `PERSONA_PACKS.md` | Persona packs: versioned markdown bundles behind `~/.ephe/persona.md` |
@@ -40,9 +41,11 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | File | Content |
 |---|---|
 | `PLUGINS_OVERVIEW.md` | The first-party plugin bundles |
-| `PLUGINS.md` | The plugin manifest format, v1 |
+| `PLUGINS.md` | The plugin manifest format, v1 and v2 |
 | `PLUGIN_SDK.md` | Guide for plugin authors |
+| `PLUGIN_PRACTICES.md` | Patterns a bundle follows once it ships |
 | `PLUGIN_EXPORT.md` | How a made bundle is packed, signed, and checked against an installed identity, and where the lockfile is written |
+| `DISCOVER_MARKETPLACE_DESIGN.md` | The design for the Discover shelf (not shipped) |
 
 ## Measurement and project
 
@@ -51,13 +54,13 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `BENCHMARKS.md` | The published figures and how they are produced |
 | `PERFORMANCE_BASELINE.md` | Measured start-up and window-memory numbers, with the commands that take them |
 | `benchmark-mapping.md` | Why Ephe measures its own harness instead of attaching to an external suite |
-| `DEMOS.md` | The demo clips |
+| `DEMOS.md` | The demo clips and how they were captured |
 | `DEVELOPMENT.md` | Dev setup, project structure, the CI gates and repository hygiene |
 | `RELEASE_RUNBOOK.md` | Branch, required checks, fast-forward, tag and publish; no export or snapshot |
-| `RELEASE_NOTES_0.6.0.md` | What this release carries, what it leaves out, and what an upgrade has to know |
 | `AI_CONTRIBUTION_POLICY.md` | How AI-assisted contributions are reviewed here |
 
 ## Where the pictures live
 
-`docs/media/` holds the clips and the mark the README renders; `docs/screenshots/` holds the
-banner and the social card, with `PROVENANCE.md` naming the surface each one documents.
+`docs/media/` holds the demo clips and the mark the README renders; `docs/screenshots/` holds
+the three README captures, with `PROVENANCE.md` naming the surface each one documents and when
+it has to be re-shot.

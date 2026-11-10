@@ -86,7 +86,7 @@ before it starts serving.
   "port": 8765,
   "owner": "18f4c0d2e1a3b4-63104",
   "root": "/Users/you/ephe",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "api_contract": 1,
   "started_at": 1762793286.12,
   "start_time": "Mon Nov 10 18:28:06 2026"

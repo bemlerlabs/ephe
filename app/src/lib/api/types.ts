@@ -204,11 +204,15 @@ export interface SetupStatus {
   status?: 'ok' | 'degraded'
   /**
    * F5b: a provider named without its model (or an unknown provider type) is a
-   * state the page can explain — `problem` is the resolver's reason, `hint` the fix
-   * line every fail-closed start prints, and `candidates` still offer another engine.
+   * state the page can explain — `problem` is the reason built from the engine env
+   * (never the exception's own text, CodeQL #173), `problem_code` the machine half,
+   * `hint` the fix line every fail-closed start prints, and `candidates` still offer
+   * another engine.
    */
   engine_unavailable?: boolean
   problem?: string
+  /** `engine_model_missing`, `engine_provider_invalid`, `engine_config_unreadable`, … */
+  problem_code?: string
   hint?: string
   configured: boolean
   /** W19: the user consciously skipped onboarding → gate open, chat fail-closed. */

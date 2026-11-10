@@ -18,16 +18,20 @@ existed. Two halves are pinned here:
 """
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "macos_sign_audit.sh"
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+INSTALL_DOC = ROOT / "docs" / "INSTALL.md"
+INSTALL_OPTIONS_DOC = ROOT / "docs" / "INSTALL_OPTIONS.md"
 
 HAVE_CODESIGN = sys.platform == "darwin" and shutil.which("codesign") is not None
 DARWIN = pytest.mark.skipif(
@@ -193,3 +197,158 @@ def test_the_release_workflow_carries_both_documented_outcomes():
     assert "notarized" in workflow.lower(), (
         "the workflow has to say when a build is signed but not notarized"
     )
+
+
+def workflow_steps(job: str) -> list[dict]:
+    """The steps of one release.yml job, parsed from the file the runner reads."""
+    doc = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    return doc["jobs"][job]["steps"]
+
+
+def workflow_step(job: str, name: str) -> dict:
+    for step in workflow_steps(job):
+        if step.get("name") == name:
+            return step
+    raise AssertionError(f"release.yml has no step named {name!r}")
+
+
+def test_the_summary_form_is_named_in_the_help():
+    """
+    GIVEN the audit script
+    WHEN it is asked for its usage
+    THEN the CI summary form is one of the two documented invocations, because the release
+         workflow calls it and a hidden option is not a contract
+    """
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--help"], capture_output=True, text=True, cwd=str(ROOT)
+    )
+    assert result.returncode == 0, result.stderr
+    assert "--summary" in result.stdout, result.stdout
+
+
+@DARWIN
+def test_the_summary_block_calls_an_adhoc_seal_not_notarized(tmp_path):
+    """
+    GIVEN an ad-hoc signed bundle — the shape a release without Apple secrets produces
+    WHEN the audit runs in its summary form, the one the workflow writes to $GITHUB_STEP_SUMMARY
+    THEN it exits 0, names the artifact, and states the signature and notarization state in
+         words: ad-hoc, not notarized, with the documented first-launch step
+    """
+    app = build_bundle(tmp_path, sign=True)
+    result = audit("--summary", str(app))
+    out = result.stdout + result.stderr
+
+    assert result.returncode == 0, out
+    assert "### macOS bundle seal" in result.stdout, out
+    assert str(app) in result.stdout, out
+    assert "state=adhoc-not-notarized" in result.stdout, out
+    assert "Not notarized" in result.stdout, out
+    assert "docs/INSTALL.md" in result.stdout, out
+
+
+@DARWIN
+def test_the_quiet_line_carries_the_state_the_summary_reports(tmp_path):
+    """
+    GIVEN the same ad-hoc bundle
+    WHEN the audit runs with --quiet
+    THEN the one line names the seal, the signature and the notarization state, so a log
+         reader does not have to infer "not notarized" from a rejected spctl
+    """
+    app = build_bundle(tmp_path, sign=True)
+    line = audit("--quiet", str(app)).stdout.strip()
+
+    assert "seal=valid" in line, line
+    assert "signature=adhoc" in line, line
+    assert "state=adhoc-not-notarized" in line, line
+
+
+def test_the_release_audit_writes_both_artifacts_state_to_the_step_summary():
+    """
+    GIVEN .github/workflows/release.yml
+    WHEN the macOS audit step is read
+    THEN the app and the DMG each get their state written to $GITHUB_STEP_SUMMARY, and the
+         plain audit call stays in the step, so an invalid seal still fails the release
+    """
+    run = workflow_step("build-bundles", "Audit the macOS bundle seal")["run"]
+
+    assert run.count("macos_sign_audit.sh --summary") == 2, (
+        "the app and the DMG both have to record their state in the step summary; "
+        f"the step carries {run.count('macos_sign_audit.sh --summary')} summary calls"
+    )
+    assert '>> "$GITHUB_STEP_SUMMARY"' in run, "the summary form is not redirected to the summary"
+    assert re.search(r'scripts/macos_sign_audit\.sh "\$bundle"', run), (
+        "the plain audit call is what fails the release on an invalid seal"
+    )
+
+
+def test_absent_apple_secrets_are_a_silent_adhoc_build():
+    """
+    GIVEN no APPLE_* secret in the repository
+    WHEN the signing-decision step runs
+    THEN the ad-hoc branch is taken quietly: no annotation, no failing exit, and the
+         Developer ID plus notarization variables stay in the workflow for the day they exist
+    """
+    step = workflow_step("build-bundles", "Decide the macOS signature")
+    run = step["run"]
+
+    marker = 'if [ -z "${APPLE_CERTIFICATE:-}" ]'
+    assert marker in run, "the ad-hoc decision is not keyed on the certificate secret"
+    branch: list[str] = []
+    for line in run.split(marker, 1)[1].splitlines():
+        if line.strip() == "fi":
+            break
+        branch.append(line)
+    body = "\n".join(branch)
+
+    assert "adhoc" in body, body
+    assert "exit 0" in body, body
+    for annotation in ("::warning", "::error"):
+        assert annotation not in body, (
+            f"the ad-hoc branch raises {annotation}: an absent bonus secret is not a defect"
+        )
+
+    for name in ("APPLE_ID", "APPLE_TEAM_ID", "APPLE_API_KEY", "APPLE_API_ISSUER"):
+        assert name in run, f"the notarization variable {name} is never handed to the build"
+
+
+def test_the_install_docs_carry_the_normal_unnotarized_install_path():
+    """
+    GIVEN the install documentation
+    WHEN it describes the macOS app a person downloads
+    THEN it names the GitHub release the DMG comes from, the right-click → Open step and the
+         scripted `xattr -d com.apple.quarantine` equivalent, and it makes no Apple signature
+         claim
+    """
+    text = INSTALL_DOC.read_text(encoding="utf-8")
+    lowered = text.lower()
+
+    assert "right-click" in lowered
+    assert "xattr -d com.apple.quarantine" in text
+    assert "not notarized" in lowered
+    assert "github.com/bemlerlabs/ephe/releases" in text
+    assert "signed by apple" not in lowered, "the docs must not claim an Apple signature"
+    assert "is notarized by apple" not in lowered, "the docs must not claim Apple notarization"
+
+    options = INSTALL_OPTIONS_DOC.read_text(encoding="utf-8").lower()
+    assert "right-click" in options, "INSTALL_OPTIONS.md lists no macOS app install step"
+    assert "xattr" in options, "INSTALL_OPTIONS.md does not name the scripted unquarantine"
+
+
+def test_the_install_docs_state_which_artifacts_a_release_ships():
+    """
+    GIVEN the install documentation
+    WHEN it describes Windows
+    THEN it names the artifacts the release actually builds (macOS DMG, Linux deb/AppImage/
+         RPM), says there is no Windows binary for SmartScreen to check, and names the gate a
+         Windows source install really meets
+    """
+    lowered = INSTALL_DOC.read_text(encoding="utf-8").lower()
+    # Compare words regardless of how the file wraps them.
+    unwrapped = " ".join(lowered.split())
+
+    assert "no windows binary" in lowered, "the docs do not say that no Windows binary ships"
+    assert "no `.exe` for smartscreen to check" in unwrapped, (
+        "the docs do not say what SmartScreen does and does not see"
+    )
+    assert "appimage" in lowered, "the Linux artifacts the release builds are not named"
+    assert "execution policy" in lowered, "the Windows source-install gate is not named"

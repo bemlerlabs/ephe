@@ -321,23 +321,26 @@ jobs:
 
       - name: Decide the macOS signature
         id: macsign
-        # Two documented outcomes, and the file says which one this run got:
-        #   - Apple secrets present: the Developer ID identity signs the bundle and the
-        #     notarization variables hand the app and its DMG a ticket. Tauri's bundler
-        #     does that work itself; its own warning names the variables it reads
-        #     ("no APPLE_ID & APPLE_PASSWORD & APPLE_TEAM_ID or APPLE_API_KEY &
+        # Two documented outcomes, and the file says which one this run got. Notarization is
+        # a bonus, never a gate: the product is distributed as source, anyone can build it or
+        # install it with one command, and competitors ship un-notarized builds too. No Apple
+        # account is required for a release.
+        #   - Apple secrets present: the Developer ID identity signs the bundle and, when the
+        #     notarization variables are there as well, the app and its DMG get a ticket.
+        #     Tauri's bundler does that work itself; its own warning names the variables it
+        #     reads ("no APPLE_ID & APPLE_PASSWORD & APPLE_TEAM_ID or APPLE_API_KEY &
         #     APPLE_API_ISSUER & APPLE_API_KEY_PATH").
-        #   - No secrets: `signingIdentity: "-"` signs the WHOLE bundle ad-hoc. That is
-        #     the fix for issue #192: the bundle used to keep the linker signature
-        #     (`flags=0x20002(adhoc,linker-signed)`, `Info.plist=not bound`,
-        #     `Sealed Resources=none`), so `codesign --verify --strict` failed with
-        #     "code has no resources but signature indicates they must be present" and
-        #     every privacy grant was keyed to a build hash. Measured on macOS
-        #     2026-11-10: with this override the same build produces
+        #   - No secrets (the default, and the state of this repository): `signingIdentity:
+        #     "-"` signs the WHOLE bundle ad-hoc. That is the fix for issue #192: the bundle
+        #     used to keep the linker signature (`flags=0x20002(adhoc,linker-signed)`,
+        #     `Info.plist=not bound`, `Sealed Resources=none`), so `codesign --verify
+        #     --strict` failed with "code has no resources but signature indicates they must
+        #     be present" and every privacy grant was keyed to a build hash. Measured on
+        #     macOS 2026-11-10: with this override the same build produces
         #     `flags=0x10002(adhoc,runtime)`, a bound Info.plist, sealed resources and
         #     `codesign --verify --deep --strict` exit 0.
-        # Gatekeeper still rejects the ad-hoc copy (no Developer ID, no ticket), which
-        # is what docs/INSTALL.md tells the user to expect and how to open it.
+        # Gatekeeper still rejects the ad-hoc copy (no Developer ID, no ticket), which is
+        # what docs/INSTALL.md tells the user to expect and how to open it.
         if: runner.os == 'macOS'
         shell: bash
         env:
@@ -354,8 +357,8 @@ jobs:
             echo "macconfig=--config '{\"bundle\":{\"macOS\":{\"signingIdentity\":\"-\"}}}'" >> "$GITHUB_OUTPUT"
             echo 'mode=adhoc' >> "$GITHUB_OUTPUT"
             {
-              echo "No Apple signing secrets: the bundle is signed ad-hoc (sealed, no Developer ID, no notarization)."
-              echo "A downloaded copy needs right-click → Open; docs/INSTALL.md carries the sentence."
+              echo "No Apple signing secrets: the bundle is signed ad-hoc. The seal is valid, there is no Developer ID, and the build is not notarized — the default, and no Apple account is involved."
+              echo "A downloaded copy needs right-click → Open or \`xattr -d com.apple.quarantine\`; docs/INSTALL.md carries the step."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -382,8 +385,10 @@ jobs:
             { echo "APPLE_API_KEY=$APPLE_API_KEY"; echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"; } >> "$GITHUB_ENV"
           fi
           if [ -z "${APPLE_ID:-}" ] && [ -z "${APPLE_API_KEY:-}" ]; then
-            echo "::warning::A signing certificate is present but neither APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID nor APPLE_API_KEY/APPLE_API_ISSUER: the bundle is signed but NOT notarized, so Gatekeeper still refuses a downloaded copy."
-            echo "Signed but not notarized: add the notarization secrets." >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "Developer ID signature, not notarized: no notarization secret is set, so Gatekeeper still refuses a copied download."
+              echo "That is a documented state, not a gate — the seal is valid and docs/INSTALL.md carries the first-launch step."
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Developer ID signing and notarization: the bundle and its DMG get a ticket." >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -421,7 +426,10 @@ jobs:
         # The gate issue #192 asked for. `codesign --verify --deep --strict` is the one
         # verdict that fails this step: an ad-hoc seal passes it (and is reported), a
         # linker-signed or unsigned bundle does not. `spctl` and `stapler` are reported
-        # beside it, so the release notes cannot claim more than the bundle carries.
+        # beside it — an ad-hoc bundle is `state=adhoc-not-notarized` and that is a
+        # documented success, so a release never claims more than the bundle carries.
+        # Both artifacts record their state in the step summary; a DMG that is missing is
+        # the only thing this step warns about.
         if: runner.os == 'macOS'
         shell: bash
         run: |
@@ -437,11 +445,12 @@ jobs:
           fi
           echo "Auditing $bundle"
           scripts/macos_sign_audit.sh "$bundle"
-          { echo "### macOS bundle seal"; echo '```'; scripts/macos_sign_audit.sh --quiet "$bundle"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          scripts/macos_sign_audit.sh --summary "$bundle" >> "$GITHUB_STEP_SUMMARY"
           dmg="$(find app/src-tauri/target -path '*bundle/dmg/*.dmg' -print -quit || true)"
           if [ -n "$dmg" ]; then
             echo "Auditing $dmg"
             scripts/macos_sign_audit.sh "$dmg"
+            scripts/macos_sign_audit.sh --summary "$dmg" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning::no DMG was produced, so the downloaded-shape audit could not run."
           fi

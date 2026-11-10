@@ -210,3 +210,44 @@ def test_stop_prints_plain_text_for_a_refusal(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert rc == 1
     assert "not an Ephe backend" in out
+
+
+def test_open_local_app_uses_the_loopback_address_for_a_wildcard_host(monkeypatch):
+    opened = []
+    monkeypatch.setattr(ephe_cli.webbrowser, "open", lambda url: opened.append(url))
+    ephe_cli._open_local_app(8765, "0.0.0.0")
+    ephe_cli._open_local_app(8765, "127.0.0.1")
+    assert opened == ["http://127.0.0.1:8765", "http://127.0.0.1:8765"]
+
+
+def test_serve_reports_a_takeover_then_reuses_the_engine(monkeypatch, capsys):
+    monkeypatch.setattr(
+        ephe_cli,
+        "_serve_preflight",
+        lambda args: _Decision(stopped=True, reused=True, message="replaced a stale engine"),
+    )
+    rc = ephe_cli.cmd_serve(_args(port=8766))
+    assert rc == 0
+    assert "replaced a stale engine" in capsys.readouterr().out
+
+
+def test_doctor_survives_unreadable_package_metadata(monkeypatch, tmp_path):
+    """A broken metadata backend is a state, not a crash and not a fetch."""
+    import importlib.metadata as md
+
+    monkeypatch.setattr(ephe_cli, "PROJECT_ROOT", tmp_path)
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "index.html").write_text("x")
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "generate_skills_lock.py").write_text("def verify(root):\n    return True, []\n")
+    real_version = md.version
+
+    def fake_version(name):
+        if name == "ephemora-cell":
+            raise RuntimeError("metadata backend down")
+        return real_version(name)
+
+    monkeypatch.setattr(md, "version", fake_version)
+    code = ephe_cli.cmd_doctor(ephe_cli.build_parser().parse_args(["doctor"]))
+    assert code in (0, 1)  # the row is informational; the crash is what must not happen

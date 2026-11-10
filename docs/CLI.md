@@ -1,17 +1,14 @@
 # Ephe CLI — `ephe` Reference
 
-All subcommands of the local CLI (entry point `ephe`, alias `ephe`). Global flags: `--help` and `--version`. Every other flag belongs to the subcommand that declares it: `--model <name>` (the model **inside** the chosen engine — a model name is not an engine choice) is a flag of `start`, `web`, `tui`, `doctor`, `code`, `run`, `goal` and `serve`, and `--port <n>` is a flag of `start`, `web`, `doctor` (default 8765) and `serve` (default 8766).
+All subcommands of the local CLI (entry point `ephe`). Global flags: `--help` and `--version`. Every other flag belongs to the subcommand that declares it: `--model <name>` (the model **inside** the chosen engine — a model name is not an engine choice) is a flag of `start`, `web`, `tui`, `doctor`, `code`, `run`, `goal` and `serve`, and `--port <n>` is a flag of `start`, `web`, `doctor` (default 8765) and `serve` (default 8766).
 
 Engine resolution applies to every model run and has no silent default: the persisted
 `~/.ephe/engine.json` → an explicit engine env (`EPHE_MODEL_PROVIDER` + endpoint) →
 interactive onboarding (only on a TTY) → abort with instructions (`ephe configure`). This
-also covers the headless runs `ephe code`, `ephe goal` and `ephe serve` (I2-2), and since
-2026-10-11 `ephe start` too: without a chosen engine it spawns the server with **no engine
-env**, so `run_server.py` enters setup mode, `EPHE_SETUP_MODE` is set and the chat stays
-closed until the Setup page persists a choice. It used to apply a placeholder
-`local_ollama` engine with a tag taken from the code (`ephe_cli.py:606-611`), which made
-the server look configured, left the chat's fail-closed gate disarmed and answered a first
-turn for a model the user never picked — closed defect.
+covers the headless runs `ephe code`, `ephe goal` and `ephe serve` and `ephe start`:
+without a chosen engine it spawns the server with **no engine env**, so `run_server.py`
+enters setup mode, `EPHE_SETUP_MODE` is set and the chat stays closed until the Setup page
+persists a choice.
 
 The model tag follows the same rule: no `--model` flag, no `EPHE_MODEL` and no persisted
 choice means **no tag**, and onboarding asks instead of pre-filling one. `ephe doctor`
@@ -36,7 +33,7 @@ Stops the backend that `~/.ephe/run/backend-<port>.json` and `/api/health` agree
 Prints pid, version, root and owner of the backend on the port, and whether the pidfile proves ownership. Exit 0 when an Ephe backend answers, 1 when nothing does.
 
 ## `ephe doctor [--fix] [--json]`
-Diagnoses the local setup: Python, project files, the engine (chosen, reachable, key bound), model (installed + load test), the **image endpoint** (R16, informational) and **voice (TTS)** (R18, informational).
+Diagnoses the local setup: Python, project files, the engine (chosen, reachable, key bound), model (installed + load test), the **image endpoint** (informational) and **voice (TTS)** (informational).
 
 The last line is the one to act on: `Next: <command>   # <why>` names the single step that
 moves this setup forward — the engine setup, a model pull, a safe repair, or the app.
@@ -55,7 +52,7 @@ so the repair is skipped instead of turning the run red.
 Repo fast-forward, dependencies, model pull (ollama), installer invocation. Without `--model` and without `EPHE_MODEL` no model is passed to the installer: `ephe update` names no tag on the user's behalf.
 
 ## `ephe voice list | install <voice>...`
-R18 — manage local Piper voices:
+Manage local Piper voices:
 - `list`: binary status (`brew install piper`) + installed voices (`~/.ephe/voices/`)
 - `install en_US-amy-medium`: downloads the `.onnx` + `.onnx.json` from HuggingFace (opt-in, 200-MB cap)
 
@@ -78,12 +75,12 @@ the check off.
 
 ## `ephe configure [--force]`
 Store the engine choice once (a preset or your own endpoint). The choice lands in
-`~/.ephe/engine.json`; API keys are **never** persisted, only set as session env.
-`--force` re-selects even when a config already exists.
+`~/.ephe/engine.json`; a key typed here goes to the OS keychain or `~/.ephe/engine.key`,
+never into that file. `--force` re-selects even when a config already exists.
 
 ## `ephe code "<task>"`
 Coding agent in the workspace: read → edit → verify with `run_tests`, every
-mutating step behind an approval gate and in the audit. Needs a chosen engine (I2-2).
+mutating step behind an approval gate and in the audit. Needs a chosen engine.
 Batch: the answer is printed at the end and an optional `--json` / `--run-record <path>`
 carries exactly one machine-readable run record.
 
@@ -92,7 +89,7 @@ The interactive sibling of `ephe code`: the same coding loop, but every phase, t
 and answer token **streams to the terminal as it happens**. The turn is kept in a session
 (printed at the end), so `--resume <session>` continues the same thread, and the
 workspace's diff is recorded as a change set whose id the printout hands to
-`ephe show` / `ephe review` / `ephe publish`. Needs a chosen engine (I2-2).
+`ephe show` / `ephe review` / `ephe publish`. Needs a chosen engine.
 - `--workspace <path>`: the tree the run edits and records a change set from (default: cwd)
 - `--resume <session>`: continue a saved session; an unknown id is refused before the loop
 - `--no-stream`: buffer the answer and print it once at the end
@@ -112,18 +109,46 @@ PATH:LINE:WHY` accepts a set and `ephe publish <id>` lands it.
 Autonomous goal loop: goal → agent (tools included) → fixed check command → automatic
 re-turn on failure. The exit code follows success. Needs a chosen engine.
 
-## `ephe serve [--host <h>] [--port <p>] [--lan] [--token <t>]`
+## `ephe serve [--host <h>] [--port <p>] [--lan] [--token <t>] [--takeover]`
 OpenAI-compatible engine (`/v1/chat/completions`, `/v1/models`) for other coding CLIs.
 Binds only to localhost by default; `--lan` generates an auth token. With `--token` a
 client sends that token as `X-Auth-Token` or as `Authorization: Bearer <token>`, so an
 OpenAI SDK reaches the engine with `api_key=` alone. The engine it passes through is the
-chosen one — without a choice the server does not start (I2-2).
+chosen one — without a choice the server does not start.
 
 ## `ephe tool <name> [--arg k=v ...] [--dry-run]`
 Run a single tool directly (e.g. `ephe tool generate_image --arg prompt="…" --dry-run`). `generate_image` ships in the **image-studio** plugin: with that switch off (Settings → Plugins) the tool is not offered at all, `ephe tool generate_image` fails naming the tools that are, and `ephe tool --help` prints that same list.
 
-## `ephe session`
-Manage sessions (list/show the local `~/.ephe/sessions/`).
+## `ephe session list | new | switch <id> | rm <id> | rename <id> <title> [--json]`
+Manage the local sessions under `~/.ephe/sessions/`. `list` prints them; `new` starts one;
+`switch` and `rm` address one by id; `rename` sets its title.
+
+## `ephe plugin list | enable <id> | disable <id> | install <id>`
+List catalogue plugins with their enabled state, toggle one (the next agent turn follows),
+or install a marketplace artifact. An install is sha256-verified and manifest-validated;
+a refused artifact is quarantined and leaves nothing enabled.
+
+## `ephe import <dir> [--apply] [--dry-run]`
+Read a reference client's directory — persona files, `SKILL.md` trees, tool-server configs
+and settings keys — and map it onto Ephe's formats. Without `--apply` the run is a plan and
+writes nothing. Imported skills land disabled, and existing Ephe state is never overwritten.
+
+## `ephe agents [--json]`, `ephe changes <workspace>`, `ephe review`, `ephe publish`
+The workspace-change loop. `agents` lists every live workspace with its id, owner, state and
+age; `changes` lists one workspace's change sets newest first; `review` files a verdict
+(`approve`, `request-changes`, `reject`) with a located reason and refuses a self-approval;
+`publish` lands one approved set on a branch by compare-and-swap, or nothing at all.
+
+## `ephe reap`, `ephe prune`, `ephe device`
+Housekeeping, each a dry run unless `--apply` is passed. `reap` removes registered workspace
+trees whose owning process is gone; `prune` bounds the session stores by keeping the newest N
+per group; `device` lists what the device folder holds and removes only the declared,
+forgettable entries.
+
+## `ephe sky`, `ephe amber`, `ephe bench`, `ephe project`
+The extras. `sky` prints the Ephemerides (a day per line, `--days`); `amber` crystallises one
+month into `~/.ephe/amber/<month>.json`; `bench` runs the plugin verify gate, and with `--run`
+the pass³ measurement; `project` runs a Markdown phase plan, resuming from the boxes on disk.
 
 ## `ephe completion <shell>`
 Shell completion (bash/zsh/fish).
@@ -158,6 +183,9 @@ ephe tool <name> --dry-run     # run a tool deterministically (approval gate)
 ephe run "fix the failing test" # agent run in the terminal — streams live, resumable
 ephe run --resume <session> "…" # continue a saved run where it stopped
 ephe show <change-set>         # print a change set's diff, file by file
+ephe agents                    # live workspaces, their owner and state
+ephe plugin list               # catalogue plugins and their switches
+ephe import ~/.other-client    # plan a settings/skills import (--apply writes it)
 ephe session list|new|switch|rm|rename
 ephe completion                # shell completion
 ```
@@ -166,11 +194,11 @@ A build writes `app/src-tauri/target/release/bundle/macos/Ephe.app`. That copy i
 
 ## Engine choice (no silent default)
 
-`ephe configure` asks once which engine to use and stores the answer in `~/.ephe/engine.json`. `ephe start`, `ephe tui`, `ephe code`, `ephe goal`, `ephe run`, `ephe serve` and the server (`run_server.py`) all read that same choice — one source of truth. Without a saved choice and without an explicit engine env they never pick an engine in silence: the terminal app opens its own provider setup, the remaining CLI paths stop with an actionable hint, the server starts in **setup mode on loopback** with the chat closed until a choice exists, and a LAN bind refuses to start outright. For scripted or headless setups use `EPHE_MODEL_PROVIDER=local_ollama|custom_ollama|openai_compatible` plus the matching `EPHE_LOCAL_OLLAMA_BASE_URL` / `EPHE_CUSTOM_OLLAMA_BASE_URL` / `EPHE_OPENAI_COMPAT_BASE_URL` (+ model); an explicit `EPHE_MODEL_PROVIDER` without `EPHE_MODEL` is a configuration error that names the missing variable, not a request to fill one in. Explicit `--api-url` selects the engine; `--model` names the tag inside the chosen engine and never selects one — `ephe start --model <tag>` without a saved engine still opens in setup mode. API keys are never stored; a key is only read from `EPHE_OPENAI_COMPAT_API_KEY`. Template for an OpenAI-compatible / vLLM endpoint: `engine.example.json`, `.env.example`.
+`ephe configure` asks once which engine to use and stores the answer in `~/.ephe/engine.json`. `ephe start`, `ephe tui`, `ephe code`, `ephe goal`, `ephe run`, `ephe serve` and the server (`run_server.py`) all read that same choice — one source of truth. Without a saved choice and without an explicit engine env they never pick an engine in silence: the terminal app opens its own provider setup, the remaining CLI paths stop with an actionable hint, the server starts in **setup mode on loopback** with the chat closed until a choice exists, and a LAN bind refuses to start outright. For scripted or headless setups use `EPHE_MODEL_PROVIDER=local_ollama|custom_ollama|openai_compatible` plus the matching `EPHE_LOCAL_OLLAMA_BASE_URL` / `EPHE_CUSTOM_OLLAMA_BASE_URL` / `EPHE_OPENAI_COMPAT_BASE_URL` (+ model); an explicit `EPHE_MODEL_PROVIDER` without `EPHE_MODEL` is a configuration error that names the missing variable, not a request to fill one in. Explicit `--api-url` selects the engine; `--model` names the tag inside the chosen engine and never selects one — `ephe start --model <tag>` without a saved engine still opens in setup mode. A key is never written to `engine.json`. `ephe configure` and the app keep it in the OS keychain, with `~/.ephe/engine.key` (0600) as the fallback, and bind it to the engine through `engine.key.binding.json`; an exported `EPHE_OPENAI_COMPAT_API_KEY` stays the caller's own choice for that process. Template for an OpenAI-compatible / vLLM endpoint: `engine.example.json`, `.env.example`.
 
 ## Connection test
 
-the Settings → Engine tab and the first-run screen show the active engine and probe it through the health endpoint, which distinguishes `ok` / `busy` (engine answers slowly — model loading, GPU busy) / `unreachable` (engine is down).
+The Settings → Engine tab and the first-run screen show the active engine and probe it through the health endpoint, which distinguishes `ok` / `busy` (engine answers slowly — model loading, GPU busy) / `unreachable` (engine is down).
 
 ## Approval gates
 
