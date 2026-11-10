@@ -70,6 +70,13 @@ from core._cli_onboarding import (  # noqa: F401
     cmd_configure,
     cmd_tui,
 )
+from core.backend_lifecycle import (  # noqa: F401
+    NOT_EPHE,
+    inspect_port,
+    looks_like_ephe,
+    preflight_start,
+    stop_backend,
+)
 from core import _cli_isolation as isolation
 
 _COMPLETION_SHELLS = ("bash", "zsh", "fish")
@@ -1169,37 +1176,64 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # enforcement this codebase read. So a release above the ceiling is a
     # re-measurement decision: informational, and no install command.
     # Purely informational and fail-soft: neither offline nor outdated flips the exit code.
-    try:
-        import importlib.metadata as _im
-        import json as _json
-        import urllib.request as _ur
+    import importlib.metadata as _im
 
+    try:
         _installed = _im.version("ephemora-cell")
-        with _ur.urlopen(
-            "https://pypi.org/pypi/ephemora-cell/json", timeout=4
-        ) as _resp:
-            _info = _json.load(_resp)["info"]
-        _latest = _info["version"]
-        _license = (_info.get("license") or "unknown")
-        _ceiling = _cell_pinned_ceiling()
-        if _installed == _latest:
-            checks.append(("ephemora-cell", True, f"{_installed} (PyPI current)"))
-        elif _ceiling and _version_tuple(_latest) >= _version_tuple(_ceiling):
+    except _im.PackageNotFoundError:
+        # The optional extra was never installed. The watch has nothing to compare
+        # and PyPI is not the question, so this is neither a failure nor "offline":
+        # it names the extra, what it enables and the one command that installs it.
+        checks.append(
+            (
+                "ephemora-cell",
+                False,
+                "not installed (optional extra) — execute_code stays in the kernel; "
+                "install: pip install 'ephe[sandbox]'",
+            )
+        )
+    except Exception as _exc:  # noqa: BLE001 — a broken metadata backend is still not a fetch
+        checks.append(
+            ("ephemora-cell", True, f"state unknown — metadata unreadable ({type(_exc).__name__})")
+        )
+    else:
+        try:
+            import json as _json
+            import urllib.request as _ur
+
+            with _ur.urlopen(
+                "https://pypi.org/pypi/ephemora-cell/json", timeout=4
+            ) as _resp:
+                _info = _json.load(_resp)["info"]
+        except Exception:  # noqa: BLE001 — the watch must never break doctor
+            # Reserved for this branch: the package is here, the version feed is not.
             checks.append(
-                (
-                    "ephemora-cell",
-                    True,
-                    f"{_installed} (measured) — PyPI latest {_latest} is above the pinned "
-                    f"{_ceiling} and carries {_license}; upgrade = re-measure the cell "
-                    "policy first, see docs/SANDBOX_EXECUTION.md",
-                )
+                ("ephemora-cell", True, f"{_installed} installed — update check skipped (offline)")
             )
         else:
-            checks.append(
-                ("ephemora-cell", False, f"{_installed} installed — PyPI has {_latest}: uv lock && uv pip install -U ephemora-cell")
-            )
-    except Exception:  # noqa: BLE001 — the watch must never break doctor
-        checks.append(("ephemora-cell", True, "watch skipped (offline?)"))
+            _latest = _info["version"]
+            _license = _info.get("license") or "unknown"
+            _ceiling = _cell_pinned_ceiling()
+            if _installed == _latest:
+                checks.append(("ephemora-cell", True, f"{_installed} (PyPI current)"))
+            elif _ceiling and _version_tuple(_latest) >= _version_tuple(_ceiling):
+                checks.append(
+                    (
+                        "ephemora-cell",
+                        True,
+                        f"{_installed} (measured) — PyPI latest {_latest} is above the pinned "
+                        f"{_ceiling} and carries {_license}; upgrade = re-measure the cell "
+                        "policy first, see docs/SANDBOX_EXECUTION.md",
+                    )
+                )
+            else:
+                checks.append(
+                    (
+                        "ephemora-cell",
+                        False,
+                        f"{_installed} installed — PyPI has {_latest}: uv lock && uv pip install -U ephemora-cell",
+                    )
+                )
 
     # E1: CPython-Cell — is the pinned guest there, and is it the right one?
     # Fail-soft like the other optional checks: without a guest execute_code stays
@@ -1349,9 +1383,103 @@ def _doctor_next_step(
         return "ephe doctor --fix", "apply the safe local repairs named above"
     return "ephe", "start the app"
 
+
+def _open_local_app(port: int, host: str) -> None:
+    """Open the PWA on the interface a person can actually reach."""
+    browser_host = "127.0.0.1" if host in ("0.0.0.0", "::", "") else host
+    webbrowser.open(f"http://{browser_host}:{port}")
+
+
+def _start_preflight(args: argparse.Namespace):
+    """The port decision `cmd_start` acts on — one seam, so the start body stays unit-testable."""
+    return preflight_start(args.port, takeover=getattr(args, "takeover", False))
+
+
+def _serve_preflight(args: argparse.Namespace):
+    """The same decision for the OpenAI-compatible engine on its own port."""
+    return preflight_start(args.port, takeover=getattr(args, "takeover", False))
+
+
+def cmd_stop(args: argparse.Namespace) -> int:
+    """`ephe stop`: give the product port back, if this installation owns it.
+
+    Idempotent by contract: nothing running is success, and a process whose
+    pid/owner/start-time the pidfile does not prove is named instead of killed.
+    """
+    timeout = float(getattr(args, "timeout", 5.0))
+    result = stop_backend(
+        args.port,
+        term_timeout=timeout,
+        kill_timeout=min(timeout, 3.0),
+    )
+    if getattr(args, "json", False):
+        print(json.dumps({
+            "status": result.status,
+            "message": result.message,
+            "pid": result.pid,
+            "port": args.port,
+        }, ensure_ascii=False))
+        return result.exit_code
+    mark = "✓" if result.exit_code == 0 else "✗"
+    print(f"  {mark} {result.message}")
+    return result.exit_code
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    """`ephe status`: who serves the port, if anyone — and whether it is ours."""
+    state = inspect_port(args.port)
+    running = bool(state.listening and looks_like_ephe(state.health))
+    payload = {
+        "running": running,
+        "port": args.port,
+        "kind": state.kind,
+        "pid": state.pid,
+        "owner": state.owner,
+        "version": state.version,
+        "root": state.root,
+        "api_contract": state.api_contract,
+        "pidfile": state.pidfile.to_json() if state.pidfile else None,
+    }
+    if getattr(args, "json", False):
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if running else 1
+    if running:
+        print(f"  ● Ephe backend running — pid {state.pid}, version {state.version or 'unknown'}")
+        print(f"    port:  {args.port}")
+        print(f"    root:  {state.root or '<unknown>'}")
+        print(f"    owner: {state.owner or '<unlabelled>'}")
+        print(f"    owned: {'yes' if state.owned else 'no — no matching pidfile'}")
+        return 0
+    if state.listening:
+        if state.kind == NOT_EPHE:
+            who = f"pid {state.pid}" if state.pid else "an unnamed process"
+            print(f"  ✗ Port {args.port} is held by {who} that is not an Ephe backend")
+        else:
+            print(
+                f"  ✗ Port {args.port} holds an Ephe backend this installation did not "
+                f"start (pid {state.pid}, version {state.version or 'unknown'})"
+            )
+        return 1
+    print(f"  ○ Ephe backend not running — nothing listening on 127.0.0.1:{args.port}")
+    return 1
+
+
 def cmd_start(args: argparse.Namespace, config_path=None) -> int:
     # Brand: orb banner (docs/BRAND.md) — one glyph, version, stance.
     print(f"  ◍ Ephe {EPHE_VERSION} — local & private")
+    # The port is inspected before any model probe or build: a stale backend is
+    # named; it is not avoided by starting a second server on the next port.
+    decision = _start_preflight(args)
+    if not decision.allowed:
+        print(f"  ✗ {decision.message}")
+        return 1
+    if decision.stopped:
+        print(f"  ✓ {decision.message}")
+    if decision.reused:
+        print(f"  ✓ {decision.message}")
+        if args.open:
+            _open_local_app(args.port, args.host)
+        return 0
     # Sky 2: one orbit per server start — the ephemeris records WHEN
     # Ephe was alive, never WHAT happened (d/h/k/n, without content).
     try:
@@ -1853,7 +1981,7 @@ def cmd_session(args: argparse.Namespace) -> int:
             print(json.dumps(sessions, ensure_ascii=False, indent=2))
             return 0
         if not sessions:
-            print("No sessions. Create one with `ephe session new <title>`.")
+            print("No sessions. Create one with `ephe session new --title <title>`.")
             return 0
         active_id = ms.get_active_id()
         print("Sessions (newest first):")
@@ -2133,6 +2261,20 @@ def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn  # lazy import — keeps the startup budget small
 
     from server.openai import create_openai_app
+
+    # Same rule as `ephe start`: the port is inspected before a server binds it.
+    # This engine speaks no /api/health, so an already running serve is a
+    # listener that cannot be identified as Ephe — it is named, never replaced
+    # silently.
+    decision = _serve_preflight(args)
+    if not decision.allowed:
+        print(f"  ✗ {decision.message}")
+        return 1
+    if decision.stopped:
+        print(f"  ✓ {decision.message}")
+    if decision.reused:
+        print(f"  ✓ {decision.message}")
+        return 0
 
     # I2-2: a port that hums without a chosen engine promises an engine
     # nobody selected.
@@ -2560,6 +2702,8 @@ def build_parser() -> argparse.ArgumentParser:
             "  ephe                           Open the terminal app\n"
             "  ephe configure                 Choose the engine once (saved to ~/.ephe/engine.json)\n"
             "  ephe start                     Start the local web app (default port 8765)\n"
+            "  ephe stop                      Stop the backend this installation started\n"
+            "  ephe status                    Say whether the backend is running\n"
             "  ephe start --lan --open        Expose on LAN for QR mobile pairing, open browser\n"
             "  ephe doctor --fix              Check setup and repair safe local drift\n"
             "  ephe update                    Pull latest, reinstall deps, update model\n"
@@ -2604,7 +2748,41 @@ def build_parser() -> argparse.ArgumentParser:
     )
     start.add_argument("--open", action="store_true", help="Open the browser after startup")
     start.add_argument("--skip-model-check", action="store_true", help="Start without Ollama/model preflight")
+    start.add_argument(
+        "--takeover",
+        action="store_true",
+        help="Stop an Ephe backend on this port that this installation did not start, then start",
+    )
     start.set_defaults(func=cmd_start)
+
+    stop = sub.add_parser(
+        "stop",
+        help="Stop the backend this installation started",
+        description=(
+            "Stop the backend whose pid, owner token and process start time match the\n"
+            "pidfile under ~/.ephe/run/backend-<port>.json, then verify the port is free.\n"
+            "SIGTERM first, SIGKILL after the timeout. Exits 0 when nothing was running;\n"
+            "a process the pidfile does not prove is named, never killed."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    stop.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"Port (default: {DEFAULT_PORT})")
+    stop.add_argument(
+        "--timeout",
+        type=float,
+        default=5.0,
+        help="Seconds to wait for SIGTERM before SIGKILL (default: 5)",
+    )
+    stop.add_argument("--json", action="store_true", help="Machine-readable output")
+    stop.set_defaults(func=cmd_stop)
+
+    status = sub.add_parser(
+        "status",
+        help="Say whether the backend is running, and whether this installation owns it",
+    )
+    status.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"Port (default: {DEFAULT_PORT})")
+    status.add_argument("--json", action="store_true", help="Machine-readable output")
+    status.set_defaults(func=cmd_status)
 
     # W4 S1: `web` is a pure alias onto the start path — parents=[start]
     # inherits every flag, no duplicated logic, identical func.
@@ -2955,6 +3133,11 @@ def build_parser() -> argparse.ArgumentParser:
         # An empty EPHE_MODEL means no hint: the model stays the one from engine.json/env.
         default=os.environ.get("EPHE_MODEL") or None,
         help=MODEL_FLAG_HELP,
+    )
+    serve.add_argument(
+        "--takeover",
+        action="store_true",
+        help="Stop an Ephe backend on this port that this installation did not start, then serve",
     )
     serve.set_defaults(func=cmd_serve)
 

@@ -1,9 +1,13 @@
 # Screenshot provenance
 
-These three captures are the README's product surface. They come from the built PWA
+The three captures are the README's product surface. They come from the built PWA
 (`app/dist`, built with Node 22.23.4) on 2026-10-23, served by a local backend with an
 isolated temporary `HOME` and a local stub engine on `127.0.0.1:11434`. No paid model
 was called and no key was used.
+
+They predate 0.6.3, which moved the response mode from the composer to the header. Re-shoot
+all three with the header mode control before the next release; the crop and the checks below
+stay the same.
 
 ## `readme-chat-1280.png`
 
@@ -12,7 +16,7 @@ was called and no key was used.
 - **Decision it is evidence for**: the landing page shows the real Ephe workspace: the
   task list, the agent's empty chat, the workspace switcher and the composer. The image
   is cropped above the Settings & Profile control so neither that control nor an unreleased version number is shown.
-- **Re-shoot when**: the workspace chrome or the mark changes.
+- **Re-shoot when**: the workspace chrome, the header mode control or the mark changes.
 
 ## `readme-chat-390.png`
 
@@ -28,8 +32,3 @@ was called and no key was used.
 - **Decision it is evidence for**: the real Engine settings page (active engine, model
   picker), cropped above the API-key field so the image carries no credential-shaped
   value.
-
-## Retired: `hero-banner.png`
-
-The older 2560x1440 banner is no longer referenced by any README. It stays in the
-repository as a historical asset and is not part of the public export.

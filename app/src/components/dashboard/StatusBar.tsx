@@ -129,6 +129,7 @@ export default function StatusBar({
         <AgentStatusButton
           messages={messages ?? []}
           sessionId={sessionId}
+          engineOnline={backendOnline === false ? false : engineOnline}
           details={
             <StatusDetails
               remaining={effectiveRemaining}

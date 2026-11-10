@@ -6,13 +6,13 @@ clean machine, is [FIRST_RUN.md](FIRST_RUN.md).
 ## 1 · Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash
 ```
 
 On Windows, use PowerShell. This installation path is not yet verified end to end for this revision:
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -39,6 +39,17 @@ ephe start --open
 ```
 
 For a checkout or custom location, activate the `.venv` inside that folder instead.
+
+Once a backend runs, two commands tell you what it is doing:
+
+```bash
+ephe status   # is an Ephe backend answering on the port, and does this installation own it?
+ephe stop     # stop the backend this installation started; never kills a stranger
+```
+
+`ephe status` exits 0 when an Ephe backend answers, 1 when nothing does. `ephe stop` is
+idempotent: with nothing running it exits 0 and cleans a stale pidfile. See
+[OPERATIONS.md](OPERATIONS.md) for the pidfile and the takeover rule.
 
 ## 3 · Choose the engine
 
@@ -67,9 +78,9 @@ and `ephe doctor --fix` repairs the safe drift.
 |---|---|---|
 | The chat stays closed | no engine is chosen — that gate is deliberate | finish the setup page, or run `ephe configure` |
 | `no model chosen` | no `--model`, no `EPHE_MODEL` and no stored tag | name one: `ephe start --model <tag>` |
-| Port 8765 is taken | another process (or a second Ephe) holds it | `ephe start --port 8766` |
+| Port 8765 is taken | another process (or a second Ephe) holds it | `ephe status` names it, then `ephe start --port 8766` |
 | The endpoint answers 401 | the key is missing, invalid or belongs to another provider | save the matching key through Setup/Settings or `ephe configure`, or export `EPHE_OPENAI_COMPAT_API_KEY` in the launching shell |
-| An engine change is not picked up | the server reads the choice at start | restart `ephe start` |
+| An engine change is not picked up | the server reads the choice at start | `ephe stop`, then `ephe start` |
 
 Next: [CLI.md](CLI.md) for every subcommand, [MOBILE.md](MOBILE.md) to pair a phone over
 your LAN, [SWITCHING.md](SWITCHING.md) to bring an existing local-agent setup across.

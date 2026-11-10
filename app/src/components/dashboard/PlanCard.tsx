@@ -6,7 +6,7 @@ import {
   renderPlanBlock,
   type PlanCardSpec,
 } from '@/lib/planCardModel'
-import { COMPOSER_MODES, modeShortLabel } from './chat/ComposerModeMenu'
+import { SESSION_MODES, modeShortLabel } from './chat/modeCatalog'
 import { useChatStore } from '@/store/chatStore'
 
 interface PlanCardProps {
@@ -55,7 +55,7 @@ export default function PlanCard({ spec, onPick, streaming = false }: PlanCardPr
   // from the same translated hint the mode menu uses, so card and chip cannot disagree.
   // The compatibility mode owns no tile after the rename, and the chip's rule holds here
   // too: its section wording, from the same locale leaf, in place of a raw stored key.
-  const executionMode = COMPOSER_MODES.find((m) => m.key === PLAN_EXECUTION_MODE)
+  const executionMode = SESSION_MODES.find((m) => m.key === PLAN_EXECUTION_MODE)
   const executionLabel = executionMode
     ? modeShortLabel(executionMode, String(t(executionMode.hintKey)))
     : String(t('chat.modeSection.write'))

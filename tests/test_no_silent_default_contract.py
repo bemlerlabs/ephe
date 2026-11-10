@@ -24,6 +24,27 @@ import pathlib
 
 import pytest
 
+
+@pytest.fixture(autouse=True)
+def _no_ambient_start_preflight(monkeypatch):
+    """The start body is unit-tested here; the port check has its own file.
+
+    `cmd_start` inspects the real port before it spawns. On a developer machine
+    that port belongs to whichever backend they are running, and another
+    checkout's backend would decide these tests. The inspection itself is
+    measured end-to-end in `tests/test_backend_lifecycle.py`; this fixture frees
+    the command-body tests from ambient port state.
+    """
+    import types
+
+    import ephe_cli
+
+    free = types.SimpleNamespace(
+        allowed=True, reused=False, stopped=False, message=""
+    )
+    monkeypatch.setattr(ephe_cli, "_start_preflight", lambda _args: free)
+    monkeypatch.setattr(ephe_cli, "_serve_preflight", lambda _args: free)
+
 from core.engine_config import EngineChoice, save_engine_config
 
 REMOTE_URL = "http://10.1.2.3:8000/v1"

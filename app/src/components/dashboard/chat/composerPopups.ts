@@ -12,14 +12,14 @@
  * only when nothing is open may Escape stop a generation.
  */
 
-export type ComposerPopupKey = 'model' | 'mode' | 'attach' | 'details' | 'mention' | 'slash'
+export type ComposerPopupKey = 'model' | 'access' | 'attach' | 'details' | 'mention' | 'slash'
 
 export type ComposerPopupState = Record<ComposerPopupKey, boolean>
 
 /** closeTopmostPopup() works this list off from top to bottom. */
 export const POPUP_CLOSE_ORDER: ComposerPopupKey[] = [
   'model',
-  'mode',
+  'access',
   'attach',
   'details',
   'mention',

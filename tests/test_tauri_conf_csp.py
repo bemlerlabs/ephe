@@ -27,6 +27,7 @@ review nobody runs.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +66,45 @@ def shipped_csp() -> str:
 
 def test_the_csp_is_a_real_policy():
     assert directives(shipped_csp()), "the CSP does not parse into any directive"
+
+
+def shell_port() -> int:
+    """The port the shell serves, read from the one place it is declared.
+
+    `app/src-tauri/src/backend.rs` owns the number; every other place names it too.
+    """
+    source = (TAURI_DIR / "src" / "backend.rs").read_text(encoding="utf-8")
+    found = re.search(r"pub const PORT: u16 = (\d+);", source)
+    assert found, "backend.rs no longer declares `pub const PORT: u16 = …`"
+    return int(found.group(1))
+
+
+def test_every_place_that_names_the_backend_port_names_the_same_number():
+    """GIVEN the shell, its policy and the surface
+    WHEN each one's backend origin is read
+    THEN all three name one port.
+
+    Issue #194: `desktop.json` accepted a port, only the backend start honoured it, and
+    the window kept fetching 8765 under a policy that allowed nothing else — so a
+    configured port produced a shell connected to nothing. A number that has to agree in
+    three files is checked in one place instead of being trusted three times.
+    """
+    port = shell_port()
+    origin = f"http://127.0.0.1:{port}"
+
+    d = directives(shipped_csp())
+    named = sorted({int(n) for source in d.get("connect-src", []) for n in re.findall(r"127\.0\.0\.1:(\d+)", source)})
+    assert named == [port], f"connect-src names {named}, the shell serves {port}"
+    for directive in ("img-src", "media-src", "frame-src"):
+        ports = {int(n) for source in d.get(directive, []) for n in re.findall(r"127\.0\.0\.1:(\d+)", source)}
+        assert ports == {port}, f"{directive} names {sorted(ports)}, the shell serves {port}"
+
+    surface = (ROOT / "app" / "src" / "lib" / "desktopBaseUrl.ts").read_text(encoding="utf-8")
+    default = re.search(r"TAURI_BACKEND_DEFAULT\s*=\s*'([^']+)'", surface)
+    assert default, "desktopBaseUrl.ts no longer declares TAURI_BACKEND_DEFAULT"
+    assert default.group(1) == origin, (
+        f"the shell serves {origin} while the surface fetches {default.group(1)}"
+    )
 
 
 def test_scripts_are_same_origin_only():

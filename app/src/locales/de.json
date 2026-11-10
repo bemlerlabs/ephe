@@ -400,7 +400,6 @@
     },
     "toolWaiting": "Wartet auf Freigabe",
     "goToMessage": "Zu Nachricht {{n}}",
-    "askNoTools": "keine Werkzeuge im Analyst-Modus",
     "proof": {
       "everyday": "✓ Automatische Prüfung bestanden ({{seconds}} s)",
       "everydayNoTime": "✓ Automatische Prüfung bestanden",
@@ -408,7 +407,7 @@
       "expertNoTime": "bestanden",
       "failed": "✗ Prüfung fehlgeschlagen — Zeile öffnen für die Ausgabe"
     },
-    "modeSelectorAria": "Antwort-Modus des Composers",
+    "modeSelectorAria": "Antwort-Modus",
     "activeMarker": "(aktuell)",
     "contextRing": "Kontext belegt: {{percent}}%",
     "contextMeter": "{{percent}} % · {{used}} / {{window}} Tok",
@@ -508,7 +507,10 @@
     },
     "solLearned": "Eine Regel für dieses Projekt wurde gelernt",
     "solOpen": "Ansehen / Bearbeiten",
-    "stepPill": "Schritt {{n}} / {{total}}"
+    "stepPill": "Schritt {{n}} / {{total}}",
+    "accessMenuNote": "Der Modus entscheidet, was laufen darf. Dieses Profil ist die Obergrenze darüber, für jede Aufgabe.",
+    "accessFullWarning": "Voller Zugriff: jedes Werkzeug läuft ohne Rückfrage. Der Modus entscheidet weiterhin, was läuft.",
+    "accessSaveFailed": "Das Profil wurde nicht geändert — die Anfrage ist fehlgeschlagen."
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
@@ -2391,7 +2393,10 @@
     "usage30d": "Letzte 30 Tage",
     "usageEstimated": "{{count}} Turns wurden geschätzt (kein Provider-Usage-Frame) — ehrlich markiert.",
     "usageEstimated_one": "{{count}} Turn wurde geschätzt (kein Provider-Usage-Frame) — ehrlich markiert.",
-    "usageEstimated_other": "{{count}} Turns wurden geschätzt (kein Provider-Usage-Frame) — ehrlich markiert."
+    "usageEstimated_other": "{{count}} Turns wurden geschätzt (kein Provider-Usage-Frame) — ehrlich markiert.",
+    "offline": "Getrennt",
+    "offlineHint": "Die Engine ist nicht erreichbar. Einstellungen → Engine prüfen, dann `ephe doctor` ausführen.",
+    "usageNeedsPricing": "USD braucht Preise für diese Engine: `pricing` mit `in_per_m` und `out_per_m` unter Einstellungen → Engine. Bis dahin nennt die Zeile nur Tokens."
   },
   "streamGroup": {
     "terminal": "Terminal",

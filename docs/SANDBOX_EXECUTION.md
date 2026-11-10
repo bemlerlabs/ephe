@@ -306,7 +306,7 @@ inside the cell. Ephe already consumes stdio MCP servers through `EPHE_MCP_SERVE
 
 ```bash
 export EPHE_MCP_SERVERS="stdio:ephemora-cell-mcp --tools-dir ./tools"
-ephe chat
+ephe tui
 ```
 
 Every registered WASM tool then runs with fuel metering, an output cap and

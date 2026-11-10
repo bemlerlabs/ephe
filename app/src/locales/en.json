@@ -400,7 +400,6 @@
     },
     "toolWaiting": "Waiting for approval",
     "goToMessage": "Go to message {{n}}",
-    "askNoTools": "no tools run in Analyst mode",
     "proof": {
       "everyday": "✓ Automatic check passed ({{seconds}} s)",
       "everydayNoTime": "✓ Automatic check passed",
@@ -408,7 +407,7 @@
       "expertNoTime": "passed",
       "failed": "✗ Check failed — open the row for the output"
     },
-    "modeSelectorAria": "Composer response mode",
+    "modeSelectorAria": "Response mode",
     "activeMarker": "(current)",
     "contextRing": "Context used: {{percent}}%",
     "contextMeter": "{{percent}}% · {{used}} / {{window}} tok",
@@ -508,7 +507,10 @@
     },
     "solLearned": "A rule for this project was learned",
     "solOpen": "View / Edit",
-    "stepPill": "Step {{n}} / {{total}}"
+    "stepPill": "Step {{n}} / {{total}}",
+    "accessMenuNote": "The mode decides what may run. This profile is the ceiling above it, for every task.",
+    "accessFullWarning": "Full access: every tool runs without asking. The mode still decides what runs.",
+    "accessSaveFailed": "The profile was not changed — the request failed."
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",
@@ -2391,7 +2393,10 @@
     "usage30d": "Last 30 days",
     "usageEstimated": "{{count}} of the turns were estimated (no provider usage frame) — marked honestly.",
     "usageEstimated_one": "{{count}} of the turns was estimated (no provider usage frame) — marked honestly.",
-    "usageEstimated_other": "{{count}} of the turns were estimated (no provider usage frame) — marked honestly."
+    "usageEstimated_other": "{{count}} of the turns were estimated (no provider usage frame) — marked honestly.",
+    "offline": "Offline",
+    "offlineHint": "The engine is not reachable. Open Settings → Engine to check the address, then run `ephe doctor`.",
+    "usageNeedsPricing": "USD needs pricing for this engine: `pricing` with `in_per_m` and `out_per_m` in Settings → Engine. Until then the row states tokens only."
   },
   "streamGroup": {
     "terminal": "Terminal",

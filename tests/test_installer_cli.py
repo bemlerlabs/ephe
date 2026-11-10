@@ -1,16 +1,39 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from tests.toml_compat import tomllib
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_ambient_start_preflight(monkeypatch):
+    """The start body is unit-tested here; the port check has its own file.
+
+    `cmd_start` inspects the real port before it spawns. On a developer machine
+    that port belongs to whichever backend they are running, and another
+    checkout's backend would decide these tests. The inspection itself is
+    measured end-to-end in `tests/test_backend_lifecycle.py`; this fixture frees
+    the command-body tests from ambient port state.
+    """
+    import types
+
+    import ephe_cli
+
+    free = types.SimpleNamespace(
+        allowed=True, reused=False, stopped=False, message=""
+    )
+    monkeypatch.setattr(ephe_cli, "_start_preflight", lambda _args: free)
+    monkeypatch.setattr(ephe_cli, "_serve_preflight", lambda _args: free)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -831,16 +854,107 @@ def test_given_install_sh_build_pwa_when_pnpm_is_absent_then_the_branch_that_run
     GIVEN install.sh's real build_pwa() and a PATH without pnpm
     WHEN it runs against a fresh-clone app/ (package.json + pnpm-lock.yaml, no
          package-lock.json)
-    THEN it calls `npm --prefix <app> install --no-package-lock` and then
-         `npm --prefix <app> run build`, never `npm ci`, and reports success.
+    THEN it calls `npm --prefix <app> install --no-package-lock --legacy-peer-deps`
+         and then `npm --prefix <app> run build`, never `npm ci`, and reports success.
+
+    `--legacy-peer-deps` is part of the shipped command since issue #191: measured on
+    npm 10.9.9 against this manifest, plain `npm install` dies inside @npmcli/arborist
+    (`TypeError: Cannot read properties of null (reading 'edgesOut')`) while walking
+    the peer sets of the vitest browser packages, and the unaligned tree before this
+    fix answered `ERESOLVE … peer vitest@4.1.11 from @vitest/coverage-v8@4.1.11`. The
+    peers the app needs are declared in package.json, so installing without npm's peer
+    solver produces the tree `app/pnpm-lock.yaml` already resolved; the two tests below
+    hold that declaration to the lock and to the Cargo lock.
     """
     recorded, result, app_dir = _build_pwa_runnable(tmp_path, ("npm",))
 
-    assert ["npm", "--prefix", str(app_dir), "install", "--no-package-lock"] in recorded, recorded
+    assert [
+        "npm",
+        "--prefix",
+        str(app_dir),
+        "install",
+        "--no-package-lock",
+        "--legacy-peer-deps",
+    ] in recorded, recorded
     assert ["npm", "--prefix", str(app_dir), "run", "build"] in recorded, recorded
     assert not [c for c in recorded if c[0] == "npm" and "ci" in c], recorded
     assert (app_dir / "dist" / "index.html").is_file(), result.stdout + result.stderr
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+# Issue #191: the npm fallback has to build a fresh checkout.
+_EXACT = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+def test_given_the_npm_fallback_when_its_declared_pair_is_read_then_the_measured_gaps_are_closed():
+    """
+    GIVEN install.sh falls back to npm when pnpm is absent (install.ps1 always uses npm)
+    WHEN app/package.json is compared with app/pnpm-lock.yaml and app/src-tauri/Cargo.lock
+    THEN the three gaps that stopped that fallback on a fresh checkout are closed:
+
+         * `@vitest/coverage-v8` and `vitest` carry the SAME exact version.
+           coverage-v8 requires `peer vitest@<its own version>` — an exact requirement
+           — so a range on either side lets npm resolve a pair npm then refuses
+           (`ERESOLVE … peer vitest@"4.1.11" from @vitest/coverage-v8@4.1.11`, the
+           report in issue #191).
+         * `@testing-library/dom` is declared. It is a peer of
+           `@testing-library/react@16`, pnpm installs it from the lock, and an npm
+           install that skips the peer solver does not: `npm run build` then fails
+           with `TS2305 … has no exported member 'fireEvent'`.
+         * `@tauri-apps/plugin-notification` is pinned to the exact version of the
+           `tauri-plugin-notification` crate in Cargo.lock. `tauri build` refuses to
+           bundle when the wrapper and the crate disagree (`tauri-plugin-notification
+           (v2.7.0) : @tauri-apps/plugin-notification (v2.8.0)`), and `^2.7.0` let npm
+           resolve above the lock.
+
+    The lock itself has to keep agreeing with the manifest, so the same test runs
+    `scripts/lockfile_check.py` — a manifest/lock pair that drifted would install
+    something other than what the developers resolved.
+    """
+    manifest = json.loads((ROOT / "app" / "package.json").read_text(encoding="utf-8"))
+    dev = manifest["devDependencies"]
+    deps = manifest["dependencies"]
+
+    vitest, coverage = dev.get("vitest"), dev.get("@vitest/coverage-v8")
+    assert vitest and _EXACT.match(vitest), f"vitest is {vitest!r}, and coverage-v8 peers on one exact version"
+    assert coverage == vitest, f"coverage-v8 {coverage!r} peers on vitest {coverage!r}, the manifest pins {vitest!r}"
+
+    assert dev.get("@testing-library/dom", "").startswith("10."), (
+        "`@testing-library/dom` is a peer of @testing-library/react; without it "
+        f"`npm run build` fails with TS2305 (devDependencies: {sorted(dev)})"
+    )
+
+    lock = (ROOT / "app" / "src-tauri" / "Cargo.lock").read_text(encoding="utf-8")
+    crate = re.search(
+        r'name = "tauri-plugin-notification"\nversion = "([^"]+)"', lock
+    )
+    assert crate, "tauri-plugin-notification is not in app/src-tauri/Cargo.lock"
+    declared = deps.get("@tauri-apps/plugin-notification")
+    assert declared == crate.group(1), (
+        f"the JS wrapper is {declared!r} while the crate is {crate.group(1)!r}: "
+        "a caret here lets npm resolve above the crate and `tauri build` refuses to bundle"
+    )
+
+    checked = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "lockfile_check.py"), "--skip-uv"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    assert "0 disagreement(s)" in checked.stdout, checked.stdout
+
+    # The issue's last line was "CI never exercises the npm path", which is why it rotted.
+    # `npm-fallback` in the frontend workflow runs the installer's two commands on a fresh
+    # checkout and holds the single-lockfile contract afterwards.
+    workflow = (ROOT / ".github" / "workflows" / "frontend-build.yml").read_text(encoding="utf-8")
+    assert "npm-fallback" in workflow, "no CI job runs the npm fallback the installer depends on"
+    assert "npm install --no-package-lock --legacy-peer-deps" in workflow, (
+        "the CI fallback job runs a different command than install.sh"
+    )
+    assert "test ! -e package-lock.json" in workflow, (
+        "the fallback job does not check that pnpm stays the only lockfile"
+    )
 
 
 def test_given_install_sh_build_pwa_when_pnpm_is_present_then_the_pinned_lockfile_path_is_unchanged(
@@ -1145,6 +1259,82 @@ def test_given_fresh_checkout_when_dry_run_then_it_completes_without_a_pwa_build
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Building the PWA" in result.stdout, result.stdout
     assert not (tmp_path / "app" / "dist").exists()
+
+
+def test_given_dry_run_when_it_runs_then_it_writes_nothing_into_home_and_claims_no_build(tmp_path):
+    """
+    GIVEN a fresh checkout and a throwaway HOME
+    WHEN install.sh runs with --dry-run, with a `uv` on PATH that writes wherever its
+         cache directory points (the real one caches `uv python find` in `~/.cache/uv`)
+    THEN nothing is created under HOME (no uv cache, no `~/.ephe`, no launcher) and no
+         line claims a build that did not run.
+
+    Measured before the fix (issue #198): the dry run left `~/.cache/uv` (16K,
+    `interpreter-v4` and `sdists-v9`) and printed `PWA built -> app/dist` while
+    `app/dist` stayed absent. The `uv` here is a stub so the test does not depend on
+    whether the host has one: it writes to `$UV_CACHE_DIR` when the installer set it, and
+    to `$HOME/.cache/uv` when it did not, which is exactly the difference between the
+    fixed and the broken script.
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    checkout = tmp_path / "checkout"
+    (checkout / "app" / "src").mkdir(parents=True)
+    (checkout / "app" / "package.json").write_text('{"name": "pwa"}', encoding="utf-8")
+    (checkout / "app" / "pnpm-lock.yaml").write_text('lockfileVersion: "9.0"\n', encoding="utf-8")
+    (checkout / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
+    (checkout / "run_server.py").write_text("", encoding="utf-8")
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    uv_log = tmp_path / "uv-cache-dir.log"
+    fake_uv = bin_dir / "uv"
+    fake_uv.write_text(
+        "#!/bin/sh\n"
+        f'printf \'%s\\n\' "${{UV_CACHE_DIR:-<unset>}}" > "{uv_log}"\n'
+        'cache="${UV_CACHE_DIR:-$HOME/.cache/uv}"\n'
+        'mkdir -p "$cache/interpreter-v4"\n'
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    env = {**os.environ}
+    for key in ("EPHE_INSTALL_DIR", "EPHE_CONFIG_DIR", "EPHE_BUNDLE_ID", "EPHE_MODE", "EPHE_NO_START"):
+        env.pop(key, None)
+    env.update(
+        {
+            "HOME": str(home),
+            "PATH": f"{bin_dir}:{os.environ.get('PATH', '')}",
+            "EPHE_DRY_RUN": "1",
+            "EPHE_NO_START": "1",
+        }
+    )
+    result = subprocess.run(
+        ["bash", str(ROOT / "install.sh")],
+        cwd=checkout,
+        capture_output=True,
+        text=True,
+        env=env,
+        stdin=subprocess.DEVNULL,
+    )
+    out = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout + result.stderr)
+
+    assert result.returncode == 0, out
+    leftovers = sorted(p.relative_to(home).as_posix() for p in home.rglob("*"))
+    assert leftovers == [], f"the dry run wrote into HOME: {leftovers}"
+    assert "PWA built" not in out, out
+    assert "would build the PWA" in out, out
+    assert "Setup complete" not in out, "a dry run claimed the setup finished"
+    assert "Dry run complete" in out, out
+    # The uv lookup ran, and it was aimed at a temporary cache the script removes again.
+    assert uv_log.is_file(), "the interpreter lookup never reached uv, so this test proves nothing"
+    aimed = uv_log.read_text(encoding="utf-8").strip()
+    assert aimed and aimed != "<unset>", "uv was left to write into the caller's cache"
+    assert not Path(aimed).exists(), f"the temporary uv cache was left behind: {aimed}"
+    assert not list(Path(tempfile.gettempdir()).glob("ephe-dry-run-*")), (
+        "a dry run left its temporary directory in /tmp"
+    )
 
 
 def test_given_existing_checkout_when_the_update_fails_then_the_install_continues():

@@ -6,6 +6,7 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 | Path | Command | For |
 |---|---|---|
 | Existing checkout | `./install.sh` | the default first run, macOS and Linux |
+| macOS app (DMG) | the `.dmg` from the GitHub release, then right-click → Open | a prebuilt app, no toolchain |
 | Windows (PowerShell) | the one-liner under [Windows PowerShell](#windows-powershell-one-liner) | Windows, with or without a checkout |
 | Docker | `docker compose up` | development and advanced setups |
 
@@ -15,12 +16,25 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 ./install.sh
 ```
 
+## macOS App (DMG)
+
+The packaged `.app` is released as `Ephe_<version>_aarch64.dmg` on the
+[GitHub releases page](https://github.com/bemlerlabs/ephe/releases). It is ad-hoc signed and Apple
+has not notarized it, which is the normal state for a build anyone can reproduce from source, so
+the first launch is right-click → Open, System Settings → Privacy & Security → **Open Anyway**, or
+the scripted `xattr -d com.apple.quarantine` — all three are in
+[`INSTALL.md`](INSTALL.md#the-macos-app-dmg) together with the reason macOS asks. The Homebrew
+cask applies the `xattr` line in its postflight, so `brew install --cask` opens without a prompt.
+
+No Apple account and no notarization step is involved in this path; that is the default and a
+supported one.
+
 ## Windows PowerShell (One-Liner)
 
 This path has not been verified end to end on Windows for this revision.
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.2/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -29,6 +43,11 @@ Or run it straight from a local checkout:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+A release ships no Windows binary — macOS and Linux artifacts only — so this source install is the
+only Windows path: it fetches the tag archive and builds on the machine, and the gate is
+PowerShell's execution policy rather than a code signature (see the artifact list in
+[`INSTALL.md`](INSTALL.md#windows-powershell)).
 
 On Windows, choose `-Cli` for the terminal interface or `-Desktop` for the web app and voice.
 On macOS and Linux, Bash defaults to Desktop; choose `--cli` or `EPHE_MODE=cli` for terminal-only use.
@@ -61,21 +80,23 @@ EPHE_PUBLISH_HOST=0.0.0.0 docker compose up   # then scan the in-app QR code
 ## Uninstall
 
 `uninstall.sh` is the way back out. It removes the checkout in `EPHE_INSTALL_DIR` (default
-`$HOME/Documents/Ephe`) and the state tree in `~/.ephe` — sessions, memory, artifacts, change sets
-and the engine key — and it refuses when a path is a filesystem root, your home directory or an
-ancestor of it, a top-level directory, or not an Ephe checkout, so an `EPHE_INSTALL_DIR=/` cannot
-reach `rm -rf /`:
+`$HOME/Documents/Ephe`), the state tree in `~/.ephe` — sessions, memory, artifacts, change sets and
+the engine key — and the desktop app's own state under `$HOME/Library` (`Application Support`,
+`WebKit` and `Caches`, each under the bundle identifier `com.ephe.ephe`). It refuses when a path is
+a filesystem root, your home directory or an ancestor of it, a top-level directory, not an Ephe
+checkout, or a bundle identifier that is not one, so an `EPHE_INSTALL_DIR=/` cannot reach `rm -rf
+/`:
 
 ```bash
 ./uninstall.sh --dry-run     # list what would go, remove nothing
-./uninstall.sh --keep-data   # drop the checkout, keep the state tree
-./uninstall.sh --yes         # remove both, the state tree included
+./uninstall.sh --keep-data   # drop the checkout, keep the state tree and the Library state
+./uninstall.sh --yes         # remove all of it, the state tree and the Library state included
 ```
 
-The checkout is reconstructible from git, the state tree is not: without `--yes` the data tree goes
-only after a prompt, and a non-interactive run keeps it and prints the one command that removes it.
-Nothing outside those two paths is touched, Ollama and its models included, and the run ends by
-naming what it left behind.
+The checkout is reconstructible from git, the state tree is not: without `--yes` the data tree and
+the `~/Library` state go only after a prompt, and a non-interactive run keeps them and prints the
+one command that removes them. Nothing outside those paths is touched, Ollama and its models
+included, and the run ends by naming what it left behind.
 
 ## What the installer does
 

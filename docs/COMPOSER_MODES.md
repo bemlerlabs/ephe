@@ -1,10 +1,11 @@
 # Composer modes — SSoT matrix
 
-Four modes are selectable in the composer (`ChatInput`), and a stored session can still carry
-spellings no click can produce. The selected mode is a
-**session attribute** (IndexedDB + server mirror) and is passed to the engine per request as
-`mode`/`autonomous`. Both routes — `/api/chat` and `/api/chat/stream` — share the same
-semantics via `_mode_context` (`server/routes/chat.py`).
+Four modes are selectable in the header (`HeaderModeControl`, over the `SESSION_MODES` table in
+`modeCatalog.ts`), and a stored session can still carry spellings no click can produce. The mode
+is a **session attribute** (IndexedDB + server mirror) and is passed to the engine per request as
+`mode`/`autonomous`. The composer keeps the access side: its approval profile is the ceiling
+above the mode. Both routes — `/api/chat` and `/api/chat/stream` — share the same semantics via
+`_mode_context` (`server/routes/chat.py`).
 
 ## The matrix
 
@@ -15,7 +16,8 @@ semantics via `_mode_context` (`server/routes/chat.py`).
 | Operator | `operator` | the skill list, else the whole registry | compute/page guard when the message needs one | edit family, then every tool, once the profile allows it |
 | Creator | `creator` | the skill list plus the Creator calls its grants cover, else the whole registry less the calls its grants do not cover | `CREATOR_MODE_GUARD` (plugin writing) | no auto branch; the profile alone, plus the consent gate |
 
-The menu carries four tiles (`app/src/components/dashboard/chat/ComposerModeMenu.tsx::COMPOSER_MODES`).
+The menu carries four tiles (`app/src/components/dashboard/chat/ModeMenu.tsx`, reading
+`app/src/components/dashboard/chat/modeCatalog.ts::SESSION_MODES`).
 `creator` is the fourth: the tile asks for the session's consent before the session takes the
 mode, and every mutation then lands on the profile's dialog. The consent gate
 (`core/tools/creator_guard.py`, task #26) is what makes the key mean something at the call: the
@@ -58,8 +60,8 @@ stored mode emits while it is at it.
 An unset `session.mode` is not one of these values: the client fills in the default (below)
 before a request, so the all-false reading of an empty `mode` belongs to a caller at the API.
 
-A stored value with no tile renders its section wording in the chip (`ComposerModeChip.tsx`,
-the `chat.modeSection.write` leaf), so the interface never shows a raw key.
+A stored value with no tile renders its section wording in the header control (the
+`chat.modeSection.write` leaf), so the interface never shows a raw key.
 
 ## Invariant sets
 - Read-only family (`_READ_ONLY_TOOL_NAMES`): `read_file`, `file_search`, `list_directory`,
@@ -84,10 +86,10 @@ legacy value travels this round trip verbatim unless the load-time rewrite above
 the server resolves whatever arrives without editing it.
 
 ## Disentangling the indicators
-- `composer-mode-selector` (grey): the **composer mode** (the matrix above).
+- `header-mode-control` (grey): the **response mode** (the matrix above).
 - `composer-permission-badge` (amber): the **approval profile** value (`approval_profile`),
   labelled `Manual`/`Manuell`, `Session`/`Sitzung`, `Plan`/`Planen`, `Full access`/`Voller Zugriff` <!-- language-gate: ignore (the English/German label pairs the badge renders, app/src/locales/de.json::chat.perm) -->
-  (`ChatInput.tsx` reads `chat.perm.<profile>`).
+  (`ComposerAccessControl.tsx` reads `chat.perm.<profile>`).
 - The two axes are now a **mapping**, and the rename is what made that visible. The profile
   enum kept its four spellings through it (`core/security_config.py::VALID_APPROVAL_PROFILES`
   = `strict`, `session`, `plan`, `full`) while three modes were renamed and one retired, so
@@ -117,7 +119,7 @@ witness.
 
 ## Default rule (W34)
 - `DEFAULT_COMPOSER_MODE = 'operator'` (SSoT in `app/src/store/chat/helpers.ts::DEFAULT_COMPOSER_MODE`).
-- Fresh sessions start with tools available: `ChatInput` falls back to this value
+- Fresh sessions start with tools available: the header control falls back to this value
   when no `session.mode` is set; `ChatLayout` passes it through per turn as
   `mode`/`autonomous` (`app/src/components/dashboard/chat/model.ts::useChatLayoutModel`).
 - `autonomous` is derived from that mode on the same call site: it is set for `operator` and

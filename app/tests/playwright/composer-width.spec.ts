@@ -38,18 +38,21 @@ test.describe('Steuerzeilen mit offenem Agent-Pane', () => {
     })
   }
 
-  test('die Steuerzeile hat eine Ausweich-Zeile', async ({ page }) => {
+  test('the control row stays one line even with the panel open', async ({ page }) => {
     await ensureOnboarded(page)
     await gotoHash(page, '/chat', '[data-testid="chat-input"]')
     const row = page.locator('[data-testid="composer-actions-row"]')
     await expect(row).toBeVisible()
-    const cls = await row.getAttribute('class')
-    expect(cls).toContain('flex-wrap')
+    // The row may wrap as a fallback, but after the composer was reduced to six controls it
+    // does not need to: with the panel open at 1100 px it still reads as one line, and nothing
+    // overlaps. The height is the measure, not a class string.
     await page.setViewportSize({ width: 1100, height: 900 })
     await page.getByTestId('side-panel-toggle').click()
     await page.waitForTimeout(400)
     const h = await row.evaluate((el) => el.getBoundingClientRect().height)
-    expect(h).toBeGreaterThan(48)
+    expect(h).toBeLessThan(48)
+    const probe = await page.evaluate(collisionProbe, '[data-testid="composer-actions-row"]')
+    expect(probe.hits, 'overlaps at 1100 px with the panel open').toEqual([])
   })
 })
 

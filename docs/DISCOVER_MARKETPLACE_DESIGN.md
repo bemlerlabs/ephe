@@ -31,7 +31,7 @@ defensible claim is "N sources, M items, known gaps", per-source freshness,
 and no copy of anything we may not redistribute (README text is copyrighted;
 registry metadata is CC0).
 
-## 2. Approach (approved by the owner 2026-10-30)
+## 2. Approach
 
 Hybrid: a shipped snapshot for offline start plus user-provisioned live
 sources, with verification built into the install path.
@@ -121,7 +121,7 @@ Paid or non-public items, hosting our own proxy domain, search-index
 infrastructure beyond the source's own search, and any claim stronger than
 "everything these sources publish".
 
-## 9. Settings parity (walkthrough 2026-10-30)
+## 9. Settings parity
 
 The reference settings modal is two columns: an area list on the left, the
 active area with breadcrumb, description and form on the right. Its areas,
@@ -141,19 +141,19 @@ shortcut/session listings as first-class pages. Each new area follows the
 existing PageHeader + section-row pattern and the settings save-surface
 invariant tests. No third-party content is adopted; this is structure only.
 
-## 10. Decisions taken (owner delegated 2026-10-30)
+## 10. Decisions taken
 
 - Snapshot cadence: per build, plus `scripts/catalog_discover.py --mirror` /
   `--curated` on demand. The mirror is committed; the runtime never fetches.
 - Two preset sources ship as one-click rows: the public connector registry
   and the official plugin catalog, with descriptive titles in the repo's
   preset file; every other source is user-provisioned.
-- Tier model (the owner's 300–400 / 30–40 wish): the surface shows a curated
+- Tier model (the initial target of 300–400 / 30–40 items): the surface shows a curated
   tier by default — named picks plus the 20 most recently published entries
   per category (measured: 448 of 6,613) — and the full mirror stays behind
   the per-category "See all" and search. No raw dump on the landing view.
 
-## 11. Status of implementation (2026-10-30)
+## 11. Status of implementation
 
 - S1 done: mirror generator with cursor pagination (6,613 entries, 12
   categories), curated tier (448), runtime loaders, `/api/mcp/catalog` now

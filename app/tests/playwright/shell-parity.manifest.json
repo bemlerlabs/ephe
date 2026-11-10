@@ -295,6 +295,22 @@
       "surface": "the agents header's import action",
       "web": "no import button: a browser tab has no folder picker",
       "desktop": "one button that runs pick_folder, then the same /api/import the tour uses"
+    },
+    {
+      "file": "app/src/lib/backendReadiness.ts",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "backend readiness",
+      "web": "a browser tab has the server it was loaded from, so readiness is not asked",
+      "desktop": "the shell answers backend_readiness and emits ephe:backend-state"
+    },
+    {
+      "file": "app/src/lib/backendReadiness.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "backend readiness",
+      "web": "no bridge, so no readiness read and no event subscription",
+      "desktop": "reads backend_readiness and listens on ephe:backend-state"
     }
   ],
   "platform_only": [

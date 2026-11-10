@@ -8,6 +8,7 @@ permissions = [
   "allow-quit-app",
   "allow-stop-backend",
   "allow-backend-parity",
+  "allow-backend-readiness",
   "allow-write-rich-clipboard",
   "allow-reveal-file-in-finder",
   "allow-open-file-in-default-app",

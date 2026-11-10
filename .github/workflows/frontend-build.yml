@@ -188,3 +188,35 @@ jobs:
           # uploaded whatever it found, so a build that produced nothing left a green step
           # and an artifact nobody could tell was empty.
           if-no-files-found: error
+
+  npm-fallback:
+    # The path a machine without pnpm takes: `install.sh` falls back to npm and issue #191
+    # measured that path broken three ways — `ERESOLVE` on the vitest/coverage-v8 pair, a
+    # missing `@testing-library/dom` peer, and a tauri plugin version above the Cargo lock.
+    # Nothing ran it, so it stayed broken. This job runs the declared fallback exactly as
+    # the installer does, on a runner whose only package manager is npm, and holds the
+    # single-lockfile contract at the end.
+    name: npm fallback build (no pnpm)
+    if: github.repository == 'bemlerlabs/ephe' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.4
+          package-manager-cache: false
+
+      - name: Install and build with npm
+        # The two commands `install.sh`'s fallback runs, verbatim.
+        run: |
+          cd app
+          npm install --no-package-lock --legacy-peer-deps
+          npm run build
+          test -f dist/index.html
+          test ! -e package-lock.json

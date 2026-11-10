@@ -142,12 +142,12 @@ class TestSynthesizeEngines:
         assert "piper" in r.json()["error"]["message"].lower()
 
     def test_given_piper_binary_when_synthesize_then_wav_produced(self, audio_client, monkeypatch, tmp_path):
-        from core.voice_config import save_voice_config, voices_dir
+        from core.voice_config import ensure_voices_dir, save_voice_config
 
         save_voice_config(tts_engine="piper", piper_voice="en_US-amy-medium")
         monkeypatch.setattr("core.voice_config.piper_binary", lambda: "/usr/local/bin/piper")
         # the voice counts as "installed"
-        vdir = voices_dir()
+        vdir = ensure_voices_dir()
         (vdir / "en_US-amy-medium.onnx").write_bytes(b"onnx")
         (vdir / "en_US-amy-medium.onnx.json").write_bytes(b"{}")
 
@@ -252,11 +252,11 @@ class TestDoctorVoice:
 
     def test_given_full_piper_setup_then_local_ok(self, config_dir, monkeypatch, tmp_path):
         import ephe_cli
-        from core.voice_config import save_voice_config, voices_dir
+        from core.voice_config import ensure_voices_dir, save_voice_config
 
         save_voice_config(tts_engine="piper", piper_voice="de_DE-thorsten-medium")
         monkeypatch.setattr("core.voice_config.piper_binary_available", lambda: True)
-        vdir = voices_dir()
+        vdir = ensure_voices_dir()
         (vdir / "de_DE-thorsten-medium.onnx").write_bytes(b"x")
         (vdir / "de_DE-thorsten-medium.onnx.json").write_bytes(b"{}")
         monkeypatch.setattr("core.transcribe.is_whisper_available", lambda: True)

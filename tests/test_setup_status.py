@@ -10,7 +10,8 @@ WHEN  POST /api/model/providers/probe (Ollama URL, OpenAI URL)
 THEN  200 + reachable/models/detail (httpx mock, no real network)
 
 WHEN  GET /api/setup/status
-THEN  configured=True (engine.json present) or False (empty config)
+THEN  configured=True (engine.json present, or a complete engine env) or False
+      (nothing chosen)
 """
 from __future__ import annotations
 
@@ -261,3 +262,47 @@ def test_remember_endpoint_dedupes_recent_first(tmp_path, monkeypatch: pytest.Mo
     hist = st._load_endpoint_history()
     assert hist[0] == "http://a.example:8888/v1"
     assert len(hist) == len(set(hist)) == 2
+
+
+# #204: an engine configured entirely through the env is still a chosen engine.
+
+def test_setup_status_counts_a_complete_engine_env_as_configured(client, monkeypatch):
+    """GIVEN EPHE_MODEL_PROVIDER + endpoint + model and no engine.json
+    WHEN  GET /api/setup/status
+    THEN  configured=True: /api/chat answers with this engine, so the PWA gate must
+          open the chat instead of sending the browser to setup. The setup page stays
+          reachable through the engine chip."""
+    monkeypatch.setenv("EPHE_MODEL_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("EPHE_OPENAI_COMPAT_BASE_URL", "http://127.0.0.1:8832/v1")
+    monkeypatch.setenv("EPHE_OPENAI_COMPAT_MODEL", "dummy")
+    from server.routes import settings
+
+    monkeypatch.setattr(settings, "_probe_memoised", lambda provider, url: (True, ["dummy"]))
+
+    body = client.get("/api/setup/status").json()
+
+    assert body["configured"] is True
+    assert body["provider"] == "openai_compatible"
+    assert body["model"] == "dummy"
+    assert body["url"] == "http://127.0.0.1:8832/v1"
+
+
+def test_setup_status_keeps_a_half_written_engine_json_repairable(client, monkeypatch):
+    """GIVEN an engine.json without an endpoint and a complete engine env
+    WHEN  GET /api/setup/status
+    THEN  configured=False: the persisted choice wins over the env, so the setup page
+          stays reachable to repair the file instead of being masked by the env."""
+    from core.engine_config import OPENAI_COMPAT, EngineChoice, save_engine_config
+
+    save_engine_config(EngineChoice(provider=OPENAI_COMPAT, model="a-tag", api_url=None))
+    monkeypatch.setenv("EPHE_MODEL_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("EPHE_OPENAI_COMPAT_BASE_URL", "http://127.0.0.1:8832/v1")
+    monkeypatch.setenv("EPHE_OPENAI_COMPAT_MODEL", "dummy")
+    from server.routes import settings
+
+    monkeypatch.setattr(settings, "_probe_memoised", lambda provider, url: (True, ["dummy"]))
+
+    body = client.get("/api/setup/status").json()
+
+    assert body["configured"] is False
+    assert body["skipped"] is False

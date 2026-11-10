@@ -1,6 +1,6 @@
 /**
- * M3 (reference parity): the composer row follows the reference pattern —
- * [+] [🛡 Full access] [○] [model ▾] [💡 On ▾] [↑].
+ * M3 (reference parity) — 2026-11-10: the row is the access side of the
+ * composer: [+] [🛡 profile] [🎙] [model ▾] [◌ details ▾] [↑].
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -51,13 +51,13 @@ beforeEach(() => {
 })
 
 describe('Composer-Chips (M3, Referenz-Muster)', () => {
-  it('Berechtigungs-Badge, Status-Dot, Modell-Chip und Denk-Chip in der Aktions-Zeile', async () => {
+  it('Zugriffs-Kontrolle, Modell-Chip und Denk-Chip in der Aktions-Zeile', async () => {
     render(<ChatInput onSend={vi.fn()} />)
-    expect(await screen.findByTestId('composer-permission-badge')).toBeTruthy()
-    expect(screen.getByTestId('composer-permission-badge').textContent).toContain(
-      'chat.perm.autonomous',
-    )
-    expect(screen.getByTestId('composer-status-dot')).toBeTruthy()
+    const access = await screen.findByTestId('composer-access-control')
+    // The stored value in this fixture is the pre-register `autonomous`; the control
+    // still names it from the same leaves the badge used.
+    expect(access.textContent).toContain('chat.perm.autonomous')
+    expect(access.getAttribute('data-profile')).toBe('autonomous')
     expect(screen.getByTestId('model-chip')).toBeTruthy()
     expect(screen.getByTestId('composer-thinking-chip')).toBeTruthy()
     // Thinking chip: the store holds no thinking messages → the 'off' branch

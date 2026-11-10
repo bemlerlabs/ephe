@@ -15,7 +15,7 @@
 import { describe, expect, it } from 'vitest'
 import en from '@/locales/en.json'
 import de from '@/locales/de.json'
-import { COMPOSER_MODES } from './ComposerModeMenu'
+import { SESSION_MODES } from './modeCatalog'
 import {
   COMPAT_EDIT_FAMILY_MODE,
   DEFAULT_COMPOSER_MODE,
@@ -31,18 +31,13 @@ const deChat = (de as unknown as HintBundle).chat
 
 describe('the renamed composer vocabulary', () => {
   it('has four selectable modes and no retired edit-auto', () => {
-    expect(COMPOSER_MODES.map((m) => m.key)).toEqual([
-      'analyst',
-      'architect',
-      'operator',
-      'creator',
-    ])
+    expect(SESSION_MODES.map((m) => m.key)).toEqual(['analyst', 'architect', 'operator', 'creator'])
   })
 
   it('gives the creator tile the section the bundles already name', () => {
     // Wave 5's condition was a guard and tools behind the name; both landed in
     // `80e3852f`, so the tile now has to say what that gate actually does.
-    const creator = COMPOSER_MODES.find((m) => m.key === 'creator')!
+    const creator = SESSION_MODES.find((m) => m.key === 'creator')!
     expect(creator.sectionKey).toBe('chat.modeSection.create')
     expect(creator.hintKey).toBe('chat.modeHint.creator')
     expect(Object.keys(enChat.modeSection)).toContain('create')
@@ -57,7 +52,7 @@ describe('the renamed composer vocabulary', () => {
   })
 
   it('names every mode before the em dash in both languages', () => {
-    for (const mode of COMPOSER_MODES) {
+    for (const mode of SESSION_MODES) {
       const hintEn = enChat.modeHint[mode.key]
       const hintDe = deChat.modeHint[mode.key]
       expect(String(hintEn).split(' — ')[0]).not.toBe(mode.key)

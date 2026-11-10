@@ -7,8 +7,9 @@
  *
  * Rule: below lg (1024px) every interactive composer control reaches the 44px
  * touch floor (`max-lg:min-h-11`, square icon buttons also `max-lg:min-w-11`),
- * the action row reflows (`flex-wrap`), the command-palette button drops below
- * sm, and every composer menu row reaches the same floor.
+ * the action row reflows (`flex-wrap`), and every composer menu row reaches the
+ * same floor. 2026-11-10: the mode chip, the mode hint and the palette button
+ * left the row — the mode sits in the header, the palette in the header run line.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -63,9 +64,8 @@ describe('composer mobile layout — the 44px touch floor below lg', () => {
     for (const id of [
       'composer-attach-plus',
       'model-chip',
-      'composer-mode-selector',
+      'composer-access-control',
       'send-btn',
-      'composer-permission-badge',
     ]) {
       expect(cls(id), `${id} mobile touch floor`).toContain('max-lg:min-h-11')
     }
@@ -102,30 +102,27 @@ describe('composer mobile layout — the 44px touch floor below lg', () => {
     expect(field.className).not.toContain('min-h-[48px]')
   })
 
-  it('the command-palette button drops below sm so the row stays narrow', () => {
+  it('the composer keeps no palette button — Cmd+K and the header run line own it', () => {
     render(<ChatInput onSend={vi.fn()} />)
-    const palette = screen.getByLabelText('chat.openPalette')
-    expect(palette.className).toContain('max-sm:hidden')
-    expect(palette.className).toContain('max-lg:min-h-11')
+    expect(screen.queryByLabelText('chat.openPalette')).toBeNull()
   })
 
-  it('the ask-mode hint only appears from md up', () => {
+  it('no mode hint stands in the row: the header names the active mode', () => {
     useChatStore.setState({
       sessions: [{ id: 's1', mode: 'analyst' }],
       activeSessionId: 's1',
       currentSession: null,
     } as never)
     render(<ChatInput onSend={vi.fn()} />)
-    const hint = screen.getByTestId('composer-ask-hint')
-    expect(hint.className).toContain('hidden')
-    expect(hint.className).toContain('md:inline')
+    expect(screen.queryByTestId('composer-ask-hint')).toBeNull()
+    expect(screen.queryByTestId('composer-mode-selector')).toBeNull()
   })
 
-  it('the model chip and the permission badge clamp their width on mobile', () => {
+  it('the model chip and the access control clamp their width on mobile', () => {
     render(<ChatInput onSend={vi.fn()} />)
     // the label span clamps narrower below lg so the chip cannot push the row
     expect(screen.getByTestId('model-chip').querySelector('.max-lg\\:max-w-28')).not.toBeNull()
-    expect(cls('composer-permission-badge')).toContain('max-lg:max-w-20')
+    expect(cls('composer-access-control')).toContain('max-lg:max-w-32')
   })
 })
 

@@ -12,7 +12,8 @@ and switchable.
   opt in (`plugin_autorun`).
 - **Signed.** ES256 signatures over the canonical content hash. A signature-verified plugin that
   changes on disk cannot be re-enabled: the drift gate answers 409 and writes an audit line.
-- **16 first-party bundles ship in-repo** (`plugins/`): nine plugins and seven presets.
+- **17 first-party bundles ship in-repo** (`plugins/`): the nine plugins and seven presets the
+  catalogue lists, plus `countdown`, the reference bundle for a declarative surface.
   Plugins: browser-use, code-shell, documents, local-document-factory, memory, presentations,
   private-research-notebook, spreadsheets, web-research.
   Presets: guide, image-studio, mcp-connector, plugin-creator, skill-creator, vision, voice.

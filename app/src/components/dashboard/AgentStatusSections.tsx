@@ -389,6 +389,15 @@ export function UsageSection() {
             </div>
           )
         })}
+        {!data.pricing && (
+          <p
+            data-testid="agent-status-no-pricing"
+            className="text-ui-xs text-ink-faint"
+            title={t('statusBar.noPricingTitle')}
+          >
+            {t('agentStatus.usageNeedsPricing')}
+          </p>
+        )}
         {data.totals.est_turns > 0 && (
           <p className="text-ui-xs text-ink-faint">
             {t('agentStatus.usageEstimated', { count: data.totals.est_turns })}

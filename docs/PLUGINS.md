@@ -1,6 +1,6 @@
-# Ephe Plugins — Manifest Format v1 and v2 (E2)
+# Ephe Plugins — Manifest Format v1 and v2
 
-> Spec for `ephe-plugin.json`. Autoren-Einstieg: `docs/PLUGIN_SDK.md`. A
+> Spec for `ephe-plugin.json`. Author guide: `docs/PLUGIN_SDK.md`. A
 > plugin is a directory under
 > `~/.ephe/plugins/<plugin>/`; the manifest turns that directory into a
 > versioned, validated, switchable unit.
@@ -11,7 +11,7 @@
 ~/.ephe/plugins/
 └── research-suite/
     ├── ephe-plugin.json          # manifest (required)
-    ├── ephe-libraries.json       # optional: declared vendor files (W1-6 #46)
+    ├── ephe-libraries.json       # optional: declared vendor files
     └── skills/
         └── deep-dive/
             └── SKILL.md          # a regular skill pack (agentskills-style)
@@ -113,7 +113,7 @@ shape follows the version, never the entry.
   entry file ships, the callable is bound in it (an `ast` read, still no import), the
   family is one the manifest declares, and no two declarations inside the bundle serve one
   name. Across bundles a name claimed twice is contested and both claimants lose it; the
-  mount that refuses on it is #15. A bundle declaring a name the kernel still owns is
+  mount refuses that claim. A bundle declaring a name the kernel still owns is
   refused the same way, which is why moving a capability into a bundle retires the kernel
   entry in the same commit rather than in a later one.
 
@@ -154,7 +154,7 @@ answers like an unknown one. `docs/PLUGIN_SDK.md` §3d is the author's guide;
 `docs/PLUGIN_COVERAGE.md` is the audit that says which capability classes still have no
 manifest route at all.
 
-## Vendored libraries (W1-6 #46)
+## Vendored libraries
 
 A surface that needs a third-party runtime ships it inside its own directory and
 loads it by relative path. Nothing in this contract reaches a network: the policy a

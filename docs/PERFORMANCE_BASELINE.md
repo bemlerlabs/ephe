@@ -1,13 +1,12 @@
 # Performance baseline — start-up and window memory
 
-Task #39 asked for measured start-up costs and the panel/window memory instead of a claim. This
-page is that measurement. Every number names the command, the machine and the number of
+This page measures start-up cost and panel/window memory instead of asserting them. Every number names the command, the machine and the number of
 repetitions; medians are over the runs named in each row. Nothing here was optimised: where a
 cost is named, it is the cost as shipped at the commit below.
 
 - **Machine:** Apple M4 (`Mac16,1`), macOS 26.6, arm64.
 - **Runtime:** Python 3.13.18 (project venv), Node 22.23.4 where the frontend is involved.
-- **Tree:** commit `888f1a3ce957` (worktree `/tmp/rel/wt-cost57`), 2026-11-09.
+- **Tree:** commit `888f1a3ce957`, 2026-11-09.
 - **Repetitions:** 5 per row unless the row says otherwise. A median over 3–5 samples is a
   baseline, not a distribution: the min–max is printed beside it so a reader can see the spread.
 

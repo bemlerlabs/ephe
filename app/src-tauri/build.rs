@@ -11,6 +11,7 @@ fn main() {
             "quit_app",
             "stop_backend",
             "backend_parity",
+            "backend_readiness",
             "write_rich_clipboard",
             "reveal_file_in_finder",
             "open_file_in_default_app",

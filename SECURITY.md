@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| `0.1.x` | Active |
-| < `0.1.0` | Best-effort only |
+| `0.6.x` | Active |
+| < `0.6.0` | Best-effort only |
 
 ## Reporting a Vulnerability
 
@@ -73,6 +73,7 @@ Ephe is designed with **privacy and security as core principles**:
 - **No Engine Default** — the engine is the user's declared choice (a local Ollama or an
   OpenAI-compatible endpoint); nothing picks one in code, and the online providers are opt-in
 - **Tool approval and optional OS sandbox** — The default strict profile requires approval for shell, screenshot and GUI actions. The optional shell sandbox stays off until it is turned on. On macOS it wraps approved commands in `sandbox-exec`; on Linux it uses `bwrap` when that program is installed. Writes stay in the workspace, temp and the device nodes. The rest of the home directory is closed, and the network is denied. A requested sandbox with no boundary does not run the command.
+- **Plugin confinement and mount trust classes** — A plugin tool that carries its own code runs in a separate process under the OS boundary, with its own folder and no Ephe credential. A mount states its class (`signed` or `local`) in the answer, the state record and the audit line, and a signed bundle whose bytes move is refused until the caller acknowledges it. The boundary row is in [`docs/SECURITY_AND_PRIVACY.md`](docs/SECURITY_AND_PRIVACY.md); the classes and the mount record are in [`docs/PLUGINS.md`](docs/PLUGINS.md#mount-trust-classes).
 - **Per-Segment Shell Whitelist** — Every segment of a chained shell command (`;`, `&&`, `||`, `|`) must start with a whitelisted binary. Command substitution (`$(…)`, backticks, process substitution), shell redirects, and network binaries (`curl`/`wget`) are rejected outright. The default strict profile asks before mutations. Opt-in modes and remembered approvals can allow execution without another prompt.
 - **File Whitelist** — Access restricted to safe directories only
 - **Hardened Response Headers** — `Content-Security-Policy: frame-ancestors 'self'` (own artifact previews render, foreign framing blocked), `X-Content-Type-Options: nosniff`, strict `Referrer-Policy`
