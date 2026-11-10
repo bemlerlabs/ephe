@@ -95,7 +95,7 @@ export default function HeaderModeControl() {
             setOpen(true)
           }
         }}
-        className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-ui-xs text-ink-soft transition-colors shrink-0 min-h-6 max-lg:min-h-9 hover:text-foreground hover:border-brand/30 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="inline-flex items-center gap-1 rounded-md border border-control bg-surface px-1.5 py-0.5 text-ui-xs text-ink-soft transition-colors shrink-0 min-h-6 max-lg:min-h-9 hover:text-foreground hover:border-brand/30 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
       >
         {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
         <span className="hidden xl:inline truncate max-w-24">{label}</span>

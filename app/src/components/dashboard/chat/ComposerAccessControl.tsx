@@ -100,7 +100,7 @@ export default function ComposerAccessControl({
         className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-ui-xs transition-colors shrink-0 min-h-6 max-lg:min-h-11 max-lg:max-w-32 overflow-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 ${
           full
             ? 'border-status-warning/40 bg-status-warning/10 text-status-warning'
-            : 'border-hairline bg-surface text-ink-faint hover:text-foreground hover:border-brand/30'
+            : 'border-control bg-surface text-ink-faint hover:text-foreground hover:border-brand/30'
         }`}
       >
         <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
