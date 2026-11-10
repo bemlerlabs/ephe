@@ -9,12 +9,9 @@
 
 ```text
 ~/.ephe/plugins/
-└── research-suite/
-    ├── ephe-plugin.json          # manifest (required)
-    ├── ephe-libraries.json       # optional: declared vendor files
-    └── skills/
-        └── deep-dive/
-            └── SKILL.md          # a regular skill pack (agentskills-style)
+- research-suite/
+  - ephe-plugin.json (required manifest)
+  - ephe-libraries.json (optional declared vendor files)
 ```
 
 ## Manifest
@@ -90,8 +87,8 @@ shape follows the version, never the entry.
 - **The name is declared, and two guards make that safe.** A bundle serves the name it
   writes — `web_search`, `tick` — because that is the name the model was taught, the prompts
   carry and saved sessions hold; taking a capability over must not rename it. The namespace
-  lives on the plugin package, not inside the tool name. What stops one bundle answering for
-  another is read, not spelled: `reserved_namespace(name)` consults the live kernel map and
+  lives on the plugin package. What stops one bundle answering for another is read:
+  `reserved_namespace(name)` consults the live kernel map and
   the MCP rail and refuses a name either holds, and `scan_tool_activations` marks a name two
   manifests both declare as contested, so `refuse_contested_names` denies the mount with a
   reason naming both claimants. `served_tool_name` in `core/tools/dynamic_registry.py` stays
@@ -168,12 +165,6 @@ visible.
 
 ```text
 my-scene/
-├── ephe-plugin.json
-├── ephe-libraries.json
-└── ui/
-    ├── index.html                    # <script type="module" src="vendor/….mjs">
-    └── vendor/
-        └── renderer.mjs
 ```
 
 ```json
@@ -232,8 +223,8 @@ my-scene/
 - **Fail-closed validation.** Any contract violation quarantines the WHOLE
   plugin (never a half-loaded state): bad JSON, bad slug/semver, name
   mismatch, an unknown tool family, or a declared skill pack that does not
-  ship. Quarantined plugins show up in `GET /api/plugins` scan output with
-  their error.
+  ship. A quarantined folder stays in the `installed` list of `GET /api/plugins`
+  with `state: "error"` and its reason.
 - **Fail-soft scanning.** One broken directory never breaks the others.
 - **Enablement is real.** A registry-disabled plugin (or master switch off)
   contributes no skills and no commands on the very next turn. Catalog
@@ -248,11 +239,10 @@ my-scene/
 
 A skill pack is a prompt by construction: `skills/<pack>/SKILL.md` carries frontmatter
 plus a `## System Prompt` section, and `core/skills.py` refuses a pack when that heading
-is missing. The heading is therefore structure, not an instruction. The install-time
-static check (`core/marketplace_verify.py`) reads **directive phrases, not subjects**,
+is missing. The heading is structure; the install-time
+static check (`core/marketplace_verify.py`) reads **directive phrases**,
 and one gate applies to every artifact — community, local and bundled alike (the old
-first-party exemption is gone; a first-party bundle now passes on its text, not on its
-trust class).
+first-party exemption is gone; a first-party bundle now passes on its text).
 
 | The artifact text contains | Verdict |
 |---|---|
@@ -271,7 +261,7 @@ What this means for a skill-pack author:
   prompt", no "ignore previous", no "do not tell the user", no exfiltration verbs.
   Those are refused even inside a valid `## System Prompt` block, and even in a
   first-party bundle.
-- The scan is a gate, not a judge. It reads bytes, so text that merely *quotes* an
+- The scan reads bytes, so text that merely *quotes* an
   attack — a warning, a test case — refuses the install as well. Keep attack strings
   out of shipped artifact text.
 - `VERIFY.json` sits beside the installed artifact with the verdict and the findings
@@ -284,7 +274,7 @@ What this means for a skill-pack author:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/plugins` | Catalog + registry + master switch |
+| `GET /api/plugins` | Catalog (`public`/`personal`), `installed` bundles with switch state and capabilities, master switch |
 | `POST /api/plugins/{id}/enable` | Toggle one plugin |
 | `POST /api/plugins/{id}/hot-mount` | Publish the tools one bundle declares |
 | `DELETE /api/plugins/{id}/hot-mount` | Remove exactly that bundle's tool names |
@@ -351,17 +341,36 @@ update that is refused keeps the version that was already installed.
 CLI:
 
 ```bash
-ephe plugin list                 # catalog + enabled state + version
+ephe plugin list                 # installed bundles first, then the catalog
 ephe plugin enable web-search    # takes effect on the next agent turn
 ephe plugin disable web-search
 ephe plugin install web-search   # from plugin-marketplace.json
+ephe plugin remove web-search    # preview; --yes removes, --keep-data keeps the files
 ```
+
+### Removing a bundle
+
+`POST /api/market/remove` and `ephe plugin remove` enter the same service
+(`core.marketplace_service.remove`), so the two surfaces answer the same facts. An enabled
+bundle is refused with `409` and the code `still_active` plus its `state` and `version`;
+`?force=true` is the explicit permission that switches it off through the lifecycle first.
+The removal then drops the folder, the `plugins.json` row, the lockfile entry and the mount
+record (through `unmount`, so the published tools leave the rail and the next start replays
+nothing).
+
+The answer names both halves: `removed` (bundle, registry, mount, data) and `remains` (the
+lifecycle state row, a surface-host record, the data folders when kept, the Creator draft).
+`delete_data: true` in the request body, or the CLI default, deletes `plugin-data/<id>` and
+the bundle's state folder; `ephe plugin remove --keep-data` leaves both in place. A
+first-party bundle under the repository's `plugins/` is `409 bundled_not_removable`: it
+ships with Ephe, and the switch is the way to take it out of a turn.
 
 A bundle made on this machine leaves as a zip and comes back through the
 same installer. The member layout, the signature call, the check against
 an installed identity, and the lockfile path are specified in
 [PLUGIN_EXPORT.md](PLUGIN_EXPORT.md). The export and file-import commands
-are the next change. This build has `list`, `enable`, `disable` and `install`.
+are the next change. This build has `list`, `enable`, `disable`, `install`
+and `remove`.
 
 ## Signatures (E4b)
 

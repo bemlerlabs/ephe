@@ -80,7 +80,7 @@ Ephe 是一个在你电脑上运行 AI 智能体的工作区。你给它一个�
 #### macOS 和 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash
 ```
 
 要在运行前阅读脚本，请使用仓库：
@@ -96,7 +96,7 @@ cd ephe
 #### Windows（PowerShell）
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -108,7 +108,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 Docker 和安装程序的全部参数见 [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md)。
 
-命令指向本代码树自带的发行版 `v0.6.3`；标签在发布后解析。Bash 安装程序默认使用 `--desktop`；只安装终端时传入 `--cli` 或设置 `EPHE_MODE=cli`。
+命令指向本代码树自带的发行版 `v0.6.4`；标签在发布后解析。Bash 安装程序默认使用 `--desktop`；只安装终端时传入 `--cli` 或设置 `EPHE_MODE=cli`。
 
 在新的终端里使用 `ephe` 之前，先激活已安装的环境。
 macOS 或 Linux 的默认安装：
@@ -161,7 +161,7 @@ Ephe 没有订阅，也没有账户。本地模型使用你的硬件；托管引
 
 在页眉中选择响应模式：Analyst、Architect、Operator 或 Creator。输入框中的审批配置是其上的上限，默认的严格配置会在修改文件和执行 shell 命令前询问。可选的模式和已记住的批准可以让执行不再询问。会话 cell 在会话结束时销毁；已保存的文件和设置留在磁盘上。
 
-没有账户，也没有注册。更新检查向 GitHub 询问最新版本；其他所有网络路径都等待你的操作。可选的在线功能在设置页中列出。详情见 [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) 和 [SECURITY.md](SECURITY.md)。
+无需账户，也无需注册。更新检查会向 GitHub 查询最新版本（在可选启用的 commit 通道上，还会查询 main 的最新提交）；其他所有网络访问都等待你的操作。可选的在线功能列在初始设置（Setup）和设置（Settings）中。详情见 [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) 和 [SECURITY.md](SECURITY.md)。
 
 ## 插件、技能与连接器
 

@@ -323,6 +323,36 @@ REASONS: dict[str, tuple[int, str]] = {
 }
 
 
+#: The move a coded refusal leaves, keyed by the same code. A surface shows the sentence
+#: above; this line says what to do next, and the envelope carries it beside the code. The
+#: plugin family is filled here because those are the refusals a bundle author meets while
+#: building and installing; other families add their entry when their route learns a move.
+NEXT_STEPS: dict[str, str] = {
+    "invalid_request": "Check the field the answer names and send it again.",
+    "tool_failed": "Open the run's log for the reason, then try the tool again.",
+    "plugin_unknown": "Run `ephe plugin list` and open the bundle the list shows.",
+    "plugin_state_name": "Open this bundle on Extensions and pick a file the list shows.",
+    "plugin_state_full": "Open this bundle on Extensions and remove a stored file there.",
+    "plugin_ui_unavailable": (
+        "Check the plugin on Extensions, switch it on, then reopen the surface."
+    ),
+    "plugin_ui_unauthorized": "Reload the surface so it requests a fresh mount token.",
+    "plugin_ui_asset_refused": (
+        "Reload the surface so its assets arrive by relative path."
+    ),
+    "plugin_entry_refused": (
+        "Correct the entry in the plugin manifest, then mount the plugin again."
+    ),
+    "tool_not_available": "Check that plugin on Extensions, then call the tool again.",
+    "sandbox_unavailable": (
+        "Check the confinement of the backend host, then run the tool again."
+    ),
+    "plugin_lifecycle_read_only": (
+        "Turn plugins.plugin_lifecycle_read_only off, then retry the switch."
+    ),
+}
+
+
 class Refused(HTTPException):
     """A refusal the route already knows the reason for.
 
@@ -341,3 +371,8 @@ class Refused(HTTPException):
         status, template = REASONS[code]
         self.message = template.format(**params) if params else template
         super().__init__(status_code=status, detail=self.message)
+
+    @property
+    def next(self) -> str:
+        """The move this refusal leaves, or "" when its family has no sentence yet."""
+        return NEXT_STEPS.get(self.code, "")

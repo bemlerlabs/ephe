@@ -64,6 +64,7 @@ class TestCheckForUpdate:
         assert out["latest"] == "1.2.0"
         assert out["current"]
         assert out["url"].endswith("/1")
+        assert out["updateChannel"] == "release"
 
     def test_same_version_not_available(self, monkeypatch):
         monkeypatch.setattr(
@@ -239,10 +240,11 @@ class TestRouteForce:
             assert seen["force"] is True
 
 
-class TestContinuousChannel:
+class TestCommitChannel:
     """A merge on the default branch is an update the user can take before the
-    next tag. The comparison is ancestry-based, so only a checkout that is
-    behind is told to update — never one that is ahead or has diverged."""
+    next tag when the commit channel is on. The comparison is ancestry-based,
+    so only a checkout that is behind is told to update — never one that is
+    ahead or has diverged."""
 
     COMMIT = "2a1405a837f0c1d9e4b5a6978877665544332211"
 
@@ -256,7 +258,7 @@ class TestContinuousChannel:
             lambda: {"tag": f"v{release}", "url": "https://x/r/1", "notes": "n"},
         )
 
-    def test_behind_main_is_an_update_on_the_main_channel(self, monkeypatch):
+    def test_behind_main_is_an_update_on_the_commit_channel(self, monkeypatch):
         # The shape GitHub answers for `compare/<build>...main` when the build is
         # behind: the head (main) is ahead, so `ahead_by` carries the count.
         self._pin(monkeypatch)
@@ -265,16 +267,18 @@ class TestContinuousChannel:
             lambda c: {"ahead": 3, "behind": 0,
                        "tip": "deadbeefcafe0123", "message": "fix(chat): quieter rows"},
         )
-        out = update_check.check_for_update()
+        out = update_check.check_for_update(force=True, channel="commit")
         assert out["available"] is True
-        assert out["channel"] == "main"
+        assert out["channel"] == "commit"
+        assert out["updateChannel"] == "commit"
         assert out["commitsBehind"] == 3
-        assert out["latest"] == "deadbeefcafe"
+        assert out["latest"] == "1.0.0+deadbeefcafe"
+        assert out["git_sha"] == "deadbeefcafe"
         assert out["commit"] == self.COMMIT[:12]
         assert out["url"].endswith(f"compare/{self.COMMIT}...main")
         assert out["notes"] == "fix(chat): quieter rows"
 
-    def test_a_newer_release_outranks_the_main_channel(self, monkeypatch):
+    def test_a_newer_release_outranks_the_commit_channel(self, monkeypatch):
         self._pin(monkeypatch)
         monkeypatch.setattr(
             update_check, "_fetch_latest",
@@ -285,8 +289,9 @@ class TestContinuousChannel:
             raise AssertionError("a newer release needs no ancestry lookup")
 
         monkeypatch.setattr(update_check, "_fetch_main_compare", compare)
-        out = update_check.check_for_update()
+        out = update_check.check_for_update(force=True, channel="commit")
         assert out["available"] is True and out["channel"] == "release"
+        assert out["updateChannel"] == "commit"
 
     @pytest.mark.parametrize(
         ("ahead", "behind"),
@@ -299,7 +304,7 @@ class TestContinuousChannel:
             update_check, "_fetch_main_compare",
             lambda c: {"ahead": ahead, "behind": behind, "tip": "t" * 40, "message": ""},
         )
-        out = update_check.check_for_update()
+        out = update_check.check_for_update(force=True, channel="commit")
         assert out["available"] is False
         assert out["channel"] == "release"
         assert "commitsBehind" not in out
@@ -310,7 +315,7 @@ class TestContinuousChannel:
             update_check, "_fetch_main_compare",
             lambda c: pytest.fail("no commit, no comparison"),
         )
-        out = update_check.check_for_update()
+        out = update_check.check_for_update(force=True, channel="commit")
         assert out["available"] is False and out["channel"] == "release"
         assert "commit" not in out
 
@@ -321,7 +326,7 @@ class TestContinuousChannel:
             raise OSError("no network")
 
         monkeypatch.setattr(update_check, "_fetch_main_compare", boom)
-        out = update_check.check_for_update()
+        out = update_check.check_for_update(force=True, channel="commit")
         assert out["available"] is False
         assert out["channel"] == "release"
         assert "error" not in out

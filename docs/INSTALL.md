@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -42,7 +42,7 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.6.3` tag. The fetch answers HTTP 200 once
+The one-liner fetches `install.sh` from the public `v0.6.4` tag. The fetch answers HTTP 200 once
 that tag is published; the checkout path above is the alternative for reading the script before
 it runs.
 
@@ -53,13 +53,13 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -306,7 +306,7 @@ Without either, a bare `ephe` answers `command not found`.
 
 ```bash
 ephe doctor --fix      # apply safe local repairs
-ephe update            # repo pull and dependencies; models stay your choice
+ephe update            # newest release tag + dependencies; models stay your choice
 ```
 
 Explicit `--model` and `--api-url` flags always override the persisted choice. See

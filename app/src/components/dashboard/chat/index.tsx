@@ -660,6 +660,7 @@ export default function ChatLayout() {
                   onCheck={() => void update.check()}
                   onInstall={() => void update.install()}
                   onApply={() => void update.apply()}
+                  onApplyRelease={() => void update.applyRelease()}
                   onRelaunch={() => void update.relaunch()}
                   releasesUrl={update.state.url}
                   restartBlocked={update.restartBlocked}

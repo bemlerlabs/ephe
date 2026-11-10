@@ -111,6 +111,7 @@ def _inspect(name: str) -> dict[str, Any]:
             "error": "unknown_plugin",
             "name": name,
             "detail": "no installed plugin has that id",
+            "next": "Run action='list' and use one of the names it answers.",
         }
     lifecycle = _lifecycle(_versions(registry))
     snapshot = lifecycle.effective(name)
@@ -210,6 +211,10 @@ def plugin_manager(action: str = "list", query: str = "", name: str = "") -> str
                     "plugin_manager only reads; install, enable, disable, update "
                     "and remove need explicit user approval through the lifecycle endpoint"
                 ),
+                "next": (
+                    "Ask the user to change the plugin on Extensions, or run "
+                    "`ephe plugin enable <id>` from a shell."
+                ),
             },
             ensure_ascii=False,
         )
@@ -223,6 +228,7 @@ def plugin_manager(action: str = "list", query: str = "", name: str = "") -> str
                 "read_only": True,
                 "error": "invalid_request",
                 "detail": "inspect needs a plugin name",
+                "next": "Pass name, one of the ids action='list' answers.",
             }
         else:
             payload = _inspect(name)
@@ -236,12 +242,14 @@ PLUGIN_MANAGER_SCHEMA = {
     "function": {
         "name": "plugin_manager",
         "description": (
-            "Read-only view of installed plugins, their capabilities, switch state "
-            "and health. Actions: 'list' (whole portfolio), 'search' (name and "
-            "description), 'inspect' (one plugin), 'health' (quarantine, missing "
-            "dependencies, failed switches). Omit the action and it answers with "
-            "'list'. It never installs, enables, disables, updates or removes a "
-            "plugin — those need explicit user approval."
+            "Read-only view of the installed plugins: the catalog and each bundle's "
+            "capabilities, switch state and health. Actions: 'list' (whole portfolio and "
+            "counts), 'search' (query matches name and description), 'inspect' (one plugin, "
+            "its commands and its tools), 'health' (quarantine, missing dependencies, failed "
+            "switches). Omit the action and it answers with 'list'. Use it to answer what is "
+            "installed or why a plugin is off. Not for building or changing anything: it "
+            "never installs, enables, disables, updates or removes, and refuses those with "
+            'read_only. Example: plugin_manager(action="inspect", name="documents")'
         ),
         "parameters": {
             "type": "object",
@@ -254,11 +262,13 @@ PLUGIN_MANAGER_SCHEMA = {
                 },
                 "query": {
                     "type": "string",
-                    "description": "Search text for action='search'.",
+                    "description": (
+                        "Search text for action='search'; matches name and description."
+                    ),
                 },
                 "name": {
                     "type": "string",
-                    "description": "Plugin id for action='inspect'.",
+                    "description": "Plugin id for action='inspect', from action='list'.",
                 },
             },
             "required": [],

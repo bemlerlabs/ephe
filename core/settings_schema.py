@@ -134,13 +134,15 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # The companion (owner order 2026-10-17): the bee outlives the onboarding.
     # Every field is read by WorkspaceCompanion / WelcomeEmptyState / spiritAudio.
     # QD-005: default False — a fresh install stays calm until the user summons it.
-    # Which updates the surface offers: a published release only, or every merge
-    # on the default branch as it lands. The second is what a reader who follows
-    # the work wants; the first is the quiet default that asks nothing of a tag.
-    "appearance.update_channel": {"type": "select", "default": "commit",
-                                  "options": ["stable", "commit"],
+    # Which updates the surface offers: published release tags only, or every
+    # merge on the default branch as it lands. `release` is the default — a
+    # tagged, signed release is the quiet path. `commit` is for a reader who
+    # follows the work and accepts that the desktop shell itself still moves
+    # only with a signed release.
+    "appearance.update_channel": {"type": "select", "default": "release",
+                                  "options": ["release", "commit"],
                                   "optionLabels": {
-                                      "stable": ["Nur veröffentlichte Releases", "Released versions only"],
+                                      "release": ["Nur veröffentlichte Releases", "Released versions only"],
                                       "commit": ["Jeder Commit aus main", "Every commit from main"],
                                   },
                                   "label": "Update-Kanal", "labelEn": "Update channel"},

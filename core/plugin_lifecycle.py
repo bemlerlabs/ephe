@@ -371,6 +371,34 @@ class PluginLifecycle(
             self._publish("plugin.paused", {"pause_all": enabled})
             return {"pause_all": enabled, "changed": True}
 
+    def forget(self, name: str) -> bool:
+        """Drops every record this state file keeps for a bundle that left disk.
+
+        An uninstall used to leave the switch row, the mount record and the host
+        placement behind: a reinstall inherited a state nobody asked for, and a
+        store read still knew a name the plugins root no longer held. The write
+        goes through the same merge, which now applies this instance's deletions
+        without touching a neighbour's rows.
+        """
+        from core.plugin_mount_records import MOUNTS_FIELD
+        from core.plugin_surface_host import SURFACES_FIELD
+
+        plugin = str(name)
+        with self._lock:
+            changed = False
+            plugins = self._data.get("plugins")
+            if isinstance(plugins, dict) and plugins.pop(plugin, None) is not None:
+                changed = True
+            for field in (MOUNTS_FIELD, SURFACES_FIELD):
+                section = self._data.get(field)
+                if isinstance(section, dict) and section.pop(plugin, None) is not None:
+                    changed = True
+            if not changed:
+                return False
+            self._persist()
+            self._publish("plugin.forgotten", {"name": plugin})
+            return True
+
     def import_legacy(self, legacy_path: Path) -> tuple[str, ...]:
         """Imports explicit legacy per-plugin states once (ADR-004, option B2).
 

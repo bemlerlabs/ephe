@@ -7,9 +7,12 @@ import {
   createTask,
   deleteSchedule,
   deleteTask,
+  getMarketInstalled,
+  getPluginCommands,
   getPlugins,
   getSettings,
   getTasks,
+  removeMarketPlugin,
   listSchedules,
   saveSections,
   setPluginEnabled,
@@ -19,6 +22,7 @@ import {
 import { toastBus } from '@/lib/toast'
 import type { DeepSection } from '@/types'
 import { deepBool, seedDeepSettings } from '@/lib/deepSettings'
+import { announceSlashCommandsChanged } from '@/lib/slashCommands'
 import { ensureGlobalShortcut } from '@/lib/globalShortcut'
 import { clampDeepDraft } from './bounds'
 import type { useSettingsState } from './useSettingsState'
@@ -32,6 +36,9 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
     setDeepDraft,
     setDeepSections,
     setPluginView,
+    setPluginCommands,
+    setInstalledPlugins,
+    setPluginLoadError,
     setScheduleJobs,
     setTasks,
     t,
@@ -166,12 +173,23 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
   }, [])
 
   const loadPluginStore = useCallback(async () => {
+    setPluginLoadError(false)
     try {
-      const [view, st] = await Promise.all([getPlugins(), getSettings()])
+      // The installed inventory and the command list are enrichment: the store view
+      // alone is enough to paint the catalog rows, so either failing leaves the
+      // section standing with the abilities it already knows.
+      const [view, st, installed, commands] = await Promise.all([
+        getPlugins(),
+        getSettings(),
+        getMarketInstalled().catch(() => null),
+        getPluginCommands().catch(() => null),
+      ])
       setPluginView(view)
+      setPluginCommands(commands?.commands ?? null)
+      setInstalledPlugins(installed?.plugins ?? null)
       applyDeepView(st.deep ?? null)
     } catch {
-      /* backend unreachable — the section shows empty lists */
+      setPluginLoadError(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -191,14 +209,14 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
   async function handlePluginToggle(id: string, enabled: boolean) {
     try {
       await setPluginEnabled(id, enabled)
-      setPluginView(
-        (prev) =>
-          prev && {
-            ...prev,
-            public: prev.public.map((p) => (p.id === id ? { ...p, enabled } : p)),
-            personal: prev.personal.map((p) => (p.id === id ? { ...p, enabled } : p)),
-          },
-      )
+      // The composer's slash menu is a second reader of the same switch; tell it
+      // while the chat stays mounted under the settings overlay.
+      announceSlashCommandsChanged()
+      // Re-read instead of patching the entry: the command route reports the active
+      // set, and the status a row states has to describe the state the switch left
+      // behind. A local patch of `public`/`personal` also left the `global` heap
+      // (the rows the section actually paints) stale.
+      await loadPluginStore()
     } catch (error) {
       // The switch reverts on its own; the view must return to the backend truth
       // as well, so a conflict cannot leave a stale knob behind.
@@ -206,6 +224,14 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
       toastBus.error(t('settings.pluginToggleFailed'))
       throw error
     }
+  }
+  // The remove path is the marketplace's own route (`/api/market/remove`): the
+  // lifecycle switch and the removal are two different operations, and the route
+  // refuses to remove a running bundle. The row says that in the reader's words.
+  async function handlePluginRemove(id: string) {
+    await removeMarketPlugin(id, false)
+    toastBus.success(t('settings.pluginRemoveDone', { name: id }))
+    await loadPluginStore()
   }
   // E1: master kill switch — off = stock Ephe (every toggle inactive).
   async function handlePluginMasterToggle(enabled: boolean) {
@@ -323,6 +349,8 @@ export function useSettingsLists(state: ReturnType<typeof useSettingsState>) {
     loadDeepRegister,
     handlePluginMasterToggle,
     handlePluginToggle,
+    handlePluginRemove,
+    reloadPluginStore: loadPluginStore,
     setDeepField,
     saveDeepSettings,
     saveAppearanceProfile,

@@ -11,14 +11,16 @@ the fixture moves both into tmp_path through `EPHE_CONFIG_DIR` and `PLUGINS_ROOT
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import zipfile
 from pathlib import Path
 
+import httpx
 import pytest
 
-from core import plugin_manifest
+from core import plugin_manifest, plugin_templates
 from core.tools import creator_tools
 
 CREATOR_TOOL_NAMES = {
@@ -534,3 +536,160 @@ class TestKernelDispatch:
         installed = json.loads(answers[-1])
         assert installed["bundle"], "the install answer names no bundle"
         assert Path(lane["root"], "weather-card").exists() is Path(installed["bundle"]).is_dir()
+
+
+def _app():
+    """The real app, with the plugin surface routes mounted and no LAN token."""
+    from server.main import create_app
+
+    return create_app(lan_mode=False)
+
+
+def _request(app, path: str, *, method: str = "GET", headers: dict | None = None):
+    """One request through the middleware stack as the app's own desktop client.
+
+    A mutation on loopback carries the `Origin` the shell sends and the XHR marker
+    the plugin routes' mutation guard requires.
+    """
+    sent = dict(headers or {})
+    if method not in {"GET", "HEAD", "OPTIONS"}:
+        sent.setdefault("Origin", "http://127.0.0.1:8765")
+        sent.setdefault("X-Requested-With", "XMLHttpRequest")
+    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 54321))
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://127.0.0.1:8765"
+        ) as client:
+            return await client.request(method, path, headers=sent)
+
+    return asyncio.run(run())
+
+
+def _mount_body(app, name: str):
+    """`(nonce, document)` for one installed surface: the credential, then its page."""
+    minted = _request(app, f"/api/plugins/{name}/surface-token", method="POST")
+    assert minted.status_code == 200, minted.text
+    nonce = minted.json()["surface"]
+    return nonce, _request(app, f"/api/plugins/ui/{name}/{nonce}/")
+
+
+class TestTemplateFamily:
+    """A plugin exists before a model writes a line: the template is the whole bundle.
+
+    `create_plugin_scaffold` used to ship one shape — a floating window, two assets, no
+    tool — so every other ask had to be authored file by file by the model, which is
+    where the live runs spent their round budget. The template family renders the
+    manifest and the files from parameters, and the Creator tools keep their promises
+    on the result: the loader accepts it, the install path takes it, the mount answers
+    it.
+    """
+
+    @pytest.mark.parametrize("key", sorted(plugin_templates.TEMPLATES))
+    def test_a_template_verifies_installs_and_needs_no_model(self, lane, key):
+        name = f"wish-{key}"
+        answer = _call(
+            "create_plugin_scaffold",
+            name=name,
+            description="Answers the one ask this template covers.",
+            template=key,
+        )
+        assert "bundle" in answer, answer
+        verified = _call("verify_plugin_bundle", bundle=name)
+        assert verified["ok"] is True, verified
+        installed = _call("install_plugin_bundle", bundle=name)
+        assert installed["status"] == "installed", installed
+        manifest = plugin_manifest.load_manifest(lane["root"] / name)[0]
+        assert manifest["manifest_version"] == plugin_manifest.MANIFEST_VERSION_V2
+        assert (lane["root"] / name / "README.md").is_file()
+
+    @pytest.mark.parametrize("key", sorted(plugin_templates.TEMPLATES))
+    def test_the_family_the_template_grants_is_the_one_it_declares(self, lane, key):
+        name = f"wish-{key}"
+        answer = _call(
+            "create_plugin_scaffold",
+            name=name,
+            description="Answers the one ask this template covers.",
+            template=key,
+        )
+        manifest = json.loads(
+            (Path(answer["bundle"]) / plugin_manifest.MANIFEST_FILENAME).read_text(
+                encoding="utf-8"
+            )
+        )
+        families = manifest["permissions"]["tool_families"]
+        assert families == list(plugin_templates.TEMPLATES[key].families)
+        assert ("network" in families) is (key == "network-tool")
+
+    def test_the_tool_template_ships_the_tool_the_mount_reads(self, lane):
+        answer = _call(
+            "create_plugin_scaffold",
+            name="sky-report",
+            description="Reports the sky over one town.",
+            template="surface-tool",
+        )
+        manifest = json.loads(
+            (Path(answer["bundle"]) / plugin_manifest.MANIFEST_FILENAME).read_text(
+                encoding="utf-8"
+            )
+        )
+        from core.plugin_tools_contract import tool_claims
+
+        assert [claim.name for claim in tool_claims(manifest)] == ["sky_report"]
+        verified = _call("verify_plugin_bundle", bundle="sky-report")
+        assert verified["ok"] is True, verified
+        assert verified["tools"] == ["sky_report"]
+
+    def test_an_unknown_wish_is_refused_with_the_templates_that_exist(self, lane):
+        """A wish outside the family is a coded answer with a next step, not a traceback."""
+        answer = _call(
+            "create_plugin_scaffold",
+            name="holo-deck",
+            description="A hologram over the desk.",
+            template="holo-deck",
+        )
+        assert answer["error"] == "unknown_template", answer
+        assert sorted(answer["templates"]) == sorted(plugin_templates.TEMPLATES)
+        assert answer["next"]
+        assert list(creator_tools.bundles_root(lane["config"]).iterdir()) == []
+
+    def test_a_surface_template_answers_on_the_mount(self, lane, monkeypatch):
+        """A generated plugin, with nothing written after the scaffold, is a live page."""
+        monkeypatch.setenv("EPHE_OFFLINE", "1")
+        name = "countdown-widget"
+        _call(
+            "create_plugin_scaffold",
+            name=name,
+            description="Counts down to the date you picked.",
+            title="Countdown",
+        )
+        _call("verify_plugin_bundle", bundle=name)
+        installed = _call("install_plugin_bundle", bundle=name)
+        assert installed["status"] == "installed", installed
+
+        from core import plugin_runtime
+
+        plugin_runtime.lifecycle().set_enabled(name, True, actor="test")
+        plugin_runtime.invalidate_ownership_cache()
+
+        _nonce, document = _mount_body(_app(), name)
+        assert document.status_code == 200, document.text
+        assert 'data-role="line"' in document.text
+        assert "Countdown" in document.text
+
+    async def test_an_unknown_wish_answers_an_envelope_through_the_kernel(self, lane):
+        """The dispatch path adds no traceback of its own around the coded refusal."""
+        from core.tools.registry import execute_tool
+
+        answer = await execute_tool(
+            "create_plugin_scaffold",
+            {
+                "name": "holo-deck",
+                "description": "A hologram over the desk.",
+                "template": "holo-deck",
+            },
+        )
+        assert "[tool-error" not in str(answer), answer
+        payload = json.loads(answer)
+        assert payload["error"] == "unknown_template"
+        assert payload["templates"]

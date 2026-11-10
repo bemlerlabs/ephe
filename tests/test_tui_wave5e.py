@@ -934,22 +934,22 @@ def _transcript(app) -> str:
     return "\n".join(str(child.render()) for child in container.children)
 
 
-def test_boot_names_an_available_update_on_the_main_channel(app_factory, monkeypatch):
+def test_boot_names_an_available_release(app_factory, monkeypatch):
     from core import update_check
 
-    monkeypatch.setattr(
-        update_check,
-        "check_for_update",
-        lambda **_k: {
+    seen: dict[str, object] = {}
+
+    def fake(**kwargs):
+        seen.update(kwargs)
+        return {
             "enabled": True,
             "available": True,
-            "channel": "main",
-            "commitsBehind": 3,
-            "commit": "2a1405a8",
-            "latest": "deadbeef",
+            "channel": "release",
+            "latest": "0.7.0",
             "current": "0.6.0",
-        },
-    )
+        }
+
+    monkeypatch.setattr(update_check, "check_for_update", fake)
     app = app_factory()
 
     async def go():
@@ -958,9 +958,10 @@ def test_boot_names_an_available_update_on_the_main_channel(app_factory, monkeyp
             await app._async_check_update()
             await pilot.pause()
             text = _transcript(app)
-            assert "3 new commits on main since this build" in text
-            assert "2a1405a8 → deadbeef" in text
+            assert "Ephe 0.7.0 is out" in text
             assert "ephe update" in text
+            # The terminal never follows main: its own check asks releases only.
+            assert seen.get("channel") == "release"
 
     _run(go())
 

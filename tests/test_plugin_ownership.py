@@ -238,6 +238,12 @@ def test_legacy_off_is_imported_once_and_the_new_state_wins(device) -> None:
 
 
 def test_a_tool_declared_twice_is_hidden_for_everyone(device) -> None:
+    """Two activators of one kernel tool are contested; a first-party name is not theirs.
+
+    The fixture activates a kernel name on purpose: a version-1 claim on a first-party
+    name is dropped by the scan (tests/test_shadow_reserved_tool_names.py), so it could
+    never be the ambiguous pair this test pins.
+    """
     for name in ("alpha", "beta"):
         plugin = device / "plugins" / name
         plugin.mkdir(parents=True)
@@ -248,18 +254,18 @@ def test_a_tool_declared_twice_is_hidden_for_everyone(device) -> None:
                     "name": name,
                     "version": "1.0.0",
                     "description": name,
-                    "permissions": {"tool_families": ["network"], "data_roots": []},
+                    "permissions": {"tool_families": ["write"], "data_roots": []},
                     "components": {
                         "skills": [],
                         "commands": [],
-                        "tools": ["web_search"],
+                        "tools": ["create_video"],
                     },
                 }
             ),
             encoding="utf-8",
         )
     plugin_runtime.invalidate_ownership_cache()
-    assert plugin_runtime.is_tool_visible("web_search") is False
+    assert plugin_runtime.is_tool_visible("create_video") is False
     assert plugin_runtime.is_tool_visible("read_file") is True
 
 

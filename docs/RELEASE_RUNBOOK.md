@@ -2,7 +2,9 @@
 
 A release is a tag on `main` in this repository. There is no export step, no
 snapshot and no release manifest: the commit CI validated is the commit that
-ships.
+ships. Commits between tags are normal — the release channel ignores them and
+the opt-in commit channel follows them ([UPDATES.md](UPDATES.md)); only the tag
+makes a release.
 
 ## 1. Branch and pull request
 

@@ -180,3 +180,47 @@ def _default_audit(entry: dict[str, Any]) -> None:
             f"reason={entry['reason']!r}"
         ),
     )
+
+
+#: The move a refused switch or mount leaves, keyed by the code it answers with. The code
+#: and the detail say what happened; a route that prints one prints this beside it, so a
+#: reader does not have to read the source to learn what to do. The mount codes reuse the
+#: words the rail already speaks (REFUSE_* above), so this table follows the same rule.
+REFUSAL_NEXT_STEPS: dict[str, str] = {
+    "invalid_request": "Send the fields the route describes and retry the call.",
+    "unknown_plugin": "Run `ephe plugin list`, then use one of the ids it shows.",
+    "stale_state": "Reload the plugin's state on Extensions, then retry the switch.",
+    "signature_denied": (
+        "Re-sign the bundle, or remove the signature record and install it as a local "
+        "artifact."
+    ),
+    "dependency_blocked": "Install or enable the dependency the detail names, then retry.",
+    "dependency_cycle": "Break the cycle the detail names in the manifests, then retry.",
+    "idempotency_conflict": "Retry with a fresh Idempotency-Key.",
+    "dependents_enabled": "Disable the plugins that depend on it first, then retry.",
+    "not_cancellable": "Wait for the teardown to finish, then retry.",
+    "state_write_failed": "Check that the config folder is writable, then retry.",
+    REFUSE_MANIFEST: (
+        "Fix the field the detail names in the manifest, then mount the bundle again."
+    ),
+    REFUSE_CONFLICT: (
+        "Rename the tool the detail names in the manifest, then mount the bundle again."
+    ),
+    REFUSE_CHANGE: (
+        "Review the diff the answer carries, then acknowledge the changed tool by name."
+    ),
+    REFUSE_ARTIFACT: (
+        "Review the changed bytes, then acknowledge the new artifact and mount again."
+    ),
+    REFUSE_REGISTRY: (
+        "Correct the tool declaration the detail names, then mount the bundle again."
+    ),
+}
+
+
+def next_step_for(code: str) -> str:
+    """The move a lifecycle refusal leaves, framed for whichever surface prints it."""
+    return REFUSAL_NEXT_STEPS.get(
+        code,
+        "Read the detail beside this code, correct it, then retry the switch.",
+    )

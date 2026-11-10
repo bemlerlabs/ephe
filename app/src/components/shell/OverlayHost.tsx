@@ -101,7 +101,7 @@ export default function OverlayHost() {
   if (!surfaces.length) return null
   const ordered = [...surfaces].sort((a, b) => a.z - b.z)
   return (
-    <div className="overlay-host" data-testid="overlay-host">
+    <div className="overlay-host" data-testid="overlay-host" data-inert-exempt="">
       {ordered.map((surface, rank) => (
         <OverlayWindow key={surface.key} surface={surface} rank={rank} />
       ))}

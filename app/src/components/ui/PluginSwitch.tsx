@@ -29,6 +29,7 @@ export default function PluginSwitch({
   errorTestid,
   describeError,
   disabled = false,
+  showState = true,
 }: {
   name: string
   checked: boolean
@@ -38,6 +39,9 @@ export default function PluginSwitch({
   errorTestid?: string
   describeError?: (reason: unknown, fallback: string) => string
   disabled?: boolean
+  /** The visible on/off word beside the knob. Off when the row states the status
+   *  itself, so one fact is not printed twice; the accessible name keeps it. */
+  showState?: boolean
 }) {
   const [pending, setPending] = useState<'enabling' | 'disabling' | null>(null)
   const [requested, setRequested] = useState(checked)
@@ -76,12 +80,14 @@ export default function PluginSwitch({
   return (
     <div className="flex shrink-0 flex-col items-end gap-1">
       <div className="flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className={`text-ui-xs font-medium ${requested ? 'text-brand-deep' : 'text-ink-faint'}`}
-        >
-          {stateLabel}
-        </span>
+        {showState && (
+          <span
+            aria-hidden="true"
+            className={`text-ui-xs font-medium ${requested ? 'text-brand-deep' : 'text-ink-faint'}`}
+          >
+            {stateLabel}
+          </span>
+        )}
         <Switch
           checked={requested}
           onChange={(next) => void request(next)}

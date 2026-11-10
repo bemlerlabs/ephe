@@ -137,11 +137,48 @@ def _drop_registry(name: str) -> None:
 
 
 def _write_lockfile(root: Path) -> str:
+    """Rebuilds the portfolio lock; a custom root is scanned alone.
+
+    The default plugins root must be scanned together with the builtin root, or a
+    removal drops every shipped plugin from the lock it just rebuilt.
+    """
     try:
-        rebuild_lockfile(config_root() / LOCK_FILENAME, root)
+        default_root = plugin_manifest.plugins_root().resolve()
+    except Exception:  # noqa: BLE001 — an unresolved default stays an explicit root
+        default_root = None
+    scan_root = (
+        None if default_root is not None and Path(root).resolve() == default_root
+        else Path(root)
+    )
+    try:
+        rebuild_lockfile(config_root() / LOCK_FILENAME, scan_root)
         return ""
     except Exception:  # noqa: BLE001 — the package change already happened
         return "lockfile_update_failed"
+
+
+def _forget_state(name: str) -> str:
+    """Drops the removed bundle's switch, mount and host records; "" on success."""
+    try:
+        from core import plugin_runtime
+
+        plugin_runtime.lifecycle().forget(name)
+        return ""
+    except Exception as exc:  # noqa: BLE001 — the folder is gone already
+        return str(getattr(exc, "code", "") or type(exc).__name__)
+
+
+def _sweep_staging(root: Path, name: str) -> None:
+    """Removes a staging folder an interrupted install left for this name."""
+    try:
+        children = list(Path(root).iterdir())
+    except OSError:
+        return
+    obsolete = {f".staging-{name}"}
+    prefix = f".staging-{name}-"
+    for child in children:
+        if child.name in obsolete or child.name.startswith(prefix):
+            shutil.rmtree(child, ignore_errors=True)
 
 
 def _audit(kind: str, name: str, decision: str, detail: str) -> None:
@@ -330,7 +367,10 @@ def remove_plugin(
             "name": name,
             "dependents": dependents,
         }
-    if _effective_enabled(name) is not False:
+    # A folder whose manifest does not validate cannot be serving anything, so it
+    # is removable even when no switch record says it is off. Anything loadable
+    # still needs its switch off first.
+    if _read_manifest(final) is not None and _effective_enabled(name) is not False:
         return {"status": "plugin_enabled", "name": name}
 
     shutil.rmtree(final, ignore_errors=True)
@@ -340,14 +380,24 @@ def remove_plugin(
     plugin_dir(
         installed_root, name, prefix=BACKUP_PREFIX, suffix=STATE_SUFFIX
     ).unlink(missing_ok=True)
-    plugin_signing.clear_pin(name)
-    _drop_registry(name)
+    _sweep_staging(installed_root, name)
+    errors: dict[str, str] = {}
+    try:
+        plugin_signing.clear_pin(name)
+    except OSError as exc:
+        # The folder is gone; a pin that would not clear is reported in the result.
+        errors["pin_error"] = type(exc).__name__
+    try:
+        _drop_registry(name)
+    except OSError as exc:
+        errors["registry_error"] = type(exc).__name__
     data_removed = False
     if delete_data:
         data = plugin_dir(config_root() / DATA_DIRNAME, name)
         if data.exists():
             shutil.rmtree(data, ignore_errors=True)
             data_removed = True
+    state_error = _forget_state(name)
     lock_error = _write_lockfile(installed_root)
     _audit(
         "plugin_remove",

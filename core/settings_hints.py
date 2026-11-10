@@ -201,8 +201,8 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
         "trail and buttons stay put.",
     ),
     "appearance.update_channel": (
-        "Nur veröffentlichte Releases oder jeder grüne Merge aus main; der Commit-Kanal nennt den Rückstand und wendet ihn an.",  # language-gate: ignore
-        "Published releases only, or every green merge from main; the commit channel names the distance and applies it.",
+        "Release: nur veröffentlichte Tags; die signierte App und die PWA ziehen mit. Commit: jeder grüne Merge aus main — Backend und PWA folgen, die Desktop-Hülle erst mit dem nächsten Release. Das Terminal bleibt auf Releases.",  # language-gate: ignore
+        "Release: published tags only; the signed app and the PWA move with them. Commit: every green merge from main — the backend and PWA follow, the desktop shell only at the next release. The terminal stays on releases.",
     ),
     "appearance.update_check": (
         "Fragt alle 30 Minuten anonym die GitHub-Releases ab und zeigt dann das "

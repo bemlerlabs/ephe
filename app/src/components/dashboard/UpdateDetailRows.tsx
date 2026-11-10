@@ -9,10 +9,10 @@ import { formatBytes } from '@/lib/updateDetails'
 
 export function UpdateDetailRows({
   state,
-  mainChannel,
+  commitChannel,
 }: {
   state: UpdateState
-  mainChannel: boolean
+  commitChannel: boolean
 }) {
   const { t } = useTranslation()
   const size = formatBytes(state.sizeBytes)
@@ -28,8 +28,8 @@ export function UpdateDetailRows({
         <DetailRow
           label={t('update.detailsVersion')}
           value={
-            mainChannel
-              ? `${state.commit ?? '—'} → ${state.latest ?? 'main'}`
+            commitChannel
+              ? `${state.commit ?? '—'} → ${state.git_sha ?? state.latest ?? 'main'}`
               : `${state.current ?? '—'} → ${state.latest ?? '—'}`
           }
           mono

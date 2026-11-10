@@ -64,6 +64,12 @@ ENGINE_SENTENCES = {
         "the 'files' permission — ask the user to grant it, or choose a call that needs "
         "less. Ask, or choose a read-only path."
     ),
+    # PE2E: the call came from a plugin surface whose credential is not the live one.
+    "surface_token_refused": (
+        "[TOOL-DENIED] write_file was not executed: the surface credential is not live for "
+        "this plugin — reopen the surface so it mints a fresh one. Ask, or choose a "
+        "read-only path."
+    ),
 }
 
 PARAMS = {
@@ -76,6 +82,7 @@ PARAMS = {
     "secret_path_denied": {"path": "~/.ssh/id_rsa"},
     "plugin_family_undeclared": {"family": "write"},
     "creator_privilege_missing": {"privilege": "files"},
+    "surface_token_refused": {},
 }
 
 

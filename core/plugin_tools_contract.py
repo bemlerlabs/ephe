@@ -26,17 +26,19 @@ prompts and saved sessions carry it, and migrating a tool's implementation must 
 the contract. `core.tools.dynamic_registry.served_tool_name` is still the one function both
 the manifest scan and the mount call, so the rule has one home.
 
-The prefix was never what stopped one plugin answering in another's namespace, and two
-authorities already do: `reserved_namespace(name)` consults the kernel map and the live MCP
-rail and refuses a name they hold, and `core.plugin_registry` marks a name two bundles both
-declare as contested, so `refuse_contested_names` denies the mount with a reason naming both.
-Dropping the prefix also drops the collision it created — `timer` + `lite_x` and `timer-lite`
-+ `x` used to spell one string, which a single manifest could never see coming.
+The prefix was never what stopped one plugin answering in another's namespace; the
+reservation map does. `reserved_tool_names()` is its one source — the kernel map, the live
+MCP rail and the names the shipped first-party bundles serve — and `verify`, install and the
+mount read it through `reserved_tool`, refusing with the namespace code, the held name and
+the prefixed name to choose instead. `core.plugin_registry` still marks a name two bundles
+both declare as contested, so `refuse_contested_names` denies the mount with a reason naming
+both. Dropping the prefix also drops the collision it created — `timer` + `lite_x` and
+`timer-lite` + `x` used to spell one string, which a single manifest could never see coming.
 
-What replaces the prefix's guarantee is a rule with a sharper edge: a v2 bundle that declares
-a name the kernel still owns is refused at the mount, and the kernel entry retires in the same
-commit that declares it. One name, one provider, at every moment — the refusal is the
-mechanism working; routing around it is not an option the design offers.
+What replaces the prefix's guarantee is a rule with a sharper edge: a v2 bundle cannot
+declare a kernel or first-party name at all, at verify, at install and at the mount. One
+name, one provider, at every moment — the refusal is the mechanism working; routing around
+it is not an option the design offers.
 
 What is refused, in one list: an unknown field, a suffix outside `[a-z][a-z0-9_]*`, a served
 name past the 64-character ceiling the namespace carries, an entry that is absolute, leaves
@@ -59,14 +61,21 @@ if TYPE_CHECKING:
     from core.tools.dynamic_registry import ToolDescriptor
 
 __all__ = [
+    "FIRST_PARTY_RESERVED",
     "MAX_SERVED_NAME_CHARS",
     "REQUIRED_TOOL_FIELDS",
+    "RESERVED_TOOL_CODE",
+    "ReservedName",
     "TOOL_ENTRY_FIELDS",
     "ToolClaim",
     "declared_families",
     "descriptors_for",
     "module_entry",
     "reserved_namespace",
+    "reserved_tool",
+    "reserved_tool_names",
+    "reserved_tool_refusals",
+    "suggested_tool_name",
     "tool_claims",
     "validate_tools",
 ]
@@ -74,6 +83,11 @@ __all__ = [
 #: The ceiling #6 puts on a served name; a name past it cannot be registered, so a
 #: manifest that produces one is refused here rather than at the mount.
 MAX_SERVED_NAME_CHARS = 64
+#: The namespace code of a name a first-party bundle already serves. Kernel and MCP names
+#: keep the codes `core.tools.dynamic_registry` speaks (`reserved_kernel`, `reserved_mcp`).
+FIRST_PARTY_RESERVED = "reserved_first_party"
+#: The refusal code for one declared tool that claims a reserved name.
+RESERVED_TOOL_CODE = "reserved_tool_name"
 TOOL_ENTRY_FIELDS = frozenset(
     {"name", "entry", "family", "description", "parameters", "transport"}
 )
@@ -118,20 +132,161 @@ def module_entry(entry: str) -> str:
     return f"{path[: -len(_MODULE_SUFFIX)].replace('/', '.')}:{callable_name}"
 
 
-def reserved_namespace(name: str) -> str:
-    """The code of the name space a served name already sits in, or "" for none.
+def _namespace_reserved() -> dict[str, str]:
+    """The kernel and live-MCP names the dynamic registry itself refuses.
 
-    One call answers both the kernel map and the live MCP rail, because
-    `default_reserved_names` is the object the registry itself refuses registrations
-    against. Read lazily: the manifest layer does not import the tool layer at module
-    scope, and a scan that cannot read the kernel answers "" rather than crashing.
+    Read lazily: the manifest layer does not import the tool layer at module scope, and an
+    unreadable name space grants nothing rather than crashing.
     """
     try:
         from core.tools.dynamic_registry import default_reserved_names
 
-        return str(default_reserved_names().get(name) or "")
+        return dict(default_reserved_names())
     except Exception:  # noqa: BLE001 - an unreadable name space grants nothing
-        return ""
+        return {}
+
+
+def reserved_namespace(name: str) -> str:
+    """The collision code of a kernel or live-MCP name, or "" for none.
+
+    This is the dynamic registry's intake question, answered at the manifest layer so the
+    scan and the mount read the same map. A first-party bundle's name is refused through
+    `reserved_tool`, which knows which bundle ships it; this function deliberately answers
+    only the two live rails the registry registers against.
+    """
+    return str(_namespace_reserved().get(name) or "")
+
+
+@dataclass(frozen=True)
+class ReservedName:
+    """One name the platform already serves, and who holds it.
+
+    ``code`` is the namespace code a refusal speaks (`reserved_kernel`, `reserved_mcp`,
+    `reserved_first_party`), ``owner`` is the kernel, the MCP rail or the first-party
+    bundle, and ``builtin_dir`` is the directory of that bundle — the only directory that
+    may serve the name. A user bundle, and a staged copy waiting to become one, has no
+    claim on it.
+    """
+
+    name: str
+    code: str
+    owner: str
+    builtin_dir: Path | None = None
+
+    def action(self, plugin_id: str) -> str:
+        """What the author can do instead: pick the prefixed, free name."""
+        return f"choose {suggested_tool_name(self.name, plugin_id)!r}"
+
+
+def suggested_tool_name(name: str, plugin_id: str) -> str:
+    """A free served name for one bundle: `<name>_<plugin>`, inside the name ceiling."""
+    slug = re.sub(r"[^a-z0-9]+", "_", str(plugin_id).lower()).strip("_") or "plugin"
+    candidate = f"{name}_{slug}"
+    if len(candidate) > MAX_SERVED_NAME_CHARS:
+        candidate = candidate[: MAX_SERVED_NAME_CHARS - 2].rstrip("_") + "_x"
+    return candidate
+
+
+def reserved_tool_names() -> dict[str, ReservedName]:
+    """Every name a bundle may not serve, in one map — the single source of reservation.
+
+    Three answers in one place: the kernel map and the live MCP rail (through
+    `default_reserved_names`, the object the descriptor registry refuses against), and the
+    names the shipped first-party bundles serve. `verify`, install, the mount and the
+    registry scan all read this function, so the set of reserved names never forks into a
+    second catalog.
+    """
+    from core import plugin_manifest
+
+    reserved: dict[str, ReservedName] = {}
+    for name, code in _namespace_reserved().items():
+        owner = "kernel" if code == "reserved_kernel" else "mcp"
+        reserved[str(name)] = ReservedName(str(name), str(code), owner)
+    root = plugin_manifest.builtin_plugins_root()
+    for entry in plugin_manifest.scan_plugins(root):
+        manifest = entry["manifest"]
+        if entry["error"] or not isinstance(manifest, dict):
+            continue
+        for claim in tool_claims(manifest):
+            reserved.setdefault(
+                claim.name,
+                ReservedName(
+                    claim.name,
+                    FIRST_PARTY_RESERVED,
+                    claim.plugin_id,
+                    Path(entry["dir"]),
+                ),
+            )
+    return reserved
+
+
+def reserved_tool(
+    name: str,
+    *,
+    plugin_id: str = "",
+    plugin_dir: Path | str | None = None,
+    reserved: dict[str, ReservedName] | None = None,
+) -> ReservedName | None:
+    """The reservation a claim on ``name`` meets, or None when the name is free.
+
+    The bundle that ships a first-party name may serve it again — its own directory is the
+    one witness that it is that bundle, so a user copy that happens to carry the same id is
+    still refused. Every other claimant is refused, and a caller that cannot name the
+    directory fails closed.
+    """
+    table = reserved_tool_names() if reserved is None else reserved
+    entry = table.get(str(name))
+    if entry is None:
+        return None
+    if (
+        entry.builtin_dir is not None
+        and plugin_dir is not None
+        and str(plugin_id) == entry.owner
+    ):
+        try:
+            if Path(plugin_dir).resolve() == entry.builtin_dir.resolve():
+                return None
+        except OSError:
+            pass
+    return entry
+
+
+def reserved_tool_refusals(
+    manifest: dict, plugin_dir: Path | str | None = None
+) -> tuple[dict, ...]:
+    """Each declared tool that claims a reserved name, with code, name and way out.
+
+    A version-2 claim on any reserved name is refused. A version-1 manifest does not
+    contribute a tool, but it may not switch on a name a first-party bundle already serves
+    either — that is the same takeover one version older. The shape is the one `verify`
+    and the install path report: `code` is `reserved_tool_name`, `name` the claimed tool,
+    `namespace` the code of the space that holds it, and `action` the free name the author
+    can choose.
+    """
+    plugin_id = str(manifest.get("name") or "")
+    reserved = reserved_tool_names()
+    out: list[dict] = []
+    for claim in tool_claims(manifest):
+        held = reserved_tool(
+            claim.name,
+            plugin_id=plugin_id,
+            plugin_dir=plugin_dir,
+            reserved=reserved,
+        )
+        if held is None:
+            continue
+        if not claim.contributed and held.code != FIRST_PARTY_RESERVED:
+            continue
+        out.append(
+            {
+                "code": RESERVED_TOOL_CODE,
+                "name": claim.name,
+                "namespace": held.code,
+                "owner": held.owner,
+                "action": held.action(plugin_id),
+            }
+        )
+    return tuple(out)
 
 
 def validate_tools(manifest: dict, plugin_dir: Path) -> str | None:

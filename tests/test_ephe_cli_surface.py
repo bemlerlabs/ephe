@@ -124,7 +124,7 @@ def test_cmd_update_updates_the_tree_it_lives_in(monkeypatch, capsys, tmp_path):
     seen: list = []
     monkeypatch.setattr(ephe_cli, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: seen.append(root) or {"ok": True, "detail": "", "steps": []},
     )
     assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 0
@@ -134,7 +134,7 @@ def test_cmd_update_updates_the_tree_it_lives_in(monkeypatch, capsys, tmp_path):
 
 def test_cmd_update_reports_the_range_and_restart(monkeypatch, capsys):
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: {
             "ok": True,
             "reason": "",
@@ -150,7 +150,7 @@ def test_cmd_update_reports_the_range_and_restart(monkeypatch, capsys):
 
 def test_cmd_update_reports_a_refusal_with_exit_one(monkeypatch, capsys):
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: {
             "ok": False,
             "reason": "dirty_tree",
@@ -314,6 +314,7 @@ def test_cmd_session_import_error(monkeypatch, capsys):
 
 
 def test_cmd_plugin_list(monkeypatch, capsys):
+    import core.plugin_manifest as pm
     import core.plugin_store as ps
 
     monkeypatch.setattr(
@@ -322,6 +323,8 @@ def test_cmd_plugin_list(monkeypatch, capsys):
                          "personal": [{"name": "beta", "enabled": False}]},
     )
     monkeypatch.setattr(ps, "load_registry", lambda *a, **k: [{"name": "alpha", "enabled": False}])
+    # The scan reads the device's real plugins root; this test is about the catalog rows.
+    monkeypatch.setattr(pm, "scan_plugins", lambda *a, **k: [])
     assert ephe_cli.cmd_plugin(_parser().parse_args(["plugin", "list"])) == 0
     out = capsys.readouterr().out
     assert "PLUGIN" in out and "alpha" in out and "beta" in out
@@ -1905,23 +1908,25 @@ def test_the_remaining_flags_carry_their_one_liners():
     assert _help_of("tui", "--reset")
 
 
-def test_doctor_update_row_names_the_continuous_channel(monkeypatch):
+def test_doctor_update_row_asks_only_the_release_channel(monkeypatch):
     from core import update_check
 
-    monkeypatch.setattr(
-        update_check,
-        "check_for_update",
-        lambda **_k: {
+    seen: dict[str, object] = {}
+
+    def fake(**kwargs):
+        seen.update(kwargs)
+        return {
             "enabled": True,
             "available": True,
-            "channel": "main",
-            "commitsBehind": 2,
-            "commit": "2a1405a8",
-            "latest": "deadbeef",
-        },
-    )
+            "channel": "release",
+            "latest": "0.7.0",
+            "current": "0.6.0",
+        }
+
+    monkeypatch.setattr(update_check, "check_for_update", fake)
     row = ephe_cli._doctor_update_row()
-    assert "2 new commits on main" in row and "ephe update" in row
+    assert seen.get("channel") == "release"
+    assert "0.7.0 available" in row and "ephe update" in row
 
 
 def test_doctor_update_row_names_a_release_and_a_current_build(monkeypatch):
@@ -1982,27 +1987,27 @@ def test_doctor_update_row_reports_an_unreachable_source(monkeypatch):
     assert "check not possible" in ephe_cli._doctor_update_row()
 
 
-def test_doctor_update_row_uses_the_singular_for_one_commit(monkeypatch):
+def test_doctor_update_row_does_not_offer_main_even_when_the_setting_says_so(monkeypatch):
+    """The row is a diagnostic of the terminal's path, and that path is releases."""
     from core import update_check
 
+    monkeypatch.setattr(update_check, "update_channel", lambda: "commit")
     monkeypatch.setattr(
         update_check,
         "check_for_update",
-        lambda **_k: {
-            "available": True,
-            "channel": "main",
-            "commitsBehind": 1,
-            "commit": "2a1405a8",
-            "latest": "deadbeef",
-        },
+        lambda **kwargs: update_check_check(kwargs),
     )
-    row = ephe_cli._doctor_update_row()
-    assert "1 new commit on main" in row and "commits on main" not in row
+
+    def update_check_check(kwargs):
+        assert kwargs.get("channel") == "release"
+        return {"available": False, "current": "0.6.0"}
+
+    assert "current (0.6.0)" in ephe_cli._doctor_update_row()
 
 
 def test_cmd_update_json_success_is_machine_readable(monkeypatch, capsys):
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: {"ok": True, "reason": "", "detail": "a → b", "steps": []},
     )
     assert ephe_cli.cmd_update(_parser().parse_args(["update", "--json"])) == 0
@@ -2011,7 +2016,7 @@ def test_cmd_update_json_success_is_machine_readable(monkeypatch, capsys):
 
 def test_cmd_update_json_refusal_exits_one(monkeypatch, capsys):
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: {
             "ok": False,
             "reason": "busy",
@@ -2025,7 +2030,7 @@ def test_cmd_update_json_refusal_exits_one(monkeypatch, capsys):
 
 def test_cmd_update_asks_for_a_restart_only_when_the_build_moved(monkeypatch, capsys):
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: {"ok": True, "reason": "", "detail": "a → b", "steps": [], "restart": True},
     )
     assert ephe_cli.cmd_update(_parser().parse_args(["update"])) == 0

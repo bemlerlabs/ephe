@@ -40,12 +40,18 @@ def _audit_install(
             "plugin_install",
             tool=str(name),
             decision=str(result.get("status") or ""),
-            status="ok" if result.get("status") == "extracted" else "denied",
+            # A retry of the same artifact is a successful no-op, not a denial:
+            # the row a reader audits must not call an unchanged install refused.
+            status=(
+                "ok"
+                if result.get("status") in {"extracted", "already_installed"}
+                else "denied"
+            ),
             detail=(
                 f"version={result.get('version') or entry.get('version') or ''} "
                 f"trust={result.get('trust') or entry.get('trust') or ''} "
                 f"artifact={str(entry.get('sha256') or '')[:12]} "
-                f"error={str(result.get('error') or '')[:160]}"
+                f"error={str(result.get('error') or result.get('code') or '')[:160]}"
             ),
         )
     except Exception:
@@ -77,7 +83,20 @@ def _register_installed(name: str) -> None:
 
     enabled = deep_bool("plugins.plugin_autorun") and not plugin_switch_policy.read_only()
     items = load_registry()
-    if any(str(p.get("name")) == name for p in items):
+    existing = next((p for p in items if str(p.get("name")) == name), None)
+    if existing is not None:
+        # An update keeps the switch the user already set: the row is the position, and a
+        # second commit could only move it behind their back.
+        enabled = existing.get("enabled") is not False
+        if enabled:
+            from core import plugin_runtime as _runtime
+
+            try:
+                _runtime.lifecycle().set_enabled(
+                    name, True, actor="marketplace", reason="marketplace update"
+                )
+            except Exception:  # noqa: BLE001 — the row already says so; the switch is best-effort
+                pass
         return
     items.append({"name": name, "enabled": enabled})
     try:
@@ -88,11 +107,16 @@ def _register_installed(name: str) -> None:
     from core.plugin_lifecycle import LifecycleError
     from core.skills import invalidate_skill_cache
 
+    # The lifecycle's installed set comes from the same scan, so it has to be rebuilt
+    # before the switch is committed - otherwise `set_enabled` refuses an install it has
+    # not seen yet (unknown_plugin) and the registry and the lifecycle disagree.
     plugin_runtime.invalidate_ownership_cache()
     invalidate_skill_cache()
     try:
         plugin_runtime.lifecycle().set_enabled(
-            name, enabled, reason="marketplace install"
+            name, enabled, actor="marketplace", reason="marketplace install"
         )
     except LifecycleError:
-        pass
+        # A failure here would leave registry and lifecycle disagreeing about the switch,
+        # which is exactly the state this function exists to prevent - so it is loud.
+        logger.exception("lifecycle switch after install failed for %s", name)

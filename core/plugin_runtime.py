@@ -354,7 +354,80 @@ def _gate_with(
         return Gate(owner in active, owner)
     if tool_name.startswith(MCP_PREFIX):
         return Gate(MCP_CONNECTOR_PLUGIN in active, MCP_CONNECTOR_PLUGIN)
+    # A descriptor the registry still holds belongs to the plugin that published
+    # it, so a published set follows its publisher's switch instead of the scan's
+    # silence. A publisher no longer in the portfolio is the other case: its
+    # descriptor is stale, and the call has to reach the dynamic rail's coded
+    # "not available" answer rather than read as a switched-off plugin.
+    registered_owner = _descriptor_owner(tool_name)
+    if registered_owner is not None and registered_owner in _installed_versions():
+        return Gate(registered_owner in active, registered_owner)
+    # A name an unmount took off the rail a moment ago is not kernel-owned; it is
+    # a name that *was* served here. The ledger answers the late call with the
+    # coded refusal instead of letting an unknown name read as a built-in tool.
+    from core.plugin_mount_records import unmounted_owner
+
+    if unmounted_owner(tool_name):
+        return Gate(False)
     return Gate(True)
+
+
+def _descriptor_owner(tool_name: str) -> str | None:
+    try:
+        from core.tools.dynamic_registry import default_registry
+
+        descriptor = default_registry().get(tool_name)
+    except Exception:  # noqa: BLE001 — an unreadable registry grants nothing
+        return None
+    return descriptor.plugin_id if descriptor is not None else None
+
+
+def _inactive_descriptor(active: frozenset[str]) -> bool:
+    try:
+        from core.tools.dynamic_registry import default_registry
+
+        return any(
+            descriptor.plugin_id not in active
+            for descriptor in default_registry().descriptor_snapshot()
+        )
+    except Exception:  # noqa: BLE001
+        return True
+
+
+def contested_names() -> dict[str, list[dict[str, Any]]]:
+    """The names two bundles claim, with both declarations and the sentence why.
+
+    A contested name is served to nobody, which is the right verdict but not a
+    complete answer: a reader has to see which two bundles met and what each
+    declared, or the two quietly disagreeing folders stay invisible. This is the
+    one producer behind `/api/plugins`'s `contested` section.
+    """
+    activations = _activations_cached(*_roots_key())
+    tools = [
+        {
+            "name": name,
+            "reason": activations.reason_for(name),
+            "claims": [
+                {"plugin": plugin, "declaration": declaration}
+                for plugin, declaration in activations.claims_for(name)
+            ],
+        }
+        for name in activations.conflicts
+    ]
+    table = _memory_providers_cached(*_roots_key())
+    memory_providers = [
+        {
+            "name": provider_id,
+            "reason": table.conflict_reason(provider_id),
+            "claims": [
+                {"plugin": claim.plugin_id, "declaration": claim.provider_id}
+                for claim in table.claims
+                if claim.provider_id == provider_id
+            ],
+        }
+        for provider_id in table.contested
+    ]
+    return {"tools": tools, "memory_providers": memory_providers}
 
 
 def tool_gate(tool_name: str, path=None) -> Gate:
@@ -375,7 +448,11 @@ def filter_schemas(schemas: list[dict], path=None) -> list[dict]:
     """Post-filter for get_tool_schemas(), outside the schema cache."""
     active = active_plugin_ids(Path(path) if path is not None else None)
     activations, conflicts = _activations()
-    if not conflicts and len(active) == len(_installed_versions()):
+    if (
+        not conflicts
+        and len(active) == len(_installed_versions())
+        and not _inactive_descriptor(active)
+    ):
         return schemas
     from core.tools.dynamic_wiring import MARKER_ALIASES
 

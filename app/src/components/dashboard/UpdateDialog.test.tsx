@@ -29,9 +29,18 @@ vi.mock('react-i18next', () => ({
         'update.downloading': 'Lade Ephe {{version}} herunter…',
         'update.installAndRestart': 'Installieren & neu starten',
         'update.viewReleases': 'Releases ansehen',
-        'update.mainChannel': '{{count}} new commits on main since your build.',
+        'update.commitChannel': '{{count}} new commits on main since your build.',
         'update.viewChanges': 'View changes',
         'update.applyNow': 'Update now',
+        'update.channelLine': 'Channel: {{channel}}',
+        'update.channelName.release': 'release',
+        'update.channelName.commit': 'commit',
+        'update.channelHint.release': 'Only tagged releases. Signed installs move the app.',
+        'update.channelHint.commit':
+          'Every commit on main. The backend and web app move; the desktop shell does not.',
+        'update.channelFrom': 'This answer comes from the {{channel}} channel.',
+        'update.commitShellNote':
+          'The desktop app shell follows signed releases only. This update moves the backend and web app; the shell catches up with the next release.',
         'update.applying': 'Pulling the newest commits and reinstalling.',
         'update.titleApplying': 'Updating',
         'update.applied': 'This installation runs the newest commits now.',
@@ -47,6 +56,10 @@ vi.mock('react-i18next', () => ({
         'update.blocked.not_on_main': 'This checkout is on another branch.',
         'update.blocked.dirty_tree': 'This checkout has local changes.',
         'update.blocked.other': 'This build cannot pull by itself.',
+        'update.blocked.ahead_of_release':
+          'This checkout is already past the newest release. The release channel never moves it backwards.',
+        'update.blocked.tag_missing':
+          'This checkout does not carry the release tag yet. Check the connection and try again.',
       }
       const raw = map[key] ?? key
       return String(raw).replace(/\{\{(\w+)\}\}/g, (_m, n: string) =>
@@ -215,11 +228,11 @@ describe('U-3 — the running phases read as themselves', () => {
   })
 })
 
-describe('continuous channel — commits before the next tag', () => {
+describe('commit channel — commits before the next tag', () => {
   const state: UpdateState = {
     phase: 'available',
     progress: null,
-    channel: 'main',
+    channel: 'commit',
     current: '0.6.0',
     commit: '2a1405a837f0',
     latest: 'deadbeefcafe',
@@ -248,7 +261,7 @@ describe('applying a merge that has no release yet', () => {
   const found: UpdateState = {
     phase: 'available',
     progress: null,
-    channel: 'main',
+    channel: 'commit',
     commitsBehind: 2,
     commit: '2a1405a8',
     latest: 'deadbeef',
@@ -293,7 +306,7 @@ describe('the commit path states its own closure', () => {
   const found: UpdateState = {
     phase: 'available',
     progress: null,
-    channel: 'main',
+    channel: 'commit',
     commitsBehind: 2,
     commit: '2a1405a8',
     latest: 'deadbeef',
@@ -347,5 +360,114 @@ describe('the commit path states its own closure', () => {
       'This checkout has local changes.',
     )
     expect(screen.getByTestId('update-recheck')).toBeTruthy()
+  })
+})
+
+describe('the channel the answer came from, and what switching means', () => {
+  it('names the configured channel and its promise', () => {
+    const state: UpdateState = {
+      phase: 'current',
+      progress: null,
+      current: '0.6.0',
+      channel: 'release',
+      updateChannel: 'release',
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    const line = screen.getByTestId('update-channel').textContent ?? ''
+    expect(line).toContain('release')
+    expect(line).toContain('Only tagged releases')
+  })
+
+  it('names both facts when a release answers under the commit setting', () => {
+    const state: UpdateState = {
+      phase: 'available',
+      progress: null,
+      channel: 'release',
+      updateChannel: 'commit',
+      current: '0.6.0',
+      latest: '0.7.0',
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    const line = screen.getByTestId('update-channel').textContent ?? ''
+    expect(line).toContain('commit')
+    expect(line).toContain('comes from the release channel')
+  })
+
+  it('the commit channel on the desktop says the shell itself stays behind', () => {
+    ;(window as unknown as Record<string, unknown>).__TAURI__ = {
+      core: { invoke: async () => undefined },
+    }
+    const state: UpdateState = {
+      phase: 'available',
+      progress: null,
+      channel: 'commit',
+      updateChannel: 'commit',
+      current: '0.6.0',
+      commit: '2a1405a8',
+      git_sha: 'deadbeef',
+      latest: '0.6.0+deadbeef',
+      commitsBehind: 2,
+      applyOk: true,
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    expect(screen.getByTestId('update-commit-shell-note').textContent).toContain(
+      'signed releases only',
+    )
+    delete (window as unknown as Record<string, unknown>).__TAURI__
+  })
+
+  it('the PWA takes a release through the backend when this installation can', () => {
+    const onApplyRelease = vi.fn()
+    const state: UpdateState = {
+      phase: 'available',
+      progress: null,
+      channel: 'release',
+      updateChannel: 'release',
+      current: '0.6.0',
+      latest: '0.7.0',
+      applyOk: true,
+      url: 'https://example.invalid/releases/0.7.0',
+    }
+    expect(updateActionOf(state)?.run).toBe('release')
+    render(<UpdateDialog {...base} state={state} onApplyRelease={onApplyRelease} />)
+    fireEvent.click(screen.getByTestId('update-apply-release'))
+    expect(onApplyRelease).toHaveBeenCalledTimes(1)
+  })
+
+  it('without a pullable checkout the browser still points at the release', () => {
+    const state: UpdateState = {
+      phase: 'available',
+      progress: null,
+      channel: 'release',
+      updateChannel: 'release',
+      current: '0.6.0',
+      latest: '0.7.0',
+      applyOk: false,
+      applyBlocked: 'not_a_checkout',
+      url: 'https://example.invalid/releases/0.7.0',
+    }
+    expect(updateActionOf(state)?.run).toBe('install')
+    render(<UpdateDialog {...base} state={state} releasesUrl={state.url} />)
+    expect(screen.queryByTestId('update-apply-release')).toBeNull()
+    expect(screen.getByTestId('update-install').textContent).toBe('Releases ansehen')
+  })
+})
+
+describe('the release path states its own structural refusals', () => {
+  it('a checkout past the newest release is not offered a retry', () => {
+    const state: UpdateState = {
+      phase: 'failed',
+      progress: null,
+      failedAt: 'install',
+      reasonCode: 'ahead_of_release',
+      reason: 'this checkout is ahead of the newest release',
+      releaseUrl: 'https://github.com/bemlerlabs/ephe/releases/latest',
+    }
+    render(<UpdateDialog {...base} state={state} />)
+    expect(screen.getByTestId('update-failed-sentence').textContent).toContain(
+      'past the newest release',
+    )
+    expect(screen.queryByTestId('update-recheck')).toBeNull()
+    expect(screen.getByTestId('update-release-link')).toBeTruthy()
   })
 })

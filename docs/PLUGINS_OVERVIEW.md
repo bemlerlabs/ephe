@@ -19,7 +19,7 @@ and switchable.
   Presets: guide, image-studio, mcp-connector, plugin-creator, skill-creator, vision, voice.
   The catalogue also offers five first-party skill packs and one bundled third-party pack
   (Superpowers, MIT); the 51 built-in skills are separate ([`SKILLS.md`](SKILLS.md)).
-- **CLI:** `ephe plugin list | enable | disable | install`.
+- **CLI:** `ephe plugin list | enable | disable | install | remove`.
 - **Switching in:** `ephe import <dir>` imports persona, skills, tool servers, and settings from an
   existing local agent setup. It plans first, writes additively, and leaves everything disabled until
   you enable it ([`docs/SWITCHING.md`](SWITCHING.md)).

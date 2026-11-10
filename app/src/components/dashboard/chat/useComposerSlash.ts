@@ -4,6 +4,7 @@ import {
   getSkillSlashCommands,
   isAppCommand,
   loadSkillSlashCommands,
+  SLASH_COMMANDS_CHANGED,
 } from '@/lib/slashCommands'
 
 /**
@@ -29,11 +30,18 @@ export function useComposerSlash({
   const [skillCmds, setSkillCmds] = useState(() => getSkillSlashCommands())
   useEffect(() => {
     let live = true
-    void loadSkillSlashCommands().then(() => {
-      if (live) setSkillCmds(getSkillSlashCommands())
-    })
+    const reload = () => {
+      void loadSkillSlashCommands().then(() => {
+        if (live) setSkillCmds(getSkillSlashCommands())
+      })
+    }
+    reload()
+    // A plugin switched in the settings overlay changes the menu while this composer
+    // stays mounted; the announcement is what keeps the two in step.
+    window.addEventListener(SLASH_COMMANDS_CHANGED, reload)
     return () => {
       live = false
+      window.removeEventListener(SLASH_COMMANDS_CHANGED, reload)
     }
   }, [])
 

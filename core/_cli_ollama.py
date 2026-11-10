@@ -202,7 +202,7 @@ def _repair_repo() -> tuple[bool, str]:
     if (status.stdout or "").strip():
         return False, "local changes present; skip git pull to protect your work"
 
-    fetch = _run(["git", "fetch", "--quiet", "origin"], env=os.environ.copy())
+    fetch = _run(["git", "fetch", "--quiet", "--tags", "--force", "origin"], env=os.environ.copy())
     if fetch.returncode != 0:
         return False, "git fetch failed"
 
@@ -211,16 +211,31 @@ def _repair_repo() -> tuple[bool, str]:
     if not branch_name:
         return True, "detached HEAD; skip auto-update"
 
-    behind = _run(["git", "rev-list", "--count", f"HEAD..origin/{branch_name}"], env=os.environ.copy(), capture_output=True)
+    # The terminal follows release tags, not the branch. `doctor --fix` moves to
+    # the newest tag reachable from origin/main, so a repair cannot smuggle
+    # between-release commits into a release-pinned installation.
+    described = _run(
+        ["git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*", "origin/main"],
+        env=os.environ.copy(),
+        capture_output=True,
+    )
+    tag = (described.stdout or "").strip() if described.returncode == 0 else ""
+    if not tag:
+        return True, "no release tag on origin/main; skip auto-update"
+
+    behind = _run(["git", "rev-list", "--count", f"HEAD..{tag}"], env=os.environ.copy(), capture_output=True)
     if behind.returncode != 0:
-        return False, "could not compare with origin"
+        return False, "could not compare with the release tag"
     if (behind.stdout or "").strip() in ("", "0"):
+        ahead = _run(["git", "rev-list", "--count", f"{tag}..HEAD"], env=os.environ.copy(), capture_output=True)
+        if ahead.returncode == 0 and (ahead.stdout or "").strip() not in ("", "0"):
+            return True, "ahead of the newest release; skip auto-update"
         return True, "repo up to date"
 
-    pull = _run(["git", "pull", "--ff-only"], env=os.environ.copy())
-    if pull.returncode != 0:
-        return False, "git pull --ff-only failed"
-    return True, "repo updated"
+    merge = _run(["git", "merge", "--ff-only", tag], env=os.environ.copy())
+    if merge.returncode != 0:
+        return False, "release-tag fast-forward failed"
+    return True, "repo updated to the newest release tag"
 
 
 def _repair_dependencies() -> tuple[bool, str]:

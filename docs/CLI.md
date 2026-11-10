@@ -44,12 +44,20 @@ setup does fail it — a half-written engine config, a configured engine that do
 a missing model of the chosen engine, a skills-lock mismatch.
 
 The model line covers a tag that exists: `--model`, else `EPHE_MODEL`, else the persisted
-local-Ollama choice. `--fix` repairs the safe drift: repo fast-forward, dependencies
+local-Ollama choice. `--fix` repairs the safe drift: release-tag fast-forward, dependencies
 (`.[gui,voice]`), Ollama service + model, PWA build. With no tag there is nothing to pull,
 so the repair is skipped instead of turning the run red.
 
-## `ephe update [--model <name>]`
-Repo fast-forward, dependencies, model pull (ollama), installer invocation. Without `--model` and without `EPHE_MODEL` no model is passed to the installer: `ephe update` names no tag on the user's behalf.
+## `ephe update [--model <name>] [--channel release|commit]`
+Release-tag fast-forward, dependencies, installer invocation. The default channel is
+`release`: `ephe update` asks the release feed, moves the checkout to that tag and runs the
+installer. It never follows `main`'s tip and never asks for an untagged merge; between
+releases it is a no-op. If a newer release exists but the checkout already contains it, the
+command refuses rather than rewriting the tree backwards. `--channel commit` is the explicit
+exception for a checkout that serves
+the desktop/PWA backend: it follows `main` and says so. Without `--model` and without
+`EPHE_MODEL` no model is passed to the installer: `ephe update` names no tag on the user's
+behalf. See [UPDATES.md](UPDATES.md) for the three surfaces.
 
 ## `ephe voice list | install <voice>...`
 Manage local Piper voices:
@@ -68,10 +76,11 @@ the model inside the chosen engine — a model name is not an engine choice. `--
 <url>` picks an OpenAI-compatible engine explicitly and needs a tag from `--model` or
 `EPHE_OPENAI_COMPAT_MODEL`; with neither it fails closed and names that variable.
 
-One update check a day: when the checkout is behind its upstream, the app shows the
-update after the greeting, runs `git pull --ff-only` plus the installer on request,
-and closes so the next start carries the new build. `EPHE_NO_UPDATE_CHECK=1` turns
-the check off.
+One update check at start: when a newer release tag exists, the app shows the update after
+the greeting, runs the release-tag fast-forward plus the installer on request, and closes so
+the next start carries the new build. The terminal does not follow `main` between releases;
+a stored `commit` channel belongs to the desktop/PWA and is ignored here.
+`EPHE_NO_UPDATE_CHECK=1` turns the check off.
 
 ## `ephe configure [--force]`
 Store the engine choice once (a preset or your own endpoint). The choice lands in
@@ -123,10 +132,23 @@ Run a single tool directly (e.g. `ephe tool generate_image --arg prompt="…" --
 Manage the local sessions under `~/.ephe/sessions/`. `list` prints them; `new` starts one;
 `switch` and `rm` address one by id; `rename` sets its title.
 
-## `ephe plugin list | enable <id> | disable <id> | install <id>`
-List catalogue plugins with their enabled state, toggle one (the next agent turn follows),
-or install a marketplace artifact. An install is sha256-verified and manifest-validated;
-a refused artifact is quarantined and leaves nothing enabled.
+## `ephe plugin list [--json] | enable <id> | disable <id> | install <id> | remove <id> [--yes] [--keep-data] [--dry-run]`
+`list` prints the installed bundles first — name, version, switch state and the tools they
+contribute — then the catalogue with an `installed` column. A bundle Creator Mode made on
+this machine is an installed row even when the catalogue has no line for it. `--json`
+carries `{installed, catalog}` with the same facts.
+
+`enable`/`disable` toggle one bundle (the next agent turn follows). `install` fetches a
+marketplace artifact: sha256-verified, manifest-validated, quarantined on error so a refused
+artifact leaves nothing enabled.
+
+`remove` previews by default: the folder, the `plugins.json` row, the lockfile entry, the
+mount record and the stored files it would delete, plus what stays (the lifecycle state row,
+the creator draft). `--yes` commits through the same service path as
+`POST /api/market/remove`; an enabled bundle is switched off first and the answer names it.
+`--keep-data` keeps `plugin-data/<id>` and the bundle's state folder, `--dry-run` names the
+preview. Exit 0 for a preview or a removal, 1 for a bundle that is not installed, one that
+ships with Ephe, or one an enabled dependent still needs.
 
 ## `ephe import <dir> [--apply] [--dry-run]`
 Read a reference client's directory — persona files, `SKILL.md` trees, tool-server configs
@@ -171,7 +193,7 @@ ephe start --model <tag>       # name the tag your engine serves
 ephe doctor                    # setup check (Ollama, model, server)
 ephe doctor --fix              # safe local repairs (repo, deps, Ollama, model)
 ephe doctor --json             # machine-readable health report
-ephe update                    # repo pull + dependencies + model
+ephe update                    # newest release tag + dependencies + model
 ephe                           # terminal UI (Textual); opens its setup if no engine is chosen
 ephe tui                       # same surface, named
 ephe tui --model <tag>         # TUI on a tag you named yourself
@@ -184,7 +206,8 @@ ephe run "fix the failing test" # agent run in the terminal — streams live, re
 ephe run --resume <session> "…" # continue a saved run where it stopped
 ephe show <change-set>         # print a change set's diff, file by file
 ephe agents                    # live workspaces, their owner and state
-ephe plugin list               # catalogue plugins and their switches
+ephe plugin list               # installed bundles first, then the catalogue
+ephe plugin remove <id>        # preview; --yes removes, --keep-data keeps the files
 ephe import ~/.other-client    # plan a settings/skills import (--apply writes it)
 ephe session list|new|switch|rm|rename
 ephe completion                # shell completion

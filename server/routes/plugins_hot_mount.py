@@ -109,6 +109,29 @@ def post_plugin_hot_mount(
     return result.as_dict()
 
 
+@router.post("/plugins/{plugin_id}/reload")
+def post_plugin_reload(plugin_id: str, body: dict | None = None) -> dict:
+    """Re-enter the mount after the bundle's file changed.
+
+    The same transition a user-facing mount runs, with nothing acknowledged on the
+    caller's behalf: a moved tool contract is the pin refusal, an unreadable
+    manifest is the manifest refusal, and in both cases the descriptors the last
+    accepted mount published stay served. This is the one caller of
+    `core.plugin_hot_reload.reload_bundle`, which the Creator loop and the reload
+    gesture in the shell both intend.
+    """
+    from core.plugin_hot_reload import reload_bundle
+
+    _read_only_guard("reload", plugin_id)
+    _signature_gate(plugin_id)
+    try:
+        result = reload_bundle(plugin_id)
+    except LifecycleError as exc:
+        raise _mount_http_error(exc) from exc
+    _invalidate_caches()
+    return result.as_dict()
+
+
 @router.delete("/plugins/{plugin_id}/hot-mount")
 def delete_plugin_hot_mount(plugin_id: str, reason: str = "") -> dict:
     """Remove exactly this bundle's names; a call for one that just left is a coded refusal."""

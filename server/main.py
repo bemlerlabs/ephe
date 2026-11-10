@@ -394,6 +394,14 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         body = error_payload(code_id, message, rid)
         if extra is not None:
             body["error"]["detail"] = extra
+            # The move this refusal leaves travels beside the code, so a reader is not
+            # left to read the source: the detail's own `next`, else the registry's line
+            # for the code the detail names.
+            from server.refusals import NEXT_STEPS
+
+            step = str(extra.get("next") or NEXT_STEPS.get(str(extra.get("code") or ""), ""))
+            if step:
+                body["error"]["next"] = step
         return JSONResponse(
             body,
             status_code=status_code,
@@ -443,6 +451,8 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         body["error"]["reason_code"] = exc.code
         if exc.params:
             body["error"]["reason_params"] = dict(exc.params)
+        if exc.next:
+            body["error"]["next"] = exc.next
         return JSONResponse(
             body, status_code=exc.status_code, headers={REQUEST_ID_HEADER: rid or ""}
         )

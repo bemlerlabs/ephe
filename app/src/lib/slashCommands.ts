@@ -270,6 +270,22 @@ export function filterCommands(input: string, extraCommands: SlashCommand[] = []
 const skillCommands: SlashCommand[] = []
 let skillCommandsLoaded = false
 
+/** The one window event a switched plugin announces: menus re-read their source. */
+export const SLASH_COMMANDS_CHANGED = 'ephe:slash-commands-changed'
+
+/**
+ * A plugin switch changed the command set. The cache is dropped and every mounted
+ * composer is asked to read again — a menu that kept the old set until reload made the
+ * enable look half-done: the plugin row said active while its /commands were missing.
+ */
+export function announceSlashCommandsChanged(): void {
+  skillCommands.length = 0
+  skillCommandsLoaded = false
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(SLASH_COMMANDS_CHANGED))
+  }
+}
+
 export function getSkillSlashCommands(): SlashCommand[] {
   // Snapshot copy: loadSkillSlashCommands mutates in place, and React bails
   // out of state updates / memo recomputes on identical references. Returning

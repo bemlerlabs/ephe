@@ -516,7 +516,10 @@ def _doctor_update_row(seconds: float = 3.0) -> str:
         try:
             from core.update_check import check_for_update
 
-            box["value"] = check_for_update()
+            # The terminal's own update path is release-only, so the row is too:
+            # a stored commit channel must not advertise a command that will not
+            # follow main.
+            box["value"] = check_for_update(channel="release")
         except Exception:  # noqa: BLE001 — the row is informational
             pass
         finally:
@@ -528,13 +531,6 @@ def _doctor_update_row(seconds: float = 3.0) -> str:
     info = box.get("value")
     if not info:
         return "check skipped"
-    if info.get("available") and info.get("channel") == "main":
-        behind = int(info.get("commitsBehind") or 0)
-        plural = "" if behind == 1 else "s"
-        return (
-            f"{behind} new commit{plural} on main since this build "
-            f"({info.get('commit', '?')} → {info.get('latest', 'main')}) — ephe update"
-        )
     if info.get("available"):
         return (
             f"{info.get('latest', '?')} available (running {info.get('current', '?')}) "
@@ -1884,13 +1880,22 @@ def cmd_bench(args: argparse.Namespace) -> int:
 
 
 def cmd_update(args: argparse.Namespace) -> int:
-    """Fast-forward this checkout and reinstall it; git's own words never reach the user."""
-    from core.update_apply import apply_update
+    """Move this checkout to the newest release, and reinstall it.
 
+    The terminal is release-only: the default path asks the release feed and
+    fast-forwards to the tag. `--channel commit` is the explicit exception for
+    a checkout that serves the desktop/PWA backend; it follows main instead and
+    says so, because that checkout is no longer release-pinned."""
+    from core.update_apply import apply_release, apply_update
+
+    channel = getattr(args, "channel", "release")
     # The tree the CLI lives in, named here so a test that moves PROJECT_ROOT
     # moves the update with it — this used to read the module's own default and
     # ran an installer wherever the process happened to start.
-    result = apply_update(PROJECT_ROOT)
+    if channel == "commit":
+        result = apply_update(PROJECT_ROOT)
+    else:
+        result = apply_release(PROJECT_ROOT)
     if args.json:
         print(json.dumps(result, indent=2))
         return 0 if result.get("ok") else 1
@@ -1898,6 +1903,8 @@ def cmd_update(args: argparse.Namespace) -> int:
         print(f"  Update stopped: {result.get('detail') or 'the update did not run'}")
         return 1
     print(f"  {result.get('detail') or 'already current'}")
+    if channel == "commit":
+        print("  This checkout now follows main; `ephe update` is release-only otherwise.")
     if result.get("restart"):
         print("  Restart Ephe to run the new build.")
     return 0
@@ -2082,31 +2089,222 @@ def cmd_session(args: argparse.Namespace) -> int:
     return 2
 
 
+def _plugin_catalog_rows(installed: list[dict]) -> list[dict]:
+    """The catalogue as rows, each marked whether a bundle of that name is on disk."""
+    from core.plugin_store import load_catalog
+
+    on_disk = {str(row["name"]) for row in installed}
+    catalog = load_catalog()
+    rows: list[dict] = []
+    for segment in ("public", "personal"):
+        for entry in catalog[segment]:
+            name = str(entry.get("name") or "")
+            if not name:
+                continue
+            rows.append(
+                {
+                    "name": name,
+                    "version": str(entry.get("version") or ""),
+                    "description": str(entry.get("description") or ""),
+                    "segment": segment,
+                    "installed": name in on_disk,
+                }
+            )
+    return sorted(rows, key=lambda row: (row["name"], row["segment"]))
+
+
+def _plugin_list(as_json: bool) -> int:
+    """Installed bundles first, the catalogue second: two sets, never merged."""
+    from core.plugin_store import installed_bundles
+
+    installed = installed_bundles()
+    catalog = _plugin_catalog_rows(installed)
+    if as_json:
+        print(
+            json.dumps(
+                {"installed": installed, "catalog": catalog},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    print(f"Installed ({len(installed)}):")
+    print(f"{'PLUGIN':<26} {'VERSION':<9} {'STATE':<10} TOOLS")
+    for row in installed:
+        tools = ", ".join(tool["name"] for tool in row["capabilities"]["tools"]) or "-"
+        state = row["state"]
+        if row.get("error"):
+            state = "invalid"
+        print(f"{row['name']:<26} {row['version'] or '-':<9} {state:<10} {tools}")
+        if row.get("error"):
+            print(
+                f"  fix ephe-plugin.json, then run `ephe plugin list` again "
+                f"({row['error']})"
+            )
+    print()
+    print(f"Catalog ({len(catalog)}):")
+    print(f"{'PLUGIN':<26} {'VERSION':<9} INSTALLED")
+    for row in catalog:
+        print(
+            f"{row['name']:<26} {row['version'] or '-':<9} "
+            f"{'yes' if row['installed'] else 'no'}"
+        )
+    return 0
+
+
+def _plugin_remove_labels(
+    row: dict, facts: dict, keep_data: bool
+) -> tuple[list[str], list[str]]:
+    """What a removal would take and what would stay, in reader words."""
+    remove = ["the bundle folder, its plugins.json row and its lockfile entry"]
+    if row.get("enabled"):
+        remove.append("the switch: it is on and would be turned off first")
+    if facts.get("mount"):
+        remove.append("the mount record and the tools it published")
+    keep = []
+    if facts.get("data"):
+        if keep_data:
+            keep.append("the stored files (--keep-data)")
+        else:
+            remove.append("the stored files")
+    if facts.get("state_record"):
+        keep.append("the lifecycle state record")
+    if facts.get("surface_record"):
+        keep.append("the surface-host record")
+    if facts.get("creator_draft"):
+        keep.append("the creator draft")
+    return remove, keep
+
+
+def _plugin_remove(args: argparse.Namespace) -> int:
+    """Preview by default; `--yes` commits through `marketplace_service.remove`."""
+    from core import marketplace_service
+    from core.plugin_store import installed_bundles
+
+    name = str(getattr(args, "plugin_id", ""))
+    as_json = bool(getattr(args, "json", False))
+    keep_data = bool(getattr(args, "keep_data", False))
+    confirmed = bool(getattr(args, "yes", False))
+    facts = marketplace_service.removal_facts(name)
+    row = next(
+        (item for item in installed_bundles() if item["name"] == name),
+        {"name": name, "version": "", "state": "missing", "enabled": False},
+    )
+    if not facts["bundle"]:
+        if facts["bundled"]:
+            _emit_error(
+                args,
+                1,
+                f"plugin '{name}' ships with Ephe and cannot be removed",
+                f"`ephe plugin disable {name}` turns it off",
+            )
+        else:
+            _emit_error(
+                args,
+                1,
+                f"plugin '{name}' is not installed",
+                "`ephe plugin list` names the bundles on this device",
+            )
+        return 1
+    remove, keep = _plugin_remove_labels(row, facts, keep_data)
+    if not confirmed:
+        if as_json:
+            print(
+                json.dumps(
+                    {
+                        "status": "preview",
+                        "confirmed": False,
+                        "name": name,
+                        "version": row.get("version", ""),
+                        "state": row.get("state", ""),
+                        "enabled": bool(row.get("enabled")),
+                        "would_remove": remove,
+                        "would_keep": keep,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 0
+        print(f"Plugin '{name}' {row.get('version') or '?'} ({row.get('state')})")
+        print("Would remove:")
+        for line in remove:
+            print(f"  - {line}")
+        if keep:
+            print("Would keep:")
+            for line in keep:
+                print(f"  - {line}")
+        print("Nothing was removed. Re-run with --yes to remove it.")
+        return 0
+    result = marketplace_service.remove(
+        name, delete_data=not keep_data, force=True
+    )
+    status = str(result.get("status") or "")
+    if status != "removed":
+        if status == "still_active":
+            _emit_error(
+                args,
+                1,
+                f"plugin '{name}' is still enabled",
+                f"`ephe plugin disable {name}` first",
+            )
+        elif status == "dependents_enabled":
+            dependents = ", ".join(str(item) for item in result.get("dependents") or [])
+            _emit_error(
+                args,
+                1,
+                f"plugin '{name}' is still required by enabled dependents: {dependents}",
+                "disable the dependents first",
+            )
+        else:
+            reason = str(result.get("code") or status or "remove_failed")
+            _emit_error(args, 1, f"removing '{name}' failed: {reason}")
+        return 1
+    if as_json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    removed = [
+        label
+        for label, present in (
+            ("the bundle folder", True),
+            ("the plugins.json row", result["removed"]["registry"]),
+            ("the lockfile entry", True),
+            ("the mount record", result["removed"]["mount"]),
+            ("the stored files", result["removed"]["data"]),
+        )
+        if present
+    ]
+    stays = [
+        label
+        for label, present in (
+            ("the stored files", result["remains"]["data"]),
+            ("the lifecycle state record", result["remains"]["state_record"]),
+            ("the surface-host record", result["remains"]["surface_record"]),
+            ("the creator draft", result["remains"]["creator_draft"]),
+        )
+        if present
+    ]
+    print(f"Removed '{name}' {result.get('version') or '?'}.")
+    if result.get("deactivated"):
+        print("  switch   it was on, turned off first")
+    print(f"  removed  {', '.join(removed)}")
+    if stays:
+        print(f"  kept     {', '.join(stays)}")
+    return 0
+
+
 def cmd_plugin(args: argparse.Namespace) -> int:
-    """E4a: plugin management (list / enable / disable / install)."""
+    """E4a: plugin management (list / enable / disable / install / remove)."""
     from core import plugin_market, plugin_runtime
     from core.plugin_lifecycle import LifecycleError
-    from core.plugin_store import load_catalog
 
     action = getattr(args, "action", "list")
 
     if action == "list":
-        catalog = load_catalog()
-        rows = []
-        for seg in ("public", "personal"):
-            for entry in catalog[seg]:
-                name = str(entry["name"])
-                rows.append(
-                    (
-                        name,
-                        "on" if plugin_runtime.effective_enabled(name) else "off",
-                        entry.get("version", "-"),
-                    )
-                )
-        print(f"{'PLUGIN':<22} STATE  VERSION")
-        for name, state, version in sorted(rows):
-            print(f"{name:<22} {state:<6} {version}")
-        return 0
+        return _plugin_list(bool(getattr(args, "json", False)))
+
+    if action == "remove":
+        return _plugin_remove(args)
 
     if action in ("enable", "disable"):
         pid = str(args.plugin_id)
@@ -2115,7 +2313,8 @@ def cmd_plugin(args: argparse.Namespace) -> int:
                 pid, action == "enable", actor="cli", reason="cli plugin command"
             )
         except LifecycleError as exc:
-            print(f"[error] {pid}: {exc.code} ({exc.detail})")
+            print(f"[error] {pid}: {exc.code} ({exc.detail})", file=sys.stderr)
+            print("next: check the id with `ephe plugin list`", file=sys.stderr)
             return 1
         from core.skills import invalidate_skill_cache
 
@@ -2139,7 +2338,18 @@ def cmd_plugin(args: argparse.Namespace) -> int:
             )
             return 0
         reason = status.get("error") or status["status"]
-        print(f"[error] install of '{pid}' failed: {status['status']} ({reason})")
+        print(
+            f"[error] install of '{pid}' failed: {status['status']} ({reason})",
+            file=sys.stderr,
+        )
+        if status["status"] == "unknown_plugin":
+            print(
+                "next: this id is not in plugin-marketplace.json — list the ids with "
+                "`ephe plugin list`",
+                file=sys.stderr,
+            )
+        elif status["status"] == "local_trust_required":
+            print("next: an unsigned local artifact needs --trust-local", file=sys.stderr)
         return 1
 
     print(f"[error] unknown plugin action: {action}")
@@ -2706,7 +2916,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  ephe status                    Say whether the backend is running\n"
             "  ephe start --lan --open        Expose on LAN for QR mobile pairing, open browser\n"
             "  ephe doctor --fix              Check setup and repair safe local drift\n"
-            "  ephe update                    Pull latest, reinstall deps, update model\n"
+            "  ephe update                    Install the newest release tag, deps, model\n"
             "  ephe tui --model <tag>         Start the terminal UI on your own tag\n"
             "  ephe serve                      Run OpenAI-compatible engine (/v1/chat/completions)\n"
             "  ephe serve --lan                Expose engine on LAN with a generated auth token\n\n"
@@ -2880,7 +3090,7 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser(
         "doctor",
         help="Check local setup",
-        description="Diagnose the local setup. --fix repairs safe drift (fast-forward, deps, Ollama).",
+        description="Diagnose the local setup. --fix repairs safe drift (release-tag fast-forward, deps, Ollama).",
     )
     doctor.add_argument(
         "--model",
@@ -2893,7 +3103,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Port the local app is probed on (default: {DEFAULT_PORT})",
     )
     doctor.add_argument("--json", action="store_true", help="Machine-readable output")
-    doctor.add_argument("--fix", action="store_true", help="Repair safe local drift: repo fast-forward, dependencies, Ollama service and model")
+    doctor.add_argument("--fix", action="store_true", help="Repair safe local drift: release-tag fast-forward, dependencies, Ollama service and model")
     doctor.set_defaults(func=cmd_doctor)
 
     code = sub.add_parser(
@@ -3021,12 +3231,20 @@ def build_parser() -> argparse.ArgumentParser:
     voice.add_argument("voices", nargs="*", help="Stimmen-Namen (locale-name-quality), z. B. en_US-amy-medium")
     voice.set_defaults(func=cmd_voice)
 
-    update = sub.add_parser("update", help="Update repo, dependencies and local model")
+    update = sub.add_parser("update", help="Update to the newest release, dependencies and local model")
     update.add_argument(
         "--model",
         default=os.environ.get("EPHE_MODEL") or None,
         help="Tag to pull; without it nothing is pulled — `ephe update` names no model "
              "on the user's behalf",
+    )
+    update.add_argument(
+        "--channel",
+        choices=("release", "commit"),
+        default="release",
+        help="release (default): fast-forward to the newest release tag. "
+             "commit: follow main's tip — the explicit exception for a checkout that "
+             "serves the desktop/PWA backend.",
     )
     update.add_argument("--json", action="store_true", help="Machine-readable output")
     update.set_defaults(func=cmd_update)
@@ -3218,19 +3436,24 @@ def build_parser() -> argparse.ArgumentParser:
     # E4a: Plugin marketplace + management
     plugin = sub.add_parser(
         "plugin",
-        help="Manage plugins: list / enable / disable / install (marketplace)",
+        help="Manage plugins: list / enable / disable / install / remove",
         description=(
-            "List, toggle and install plugins.\n"
-            "list       show catalog plugins with their enabled state\n"
+            "List, toggle, install and remove plugins.\n"
+            "list       installed bundles first (state = switch state, tools), the catalog second\n"
             "enable     turn a plugin on  (affects the next agent turn)\n"
             "disable    turn a plugin off (its tools stop being offered)\n"
-            "install    install an artifact from plugin-marketplace.json\n"
-            "           (sha256-verified, manifest-validated, quarantined on error)"
+            "install    install an artifact from plugin-marketplace.json; an "
+            "unsigned local bundle needs --trust-local\n"
+            "           (sha256-verified, manifest-validated, quarantined on error)\n"
+            "remove     preview removes a bundle; --yes commits, --keep-data keeps\n"
+            "           its stored files\n"
+            'Example: ephe plugin list  ->  ephe plugin enable countdown' 
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     psub = plugin.add_subparsers(dest="action", required=True)
-    plist = psub.add_parser("list", help="List known plugins")
+    plist = psub.add_parser("list", help="List installed plugins and the catalog")
+    plist.add_argument("--json", action="store_true", help="Machine-readable JSON output")
     plist.set_defaults(func=cmd_plugin)
     penable = psub.add_parser("enable", help="Enable a plugin")
     penable.add_argument("plugin_id", help="Plugin id from `ephe plugin list`")
@@ -3246,6 +3469,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Explicitly trust an unsigned local artifact",
     )
     pinstall.set_defaults(func=cmd_plugin)
+    premove = psub.add_parser(
+        "remove",
+        help="Remove an installed plugin (preview without --yes)",
+    )
+    premove.add_argument("plugin_id", help="Plugin id from `ephe plugin list`")
+    premove.add_argument(
+        "--keep-data",
+        action="store_true",
+        help="Keep the bundle's stored files (removed by default)",
+    )
+    preview_or_commit = premove.add_mutually_exclusive_group()
+    preview_or_commit.add_argument(
+        "--yes",
+        action="store_true",
+        help="Remove for real; without it the run is a preview",
+    )
+    preview_or_commit.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="The default, named: print the plan and remove nothing",
+    )
+    premove.add_argument("--json", action="store_true", help="Machine-readable JSON output")
+    premove.set_defaults(func=cmd_plugin)
 
     # E6: vendor-neutral reference-client import
     imp = sub.add_parser(

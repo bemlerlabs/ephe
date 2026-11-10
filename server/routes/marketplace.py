@@ -38,8 +38,10 @@ _REVIEW_FIELDS = (
 )
 #: The install-outcome facts a refusal may carry: F2 (QA 2026-11-10) made "the artifact
 #: was refused" an answer about the disk too, so the client can say that nothing stayed
-#: behind. A bool, so no artifact text can ride it out.
-_RESULT_FIELDS = ("quarantined",)
+#: behind. `reason` is the verifier's closed sentence for a trust refusal (the two hashes
+#: of a drift, the name of a missing key class) — never an exception or a path, and only
+#: the installer sets it, so a fetch failure cannot ride this slot.
+_RESULT_FIELDS = ("quarantined", "reason")
 
 
 def _compact(body: dict) -> dict:
@@ -82,13 +84,17 @@ def _public_result(result: dict) -> dict:
             "status": result.get("status"),
             "name": result.get("name"),
             "version": result.get("version"),
+            "state": result.get("state"),
             "trust": result.get("trust"),
             "warning": result.get("warning"),
             "permissions": result.get("permissions"),
             "enabled": result.get("enabled"),
+            "deactivated": result.get("deactivated"),
             "activation_error": result.get("activation_error"),
             "lockfile_error": result.get("lockfile_error"),
             "data_removed": result.get("data_removed"),
+            "removed": result.get("removed"),
+            "remains": result.get("remains"),
             "dependents": result.get("dependents"),
             "code": result.get("code"),
         }
@@ -107,6 +113,11 @@ _ERROR_STATUS = {
     "local_trust_required": 428,
     "permission_review": 428,
     "permission_delta": 428,
+    "signature_invalid": 409,
+    "signature_required": 409,
+    "blocked_source": 409,
+    "invalid_trust": 409,
+    "unknown_plugin": 404,
 }
 
 
@@ -356,10 +367,12 @@ async def rollback(body: dict) -> dict:
 
 
 @router.post("/market/remove")
-async def remove_plugin(body: dict) -> dict:
+async def remove_plugin(body: dict, force: bool = False) -> dict:
     name = str(body.get("name") or "")
     result = marketplace_service.remove(
-        name, delete_data=bool(body.get("delete_data"))
+        name,
+        delete_data=bool(body.get("delete_data")),
+        force=bool(force),
     )
     status = result.get("status")
     if status == "not_installed":
@@ -367,6 +380,36 @@ async def remove_plugin(body: dict) -> dict:
             status_code=404,
             detail={"code": "not_installed", "detail": _REFUSED},
         )
+    if status == "bundled":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "bundled_not_removable",
+                "detail": (
+                    "this plugin ships with Ephe — disable it instead, with "
+                    "`ephe plugin disable <id>`"
+                ),
+            },
+        )
+    if status == "still_active":
+        # PE2E 8d: the route used to switch the bundle off itself and answer 200.
+        # A switch that changes under the reader belongs in the answer, and the
+        # explicit permission has one spelling: `?force=true`.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "still_active",
+                "detail": (
+                    "the plugin is still enabled — disable it first, or retry with "
+                    "?force=true"
+                ),
+                "state": result.get("state"),
+                "version": result.get("version"),
+                "enabled": True,
+            },
+        )
+    if status == "refused":
+        _refusal("refused", result)
     if status in {"plugin_enabled", "dependents_enabled"}:
         raise HTTPException(
             status_code=409,

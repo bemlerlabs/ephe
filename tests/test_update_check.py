@@ -1,8 +1,9 @@
-"""One look a day across starts, and the update the terminal app runs on request.
+"""One look a day across starts.
 
 The release-feed contract itself (semver, fail-soft, TTL) is pinned in
-tests/test_r67_update_check.py. Here: the day-long store that outlives a
-process, and the pull-plus-install the app triggers from the prompt.
+tests/test_r67_update_check.py; the release update the terminal runs is in
+tests/test_update_release_path.py. Here: the day-long store that outlives a
+process.
 """
 
 from __future__ import annotations
@@ -25,13 +26,6 @@ def isolated(tmp_path, monkeypatch: pytest.MonkeyPatch):
     update_check._reset_cache()
 
 
-class _Done:
-    def __init__(self, stdout: str = "", returncode: int = 0, stderr: str = "") -> None:
-        self.stdout = stdout
-        self.returncode = returncode
-        self.stderr = stderr
-
-
 def _state_file(config_dir):
     return config_dir / update_check.STATE_FILE
 
@@ -40,12 +34,6 @@ def _store(config_dir, result: dict, age_seconds: float = 0) -> None:
     _state_file(config_dir).write_text(
         json.dumps({"checked_at": time.time() - age_seconds, "result": result})
     )
-
-
-def _checkout(config_dir):
-    checkout = config_dir / "checkout"
-    (checkout / ".git").mkdir(parents=True)
-    return checkout
 
 
 def test_the_answer_of_the_day_is_reused(isolated, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -90,49 +78,4 @@ def test_a_disabled_feature_stores_nothing(isolated, monkeypatch: pytest.MonkeyP
         lambda force=False: {"enabled": False, "available": False},
     )
     update_check.daily_check()
-    assert not _state_file(isolated).exists()
-
-
-def test_updating_without_an_installer_reports_it(isolated) -> None:
-    checkout = _checkout(isolated)
-    ok, line = update_check.run_update(root=checkout)
-    assert ok is False
-    assert line == "install.sh not found"
-
-
-def test_a_failed_pull_reports_its_last_line(
-    isolated, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    checkout = _checkout(isolated)
-    (checkout / "install.sh").write_text("#!/bin/sh\n")
-    monkeypatch.setattr(
-        update_check,
-        "_git",
-        lambda root, *args: _Done(
-            returncode=1, stderr="error: local changes\nfatal: not fast-forward"
-        ),
-    )
-    ok, line = update_check.run_update(root=checkout)
-    assert ok is False
-    assert line == "fatal: not fast-forward"
-
-
-def test_a_successful_update_clears_the_day(isolated, monkeypatch: pytest.MonkeyPatch) -> None:
-    checkout = _checkout(isolated)
-    (checkout / "install.sh").write_text("#!/bin/sh\n")
-    _store(isolated, {"enabled": True, "available": True, "latest": "0.6.0"})
-    monkeypatch.setattr(update_check, "_git", lambda root, *args: _Done())
-
-    class _Installed:
-        returncode = 0
-        stdout = "ok"
-        stderr = ""
-
-    monkeypatch.setattr(
-        update_check.subprocess, "run", lambda *args, **kwargs: _Installed()
-    )
-
-    ok, line = update_check.run_update(root=checkout)
-
-    assert (ok, line) == (True, "updated")
     assert not _state_file(isolated).exists()

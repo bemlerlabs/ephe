@@ -245,9 +245,11 @@ class TestRollbackTrustClass:
 
         assert result["status"] == "rolled_back", result
         lock = read_lockfile(cfg / "plugin-lock.json")
-        assert [entry["trust_class"] for entry in lock["plugins"]] == [
-            plugin_signing.USER
-        ]
+        # The lock describes the whole portfolio now, so the shipped bundles sit
+        # beside alpha; the migrated class is what this test pins.
+        by_name = {entry["name"]: entry for entry in lock["plugins"]}
+        assert by_name["alpha"]["trust_class"] == plugin_signing.USER
+        assert len(lock["plugins"]) > 1
 
 
 class TestRemove:

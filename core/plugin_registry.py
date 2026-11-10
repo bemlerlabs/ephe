@@ -69,22 +69,41 @@ class ToolActivations:
     """Who owns which served tool name, across the whole scanned portfolio.
 
     ``owners`` maps every name a manifest speaks of to one plugin; ``conflicts`` lists
-    the names with more than one claim, or one claim and a kernel or MCP name already
-    using it. The runtime gate hides every conflicted name from everyone, so the list has
-    to say what met: ``reason_for`` names both plugins and both declarations.
+    the names with more than one claim. A claim on a reserved name (kernel, live MCP or a
+    shipped first-party bundle) is not a claim at all and is dropped by the scan, so it can
+    neither own the name nor hide it. The runtime gate hides every conflicted name from
+    everyone, so the list has to say what met: ``reason_for`` names both plugins and both
+    declarations.
     """
 
     owners: tuple[tuple[str, str], ...]
     conflicts: tuple[str, ...]
     contributed: tuple[str, ...] = ()
     _reasons: tuple[tuple[str, str], ...] = ()
+    _claims: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = ()
 
     def reason_for(self, tool_name: str) -> str:
         return dict(self._reasons).get(tool_name, f"{tool_name}: claimed by more than one plugin")
 
+    def claims_for(self, tool_name: str) -> tuple[tuple[str, str], ...]:
+        """Every (plugin, declaration) that claimed one name, in manifest order."""
+        return dict(self._claims).get(tool_name, ())
+
 
 def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
-    """Like load_tool_activations, but reports conflicting tools instead of raising."""
+    """Like load_tool_activations, but reports conflicting tools instead of raising.
+
+    A claim on a reserved name is dropped before it can own anything: the first-party
+    bundle, the kernel or the MCP rail keeps serving the name whether the claiming bundle
+    is installed, enabled or disabled. The one exception is the version-1 contract — a
+    version-1 manifest switches on a kernel tool rather than contributing one, so its
+    kernel activation still owns that name; a version-1 activation of a first-party name
+    is dropped like a version-2 claim, because the shipped bundle already serves it. The
+    refusal belongs to `verify`, to the install path and to the mount, not to the offer —
+    a scan that let a competing claim win is how a disabled bundle silently removed
+    `web_search` from every session.
+    """
+    reserved = plugin_tools_contract.reserved_tool_names()
     owners: dict[str, str] = {}
     claimants: dict[str, list[tuple[str, str]]] = {}
     conflicts: set[str] = set()
@@ -97,6 +116,22 @@ def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
             continue
         plugin = str(manifest["name"])
         for claim in plugin_tools_contract.tool_claims(manifest):
+            held = plugin_tools_contract.reserved_tool(
+                claim.name,
+                plugin_id=plugin,
+                plugin_dir=entry["dir"],
+                reserved=reserved,
+            )
+            # A version-2 claim on any reserved name is a takeover attempt and owns
+            # nothing. A version-1 manifest does not contribute a tool: it switches on a
+            # kernel tool that already exists, which is the version-1 contract. It is
+            # dropped only for a first-party name, because that provider already serves the
+            # tool and a foreign activator must not be able to hide it.
+            if held is not None and (
+                claim.contributed
+                or held.code == plugin_tools_contract.FIRST_PARTY_RESERVED
+            ):
+                continue
             tool_name = claim.name
             if tool_name in owners and owners[tool_name] != plugin:
                 conflicts.add(tool_name)
@@ -105,16 +140,18 @@ def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
             claimants.setdefault(tool_name, []).append((plugin, claim.suffix))
             if claim.contributed:
                 contributed.add(tool_name)
-                if plugin_tools_contract.reserved_namespace(tool_name):
-                    conflicts.add(tool_name)
     reasons = tuple(
         (name, _conflict_reason(name, claimants.get(name, ()))) for name in sorted(conflicts)
+    )
+    claims = tuple(
+        (name, tuple(claimants.get(name, ()))) for name in sorted(claimants)
     )
     return ToolActivations(
         owners=tuple(sorted(owners.items())),
         conflicts=tuple(sorted(conflicts)),
         contributed=tuple(sorted(contributed)),
         _reasons=reasons,
+        _claims=claims,
     )
 
 

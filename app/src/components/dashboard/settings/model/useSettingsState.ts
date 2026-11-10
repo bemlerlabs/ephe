@@ -24,6 +24,8 @@ import type {
   CodeExecPolicy,
   HooksView,
   NetworkStatus,
+  PluginCommandInfo,
+  MarketInstalledRow,
 } from '@/lib/api'
 import type { SettingsPanelProps, TabKey } from '../types'
 
@@ -72,6 +74,14 @@ export function useSettingsState(props: SettingsPanelProps) {
   }, [settings?.generation])
   // Wave 6: plugin-store view + the deep section register
   const [pluginView, setPluginView] = useState<PluginView | null>(null)
+  // The capability strip in each row reads the commands the route reports for the
+  // enabled plugins, and the orphan group reads the installed inventory. Both are
+  // best-effort: a failure leaves the row with the abilities it already has.
+  const [pluginCommands, setPluginCommands] = useState<PluginCommandInfo[] | null>(null)
+  const [installedPlugins, setInstalledPlugins] = useState<MarketInstalledRow[] | null>(null)
+  // A list that could not be read is a state of its own: the section says so and
+  // offers the retry, instead of holding a loading row forever.
+  const [pluginLoadError, setPluginLoadError] = useState(false)
   // S-wave: client-side plugin filter (the app-shell search field)
   const [pluginQuery, setPluginQuery] = useState('')
   // E4b: expanded detail sheet (plugin id or null)
@@ -229,7 +239,7 @@ export function useSettingsState(props: SettingsPanelProps) {
   return {
     isOpen,
     onClose,
-    // The resolved tab, not the raw prop: the open-effect reads this value.
+    // The resolved tab; the open-effect reads this value.
     initialTab: initialTabResolved,
     t,
     i18n,
@@ -258,6 +268,12 @@ export function useSettingsState(props: SettingsPanelProps) {
     setGenDraft,
     pluginView,
     setPluginView,
+    pluginCommands,
+    setPluginCommands,
+    installedPlugins,
+    setInstalledPlugins,
+    pluginLoadError,
+    setPluginLoadError,
     pluginQuery,
     setPluginQuery,
     expandedPlugin,

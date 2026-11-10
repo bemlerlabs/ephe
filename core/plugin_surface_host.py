@@ -102,3 +102,8 @@ def merge_surfaces(
     for plugin_id, record in (local or {}).items():
         if previous.get(plugin_id) != record:
             records[str(plugin_id)] = dict(record)
+    # A `forget` or a cleared placement deletes this instance's record; a key
+    # another process wrote after this instance loaded stays.
+    for plugin_id in list(records):
+        if plugin_id in previous and plugin_id not in (local or {}):
+            records.pop(plugin_id, None)
