@@ -481,7 +481,7 @@ export default function ChatInput({
           rows={1}
         />
         <div
-          className="flex flex-nowrap items-center justify-between gap-x-1 mt-2"
+          className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0.5 mt-2 max-sm:flex-nowrap"
           data-testid="composer-actions-row"
         >
           {/* G3: hidden file inputs (browser path; Tauri uses the native picker) */}

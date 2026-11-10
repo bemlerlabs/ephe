@@ -82,10 +82,10 @@ describe('composer mobile layout — the 44px touch floor below lg', () => {
   it('keeps one line: the row no longer wraps into a second inner row', () => {
     render(<ChatInput onSend={vi.fn()} />)
     const row = screen.getByTestId('composer-actions-row')
-    // Quieting 2026-11: the second inner line was a wrap artifact. The row is
-    // explicitly one line, and the controls that need room step out below sm.
-    expect(row.className).toContain('flex-nowrap')
-    expect(row.className).not.toContain('flex-wrap')
+    // A wrap is the row's fallback for a squeezed pane (the Playwright spec at 1100 px
+    // with the panel open measures it); at a normal width every control sits on one line.
+    expect(row.className).toContain('flex-wrap')
+    expect(row.className).toContain('max-sm:flex-nowrap')
     expect(row.className).not.toContain('gap-y-2')
     const left = row.querySelector('.gap-x-1')
     expect(left, 'left sub-group keeps the narrow column gap').not.toBeNull()
