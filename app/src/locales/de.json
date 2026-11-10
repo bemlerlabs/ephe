@@ -208,14 +208,9 @@
     "thoughtBriefly": "Kurz nachgedacht",
     "thoughtForSeconds": "Gedacht für {{duration}}",
     "thoughtForSecondsCount": "Gedacht für {{duration}} · {{count}} Pausen",
-    "toolRunning": "Führt {{tool}} aus…",
-    "toolCompleted": "{{tool}} abgeschlossen",
-    "toolDenied": "{{tool}} abgelehnt",
-    "toolFailed": "{{tool}} fehlgeschlagen",
     "backendMismatch": "Die App ist {{shell}}, ihr Backend läuft noch mit {{backend}}. Starte Ephe neu.",
     "backendUpdated": "Der Backend-Code wurde aktualisiert. Starte Ephe neu.",
     "backendReinstalling": "Das Backend aktualisiert seine Umgebung für die neue Version. Ephe sagt, wann es fertig ist.",
-    "buildMismatch": "Eine aktualisierte Oberfläche ist bereit — lade das Fenster, um sie zu laden.",
     "buildMismatchShell": "Eine neue Oberfläche ist bereit. Aktualisiere die App, um sie zu laden.",
     "toolArgsLabel": "Parameter",
     "stepObserved": "Von der Seite gelesen",
@@ -258,20 +253,6 @@
     "toolRuntimeKernelHint": "Lief im Ephe-Prozess mit vollem Host-Zugriff — bewusst gewählt per EPHE_CODE_EXEC=kernel.",
     "toolCopyCmd": "Befehl kopieren",
     "toolOpenPreview": "Im Browser öffnen",
-    "toolTipShell": {
-      "title": "Befehl",
-      "body": "Führt einen Befehl im Arbeitsordner aus und zeigt die Ausgabe."
-    },
-    "toolTipEdit": {
-      "title": "Bearbeiten",
-      "body": "Ändert eine Datei und zeigt den Unterschied."
-    },
-    "toolTipWrite": { "title": "Anlegen", "body": "Schreibt eine Datei und zeigt ihren Inhalt." },
-    "toolTipRead": { "title": "Lesen", "body": "Öffnet eine Datei und gibt ihren Inhalt an Ephe." },
-    "toolTipSearch": { "title": "Suchen", "body": "Sucht Treffer im Arbeitsordner." },
-    "toolTipWeb": { "title": "Webseite", "body": "Lädt eine Seite und zeigt, was zurückkam." },
-    "toolTipTask": { "title": "Schritte", "body": "Hält die Aufgabenliste aktuell." },
-    "toolTipGeneric": { "title": "Werkzeug", "body": "Argumente und Ergebnis dieses Schritts." },
     "sidePanelToggle": "Ephes Computer ein-/ausblenden",
     "streamError": "Beim Antworten ist ein Fehler aufgetreten: {{message}}",
     "streamErrorUnknown": "Unbekannter Fehler",
@@ -321,6 +302,8 @@
     "attachImage": "Bild anhängen",
     "captureScreen": "Screenshot aufnehmen",
     "openPalette": "Befehlspalette öffnen",
+    "composerDetails": "Kontext- und Denk-Details",
+    "showBrowserPage": "Seite anzeigen",
     "branchFrom": "Zweig",
     "cellLife": "Zelle {{ordinal}} · {{ms}} ms/Aufruf",
     "cellRunning": "läuft",
@@ -416,7 +399,6 @@
       "body": "Diese Datei wurde aus der Arbeitskopie entfernt."
     },
     "toolWaiting": "Wartet auf Freigabe",
-    "toolApproved": "{{tool}} genehmigt",
     "goToMessage": "Zu Nachricht {{n}}",
     "askNoTools": "keine Werkzeuge im Analyst-Modus",
     "proof": {
@@ -504,7 +486,6 @@
     "wideResearchTemplate": "Breite Recherche zum Thema „THEMA\": schicke 5 Helfer (spawn_agent) parallel los, jeder deckt eine Perspektive/Quelle ab (z. B. offizielle Doku, technischer Tiefgang, Praxiserfahrung, Kritik/Grenzen, aktuelle Entwicklungen 2026). Jeder Helfer fasst seine Funde mit Quellen-Links zusammen. Am Ende verbindest du alles zu einer strukturierten Antwort mit Quellenliste.",
     "attachMenuAria": "Anhang hinzufügen",
     "permissionAria": "Freigaben",
-    "thinkingChipHint": "Gezeigt, ob Ephe in dieser Aufgabe bereits mitgedacht hat — reiner Status, nicht schaltbar",
     "recallHint": "↑/↓ blättert durch deine bereits gesendeten Nachrichten",
     "recallAria": "Verlauf: Position {{pos}} von {{total}}",
     "modelUnconfiguredHint": "nicht konfiguriert",
@@ -527,9 +508,6 @@
     },
     "solLearned": "Eine Regel für dieses Projekt wurde gelernt",
     "solOpen": "Ansehen / Bearbeiten",
-    "ranOneTool": "1 Werkzeug ausgeführt",
-    "ranTools": "{{count}} Werkzeuge ausgeführt",
-    "runRunning": "Läuft",
     "stepPill": "Schritt {{n}} / {{total}}"
   },
   "sidebar": {
@@ -2296,6 +2274,8 @@
     },
     "contextFree": "frei",
     "contextFreeOf": "{{free}} von {{window}} frei",
+    "remainingPercent": "{{percent}} % frei",
+    "detailsTitle": "Verbrauch & Speicher",
     "tokPerSecHint": "Token pro Sekunde (geschätzt)",
     "ttftHint": "Zeit bis zum ersten Token",
     "breakdownHint": "Token-Aufschlüsselung",
@@ -2423,7 +2403,6 @@
     "task": "Schritte",
     "subagent": "Helfer",
     "tool": "Werkzeug",
-    "count": "{{count}} Aufrufe",
     "count_one": "{{count}} Aufruf",
     "count_other": "{{count}} Aufrufe"
   },
@@ -2471,7 +2450,7 @@
     "navTools": "Werkzeuge",
     "navDiscover": "Discover",
     "navKnowledge": "Wissen",
-    "navWorkspaces": "Workspaces",
+    "navWorkspaces": "Arbeitsbereiche",
     "navArtifacts": "Artefakte",
     "navSettings": "Einstellungen"
   },

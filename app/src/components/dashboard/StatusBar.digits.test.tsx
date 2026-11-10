@@ -4,12 +4,21 @@
 // `shrink-0`, the text in between has to give way.
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import StatusBar from '@/components/dashboard/StatusBar'
-import type { ChatMessage } from '@/types'
+import StatusDetails from '@/components/dashboard/statusBar/StatusDetails'
 
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>()
-  return { ...actual, getContextBudget: vi.fn(async () => ({}) as never) }
+  return {
+    ...actual,
+    getContextBudget: vi.fn(async () => ({}) as never),
+    fetchIndexStatus: vi.fn(async () => ({
+      state: 'idle',
+      files: 0,
+      symbols: 0,
+      indexed: 0,
+      total: 0,
+    })),
+  }
 })
 
 vi.mock('@/store/chatStore', () => ({
@@ -39,16 +48,14 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const msg = (): ChatMessage[] => [
-  { id: 'u-1', role: 'user', content: 'x'.repeat(420), timestamp: Date.now() },
-]
+const details = () => <StatusDetails remaining={0} window={0} tokenizer={null} />
 
 const NUMBER_CLASS = 'shrink-0'
 const TEXT_CLASS = 'overflow-hidden'
 
 describe('Statuszeile: Ziffern werden nie abgeschnitten (P4 Befund 6)', () => {
   it('die Zahl-Stuecke sind undisponibel, das Wort dazwichen darf weichen', () => {
-    render(<StatusBar messages={msg()} />)
+    render(details())
     const chip = screen.getByTestId('statusbar-storage-chip')
     const numbers = screen.getAllByTestId('statusbar-storage-number')
     expect(numbers.length).toBe(2)
@@ -73,7 +80,7 @@ describe('Statuszeile: Ziffern werden nie abgeschnitten (P4 Befund 6)', () => {
   })
 
   it('der sichtbare Text bleibt die ganze Zeile ohne Auslassungszeichen in den Zahlen', () => {
-    render(<StatusBar messages={msg()} />)
+    render(details())
     const chip = screen.getByTestId('statusbar-storage-chip')
     expect(chip.textContent).toMatch(/^48 Sitzungen · ~\d+[.,]\d+ MB$/)
     expect(chip.textContent).not.toMatch(/…|\.\.\./)
@@ -83,7 +90,7 @@ describe('Statuszeile: Ziffern werden nie abgeschnitten (P4 Befund 6)', () => {
   })
 
   it('Pille liegt in einer flex-Zeile, damit min-w-0 wirklich weichen kann', () => {
-    render(<StatusBar messages={msg()} />)
+    render(details())
     expect(screen.getByTestId('statusbar-storage-chip').className).toContain('flex')
   })
 })

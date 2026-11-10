@@ -129,6 +129,9 @@ export default function ChatInput({
   // Wave 5: Creator enters through a sheet — its tile opens the consent dialog and the
   // session switches only on the answer written for that session.
   const [consentOpen, setConsentOpen] = useState(false)
+  // F3/quieting: the token figures and /compact are secondary; the thinking control
+  // is their one door. Closed by default so the composer reads as one row of controls.
+  const [detailsOpen, setDetailsOpen] = useState(false)
   // P6 (ref-23): the plus menu bundles file/image/screenshot attachments
   const [attachOpen, setAttachOpen] = useState(false)
   // W19 → P3 wave 2026-10-05: composer menus as a body portal — the overhang into
@@ -251,16 +254,18 @@ export default function ChatInput({
       model: chipOpen,
       mode: modeOpen,
       attach: attachOpen,
+      details: detailsOpen,
       mention: mentionOpen,
       slash: slashOpen,
     }),
-    [chipOpen, modeOpen, attachOpen, mentionOpen, slashOpen],
+    [chipOpen, modeOpen, attachOpen, detailsOpen, mentionOpen, slashOpen],
   )
   const closePopup = useCallback(
     (which: ComposerPopupKey) => {
       if (which === 'model') setChipOpen(false)
       else if (which === 'mode') setModeOpen(false)
       else if (which === 'attach') setAttachOpen(false)
+      else if (which === 'details') setDetailsOpen(false)
       else if (which === 'mention') dismissMention()
       else if (which === 'slash') setSlashDismissed(true)
     },
@@ -476,7 +481,7 @@ export default function ChatInput({
           rows={1}
         />
         <div
-          className="flex flex-wrap max-sm:flex-nowrap items-center justify-between gap-x-1 gap-y-2 max-sm:gap-x-1 mt-2"
+          className="flex flex-nowrap items-center justify-between gap-x-1 mt-2"
           data-testid="composer-actions-row"
         >
           {/* G3: hidden file inputs (browser path; Tauri uses the native picker) */}
@@ -502,7 +507,7 @@ export default function ChatInput({
             }}
           />
           {/* Narrow column gap keeps the controls on one line; the wide gap moves to the rows a wrapped rail needs. */}
-          <div className="flex min-w-0 flex-wrap max-sm:flex-nowrap items-center gap-x-1 gap-y-2">
+          <div className="flex min-w-0 flex-nowrap items-center gap-x-1">
             {/* P6 (ref-23): ONE plus for all attachments — file/image/screenshot
                 live in the menu, the main row stays narrow. */}
             <ComposerAttachButton
@@ -601,15 +606,11 @@ export default function ChatInput({
               <Command className="h-4 w-4" />
             </button>
           </div>
-          {/* M3 (reference pattern): model chip + thinking chip + send in one
-              right-hand group — like the reference composer pattern. */}
+          {/* M3 (reference pattern): model chip + the details door + send in one
+              right-hand group. The token figures and /compact sit behind that door —
+              the area belongs to the text, and the ring on send already carries the
+              same occupancy as a shape. */}
           <div className="relative flex min-w-0 shrink-0 items-center gap-1 ml-auto max-sm:max-w-[8rem] max-sm:overflow-hidden">
-            <ComposerContextMeter
-              percent={contextPercent}
-              used={contextTokens?.used ?? null}
-              window={contextTokens?.window ?? null}
-              onCompact={() => onSlashCommand?.('/compact')}
-            />
             <ComposerModelChip
               open={chipOpen}
               anchorRef={modelChipRef}
@@ -630,23 +631,22 @@ export default function ChatInput({
                 window.location.hash = '#/setup'
               }}
             />
-            {/* P3-6: thinking status — pure status, NOT a switch: thinking cannot be
-                toggled in the composer (the engine mode decides), this row only
-                observes the session. Hence no switch look (no border, no
-                background), but a title and the full name. */}
-            <span
+            {/* P3-6: the thinking state stays visible (status, not a switch — the
+                engine mode decides), and its button is the one door to the composer's
+                secondary figures: the token meter and /compact live behind it. */}
+            <button
+              type="button"
               data-testid="composer-thinking-chip"
-              role="status"
-              aria-label={`${String(t('chat.thinkingChipAria'))}: ${String(t(thinkingChipKey))}`}
-              title={t('chat.thinkingChipHint', {
-                defaultValue:
-                  'Shows whether Ephe already thought along in this task — status only, not a switch',
-              })}
-              className="inline-flex items-center gap-1 px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 max-lg:min-h-11 max-lg:px-1 max-sm:hidden"
+              aria-label={`${String(t('chat.composerDetails'))}: ${String(t('chat.thinkingChipAria'))} ${String(t(thinkingChipKey))}`}
+              aria-expanded={detailsOpen}
+              aria-controls="composer-details"
+              title={t('chat.composerDetails')}
+              onClick={() => setDetailsOpen((v) => !v)}
+              className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 transition-colors hover:bg-surface hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 max-lg:min-h-11 max-lg:px-1 max-sm:hidden"
             >
               <Brain className="h-3 w-3 shrink-0" aria-hidden="true" />
               <span>{t(thinkingChipKey)}</span>
-            </span>
+            </button>
             <ComposerSendButton
               streaming={streaming}
               sendDisabled={disabled || (!streaming && !message.trim())}
@@ -657,6 +657,30 @@ export default function ChatInput({
             />
           </div>
         </div>
+        {detailsOpen && (
+          <div
+            id="composer-details"
+            data-testid="composer-details"
+            className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-hairline pt-1.5 font-mono text-ui-2xs text-ink-faint"
+          >
+            {contextPercent != null &&
+              contextTokens?.used != null &&
+              contextTokens?.window != null && (
+                <>
+                  <ComposerContextMeter
+                    percent={contextPercent}
+                    used={contextTokens.used}
+                    window={contextTokens.window}
+                    onCompact={() => onSlashCommand?.('/compact')}
+                  />
+                  <span aria-hidden="true">·</span>
+                </>
+              )}
+            <span data-testid="composer-thinking-detail">
+              {t('chat.thinkingChipAria')}: {t(thinkingChipKey)}
+            </span>
+          </div>
+        )}
         <AttachmentPreview
           attachments={attachments}
           onRemove={(i) => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}

@@ -79,14 +79,16 @@ describe('composer mobile layout — the 44px touch floor below lg', () => {
     expect(cls('composer-thinking-chip')).toContain('max-lg:min-h-11')
   })
 
-  it('the action row reflows and keeps thumb separation when it does', () => {
+  it('keeps one line: the row no longer wraps into a second inner row', () => {
     render(<ChatInput onSend={vi.fn()} />)
     const row = screen.getByTestId('composer-actions-row')
-    expect(row.className).toContain('flex-wrap')
-    // The column gap is narrow so the controls keep one line; the wider gap sits
-    // on the rows, which is where a wrapped rail needs the thumb separation.
-    const left = row.querySelector('.gap-x-1.gap-y-2')
-    expect(left, 'left sub-group: narrow columns, wide rows').not.toBeNull()
+    // Quieting 2026-11: the second inner line was a wrap artifact. The row is
+    // explicitly one line, and the controls that need room step out below sm.
+    expect(row.className).toContain('flex-nowrap')
+    expect(row.className).not.toContain('flex-wrap')
+    expect(row.className).not.toContain('gap-y-2')
+    const left = row.querySelector('.gap-x-1')
+    expect(left, 'left sub-group keeps the narrow column gap').not.toBeNull()
   })
 
   it('the empty field is one line, and the touch floor holds it below sm and on touch', () => {

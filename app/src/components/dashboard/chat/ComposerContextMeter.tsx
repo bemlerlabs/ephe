@@ -6,8 +6,8 @@ import { formatNumber } from '@/lib/dateLocale'
  * it. The ring on the send button answers "roughly how full"; this answers
  * "how full, and what do I do about it".
  *
- * Hidden below md: the 390 px action row is spent on the controls a new turn
- * needs, and /compact stays reachable through the slash menu there.
+ * Since the 2026-11 quieting it is opt-in: the composer's thinking control opens
+ * one discreet line carrying these numbers and /compact, so the text keeps the row.
  */
 export default function ComposerContextMeter({
   percent,
@@ -30,7 +30,7 @@ export default function ComposerContextMeter({
   return (
     <span
       data-testid="composer-context-meter"
-      className="tabular font-mono-code inline-flex items-center gap-1 text-ui-xs text-ink-soft shrink-0 max-md:hidden"
+      className="tabular font-mono-code inline-flex items-center gap-1 text-ui-xs text-ink-soft shrink-0"
     >
       <span data-testid="composer-context-numbers">{numbers}</span>
       <button

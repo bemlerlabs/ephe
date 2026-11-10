@@ -59,6 +59,7 @@ const STRINGS: Record<string, string> = {
   'statusBar.breakdownHint': 'Token breakdown',
   'statusBar.contextMeterHint': 'Context window usage',
   'statusBar.windowAssumed': 'Window {{window}} · assumed',
+  'statusBar.remainingPercent': '{{percent}}% free',
 }
 
 vi.mock('react-i18next', () => ({
@@ -129,7 +130,7 @@ describe('status row finish', () => {
   it('gives the percent figure its own handle, separate from the meter', async () => {
     render(<StatusBar messages={messages()} />)
     const percent = await screen.findByTestId('statusbar-percent')
-    expect(percent.textContent).toContain('12%')
+    expect(percent.textContent).toContain('88% free')
     expect(screen.getByTestId('statusbar-meter')).not.toBe(percent)
   })
 
@@ -148,15 +149,13 @@ describe('status row finish', () => {
     expect(marker.getAttribute('title')).toBe('compaction active')
   })
 
-  it('reports the popover’s open state on both openers', async () => {
+  it('reports the popover’s open state on its one opener', async () => {
     render(<StatusBar messages={messages()} />)
     const toggle = await screen.findByTestId('statusbar-breakdown-toggle')
-    const mobileChip = screen.getByTestId('statusbar-tok-chip')
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(toggle.getAttribute('aria-haspopup')).toBe('dialog')
 
     fireEvent.click(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(mobileChip.getAttribute('aria-expanded')).toBe('true')
   })
 })

@@ -138,20 +138,35 @@ export function setupInstallPrompt(options: InstallOptions = {}): () => void {
 export interface PwaEnv {
   /** `import.meta.env.DEV`: true in the Vite dev server, false in a build. */
   dev: boolean
+  /** Injectable container, so the update offer is observable without a real worker. */
+  serviceWorker?: ServiceWorkerLike
 }
 
 /** Mounts the PWA surfaces: update banner via the SW, install banner via the prompt. */
-export function initPwa(env: PwaEnv): void {
+/** Mounts the PWA surfaces; returns the install-listener teardown (tests, HMR). */
+export function initPwa(env: PwaEnv): () => void {
+  // One offer per installed worker: `updatefound` and the "already waiting" branch
+  // can both fire for the same worker, and two identical rows say nothing new.
+  let offered = false
   registerServiceWorker({
     dev: env.dev,
+    serviceWorker: env.serviceWorker,
     onUpdate: (activate) => {
-      toastBus.info(i18n.t('sw.updateAvailable'), i18n.t('sw.updateHint'), {
-        label: i18n.t('sw.reload'),
-        onClick: activate,
-      })
+      if (offered) return
+      offered = true
+      // This is the one "a newer version is waiting" the reader can act on: the
+      // worker is installed, and the action makes it take over. It stays until the
+      // reader reloads or closes it — a 5 s clock would hide the only reload offer.
+      toastBus.info(
+        i18n.t('sw.updateAvailable'),
+        i18n.t('sw.updateHint'),
+        { label: i18n.t('sw.reload'), onClick: activate },
+        'sw-update',
+        { sticky: true },
+      )
     },
   })
-  setupInstallPrompt({
+  return setupInstallPrompt({
     onAvailable: (install) => {
       toastBus.info(i18n.t('sw.installAvailable'), i18n.t('sw.installHint'), {
         label: i18n.t('sw.install'),

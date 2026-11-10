@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DiffView from './DiffView'
 import CodeBlock from './CodeBlock'
 import {
@@ -39,7 +39,8 @@ import './ToolCallDisplay.css'
  * - task:     task checklist taken from the real /api/tasks list.
  * - rest:     name badge + args/result details as before (honest JSON).
  */
-function liveBrowserSession(tools: ToolCall[]): string | null {
+function liveBrowserSession(tools: ToolCall[], live: boolean): string | null {
+  if (!live) return null
   for (let index = tools.length - 1; index >= 0; index -= 1) {
     const tool = tools[index]
     if (!tool?.name.startsWith('browser_')) continue
@@ -50,8 +51,16 @@ function liveBrowserSession(tools: ToolCall[]): string | null {
   return null
 }
 
-export default function ToolCallDisplay({ tool_calls }: { tool_calls: ToolCall[] }) {
-  const liveSession = liveBrowserSession(tool_calls)
+export default function ToolCallDisplay({
+  tool_calls,
+  live = true,
+}: {
+  tool_calls: ToolCall[]
+  /** The turn is streaming in this page life. Restored history is not: a failed or pending
+   *  browser row from a previous page must not open a stream for a session that ended with it. */
+  live?: boolean
+}) {
+  const liveSession = liveBrowserSession(tool_calls, live)
   return (
     <div className="mt-1 space-y-1">
       {liveSession && <RunWatch session={liveSession} />}
@@ -59,6 +68,7 @@ export default function ToolCallDisplay({ tool_calls }: { tool_calls: ToolCall[]
         <ToolCallEntry
           key={tool.id}
           tool={tool}
+          live={live}
           suppressWatch={
             liveSession !== null &&
             tool.name.startsWith('browser_') &&
@@ -91,7 +101,15 @@ export function ToolStatusMark({ tool }: { tool: ToolCall }) {
   )
 }
 
-function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch: boolean }) {
+function ToolCallEntry({
+  tool,
+  suppressWatch,
+  live,
+}: {
+  tool: ToolCall
+  suppressWatch: boolean
+  live: boolean
+}) {
   const { t } = useTranslation()
   const model = classifyToolCall(tool)
   const [open, setOpen] = useState(() => shouldAutoOpen(tool))
@@ -182,7 +200,7 @@ function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch:
 
       {open && hasContent && (
         <div id={`tool-body-${tool.id ?? tool.name}`}>
-          <ToolCallDetails tool={tool} suppressWatch={suppressWatch} />
+          <ToolCallDetails tool={tool} suppressWatch={suppressWatch} live={live} />
         </div>
       )}
 
@@ -201,9 +219,12 @@ function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch:
 export function ToolCallDetails({
   tool,
   suppressWatch = false,
+  live = false,
 }: {
   tool: ToolCall
   suppressWatch?: boolean
+  /** Whether this page life is streaming the turn; a restored detail opens no stream. */
+  live?: boolean
 }) {
   const { t } = useTranslation()
   const model = classifyToolCall(tool)
@@ -307,7 +328,7 @@ export function ToolCallDetails({
       {model.family === 'shell' && <ShellBody model={model} result={result} />}
       {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
       {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}
-      {model.family === 'web' && <WebBody tool={tool} suppressWatch={suppressWatch} />}
+      {model.family === 'web' && <WebBody tool={tool} suppressWatch={suppressWatch} live={live} />}
       {!['shell', 'edit', 'write', 'task', 'web'].includes(model.family) && (
         <GenericBody tool={tool} />
       )}
@@ -531,13 +552,48 @@ function refusalLine(tool: ToolCall, t: TFunction, result: string): string {
  * The session is the tool's own argument, and `default` is what `core/browser.py` opens when
  * the call names none, so the view follows the run rather than a name this file invented.
  */
-function WebBody({ tool, suppressWatch }: { tool: ToolCall; suppressWatch: boolean }) {
+function WebBody({
+  tool,
+  suppressWatch,
+  live,
+}: {
+  tool: ToolCall
+  suppressWatch: boolean
+  live: boolean
+}) {
+  const { t } = useTranslation()
   const session = String(tool.args?.session ?? 'default')
+  // Only a `browser_*` step owns a page. `web_search` shares the display family (globe,
+  // "Browse") but never opens a browser, so it has no session to watch: it asked for
+  // `default` and the route answered 404 on every boot of a failed, restored search.
+  const browserStep = tool.name.startsWith('browser_')
+  // A restored step outlives its browser: the run ended with the previous tab. The page
+  // stays reachable, but the stream opens on the reader's click, never at boot.
+  const [showPage, setShowPage] = useState(live)
+  useEffect(() => {
+    if (live) setShowPage(true)
+  }, [live])
   return (
     <>
       <GenericBody tool={tool} />
       <StepEvidence result={typeof tool.result === 'string' ? tool.result : null} />
-      {!suppressWatch && <BrowserWatch session={session} />}
+      {browserStep && !suppressWatch && (
+        <>
+          {showPage ? (
+            <BrowserWatch session={session} />
+          ) : (
+            <button
+              type="button"
+              data-testid="browser-watch-open"
+              onClick={() => setShowPage(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-canvas/40 px-2 py-1 text-ui-xs text-ink-soft transition-colors hover:bg-surface hover:text-foreground"
+            >
+              <Eye className="h-3 w-3" aria-hidden="true" />
+              {t('chat.showBrowserPage')}
+            </button>
+          )}
+        </>
+      )}
     </>
   )
 }

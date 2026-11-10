@@ -7,7 +7,7 @@
  * from `/api/context/budget`, the pricing state from the store.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import StatusBar from '@/components/dashboard/StatusBar'
@@ -42,6 +42,8 @@ const STRINGS: Record<string, string> = {
   'statusBar.noPricingTitle': 'needs pricing in engine.json',
   'statusBar.storage': '{{count}} tasks · ~{{mb}} MB',
   'statusBar.storageHint': 'browser cache — {{count}} tasks',
+  'statusBar.remainingPercent': '{{percent}}% free',
+  'statusBar.detailsTitle': 'Usage and storage',
 }
 
 vi.mock('react-i18next', () => ({
@@ -54,6 +56,7 @@ vi.mock('react-i18next', () => ({
         .replace('{{window}}', String(opts?.window ?? ''))
         .replace('{{count}}', String(opts?.count ?? ''))
         .replace('{{mb}}', String(opts?.mb ?? ''))
+        .replace('{{percent}}', String(opts?.percent ?? ''))
     },
     i18n: { language: 'en' },
   }),
@@ -84,14 +87,19 @@ beforeEach(() => {
 describe('the free figure', () => {
   it('carries the window it is counted against', async () => {
     render(<StatusBar messages={messages()} />)
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     await waitFor(() => expect(screen.getByText('2,242 free of 8,192')).toBeTruthy())
+    // The row states the complement in percent, from the same reading.
+    expect(screen.getByTestId('statusbar-percent').textContent).toBe('27% free')
   })
 
   it('stays a bare remainder when no window is known', async () => {
     vi.mocked(getContextBudget).mockResolvedValue({} as never)
     render(<StatusBar messages={messages()} />)
-    await waitFor(() => expect(screen.getByTestId('status-bar').textContent).toContain('free'))
-    expect(screen.getByTestId('status-bar').textContent).not.toContain('free of')
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
+    const details = await screen.findByTestId('status-details')
+    expect(details.textContent).toContain('free')
+    expect(details.textContent).not.toContain('free of')
   })
 })
 

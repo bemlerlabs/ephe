@@ -94,6 +94,26 @@ describe('Toaster (G4)', () => {
     expect(screen.queryByText('Manuell schließen')).toBeNull()
   })
 
+  it('ein wartender Hinweis bleibt stehen, bis der Leser ihn schließt', () => {
+    render(<Toaster />)
+    const onDismiss = vi.fn()
+    act(() => {
+      toastBus.info('Neue Version wartet', 'Lade neu', undefined, 'sw-update', {
+        sticky: true,
+        onDismiss,
+      })
+    })
+    act(() => {
+      vi.advanceTimersByTime(60_000)
+    })
+    expect(screen.getByText('Neue Version wartet')).toBeTruthy()
+    act(() => {
+      screen.getByRole('button', { name: /schlie[ßs]en|close/i }).click()
+    })
+    expect(screen.queryByText('Neue Version wartet')).toBeNull()
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
   it('Aktions-Button führt die Aktion aus und entfernt den Toast (G7)', () => {
     render(<Toaster />)
     const onClick = vi.fn()

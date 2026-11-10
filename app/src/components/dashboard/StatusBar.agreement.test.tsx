@@ -34,6 +34,8 @@ const STRINGS: Record<string, string> = {
   'statusBar.contextFreeOf': '{{free}} free of {{window}}',
   'statusBar.windowAssumed': 'Window {{window}} assumed',
   'statusBar.windowEngine': 'Window {{window}} from the engine',
+  'statusBar.remainingPercent': '{{percent}}% free',
+  'statusBar.detailsTitle': 'Usage and storage',
 }
 
 vi.mock('react-i18next', () => ({
@@ -44,6 +46,7 @@ vi.mock('react-i18next', () => ({
       return pattern
         .replace('{{free}}', String(opts?.free ?? ''))
         .replace('{{window}}', String(opts?.window ?? ''))
+        .replace('{{percent}}', String(opts?.percent ?? ''))
     },
     i18n: { language: 'en' },
   }),
@@ -73,6 +76,8 @@ describe('W3-52 — meter, popover and row numbers are one reading', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msg(4200)} windowTokens={16384} />)
+    // The raw pair is one click away in the status popover, the percent stays in the row.
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     await screen.findByText('12,384 free of 16,384')
     // The meter's own disclosure names the same window as the free figure.
     const meterTitle = screen.getByTestId('statusbar-meter').getAttribute('title')
@@ -84,7 +89,7 @@ describe('W3-52 — meter, popover and row numbers are one reading', () => {
     expect(screen.getByTestId('statusbar-window-source').textContent).toBe(meterTitle)
   })
 
-  it('the popover token count matches the row chip while the mirror is empty', async () => {
+  it('the popover token count matches the row reading while the mirror is empty', async () => {
     // message_count 0 → the mirror is not live, so the row counts the estimate
     // (420 chars → 100 tok). The popover may not print the mirror's stale 9,999.
     vi.mocked(getContextBudget).mockResolvedValue({
@@ -96,15 +101,15 @@ describe('W3-52 — meter, popover and row numbers are one reading', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msg(420)} />)
-    const chip = await screen.findByTestId('statusbar-tok-chip')
-    expect(chip.textContent).toBe('100 tok')
+    // 100 of 8,192 used → 99% free in the row (the same reading the popover names).
+    expect((await screen.findByTestId('statusbar-percent')).textContent).toBe('99% free')
     openPopover()
     const popover = screen.getByTestId('context-popover')
     expect(popover.textContent).toContain('100 /')
     expect(popover.textContent).not.toContain('9,999')
   })
 
-  it('the popover percent is the percent the row meter draws', async () => {
+  it('the row states the complement of the fill the popover and the meter show', async () => {
     vi.mocked(getContextBudget).mockResolvedValue({
       message_count: 3,
       estimated_tokens: 4135,
@@ -117,7 +122,7 @@ describe('W3-52 — meter, popover and row numbers are one reading', () => {
     const rowPercent = await screen.findByTestId('statusbar-percent')
     openPopover()
     const popover = screen.getByTestId('context-popover')
-    expect(rowPercent.textContent).toContain('48%')
+    expect(rowPercent.textContent).toContain('52% free')
     expect(popover.textContent).toContain('48%')
   })
 })

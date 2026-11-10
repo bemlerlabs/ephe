@@ -4,7 +4,7 @@
 // running sub-agents and open tasks. Every entry jumps per
 // PREVIEW_OPEN_EVENT into the matching pane tab — everything wired smartly,
 // except the steps ledger: its one surface is its page in the settings.
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { Loader2, CircleDot, ChevronDown, ListTodo, Bot, ChevronRight } from 'lucide-react'
@@ -41,9 +41,13 @@ interface AgentRun {
 export default function AgentStatusButton({
   messages = [],
   sessionId,
+  details,
 }: {
   messages?: ChatMessage[]
   sessionId?: string
+  /** The row's raw figures (storage, free-of-window, index) — one quiet block in the
+   *  popover instead of five chips in the footer the reader looks at all day. */
+  details?: ReactNode
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -194,22 +198,13 @@ export default function AgentStatusButton({
   return (
     <div className="relative flex items-center gap-1.5" data-testid="agent-status">
       <button
-        type="button"
-        data-testid="agent-status-expand"
-        onClick={openPopover}
-        title={t('agentStatus.title')}
-        className="rounded-full border border-control bg-canvas px-2 py-1 text-ui-xs font-medium text-ink-soft hover:text-foreground/80 transition-colors whitespace-nowrap shrink-0"
-      >
-        {t('agentStatus.expandStatus')}
-      </button>
-      <button
         ref={pillRef}
         type="button"
         data-testid="agent-status-pill"
         aria-expanded={open}
         onClick={openPopover}
-        title={t('agentStatus.title')}
-        // The run line above reports the state; this control names what it does, not the state.
+        title={t('agentStatus.expandStatus')}
+        // The visible word is the state; the name says what the control opens.
         aria-label={t('agentStatus.title')}
         className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full text-ui-sm font-medium transition-colors border min-h-9 max-lg:min-h-11 ${working ? 'border-brand/30 bg-brand/10 text-brand-deep' : 'border-control bg-canvas text-ink-soft hover:text-foreground/80'}`}
       >
@@ -389,6 +384,7 @@ export default function AgentStatusButton({
                     <MetricsGauges metrics={systemMetrics} />
                     <ToolbarMeta sessionId={sessionId} />
                   </section>
+                  {details}
                 </div>
               )}
             </div>
