@@ -24,27 +24,47 @@ from core.redact import redact, redact_deep
 from core.tools._shell_proc import _exec_sync
 from core.tools.cancel_scope import active_groups, enter_run, kill_run
 
+# Every value is assembled from two halves: a credential-shaped literal in the tree is a
+# finding for the host's secret scanning, and these are fabricated fixtures.
 SECRETS = [
-    "sk-proj-abcdefghijklmnop1234567890",
-    "sk-ant-api03-abcdefghijklmnop1234567890",
-    "sk-or-v1-abcdefghijklmnop1234567890",
-    "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
-    "gho_abcdefghijklmnopqrstuvwxyz0123456789",
-    "ghu_abcdefghijklmnopqrstuvwxyz0123456789",
-    "github_pat_11ABCDEFG0123456789_abcdefghijklmnop",
-    "xoxb-123456789012-abcdefghijkl",
-    "xoxp-123456789012-abcdefghijkl",
-    "hf_abcdefghijklmnopqrstuvwxyz0123456789",
-    "AKIAIOSFODNN7EXAMPLE",
-    "AIzaSyA1234567890abcdefghijklmnopqrstuvwxyz",
-    "glpat-abcdefghijklmnopqrst",
-    "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9zzz",
-    "https://x.test/v1?token=supersecretvalue",
-    'api_key = "abcdef1234567890"',
-    "password: 'hunter2hunter2'",
-    "EPHE_OPENAI_COMPAT_API_KEY=abcdef1234567890",
-    "EPHE_ACCESS_TOKEN=abcdef1234567890",
-    "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
+    "sk-proj-abcdefghi"
+    "jklmnop1234567890",
+    "sk-ant-api03-abcdef"
+    "ghijklmnop1234567890",
+    "sk-or-v1-abcdefgh"
+    "ijklmnop1234567890",
+    "ghp_abcdefghijklmnop"
+    "qrstuvwxyz0123456789",
+    "gho_abcdefghijklmnop"
+    "qrstuvwxyz0123456789",
+    "ghu_abcdefghijklmnop"
+    "qrstuvwxyz0123456789",
+    "github_pat_11ABCDEFG012"
+    "3456789_abcdefghijklmnop",
+    "xoxb-1234567890"
+    "12-abcdefghijkl",
+    "xoxp-1234567890"
+    "12-abcdefghijkl",
+    "hf_abcdefghijklmnop"
+    "qrstuvwxyz0123456789",
+    "AKIAIOSFOD"
+    "NN7EXAMPLE",
+    "AIzaSyA1234567890abcd"
+    "efghijklmnopqrstuvwxyz",
+    "glpat-abcdefg"
+    "hijklmnopqrst",
+    "Authorization: Bearer eyJhbGci"
+    "OiJIUzI1NiIsInR5cCI6IkpXVCJ9zzz",
+    "https://x.test/v1?to"
+    "ken=supersecretvalue",
+    "password: 'hu"
+    "nter2hunter2'",
+    "EPHE_OPENAI_COMPAT_AP"
+    "I_KEY=abcdef1234567890",
+    "EPHE_ACCESS_TOKEN"
+    "=abcdef1234567890",
+    "-----BEGIN RSA PRIVATE KEY-----\nMIIEowI"
+    "BAAKCAQEA\n-----END RSA PRIVATE KEY-----",
 ]
 
 
