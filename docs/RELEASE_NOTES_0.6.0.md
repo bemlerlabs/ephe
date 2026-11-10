@@ -96,7 +96,7 @@ Open, with the record that holds them:
   `app/package.json`, `app/src-tauri/tauri.conf.json`, `app/src-tauri/Cargo.toml`, `uv.lock` and
   `app/src-tauri/Cargo.lock` follow. `tests/test_version_sync.py` names all six.
 - **The install lines move with them.** The three READMEs and the four start documents name
-  `v0.6.0` in the installer URL and in the sentence under it. A saved `v0.5.7` command still
+  `v0.6.1` in the installer URL and in the sentence under it. A saved `v0.5.7` command still
   works; it installs the older release.
 - **A bundle is installed by its staged name.** `install_plugin_bundle` verifies the staged bytes
   in place, extracts them under the plugins root and answers with the manifest's name and version,

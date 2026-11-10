@@ -231,12 +231,19 @@ def _tools_for_messages(messages: list, allowed_tool_names: list[str] | None = N
         # before the union (probe p1 in docs/ENDSTATE_DELTA_2026-10-10.md).
         # An EMPTY whitelist (ask_mode) stays empty — deliberately no tool dialog.
         if allowed_tool_names:
+            from core.tools.creator_guard import CREATOR_TOOL_NAMES
             from core.tools.discovery import ALWAYS_OFFERED_TOOLS, META_TOOL_NAMES, file_primitives_for
             # G1: the ask gate travels with every whitelist. It writes nothing, and a
             # session that cannot ask states its question as answer text instead.
+            # Creator mode's promise survives a skill whitelist too: the union below is
+            # intersected with the guard-filtered `tools` right after, so only a call
+            # this session's grant covers is added back. The whitelist path predates the
+            # mode, and without this union a build message that fuzzy-routes to a skill
+            # shipped none of the five even with `code` and `files` held — the paid run's
+            # class 4a (reproduced on creation-20's own message).
             allowed = (
                 set(allowed_tool_names) | META_TOOL_NAMES | file_primitives_for(allowed_tool_names)
-                | set(ALWAYS_OFFERED_TOOLS)
+                | set(ALWAYS_OFFERED_TOOLS) | set(CREATOR_TOOL_NAMES)
             )
         else:
             allowed = set(allowed_tool_names)

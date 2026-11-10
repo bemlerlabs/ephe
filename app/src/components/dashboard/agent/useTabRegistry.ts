@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
-import { Tab, TAB_KEYS, TabState, readJson } from './primitives'
+import { Tab, TAB_KEYS, TabState } from './primitives'
+import { aliasTab, readActiveTab, readRecent, readTabs } from './panelStorage'
 
 /**
  * Digit → page (P4 finding 3): the number means a position in the VISIBLE bar. If
@@ -22,32 +23,8 @@ function isEditable(el: Element | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable === true
 }
 
-/**
- * The active tab, stored JSON-encoded like tabs/recent. A bare string from a
- * session that predates the change is still accepted, so an upgrade keeps the
- * page it was on instead of falling back to the first.
- */
-function readActiveTab(): Tab | null {
-  const raw = localStorage.getItem('ephe.panel.activeTab')
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as Tab
-  } catch {
-    return raw as Tab
-  }
-}
-
 /** The one page in the inventory that can show a document from outside the workspace. */
 const URL_PANE: Tab = 'preview'
-
-/**
- * Stored inventories from older builds carry keys the inventory no longer has
- * ('browser' from before the P6 B5 dedup, 'url' from the pane's first name).
- * Both mean the one url pane.
- */
-function aliasTab(value: string): Tab {
-  return value === 'browser' || value === 'url' ? URL_PANE : (value as Tab)
-}
 
 /**
  * The state a boot starts from.
@@ -58,12 +35,16 @@ function aliasTab(value: string): Tab {
  * inventory but never brought forward on its own — when another page is open, the
  * bar opens on that one instead. As the only open page it keeps the default
  * (empty) url pane; no address is restored, so nothing loads.
+ *
+ * Every key goes through the shape-checked reads in panelStorage: a stored value
+ * with valid JSON but the wrong form (an object instead of the inventory, a null
+ * entry in recent) falls back to the default here instead of reaching `.map` /
+ * `.tab` in the boot (#39).
  */
 export function initialTabState(): TabState {
   // P6 B5: persisted 'browser' tabs (before the dedup) and legacy 'url' keys land
-  // in the URL pane — alias first, then filter against TAB_KEYS.
-  const initialTabs = readJson<Tab[]>('ephe.panel.tabs', ['preview']).map(aliasTab)
-  const filtered = initialTabs.filter((k) => TAB_KEYS.includes(k))
+  // in the URL pane — readTabs aliases first, then filters against TAB_KEYS.
+  const filtered = readTabs()
   const wanted = readActiveTab()
   const wantedNorm = wanted ? aliasTab(wanted) : null
   const restored = wantedNorm && filtered.includes(wantedNorm) ? wantedNorm : null
@@ -74,9 +55,7 @@ export function initialTabState(): TabState {
     wantedNorm === URL_PANE
       ? (safePage ?? restored ?? filtered[0] ?? null)
       : (restored ?? filtered[0] ?? null)
-  const recent = readJson<{ tab: Tab; closedAt: number }[]>('ephe.panel.recent', [])
-    .filter((r) => TAB_KEYS.includes(r.tab))
-    .map((r) => ({ ...r, tab: aliasTab(r.tab) }))
+  const recent = readRecent()
   return { open: filtered, active, recent }
 }
 

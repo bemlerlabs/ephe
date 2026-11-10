@@ -1706,3 +1706,20 @@ def test_given_a_fresh_powershell_when_the_installer_finishes_then_activation_pr
     section = _windows_section(docs)
     assert _EPHE_PS1_ACTIVATION_DOCUMENTED in section, "the Windows section lost the activation line"
     assert section.index(_EPHE_PS1_ACTIVATION_DOCUMENTED) < section.index("ephe configure")
+
+
+def test_given_an_install_folder_of_user_files_when_default_then_the_install_steps_aside():
+    """The default folder is also where a person's notebooks live.
+
+    Measured 2026-11-10: `~/Documents/Ephe` held 18 MB of notebooks and no clone, the installer
+    refused, and the app ran without a backend. The default steps aside to a sibling and says so; a
+    path the caller named explicitly is still a refusal, because overwriting a chosen path is how
+    data gets lost.
+    """
+    script = (ROOT / "install.sh").read_text(encoding="utf-8")
+
+    assert 'stepped="${INSTALL_DIR}-install"' in script
+    assert "holds files of yours (no clone there)" in script
+    assert "already exists but is not a Git repository" in script
+    # the explicit-path branch keeps the refusal: the step-aside runs only when the default was used
+    assert 'if [[ -z "${EPHE_INSTALL_DIR:-}" ]]; then' in script

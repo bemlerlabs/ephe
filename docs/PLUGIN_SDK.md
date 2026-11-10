@@ -187,7 +187,10 @@ A mounted document has an opaque origin — `sandbox allow-scripts allow-popups`
 `sdk/ephe-storage.js` under a reserved name and places it, with a snapshot of this
 bundle's own page store, ahead of the first script the bundle ships. A bundle that was
 written against the Storage API keeps working; that is the bridge for existing bundles,
-and `ephe.storage` above stays the path a new bundle should use.
+and `ephe.storage` above stays the path a new bundle should use. Nothing here makes the
+shim the authoring path: a new bundle keeps its state with `ephe.storage`, and the
+definition of done grades that call. The mount serves `ephe.js` itself, so the reference
+`<script src="ephe.js"></script>` is the SDK and a bundle does not ship that file.
 
 What the shim guarantees:
 

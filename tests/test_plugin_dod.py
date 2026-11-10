@@ -511,6 +511,35 @@ def test_a_reference_stepping_out_is_refused(tmp_path):
     assert "steps out" in _surface_row(tmp_path)["problem"]
 
 
+def test_the_page_sdk_the_mount_serves_is_not_a_missing_file(tmp_path):
+    """A surface that loads `ephe.js` addresses the mount, and the mount answers.
+
+    `server/routes/plugin_ui.py` serves the build's `sdk/ephe.js` whenever the
+    remainder is exactly `ephe.js`, so a bundle that calls `ephe.storage` has to
+    write that reference without shipping a file. The scan has to know the name, or
+    the definition of done asks for a call and refuses the script that makes it.
+    """
+    _surface_plugin(
+        tmp_path,
+        entry_html="<script src='ephe.js'></script><script src='app.js'></script>",
+    )
+    row = _surface_row(tmp_path)
+    assert row["dod"] is True, row["problem"]
+
+
+def test_the_page_storage_shim_is_not_a_missing_file_either(tmp_path):
+    """The shim is reserved at every depth by the same route, so its name resolves."""
+    _surface_plugin(tmp_path, entry_html="<script src='ephe-storage.js'></script>")
+    row = _surface_row(tmp_path)
+    assert row["dod"] is True, row["problem"]
+
+
+def test_a_nested_file_named_like_the_sdk_still_has_to_ship(tmp_path):
+    """Only the bare `ephe.js` is the mount's: a subdirectory is the bundle's own."""
+    _surface_plugin(tmp_path, entry_html="<script src='sub/ephe.js'></script>")
+    assert "does not ship" in _surface_row(tmp_path)["problem"]
+
+
 
 def test_a_complete_skill_pack_passes(tmp_path):
     _skill_pack(tmp_path)

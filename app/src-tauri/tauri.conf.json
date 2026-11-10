@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Ephe",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "identifier": "com.ephe.ephe",
   "build": {
     "frontendDist": "../dist",
@@ -23,9 +23,14 @@
         "transparent": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "trafficLightPosition": { "x": 16.0, "y": 18.0 },
+        "trafficLightPosition": {
+          "x": 16.0,
+          "y": 18.0
+        },
         "windowEffects": {
-          "effects": ["underWindowBackground"],
+          "effects": [
+            "underWindowBackground"
+          ],
           "state": "followsWindowActiveState"
         },
         "url": "/#/chat"

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ipaddress
 import os
+from urllib.parse import urlsplit
 import hmac
 import re
 import secrets
@@ -122,8 +123,33 @@ def _suite_host(host: str | None) -> bool:
     return _host_without_port(host or "").lower() == "testserver"
 
 
+def same_origin_proof(request: "Request") -> bool:
+    """Whether the request proves it came from a page this server serves.
+
+    A browser omits `Origin` on a same-origin GET, so the origin rule refused the app's own
+    fetch of an authority route (the Settings update check answered 403 in the PWA and in the
+    desktop webview). Two headers name the same caller without being forgeable by another site:
+    `Sec-Fetch-Site: same-origin` is set by the browser, and a `Referer` whose origin is one this
+    server serves. A cross-site page gets neither.
+    """
+    site = (request.headers.get("sec-fetch-site") or "").strip().lower()
+    if site == "same-origin":
+        return True
+    referer = (request.headers.get("referer") or "").strip()
+    if not referer:
+        return False
+    parts = urlsplit(referer)
+    if not parts.scheme or not parts.netloc:
+        return False
+    return origin_allowed(f"{parts.scheme}://{parts.netloc}")
+
+
 def caller_holds_app_authority(
-    origin: str | None, host: str | None, offered_token: str | None
+    origin: str | None,
+    host: str | None,
+    offered_token: str | None,
+    *,
+    same_origin: bool = False,
 ) -> bool:
     """Whether this caller may mutate, open a socket, or spend a GET's authority.
 
@@ -137,6 +163,8 @@ def caller_holds_app_authority(
     """
     if origin is not None and str(origin).strip():
         return origin_allowed(origin)
+    if same_origin and host_allowed(host):
+        return True
     if _suite_host(host):
         return True
     if (
@@ -271,7 +299,10 @@ class LocalRequestGuardMiddleware(BaseHTTPMiddleware):
             and get_spends_local_authority(request.url.path)
         )
         if spends and not caller_holds_app_authority(
-            origin, host, request.headers.get("X-Auth-Token")
+            origin,
+            host,
+            request.headers.get("X-Auth-Token"),
+            same_origin=same_origin_proof(request),
         ):
             return self._refusal(request, "untrusted_origin", host)
         return await call_next(request)

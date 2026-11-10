@@ -311,6 +311,35 @@ class TestRefusalGrading:
             _refused_transcript(),
         )
 
+    def test_a_call_the_offer_withheld_grades_as_refused_without_a_reason(self):
+        """GIVEN a turn whose grant does not cover the call WHEN it reports the missing
+        step THEN the reason-less case grades as refused.
+
+        `core.tools.creator_guard.filter_offer` takes a call whose privilege the session
+        does not hold out of the offer, so a product turn can never produce a denial line
+        for it. What the turn leaves is a call that never ran; an error line would prove a
+        call the offer never made.
+        """
+        transcript = (
+            "I can only build the folder, not the files: that step needs the 'files' "
+            "permission.\n[EPHE-TOOL-EVENTS]\n"
+        )
+        assert plugin_golden.grade(
+            {"expect": {"kind": "tool_refused", "any": ["create_plugin_scaffold"]}},
+            transcript,
+        )
+
+    def test_a_withheld_call_that_succeeded_anyway_is_not_a_refusal(self):
+        """The absence has to be an absence: a named call that ran is not a refusal."""
+        transcript = (
+            "Built it.\n[EPHE-TOOL-EVENTS]\n"
+            "[tool create_plugin_scaffold] SCAFFOLDED plugins/staging/x"
+        )
+        assert not plugin_golden.grade(
+            {"expect": {"kind": "tool_refused", "any": ["create_plugin_scaffold"]}},
+            transcript,
+        )
+
 
 class TestCaseValidation:
     """A case the harness cannot honour must be refused at load, not run and lost."""

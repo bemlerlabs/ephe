@@ -71,15 +71,6 @@ export const TAB_KEYS: Tab[] = [
   'side',
 ]
 
-export function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : fallback
-  } catch {
-    return fallback
-  }
-}
-
 export type TabState = { open: Tab[]; active: Tab | null; recent: { tab: Tab; closedAt: number }[] }
 
 export function relTime(ts: number): string {

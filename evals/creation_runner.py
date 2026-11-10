@@ -138,7 +138,10 @@ def grade_turn(case: dict, transcript: str) -> tuple[bool, str]:
 
     A case whose transcript says the tool was used and the tool did not refuse is a pass;
     a case whose transcript says the tool refused with the reason the case expected is a
-    pass for a refusal case. Everything else is a fail with the transcript's own words.
+    pass for a refusal case. A reasonless refusal case asks only that the named call did
+    not run, because the Creator guard withholds a call the turn holds no grant for
+    (`core.tools.creator_guard.filter_offer`) and the turn names the missing step in
+    prose instead. Everything else is a fail with the transcript's own words.
     """
     from core.plugin_golden import grade
 

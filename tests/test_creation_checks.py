@@ -268,12 +268,51 @@ def test_state_bridge_used_passes_on_the_sdks_own_call(home_and_bundle) -> None:
 
 
 def test_state_bridge_used_names_the_page_storage_a_bundle_wrote(home_and_bundle) -> None:
-    """A widget that keeps its entries in the page loses them with the mount."""
+    """A widget that keeps its entries in the page is off the graded path.
+
+    The mount's shim keeps that write alive, so the verdict may not read as "the state
+    is lost"; it has to name the path the definition of done asks for.
+    """
     home, directory = home_and_bundle
     _write_source(directory / "ui" / "app.js", 'localStorage.setItem("entries", "[]");\n')
     verdict = _verdicts(_run(home, _case(["state_bridge_used"])))["state_bridge_used"]
     assert verdict.ok is False
     assert "localStorage" in verdict.detail, verdict.detail
+    assert "shim" in verdict.detail, verdict.detail
+    assert "grades ephe.storage" in verdict.detail, verdict.detail
+
+
+def test_state_bridge_used_passes_when_the_bridge_is_there_beside_page_calls(home_and_bundle) -> None:
+    """The row asks for the documented path, not for a page that never touched storage."""
+    home, directory = home_and_bundle
+    _write_source(
+        directory / "ui" / "app.js",
+        'ephe.storage.set("entries", []);\nlocalStorage.setItem("legacy", "1");\n',
+    )
+    verdict = _verdicts(_run(home, _case(["state_bridge_used"])))["state_bridge_used"]
+    assert verdict.ok is True, verdict.detail
+
+
+def test_a_bundle_that_loads_the_sdk_and_calls_it_satisfies_both_rows(home_and_bundle) -> None:
+    """The definition of done has to be satisfiable on one bundle.
+
+    `ephe.js` is the one script a `ephe.storage` call needs, and the mount serves it
+    under a reserved name (`scripts/plugin_dod_surface.py` knows that name), so the
+    surface scan and the state row cannot contradict each other on the same bundle.
+    """
+    home, directory = home_and_bundle
+    entry = directory / "ui" / "index.html"
+    entry.write_text(
+        entry.read_text(encoding="utf-8").replace(
+            '<script type="module" src="app.js"></script>',
+            '<script src="ephe.js"></script>\n<script type="module" src="app.js"></script>',
+        ),
+        encoding="utf-8",
+    )
+    _write_source(directory / "ui" / "app.js", 'ephe.storage.set("entries", []);\n')
+    verdicts = _verdicts(_run(home, _case(["surface_files", "state_bridge_used"])))
+    for name in ("surface_files", "state_bridge_used"):
+        assert verdicts[name].ok is True, verdicts[name].detail
 
 
 def test_state_bridge_used_does_not_read_a_vendored_library(home_and_bundle) -> None:

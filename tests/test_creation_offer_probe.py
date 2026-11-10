@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evals.creation_offer_probe import CREATOR_CALLS, describe, offer_of
+from evals.creation_offer_probe import CREATOR_CALLS, covered_calls, describe, offer_of
 
 
 def _request(tool_names: list[str], system: str = "IDENTITY:\n- You are Ephe.") -> dict:
@@ -51,3 +51,26 @@ def test_the_reading_separates_the_names_the_mode_promised_from_the_rest_of_the_
     assert reading["creator_missing"] == []
     assert reading["system_chars"] == len("no mode text")
     assert reading["system_head"] == "no mode text"
+
+
+def test_the_reading_judges_only_the_calls_the_grant_covers():
+    """A covered call that is absent is the defect; an uncovered one is the guard doing
+    its job. The live class-4a diagnosis read both as "the creator call was never
+    offered", which is why creation-04 (`code`) and creation-24 (`files`) looked broken
+    while their grants simply do not buy the call the case watches.
+    """
+    assert covered_calls(["code"]) == ["install_plugin_bundle"]
+    assert covered_calls(["files"]) == sorted(
+        name for name in CREATOR_CALLS if name != "install_plugin_bundle"
+    )
+    reading = describe([_request(["install_plugin_bundle"])], privileges=["code"])
+    assert reading["creator_covered"] == ["install_plugin_bundle"]
+    assert reading["creator_missing_from_grant"] == []
+
+
+def test_a_covered_call_the_array_lost_is_the_defect_the_probe_reports():
+    """GIVEN the turn holds `files` and lost the four calls that grant buys
+    WHEN the reading is taken THEN exactly those four are the defect."""
+    reading = describe([_request([])], privileges=["files"])
+    assert reading["creator_missing_from_grant"] == reading["creator_covered"]
+    assert set(reading["creator_missing_from_grant"]) < set(CREATOR_CALLS)

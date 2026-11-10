@@ -42,6 +42,28 @@ def test_the_set_loads_through_the_golden_validator() -> None:
     )
 
 
+def test_a_withheld_refusal_case_grades_on_a_turn_that_names_the_missing_step() -> None:
+    """GIVEN creation-04 and creation-24, whose grant does not cover the call they watch
+    WHEN a turn reports the missing step and runs nothing
+    THEN the golden turn half grades them, with no engine and no denial line.
+
+    The two cases were the paid run's class 4a: their turn never has the call in the
+    array (`core.tools.creator_guard.filter_offer` withholds it), so a grader that
+    demanded an error line for it could never pass them. The refusal the product
+    promises is the missing step named in prose (`CREATOR_MODE_GUARD`) plus an empty
+    staging root, which `staging_empty` reads back.
+    """
+    from core.plugin_golden import grade
+
+    cases = {case["id"]: case for case in _load_cases()}
+    for cid, privilege in (("creation-04", "files"), ("creation-24", "code")):
+        transcript = (
+            f"I cannot take that step: it needs the '{privilege}' permission, which "
+            "this session does not hold.\n[EPHE-TOOL-EVENTS]\n"
+        )
+        assert grade(cases[cid], transcript), cid
+
+
 def test_every_capability_category_carries_cases() -> None:
     """GIVEN the set WHEN the categories are counted
     THEN each of the six carries at least three cases, so a class has a rate and

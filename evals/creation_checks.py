@@ -24,7 +24,9 @@ verdict naming the layer that answered:
   * `staging_empty` — the refusal case's end state, which is an empty staging folder.
   * `state_bridge_used` — the bundle's own source, read for the state-path call. A file
     outside `vendor/` that writes through the SDK's `storage` methods answers yes; one
-    that writes its own page storage instead answers no, naming what it writes.
+    that writes only page storage answers no and names what it writes. Page storage now
+    works through the mount's shim (`sdk/ephe-storage.js`, `docs/PLUGIN_SDK.md` §3c), so
+    that no is about the graded path and not about a value the page would lose.
 
 The three browser checks in `evals.creation_eval.CHECKS` are not run here. They come back
 as `not_run` names, because a rate that counted a green row nobody measured would be the
@@ -229,7 +231,12 @@ def _state_bridge_used(directory: Path) -> Verdict:
             f"{holders} call {', '.join(sorted(bridge))} on {len(sources)} source file(s) read",
         )
     page = {call for _name, text in sources for call in PAGE_STORAGE_CALLS if call in text}
-    where = f" - it writes {', '.join(sorted(page))} on its own page" if page else ""
+    where = ""
+    if page:
+        where = (
+            f" - it writes {', '.join(sorted(page))}; the mount's page-storage shim keeps "
+            "that working, but the definition of done grades ephe.storage"
+        )
     return Verdict(
         "state_bridge_used", False,
         f"none of {', '.join(STATE_BRIDGE_CALLS)} appears in {len(sources)} source file(s){where}",

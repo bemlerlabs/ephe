@@ -254,7 +254,26 @@ if ! is_project_root; then
     cd "$INSTALL_DIR"
     run git pull --ff-only || warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
   elif [[ -e "$INSTALL_DIR" ]]; then
-    fail "$INSTALL_DIR already exists but is not a Git repository. Set EPHE_INSTALL_DIR to a different path."
+    # The default install folder is also where a person's notebooks live, so the common case is a
+    # folder that holds their work and no clone: refusing there stranded an installation behind its
+    # own data (measured 2026-11-10 - the app had no backend because the install never ran). The
+    # default folder steps aside to a sibling; an explicitly named folder is still a refusal,
+    # because overwriting a path the caller chose is how data gets lost.
+    if [[ -z "${EPHE_INSTALL_DIR:-}" ]]; then
+      stepped="${INSTALL_DIR}-install"
+      warn "$INSTALL_DIR holds files of yours (no clone there), so this install goes to $stepped"
+      warn "  Your folder stays untouched. To install inside it after all, move its files or set EPHE_INSTALL_DIR."
+      INSTALL_DIR="$stepped"
+      [[ "$DRY_RUN" == "1" ]] || mkdir -p "$(dirname "$INSTALL_DIR")"
+      if [[ -d "$INSTALL_DIR/.git" ]]; then
+        cd "$INSTALL_DIR"
+        run git pull --ff-only || warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+      else
+        run git clone "$REPO_URL" "$INSTALL_DIR" || fail "Could not clone $REPO_URL into $INSTALL_DIR"
+      fi
+    else
+      fail "$INSTALL_DIR already exists but is not a Git repository. Set EPHE_INSTALL_DIR to a different path."
+    fi
   else
     if ! run git clone "$REPO_URL" "$INSTALL_DIR"; then
       echo "" >&2

@@ -116,7 +116,10 @@ CREATOR_MODE_GUARD = (
     "to live in their own folder; a loose script in the workspace answers nothing, because "
     "nothing mounts it. If one of those calls is missing from your array, run the ones "
     "you have in that order, then name the step you could not take and which privilege it "
-    "needs — never substitute the file tools for a missing call."
+    "needs — never substitute the file tools for a missing call. Keep what the plugin must "
+    "remember between opens on the page SDK path — `<script src=\"ephe.js\"></script>`, then "
+    "`ephe.storage.get`/`ephe.storage.set` — because `localStorage` also works through the "
+    "mount's shim, but the definition of done grades the SDK path."
 )
 
 
@@ -350,11 +353,17 @@ def build_tool_guidelines(allowed_tool_names: list[str] | None = None) -> str:
     # to call them. Any other turn is filtered to the array it really carries,
     # including the names every tool turn keeps.
     if allowed_tool_names is not None:
+        from core.tools.creator_guard import CREATOR_TOOL_NAMES
         from core.tools.discovery import ALWAYS_OFFERED_TOOLS
 
         allowed = set(allowed_tool_names)
         if allowed_tool_names:
-            allowed |= set(ALWAYS_OFFERED_TOOLS)
+            # The Creator calls the guard kept in `get_tool_schemas()` are in the array
+            # too (`core.chat_context._tools_for_messages`), so the block has to name
+            # them: a name the array carries and this text omits reads as a tool the
+            # session does not have. Outside Creator mode the filtered registry holds
+            # none of them, so the union changes nothing there.
+            allowed |= set(ALWAYS_OFFERED_TOOLS) | set(CREATOR_TOOL_NAMES)
         names = [n for n in names if n in allowed]
     safe = sorted(n for n in names if n in SAFE_TOOLS)
     action = sorted(n for n in names if n not in SAFE_TOOLS)
