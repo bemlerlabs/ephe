@@ -35,6 +35,7 @@ const DE: Record<string, string> = {
   'chat.modelGroupOther': 'Andere Typen (Sprache, Bild)', // language-gate: ignore
   'chat.modelGroupUnconfigured': 'Ohne Endpunkt — nicht konfigurierbar', // language-gate: ignore
   // language-gate: ignore
+  'chat.composerDetails': 'Kontext- und Denk-Details', // language-gate: ignore
   'chat.thinkingChipHint':
     'Gezeigt, ob Ephe in dieser Aufgabe bereits mitgedacht hat — reiner Status, nicht schaltbar',
   'chat.modeSection.none': 'Ohne Werkzeuge', // language-gate: ignore
@@ -417,16 +418,22 @@ describe('P3-5 Modell-Liste: Vorlagen deaktiviert, Typen getrennt', () => {
 })
 
 // ── 6 · Thinking chip ──────────────────────────────────────────────────────
-describe('P3-6 Denk-Chip ist reiner Status ohne Schalter-Optik', () => {
-  it('kein Button, keine Rand-/Flächen-Optik, aber vollständiger Name + Titel', async () => {
+describe('P3-6 Denk-Chip ist reiner Status mit einem Detail-Zugang', () => {
+  it('bleibt Status-Optik, ist aber der eine Zugang zu den Zahlen', async () => {
     render(<ChatInput onSend={vi.fn()} />)
     const chip = await screen.findByTestId('composer-thinking-chip')
-    expect(chip.tagName).toBe('SPAN')
-    expect(chip.getAttribute('role')).toBe('status')
-    expect(chip.className).not.toContain('border-hairline')
-    expect(chip.className).not.toContain('bg-surface')
-    expect(chip.getAttribute('aria-label')).toBe('Denk-Modus: Aus')
-    expect(chip.getAttribute('title')).toContain('nicht schaltbar')
+    // It is a disclosure now, not a switch: the state still cannot be toggled,
+    // but the composer's secondary figures live behind this one control.
+    expect(chip.tagName).toBe('BUTTON')
+    expect(chip.getAttribute('aria-expanded')).toBe('false')
+    expect(chip.className).not.toMatch(/(^|\s)border(-|\s)/)
+    expect(chip.className).not.toMatch(/(^|\s)bg-surface(\s|$)/)
+    expect(chip.getAttribute('aria-label')).toContain('Kontext- und Denk-Details')
+    expect(chip.getAttribute('aria-label')).toContain('Denk-Modus')
+    expect(chip.getAttribute('title')).toBe('Kontext- und Denk-Details')
+    fireEvent.click(chip)
+    expect(chip.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByTestId('composer-details')).toBeTruthy()
   })
 })
 

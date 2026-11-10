@@ -6,7 +6,7 @@
  * row contradicted its own arithmetic.
  */
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import StatusBar from '@/components/dashboard/StatusBar'
 import { getContextBudget } from '@/lib/api'
 import type { ChatMessage } from '@/types'
@@ -47,6 +47,9 @@ describe('StatusBar R6 — benutzt und frei aus derselben Zählung', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msgs} />)
+    // The raw pair left the visible row; it lives in the status popover now, still
+    // from the same reading as the percent and the meter.
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     // The label exists on the first render, carrying the offline estimate; the
     // mirror arrives one tick later. Matching the label would pass on either
     // number and lose the race in CI, so the wait is for the mirror's own value.
@@ -68,6 +71,7 @@ describe('StatusBar R6 — benutzt und frei aus derselben Zählung', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msgs} />)
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     const frei = await screen.findByText(/4\.057/)
     expect(frei.textContent).toContain('4.057')
     sprache.current = 'en'
@@ -76,6 +80,7 @@ describe('StatusBar R6 — benutzt und frei aus derselben Zählung', () => {
   it('bleibt bei der Schätzung, solange der Spiegel nichts meldet', async () => {
     vi.mocked(getContextBudget).mockResolvedValue({} as never)
     render(<StatusBar messages={msgs} />)
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     const frei = await screen.findByText(/statusBar.contextFree/)
     expect(frei.textContent).toMatch(/\d/)
     expect(frei.textContent).not.toContain('8.192')

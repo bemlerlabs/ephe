@@ -51,8 +51,7 @@ const SAME_BY_DESIGN = new Set<string>([
   // The frame's two area names, spelled as the areas are called in both languages: the
   // German surface already searches "Workspaces durchsuchen" and keeps the Discover shelf
   // under that name, so a translated row would name a place the reader cannot find.
-  'shell.navDiscover', // Discover
-  'shell.navWorkspaces', // Workspaces
+  'shell.navDiscover', // Discover — the shelf's own name in the German surface too
   // Brand and product names.
   'nav.appName', // Ephe
   'welcome.heroTitle', // Ephe Agent
@@ -105,6 +104,7 @@ const SAME_BY_DESIGN = new Set<string>([
   'chat.perm.autonomous', // Auto
   'chat.planTitle', // Plan
   'chat.replayTitle', // Replay
+  'chat.roundOk', // ok — the technical outcome token, the same in both languages
   'chat.skillsTitle', // Skills
   'chat.watchBound', // {{kind}} {{tool}} {{ts}} — placeholders, not prose
   'chat.watchPause', // Pause — the same word in both languages

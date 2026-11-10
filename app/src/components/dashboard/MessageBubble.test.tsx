@@ -159,10 +159,11 @@ describe('MessageBubble — ToolStreamRows Icon + Breite (I6 P2c-Gate)', () => {
     expect(row.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('zwei Calls derselben Familie lesen sich als eine Zeile (Ran 2 tools)', () => {
+  it('zwei Calls derselben Familie lesen sich als eine Zeile (name · 2×)', () => {
     render(<MessageBubble message={toolMsg([shellCall('s1'), shellCall('s2')])} />)
     const row = screen.getByTestId('tool-stream-row-shell')
-    expect(row.textContent).toMatch(/Ran 2 tools|2 tools/)
+    expect(row.textContent).toContain('run_shell')
+    expect(row.textContent).toContain('2×')
   })
 
   it('kurze Zeilen dehnen den Abschnitt nicht auf volle Breite (inline-flex)', () => {

@@ -24,6 +24,7 @@ import { IS_DESKTOP_SHELL } from '@/lib/desktopBaseUrl'
 import { openCommandPalette } from '@/lib/commandPalette'
 import { setRegisterOpen, toggleRegister, useRegisterOpen } from '@/lib/taskRegister'
 import { EpheMark } from './EpheMark'
+import './NavRail.css'
 import { activeDestination, SHELL_DESTINATIONS } from './shellNav'
 import type { ShellDestination } from './shellNav'
 
@@ -47,12 +48,12 @@ function RailRow({ dest, isActive }: { dest: ShellDestination; isActive: boolean
     <li>
       <Link
         to={dest.path}
-        title={label}
         aria-label={label}
+        data-tooltip={label}
         aria-current={isActive ? 'page' : undefined}
         data-testid={`nav-rail-${dest.id}`}
         data-active={isActive || undefined}
-        className={`${ROW} ${isActive ? ACTIVE : IDLE} max-lg:hidden`}
+        className={`${ROW} nav-rail-tip ${isActive ? ACTIVE : IDLE} max-lg:hidden`}
       >
         <Icon className="h-5 w-5" aria-hidden="true" />
       </Link>
@@ -72,15 +73,15 @@ function RegisterRow({ dest, isActive }: { dest: ShellDestination; isActive: boo
       <button
         type="button"
         onClick={() => (isActive ? toggleRegister() : setRegisterOpen(true))}
-        title={label}
         aria-label={label}
+        data-tooltip={label}
         aria-current={isActive ? 'page' : undefined}
         aria-expanded={open}
         aria-controls={isActive ? 'chat-sidebar' : undefined}
         data-testid={`nav-rail-${dest.id}`}
         data-active={isActive || undefined}
         data-open={open || undefined}
-        className={`${ROW} ${isActive ? ACTIVE : IDLE} max-lg:hidden`}
+        className={`${ROW} nav-rail-tip ${isActive ? ACTIVE : IDLE} max-lg:hidden`}
       >
         <Icon className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -127,10 +128,10 @@ export default function NavRail() {
                     openCommandPalette()
                   }
                 }}
-                title={t(action.labelKey)}
                 aria-label={t(action.labelKey)}
+                data-tooltip={t(action.labelKey)}
                 data-testid={action.testid}
-                className={`${ROW} ${IDLE}`}
+                className={`${ROW} nav-rail-tip ${IDLE}`}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </button>

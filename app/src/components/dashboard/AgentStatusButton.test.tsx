@@ -157,13 +157,15 @@ describe('AgentStatusButton (H3, Referenz-Paritaet)', () => {
     expect(screen.queryByTestId('agent-status-collapsed-summary')).toBeTruthy()
   })
 
-  it('zwei Pillen wie das Referenz-Bild: Expand-Status + Statuszeile', async () => {
+  it('one status pill: the state is the door to the panel', async () => {
     render(<AgentStatusButton messages={WORKING} />)
-    expect(await screen.findByTestId('agent-status-expand')).toBeTruthy()
-    expect(screen.getByTestId('agent-status-pill')).toBeTruthy()
-    expect(screen.getByTestId('agent-status-expand').textContent).toContain(
-      'agentStatus.expandStatus',
-    )
+    const pill = await screen.findByTestId('agent-status-pill')
+    // The row is quiet: the visible word is the state, the name/action is the panel.
+    expect(screen.queryByTestId('agent-status-expand')).toBeNull()
+    expect(pill.getAttribute('title')).toBe('agentStatus.expandStatus')
+    expect(pill.getAttribute('aria-label')).toBe('agentStatus.title')
+    fireEvent.click(pill)
+    expect(await screen.findByTestId('agent-status-popover')).toBeTruthy()
   })
 
   it('S3: Popover klappt nach OBEN auf, wenn die Pille unten in der Statuszeile dockt', async () => {

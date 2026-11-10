@@ -32,6 +32,11 @@ from core.plugin_lifecycle import (
     LifecycleError,
     PluginLifecycle,
 )
+from core.plugin_memory_contract import (
+    MemoryProviderClaim,
+    MemoryProviderTable,
+    scan_memory_providers,
+)
 from core.plugin_registry import ToolActivations, scan_tool_activations
 from core.plugin_store import REGISTRY_FILENAME, config_root, migrate_registry_items
 
@@ -139,12 +144,27 @@ def _dependencies_cached(
     return tuple(sorted(out))
 
 
+@lru_cache(maxsize=8)
+def _memory_providers_cached(
+    user_root: str, builtin_root: str
+) -> MemoryProviderTable:
+    """The memory providers the portfolio declares, and the ids two bundles claim.
+
+    Read from the same scan the tool gate reads and cached the same way, so a mount, an
+    install or an edit retires the table in `invalidate_ownership_cache` and the next
+    read sees the folder as it is now. `scan_memory_providers` takes the entries, which
+    keeps this the only place that scans for them.
+    """
+    return scan_memory_providers(plugin_manifest.scan_plugins())
+
+
 def invalidate_ownership_cache() -> None:
     """Drops the manifest-derived view after an install, remove or edit."""
     global _LIFECYCLE, _LIFECYCLE_KEY
     _activations_cached.cache_clear()
     _versions_cached.cache_clear()
     _dependencies_cached.cache_clear()
+    _memory_providers_cached.cache_clear()
     with _LIFECYCLE_LOCK:
         _LIFECYCLE = None
         _LIFECYCLE_KEY = None
@@ -294,6 +314,24 @@ def is_plugin_active(plugin_id: str, path=None) -> bool:
     if plugin_id not in _installed_versions():
         return True
     return plugin_id in active_plugin_ids(Path(path) if path is not None else None)
+
+
+# Memory providers
+
+
+def memory_providers() -> MemoryProviderTable:
+    """Every memory provider the scanned portfolio declares, with the contested ids."""
+    return _memory_providers_cached(*_roots_key())
+
+
+def memory_provider_claim(provider_id: str) -> MemoryProviderClaim | None:
+    """The claim behind one provider id, or None for an unknown or contested one.
+
+    Ownership is answered here, activity by `is_plugin_active` at the call site: the
+    provider seam then asks the lifecycle the question every other capability asks,
+    instead of keeping a second notion of "installed".
+    """
+    return memory_providers().get(str(provider_id))
 
 
 # Gate decisions

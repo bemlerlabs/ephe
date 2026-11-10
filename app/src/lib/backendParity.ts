@@ -126,6 +126,30 @@ export function frontendBuildSha(): string {
   return typeof __EPHE_BUILD_SHA__ === 'string' ? __EPHE_BUILD_SHA__ : ''
 }
 
+/** Where a dismissed shell update is remembered — per pair, so a genuinely newer
+ *  build asks once more and the same pair does not come back on every reload. */
+const BUILD_ACK_KEY = 'ephe.build-parity.ack'
+
+function buildPair(mine: string, backend: string): string {
+  return `${mine}->${backend}`
+}
+
+function acknowledgedBuildPair(): string {
+  try {
+    return window.localStorage.getItem(BUILD_ACK_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function acknowledgeBuildPair(pair: string): void {
+  try {
+    window.localStorage.setItem(BUILD_ACK_KEY, pair)
+  } catch {
+    /* private mode — the toast stays per page life, which is the honest fallback */
+  }
+}
+
 /**
  * F10, second half: the shell and the backend are shipped by different mechanisms,
  * so the *bundle* has to know its own commit. The version string cannot separate two
@@ -133,6 +157,13 @@ export function frontendBuildSha(): string {
  * and quietly lacks the new UI. The build SHA is stamped by `vite.config.ts` and
  * compared with the backend's `git_sha`; only a measured disagreement is reported,
  * and `unknown` on either side stays silent because there is nothing to name.
+ *
+ * A browser build is deliberately silent here. The page is served by the same tree
+ * that answers `/api/health`, so reloading a stale `dist` re-reads the stale files;
+ * only a *waiting service worker* is a new version a reload can actually load, and
+ * `registerSW.ts` owns that banner. A toast on every task mount promised an action
+ * the surface could not perform (measured 2026-11-10: dist 75384975, backend
+ * c47ba078 — the banner reappeared after every reload and covered the header).
  */
 export async function announceBuildParity(
   t: Translate,
@@ -154,25 +185,31 @@ export async function announceBuildParity(
     return { verdict: 'unknown', build: mine, backend }
   }
   if (mine === backend) return { verdict: 'match', build: mine, backend }
-  if (inShell) {
-    // The interface is frozen into the `.app`, so reloading the window re-reads the same
-    // files and the newer one stays where it is. Only the app update brings it — so the
-    // shell names the update and opens the page that runs it. The tab is asked for first:
-    // the panel reads a named request as the tab of the open it arrives with.
-    toastBus.error(
-      t('chat.buildMismatchShell'),
-      undefined,
-      {
-        label: t('update.applyNow'),
-        onClick: () => {
-          window.dispatchEvent(new CustomEvent('ephe:settings-tab', { detail: { tab: 'about' } }))
-          requestSettingsOpen()
-        },
-      },
-      'build-parity',
-    )
-  } else {
-    toastBus.error(t('chat.buildMismatch'))
+  if (!inShell) {
+    // Nothing this page can do: the dist it loaded is the dist the server ships.
+    // The service-worker banner is the one that names a reloadable new version.
+    return { verdict: 'mismatch', build: mine, backend }
   }
+  // The interface is frozen into the `.app`, so reloading the window re-reads the same
+  // files and the newer one stays where it is. Only the app update brings it — so the
+  // shell names the update and opens the page that runs it. The tab is asked for first:
+  // the panel reads a named request as the tab of the open it arrives with.
+  const pair = buildPair(mine, backend)
+  if (acknowledgedBuildPair() === pair) return { verdict: 'mismatch', build: mine, backend }
+  toastBus.error(
+    t('chat.buildMismatchShell'),
+    undefined,
+    {
+      label: t('update.applyNow'),
+      onClick: () => {
+        window.dispatchEvent(new CustomEvent('ephe:settings-tab', { detail: { tab: 'about' } }))
+        requestSettingsOpen()
+      },
+    },
+    // One row for one pair: a page that remounts the task view cannot stack copies,
+    // and closing it writes the acknowledgement so a reload stays quiet.
+    'build-parity',
+    { onDismiss: () => acknowledgeBuildPair(pair) },
+  )
   return { verdict: 'mismatch', build: mine, backend }
 }

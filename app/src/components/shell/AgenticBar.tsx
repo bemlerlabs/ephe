@@ -77,13 +77,15 @@ export default function AgenticBar({
       <button
         type="button"
         onClick={onOpenPalette}
-        aria-label={t('chat.openPalette')}
-        title={t('chat.openPalette')}
+        aria-label={`${t('chat.openPalette')} (⌘K)`}
+        title={`${t('chat.openPalette')} (⌘K)`}
         data-testid="workbench-command"
         className="focus-ring ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-ui-2xs text-ink-faint transition-colors hover:bg-surface-interactive hover:text-foreground"
       >
         <Command className="h-3 w-3" aria-hidden="true" />
-        <span className="tabular-nums">&#8984;K</span>
+        {/* The chord stays in the name, not as a second glyph beside the icon:
+            the inline bar already sits next to the composer's own palette button. */}
+        {inline ? null : <span className="tabular-nums">&#8984;K</span>}
       </button>
       {progress !== null && (
         <span

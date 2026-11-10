@@ -84,12 +84,18 @@ export function Toaster() {
       })
       // A re-used id replaces the toast and restarts its clock: one restore, one row.
       const previous = timersRef.current.get(item.id)
-      if (previous !== undefined) clearTimeout(previous)
-      const tm = setTimeout(
-        () => removeItem(item.id),
-        item.kind === 'error' ? ERROR_DISMISS_MS : AUTO_DISMISS_MS,
-      )
-      timersRef.current.set(item.id, tm)
+      if (previous !== undefined) {
+        clearTimeout(previous)
+        timersRef.current.delete(item.id)
+      }
+      // A waiting update has no clock: it stays until the reader reloads or closes it.
+      if (!item.sticky) {
+        const tm = setTimeout(
+          () => removeItem(item.id),
+          item.kind === 'error' ? ERROR_DISMISS_MS : AUTO_DISMISS_MS,
+        )
+        timersRef.current.set(item.id, tm)
+      }
     })
     return () => {
       unsub()
@@ -147,7 +153,10 @@ export function Toaster() {
               )}
             </div>
             <button
-              onClick={() => removeItem(item.id)}
+              onClick={() => {
+                item.onDismiss?.()
+                removeItem(item.id)
+              }}
               aria-label={t('toast.close')}
               className="inline-flex items-center justify-center shrink-0 min-h-6 min-w-6 text-ink-faint hover:text-foreground/70 transition-colors"
             >

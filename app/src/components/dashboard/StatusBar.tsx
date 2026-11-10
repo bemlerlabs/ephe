@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChatMessage } from '@/types'
-import { estimateTokens, formatPercent, WARN_THRESHOLD } from '@/lib/contextMeter'
+import { estimateTokens, WARN_THRESHOLD } from '@/lib/contextMeter'
 import { useContextOccupancy } from '@/lib/useContextOccupancy'
 import { formatNumber, formatRate } from '@/lib/dateLocale'
 import { useChatStore } from '@/store/chatStore'
-import { Zap, Shrink } from 'lucide-react'
+import { Shrink, Zap } from 'lucide-react'
 import { sessionCostUsd, cacheSharePercent } from '@/lib/cost'
 import { useTranslation } from 'react-i18next'
 import AgentStatusButton from './AgentStatusButton'
@@ -12,10 +12,8 @@ import { contextRingLabel } from './chat/contextRing'
 import { windowHint } from './statusBar/windowHint'
 import { ConnectionPill } from './statusBar/ConnectionPill'
 import { ContextWindowsPopover } from './statusBar/ContextWindowsPopover'
-import { StorageFootprint } from './statusBar/StorageFootprint'
 import { CostChips } from './statusBar/CostChips'
-import CodebaseStatusBarPill from './CodebaseStatusBarPill'
-import CodebaseIndexDialog from './CodebaseIndexDialog'
+import StatusDetails from './statusBar/StatusDetails'
 
 /**
  * Ephe — context meter + status bar (P2-5)
@@ -78,7 +76,6 @@ export default function StatusBar({
   )
 
   const [expanded, setExpanded] = useState(false)
-  const [codebaseOpen, setCodebaseOpen] = useState(false)
 
   // R25: compaction status as an honest hint (the backend counts, not a feeling)
   const compactionActive = budget?.compaction_active ?? false
@@ -110,6 +107,9 @@ export default function StatusBar({
 
   const warn = effectivePercent / 100 >= WARN_THRESHOLD
   const danger = effectivePercent >= 95
+  // The row states what is left because that is the number a person plans with; the meter
+  // beside it shows the fill.
+  const remainingPercent = Math.max(0, Math.min(100, Math.round(100 - effectivePercent)))
   const meterColor = danger ? 'bg-status-danger' : warn ? 'bg-status-warning' : 'bg-status-success'
 
   return (
@@ -126,7 +126,17 @@ export default function StatusBar({
     >
       {/* Reference image 2: two pills on the left — 'Expand status' + current activity */}
       <div className="hidden @md/status:flex items-center shrink-0">
-        <AgentStatusButton messages={messages ?? []} sessionId={sessionId} />
+        <AgentStatusButton
+          messages={messages ?? []}
+          sessionId={sessionId}
+          details={
+            <StatusDetails
+              remaining={effectiveRemaining}
+              window={effectiveWindow ?? 0}
+              tokenizer={tokenizer ?? null}
+            />
+          }
+        />
       </div>
       {typing === true && (
         <span
@@ -142,8 +152,7 @@ export default function StatusBar({
           {t('metrics.activity')}
         </span>
       )}
-      {/* Live tok/s of the active answer — always visible (minimal footer,
-          reference: a slim terminal-harness line), not only in the popover. */}
+      {/* Live tok/s of the active answer stays in the slim footer, not only in the popover. */}
       {typing === true && (tokPerSec ?? 0) > 0 && (
         <span
           data-testid="statusbar-tok-per-sec"
@@ -158,16 +167,8 @@ export default function StatusBar({
           the agent-status popover („Status aufklappen") — the visible row stays
           minimal: one pill per fact, nothing more. */}
       <ConnectionPill backendOnline={backendOnline} engineOnline={engineOnline} />
-      {/* The cap is the point: without `overflow-hidden` the pill paints past its box,
-          and with the frame's rail taking 56 px off the column the spill landed on the
-          breakdown toggle at 1100-1440 px (measured on CI, composer-width.spec.ts). */}
-      <div className="hidden min-w-0 max-w-[12rem] overflow-hidden @2xl/status:inline-flex">
-        <CodebaseStatusBarPill onOpen={() => setCodebaseOpen(true)} />
-      </div>
-      {/* Live %-full Meter. R36 (Judge R2): percent lives OUTSIDE the meter
-          div — as a squeezed flex-1 child it painted over the neighboring tok
-          pill (overflow visible). Both are root children with gap + shrink-0
-          now; the bar itself yields when the row runs out of space. */}
+      {/* Live %-full Meter. The bar is the machine's gauge; the number beside it is
+          the remainder in percent, the one figure this row states. */}
       <div className="flex items-center min-w-0 flex-1">
         {/* F2's sibling: the composer ring got `role="img"` and a name, the row meter
             did not — its occupancy lived in a `title` alone. Same sentence as the ring,
@@ -185,45 +186,10 @@ export default function StatusBar({
           />
         </div>
       </div>
-      {/* One figure, one home. The composer meter (the row the person is about to
-          spend the context in) prints the percentage from `md` up; this row prints it
-          only below `md`, where that meter steps out, so the number is never offered
-          twice in one screen. The bar above stays the machine's own gauge at every
-          width — its `role="img"` name is the reading for a screen reader. */}
-      <span
-        data-testid="statusbar-percent"
-        className={`md:hidden text-ui-xs font-mono tabular-nums shrink-0 ${danger ? 'text-status-danger' : warn ? 'text-status-warning' : 'text-ink-soft'}`}
-      >
-        {formatPercent(effectivePercent, i18n.language)}
-        {compactionActive && (
-          <span
-            data-testid="statusbar-compaction-marker"
-            className="ml-1 text-ink-faint"
-            title={t('statusBar.compactionActive')}
-          >
-            ·S
-          </span>
-        )}
-      </span>
-      {tokenizer === 'tiktoken-bpe' && (
-        <span
-          data-testid="statusbar-tokenizer-chip"
-          className="hidden @4xl/status:inline text-ui-xs font-mono text-ink-faint shrink-0"
-          title={t('status.bpeExact')}
-        >
-          ·bpe
-        </span>
-      )}
-
-      {/* DD-22: the auto-read-aloud toggle was here AND in the toolbar row — the
-          same control twice (same setAutospeak(sessionId), same localStorage) —
-          the redundancy stood out as visual load in the deep dive.
-          The toolbar row (ToolbarRow) is the only place for it. */}
-
-      {/* The token breakdown stays reachable, but its opener no longer doubles as a
-          second readout of the figure — the composer prints the number, this button
-          only opens the popover. It is the desktop opener; below `md` the phone chip
-          below takes its place. */}
+      {/* One control, two jobs: it states the context remainder in percent and opens
+          the token breakdown (the raw free-of-window pair lives in the status popover).
+          QD-015 V1: the row stays one line — this button is the first figure to give
+          way, and it never pushed a second line. */}
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -231,10 +197,25 @@ export default function StatusBar({
         aria-expanded={expanded}
         aria-haspopup="dialog"
         aria-label={t('statusBar.breakdownHint')}
-        className="hidden items-center justify-center whitespace-nowrap py-1.5 -my-1.5 px-1 -mx-1 text-ink-faint transition-colors hover:text-foreground/60 shrink-0 md:flex"
         title={t('statusBar.breakdownHint')}
+        className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1 py-1.5 -my-1.5 text-ui-xs font-mono tabular-nums transition-colors hover:bg-surface-interactive hover:text-foreground/80 ${
+          danger ? 'text-status-danger' : warn ? 'text-status-warning' : 'text-ink-soft'
+        }`}
       >
-        <Zap className="h-3 w-3 text-brand/70" aria-hidden="true" />
+        <span data-testid="statusbar-percent">
+          {t('statusBar.remainingPercent', {
+            percent: formatNumber(remainingPercent, i18n.language),
+          })}
+        </span>
+        {compactionActive && (
+          <span
+            data-testid="statusbar-compaction-marker"
+            className="text-ink-faint"
+            title={t('statusBar.compactionActive')}
+          >
+            ·S
+          </span>
+        )}
       </button>
 
       <CostChips
@@ -243,45 +224,6 @@ export default function StatusBar({
         sessionCost={sessionCost}
         cachePercent={cachePercent}
       />
-
-      {/* R44 (P3): IndexedDB footprint — N sessions · ~MB. The pill is purely
-          readable (no toggle); it counts the browser sessions and their JSON
-          length, so a nearing quota warns before the silent loss.
-          R36: min-w-0 + truncate — as the last pill in the row it yields instead
-          of painting over "N free" (judge R2). */}
-      <div className="hidden min-w-0 @6xl/status:inline-flex">
-        <StorageFootprint />
-      </div>
-
-      {/* Below `md` the composer meter steps out, so this chip is the phone's home for
-          the token figure — and its opener for the same breakdown popover the desktop
-          button opens. From `md` up the composer owns the number and the chip yields to
-          that button, so one row never states the figure twice. Its visible number is
-          the affordance on touch, so it carries no tooltip (one `Token breakdown` title). */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        data-testid="statusbar-tok-chip"
-        aria-expanded={expanded}
-        aria-haspopup="dialog"
-        className="md:hidden text-ui-xs font-mono tabular-nums text-ink-soft py-1.5 -my-1.5 px-1 shrink-0"
-      >
-        {formatNumber(effectiveTokens, i18n.language)} tok
-      </button>
-
-      {/* F1: a free figure without its total is a number with no unit. The window
-          goes where the reader already looks for the remainder.
-          QD-015 V1: the remainder is the first figure to give way — below md it
-          steps out entirely, and above it `min-w-0 truncate` lets it shrink
-          against the cost chips instead of pushing them into a second row. */}
-      <span className="hidden min-w-0 truncate text-ui-xs text-ink-faint font-mono tabular-nums @2xl/status:inline-block">
-        {effectiveWindow
-          ? t('statusBar.contextFreeOf', {
-              free: formatNumber(effectiveRemaining, i18n.language),
-              window: formatNumber(effectiveWindow, i18n.language),
-            })
-          : `${formatNumber(effectiveRemaining, i18n.language)} ${t('statusBar.contextFree')}`}
-      </span>
 
       {warn && onCompact && (
         <button
@@ -304,7 +246,6 @@ export default function StatusBar({
           ttftMs={active?.ttftMs ?? null}
         />
       )}
-      <CodebaseIndexDialog open={codebaseOpen} onClose={() => setCodebaseOpen(false)} />
     </div>
   )
 }

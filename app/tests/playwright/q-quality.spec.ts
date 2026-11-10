@@ -163,8 +163,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // later tick of the same URL is the interval, which the boundary above excludes
     // from the boot set.
     const bootSnapshot = await page.evaluate(() => {
-      const calls = (window as unknown as { __epheBootApiCalls?: string[] })
-        .__epheBootApiCalls
+      const calls = (window as unknown as { __epheBootApiCalls?: string[] }).__epheBootApiCalls
       if (!calls) throw new Error('the boot boundary was not reached')
       return calls
     })
@@ -229,12 +228,9 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // however late the runner gets to read it.
     const frozenAt = await page.evaluate(async () => {
       await fetch('/api/settings')
-      return (window as unknown as { __epheBootApiCalls?: string[] }).__epheBootApiCalls
-        ?.length
+      return (window as unknown as { __epheBootApiCalls?: string[] }).__epheBootApiCalls?.length
     })
-    expect(frozenAt, 'boot set stayed closed after a post-boot request').toBe(
-      bootSnapshot.length,
-    )
+    expect(frozenAt, 'boot set stayed closed after a post-boot request').toBe(bootSnapshot.length)
     expect(requests.length, `Total-Anzahl ${requests.length}`).toBeLessThanOrEqual(400)
     // UI errors: favicon/connection are expected offline paths; the rest must be 0
     const uiErrors = errors.filter(
@@ -313,9 +309,11 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // page, not on about:blank — see QG2.
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/#/chat', { waitUntil: 'load' })
-    await page.waitForSelector('[data-testid="statusbar-tok-chip"]')
+    // The context figure lives in the single breakdown toggle now (the separate tok chip was
+    // retired: one home per screen, 105edc18). The cross-checks below still hold.
+    await page.waitForSelector('[data-testid="statusbar-breakdown-toggle"]')
     test.skip(!(await hasDevHandle(page)), 'needs vite dev server (DEV-only __epheStore handle)')
-    await page.getByTestId('statusbar-tok-chip').click()
+    await page.getByTestId('statusbar-breakdown-toggle').click()
     await expect(page.getByTestId('context-popover')).toBeVisible()
 
     const m = await page.evaluate(() => {
@@ -355,8 +353,11 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // (see QG2): the handle only exists once the app has booted.
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/#/chat', { waitUntil: 'load' })
-    await page.waitForSelector('[data-testid="statusbar-tok-chip"]')
+    // The context figure lives in the single breakdown toggle now (the separate tok chip was
+    // retired: one home per screen, 105edc18). The cross-checks below still hold.
+    await page.waitForSelector('[data-testid="statusbar-breakdown-toggle"]')
     test.skip(!(await hasDevHandle(page)), 'needs vite dev server (DEV-only __epheStore handle)')
+    await page.getByTestId('statusbar-breakdown-toggle').click()
     const chip = page.getByTestId('statusbar-storage-chip')
     // Without sessions: the chip either does not exist or counts 0 — both consistent
     const first = await chip.count()

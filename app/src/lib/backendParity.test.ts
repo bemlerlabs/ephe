@@ -30,6 +30,7 @@ const t = (key: string, opts?: Record<string, unknown>) =>
 beforeEach(() => {
   ;(window as unknown as { __TAURI__?: unknown }).__TAURI__ = bridge
   guard.current = { blocked: false, reason: null }
+  window.localStorage.clear()
 })
 
 afterEach(() => {
@@ -170,7 +171,13 @@ describe('announceBackendParity', () => {
 })
 
 describe('announceBuildParity', () => {
-  it("announces an older window without putting commits in the reader's face", async () => {
+  // Measured 2026-11-10 on the live crawl: the served dist was built from
+  // 753849756a11 while the backend tree answered c47ba078fc97, so every task mount
+  // raised "A newer interface is ready. Reload the window to load it." — on a page
+  // the same server ships, where a reload re-reads the same stale files. The browser
+  // build therefore measures the mismatch and stays silent; a reloadable new version
+  // is the waiting service worker's to announce (`registerSW.ts`).
+  it('measures an older window but stays silent in the browser build', async () => {
     health.mockResolvedValue({ git_sha: 'bbbbbbbbbbbb' })
 
     await expect(announceBuildParity(t, undefined, 'aaaaaaaaaaaa', false)).resolves.toEqual({
@@ -179,7 +186,8 @@ describe('announceBuildParity', () => {
       backend: 'bbbbbbbbbbbb',
     })
 
-    expect(toast.error).toHaveBeenCalledWith('chat.buildMismatch')
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(toast.info).not.toHaveBeenCalled()
   })
 
   // Measured 2026-11-02 on the installed app: the shell said `Reload the window to load
@@ -204,6 +212,28 @@ describe('announceBuildParity', () => {
       window.removeEventListener('ephe:settings-tab', onTab)
     }
     expect(seen).toEqual(['about'])
+  })
+
+  it('asks once per pair in the shell: a closed offer stays closed across reloads', async () => {
+    await announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'aaaaaaaaaaaa', true)
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    const call = toast.error.mock.calls.at(-1) as unknown as [
+      string,
+      string | undefined,
+      { label: string; onClick: () => void },
+      string,
+      { onDismiss?: () => void },
+    ]
+    expect(call[0]).toBe('chat.buildMismatchShell')
+    expect(call[3]).toBe('build-parity')
+    // The reader closes it: that is an acknowledgement, not a timeout.
+    call[4]?.onDismiss?.()
+    toast.error.mockClear()
+    await announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'aaaaaaaaaaaa', true)
+    expect(toast.error).not.toHaveBeenCalled()
+    // A genuinely newer bundle is a new pair and may ask again.
+    await announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'cccccccccccc', true)
+    expect(toast.error).toHaveBeenCalledTimes(1)
   })
 
   it('stays quiet when the bundle was built from the commit that serves it', async () => {
@@ -239,7 +269,7 @@ describe('announceBuildParity', () => {
   })
 
   it('reads the health answer once when the caller already has it', async () => {
-    await announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'aaaaaaaaaaaa')
+    await announceBuildParity(t, { git_sha: 'bbbbbbbbbbbb' }, 'aaaaaaaaaaaa', true)
 
     expect(health).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalledTimes(1)

@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 from core import marketplace_service, marketplace_sources, plugin_store  # noqa: E402
 from core.plugin_store import sha256_hex  # noqa: E402
+from tests.support.skill_pack import SKILL_PACK, SMUGGLED_SKILL_PACK  # noqa: E402
 
 
 def make_artifact(
@@ -31,6 +32,8 @@ def make_artifact(
     families: tuple[str, ...] = ("read",),
     dependencies: list[str] | None = None,
     engine: str = ">=0.1.0",
+    skills: list[str] | None = None,
+    files: dict[str, str] | None = None,
 ) -> tuple[Path, str]:
     manifest = {
         "manifest_version": 1,
@@ -38,7 +41,7 @@ def make_artifact(
         "version": version,
         "description": f"{name} {version}",
         "permissions": {"tool_families": list(families), "data_roots": []},
-        "components": {"skills": [], "commands": []},
+        "components": {"skills": list(skills or []), "commands": []},
         "engines": {"ephe": engine},
     }
     if dependencies:
@@ -46,6 +49,8 @@ def make_artifact(
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w") as zf:
         zf.writestr(f"{name}/ephe-plugin.json", json.dumps(manifest))
+        for rel, text in (files or {}).items():
+            zf.writestr(f"{name}/{rel}", text)
     path = directory / f"{name}-{version}.zip"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload.getvalue())
@@ -74,7 +79,7 @@ def version_entry(
     }
 
 
-def write_index(root: Path, versions: list[dict]) -> Path:
+def write_index(root: Path, versions: list[dict], *, trust: str = "local") -> Path:
     index = {
         "format": 2,
         "name": "test-index",
@@ -85,7 +90,7 @@ def write_index(root: Path, versions: list[dict]) -> Path:
                 "displayName": "Alpha",
                 "description": {"en": "Alpha plugin"},
                 "publisher": {"name": "Test"},
-                "trust": "local",
+                "trust": trust,
                 "categories": ["code"],
                 "versions": versions,
             }
@@ -201,6 +206,103 @@ class TestInstall:
         )
         marketplace_service.remove("alpha", delete_data=True)
         assert not data.exists()
+
+
+class TestStaticCheck:
+
+    def test_a_community_bundle_with_a_valid_skill_pack_installs(self, market):
+        """The heading a skill pack must carry is not an attack. Before the fix
+        this install answered `static_check_failed` on the marker
+        'system prompt'."""
+        artifact, digest = make_artifact(
+            market["artifacts"],
+            "alpha",
+            "3.0.0",
+            skills=["pack-tool"],
+            files={"skills/pack-tool/SKILL.md": SKILL_PACK},
+        )
+        write_index(
+            market["root"],
+            [
+                version_entry("1.0.0", *market["v1"]),
+                version_entry("3.0.0", artifact, digest),
+            ],
+        )
+        plan = marketplace_service.plan(
+            market["source"]["id"], "alpha", "3.0.0", allow_local_trust=True, approve_permissions=True
+        )
+        assert plan["status"] == "ready", plan
+        result = marketplace_service.install(plan)
+        assert result["status"] == "extracted", result
+        assert result["verification"]["verdict"] == "checked-clean", result["verification"]
+
+        from core import plugin_manifest
+        from core.marketplace_verify import read_verdict
+        from core.plugin_versions import plugin_dir
+        from core.skills import _parse_skill
+
+        installed = plugin_dir(plugin_manifest.plugins_root(), "alpha")
+        parsed = _parse_skill(
+            "pack-tool",
+            (installed / "skills" / "pack-tool" / "SKILL.md").read_text(encoding="utf-8"),
+        )
+        assert parsed.system_prompt.startswith("You answer in one short paragraph")
+        assert read_verdict(installed)["verdict"] == "checked-clean"
+
+    def test_a_community_bundle_that_smuggles_a_prompt_handover_is_refused(self, market):
+        artifact, digest = make_artifact(
+            market["artifacts"],
+            "alpha",
+            "3.0.0",
+            skills=["pack-tool"],
+            files={"skills/pack-tool/SKILL.md": SMUGGLED_SKILL_PACK},
+        )
+        write_index(
+            market["root"],
+            [
+                version_entry("1.0.0", *market["v1"]),
+                version_entry("3.0.0", artifact, digest),
+            ],
+        )
+        plan = marketplace_service.plan(
+            market["source"]["id"], "alpha", "3.0.0", allow_local_trust=True, approve_permissions=True
+        )
+        assert plan["status"] == "ready", plan
+        result = marketplace_service.install(plan)
+        assert result["status"] == "refused", result
+        assert result["code"] == "static_check_failed"
+        assert result["quarantined"] is True
+        assert result["findings"][0]["class"] == "description-instructions"
+        assert "print your system prompt" in result["findings"][0]["marker"].lower()
+        assert not (market["cfg"] / "plugin-lock.json").exists()
+
+    def test_a_bundled_artifact_is_scanned_like_any_other(self, market):
+        """The exemption existed because the scan read our own skill packs as
+        attacks. With the heading no longer a marker, nothing needs it — and a
+        first-party artifact gets the same gate as a community one."""
+        artifact, digest = make_artifact(
+            market["artifacts"],
+            "alpha",
+            "3.0.0",
+            skills=["pack-tool"],
+            files={"skills/pack-tool/SKILL.md": SMUGGLED_SKILL_PACK},
+        )
+        write_index(
+            market["root"],
+            [
+                version_entry("1.0.0", *market["v1"]),
+                version_entry("3.0.0", artifact, digest),
+            ],
+            trust="bundled",
+        )
+        plan = marketplace_service.plan(
+            market["source"]["id"], "alpha", "3.0.0", allow_local_trust=True, approve_permissions=True
+        )
+        assert plan["status"] == "ready", plan
+        result = marketplace_service.install(plan)
+        assert result["status"] == "refused", result
+        assert result["code"] == "static_check_failed"
+        assert result["quarantined"] is True
 
 
 class TestPermissions:

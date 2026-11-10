@@ -36,6 +36,10 @@ _REVIEW_FIELDS = (
     "local_trust_required",
     "approved_delta",
 )
+#: The install-outcome facts a refusal may carry: F2 (QA 2026-11-10) made "the artifact
+#: was refused" an answer about the disk too, so the client can say that nothing stayed
+#: behind. A bool, so no artifact text can ride it out.
+_RESULT_FIELDS = ("quarantined",)
 
 
 def _compact(body: dict) -> dict:
@@ -129,7 +133,7 @@ def _refusal(status: str, body: dict) -> dict:
     code = str(body.get("code") or status)
     http_status = _ERROR_STATUS.get(code, 409)
     detail = {"code": code, "detail": _REFUSED}
-    for key in _REVIEW_FIELDS:
+    for key in (*_REVIEW_FIELDS, *_RESULT_FIELDS):
         if key in body:
             detail[key] = body[key]
     raise HTTPException(status_code=http_status, detail=detail)

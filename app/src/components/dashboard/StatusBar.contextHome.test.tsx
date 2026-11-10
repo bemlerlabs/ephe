@@ -37,6 +37,7 @@ vi.mock('react-i18next', () => ({
       const map: Record<string, string> = {
         'chat.contextRing': 'Context used: {{percent}}%',
         'statusBar.breakdownHint': 'Token breakdown',
+        'statusBar.remainingPercent': '{{percent}}% free',
       }
       const pattern = map[key] ?? key
       if (!opts) return pattern
@@ -63,34 +64,32 @@ describe('the context figure has one home', () => {
     const toggle = screen.getByTestId('statusbar-breakdown-toggle')
     expect(toggle.getAttribute('aria-label')).toBe('Token breakdown')
     expect(toggle.getAttribute('aria-haspopup')).toBe('dialog')
-    // No token figure is printed in the control any more — it is only the opener.
+    // The control states the remainder and opens the detail; no token pair.
+    expect(toggle.textContent).toBe('88% free')
     expect(toggle.textContent).not.toMatch(/tok/)
-    expect(toggle.textContent).not.toMatch(/\d/)
   })
 
-  it('the row percent and the compact chip are the phone home, gated below the composer', () => {
+  it('states the remainder at every width and keeps no second token chip', () => {
     render(<StatusBar messages={messages} />)
     const percent = screen.getByTestId('statusbar-percent')
-    const chip = screen.getByTestId('statusbar-tok-chip')
-    expect(percent.className).toContain('md:hidden')
-    expect(chip.className).toContain('md:hidden')
-    // The figure is still there for the width that needs it (jsdom keeps the text).
-    expect(percent.textContent).toContain('12%')
-    expect(chip.textContent).toMatch(/\d[\d,.]* tok/)
+    // One figure, always: the remainder in percent. It no longer steps out at md.
+    expect(percent.textContent).toBe('88% free')
+    expect(percent.className).not.toContain('md:hidden')
+    expect(screen.queryByTestId('statusbar-tok-chip')).toBeNull()
   })
 
-  it('the composer meter hides exactly where the row figures appear — complementary', () => {
+  it('the composer meter is opt-in, not a second permanent figure', () => {
     const composer = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), 'chat', 'ComposerContextMeter.tsx'),
       'utf8',
     )
-    // The composer prints the number from md up and steps out below it; this row prints
-    // its figures only below md. Read together, the two cover every width once.
-    expect(composer).toContain('max-md:hidden')
+    // The quieting moved it behind the thinking control; it is no longer a permanent
+    // row that has to be hidden on narrow widths (and duplicated here to cover them).
+    expect(composer).not.toContain('max-md:hidden')
     const source = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), 'StatusBar.tsx'),
       'utf8',
     )
-    expect(source).toContain('md:hidden')
+    expect(source).not.toContain('statusbar-tok-chip')
   })
 })

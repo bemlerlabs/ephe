@@ -55,7 +55,9 @@ describe('StatusBar W14 — dynamisches Fenster + TTFT', () => {
       compaction_active: false,
     } as never)
     render(<StatusBar messages={msgs(42000)} />)
-    // 262144 - 10000 = 252144 → the "free" line tracks the real window.
+    // 262144 - 10000 = 252144 → the raw free line tracks the real window; it now
+    // lives in the status popover beside the percent the row states.
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     expect(await screen.findByText(/252[.,]?144/)).toBeTruthy()
   })
 
@@ -63,6 +65,7 @@ describe('StatusBar W14 — dynamisches Fenster + TTFT', () => {
     vi.mocked(getContextBudget).mockResolvedValueOnce({} as never)
     render(<StatusBar messages={msgs(4200)} windowTokens={16384} />)
     // 16384 - 1000 = 15384
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     expect(await screen.findByText(/15[.,]?384/)).toBeTruthy()
   })
 

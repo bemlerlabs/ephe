@@ -22,6 +22,16 @@ export interface ToastItem {
   title: string
   description?: string
   action?: ToastAction
+  /** A toast that waits for the reader — a new version on disk — gets no clock. */
+  sticky?: boolean
+  /** Runs when the reader closes the toast themselves, never on the timeout. */
+  onDismiss?: () => void
+}
+
+/** The two flags a caller may attach to any toast without changing its wording. */
+export interface ToastFlags {
+  sticky?: boolean
+  onDismiss?: () => void
 }
 
 type Listener = (item: ToastItem) => void
@@ -34,19 +44,43 @@ function broadcast(
   description?: string,
   action?: ToastAction,
   id?: string,
+  flags?: ToastFlags,
 ): void {
-  const item: ToastItem = { id: id ?? crypto.randomUUID(), kind, title, description, action }
+  const item: ToastItem = {
+    id: id ?? crypto.randomUUID(),
+    kind,
+    title,
+    description,
+    action,
+    ...(flags?.sticky ? { sticky: true } : {}),
+    ...(flags?.onDismiss ? { onDismiss: flags.onDismiss } : {}),
+  }
   listeners.forEach((l) => l(item))
 }
 
 export const toastBus = {
   /** A toast, or — with an `id` already on screen — the same toast with new text. */
-  info: (title: string, description?: string, action?: ToastAction, id?: string) =>
-    broadcast('info', title, description, action, id),
-  success: (title: string, description?: string, action?: ToastAction, id?: string) =>
-    broadcast('success', title, description, action, id),
-  error: (title: string, description?: string, action?: ToastAction, id?: string) =>
-    broadcast('error', title, description, action, id),
+  info: (
+    title: string,
+    description?: string,
+    action?: ToastAction,
+    id?: string,
+    flags?: ToastFlags,
+  ) => broadcast('info', title, description, action, id, flags),
+  success: (
+    title: string,
+    description?: string,
+    action?: ToastAction,
+    id?: string,
+    flags?: ToastFlags,
+  ) => broadcast('success', title, description, action, id, flags),
+  error: (
+    title: string,
+    description?: string,
+    action?: ToastAction,
+    id?: string,
+    flags?: ToastFlags,
+  ) => broadcast('error', title, description, action, id, flags),
   subscribe: (l: Listener): (() => void) => {
     listeners.add(l)
     return () => {

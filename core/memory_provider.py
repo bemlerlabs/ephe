@@ -20,6 +20,9 @@ gets addressed, and writes the outcome as a record.
 
 The bridge (D4a, `kepta-bridge`) takes part in rules 2 and 3, never in rule 4: a
 memory across the network is something you can only opt into, Ephe does not infer it.
+A provider a plugin declares (`capabilities.memory`, MEM-P1) is a name for the same two
+steps and never a step of its own, so a bundle can never move a user's memory by being
+installed; `plugin_provider()` asks the runtime, which asks the lifecycle.
 """
 from __future__ import annotations
 
@@ -31,6 +34,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from core.engine_config import config_subdir, workspace_hash
+from core.plugin_memory_contract import MemoryProviderClaim
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +42,10 @@ KEPTA = "kepta"
 #: D4a: provider backed by a running Kepta instance. Selectable, never recognised —
 #: the recognition rule must not hand out a memory across the network.
 KEPTA_BRIDGE = "kepta-bridge"
+#: The two providers the kernel carries. A plugin adds its own in a manifest
+#: (`capabilities.memory`, `core/plugin_memory_contract.py`); these names stay reserved
+#: to the kernel, so `available_providers()` is this tuple plus what active bundles
+#: declare, and nothing can shadow the local brain by declaring it.
 VALID_PROVIDERS = (KEPTA, KEPTA_BRIDGE)
 #: The two brains Ephe runs without an external instance (D4a keeps the bridge apart).
 LOCAL_PROVIDERS = (KEPTA,)
@@ -62,20 +70,72 @@ def provider_record_path() -> Path:
     return config_subdir("memory") / "provider.json"
 
 
-def read_provider_record() -> dict[str, Any] | None:
+def plugin_provider(provider_id: str) -> tuple[MemoryProviderClaim | None, str]:
+    """(active claim, why not) for a provider id a plugin declares.
+
+    The declaration itself is answered by the plugin runtime from the manifest scan; the
+    *reachability* question is the lifecycle's, and it is asked here rather than stored,
+    so a switched-off bundle takes its provider with it at the next turn. A claimed id
+    that two bundles declare answers like an unknown one and says why — the same answer
+    the tool gate gives a contested name.
+    """
+    from core import plugin_runtime
+
+    table = plugin_runtime.memory_providers()
+    if provider_id in table.contested:
+        return None, table.conflict_reason(provider_id)
+    claim = table.get(provider_id)
+    if claim is None:
+        return None, ""
+    if not plugin_runtime.is_plugin_active(claim.plugin_id):
+        return None, f"it is declared by plugin {claim.plugin_id!r}, which is switched off"
+    return claim, ""
+
+
+def available_providers() -> tuple[str, ...]:
+    """The providers a user can select now: the kernel's two, then the active bundles'."""
+    from core import plugin_runtime
+
+    table = plugin_runtime.memory_providers()
+    declared = [
+        claim.provider_id
+        for claim in table.claims
+        if claim.provider_id not in table.contested
+        and plugin_runtime.is_plugin_active(claim.plugin_id)
+    ]
+    return tuple(VALID_PROVIDERS) + tuple(sorted(set(declared)))
+
+
+def _unknown(provider_id: str, why: str = "") -> str:
+    message = f"Unknown memory provider: {provider_id!r}"
+    return f"{message} — {why}" if why else message
+
+
+def _known_provider(provider_id: str) -> bool:
+    return provider_id in VALID_PROVIDERS or plugin_provider(provider_id)[0] is not None
+
+
+def _read_record() -> dict[str, Any] | None:
+    """The record as written, without asking whether its provider can be reached."""
     try:
         raw = json.loads(provider_record_path().read_text(encoding="utf-8"))
-        if isinstance(raw, dict) and raw.get("provider") in VALID_PROVIDERS:
-            return raw
     except (OSError, ValueError):
-        pass
+        return None
+    return raw if isinstance(raw, dict) else None
+
+
+def read_provider_record() -> dict[str, Any] | None:
+    """The written choice, while the provider it names is one this install can open."""
+    raw = _read_record()
+    if raw is not None and _known_provider(str(raw.get("provider") or "")):
+        return raw
     return None
 
 
 def write_provider_record(provider: str, *, reason: str) -> None:
     """Writes the decision down where it is visible — 0600, no secret, room to go back."""
-    if provider not in VALID_PROVIDERS:
-        raise ValueError(f"Unknown memory provider: {provider!r}")
+    if not _known_provider(provider):
+        raise ValueError(_unknown(provider))
     path = provider_record_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -117,21 +177,51 @@ def resolve_provider(
     explicit: str | None = None,
     record: dict[str, Any] | None = None,
 ) -> tuple[str, str]:
-    """(provider, reason) — the decision, without guessing at it."""
+    """(provider, reason) — the decision, without guessing at it.
+
+    The order is the one this seam always had: a named store, then the explicit
+    argument, then the environment, then the written record, then the fresh-install
+    decision. What a plugin adds is one more acceptable *name* at three of those steps —
+    a provider declared in an active bundle's manifest — and it never adds a step of its
+    own: a memory across the network stays something a user opts into.
+    """
     if persist_dir or collection_name:
         return KEPTA, "benannter Speicher: der Aufrufer gibt Pfad oder Scope vor"
     if explicit:
-        if explicit not in VALID_PROVIDERS:
-            raise ValueError(f"Unknown memory provider: {explicit!r}")
-        return explicit, "explicit übergeben"
+        if explicit in VALID_PROVIDERS:
+            return explicit, "explicit übergeben"
+        claim, why = plugin_provider(explicit)
+        if claim is not None:
+            return claim.provider_id, f"explicit übergeben (Plugin {claim.plugin_id!r})"
+        raise ValueError(_unknown(explicit, why))
     env = (os.environ.get(ENV_PROVIDER) or "").strip().lower()
     if env in VALID_PROVIDERS:
         return env, f"env {ENV_PROVIDER}"
     if env:
-        logger.warning("memory: ignoring unknown %s=%r", ENV_PROVIDER, env)
-    rec = record if record is not None else read_provider_record()
+        claim, why = plugin_provider(env)
+        if claim is not None:
+            return claim.provider_id, f"env {ENV_PROVIDER} (Plugin {claim.plugin_id!r})"
+        logger.warning(
+            "memory: ignoring unknown %s=%r%s",
+            ENV_PROVIDER,
+            env,
+            f" — {why}" if why else "",
+        )
+    rec = record if record is not None else _read_record()
     if rec:
-        return str(rec["provider"]), f"record ({rec.get('reason', 'unknown')})"
+        declared = str(rec.get("provider") or "")
+        if declared in VALID_PROVIDERS:
+            return declared, f"record ({rec.get('reason', 'unknown')})"
+        claim, why = plugin_provider(declared)
+        if claim is not None:
+            return claim.provider_id, f"record ({rec.get('reason', 'unknown')})"
+        if why:
+            # The record stays as the user wrote it, so the same choice applies again
+            # the moment the bundle that declares it is back.
+            return KEPTA, (
+                f"the stored provider {declared!r} is not reachable: {why}; "
+                "Kepta stays the brain until it is back"
+            )
     if legacy_store_present():
         write_provider_record(KEPTA, reason="existing-data")
         return KEPTA, "Altbestand gefunden — Kepta ist das Gehirn, ein Import steht bereit"
@@ -174,8 +264,14 @@ def open_provider(
     collection_name: str | None = None,
     scope: str | None = None,
     embedder: Any = "auto",
+    transport: Any = None,
 ) -> Any:
-    """Builds the provider; `embedder='auto'` decides on the embedding module."""
+    """Builds the provider; `embedder='auto'` decides on the embedding module.
+
+    A plugin-declared provider is built over the URL its manifest carries and nothing
+    else — the bundle's code is never imported here (ruling A1), and `transport` is the
+    test seam the Kepta bridge already offers.
+    """
     if provider == KEPTA:
         from core.memory_embed import effective_label, is_disabled
         from core.memory_kepta import KeptaProvider
@@ -202,8 +298,22 @@ def open_provider(
         return KeptaBridgeProvider(
             persist_dir or collection_name or bridge_url_from_env(),
             scope=scope or collection_name or workspace_hash(),
+            transport=transport,
         )
-    raise ValueError(f"Unknown memory provider: {provider!r}")
+    claim, why = plugin_provider(provider)
+    if claim is None:
+        raise ValueError(_unknown(provider, why))
+    if claim.transport == "kepta-bridge":
+        from core.memory_kepta_bridge import KeptaBridgeProvider
+
+        return KeptaBridgeProvider(
+            claim.url,
+            scope=scope or claim.scope or workspace_hash(),
+            transport=transport,
+        )
+    # The vocabulary is closed by the contract; a claim that got here names a transport
+    # this kernel has no client for, and guessing one would be inventing an endpoint.
+    raise ValueError(f"memory provider {provider!r} speaks no transport this kernel has")
 
 
 

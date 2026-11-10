@@ -36,11 +36,13 @@ describe('ToolCallDisplay — failed call', () => {
     render(<ToolCallDisplay tool_calls={[failedFetch()]} />)
 
     expect(screen.getByTestId('tool-card')).toHaveAttribute('data-status', 'failed')
-    expect(screen.getByText('fetch_url failed')).toBeInTheDocument()
+    // UI-CHAT: name once, outcome once — the old "name + failed" suffix is gone.
+    expect(screen.getAllByText('fetch_url')).toHaveLength(1)
+    expect(screen.getByTestId('tool-outcome').textContent).toContain('Failed')
     expect(screen.getByTestId('tool-failure-reason').textContent).toBe(
       '[fetch failed] https://example.test/missing answered HTTP 404.',
     )
-    expect(screen.queryByText('fetch_url completed')).not.toBeInTheDocument()
+    expect(screen.queryByText(/completed/i)).not.toBeInTheDocument()
   })
 
   it('falls back to the result line when the code has no entry', () => {
@@ -68,12 +70,12 @@ describe('ToolCallDisplay — failed call in German', () => {
   it('translates the status and the reason', () => {
     render(<ToolCallDisplay tool_calls={[failedFetch()]} />)
 
-    const status = de.chat.toolFailed.replace('{{tool}}', 'fetch_url')
     const reason = de.reader.fetch_http_error
       .replace('{{url}}', 'https://example.test/missing')
       .replace('{{status}}', '404')
 
-    expect(screen.getByText(status)).toBeInTheDocument()
+    expect(screen.getAllByText('fetch_url')).toHaveLength(1)
+    expect(screen.getByTestId('tool-outcome').textContent).toContain(de.chat.rowFailed)
     expect(screen.getByTestId('tool-failure-reason').textContent).toBe(reason)
   })
 })

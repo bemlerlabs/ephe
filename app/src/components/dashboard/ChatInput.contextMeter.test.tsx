@@ -22,7 +22,7 @@ vi.mock('@/lib/api', () => ({
 }))
 
 describe('the composer context meter', () => {
-  it('renders the handed-down fill', () => {
+  it('stays behind the thinking door and renders the handed-down fill when opened', () => {
     render(
       <ChatInput
         onSend={vi.fn()}
@@ -30,6 +30,9 @@ describe('the composer context meter', () => {
         contextTokens={{ used: 1840, window: 8192 }}
       />,
     )
+    // The row belongs to the text: no second line until the reader asks for it.
+    expect(screen.queryByTestId('composer-context-meter')).toBeNull()
+    fireEvent.click(screen.getByTestId('composer-thinking-chip'))
     expect(screen.getByTestId('composer-context-numbers').textContent).toBe(
       '22% · 1,840 / 8,192 tok',
     )
@@ -46,6 +49,7 @@ describe('the composer context meter', () => {
         contextTokens={{ used: 1840, window: 8192 }}
       />,
     )
+    fireEvent.click(screen.getByTestId('composer-thinking-chip'))
     fireEvent.click(screen.getByTestId('composer-compact'))
     expect(onSlashCommand).toHaveBeenCalledWith('/compact')
     expect(onSend).not.toHaveBeenCalled()
@@ -53,6 +57,7 @@ describe('the composer context meter', () => {
 
   it('shows no meter while the composer has no occupancy', () => {
     render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('composer-thinking-chip'))
     expect(screen.queryByTestId('composer-context-meter')).toBeNull()
   })
 })

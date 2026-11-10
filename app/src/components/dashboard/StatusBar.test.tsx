@@ -31,6 +31,9 @@ vi.mock('react-i18next', () => ({
         'statusBar.breakdownHint': 'Token breakdown',
         'statusBar.storage': `${String(opts?.count ?? '')} sessions · ~${String(opts?.mb ?? '')} MB`,
         'statusBar.storageHint': 'Browser cache (IndexedDB)',
+        'statusBar.remainingPercent': `${String(opts?.percent ?? '')}% free`,
+        'statusBar.contextFreeOf': '{{free}} free of {{window}}',
+        'statusBar.detailsTitle': 'Usage and storage',
       }
       return map[key] ?? key
     },
@@ -43,13 +46,13 @@ function makeMsgs(role: 'user' | 'assistant', text: string): ChatMessage[] {
 }
 
 describe('StatusBar', () => {
-  it('renders a percent meter from the message estimate', () => {
-    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok
+  it('states the context remainder in percent, not the raw token pair', () => {
+    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → ~12% used
     render(<StatusBar messages={msgs} />)
-    // percentage visible (1000/8192 ≈ 12%)
-    expect(screen.getByText(/12%/)).toBeTruthy()
-    // DD-10: both the desktop breakdown and the mobile chip carry the tok figure
-    expect(screen.getAllByText(/tok/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByTestId('statusbar-percent').textContent).toBe('88% free')
+    // The raw figures are behind the status pill now, not in the row all day.
+    expect(screen.queryByTestId('statusbar-storage-chip')).toBeNull()
+    expect(screen.queryByText(/free of/)).toBeNull()
   })
 
   it('no warning text without onCompact (Action statt toter Hinweis, Phase F)', () => {
@@ -77,9 +80,9 @@ describe('StatusBar', () => {
   // The meter has to fall back to the offline estimate instead of crashing on
   // undefined.toLocaleString().
   it('W2: Partial-Budget {} faellt auf die Offline-Schaetzung zurueck', () => {
-    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → 12%
+    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → 12% used
     render(<StatusBar messages={msgs} />)
-    expect(screen.getByText(/12%/)).toBeTruthy()
+    expect(screen.getByTestId('statusbar-percent').textContent).toBe('88% free')
   })
 
   it('opens the context popover from the breakdown control', () => {
@@ -138,29 +141,11 @@ describe('StatusBar', () => {
     expect(btn.getAttribute('title')).toBe('Token breakdown')
   })
 
-  it('DD-10: the compact tok chip is the phone home for the figure', () => {
+  it('holds no second token chip: one remainder figure, one opener', () => {
     render(<StatusBar messages={makeMsgs('user', 'x'.repeat(420))} />)
-    const chip = screen.getByTestId('statusbar-tok-chip')
-    expect(chip.textContent).toMatch(/\d[\d,.]* tok/)
-    // The figure has exactly one home per width: the composer meter prints it from `md`
-    // up, so the row's chip is the counterpart only below `md`. The split follows the
-    // composer's own breakpoint (not a container tier) — they are complementary by
-    // construction, so a column never shows the number twice and never loses it.
-    expect(chip.className).toContain('md:hidden')
-    expect(screen.getByTitle(/token breakdown/i).className).toContain('md:flex')
-  })
-
-  it('DD-10b: a click on the chip opens the breakdown popover', () => {
-    render(<StatusBar messages={makeMsgs('user', 'x'.repeat(420))} />)
-    fireEvent.click(screen.getByTestId('statusbar-tok-chip'))
-    expect(screen.getByTestId('context-popover')).toBeTruthy()
-  })
-
-  it('R44/P3: Speicher-Pille zaehlt Sessions mit MB-Schaetzung aus dem Store', () => {
-    render(<StatusBar messages={makeMsgs('user', 'x'.repeat(42))} />)
-    const chip = screen.getByTestId('statusbar-storage-chip')
-    expect(chip.textContent).toMatch(/2 sessions/)
-    expect(chip.textContent).toMatch(/\d+(\.\d+)? MB/)
+    expect(screen.queryByTestId('statusbar-tok-chip')).toBeNull()
+    expect(screen.queryByTestId('statusbar-storage-chip')).toBeNull()
+    expect(screen.getByTestId('statusbar-breakdown-toggle')).toBeTruthy()
   })
 
   it('Konnex-Cluster nur mit gelieferten Props (Bild-2-Auslagerung aus dem Header)', () => {
@@ -172,7 +157,7 @@ describe('StatusBar', () => {
         typing={false}
       />,
     )
-    expect(screen.getByTestId('agent-status-expand')).toBeTruthy()
+    expect(screen.getByTestId('agent-status-pill')).toBeTruthy()
     const statusEls = screen.getAllByRole('status')
     expect(
       statusEls.some((e) => (e.getAttribute('aria-label') || '').includes('chat.connected')),

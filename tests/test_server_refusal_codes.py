@@ -57,6 +57,21 @@ SERVER_SENTENCES = {
         "The audit log exists but cannot be read — check the file's permissions, then "
         "reload the view."
     ),
+    # The engine boundary (QA 2026-11-10, F5): the two failures that used to reach the
+    # surface as a raw client line and a 500. `endpoint` is the address the turn
+    # dialled, `status` the engine's own answer.
+    "engine_unreachable": (
+        "no engine answered at http://127.0.0.1:9/v1 — start it or check the address "
+        "under Settings - Engine, then run `ephe doctor`"
+    ),
+    "engine_server_error": (
+        "the engine answered with an error (HTTP 503) — send the turn again, and if it "
+        "stays, check the engine under Settings - Engine"
+    ),
+    "engine_unconfigured": (
+        "the engine choice is incomplete — pick an engine under Settings - Engine, or "
+        "run `ephe configure`, then send the message again"
+    ),
     # The workspaces routes (2026-10-14). The six whose sentence is the module's own text carry
     # it whole in the `reason` slot and are framed beside it — the module says what happened,
     # the template adds the move the reader still has, so the fallback is that pairing and no
@@ -226,6 +241,9 @@ PARAMS = {
     "vision_failed": {"error": "boom"},
     "settings_register_unwritable": {},
     "audit_log_unreadable": {},
+    "engine_unreachable": {"endpoint": "http://127.0.0.1:9/v1"},
+    "engine_server_error": {"status": 503},
+    "engine_unconfigured": {"reason": "EPHE_MODEL is missing."},
     "workspace_id_required": {},
     "workspace_unknown": {"workspace": "alpha"},
     "workspace_not_live": {"workspace": "alpha"},
@@ -298,6 +316,9 @@ STATUSES = {
     "vision_failed": 500,
     "settings_register_unwritable": 500,
     "audit_log_unreadable": 500,
+    "engine_unreachable": 502,
+    "engine_server_error": 502,
+    "engine_unconfigured": 409,
     "workspace_id_required": 422,
     "workspace_unknown": 404,
     "workspace_not_live": 404,

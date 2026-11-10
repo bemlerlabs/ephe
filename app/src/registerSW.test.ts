@@ -173,10 +173,31 @@ describe('setupInstallPrompt', () => {
 })
 
 describe('initPwa', () => {
+  it('offers a waiting worker as one sticky, reloadable banner', async () => {
+    const items: ToastItem[] = []
+    const unsub = toastBus.subscribe((t) => items.push(t))
+    const reg = new FakeRegistration()
+    const waiting = new FakeWorker()
+    reg.waiting = waiting
+    const sw = makeContainer(reg, {} as ServiceWorker)
+    const stop = initPwa({ dev: false, serviceWorker: sw })
+
+    await vi.waitFor(() => expect(items).toHaveLength(1))
+    expect(items[0]).toMatchObject({ id: 'sw-update', sticky: true, kind: 'info' })
+    expect(items[0]?.action?.label).toBeTruthy()
+
+    // A second sighting of the same worker replaces the row, it does not add one.
+    reg.emit('updatefound')
+    await Promise.resolve()
+    expect(items).toHaveLength(1)
+    unsub()
+    stop()
+  })
+
   it('raises an install banner with a working action on beforeinstallprompt', async () => {
     const items: ToastItem[] = []
     const unsub = toastBus.subscribe((t) => items.push(t))
-    initPwa({ dev: true })
+    const stop = initPwa({ dev: true })
 
     const { evt, prompt } = installEvent('accepted')
     window.dispatchEvent(evt)
@@ -187,5 +208,6 @@ describe('initPwa', () => {
     action?.onClick()
     await vi.waitFor(() => expect(prompt).toHaveBeenCalledTimes(1))
     unsub()
+    stop()
   })
 })

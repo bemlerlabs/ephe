@@ -58,16 +58,18 @@ describe('MessageBubble — Tool-Zeilen Spinner + Status-Suffix (P3 Ephe-Norm)',
     const row = screen.getByTestId('tool-stream-row-shell')
     expect(row.textContent).toContain('1/2')
     expect(row.textContent).toContain('· Working')
-    expect(screen.getByTestId('tool-row-status').className).toContain('text-status-info')
+    expect(screen.getByTestId('tool-row-status').className).toContain('text-brand')
   })
 
-  it('fertige Gruppe: kein Spinner und kein Status-Suffix in der Zeile', () => {
+  it('fertige Gruppe: kein Spinner, ein ruhiges „ok" als Ergebnis', () => {
     render(<MessageBubble message={toolMsg([shellCall('s1', 'completed')], false)} />)
     expect(screen.queryByTestId('tool-row-spinner')).toBeNull()
     expect(screen.queryByTestId('tool-stream-row-active')).toBeNull()
-    // One line per finished step: the status lives in the proof line the reader
-    // opens, not as a permanent suffix beside the label.
-    expect(screen.queryByTestId('tool-row-status')).toBeNull()
+    // UI-CHAT: one line per finished round carries the outcome itself — the
+    // name never repeats in a "completed" suffix.
+    const row = screen.getByTestId('tool-stream-row-shell')
+    expect(row.textContent).not.toMatch(/completed/i)
+    expect(screen.getByTestId('tool-row-status').textContent).toContain('ok')
   })
 
   it('fehlgeschlagene Gruppe: „Failed"-Suffix in Gefahren-Farbe', () => {

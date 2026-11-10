@@ -7,6 +7,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const createSession = vi.fn()
 
@@ -17,7 +19,11 @@ vi.mock('@/store/chatStore', () => ({
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
 import NavRail from './NavRail'
+import { SHELL_DESTINATIONS } from './shellNav'
 import { registerOpen, setRegisterOpen } from '@/lib/taskRegister'
+
+const catalog = (locale: 'en' | 'de'): Record<string, Record<string, string>> =>
+  JSON.parse(readFileSync(join(process.cwd(), 'src/locales', `${locale}.json`), 'utf8'))
 
 function mount(initialPath = '/') {
   return render(
@@ -77,6 +83,37 @@ describe('NavRail', () => {
     expect(registerOpen()).toBe(true)
     // The row is not the current page here, so it names no panel it cannot control.
     expect(screen.getByTestId('nav-rail-task').getAttribute('aria-controls')).toBeNull()
+  })
+
+  it('every rail control carries a name and the same tooltip', () => {
+    mount('/')
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-tooltip]'))
+    // +, search, task, tools, discover, workspaces, artifacts, knowledge, settings.
+    expect(rows).toHaveLength(9)
+    for (const row of rows) {
+      const label = row.getAttribute('aria-label')
+      expect(label && label.length).toBeGreaterThan(0)
+      expect(row.getAttribute('data-tooltip')).toBe(label)
+    }
+  })
+
+  it('names all nine rows in both shipped catalogs', () => {
+    const en = catalog('en')
+    const de = catalog('de')
+    const keys = [
+      ...SHELL_DESTINATIONS.map((d) => d.labelKey),
+      'sidebar.newChat',
+      'sidebar.actionSearch',
+    ]
+    for (const key of keys) {
+      const [ns, leaf] = key.split('.') as [string, string]
+      expect(en[ns]?.[leaf], `en ${key}`).toBeTruthy()
+      expect(de[ns]?.[leaf], `de ${key}`).toBeTruthy()
+    }
+    // The places a German reader acts on are German words, not the English ones.
+    expect(de.shell?.navTask).toBe('Aufgabe')
+    expect(de.shell?.navSettings).toBe('Einstellungen')
+    expect(de.shell?.navWorkspaces).toBe('Arbeitsbereiche')
   })
 
   it('a place keeps its own row lit and the register out of it', () => {

@@ -34,12 +34,16 @@ from core.marketplace_planner import (
     permission_delta,
     plan,
 )
-from core import plugin_manifest
 from core.plugin_lockfile import LOCK_FILENAME, rebuild_lockfile
 from core.plugin_store import config_root
 
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 ARTIFACT_TIMEOUT_S = 30
+
+#: The inspect hook's refusal for a high-severity static finding. The installer removes
+#: the staging directory on any inspect refusal, so the value names the refusal back to
+#: the caller without a second table of codes.
+STATIC_CHECK_REFUSAL = "static_check_failed"
 
 
 def _dependency_state(name: str) -> str:
@@ -92,8 +96,20 @@ def _make_inspect(
     version: str,
     old_manifest: dict[str, Any] | None,
     approved_delta: str,
+    static_check: bool = True,
+    verdict_out: dict[str, Any] | None = None,
 ) -> Callable[[Path, dict[str, Any]], str | None]:
-    def inspect(_candidate: Path, manifest: dict[str, Any]) -> str | None:
+    """The plan's checks over the *staged* candidate, before it is committed.
+
+    F2 (QA 2026-11-10): the static verification ran after the installer had already
+    moved the artifact into the plugins root, so a refusal left the directory (and the
+    inventory row) behind. It belongs here with the other checks: the installer drops
+    the staging directory on a refusal, which is the "quarantined (directory removed)"
+    `docs/PLUGINS.md` promises — and an update that is refused leaves the installed
+    version untouched instead of replacing it with one that was then found unsafe.
+    """
+
+    def inspect(candidate: Path, manifest: dict[str, Any]) -> str | None:
         if str(manifest.get("name")) != name:
             return f"identity_mismatch: name {manifest.get('name')}"
         if str(manifest.get("version")) != version:
@@ -116,6 +132,18 @@ def _make_inspect(
             and (not approved_delta or actual["digest"] != approved_delta)
         ):
             return "permission_delta: " + json.dumps(actual, separators=(",", ":"))
+        if static_check:
+            from core.marketplace_verify import verify_artifact, write_verdict
+
+            verdict = verify_artifact(candidate)
+            if verdict_out is not None:
+                verdict_out.clear()
+                verdict_out.update(verdict)
+            if verdict["verdict"] == "refused":
+                return STATIC_CHECK_REFUSAL
+            # Written into the staged directory, so the verdict file lands beside the
+            # artifact the accept path commits — the installed row keeps showing it.
+            write_verdict(candidate, verdict)
         return None
 
     return inspect
@@ -200,11 +228,23 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
 
     old_manifest = _installed_manifest(name)
     approved_delta = str(plan_data.get("approved_delta") or "")
+    # A bundled pack ships with this repository and was reviewed with it; the scan
+    # exists for artifacts that arrive from outside. Our own agent instructions
+    # legitimately say "system prompt", and refusing them would be the scanner
+    # reading its own product as an attack.
+    # One gate for every artifact. The trust class used to skip bundled packs because the scan
+    # read their required "## System Prompt" heading as an attack; the check reads directive
+    # phrases now, so a first-party bundle passes on its text rather than on its name - and a
+    # bundled bundle that smuggles an instruction is refused like any other (F1, QA 2026-11-10).
+    static_check = True
+    verdict_holder: dict[str, Any] = {}
     inspect = _make_inspect(
         name=name,
         version=version,
         old_manifest=old_manifest,
         approved_delta=approved_delta,
+        static_check=static_check,
+        verdict_out=verdict_holder,
     )
     signature = plan_data.get("signature")
     listing_entry = {
@@ -252,27 +292,24 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
             "error": "the artifact adds permissions the plan did not approve",
             "delta": delta,
         }
+    if result.get("status") == "refused" and str(result.get("error", "")) == STATIC_CHECK_REFUSAL:
+        # The check ran in staging and the installer removed that directory again, so
+        # this refusal left the plugins root exactly as it found it: nothing for a
+        # first install, the installed version for a refused update. F2 (QA
+        # 2026-11-10) was the opposite: a refused artifact on disk, listed as
+        # installed with `verification: "refused"`.
+        _audit(name, "refused", STATIC_CHECK_REFUSAL)
+        return {
+            "status": "refused",
+            "code": STATIC_CHECK_REFUSAL,
+            "error": "the artifact's text carries instruction or download shapes",
+            "findings": verdict_holder.get("findings", []),
+            "verification": verdict_holder,
+            "quarantined": True,
+        }
     if result.get("status") == "extracted":
-        from core.marketplace_verify import verify_artifact, write_verdict
-        from core.plugin_versions import plugin_dir
-
-        # A bundled pack ships with this repository and was reviewed with it; the scan
-        # exists for artifacts that arrive from outside. Our own agent instructions
-        # legitimately say "system prompt", and refusing them would be the scanner
-        # reading its own product as an attack.
-        if str(plan_data.get("trust") or "") not in {"bundled", "first-party"}:
-            artifact = plugin_dir(plugin_manifest.plugins_root(), name)
-            verdict = verify_artifact(artifact)
-            write_verdict(artifact, verdict)
-            result["verification"] = verdict
-            if verdict["verdict"] == "refused":
-                _audit(name, "refused", "static_check_failed")
-                return {
-                    "status": "refused",
-                    "code": "static_check_failed",
-                    "error": "the artifact's text carries instruction or download shapes",
-                    "findings": verdict["findings"],
-                }
+        if verdict_holder:
+            result["verification"] = dict(verdict_holder)
         _invalidate()
         lock_error = _write_lock()
         _audit(

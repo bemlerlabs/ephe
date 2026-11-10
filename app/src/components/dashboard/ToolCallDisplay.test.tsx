@@ -61,6 +61,9 @@ describe('ToolCallDisplay — Summary-Zeile (Z01)', () => {
         ]}
       />,
     )
+    // UI-CHAT: the row is name · duration · outcome; the human target is one
+    // level down, in the body the chevron opens.
+    fireEvent.click(screen.getByRole('button', { name: 'run_shell Details' }))
     expect(screen.getByTestId('tool-target').textContent).toBe('npm test')
     expect(screen.queryByText(/"command"/)).not.toBeInTheDocument()
   })
@@ -80,7 +83,7 @@ describe('ToolCallDisplay — Summary-Zeile (Z01)', () => {
       />,
     )
     // I6 P2c: no raw enum in the UI any more — the waiting label comes translated from i18n.
-    expect(screen.getByText('Waiting for approval')).toBeInTheDocument()
+    expect(screen.getByTestId('tool-outcome').textContent).toContain('Waiting for approval')
   })
 })
 
@@ -315,7 +318,9 @@ describe('ToolCallDisplay — Status-Labels i18n (I6 P2c)', () => {
       />,
     )
     expect(screen.queryByText('approved')).not.toBeInTheDocument()
-    expect(screen.getByText('run_shell genehmigt')).toBeInTheDocument()
+    // one name, one outcome word — never the name again inside the status
+    expect(screen.getAllByText('run_shell')).toHaveLength(1)
+    expect(screen.getByTestId('tool-outcome').textContent).toContain('ok')
   })
 
   it('denied zeigt das übersetzte Ablehnungs-Label statt rohem "denied"', () => {
@@ -323,7 +328,8 @@ describe('ToolCallDisplay — Status-Labels i18n (I6 P2c)', () => {
       <ToolCallDisplay tool_calls={[tc({ id: 'dn1', name: 'write_file', status: 'denied' })]} />,
     )
     expect(screen.queryByText('denied')).not.toBeInTheDocument()
-    expect(screen.getByText('write_file abgelehnt')).toBeInTheDocument()
+    expect(screen.getAllByText('write_file')).toHaveLength(1)
+    expect(screen.getByTestId('tool-outcome').textContent).toContain('Fehlgeschlagen')
   })
 
   it('waiting zeigt ein übersetztes Wartelabel statt rohem "waiting"', () => {
@@ -331,6 +337,7 @@ describe('ToolCallDisplay — Status-Labels i18n (I6 P2c)', () => {
       <ToolCallDisplay tool_calls={[tc({ id: 'wt1', name: 'run_shell', status: 'waiting' })]} />,
     )
     expect(screen.queryByText('waiting')).not.toBeInTheDocument()
-    expect(screen.getByText('Wartet auf Freigabe')).toBeInTheDocument()
+    expect(screen.getAllByText('run_shell')).toHaveLength(1)
+    expect(screen.getByTestId('tool-outcome').textContent).toContain('Wartet auf Freigabe')
   })
 })

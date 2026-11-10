@@ -31,12 +31,14 @@ vi.mock('react-i18next', () => ({
         'statusBar.contextFreeOf': '{{free}} free of {{window}}',
         'statusBar.contextFree': 'free',
         'statusBar.noPricing': 'pricing not set',
+        'statusBar.remainingPercent': '{{percent}}% free',
       }
       const pattern = map[key] ?? key
       if (!opts) return pattern
       return pattern
         .replace('{{free}}', String(opts.free ?? ''))
         .replace('{{window}}', String(opts.window ?? ''))
+        .replace('{{percent}}', String(opts.percent ?? ''))
     },
     i18n: { language: 'en' },
   }),
@@ -53,14 +55,13 @@ describe('StatusBar QD-015 V1 — width hierarchy', () => {
     expect(row.className).not.toContain('flex-wrap')
   })
 
-  it('lets the free-token figure shrink and step out below a wide-enough column', () => {
+  it('states one remainder figure instead of a free-of pair the row must shrink', () => {
     render(<StatusBar messages={messages} windowTokens={16384} />)
-    const free = screen.getByText(/free of/)
-    expect(free.className).toContain('truncate')
-    expect(free.className).toContain('min-w-0')
-    expect(free.className).toContain('hidden')
-    expect(free.className).toContain('@2xl/status:inline-block')
-    expect(free.className).not.toContain('shrink-0')
+    const percent = screen.getByTestId('statusbar-percent')
+    expect(percent.textContent).toMatch(/free$/)
+    expect(screen.queryByText(/free of/)).toBeNull()
+    // The row still never wraps; the percent is `shrink-0` and the meter yields.
+    expect(screen.getByTestId('statusbar-meter').parentElement?.className).toContain('flex-1')
   })
 
   it('moves "pricing not set" behind lg with a truncation ceiling', () => {

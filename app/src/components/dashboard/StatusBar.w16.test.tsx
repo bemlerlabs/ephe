@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import StatusBar from '@/components/dashboard/StatusBar'
 import { getContextBudget } from '@/lib/api'
 import type { ChatMessage } from '@/types'
@@ -46,6 +46,7 @@ describe('StatusBar W16 — Tokenizer-Exaktheit im Meter', () => {
       tokenizer: 'tiktoken-bpe',
     } as never)
     render(<StatusBar messages={msgs(4200)} />)
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
     expect(await screen.findByTestId('statusbar-tokenizer-chip')).toBeTruthy()
   })
 
@@ -55,7 +56,8 @@ describe('StatusBar W16 — Tokenizer-Exaktheit im Meter', () => {
       tokenizer: 'calibrated-4.2',
     } as never)
     render(<StatusBar messages={msgs(4200)} />)
-    await screen.findByText(/12[.,]?2/)
+    fireEvent.click(screen.getByTestId('agent-status-pill'))
+    await screen.findByTestId('status-details')
     expect(screen.queryByTestId('statusbar-tokenizer-chip')).toBeNull()
   })
 })
