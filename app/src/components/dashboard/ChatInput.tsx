@@ -16,6 +16,7 @@ import ComposerMentionList from './chat/ComposerMentionList'
 import ComposerMicButton from './chat/ComposerMicButton'
 import ComposerModeChip from './chat/ComposerModeChip'
 import ComposerModelChip from './chat/ComposerModelChip'
+import CreatorConsentDialog from './chat/CreatorConsentDialog'
 import ComposerContextMeter from './chat/ComposerContextMeter'
 import ComposerSendButton from './chat/ComposerSendButton'
 import ComposerSlashMenu from './chat/ComposerSlashMenu'
@@ -62,10 +63,10 @@ interface ChatInputProps {
   contextTokens?: { used: number; window: number } | null
 }
 
-/** G-A → 2026 IA sweep → P3 wave 2026-10-05: the four composer modes live in
+/** G-A → 2026 IA sweep → P3 wave 2026-10-05: the composer modes live in
  *  chat/ComposerModeMenu (sections + short title taken from the real hint text).
- *  The active mode mirrors the security profile; 'ask' is the conservative mode,
- *  and DEFAULT_COMPOSER_MODE decides what a fresh session starts on. */
+ *  The active mode mirrors the security profile; 'analyst' is the conservative
+ *  mode, and DEFAULT_COMPOSER_MODE decides what a fresh session starts on. */
 
 export default function ChatInput({
   onSend,
@@ -96,9 +97,9 @@ export default function ChatInput({
   // own label and the button's label still name the controls for a reader.
   // M3 (reference pattern): amber permission badge driven by the security profile.
   const [perm, setPerm] = useState('strict')
-  // G-A (reference parity): interactive mode selector — Ask / Edit auto / Plan / Full access.
+  // G-A (reference parity): interactive mode selector — Analyst / Architect / Operator.
   // W19: the mode is a session attribute (IndexedDB + server mirror) — it survives
-  // reload/session switches instead of dropping back to 'ask' on every unmount.
+  // reload/session switches; nothing drops it back to the no-tools mode on unmount.
   // typeof guard: storeMode is a string|undefined (real store); only adopt it when
   // it is one, otherwise old store mocks without a selector re-render forever here.
   const activeSessionId = useChatStore((s) => s.activeSessionId)
@@ -109,8 +110,25 @@ export default function ChatInput({
   useEffect(() => {
     if (typeof storeMode === 'string' && storeMode) setModeState(storeMode)
   }, [activeSessionId, storeMode])
+  /** W19: the mode is a session attribute, so a pick writes through to the store
+   *  as well as to this composer's view of it. */
+  const commitMode = useCallback(
+    (key: string) => {
+      setModeState(key)
+      if (activeSessionId) {
+        const store = useChatStore.getState() as unknown as {
+          setSessionMode?: (id: string, mode: string) => void
+        }
+        store.setSessionMode?.(activeSessionId, key)
+      }
+    },
+    [activeSessionId],
+  )
   // Pop-up menu state for the mode selector (consistent with the model-chip pattern).
   const [modeOpen, setModeOpen] = useState(false)
+  // Wave 5: Creator enters through a sheet — its tile opens the consent dialog and the
+  // session switches only on the answer written for that session.
+  const [consentOpen, setConsentOpen] = useState(false)
   // P6 (ref-23): the plus menu bundles file/image/screenshot attachments
   const [attachOpen, setAttachOpen] = useState(false)
   // W19 → P3 wave 2026-10-05: composer menus as a body portal — the overhang into
@@ -517,17 +535,19 @@ export default function ChatInput({
               }}
               onClose={() => setModeOpen(false)}
               onPick={(key) => {
-                setModeState(key)
-                if (activeSessionId) {
-                  const store = useChatStore.getState() as unknown as {
-                    setSessionMode?: (id: string, mode: string) => void
-                  }
-                  store.setSessionMode?.(activeSessionId, key)
-                }
+                // Consent is a Creator thing: the other three tiles switch as they
+                // did. With no session there is nothing to grant, so the tile takes
+                // the plain path and the guard behind it refuses every privileged
+                // call until a grant exists.
                 setModeOpen(false)
+                if (key === 'creator' && activeSessionId) {
+                  setConsentOpen(true)
+                  return
+                }
+                commitMode(key)
               }}
             />
-            {mode === 'ask' && (
+            {mode === 'analyst' && (
               <span
                 className="hidden md:inline text-ui-xs text-ink-faint whitespace-nowrap"
                 title={t('chat.askNoTools')}
@@ -652,6 +672,17 @@ export default function ChatInput({
         <div className="flex items-center justify-center gap-2 mt-2">
           <Badge variant="success">{engineLabel}</Badge>
         </div>
+      )}
+      {consentOpen && activeSessionId && (
+        <CreatorConsentDialog
+          open
+          sessionId={activeSessionId}
+          onConfirm={() => {
+            setConsentOpen(false)
+            commitMode('creator')
+          }}
+          onClosed={() => setConsentOpen(false)}
+        />
       )}
     </div>
   )

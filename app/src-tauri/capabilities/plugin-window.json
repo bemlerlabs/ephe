@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "plugin-window",
+  "local": true,
+  "description": "The capability of a native plugin surface window (W1-3). A window labelled ephe-plugin-* loads untrusted code: the document arrives from a plugin folder through the surface route (#42), which serves it sandboxed to an opaque origin, and the shell deletes the global bridge from it before its first script runs. It grants nothing, and that is the whole point. The surface document invokes no command. The three plugin_window_* commands are called by the workbench. They lead the workbench permission set, and this file grants none of that set. The workbench grant is capabilities/workbench-commands.json and names the webview main. This window's list stays empty. core:default was removed from here because it expands to core:window:default (28 entries, among them allow-get-all-windows), core:webview:default (among them allow-internal-toggle-devtools, which this brief forbids on a window showing code nobody here wrote), core:event:default, core:menu:default and core:tray:default: precisely the native authority the web layer had just taken away. Capabilities bind to labels and merge on every match, so a permission added here is added to every plugin window at once. Two limits of this file, stated so the next reader does not assume more than it does. (1) The caller rule in Rust (plugin_window.rs) covers commands and NOT the event channel: a webview holding core:event authority can listen, emit and emit-to across the whole app — the shell itself broadcasts global-shortcut and show — and no command guard is on that path, which is a second reason no event set is granted here. (2) A capability defaults to local: true, so while this window loads a loopback http: URL the engine treats it as a remote origin and refuses every command for it regardless of this list; adding a remote block, or serving the surface from a local origin, would change that — and with an empty permission list there is still nothing to gain.",
+  "windows": [
+    "ephe-plugin-*"
+  ],
+  "permissions": []
+}

@@ -31,9 +31,9 @@ beforeEach(() => {
 })
 
 describe('Composer-Modus-Switch (P4)', () => {
-  it('Ask-Hinweis sichtbar, Full-access-Klick blendet ihn aus + Chip + Session.mode', () => {
+  it('Analyst-Hinweis sichtbar, Operator-Klick blendet ihn aus + Chip + Session.mode', () => {
     useChatStore.getState().createSession('S')
-    useChatStore.getState().setSessionMode(useChatStore.getState().activeSessionId!, 'ask')
+    useChatStore.getState().setSessionMode(useChatStore.getState().activeSessionId!, 'analyst')
     render(
       <ChatInput
         onSend={() => {
@@ -41,21 +41,20 @@ describe('Composer-Modus-Switch (P4)', () => {
         }}
       />,
     )
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Ask')
+    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Analyst')
     expect(screen.queryByTestId('composer-ask-hint')).not.toBeNull()
     fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    fireEvent.click(screen.getByTestId('composer-mode-full-access'))
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Full access')
+    fireEvent.click(screen.getByTestId('composer-mode-operator'))
+    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Operator')
     expect(screen.queryByTestId('composer-ask-hint')).toBeNull()
     const st = useChatStore.getState()
-    expect(st.sessions.find((x) => x.id === st.activeSessionId)?.mode).toBe('full-access')
+    expect(st.sessions.find((x) => x.id === st.activeSessionId)?.mode).toBe('operator')
   })
 
   it.each([
-    ['ask', 'Ask'],
-    ['edit-auto', 'Edit auto'],
-    ['plan', 'Plan'],
-    ['full-access', 'Full access'],
+    ['analyst', 'Analyst'],
+    ['architect', 'Architect'],
+    ['operator', 'Operator'],
   ] as const)('Modus %s → Chip %s + Session.mode', (key, label) => {
     useChatStore.getState().createSession('S')
     render(
@@ -81,7 +80,7 @@ describe('Composer-Modus-Switch (P4)', () => {
       />,
     )
     fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    fireEvent.click(screen.getByTestId('composer-mode-full-access'))
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Full access')
+    fireEvent.click(screen.getByTestId('composer-mode-operator'))
+    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Operator')
   })
 })

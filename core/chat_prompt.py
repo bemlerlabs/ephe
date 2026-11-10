@@ -282,20 +282,20 @@ def _assemble_system_prompt_into(
     session_id: str = "",
     turn_id: str = "",
 ) -> None:
-    """R28: identity → persona → dynamic tools → skill → extra directive →
-    constant protocol → workspace → profile → corrections → feedback → memory
-    → current date. Stable blocks first, volatile last (W3-38). Mutates
-    ``messages`` in-place (system prompt at index 0, then capped against the
-    active window).
+    """R28: identity → persona → dynamic tools → skill → extra directive → constant
+    protocol → workspace → profile → corrections → feedback → memory → current date.
+    Stable blocks first, volatile last (W3-38). Mutates ``messages`` in-place (every
+    system block folds into the prompt at index 0, then capped against the active window).
 
     G7: the memory injection carries a query and a result set that name their
     source. When ``session_id`` names a live turn, the facts the block was built
     from are recorded on that run (``core.trajectory.record_memories``) so a
     reader can open the turn later and see — and correct — what the agent knew.
     """
-    incoming_system: str | None = None
-    if messages and messages[0].get("role") == "system":
-        incoming_system = str(messages.pop(0).get("content", ""))
+    # Every system block (skill prompt, compaction ledger) folds into the prompt:
+    # the window trim protects only index 0.
+    incoming_system = "\n\n".join(str(m.get("content", "")) for m in messages if m.get("role") == "system") or None
+    messages[:] = [m for m in messages if m.get("role") != "system"]
 
     try:
         profile_ctx: str | None = load_profile().to_context_string()

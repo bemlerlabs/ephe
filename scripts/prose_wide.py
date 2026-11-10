@@ -8,11 +8,12 @@ tree: a detector that finds nothing new joins the ratchet at once, and a detecto
 finds lines in files other conversations are editing is registered and reported first.
 Ratcheting four classes on the day they ship would put 64 tells on people who did nothing.
 
-The module is separate for a reason the census already documents twice:
-`architecture_check.mjs` compares the count of `maxFileLines` findings against the frozen
-38, so one file crossing 400 lines turns every finding of that rule into an error and the
-report exits 1. `prose_inventory.py` and `prose_tells.py` were 378 and 373 lines at the
-cut, which is the whole headroom a second detector each would have needed.
+The module is separate for a reason the census already documents twice: at the cut this
+detector's neighbours `prose_inventory.py` and `prose_tells.py` stood at 378 and 373 lines,
+and `architecture_check.mjs` then still escalated `maxFileLines` above its frozen count —
+one more long file turned every hint of that rule into an error and made the report exit 1.
+(The line escalation was removed by the owner on 2026-11-05, so this is the condition the
+split was made under, not a rule that still binds.)
 
 Read the numbers with `python3 scripts/prose_tells.py --wide`; gate on them, if the owner
 chooses to, with `python3 scripts/prose_tells.py --update --wide`.

@@ -5,6 +5,7 @@ import {
   planAcceptTurn,
   renderPlanBlock,
 } from './planCardModel'
+import { COMPAT_EDIT_FAMILY_MODE } from '@/store/chat/helpers'
 
 describe('parsePlanCard — the one plan shape', () => {
   it('parses the block core/ephe_plan.py renders', () => {
@@ -65,7 +66,9 @@ describe('the accept contract — what the gate hands to the engine', () => {
   it('names a mode that can write, because plan mode cannot by contract', () => {
     // server/routes/chat.py::_mode_context keeps `plan` on _READ_ONLY_TOOL_NAMES, so the
     // mode a plan's execution needs is the write family's — never the mode it came from.
-    expect(PLAN_EXECUTION_MODE).toBe('edit-auto')
+    // The compatibility constant carries the wire value: edit tools run without asking,
+    // every other tool keeps asking, under all four approval profiles.
+    expect(PLAN_EXECUTION_MODE).toBe(COMPAT_EDIT_FAMILY_MODE)
     expect(PLAN_EXECUTION_MODE).not.toBe('plan')
   })
 

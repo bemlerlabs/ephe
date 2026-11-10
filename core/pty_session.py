@@ -8,8 +8,8 @@ connections — a tab change or a panel reload hooks back into the same session
 Security model: this is an interactive shell = RCE by design. It is the same
 surface as an IDE terminal (VS Code) and belongs to the user who types — not to
 the agent (whose run_shell stays whitelist-gated). Access is protected at route
-level by the same LAN auth trust as the rest of the API (loopback trusted,
-otherwise X-Auth-Token); see ws_client_authorized in server/middleware.py. This
+level by ws_client_authorized in server/middleware.py: an app Origin, or the
+LAN token when the handshake brings none. This
 class itself does NO auth — it is the pure PTY mechanism.
 
 Platforms without os.openpty (some Windows setups): start() returns False, and the

@@ -139,7 +139,12 @@ export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[]
         top: 0,
         height: '100%',
       }}
-      className={`${pulse ? 'frost-pulse-strong' : ''} fixed z-overlay flex flex-col bg-background/95 backdrop-blur-md shadow-elevation-1 ${dock === 'right' ? 'right-0 border-l border-hairline' : 'left-0 border-r border-hairline'}`}
+      // Hard bound: the stored/dragged width is a hint. On a desktop split the
+      // pane owns at most 60 % of the window, so a stale or hand-edited
+      // `ephe.panel.width` can never span the reading column and the composer.
+      // On narrow screens the pane stays the reference's overlay (95vw) and is
+      // closed by Esc/the collapse control.
+      className={`${pulse ? 'frost-pulse-strong' : ''} fixed z-overlay flex flex-col bg-background/95 backdrop-blur-md shadow-elevation-1 lg:max-w-[60vw] ${dock === 'right' ? 'right-0 border-l border-hairline' : 'left-0 border-r border-hairline'}`}
     >
       {/* drag-resize edge (round 12) — the panel's inner edge */}
       <div

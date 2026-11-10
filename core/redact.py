@@ -14,15 +14,35 @@ import re
 # The gh family: p = classic PAT, o = OAuth, u = user-to-server, s = installation,
 # r = refresh. The installation form is the one that grows to ~520 characters, and it
 # reaches logs as readily as the others.
+# The shape alone delimits a token: no `\b` at either end. A receipt line is
+# assembled by interpolation, so a value lands directly behind a letter
+# (`f"actor={actor}{value}"`) or takes the next word of a sentence on its tail
+# (`…{value}wurde`). `\b` asked for a word edge at both ends, so a leading letter
+# hid the whole token and a trailing `_` or an umlaut hid its tail. The price is a
+# compound that merely contains `sk-` (`disk-usage`, `task-runner`) staying a word, which
+# the body rule below buys without giving up a key that sits behind a letter.
+#
+# Each alternative is a flat run of character classes with one greed bound and no
+# assertion behind it, so a long line stays one left-to-right pass: the body
+# consumes to its maximum and the engine never gives a character back. An assertion
+# after the body would make it retry every shorter body at every candidate
+# position, which is the shape the split PEM pair below exists to avoid.
+# The `sk-` alternative reads the body instead of the delimiter. Two shapes reach a key: a
+# sixteen-character body that carries a digit, or a body of twenty-four characters and up
+# (a key can be letters only, and an all-letter one is long). A compound that merely contains
+# the prefix stays a word - `settings`, `assessment-report`, `admin-configuration` are all
+# under the long shape and carry no digit. No boundary is asserted, so a key glued behind a
+# letter is still masked, and the flat run keeps the single left-to-right pass the note above
+# describes.
 _KEY_LITERALS = re.compile(
-    r"\b(sk-[A-Za-z0-9_-]{8,}"
+    r"(sk-(?:(?=[A-Za-z0-9_-]*[0-9])[A-Za-z0-9_-]{16,}|[A-Za-z0-9_-]{24,})"
     r"|gh[pousr]_[A-Za-z0-9]{20,}"
     r"|github_pat_[A-Za-z0-9_]{20,}"
     r"|hf_[A-Za-z0-9]{20,}"
     r"|xox[baprs]-[A-Za-z0-9-]{10,}"
     r"|AKIA[0-9A-Z]{16}"
     r"|AIza[0-9A-Za-z_-]{35,}"
-    r"|glpat-[A-Za-z0-9_-]{20,})\b"
+    r"|glpat-[A-Za-z0-9_-]{20,})"
 )
 # Private key blocks: the header and footer are the shape; the body is arbitrary.
 # Two anchored patterns instead of one header-to-footer regex: a lazy body re-scans

@@ -1,20 +1,12 @@
-import i18n from '@/i18n'
-import type { CompactStats } from '@/lib/compact'
-import type { ChatMessage, DbSession, Session, ThinkingPhase } from '@/types'
-
-/** Indicator message after compaction (AI-client style: a compaction note in the log). */
-export function indicatorMessage(stats: CompactStats): ChatMessage {
-  return {
-    id: crypto.randomUUID(),
-    role: 'system',
-    content: i18n.t('chat.compactIndicator', {
-      count: stats.compactedCount,
-      after: stats.after,
-      before: stats.before,
-    }),
-    timestamp: Date.now(),
-  }
-}
+/**
+ * Pure chat-store helpers: the session row shapes, the transcript edits and the
+ * composer-mode vocabulary. The module imports nothing that runs — no i18n boot, no IO —
+ * because the surfaces and the `lib/` readers (the plan-card handoff) name these values,
+ * and reaching them must not put the production catalog into their graph. The one helper
+ * that needs a translated string, the compaction indicator, sits with the action that
+ * writes it (`session.ts`).
+ */
+import type { ChatMessage, ComposerMode, DbSession, Session, ThinkingPhase } from '@/types'
 
 /** Default title (G2: the auto title only ever applies to this one) — English,
  * the product's default language since round 14; the auto title replaces it anyway. */
@@ -35,7 +27,61 @@ export function deriveSessionTitle(text: string): string {
 // The shared default mode of a fresh session: a mode that may use tools, so that
 // "just start writing" works without looking tools up first (parity with leading
 // agent frameworks). Every mode fallback uses this one.
-export const DEFAULT_COMPOSER_MODE = 'full-access'
+export const DEFAULT_COMPOSER_MODE: ComposerMode = 'operator'
+
+/**
+ * Task 3 rename: the names a session may still carry from before the rename. Each maps to
+ * the one current mode whose behaviour it had — the server's alias table
+ * (`server/routes/chat.py::_MODE_ALIASES`, Task 2) resolves the same pairs, so the
+ * rename moves no privilege here. Only the three values the retired menu could
+ * write get rewritten at load (`MIGRATABLE_LEGACY_MODES`). Two legacy values keep
+ * their stored spelling: `agent` (tools available, manual approvals), because a
+ * rewrite would strip such a session of its tools, and `edit-auto`, because the
+ * Operator tile auto-approves every tool where the stored value asked for
+ * everything outside the edit family — see `COMPAT_EDIT_FAMILY_MODE`.
+ */
+const LEGACY_COMPOSER_MODES: Record<string, ComposerMode> = {
+  ask: 'analyst',
+  plan: 'architect',
+  'full-access': 'operator',
+}
+
+/** The stored values the load-time migration rewrites: exactly the three values the
+ *  retired menu could write, each landing on a mode with the same privileges. */
+export const MIGRATABLE_LEGACY_MODES: ReadonlySet<string> = new Set(['ask', 'plan', 'full-access'])
+
+/**
+ * The wire value of the menu-retired `edit-auto`. The server resolves it to the
+ * edit-family compatibility factor: the edit tools run and every other tool keeps
+ * asking, under all four approval profiles (the equivalence is pinned by
+ * `tests/test_composer_mode_rename.py`). Stored sessions and the accepted-plan
+ * handoff (`planCardModel.ts`) keep sending this exact string — retirement
+ * happened to the tile alone, so no privilege moved anywhere.
+ */
+export const COMPAT_EDIT_FAMILY_MODE = 'edit-auto'
+
+/** The modes that own a tile in the menu — the whole `ComposerMode` union. */
+const TILED_COMPOSER_MODES: readonly ComposerMode[] = [
+  'analyst',
+  'architect',
+  'operator',
+  'creator',
+]
+
+/**
+ * Map a stored (or current, or empty) mode value onto one selectable mode key.
+ * A value with no tile — the retired `edit-auto`, the legacy `agent`, another
+ * client's mode — keeps its stored spelling, so an unchecked string never enters
+ * `ComposerMode`; the surfaces that name it fall back to its section wording
+ * (`ComposerModeChip.tsx`).
+ */
+export function normalizeComposerMode(value: string | undefined): string {
+  if (!value) return DEFAULT_COMPOSER_MODE
+  const mapped = LEGACY_COMPOSER_MODES[value]
+  if (mapped) return mapped
+  const tiled = TILED_COMPOSER_MODES.find((m) => m === value)
+  return tiled ?? value
+}
 
 export function toDbSession(s: Session): DbSession {
   return {

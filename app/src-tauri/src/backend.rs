@@ -138,11 +138,11 @@ pub enum Ergebnis {
 }
 
 pub fn konfig_pfad(home: &Path) -> PathBuf {
-    home.join(".ephe").join("desktop.json")
+    crate::instance::device_dir_for(home).join("desktop.json")
 }
 
 pub fn key_path(home: &Path) -> PathBuf {
-    home.join(".ephe").join(KEY_FILE)
+    crate::instance::device_dir_for(home).join(KEY_FILE)
 }
 
 /// The stored token, or nothing. A file that group or other can read is not a
@@ -190,7 +190,7 @@ pub fn store_key(home: &Path, value: &str) -> Result<(), String> {
     if text.contains('\n') {
         return Err("engine key must be one line".into());
     }
-    let dir = home.join(".ephe");
+    let dir = crate::instance::device_dir_for(home);
     fs::create_dir_all(&dir).map_err(|e| format!("cannot open {}: {e}", dir.display()))?;
     // Same least privilege the engine config uses: the folder is the owner's alone.
     let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o700));
@@ -241,7 +241,9 @@ pub fn befehl_aus(text: &str, home: &Path) -> Option<Startbefehl> {
         programm: PathBuf::from(e.python),
         projekt: PathBuf::from(e.project_root),
         port: e.port.unwrap_or(PORT),
-        log: home.join(".ephe").join("logs").join("desktop-backend.log"),
+        log: crate::instance::device_dir_for(home)
+            .join("logs")
+            .join("desktop-backend.log"),
     })
 }
 
@@ -337,7 +339,9 @@ pub fn statement(port: u16) -> Option<PeerStatement> {
 /// under `cfg!(debug_assertions)`), so a `log::warn!` alone would lose the statement
 /// in exactly the build the user installs. The note goes to the file the shell owns.
 fn notiz(home: &Path, text: &str) {
-    let pfad = home.join(".ephe").join("logs").join("desktop.log");
+    let pfad = crate::instance::device_dir_for(home)
+        .join("logs")
+        .join("desktop.log");
     if let Some(vater) = pfad.parent() {
         let _ = fs::create_dir_all(vater);
     }
@@ -885,5 +889,99 @@ mod tests {
             .map(|status| status.success())
             .unwrap_or(false);
         assert!(!alive, "the backend child survived stop_backend");
+    }
+
+    /// Names in one directory, sorted, so two snapshots compare as listings.
+    fn listing(dir: &Path) -> Vec<String> {
+        let mut names: Vec<String> = fs::read_dir(dir)
+            .expect("listing")
+            .map(|entry| {
+                entry
+                    .expect("entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        names.sort();
+        names
+    }
+
+    struct RestoreEnv {
+        home: Option<std::ffi::OsString>,
+        config: Option<std::ffi::OsString>,
+    }
+
+    impl Drop for RestoreEnv {
+        fn drop(&mut self) {
+            match self.home.take() {
+                Some(value) => std::env::set_var("HOME", value),
+                None => std::env::remove_var("HOME"),
+            }
+            match self.config.take() {
+                Some(value) => std::env::set_var("EPHE_CONFIG_DIR", value),
+                None => std::env::remove_var("EPHE_CONFIG_DIR"),
+            }
+        }
+    }
+
+    /// A run aimed at another device folder must leave `$HOME/.ephe` with the
+    /// same names it had. The listing is the proof. The variable only aims the run.
+    #[test]
+    fn an_isolated_config_dir_leaves_the_home_folder_unchanged() {
+        let scratch = std::env::temp_dir().join(format!(
+            "ephe-isolated-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        let home = scratch.join("home");
+        let config = scratch.join("config");
+        let kept = home.join(".ephe");
+        fs::create_dir_all(&kept).expect("home folder");
+        fs::write(kept.join("sentinel"), b"keep").expect("sentinel");
+        let before = listing(&kept);
+
+        let _env_lock = crate::instance::test_env_lock().lock().expect("env lock");
+        let _restore = RestoreEnv {
+            home: std::env::var_os("HOME"),
+            config: std::env::var_os("EPHE_CONFIG_DIR"),
+        };
+        std::env::set_var("HOME", &home);
+        std::env::set_var("EPHE_CONFIG_DIR", &config);
+
+        store_key(&home, "isolated-token").expect("stored");
+        crate::runlog::write(&home, "start ephe 0.0.0 pid 1 epoch 1");
+        let command = befehl_aus(ZEILE, &home).expect("line");
+        let roots = crate::desktop::allowed_roots(&home, None);
+
+        let after = listing(&kept);
+        assert_eq!(
+            before, after,
+            "the home folder's names changed: {before:?} -> {after:?}"
+        );
+        assert_eq!(konfig_pfad(&home), config.join("desktop.json"));
+        assert_eq!(key_path(&home), config.join("engine.key"));
+        assert!(
+            config.join("engine.key").is_file(),
+            "the key landed outside the device folder"
+        );
+        assert_eq!(command.log, config.join("logs").join("desktop-backend.log"));
+        assert!(
+            config.join("logs").join("desktop.log").is_file(),
+            "the ledger landed outside the device folder"
+        );
+        assert_eq!(
+            roots,
+            vec![
+                config.join("artifacts"),
+                home.join("Desktop"),
+                home.join("Downloads"),
+                home.join("Documents"),
+            ]
+        );
+        let _ = fs::remove_dir_all(&scratch);
     }
 }

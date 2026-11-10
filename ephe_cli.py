@@ -98,6 +98,26 @@ async def _init_cli_mcp() -> list[str]:
         return []
 
 
+async def _close_cli_mcp() -> None:
+    """The other half of `_init_cli_mcp`: close the clients on the loop that spawned them.
+
+    A stdio MCP client is a child process whose pipe transports belong to the loop
+    that started it. `close_all_mcp_clients()` is awaited here, inside that same
+    loop, before `asyncio.run()` tears it down; leaving the client in the global
+    register until interpreter exit instead hands the transport to the GC after the
+    loop is closed, and `BaseSubprocessTransport.__del__` then raises
+    `RuntimeError: Event loop is closed` — the unraisable exception that failed the
+    coverage leg while every test passed. Fail-tolerant like the attach: a teardown
+    error must not turn a finished run into a failed one.
+    """
+    try:
+        from core.tools.mcp_client import close_all_mcp_clients
+
+        await close_all_mcp_clients()
+    except Exception:  # noqa: BLE001 — teardown must not turn a finished run into a failed one
+        return
+
+
 def _run_doctor_repairs(args: argparse.Namespace) -> list[tuple[str, bool, str]]:
     repairs: list[tuple[str, bool, str]] = []
     if os.environ.get("OLLAMA_HOST") not in (None, "", LOCAL_OLLAMA_HOST, LOCAL_OLLAMA_BASE_URL):
@@ -626,19 +646,22 @@ def cmd_code(args: argparse.Namespace) -> int:
 
     async def _run() -> tuple[str, dict | None, str | None]:
         await _init_cli_mcp()
-        answer = await react_loop(
-            question=prompt, model=choice.model,
-            turn_id=recorder.turn_id, on_phase=recorder.on_phase,
-        )
-        # Read the measured usage INSIDE the loop: it is a ContextVar the agent task
-        # set, and asyncio.run hands its context back to nobody.
-        from core.tools.session_ctx import get_measured_usage
+        try:
+            answer = await react_loop(
+                question=prompt, model=choice.model,
+                turn_id=recorder.turn_id, on_phase=recorder.on_phase,
+            )
+            # Read the measured usage INSIDE the loop: it is a ContextVar the agent task
+            # set, and asyncio.run hands its context back to nobody.
+            from core.tools.session_ctx import get_measured_usage
 
-        usage = get_measured_usage()
-        from core.run_evidence import run_verifier
+            usage = get_measured_usage()
+            from core.run_evidence import run_verifier
 
-        check_output = await run_verifier(verify) if verify else None
-        return answer, usage, check_output
+            check_output = await run_verifier(verify) if verify else None
+            return answer, usage, check_output
+        finally:
+            await _close_cli_mcp()
 
     try:
         result, usage, check_output = asyncio.run(_run())
@@ -725,20 +748,23 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     async def _go() -> tuple[str, dict | None, str | None]:
         await _init_cli_mcp()
-        answer = await react_loop(
-            question=task, model=choice.model, context=[dict(m) for m in history],
-            turn_id=recorder.turn_id,
-            on_chunk=sink.chunk, on_phase=_phase,
-            on_tool_start=sink.tool_start, on_tool_done=sink.tool_done,
-            extra_system_prompt=run_seam.CODING_DIRECTIVE,
-        )
-        from core.tools.session_ctx import get_measured_usage
+        try:
+            answer = await react_loop(
+                question=task, model=choice.model, context=[dict(m) for m in history],
+                turn_id=recorder.turn_id,
+                on_chunk=sink.chunk, on_phase=_phase,
+                on_tool_start=sink.tool_start, on_tool_done=sink.tool_done,
+                extra_system_prompt=run_seam.CODING_DIRECTIVE,
+            )
+            from core.tools.session_ctx import get_measured_usage
 
-        usage = get_measured_usage()
-        from core.run_evidence import run_verifier
+            usage = get_measured_usage()
+            from core.run_evidence import run_verifier
 
-        check_output = await run_verifier(verify) if verify else None
-        return answer, usage, check_output
+            check_output = await run_verifier(verify) if verify else None
+            return answer, usage, check_output
+        finally:
+            await _close_cli_mcp()
 
     try:
         answer, usage, check_output = asyncio.run(_go())
@@ -827,10 +853,13 @@ def cmd_goal(args: argparse.Namespace) -> int:
 
     async def _run() -> tuple[object, dict | None]:
         await _init_cli_mcp()
-        outcome = await runner.run(task)
-        from core.tools.session_ctx import get_measured_usage
+        try:
+            outcome = await runner.run(task)
+            from core.tools.session_ctx import get_measured_usage
 
-        return outcome, get_measured_usage()
+            return outcome, get_measured_usage()
+        finally:
+            await _close_cli_mcp()
 
     try:
         result, usage = asyncio.run(_run())
@@ -900,9 +929,12 @@ def cmd_project(args: argparse.Namespace) -> int:
 
     async def _run():
         await _init_cli_mcp()
-        return await run_project_file(
-            plan, model=choice.model, on_event=relay, progress=progress
-        )
+        try:
+            return await run_project_file(
+                plan, model=choice.model, on_event=relay, progress=progress
+            )
+        finally:
+            await _close_cli_mcp()
 
     results = asyncio.run(_run())
     finished = sum(1 for result in results if result.ok)
@@ -1569,10 +1601,13 @@ def _schreibe_desktop_konfig(
     desktop, opening the window only hit a closed door (reported as "Disconnected").
     The app now probes its port at start and starts what is written here: interpreter,
     project, port. Without this line it touches nothing.
+    The line belongs to the folder the shell reads: `EPHE_CONFIG_DIR` when the
+    variable is set, otherwise `$HOME/.ephe`. A caller that hands in another home
+    keeps that home's own tree.
     """
-    from core.engine_config import config_root
+    from core.engine_config import device_dir_for
 
-    device_dir = (Path(home) / ".ephe") if home is not None else config_root()
+    device_dir = device_dir_for(home)
     device_dir.mkdir(parents=True, exist_ok=True)
     config_path = device_dir / "desktop.json"
     config_path.write_text(
@@ -2050,10 +2085,13 @@ def cmd_tool(args: argparse.Namespace) -> int:
         # schema check, so a remote tool name is known here too. result is None
         # when the name is unknown; the second slot carries what is available.
         await _init_cli_mcp()
-        schemas = {s.get("function", {}).get("name") for s in get_tool_schemas()}
-        if args.tool_name not in schemas:
-            return None, sorted(name for name in schemas if name)
-        return await execute_tool(args.tool_name, tool_args, policy=policy), []
+        try:
+            schemas = {s.get("function", {}).get("name") for s in get_tool_schemas()}
+            if args.tool_name not in schemas:
+                return None, sorted(name for name in schemas if name)
+            return await execute_tool(args.tool_name, tool_args, policy=policy), []
+        finally:
+            await _close_cli_mcp()
 
     try:
         result, available = asyncio.run(_run())

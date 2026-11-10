@@ -43,6 +43,14 @@
 #     so the row and the constraint had to move together.
 # tests/test_supply_chain_gate.py holds both readings, including the empty `--ignore-flags`
 # set this leaves behind: a row returning without its flag fails that job.
+#
+# Re-read 2026-11-07 against the locks, with no new advisory fetch. The sixteen rows
+# that were due on 2026-11-06 keep their state. aiohttp 3.14.5 and multidict 6.9.1 are
+# still the uv.lock versions. katex resolves at 0.18.2 and above, brace-expansion at
+# 1.1.21 and 5.0.12, source-map-js at 1.2.2. zip is 9.1.3. glib is still 0.18.5 under
+# gtk 0.18, so the pending move stays blocked by tauri-pins-gtk-0.18. proc-macro-error
+# 1.0.4, zbus_names 4.3.4, zvariant 5.15.0 and zvariant_derive 5.15.0 are still the
+# locked crates. Next recheck for those sixteen rows is 2026-12-07.
 
 # aiohttp 3.14.3 carried three advisories: GHSA-2g87-pp6c-29x5 (unbounded
 # memory/CPU), a shared-cookie Secure attribute, and the missing initial
@@ -55,7 +63,7 @@
 # optional voice path, as a client. The FastAPI server is uvicorn; the
 # server-side vectors in the three advisories did not apply to that use, and
 # the bump removes the finding for every install that carries the extra.
-GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed affected=<=3.14.3 fixed_in=3.14.5 recheck=2026-11-06
+GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed affected=<=3.14.3 fixed_in=3.14.5 recheck=2026-12-07
 
 # 2026-10-23 S1 incident: the eMudhra/emSign CA compromise and the pip advisory.
 # Why it is fixed: uv.lock resolves certifi 2026.10.19 and pyproject carries the floor;
@@ -154,11 +162,11 @@ PYSEC-2026-3721  # package=pip ecosystem=PyPI scope=development state=pending-fi
 # Why it is fixed — Exposure as measured: the vulnerable copies are gone from the lock; the
 # two that reached a shipped path were proved (katex through remark-math with dev=false) and
 # the rest were dev-only, so nothing here is exposed to a user.
-GHSA-238p-pmpm-9mq7  # package=katex ecosystem=npm scope=runtime state=fixed affected=>=0.11.0,<0.18.2 fixed_in=0.18.2 recheck=2026-11-06
-GHSA-q2hr-2g5m-vwhr  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.21|>=4.0.0,<5.0.12 fixed_in=1.1.21 recheck=2026-11-06
-GHSA-qhr7-859c-m2p7  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.20|>=4.0.0,<5.0.11 fixed_in=1.1.20 recheck=2026-11-06
-GHSA-6j4f-fj2g-mc7p  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.19|>=4.0.0,<5.0.10 fixed_in=1.1.19 recheck=2026-11-06
-GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development state=fixed affected=>=1.0.0,<1.2.2 fixed_in=1.2.2 recheck=2026-11-06
+GHSA-238p-pmpm-9mq7  # package=katex ecosystem=npm scope=runtime state=fixed affected=>=0.11.0,<0.18.2 fixed_in=0.18.2 recheck=2026-12-07
+GHSA-q2hr-2g5m-vwhr  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.21|>=4.0.0,<5.0.12 fixed_in=1.1.21 recheck=2026-12-07
+GHSA-qhr7-859c-m2p7  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.20|>=4.0.0,<5.0.11 fixed_in=1.1.20 recheck=2026-12-07
+GHSA-6j4f-fj2g-mc7p  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.19|>=4.0.0,<5.0.10 fixed_in=1.1.19 recheck=2026-12-07
+GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development state=fixed affected=>=1.0.0,<1.2.2 fixed_in=1.2.2 recheck=2026-12-07
 
 # GHSA-g3hv-75wg-m249 = CVE-2026-118764 — minimatch amplifies an attacker-supplied glob:
 # `firstPhasePreProcess` clones a globParts entry for every `**/../` it rewrites in a fixpoint
@@ -176,6 +184,22 @@ GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development sta
 # globs match the same files. tsc, vite build and vitest (467 files / 3221 tests) unchanged.
 GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=fixed affected=<11.0.1 fixed_in=11.0.1 recheck=2026-11-29
 
+# GHSA-8g5g-mxqh-grgj = CVE-2026-118662 — a file the dev server is told to deny is served anyway
+# when the request appends a query string: the deny pattern misses on `?`-carrying URLs, so the
+# body of a `server.fs.deny` path goes back to the browser. OSV: introduced 6.4.4, fixed 6.4.5,
+# published 2026-10-29.
+# Why it is fixed: app/package.json asked for ^6.4.4 and the lock resolved vite@6.4.4, and commit
+# 30777a1e moved the specifier to ^6.4.5 on 2026-10-30, the day after the advisory was published.
+# The lock resolves one vite today, at 6.4.5 (`packages:` -> `vite@6.4.5:`), and
+# test_a_fixed_npm_row_is_held_by_the_npm_lock reads this row against the lock on every suite run,
+# so a dependency move that walks the resolution below 6.4.5 fails there instead of here.
+# Exposure as measured: reachable on this tree while the lock held 6.4.4. The advisory names two
+# conditions — a dev server exposed to the network, and a denied file inside an allowed directory —
+# and the first one is ours by configuration: app/vite.config.ts:82 sets `host: true` for the LAN
+# and desktop dev flows. Scope is development, and that is the whole of the mitigating fact: `vite`
+# is a devDependency, a built bundle carries no dev server, and no shipped path reads this code.
+GHSA-8g5g-mxqh-grgj  # package=vite ecosystem=npm scope=development state=fixed affected=>=6.4.4,<6.4.5 fixed_in=6.4.5 recheck=2026-12-07
+
 # GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 — glib.
 # Why it is not fixed yet: glib 0.20.0 is the fix and app/src-tauri/Cargo.lock pins 0.18.5,
 # and the move waits on upstream, measured: `cargo update -p glib --precise 0.20.0` is refused —
@@ -191,7 +215,7 @@ GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=f
 # product's own window process, so this is runtime and not build tooling. Unsound Iterator
 # and DoubleEndedIterator implementations for glib::VariantStrIter (CVSS:4.0 AV:N/AC:L
 # PR:N/UI:N/VI:L) — a soundness defect, medium severity, no code-execution path claimed.
-GHSA-wrw7-89jp-8q8g  # package=glib ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.15.0,<0.20.0 fixed_in=0.20.0 blocked_by=tauri-pins-gtk-0.18 recheck=2026-11-06
+GHSA-wrw7-89jp-8q8g  # package=glib ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.15.0,<0.20.0 fixed_in=0.20.0 blocked_by=tauri-pins-gtk-0.18 recheck=2026-12-07
 # Exposure as measured: `cargo tree -i block-buffer@0.10.4` reaches it only through
 # tauri-codegen -> sha2 0.10 -> digest 0.10, the proc macro that hashes while the app is
 # compiled. No shipped binary carries the crate, so the panic path is a build-host path.
@@ -209,7 +233,7 @@ GHSA-qwgh-2vcv-g2f7  # package=block_buffer ecosystem=crates.io scope=developmen
 # constraint `multidict>=6.9.1` holds it, and lockfile.yml re-resolves against the pinned uv.
 # Exposure as measured: reference leak in CIMultiDict/MultiDict items-view union and
 # subtraction (introduced 6.7.0), read from the advisory record on 2026-10-14.
-GHSA-54p9-h82j-f925  # package=multidict ecosystem=PyPI scope=runtime state=fixed affected=>=6.7.0 fixed_in=6.9.1 recheck=2026-11-06
+GHSA-54p9-h82j-f925  # package=multidict ecosystem=PyPI scope=runtime state=fixed affected=>=6.7.0 fixed_in=6.9.1 recheck=2026-12-07
 
 # --- The crates.io rows found by the Cargo verdict leg. ---
 
@@ -229,7 +253,7 @@ GHSA-54p9-h82j-f925  # package=multidict ecosystem=PyPI scope=runtime state=fixe
 # code into the compiler rather than into the artifact. scope=development follows from
 # that. UNPROVEN: that it is equally absent from every platform a release ships, since
 # `cargo tree --target all` was not run against all targets.
-RUSTSEC-2024-0370  # package=proc-macro-error ecosystem=crates.io scope=development state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
+RUSTSEC-2024-0370  # package=proc-macro-error ecosystem=crates.io scope=development state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
 
 # zbus_names, zvariant and zvariant_derive reached the lock with tauri-plugin-notification
 # 2.7.0 on 2026-10-18 (zbus 5.19 <- notify-rust 4.18; the other two are its support
@@ -243,9 +267,9 @@ RUSTSEC-2024-0370  # package=proc-macro-error ecosystem=crates.io scope=developm
 # and single-instance plugins. They do not parse the product's own payloads; the records
 # describe missing maintenance with no reachable defect. Re-read with the next notification
 # plugin bump, which is when the zbus family moves.
-RUSTSEC-2026-0371  # package=zbus_names ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
-RUSTSEC-2026-0370  # package=zvariant ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
-RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-11-06
+RUSTSEC-2026-0371  # package=zbus_names ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
+RUSTSEC-2026-0370  # package=zvariant ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
+RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
 
 # zip came in as tauri-plugin-updater's own dependency. Four findings sit here. Three
 # carry a RustSec ID and a GHSA alias each: SUID/SGID preservation during extraction,
@@ -267,10 +291,10 @@ RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime s
 # `x86_64-pc-windows-msvc` resolved it (`zip v4.6.1` under `tauri-plugin-updater v2.14.0`),
 # and no release has published a Windows asset. The attack needs a crafted archive that
 # passes the signature check in latest.json; a hostile network response alone does not.
-RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-11-06
-RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-11-06
-RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-11-06
-GHSA-m665-v7pm-7grj  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.5 fixed_in=9.0.5 recheck=2026-11-06
+RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-12-07
+RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-12-07
+RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-12-07
+GHSA-m665-v7pm-7grj  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.5 fixed_in=9.0.5 recheck=2026-12-07
 
 # Why it is fixed: `AsyncFd::new` and related constructors violate I/O safety; a patch
 # bump inside the Tauri shell's existing dependency graph moves it to 1.53.3, and no

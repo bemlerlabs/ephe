@@ -20,7 +20,13 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from core.path_guard import denied
-from core.tools.base import _get_allowed_roots, allowed_root_of
+
+# The kernel's root list is reached through its module on purpose. `from
+# core.tools.base import _get_allowed_roots` copies the name into this namespace at
+# import time, and a route mounted while a test has patched that attribute keeps the
+# patch forever — the guard then judges paths against another test's temp folder.
+# Asking the module each time is what lets a patch be honoured and undone.
+from core.tools import base as kernel
 
 router = APIRouter(tags=["FS"])
 
@@ -33,7 +39,7 @@ class MkdirRequest(BaseModel):
 
 
 def _in_allowed_roots(resolved: Path) -> bool:
-    for root in _get_allowed_roots():
+    for root in kernel._get_allowed_roots():
         try:
             resolved.relative_to(root.resolve())
             return True
@@ -62,7 +68,7 @@ async def list_fs(path: str = Query("", description="Verzeichnis; leer = Startpu
             # symlink steps out (py/path-injection). The separator makes the root
             # itself count, and Path() folds it away again.
             probe = os.path.realpath(expanded) + os.sep
-            root = allowed_root_of(probe)
+            root = kernel.allowed_root_of(probe)
             if root is None:
                 raise HTTPException(status_code=403, detail="path not in allowed roots")
             if not probe.startswith(root + os.sep):
@@ -174,7 +180,7 @@ async def create_dir(req: MkdirRequest) -> dict:
     # root: that is the containment for the folder that gets created, `..` parts and
     # symlinks included (py/path-injection). The separator makes a root itself count.
     probe = os.path.realpath(os.path.expanduser(parent_raw)) + os.sep
-    root = allowed_root_of(probe)
+    root = kernel.allowed_root_of(probe)
     if root is None:
         raise HTTPException(status_code=403, detail="path not in allowed roots")
     if not probe.startswith(root + os.sep):

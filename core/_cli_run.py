@@ -105,11 +105,14 @@ class StreamSink:
     def phase(self, text: str) -> None:
         self._line(f"◑ {text}")
 
-    def tool_start(self, name: str, args: dict) -> None:
-        self._line(f"→ {name} {_clip(args)}")
+    def tool_start(self, name: str, args: dict, call_id: str = "") -> None:
+        # The shared parser always passes call_id; a two-argument sink raises.
+        stamp = f" {call_id}" if call_id else ""
+        self._line(f"→ {name}{stamp} {_clip(args)}")
 
-    def tool_done(self, name: str, result: str) -> None:
-        self._line(f"✓ {name} {_clip(result)}")
+    def tool_done(self, name: str, result: str, call_id: str = "") -> None:
+        stamp = f" {call_id}" if call_id else ""
+        self._line(f"✓ {name}{stamp} {_clip(result)}")
 
     def chunk(self, text: str) -> None:
         if self._json:

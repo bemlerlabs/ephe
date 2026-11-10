@@ -19,9 +19,8 @@ from typing import Any
 from core import path_guard, plugin_manifest, plugin_signing
 from core.plugin_lockfile import (
     LOCK_FILENAME,
-    build_lockfile,
+    rebuild_lockfile,
     trust_class_for,
-    write_lockfile,
 )
 from core.plugin_store import (
     PLUGIN_NAME_RE,
@@ -139,7 +138,7 @@ def _drop_registry(name: str) -> None:
 
 def _write_lockfile(root: Path) -> str:
     try:
-        write_lockfile(config_root() / LOCK_FILENAME, build_lockfile(root))
+        rebuild_lockfile(config_root() / LOCK_FILENAME, root)
         return ""
     except Exception:  # noqa: BLE001 — the package change already happened
         return "lockfile_update_failed"

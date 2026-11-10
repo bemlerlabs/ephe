@@ -5,13 +5,12 @@ moved away long ago" does not want both addresses left in the context afterwards
 — and also does not want the old address to be *forgotten*. Both are the case
 today: `memory(replace)` deletes on a handshake and `add` writes a second fact.
 
-The gate puts the intent into the schema, not into a model heuristic:
-  * `Memory.store(..., supersedes=<id>)` → Kepta links by descent
-    (`superseded_by` + `valid_to`), the old fact stays queryable and falls back
-    in the ranking.
-  * Chroma has no descent columns → the same call overwrites and records
-    `superseded_at`. Both cases return the ID of the leading entry, so no
-    caller has to branch per provider.
+The gate puts the intent into the schema, not into a model heuristic.
+`Memory.store(..., supersedes=<id>)` on the live Kepta store writes
+`superseded_by` and `valid_to`. The old fact stays queryable and falls back
+in the ranking. The call returns the id of the leading entry.
+The `chromadb==1.5.9` pin is the retired importer command. This suite does
+not open that store.
 """
 
 from __future__ import annotations

@@ -20,6 +20,14 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from core.dynamic_refusals import (
+    PLUGIN_STATE_FULL,
+    PLUGIN_ENTRY_REFUSED,
+    PLUGIN_WORKER_RESTART_EXHAUSTED,
+    SANDBOX_UNAVAILABLE,
+    TOOL_NOT_AVAILABLE,
+)
+
 #: code -> (status, template with `{param}` slots). English here on purpose: the sentence a
 #: reader sees is the one their bundle holds under `serverError.<code>`, and a fallback that
 #: arrived in another language is the leak this registry closes.
@@ -156,6 +164,101 @@ REASONS: dict[str, tuple[int, str]] = {
         "{paths} is held by {holders} — check that run on the Workspaces page, "
         "then publish with force=True to write over it",
     ),
+    # The plugin surface route (2026-11-04, #42): a plugin document and the files
+    # beside it arrive from an iframe, which can carry no header, so each of the
+    # three ways that mount fails has to answer with a reason the reader's bundle can
+    # put in their language. The `{reason}` slot is the route's own refusal text,
+    # framed by the move the surface still has.
+    "plugin_ui_unavailable": (
+        404,
+        "plugin '{plugin}' has no surface to serve here — {reason} — check the "
+        "plugin on the Extensions page, then reopen the surface",
+    ),
+    "plugin_ui_unauthorized": (
+        401,
+        "the plugin surface for '{plugin}' lost its mount credential — request a "
+        "fresh surface token and reload the surface",
+    ),
+    "plugin_ui_asset_refused": (
+        400,
+        "the plugin surface for '{plugin}' asked for a file this route does not "
+        "serve — {reason} — reload the surface so its assets arrive by relative path",
+    ),
+    # The dynamic-tool rail (#10, 2026-11-05): the confined worker's four refusals. The
+    # identifiers are `core.dynamic_refusals`' and ride in as keys, so the audit's
+    # `decision`, a tool card's `reason_code` and this envelope are one string and not
+    # three spellings of it — which is the whole point of a code. `{reason}` carries the
+    # emitter's own sentence (the restart count, the entry that would not resolve) and
+    # this layer adds the move still left, as the workspaces family above does. Nothing
+    # here quotes a host path: a confinement refusal names the missing boundary, never a
+    # directory, and a route that had one would be handing a machine layout to a browser.
+    TOOL_NOT_AVAILABLE: (
+        409,
+        "the tool plugin '{plugin}' contributes over the {transport} transport is not "
+        "available right now — check that plugin on the Extensions page, then call the "
+        "tool again",
+    ),
+    SANDBOX_UNAVAILABLE: (
+        503,
+        "plugin '{plugin}' was not started: this machine offers no OS boundary to "
+        "confine a plugin worker in, and a plugin tool runs nowhere else — check the "
+        "confinement of the backend host, then run the tool again",
+    ),
+    PLUGIN_WORKER_RESTART_EXHAUSTED: (
+        429,
+        "{reason} — check that worker's exit status in the audit view, then start a new turn",
+    ),
+    PLUGIN_ENTRY_REFUSED: (
+        422,
+        "plugin '{plugin}' names a tool entry this build will not open: {reason} — "
+        "correct the entry in the plugin manifest, then mount the plugin again",
+    ),
+    # #24 / #106: the ceiling on what a bundle may keep. The two numbers are what it
+    # holds and what it may hold. The move is the Extensions row, which lists the
+    # stored files and removes the one the reader picks. No directory is named.
+    PLUGIN_STATE_FULL: (
+        507,
+        "plugin '{plugin}' is refused: its stored data holds {used_mb} MB of the {cap_mb} "
+        "MB this bundle may keep — open this bundle on Extensions and remove a stored "
+        "file there, then run the tool again",
+    ),
+    # A name the state folder does not hold. The sentence names no path.
+    # The move is the file list on Extensions.
+    "plugin_state_name": (
+        400,
+        "that stored file is not in this bundle — open this bundle on Extensions "
+        "and pick a file the list shows",
+    ),
+    # A bundle name this install does not address. The move is the Extensions list.
+    "plugin_unknown": (
+        404,
+        "no bundle by that name is installed — open Extensions and pick a bundle "
+        "the list shows",
+    ),
+    # A field whose shape this route refuses. The move is to check it and send again.
+    "tool_failed": (
+        500,
+        "the tool stopped with an error this page cannot show — the reason is in the run's "
+        "log; try it again, and if it stays, check the tool under Extensions",
+    ),
+    "invalid_request": (
+        400,
+        "this request is not a shape the route takes — check the field the answer "
+        "names and send it again",
+    ),
+    # The watch channel (#88): a name from the URL is not a reason to start a browser,
+    # and an engine that will not cast still runs the task.
+    "browser_session_unknown": (
+        404,
+        "no browser session '{session}' is open to watch — run the step that opens one, "
+        "then open the view again; watching never starts a browser by itself",
+    ),
+    "browser_watch_unavailable": (
+        409,
+        "this browser session cannot send its frames right now: {reason} — the task keeps "
+        "running and every step lands in the audit view, so check the engine under "
+        "Settings - Browser and reopen the view",
+    ),
     # The device clear (`POST /api/device/forget`): the declaration decides what may go,
     # so a request naming an entry it does not carry, or one it marks kept, is turned
     # down whole before anything is unlinked.
@@ -168,6 +271,28 @@ REASONS: dict[str, tuple[int, str]] = {
         409,
         "{names} stands under the device declaration's keep — check the listing "
         "under Settings - Privacy and clear only what it marks forgettable",
+    ),
+    # The file route (#80): one guard decides whether a path may be read, and every
+    # refusal it hands back rides the coded envelope so the surface can translate it.
+    # #120 narrowed what that guard reads to the workspace and its output folder, so
+    # the sentence names those two and nothing wider.
+    "file_path_not_allowed": (
+        403,
+        "path is outside the workspace and its output folder — pick a file from "
+        "one of those two",
+    ),
+    "file_path_protected": (
+        403,
+        "path is protected (credential or system file) — this route cannot read it; "
+        "choose another file",
+    ),
+    "file_not_found": (
+        404,
+        "file not found — check the path or whether the file still exists",
+    ),
+    "file_too_large": (
+        413,
+        "file is larger than the preview limit ({max_mb} MB) — open it directly instead",
     ),
 }
 

@@ -206,3 +206,39 @@ class TestCatalogLegOnTheRepository:
         )
         findings = [line for line in done.stdout.splitlines() if "knowledge/index.json:" in line]
         assert findings, done.stdout
+
+
+class TestTheRegeneratorCarriesACuratedSwitch:
+    """A curated `enabled` is a product decision the regeneration must not invent away.
+
+    `web-research` is the case: a device ships it switched off until the person turns the egress
+    on. The generator wrote `enabled: True` for every plugin, so one regeneration silently flipped
+    the shipped default back and the gate could not see it.
+    """
+
+    def test_a_curated_false_survives_a_regeneration(self, tmp_path):
+        import json
+        from scripts import generate_plugin_catalog as generator
+
+        plugins = tmp_path / "plugins"
+        plugin = plugins / "egress-thing"
+        (plugin).mkdir(parents=True)
+        (plugin / "ephe-plugin.json").write_text(json.dumps({
+            "manifest_version": 1,
+            "name": "egress-thing",
+            "version": "1.0.0",
+            "description": "A bundle that talks to the network",
+            "permissions": {"tool_families": ["network"]},
+        }), encoding="utf-8")
+        committed = tmp_path / "plugin-catalog.json"
+        committed.write_text(json.dumps({
+            "version": 1,
+            "public": [{"name": "egress-thing", "enabled": False}],
+            "personal": [],
+        }), encoding="utf-8")
+
+        catalog, skips = generator.build_catalog(plugins=plugins, committed=committed)
+
+        assert skips == []
+        entry = catalog["public"][0]
+        assert entry["enabled"] is False, entry

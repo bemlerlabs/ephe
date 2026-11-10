@@ -181,6 +181,34 @@ async def test_given_docker_value_when_run_shell_then_container_branch_is_reache
     assert "ran-in-container" in out
 
 
+async def test_given_docker_backend_when_command_names_the_mount_then_it_reaches_the_container(
+    workspace, monkeypatch
+):
+    """GIVEN the docker backend and a command naming the mounted workspace
+    THEN validation reads `/workspace` as the host folder that is mounted there, so the
+    documented `ls /workspace` reaches the container instead of being refused as a host
+    path. No daemon: the container entry is stubbed, as in the control above."""
+    calls = _stub_container(monkeypatch)
+    out = await run_shell("ls /workspace")
+
+    assert calls == ["ls /workspace"], "the mount path must pass the path door"
+    assert "ran-in-container" in out
+
+
+async def test_given_docker_backend_when_a_mount_path_escapes_then_it_is_refused(
+    workspace, monkeypatch
+):
+    """GIVEN a `/workspace` spelling whose `..` leaves the mount
+    THEN the path door refuses it and the container is never entered. The prefix is
+    translated with its `..` segments still checked, so a container folder outside the
+    mount stays closed."""
+    calls = _stub_container(monkeypatch)
+    out = await run_shell("cat /workspace/../etc/hosts")
+
+    assert "stays inside the file-tool roots" in out
+    assert calls == []
+
+
 @pytest.mark.parametrize("value", ["local", "   ", "podman", ""])
 async def test_given_non_docker_value_when_run_shell_then_never_reaches_the_container(
     workspace, monkeypatch, value

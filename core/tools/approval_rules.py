@@ -69,6 +69,11 @@ CHAT_AUTO_RUN_TOOLS: frozenset[str] = frozenset({
     "query_source_notebook",
     "read_file",
     "verify_artifact",
+    # web_search is not in SAFE_TOOLS: the CLI default classifies it as mutating
+    # and does not auto-approve it. The chat path runs it anyway, because a
+    # search returns a short public result list. fetch_url is in SAFE_TOOLS, so
+    # it does not need a second entry here. Both memberships predate the worker
+    # swap and the swap left them in place.
     "web_search",
     # J2: internal task-register control + LLM continuation (compute)
     "task_stop",
@@ -104,9 +109,17 @@ CHAT_AUTO_RUN_TOOLS: frozenset[str] = frozenset({
 })
 
 #: Cluster that does NOT gate itself through the chat gate. Vision/desktop control
-#: calls ``core.vision.check_sandbox`` itself (request-scoped callback); the browser
-#: cluster has no dialog — it is bounded by its reach
-#: (core.browser_url.url_policy: no file: outside the artifact folders).
+#: calls ``core.vision.check_sandbox`` itself (request-scoped callback). The browser
+#: half has no dialog, and the reason it has none today is not the URL policy: it is
+#: that the session it acts in holds no credentials, so a click here is not some
+#: person's saved sign-in being used (``core/browser_url.py``: an empty
+#: ``_BROWSER_PROFILE``). Reach-bounding says which addresses load; it says nothing
+#: about whose identity travels in the request, and the two bounds are not
+#: interchangeable. ``browser_session_is_credentialed()`` below is the branch that
+#: reads the second bound, so the licence is checked rather than assumed.
+#: Before a persistent profile ships, the decision it owes this file is who consents
+#: to the agent acting as the user, and which session context gets which profile —
+#: until then the launch itself refuses (``PERSISTENT_PROFILE_UNWIRED``).
 SELF_GATED_TOOLS: frozenset[str] = frozenset({
     "vision_click",
     "vision_type",
@@ -116,6 +129,25 @@ SELF_GATED_TOOLS: frozenset[str] = frozenset({
     "browser_type",
     "browser_press",
     "browser_screenshot",
+})
+
+#: The browser cluster's no-dialog licence is conditioned on a session that holds
+#: nothing. These are the names that lose it when
+#: ``browser_session_is_credentialed()`` answers True: everything the agent can do
+#: *inside* a page, including the arbitrary expression in ``browser_evaluate``,
+#: which is the tool that makes "bounded by its reach" untrue the moment the session
+#: can act as an account. ``browser_exec`` is not listed — it is in no auto-run set,
+#: so it already asks. The desktop half of ``SELF_GATED_TOOLS`` is not listed either:
+#: ``vision_click``/``vision_type`` ask through ``core.vision.check_sandbox``, and
+#: the capture claim is Job 2's, settled in docs/SECURITY_AND_PRIVACY.md.
+_CREDENTIAL_BOUND_TOOLS: frozenset[str] = frozenset({
+    "browser_go",
+    "browser_click",
+    "browser_type",
+    "browser_press",
+    "browser_screenshot",
+    "browser_scroll",
+    "browser_evaluate",
 })
 
 #: Tools that need the network (P1-8): they perform outbound DNS/HTTP roundtrips —
@@ -136,6 +168,63 @@ DANGEROUS_TOOLS: frozenset[str] = frozenset({
 
 #: Names that may run on the chat path without asking.
 _CHAT_NO_CONFIRM: frozenset[str] = SAFE_TOOLS | CHAT_AUTO_RUN_TOOLS | SELF_GATED_TOOLS
+
+
+def browser_session_is_credentialed() -> bool:
+    """Does the browser session hold an identity that is not this run's own?
+
+    The answer belongs to ``core/browser_url.py``, next to the setting that produces
+    it, so the launch and the gate read one source. Read lazily for the same reason
+    ``_runs_uncontained`` does: the session's shape is a runtime fact, and no constant
+    of this module can carry it. Unreadable is credentialed — a licence that survives a
+    failed check would be a licence that is never actually checked.
+    """
+    try:
+        from core.browser_url import browser_session_is_credentialed as _shape
+
+        return bool(_shape())
+    except Exception:  # noqa: BLE001 — an unreadable session shape is not an approval
+        return True
+
+
+def credential_licence_voided(name: str) -> bool:
+    """True when *name* is a browser tool whose no-dialog licence has lost its condition.
+
+    This is the branch the comment above ``SELF_GATED_TOOLS`` argues for: while the
+    session holds no credentials it is False for every name, and the gate behaves
+    exactly as it did. Once a profile is configured it is True for the whole browser
+    cluster, which puts the dialog back in front of them instead of letting the
+    exemption carry over.
+    """
+    return name in _CREDENTIAL_BOUND_TOOLS and browser_session_is_credentialed()
+
+
+def chat_no_confirm_tools() -> frozenset[str]:
+    """The names the chat path would let through right now, as a set.
+
+    ``_CHAT_NO_CONFIRM`` is the licence as if it held unconditionally. Three of its
+    conditions are runtime rather than names, so this reads each one the way
+    ``chat_tool_requires_confirm`` does, in the same order, and a name whose condition
+    has gone is out of the set:
+
+      * the browser session holds a stored identity (`browser_session_is_credentialed`);
+      * the code would run outside the cell (`_runs_uncontained`, and `execute_code` is
+        the one name in that class);
+      * the user asked to be prompted about that category (`forced_categories`).
+
+    The fourth condition the gate applies cannot be seen from here: the opt-in
+    confidence floor arrives with the caller's `ApprovalPolicy`, so the set is the
+    answer for a request that carries none. A caller that treats this list as the gate
+    without asking the gate is what measured the drift this rewrite closes — under
+    `-n auto` a worker whose cell was not carrying the turn saw `execute_code` listed
+    here while the gate demanded a dialog for it.
+    """
+    names = _CHAT_NO_CONFIRM
+    if browser_session_is_credentialed():
+        names = names - _CREDENTIAL_BOUND_TOOLS
+    return frozenset(
+        name for name in names if not _runs_uncontained(name) and not category_forces_confirm(name)
+    )
 
 
 #: Tools whose auto-run licence depends on WHERE the code runs, not on the name.
@@ -206,10 +295,16 @@ def chat_tool_requires_confirm(
     The opt-in confidence floor applies here too: with a policy that turns it on, an
     auto-run tool the model is unsure about is asked about after all. Without a
     policy the result is exactly the old one.
+
+    A browser tool is additionally asked about whenever the session it would act in
+    holds credentials — the condition its no-dialog licence is written against, and
+    the reason the membership test below is a call and not the static union.
     """
     if _runs_uncontained(name):
         return True
     if category_forces_confirm(name):
+        return True
+    if credential_licence_voided(name):
         return True
     if name not in _CHAT_NO_CONFIRM:
         return True
@@ -247,9 +342,16 @@ def classify_tool(name: str) -> ToolClassification:
 
     Not purely static: ``execute_code`` is auto-approved only while the pinned cell
     really carries the run. Without the cell it executes on the host, so it is
-    classified MUTATING and gated (``_runs_uncontained``).
+    classified MUTATING and gated (``_runs_uncontained``). A browser tool is
+    auto-approved only while the session holds no credentials
+    (``credential_licence_voided``) — otherwise the CLI posture would keep waving
+    ``browser_screenshot`` through after the chat gate stopped doing it.
     """
-    safe = name in SAFE_TOOLS and not _runs_uncontained(name)
+    safe = (
+        name in SAFE_TOOLS
+        and not _runs_uncontained(name)
+        and not credential_licence_voided(name)
+    )
     if name in DANGEROUS_TOOLS:
         category = "DANGEROUS"
     elif name in NETWORK_TOOLS:
@@ -368,7 +470,10 @@ __all__ = [
     "ApprovalPolicy",
     "OnConfirm",
     "ToolClassification",
+    "browser_session_is_credentialed",
+    "chat_no_confirm_tools",
     "chat_tool_requires_confirm",
     "classify_tool",
+    "credential_licence_voided",
     "low_confidence_escalation",
 ]

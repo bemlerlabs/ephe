@@ -1,0 +1,120 @@
+/*
+ * The overlay windows the plugin dock paints over the workbench (#44).
+ *
+ * Structural rules only. Material, radius and elevation stay the property of the
+ * one floating primitive in `globals.css`, which its own test guards; what is
+ * decided here is the shape of a window the shell draws — a 44 px rail, the frame
+ * that fills what is left of the box, and controls that stay quiet until the
+ * pointer or the keyboard reaches the surface they belong to.
+ */
+
+/* The host covers the viewport and takes no click from the page behind it: a
+   surface that floats must not turn the workbench into a backdrop. */
+.overlay-host {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* `.float-surface` declares `position: relative`, so placement is stated at the
+   specificity that wins it back wherever the sheet lands in the bundle. */
+.overlay-host .overlay-window {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  /* The dense rank from the stack, not the raw z counter: a surface raised many
+     times stays one step above its neighbour, under the sheet's modal step. */
+  z-index: calc(var(--z-index-overlay) + var(--stack-rank, 0));
+}
+
+/* A transparent descriptor means the widget paints its own background, so the fill
+   behind it goes — at the token the primitive reads, never as a second recipe. */
+.overlay-host .overlay-window[data-transparent='true'] {
+  --glass-float-fill: transparent;
+  --glass-blur-float: 0px;
+}
+
+.overlay-rail {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-inline-start: 10px;
+  cursor: grab;
+  /* A drag on a touch device must not scroll the workbench underneath. */
+  touch-action: none;
+}
+
+.overlay-title {
+  min-width: 0;
+  flex: 1;
+  font-size: var(--text-ui-sm);
+  line-height: var(--text-ui-sm--line-height);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* No `display` here: the frame is hidden by the `hidden` attribute while a surface
+   is minimized, and an author rule on the same element would outvote it. */
+.overlay-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  height: calc(100% - 44px);
+  border: 0;
+  background: transparent;
+}
+
+.overlay-frame[hidden] {
+  display: none;
+}
+
+/* Quiet by default, revealed by the pointer or the keyboard — an always-visible row
+   of buttons is a chrome and contrast event on this surface. A coarse pointer has
+   no hover to wait for, so the controls are simply there. */
+.overlay-control {
+  opacity: 0;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  transition: opacity var(--transition-duration-fast) var(--ease-out-soft);
+}
+
+/* Either the pointer is over the surface or the keyboard is inside it — the two
+   ways a quiet control becomes a findable one. */
+.overlay-window:hover .overlay-control,
+.overlay-window:focus-within .overlay-control {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .overlay-control {
+    opacity: 1;
+  }
+}
+
+.overlay-control:hover {
+  color: var(--color-foreground);
+}
+
+/* The grip is 44 px on every side although the mark it draws is a corner: the hit
+   area is the touch floor, the mark is not. */
+.overlay-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.overlay-window[data-minimized='true'] .overlay-grip {
+  display: none;
+}

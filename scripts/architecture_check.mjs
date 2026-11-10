@@ -11,7 +11,12 @@
  * Rules per module: maxFileLines, maxContractLines, maxPublicMethods,
  * forbidCycles (Tarjan-SCC), forbidDeepImports.
  * Baseline logic: no .architecture-baseline.json => every finding is a hint,
- * exit 0. Present => finding count per rule above the frozen value = error (exit 1).
+ * exit 0. Present => finding count per rule above the frozen value = error (exit 1),
+ * for the rules that still escalate. The four count rules (`maxFileLines`,
+ * `maxContractLines`, `maxPublicMethods`, `forbidDeepImports`) were unbudgeted by the
+ * owner on 2026-11-05 and stay hints however many findings they hold; `forbidCycles` has
+ * no frozen count, so any cycle at all is an error. The report names the live set in
+ * `escalatingRules`.
  * --baseline <path> moves the read AND the write to that file; the test suite
  * pins its verdicts on private copies that way, so a `pytest -n 8` worker
  * rewriting one never overlaps a worker reading the same path.
@@ -346,6 +351,20 @@ function collectFindings(policy, changedSet, moduleFilter) {
   return findings;
 }
 
+// The rules the owner unbudgeted on 2026-11-05: they stay reported as hints and never
+// escalate, whatever the frozen count says. Each of them compares a *number of findings*
+//  against a frozen number, so crossing one finding turned every hint of that rule into an
+//  error and reddened CI on files the change had never touched — a tax on work wearing the
+//  shape of a quality gate, and this programme paid it three times in one wave.
+//  `forbidCycles` is deliberately absent: there is no frozen count for it, so any cycle at
+//  all is an error, which is a correctness rule and not a budget.
+const UNBUDGETED_RULES = new Set([
+  'maxFileLines',
+  'maxContractLines',
+  'maxPublicMethods',
+  'forbidDeepImports',
+]);
+
 function applyBaseline(findings, baseline) {
   if (!baseline) return findings; // no baseline => everything is a hint
   const perRule = baseline.perRule || {};
@@ -353,7 +372,10 @@ function applyBaseline(findings, baseline) {
   for (const f of findings) current[f.rule] = (current[f.rule] || 0) + 1;
   return findings.map((f) => ({
     ...f,
-    severity: (perRule[f.rule] ?? 0) < current[f.rule] ? 'error' : 'info',
+    severity:
+      !UNBUDGETED_RULES.has(f.rule) && (perRule[f.rule] ?? 0) < current[f.rule]
+        ? 'error'
+        : 'info',
   }));
 }
 
@@ -365,12 +387,17 @@ function buildReport(policy, changedSet, moduleFilter) {
   const findings = applyBaseline(raw, baseline);
   const counts = { total: findings.length, info: 0, error: 0 };
   for (const f of findings) counts[f.severity] = (counts[f.severity] || 0) + 1;
+  // Named in the report so a test can pin which rules may still stop a push, rather than
+  // reading the exemption out of a comment.
+  const rulesSeen = new Set(raw.map((f) => f.rule));
+  rulesSeen.add('forbidCycles');
   return {
     policyVersion: policy.version,
     managedModules: policy.modules.filter((m) => m.managed === true).length,
     findings,
     counts,
     baselinePresent: Boolean(baseline),
+    escalatingRules: [...rulesSeen].filter((r) => !UNBUDGETED_RULES.has(r)).sort(),
   };
 }
 

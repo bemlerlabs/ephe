@@ -12,7 +12,7 @@ Pins:
    ValueError (rubbish never reaches the matrix).
 3. Case.command (when set) has to be a command in the manifest.
 4. Ids unique and carrying the plugin prefix.
-5. verify_all(): the CI gate — zero findings across all 16 plugins.
+5. verify_all(): the CI gate — zero findings across all 17 plugins.
 6. Every grader rule is mechanical (artifact→suffix, tool_use/contains/
    not_contains→any not empty).
 7. Anti-slop: every suite has at least one not_contains marker
@@ -40,7 +40,7 @@ PLUGINS = sorted(p for p in (ROOT / "plugins").iterdir() if (p / "ephe-plugin.js
 class TestSuites:
 
     def test_every_production_plugin_has_golden_suite(self):
-        assert len(PLUGINS) == 16
+        assert len(PLUGINS) == 17
         for pdir in PLUGINS:
             golden = pdir / "prompts" / "golden.jsonl"
             rubric = pdir / "prompts" / "rubric.md"
@@ -119,7 +119,7 @@ class TestVerifyAll:
         report = pg.verify_all(ROOT / "plugins")
         bad = [r for r in report if r["issues"]]
         assert not bad, json.dumps(bad, ensure_ascii=False)[:800]
-        assert len(report) == 16
+        assert len(report) == 17
         total = sum(r["cases"] for r in report)
         assert total >= 138, f"Matrix too small: {total} < 138"
 
@@ -129,7 +129,40 @@ class TestVerifyAll:
 
         args = ephe_cli.build_parser().parse_args(["bench"])
         assert ephe_cli.cmd_bench(args) == 0
-        assert "143 cases" in capsys.readouterr().out
+        assert "153 cases" in capsys.readouterr().out
+
+
+class TestCreatorCases:
+    """The Creator suite has to measure the guard, in both directions.
+
+    A refusal that names no reason is not attributable - the consent guard and the
+    approval gate both refuse, in different words - and a suite that only measures
+    refusals would never notice a grant that stopped working.
+    """
+
+    CASES = pg.load_golden(
+        ROOT / "plugins" / "plugin-creator" / "prompts" / "golden.jsonl", "plugin-creator"
+    )
+
+    def test_a_refusal_case_names_the_reason_that_proves_which_gate_answered(self):
+        refused = [c for c in self.CASES if c["expect"]["kind"] == "tool_refused"]
+        assert refused, "no Creator case measures a refusal"
+        for case in refused:
+            assert case.get("mode") == "creator", case["id"]
+            assert case["expect"].get("reason"), f"{case['id']}: unattributable refusal"
+
+    def test_one_refusal_case_holds_a_grant_that_does_not_cover_the_call(self):
+        """The ruling is per call: files granted must not buy the code call."""
+        partial = [
+            c
+            for c in self.CASES
+            if c.get("privileges") == ["files"] and c["expect"]["kind"] == "tool_refused"
+        ]
+        assert partial, "no case measures a privilege that stops short of the call"
+
+    def test_a_granted_case_waits_for_the_call_to_run(self):
+        honoured = [c for c in self.CASES if c.get("privileges") and c["expect"]["kind"] == "tool_use"]
+        assert honoured, "no Creator case measures the honoured path"
 
 
 class TestPass3Runner:

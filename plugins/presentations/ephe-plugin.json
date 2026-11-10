@@ -1,9 +1,16 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "presentations",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "origin": "first-party",
-  "description": "Real deck production: PPTX presentations, pitch decks, diagrams and SVG assets.",
+  "description": "Real deck production: a widescreen PPTX, a PDF pitch, a diagram and an SVG.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "docs",
@@ -19,29 +26,384 @@
       {
         "name": "deck",
         "description": "Produce a real PPTX deck",
-        "template": "Create a real PPTX pitch deck for: {input}. Use create_pptx_deck/create_pitch_deck and deliver slides with a clear story arc."
+        "template": "Create one widescreen PPTX for: {input}. Pass the topic. When a slide count is named, pass that many slide objects, each with a title, a claim and at most four points. Put the user's figures in source_notes. Then verify the printed path and run qa on it."
       },
       {
         "name": "outline",
         "description": "Build a slide-by-slide outline",
-        "template": "Build a slide-by-slide outline for: {input}. Name the audience, the story arc, the evidence per slide and the ask; no slide text yet."
+        "template": "Build a slide-by-slide outline for: {input}. Name the audience, the thesis and one claim per slide. Leave the file unwritten."
       },
       {
         "name": "notes",
         "description": "Write speaker notes for a deck",
-        "template": "Write speaker notes for the deck about: {input}. One note block per slide, with evidence and a transition; flag missing facts instead of inventing them."
+        "template": "Write a speaker_note for each slide about: {input}. Pass the notes on the slide objects. They are stored in the deck spec. Read that spec and quote one note per slide. The pptx file has no notes page."
       }
     ],
     "tools": [
-      "create_pptx_deck",
-      "create_pitch_deck",
-      "edit_pptx_template",
-      "inspect_pptx_template",
-      "qa_pptx_deck",
-      "create_diagram",
-      "create_svg"
+      {
+        "name": "create_pptx_deck",
+        "entry": "tools/handlers.py:create_pptx_deck",
+        "family": "docs",
+        "description": "Creates a native, editable enterprise pitch deck as .pptx with real text boxes, shapes, scorecard and claim-spine manifest. Use this when the user asks for PowerPoint, PPTX, editable slides or Fortune-500/board-level presentations.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "Deck topic / title."
+            },
+            "audience": {
+              "type": "string",
+              "description": "Target audience for the deck."
+            },
+            "thesis": {
+              "type": "string",
+              "description": "Core thesis or claim the deck argues."
+            },
+            "slides": {
+              "type": [
+                "array",
+                "string",
+                "null"
+              ],
+              "description": "Optional: slide outline as a list of {{title, claim, body, visual, proof}} or markdown sections."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            },
+            "deck_profile": {
+              "type": "string",
+              "enum": [
+                "product-platform",
+                "engineering-platform",
+                "strategy-leadership",
+                "gtm-growth",
+                "finance-ir",
+                "consumer-retail"
+              ],
+              "description": "Deck profile: product-platform, engineering-platform, strategy-leadership, gtm-growth, finance-ir, or consumer-retail."
+            },
+            "design_theme": {
+              "type": "string",
+              "enum": [
+                "evergreen",
+                "executive",
+                "studio"
+              ],
+              "description": "Visual theme: evergreen, executive, or studio."
+            },
+            "source_notes": {
+              "type": "string",
+              "description": "What the deck is based on: user-provided facts, files, assumptions, or missing evidence."
+            },
+            "evidence_level": {
+              "type": "string",
+              "enum": [
+                "sources",
+                "mixed",
+                "assumptions",
+                "user-provided"
+              ],
+              "description": "How strongly the deck is grounded in evidence."
+            },
+            "enterprise_grade": {
+              "type": "boolean",
+              "description": "When true, applies Fortune-500/board-level scoring and anti-amateur constraints."
+            },
+            "template_path": {
+              "type": "string",
+              "description": "Optional absolute or ~-relative path to a .pptx template to base the deck on."
+            },
+            "brand_name": {
+              "type": "string",
+              "description": "Brand name shown on the slides."
+            },
+            "brand_primary": {
+              "type": "string",
+              "description": "Hex color, e.g. #003366"
+            },
+            "brand_secondary": {
+              "type": "string",
+              "description": "Hex color, e.g. #16a34a"
+            },
+            "deck_quality_profile": {
+              "type": "string",
+              "enum": [
+                "enterprise",
+                "board",
+                "investor",
+                "sales"
+              ],
+              "description": "Quality profile for Deck Engine v2; enterprise is the local default."
+            },
+            "source_notebook_path": {
+              "type": "string",
+              "description": "Optional absolute or ~-relative path to a local Source Notebook used for evidence-grounded deck generation."
+            },
+            "asset_paths": {
+              "type": [
+                "array",
+                "string",
+                "null"
+              ],
+              "description": "Optional absolute or ~-relative paths to local image/logo/brand assets. Missing assets are surfaced as Studio warnings."
+            }
+          },
+          "required": [
+            "topic"
+          ]
+        }
+      },
+      {
+        "name": "create_pitch_deck",
+        "entry": "tools/handlers.py:create_pitch_deck",
+        "family": "docs",
+        "description": "Creates a high-end 16:9 pitch deck as quality-checked PDF slides plus an optional animated HTML preview. The result names the finished files. Use this for investor decks, sales decks, product pitches and presentation-ready slides.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "Deck topic / title."
+            },
+            "audience": {
+              "type": "string",
+              "description": "Target audience for the deck."
+            },
+            "thesis": {
+              "type": "string",
+              "description": "Core thesis or claim the deck argues."
+            },
+            "slides": {
+              "type": [
+                "array",
+                "string",
+                "null"
+              ],
+              "description": "Optional: slide outline as a list of {{title, claim, body, visual}} or markdown sections."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            },
+            "include_animation_preview": {
+              "type": "boolean",
+              "description": "When true, also renders an animated HTML preview of the deck."
+            },
+            "deck_profile": {
+              "type": "string",
+              "enum": [
+                "product-platform",
+                "engineering-platform",
+                "strategy-leadership",
+                "gtm-growth",
+                "finance-ir",
+                "consumer-retail"
+              ],
+              "description": "Deck profile: product-platform, engineering-platform, strategy-leadership, gtm-growth, finance-ir, or consumer-retail."
+            },
+            "design_theme": {
+              "type": "string",
+              "enum": [
+                "evergreen",
+                "executive",
+                "studio"
+              ],
+              "description": "Visual theme: evergreen, executive, or studio."
+            },
+            "source_notes": {
+              "type": "string",
+              "description": "What the deck is based on: user-provided facts, files, assumptions, or missing evidence."
+            },
+            "evidence_level": {
+              "type": "string",
+              "enum": [
+                "sources",
+                "mixed",
+                "assumptions",
+                "user-provided"
+              ],
+              "description": "How strongly the deck is grounded in evidence."
+            },
+            "enterprise_grade": {
+              "type": "boolean",
+              "description": "When true, applies Fortune-500/board-level scoring and anti-amateur constraints."
+            },
+            "deck_quality_profile": {
+              "type": "string",
+              "enum": [
+                "enterprise",
+                "board",
+                "investor",
+                "sales"
+              ],
+              "description": "Quality profile for Deck Engine v2; enterprise is the local default."
+            },
+            "brand_kit": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Optional local brand kit object with brand_name, primary, and secondary fields."
+            },
+            "source_notebook_path": {
+              "type": "string",
+              "description": "Optional absolute or ~-relative path to a local Source Notebook used for evidence-grounded deck generation."
+            },
+            "asset_paths": {
+              "type": [
+                "array",
+                "string",
+                "null"
+              ],
+              "description": "Optional absolute or ~-relative paths to local image/logo/brand assets. Missing assets are surfaced as Studio warnings."
+            }
+          },
+          "required": [
+            "topic"
+          ]
+        }
+      },
+      {
+        "name": "edit_pptx_template",
+        "entry": "tools/handlers.py:edit_pptx_template",
+        "family": "docs",
+        "description": "Copies an existing PPTX and replaces text runs in-place to preserve the template layout and styles.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "template_path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the source .pptx that is copied and edited."
+            },
+            "replacements": {
+              "type": [
+                "object",
+                "array"
+              ],
+              "description": "Mapping old_text -> new_text or list of {{from,to}}."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            }
+          },
+          "required": [
+            "template_path",
+            "replacements"
+          ]
+        }
+      },
+      {
+        "name": "inspect_pptx_template",
+        "entry": "tools/handlers.py:inspect_pptx_template",
+        "family": "docs",
+        "description": "Analyses a local PPTX file as a template: slides, editable text runs, palette, sample texts and warnings.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the .pptx file to analyse."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "qa_pptx_deck",
+        "entry": "tools/handlers.py:qa_pptx_deck",
+        "family": "docs",
+        "description": "Creates a local PPTX QA report and HTML contact sheet for visual review of the slide structure.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pptx_path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the .pptx deck to QA."
+            }
+          },
+          "required": [
+            "pptx_path"
+          ]
+        }
+      },
+      {
+        "name": "create_diagram",
+        "entry": "tools/handlers.py:create_diagram",
+        "family": "docs",
+        "description": "Creates a professional SVG diagram in Ephe design. kind: 'mindmap' | 'timeline' | 'flowchart'. items: list of points, optionally 'Label | Description' per point. Use this for mind maps, timelines/roadmaps and process/flow diagrams. theme='dark' (default) is the studio surface; theme='light' is the print palette for embedding in a PDF with a whole line ![diagram](/absolute/path.svg).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "mindmap",
+                "timeline",
+                "flowchart"
+              ],
+              "description": "Diagram kind: one of mindmap, timeline, flowchart."
+            },
+            "title": {
+              "type": "string",
+              "description": "Title shown as the heading (also the file-name base)."
+            },
+            "items": {
+              "type": "string",
+              "description": "Points as JSON array or rows in the format 'Label | Description'"
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            },
+            "theme": {
+              "type": "string",
+              "enum": [
+                "dark",
+                "light"
+              ],
+              "description": "dark (studio, default) or light (paper/PDF)."
+            }
+          },
+          "required": [
+            "kind",
+            "title",
+            "items"
+          ]
+        }
+      },
+      {
+        "name": "create_svg",
+        "entry": "tools/handlers.py:create_svg",
+        "family": "docs",
+        "description": "Saves SVG graphics code as a .svg file. You write the SVG code yourself. The result names the finished file. For logos, icons, diagrams.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "svg_code": {
+              "type": "string",
+              "description": "The SVG source code to save."
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            }
+          },
+          "required": [
+            "svg_code"
+          ]
+        }
+      }
     ]
   },
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - the deck tools ask the host. The slide text, the notes and the path stay out of the bridge row. The skill prompt carries an output contract and a quality gate. 1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

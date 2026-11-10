@@ -24,6 +24,17 @@ import pytest
 import ephe_cli
 
 
+@pytest.fixture(autouse=True)
+def _hermetic_home(tmp_path, monkeypatch):
+    """Pin HOME: the run record takes its worktree diff from ``get_workspace_dir()``,
+    which answers the neutral ``~/Ephe`` (ticket #153) on a machine with no choice."""
+    home = tmp_path / "home"
+    home.mkdir(exist_ok=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    return home
+
+
 CHOICE = SimpleNamespace(provider="openai_compatible", model="stub-model", api_url="http://127.0.0.1:9/v1")
 
 
@@ -296,6 +307,37 @@ def test_run_says_so_in_one_line_when_the_tree_is_clean(engine, streaming_loop, 
 
 
 # the seam's own pieces, reached without a parser
+
+
+def test_the_sink_accepts_the_call_id_the_parser_passes():
+    """
+    GIVEN the shared parser, which always passes the call id
+    WHEN that call reaches the terminal sink
+    THEN the sink prints the tool line and does not raise.
+    """
+    import io
+    from types import SimpleNamespace
+
+    from core import _cli_run as seam
+    from core.tool_call_ids import _parse_tool_calls
+
+    buf = io.StringIO()
+    sink = seam.StreamSink(as_json=False, stream=True, out=buf)
+    call = SimpleNamespace(
+        function=SimpleNamespace(name="read_file", arguments={"path": "a.txt"}),
+    )
+    response = SimpleNamespace(message=SimpleNamespace(tool_calls=[call]))
+
+    _parse_tool_calls(response, "turn-abcdef12", sink.tool_start, 0)
+    sink.tool_done("read_file", "ok", "turn-abc-r0-0")
+    sink.tool_start("read_file", {"path": "a.txt"})
+    sink.tool_done("read_file", "ok")
+
+    text = buf.getvalue()
+    assert "→ read_file turn-abc-r0-0" in text
+    assert "✓ read_file turn-abc-r0-0" in text
+    assert "→ read_file {" in text
+    assert "✓ read_file ok" in text
 
 
 def test_the_sink_closes_a_half_written_answer_line():

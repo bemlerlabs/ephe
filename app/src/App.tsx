@@ -11,6 +11,7 @@ import { useCommandPalette } from '@/hooks'
 import { CommandPalette, ConfirmHost } from '@/components/ui'
 import { consumeSetupIntent, shouldLeaveSetup } from '@/lib'
 import { gateSnapshot, loadSetupGate, subscribeGate, type SetupGate } from '@/lib'
+import { restoreHostSurfaces } from '@/lib/restoreHostSurfaces'
 
 // Route-level code-splitting: chat, setup and memory are independent bundles
 const ChatPage = lazy(() => import('./pages/ChatPage'))
@@ -26,6 +27,10 @@ const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
 const WorkspacesPage = lazy(() => import('./pages/WorkspacesPage'))
 const CustodyPage = lazy(() => import('./pages/CustodyPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+// W1-4: the plugin overlay dock loads on demand. Nothing mounts until a plugin asks
+// for a surface, and its stylesheet rides its own chunk the way ChatPage.css and
+// DiscoverPage.css do, so the entry sheet keeps the shell's weight alone.
+const OverlayHost = lazy(() => import('./components/shell/OverlayHost'))
 
 /**
  * First-run engine gate:
@@ -193,6 +198,10 @@ function DataRoute({ children }: { children: React.ReactNode }) {
 // must stay inside the Router provider too.
 function AppInner() {
   const { open, query, setQuery, inputRef, grouped, t, setOpen, recordUsage } = useCommandPalette()
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') return
+    void restoreHostSurfaces(t).catch(() => {})
+  }, [t])
   // Note: the Cmd+K handler lives only in the hook (useCommandPalette).
   // A second handler here would toggle the same state twice → the palette would
   // stay closed on every keypress (a double toggle is a no-op).
@@ -337,6 +346,15 @@ function AppInner() {
       </AppShell>
 
       <ConfirmHost />
+
+      {/* W1-4: the plugin surfaces this tab shows. The host paints nothing while the
+          stack is empty, and every window it does paint lives inside its own box —
+          the workbench behind it stays reachable, so this is no new app chrome. The
+          dock loads on demand, and a dock that has not loaded has nothing to show, so
+          the boundary around it holds an empty fallback. */}
+      <Suspense fallback={null}>
+        <OverlayHost />
+      </Suspense>
 
       <CommandPalette
         open={open}

@@ -124,7 +124,7 @@
     {
       "name": "image-creator",
       "source": "skills/image-creator",
-      "computedHash": "3923ec8ec3091756f46ba36a3cf33c9814ee18d7f45475237a563686342e2fa6"
+      "computedHash": "d13730abad033d22b03bf3e3797e65ea4bd9d041eb5ace766f490f5f88f607b3"
     },
     {
       "name": "json-helper",

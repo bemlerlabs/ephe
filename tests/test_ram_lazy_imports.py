@@ -6,8 +6,10 @@ turn. Both paths are lazy now — this test keeps them sealed.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 
 def _loaded_modules(bootstrap_code: str) -> set[str]:
@@ -24,6 +26,33 @@ def _loaded_modules(bootstrap_code: str) -> set[str]:
     )
     assert out.returncode == 0, out.stderr[-2000:]
     return {line for line in out.stdout.splitlines() if line.strip()}
+
+
+def test_a_broken_proxy_does_not_stop_vision_from_importing():
+    """The vision client builds a connection at import.
+
+    A proxy value of ``http://::1]`` makes that line raise ``Invalid port: ':1]'``.
+    The test harness imports vision for every test, so the import has to survive
+    and leave the client unset.
+    """
+    env = os.environ.copy()
+    env["HTTP_PROXY"] = "http://::1]"
+    env["HTTPS_PROXY"] = "http://::1]"
+    env["ALL_PROXY"] = "http://::1]"
+    root = Path(__file__).resolve().parents[1]
+    out = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import core.vision as vision; raise SystemExit(0 if vision.ollama is None else 2)",
+        ],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert out.returncode == 0, out.stderr[-2000:]
 
 
 def test_audio_route_import_does_not_load_edge_tts():

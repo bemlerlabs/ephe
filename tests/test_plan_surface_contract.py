@@ -18,7 +18,7 @@ from core.ephe_plan import (
     EphePlan,
     StepStatus,
 )
-from core.persona import PAGE_OUTPUT_GUARD, PLAN_MODE_GUARD, needs_page_guard
+from core.persona import PAGE_OUTPUT_GUARD, ARCHITECT_MODE_GUARD, needs_page_guard
 
 REPO = Path(__file__).resolve().parent.parent
 FIXTURE = REPO / "app" / "fixtures" / "plan" / "rendered-block.txt"
@@ -88,18 +88,18 @@ class TestOneShape:
 class TestGuardInstructsTheShape:
 
     def test_guard_names_the_heading_and_the_checklist_mark(self):
-        assert PLAN_HEADING in PLAN_MODE_GUARD
-        assert "- [ ]" in PLAN_MODE_GUARD
+        assert PLAN_HEADING in ARCHITECT_MODE_GUARD
+        assert "- [ ]" in ARCHITECT_MODE_GUARD
 
     def test_guard_bounds_the_step_count_within_the_core_budget(self):
         """A guard promising more steps than the core holds writes a plan that gets cut."""
-        assert f"{MIN_PLAN_STEPS} to {MAX_PLAN_STEPS}" in PLAN_MODE_GUARD
+        assert f"{MIN_PLAN_STEPS} to {MAX_PLAN_STEPS}" in ARCHITECT_MODE_GUARD
 
     def test_the_example_lines_inside_the_guard_parse_as_a_plan(self):
         """The guard's own example is the contract: if it does not parse, the instruction
         and the parser disagree in the same sentence."""
         block = "\n".join(
-            line for line in PLAN_MODE_GUARD.split("\n")
+            line for line in ARCHITECT_MODE_GUARD.split("\n")
             if line.startswith(PLAN_HEADING) or line.startswith("- [")
         )
         plan = EphePlan.from_markdown(block)
@@ -112,14 +112,14 @@ class TestGuardInstructsTheShape:
 
     def test_guard_names_the_shortest_step_it_accepts(self):
         """A step shorter than this names no target, so the block stops being a plan."""
-        assert "no step shorter than 12 characters" in PLAN_MODE_GUARD
+        assert "no step shorter than 12 characters" in ARCHITECT_MODE_GUARD
 
     def test_guard_forbids_the_numbered_form_the_old_one_demanded(self):
-        assert "no numbered lists" in PLAN_MODE_GUARD
+        assert "no numbered lists" in ARCHITECT_MODE_GUARD
 
     def test_guard_closes_the_question_loop(self):
         """Measured: both plan-mode turns ended on a question and carried no plan."""
-        assert "without a plan" in PLAN_MODE_GUARD
+        assert "without a plan" in ARCHITECT_MODE_GUARD
 
 
 class TestLedgerPlan:

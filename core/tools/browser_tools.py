@@ -54,7 +54,14 @@ async def browser_screenshot() -> str:
         f.write(base64_mod.b64decode(b64))
     # The marker is what turns the file into an artifact: without it the screenshot
     # stayed mere Markdown in the text — never in the workbench, never findable.
-    return f"SCREENSHOT_FILE:{shot}\n\nBrowser screenshot captured:\n\n![Browser](/images/{filename})"
+    # The scope words are the other half: a page viewport is neither the desktop nor
+    # another window, and the card has to say which of the three the user is looking at
+    # (`core/tools/system_tools.py` states the screen capture's scope the same way).
+    return (
+        f"SCREENSHOT_FILE:{shot}\n\n"
+        f"Captured the {bm.capture_scope()} — the rendered page, no window and no screen. "
+        f"Nothing was asked first.\n\n![Browser](/images/{filename})"
+    )
 
 
 async def browser_click(target_description: str) -> str:

@@ -62,7 +62,16 @@ def _v2(**over: object) -> dict:
         "components": {
             "skills": [],
             "commands": [],
-            "tools": ["read_file"],
+            # A v2 bundle contributes its own tool: the entry shape is #13's contract,
+            # held in detail by tests/test_plugin_tools_contract.py.
+            "tools": [
+                {
+                    "name": "scout",
+                    "entry": "handlers.py:run",
+                    "family": "read",
+                    "description": "Summarise what the bundle already read.",
+                }
+            ],
             "agents": [{"name": "acme-scout", "description": "Scout"}],
         },
     }
@@ -144,6 +153,56 @@ def test_unknown_top_level_field_refused(tmp_path) -> None:
     manifest, error = load_manifest(_write(tmp_path / "bad", manifest))
     assert manifest is None
     assert error is not None and "trust_me" in error
+
+
+def _ui_surface(**over: object) -> dict:
+    """The smallest surface `components.ui` accepts (see core/plugin_ui_capabilities.py)."""
+    surface = {
+        "type": "floating-window",
+        "entry": "ui/index.html",
+        "title": "Countdown",
+        "capabilities": ["notifications"],
+    }
+    surface.update(over)
+    return surface
+
+
+def _write_ui_plugin(root: Path, manifest: dict) -> Path:
+    plugin = _write(root, manifest)
+    document = plugin / "ui/index.html"
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_text("<!doctype html><title>Countdown</title>", encoding="utf-8")
+    return plugin
+
+
+def test_a_valid_ui_surface_loads(tmp_path) -> None:
+    manifest = _v2(components={**_v2()["components"], "ui": _ui_surface()})
+    loaded, error = load_manifest(_write_ui_plugin(tmp_path / "ui-ok", manifest))
+    assert error is None and loaded is not None
+
+
+@pytest.mark.parametrize(
+    "surface",
+    [
+        _ui_surface(capabilities=["notifications", "sudo"]),
+        _ui_surface(entry="../escape/index.html"),
+        _ui_surface(type="browser-tab"),
+        _ui_surface(default_size={"width": 0, "height": 320}),
+        _ui_surface(transparent="yes"),
+    ],
+)
+def test_a_bad_ui_surface_quarantines_the_plugin(tmp_path, surface) -> None:
+    manifest = _v2(components={**_v2()["components"], "ui": surface})
+    loaded, error = load_manifest(_write_ui_plugin(tmp_path / surface["type"], manifest))
+    assert loaded is None, "one UI descriptor refuses the whole plugin, never half of it"
+    assert error is not None and "components.ui" in error
+
+
+def test_a_ui_component_that_is_not_a_descriptor_is_refused(tmp_path) -> None:
+    manifest = _v2(components={**_v2()["components"], "ui": []})
+    loaded, error = load_manifest(_write_ui_plugin(tmp_path / "ui-list", manifest))
+    assert loaded is None
+    assert error is not None and "components.ui" in error
 
 
 def test_v1_adapter(tmp_path) -> None:

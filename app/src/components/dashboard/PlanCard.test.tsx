@@ -17,19 +17,24 @@ vi.mock('react-i18next', async (importOriginal) => {
           'chat.planTitle': 'Plan',
           'chat.planAccept': 'Accept',
           'chat.planEdit': 'Modify',
-          // The accept line the engine now reads: it names the mode change instead of the
-          // bare "Plan accepted — proceed." that left the composer in `plan`.
+          // The accept line the engine reads: it names the mode it left (Architect) and
+          // the access it now has, the same words `chat.modeHint.architect` and
+          // `chat.modeSection.write` carry in locales/en.json. `planAcceptAnchor.test.ts`
+          // holds the real catalogs to that.
           'chat.planAcceptMsg':
-            'Plan accepted — the composer left Plan mode, so the write tools are available now. Run this plan now, step by step, and do each file write in one tool call:',
+            'Plan accepted — the composer left Architect and now runs with write access: the edit family (write_file, edit_file) is available, and the approval profile decides whether it asks — nothing outside that family is auto-approved. Run this plan now, step by step, and do each file write in one tool call:',
           'chat.planEditMsg': 'Adjust the plan to exactly these steps:',
           'chat.planEditSend': 'Send the edited plan',
           'chat.planEditCancel': 'Cancel',
-          'chat.planAccepted': 'Accepted — the composer left Plan mode; the steps run in {{mode}}.',
+          'chat.planAccepted':
+            'Accepted — the composer left the read-only mode; the steps run now ({{mode}}).',
           'chat.planRunning': 'Running.',
           'chat.planStepAria': 'Plan step {{n}}',
-          // The card reads the mode's short title from the same hint the mode menu uses.
-          'chat.modeHint.edit-auto':
-            'Edit auto — the write tools run without asking, the rest still asks',
+          // Task 3: the accepted line names the execution mode as the chip does.
+          // `edit-auto` owns no tile after the rename, and the card follows the
+          // chip's rule: the section wording of an untiled stored value, never a
+          // raw key and never a tile it does not have.
+          'chat.modeSection.write': 'With write access',
         }
         const raw = map[key] ?? key
         return opts
@@ -80,16 +85,17 @@ describe('PlanCard', () => {
     expect(screen.getByTestId('plan-item-2').getAttribute('data-status')).toBe('cancelled')
   })
 
-  it('accept leaves Plan mode and hands the plan to the turn that runs it', () => {
+  it('accept leaves Architect and hands the plan to the turn that runs it', () => {
     const onPick = vi.fn()
     useChatStore.getState().createSession('Plan accept')
     const sessionId = useChatStore.getState().activeSessionId!
-    useChatStore.getState().setSessionMode(sessionId, 'plan')
+    useChatStore.getState().setSessionMode(sessionId, 'architect')
     render(<PlanCard spec={DRAFT} onPick={onPick} />)
     fireEvent.click(screen.getByTestId('plan-accept'))
 
-    // The exit the user can read: the session's composer mode moved off `plan` — the chip
-    // is bound to this value, and a turn sent now carries it to the engine.
+    // The exit the user can read: the session's composer mode moved off `architect` — the chip
+    // is bound to this value, and a turn sent now carries it to the engine. The stored
+    // wire value is the compatibility one, unchanged by the rename.
     expect(useChatStore.getState().sessions.find((s) => s.id === sessionId)?.mode).toBe('edit-auto')
     expect(useChatStore.getState().currentSession?.mode).toBe('edit-auto')
 
@@ -103,7 +109,8 @@ describe('PlanCard', () => {
 
     expect(screen.queryByTestId('plan-accept')).toBeNull()
     expect(screen.getByTestId('plan-card').getAttribute('data-state')).toBe('accepted')
-    expect(screen.getByTestId('plan-accepted').textContent).toContain('Edit auto')
+    expect(screen.getByTestId('plan-accepted').textContent).toContain('With write access')
+    expect(screen.getByTestId('plan-accepted').textContent).not.toContain('edit-auto')
   })
 
   it('offers no gate once a step has moved', () => {

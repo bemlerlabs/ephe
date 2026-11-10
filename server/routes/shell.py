@@ -117,7 +117,8 @@ async def run_shell_pty_command(
 # session including scrollback replay (session continuity).
 #
 # SECURITY: BaseHTTPMiddleware does NOT cover the websocket scope — hence the
-# explicit ws_client_authorized gate (loopback trusted, LAN needs ?token=).
+# explicit ws_client_authorized gate (an app Origin, or the LAN token when
+# the handshake brings none).
 # An interactive shell is by design RCE; it belongs to the typing user
 # (IDE terminal model), not to the agent (whose run_shell stays whitelisted).
 

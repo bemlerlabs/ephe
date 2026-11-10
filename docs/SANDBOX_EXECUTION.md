@@ -372,3 +372,98 @@ A sandboxed command may bind and accept on loopback; every outbound connection
 and every non-loopback bind stays refused. `tests/test_sandbox_loopback.py`
 proves both directions on macOS with a real `sandbox-exec` run (a bind on
 127.0.0.1 succeeds, a connect to 1.1.1.1 fails).
+
+## A plugin worker reaches the host through a bridge, and the bridge keeps the guard (2026-11-05)
+
+A confined plugin worker has no network: the macOS profile carries `(deny network*)` and
+bubblewrap runs `--unshare-net`, both because a measured child had been reading the host's
+own loopback API with no token and no identity attached to the call. The capability did not
+disappear with the socket. It moves to `core/sandbox/bridge_host.py`, where one request line
+on the worker's stdout is answered on its stdin by the process that already holds the
+credential.
+
+What the boundary layer guarantees, in the order the dispatcher applies it:
+
+| | |
+|---|---|
+| Identity | the plugin id, the tool and the fingerprint come from the mount's descriptor, never from the request |
+| Grant | the method's family has to sit in the bundle's `permissions.tool_families`; a family named in the arguments is read as an argument |
+| Budget | one call in flight, 32 calls per tool run |
+| Size | 64 KiB per message both ways, so a request past the ceiling is refused before it is parsed |
+| Egress | `fetch` calls `core.net_guard.guarded_fetch`, the same guarded path with the same hop-by-hop address checks; the bridge adds no door |
+| Answer | text cut to what fits the pipe, with `truncated` stated; a refusal crosses as a code |
+| Trail | one `bridge_call` audit row per call: plugin, tool, declared family, short fingerprint, method, decision, code, the gate that answered and the host asked. Path and query stay out |
+
+The child's half (`core/sandbox/bridge_client.py`) is handed to the callable by
+`worker_launcher` when the signature asks for three parameters; a tool that asks for nothing
+keeps the two-argument call and produces the byte stream it always produced, because the
+drain feeds only the answer line to the classifier's buffer.
+
+## A declared memory ceiling cannot apply on macOS, and the run now says so (2026-11-05)
+
+`policy_snapshot` claimed memory was "enforced in the child via RLIMIT_AS when the spec
+declares it". Exercising that path for the bridge measured it instead: on this machine
+`resource.setrlimit(RLIMIT_AS, (n, n))` raises `ValueError` for every finite `n` — 256 MB,
+512 MB, 1 GB, 2 GB and 4 GB were tried, with both limits reported unbounded — and the
+bootstrap let the error escape, so any tool that declared a ceiling died with exit code 1
+before loading the plugin.
+
+The bootstrap now applies the ceiling where the OS takes it, reports the verdict on stderr in
+one fixed line, and the supervisor lifts that verdict to `WorkerOutcome.memory_ceiling`:
+`applied`, `refused`, `unknown` when a ceiling was declared, empty when nothing was.
+`tests/test_plugin_worker_supervisor.py::test_a_declared_memory_ceiling_runs_the_tool_and_says_what_the_os_allowed`
+runs the real confined child and pins the macOS answer, so the row in `policy_snapshot` is
+read from an observed outcome.
+
+## What `permissions.data_roots` opens for a confined worker (2026-11-05)
+
+The declaration existed on both rails before this section did. A bundle that asked a kernel
+file tool to read a declared folder got it (`core/tools/base.py`), while a v2 tool of the same
+bundle, running confined, saw nothing of the line its own manifest wrote: the runner built its
+`WorkerSpec` without those roots, so `read_roots()` never carried them and the profile gained
+no rule for them. `docs/PLUGIN_SDK.md` called the field "for display/intent only".
+
+One function answers the question now. `core/capability_policy.resolved_data_roots` is what
+the file scope and the confined worker both read, so one declaration means one set of paths
+whoever honours it. `build_spec` refuses a host root that is not absolute or not a directory,
+and the runner filters again for the window between the manifest scan and the spawn, so a
+folder the disk gave up is left out of the profile rather than bound as a rule over nothing.
+
+Measured on this macOS with a real `sandbox-exec` run, in both directions, with `$HOME` moved
+into the lane so the whole-home deny covers the folders the test creates: a declared folder
+under that home opened, and its sibling beside it — same home, same handler, one word missing
+from the manifest — stayed behind the denial. Mutating the runner back to the old `build_spec`
+call makes the declared read fail, which is the other half of the same claim.
+
+Two boundaries stay where they were. Reads outside the home and outside the config root are
+permitted by the profile's `(allow default)`; the data roots extend reads *into* the denied
+subtree, which is where a user's own folders live. And a declaration grants read only: the
+worker writes in the state directory its `state_dir` argument names, nowhere else.
+
+### The ceiling beside the folder
+
+`run_plugin_tool` walks the state directory before it spawns and again after the child exits,
+through one function (`core/plugin_state.py`), and writes `state_bytes=`, `state_files=`,
+`state_roots=` and `state_cap_bytes=` into the completion row's detail beside the identity
+fields `rail_fields` already carries. No path crosses into that string.
+
+The ceiling is `permissions.state_cap_mb`, a whole number of megabytes up to 16384, and the
+default is 512 MiB for every bundle whether or not the line is written — the owner's decision
+of 2026-11-06. A bundle at or past its ceiling is refused *before a worker starts*: the call
+answers `[TOOL-DENIED]` with the code `plugin_state_full`, and a surface that translates fills
+its own sentence from the two numbers the result carries. The sentence names the move on
+Extensions: open the bundle and remove a stored file there. The row shows both numbers,
+and the file list is that control. A host path stays off the row. The refusal is registered the way
+every rail code is (`core/dynamic_refusals.py` → `server.refusals.REASONS` → both bundles), so
+the audit's `decision`, the card and the envelope are one string.
+
+Why the gate sits between runs rather than inside one: neither rail offers a per-directory
+quota, and a child that hit a write error mid-run would report it as a tool failure of the
+bundle's own, which is a different claim than "this folder is full". So the run that crosses is
+allowed and measured, its row states the crossing, and the next call is refused.
+
+Measured on this machine after the change, `~/.ephe/mcp/homes`: five `plugin_*` folders at 0
+bytes each — production has no v2 tool yet, so no bundle has written state — while the two MCP
+connector homes beside them hold 217 MB (`uvx`) and 71 MB (`npx`) of package caches. The
+connector homes are not covered by this ceiling, and those two numbers are what an unbounded
+per-server folder grows into, which is the reason the ceiling exists at all.

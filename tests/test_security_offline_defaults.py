@@ -163,6 +163,10 @@ def test_given_file_preview_when_framed_by_own_origin_then_frame_ancestors_allow
     """
     monkeypatch.setenv("EPHE_MEMORY_DIR", str(tmp_path / "memory"))
     monkeypatch.setenv("EPHE_SKILLS_DIR", str(tmp_path / "skills"))
+    # #120: the artifact route reads the workspace and its output folder, so the
+    # preview has to be inside one of them. This case is about the frame headers,
+    # and a file the route may not open would prove nothing about them.
+    monkeypatch.setenv("EPHE_WORKSPACE", str(tmp_path))
     preview = tmp_path / "preview.png"
     preview.write_bytes(b"\x89PNG\r\n\x1a\nfake-png-bytes")
 

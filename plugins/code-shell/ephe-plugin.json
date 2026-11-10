@@ -1,8 +1,15 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "code-shell",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "read",
@@ -33,21 +40,299 @@
       }
     ],
     "tools": [
-      "run_shell",
-      "read_file",
-      "write_file",
-      "edit_file",
-      "run_tests",
-      "run_linter",
-      "format_code",
-      "scaffold_project",
-      "analyze_project",
-      "file_search",
-      "load_workspace",
-      "list_directory"
+      {
+        "name": "run_shell",
+        "entry": "tools/handlers.py:run_shell",
+        "family": "shell",
+        "description": "Executes a terminal command. Only whitelisted commands are allowed (ls, find, grep, git, echo, cat, head, tail, wc, mkdir, cp, mv, python, node, npm, ...); destructive patterns (rm, sudo, > /dev/, ...) are blocked. The user sees a confirmation prompt before execution and can deny it — on denial you receive a message that the command was not approved; then choose a different path.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "The terminal command, e.g. 'git status' or 'npm install'"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Optional working directory inside the active workspace, e.g. 'src' or 'tests' (workspace-relative, not an absolute path)."
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      },
+      {
+        "name": "read_file",
+        "entry": "tools/handlers.py:read_file",
+        "family": "read",
+        "description": "Reads the contents of a file and returns its text with 1-based line numbers (N-tab format). Supports plain text, code, Markdown, and PDF files. Optional offset (1-based start line) and limit (line count, default 2000) window the output. Use this tool when the user wants to read, analyze, summarize, or explain a file. For PDF files the text is automatically extracted page by page. Security: Only files in the home directory, Desktop, Documents, Downloads are allowed.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path, e.g. '~/Desktop/contract.pdf'"
+            },
+            "offset": {
+              "type": "integer",
+              "description": "1-based line number to start reading from (for large files)."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Number of lines to return (default 2000)."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "write_file",
+        "entry": "tools/handlers.py:write_file",
+        "family": "write",
+        "description": "Creates or overwrites a file inside the workspace (approval-gated). Use for new files or full rewrites; prefer edit_file for targeted changes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Target file path — absolute or ~-relative preferred; a workspace-relative path resolves against the active workspace."
+            },
+            "content": {
+              "type": "string",
+              "description": "Full file content to write"
+            }
+          },
+          "required": [
+            "path",
+            "content"
+          ]
+        }
+      },
+      {
+        "name": "edit_file",
+        "entry": "tools/handlers.py:edit_file",
+        "family": "write",
+        "description": "Replaces an exact snippet (old_string) in a text file with new_string. Fails safely if old_string is missing or ambiguous — no partial writes; set replace_all=true to replace every occurrence. Returns a unified diff of the change. Security: Only files in the home directory, Desktop, Documents, Downloads are allowed.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the text file."
+            },
+            "old_string": {
+              "type": "string",
+              "description": "Exact text to replace (must occur exactly once without replace_all; include surrounding context)."
+            },
+            "new_string": {
+              "type": "string",
+              "description": "Replacement text."
+            },
+            "replace_all": {
+              "type": "boolean",
+              "description": "Replace every occurrence instead of requiring a unique match (default false)."
+            }
+          },
+          "required": [
+            "path",
+            "old_string",
+            "new_string"
+          ]
+        }
+      },
+      {
+        "name": "run_tests",
+        "entry": "tools/handlers.py:run_tests",
+        "family": "shell",
+        "description": "Runs a test command in the workspace (pytest / vitest / npm test / python -m pytest) and returns the output tail. Use this to VERIFY every code change.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "Test command, e.g. 'pytest -q tests/test_x.py'"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Optional working directory inside the active workspace, e.g. 'src' or 'tests' (workspace-relative, not an absolute path)."
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      },
+      {
+        "name": "run_linter",
+        "entry": "tools/handlers.py:run_linter",
+        "family": "shell",
+        "description": "Runs ruff check (static analysis) over a file or a directory. fix=True applies the automatic corrections.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the file or directory."
+            },
+            "fix": {
+              "type": "boolean",
+              "description": "True = --fix (apply the automatic corrections)."
+            },
+            "max_issues": {
+              "type": "integer",
+              "description": "Maximum number of issues shown (default 50)."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "format_code",
+        "entry": "tools/handlers.py:format_code",
+        "family": "shell",
+        "description": "Formats a Python file with ruff format (Black-compatible). check_only=True inspects without writing.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the Python file (.py)."
+            },
+            "check_only": {
+              "type": "boolean",
+              "description": "True = inspect only, do not write."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "scaffold_project",
+        "entry": "tools/handlers.py:scaffold_project",
+        "family": "write",
+        "description": "Project Factory: creates a complete, runnable project skeleton in one call — manifest, sources, real tests, docs, license, gitignore — then verifies it structurally. Returns PROJECT_SCAFFOLD_VERIFIED only when the verification gate passed. Refuses non-empty target directories (nothing is ever overwritten).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "target_dir": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to a fresh directory inside an allowed root (e.g. ~/Projekte/meine-app) that is empty or absent."
+            },
+            "template": {
+              "type": "string",
+              "description": "One of: python-cli (default), python-api, node-cli, web-app, generic"
+            },
+            "project_name": {
+              "type": "string",
+              "description": "Project name (kebab-case), e.g. 'budget-tracker'"
+            },
+            "description": {
+              "type": "string",
+              "description": "One-line project description for README/manifest"
+            },
+            "author": {
+              "type": "string",
+              "description": "Author name used in the license"
+            }
+          },
+          "required": [
+            "target_dir"
+          ]
+        }
+      },
+      {
+        "name": "analyze_project",
+        "entry": "tools/handlers.py:analyze_project",
+        "family": "read",
+        "description": "Analyses a local project folder top-down: stack, marker files, test command, risks and next steps. Use this for as-is analyses, codebase reviews and when the user wants to understand or improve an existing project.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute or ~-relative path to the project folder."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "file_search",
+        "entry": "tools/handlers.py:file_search",
+        "family": "read",
+        "description": "Searches the computer for files (macOS: Spotlight, Linux: find). Use this tool when the user is looking for a file on their computer.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "File name or search term, e.g. 'invoice 2026' or 'resume.pdf'"
+            },
+            "path": {
+              "type": "string",
+              "description": "Optional search root — absolute or ~-relative, e.g. '~/Desktop'. Defaults to the active workspace."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "load_workspace",
+        "entry": "tools/handlers.py:load_workspace",
+        "family": "read",
+        "description": "Reads all files of a directory (workspace) recursively. Use this tool when the user wants to analyse, understand or review a whole project. Ideal for code reviews, project overviews and documentation tasks.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to the directory — absolute or ~-relative, e.g. '~/Desktop/my-project'."
+            },
+            "extensions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Only load these file extensions, e.g. ['.py', '.md']. Empty = all."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "list_directory",
+        "entry": "tools/handlers.py:list_directory",
+        "family": "read",
+        "description": "Lists the contents of a directory. Use this tool when the user wants to know what is inside a folder.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to the directory — absolute or ~-relative, e.g. '~/Desktop' or '~/Documents'."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
     ]
   },
   "origin": "first-party",
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - the shell and file tools ask the host. The command, the path and the file body stay out of the bridge row. 1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

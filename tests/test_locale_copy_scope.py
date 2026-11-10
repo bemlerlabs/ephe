@@ -1,12 +1,8 @@
 """W4-25's residual: the shell-sandbox row is drawn on every platform, so its copy says where it bites.
 
-`sandbox-exec` is macOS Seatbelt. On a host without the wrapper,
-`core/shell_sandbox.py::resolve_sandbox` answers `sandbox-unavailable` and a confirmed
-command runs with the user's own rights, while the settings switch stays on. The row
-renders an unconditional `Switch`
-(`app/src/components/dashboard/settings/model/sections-misc.tsx`), so the hint is where the
-user learns the toggle does nothing there; it names the platform and the
-`EPHE_SHELL_BACKEND=docker` path that does isolate the command.
+`sandbox-exec` is macOS Seatbelt. The settings hint still names that mechanism,
+macOS, and `EPHE_SHELL_BACKEND=docker`. This file pins those three words. The hint
+sentence itself belongs to the locale lane.
 
 W4-25 owns the boundary itself and recorded the decision; this file holds the copy half.
 """

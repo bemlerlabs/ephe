@@ -902,10 +902,10 @@ export function useChatLayoutModel() {
             history,
             session_id: session_?.id,
             mode: session_?.mode ?? DEFAULT_COMPOSER_MODE,
-            // Full access → autonomous: the backend only auto-gates when
+            // Operator → autonomous: the backend only auto-gates when
             // autonomous=True (sandbox_auto_approval_allowed). Without this field the
-            // mode stays on the strict dialog even though 'full-access' was chosen.
-            autonomous: (session_?.mode ?? DEFAULT_COMPOSER_MODE) === 'full-access',
+            // mode stays on the strict dialog even though 'operator' was chosen.
+            autonomous: (session_?.mode ?? DEFAULT_COMPOSER_MODE) === 'operator',
             ...(images && images.length > 0 ? { images } : {}),
             // QD-015 Z2: the budget card's continuation names its own rounds.
             ...(toolBudget ? { tool_budget: toolBudget } : {}),

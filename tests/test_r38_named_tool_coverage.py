@@ -139,11 +139,11 @@ def test_whitelist_without_a_mutating_file_tool_keeps_the_read_trio():
 def test_restricted_shape_gains_no_mutating_name():
     """GIVEN the read-only list the restricted mode hands to the array builder
     WHEN the array is built
-    THEN it holds exactly that list plus the meta tools plus the read trio, so the
-    mode is not widened by a union that assumes a file-working session."""
+    THEN it holds exactly that list plus the meta tools, the read trio and the ask
+    gate, so the mode is not widened by a union that assumes a file-working session."""
     read_only_shape = ["read_file", "file_search", "list_directory", "web_search"]
     visible = _visible(read_only_shape)
-    assert visible == set(read_only_shape) | META_TOOL_NAMES | READ_ONLY_FILE_TOOLS
+    assert visible == set(read_only_shape) | META_TOOL_NAMES | READ_ONLY_FILE_TOOLS | {"ask_user"}
     assert not FILE_MUTATING_TOOLS & visible
 
 

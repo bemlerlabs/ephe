@@ -14,6 +14,42 @@ STATE_FILENAME = "plugin-state.json"
 DEFAULT_SCOPE = "user"
 SCOPES = ("user", "workspace")
 
+#: The two classes a mount can publish under. `signed` says a signature record came with
+#: the directory and the enable-time gate read it; `local` says the author is the user,
+#: which is the ordinary Creator case and is stated rather than implied, because a surface
+#: that offers a mount has to say which of the two it is offering.
+TRUST_LOCAL = "local"
+TRUST_SIGNED = "signed"
+
+#: The mount's steps, in the order they run. Everything up to `pin` refuses without
+#: writing; from `lockfile` on, a failure rolls back, and the audit names the step by
+#: these words.
+STEP_MANIFEST = "manifest"
+STEP_DESCRIPTORS = "descriptors"
+STEP_CLAIMS = "claims"
+STEP_PIN = "pin"
+STEP_ARTIFACT = "artifact"
+STEP_LOCKFILE = "lockfile"
+STEP_ACTIVATION = "activation"
+STEP_REGISTRY = "registry"
+STEP_NOTIFY = "notify"
+
+#: The steps that mutate. A failure in one of them has work to undo.
+MUTATING_STEPS = (STEP_LOCKFILE, STEP_ACTIVATION, STEP_REGISTRY, STEP_NOTIFY)
+
+#: The registry is written second to last, so a failure in it or after it needs the
+#: previous descriptor batch put back.
+REGISTRY_WRITTEN_STEPS = (STEP_REGISTRY, STEP_NOTIFY)
+
+#: Refusal codes for the mount. A contested or a reserved name reuses the words the rail
+#: already speaks (`ToolActivations.reason_for`, `dynamic_registry`'s collision codes), so
+#: one refusal never acquires a second spelling.
+REFUSE_MANIFEST = "mount_manifest_invalid"
+REFUSE_CONFLICT = "mount_tool_conflict"
+REFUSE_CHANGE = "mount_change_unacknowledged"
+REFUSE_ARTIFACT = "mount_artifact_changed"
+REFUSE_REGISTRY = "mount_registry_refused"
+
 
 class PluginState(str, Enum):
     DISABLED = "disabled"
@@ -75,18 +111,28 @@ class PluginSnapshot:
 
 
 class LifecycleError(Exception):
+    """A refused or failed transition.
+
+    ``data`` carries the structured payload a surface has to render rather than read
+    out of a sentence — today a hot mount's tool diff (#15), whose fingerprints and
+    changed fields are the alarm. It stays out of ``detail`` because the detail is the
+    audit line and a reader's card needs the values, not a paragraph about them.
+    """
+
     def __init__(
         self,
         code: str,
         status: int,
         detail: str = "",
         snapshot: PluginSnapshot | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(detail or code)
         self.code = code
         self.status = status
         self.detail = detail
         self.snapshot = snapshot
+        self.data = data if isinstance(data, dict) else {}
 
 
 @dataclass

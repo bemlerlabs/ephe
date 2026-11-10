@@ -37,6 +37,7 @@ import WorkspaceCompanion from '@/components/shell/WorkspaceCompanion'
 import HeaderCompanion from '@/components/shell/HeaderCompanion'
 import { CellLifeLine } from '../CellLifeLine'
 import { useContextOccupancy } from '@/lib/useContextOccupancy'
+import { registerRunStop } from '@/lib/runControl'
 import MessageBubble from '../MessageBubble'
 import StatusBar from '../StatusBar'
 import TimelineRail from '../TimelineRail'
@@ -182,6 +183,7 @@ export default function ChatLayout() {
   // shell's own comparison runs on the start thread, so this reads after it.
   // The bundle's build SHA is compared in both surfaces: the PWA is served from
   // the same tree, and an older `dist` is the same disagreement one layer up.
+  useEffect(() => registerRunStop(handleStop), [handleStop])
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isTauri) void announceBackendParity(t)

@@ -8,6 +8,7 @@ and stops at its wall-clock or member-call budget.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import secrets
@@ -17,7 +18,7 @@ from typing import Any
 
 from core import agent_store
 from core.agent_team_ledger import record_run
-from core.agent_team_schema import REPORT_MAX_CHARS, RUNS_KEEP, TeamError
+from core.agent_team_schema import ITERATIONS_DEFAULT, REPORT_MAX_CHARS, RUNS_KEEP, TeamError
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ async def _run_members(
                 index=index,
             )
             results.append(result)
-    if mode in ("parallel", "leader"):
+    if mode in ("parallel", "leader", "iterative"):
         allowed = min(len(members), rounds)
         budget_hit = allowed < len(members)
         if state.cancel.is_set():
@@ -221,6 +222,129 @@ def _summary_task(team: dict[str, Any], task: str, results: list[dict[str, Any]]
         "Write the final answer. Name the members you are relying on and any "
         "member that failed. Do not repeat raw member reports."
     )
+
+
+def _decision_task(task: str, results: list[dict[str, Any]]) -> str:
+    body = "\n\n".join(
+        f"[{item['name']}] status={item['status']}\n{item['report']}" for item in results
+    )
+    return (
+        f"{task}\n\nTeam reports so far:\n{body}\n\n"
+        "Read the reports and decide the next step. Reply with a single JSON object. "
+        'To send one member back to work: {"action": "continue", "member": "<member name>", '
+        '"instruction": "<the next order>"}. '
+        'When the task is complete: {"action": "done", "summary": "<the final answer>"}. '
+        "Name a member exactly as listed. Output only the JSON object."
+    )
+
+
+def _continue_task(task: str, instruction: str, results: list[dict[str, Any]]) -> str:
+    seen = "\n\n".join(
+        f"[{item['name']}]\n{item['report']}" for item in results
+    )
+    return (
+        f"{task}\n\nThe leader read the team's reports and gives you this order:\n"
+        f"{instruction}\n\nReports so far:\n{seen}"
+    )
+
+
+def _parse_decision(report: str) -> dict[str, Any] | None:
+    """Read a leader decision, or None when the report carries no usable one."""
+    text = report.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+    data: Any = None
+    try:
+        data = json.loads(text)
+    except ValueError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group(0))
+            except ValueError:
+                data = None
+    if not isinstance(data, dict):
+        return None
+    if data.get("action") not in ("continue", "done"):
+        return None
+    return data
+
+
+async def _run_iterative(
+    team: dict[str, Any],
+    agents: dict[str, dict[str, Any]],
+    leader: dict[str, Any],
+    task: str,
+    state: TeamRunState,
+    *,
+    model_override: str | None,
+    leader_model: str | None,
+    context: str,
+) -> tuple[str, list[dict[str, Any]], bool]:
+    members = [agents[agent_id] for agent_id in team["member_ids"]]
+    max_iterations = int(team["budget"].get("max_iterations", ITERATIONS_DEFAULT))
+    results, budget_hit = await _run_members(
+        team, agents, task, state, model_override=model_override
+    )
+    member_results = list(results)
+    summary: dict[str, Any] | None = None
+    iterations = 0
+    capped = False
+    while not state.cancel.is_set():
+        if iterations >= max_iterations:
+            capped = True
+            break
+        decision_run = await _leader_call(
+            record=leader,
+            task=_decision_task(task, member_results),
+            context=context,
+            model=leader_model,
+            run_id=state.run_id,
+            index=90 + iterations,
+        )
+        decision = _parse_decision(str(decision_run["report"]))
+        if decision is None:
+            summary = decision_run
+            break
+        if decision.get("action") == "done":
+            text = str(decision.get("summary") or decision_run["report"])
+            summary = {**decision_run, "report": text[:REPORT_MAX_CHARS]}
+            break
+        name = str(decision.get("member") or "")
+        target = next((r for r in members if str(r["name"]) == name), None)
+        if target is None:
+            summary = decision_run
+            break
+        iterations += 1
+        follow = await _run_one(
+            record=target,
+            task=_continue_task(
+                task, str(decision.get("instruction") or ""), member_results
+            ),
+            context=context,
+            model=_member_model(target, team, model_override),
+            run_id=state.run_id,
+            index=len(results),
+        )
+        results.append(follow)
+        member_results.append(follow)
+    budget_hit = budget_hit or capped
+    if state.cancel.is_set() and summary is None:
+        return "[team cancelled before the summary]", results, budget_hit
+    if summary is None:
+        summary = await _leader_call(
+            record=leader,
+            task=_summary_task(team, task, member_results),
+            context=context,
+            model=leader_model,
+            run_id=state.run_id,
+        )
+    for item in results:
+        item["role"] = "member"
+    summary["role"] = "leader"
+    results = [*results, summary]
+    return str(summary["report"]), results, budget_hit
 
 
 async def run_team(
@@ -278,6 +402,18 @@ async def run_team(
         async def _execute() -> str:
             nonlocal budget_hit, results, plan
             plan = ""
+            if team.get("orchestration") == "iterative":
+                report_text, results, budget_hit = await _run_iterative(
+                    team,
+                    agents,
+                    leader,
+                    task,
+                    state,
+                    model_override=model,
+                    leader_model=leader_model,
+                    context=context,
+                )
+                return report_text
             if team.get("orchestration") == "leader" and not state.cancel.is_set():
                 planned = await _leader_call(
                     record=leader,

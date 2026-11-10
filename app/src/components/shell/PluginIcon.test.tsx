@@ -1,26 +1,106 @@
 /**
- * Ephe — PluginIcon (extensions v2, E2, out/plan.md [S1]-[S4])
+ * Ephe — PluginIcon
  *
  * GIVEN the icon route
- * WHEN the icon loads / fails
- * THEN the testid tile always exists, on failure as a lettermark
- *      (a deterministic angle derived from the slug).
+ * WHEN the tile asks for the bytes
+ * THEN the request carries X-Auth-Token when a LAN token is set,
+ *      the URL holds no token, and a failed fetch is the lettermark.
  */
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
 
 import PluginIcon from './PluginIcon'
 
+const api = vi.hoisted(() => ({ BASE_URL: '', LAN_TOKEN: null as string | null }))
+
+vi.mock('@/lib/api', () => api)
+
+function svgResponse(status = 200): Response {
+  return new Response('<svg xmlns="http://www.w3.org/2000/svg"></svg>', {
+    status,
+    headers: { 'content-type': 'image/svg+xml' },
+  })
+}
+
+function pendingResponse(): {
+  promise: Promise<Response>
+  resolve: (response: Response) => void
+} {
+  let resolve: (response: Response) => void = () => {}
+  const promise = new Promise<Response>((settle) => {
+    resolve = settle
+  })
+  return { promise, resolve }
+}
+
 describe('PluginIcon', () => {
-  it('rendert die Icon-Kachel mit Testid (img-Pfad) [S1][S2]', () => {
-    render(<PluginIcon pluginId="documents" name="Documents" />)
-    const el = screen.getByTestId('plugin-icon-documents') as HTMLImageElement
-    expect(el.tagName).toBe('IMG')
-    expect(el.getAttribute('src')).toBe('/api/plugins/icon/documents')
-    expect(el.className).toContain('h-11') // 44 px Kachel
+  const fetchMock = vi.fn()
+
+  beforeEach(() => {
+    api.LAN_TOKEN = null
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+    URL.createObjectURL = vi.fn(() => 'blob:icon')
   })
 
-  it('Lettermark-Winkel ist deterministisch aus dem Slug [S3]', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function settle(pluginId: string, response: Response, name = 'Documents') {
+    const gate = pendingResponse()
+    fetchMock.mockReturnValue(gate.promise)
+    render(<PluginIcon pluginId={pluginId} name={name} />)
+    await act(async () => {
+      gate.resolve(response)
+      await gate.promise
+    })
+  }
+
+  it('fetches the icon with the header and paints the blob', async () => {
+    api.LAN_TOKEN = 'lan-secret'
+    await settle('documents', svgResponse())
+    const img = screen.getByTestId('plugin-icon-documents') as HTMLImageElement
+    expect(img.tagName).toBe('IMG')
+    expect(img.getAttribute('src')).toBe('blob:icon')
+    expect(img.className).toContain('h-11')
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/plugins/icon/documents')
+    expect(url).not.toContain('token')
+    expect(new Headers(init.headers).get('X-Auth-Token')).toBe('lan-secret')
+  })
+
+  it('omits the header when the desktop has no LAN token', async () => {
+    await settle('memory', svgResponse())
+    expect(screen.getByTestId('plugin-icon-memory').tagName).toBe('IMG')
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/plugins/icon/memory')
+    expect(new Headers(init.headers).has('X-Auth-Token')).toBe(false)
+  })
+
+  it('shares one fetch across two tiles of the same plugin', async () => {
+    const gate = pendingResponse()
+    fetchMock.mockReturnValue(gate.promise)
+    render(<PluginIcon pluginId="guide" name="Guide" />)
+    render(<PluginIcon pluginId="guide" name="Guide" />)
+    await act(async () => {
+      gate.resolve(svgResponse())
+      await gate.promise
+    })
+    expect(screen.getAllByTestId('plugin-icon-guide').every((el) => el.tagName === 'IMG')).toBe(
+      true,
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('paints the lettermark when the icon route refuses', async () => {
+    await settle('code-shell', svgResponse(401), 'Code')
+    const tile = screen.getByTestId('plugin-icon-code-shell')
+    expect(tile.tagName).toBe('SPAN')
+    expect(tile.textContent).toBe('C')
+  })
+
+  it('keeps a deterministic lettermark angle', () => {
     const angle = (slug: string) => [...slug].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 360
     expect(angle('documents')).toBe(angle('documents'))
     expect(angle('documents')).not.toBe(angle('memory'))

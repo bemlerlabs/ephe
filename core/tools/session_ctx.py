@@ -61,7 +61,7 @@ def set_current_mode(mode: str) -> Token:
 
 
 def get_current_mode() -> str:
-    """Active UI mode ('ask' | 'plan' | 'edit_auto' | 'full_access' | '')."""
+    """Active UI mode ('analyst' | 'architect' | 'operator' | 'creator' | legacy names | '')."""
     return _CURRENT_MODE.get() or ""
 
 

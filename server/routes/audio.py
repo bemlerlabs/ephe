@@ -14,7 +14,6 @@ Ephe – Bad Liebenzell, Schwarzwald
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import uuid
 from datetime import datetime
@@ -224,28 +223,11 @@ async def synthesize_audio(req: SynthesizeRequest):
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    audio_dir = _get_audio_dir()
-    audio_dir.mkdir(parents=True, exist_ok=True)
-    stamp = f"tts_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-
     if engine == "piper":
-        target = audio_dir / f"{stamp}_piper.wav"
         try:
-            from core.voice_config import piper_binary, voices_dir
+            from core.voice_synth import write_piper_wav
 
-            binary = piper_binary()
-            model = voices_dir() / f"{cfg.piper_voice}.onnx"
-            proc = await asyncio.create_subprocess_exec(
-                binary, "--model", str(model), "--output_file", str(target),
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            _, stderr = await asyncio.wait_for(proc.communicate(text.encode("utf-8")), timeout=90)
-            if proc.returncode != 0:
-                raise RuntimeError(f"piper failed: {stderr.decode(errors='replace')[:200]}")
-            if not target.exists() or target.stat().st_size <= 44:
-                raise RuntimeError("piper delivered no audio data")
+            target = write_piper_wav(text)
         except RuntimeError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
         except Exception as exc:
@@ -253,6 +235,9 @@ async def synthesize_audio(req: SynthesizeRequest):
         return SynthesizeResponse(audio_url=f"/audio/{target.name}")
 
     # Edge cloud fallback (opt-in behaviour: engine=edge or auto-without-piper)
+    audio_dir = _get_audio_dir()
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    stamp = f"tts_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
     filename = f"{stamp}.mp3"
     target = audio_dir / filename
     try:

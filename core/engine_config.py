@@ -45,12 +45,16 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
+import shutil
 import stat
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable
+
+logger = logging.getLogger(__name__)
 
 # Provider constants (matching core/model_provider.py exactly)
 LOCAL_OLLAMA = "local_ollama"
@@ -249,11 +253,16 @@ def _delete_engine_keyring() -> None:
 
 
 def key_file_path(home: "Path | None" = None) -> Path:
-    return (Path(home) if home is not None else Path.home()) / ".ephe" / "engine.key"
+    """Where the engine token file sits, in the folder the desktop reads it from.
+
+    A caller who passes the process home gets ``config_root() / "engine.key"``, the
+    folder ``EPHE_CONFIG_DIR`` moves. Another home keeps ``<home>/.ephe/engine.key``.
+    """
+    return device_dir_for(home) / "engine.key"
 
 
 def _key_file(home: "Path | None" = None) -> str:
-    """The stored token: one owner-only line in ``~/.ephe/engine.key``, or nothing.
+    """The stored token: one owner-only line in the device folder's ``engine.key``, or nothing.
 
     The rules are the desktop spawn's rules (`app/src-tauri/src/backend.rs::key_from_file`)
     because the file is one promise and every surface has to keep it: a mode that lets group or
@@ -387,10 +396,10 @@ def engine_api_key_for(url: str | None, home: "Path | None" = None) -> str:
     No literal default, and no third source. ``EPHE_OPENAI_COMPAT_API_KEY`` wins wherever it is
     set — an inherited value names what whoever started this process chose, and a stored secret
     never replaces it quietly. The keychain entry (``ephe/engine_api_key``, written by
-    ``store_engine_api_key``) comes next, then ``~/.ephe/engine.key``. The file exists because the
-    env cannot reach an icon-launched app (measured: that backend carried no ``EPHE_`` variable at
-    all), and it now covers every start, the desktop one included: `core/model_provider.py` has
-    been sending users to that path on surfaces that never read it.
+    ``store_engine_api_key``) comes next, then ``config_root() / "engine.key"``. The file
+    exists because the env cannot reach an icon-launched app (measured: that backend carried
+    no ``EPHE_`` variable at all), and it now covers every start, the desktop one included:
+    `core/model_provider.py` has been sending users to that path on surfaces that never read it.
 
     Until 2026-10-10 an empty env fell back to another tool's credential store
     (``~/.local/share/opencode/auth.json``), which AGENTS.md did not name as a key source. It is
@@ -659,7 +668,6 @@ def delete_engine_api_key(home: "Path | None" = None) -> None:
     )
 
 
-CONFIG_DIR = Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
 CONFIG_FILE = "engine.json"
 
 
@@ -672,9 +680,32 @@ def config_root() -> Path:
     return Path(os.environ.get("EPHE_CONFIG_DIR") or str(Path.home() / ".ephe"))
 
 
+#: The folder as it stood when this module was imported. Tests patch this attribute to
+#: redirect a store whose path was frozen here; new code asks `config_root()` instead,
+#: so a variable set later still moves the folder.
+CONFIG_DIR = config_root()
+
+
 def config_subdir(name: str) -> Path:
     """Subfolder of the device folder, e.g. config_subdir("sessions")."""
     return config_root() / name
+
+
+def device_dir_for(home: "Path | None" = None) -> Path:
+    """The device folder for a caller that was handed a home directory.
+
+    The process home follows :func:`config_root`, so an isolated run that names the
+    variable keeps reading and writing there. Another home — the kind a unit test
+    hands in — stays ``<home>/.ephe`` and keeps its own tree. The desktop shell's
+    ``instance.rs::device_dir_for`` is the same rule, and both surfaces have to name
+    one folder or the shell reads a record Python wrote somewhere else.
+    """
+    if home is None:
+        return config_root()
+    candidate = Path(home)
+    if candidate.expanduser().resolve() == Path.home().resolve():
+        return config_root()
+    return candidate / ".ephe"
 
 
 @dataclass
@@ -689,7 +720,8 @@ class EngineChoice:
     # target of an adoption.
     output_dir: str | None = None
     # Workspace (F: project folder as in leading AI clients) — the Shell/File
-    # tools resolve relative paths against it and start inside it. None = server cwd.
+    # tools resolve relative paths against it and start inside it. None = the
+    # neutral default of get_workspace_dir().
     workspace_dir: str | None = None
     # Wave 11 (P1-4): optional brand kit (name/primary/secondary) for decks.
     # Empty value = no override; the deck tools fall back to the generic theme.
@@ -1190,7 +1222,8 @@ def clear_engine_config(path: Path | None = None) -> bool:
 
 # Workspace (project folder)
 # One source: engine.json. Shell tools start inside it, file tools resolve
-# relative paths against it. None/empty = behaviour as before (server cwd).
+# relative paths against it. None/empty = no persisted choice; get_workspace_dir()
+# answers the neutral default.
 
 #: Folders a workspace or an output directory may never be. The value is the owner's own
 #: choice and may sit anywhere they work, so this is a refusal list rather than a cage: it
@@ -1246,13 +1279,118 @@ def _source_checkout_root() -> Path | None:
     return root if (root / "pyproject.toml").is_file() else None
 
 
-def get_workspace_dir() -> str:
-    """Active workspace directory for the shell/file tools.
+#: Name of the neutral workspace under the home folder. ``$HOME`` is an allowed root
+#: for the file tools, so the default needs no second allowance and no deny-root
+#: exception; the name is capitalised because it is a folder the user reads.
+NEUTRAL_WORKSPACE_NAME = "Ephe"
 
-    Parity with ``workspace_rules.resolve_workspace_dir``: the env
-    ``EPHE_WORKSPACE`` wins (tests/power users), otherwise the persisted
-    engine.json; on a missing/invalid path we fall back to the server cwd
-    (the old behaviour), never crash.
+#: Name the neutral workspace carried under the config root before this ticket. That
+#: folder is inside a ``path_guard.DENY_ROOTS`` root, so it is migrated from, never
+#: handed out.
+LEGACY_WORKSPACE_NAME = "workspace"
+
+
+def _looks_like_the_source_checkout(candidate: Path) -> bool:
+    """True for a folder that carries this product's own project file and a git dir.
+
+    On a case-insensitive volume ``~/Ephe`` and a source checkout named ``~/ephe`` are one
+    folder, and a neutral workspace inside one would hand file writes to the checkout.
+    """
+    project = candidate / "pyproject.toml"
+    try:
+        text = project.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return (candidate / ".git").exists() and 'name = "ephe"' in text
+
+
+def neutral_workspace_dir() -> Path:
+    """The neutral workspace of an unconfigured install: ``~/Ephe``.
+
+    When that name resolves to the product's own checkout (case-insensitive volumes make
+    ``Ephe`` and ``ephe`` one folder), the neutral folder moves to ``~/Ephe-workspace`` so a
+    first write never lands in the source tree.
+    """
+    candidate = Path.home() / NEUTRAL_WORKSPACE_NAME
+    if _looks_like_the_source_checkout(candidate):
+        return Path.home() / f"{NEUTRAL_WORKSPACE_NAME}-workspace"
+    return candidate
+
+
+def _legacy_workspace_dir() -> Path:
+    """The neutral folder older installs used: ``<config root>/workspace``."""
+    return config_root() / LEGACY_WORKSPACE_NAME
+
+
+def _copy_missing_entries(source: Path, target: Path) -> None:
+    """Copy the entries of ``source`` the target does not hold; keep everything else.
+
+    A name present in the target is the user's current copy, so it is skipped rather
+    than overwritten. The old folder is not changed.
+    """
+    try:
+        entries = list(source.iterdir())
+    except OSError:
+        return
+    for entry in entries:
+        destination = target / entry.name
+        if destination.exists() or destination.is_symlink():
+            continue
+        try:
+            if entry.is_dir() and not entry.is_symlink():
+                shutil.copytree(entry, destination, symlinks=True)
+            else:
+                shutil.copy2(entry, destination, follow_symlinks=False)
+        except OSError as exc:
+            logger.warning("Workspace migration skipped %s: %s", entry, exc)
+
+
+def _migrate_legacy_workspace(target: Path) -> None:
+    """Bring an old ``<config root>/workspace`` into the neutral folder once.
+
+    The old neutral folder sits inside a root the guard refuses, so after the default
+    moved it would be unreachable. A non-empty one is renamed into the new default when
+    that folder is free, which is one atomic step on the same volume. Otherwise its
+    entries are copied where the target holds nothing of that name; the old folder is
+    left alone, so a partial migration never loses or rewrites a user file.
+    """
+    legacy = _legacy_workspace_dir()
+    try:
+        if not legacy.is_dir() or not any(legacy.iterdir()):
+            return
+        if target == legacy or target in legacy.parents or legacy in target.parents:
+            return
+        checkout = _source_checkout_root()
+        if checkout is not None and (
+            target == checkout
+            or checkout in target.parents
+            or legacy == checkout
+            or checkout in legacy.parents
+        ):
+            logger.warning(
+                "Workspace migration skipped: %s touches the running source checkout %s",
+                target,
+                checkout,
+            )
+            return
+        if not target.exists():
+            try:
+                legacy.rename(target)
+                return
+            except OSError:
+                target.mkdir(parents=True, exist_ok=True)
+        _copy_missing_entries(legacy, target)
+    except OSError as exc:
+        logger.warning("Workspace migration from %s to %s failed: %s", legacy, target, exc)
+
+
+def get_workspace_dir() -> str:
+    """Active workspace directory for the shell/file tools: the one authority.
+
+    ``EPHE_WORKSPACE`` (tests, power users) wins, then the persisted engine.json. An
+    invalid value falls through, and a server started from the source checkout gets the
+    neutral ``~/Ephe`` instead of the checkout or a folder under the refused config root.
+    A legacy neutral folder is migrated into that default before it is handed out.
     """
     env = (os.environ.get("EPHE_WORKSPACE") or "").strip()
     if env:
@@ -1276,12 +1414,17 @@ def get_workspace_dir() -> str:
     # as the user's workspace (or its branches) by default.
     root = _source_checkout_root()
     if root is not None and (cwd == root or root in cwd.parents):
-        neutral = config_root() / "workspace"
+        neutral = neutral_workspace_dir()
+        # Before the folder is created, a free default lets the old one move in one rename.
+        _migrate_legacy_workspace(neutral)
         try:
             neutral.mkdir(parents=True, exist_ok=True)
-            return str(neutral)
-        except OSError:
-            return str(config_root())
+        except OSError as exc:
+            # The home root itself is already allowed, so a read-only home still leaves
+            # a reachable workspace and never one under a refused root.
+            logger.warning("Neutral workspace %s is not creatable: %s", neutral, exc)
+            return str(Path.home())
+        return str(neutral)
     return str(cwd)
 
 
@@ -1289,7 +1432,7 @@ def workspace_is_explicit() -> bool:
     """True only when the user chose a workspace (env or engine.json).
 
     The UI uses this to keep git branch chips and branch lists off the neutral
-    default; a cwd fallback is never a user choice.
+    default; a fallback is never a user choice.
     """
     if (os.environ.get("EPHE_WORKSPACE") or "").strip():
         return True

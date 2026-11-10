@@ -1,9 +1,16 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "spreadsheets",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "origin": "first-party",
-  "description": "Real spreadsheet production: formatted XLSX workbooks, charts and tabular evaluations.",
+  "description": "Real spreadsheet production: one formatted sheet, live formulas and a separate chart.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "docs",
@@ -19,24 +26,130 @@
       {
         "name": "xlsx",
         "description": "Produce a real Excel workbook",
-        "template": "Create a real Excel workbook for: {input}. Use create_xlsx (and generate_chart where useful) with formatted headers and clear columns."
+        "template": "Create one workbook for: {input}. Pass the title and the rows. The first row is the header. A total is a formula. A percent is written as 12% so it is stored as a fraction. Then verify the file."
       },
       {
         "name": "model",
         "description": "Build a spreadsheet model",
-        "template": "Build a spreadsheet model for: {input}. Separate inputs, assumptions and outputs; show formulas and one sensitivity table; state every assumption."
+        "template": "Build one sheet for: {input}. Put inputs, assumptions and outputs in labeled rows on that sheet. Totals and links are formulas such as =SUM(B2:B10) and =B2*C2. State every assumption in its own cell. Then verify the file."
       },
       {
         "name": "clean",
         "description": "Clean a table and keep the raw copy",
-        "template": "Clean the table described by: {input}. Normalize headers, types and dates, list every changed row and keep an untouched copy."
+        "template": "Clean the table described by: {input}. Write the raw rows to one workbook and the cleaned rows to a second workbook. Each workbook has one sheet. State every change. Then verify both files."
       }
     ],
     "tools": [
-      "create_xlsx",
-      "generate_chart"
+      {
+        "name": "create_xlsx",
+        "entry": "tools/handlers.py:create_xlsx",
+        "family": "docs",
+        "description": "Creates a real Excel file (.xlsx): styled header, typed cells, safe formulas, number formats, auto filter, frozen header and a bold total row. Cell values starting with = are written as live formulas when they are regular spreadsheet formulas (=SUM(B2:B10), =B2*C2, =IF(...)); unsafe payloads stay inert text. Percentages, currencies (EUR, USD, CHF, GBP) and ISO dates are recognised automatically. Pass the data as rows (JSON array of arrays or CSV text). Use this for tables, evaluations, lists.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Title shown as the heading (also the file-name base)."
+            },
+            "data": {
+              "type": "string",
+              "description": "Rows as JSON array of arrays or CSV text (first row = header)"
+            },
+            "filename": {
+              "type": "string",
+              "description": "Optional output file name (a bare name, not a path); the result line names the finished file."
+            },
+            "formats": {
+              "type": [
+                "object",
+                "array",
+                "null"
+              ],
+              "description": "Optional column formats: an object keyed by header name or 1-based column index, or a list by column position. Each value is a format code or one of currency, percent, integer, decimal, date."
+            }
+          },
+          "required": [
+            "title",
+            "data"
+          ]
+        }
+      },
+      {
+        "name": "generate_chart",
+        "entry": "tools/handlers.py:generate_chart",
+        "family": "docs",
+        "description": "Creates a data chart (bar/line/pie) as an SVG image in Ephe design. Use this when the user wants to visualize data. The image appears in the chat automatically. theme='light' (default) matches a PDF page; theme='dark' for the studio surface. For bar/line pass series=[{name, values}, …] to draw several groups or lines with a legend, and embed the result in a PDF with a whole line ![chart](/absolute/path.svg).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "chart_type": {
+              "type": "string",
+              "enum": [
+                "bar",
+                "line",
+                "pie"
+              ],
+              "description": "Chart kind: one of bar, line, pie."
+            },
+            "title": {
+              "type": "string",
+              "description": "Chart title shown above the plot."
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Category labels, one per value."
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "Numeric values, same length as labels. Required unless series is given."
+            },
+            "xlabel": {
+              "type": "string",
+              "description": "Optional x-axis label."
+            },
+            "ylabel": {
+              "type": "string",
+              "description": "Optional y-axis label."
+            },
+            "color": {
+              "type": "string",
+              "description": "Optional #rrggbb accent colour for a single series."
+            },
+            "theme": {
+              "type": "string",
+              "enum": [
+                "light",
+                "dark"
+              ],
+              "description": "light (paper/PDF) or dark (studio). Default light."
+            },
+            "series": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object"
+              },
+              "description": "Optional multi-series data for bar/line: a list of {name, values}; labels and every series must have equal length."
+            }
+          },
+          "required": [
+            "chart_type",
+            "title",
+            "labels"
+          ]
+        }
+      }
     ]
   },
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - the sheet and chart tools ask the host. The rows, the labels and the path stay out of the bridge row. The create_xlsx schema takes no path. 1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

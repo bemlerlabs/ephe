@@ -1,18 +1,20 @@
 /**
  * modes-matrix.spec.ts — user walkthrough: "what does each composer mode really do?"
  *
- * PERSONA: a user who is told there are four modes («Ask», «Plan», «Edit auto»,
- * «Full access») and wants to know, per mode, what actually happens when a task
- * needs a tool and a task needs a write. The question this run answers with
+ * PERSONA: a user who is told there are four modes («Analyst», «Architect»,
+ * «Operator», «Creator») and wants to know, per mode, what actually happens when a
+ * task needs a tool and a task needs a write. The question this run answers with
  * evidence — per mode:
  *   - does a tool run at all,
  *   - does an approval dialog appear (and what does it say),
  *   - is a file really written to disk,
  *   - what does the assistant answer, what do the tool rows say,
- *   - and for `plan` (the mode this spec exists for): does it truly write
+ *   - and for `architect` (the mode this spec exists for): does it truly write
  *     nothing, does it PRESENT a plan before acting, is that plan rendered as a
  *     card a user can read and act on, and does accepting it actually run the
- *     work — or does nothing ever execute the plan.
+ *     work — or does nothing ever execute the plan. (The three tiled modes are
+ *     walked; `creator` is the fourth tile and asks for consent first, so a run
+ *     that does not grant it cannot measure that mode.)
  *
  * This spec runs against the LIVE stack — real backend, real engine
  * (openai_compatible / deepseek-v4-pro over the DeepSeek API). It does NOT mock
@@ -42,12 +44,12 @@
  *
  * The composer mode is a SESSION attribute shared by every client (server
  * mirror) — a sibling walkthrough shares this one server, so every test RESTORES
- * the mode to the default (`full-access`) when it ends.
+ * the mode to the default (`operator`) when it ends.
  *
  * Selectors (all read from source, so they survive a copy refactor):
  *   mode selector   app/src/components/dashboard/chat/ComposerModeChip.tsx:41   data-testid="composer-mode-selector"
  *   mode menu list  app/src/components/dashboard/chat/ComposerModeMenu.tsx:124  data-testid="composer-mode-list"
- *   mode option     app/src/components/dashboard/chat/ComposerModeMenu.tsx:160  data-testid="composer-mode-<key>"  (key ∈ ask|plan|edit-auto|full-access, ComposerModeMenu.tsx:37-66)
+ *   mode option     app/src/components/dashboard/chat/ComposerModeMenu.tsx:160  data-testid="composer-mode-<key>"  (key ∈ analyst|architect|operator|creator, ComposerModeMenu.tsx COMPOSER_MODES)
  *   chat input      app/src/components/dashboard/ChatInput.tsx:433              data-testid="chat-input"
  *   send / stop     app/src/components/dashboard/chat/ComposerSendButton.tsx:77  data-testid="send-btn" | "stop-btn"
  *   assistant       app/src/components/dashboard/MessageBubble.tsx:118-119      data-testid="message-bubble" data-role="assistant"
@@ -60,7 +62,7 @@
  *   plan card       app/src/components/dashboard/PlanCard.tsx:52                data-testid="plan-card" (data-state draft|running|accepted)
  *   plan progress   app/src/components/dashboard/PlanCard.tsx:57                data-testid="plan-progress"
  *   plan item       app/src/components/dashboard/PlanCard.tsx:107               data-testid="plan-item-<i>" (data-status)
- *   plan accept     app/src/components/dashboard/PlanCard.tsx:131               data-testid="plan-accept"  → sends "Plan accepted — proceed." (locales/en.json:227)
+ *   plan accept     app/src/components/dashboard/PlanCard.tsx:131               data-testid="plan-accept"  → sends chat.planAcceptMsg (locales/en.json) and moves the composer to PLAN_EXECUTION_MODE (`edit-auto`, chip "With write access")
  *   plan edit       app/src/components/dashboard/PlanCard.tsx:142               data-testid="plan-edit"
  *   (card renders only when the ANSWER text carries a `## Plan` / `- [ ]` block:
  *    app/src/components/dashboard/bubble/assistantExtras.tsx:53-57 → parsePlanCard,
@@ -71,7 +73,7 @@
  *   status popover  app/src/components/dashboard/AgentStatusButton.tsx:199,236  data-testid="agent-status-pill" → "agent-status-popover"
  *   plan semantics  docs/COMPOSER_MODES.md + server/routes/chat.py:445-472 (_mode_context),
  *                   server/routes/chat.py:1008-1022 (auto-approval is gated on the global
- *                   approval profile: mode_auto = profile != "strict"; autonomous=full-access,
+ *                   approval profile: mode_auto = profile != "strict"; autonomous=operator,
  *                   app/src/components/dashboard/chat/model.ts:909)
  */
 import { test, expect } from '@playwright/test'
@@ -114,19 +116,20 @@ const PLAN_BLOCK_RE = /^\s*(?:#+\s*)?\*{0,2}\s*Plan\s*\*{0,2}\s*$|^\s*[-*+]\s*\[
 
 type TraceFn = (event: string, data?: Record<string, unknown>) => void
 
-// The four, kept as a value so the type below is derived rather than restated.
-const _MODES = ['ask', 'plan', 'edit-auto', 'full-access'] as const
+// The three tiles this run walks (Task 3: ask→analyst, plan→architect,
+// full-access→operator; edit-auto retired). `creator` is the fourth tile and asks for
+// consent before the session takes the mode, so this run does not measure it.
+const _MODES = ['analyst', 'architect', 'operator'] as const
 type Mode = (typeof _MODES)[number]
 
 // The short chip label a mode resolves to (ComposerModeMenu.modeShortLabel reads
-// the head of chat.modeHint.<key>, locales/en.json:215-220).
+// the head of chat.modeHint.<key>, locales/en.json modeHint).
 const EXPECTED_CHIP: Record<Mode, string> = {
-  ask: 'ask',
-  plan: 'plan',
-  'edit-auto': 'edit auto',
-  'full-access': 'full access',
+  analyst: 'analyst',
+  architect: 'architect',
+  operator: 'operator',
 }
-const DEFAULT_MODE: Mode = 'full-access'
+const DEFAULT_MODE: Mode = 'operator'
 
 // ── observations.json: one fact block per mode, merged across the four tests ──
 type Obs = {
@@ -796,30 +799,23 @@ async function runMode(
   if (unsettledMsg) throw new Error(unsettledMsg)
 }
 
-test(`composer mode ask: tool task, write task, plan — what really happens`, async ({
+test(`composer mode analyst: tool task, write task, plan — what really happens`, async ({
   page,
   request,
 }) => {
-  await runMode(page, request, 'ask')
+  await runMode(page, request, 'analyst')
 })
 
-test(`composer mode plan: does it write nothing and really present a plan?`, async ({
+test(`composer mode architect: does it write nothing and really present a plan?`, async ({
   page,
   request,
 }) => {
-  await runMode(page, request, 'plan')
+  await runMode(page, request, 'architect')
 })
 
-test(`composer mode edit-auto: tool task, write task, plan — what really happens`, async ({
+test(`composer mode operator: tool task, write task, plan — what really happens`, async ({
   page,
   request,
 }) => {
-  await runMode(page, request, 'edit-auto')
-})
-
-test(`composer mode full-access: tool task, write task, plan — what really happens`, async ({
-  page,
-  request,
-}) => {
-  await runMode(page, request, 'full-access')
+  await runMode(page, request, 'operator')
 })

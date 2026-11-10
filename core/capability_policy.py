@@ -78,6 +78,10 @@ def validate_tool_permissions(manifest: dict) -> str | None:
     components = manifest.get("components", {})
     tools = components.get("tools", []) if isinstance(components, dict) else []
     for tool in tools:
+        # `TOOL_FAMILIES` holds a frozenset per tool, so `required - families` is the
+        # missing-family set the refusal names. `get` answering None is the fail-closed
+        # branch: a name the table does not carry has no family to check, while an empty
+        # requirement would read as satisfied here.
         required = TOOL_FAMILIES.get(str(tool))
         if required is None:
             return (
@@ -120,6 +124,32 @@ def validate_data_roots(roots: list) -> str | None:
                 f"permissions.data_roots: {root!r} covers the home directory"
             )
     return None
+
+
+def resolved_data_roots(plugin: str, workspace: Path | None) -> list[Path]:
+    """Where one plugin's declared `permissions.data_roots` actually sit, as absolute paths.
+
+    One resolution for both rails that read the declaration: the kernel file scope
+    (`core/tools/base.py`) and the confined worker (`core/sandbox/runner.py`). A relative
+    entry is a name inside the workspace and a `..` or a symlink that leaves it is dropped,
+    which is the rule the file scope already applied; an absolute entry is taken as written,
+    because `validate_data_roots` refused the home, a system root and a missing directory at
+    load. Two answers to "what did this bundle declare" would be two scopes, and the bundle
+    would see whichever one it happened to call through.
+    """
+    roots: list[Path] = []
+    for declared in declared_data_roots(plugin):
+        candidate = Path(declared).expanduser()
+        if candidate.is_absolute():
+            roots.append(candidate.resolve())
+            continue
+        if workspace is None:
+            continue
+        resolved = (workspace / candidate).resolve()
+        if workspace not in resolved.parents and resolved != workspace:
+            continue
+        roots.append(resolved)
+    return roots
 
 
 def declared_data_roots(plugin: str) -> tuple[str, ...]:

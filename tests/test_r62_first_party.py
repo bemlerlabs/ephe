@@ -6,7 +6,7 @@ builtin root, catalog entries carry manifest/version/sha256 of those
 directories, and the product-plugin families (documents/code-shell/etc.)
 gate their tool families like every other plugin.
 
-1. repo plugins/ ship 14 valid manifests (v2 portfolio).
+1. repo plugins/ ship 17 valid manifests (v2 portfolio).
 2. scan_plugins merges builtin + user roots; builtin first.
 3. dir_sha256 is deterministic over sorted relative paths + bytes.
 4. Catalog view: every builtin entry carries manifest=true, its version and
@@ -35,13 +35,13 @@ EXPECTED_IDS = {
     "mcp-connector", "browser-use", "code-shell",
     "documents", "spreadsheets", "presentations",
     "plugin-creator", "skill-creator", "guide",
-    "local-document-factory", "private-research-notebook",
+    "local-document-factory", "private-research-notebook", "countdown",
 }
 
 
 class TestBuiltinManifests:
 
-    def test_repo_ships_fourteen_valid_manifests(self):
+    def test_repo_ships_the_valid_manifests(self):
         """G: repo plugins/ W: scan T: every builtin dir is a valid manifest."""
         found = {}
         for entry in plugin_manifest.scan_plugins():

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Countdown</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <main class="countdown" aria-label="Countdown">
+      <p id="remaining" class="remaining" role="timer" aria-live="polite">00:00</p>
+      <p id="phase" class="phase">Idle</p>
+      <div class="controls">
+        <button type="button" id="start" data-minutes="1">Start 1</button>
+        <button type="button" id="start-five" data-minutes="5">Start 5</button>
+        <button type="button" id="pause">Pause</button>
+        <button type="button" id="reset">Reset</button>
+      </div>
+    </main>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

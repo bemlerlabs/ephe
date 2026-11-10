@@ -45,9 +45,13 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+REPO = HERE.parent
 sys.path.insert(0, str(HERE))
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 from bench_code_address import cohort_state as _cohort_state  # noqa: E402
 from bench_manifests import manifest_paths as _manifest_paths  # noqa: E402
+from core.engine_config import config_root  # noqa: E402
 
 DEFAULT_RUNS = Path("/tmp/bench-option-b/runs")
 DEFAULT_OUT = HERE / "bench-trend.json"
@@ -401,7 +405,7 @@ def _engine_meta() -> tuple[str, str, str]:
     model = (os.environ.get(model_env) or "").strip() if model_env else ""
     if provider and model:
         return provider, model, "env"
-    p = Path.home() / ".ephe" / "engine.json"
+    p = config_root() / "engine.json"
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
         return str(d.get("provider", "?")), str(d.get("model", "?")), str(p)

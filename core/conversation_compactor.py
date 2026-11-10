@@ -183,11 +183,50 @@ def compact_history(
         # compress, and the uncut history is what keeps the blocks whole.
         return list(history)
 
+    # #102: a system block in the middle is not content the ledger may swallow.
+    # The ledger summarizes turns; a skill prompt or a task instruction that arrived
+    # as a system row is context in its own right, and folding it into one 280-char
+    # bullet lost the rest of it (measured: 1220 chars in, 290 out). Those rows stay
+    # in the output, byte for byte. Only the compactor's own earlier ledger is
+    # superseded — the new ledger already carries what it carries, and keeping the
+    # old one would show the working memory twice.
+    kept_system: list[dict] = []
+    compressible: list[dict] = []
+    for message in middle:
+        is_block = (
+            isinstance(message, dict)
+            and message.get("role") == "system"
+            and not _is_ledger(message)
+        )
+        (kept_system if is_block else compressible).append(message)
+
     if memory_sink is not None:
         _preserve_pairs(middle, memory_sink)
-    summary = _build_working_memory(middle, max_chars=max_summary_chars)
+
+    if not compressible:
+        # Nothing but system blocks to compress: there is nothing for a ledger to
+        # say, and adding one would grow the conversation compaction has to shorten.
+        return list(history)
+
+    summary = _build_working_memory(compressible, max_chars=max_summary_chars)
     ledger = {"role": "system", "content": summary}
-    return [*first, ledger, *recent]
+    compacted = [*first, ledger, *kept_system, *recent]
+    if len(compacted) > len(history):
+        # Keeping the system blocks whole may not cost more messages than the history
+        # already had, so the count can only fall or stay.
+        return list(history)
+    return compacted
+
+
+def _is_ledger(message: dict) -> bool:
+    """Whether a row is the compactor's own working-memory ledger.
+
+    The same preamble check the client applies (``app/src/lib/compact.ts``):
+    a stored ledger can come back with any role, but its text always opens with
+    one of the two header lines. Only such a row is superseded by a new ledger.
+    """
+    head = str(message.get("content", "") or "").lstrip()
+    return head.startswith((_LEDGER_HEADER[0], _LEDGER_HEADER[1]))
 
 
 def _preserve_pairs(older: list[dict], sink: MemorySink) -> None:

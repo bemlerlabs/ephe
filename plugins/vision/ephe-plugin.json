@@ -1,8 +1,15 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "vision",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Vision-capable model reads screenshots and images.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "vision"
@@ -13,11 +20,75 @@
     "skills": [],
     "commands": [],
     "tools": [
-      "analyze_image",
-      "vision_click",
-      "vision_type"
+      {
+        "name": "analyze_image",
+        "entry": "tools/handlers.py:analyze_image",
+        "family": "vision",
+        "description": "Analyses an image with AI vision (OCR, description, recognition). Use this tool when the user wants to show, describe, read out or explain an image, screenshot, photo or document. Supported: PNG, JPG, WebP, GIF, BMP.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to the image — absolute or ~-relative, e.g. '~/Desktop/screenshot.png'."
+            },
+            "question": {
+              "type": "string",
+              "description": "Question about the image, e.g. 'What does this invoice say?' or 'Describe this screenshot'"
+            },
+            "region": {
+              "type": "array",
+              "items": {"type": "integer"},
+              "description": "Optional [x1,y1,x2,y2] crop in original pixels to zoom into small text or fine detail before analysis."
+            }
+          },
+          "required": ["path"]
+        }
+      },
+      {
+        "name": "vision_click",
+        "entry": "tools/handlers.py:vision_click",
+        "family": "vision",
+        "description": "Uses visual screen analysis to find a UI element on the primary desktop and physically clicks it with the mouse. Use this tool when you are asked to drive GUI applications or the user's browser. (The analysis takes a moment).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "target_description": {
+              "type": "string",
+              "description": "What should be clicked? e.g. 'the red save button top right' or 'the Chrome icon in the dock'. As precise as possible."
+            }
+          },
+          "required": [
+            "target_description"
+          ]
+        }
+      },
+      {
+        "name": "vision_type",
+        "entry": "tools/handlers.py:vision_type",
+        "family": "vision",
+        "description": "Types a string into the currently focused input field on the user's screen. Often paired with a preceding vision_click to focus a search field.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "The exact text to type."
+            },
+            "press_enter": {
+              "type": "boolean",
+              "description": "Should the Enter key be pressed after typing? (default: false)",
+              "default": false
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      }
     ]
   },
+  "changelog": "1.2.0 - analyze_image asks the host. The path and the question stay out of the bridge row.",
   "origin": "first-party",
   "icon": "icon.svg"
 }

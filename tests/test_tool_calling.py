@@ -329,9 +329,11 @@ class TestChatWithTools:
         # P0-1: the skill's declared tools + the three discovery meta tools + the read
         # primitives, which a skill whitelist must never take away (2026-10-10). The
         # mutating file names stay out: this whitelist declares no file tool of its own.
+        # G1 (7e63af4b): the ask gate rides in every non-empty whitelist, since a turn
+        # that cannot ask writes the question into the answer text.
         assert set(names) == {
             "create_pdf", "read_file", "list_directory", "file_search",
-            "tool_search", "tool_describe", "tool_call",
+            "tool_search", "tool_describe", "tool_call", "ask_user",
         }
 
     @pytest.mark.asyncio

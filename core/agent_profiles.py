@@ -52,9 +52,9 @@ def load_profiles(
 
     manifest_agents entries carry an extra `plugin` id — they only load when
     that plugin is active (explicit registry toggle, master-switch parity)."""
-    from core.tools.registry import TOOL_MAP
+    from core.tools.registry import addressable_tool_names
 
-    known = set(TOOL_MAP.keys())
+    known = set(addressable_tool_names())
     profiles: dict[str, dict[str, Any]] = {}
     quarantined: dict[str, str] = {}
 

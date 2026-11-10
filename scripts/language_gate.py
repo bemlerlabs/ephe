@@ -20,6 +20,13 @@ because each of those would silently make the number lie. For the same reason
 `--update` only ever lowers the baseline: a failing tree cannot be made to pass
 by re-measuring it.
 
+Below the baseline the tree is cleaner, so the gate passes. When at least one file
+sits below its baseline entry the pass closes with the offer to lower the baseline,
+in the two lines the sister gates print (`prose_tells.py`, `home_isolation_gate.py`).
+The offer is tied to that action: a tree that matches its baseline says nothing. A
+`--staged` pass measures the few blobs one commit carries, so it leaves the
+whole-tree offer out.
+
 Exit codes: 0 the tree is not worse than the baseline, 1 German prose grew (the
 files are named), 2 the gate cannot be trusted (missing or malformed baseline, a
 protected path where one must never appear).
@@ -233,8 +240,14 @@ def evaluate(baseline: dict[str, int], measured: dict[str, int]) -> Verdict:
     }
 
 
-def report(result: Verdict) -> tuple[int, list[str]]:
-    """The operator's text, and the exit code: 1 on growth, 0 otherwise."""
+def report(result: Verdict, *, offer: bool = True) -> tuple[int, list[str]]:
+    """The operator's text, and the exit code: 1 on growth, 0 otherwise.
+
+    A passing run offers the whole-tree `--update` whenever a file sits below its entry,
+    in the same two lines the sister gates print. `offer` is false for a `--staged` pass:
+    its narrow measurement cannot judge the rest of the tree, so it must not invite a
+    whole-tree re-measurement.
+    """
     regressions = result["regressions"]
     lowered = result["lowered"]
     total = result["measured_total"]
@@ -259,11 +272,11 @@ def report(result: Verdict) -> tuple[int, list[str]]:
             f"  total {result['baseline_total']} -> {total} lines "
             f"({result['measured_files']} files still carry German)"
         )
-        lines.append(
-            f"  {len(lowered)} file(s) sit below their baseline entry: the baseline "
-            "can be lowered"
-        )
-        lines.append(f"  {UPDATE_HINT}")
+        if offer:
+            lines.append(
+                f"  {len(lowered)} file(s) sit below their baseline entry: the baseline can be lowered"
+            )
+            lines.append(f"  {UPDATE_HINT}")
         return 0, lines
     lines.append("language gate: PASS — the tree matches the baseline")
     lines.append(f"  total {total} lines over {result['measured_files']} files")
@@ -366,7 +379,7 @@ def main(
     except OSError as exc:
         print(f"language gate: ERROR — {exc}", file=sys.stderr)
         return 2
-    code, lines = report(result)
+    code, lines = report(result, offer=not args.staged)
     print("\n".join(lines))
     return code
 

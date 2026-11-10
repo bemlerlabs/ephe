@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-backend-parity"
+description = "Enables the backend_parity command without any pre-configured scope."
+commands.allow = ["backend_parity"]
+
+[[permission]]
+identifier = "deny-backend-parity"
+description = "Denies the backend_parity command without any pre-configured scope."
+commands.deny = ["backend_parity"]

@@ -48,6 +48,12 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 25
+    env:
+      # The sandbox families prove a confined child on the boundary this job installs
+      # below. Without the variable a host without the capability skips those proofs and
+      # the leg still goes green; with it, the absence is red. `tests/support/capabilities.py`
+      # reads it, so no test file decides this on its own.
+      EPHE_REQUIRE_OS_BOUNDARY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -139,6 +145,45 @@ jobs:
           corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
           pnpm --version
 
+      - name: Setup Node.js
+        # The SDK contract test (`sdk/ephe.d.ts` + `sdk/check.ts` under `tsc --strict`)
+        # needs the app's TypeScript. The test now skips with a named reason when the
+        # toolchain is absent, so without this step CI would go green having proved
+        # nothing; version and pnpm cache mirror frontend-build.yml.
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.4
+          cache: 'pnpm'
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install the app type checker
+        # This leg only reads `app/node_modules/.bin/tsc`; the postinstall artefacts the
+        # frontend leg builds stay unnecessary, so the install runs with `--ignore-scripts`.
+        run: cd app && pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Rust toolchain
+        # `tests/test_coding_loop_languages.py` proves the repair loop reads a real
+        # `rustc` diagnostic; the same pinned action as the cargo job in rust-shell.yml
+        # puts that compiler on PATH for this leg.
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+
+      - name: Assert the toolchains the suite proves against
+        # A capability mark skips when its tool is missing. That is honest on a
+        # developer machine, but in this job it would turn a broken provision step into
+        # a green skip; fail here instead, where the reason is one line.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import node_tsc_path, rustc_path
+
+          missing = [
+              name
+              for name, found in (("tsc", node_tsc_path()), ("rustc", rustc_path()))
+              if found is None
+          ]
+          if missing:
+              raise SystemExit(f"toolchain provision failed: {', '.join(missing)} missing")
+          PY
+
       - name: Install the Chromium behind the browser tool
         if: matrix.python-version == '3.13'
         # `playwright` is a hard Python dependency, the BROWSER binary is not — CI
@@ -178,16 +223,34 @@ jobs:
         # node directory to point at.
         run: bash scripts/ci_preflight.sh
 
-      - name: Enable user namespaces for the MCP sandbox
-        # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
-        # map a uid there and every stdio MCP server refuses to start. The product keeps that
-        # refusal; the test host provides the kernel setting the sandbox needs. Older images
-        # without the key stay green.
+      - name: Provide the OS boundary the sandbox tests prove
+        # Five families drive a really confined child and are marked `requires_boundary` in
+        # tests/support/capabilities.py. Where the capability is missing they skip with the
+        # probe's reason, which is right on a laptop and wrong here: this leg exists to run
+        # those proofs, so bubblewrap is installed instead of assumed. Ubuntu 24.04 also
+        # restricts unprivileged user namespaces (AppArmor), and bwrap then cannot map a uid;
+        # the product keeps that refusal, the runner provides the kernel setting. Older
+        # images without the key stay green.
         run: |
           if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          bwrap --version
+
+      - name: Assert the sandbox boundary is usable
+        # `bwrap` on PATH is not the capability: the probe creates the namespaces the rails
+        # ask for (`--unshare-pid`, `--unshare-net`) and names the missing half here, before
+        # the suite spends minutes reaching its first sandbox test.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import capability_report
+          report = capability_report()
+          print(f"os_boundary={report['boundary']} {report['skip_reason']}".strip())
+          if report["boundary"] == "unavailable":
+              raise SystemExit(f"the sandbox proofs cannot run: {report['skip_reason']}")
+          PY
 
       # Timing gates run alone, ahead of the parallel legs. They measure a wall clock
       # (startup p90 < 150 ms, TTFB < 500 ms), and xdist workers share the machine while
@@ -233,6 +296,7 @@ jobs:
           tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
           --benchmark-json=.benchmarks/bench-timing-py${{ matrix.python-version }}.json
 
       - name: Upload timing benchmark report
@@ -272,6 +336,7 @@ jobs:
           --deselect=tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           --deselect=tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           --deselect=tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          --deselect=tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
 
   # R25: the macOS leg. The shell-guard and Seatbelt tests are POSIX-heavy and `sandbox-exec` (SBPL)
   # exists only on macOS, so this is where the macOS-only live guards run for real instead of
@@ -287,6 +352,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
     timeout-minutes: 25
+    env:
+      # Seatbelt is this leg's boundary. Same rule as the Linux job: a host that cannot
+      # prove it fails here instead of skipping the proofs under a green check.
+      EPHE_REQUIRE_OS_BOUNDARY: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -358,6 +427,18 @@ jobs:
           corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
           pnpm --version
 
+      - name: Assert the sandbox boundary is usable (macOS)
+        # This leg's boundary is Seatbelt. The step above proves the job landed on Darwin;
+        # this proves the mechanism itself, with the same probe the Linux leg runs.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import capability_report
+          report = capability_report()
+          print(f"os_boundary={report['boundary']} {report['skip_reason']}".strip())
+          if report["boundary"] == "unavailable":
+              raise SystemExit(f"the sandbox proofs cannot run: {report['skip_reason']}")
+          PY
+
       # Copied from `pytest-linux`, both halves, by the owner's decision of 2026-10-10: two jobs
       # with a literal matrix rather than one job with a `fromJSON` matrix, because the literal form
       # is the one GitHub is measured to expand. The copy has no offline guard --
@@ -377,6 +458,7 @@ jobs:
           tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
           --benchmark-json=.benchmarks/bench-timing-macos.json
 
       - name: Upload timing benchmark report (macOS)
@@ -401,6 +483,7 @@ jobs:
           --deselect=tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
           --deselect=tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
           --deselect=tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          --deselect=tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
 
   integration:
     name: Integration checks

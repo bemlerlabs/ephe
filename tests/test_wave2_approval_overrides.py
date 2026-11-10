@@ -16,6 +16,8 @@ from core import engine_config
 from core.security_config import ASKABLE_CATEGORIES, load_security_config, save_security_config
 from core.tools.approval import _escalated_approval  # noqa: F401  (import surface)
 from core.tools.approval_rules import (
+    CHAT_AUTO_RUN_TOOLS,
+    SAFE_TOOLS,
     ApprovalPolicy,
     category_forces_confirm,
     chat_tool_requires_confirm,
@@ -68,6 +70,12 @@ class TestTheMatrix:
         assert load_security_config().ask_categories == ()
         assert chat_tool_requires_confirm("read_file") is False
         assert chat_tool_requires_confirm("web_search") is False
+        # fetch_url is in the read-only set, so the chat path does not ask.
+        # web_search is not in that set; the chat auto-run list is what lets it through.
+        assert "fetch_url" in SAFE_TOOLS
+        assert "web_search" not in SAFE_TOOLS
+        assert "web_search" in CHAT_AUTO_RUN_TOOLS
+        assert chat_tool_requires_confirm("fetch_url") is False
         assert chat_tool_requires_confirm("write_file") is True
         assert chat_tool_requires_confirm("run_shell") is True
         assert chat_tool_requires_confirm("totally_unknown_tool") is True

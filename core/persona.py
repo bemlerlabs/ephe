@@ -60,24 +60,25 @@ DEFAULT_PERSONA = """## Personality
 """
 
 
-# W19 (live audit P0): Ask mode deliberately has NO tools. Without this guard
+# W19 (live audit P0): Analyst mode deliberately has NO tools. Without this guard
 # models hallucinated executed tools / created files ("hello.txt ✅"),
 # that never existed (evidence: disk check 2026-09-11). Strict, no softening.
-ASK_MODE_GUARD = (
-    "ASK-MODE GUARD (strict, non-negotiable): The user selected Ask mode — you have NO tool access "
-    "in this mode. NEVER claim to have executed a tool, run a command, created, modified, or deleted "
-    "a file, or fetched live web data. Never present computed output, file paths, or file contents as "
-    "results of actions you performed. Answer conversationally from the conversation only; if the "
-    "request needs an action, say which mode (e.g. 'Edit auto') enables it and what you would run."
+ANALYST_MODE_GUARD = (
+    "ANALYST-MODE GUARD (strict, non-negotiable): The user selected Analyst mode — you have NO "
+    "tool access in this mode. NEVER claim to have executed a tool, run a command, created, "
+    "modified, or deleted a file, or fetched live web data. Never present computed output, file "
+    "paths, or file contents as results of actions you performed. Answer conversationally from "
+    "the conversation only; if the request needs an action, say which mode (e.g. 'Operator') "
+    "enables it and what you would run."
 )
 
 
-# P4 (2026-09-15): Plan mode — read-only inspection + a plan, no mutations.
+# P4 (2026-09-15): Architect mode — read-only inspection + a plan, no mutations.
 # #92: the guard names the one text shape core/ephe_plan.py writes and
 # app/src/lib/planCardModel.ts reads. It also closes the question loop: an answer that ends in a
 # question carries no plan, and the user gets neither.
-PLAN_MODE_GUARD = (
-    "PLAN-MODE GUARD (non-negotiable): The user selected Plan mode. Only read-only inspection is "
+ARCHITECT_MODE_GUARD = (
+    "ARCHITECT-MODE GUARD (non-negotiable): The user selected Architect mode. Only read-only inspection is "
     "available — use read/list/search tools to gather facts, do NOT create, modify or delete files "
     "and do NOT run mutating commands.\n"
     "Every answer ends with a plan block in exactly this shape, written in the user's language "
@@ -93,6 +94,29 @@ PLAN_MODE_GUARD = (
     "If a decision is missing, choose the most probable option, write it as a step marked "
     "'(assumed: …)' and print the block anyway. Never end the turn on a question without a plan "
     "block — the user asked what will happen, and a question answers nothing."
+)
+
+
+# #51e: Creator mode shipped the offer without the instruction. A live
+# `deepseek-v4-pro` turn was handed the creator names in a 36-entry array, read a
+# generic identity prompt, and answered the ask with `write_file` — a loose script the
+# dock cannot mount, which the creation eval then correctly scored as nothing staged.
+# The names say what is available; this says which ask counts as a bundle and in what
+# order the calls build it.
+CREATOR_MODE_GUARD = (
+    "CREATOR-MODE GUARD (non-negotiable): The user selected Creator mode, so an ask for "
+    "something they can look at or use — a widget, window, panel, timer, clock, dashboard, "
+    "form or small utility — is a plugin the dock mounts, and a plugin is built with the "
+    "creator calls in this order: create_plugin_scaffold first, for the bundle folder and "
+    "its manifest; read_plugin_source for the manifest and any file you are about to "
+    "change, because the staged bundle is the one folder the file tools will not open for "
+    "you; write_plugin_source for every surface file inside that bundle; "
+    "verify_plugin_bundle until it reports the bundle sound; install_plugin_bundle when the "
+    "user asked to keep it. write_file and edit_file stay available for what the user asked "
+    "to live in their own folder; a loose script in the workspace answers nothing, because "
+    "nothing mounts it. If one of those calls is missing from your array, run the ones "
+    "you have in that order, then name the step you could not take and which privilege it "
+    "needs — never substitute the file tools for a missing call."
 )
 
 
@@ -321,8 +345,16 @@ def build_tool_guidelines(allowed_tool_names: list[str] | None = None) -> str:
         for entry in schemas
         if entry.get("function", {}).get("name")
     ]
-    if allowed_tool_names:
+    # An empty whitelist is a turn without tools (ask mode), so it names no tool at
+    # all: a text that offers 50 names to a session holding none is how a model comes
+    # to call them. Any other turn is filtered to the array it really carries,
+    # including the names every tool turn keeps.
+    if allowed_tool_names is not None:
+        from core.tools.discovery import ALWAYS_OFFERED_TOOLS
+
         allowed = set(allowed_tool_names)
+        if allowed_tool_names:
+            allowed |= set(ALWAYS_OFFERED_TOOLS)
         names = [n for n in names if n in allowed]
     safe = sorted(n for n in names if n in SAFE_TOOLS)
     action = sorted(n for n in names if n not in SAFE_TOOLS)
@@ -339,14 +371,26 @@ def build_tool_guidelines(allowed_tool_names: list[str] | None = None) -> str:
         "- You can create real local artifacts (PDFs, decks, charts, SVGs, notebooks) when the matching tool exists — never claim you can only provide an outline.",
         "- Never say \"As an AI I cannot...\" — check the tool list above and act.",
         "- Action tools run behind an approval gate when they change your system; that is by design — proceed, the user decides.",
-        "- AskUserQuestion convention: when offering the user a choice, append a fenced json block "
-        "{\"question\": str, \"options\": [{\"label\": str, \"description\": str}], "
-        "\"recommendation\": \"<label or 1-based number>\", \"multiSelect\": bool}; "
-        "the UI renders it as a tappable options card.",
-        "- To ask inside the run: call 'ask_user' when the turn cannot honestly go on without the "
-        "user's answer. The run pauses, the question appears while the turn is still open, and the "
-        "answer comes back as that tool's result — the same turn continues with it in context. "
-        "Pass 'default' with the question: when nobody answers within the timeout the run continues "
-        "on that value and says so, so a pause never turns into a silent hang.",
     ]
+    if allowed_tool_names is not None and not allowed_tool_names:
+        # Ask mode holds no tool, so the block is the only way this turn can ask. The
+        # reader of that block turns it into the card; the answer text is its canvas.
+        lines.append(
+            "- AskUserQuestion convention: when offering the user a choice, append a fenced json block "
+            "{\"question\": str, \"options\": [{\"label\": str, \"description\": str}], "
+            "\"recommendation\": \"<label or 1-based number>\", \"multiSelect\": bool}; "
+            "the UI renders it as a tappable options card."
+        )
+    elif "ask_user" in names:
+        # G1: a turn that holds the tool asks through it. Written into the answer, a
+        # question reaches the reader as a fenced payload and only a reader that knows
+        # the block can still turn it into something answerable.
+        lines.append(
+            "- To ask inside the run: call 'ask_user' when the turn cannot honestly go on without the "
+            "user's answer. The run pauses, the question appears as a card while the turn is still open, "
+            "and the answer comes back as that tool's result — the same turn continues with it in context. "
+            "Pass 'default' with the question: when nobody answers within the timeout the run continues "
+            "on that value and says so, so a pause never turns into a silent hang. Never append the "
+            "question to the answer as a JSON block."
+        )
     return "\n".join(lines)

@@ -90,27 +90,32 @@ def _make_ephe_tools_stub() -> types.ModuleType:
         return wrapper
 
     def _resolve(name: str):
-        from core.tools.registry import TOOL_MAP
+        from core.tools.registry import TOOL_MAP, addressable_tool_names
 
         if name == "TOOL_NAMES":
             return _auto_approved()
         if name not in TOOL_MAP:
+            # A contributed name left the kernel map and still has to answer here.
+            # The kernel has no approval dialog, so the answer is the refusal.
+            if name in addressable_tool_names():
+                return _refusal(name)
             raise AttributeError(f"module 'ephe_tools' has no tool {name!r}")
         if name not in _auto_approved():
             return _refusal(name)
         return _sync(TOOL_MAP[name])
 
     def tool_call(name: str, **kwargs):
-        from core.tools.registry import TOOL_MAP
+        from core.tools.registry import TOOL_MAP, addressable_tool_names
 
-        if name not in TOOL_MAP:
+        if name not in TOOL_MAP and name not in addressable_tool_names():
             return f"[tool_call] unknown tool: {name!r}"
         return _resolve(name)(**kwargs)
 
     module = types.ModuleType("ephe_tools")
     module.tool_call = tool_call
-    # PEP 562: one attribute per lookup, so the filtering stays live and
-    # an unknown name remains an AttributeError instead of becoming a phantom None.
+    # PEP 562: one attribute per lookup, so the filtering stays live.
+    # An unknown name remains an AttributeError. A contributed name answers
+    # with the refusal a gated kernel tool already returns.
     module.__getattr__ = _resolve
     return module
 

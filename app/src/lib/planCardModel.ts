@@ -8,6 +8,7 @@
  * answer streams. The counts come from the marks, never from the heading digits.
  */
 import type { PlanCardItem, PlanCardSpec, PlanItemStatus } from '@/types'
+import { COMPAT_EDIT_FAMILY_MODE } from '@/store/chat/helpers'
 
 export type { PlanCardItem, PlanCardSpec, PlanItemStatus }
 
@@ -75,12 +76,15 @@ export function renderPlanBlock(titles: string[]): string {
  *
  * Plan mode is read-only by contract: `server/routes/chat.py::_mode_context` filters the
  * tools down to `_READ_ONLY_TOOL_NAMES` and appends `PLAN_MODE_GUARD`, so a turn that
- * stays in `plan` can never do what the plan describes. The write family lives in
- * `edit-auto` (`docs/COMPOSER_MODES.md`), which is why accepting a plan has to move the
- * composer there — and why that move is visible: the chip the user reads is bound to
- * `session.mode` (`ComposerModeChip.tsx` via `ChatInput.tsx`'s `storeMode` selector).
+ * stays in `plan` can never do what the plan describes. The write family lives in the
+ * edit-family compatibility mode (`COMPAT_EDIT_FAMILY_MODE`), which is why accepting a
+ * plan has to move the composer there — and why that move is visible: the chip the user
+ * reads is bound to `session.mode` (`ComposerModeChip.tsx` via `ChatInput.tsx`'s
+ * `storeMode` selector). The tile left the menu in Task 3; the wire value stays, so the
+ * accepted plan runs the edit family without asking and still gets asked for everything
+ * else — the pairing the stored sessions had before the rename.
  */
-export const PLAN_EXECUTION_MODE = 'edit-auto'
+export const PLAN_EXECUTION_MODE = COMPAT_EDIT_FAMILY_MODE
 
 /**
  * The turn Accept starts: the user's line plus the plan it refers to, as the same block
@@ -126,7 +130,8 @@ export function parsePlanJson(raw: string): PlanCardSpec | null {
     }
     if (!entry || typeof entry !== 'object') continue
     const row = entry as Record<string, unknown>
-    const label = typeof row.title === 'string' ? row.title : typeof row.text === 'string' ? row.text : ''
+    const label =
+      typeof row.title === 'string' ? row.title : typeof row.text === 'string' ? row.text : ''
     if (!label.trim()) continue
     const status =
       typeof row.status === 'string' ? (EVENT_STATUS[row.status] ?? 'pending') : 'pending'

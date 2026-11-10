@@ -81,21 +81,28 @@ def state() -> dict:
     }
 
 
+def _bundle_name(name: str) -> str:
+    """The switch a marker shares with its bundle tool."""
+    from core.tools.dynamic_wiring import MARKER_ALIASES
+
+    return MARKER_ALIASES.get(name, name)
+
+
 def disabled() -> set[str]:
-    return set(state()["disabled"])
+    return {_bundle_name(name) for name in state()["disabled"]}
 
 
 def is_enabled(name: str) -> bool:
-    return name not in disabled()
+    return _bundle_name(name) not in disabled()
 
 
 def set_enabled(name: str, enabled: bool) -> bool:
     """Persist one switch. Returns False when the name may not be switched off."""
-    name = (name or "").strip()
+    name = _bundle_name((name or "").strip())
     if not name:
         return False
     current = state()
-    names = set(current["disabled"])
+    names = {_bundle_name(item) for item in current["disabled"]}
     if enabled:
         names.discard(name)
     else:
@@ -107,13 +114,17 @@ def set_enabled(name: str, enabled: bool) -> bool:
 
 
 def tool_names() -> list[str]:
-    """Every capability the registry can offer right now."""
+    """Every capability the registry can offer right now.
+
+    A marker name shares the bundle tool's switch. The settings list carries
+    that bundle name.
+    """
     from core.tools.registry import get_all_tool_schemas
 
     out: list[str] = []
     for schema in get_all_tool_schemas():
         function = schema.get("function") or {}
-        name = str(function.get("name") or "")
+        name = _bundle_name(str(function.get("name") or ""))
         if name:
             out.append(name)
     return sorted(set(out))
@@ -129,7 +140,7 @@ def filter_schemas(schemas: list[dict]) -> list[dict]:
         return schemas
     out = []
     for schema in schemas:
-        name = str((schema.get("function") or {}).get("name") or "")
+        name = _bundle_name(str((schema.get("function") or {}).get("name") or ""))
         if name and name in off:
             continue
         out.append(schema)
@@ -174,7 +185,7 @@ def catalog() -> list[dict]:
     seen: set[str] = set()
     for schema in get_all_tool_schemas():
         function = schema.get("function") or {}
-        name = str(function.get("name") or "")
+        name = _bundle_name(str(function.get("name") or ""))
         if not name or name in seen:
             continue
         seen.add(name)

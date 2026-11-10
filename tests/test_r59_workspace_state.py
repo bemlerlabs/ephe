@@ -4,8 +4,8 @@ Header/chip state machine:
 1. workspace_dir set (engine.json, the SSOT) => workspace_set=true, the chip
    shows the project name.
 2. No workspace_dir => workspace_set=false, neutral "Workspace" label; the
-   browsing root stays the documented CWD fallback (R26 parity with
-   /api/projects — no hardcoded path).
+   browsing root is the one authority's neutral default, ``~/Ephe`` (ticket
+   #153), pinned to a scratch HOME in the test.
 3. "Work outside a project" (pick('')) resets the choice; browsing outside
    the allowed roots is rejected (403 — kept from the existing fs guard;
    documented deviation from the plan's 400 so the pinned security tests
@@ -70,13 +70,21 @@ class TestWorkspaceThreeState:
 
     def test_state_2_no_workspace_reports_neutral(self, client):
         """G: no workspace_dir W: GET /api/fs T: neutral root, never the checkout."""
+        from core.engine_config import NEUTRAL_WORKSPACE_NAME
+
         r = client.get("/api/fs")
         assert r.status_code == 200
         body = r.json()
         assert body["workspace_set"] is False
         reported = Path(body["workspace"]).resolve()
         assert reported != Path.cwd().resolve()
-        assert reported.name == "workspace"
+        # A machine that holds the source checkout at the neutral name gets the sibling
+        # folder instead (case-insensitive volumes make `Ephe` and `ephe` one directory),
+        # so the promise is the neutral family, not one spelling.
+        assert reported.name in (
+            NEUTRAL_WORKSPACE_NAME,
+            f"{NEUTRAL_WORKSPACE_NAME}-workspace",
+        ), reported
 
     def test_state_3_out_of_roots_rejected(self, client):
         """G: absolute path outside allowed roots W: GET /api/fs T: 403."""

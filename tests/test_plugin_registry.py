@@ -1,6 +1,6 @@
 """P1 — one plugin/capability registry over the shipped portfolio.
 
-The registry is the first P1 slice: it reads the 16 manifests, the 51 built-in
+The registry is the first P1 slice: it reads the 17 manifests, the 51 built-in
 skills and the 7 curated MCP entries into descriptors without moving files or
 wiring the runtime. The five duplicate command/skill pairs are already dropped
 from the command side; the skill side keeps the native name.
@@ -39,8 +39,9 @@ def _registry() -> PluginRegistry:
 
 def test_registry_represents_the_whole_portfolio() -> None:
     registry = _registry()
-    assert len(registry.plugins) == 16
-    assert len(registry.capabilities(CapabilityKind.SKILL)) == 60
+    assert len(registry.plugins) == 17
+    # The image-studio skill is the one past the old pin of 60.
+    assert len(registry.capabilities(CapabilityKind.SKILL)) == 61
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7
     assert len(registry.capabilities(CapabilityKind.COMMAND)) == 32
 
@@ -125,18 +126,51 @@ def test_builtin_tool_adapter_uses_the_kernel_owner() -> None:
 def test_every_declared_tool_has_one_activation_owner() -> None:
     registry = _registry()
     activations = dict(registry.tool_activations())
-    assert len(activations) == 45
+    assert len(activations) == 47
     assert "delete_file" not in activations
     assert activations["web_search"] == "web-research"
+    assert activations["memory"] == "memory"
+    assert activations["browser_go"] == "browser-use"
+    assert activations["browser_exec"] == "browser-use"
     assert activations["read_file"] == "code-shell"
     assert activations["create_pdf"] == "documents"
-    assert len(registry.capabilities(CapabilityKind.BUILTIN_TOOL)) == 45
-    assert {
-        cap.owner for cap in registry.capabilities(CapabilityKind.BUILTIN_TOOL)
-    } == {"kernel"}
+    assert len(registry.capabilities(CapabilityKind.BUILTIN_TOOL)) == 0
+    served = {
+        "web_search", "fetch_url", "memory",
+        "browser_go", "browser_screenshot", "browser_click", "browser_type",
+        "browser_press", "browser_scroll", "browser_evaluate", "browser_exec",
+        "vision_click", "vision_type", "analyze_image",
+        "run_shell", "read_file", "write_file", "edit_file", "run_tests",
+        "run_linter", "format_code", "scaffold_project", "analyze_project",
+        "file_search", "load_workspace", "list_directory",
+        "create_pdf", "create_docx", "create_qrcode", "extract_pdf_text",
+        "build_document", "export_source_brief", "create_source_notebook",
+        "query_source_notebook", "verify_artifact",
+        "create_xlsx", "generate_chart",
+        "create_pptx_deck", "create_pitch_deck", "inspect_pptx_template",
+        "edit_pptx_template", "qa_pptx_deck", "create_diagram", "create_svg",
+        "generate_image",
+        "synthesize", "transcribe",
+    }
+    contributed = [
+        cap
+        for cap in registry.capabilities(CapabilityKind.PLUGIN_TOOL)
+        if cap.name in served
+    ]
+    assert {cap.name for cap in contributed} == served
+    assert {cap.owner for cap in contributed} == {
+        "web-research", "memory", "browser-use", "vision", "code-shell",
+        "documents", "spreadsheets", "presentations", "image-studio", "voice",
+    }
+    assert activations["generate_image"] == "image-studio"
+    assert activations["vision_click"] == "vision"
+    assert activations["vision_type"] == "vision"
+    assert activations["analyze_image"] == "vision"
     from core.tools.registry import TOOL_MAP
 
-    assert set(activations) <= set(TOOL_MAP)
+    kernel_names = set(activations) - served
+    assert kernel_names <= set(TOOL_MAP)
+    assert not served & set(TOOL_MAP)
 
 
 def test_a_tool_declared_by_two_plugins_fails_closed(tmp_path) -> None:
@@ -166,3 +200,46 @@ def test_a_tool_declared_by_two_plugins_fails_closed(tmp_path) -> None:
         load_tool_activations(tmp_path)
     assert err.value.code == "duplicate_tool_activation"
     assert "web_search" in err.value.detail
+
+
+def test_a_surface_only_v2_bundle_carries_no_activation(tmp_path) -> None:
+    """A Tier-1 surface bundle declares no tool, so the scan reads none and moves on.
+
+    `components.tools` is the scan's only manifest input. Since #13 the version-2 form of
+    an entry is an object with its own `name`, `entry` and `family`, held by
+    `core/plugin_tools_contract.py` and pinned in `tests/test_plugin_tools_contract.py`;
+    this bundle still declares the surface alone.
+    """
+    plugin_dir = tmp_path / "countdown"
+    (plugin_dir / "ui").mkdir(parents=True)
+    (plugin_dir / "ui" / "index.html").write_text("<!doctype html><title>Countdown</title>")
+    (plugin_dir / "ephe-plugin.json").write_text(
+        json.dumps(
+            {
+                "manifest_version": 2,
+                "name": "countdown",
+                "version": "1.0.0",
+                "description": "A countdown surface.",
+                "publisher": {"name": "Ephe"},
+                "license": "MIT",
+                "permissions": {"tool_families": [], "data_roots": []},
+                "components": {
+                    "ui": {
+                        "type": "floating-window",
+                        "entry": "ui/index.html",
+                        "title": "Countdown",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    from core import plugin_manifest
+    from core.plugin_registry import scan_tool_activations
+
+    manifest, error = plugin_manifest.load_manifest(plugin_dir)
+    assert error is None and manifest is not None
+    scanned = scan_tool_activations(tmp_path)
+    assert scanned.owners == ()
+    assert scanned.conflicts == ()
+

@@ -116,7 +116,7 @@ export function helperSession(chat: HelperChat, parentId: string): Session {
     createdAt: chat.startedTs ?? Date.now(),
     parentId,
     // The helper's sandbox is read-only; the parent task's mode does not apply.
-    mode: 'ask',
+    mode: 'analyst',
   }
 }
 

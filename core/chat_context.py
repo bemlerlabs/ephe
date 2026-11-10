@@ -1,25 +1,18 @@
 """Context window, result capping and tool-schema plumbing for the chat path.
 
 Split out of core/chat.py (2026-10-11): window fitting, per-tool result caps,
-tool-schema caching and the budget helpers the tool loop reads. core/chat.py
+the per-turn tool array and the budget helpers the tool loop reads. core/chat.py
 re-exports every name here.
 """
 
 from __future__ import annotations
 
 import json
-import time
 from contextvars import ContextVar
 
 from core.model_config import resolve_context_window
-from core.tools import get_tool_schemas
+from core.tools import get_tool_schemas, turn_snapshot
 from core.usage import estimate_tokens, serialize_prompt
-
-TOOL_SCHEMA_CACHE_TTL_SECONDS = 60.0
-
-
-_TOOL_SCHEMA_CACHE: tuple[float, list[dict]] | None = None
-
 
 #: Estimated tokens of the visible tool array of the current context. The provider
 #: window is shared by messages and tools, so the fit must not spend the array's
@@ -238,8 +231,13 @@ def _tools_for_messages(messages: list, allowed_tool_names: list[str] | None = N
         # before the union (probe p1 in docs/ENDSTATE_DELTA_2026-10-10.md).
         # An EMPTY whitelist (ask_mode) stays empty — deliberately no tool dialog.
         if allowed_tool_names:
-            from core.tools.discovery import META_TOOL_NAMES, file_primitives_for
-            allowed = set(allowed_tool_names) | META_TOOL_NAMES | file_primitives_for(allowed_tool_names)
+            from core.tools.discovery import ALWAYS_OFFERED_TOOLS, META_TOOL_NAMES, file_primitives_for
+            # G1: the ask gate travels with every whitelist. It writes nothing, and a
+            # session that cannot ask states its question as answer text instead.
+            allowed = (
+                set(allowed_tool_names) | META_TOOL_NAMES | file_primitives_for(allowed_tool_names)
+                | set(ALWAYS_OFFERED_TOOLS)
+            )
         else:
             allowed = set(allowed_tool_names)
         tools = [
@@ -251,9 +249,14 @@ def _tools_for_messages(messages: list, allowed_tool_names: list[str] | None = N
         # landscape is reduced to the CORE kernel + the discovery meta tools;
         # rare artifact generators are reached on demand via
         # tool_search/tool_describe/tool_call. That halves the base array.
+        # Creator mode keeps its calls out of the deferred index on purpose:
+        # `filter_offer` already removed every one this session has no grant for, so
+        # a name that survives to here is a name the mode promised the user — and a
+        # promise the model can only reach by guessing a search term is no promise.
+        from core.tools.creator_guard import CREATOR_TOOL_NAMES
         from core.tools.discovery import CORE_TOOLS
 
-        visible = set(CORE_TOOLS)
+        visible = set(CORE_TOOLS) | set(CREATOR_TOOL_NAMES)
         tools = [
             tool for tool in tools
             if tool.get("function", {}).get("name") in visible
@@ -278,10 +281,21 @@ def _tools_for_messages(messages: list, allowed_tool_names: list[str] | None = N
 
 
 def _cached_tool_schemas() -> list[dict]:
-    global _TOOL_SCHEMA_CACHE
-    now = time.monotonic()
-    if _TOOL_SCHEMA_CACHE and now - _TOOL_SCHEMA_CACHE[0] < TOOL_SCHEMA_CACHE_TTL_SECONDS:
-        return _TOOL_SCHEMA_CACHE[1]
-    schemas = get_tool_schemas()
-    _TOOL_SCHEMA_CACHE = (now, schemas)
-    return schemas
+    """The base offer array behind the per-message filters: one array per turn (#36).
+
+    A chat turn freezes the array at its first read and every later request of the
+    SAME turn — tool rounds, replays, failover, the revision half that runs the turn
+    again under the same id — reads that frozen one, so a mid-turn MCP tool or plugin
+    switch reaches the model on the NEXT turn only.
+
+    Without a bound turn id (a script, a helper) the registry answers every read, and
+    it answers through the three runtime filters — the plugin gate, the user's own
+    switches and the Creator consent — which `core.tools.registry` keeps outside every
+    cache for exactly that reason. This module holds no window of its own: a second
+    cache here would serve the offer that another session's mode produced and keep the
+    user's answer stuck until the window expired.
+    """
+    frozen = turn_snapshot.frozen_tool_array()
+    if frozen is not None:
+        return frozen
+    return turn_snapshot.freeze_tool_array(get_tool_schemas())

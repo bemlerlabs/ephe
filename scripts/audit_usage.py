@@ -21,6 +21,12 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from core.engine_config import config_root  # noqa: E402
+
 META_GROUP = ("tool_call", "tool_describe", "tool_search")
 FILE_PRIMITIVE_GROUP = (
     "read_file", "write_file", "edit_file", "delete_file", "list_directory", "file_search",
@@ -236,7 +242,7 @@ def report(ledger: Ledger, names: list[tuple[str, str]], since: datetime | None,
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--log", default=os.environ.get(
-        "EPHE_AUDIT_LOG", str(Path.home() / ".ephe" / "audit.log")))
+        "EPHE_AUDIT_LOG", str(config_root() / "audit.log")))
     ap.add_argument("--since", help="ISO timestamp, naive means local time")
     ap.add_argument("--until", help="ISO timestamp, a date-only value ends at 23:59:59")
     ap.add_argument("--tools", default="group:meta",

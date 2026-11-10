@@ -90,7 +90,7 @@ async def generate_image(
 
     Uses the configured OpenAI-compatible image endpoint — locally free
     (SD-WebUI/LM-Studio) or cloud (cloud APIs with an own key) per user setup.
-    Writes a real PNG/JPEG and returns a PNG_FILE marker
+    Writes the endpoint bytes under a name ending in .png and returns a PNG_FILE marker
     that the chat stream shows as a downloadable artifact.
     """
     payload_prompt = (prompt or "").strip()

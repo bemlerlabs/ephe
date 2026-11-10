@@ -19,6 +19,15 @@ type Bundle = { chat: Record<string, Record<string, string>> }
 const deChat = (de as unknown as Bundle).chat
 const enChat = (en as unknown as Bundle).chat
 
+/**
+ * Task 3: the mode names Analyst and Operator are the same word on both
+ * surfaces, by the owner's ruling — like the locale gate's SAME_BY_DESIGN list,
+ * an exemption that must earn its place. The entry below holds only while the
+ * two bundles really carry the identical title (checked per mode below), so it
+ * cannot rot into a blanket exception for untranslated German copy.
+ */
+const SAME_TITLE_BY_DESIGN = new Set(['analyst', 'operator'])
+
 describe('Composer-Modi: jeder Titel hat einen Text in beiden Sprachen', () => {
   it.each(COMPOSER_MODES.map((m) => [m.key, m] as const))('%s', (_key, mode) => {
     const pfad = (key: string): [string, string] => {
@@ -38,7 +47,13 @@ describe('Composer-Modi: jeder Titel hat einen Text in beiden Sprachen', () => {
       // English remainder message when the surface is German.
       const titel = (hinweis ?? '').split(' — ')[0] ?? ''
       expect(titel.length, `${sprache}: Titel zu lang für den Chip`).toBeLessThanOrEqual(24)
-      if (sprache === 'de') expect(titel).not.toBe(mode.fallback)
+      if (sprache === 'de' && SAME_TITLE_BY_DESIGN.has(mode.key)) {
+        // The exemption holds only while the shared word is shared for real.
+        const enTitel = (enChat[hintGruppe]?.[hintSchluessel] ?? '').split(' — ')[0] ?? ''
+        expect(titel, `${mode.key}: the exempt title drifted from the English one`).toBe(enTitel)
+      } else if (sprache === 'de') {
+        expect(titel).not.toBe(mode.fallback)
+      }
     }
   })
 })

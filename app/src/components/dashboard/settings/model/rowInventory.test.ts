@@ -143,7 +143,7 @@ describe('W3-51 — no orphan row: every hand-built row is in the index', () => 
 
 describe('W3-51 — no orphan index entry: every entry is built', () => {
   it('jeder Index-Schluessel kommt in den Quellen vor (oder sein Template-Familienzweig)', () => {
-    // `t(\`settings.plugins.${seg}\`)` builds public/personal; the family prefix
+    // `t(\`settings.plugins.${seg}\`)` builds global/session; the family prefix
     // before a `${` is the evidence that a family is still rendered.
     const dead = ROW_INDEX.filter((e) => {
       const family = `${e.key.slice(0, e.key.lastIndexOf('.') + 1)}`

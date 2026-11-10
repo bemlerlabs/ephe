@@ -52,6 +52,20 @@ def _resolve_cwd(cwd: str | None) -> str:
     return base_norm
 
 
+def _docker_mount_root() -> str | None:
+    """The host folder the docker backend exposes as ``/workspace``, if it is on.
+
+    Validation runs before the backend is chosen at exec time, so it has to be told
+    the same mount the container will carry; otherwise `ls /workspace` — the
+    documented way to see the mounted workspace — is refused as a host path.
+    """
+    if _shell_backend() != "docker":
+        return None
+    from core.engine_config import get_workspace_dir
+
+    return get_workspace_dir()
+
+
 def _sandbox_args(command: str, cwd: str | None) -> list[str] | None:
     """W16: Seatbelt wrapper arguments, ONLY when the real wrapper takes effect.
 
@@ -76,6 +90,8 @@ async def run_shell(command: str, run_in_background: bool = False, cwd: str | No
        not just the first token; curl/wget deliberately not whitelisted
     3. No redirects / subshells
     4. Interpreter flags (-c/-e/-i) only with a really active Seatbelt sandbox
+    5. File arguments stay inside the file-tool roots. A credential-shaped
+       name is refused with the sandbox on and with it off.
 
     J2: run_in_background=True → immediate task id ('bg1', 'bg2', …), the work
     continues as an asyncio task; output/status via task_output(), abort
@@ -84,7 +100,15 @@ async def run_shell(command: str, run_in_background: bool = False, cwd: str | No
     """
     global _BG_COUNTER
 
-    rejection = validate_shell_command(command, sandboxed=_sandbox_args(command, cwd) is not None)
+    # The Seatbelt wrapper runs the command on this host, so the container mount
+    # only names a real folder when the docker backend is the branch that executes.
+    sandbox_args = _sandbox_args(command, cwd)
+    rejection = validate_shell_command(
+        command,
+        sandboxed=sandbox_args is not None,
+        root=_resolve_cwd(cwd),
+        container_workspace=_docker_mount_root() if sandbox_args is None else None,
+    )
     if rejection is not None:
         return rejection
 
@@ -196,12 +220,16 @@ async def execute_confirmed_shell(command: str, confirmed: bool, cwd: str | None
     # W16/WB-16: decide the wrapper ONCE — the same resolver feeds the validation
     # flag, the exec path and the audit detail, so no host reads a different surface.
     sandbox_args, sandbox_detail = resolve_sandbox(command, workspace)
-    rejection = validate_shell_command(command, sandboxed=sandbox_args is not None)
+    rejection = validate_shell_command(
+        command,
+        sandboxed=sandbox_args is not None,
+        root=workspace,
+        container_workspace=_docker_mount_root() if sandbox_args is None else None,
+    )
     if rejection is not None:
         return rejection
 
-    # A configured sandbox with no wrapper on this host (sandbox-exec is macOS-only)
-    # still runs unsandboxed here; the resolver already named that outcome.
+    # A requested sandbox with no boundary on this host does not run.
     sandbox_unavailable = sandbox_detail == SANDBOX_UNAVAILABLE
 
     # R23: audit — time, hash + redacted command, exit status, duration.
@@ -242,11 +270,17 @@ async def execute_confirmed_shell(command: str, confirmed: bool, cwd: str | None
             except RuntimeError as exc:
                 _audit("docker-unusable", str(exc))
                 return f"[docker backend error] {exc}"
+        elif sandbox_unavailable:
+            _audit("sandbox-unavailable")
+            return (
+                "[TOOL-DENIED] run_shell was not executed: "
+                "the sandbox was requested and this host has no boundary."
+            )
         else:
             result = await asyncio.to_thread(
                 _exec_sync, command, workspace, True
             )
-            _audit("executed", detail="sandbox-unavailable" if sandbox_unavailable else "")
+            _audit("executed")
 
         output = result.stdout.strip()
         if result.returncode != 0:
@@ -271,10 +305,10 @@ def run_shell_pty(command: str, stdin_text: str = "") -> str:
     Without os.openpty (e.g. some Windows setups) the path falls back to the
     PIPE-based _exec_sync — the output stays deterministic.
     """
-    rejection = validate_shell_command(command)
+    workspace = _resolve_cwd(None)
+    rejection = validate_shell_command(command, root=workspace)
     if rejection is not None:
         return rejection
-    workspace = _resolve_cwd(None)
     if not hasattr(os, "openpty"):
         return _exec_sync(command, workspace, True).stdout or "(no output)"
     primary, secondary = os.openpty()

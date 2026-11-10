@@ -12,6 +12,7 @@ import MessageFileCard from '../artifacts/messageCard'
 import { producedFiles } from '../artifacts/messageCard'
 import { claimsMissingImage } from '@/lib/artifactClaims'
 import TurnProgressLine from './turnProgress'
+import CreatorCard from '../chat/CreatorCard'
 import { summarizeToolDiff } from '@/lib/diffSummaryModel'
 import { useChatStore } from '@/store/chatStore'
 
@@ -130,6 +131,10 @@ export function AssistantExtras({ m, onPickOption, onRetry }: AssistantExtrasPro
           )}
         </div>
       )}
+
+      {/* #28: what the bundle now is, beside the record of how it got there. The card
+                  reads the creator answers and adds the one fact the rows do not carry. */}
+      <CreatorCard tools={m.tool_calls ?? []} streaming={m.streaming} />
 
       {/* 2. Detector artifacts as one-line pills. The code itself stands in the
                   answer above; the pill is the way into the panel, not a second copy. */}

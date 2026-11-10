@@ -106,6 +106,8 @@ const SAME_BY_DESIGN = new Set<string>([
   'chat.planTitle', // Plan
   'chat.replayTitle', // Replay
   'chat.skillsTitle', // Skills
+  'chat.watchBound', // {{kind}} {{tool}} {{ts}} — placeholders, not prose
+  'chat.watchPause', // Pause — the same word in both languages
   'commandPalette.items.preview', // Browser
   'header.branches', // Branches
   'memory.storeIndex', // Index

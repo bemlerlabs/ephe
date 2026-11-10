@@ -71,11 +71,21 @@ def is_available() -> bool:
     return platform_boundary() != "unavailable"
 
 
+def homes_root() -> Path:
+    """The directory every per-server HOME sits under — the root a caller confines to."""
+    return config_root() / "mcp" / "homes"
+
+
+def home_path(server: str) -> Path:
+    """The per-server HOME path. Asking for it does not create the folder."""
+    root = homes_root()
+    slug = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in server)[:60] or "server"
+    return root / slug
+
+
 def home_for(server: str) -> Path:
     """A per-server HOME under the config root, created 0700."""
-    root = config_root() / "mcp" / "homes"
-    slug = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in server)[:60] or "server"
-    home = root / slug
+    home = home_path(server)
     home.mkdir(parents=True, exist_ok=True, mode=0o700)
     (home / "tmp").mkdir(exist_ok=True, mode=0o700)
     return home
@@ -152,7 +162,15 @@ def _runtime_prefixes(command: str | None, real_home: str) -> list[str]:
     return sorted(roots)
 
 
-def build_profile(home: str, command: str | None = None) -> str:
+#: The one rule that closes the accidental door. Measured 2026-11-05: a confined plugin
+#: worker opened a TCP connection to a loopback port the backend was listening on and read
+#: `200` from `/api/health` and `/api/memory/list`, with no token. The profile had no
+#: network rule. Capabilities reach the host through the bridge (task #23). Dropping
+#: this rule fails `tests/test_sandbox_plugin_network.py` on either boundary.
+NETWORK_DENY_RULE = "(deny network*)\n"
+
+
+def build_profile(home: str, command: str | None = None, *, deny_network: bool = False) -> str:
     """Deny the user's whole home, allow writes only in the child's home/tmp.
 
     The per-server home lives under the config root, which is itself inside the
@@ -164,20 +182,20 @@ def build_profile(home: str, command: str | None = None) -> str:
     """
     real_home = os.path.realpath(os.path.expanduser("~"))
     child_home = os.path.realpath(home)
-    config_root = os.path.realpath(
-        os.environ.get("EPHE_CONFIG_DIR") or os.path.join(real_home, ".ephe")
-    )
+    device_root = os.path.realpath(config_root())
     tmp = os.path.realpath(tempfile.gettempdir())
     runtime = "".join(
         f'(allow file-read* (subpath "{prefix}"))\n'
         for prefix in _runtime_prefixes(command, real_home)
     )
     outside_config = ""
-    if config_root != real_home and not config_root.startswith(real_home + os.sep):
-        outside_config = f'(deny file-read* (subpath "{config_root}"))\n'
+    if device_root != real_home and not device_root.startswith(real_home + os.sep):
+        outside_config = f'(deny file-read* (subpath "{device_root}"))\n'
+    network = NETWORK_DENY_RULE if deny_network else ""
     return (
         "(version 1)\n"
         "(allow default)\n"
+        f"{network}"
         "(deny file-read*\n"
         f'  (subpath "{real_home}")\n'
         ")\n"
@@ -197,7 +215,7 @@ def build_profile(home: str, command: str | None = None) -> str:
     )
 
 
-def build_bwrap(home: str, command: str | None = None) -> list[str]:
+def build_bwrap(home: str, command: str | None = None, *, deny_network: bool = False) -> list[str]:
     """bubblewrap mounts: read-only root, empty home, runtime and child home bound back.
 
     `--tmpfs <real home>` after `--ro-bind / /` hides every dotdir the user has,
@@ -216,9 +234,7 @@ def build_bwrap(home: str, command: str | None = None) -> list[str]:
     """
     real_home = os.path.realpath(os.path.expanduser("~"))
     child_home = os.path.realpath(home)
-    config_root = os.path.realpath(
-        os.environ.get("EPHE_CONFIG_DIR") or os.path.join(real_home, ".ephe")
-    )
+    device_root = os.path.realpath(config_root())
     argv = [
         "bwrap",
         "--die-with-parent",
@@ -227,12 +243,17 @@ def build_bwrap(home: str, command: str | None = None) -> list[str]:
         "--dev", "/dev",
         "--proc", "/proc",
     ]
+    if deny_network:
+        # The mount namespace has no network namespace of its own until this is asked
+        # for, and the child then sees no loopback to call. The connector rail stays as
+        # it was: an MCP server may legitimately be a network client.
+        argv.append("--unshare-net")
     run_user = f"/run/user/{os.getuid()}"
     if os.path.isdir(run_user):
         argv += ["--tmpfs", run_user]
     hidden = [real_home]
-    if config_root != real_home and not config_root.startswith(real_home + os.sep):
-        hidden.append(config_root)
+    if device_root != real_home and not device_root.startswith(real_home + os.sep):
+        hidden.append(device_root)
     for path in hidden:
         argv += ["--tmpfs", path]
     for prefix in _runtime_prefixes(command, real_home):

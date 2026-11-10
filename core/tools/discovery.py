@@ -55,6 +55,11 @@ def file_primitives_for(allowed_tool_names: Iterable[str] | None) -> frozenset[s
         return FILE_PRIMITIVE_TOOLS
     return READ_ONLY_FILE_TOOLS
 
+#: Names every turn that offers tools keeps, whitelist or not. The ask gate is why the
+#: set exists: a turn that holds no way to ask can only write the question into the
+#: answer, where the reader meets a payload and not a card.
+ALWAYS_OFFERED_TOOLS: frozenset[str] = frozenset({"ask_user"})
+
 #: Always in the base array: file/shell/test core, research, verification,
 #: Kernel, Ledger, Process, Browser, Vision.
 CORE_TOOLS: frozenset[str] = frozenset({
@@ -73,6 +78,10 @@ CORE_TOOLS: frozenset[str] = frozenset({
     "browser_exec",
     "vision_click", "vision_type",
     "analyze_project", "discover_projects", "load_workspace",
+    # G1 (ask gate): the question a run has to ask before it can go on. Without the
+    # tool in this array the model has no way to pause, so it writes the question into
+    # the answer and the reader meets a payload where a card belongs.
+    *ALWAYS_OFFERED_TOOLS,
     # P3 stateful-agent tools (memory + skill care) — high-frequency, always included
     "memory", "skill_manage",
     # the discovery meta tools themselves
@@ -141,7 +150,7 @@ def omitted_core_tools() -> frozenset[str]:
 #: A search that hits nothing. The second answer is the one a whitelisted session
 #: needs: the first claims the core tools are active, which is false right after a
 #: skill whitelist removed them from the array.
-NO_MATCH_CORE_ACTIVE = "Keine passende Deferred-Tools. Kern-Tools sind bereits aktiv."
+NO_MATCH_CORE_ACTIVE = "No matching deferred tools. Core tools are already active."
 NO_MATCH_WHITELISTED = (
     "No tool matched. {count} core tool(s) are not in this session's array ({names}); "
     "they are callable through tool_call."
@@ -214,7 +223,7 @@ def search(query: str) -> str:
         omitted_hits = collect(omitted, tier) if terms else []
         if deferred_hits:
             parts.append(
-                "Verfuegbare Deferred-Tools:\n"
+                "Available deferred tools:\n"
                 + "\n".join(_index_line(name, schemas[name]) for name in deferred_hits)
             )
         if omitted_hits:
@@ -241,7 +250,7 @@ def describe(name: str) -> str:
     for entry in get_tool_schemas():
         if entry.get("function", {}).get("name") == name:
             return json.dumps(entry, ensure_ascii=False)
-    return f"[tool_describe] kein Tool '{name}' gefunden"
+    return f"[tool_describe] no tool named '{name}'"
 
 
 async def tool_search(query: str = "") -> str:
@@ -268,9 +277,9 @@ async def tool_call(name: str, arguments: str = "{}") -> str:
         try:
             args = json.loads(arguments) if (arguments or "").strip() else {}
         except json.JSONDecodeError as exc:
-            return f"[tool_call] ungueltiges JSON in 'arguments': {exc}"
+            return f"[tool_call] invalid JSON in 'arguments': {exc}"
     if not isinstance(args, dict):
-        return "[tool_call] 'arguments' muss ein JSON-Objekt sein"
+        return "[tool_call] 'arguments' must be a JSON object"
     # P1a: forward the active approval policy so the inner tool goes
     # through the same approval gate as a directly called one (no gate bypass).
     from core.tools.session_ctx import get_current_policy

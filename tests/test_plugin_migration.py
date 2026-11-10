@@ -195,8 +195,9 @@ def test_atomic_merge_preserves_unrelated_state(tmp_path) -> None:
 
 def test_portfolio_counts_and_no_deletion() -> None:
     registry = PluginRegistry.load(ROOT / "plugins", ROOT / "skills")
-    assert len(registry.plugins) == 16
-    assert len(registry.capabilities(CapabilityKind.SKILL)) == 60
+    assert len(registry.plugins) == 17
+    # The image-studio skill is the one past the old pin of 60.
+    assert len(registry.capabilities(CapabilityKind.SKILL)) == 61
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7
     assert len(mcp_catalog.catalog_entries()) == 7
     legacy = json.loads((ROOT / "plugin-marketplace.json").read_text(encoding="utf-8"))

@@ -34,8 +34,10 @@ from server.routes import (
     agent_teams,
     artifacts,
     audit,
+    browser_watch,
     capabilities,
     cell,
+    creator,
     learning,
     channels,
     fs,
@@ -57,7 +59,9 @@ from server.routes import (
     model_provider,
     marketplace,
     mcp,
+    plugin_ui,
     plugins,
+    plugins_hot_mount,
     profile,
     project,
     proxy,
@@ -290,11 +294,13 @@ def create_app(lan_mode: bool = False) -> FastAPI:
             return ErrorCode.UPSTREAM
         return ErrorCode.INTERNAL
 
-    def _allowed_verbs(exc: Exception) -> str | None:
+    def _allowed_verbs(exc: Exception, request: Request | None = None) -> str | None:
         """The methods the matched route itself answers with, or None when nothing knows.
 
         The router raises its 405 with an Allow header built from the matched route's
-        own `methods`; that set has no stable order, so re-join it sorted.
+        own `methods`; that set has no stable order, so re-join it sorted. When the
+        exception doesn't carry headers (a FastAPI/Starlette quirk), fall back to
+        inspecting the request's matched route.
         """
         raw = next(
             (
@@ -304,6 +310,41 @@ def create_app(lan_mode: bool = False) -> FastAPI:
             ),
             "",
         )
+        if not raw and request is not None:
+            # FastAPI doesn't put "route" in scope for 405s, so we search the router
+            router = request.scope.get("router")
+            if router:
+                import re
+                from starlette.routing import Match
+                request_path = request.scope.get("path", "")
+                for route in router.routes:
+                    # Handle _IncludedRouter by checking its original_router and prefix
+                    routes_to_check = []
+                    prefix = ""
+                    if hasattr(route, "include_context") and hasattr(route.include_context, "prefix"):
+                        prefix = route.include_context.prefix or ""
+                    if hasattr(route, "original_router") and hasattr(route.original_router, "routes"):
+                        routes_to_check = route.original_router.routes
+                    elif hasattr(route, "routes"):
+                        routes_to_check = route.routes
+                    else:
+                        routes_to_check = [route]
+                    
+                    for subroute in routes_to_check:
+                        if hasattr(subroute, "path"):
+                            subroute_path = subroute.path
+                            full_path = prefix + subroute_path
+                            # Convert FastAPI path params to regex
+                            path_regex = re.sub(r'\{[^}]+\}', r'[^/]+', full_path)
+                            path_regex = f'^{path_regex}$'
+                            if re.match(path_regex, request_path):
+                                if hasattr(subroute, "methods") and subroute.methods:
+                                    raw = ", ".join(sorted(subroute.methods))
+                                    break
+                        if raw:
+                            break
+                    if raw:
+                        break
         verbs = sorted({verb.strip().upper() for verb in raw.split(",") if verb.strip()})
         return ", ".join(verbs) if verbs else None
 
@@ -323,7 +364,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         if status_code == 405:
             # RFC 9110 15.0.5: a 405 names the methods the target supports. Send the
             # list only when the router derived one; silence says the answer is unknown.
-            allowed = _allowed_verbs(exc)
+            allowed = _allowed_verbs(exc, request)
             if allowed is not None:
                 headers["Allow"] = allowed
                 message = f"{request.method} is refused on this path — it answers {allowed}. Retry with one of those."
@@ -396,6 +437,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     # API routes
     app.include_router(health.router, prefix="/api")
     app.include_router(capabilities.router, prefix="/api")
+    app.include_router(creator.router, prefix="/api")
     app.include_router(usage.router, prefix="/api")
     app.include_router(files.router, prefix="/api")
     app.include_router(chat.router, prefix="/api")
@@ -405,6 +447,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(skills.router, prefix="/api")
     app.include_router(artifacts.router, prefix="/api")
     app.include_router(audit.router, prefix="/api")
+    app.include_router(browser_watch.router, prefix="/api")
     app.include_router(cell.router, prefix="/api")
     app.include_router(events.router, prefix="/api")
     app.include_router(hooks.router, prefix="/api")
@@ -426,6 +469,8 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(schedule.router, prefix="/api")
     app.include_router(settings.router, prefix="/api")
     app.include_router(plugins.router, prefix="/api")
+    app.include_router(plugins_hot_mount.router, prefix="/api")
+    app.include_router(plugin_ui.router, prefix="/api")
     app.include_router(importer.router, prefix="/api")
     app.include_router(tour.router, prefix="/api")
     app.include_router(ephemeris.router, prefix="/api")
@@ -524,10 +569,13 @@ def mount_frontend(app: FastAPI) -> None:
     """
     frontend_dir = resolve_frontend_dir()
     if (frontend_dir / "index.html").is_file():
-        app.mount(
-            "/",
-            SPAStaticFiles(directory=str(frontend_dir), html=True),
-            name="frontend",
+        from server.spa import SPAMount, SPAStaticFiles
+        app.routes.append(
+            SPAMount(
+                "/",
+                app=SPAStaticFiles(directory=str(frontend_dir), html=True),
+                name="frontend",
+            )
         )
     else:
 

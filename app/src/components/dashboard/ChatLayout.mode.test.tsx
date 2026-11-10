@@ -236,14 +236,14 @@ describe('ChatLayout composer mode switch (P4)', () => {
 
   afterEach(() => cleanup())
 
-  it('Frische Session startet Full access (Paritaet); Plan-Klick wechselt Chip + session.mode', () => {
+  it('Frische Session startet Operator (Paritaet); Architect-Klick wechselt Chip + session.mode', () => {
     // The default of fresh sessions is a tool-capable mode (DEFAULT_COMPOSER_MODE).
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Full access')
+    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Operator')
     expect(screen.queryByTestId('composer-ask-hint')).toBeNull()
     fireEvent.click(screen.getByTestId('composer-mode-selector'))
-    fireEvent.click(screen.getByTestId('composer-mode-plan'))
-    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Plan')
+    fireEvent.click(screen.getByTestId('composer-mode-architect'))
+    expect(screen.getByTestId('composer-mode-selector').textContent).toContain('Architect')
     const st = useChatStore.getState()
-    expect(st.sessions.find((x) => x.id === st.activeSessionId)?.mode).toBe('plan')
+    expect(st.sessions.find((x) => x.id === st.activeSessionId)?.mode).toBe('architect')
   })
 })

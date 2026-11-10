@@ -23,6 +23,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.tool_dispatch_seam import patched_tool
+
 
 # Helpers
 
@@ -258,7 +260,7 @@ class TestEpheToolIterationBudget:
             provider = AsyncMock()
             provider.chat = AsyncMock(side_effect=[tool_response] * 30)  # R46: cap 25 needs more mock answers
             MockClient.return_value = provider
-            with patch.dict("core.tools.registry.TOOL_MAP", {"read_file": executor}, clear=False):
+            with patched_tool("read_file", executor):
                 answer = await chat_with_tools(
                     model="m",
                     history=[{"role": "user", "content": "Lies x.txt"}],
@@ -283,7 +285,7 @@ class TestEpheToolIterationBudget:
             provider = AsyncMock()
             provider.chat = AsyncMock(side_effect=[tool_response] * 30)  # R46: cap 25 needs more mock answers
             MockClient.return_value = provider
-            with patch.dict("core.tools.registry.TOOL_MAP", {"read_file": executor}, clear=False):
+            with patched_tool("read_file", executor):
                 await chat_with_tools(
                     model="m",
                     history=[{"role": "user", "content": "Lies x.txt"}],

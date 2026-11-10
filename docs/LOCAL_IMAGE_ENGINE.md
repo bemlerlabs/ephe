@@ -1,7 +1,7 @@
 # Local Image Generation (free & offline)
 
-`generate_image` (tool `/image` skill) renders real PNG/JPEG images through any
-**OpenAI-compatible `/v1/images/generations` endpoint**. The image engine is
+`generate_image` (the `/image` skill) asks an
+**OpenAI-compatible `/v1/images/generations` endpoint**, stores the returned bytes under a name ending in `.png`, and prints `PNG_FILE`. The image engine is
 *your* choice — the tool itself ships no model and never simulates output.
 
 ## Recommended: LocalAI (free, self-hosted)

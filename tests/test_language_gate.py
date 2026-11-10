@@ -124,15 +124,14 @@ class TestGrowthFails:
 
 
 class TestShrinkagePasses:
-    def test_a_cleaner_tree_passes_and_offers_to_lower_the_baseline(self, tmp_path, capsys):
-        """GIVEN three lines baselined WHEN only one is left THEN the gate says: lower it."""
+    def test_a_cleaner_tree_passes_and_reports_the_smaller_total(self, tmp_path, capsys):
+        """GIVEN three lines baselined WHEN only one is left THEN the pass carries the current total."""
         path = baseline(tmp_path, {SOURCE: 3})
         code = run(tmp_path, path, tree(german=1))
         out = capsys.readouterr().out
         assert code == 0
         assert "PASS" in out
-        assert "the baseline can be lowered" in out
-        assert "language_gate.py --update" in out
+        assert "total 3 -> 1 lines" in out
 
     def test_update_lowers_the_baseline(self, tmp_path, capsys):
         """GIVEN a cleaner tree WHEN --update runs THEN the committed number follows it down."""
@@ -148,6 +147,75 @@ class TestShrinkagePasses:
         assert run(tmp_path, path, tree(german=5), "--update") == 1
         assert "only lowers" in capsys.readouterr().err
         assert path.read_text() == before
+
+
+class TestTheOfferIsPrintedWhenActionable:
+    """The offer belongs to the passing run, once, in the family's two lines.
+
+    `prose_tells.py` and `home_isolation_gate.py` close a pass with the offer to lower the
+    baseline, and this gate reads the same way. The offer is tied to the action, not to a
+    flag: at least one file sits below its entry, so re-measuring would lower the number.
+    A tree that matches the baseline has nothing to offer and stays quiet.
+    """
+
+    def test_a_cleaner_tree_offers_the_update_without_a_flag(self, tmp_path, capsys):
+        """GIVEN three baselined lines WHEN one is left THEN the pass carries the offer."""
+        path = baseline(tmp_path, {SOURCE: 3})
+        assert run(tmp_path, path, tree(german=1)) == 0
+        out = capsys.readouterr().out
+        assert "PASS" in out
+        assert "1 file(s) sit below their baseline entry: the baseline can be lowered" in out
+        assert "language_gate.py --update" in out
+
+    def test_the_offer_prints_once_for_every_lowered_file(self, tmp_path, capsys):
+        """GIVEN two files below their entries WHEN the gate passes THEN one hint counts both."""
+        other = "core/other.py"
+        path = baseline(tmp_path, {SOURCE: 3, other: 5})
+        files = tree(german=1)
+        files[other] = clean_lines(2)
+        assert run(tmp_path, path, files) == 0
+        out = capsys.readouterr().out
+        assert "2 file(s) sit below their baseline entry" in out
+        assert out.count("the baseline can be lowered") == 1
+        assert out.count("language_gate.py --update") == 1
+
+    def test_a_matching_tree_has_nothing_to_offer(self, tmp_path, capsys):
+        """GIVEN a baseline that matches WHEN the gate runs THEN no lowering hint appears."""
+        path = baseline(tmp_path, {SOURCE: 2})
+        assert run(tmp_path, path, tree(german=2)) == 0
+        out = capsys.readouterr().out
+        assert "PASS" in out
+        assert "can be lowered" not in out
+
+    def test_a_failing_run_prints_no_offer(self, tmp_path, capsys):
+        """GIVEN one file above and one below WHEN the gate runs THEN growth decides the text."""
+        lower = "core/lower.py"
+        path = baseline(tmp_path, {SOURCE: 1, lower: 5})
+        files = {SOURCE: german_lines(3, gate.inventory.MARKERS), lower: clean_lines(2)}
+        assert run(tmp_path, path, files) == 1
+        out = capsys.readouterr().out
+        assert "FAIL" in out
+        assert "can be lowered" not in out
+
+    def test_a_staged_run_leaves_the_whole_tree_offer_out(self, tmp_path, capsys):
+        """GIVEN two staged paths WHEN the rest is below its baseline THEN the pass is silent.
+
+        `--staged` measures the few blobs one commit carries, so a baseline entry it never
+        read is out of scope rather than lower. The offer names a whole-tree `--update`,
+        which a pre-commit hook must not invite while lint-staged has unstaged work hidden.
+        """
+        other = "core/other.py"
+        path = baseline(tmp_path, {SOURCE: 3, other: 5})
+        list_files, read_text = injected({SOURCE: clean_lines(1)})
+        code = gate.main(
+            ["--baseline", str(path), "--root", str(tmp_path), "--staged"],
+            list_files=list_files,
+            read_text=read_text,
+        )
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "PASS" in out
+        assert "can be lowered" not in out
 
 
 class TestProtectedPathsNeverMoveTheNumber:
@@ -313,7 +381,7 @@ class TestInstrumentStillMeansWhatItMeant:
         assert inv.wide_prose_hits("# Xbernehmen Ynderungen") == 0
 
     def test_a_german_noun_without_an_umlaut_still_needs_the_list(self):
-        """The net sees vocabulary, not grammar: an unlisted noun stays invisible.
+        """The net reads vocabulary: a noun the list does not carry stays invisible.
 
         `Ansicht`, `Vorlagen` and `bestand` scored nothing in the literal census, where  # language-gate: ignore (the instrument's own vocabulary words, named verbatim — asserted below via inv.HINTS)
         the wide pass flagged 110 lines and a reader counted about 230. Three of those

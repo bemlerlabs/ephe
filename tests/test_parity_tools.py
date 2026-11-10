@@ -140,10 +140,12 @@ def test_discovery_whitelist_bypasses_deferral():
     visible = {e["function"]["name"] for e in _tools_for_messages([{"role": "user", "content": "hi"}], allowed)}
     # P0-1: declared tools + the three meta tools (progressive disclosure applies even
     # with an active skill) + the read primitives a whitelist may not take away
-    # (owner decision 2026-10-10). Deferred non-meta tools stay outside.
+    # (owner decision 2026-10-10) + the ask gate, which writes nothing and lets the
+    # turn ask instead of writing the question into the answer (G1). Deferred non-meta
+    # tools stay outside.
     assert visible == {
         "create_pdf", "read_file", "list_directory", "file_search",
-        "tool_search", "tool_describe", "tool_call",
+        "tool_search", "tool_describe", "tool_call", "ask_user",
     }
     assert "create_xlsx" not in visible  # deferred, not meta
 
@@ -271,9 +273,12 @@ def test_memory_ceiling_enforced():
 # browser_exec: built-in browser as a one-namespace Python tool
 
 def test_browser_exec_registered_and_classified():
-    """browser_exec is in the map, the schema and CORE_TOOLS (always active)."""
+    """browser_exec stays in the offer and in CORE_TOOLS. The bundle serves it."""
     from core.tools.discovery import CORE_TOOLS
-    assert "browser_exec" in TOOL_MAP
+    from core.tools.registry import addressable_tool_names
+
+    assert "browser_exec" not in TOOL_MAP
+    assert "browser_exec" in addressable_tool_names()
     assert "browser_exec" in _schema_names()
     assert "browser_exec" in CORE_TOOLS
 

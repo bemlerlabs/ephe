@@ -45,14 +45,33 @@ class TestExecuteTool:
     async def test_passes_arguments_to_tool(self):
         """
         GIVEN  a tool with parameters
-        WHEN   execute_tool("web_search", {"query": "test"}) is called
+        WHEN   execute_tool("delete_file", {"path": "/tmp/x"}) is called
         THEN   the parameters are passed on
         """
-        mock_fn = AsyncMock(return_value="Ergebnisse")
-        with patch.dict("core.tools.registry.TOOL_MAP", {"web_search": mock_fn}, clear=False):
-            result = await execute_tool("web_search", {"query": "test"})
+        mock_fn = AsyncMock(return_value="gone")
+        with patch.dict("core.tools.registry.TOOL_MAP", {"delete_file": mock_fn}, clear=False):
+            result = await execute_tool("delete_file", {"path": "/tmp/x"})
 
-        mock_fn.assert_called_once_with(query="test")
+        mock_fn.assert_called_once_with(path="/tmp/x")
+        assert result == "gone"
+
+    @pytest.mark.asyncio
+    async def test_a_plain_def_handler_is_answered_not_awaited(self):
+        """
+        GIVEN  a kernel handler that is a plain def returning a str
+        WHEN   execute_tool dispatches it
+        THEN   its answer comes back; nothing tries to await the str
+
+        Every mock in this file is an AsyncMock, which is how the dispatcher's await-only
+        shape survived 7 real sync handlers (#157).
+        """
+        def sync_handler(path: str) -> str:
+            return f"wrote {path}"
+
+        with patch.dict("core.tools.registry.TOOL_MAP", {"delete_file": sync_handler}, clear=False):
+            result = await execute_tool("delete_file", {"path": "/tmp/x"})
+
+        assert result == "wrote /tmp/x", result
 
     @pytest.mark.asyncio
     async def test_converts_list_result_to_string(self):
@@ -62,8 +81,8 @@ class TestExecuteTool:
         THEN   the list is joined with \n
         """
         mock_fn = AsyncMock(return_value=["a", "b", "c"])
-        with patch.dict("core.tools.registry.TOOL_MAP", {"list_directory": mock_fn}, clear=False):
-            result = await execute_tool("list_directory", {"path": "/tmp"})
+        with patch.dict("core.tools.registry.TOOL_MAP", {"delete_file": mock_fn}, clear=False):
+            result = await execute_tool("delete_file", {"path": "/tmp"})
 
         assert isinstance(result, str)
         assert "a\nb\nc" == result
@@ -87,8 +106,8 @@ class TestExecuteTool:
         THEN   the return value contains "[tool-error"
         """
         mock_fn = AsyncMock(side_effect=ValueError("something broke"))
-        with patch.dict("core.tools.registry.TOOL_MAP", {"web_search": mock_fn}, clear=False):
-            result = await execute_tool("web_search", {"query": "test"})
+        with patch.dict("core.tools.registry.TOOL_MAP", {"delete_file": mock_fn}, clear=False):
+            result = await execute_tool("delete_file", {"path": "/tmp/x"})
 
         assert "[tool-error" in result
 
@@ -98,56 +117,35 @@ class TestToolMap:
     def test_contains_all_expected_tools(self):
         """
         GIVEN  TOOL_MAP
-        WHEN   checked for completeness
-        THEN   it holds all 77 expected entries
+        WHEN   checked against the name inventory below
+        THEN   the two sets are one set (a number here would only restate that)
         """
         expected_tools = {
-            "manage_tasks", "web_search", "query_codebase", "file_search",
-            "discover_projects", "analyze_project",
-            "create_source_notebook", "query_source_notebook", "export_source_brief",
-            "read_file", "edit_file", "list_directory",
+            "manage_tasks", "query_codebase",
+            "discover_projects",
             "delete_file",
-            "get_datetime", "run_shell", "run_sandboxed_code",
-            "load_workspace", "analyze_image",
+            "get_datetime", "run_sandboxed_code",
             "start_workspace_dev_server", "stop_workspace_dev_server",
-            "vision_click", "vision_type",
             "take_screenshot",
-            "browser_go", "browser_screenshot", "browser_click",
-            "browser_type", "browser_press",
-            "generate_chart", "create_pdf",
-            "create_pitch_deck", "create_pptx_deck",
-            "inspect_pptx_template", "edit_pptx_template", "qa_pptx_deck",
-            "create_svg",
-            # Round 11: office + diagram artifacts
-            "create_xlsx", "create_docx", "create_qrcode", "create_diagram",
-            # Image generation
-            "generate_image",
-            # Wave 3: utility tools T1-T4
-            "extract_pdf_text", "format_code", "run_linter", "validate_json",
+            # The deck tools are served by their bundle.
+            # The picture tool is served by the image-studio bundle.
+            # Wave 3: the JSON checker. The PDF reader is served by its bundle.
+            "validate_json",
             # R39: media pipeline
             "create_video",
-            # R34 Project Factory: evidence gate + factories
-            "verify_artifact",
-            "scaffold_project",
-            "build_document",
-        "write_file",
-        "run_tests",
             # J2 parity: background tasks + agent continuation
             "task_output", "task_stop", "agent_message",
-            # J3 parity: URL fetch channel
-            "fetch_url",
-            # J5 parity: browser channel depth
-            "browser_scroll", "browser_evaluate",
+            # J5 parity: page clipboard and display. The browser tools are served
+            # by their bundle.
             "clipboard_read", "clipboard_write", "get_display_info",
-            "browser_exec",
             # Wave 2 parity: stateful kernel + session ledger + process manager
             "execute_code", "todo_list", "process_manage",
             # G6 workbench: the agent's own readers (transcript + cell journal)
             "read_transcript", "read_cell_journal",
             # Wave 3 parity: progressive tool discovery (meta router)
             "tool_search", "tool_describe", "tool_call",
-            # Wave 4 parity: stateful agent tools (memory + skill upkeep)
-            "memory", "skill_manage",
+            # Wave 4 parity: skill upkeep. The memory tool is served by its bundle.
+            "skill_manage",
             # R36-S: sub-agent delegation (the main agent decides itself)
             "spawn_agent",
             # G1: the ask gate — the run pauses on a question and goes on with the answer
@@ -156,6 +154,14 @@ class TestToolMap:
             "bash", "read", "edit",
             # P1: read-only view of the plugin portfolio and switch state
             "plugin_manager",
+            # #26: the calls that build a plugin. They are kernel names and dispatch
+            # like any other; what makes them different is who is OFFERED them, which
+            # `creator_guard.filter_offer` decides and `test_creator_guard.py` pins.
+            "create_plugin_scaffold",
+            "read_plugin_source",
+            "write_plugin_source",
+            "verify_plugin_bundle",
+            "install_plugin_bundle",
         }
         assert set(TOOL_MAP.keys()) == expected_tools
 
@@ -180,7 +186,11 @@ class TestGetFilteredToolSchemas:
         result = get_filtered_tool_schemas(["web_search"])
         # P0-1: META_TOOL_NAMES + memory + skill_manage are always injected
         assert len(result) >= 1
-        assert result[0]["function"]["name"] == "web_search"
+        # #36: the array carries one name order, so a position pin is replaced by
+        # the order itself plus the whitelist content.
+        names = [e["function"]["name"] for e in result]
+        assert names == sorted(names)
+        assert "web_search" in names
 
     def test_returns_empty_for_empty_whitelist(self):
         """
@@ -201,7 +211,9 @@ class TestGetFilteredToolSchemas:
         result = get_filtered_tool_schemas(["web_search", "unknown_tool"])
         # P0-1: META_TOOL_NAMES + memory + skill_manage are always injected (at least 1)
         assert len(result) >= 1
-        assert result[0]["function"]["name"] == "web_search"
+        names = [e["function"]["name"] for e in result]
+        assert names == sorted(names)
+        assert "web_search" in names and "unknown_tool" not in names
 
 
 def test_run_linter_resolves_a_relative_path_in_the_workspace(tmp_path, monkeypatch):

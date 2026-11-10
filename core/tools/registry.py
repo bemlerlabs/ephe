@@ -19,64 +19,25 @@ from core.tools.approval import (
     request_approval,
 )
 from core.tools.task_tools import manage_tasks
-from core.tools.web_search import web_search
-from core.tools.fetch_tools import fetch_url
 from core.tools.file_ops import (
-    file_search,
     read_file,
-    list_directory,
     edit_file,
-    write_file,
     delete_file,
 )
-from core.tools.test_tools import run_tests
 from core.tools.video_tools import create_video
-from core.tools.source_tools import (
-    create_source_notebook,
-    query_source_notebook,
-    export_source_brief,
-)
 from core.tools.dev_server_tools import (
     start_workspace_dev_server,
     stop_workspace_dev_server,
 )
 from core.tools.system_tools import (
     discover_projects,
-    analyze_project,
     get_datetime,
-    load_workspace,
-    analyze_image,
     take_screenshot,
-    create_svg,
 )
 from core.tools.browser_tools import (
-    _vision_click_wrapper,
-    _vision_type_wrapper,
-    browser_go,
-    browser_screenshot,
-    browser_click,
-    browser_type,
-    browser_press,
-    browser_scroll,
-    browser_evaluate,
     clipboard_read,
     clipboard_write,
     get_display_info,
-    browser_exec,
-)
-from core.tools.chart_tools import generate_chart
-from core.tools.pdf_tools import create_pdf
-from core.tools.office_tools import create_docx, create_qrcode, create_xlsx
-from core.tools.image_tools import generate_image
-from core.tools.diagram_tools import create_diagram
-from core.tools.verify_tools import verify_artifact
-from core.tools.factory_tools import build_document, scaffold_project
-from core.tools.deck_tools import (
-    create_pitch_deck,
-    create_pptx_deck,
-    inspect_pptx_template,
-    edit_pptx_template,
-    qa_pptx_deck,
 )
 from core.tools.shell_tools import run_shell, task_output, task_stop
 from core.tools.code_kernel import execute_code
@@ -84,13 +45,22 @@ from core.tools.todo_tools import todo_list
 from core.tools.ask_gate import ASK_TOOL_SCHEMAS, ask_user
 from core.tools.process_tools import process_manage
 from core.tools.plugin_manager import PLUGIN_MANAGER_SCHEMA, plugin_manager
+from core.tools import creator_guard
+from core.tools.creator_tools import (
+    CREATOR_TOOL_SCHEMAS,
+    create_plugin_scaffold,
+    install_plugin_bundle,
+    read_plugin_source,
+    verify_plugin_bundle,
+    write_plugin_source,
+)
 from core.tools.workbench_tools import (
     WORKBENCH_TOOL_SCHEMAS,
     read_cell_journal,
     read_transcript,
 )
 from core.tools.discovery import tool_search, tool_describe, tool_call
-from core.tools.state_tools import memory, skill_manage
+from core.tools.state_tools import skill_manage
 from core.tools.subagent_tool import spawn_agent, SPAWN_AGENT_SCHEMA
 
 
@@ -113,18 +83,14 @@ async def _agent_message_impl(agent_id: str, message: str) -> str:
     return await agent_message(agent_id, message)
 
 
-from core.tools.utility_tools import (
-    extract_pdf_text,
-    format_code,
-    run_linter,
-    validate_json,
-)
+from core.tools.utility_tools import validate_json
 from core.tools.sandbox_tools import (
     SANDBOX_TOOL_SCHEMAS,
     is_available as sandbox_is_available,
     run_sandboxed_code,
 )
 from core.tools.mcp_client import get_mcp_tools, call_registered_mcp_tool
+from core.tools import dynamic_gate, dynamic_wiring, turn_snapshot
 from core.tools.codebase_tools import CODEBASE_TOOL_SCHEMAS, query_codebase
 from core.tools._schemas import BASE_TOOL_SCHEMAS
 
@@ -469,53 +435,6 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
-            "name": "memory",
-            "description": (
-                "Writes to persistent memory that survives across sessions. Two tiers: "
-                "'user' = the user profile (name, expertise, language, style, topics, projects); "
-                "'memory' = the fact collection (environment facts, conventions, lessons). "
-                "Keep entries compact and high-signal. On the 'memory' tier 'replace' supersedes "
-                "the identified fact instead of forgetting it (the old fact stays askable as "
-                "history), and 'memory_type' classifies the fact kind."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "action": {
-                        "type": "string",
-                        "enum": ["add", "replace", "remove", "list"],
-                        "description": "Operation.",
-                    },
-                    "target": {
-                        "type": "string",
-                        "enum": ["user", "memory"],
-                        "description": "Which tier to write.",
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Entry text (add/replace). For target=user use 'field=value', e.g. 'name=Test User'.",
-                    },
-                    "old_text": {
-                        "type": "string",
-                        "description": "Substring identifying the entry (replace/remove).",
-                    },
-                    "memory_type": {
-                        "type": "string",
-                        "enum": ["semantic", "episodic", "procedural"],
-                        "description": "Fact kind for target=memory: semantic=state of things, episodic=something that happened, procedural=how to do it.",
-                    },
-                    "supersedes": {
-                        "type": "string",
-                        "description": "Entry id that this write corrects (target=memory, action=replace). Optional; 'old_text' identifies it otherwise.",
-                    },
-                },
-                "required": ["action", "target"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "skill_manage",
             "description": (
                 "Maintains the skill catalog. 'list' shows all skills, 'show' returns one skill's "
@@ -568,26 +487,12 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
 
 TOOL_MAP: dict[str, object] = {
     "manage_tasks": manage_tasks,
-    "web_search": web_search,
     "query_codebase": query_codebase,
-    "fetch_url": fetch_url,
-    "file_search": file_search,
     "discover_projects": discover_projects,
-    "analyze_project": analyze_project,
-    "create_source_notebook": create_source_notebook,
-    "query_source_notebook": query_source_notebook,
-    "export_source_brief": export_source_brief,
-    "read_file": read_file,
-    "edit_file": edit_file,
-    "write_file": write_file,
     "delete_file": delete_file,
-    "run_tests": run_tests,
-    "list_directory": list_directory,
     "get_datetime": get_datetime,
-    "run_shell": run_shell,
-    # gateway parity: the marker names (bash/read/edit) are the same tools
-    # under the gateway's own nomenclature — identical parameter names, a direct
-    # alias, no translation layer.
+    # Marker names. The offer copies the bundle schema. execute_tool resolves
+    # them to run_shell, read_file and edit_file before the gate.
     "bash": run_shell,
     "read": read_file,
     "edit": edit_file,
@@ -595,41 +500,18 @@ TOOL_MAP: dict[str, object] = {
     "task_stop": task_stop,
     "agent_message": _agent_message_impl,
     "run_sandboxed_code": run_sandboxed_code,
-    "load_workspace": load_workspace,
     "start_workspace_dev_server": start_workspace_dev_server,
     "stop_workspace_dev_server": stop_workspace_dev_server,
-    "analyze_image": analyze_image,
-    "vision_click": _vision_click_wrapper,
-    "vision_type": _vision_type_wrapper,
+    # The image read and the desktop tools are served by their bundle.
     "take_screenshot": take_screenshot,
-    "browser_go": browser_go,
-    "browser_screenshot": browser_screenshot,
-    "browser_click": browser_click,
-    "browser_type": browser_type,
-    "browser_press": browser_press,
-    "browser_scroll": browser_scroll,
-    "browser_evaluate": browser_evaluate,
+    # The browser tools are served by their bundle.
     "clipboard_read": clipboard_read,
     "clipboard_write": clipboard_write,
     "get_display_info": get_display_info,
-    "browser_exec": browser_exec,
-    "generate_chart": generate_chart,
-    "create_pdf": create_pdf,
-    "create_pitch_deck": create_pitch_deck,
-    "create_pptx_deck": create_pptx_deck,
-    "inspect_pptx_template": inspect_pptx_template,
-    "edit_pptx_template": edit_pptx_template,
-    "qa_pptx_deck": qa_pptx_deck,
-    "create_svg": create_svg,
-    "create_xlsx": create_xlsx,
-    "create_docx": create_docx,
-    "create_qrcode": create_qrcode,
-    "create_diagram": create_diagram,
-    "generate_image": generate_image,
+    # The chart tool is served by the spreadsheets bundle.
+    # The deck, diagram and drawing tools are served by the presentations bundle.
+    # The picture tool is served by the image-studio bundle.
     "create_video": create_video,
-    "verify_artifact": verify_artifact,
-    "scaffold_project": scaffold_project,
-    "build_document": build_document,
     # Deep-audit wave 2 (parity harness): stateful kernel + session ledger
     # + unified process manager.
     "execute_code": execute_code,
@@ -647,17 +529,104 @@ TOOL_MAP: dict[str, object] = {
     "tool_search": tool_search,
     "tool_describe": tool_describe,
     "tool_call": tool_call,
-    # Wave 4 (P3): stateful agent tools — memory write path + skill catalog care.
-    "memory": memory,
+    # Wave 4 (P3): skill catalog care. The memory tool is served by its bundle.
     "skill_manage": skill_manage,
-    # Wave 3: utility tools (T1-T4).
-    "extract_pdf_text": extract_pdf_text,
-    "format_code": format_code,
-    "run_linter": run_linter,
+    # Wave 3: utility tools. The PDF reader is served by the documents bundle.
     "validate_json": validate_json,
     # R36-S: native sub-agent delegation (the main agent decides on its own).
     "spawn_agent": spawn_agent,
+    # #26 (Creator mode): the calls that build a plugin. Offered inside the mode
+    # and dispatched like any other kernel name; who may call them is the consent gate
+    # below, and what each one asks for is ruled in core.tools.creator_guard.
+    "create_plugin_scaffold": create_plugin_scaffold,
+    "read_plugin_source": read_plugin_source,
+    "write_plugin_source": write_plugin_source,
+    "verify_plugin_bundle": verify_plugin_bundle,
+    "install_plugin_bundle": install_plugin_bundle,
 }
+
+# Kernel names from the manifest scan, contributed (name, owner) pairs, and the
+# built-in owners among those pairs. None until the first successful scan.
+_ADDRESSABLE_SCAN: tuple[frozenset[str], frozenset[tuple[str, str]], frozenset[str]] | None = None
+_ADDRESSABLE_SCAN_KEY: str | None = None
+
+
+def invalidate_addressable_tool_names() -> None:
+    """Drop the manifest scan so the next read scans again.
+
+    Mount and unmount change which contributed names the rail is serving. A scan
+    kept for the life of the process would still name a tool the rail has taken
+    down, and the per-turn tool freeze would carry that name into a later read.
+    """
+    global _ADDRESSABLE_SCAN, _ADDRESSABLE_SCAN_KEY
+    _ADDRESSABLE_SCAN = None
+    _ADDRESSABLE_SCAN_KEY = None
+
+
+def _addressable_scan_key() -> str:
+    from core.plugin_manifest import PLUGINS_ROOT_OVERRIDE
+
+    return "" if PLUGINS_ROOT_OVERRIDE is None else str(PLUGINS_ROOT_OVERRIDE)
+
+
+def _addressable_scan() -> tuple[frozenset[str], frozenset[tuple[str, str]], frozenset[str]]:
+    """Kernel names, contributed pairs, and which of those owners ship with the tree."""
+    global _ADDRESSABLE_SCAN, _ADDRESSABLE_SCAN_KEY
+    key = _addressable_scan_key()
+    if _ADDRESSABLE_SCAN is not None and _ADDRESSABLE_SCAN_KEY == key:
+        return _ADDRESSABLE_SCAN
+    from core.plugin_manifest import BUILTIN_PLUGINS_ROOT
+    from core.plugin_registry import scan_tool_activations
+
+    scanned = scan_tool_activations(None)
+    contributed_names = set(scanned.contributed)
+    kernel = frozenset(name for name, _owner in scanned.owners if name not in contributed_names)
+    pairs = frozenset(
+        (name, owner) for name, owner in scanned.owners if name in contributed_names
+    )
+    builtin = frozenset(
+        owner for _name, owner in pairs if (BUILTIN_PLUGINS_ROOT / owner).is_dir()
+    )
+    _ADDRESSABLE_SCAN = (kernel, pairs, builtin)
+    _ADDRESSABLE_SCAN_KEY = key
+    return _ADDRESSABLE_SCAN
+
+
+def _mounted_contributed() -> tuple[frozenset[str], frozenset[str]]:
+    """Names and plugin ids the descriptor registry is serving right now."""
+    try:
+        from core.tools.dynamic_registry import default_registry
+
+        snapshot = default_registry().descriptor_snapshot()
+    except Exception:
+        return frozenset(), frozenset()
+    return (
+        frozenset(item.name for item in snapshot),
+        frozenset(item.plugin_id for item in snapshot),
+    )
+
+
+def addressable_tool_names() -> frozenset[str]:
+    """Kernel names, shipped contributed names, and names a live mount is serving.
+
+    The kernel map is read on each call, so a test that adds a key still sees it.
+    A contributed name from a built-in bundle stays addressable, because this
+    checkout publishes that bundle on read. A contributed name from any other
+    bundle is addressable while the descriptor registry holds the bundle, and
+    leaves this set when unmount drops that entry. A scan that fails is not cached.
+    """
+    try:
+        kernel, pairs, builtin = _addressable_scan()
+    except Exception:
+        kernel, pairs, builtin = frozenset(), frozenset(), frozenset()
+    mounted_names, mounted_plugins = _mounted_contributed()
+    names = set(TOOL_MAP)
+    names.update(kernel)
+    names.update(mounted_names)
+    for name, owner in pairs:
+        if owner in builtin or owner in mounted_plugins:
+            names.add(name)
+    return frozenset(names)
 
 
 # Repair taxonomy: a malformed call is refused with a named class and the repair
@@ -904,6 +873,12 @@ async def execute_tool(
     block) → the tool core (approval, internal hooks, execution) → user
     post_tool transform.
     """
+    from core.tools.dynamic_wiring import MARKER_ALIASES
+
+    # A marker name is the bundle tool. The gate, the approval and the worker
+    # all see the bundle name. The kernel function on the marker stays put
+    # for the reachability contract and is not the call this function makes.
+    name = MARKER_ALIASES.get(name, name)
     # ── E1 plugin runtime gate (fail-closed) ────────────────────────────────
     # A plugin that was explicitly disabled takes its tool out of execution —
     # even if a model still guesses the name. Visibility fails open, execution
@@ -919,8 +894,20 @@ async def execute_tool(
         return f"[Tool '{name}' refused: the plugin gate could not be evaluated.]"
     if not gate.visible:
         _audit_plugin_gate(name, "denied", f"plugin={gate.plugin}")
+        # W2-11: the switch owns that sentence; this line owns the call. A disabled
+        # plugin's tool belongs in the tool trail too, with the descriptor it refused.
+        dynamic_gate.audit_refused(
+            name, arguments, decision="plugin_disabled", status="plugin-gate"
+        )
         return f"[Tool '{name}' is disabled (plugin '{gate.plugin}' is off — enable it in Settings → Plugins)]"
     plugin_owner = gate.plugin
+
+    # W2-11 (#11): a contributed tool is governed here by the family its descriptor
+    # declares and the permission its plugin's manifest asked for, before any worker is
+    # built. A kernel name is untouched — the registry holds no descriptor for it.
+    family_refusal = dynamic_gate.permission_denial(name, arguments)
+    if family_refusal is not None:
+        return family_refusal
 
     # The user's own switch, at the call that would run: the offer filter hides
     # the tool from the model, and this line closes the deferred bridge.
@@ -952,6 +939,23 @@ async def execute_tool(
         except Exception:
             pass
         return mode_refusal
+
+    # #26 Creator consent, at the same seam: the mode promised three permissions, and a
+    # call whose permission this session never granted is refused here rather than in the
+    # offer list alone — the deferred bridge (tool_search then tool_call) dispatches by
+    # name and never sees that list. The existing `mode_gate` kind records it, because the
+    # refusal is the mode's promise being kept, whatever the name of the gate that kept it.
+    creator_refusal = creator_guard.denial_for(name)
+    if creator_refusal is not None:
+        try:
+            from core.audit_log import audit_event
+
+            audit_event(
+                "mode_gate", tool=name, decision="denied", status=creator_refusal.code
+            )
+        except Exception:
+            pass
+        return creator_refusal
 
     # ── E5 User pre_tool hooks (transform or block) ─────────────────────────
     effective_args = arguments
@@ -1078,6 +1082,22 @@ async def _execute_tool_core(
 ) -> str:
     """Tool core: approval gate, internal pre/post hooks, MCP dispatch,
     validation and execution (everything that existed before the E5 wrapper)."""
+    # A hand-back is the next result. The tool the model named does not run.
+    from core.browser_run_view import claim_reconciliation
+
+    note = claim_reconciliation()
+    if note:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "tool_exec",
+            tool=name,
+            args=arguments,
+            status="ok",
+            decision="user",
+            detail=note[:300],
+        )
+        return note
     # ── P0-1 E1: Approval-Gate ──────────────────────────────────────────────
     if policy is not None:
         from core.tools.session_ctx import set_current_policy
@@ -1136,6 +1156,44 @@ async def _execute_tool_core(
 
     func = TOOL_MAP.get(name)
     if func is None:
+        # W2-7 / W2-9: a registered dynamic descriptor either runs in the confined
+        # runner (plugin transport, resolvable directory) or answers a coded refusal;
+        # only a name the registry does not hold falls through to the unknown-tool line.
+        # The schema read publishes a shipped bundle. A caller that executes first
+        # has to reach the same mount, or a contributed name reads as missing.
+        from core import plugin_mount_replay
+
+        plugin_mount_replay.ensure_published()
+        plugin_mount_replay.publish_shipped_contributed()
+        # Enum repair still rewrites a bad value once, before the worker.
+        # A missing required parameter stays the refusal the validator named.
+        # Filling that parameter would start the worker on an empty value.
+        validation_error = _validate_tool_arguments(name, arguments)
+        if validation_error is not None:
+            repaired = _typed_repair(name, arguments, validation_error)
+            missing = _classify_tool_error(validation_error) == "missing-param"
+            if (
+                not missing
+                and repaired is not None
+                and _validate_tool_arguments(name, repaired) is None
+            ):
+                arguments = repaired
+            else:
+                _audit_schema_rejection(name, arguments, validation_error)
+                return _run_tool_hooks("post", name, (arguments, validation_error))[1]
+        # The worker blocks in the child. A desktop confirmation waits on this
+        # loop for the person's answer, so the child runs on a worker thread
+        # and the kernel coroutine is scheduled back here.
+        from core.sandbox import bridge_host
+
+        loop = asyncio.get_running_loop()
+        loop_token = bridge_host.bind_caller_loop(loop)
+        try:
+            dynamic_refusal = await dynamic_wiring.dispatch_dynamic_call(name, arguments)
+        finally:
+            bridge_host.reset_caller_loop(loop_token)
+        if dynamic_refusal is not None:
+            return _run_tool_hooks("post", name, (arguments, dynamic_refusal))[1]
         from core.audit_log import audit_event
 
         audit_event(
@@ -1183,7 +1241,10 @@ async def _execute_tool_core(
     audit_event("tool_start", tool=name, args=arguments, session_id=_session)
     _started = _time.monotonic()
     try:
-        result = await func(**arguments)
+        # A handler that is not a coroutine has no awaitable to hand back: awaiting its
+        # str answer raises after the side effect already happened (#157).
+        outcome = func(**arguments)
+        result = await outcome if inspect.isawaitable(outcome) else outcome
         if isinstance(result, list):
             result = "\n".join(str(r) for r in result)
         try:
@@ -1213,6 +1274,9 @@ async def _execute_tool_core(
             duration_ms=int((_time.monotonic() - _started) * 1000),
             detail=result[:300],
         )
+        from core.browser_run_view import stamp_browser_exec
+
+        stamp_browser_exec(name, arguments, result[:300])
         return _run_tool_hooks("post", name, (arguments, result))[1]
     except ShellConfirmationRequired:
         raise
@@ -1228,6 +1292,9 @@ async def _execute_tool_core(
             duration_ms=int((_time.monotonic() - _started) * 1000),
             detail=str(exc)[:300],
         )
+        from core.browser_run_view import stamp_browser_exec
+
+        stamp_browser_exec(name, arguments, str(exc)[:300])
         return _run_tool_hooks(
             "post", name, (arguments, _error_line(f"[tool-error '{name}': {exc}]", exc))
         )[1]
@@ -1241,83 +1308,6 @@ def invalidate_tool_schema_cache() -> None:
 
 # Wave 3: utility tool schemas (T1-T4)
 _UTILITY_TOOL_SCHEMAS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "extract_pdf_text",
-            "description": (
-                "Reads the full text out of a local PDF file. "
-                "Returns the text page by page, page markers included. "
-                "Use only when a PDF path exists."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute or ~-relative path to the PDF file.",
-                    },
-                    "max_chars": {
-                        "type": "integer",
-                        "description": "Maximum number of characters (default 8000).",
-                    },
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "format_code",
-            "description": (
-                "Formats a Python file with ruff format (Black-compatible). "
-                "check_only=True inspects without writing."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute or ~-relative path to the Python file (.py).",
-                    },
-                    "check_only": {
-                        "type": "boolean",
-                        "description": "True = inspect only, do not write.",
-                    },
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "run_linter",
-            "description": (
-                "Runs ruff check (static analysis) over a file or a directory. "
-                "fix=True applies the automatic corrections."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute or ~-relative path to the file or directory.",
-                    },
-                    "fix": {
-                        "type": "boolean",
-                        "description": "True = --fix (apply the automatic corrections).",
-                    },
-                    "max_issues": {
-                        "type": "integer",
-                        "description": "Maximum number of issues shown (default 50).",
-                    },
-                },
-                "required": ["path"],
-            },
-        },
-    },
     {
         "type": "function",
         "function": {
@@ -1350,19 +1340,24 @@ def _apply_plugin_gate(schemas: list[dict]) -> list[dict]:
     try:
         from core import plugin_runtime
 
-        return plugin_runtime.filter_schemas(schemas)
+        gated = plugin_runtime.filter_schemas(schemas)
     except Exception:
         return schemas  # fail-open for visibility (execution gates strictly by itself)
+    # W2-7: descriptors the manifest scan does not own yet (#13) are gated by their
+    # plugin id here, outside the cache, so an inactive plugin never reaches the model.
+    return dynamic_wiring.drop_inactive_plugin_schemas(gated)
 
 
 def _apply_plugin_filter(schemas: list[dict]) -> list[dict]:
-    """The offer list after the two runtime filters, OUTSIDE the cache.
+    """The offer list after the three runtime filters, OUTSIDE the cache.
 
-    Runs on the cache-hit path too, so a disabled plugin's tools or a tool the
-    user switched off cannot come back on the second call of a TTL window; a
-    flip still takes effect on the next call without invalidation plumbing.
+    Runs on the cache-hit path too, so a disabled plugin's tools, a tool the user
+    switched off, and a Creator call whose permission the session never granted cannot
+    come back on the second call of a TTL window; a flip still takes effect on the next
+    call without invalidation plumbing.
     """
     filtered = _apply_plugin_gate(schemas)
+    filtered = creator_guard.filter_offer(filtered)
     try:
         from core import capabilities
 
@@ -1414,10 +1409,17 @@ def _all_tool_schemas() -> list[dict]:
     schemas.extend(CODEBASE_TOOL_SCHEMAS)
     # G1: the ask gate — a tool the model calls to pause the run on a question.
     schemas.extend(ASK_TOOL_SCHEMAS)
-    # R36-S: sub-agent delegation — one schema, the main agent decides on its own.
-    schemas.append(SPAWN_AGENT_SCHEMA)
+    # R36-S: sub-agent delegation — offered while the user keeps the control on.
+    from core.settings_schema import deep_bool
+
+    if deep_bool("advanced.agent_team_enabled"):
+        schemas.append(SPAWN_AGENT_SCHEMA)
     # P1: read-only view of the installed plugin portfolio and its switch state.
     schemas.append(PLUGIN_MANAGER_SCHEMA)
+    # #26 (Creator mode): the four calls that build a plugin. The array is the whole
+    # registry; who may see them is decided by the mode gate below, so the cache keeps a
+    # byte-stable prefix and a grant flip takes effect on the next call.
+    schemas.extend(CREATOR_TOOL_SCHEMAS)
     # Append MCP remote tools dynamically (namespace 'mcp_')
     for mcp_name, mcp_entry in get_mcp_tools().items():
         schemas.append(
@@ -1433,6 +1435,12 @@ def _all_tool_schemas() -> list[dict]:
                 ),
             }
         )
+    # W2-7: the dynamic descriptors last, name-sorted by the registry snapshot, so
+    # the kernel block above keeps its byte-stable prompt prefix (#36 freezes on it).
+    schemas.extend(dynamic_wiring.dynamic_tool_schemas())
+    # #36: one stable order over the WHOLE array — kernel, MCP and dynamic entries
+    # sorted by name, so a re-registration of the same set cannot move a byte.
+    turn_snapshot.sort_tool_array(schemas)
 
     _TOOL_SCHEMA_CACHE = (now, schemas)
     return schemas

@@ -15,7 +15,9 @@ unknown permission tool family, or a declared skill pack that does not ship.
 Fail-soft scanning (a broken plugin directory never breaks the others).
 
 Plugins root: EPHE_CONFIG_DIR/plugins (default ~/.ephe/plugins), overridable
-via PLUGINS_ROOT_OVERRIDE for tests.
+via PLUGINS_ROOT_OVERRIDE for tests. Builtin root: EPHE_BUILTIN_PLUGINS_ROOT
+(default: the `plugins/` folder of this checkout), resolved per call like the
+config root so an isolated run can own it instead of reading the source tree.
 
 Ephe – Bad Liebenzell, Schwarzwald
 """
@@ -27,6 +29,7 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+
 from core.engine_config import config_root
 
 MANIFEST_FILENAME = "ephe-plugin.json"
@@ -85,15 +88,31 @@ KNOWN_COMPONENT_KEYS = frozenset(
     }
 )
 
+#: Env seam - when set, the second scan root is this path. Resolved per call, like
+#: EPHE_CONFIG_DIR, so an isolated eval run can point it at a folder it owns.
+ENV_BUILTIN_PLUGINS_ROOT = "EPHE_BUILTIN_PLUGINS_ROOT"
+
 #: First-party manifests shipped inside the repo (catalog-backed bundles).
 BUILTIN_PLUGINS_ROOT = Path(__file__).resolve().parent.parent / "plugins"
 
+
+def builtin_plugins_root() -> Path:
+    """The first-party plugin root, read at call time.
+
+    With ``EPHE_BUILTIN_PLUGINS_ROOT`` set this is the only builtin root a scan reads.
+    An empty value falls back the way ``config_root()`` does, so `""` keeps the shipped
+    folder.
+    """
+    override = os.environ.get(ENV_BUILTIN_PLUGINS_ROOT)
+    if override:
+        return Path(override)
+    return BUILTIN_PLUGINS_ROOT
+
 #: Permission families a manifest may declare. Anything outside this set
 #: fails closed (declared-but-absent capabilities never run).
-KNOWN_TOOL_FAMILIES = {"read", "write", "shell", "network", "memory", "vision", "docs", "browser"}
+KNOWN_TOOL_FAMILIES = {"read", "write", "shell", "network", "memory", "vision", "docs", "browser", "voice"}
 
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-_TOOL_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 #: Test seam — when set, plugins_root() returns this path.
@@ -172,6 +191,21 @@ def _validate(
     root_error = validate_data_roots(roots)
     if root_error:
         return root_error
+    state_cap = perms.get("state_cap_mb")
+    if state_cap is not None:
+        # #24: the ceiling on the folder a bundle keeps. A bundle that says nothing is bound
+        # by the default, so this line is a request to be trusted with more, and a reviewer
+        # reads a whole number of megabytes against a stated maximum. A bool is refused by
+        # name: `True` is an integer in Python and would read back as one byte of ceiling.
+        from core.plugin_state import MAX_STATE_CAP_MB
+
+        if isinstance(state_cap, bool) or not isinstance(state_cap, int) or state_cap <= 0:
+            return "permissions.state_cap_mb: a positive whole number of megabytes expected"
+        if state_cap > MAX_STATE_CAP_MB:
+            return (
+                f"permissions.state_cap_mb: {state_cap} MB is above the {MAX_STATE_CAP_MB} MB "
+                "a bundle may ask for"
+            )
 
     dependencies = manifest.get("dependencies", [])
     if dependencies is not None:
@@ -208,17 +242,21 @@ def _validate(
         command_names.add(cmd["name"])
         if not isinstance(cmd.get("description"), str) or not cmd.get("description", "").strip():
             return f"components.commands.{cmd.get('name')}: description required"
-    tools = components.get("tools", [])
-    if not isinstance(tools, list):
-        return "components.tools: list expected"
-    for tool in tools:
-        if not isinstance(tool, str) or not _TOOL_NAME_RE.match(tool):
-            return f"components.tools: bad tool name {tool!r}"
-    from core.capability_policy import validate_tool_permissions
+    from core.plugin_tools_contract import validate_tools
 
-    permission_error = validate_tool_permissions(manifest)
-    if permission_error:
-        return permission_error
+    tools_error = validate_tools(manifest, plugin_dir)
+    if tools_error:
+        return tools_error
+    from core.plugin_ui_capabilities import validate_ui
+
+    ui_error = validate_ui(manifest, plugin_dir)
+    if ui_error:
+        return ui_error
+    from core.plugin_libraries import validate_libraries
+
+    library_error = validate_libraries(manifest, plugin_dir)
+    if library_error:
+        return library_error
     # agents / hooks / mcp and the later declarative components: accepted
     # structurally, never executed by the P1 runtime.
     for reserved in (
@@ -231,7 +269,6 @@ def _validate(
         "rules",
         "outputStyles",
         "workflows",
-        "ui",
     ):
         if reserved in components and not isinstance(
             components[reserved], (dict, list)
@@ -298,11 +335,20 @@ def load_manifest(
     instead."""
     plugin_dir = Path(plugin_dir)
     mfile = _under(plugin_dir, MANIFEST_FILENAME)
-    if mfile is None or not mfile.is_file():
+    if mfile is None:
         return None, f"{MANIFEST_FILENAME} missing"
+    # `is_file()` is not total: a directory the process may not traverse answers
+    # `PermissionError` here rather than False, measured with a plugin folder at mode 000.
+    # Asking the same question inside the try is what makes the reader total, so one
+    # unreadable folder reports an error the surface can show instead of failing the whole
+    # scan (task #59, the 500 on `/api/plugins`).
     try:
+        if not mfile.is_file():
+            return None, f"{MANIFEST_FILENAME} missing"
         manifest = json.loads(mfile.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError as exc:
+        return None, f"manifest unreadable: {type(exc).__name__}"
+    except ValueError:
         return None, "manifest unreadable"
     err = _validate(manifest, plugin_dir, require_dir_name=require_dir_name)
     if err:
@@ -312,25 +358,50 @@ def load_manifest(
 
 # Scanning (fail-soft)
 
+def _is_dir(path: Path) -> bool:
+    """`Path.is_dir()` that answers False instead of raising.
+
+    The stdlib version swallows the errors it expects (no such path, not a directory) and
+    lets the others through, so an unreadable folder raises `PermissionError` out of it.
+    Every directory question this scanner asks is a question about someone else's folder,
+    and the answer this file can act on is a boolean.
+    """
+    try:
+        return path.is_dir()
+    except OSError:
+        return False
+
+
 def scan_plugins(root: Path | None = None) -> list[dict[str, Any]]:
     """Scan plugin directories. One entry per directory:
     {dir, manifest (dict|None), error (str|None)}.
 
     Root resolution: explicit arg → only that root; PLUGINS_ROOT_OVERRIDE
     (test seam) → only that root; otherwise the USER root first (it overrides
-    builtin identities) and the repo builtin root second."""
+    builtin identities) and the builtin root second (``builtin_plugins_root()``,
+    the repo `plugins/` folder unless EPHE_BUILTIN_PLUGINS_ROOT moves it)."""
     if root is not None:
         bases = [Path(root)]
     elif PLUGINS_ROOT_OVERRIDE is not None:
         bases = [Path(PLUGINS_ROOT_OVERRIDE)]
     else:
-        bases = [plugins_root(), BUILTIN_PLUGINS_ROOT]
+        bases = [plugins_root(), builtin_plugins_root()]
     out: list[dict[str, Any]] = []
     seen_names: set[str] = set()
     for base in bases:
-        if not base.is_dir():
+        if not _is_dir(base):
             continue
-        for pdir in sorted(p for p in base.iterdir() if p.is_dir()):
+        # Both halves of this line can fail on a real filesystem: `iterdir` raises on an
+        # unreadable root, and `is_dir()` on a child can answer `PermissionError` or
+        # `OSError` for a folder whose metadata cannot be read. Neither is a reason the
+        # settings page should fail; the root that cannot be listed simply contributes
+        # nothing to this list, and its reason is not carried here — a caller that needs
+        # to know whether the root exists has `plugins_root()`.
+        try:
+            children = sorted(p for p in base.iterdir() if _is_dir(p))
+        except OSError:
+            continue
+        for pdir in children:
             manifest, err = load_manifest(pdir)
             name = str(manifest["name"]) if manifest else pdir.name
             if name in seen_names:

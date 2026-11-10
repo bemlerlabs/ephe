@@ -411,18 +411,20 @@ def _parse_skill(name: str, content: str, *, skill_dir: Path | None = None) -> S
                 stacklevel=2,
             )
 
-    # System Prompt (between ## System Prompt and ## Test or the end)
-    # The lazy `.*?` under a `(?=##|\Z)` lookahead backtracked quadratically on a
-    # long body (py/polynomial-redos); `[^\S\n]` is whitespace minus the line feed,
-    # and the section end is a plain string search now.
+    # System Prompt ends at the next heading line. A heading marker quoted
+    # inside a sentence stays in the prompt. The Example block uses this
+    # same line-anchored cut. Searching for the two characters anywhere
+    # stopped the documents prompt at the inline marker and dropped the
+    # contract under it. The search stays linear. The quadratic form was
+    # the lazy lookahead this cut replaced.
     sp_head = re.search(r"##[^\S\n]+System Prompt[^\S\n]*\n", body)
     if not sp_head:
         raise SkillLoadError(
             f"skill '{name}': missing '## System Prompt' block"
         )
     _sp_tail = body[sp_head.end():]
-    _sp_cut = _sp_tail.find("##")
-    system_prompt = (_sp_tail if _sp_cut < 0 else _sp_tail[:_sp_cut]).strip()
+    _sp_cut = re.search(r"^##\s", _sp_tail, re.MULTILINE)
+    system_prompt = (_sp_tail if _sp_cut is None else _sp_tail[:_sp_cut.start()]).strip()
     if not system_prompt:
         raise SkillLoadError(
             f"skill '{name}': system prompt is empty"
@@ -728,17 +730,19 @@ class SkillLoader:
         # message names, because that list becomes the session's whole tool array in
         # full-access mode (owner decision 2026-10-10, docs/ENDSTATE_DELTA_2026-10-10.md).
         # Aliases count as their canonical tool, so "read" is measured as read_file.
-        from core.tools.registry import TOOL_MAP
+        from core.tools.dynamic_wiring import MARKER_ALIASES
+        from core.tools.registry import addressable_tool_names
+
+        known = addressable_tool_names()
 
         def _canonical(token: str) -> str:
-            # A fold is only valid onto a name skills can declare, a registry key.
-            name = getattr(TOOL_MAP.get(token), "__name__", "")
-            return name if name in TOOL_MAP else token
-
+            # Fold a marker onto its bundle name when a skill can declare that name.
+            folded = MARKER_ALIASES.get(token, token)
+            return folded if folded in known else token
         named: set[str] = set()
         for raw_token in (message or "").lower().split():
             token = raw_token.strip(".,;:()")
-            if token in TOOL_MAP:
+            if token in known:
                 named.add(_canonical(token))
         if named:
             for skill in self.load_all():

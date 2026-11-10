@@ -30,10 +30,11 @@ from core.chat import (
 from core import trajectory
 from core.ephe_plan import EphePlan
 from core.persona import (
-    ASK_MODE_GUARD,
+    ANALYST_MODE_GUARD,
     PAGE_OUTPUT_GUARD,
-    PLAN_MODE_GUARD,
+    ARCHITECT_MODE_GUARD,
     COMPUTE_GUARD,
+    CREATOR_MODE_GUARD,
     needs_compute_guard,
     needs_page_guard,
 )
@@ -397,7 +398,7 @@ def _compose_extra_system(skill, *, ask_mode: bool) -> str | None:
     # P1-B: the ask_mode guard is mandatory (anti-hallucination) and forced on
     # at the end; its room is reserved upfront in the optional budget so the
     # total never exceeds the ceiling.
-    _reserve = (len(ASK_MODE_GUARD) + 2) if ask_mode else 0
+    _reserve = (len(ANALYST_MODE_GUARD) + 2) if ask_mode else 0
     parts: list[str] = []
     used = 0
 
@@ -441,7 +442,7 @@ def _compose_extra_system(skill, *, ask_mode: bool) -> str | None:
         except Exception:
             pass
     if ask_mode:
-        _fit(ASK_MODE_GUARD, force=True)
+        _fit(ANALYST_MODE_GUARD, force=True)
     return "\n\n".join(parts) if parts else None
 
 
@@ -478,18 +479,33 @@ def _shell_segment_heads(command: str) -> list[str]:
     return [seg[0] for seg in segments if seg]
 
 
-def _resolve_mode(mode: str) -> dict[str, bool]:
-    """Split the UI mode string into the four boolean factors (hyphen/underscore tolerant).
+#: The menu retires `edit-auto` and renames three modes; stored values keep the
+#: behaviour they were created with. The compatibility factor is not a mode: it is
+#: what an old `edit-auto` session resolves to, so the rename moves no privilege.
+_MODE_ALIASES = {
+    "ask": "analyst",
+    "plan": "architect",
+    "full_access": "operator",
+    "edit_auto": "edit_family_compat",
+}
 
-    Old client 'agent' and empty → all factors False (not-ask, manual
-    approval) — exactly the previous behaviour, backward compatible.
+
+def _resolve_mode(mode: str) -> dict[str, bool]:
+    """Split the UI mode string into the boolean factors (hyphen/underscore tolerant).
+
+    Old client values resolve to the factor that keeps their behaviour: ask/plan/
+    full-access are renamed, `edit-auto` becomes the edit-family compatibility
+    factor and is never read as `operator`. The legacy value `agent` and an empty
+    value leave every factor False — the previous behaviour.
     """
-    key = (mode or "").strip().lower().replace("-", "_")
+    raw = (mode or "").strip().lower().replace("-", "_")
+    resolved = _MODE_ALIASES.get(raw, raw)
     return {
-        "ask": key == "ask",
-        "plan": key == "plan",
-        "edit_auto": key == "edit_auto",
-        "full_access": key == "full_access",
+        "analyst": resolved == "analyst",
+        "architect": resolved == "architect",
+        "operator": resolved == "operator",
+        "creator": resolved == "creator",
+        "edit_family_compat": resolved == "edit_family_compat",
     }
 
 
@@ -497,13 +513,14 @@ def _mode_context(mode: str, *, skill, message: str) -> tuple[str | None, list[s
     """Mode → (extra_system_prompt, allowed_tool_names, mode_flags).
 
     Used identically by BOTH chat routes (/chat and /chat/stream),
-    so that ask/plan/edit-auto/full-access carry the same semantics on both
-    paths: ask = no tools, plan = read-only inspection + plan guard,
-    edit-auto = edit family auto-approved (via profile), full = autonomous.
+    so that analyst/architect/operator carry the same semantics on both
+    paths: analyst = no tools, architect = read-only inspection + the architect
+    guard, operator = autonomous; the retired edit-auto still auto-approves the
+    edit family through its compatibility factor.
     """
     flags = _resolve_mode(mode)
-    ask_mode = flags["ask"]
-    plan_mode = flags["plan"]
+    ask_mode = flags["analyst"]
+    plan_mode = flags["architect"]
     extra_system = _compose_extra_system(skill, ask_mode=ask_mode)
     if needs_compute_guard(message):
         extra_system = f"{extra_system}\n\n{COMPUTE_GUARD}" if extra_system else COMPUTE_GUARD
@@ -512,7 +529,9 @@ def _mode_context(mode: str, *, skill, message: str) -> tuple[str | None, list[s
     if needs_page_guard(message):
         extra_system = f"{extra_system}\n\n{PAGE_OUTPUT_GUARD}" if extra_system else PAGE_OUTPUT_GUARD
     if plan_mode:
-        extra_system = f"{extra_system}\n\n{PLAN_MODE_GUARD}" if extra_system else PLAN_MODE_GUARD
+        extra_system = f"{extra_system}\n\n{ARCHITECT_MODE_GUARD}" if extra_system else ARCHITECT_MODE_GUARD
+    if flags["creator"]:
+        extra_system = f"{extra_system}\n\n{CREATOR_MODE_GUARD}" if extra_system else CREATOR_MODE_GUARD
     if ask_mode:
         allowed_tools: list[str] | None = []
     elif plan_mode:
@@ -564,8 +583,8 @@ class StreamRequest(BaseModel):
     images: list[str] = []       # Base64-encoded images for 12B multimodal
     force_tier: str | None = None  # Optional: "offline" | "fast" | "power"
     session_id: str = ""         # R17 artifact hub: session linkage of the artifacts
-    # W19: UI mode ("ask" | "edit_auto" | "plan" | "full_access"; "agent" = old client).
-    # ask = fail-closed without tools + an anti-hallucination guard in the system prompt.
+    # W19: UI mode — _resolve_mode lists the accepted values ("agent" = old client).
+    # analyst = fail-closed without tools + a guard in the system prompt.
     mode: str = "agent"
     # N9b: per-request tool budget for the agent loop (L5 long-horizon tasks
     # need >10 calls). None = profile default (10); clamped to the hard
@@ -992,7 +1011,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             )
         except Exception:
             history_ctx = []
-    # P4: mode parity — identical ask/plan/edit-auto/full semantics as /chat/stream.
+    # P4: mode parity — identical mode semantics as /chat/stream.
     rest_extra_system, rest_allowed_tools, _mode_flags = _mode_context(
         request.mode, skill=None, message=request.message
     )
@@ -1699,22 +1718,29 @@ async def _sandbox_confirm(
     from core.security_config import load_security_config
 
     # R2-B: the global profile is the ceiling over every mode-auto path. Before,
-    # autonomous/edit_auto/full_access ran through BEFORE load_security_config()
-    # was read — so the privacy-page control had no reader, and the page claimed
-    # something the code did not hold: „Streng — immer fragen"  # language-gate: ignore (quoted product label, app/src/locales/de.json:674 profileStrict)
+    # the auto-approved paths ran through BEFORE load_security_config() was read —
+    # so the privacy-page control had no reader, and the page claimed something
+    # the code did not hold: „Streng — immer fragen"  # language-gate: ignore (quoted product label, app/src/locales/de.json:674 profileStrict)
     profile = load_security_config().approval_profile
     mode_auto = profile != "strict"
+    # Stored legacy mode values resolve through _MODE_ALIASES; the branches below
+    # read the edit-family compatibility factor and operator.
+    flags = _resolve_mode(request.mode)
 
     if mode_auto and sandbox_auto_approval_allowed(autonomous=request.autonomous):
         audit_event("approval", tool=name, args=args, decision="auto", status="autonomous")
         return True
-    # P4: edit-auto — apply the edit family without asking; the rest
+    # P4: edit family auto-approved for operator and for stored edit-auto; the rest
     # (run_shell, web_search, …) keeps running through the profile/ask.
-    if mode_auto and _resolve_mode(request.mode)["edit_auto"] and name in _EDIT_TOOL_NAMES:
-        audit_event("approval", tool=name, args=args, decision="auto", status="edit_auto")
+    if mode_auto and (flags["edit_family_compat"] or flags["operator"]) and name in _EDIT_TOOL_NAMES:
+        # Audit status= labels are a stored instrument: the mode rename leaves
+        # them deliberately unchanged, since log consumers read them. Relabelling
+        # is a separate decision.
+        audit_event("approval", tool=name, args=args, decision="auto",
+                    status="edit_auto" if flags["edit_family_compat"] else "full_access")
         return True
-    # B-7: 'full access' = run-through — every approval auto, without a dialog.
-    if mode_auto and _resolve_mode(request.mode)["full_access"]:
+    # B-7: operator = run-through — every approval auto, without a dialog.
+    if mode_auto and flags["operator"]:
         audit_event("approval", tool=name, args=args, decision="auto", status="full_access")
         return True
 
@@ -2236,8 +2262,8 @@ async def chat_stream(
                 extra_system, allowed_tools, mode_flags = _mode_context(
                     request.mode, skill=active_skill, message=request.message
                 )
-                ask_mode = mode_flags["ask"]
-                plan_mode = mode_flags["plan"]
+                ask_mode = mode_flags["analyst"]
+                plan_mode = mode_flags["architect"]
                 # W10: publish the mode to the EXECUTION choke point. The offer list
                 # above is what the model sees; a write that arrives through the
                 # deferred bridge (tool_search + tool_call) never consults it.

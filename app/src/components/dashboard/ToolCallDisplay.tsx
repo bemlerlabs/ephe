@@ -34,6 +34,9 @@ import {
 import { useTasks } from '@/hooks/useTasks'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { readerText } from '@/lib/readerText'
+import { BrowserWatch } from './agent/BrowserWatch'
+import { RunWatch } from './agent/RunWatch'
+import { StepEvidence } from './agent/StepEvidence'
 import './ToolCallDisplay.css'
 /**
  * Ephe — tool activities in the chat stream (reference-B parity Z01–Z06, round E).
@@ -49,11 +52,32 @@ import './ToolCallDisplay.css'
  * - task:     task checklist taken from the real /api/tasks list.
  * - rest:     name badge + args/result details as before (honest JSON).
  */
+function liveBrowserSession(tools: ToolCall[]): string | null {
+  for (let index = tools.length - 1; index >= 0; index -= 1) {
+    const tool = tools[index]
+    if (!tool?.name.startsWith('browser_')) continue
+    if (tool.status === 'pending' || tool.status === 'waiting') {
+      return String(tool.args?.session ?? 'default')
+    }
+  }
+  return null
+}
+
 export default function ToolCallDisplay({ tool_calls }: { tool_calls: ToolCall[] }) {
+  const liveSession = liveBrowserSession(tool_calls)
   return (
     <div className="mt-2 space-y-1">
+      {liveSession && <RunWatch session={liveSession} />}
       {tool_calls.map((tool) => (
-        <ToolCallEntry key={tool.id} tool={tool} />
+        <ToolCallEntry
+          key={tool.id}
+          tool={tool}
+          suppressWatch={
+            liveSession !== null &&
+            tool.name.startsWith('browser_') &&
+            String(tool.args?.session ?? 'default') === liveSession
+          }
+        />
       ))}
     </div>
   )
@@ -90,7 +114,7 @@ export const ICONS: Record<ToolIconKind, typeof Terminal> = {
   wrench: Wrench,
 }
 
-function ToolCallEntry({ tool }: { tool: ToolCall }) {
+function ToolCallEntry({ tool, suppressWatch }: { tool: ToolCall; suppressWatch: boolean }) {
   const { t } = useTranslation()
   const model = classifyToolCall(tool)
   const result = typeof tool.result === 'string' ? tool.result : null
@@ -194,158 +218,159 @@ function ToolCallEntry({ tool }: { tool: ToolCall }) {
       data-status={tool.status}
     >
       <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <span className={`tool-status ${statusKind}`} aria-hidden="true">
-            {statusKind === 'is-running' ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : statusKind === 'is-error' ? (
-              <AlertCircle className="h-3.5 w-3.5" />
-            ) : (
-              <Check className="h-3.5 w-3.5" />
-            )}
+        <span className={`tool-status ${statusKind}`} aria-hidden="true">
+          {statusKind === 'is-running' ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : statusKind === 'is-error' ? (
+            <AlertCircle className="h-3.5 w-3.5" />
+          ) : (
+            <Check className="h-3.5 w-3.5" />
+          )}
+        </span>
+        {hasContent && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls={`tool-body-${tool.id ?? tool.name}`}
+            className="shrink-0 text-ink-soft hover:text-foreground/70 transition-colors"
+            aria-label={`${tool.name} Details`}
+          >
+            <ChevronRight
+              className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`}
+            />
+          </button>
+        )}
+        <Icon className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
+        <span className="text-ui-xs uppercase tracking-wide text-foreground/70 shrink-0">
+          {t(model.verbKey)}
+        </span>
+        {model.target !== '' && (
+          <span
+            className={`min-w-0 flex-1 break-words text-ui-xs text-foreground/80 ${monoTarget ? 'font-mono' : ''}`}
+            title={model.target}
+            data-testid="tool-target"
+          >
+            {model.target}
           </span>
-          {hasContent && (
-            <button
-              type="button"
-              onClick={() => setOpen((v) => !v)}
-              aria-expanded={open}
-              aria-controls={`tool-body-${tool.id ?? tool.name}`}
-              className="shrink-0 text-ink-soft hover:text-foreground/70 transition-colors"
-              aria-label={`${tool.name} Details`}
-            >
-              <ChevronRight
-                className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`}
-              />
-            </button>
-          )}
-          <Icon className="h-3.5 w-3.5 shrink-0 text-brand/70" aria-hidden="true" />
-          <span className="text-ui-xs uppercase tracking-wide text-foreground/70 shrink-0">
-            {t(model.verbKey)}
+        )}
+        {model.family === 'shell' && model.exit !== null && (
+          <span
+            data-testid="tool-exit-chip"
+            className={`shrink-0 rounded px-1.5 py-0.5 text-ui-xs font-mono ${
+              model.exit.code === 0
+                ? 'text-status-success bg-status-success/20'
+                : 'text-status-danger bg-status-danger/20'
+            }`}
+          >
+            exit {model.exit.code}
           </span>
-          {model.target !== '' && (
-            <span
-              className={`min-w-0 flex-1 break-words text-ui-xs text-foreground/80 ${monoTarget ? 'font-mono' : ''}`}
-              title={model.target}
-              data-testid="tool-target"
-            >
-              {model.target}
-            </span>
-          )}
-          {model.family === 'shell' && model.exit !== null && (
-            <span
-              data-testid="tool-exit-chip"
-              className={`shrink-0 rounded px-1.5 py-0.5 text-ui-xs font-mono ${
-                model.exit.code === 0
-                  ? 'text-status-success bg-status-success/20'
-                  : 'text-status-danger bg-status-danger/20'
-              }`}
-            >
-              exit {model.exit.code}
-            </span>
-          )}
-          {/* WP2b keep: user-land (green) vs kernel (danger) = harmlessness readout. */}
-          {model.runtime !== null && (
-            <span
-              data-testid="tool-runtime-chip"
-              data-runtime={model.runtime}
-              className={`shrink-0 rounded px-1.5 py-0.5 text-ui-xs font-mono ${
-                model.runtime === 'kernel'
-                  ? 'text-status-danger bg-status-danger/20'
-                  : 'text-status-success bg-status-success/20'
-              }`}
-              title={
-                model.runtime === 'kernel'
-                  ? t('chat.toolRuntimeKernelHint')
-                  : t('chat.toolRuntimeCellHint')
-              }
-            >
-              {model.runtime === 'kernel' ? t('chat.toolRuntimeKernel') : t('chat.toolRuntimeCell')}
-            </span>
-          )}
-          {model.stats !== null && (model.family === 'edit' || model.family === 'write') && (
-            <span
-              data-testid="tool-stats"
-              className="shrink-0 text-ui-xs font-mono flex items-center gap-1"
-            >
-              <span className="text-status-success">+{model.stats.added}</span>
-              <span className="text-status-danger">−{model.stats.removed}</span>
-            </span>
-          )}
-          {/* The right group may shrink on narrow screens: the status label is
+        )}
+        {/* WP2b keep: user-land (green) vs kernel (danger) = harmlessness readout. */}
+        {model.runtime !== null && (
+          <span
+            data-testid="tool-runtime-chip"
+            data-runtime={model.runtime}
+            className={`shrink-0 rounded px-1.5 py-0.5 text-ui-xs font-mono ${
+              model.runtime === 'kernel'
+                ? 'text-status-danger bg-status-danger/20'
+                : 'text-status-success bg-status-success/20'
+            }`}
+            title={
+              model.runtime === 'kernel'
+                ? t('chat.toolRuntimeKernelHint')
+                : t('chat.toolRuntimeCellHint')
+            }
+          >
+            {model.runtime === 'kernel' ? t('chat.toolRuntimeKernel') : t('chat.toolRuntimeCell')}
+          </span>
+        )}
+        {model.stats !== null && (model.family === 'edit' || model.family === 'write') && (
+          <span
+            data-testid="tool-stats"
+            className="shrink-0 text-ui-xs font-mono flex items-center gap-1"
+          >
+            <span className="text-status-success">+{model.stats.added}</span>
+            <span className="text-status-danger">−{model.stats.removed}</span>
+          </span>
+        )}
+        {/* The right group may shrink on narrow screens: the status label is
             the truncation victim (ellipsised), while badge and buttons keep
             their intrinsic width. Without this the card clipped the label. */}
-          <div className="ml-auto flex items-center gap-1.5 min-w-0">
-            {canPreview && (
-              <button
-                type="button"
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent(PREVIEW_OPEN_EVENT, {
-                      detail: {
-                        tab: 'preview',
-                        url: `/api/file?path=${encodeURIComponent(model.filePath ?? '')}`,
-                      },
-                    }),
-                  )
-                }
-                aria-label={t('chat.toolOpenPreview')}
-                title={t('chat.toolOpenPreview')}
-                data-testid="tool-open-preview"
-                className="inline-flex items-center gap-1 shrink-0 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground/80 hover:bg-surface-interactive transition-colors"
-              >
-                <Eye className="h-3 w-3" aria-hidden="true" />
-              </button>
-            )}
-            {tool.duration_ms != null && (
-              <span
-                data-testid="tool-duration"
-                className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
-              >
-                {(tool.duration_ms / 1000).toFixed(1)}s
-              </span>
-            )}
-            <Badge
-              variant={statusVariant(tool.status)}
-              className={cn('shrink-0', tool.status === 'pending' && 'text-brand-glow')}
+        <div className="ml-auto flex items-center gap-1.5 min-w-0">
+          {canPreview && (
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent(PREVIEW_OPEN_EVENT, {
+                    detail: {
+                      tab: 'preview',
+                      url: `/api/file?path=${encodeURIComponent(model.filePath ?? '')}`,
+                    },
+                  }),
+                )
+              }
+              aria-label={t('chat.toolOpenPreview')}
+              title={t('chat.toolOpenPreview')}
+              data-testid="tool-open-preview"
+              className="inline-flex items-center gap-1 shrink-0 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground/80 hover:bg-surface-interactive transition-colors"
             >
-              {tool.name}
-            </Badge>
-            <span className="text-ui-xs text-foreground/70 shrink-0" title={statusLabel}>
-              {statusLabel}
+              <Eye className="h-3 w-3" aria-hidden="true" />
+            </button>
+          )}
+          {tool.duration_ms != null && (
+            <span
+              data-testid="tool-duration"
+              className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-faint"
+            >
+              {(tool.duration_ms / 1000).toFixed(1)}s
             </span>
-          </div>
-        </div>
-
-        {reasonText !== '' && (
-          <div
-            data-testid="tool-failure-reason"
-            className="mt-1 break-words text-ui-xs text-status-danger"
+          )}
+          <Badge
+            variant={statusVariant(tool.status)}
+            className={cn('shrink-0', tool.status === 'pending' && 'text-brand-glow')}
           >
-            {reasonText}
-          </div>
-        )}
+            {tool.name}
+          </Badge>
+          <span className="text-ui-xs text-foreground/70 shrink-0" title={statusLabel}>
+            {statusLabel}
+          </span>
+        </div>
+      </div>
 
-        {open && hasContent && (
-          <div className="tool-body mt-1.5 space-y-2" id={`tool-body-${tool.id ?? tool.name}`}>
-            <div data-testid="tool-card-hint" className="break-words text-ui-2xs text-ink-faint">
-              {t(`${tipKey}.title`)} — {t(`${tipKey}.body`)}
-            </div>
-            {model.family === 'shell' && <ShellBody model={model} result={result} />}
-            {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
-            {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}
-            {!['shell', 'edit', 'write', 'task'].includes(model.family) && (
-              <GenericBody tool={tool} />
-            )}
-          </div>
-        )}
+      {reasonText !== '' && (
+        <div
+          data-testid="tool-failure-reason"
+          className="mt-1 break-words text-ui-xs text-status-danger"
+        >
+          {reasonText}
+        </div>
+      )}
 
-        {/* 2026 task focus: the task checklist always lives visibly in the
+      {open && hasContent && (
+        <div className="tool-body mt-1.5 space-y-2" id={`tool-body-${tool.id ?? tool.name}`}>
+          <div data-testid="tool-card-hint" className="break-words text-ui-2xs text-ink-faint">
+            {t(`${tipKey}.title`)} — {t(`${tipKey}.body`)}
+          </div>
+          {model.family === 'shell' && <ShellBody model={model} result={result} />}
+          {model.family === 'edit' && <EditBody result={result} isDiff={isDiffResult} />}
+          {model.family === 'write' && <WriteBody tool={tool} model={model} result={result} />}
+          {model.family === 'web' && <WebBody tool={tool} suppressWatch={suppressWatch} />}
+          {!['shell', 'edit', 'write', 'task', 'web'].includes(model.family) && (
+            <GenericBody tool={tool} />
+          )}
+        </div>
+      )}
+
+      {/* 2026 task focus: the task checklist always lives visibly in the
           stream (todo anchor pattern) — never behind a chevron. While the task
           is still running the list follows live; otherwise it shows the final state. */}
-        {isTask && (tool.status === 'pending' || tool.status === 'completed') && (
-          <div className="ml-5 mt-2">
-            <TaskBody completed={tool.status === 'completed'} live={tool.status === 'pending'} />
-          </div>
-        )}
+      {isTask && (tool.status === 'pending' || tool.status === 'completed') && (
+        <div className="ml-5 mt-2">
+          <TaskBody completed={tool.status === 'completed'} live={tool.status === 'pending'} />
+        </div>
+      )}
     </div>
   )
 }
@@ -516,6 +541,27 @@ function ResultPre({ result }: { result: string }) {
 function refusalLine(tool: ToolCall, t: TFunction, result: string): string {
   if (!tool.reason_code) return result
   return t(`reader.${tool.reason_code}`, { ...tool.reason_params, defaultValue: result })
+}
+
+/**
+ * A browser step, with the page it is standing on.
+ *
+ * The arguments and the result stay exactly as `GenericBody` shows them; what a web step has
+ * that no other family has is a screen, and the run surface that refuses to show it leaves
+ * the reader one line of text about a page they never saw.
+ *
+ * The session is the tool's own argument, and `default` is what `core/browser.py` opens when
+ * the call names none, so the view follows the run rather than a name this file invented.
+ */
+function WebBody({ tool, suppressWatch }: { tool: ToolCall; suppressWatch: boolean }) {
+  const session = String(tool.args?.session ?? 'default')
+  return (
+    <>
+      <GenericBody tool={tool} />
+      <StepEvidence result={typeof tool.result === 'string' ? tool.result : null} />
+      {!suppressWatch && <BrowserWatch session={session} />}
+    </>
+  )
 }
 
 function GenericBody({ tool }: { tool: ToolCall }) {

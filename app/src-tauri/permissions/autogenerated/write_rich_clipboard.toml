@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-write-rich-clipboard"
+description = "Enables the write_rich_clipboard command without any pre-configured scope."
+commands.allow = ["write_rich_clipboard"]
+
+[[permission]]
+identifier = "deny-write-rich-clipboard"
+description = "Denies the write_rich_clipboard command without any pre-configured scope."
+commands.deny = ["write_rich_clipboard"]

@@ -8,29 +8,44 @@ artefact/behaviour, mechanically gradable. The matrix is measured with pass³
 a reference comparison is stated only after those models have run.
 
 One golden case (one JSONL line, fail-closed):
-  id        "<plugin>-<nr>"        unique, with the plugin prefix
-  command   command name | null    must exist in the manifest
-  input     the task (what the user would ask)
-  expect    {"kind": …, …}         see KINDS — everything by string test
-  note      optional, one sentence why
+  id          "<plugin>-<nr>"      unique, with the plugin prefix
+  command     command name | null  must exist in the manifest
+  input       the task (what the user would ask)
+  expect      {"kind": …, …}       see KINDS — everything by string test
+  note        optional, one sentence why
+  mode        one of plugin_scope.MODES — the turn is run IN this mode
+  privileges  code|files|network, with mode "creator" only — the consent the
+              turn holds, written into a config dir the run then removes
+  tools       non-empty name list — what this case offers the model, so a
+              name the mode hides is not graded on a call it could not make
 
 Kinds (mechanical, no model in the grader):
   artifact      <suffix> appears as an artefact path in the transcript
-  tool_use      one of the tools in <any> was called
+  tool_use      one of the tools in <any> was called and did not come back failed
   contains      one of the fragments in <any> is in the answer
   not_contains  NOTHING from <any> may appear (anti-slop traps:
                 placeholders, TODO, invented number disclaimers)
+  tool_refused  one of the tools in <any> came back a refusal, and <reason>, when
+                the case gives one, is in that refusal's own text — the difference
+                between the consent guard and the approval gate is in the words,
+                so naming the reason is what makes a refusal attributable
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 from pathlib import Path
 
-KINDS: tuple[str, ...] = ("artifact", "tool_use", "contains", "not_contains")
+KINDS: tuple[str, ...] = ("artifact", "tool_use", "contains", "not_contains", "tool_refused")
 
 _REQUIRED = frozenset({"id", "input", "expect"})
+
+#: Optional case keys that say WHICH turn the harness has to build. A plain case
+#: constrains the answer; these constrain the situation the engine is asked in, and
+#: a Creator case without them grades a mode the engine was never in.
+_OPTIONAL = ("mode", "privileges", "tools")
 
 
 def _validate(case: dict, plugin: str, seen: set[str]) -> dict:
@@ -45,6 +60,7 @@ def _validate(case: dict, plugin: str, seen: set[str]) -> dict:
     seen.add(cid)
     if not isinstance(case["input"], str) or len(case["input"]) < 8:
         raise ValueError(f"{plugin}: {cid} input too short")
+    _validate_context(case, plugin, cid)
     expect = case["expect"]
     if not isinstance(expect, dict) or expect.get("kind") not in KINDS:
         raise ValueError(
@@ -58,7 +74,43 @@ def _validate(case: dict, plugin: str, seen: set[str]) -> dict:
         any_list = expect.get("any")
         if not isinstance(any_list, list) or not any_list or not all(isinstance(s, str) for s in any_list):
             raise ValueError(f"{plugin}: {cid} {kind} needs any: [strings]")
+        if kind == "tool_refused" and "reason" in expect and (
+            not isinstance(expect["reason"], str) or len(expect["reason"]) < 3
+        ):
+            raise ValueError(f"{plugin}: {cid} tool_refused reason must be a phrase to find")
     return case
+
+
+def _validate_context(case: dict, plugin: str, cid: str) -> None:
+    """Check the three keys that say which turn to build, before an engine is spent on it.
+
+    Each one is a claim about the engine's situation, and a wrong claim is not a
+    failed case but an unmeasurable one: a mode the engine does not have is dropped
+    silently, a privilege outside Creator mode is never asked for, an empty tool
+    list means the model is offered nothing. All three would grade as an answer
+    that merely did not try.
+    """
+    from core.plugin_scope import MODES
+    from core.tools.creator_guard import PRIVILEGES
+
+    mode = case.get("mode")
+    if mode is not None and mode not in MODES:
+        raise ValueError(f"{plugin}: {cid} mode {mode!r} is not one of {', '.join(MODES)}")
+    privileges = case.get("privileges")
+    if privileges is not None:
+        if not isinstance(privileges, list) or not all(p in PRIVILEGES for p in privileges):
+            raise ValueError(
+                f"{plugin}: {cid} privileges must be from {', '.join(sorted(PRIVILEGES))}"
+            )
+        if mode != "creator":
+            raise ValueError(
+                f"{plugin}: {cid} privileges are only held in creator mode - set mode or drop them"
+            )
+    tools = case.get("tools")
+    if tools is not None and (
+        not isinstance(tools, list) or not tools or not all(isinstance(t, str) for t in tools)
+    ):
+        raise ValueError(f"{plugin}: {cid} tools must be a non-empty list of names")
 
 
 def load_golden(path: Path, plugin: str) -> list[dict]:
@@ -132,15 +184,28 @@ def grade(case: dict, transcript: str) -> bool:
             name in any_list and not _failed_output(output)
             for name, output in _events(transcript)
         )
+    if kind == "tool_refused":
+        reason = str(expect.get("reason", "")).lower()
+        return any(
+            name in any_list
+            and _failed_output(output)
+            and (not reason or reason in output.lower())
+            for name, output in _events(transcript)
+        )
     return False
 
 
-def plugin_prompt(plugin_dir: Path) -> tuple[str, list[str]]:
-    """The declared skill prompt and tool grant of a plugin, for its matrix."""
+def plugin_prompt(plugin_dir: Path) -> tuple[str, list[str] | None]:
+    """The declared skill prompt and tool grant of a plugin, for its matrix.
+
+    A bundle without a skill pack has no grant, which is not the same turn as a
+    grant of nothing: the chat route hands ``None`` when no skill resolved and the
+    engine then ships its core kernel, while an empty list ships an empty array.
+    """
     manifest = json.loads((plugin_dir / "ephe-plugin.json").read_text(encoding="utf-8"))
     packs = (manifest.get("components") or {}).get("skills") or []
     if not packs:
-        return "", []
+        return "", None
     path = plugin_dir / "skills" / str(packs[0]) / "SKILL.md"
     from core.skills import _parse_skill
 
@@ -207,20 +272,45 @@ def _inside_workspace(path: str, workspace: str) -> bool:
         return False
 
 
-def bench_policy(allowed_tools: list[str] | None, *, workspace: str | None = None) -> object:
+#: What no unattended matrix executes, whatever the case declares as granted.
+#: Installing mounts code into the running app — the consent dialog is where that
+#: is decided, and a bench run has no person in front of it.
+BENCH_NEVER_APPROVES = frozenset({"install_plugin_bundle"})
+
+
+def bench_policy(
+    allowed_tools: list[str] | None,
+    *,
+    workspace: str | None = None,
+    privileges: list[str] | None = None,
+) -> object:
     """Approval policy for a matrix run.
 
     Artifact tools are approved by name. With a sandbox workspace, file edits
     and test runs are approved only inside that workspace; shell commands must
-    match a read-only allowlist. Everything else keeps the conservative denial.
+    match a read-only allowlist. A case that declares a Creator grant stands in
+    for the dialog that person answered, so the staging calls whose privilege is
+    in that grant are approved — and everything that reaches the running app is
+    not. Anything else keeps the conservative denial.
     """
     from core.tools.approval import ApprovalPolicy
 
     allowed = set(allowed_tools or ())
     approved = BENCH_ARTIFACT_TOOLS & allowed
+    granted = set(privileges or ())
+
+    def _staging_is_granted(name: str) -> bool:
+        from core.tools.creator_guard import KERNEL_PRIVILEGES
+
+        if name in BENCH_NEVER_APPROVES:
+            return False
+        privilege = KERNEL_PRIVILEGES.get(name)
+        return bool(privilege) and name in allowed and privilege in granted
 
     async def confirm(name: str, arguments: dict) -> bool:
         if name in approved:
+            return True
+        if privileges is not None and _staging_is_granted(name):
             return True
         if name == "run_tests" and name in allowed:
             return True
@@ -248,6 +338,40 @@ def bench_policy(allowed_tools: list[str] | None, *, workspace: str | None = Non
     return ApprovalPolicy(interactive=False, on_confirm=confirm)
 
 
+@contextlib.contextmanager
+def _case_context(case: dict, session_id: str, mode: str, privileges):
+    """Hold the turn the case declared, then leave no trace of it.
+
+    The grant is a real file the guard reads by path, so it goes in a directory the
+    run removes; the user's own consent rows cannot be reached from here.
+    """
+    import shutil
+    import tempfile
+
+    from core.tools import session_ctx
+
+    config_dir = os.environ.get("EPHE_CONFIG_DIR")
+    sandbox = None
+    if privileges:
+        sandbox = tempfile.mkdtemp(prefix="ephe-bench-creator-config-")
+        os.environ["EPHE_CONFIG_DIR"] = sandbox
+        from core.tools import creator_guard
+
+        creator_guard.set_privileges(session_id, set(privileges))
+    token = session_ctx.set_current_mode(mode) if mode else None
+    try:
+        yield
+    finally:
+        if token is not None:
+            session_ctx.reset_current_mode(token)
+        if sandbox is not None:
+            if config_dir is None:
+                os.environ.pop("EPHE_CONFIG_DIR", None)
+            else:
+                os.environ["EPHE_CONFIG_DIR"] = config_dir
+            shutil.rmtree(sandbox, ignore_errors=True)
+
+
 def run_measured(
     case: dict,
     engine=None,
@@ -270,6 +394,25 @@ def run_measured(
     chunks: list[str] = []
     tool_events: list[str] = []
 
+    # A case may declare the turn it has to be measured in. The mode travels to
+    # where the tool is EXECUTED (the same seam the chat route publishes), the
+    # privilege grant goes into a throwaway config dir so the run cannot answer
+    # for a real session, and the engine is already resolved before that dir moves.
+    mode = case.get("mode") or ""
+    privileges = case.get("privileges")
+    tools = case.get("tools") or allowed_tools
+    session_id = f"bench-{case['id']}"
+    if privileges is not None:
+        # The suite-level policy was built without this case's grant, and the
+        # gate that refuses a staging call would otherwise outrank the dialog the
+        # case says the person answered. The workspace the run was given still
+        # confines every file the turn touches.
+        approval_policy = bench_policy(
+            tools,
+            workspace=os.environ.get("EPHE_WORKSPACE") or None,
+            privileges=privileges,
+        )
+
     async def _turn() -> tuple[str, dict]:
         answer = ""
         for attempt in range(3):
@@ -285,9 +428,9 @@ def run_measured(
                         on_tool_done=lambda name, out, *_: tool_events.append(f"[tool {name}] {out}"),
                         approval_policy=approval_policy or ApprovalPolicy(interactive=False),
                         max_tool_iterations=BENCH_MAX_TOOL_ITERATIONS,
-                        session_id=f"bench-{case['id']}",
+                        session_id=session_id,
                         extra_system_prompt=system_prompt,
-                        allowed_tool_names=allowed_tools,
+                        allowed_tool_names=tools,
                     )
                 break
             except Exception as exc:
@@ -300,7 +443,8 @@ def run_measured(
 
         return answer, dict(get_measured_usage() or {})
 
-    answer, usage = asyncio.run(_turn())
+    with _case_context(case, session_id, mode, privileges):
+        answer, usage = asyncio.run(_turn())
     return answer + "\n[EPHE-TOOL-EVENTS]\n" + "\n".join(tool_events), usage
 
 

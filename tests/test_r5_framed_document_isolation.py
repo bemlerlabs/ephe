@@ -40,10 +40,11 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("EPHE_FEEDBACK_DIR", str(tmp_path))
     monkeypatch.setenv("EPHE_SKILLS_DIR", str(tmp_path / "skills"))
     monkeypatch.setattr(artifact_store, "ARTIFACTS_DB", tmp_path / "artifacts.db")
-    # Both file routes have their own ladder to the allowed roots — the check
-    # belongs to the surface, not to the test, so branch off both.
+    # The browse route and the artifact route reach their roots by different ladders
+    # since #120 — the first walks the kernel's allowed roots, the second the declared
+    # scope. The check belongs to the surface, so stand both in the test's folder.
     monkeypatch.setattr(base, "_get_allowed_roots", lambda: [tmp_path])
-    monkeypatch.setattr(files, "_get_allowed_roots", lambda: [tmp_path])
+    monkeypatch.setattr(files, "_get_artifact_roots", lambda: [tmp_path])
     from server.main import create_app
 
     return TestClient(create_app())

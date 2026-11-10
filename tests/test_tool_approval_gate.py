@@ -21,6 +21,18 @@ import pytest
 
 
 from core.chat import chat_with_tools
+from tests.tool_dispatch_seam import patched_tool
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_home(tmp_path, monkeypatch):
+    """Pin HOME: a chat turn records its episode under the workspace, and the neutral
+    workspace is ``~/Ephe`` (ticket #153)."""
+    home = tmp_path / "home"
+    home.mkdir(exist_ok=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    return home
 
 
 # Helpers
@@ -82,6 +94,7 @@ class TestChatGateClassification:
             "write_file", "edit_file", "run_tests",
             "run_sandboxed_code", "scaffold_project", "create_pdf",
             "create_docx", "create_xlsx", "generate_chart", "generate_image",
+            "synthesize", "transcribe",
             "build_document", "export_source_brief", "create_source_notebook",
         ):
             assert chat_tool_requires_confirm(name) is True, name
@@ -112,24 +125,30 @@ class TestChatGateClassification:
         WHEN   chat_with_tools runs
         THEN   web_search executes (no dialog, no deny)
         """
+        from importlib import import_module
+
         first = _make_ollama_response(
             tool_calls=[_make_tool_call("web_search", {"query": "test"})]
         )
         second = _make_ollama_response(content="Suchergebnis ok.")
-        executor = AsyncMock(return_value="Treffer")
+        seen: list[str] = []
+
+        async def _search(query: str, max_results: int = 5) -> str:
+            seen.append(query)
+            return "Treffer"
 
         with patch("core.chat.ollama.AsyncClient") as MockClient:
             client = AsyncMock()
             client.chat = AsyncMock(side_effect=[first, second])
             MockClient.return_value = client
-            with patch.dict("core.tools.registry.TOOL_MAP", {"web_search": executor}, clear=False):
+            with patch.object(import_module("core.tools.web_search"), "web_search", _search):
                 await chat_with_tools(
                     model="phi4-mini",
                     history=[{"role": "user", "content": "such das"}],
                     on_chunk=lambda t: None,
                 )
 
-        executor.assert_awaited_once()
+        assert seen == ["test"]
 
 
 # Mutating tool WITHOUT approval_policy → gate via on_tool_confirm
@@ -154,7 +173,7 @@ class TestMutatingToolGate:
             client = AsyncMock()
             client.chat = AsyncMock(side_effect=[first, second])
             MockClient.return_value = client
-            with patch.dict("core.tools.registry.TOOL_MAP", {"write_file": executor}, clear=False):
+            with patched_tool("write_file", executor):
                 result = await chat_with_tools(
                     model="phi4-mini",
                     history=[{"role": "user", "content": "Schreib x.txt"}],
@@ -185,7 +204,7 @@ class TestMutatingToolGate:
             client = AsyncMock()
             client.chat = AsyncMock(side_effect=[first, second])
             MockClient.return_value = client
-            with patch.dict("core.tools.registry.TOOL_MAP", {"write_file": executor}, clear=False):
+            with patched_tool("write_file", executor):
                 result = await chat_with_tools(
                     model="phi4-mini",
                     history=[{"role": "user", "content": "Schreib x.txt"}],
@@ -215,7 +234,7 @@ class TestMutatingToolGate:
             client = AsyncMock()
             client.chat = AsyncMock(side_effect=[first, second])
             MockClient.return_value = client
-            with patch.dict("core.tools.registry.TOOL_MAP", {"write_file": executor}, clear=False):
+            with patched_tool("write_file", executor):
                 await chat_with_tools(
                     model="phi4-mini",
                     history=[{"role": "user", "content": "Schreib x.txt"}],
@@ -245,7 +264,7 @@ class TestMutatingToolGate:
             client = AsyncMock()
             client.chat = AsyncMock(side_effect=[first, second])
             MockClient.return_value = client
-            with patch.dict("core.tools.registry.TOOL_MAP", {"read_file": executor}, clear=False):
+            with patched_tool("read_file", executor):
                 await chat_with_tools(
                     model="phi4-mini",
                     history=[{"role": "user", "content": "Lies x.txt"}],

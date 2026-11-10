@@ -85,7 +85,7 @@ describe('the composer mode menu', () => {
   })
 
   it('says what each surface decides and which one is the ceiling', () => {
-    render(<OpenMenu mode="plan" />)
+    render(<OpenMenu mode="architect" />)
     const note = screen.getByTestId('composer-mode-note')
     expect(note.textContent).toContain('approval profile')
     expect(note.textContent).toContain('mode')

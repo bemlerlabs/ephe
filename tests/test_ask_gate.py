@@ -343,3 +343,44 @@ def test_ask_user_is_allowed_in_the_read_only_modes():
     assert "ask_user" in READ_ONLY_MODE_TOOLS
     assert mode_denial("ask_user") is None
     assert "ask_user" in chat_route._READ_ONLY_TOOL_NAMES
+
+
+# 5: the offer — a turn that can ask is a turn that shows a card
+
+def test_a_plain_turn_offers_the_ask_tool_to_the_model():
+    """The registry carrying the tool is not the offer: the array a turn reads is the
+    narrowed CORE set, so a name outside it is a tool no turn can call."""
+    from core.chat_context import _tools_for_messages
+
+    names = {entry["function"]["name"] for entry in _tools_for_messages([], None)}
+    assert "ask_user" in names
+
+
+def test_a_skill_whitelist_keeps_the_ask_tool():
+    """A narrowed session keeps the read primitives for one reason, and the ask tool
+    shares it: the model has to be able to ask instead of putting the question into
+    the answer."""
+    from core.chat_context import _tools_for_messages
+
+    names = {entry["function"]["name"] for entry in _tools_for_messages([], ["web_search"])}
+    assert {"web_search", "ask_user"} <= names
+
+
+def test_the_guidance_asks_with_the_tool_where_the_turn_offers_one():
+    """A turn that holds the tool is told to call it, and the answer text stops being
+    the place a question is written."""
+    from core.persona import build_tool_guidelines
+
+    offered = build_tool_guidelines(["web_search"])
+    assert "ask_user" in offered
+    assert "append a fenced json block" not in offered
+
+
+def test_the_guidance_keeps_the_block_for_a_turn_that_offers_no_tool():
+    """Ask mode holds no tool at all, so its one asking route is the block — and it
+    names no tool, because it carries none."""
+    from core.persona import build_tool_guidelines
+
+    no_tools = build_tool_guidelines([])
+    assert "append a fenced json block" in no_tools
+    assert "ask_user" not in no_tools

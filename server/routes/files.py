@@ -1,9 +1,15 @@
 """Ephe – file route: deliver generated artifacts (charts/PDFs/decks/SVGs) safely.
 
 The P2-1 preview rail needs a way to show tool-output files in the browser.
-Instead of a new StaticFiles mount per folder, ONE endpoint that reuses the
-existing path whitelist guard from core.tools.base
-(HOME/Desktop/Documents/Downloads/tmp). Not an arbitrary path reader.
+Instead of a new StaticFiles mount per folder, ONE endpoint that serves files
+from the workspace and the output folder. Not an arbitrary path reader.
+
+Security boundary (task #81, ported here by #120): this route reads a narrower
+scope than the kernel tools. A tool that opens a user file goes through
+`core.tools.base._get_allowed_roots` (HOME + subfolders + tmp); the artifact
+route answers from the workspace plus the configured output folder, which is
+what the surface shows next to the preview. A plugin call adds that bundle's
+resolved data roots, the same list the kernel path and the confined worker use.
 """
 from __future__ import annotations
 
@@ -11,11 +17,18 @@ import mimetypes
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from fastapi.responses import FileResponse
 
 from core.path_guard import denied, secret_shaped
-from core.tools.base import _get_allowed_roots, allowed_root_of
+
+# The kernel's scope helpers are reached through their module, the way `server/routes/fs.py`
+# reaches the root list. `from core.tools.base import allowed_root_of` copies the name into this
+# namespace at import time, so a route mounted while a test has patched that attribute keeps the
+# patch after the test is gone, and the guard judges paths against whichever answer was live when
+# the module first imported. Asking the module each call is what lets a patch be honoured.
+from core.tools import base as kernel
+from server.refusals import Refused
 
 router = APIRouter()
 
@@ -24,8 +37,56 @@ router = APIRouter()
 MAX_FILE_BYTES = 50 * 1024 * 1024
 
 
-def _in_allowed_roots(resolved: Path) -> bool:
-    for root in _get_allowed_roots():
+def _get_artifact_roots() -> list[Path]:
+    """The narrow whitelist for artifact delivery: workspace + output folder.
+
+    Two answers to "may this path be read" are two scopes, and the client hitting
+    `/api/file?path=` gets whichever one the route happened to call. The kernel
+    path (`_get_allowed_roots`) keeps HOME + subfolders + tmp for the tools that
+    read user files; this route keeps the scope the surface shows.
+
+    In a plugin call (`PLUGIN_FILE_SCOPE`), the bundle's declared data roots are
+    added through `resolved_data_roots` — the one resolution the kernel file scope
+    and the confined worker share, so a bundle sees the same reach on both rails.
+    """
+    from core.tools.base import PLUGIN_FILE_SCOPE
+
+    plugin = PLUGIN_FILE_SCOPE.get()
+    workspace: Path | None = None
+    try:
+        from core.engine_config import get_workspace_dir, validate_workspace_dir
+
+        chosen = validate_workspace_dir(get_workspace_dir())
+        if chosen:
+            workspace = Path(chosen).resolve()
+    except (OSError, ValueError):
+        workspace = None
+
+    if plugin:
+        if workspace is None:
+            return []
+        from core.capability_policy import resolved_data_roots
+
+        return [workspace, *resolved_data_roots(plugin, workspace)]
+
+    roots: list[Path] = []
+    if workspace is not None:
+        roots.append(workspace)
+    try:
+        from core.engine_config import get_output_dir
+
+        output = get_output_dir()
+        if output:
+            out = Path(output).resolve()
+            if out.is_dir() and out not in roots:
+                roots.append(out)
+    except Exception:
+        pass
+    return roots
+
+
+def _in_artifact_roots(resolved: Path) -> bool:
+    for root in _get_artifact_roots():
         try:
             resolved.relative_to(root.resolve())
             return True
@@ -61,8 +122,9 @@ def _relative_bases() -> list[Path]:
         pass
     # The engine's storage-location prompt offers the home folders
     # (Desktop/Documents/Downloads) — relative artifacts land there, not in the
-    # workspace. Try home + those folders last; the whitelist guard stays behind
-    # them.
+    # workspace. Resolving the name where the file actually is keeps the answer a
+    # scope refusal; answering "not found" to a file that exists sends the reader
+    # looking for it somewhere else.
     try:
         home = Path.home()
         bases.append(home)
@@ -76,14 +138,19 @@ def _relative_bases() -> list[Path]:
 
 
 def _guarded_file(path: str) -> Path:
-    """The one answer for "may this path be read here", or the HTTP refusal that says why.
+    """The one answer for "may this path be read here", or the coded refusal that says why.
 
     The route that streams the bytes and the route that renders them cannot each carry
     their own copy of this chain — the second one would be a way to read a protected file
     past the first. Everything that decides containment lives here: the expansion, the
     relative resolve against the workspace and output bases, the real-path probe against
-    the governing root, the credential-shaped name, the allowed-roots re-check, and the
+    the governing root, the credential-shaped name, the artifact-roots re-check, and the
     size ceiling.
+
+    Task #120: the re-check is `_in_artifact_roots` (workspace + output folder), the scope
+    the surface shows. `kernel.allowed_root_of` below stays: that is the resolution which stops a
+    `..` part or a symlink leaving a real folder, and the narrow list then says which of
+    those folders this route reads.
     """
     expanded = os.path.expanduser(path)
     if os.path.isabs(expanded):
@@ -105,30 +172,28 @@ def _guarded_file(path: str) -> Path:
                 real = candidate_real
                 break
         if not real:
-            raise HTTPException(
-                status_code=404,
-                detail="file not found (relative path resolved against workspace/output dir)",
-            )
+            raise Refused("file_not_found")
     # The real path plus its separator, then the prefix check against the governing
-    # root: that is what keeps the read inside the allowed roots, `..` and symlinks
-    # included (py/path-injection). The whitelist guard below re-checks the same thing.
+    # kernel root: that is what keeps `..` and symlinks inside a folder the process
+    # may look at (py/path-injection). The artifact list below is the narrower
+    # decision of the two — which folder inside that reach this route reads.
     probe = real + os.sep
-    root = allowed_root_of(probe)
+    root = kernel.allowed_root_of(probe)
     if root is None:
-        raise HTTPException(status_code=403, detail="path not in allowed roots")
+        raise Refused("file_path_not_allowed")
     if not probe.startswith(root + os.sep):
-        raise HTTPException(status_code=403, detail="path not in allowed roots")
+        raise Refused("file_path_not_allowed")
     resolved = Path(probe)
     if denied(resolved) or secret_shaped(resolved):
         # The tool path asks a human for a credential-shaped name; this HTTP
         # route has no dialog, so it refuses the file instead.
-        raise HTTPException(status_code=403, detail="path is protected")
-    if not _in_allowed_roots(resolved):
-        raise HTTPException(status_code=403, detail="path not in allowed roots")
+        raise Refused("file_path_protected")
+    if not _in_artifact_roots(resolved):
+        raise Refused("file_path_not_allowed")
     if not resolved.is_file():
-        raise HTTPException(status_code=404, detail="file not found")
+        raise Refused("file_not_found")
     if resolved.stat().st_size > MAX_FILE_BYTES:
-        raise HTTPException(status_code=413, detail="File too large for preview")
+        raise Refused("file_too_large", max_mb=MAX_FILE_BYTES // (1024 * 1024))
     return resolved
 
 
@@ -156,6 +221,28 @@ async def get_file(
             "Content-Disposition": f'inline; filename="{resolved.name}"',
             "Cache-Control": "no-store",
         },
+    )
+
+
+@router.head("/file", tags=["Files"])
+async def head_file(
+    path: str = Query(..., description="Absolute or workspace-relative artifact path"),
+):
+    """Return file metadata (size, type) without the bytes — for progress bars and size checks.
+    
+    Uses the same guard as GET, so it cannot leak metadata about protected files.
+    """
+    from starlette.responses import Response
+    
+    resolved = _guarded_file(path)
+    media_type = mimetypes.guess_type(str(resolved))[0] or "application/octet-stream"
+    return Response(
+        headers={
+            "Content-Length": str(resolved.stat().st_size),
+            "Content-Type": media_type,
+            "Content-Disposition": f'inline; filename="{resolved.name}"',
+            "Accept-Ranges": "bytes",
+        }
     )
 
 

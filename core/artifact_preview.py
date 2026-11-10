@@ -23,6 +23,10 @@ MAX_SLIDE_PART_BYTES = 4_000_000
 TABLE_KINDS = {"xlsx", "xls", "csv"}
 TEXT_KINDS = {"docx", "md", "markdown", "txt", "log", "json", "yaml", "yml", "toml", "ini", "conf"}
 
+#: The formats whose renderer reads bytes on purpose. Every one is a zip container, so
+#: the null-byte test would refuse the file before its own renderer ever saw it.
+_BYTE_RENDERED = {"xlsx", "xls", "docx", "pptx"}
+
 
 def _table(path: Path) -> dict:
     from openpyxl import load_workbook
@@ -100,8 +104,47 @@ def _pptx_slides(path: Path) -> list[dict]:
     return slides
 
 
+def _is_binary(path: Path) -> bool:
+    """Check first 8KB for null bytes — the classic binary heuristic.
+    
+    Text files do not contain null bytes; binary files (images, PDFs, compiled code) do.
+    Reading only the first 8KB keeps this check O(1) in file size.
+    """
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(8192)
+        return b"\x00" in chunk
+    except OSError:
+        return False
+
+
 def _plain_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")[:MAX_TEXT_CHARS]
+    if _is_binary(path):
+        raise ValueError("binary file")
+    return path.read_text(encoding="utf-8")[:MAX_TEXT_CHARS]
+
+
+def _csv_table(path: Path) -> dict:
+    """Parse CSV with the stdlib csv module — handles quoted fields, embedded commas/newlines."""
+    import csv
+    import io
+    
+    text = _plain_text(path)
+    reader = csv.reader(io.StringIO(text))
+    rows = []
+    for i, row in enumerate(reader):
+        if i >= MAX_ROWS:
+            break
+        rows.append(row[:MAX_COLS])
+    header = rows[0] if rows else []
+    body = rows[1:] if len(rows) > 1 else []
+    return {
+        "mode": "table",
+        "sheets": [],
+        "header": header,
+        "rows": body,
+        "truncated": len(rows) >= MAX_ROWS,
+    }
 
 
 def preview_payload(path: str | Path, kind: str = "") -> dict:
@@ -109,28 +152,41 @@ def preview_payload(path: str | Path, kind: str = "") -> dict:
 
     `none` means: this surface cannot show that as content (image, PDF,
     audio, deck). The card then shows exactly that, not an empty preview.
+    
+    Every response includes `size_bytes` from stat, so the surface can show file size
+    without a second request.
     """
     p = Path(path)
     if not p.is_file():
         return {"mode": "none", "reason": "missing"}
+    # The binary guard belongs beside the format dispatch rather than ahead of it.
+    # An xlsx, a docx and a pptx are zip containers, so a null-byte test placed first
+    # refuses exactly the formats this rail has a renderer for. Everywhere else the
+    # test does run first: reading a PNG or a compiled file as text is mojibake, and
+    # `_plain_text` raising on its own would only cover what TEXT_KINDS holds.
+    size = p.stat().st_size
     ext = (kind or p.suffix.lstrip(".") or "").lower()
+    if ext not in _BYTE_RENDERED and _is_binary(p):
+        return {"mode": "none", "reason": "binary-file", "size_bytes": size}
     try:
         if ext in ("xlsx", "xls"):
-            return _table(p)
+            return {**_table(p), "size_bytes": size}
         if ext == "csv":
-            rows = [line.split(",") for line in _plain_text(p).splitlines()[:MAX_ROWS]]
-            return {"mode": "table", "sheets": [], "header": rows[0] if rows else [],
-                    "rows": rows[1:], "truncated": len(rows) >= MAX_ROWS}
+            return {**_csv_table(p), "size_bytes": size}
         if ext == "docx":
-            return {"mode": "text", "format": "markdown", "text": _docx_text(p)}
+            return {"mode": "text", "format": "markdown", "text": _docx_text(p), "size_bytes": size}
         if ext == "pptx":
             slides = _pptx_slides(p)
             if not slides:
-                return {"mode": "none", "reason": "no-text-preview"}
-            return {"mode": "slides", "slides": slides, "count": len(slides)}
+                return {"mode": "none", "reason": "no-text-preview", "size_bytes": size}
+            return {"mode": "slides", "slides": slides, "count": len(slides), "size_bytes": size}
         if ext in TEXT_KINDS:
             return {"mode": "text", "format": "markdown" if ext in ("md", "markdown", "docx") else "text",
-                    "text": _plain_text(p)}
+                    "text": _plain_text(p), "size_bytes": size}
+    except ValueError as exc:
+        if "binary" in str(exc):
+            return {"mode": "none", "reason": "binary-file", "size_bytes": size}
+        return {"mode": "none", "reason": f"unreadable: {type(exc).__name__}", "size_bytes": size}
     except Exception as exc:  # noqa: BLE001 — a broken preview must still return 200
-        return {"mode": "none", "reason": f"unreadable: {type(exc).__name__}"}
-    return {"mode": "none", "reason": "no-text-preview"}
+        return {"mode": "none", "reason": f"unreadable: {type(exc).__name__}", "size_bytes": size}
+    return {"mode": "none", "reason": "no-text-preview", "size_bytes": size}

@@ -399,7 +399,7 @@ class TestRunShell:
     async def test_execute_captures_failed_command(self):
         """
         GIVEN  the command fails (exit_code ≠ 0)
-        WHEN   execute_confirmed_shell("ls /nicht_vorhanden", confirmed=True)  # language-gate: ignore (verbatim path fixture used in the call below)
+        WHEN   execute_confirmed_shell("ls missing-directory", confirmed=True)
         THEN   the return value contains stderr
         AND    no crash
         """
@@ -411,7 +411,7 @@ class TestRunShell:
                 return "", "No such file or directory"
 
         with patch("subprocess.Popen", side_effect=lambda *a, **k: _FakeProc()):
-            result = await execute_confirmed_shell("ls /nicht_vorhanden", confirmed=True)
+            result = await execute_confirmed_shell("ls missing-directory", confirmed=True)
 
         assert isinstance(result, str)
         assert "No such file" in result or "exit" in result.lower()

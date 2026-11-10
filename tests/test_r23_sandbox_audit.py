@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 from core import audit_log
 from core.redact import args_hash, redact
+from tests.support import capabilities
 
 
 @pytest.fixture(autouse=True)
@@ -174,31 +175,34 @@ class TestSessionRemember:
 
 
 class TestSeatbelt:
-    @pytest.mark.skipif(not Path("/usr/bin/sandbox-exec").exists() and not Path("/bin/sandbox-exec").exists()
-                        and os.environ.get("CI") == "1",
-                        reason="sandbox-exec auf CI-Runnern nicht vorhanden")
+    @capabilities.requires_boundary
     def test_given_sandbox_when_write_outside_workspace_then_blocked(self, tmp_path, monkeypatch):
-        """R23 acceptance: a write attempt outside the workspace fails."""
-        from core.shell_sandbox import is_available, wrap_command
+        """R23 acceptance: a write attempt outside the workspace never reaches the host.
 
-        if not is_available():
-            pytest.skip("sandbox-exec nicht verfügbar (macOS-only Feature)")
+        Seatbelt refuses the write itself, so the shell exits nonzero. bubblewrap hides the
+        user's home behind an empty tmpfs, so the shell may exit 0 into a directory that
+        exists only inside the sandbox; the host-side check is the one both boundaries owe.
+        """
+        from core.shell_sandbox import wrap_command
+
         workspace = str(tmp_path / "workspace")
         (tmp_path / "workspace").mkdir()
-        args = wrap_command("echo leaked > /tmp/ephe-escape-test.txt", workspace)
-        assert args is not None and args[0] == "sandbox-exec"
-        result = subprocess.run(args, capture_output=True, text=True, timeout=30)
-        assert result.returncode != 0, "THEN: Schreiben außerhalb wird von Seatbelt verweigert"
-        assert not Path("/tmp/ephe-escape-test.txt").exists()
+        probe = Path.home() / f".ephe-sandbox-probe-{os.getpid()}"
+        probe.unlink(missing_ok=True)
+        try:
+            args = wrap_command(f"echo leaked > '{probe}'", workspace)
+            assert args is not None and args[0] in {"sandbox-exec", "bwrap"}
+            result = subprocess.run(args, capture_output=True, text=True, timeout=30)
+            assert not probe.exists(), "THEN: kein Schreiben außerhalb der Workspace auf dem Host"
+            if capabilities.boundary() == "seatbelt":
+                assert result.returncode != 0, "THEN: Seatbelt verweigert den Schreibzugriff"
+        finally:
+            probe.unlink(missing_ok=True)
 
-    @pytest.mark.skipif(not Path("/usr/bin/sandbox-exec").exists() and not Path("/bin/sandbox-exec").exists()
-                        and os.environ.get("CI") == "1",
-                        reason="sandbox-exec auf CI-Runnern nicht vorhanden")
+    @capabilities.requires_boundary
     def test_given_sandbox_when_write_inside_workspace_then_allowed(self, tmp_path, monkeypatch):
-        from core.shell_sandbox import is_available, wrap_command
+        from core.shell_sandbox import wrap_command
 
-        if not is_available():
-            pytest.skip("sandbox-exec nicht verfügbar (macOS-only Feature)")
         workspace = str(tmp_path / "workspace")
         (tmp_path / "workspace").mkdir()
         args = wrap_command("echo ok > inside.txt", workspace)
@@ -210,8 +214,11 @@ class TestSeatbelt:
         from core.shell_sandbox import build_profile
 
         profile = build_profile(str(tmp_path))
+        home = os.path.realpath(os.path.expanduser("~"))
         assert "(deny network*)" in profile
+        assert "network-bind" not in profile
         assert f'(subpath "{tmp_path}")' in profile
+        assert f'(subpath "{home}")' not in profile
 
     def test_given_sandbox_disabled_when_shell_then_plain_execution(self, audit_file, tmp_path, monkeypatch):
         from core import engine_config
@@ -231,16 +238,12 @@ class TestSeatbelt:
         assert "echo plain-ok" in entries[0]["args"], "THEN: redigierte Kurzform enthält den Befehl"
 
 
-    @pytest.mark.skipif(not Path("/usr/bin/sandbox-exec").exists() and not Path("/bin/sandbox-exec").exists()
-                        and os.environ.get("CI") == "1",
-                        reason="sandbox-exec is not on the CI runners")
+    @capabilities.requires_boundary
     def test_given_sandbox_when_git_runs_then_it_can_open_dev_null(self, tmp_path):
         """git probes /dev/null for read+write; denying it failed every git call
         inside the sandbox with exit 128 before the device nodes were allowed."""
-        from core.shell_sandbox import is_available, wrap_command
+        from core.shell_sandbox import wrap_command
 
-        if not is_available():
-            pytest.skip("sandbox-exec is not available (macOS-only feature)")
         workspace = tmp_path / "repo"
         workspace.mkdir()
         subprocess.run(["git", "init", "-q", "."], cwd=workspace, check=True)

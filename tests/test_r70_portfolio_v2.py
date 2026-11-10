@@ -3,7 +3,7 @@
 tests/test_r70_portfolio_v2.py
 
 Pins:
-1. 14 product plugins (v2 portfolio) with valid manifests; each carries
+1. 17 product bundles (v2 portfolio) with valid manifests; each carries
    `origin: first-party`.
 2. The runtime mapping covers ALL 14 slugs (no orphaned catalog entry).
 3. Legacy migration: the old slugs (web-search/image-gen/tts/mcp/shell/
@@ -33,7 +33,7 @@ EXPECTED_V2 = {
     "documents", "spreadsheets", "presentations", "web-research", "memory",
     "browser-use", "vision", "image-studio", "voice", "code-shell",
     "mcp-connector", "plugin-creator", "skill-creator", "guide",
-    "local-document-factory", "private-research-notebook",
+    "local-document-factory", "private-research-notebook", "countdown",
 }
 
 
@@ -56,11 +56,13 @@ class TestPortfolio:
     def test_runtime_mapping_covers_whole_portfolio(self):
         from core.plugin_registry import PluginRegistry
 
+        from core.plugin_tools_contract import tool_claims
+
         registry = PluginRegistry.load(PLUGINS, ROOT / "skills")
         assert {plugin.id for plugin in registry.plugins} == EXPECTED_V2
         for plugin in registry.plugins:
-            for tool in plugin.manifest.get("components", {}).get("tools", []):
-                assert registry.activation_owner(tool) == plugin.id
+            for claim in tool_claims(plugin.manifest):
+                assert registry.activation_owner(claim.name) == plugin.id
 
     def test_catalog_matches_disk(self):
         catalog = json.loads((ROOT / "plugin-catalog.json").read_text(encoding="utf-8"))

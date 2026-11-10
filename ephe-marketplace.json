@@ -16,7 +16,7 @@
         "en": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
         "de": "Echte Browser-Automatisierung: navigieren, klicken, tippen, Screenshot — approval-gated."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/browser-use/icon.svg",
       "category": "browser",
@@ -36,7 +36,7 @@
         "en": "Coding loop: read, edit, patch, run tests, format and analyze code.",
         "de": "Coding-Loop: lesen, editieren, patchen, Tests laufen lassen, formatieren, analysieren."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/code-shell/icon.svg",
       "category": "code",
@@ -58,6 +58,21 @@
       }
     },
     {
+      "name": "countdown",
+      "source": "plugins/countdown",
+      "description": "A countdown widget: one declarative surface the shell can show, and a timer the agent can set and read back.",
+      "version": "0.1.0",
+      "author": "Ephe",
+      "icon": "plugins/countdown/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "countdown",
+        "ephe",
+        "local-first"
+      ],
+      "origin": "first-party"
+    },
+    {
       "name": "documents",
       "source": "plugins/documents",
       "description": "Real document production: PDF, DOCX, QR codes, notebooks, briefs.",
@@ -65,7 +80,7 @@
         "en": "Real document production: PDF, DOCX, QR codes, notebooks, briefs.",
         "de": "Echte Dokument-Produktion: PDF, DOCX, QR-Codes, Notebooks, Briefe."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/documents/icon.svg",
       "category": "documents",
@@ -115,7 +130,7 @@
         "en": "Image generation for posters, illustrations and concepts.",
         "de": "Bildgenerierung für Poster, Illustrationen und Konzepte."
       },
-      "version": "1.0.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/image-studio/icon.svg",
       "category": "image",
@@ -176,7 +191,7 @@
         "en": "Short- and long-term memory across sessions.",
         "de": "Kurz- und Langzeitgedächtnis über Sitzungen hinweg."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/memory/icon.svg",
       "category": "memory",
@@ -226,7 +241,7 @@
         "en": "Real deck production: PPTX presentations, pitch decks, diagrams.",
         "de": "Echte Deck-Produktion: PPTX-Präsentationen, Pitch-Decks, Diagramme."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/presentations/icon.svg",
       "category": "documents",
@@ -294,7 +309,7 @@
         "en": "Real spreadsheet production: formatted XLSX workbooks and charts.",
         "de": "Echte Tabellen-Produktion: formatierte XLSX-Arbeitsmappen und Charts."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/spreadsheets/icon.svg",
       "category": "documents",
@@ -345,7 +360,7 @@
         "en": "Vision-capable model reads screenshots and images.",
         "de": "Vision-fähiges Modell liest Screenshots und Bilder."
       },
-      "version": "1.0.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/vision/icon.svg",
       "category": "vision",
@@ -366,7 +381,7 @@
         "en": "Text-to-speech for answers and read-aloud.",
         "de": "Sprachausgabe für Antworten und Vorlesen."
       },
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Ephe",
       "icon": "plugins/voice/icon.svg",
       "category": "audio",
@@ -387,7 +402,7 @@
         "en": "Live web research for the agent (opt-in, needs an API key).",
         "de": "Live-Websuche für den Agenten (Opt-in, braucht einen API-Key)."
       },
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "Ephe",
       "icon": "plugins/web-research/icon.svg",
       "category": "research",

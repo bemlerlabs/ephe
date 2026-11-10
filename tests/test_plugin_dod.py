@@ -5,6 +5,11 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
+from core.plugin_registry import scan_tool_activations
+from core.tools.dynamic_registry import served_tool_name
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "plugin_dod.py"
 
 
@@ -17,6 +22,15 @@ def _load():
 
 
 dod = _load()
+
+SURFACE_CASES = [
+    {"kind": "contains", "any": ["00:10"]},
+    {"kind": "contains", "any": ["countdown"]},
+    {"kind": "tool_use", "any": ["mcp_countdown_set"]},
+    {"kind": "tool_use", "any": ["mcp_countdown_status"]},
+    {"kind": "contains", "any": ["remaining"]},
+    {"kind": "not_contains", "any": ["TODO", "placeholder"]},
+]
 
 EXAMPLE = """## Example
 
@@ -201,6 +215,301 @@ def test_a_golden_case_with_an_unknown_command_is_red(tmp_path):
 
 def _pack_row(root: Path) -> dict:
     return next(row for row in dod.audit(root) if row.get("kind") == "skill-pack")
+
+
+def _surface_plugin(
+    root: Path,
+    name: str = "alpha",
+    *,
+    entry_html: str = "<!doctype html><script src='app.js'></script>",
+    changelog: bool = True,
+    readme: bool = True,
+    golden: bool = True,
+    surface: dict | None = None,
+    tools: list | None = None,
+    families: list[str] | None = None,
+    commands: list[dict] | None = None,
+    include_surface: bool = True,
+) -> Path:
+    """One Tier-1 v2 bundle: a surface, its entry document, one script, a suite."""
+    directory = root / "plugins" / name
+    (directory / "ui").mkdir(parents=True)
+    (directory / "prompts").mkdir(parents=True)
+    descriptor = {
+        "type": "floating-window",
+        "entry": "ui/index.html",
+        "title": "Alpha countdown",
+        "default_size": {"width": 260, "height": 120},
+        "transparent": True,
+        "always_on_top": True,
+        "capabilities": ["notifications", "dock-badge", "audio-out"],
+    }
+    manifest = {
+        "manifest_version": 2,
+        "name": name,
+        "version": "1.0.0",
+        "description": "A countdown that shows where the shell can show it.",
+        "publisher": {"name": "Ephe"},
+        "license": "MIT",
+        "origin": "first-party",
+        "permissions": {"tool_families": families or [], "data_roots": ["shared"]},
+        "components": {
+            **(
+                {"ui": descriptor if surface is None else surface}
+                if include_surface
+                else {}
+            ),
+            "tools": tools or [],
+            "commands": commands or [],
+        },
+        **({"changelog": "1.0.0 - the walking skeleton"} if changelog else {}),
+    }
+    (directory / "ephe-plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (directory / "ui" / "index.html").write_text(entry_html, encoding="utf-8")
+    (directory / "ui" / "app.js").write_text("document.title = 'alpha';\n", encoding="utf-8")
+    cases = [
+        {
+            "id": f"{name}-{index}",
+            "input": "Start a ten minute countdown and read the remaining time back.",
+            "expect": expect,
+        }
+        for index, expect in enumerate(SURFACE_CASES, 1)
+    ]
+    if golden:
+        (directory / "prompts" / "golden.jsonl").write_text(
+            "\n".join(json.dumps(case) for case in cases) + "\n", encoding="utf-8"
+        )
+    (root / "README.md").write_text(
+        f"[{name}](plugins/{name})\n" if readme else "no reference here\n", encoding="utf-8"
+    )
+    (root / "ephe-marketplace.json").write_text(
+        json.dumps({"plugins": [{"name": name, "quality_label": "plugin"}]}), encoding="utf-8"
+    )
+    return directory
+
+
+def _surface_row(root: Path) -> dict:
+    return next(row for row in dod.audit(root) if row["name"] == "alpha")
+
+
+def test_a_complete_v2_surface_bundle_passes(tmp_path):
+    _surface_plugin(tmp_path)
+    row = _surface_row(tmp_path)
+    assert row["surface"] is True
+    assert row["manifest_version"] == 2
+    assert row["dod"] is True, row["problem"]
+    assert row["problem"] == ""
+
+
+def test_a_v2_bundle_without_a_surface_is_named(tmp_path):
+    _surface_plugin(tmp_path, surface={})
+    assert "components.ui" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_v2_bundle_of_tools_and_no_surface_passes(tmp_path):
+    directory = _surface_plugin(
+        tmp_path, include_surface=False, tools=[_tool()], families=["read"]
+    )
+    _ship(directory, str(_tool()["entry"]))
+    row = _surface_row(tmp_path)
+    assert row["surface"] is True
+    assert row["tools"] == 1
+    assert row["dod"] is True, row["problem"]
+
+
+def test_a_v2_bundle_with_neither_surface_nor_tools_is_named(tmp_path):
+    _surface_plugin(tmp_path, include_surface=False, tools=[])
+    assert "components.ui" in _surface_row(tmp_path)["problem"]
+
+
+def _tool(name: str = "tick", **over) -> dict:
+    """The smallest `components.tools` entry a version 2 bundle declares."""
+    tool = {
+        "name": name,
+        "entry": f"{name}.py:run",
+        "family": "read",
+        "description": "Report how many seconds are left.",
+    }
+    tool.update(over)
+    return tool
+
+
+def _ship(plugin_dir: Path, entry: str) -> None:
+    """The file one declared entry names, binding `run` and nothing else."""
+    path_part, sep, _callable = entry.rpartition(":")
+    if not sep or not path_part:
+        return
+    target = plugin_dir / path_part
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        f"def run(arguments, state_dir):\n    return {{'remaining': 0}}\n",
+        encoding="utf-8",
+    )
+
+
+def _tools_plugin(
+    root: Path,
+    tools: list[dict],
+    *,
+    families: tuple[str, ...] = ("read",),
+    ship: bool = True,
+) -> Path:
+    """A Tier-2 bundle: the surface above, the tools it declares and the files it names."""
+    directory = _surface_plugin(root, tools=tools, families=list(families))
+    if ship:
+        for tool in tools:
+            if isinstance(tool, dict):
+                _ship(directory, str(tool.get("entry") or ""))
+    return directory
+
+
+def test_a_complete_v2_bundle_with_tools_passes(tmp_path):
+    _tools_plugin(tmp_path, [_tool(), _tool("status", entry="tools/status.py:run")])
+    row = _surface_row(tmp_path)
+    assert row["surface"] is True
+    assert row["tools"] == 2
+    assert row["dod"] is True, row["problem"]
+
+
+def test_the_gate_and_the_activation_scan_read_one_bundle_alike(tmp_path):
+    """What the gate accepts is what the portfolio claims, name for name."""
+    _tools_plugin(tmp_path, [_tool(), _tool("status")])
+    assert _surface_row(tmp_path)["dod"] is True
+    served = sorted(served_tool_name("alpha", name) for name in ("tick", "status"))
+    scanned = scan_tool_activations(tmp_path / "plugins")
+    assert scanned.contributed == tuple(served)
+    assert scanned.owners == tuple((name, "alpha") for name in served)
+    assert scanned.conflicts == ()
+
+
+BROKEN_PROMISES = [
+    # The entry names a file the bundle never carries.
+    ([_tool()], ("read",), False, "tool 'tick': entry file 'tick.py' does not ship"),
+    # The entry names something other than a Python module.
+    (
+        [_tool(entry="handlers.js:run")],
+        ("read",),
+        True,
+        "tool 'tick': entry 'handlers.js:run' is not a .py file",
+    ),
+    # The tool works in a family the manifest never asks permission for.
+    (
+        [_tool(family="shell")],
+        ("read",),
+        True,
+        "tool 'tick': family 'shell' is outside the manifest's declared tool families",
+    ),
+    # Two declarations answer one served name.
+    (
+        [_tool(), _tool()],
+        ("read",),
+        True,
+        "duplicate tool name 'tick': 2 declarations serve 'tick'",
+    ),
+    # The file ships and binds something else than the callable it promises.
+    (
+        [_tool(entry="tick.py:report")],
+        ("read",),
+        True,
+        "tool 'tick': 'report' is not bound in 'tick.py'",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("tools", "families", "ship", "expected"),
+    BROKEN_PROMISES,
+    ids=["missing-entry", "entry-not-python", "family-undeclared", "name-taken", "callable-absent"],
+)
+def test_a_broken_tool_promise_is_a_problem_line(tmp_path, tools, families, ship, expected):
+    _tools_plugin(tmp_path, tools, families=families, ship=ship)
+    row = _surface_row(tmp_path)
+    assert row["dod"] is False
+    assert expected in row["problem"]
+
+
+def test_a_declaration_the_contract_cannot_read_is_still_named(tmp_path):
+    """A version 1 list holding a version 2 entry contributes no claim, and says so."""
+    _plugin(tmp_path, "alpha")
+    path = tmp_path / "plugins" / "alpha" / "ephe-plugin.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["components"]["tools"] = [_tool()]
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    assert "1 declared, 0 claims read" in dod.audit(tmp_path)[0]["problem"]
+
+
+def test_a_v2_bundle_without_tools_declares_none(tmp_path):
+    """The surface-only bundle stays a surface-only bundle: no tool line is added."""
+    _surface_plugin(tmp_path)
+    assert _surface_row(tmp_path)["tools"] == 0
+
+
+def test_a_v2_bundle_needs_the_golden_suite_too(tmp_path):
+    _surface_plugin(tmp_path, golden=False)
+    assert "golden" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_v2_bundle_carries_the_changelog_rule(tmp_path):
+    _surface_plugin(tmp_path, changelog=False)
+    assert "changelog" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_v2_bundle_carries_the_readme_rule(tmp_path):
+    _surface_plugin(tmp_path, readme=False)
+    assert "README" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_v2_bundle_with_commands_is_held_to_the_command_rules(tmp_path):
+    _surface_plugin(tmp_path, commands=[{"name": "one", "description": "One", "template": "x"}])
+    assert "3-8" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_manifest_outside_the_two_read_versions_is_named(tmp_path):
+    _surface_plugin(tmp_path)
+    path = tmp_path / "plugins" / "alpha" / "ephe-plugin.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["manifest_version"] = 3
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    row = _surface_row(tmp_path)
+    assert "v3" in row["problem"]
+    assert row["dod"] is False
+
+
+def test_a_surface_the_manifest_contract_refuses_reaches_the_gate(tmp_path):
+    _surface_plugin(
+        tmp_path,
+        surface={
+            "type": "floating-window",
+            "entry": "ui/index.html",
+            "title": "Alpha",
+            "capabilities": ["telepathy"],
+        },
+    )
+    assert "unknown capability" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_reference_that_leaves_the_bundle_is_refused(tmp_path):
+    _surface_plugin(
+        tmp_path,
+        entry_html="<script src='https://cdn.example/alpha.js'></script>",
+    )
+    assert "leaves the bundle" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_reference_to_a_file_that_does_not_ship_is_refused(tmp_path):
+    _surface_plugin(tmp_path, entry_html="<script src='ghost.js'></script>")
+    assert "does not ship" in _surface_row(tmp_path)["problem"]
+
+
+def test_an_absolute_reference_is_refused(tmp_path):
+    _surface_plugin(tmp_path, entry_html="<script src='/ui/app.js'></script>")
+    assert "is absolute" in _surface_row(tmp_path)["problem"]
+
+
+def test_a_reference_stepping_out_is_refused(tmp_path):
+    _surface_plugin(tmp_path, entry_html="<img src='../outside.png'>")
+    assert "steps out" in _surface_row(tmp_path)["problem"]
+
 
 
 def test_a_complete_skill_pack_passes(tmp_path):

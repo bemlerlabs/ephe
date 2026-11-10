@@ -33,7 +33,13 @@ except ImportError:
     pyautogui = None
     Image = None
 
-import ollama
+try:
+    # The package builds a client at import. A proxy or host it cannot parse
+    # raises from that line, and the test harness imports this module for every
+    # test, so the failure has to stay inside the vision call.
+    import ollama
+except Exception:  # noqa: BLE001 — import-time client setup must not stop the suite
+    ollama = None
 
 # Sandbox Exceptions
 class SandboxConfirmationRequired(Exception):
@@ -118,6 +124,10 @@ async def _get_bounding_box(b64_image: str, target: str, reference_crop_b64: str
             "local vision model"
         )
 
+    if ollama is None:
+        raise VisionUnavailable(
+            "browser_click needs a local vision client, and that client did not load"
+        )
     client = ollama.AsyncClient()
     try:
         timeout = _vision_timeout_s()

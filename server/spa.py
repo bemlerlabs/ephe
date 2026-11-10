@@ -20,11 +20,30 @@ from __future__ import annotations
 
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
+from starlette.routing import Match, Mount
 from starlette.staticfiles import StaticFiles
 
 # Prefixes the API owns. Mounted at `/`, StaticFiles sees the path relative to
 # the mount root, so `/api/x` arrives here as `api/x`.
 API_PREFIXES = ("api/", "v1/")
+
+
+class SPAMount(Mount):
+    """A Mount that doesn't match API paths, so the router can refuse them properly.
+
+    The base Mount matches everything, which prevents partial matches on API routes
+    from triggering 405 responses. This override returns NONE for API paths, letting
+    the router continue to the actual API routes.
+    """
+
+    def matches(self, scope):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            # Strip leading slash for comparison with API_PREFIXES
+            path_without_slash = path.lstrip("/")
+            if path_without_slash.startswith(API_PREFIXES):
+                return Match.NONE, {}
+        return super().matches(scope)
 
 
 class SPAStaticFiles(StaticFiles):

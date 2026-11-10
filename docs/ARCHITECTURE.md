@@ -305,9 +305,9 @@ docstring carries the same map.
 | Module | Owns |
 |---|---|
 | `store/chat/types.ts` | `ChatState`, `StoreCtx`, `SetFn`/`GetFn`, `ToolCallModel` |
-| `store/chat/helpers.ts` | `toDbSession`, `fromDbSession`, `updateActiveMessage`, `closeThinkingPhases`, `indicatorMessage`, `deriveSessionTitle`, defaults |
+| `store/chat/helpers.ts` | `toDbSession`, `fromDbSession`, `updateActiveMessage`, `closeThinkingPhases`, `deriveSessionTitle`, defaults — pure: the module boots no i18n, so `lib/` and the surfaces can read the composer-mode vocabulary without pulling the catalog |
 | `store/chat/persist.ts` | `makePersistActive`, `makeSetTransientMeta`, `makeMarkSandboxStatus` |
-| `store/chat/session.ts` | `makeSessionActions` (load, send, compact, branch, edit) |
+| `store/chat/session.ts` | `makeSessionActions` (load, send, compact, branch, edit), `indicatorMessage` (the one translated message the store writes) |
 | `store/chat/stream.ts` | `makeStreamActions` (in-place streaming, `appendChunk`, TTFT, thinking phases) |
 | `store/chat/helper.ts` | `makeHelperActions` (the helper as its own session) |
 | `store/chat/tools.ts` | `makeToolActions` (`upsertToolCall`, activities, sandbox tokens) |

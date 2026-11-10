@@ -127,6 +127,9 @@ from core.tools.image_tools import (
     generate_image,
 )
 
+from core.voice_synth import synthesize_local as synthesize
+from core.voice_synth import transcribe_file as transcribe
+
 from core.tools.diagram_tools import (
     create_diagram,
 )
@@ -223,12 +226,18 @@ from core.tools.mcp_client import (
     mcp_tool_names,
 )
 
+#: Marker names on the offer: the registry's object, resolved to the bundle at call time.
+bash = run_shell
+read = read_file
+edit = edit_file
+
 __all__ = [
     "web_search", "file_search", "read_file", "edit_file", "list_directory",
     "fetch_url",
     "get_datetime", "discover_projects", "analyze_project",
     "create_source_notebook", "query_source_notebook", "export_source_brief",
     "run_shell", "execute_confirmed_shell",
+    "bash", "read", "edit",
     "task_output", "task_stop", "agent_message",
     "run_sandboxed_code",
     "start_workspace_dev_server", "stop_workspace_dev_server",
@@ -240,6 +249,7 @@ __all__ = [
     "generate_chart", "create_pdf",
     "create_xlsx", "create_docx", "create_qrcode", "create_diagram",
     "generate_image",
+    "synthesize", "transcribe",
     "create_video",
     "verify_artifact", "scaffold_project", "build_document",
     "create_pitch_deck", "create_pptx_deck",

@@ -1,9 +1,15 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "name": "browser-use",
-  "version": "1.1.0",
-  "origin": "first-party",
+  "version": "1.2.0",
   "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.5.7"
+  },
   "permissions": {
     "tool_families": [
       "browser",
@@ -33,16 +39,161 @@
       }
     ],
     "tools": [
-      "browser_go",
-      "browser_screenshot",
-      "browser_click",
-      "browser_type",
-      "browser_press",
-      "browser_scroll",
-      "browser_evaluate",
-      "browser_exec"
+      {
+        "name": "browser_go",
+        "entry": "tools/handlers.py:browser_go",
+        "family": "browser",
+        "description": "Opens a headless browser and navigates to a URL. Use this tool only when you need to visually inspect a page, fill forms or interact with it. For quick web research use web_search (DuckDuckGo) instead. When you need to click buttons (e.g. cookie banners), call browser_click() afterwards. Reach: http/https and data: URLs, plus file: only inside Ephe's own output folders; other local files are read with read_file, never navigated to.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL (z.B. https://wikipedia.de)"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      },
+      {
+        "name": "browser_screenshot",
+        "entry": "tools/handlers.py:browser_screenshot",
+        "family": "browser",
+        "description": "Returns an exact screenshot of the currently active headless browser. Use this when you want to look at the page (e.g. to spot cookie banners, captchas or layouts), since the image is shown to you in the chat.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "browser_click",
+        "entry": "tools/handlers.py:browser_click",
+        "family": "browser",
+        "description": "Finds a described target in the headless browser via Llama-Vision and performs a mouse click on it. Required: you must have called browser_screenshot or browser_go once beforehand. Ideal for cookie banners, links or menus.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "target_description": {
+              "type": "string",
+              "description": "What exactly should be clicked (e.g. 'the big green accept button')"
+            }
+          },
+          "required": [
+            "target_description"
+          ]
+        }
+      },
+      {
+        "name": "browser_type",
+        "entry": "tools/handlers.py:browser_type",
+        "family": "browser",
+        "description": "Types text into the headless browser like a real keyboard. Usually executed into a search field after a preceding browser_click.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Text to type"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "browser_press",
+        "entry": "tools/handlers.py:browser_press",
+        "family": "browser",
+        "description": "Presses a single key in the headless browser (e.g. 'Enter', 'Escape').",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Tastenname (z.B. 'Enter')"
+            }
+          },
+          "required": [
+            "key"
+          ]
+        }
+      },
+      {
+        "name": "browser_scroll",
+        "entry": "tools/handlers.py:browser_scroll",
+        "family": "browser",
+        "description": "Scrolls the current browser page in a direction by a pixel amount. Returns the new scroll position.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "direction": {
+              "type": "string",
+              "enum": [
+                "up",
+                "down",
+                "left",
+                "right"
+              ],
+              "description": "Scroll direction (default: down)."
+            },
+            "amount": {
+              "type": "integer",
+              "description": "Pixels to scroll (default 600)."
+            }
+          },
+          "required": []
+        }
+      },
+      {
+        "name": "browser_evaluate",
+        "entry": "tools/handlers.py:browser_evaluate",
+        "family": "browser",
+        "description": "Evaluates a JavaScript expression in the current page and returns the JSON-serialized result (like Playwright page.evaluate).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "js": {
+              "type": "string",
+              "description": "The JS expression, e.g. 'document.title' or '(() => document.querySelectorAll(\"a\").length)()'."
+            }
+          },
+          "required": [
+            "js"
+          ]
+        }
+      },
+      {
+        "name": "browser_exec",
+        "entry": "tools/handlers.py:browser_exec",
+        "family": "browser",
+        "description": "Runs Python against the embedded browser with pre-imported helpers. Start the code with a one-line comment naming the step. Helpers: new_tab(url), goto_url(url), wait_for_load(), page_info(), js(expr), fill_input(selector, text), click_at_xy(x, y), capture_screenshot(), cdp(method, **params). Batch each sub-procedure into one call. Use for full page interaction in a single round-trip.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Python source using the pre-imported browser helpers; print(...) for output."
+            },
+            "session": {
+              "type": "string",
+              "description": "Isolated browser session name (parallel subagents use one each; omit = shared default)."
+            },
+            "timeout_s": {
+              "type": "integer",
+              "description": "Wall-clock budget for this block in seconds (1-300, default 120). On expiry the output so far is returned and the session namespace is discarded."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      }
     ]
   },
+  "origin": "first-party",
   "icon": "icon.svg",
-  "changelog": "1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
+  "changelog": "1.2.0 - The browser tools ask the host. 1.1.0 - DoD pass: skill pack with two examples, commands, changelog and README entry."
 }

@@ -62,7 +62,7 @@ class SettingsRequest(BaseModel):
     memory_enabled: bool | None = None
     language: str | None = None
     # F: workspace/project folder — the shell/file tools work inside it (like an
-    # editor workspace). None/empty = the previous behaviour (server cwd).
+    # editor workspace). None/empty = the neutral default of get_workspace_dir().
     workspace_dir: str | None = None
     # R44 (P4) / R4-A1: since the workbench no longer a birthplace, but the saved
     # adoption target (POST /artifacts/{id}/adopt). Empty = ask for the target;
@@ -103,7 +103,7 @@ def _workspace_dir_dict() -> str | None:
     persisted = load_engine_config()
     if persisted and persisted.workspace_dir:
         return persisted.workspace_dir
-    # No persisted workspace → show the server cwd as the effective value
+    # No persisted workspace → show the neutral default as the effective value
     return get_workspace_dir()
 
 

@@ -18,6 +18,12 @@ use std::sync::Mutex;
 
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
+// W1-3, fix round 1: the two shell lifecycle decisions a plugin window touches stay
+// in `plugin_window_options` so a unit test can read them; this file only asks them.
+use crate::plugin_window_options::{
+    workbench_needs_reveal, workbench_size_floor, WORKBENCH_LABEL, WORKBENCH_MINIMUM,
+};
+
 mod attachment;
 mod browser;
 #[cfg(unix)]
@@ -26,6 +32,8 @@ mod desktop;
 mod vision;
 mod instance;
 mod parity;
+mod plugin_window;
+mod plugin_window_options;
 mod quicklook;
 mod runlog;
 
@@ -69,7 +77,7 @@ fn global_shortcut() -> Shortcut {
 }
 
 fn reveal_main_window(app: &tauri::AppHandle) {
-    if let Some(win) = app.get_webview_window("main") {
+    if let Ok(win) = main_window(app) {
         let _ = win.show();
         let _ = win.unminimize();
         let _ = win.set_focus();
@@ -98,7 +106,7 @@ fn set_global_shortcut(app: tauri::AppHandle, enabled: bool) -> Result<String, S
 }
 
 /// The tour's carry-over stop: a native folder picker. The chosen folder is
-/// recorded in `~/.ephe/import-source.json` with a one-time token; the surface
+/// recorded in `import-source.json` in the device folder, with a one-time token; the surface
 /// posts that token, never the path. The PWA has no path to hand to the
 /// importer, so the surface declares that limit instead of faking a browser
 /// directory upload.
@@ -185,10 +193,15 @@ fn quit_app(app: tauri::AppHandle) {
 /// 155×168 px although tauri.conf demands 960×640. That configuration only applies
 /// to new windows; the restored frame slips past it, so the size is measured once
 /// more and, if needed, pulled back up.
-const MIN_WINDOW: (u32, u32) = (960, 640);
-
+///
+/// W1-3, fix round 1: the number and the label it belongs to are one decision, in
+/// `workbench_size_floor`, because a resize event arrives for every window and the
+/// workbench's floor must not become the floor of a 360×240 widget. The two paths
+/// below are known-workbench paths; the event handler asks the same function with the
+/// label the event carried.
 fn clamp_window_size(width: u32, height: u32) -> (u32, u32) {
-    (width.max(MIN_WINDOW.0), height.max(MIN_WINDOW.1))
+    workbench_size_floor(WORKBENCH_LABEL, width, height)
+        .expect("the workbench has a floor of its own")
 }
 
 #[cfg(test)]
@@ -209,6 +222,47 @@ mod tests {
     #[test]
     fn a_stamp_is_pulled_up_to_the_minimum_size() {
         assert_eq!(clamp_window_size(155, 168), (960, 640));
+    }
+
+    #[test]
+    fn the_workbench_is_never_resolved_through_a_webview_window_handle() {
+        // `get_webview_window` answers only while every WebView attached to the window
+        // carries the window's own label, so it goes quiet the moment `browser_open`
+        // attaches the `ephe-browser` WebView (see `main_window`). The shell keeps
+        // exactly one workbench resolution path; this ratchet is that sentence turned
+        // into a check — a line of *code*, not prose, asking a webview-window handle is
+        // the shipped defect coming back: minimize, hide and the Dock reopen losing the
+        // workbench while a pane is open.
+        // Spelled in two pieces so the check itself is not read as an offender.
+        const WEBVIEW_HANDLE_LOOKUP: &str = concat!("get_webview_", "window(");
+        const WEBVIEW_HANDLE_ARG: &str = concat!("tauri::", "WebviewWindow");
+        let offenders: Vec<&str> = include_str!("lib.rs")
+            .lines()
+            .map(str::trim_start)
+            .filter(|line| {
+                (line.contains(WEBVIEW_HANDLE_LOOKUP) || line.contains(WEBVIEW_HANDLE_ARG))
+                    && !line.starts_with("//")
+            })
+            .collect();
+        assert!(
+            offenders.is_empty(),
+            "the workbench must resolve through `main_window`, found {offenders:?}"
+        );
+        assert!(
+            include_str!("lib.rs")
+                .contains("fn main_window(app: &tauri::AppHandle) -> Result<tauri::Window, String>"),
+            "the one workbench accessor must resolve a window-level handle"
+        );
+    }
+
+    #[test]
+    fn the_browser_pane_keeps_a_label_of_its_own() {
+        // The child WebView that makes the workbench non-homogeneous is deliberately
+        // not labelled `main`. That is both why `main_window` resolves a `Window`
+        // instead of a `WebviewWindow`, and why events emitted to `main` cannot land on
+        // a page the shell does not own.
+        assert_ne!(super::browser::BROWSER_LABEL, super::WORKBENCH_LABEL);
+        assert_eq!(super::WORKBENCH_LABEL, "main");
     }
 
     #[test]
@@ -293,8 +347,24 @@ mod tests {
     }
 }
 
-fn main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
-    app.get_webview_window("main")
+/// The one way the shell resolves its workbench window.
+///
+/// A `WebviewWindow` handle cannot be used here. Tauri only hands one out while
+/// *every* WebView attached to the window carries the window's own label
+/// (`Window::is_webview_window`, tauri 2.12.3 `src/window/mod.rs:1257`, the guard
+/// in `Manager::get_webview_window` at `src/lib.rs:603`). The browser pane
+/// attaches a child WebView labelled `ephe-browser` to `main`, so from the moment
+/// a pane exists `get_webview_window("main")` answers `None` — which is how
+/// minimize, hide and the Dock reopen all lost the workbench at once.
+///
+/// `Window` is the window-level handle: it makes no claim about the homogeneity
+/// of its WebViews and answers in both states, and it carries every operation the
+/// shell performs on the workbench (show, hide, minimize, focus, size, effects,
+/// badge, progress bar). Workbench window operations therefore go through this
+/// function and nowhere else; `browser.rs` resolves the same window the same way
+/// before it attaches a child to it.
+fn main_window(app: &tauri::AppHandle) -> Result<tauri::Window, String> {
+    app.get_window(WORKBENCH_LABEL)
         .ok_or_else(|| "main window not found".to_string())
 }
 
@@ -368,7 +438,7 @@ fn set_keep_awake(enabled: bool) -> Result<bool, String> {
 }
 
 fn show_main_window(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
+    if let Ok(window) = main_window(app) {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
@@ -377,7 +447,7 @@ fn show_main_window(app: &tauri::AppHandle) {
 }
 
 fn hide_main_window(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
+    if let Ok(window) = main_window(app) {
         let _ = window.hide();
     }
     let _ = app.emit("hide", ());
@@ -506,8 +576,13 @@ fn extract_image_text(image: String) -> Result<String, String> {
 }
 
 /// N8: the dock badge, a short label beside the icon.
+///
+/// The argument is a `Window`, not a `WebviewWindow`: Tauri refuses the latter for
+/// a calling WebView whose window has become non-homogeneous, which is exactly the
+/// state a workbench with an open browser pane is in. `Window` is handed out from
+/// the calling WebView's window in every state.
 #[tauri::command]
-fn set_dock_badge(window: tauri::WebviewWindow, badge: String) -> Result<(), String> {
+fn set_dock_badge(window: tauri::Window, badge: String) -> Result<(), String> {
     let label = desktop::dock_badge(&badge)?;
     #[cfg(target_os = "macos")]
     window.set_badge_label(label).map_err(|error| error.to_string())?;
@@ -517,8 +592,9 @@ fn set_dock_badge(window: tauri::WebviewWindow, badge: String) -> Result<(), Str
 }
 
 /// N8: the dock progress bar; `percent` missing clears it.
+/// The handle is a `Window` for the reason stated at `set_dock_badge`.
 #[tauri::command]
-fn set_dock_progress(window: tauri::WebviewWindow, percent: Option<f64>) -> Result<(), String> {
+fn set_dock_progress(window: tauri::Window, percent: Option<f64>) -> Result<(), String> {
     let progress = desktop::dock_progress(percent)?;
     use tauri::window::{ProgressBarState, ProgressBarStatus};
     window
@@ -696,6 +772,57 @@ fn clear_engine_key() -> Result<(), String> {
     }
 }
 
+/// The command list the shell registers, already behind the surface door.
+///
+/// Named instead of written inline at `invoke_handler` because the list is read as well
+/// as run: `plugin_window_options.rs` walks it to prove the three surface names
+/// the door keys on are registered, and
+/// `tests/test_desktop_key_store_surface.py` walks the same list to prove each command
+/// the frontend bridge asks for is in it. W1-3 put the wrap between `invoke_handler(`
+/// and the generated list, and a reader that looked for the two side by side stopped
+/// finding a registration that had not moved. The door stays where it was placed;
+/// what changes is that the list it protects has one name to be read through.
+fn guarded_command_handlers(
+) -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
+    // W1-3, fix round 1: the whole registered list goes through the surface door,
+    // so the three surface names are refused from a webview the shell does not
+    // own before its own wrapper runs. `plugin_window::guard_before_dispatch` says
+    // what the door leaves to the access-control layer.
+    plugin_window::guard_before_dispatch(tauri::generate_handler![
+        quit_app,
+        stop_backend,
+        backend_parity,
+        write_rich_clipboard,
+        reveal_file_in_finder,
+        open_file_in_default_app,
+        quick_look_file,
+        extract_image_text,
+        set_dock_badge,
+        set_dock_progress,
+        pick_attachment,
+        pick_folder,
+        set_keep_awake,
+        save_engine_key,
+        engine_key_state,
+        clear_engine_key,
+        minimize_window,
+        maximize_window,
+        close_window,
+        show_window,
+        hide_window,
+        browser::browser_open,
+        browser::browser_bounds,
+        browser::browser_visible,
+        browser::browser_history,
+        browser::browser_close,
+        browser::browser_open_external,
+        plugin_window::plugin_window_open,
+        plugin_window::plugin_window_close,
+        plugin_window::plugin_window_bounds,
+        set_global_shortcut
+    ])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // R4/W5: one instance. A second launch brings the running window to the
@@ -711,7 +838,7 @@ pub fn run() {
         // Single-instance must be the first plugin. `instance::claim` above
         // covers Unix and exits a second launch before the builder runs; on
         // Windows that guard does not compile, and on the Unix run where
-        // `claim` returns `Claim::Unknown` (no HOME) it stands down as well.
+        // `claim` returns `Claim::Unknown` (no device folder) it stands down as well.
         // This plugin is the backstop for both — one process on one store.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             show_main_window(app);
@@ -720,7 +847,18 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // W1-3: a plugin surface is a transient window whose label is minted from
+        // a plugin id, so its geometry stays out of the store. Restoring one would
+        // write a record for every plugin ever mounted and bring back a window the
+        // user closed two launches ago; the descriptor's `default_size` is the
+        // shape the plugin asked for.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_filter(|label| {
+                    !label.starts_with(plugin_window_options::PLUGIN_LABEL_PREFIX)
+                })
+                .build(),
+        )
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -731,36 +869,9 @@ pub fn run() {
                 .build(),
         )
         .on_menu_event(|app, event| handle_menu_id(app, event.id.as_ref()))
-        .invoke_handler(tauri::generate_handler![
-            quit_app,
-            stop_backend,
-            backend_parity,
-            write_rich_clipboard,
-            reveal_file_in_finder,
-            open_file_in_default_app,
-            quick_look_file,
-            extract_image_text,
-            set_dock_badge,
-            set_dock_progress,
-            pick_attachment,
-            pick_folder,
-            set_keep_awake,
-            save_engine_key,
-            engine_key_state,
-            clear_engine_key,
-            minimize_window,
-            maximize_window,
-            close_window,
-            show_window,
-            hide_window,
-            browser::browser_open,
-            browser::browser_bounds,
-            browser::browser_visible,
-            browser::browser_history,
-            browser::browser_close,
-            browser::browser_open_external,
-            set_global_shortcut
-        ])
+        // The whole registered list goes through the surface door; the list itself and
+        // why it sits behind a named function is `guarded_command_handlers`.
+        .invoke_handler(guarded_command_handlers())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -829,8 +940,8 @@ pub fn run() {
             // once and pull it up so the surface never starts as a stamp.
             if let Ok(win) = main_window(app.handle()) {
                 let _ = win.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize::new(
-                    MIN_WINDOW.0 as f64,
-                    MIN_WINDOW.1 as f64,
+                    WORKBENCH_MINIMUM.0 as f64,
+                    WORKBENCH_MINIMUM.1 as f64,
                 ))));
                 if let Ok(size) = win.outer_size() {
                     let (w, h) = clamp_window_size(size.width, size.height);
@@ -849,7 +960,7 @@ pub fn run() {
                 std::thread::spawn(move || {
                     for pause_ms in [250_u64, 750, 1500, 3000] {
                         std::thread::sleep(std::time::Duration::from_millis(pause_ms));
-                        let Some(win) = app_handle.get_webview_window("main") else {
+                        let Ok(win) = main_window(&app_handle) else {
                             return;
                         };
                         let Ok(size) = win.outer_size() else { return };
@@ -868,7 +979,7 @@ pub fn run() {
             // `windowEffects.underWindowBackground`; re-applying it here guarantees
             // the effect survives the config path being ignored on a given runtime.
             #[cfg(target_os = "macos")]
-            if let Some(win) = app.get_webview_window("main") {
+            if let Ok(win) = main_window(app.handle()) {
                 use tauri::window::{Effect, EffectState, EffectsBuilder};
                 let _ = win.set_effects(
                     EffectsBuilder::new()
@@ -906,7 +1017,7 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
+                        if let Ok(window) = main_window(app) {
                             if window.is_visible().unwrap_or(false) {
                                 hide_main_window(app);
                             } else {
@@ -938,10 +1049,11 @@ pub fn run() {
             // calls would otherwise leave `caffeinate` running after the shell.
             keep_awake_stop();
             backend::stop_backend();
+            plugin_window::note_quit();
             runlog::note_here("exit");
         }
         // ⌘W and the red button both end here. Letting Tauri destroy `main` left
-        // `get_webview_window("main")` empty, and no Dock reopen and no tray click
+        // the workbench handle empty, and no Dock reopen and no tray click
         // can bring a destroyed window back — so a close hides it instead.
         #[cfg(target_os = "macos")]
         if let tauri::RunEvent::WindowEvent {
@@ -965,19 +1077,38 @@ pub fn run() {
             ..
         } = event
         {
-            let (w, h) = clamp_window_size(size.width, size.height);
-            if w != size.width || h != size.height {
-                if let Some(win) = app_handle.get_webview_window(label) {
-                    let _ = win.set_size(tauri::Size::Physical(tauri::PhysicalSize::new(w, h)));
+            // W1-3, fix round 1: the floor belongs to the label the event carried.
+            // `workbench_size_floor` answers `None` for every other window, because a
+            // plugin surface is sized by its descriptor — 480×320 is that contract's
+            // default — and pulling every window up to 960×640 would deny a widget the
+            // size it asked for.
+            if let Some((w, h)) = workbench_size_floor(label, size.width, size.height) {
+                if w != size.width || h != size.height {
+                    // `workbench_size_floor` answers `Some` for the workbench label
+                    // alone, so this is a workbench path and asks the one accessor.
+                    if let Ok(win) = main_window(app_handle) {
+                        let _ = win.set_size(tauri::Size::Physical(tauri::PhysicalSize::new(w, h)));
+                    }
                 }
             }
         }
         #[cfg(target_os = "macos")]
-        if let tauri::RunEvent::Reopen {
-            has_visible_windows, ..
-        } = event
-        {
-            if !has_visible_windows {
+        if let tauri::RunEvent::Reopen { .. } = event {
+            // The question is about `main` alone. A visible plugin surface must
+            // not answer for the workbench, which is what counting every window
+            // used to do. The window is asked through `main_window`, because a
+            // `WebviewWindow` handle stops answering once the browser pane
+            // attaches. Measured on macOS 26.6: once `miniaturize` settles,
+            // `isVisible` is false and `isMiniaturized` is true, including
+            // inside this callback. The pair where both are true does not
+            // occur, so visibility is the whole answer. AppKit deminiaturizes
+            // after the callback returns. This call brings a hidden workbench
+            // back.
+            let needs_reveal = main_window(app_handle)
+                .map(|window| workbench_needs_reveal(window.is_visible().unwrap_or(false)))
+                // No workbench window to ask: the reopen has nothing to veto.
+                .unwrap_or(true);
+            if needs_reveal {
                 show_main_window(app_handle);
             }
         }

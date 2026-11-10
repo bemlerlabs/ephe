@@ -65,6 +65,21 @@ def test_die_Wurzeln_sind_die_der_Datei_Route(clean_env) -> None:
     assert status["file_roots"], "ohne Freigabe wäre die Zeile eine Behauptung"
 
 
+def test_the_roots_row_moves_when_the_kernel_list_does(clean_env, tmp_path) -> None:
+    """The row is a claim about the route's guard, so it is read at call time.
+
+    A `from core.tools.base import _get_allowed_roots` in the route copies the name
+    at import time; a caller that patches the kernel then sees the status row still
+    reciting whatever was live when the module was first mounted.
+    """
+    import core.tools.base as base
+
+    granted = tmp_path / "granted"
+    granted.mkdir()
+    clean_env.setattr(base, "_get_allowed_roots", lambda: [granted])
+    assert network_status()["file_roots"] == [str(granted)]
+
+
 def test_get_network_status_liefert_den_ist_zustand(clean_env) -> None:
     from fastapi.testclient import TestClient
 

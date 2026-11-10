@@ -1,15 +1,22 @@
 /**
- * plan-accept.spec.ts — the plan mode's exit, driven the way a user drives it.
+ * plan-accept.spec.ts — Architect mode's exit, driven the way a user drives it.
  *
- * FINDINGS.md (docs/media/user-walkthrough-2026-10-12) records the blocker: Plan mode
- * drafts a real plan and writes nothing — its guard holds — and then Accept sends the
- * prose "Plan accepted — proceed." as an ordinary message while the composer stays in
- * `plan`, so the turn that is supposed to execute the plan still has no write tool and
- * the file the plan promised never appears.
+ * FINDINGS.md (docs/media/user-walkthrough-2026-10-12) records the blocker: the mode then
+ * called `plan` drafted a real plan and wrote nothing — its guard holds — and then Accept
+ * sent the prose "Plan accepted — proceed." as an ordinary message while the composer
+ * stayed in `plan`, so the turn that was supposed to execute the plan still had no write
+ * tool and the file the plan promised never appeared.
  *
- * This is the acceptance test for the exit. With the composer in `plan` and a write task,
- * a plan card in state `draft` must appear; clicking `plan-accept` must then
- *   1. change the composer mode VISIBLY — the chip leaves "Plan" for the mode that can
+ * The names below are the ones the composer actually offers after the Wave 0/1 rename
+ * (docs/COMPOSER_MODES.md): the read-only planning mode is **Architect** (`architect`),
+ * and Accept hands the plan to the edit-family compatibility value `edit-auto`, which owns
+ * no tile and renders its section wording "With write access". The locale leaf that the
+ * click sends (`chat.planAcceptMsg`) is the same vocabulary — `app/src/lib/planAcceptAnchor.test.ts`
+ * fails when the pair drifts again.
+ *
+ * This is the acceptance test for the exit. With the composer in `architect` and a write
+ * task, a plan card in state `draft` must appear; clicking `plan-accept` must then
+ *   1. change the composer mode VISIBLY — the chip leaves "Architect" for the mode that can
  *      write (app/src/lib/planCardModel.ts::PLAN_EXECUTION_MODE),
  *   2. start the run by itself: no second typed message is needed, and the transcript
  *      carries a line that says the mode was left (never a silent prose hand-off), and
@@ -69,16 +76,20 @@ const PLAN_ACCEPT = '[data-testid="plan-accept"]'
 
 const FILE_NAME = `plan-accept-${Date.now()}.txt`
 const FILE_CONTENT = 'plan accept works'
-// A user in Plan mode asks for the plan, not for the run — that is the mode's promise.
+// A user in Architect mode asks for the plan, not for the run — that is the mode's promise.
 const WRITE_TASK = `Plan this first and do not run it yet: create a file named ${FILE_NAME} containing exactly: ${FILE_CONTENT}`
-// The chip text a mode resolves to, lowercased (locales/en.json chat.modeHint.* heads).
-const PLAN_CHIP = 'plan'
-const EXECUTION_CHIP = 'edit auto'
+// The chip text a mode resolves to, lowercased (locales/en.json chat.modeHint.architect head).
+const PLAN_CHIP = 'architect'
+/**
+ * `PLAN_EXECUTION_MODE` is the untiled `edit-auto`; its chip is the write section's
+ * wording, not a tile title (ComposerModeChip.tsx, locales/en.json chat.modeSection.write).
+ */
+const EXECUTION_CHIP = 'with write access'
 /** The same mode as a value: PLAN_EXECUTION_MODE, the one the chip label is derived from. */
 const EXECUTION_MODE = 'edit-auto'
-const DEFAULT_MODE = 'full-access'
-/** The same mode as the chip draws it: `full-access` renders as `Full access`. */
-const DEFAULT_CHIP = 'full access'
+const DEFAULT_MODE = 'operator'
+/** The same mode as the chip draws it: `operator` renders as `Operator`. */
+const DEFAULT_CHIP = 'operator'
 
 const SETTLE_MS = 360_000
 const POLL_MS = 500
@@ -173,7 +184,7 @@ function saveObs(facts: Record<string, unknown>): void {
   try {
     merged = JSON.parse(readFileSync(OBS, 'utf8')) as Record<string, unknown>
   } catch {
-    merged = { note: 'The plan mode exit: Accept must leave Plan mode and run the plan.' }
+    merged = { note: 'The Architect exit: Accept must leave Architect and run the plan.' }
   }
   merged.generatedAt = new Date().toISOString()
   merged.base = BASE
@@ -365,7 +376,7 @@ async function watchTurn(
   return fact
 }
 
-test('plan accept: the click leaves Plan mode and the plan produces its file', async ({
+test('plan accept: the click leaves Architect and the plan produces its file', async ({
   page,
   request,
 }) => {
@@ -424,10 +435,10 @@ test('plan accept: the click leaves Plan mode and the plan produces its file', a
       await page.waitForTimeout(700)
     }
 
-    // ── the composer in `plan` ───────────────────────────────────────────
-    const chipPlan = await pickMode(page, shot, 'plan')
+    // ── the composer in `architect` ───────────────────────────────────────
+    const chipPlan = await pickMode(page, shot, 'architect')
     facts.chipAfterPick = chipPlan
-    expect(chipPlan.toLowerCase(), 'the composer must be in Plan mode for this arc').toContain(
+    expect(chipPlan.toLowerCase(), 'the composer must be in Architect for this arc').toContain(
       PLAN_CHIP,
     )
     await shot('mode-plan-selected')
@@ -436,7 +447,7 @@ test('plan accept: the click leaves Plan mode and the plan produces its file', a
     facts.fileBaselineStatus = baseline.status
     trace('file-baseline', { status: baseline.status })
 
-    // ── 1. a write task in plan mode: a plan, no write ──────────────────
+    // ── 1. a write task in Architect: a plan, no write ──────────────────
     // The plan turn is one real engine turn; a multi-call tool round kills it upstream
     // (a known, separately owned blocker), and then there is no card and no Accept to
     // test. Retry a bounded number of times and record EVERY attempt, so a plan that
@@ -467,7 +478,7 @@ test('plan accept: the click leaves Plan mode and the plan produces its file', a
 
     expect(
       plan.cardSeen,
-      `Plan mode must present a plan card (attempts: ${JSON.stringify(plan.planTurnAttempts)})`,
+      `Architect must present a plan card (attempts: ${JSON.stringify(plan.planTurnAttempts)})`,
     ).toBe(true)
     plan.state = await card.getAttribute('data-state').catch(() => null)
     plan.progress = (
@@ -512,7 +523,7 @@ test('plan accept: the click leaves Plan mode and the plan produces its file', a
         const body = JSON.parse(r.postData() ?? '{}') as Partial<AcceptPost>
         const message = String(body.message ?? '')
         // The plan turn's own POST carries the write task; only the accept carries this lead.
-        if (message.includes('left Plan mode')) {
+        if (message.includes('left Architect')) {
           captured.accept = {
             message,
             mode: String(body.mode ?? ''),
@@ -545,7 +556,7 @@ test('plan accept: the click leaves Plan mode and the plan produces its file', a
     // The visible state change the user reads: the chip no longer says Plan.
     expect(
       plan.chipAfterAccept.toLowerCase(),
-      'Accept must move the composer out of Plan mode into the mode that can write',
+      'Accept must move the composer out of Architect into the mode that can write',
     ).toContain(EXECUTION_CHIP)
 
     const acceptTurn = await watchTurn(page, shot, 'accept-run', {
@@ -601,12 +612,12 @@ test('plan accept: the click leaves Plan mode and the plan produces its file', a
     ).length
     plan.transcriptLineCarriesPlanBlock =
       plan.transcriptStepsCarried === plan.items.length &&
-      !plan.transcriptLine.includes('Plan accepted — proceed.')
+      plan.transcriptLine.includes('left Architect')
     expect(
       plan.transcriptStepsCarried,
       'the accept line must show the plan it is executing — no silent prose hand-off',
     ).toBe(plan.items.length)
-    expect(plan.transcriptLine).not.toBe('Plan accepted — proceed.')
+    expect(plan.transcriptLine).toContain('left Architect')
     await shot('accept-transcript-line')
 
     // ── 3. the file the plan promised ───────────────────────────────────

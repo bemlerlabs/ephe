@@ -13,6 +13,31 @@ import pytest
 
 from core.types import Message
 from tests import timing_segment
+from tests.support import capabilities
+
+
+def pytest_configure(config: pytest.Config) -> None:  # noqa: ARG001 (pytest hook signature)
+    """Clear proxy env vars before any test module is imported.
+
+    ``NO_PROXY=localhost,.localhost,127.0.0.1,127.0.0.0/8,[::1],::1`` makes
+    httpx 0.28+ raise ``InvalidURL: Invalid port: ':1]'`` when the ollama
+    package creates its default client at import time. Collection imports
+    every test module, which imports ``core.chat`` / ``core.model_provider``,
+    which imports ``ollama`` — and the crash fires before any fixture runs.
+    Clearing the proxy vars here (before collection) stops the crash; the
+    per-test ``_hermetic_proxy_env`` fixture keeps them clean during execution.
+    """
+    for key in (
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "NO_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+        "no_proxy",
+    ):
+        os.environ.pop(key, None)
 
 
 @pytest.fixture(autouse=True)
@@ -69,24 +94,42 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             item.add_marker(marker)
 
 
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Let the two capability markers decide, with the probe's reason or a CI failure.
+
+    The decision lives in `tests/support/capabilities.py` so one file answers "does this
+    host have the boundary" and every test file asks it the same way.
+    """
+    capabilities.gate(item)
+
+
 @pytest.fixture(autouse=True)
 def _isolate_gate_context():
-    """ApprovalPolicy and the sandbox confirm callback are empty for every test.
+    """ApprovalPolicy, the confirm callback, the mode and the session are clean per test.
 
-    Both live in ContextVars (core.tools.session_ctx, core.vision), and a
+    All four live in ContextVars (core.tools.session_ctx, core.vision), and a
     ContextVar value outlives the function and the file. Without a reset here a
     later test sees a dialog nobody ever set — or a policy a CLI test left
     behind. That skews precisely the gate tests.
+
+    #26 added the other two to that list on purpose. The Creator gate reads the mode to
+    decide whether it judges at all and the session id to find the grant, so a mode a
+    chat test published would silently put a later test inside Creator consent, and a
+    session key left behind would let one test read another test's grants.
     """
     from core.tools import session_ctx
     from core.tools import ask_gate
     from core.vision import set_sandbox_confirm_cb
 
     session_ctx._CURRENT_POLICY.set(None)
+    session_ctx._CURRENT_MODE.set("")
+    session_ctx._CURRENT_SESSION.set("")
     set_sandbox_confirm_cb(None)
     ask_gate.set_ask_cb(None)
     yield
     session_ctx._CURRENT_POLICY.set(None)
+    session_ctx._CURRENT_MODE.set("")
+    session_ctx._CURRENT_SESSION.set("")
     set_sandbox_confirm_cb(None)
     ask_gate.set_ask_cb(None)
 
@@ -121,6 +164,44 @@ def _isolate_mcp_registry():
     mcp_client._MCP_TOOLS.clear()
     mcp_client._MCP_TOOLS.update(saved)
     mcp_client._invalidate_schema_cache()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_descriptor_registry():
+    """What the dynamic tool namespace holds, a test gets back the way it found it.
+
+    `PluginLifecycle.mount()` writes descriptors into the process-wide registry
+    `default_registry()` returns, and a test that mounts a bundle without taking the
+    mount back leaves those names serving for the rest of the session. Measured
+    2026-11-09 with `pytest tests/test_plugin_registration_events.py tests/test_tools.py`:
+    `tool_a` from another test's temp bundle was still advertised, and
+    `tests/test_tools.py::TestToolSchemas::test_all_tool_names_match_functions` asserts
+    that every advertised name is a function in `core.tools`, so the pair failed as a
+    batch and each file passed alone. `tests/test_dynamic_tools.py` tears its own mounts
+    down by hand; this covers the files that forgot to, and the restore is a restore
+    because a mount a wider-scoped fixture made belongs to that fixture's setup.
+    """
+    from core.tools.dynamic_registry import default_registry
+    from core.tools.registry import invalidate_tool_schema_cache
+
+    def _grouped() -> dict[str, list]:
+        owners: dict[str, list] = {}
+        for item in default_registry().descriptor_snapshot():
+            owners.setdefault(item.plugin_id, []).append(item)
+        return owners
+
+    saved = _grouped()
+    yield
+    registry = default_registry()
+    after = _grouped()
+    if after == saved:
+        return
+    for plugin_id in after:
+        if plugin_id not in saved:
+            registry.unregister_plugin(plugin_id)
+    for plugin_id, items in saved.items():
+        registry.replace_for_plugin(plugin_id, items)
+    invalidate_tool_schema_cache()
 
 
 @pytest.fixture(autouse=True)
@@ -207,6 +288,30 @@ def _isolate_provider_state(monkeypatch: pytest.MonkeyPatch):
         "EPHE_MEMORY_DIR",
     ):
         os.environ.pop(_k, None)
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_proxy_env(monkeypatch: pytest.MonkeyPatch):
+    """A test run starts with no proxy variables.
+
+    ``EPHE_CONFIG_DIR`` is pinned so a developer's home does not decide the
+    suite. The proxy variables are the same kind of leak: a shell that carries
+    ``NO_PROXY=localhost,.localhost,127.0.0.1,127.0.0.0/8,[::1],::1`` makes an
+    HTTP client raise ``Invalid port: ':1]'`` at construction, and a shell
+    without that list does not. Clearing them here makes the two shells agree.
+    A test that studies a proxy sets the variable afterwards.
+    """
+    for key in (
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "NO_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+        "no_proxy",
+    ):
+        monkeypatch.delenv(key, raising=False)
 
 
 @pytest.fixture(autouse=True)

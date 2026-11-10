@@ -20,17 +20,14 @@ from __future__ import annotations
 import asyncio
 import inspect
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 from core.tools.approval import ApprovalPolicy
 from core.tools.chat_gate import confirm_for_chat
 from core.tools.discovery import tool_call
 from core.tools.session_ctx import set_current_policy
 from core.vision import set_sandbox_confirm_cb
-
-
-def _patched(name: str, executor):
-    return patch.dict("core.tools.registry.TOOL_MAP", {name: executor}, clear=False)
+from tests.tool_dispatch_seam import patched_tool as _patched
 
 
 class TestMetaRouterGate:

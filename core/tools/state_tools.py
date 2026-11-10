@@ -3,7 +3,7 @@
 Two thin agent tools that wire the write path onto the persistent
 memory and the skill catalog:
 
-- ``memory``        : 2-tier write path (``user`` = profile, ``memory`` = Chroma).
+- ``memory``        : 2-tier write path (``user`` = profile, ``memory`` = the Kepta store).
 - ``skill_manage``  : skill catalog care (create/list/delete) via the loader.
 
 Both are deliberately read-/write-poor and use exclusively the existing
@@ -53,8 +53,11 @@ async def memory(action: str, target: str, content: str = "",
     target: user | memory
 
     ``memory_type`` (semantic|episodic|procedural) and ``supersedes`` (id of an
-    existing fact) belong only to the ``memory`` tier and only to the Kepta brain
-    as columns; under Chroma they pass through without effect.
+    existing fact) belong to the ``memory`` tier. The live store is Kepta, our
+    own sibling: a kind lands in the ``type`` column, and a correction writes
+    ``superseded_by`` and ``valid_to``. Chroma remains the retired importer pin
+    ``chromadb==1.5.9`` on ``core.memory_provider.IMPORT_COMMAND``. This function
+    does not open that store.
     """
     action = (action or "").strip().lower()
     target = (target or "").strip().lower()
@@ -100,9 +103,9 @@ async def memory(action: str, target: str, content: str = "",
                     removed += 1
             return outcome("memory_removed", f"[memory] removed {removed} entries",
                           count=str(removed))
-        # replace = correction. Under Kepta the identified fact is superseded
-        # (superseded_by + valid_to, so it stays queryable); Chroma replaces the text
-        # in the same id. Both through the same call — core/memory.py:store().
+        # replace = correction. Kepta marks the old fact with superseded_by and
+        # valid_to and writes the new wording as its own row, through
+        # core/memory.py:store(). The old fact stays queryable.
         if not old_text.strip() or not content.strip():
             return reason("memory_replace_needs_fields",
                           "[memory] replace needs 'old_text' and 'content'")

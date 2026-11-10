@@ -35,7 +35,7 @@
       {
         "name": "notebook-deck",
         "description": "Turn the evidence into a PPTX deck with citations",
-        "template": "Build a deck from the source notebook: {input}. Use create_pptx_deck with one claim per slide and a citation in the speaker notes."
+        "template": "Build a deck from the source notebook: {input}. Use create_pptx_deck with one claim per slide and the citation on the slide. A speaker note stays in the deck spec. The pptx has no notes page."
       },
       {
         "name": "notebook-audit",

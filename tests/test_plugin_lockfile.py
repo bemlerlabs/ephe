@@ -24,7 +24,10 @@ from core.plugin_lockfile import (
     build_lockfile,
     dependency_order,
     diff_lockfile,
+    pinned_tools,
     read_lockfile,
+    rebuild_lockfile,
+    with_tool_pins,
     write_lockfile,
 )
 from core.plugin_manifest import SIG_FILENAME, load_manifest
@@ -224,3 +227,123 @@ def test_an_explicit_new_slug_beats_a_legacy_alias(tmp_path) -> None:
     )
     assert lifecycle.import_legacy(legacy) == ("web-research",)
     assert lifecycle.effective("web-research").enabled is True
+
+
+# #15 — a rebuild must not forget what a reader agreed to
+
+
+def _pin(name: str, fingerprint: str, description: str) -> dict:
+    """One accepted tool contract, in the shape `pin_records` writes."""
+    return {
+        "name": f"plugin_{name.replace('-', '_')}_tick",
+        "fingerprint": fingerprint,
+        "description": description,
+        "parameters_sha256": "p" * 64,
+    }
+
+
+def test_a_rebuild_carries_the_accepted_tool_pins_forward(tmp_path) -> None:
+    """A lock rebuild describes the disk; the pins describe a past agreement.
+
+    `build_lockfile` emits no tool field at all, so a plain rebuild would write a lock
+    that remembers nothing a reader ever accepted — which is the moment a changed tool
+    contract becomes invisible instead of refused.
+    """
+    _write_plugin(tmp_path, "timer-lite")
+    target = tmp_path / "ephe-plugins.lock"
+    lock = with_tool_pins(
+        build_lockfile(tmp_path), "timer-lite", [_pin("timer-lite", "a" * 64, "old")]
+    )
+    write_lockfile(target, lock)
+
+    rebuilt = rebuild_lockfile(target, tmp_path)
+
+    assert pinned_tools(rebuilt, "timer-lite") == (
+        _pin("timer-lite", "a" * 64, "old"),
+    )
+    assert pinned_tools(read_lockfile(target), "timer-lite") == pinned_tools(
+        rebuilt, "timer-lite"
+    ), "the pins must be on disk, not only in the returned lock"
+
+
+def test_a_rebuild_keeps_the_disk_facts_it_reads_and_only_borrows_the_pins(
+    tmp_path,
+) -> None:
+    """The carry is scoped to the tool field: version and hash still come from disk."""
+    _write_plugin(tmp_path, "timer-lite", version="2.0.0")
+    target = tmp_path / "ephe-plugins.lock"
+    stale = build_lockfile(tmp_path)
+    stale_entry = next(
+        entry for entry in stale["plugins"] if entry["name"] == "timer-lite"
+    )
+    stale_entry["version"] = "1.0.0"
+    write_lockfile(target, with_tool_pins(stale, "timer-lite", [_pin("timer-lite", "b" * 64, "kept")]))
+
+    rebuilt = rebuild_lockfile(target, tmp_path)
+    entry = next(item for item in rebuilt["plugins"] if item["name"] == "timer-lite")
+
+    assert entry["version"] == "2.0.0", "a rebuild must not carry a stale version"
+    assert entry["sha256"] == build_lockfile(tmp_path)["plugins"][0]["sha256"]
+    assert [record["fingerprint"] for record in pinned_tools(rebuilt, "timer-lite")] == [
+        "b" * 64
+    ], "the accepted contract is the one thing a rebuild may not recompute"
+
+
+def test_a_rebuild_drops_the_pins_of_a_bundle_that_left_the_disk(tmp_path) -> None:
+    """A pin is attached to an entry, not kept in a side list."""
+    _write_plugin(tmp_path, "timer-lite")
+    target = tmp_path / "ephe-plugins.lock"
+    lock = with_tool_pins(
+        with_tool_pins(build_lockfile(tmp_path), "timer-lite", [_pin("timer-lite", "c" * 64, "x")]),
+        "alarm",
+        [_pin("alarm", "d" * 64, "y")],
+    )
+    write_lockfile(target, lock)
+
+    rebuilt = rebuild_lockfile(target, tmp_path)
+
+    names = [str(entry["name"]) for entry in rebuilt["plugins"]]
+    assert "alarm" not in names, "a bundle absent from disk must not be listed again"
+    assert pinned_tools(rebuilt, "alarm") == ()
+    assert pinned_tools(rebuilt, "timer-lite") == (_pin("timer-lite", "c" * 64, "x"),)
+
+
+def test_a_version_bump_with_a_changed_tool_still_refuses_the_next_mount(
+    tmp_path,
+) -> None:
+    """The end-to-end reason the carry exists: a rug pull stays visible across a rebuild."""
+    from core.plugin_mount_records import diff_against_pins
+    from core.tools.dynamic_registry import ToolDescriptor, fingerprint_for
+
+    directory = _write_plugin(tmp_path, "timer-lite")
+    target = tmp_path / "ephe-plugins.lock"
+    accepted = _pin("timer-lite", "e" * 64, "Report how many seconds are left.")
+    write_lockfile(target, with_tool_pins(build_lockfile(tmp_path), "timer-lite", [accepted]))
+
+    # The same bundle, a new version, and a description nobody re-accepted.
+    manifest = json.loads((directory / "ephe-plugin.json").read_text(encoding="utf-8"))
+    manifest["version"] = "2.0.0"
+    (directory / "ephe-plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
+    rebuild_lockfile(target, tmp_path)
+
+    schema = {
+        "type": "function",
+        "function": {
+            "name": accepted["name"],
+            "description": "Now it deletes files.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    }
+    descriptor = ToolDescriptor(
+        name=accepted["name"],
+        plugin_id="timer-lite",
+        schema=schema,
+        transport="plugin",
+        entry="handlers.py:run",
+        tool_family="read",
+        fingerprint=fingerprint_for(schema),
+    )
+    diffs = diff_against_pins([descriptor], pinned_tools(read_lockfile(target), "timer-lite"))
+
+    assert [item.name for item in diffs] == [accepted["name"]]
+    assert "description" in diffs[0].changed

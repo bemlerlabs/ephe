@@ -14,8 +14,9 @@ refused is named in the report instead of disappearing. Both the prompt and the
 stage display read this one function, so what the model receives and what the
 surface says cannot drift.
 
-Resolution order for the workspace root (same spirit as the Shell/File tools):
-``EPHE_WORKSPACE`` env (tests / power users) → persisted engine.json → server cwd.
+Resolution order for the workspace root comes from one authority,
+``core.engine_config.get_workspace_dir()``: ``EPHE_WORKSPACE`` env (tests / power
+users) → persisted engine.json → neutral ``~/Ephe``.
 """
 from __future__ import annotations
 
@@ -81,16 +82,10 @@ def workspace_key(path_or_identity=None) -> str:
 
 
 def resolve_workspace_dir() -> str:
-    """Active workspace root: env override → engine.json → neutral default."""
-    env = (os.environ.get("EPHE_WORKSPACE") or "").strip()
-    if env:
-        return env
-    try:
-        from core.engine_config import get_workspace_dir
+    """Active workspace root: the one authority is ``engine_config.get_workspace_dir``."""
+    from core.engine_config import get_workspace_dir
 
-        return get_workspace_dir()
-    except Exception:
-        return os.getcwd()
+    return get_workspace_dir()
 
 
 def _candidates(root: Path) -> list[Path]:

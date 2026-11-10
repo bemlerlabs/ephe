@@ -1,12 +1,12 @@
 """Language coverage of the edit-time checker."""
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
 
 from core import coding_loop
+from tests.support.capabilities import requires_rustc
 
 
 def _fake_which(monkeypatch: pytest.MonkeyPatch, present: set[str]) -> None:
@@ -67,7 +67,7 @@ def test_missing_toolchain_means_no_checker(
         assert coding_loop.verification_command(path) is None
 
 
-@pytest.mark.skipif(shutil.which("rustc") is None, reason="rustc is not installed")
+@requires_rustc
 def test_rust_repair_loop_reads_a_real_compile_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -84,3 +84,21 @@ def test_rust_repair_loop_reads_a_real_compile_error(
     fixed.write_text("pub struct Fixed {\n    pub a: u8,\n}\n", encoding="utf-8")
     verdict = coding_loop.verify(fixed, timeout=60)
     assert verdict is not None and verdict.ok is True
+
+
+@requires_rustc
+def test_the_rust_checker_is_the_compiler_the_capability_probe_finds(tmp_path: Path) -> None:
+    """One authority: the loop runs the compiler the probe proved, not a path of its own.
+
+    Both resolve through PATH, so both name the same binary; the public CI failure was
+    not a second resolver — it was the sandbox hiding the one path both had agreed on.
+    This pin keeps a future "just use ~/.cargo/bin/rustc" from splitting the two answers
+    again, because such a guess would still be a path nobody probed.
+    """
+    from tests.support.capabilities import rustc_path
+
+    path = tmp_path / "lib.rs"
+    path.write_text("pub fn a() {}\n", encoding="utf-8")
+    command = coding_loop.verification_command(path)
+    assert command is not None
+    assert command[0] == str(rustc_path())

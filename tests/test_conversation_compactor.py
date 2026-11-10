@@ -110,3 +110,130 @@ async def test_given_long_history_when_chat_runs_then_compacted_context_is_sent_
     )
     assert "Conversation working memory" in merged_system
     assert len(sent_messages) < len(history)
+
+
+# #102: the visible conversation may only shrink, and a system block stays whole.
+#
+# The handoff finding ("one Creator turn dropped the visible conversation from
+# 12 to 67 messages during compaction") is measured here instead of repeated:
+# the pair is the OUTPUT and the INPUT of one compaction, in that order.
+
+
+def _talk_history(count: int) -> list[dict]:
+    """A plain conversation: alternating user/assistant, ending on an answer."""
+    history = []
+    for index in range(count):
+        role = "user" if index % 2 == 0 else "assistant"
+        history.append({"role": role, "content": f"turn {index}: the decision {index} stays pending"})
+    return history
+
+
+def _creator_history(tool_calls: int) -> list[dict]:
+    """One Creator turn on the wire: the ask, the tool block, its answers."""
+    calls = [{"id": f"call_{i}", "function": {"name": "write_file", "arguments": "{}"}} for i in range(tool_calls)]
+    return [
+        {"role": "user", "content": "Creator: baue das Plugin"},
+        {"role": "assistant", "content": "", "tool_calls": calls},
+        *({"role": "tool", "content": f"result {i} ok"} for i in range(tool_calls)),
+    ]
+
+
+def test_the_reported_12_to_67_pair_is_the_compaction_output_and_input():
+    """GIVEN the 67 messages of a long conversation WHEN compacted
+    THEN the visible conversation is 12 — the two numbers of the handoff, reversed."""
+    from core.conversation_compactor import compact_history
+
+    history = _talk_history(67)
+    compacted = compact_history(history)
+
+    assert len(history) == 67
+    assert len(compacted) == 12  # first(1) + ledger(1) + recent(10)
+    assert len(compacted) <= len(history)
+
+
+def test_a_12_message_conversation_is_not_compacted_and_not_inflated():
+    """GIVEN the 12 visible messages of the handoff WHEN compacted
+    THEN they come back unchanged — the threshold is 28, so nothing runs."""
+    from core.conversation_compactor import compact_history
+
+    history = _talk_history(12)
+    assert compact_history(history) == history
+
+
+def test_no_history_shape_makes_compaction_grow_the_visible_conversation():
+    """GIVEN 120 seeded conversation shapes (tool blocks, system rows, ledgers)
+    WHEN compacted THEN the count never rises."""
+    import random
+
+    from core.conversation_compactor import compact_history
+
+    def shape(rng: random.Random) -> list[dict]:
+        history: list[dict] = []
+        while len(history) < rng.randint(0, 80):
+            kind = rng.choice(("user", "assistant", "system", "ledger", "block"))
+            if kind == "block":
+                calls = rng.randint(1, 6)
+                history.append({
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {"id": f"c{len(history)}_{i}", "function": {"name": "f", "arguments": "{}"}}
+                        for i in range(calls)
+                    ],
+                })
+                history.extend({"role": "tool", "content": f"r{i}"} for i in range(calls))
+                continue
+            content = f"{kind} message {len(history)} " + "x" * rng.randint(0, 40)
+            if kind == "ledger":
+                history.append({"role": "system", "content": "Working Memory Ledger for Ephe.\n## Decisions\n- old"})
+                continue
+            history.append({"role": kind, "content": content})
+        return history
+
+    rng = random.Random(102)
+    for _case in range(120):
+        history = shape(rng)
+        compacted = compact_history(history)
+        assert len(compacted) <= len(history), f"{len(compacted)} > {len(history)}"
+
+
+def test_a_system_block_in_the_middle_survives_whole():
+    """GIVEN a skill prompt that arrives as a system row inside the history
+    WHEN compacted THEN it is still there, byte for byte, and the count still falls."""
+    from core.conversation_compactor import compact_history
+
+    skill = "SKILL PROMPT: the deck job writes one file and validates it.\n" * 20
+    history = _talk_history(30)
+    history.insert(5, {"role": "system", "content": skill})
+
+    compacted = compact_history(history)
+
+    assert len(compacted) <= len(history)
+    assert any(m.get("content") == skill for m in compacted)
+
+
+def test_a_creator_tool_block_is_never_split_and_never_invents_messages():
+    """GIVEN a Creator turn whose whole tail is one atomic tool block
+    WHEN compacted THEN the block stays complete and no message is added."""
+    from core.conversation_compactor import compact_history
+
+    history = _creator_history(65)
+    compacted = compact_history(history)
+
+    assert len(history) == 67
+    assert len(compacted) <= len(history)
+    for index, message in enumerate(compacted):
+        if not message.get("tool_calls"):
+            continue
+        answers = 0
+        cursor = index + 1
+        while cursor < len(compacted) and compacted[cursor].get("role") == "tool":
+            answers += 1
+            cursor += 1
+        assert answers == len(message["tool_calls"]), "a tool block was cut"
+    # No answer without the block that opened it: an orphan is the 400 the wire refuses.
+    assert all(
+        any(earlier.get("tool_calls") for earlier in compacted[:index])
+        for index, message in enumerate(compacted)
+        if message.get("role") == "tool"
+    )

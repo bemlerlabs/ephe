@@ -1,6 +1,8 @@
 import { BASE_URL, LAN_TOKEN, request } from './http'
 import type {
   ContextStage,
+  CreatorConsent,
+  CreatorPrivilege,
   DetectResponse,
   FsListing,
   HealthInfo,
@@ -165,6 +167,21 @@ export function updateSettings(settings: Partial<AppSettings>): Promise<AppSetti
 
 // ── Wave 6: plugin store + deep section register ────────────────────────────
 
+/** `core/plugin_ui_capabilities.ui_descriptor()` as the store view returns it:
+ *  defaulted, flattened, snake_case. Absent on entries whose bundle declares no surface. */
+export interface PluginSurfaceDescriptor {
+  plugin?: string
+  type: string
+  entry: string
+  title?: string
+  width?: number
+  height?: number
+  transparent?: boolean
+  always_on_top?: boolean
+  capabilities?: string[]
+  grants?: string[]
+}
+
 /** One plugin entry from the aggregated store view (GET /api/plugins). */
 export interface PluginEntry {
   id: string
@@ -181,11 +198,51 @@ export interface PluginEntry {
   permissions?: string[]
   /** E3: provenance — first-party (built-in) vs external (vendor/community). */
   origin?: 'first-party' | 'external'
+  /**
+   * #96: how this bundle's own manifest runs. `declarative` contributes no tool at all,
+   * `kernel` switches on tools Ephe implements, `worker` carries entries of its own that the
+   * confined child process resolves. Absent where no manifest behind the entry could be read,
+   * because the rail of a bundle nobody read is not a fact the surface may state.
+   */
+  rail?: 'declarative' | 'kernel' | 'worker'
+  contributed_tools?: number
+  activated_tools?: number
+  /** W1-7: the one surface this bundle declares; the switch row opens it from here. */
+  surface?: PluginSurfaceDescriptor
+  /** #106: megabytes kept against the ceiling. File names stay on the state route. */
+  state_usage?: PluginStateUsage
+  /** #99: `session` when a mode names this bundle, otherwise `global`. */
+  scope?: 'global' | 'session'
+  /** Composer modes whose table names this bundle. Empty when none do. */
+  provided_by_modes?: string[]
+  /** First tool entry, or the surface entry when the bundle declares no tool. */
+  module?: string
+  /** Tool families the manifest already declares, joined for the detail sheet. */
+  configuration?: string
+}
+
+/** Megabytes a bundle keeps, and how many files. No path. */
+export interface PluginStateUsage {
+  used_mb: number
+  cap_mb: number
+  file_count: number
+}
+
+/** The state route: the usage plus the stored-file names the row can remove. */
+export interface PluginStateReport extends PluginStateUsage {
+  used_bytes: number
+  cap_bytes: number
+  entries: { name: string; bytes: number }[]
+  truncated: boolean
 }
 
 export interface PluginView {
   public: PluginEntry[]
   personal: PluginEntry[]
+  /** #99: bundles no mode names. Same entries as the provenance lists, split by scope. */
+  global?: PluginEntry[]
+  /** #99: bundles a mode names. A global-off bundle here is the preset case. */
+  session?: PluginEntry[]
   orphans?: string[]
   /** P1: migration notices, e.g. the retired legacy master bypass. */
   notices?: { code: string; message?: string }[]
@@ -199,6 +256,19 @@ export interface PluginView {
 /** Aggregated store view: curated catalog + installed registry. */
 export function getPlugins(): Promise<PluginView> {
   return request<PluginView>('/api/plugins')
+}
+
+/** One bundle's stored files, measured against its ceiling. */
+export function getPluginState(id: string): Promise<PluginStateReport> {
+  return request<PluginStateReport>(`/api/plugins/${encodeURIComponent(id)}/state`)
+}
+
+/** Remove one stored file. The answer is the report after the removal. */
+export function removePluginStateFile(id: string, name: string): Promise<PluginStateReport> {
+  return request<PluginStateReport>(`/api/plugins/${encodeURIComponent(id)}/state/remove`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
 }
 
 /** Server-confirmed plugin state after a switch request. */
@@ -767,4 +837,31 @@ export type ReaderResult = {
  *  reach guard as the agent tools, not a second network window. */
 export function readUrl(url: string): Promise<ReaderResult> {
   return request<ReaderResult>(`/api/reader?url=${encodeURIComponent(url)}`)
+}
+
+// Creator Mode consent (server/routes/creator.py). Plain banner: this file sits at its
+// prose-tells baseline, and a decorative rule is one of the shapes that baseline counts.
+
+/** The three permissions the guard enforces, in its own order. A fourth name
+ *  here would ask for something `core/tools/creator_guard.py` cannot answer, so
+ *  the rows a surface builds come from this list and nowhere else. */
+export const CREATOR_PRIVILEGES: readonly CreatorPrivilege[] = ['code', 'files', 'network']
+
+/** What one session was granted. The key is the session, never the device: a
+ *  second chat in the same app asks for its own permissions. */
+export function getCreatorConsent(sessionId: string): Promise<CreatorConsent> {
+  return request<CreatorConsent>(`/api/creator/consent?session_id=${encodeURIComponent(sessionId)}`)
+}
+
+/** Replace what one session holds with exactly this set.
+ *  The route stores the whole set rather than merging, so a permission the user
+ *  unchecked is gone with this call — an add-only write could never revoke one. */
+export function putCreatorConsent(
+  sessionId: string,
+  privileges: readonly CreatorPrivilege[],
+): Promise<CreatorConsent> {
+  return request<CreatorConsent>('/api/creator/consent', {
+    method: 'PUT',
+    body: JSON.stringify({ session_id: sessionId, privileges: [...privileges] }),
+  })
 }

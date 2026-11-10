@@ -95,9 +95,25 @@ def test_unknown_profile_raises():
 # 5. Consistency against the tool registry
 
 def test_never_remember_tools_exist_in_registry():
-    from core.tools.registry import TOOL_MAP
+    """GIVEN NEVER_REMEMBER THEN every entry is a name the agent is actually served.
+
+    The bar this list guards is the approval dialog, and the dialog keys its decision on
+    the served schema name: `server/routes/chat.py:1757` compares `name == "run_shell"`.
+    The reading this test used asked `TOOL_MAP` instead, and that table is keyed by the
+    internal alias — `"bash": run_shell` at `core/tools/registry.py:495` — so a correct
+    list failed on a correct tree: the instrument was asking a table the product never
+    makes its decision from.
+    """
+    from core.tools.dynamic_registry import default_registry
+    from core.tools.registry import get_tool_schemas
+
+    served = {str(schema["function"]["name"]) for schema in get_tool_schemas()}
+    served |= {item.name for item in default_registry().descriptor_snapshot()}
     for tool in SC.NEVER_REMEMBER:
-        assert tool in TOOL_MAP, f"{tool} in NEVER_REMEMBER aber nicht in TOOL_MAP"
+        assert tool in served, (
+            f"{tool} in NEVER_REMEMBER is not a served tool name, so the entry protects "
+            "nothing an agent can be offered"
+        )
 
 
 def test_schemas_cover_all_registry_tools():

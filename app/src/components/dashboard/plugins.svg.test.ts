@@ -30,7 +30,7 @@ const digest = (svg: string) => createHash('sha256').update(svg).digest('hex')
 
 describe('plugin icons', () => {
   it('ships one icon for every first-party plugin', () => {
-    expect(icons.length).toBe(16)
+    expect(icons.length).toBe(17)
   })
 
   it('never lets two plugins share a picture', () => {
