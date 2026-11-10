@@ -2085,6 +2085,7 @@
     "auditKeptLastList": "Die letzte Liste bleibt stehen — sie ist nicht mehr aktuell."
   },
   "serverError": {
+    "tool_failed": "das Werkzeug ist mit einem Fehler abgebrochen, den diese Seite nicht anzeigen kann — der Grund steht im Lauf-Protokoll; versuch es erneut, und wenn es bleibt, prüfe das Werkzeug unter Erweiterungen",
     "audio_empty": "Leere Audio-Datei — nimm die Nachricht erneut auf oder wähle eine Datei mit Ton.",
     "audio_model_download_required": "Für die Transkription fehlt das lokale Sprachmodell '{{model}}' (~{{size_mb}} MB von {{host}}) — setze EPHE_STT_DOWNLOAD=1 (dabei EPHE_OFFLINE nicht setzen) oder setze stt_allow_download in voice.json, dann schicke die Aufnahme erneut.",
     "audio_model_fetch_failed": "Das Sprachmodell '{{model}}' (~{{size_mb}} MB von {{host}}) ließ sich nicht laden — prüfe die Verbindung, dann schicke die Aufnahme erneut.",

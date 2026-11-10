@@ -216,3 +216,48 @@ def test_cli_init_helper_is_fail_tolerant(monkeypatch):
     import ephe_cli
 
     assert asyncio.run(ephe_cli._init_cli_mcp()) == []
+
+
+def test_a_client_that_will_not_close_does_not_fail_a_finished_run(
+    chosen_engine, monkeypatch, tmp_path
+):
+    """GIVEN a run whose MCP client refuses to close (its transport is already gone)
+    WHEN `ephe code` finishes and tears the client down
+    THEN the teardown error stays in the teardown: the answer the run produced is the
+    run's result and the exit code is 0. A finished run that answered must not become
+    a failed one because a child process would not say goodbye."""
+    import core.mcp_config
+    import core.react
+    import core.run_evidence
+    import core.tools.mcp_client as mcp
+    import ephe_cli
+
+    attempted: list[str] = []
+
+    class _SullenClient:
+        async def close(self) -> None:
+            attempted.append("close")
+            raise RuntimeError("transport already torn down")
+
+    async def _attach():
+        mcp._LIVE_CLIENTS["sullen:mcp"] = _SullenClient()
+        return ["mcp_echo"]
+
+    async def _fake_loop(**kwargs):
+        return "answered anyway"
+
+    monkeypatch.setattr(core.mcp_config, "init_mcp_from_config", _attach)
+    monkeypatch.setattr(core.react, "react_loop", _fake_loop)
+    monkeypatch.setattr(core.run_evidence, "active_worktree", lambda: str(tmp_path / "ws"))
+    (tmp_path / "ws").mkdir()
+
+    try:
+        rc = ephe_cli.cmd_code(argparse.Namespace(
+            task=["finish", "the", "run"], model=None, verify=None, rep=0,
+        ))
+        assert attempted == ["close"], "the teardown never tried to close the client"
+        assert rc == 0, "a failed teardown turned a finished run into a failed one"
+    finally:
+        # A failed close stays in the register on purpose (it is retryable), so the
+        # test has to take its spy back out or the next MCP test inherits it.
+        mcp._LIVE_CLIENTS.pop("sullen:mcp", None)

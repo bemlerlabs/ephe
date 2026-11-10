@@ -2085,6 +2085,7 @@
     "auditKeptLastList": "The last list stays on screen — it is no longer current."
   },
   "serverError": {
+    "tool_failed": "the tool stopped with an error this page cannot show — the reason is in the run's log; try it again, and if it stays, check the tool under Extensions",
     "audio_empty": "Empty audio file — record the message again or attach a file that carries audio.",
     "audio_model_download_required": "Transcription needs the local speech model '{{model}}' (~{{size_mb}} MB from {{host}}) and it is not on this machine yet — set EPHE_STT_DOWNLOAD=1 (with EPHE_OFFLINE unset), or set stt_allow_download in voice.json, then send the recording again.",
     "audio_model_fetch_failed": "The speech model '{{model}}' (~{{size_mb}} MB from {{host}}) could not be fetched — check the connection, then send the recording again.",

@@ -114,6 +114,59 @@ def test_a_tool_this_bundle_owns_still_meets_the_approval_gate(client, monkeypat
     assert "web_search" in response.json()["result"]
 
 
+def test_a_tool_this_bundle_owns_runs_when_the_gate_approves(client, monkeypatch):
+    """GIVEN a tool this bundle owns and an approval from the chat gate
+    WHEN the page calls it over its own mount
+    THEN the tool runs with the page's arguments and its result comes back — the
+    approved half of the gate the denial test above pins the other side of."""
+
+    async def fake_execute(name, arguments, policy=None):
+        return f"ran:{name}:{arguments['query']}"
+
+    async def _approved(name, args, **kwargs):
+        return True, ""
+
+    monkeypatch.setattr("core.tools.registry.execute_tool", fake_execute)
+    monkeypatch.setattr("core.tools.chat_gate.confirm_for_chat", _approved)
+
+    response = client.post(
+        "/api/plugins/web-research/client/tool",
+        json={"name": "web_search", "arguments": {"query": "ephe"}},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"result": "ran:web_search:ephe"}
+
+
+def test_a_tool_that_raises_answers_the_coded_refusal_and_never_its_text(client, monkeypatch):
+    """GIVEN a tool this bundle owns raises while it runs
+    WHEN the page calls it over its own mount
+    THEN the answer is the router's coded refusal, naming the exception's kind and the
+    plugin, and the exception's text never reaches the page — a traceback names files
+    and internals the page has no use for. (The refusal is what the route documents;
+    today it fails on an unregistered code, which is the defect pinned above.)"""
+
+    async def fake_execute(name, arguments, policy=None):
+        raise ValueError("SECRET-INTERNAL-PATH-/Users/someone/.ephe")
+
+    async def _approved(name, args, **kwargs):
+        return True, ""
+
+    monkeypatch.setattr("core.tools.registry.execute_tool", fake_execute)
+    monkeypatch.setattr("core.tools.chat_gate.confirm_for_chat", _approved)
+
+    response = client.post(
+        "/api/plugins/web-research/client/tool",
+        json={"name": "web_search", "arguments": {"query": "ephe"}},
+    )
+
+    assert response.status_code == 500
+    error = response.json()["error"]
+    assert error["reason_code"] == "tool_failed"
+    assert error["reason_params"] == {"plugin": "web-research", "kind": "ValueError"}
+    assert "SECRET-INTERNAL-PATH" not in response.text
+
+
 def test_the_mount_serves_the_build_sdk_and_ignores_a_shadow(tmp_path, monkeypatch):
     config = tmp_path / "cfg"
     plugin = config / "plugins" / "acme-countdown"

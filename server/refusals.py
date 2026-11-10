@@ -236,6 +236,11 @@ REASONS: dict[str, tuple[int, str]] = {
         "the list shows",
     ),
     # A field whose shape this route refuses. The move is to check it and send again.
+    "tool_failed": (
+        500,
+        "the tool stopped with an error this page cannot show — the reason is in the run's "
+        "log; try it again, and if it stays, check the tool under Extensions",
+    ),
     "invalid_request": (
         400,
         "this request is not a shape the route takes — check the field the answer "
