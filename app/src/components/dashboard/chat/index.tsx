@@ -59,6 +59,7 @@ import {
   type BackendReadiness,
 } from '@/lib/backendReadiness'
 import BackendNotReady from '@/components/shell/BackendNotReady'
+import EmbeddingModelPrompt from '@/components/shell/EmbeddingModelPrompt'
 import RunRail from '@/components/shell/RunRail'
 import CheckpointControls from '../CheckpointControls'
 import SchedulerPanel, { SchedulerMobilePill } from '../SchedulerPanel'
@@ -886,6 +887,7 @@ export default function ChatLayout() {
                 contextPercent={contextPercent}
               />
               {composerBlocked(readiness) && readiness && <BackendNotReady readiness={readiness} />}
+              <EmbeddingModelPrompt />
               <ChatInput
                 disabled={composerBlocked(readiness)}
                 onSend={(msg, att) => void handleSend(msg, att)}

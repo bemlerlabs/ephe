@@ -55,6 +55,7 @@ from server.routes import (
     memory,
     memory_trash,
     metrics,
+    models,
     mobile,
     network,
     model_provider,
@@ -500,6 +501,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
     app.include_router(shell.router, prefix="/api")
     app.include_router(memory.router, prefix="/api")
     app.include_router(memory_trash.router, prefix="/api")
+    app.include_router(models.router, prefix="/api")
     app.include_router(skills.router, prefix="/api")
     app.include_router(artifacts.router, prefix="/api")
     app.include_router(audit.router, prefix="/api")

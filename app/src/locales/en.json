@@ -510,7 +510,17 @@
     "stepPill": "Step {{n}} / {{total}}",
     "accessMenuNote": "The mode decides what may run. This profile is the ceiling above it, for every task.",
     "accessFullWarning": "Full access: every tool runs without asking. The mode still decides what runs.",
-    "accessSaveFailed": "The profile was not changed — the request failed."
+    "accessSaveFailed": "The profile was not changed — the request failed.",
+    "model": {
+      "embeddingPromptTitle": "Better memory search: download the embedding model?",
+      "embeddingPromptBody": "The memory searches lexically without it. The model is {{size}} and comes from Hugging Face; it stays on this device.",
+      "embeddingDownloading": "Downloading the embedding model ({{size}}). Memory search improves when it finishes.",
+      "embeddingInProgress": "Downloading…",
+      "embeddingDownload": "Download {{size}}",
+      "embeddingNotNow": "Not now",
+      "embeddingMissing": "Missing: {{files}}",
+      "embeddingSizeUnknown": "a few hundred MB"
+    }
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",

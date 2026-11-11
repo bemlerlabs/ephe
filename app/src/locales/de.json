@@ -510,7 +510,17 @@
     "stepPill": "Schritt {{n}} / {{total}}",
     "accessMenuNote": "Der Modus entscheidet, was laufen darf. Dieses Profil ist die Obergrenze darüber, für jede Aufgabe.",
     "accessFullWarning": "Voller Zugriff: jedes Werkzeug läuft ohne Rückfrage. Der Modus entscheidet weiterhin, was läuft.",
-    "accessSaveFailed": "Das Profil wurde nicht geändert — die Anfrage ist fehlgeschlagen."
+    "accessSaveFailed": "Das Profil wurde nicht geändert — die Anfrage ist fehlgeschlagen.",
+    "model": {
+      "embeddingPromptTitle": "Bessere Memory-Suche: Embedding-Modell herunterladen?",
+      "embeddingPromptBody": "Ohne das Modell sucht die Memory nur lexikalisch. Es ist {{size}} groß, kommt von Hugging Face und bleibt auf diesem Gerät.",
+      "embeddingDownloading": "Embedding-Modell wird geladen ({{size}}). Danach sucht die Memory besser.",
+      "embeddingInProgress": "Lädt…",
+      "embeddingDownload": "{{size}} herunterladen",
+      "embeddingNotNow": "Nicht jetzt",
+      "embeddingMissing": "Fehlt: {{files}}",
+      "embeddingSizeUnknown": "einige hundert MB"
+    }
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
