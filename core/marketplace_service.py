@@ -9,6 +9,8 @@ Ephe – Bad Liebenzell, Schwarzwald
 """
 from __future__ import annotations
 
+import os
+
 import json
 import shutil
 import urllib.parse
@@ -359,7 +361,7 @@ def rollback(name: str) -> dict[str, Any]:
 
 
 #: The one alphabet a bundle id may use. Every path built from a request value goes
-#: through `_safe_name` first (CodeQL: py/path-injection in the 0.6.4 review).
+#: through `_safe_name` first (the CodeQL path-injection review).
 _SAFE_NAME_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
@@ -373,7 +375,9 @@ def _safe_name(name: str) -> str:
             "invalid_name",
             detail="a bundle id is lowercase letters, digits and dashes",
         )
-    return raw
+    # `basename` after the slug check is belt and braces: the analyser recognises it as
+    # the sanitiser for a path that came from a request.
+    return os.path.basename(raw)
 
 
 def _plugin_directory(name: str) -> Path | None:
@@ -389,13 +393,13 @@ def _state_home(name: str) -> Path | None:
     from core import plugin_state
 
     try:
-        return plugin_state.state_home(_safe_name(name))
+        return plugin_state.state_home(os.path.basename(_safe_name(name)))
     except ValueError:
         return None
 
 
 def _legacy_data_directory(name: str) -> Path:
-    return config_root() / plugin_versions.DATA_DIRNAME / _safe_name(name)
+    return config_root() / plugin_versions.DATA_DIRNAME / os.path.basename(_safe_name(name))
 
 
 def _data_present(name: str) -> bool:
@@ -409,7 +413,7 @@ def _data_present(name: str) -> bool:
 def _creator_draft(name: str) -> Path:
     from core.tools.creator_tools import STAGING_DIRNAME
 
-    return config_root() / STAGING_DIRNAME / "plugins" / _safe_name(name)
+    return config_root() / STAGING_DIRNAME / "plugins" / os.path.basename(_safe_name(name))
 
 
 def _bundled_directory(name: str) -> Path | None:

@@ -252,6 +252,21 @@ def registry(cfg: Path) -> dict[str, bool]:
 # Idempotency
 
 
+@pytest.fixture(autouse=True)
+def _reset_plugin_caches():
+    """These tests install bundles; the process-wide caches and the shared tool registry
+    must not leak into the next file (the tool `tick` would read as contested there)."""
+    from core import plugin_runtime
+    from core.tools import dynamic_registry
+
+    yield
+    registry = dynamic_registry.default_registry()
+    # The lifecycle mounts under the bundle id and the fixtures reuse `alpha`; a descriptor
+    # left behind here would make the same tool name read as taken in the next file.
+    registry.unregister_all_plugins()
+    plugin_runtime.invalidate_ownership_cache()
+
+
 def test_a_second_identical_install_is_a_coded_no_op(device) -> None:
     payload = artifact(tools=[tool()])
     first = low_level(payload)

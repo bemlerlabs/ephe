@@ -58,7 +58,7 @@ _THREAD_LOCKS_GUARD = threading.Lock()
 
 
 #: A bundle id never leaves this alphabet, so a lock file name built from it cannot
-#: walk anywhere (CodeQL: py/path-injection, one of five in the 0.6.4 review).
+#: walk anywhere (the CodeQL path-injection review).
 _SAFE_LOCK_KEY_RE = __import__("re").compile(r"[^a-z0-9-]")
 
 
