@@ -284,3 +284,25 @@ def test_the_context_row_names_the_workspace_files_and_stays_off_the_exit_code(
     assert "1 included" in rows[0]
     assert "ephe context" in rows[0]
     assert code == 0
+
+
+def test_the_context_row_survives_a_broken_report(monkeypatch, capsys):
+    """A resolver that raises must not take the doctor down with it."""
+    import argparse
+    import json as _json
+
+    from core import _cli_context
+
+    monkeypatch.setattr(
+        _cli_context, "doctor_row", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
+    import ephe_cli
+
+    code = ephe_cli.cmd_doctor(
+        argparse.Namespace(fix=False, json=True, model=None, port=None, host=None)
+    )
+    payload = _json.loads(capsys.readouterr().out)
+    rows = {row["name"]: row["detail"] for row in payload["checks"]}
+    assert "Context files" in rows
+    assert "report skipped (RuntimeError)" in rows["Context files"]
+    assert code in (0, 1)

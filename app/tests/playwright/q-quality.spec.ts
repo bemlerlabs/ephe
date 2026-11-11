@@ -218,12 +218,15 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     // shared by every consumer through useWorkspaceState) joins that set: 26.
     // QD-012: the codebase index pill reads its status once on boot
     // (GET /api/project/index/status), so the ceiling moves 26 -> 27.
+    // 2026-11-11: the saved UI language now comes from the server at boot
+    // (GET /api/settings, bounded to 1.2 s, before the first render), and the
+    // restored-conversation read keeps its own request: 27 -> 29.
     // Snapshot at the panel-ready boundary: a late health or session poll is not part
     // of the boot set, and a slower runner otherwise adds one while the DOM is read.
     expect(
       bootApiCalls.length,
       `API-Anzahl ${bootApiCalls.length}: ${bootApiCalls.join(' ')}`,
-    ).toBeLessThanOrEqual(27)
+    ).toBeLessThanOrEqual(29)
     // The set is closed at the panel mount: a request that starts afterwards stays out,
     // however late the runner gets to read it.
     const frozenAt = await page.evaluate(async () => {
