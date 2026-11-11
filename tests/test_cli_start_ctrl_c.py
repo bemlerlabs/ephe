@@ -17,6 +17,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import ephe_cli
+
 
 def _start_args(*, open_: bool = False) -> argparse.Namespace:
     return argparse.Namespace(
@@ -118,3 +120,38 @@ def test_ctrl_c_in_the_open_branch_stops_the_child_it_owns(
     assert rc == 130
     assert "Traceback" not in printed
     assert child.terminated or child.killed, "the child was left without a shutdown request"
+
+
+def test_the_open_branch_stops_a_child_that_missed_the_signal(monkeypatch, capsys):
+    """`--open` owns its child: a kill that never reached it is finished by hand."""
+    import subprocess as _sp
+    import time as _time
+
+    class _Stubborn(_sp.Popen):
+        def __init__(self):  # noqa: D107 - a stub
+            self._alive = True
+            self.signals: list[str] = []
+
+        def wait(self, timeout=None):  # noqa: D102 - the stub's whole surface
+            if self._alive and timeout is None:
+                raise KeyboardInterrupt
+            if self._alive:
+                raise _sp.TimeoutExpired("stub", timeout or 0)
+            return 0
+
+        def poll(self):  # noqa: D102
+            return None if self._alive else 0
+
+        def terminate(self):  # noqa: D102
+            self.signals.append("terminate")
+
+        def kill(self):  # noqa: D102
+            self.signals.append("kill")
+            self._alive = False
+
+    stub = _Stubborn()
+    code = ephe_cli._wait_until_interrupted(stub)
+    out = capsys.readouterr().out
+    assert code == 130
+    assert "stopped" in out
+    assert stub.signals == ["terminate", "kill"]

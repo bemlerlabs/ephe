@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+import ephe_cli
+
 from tests.subprocess_env import hermetic_env
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -78,3 +80,13 @@ def test_the_real_command_returns_instead_of_hanging(tmp_path: Path) -> None:
     assert completed.returncode == 2, printed[-2000:]
     assert "terminal" in printed, printed[-2000:]
     assert "Traceback" not in printed, printed[-2000:]
+
+
+def test_main_guards_the_tui_verb_before_it_starts(monkeypatch, capsys):
+    """The front door, not just the helper: `ephe tui` on a pipe never reaches the app."""
+    monkeypatch.setattr("sys.argv", ["ephe", "tui"])
+    monkeypatch.setattr(ephe_cli, "_attached_to_a_terminal", lambda: False)
+    with pytest.raises(SystemExit) as excinfo:
+        ephe_cli.main()
+    assert excinfo.value.code == 2
+    assert "interactive terminal" in capsys.readouterr().err
