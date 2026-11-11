@@ -244,3 +244,173 @@ def test_a_bundled_plugin_names_the_reason_it_stays(device, capsys) -> None:
     err = capsys.readouterr().err
     assert "ships with Ephe" in err
     assert "cannot be removed" in err
+
+
+def _installed(device: Path, name: str = "alpha") -> None:
+    write_bundle(device / "plugins", name)
+    mark_installed(name, enabled=False)
+
+
+def test_remove_names_dependents_when_they_block_it(device, monkeypatch, capsys):
+    """A remove that a dependent blocks names the dependent and the move."""
+    from core import marketplace_service
+
+    _installed(device)
+    monkeypatch.setattr(
+        marketplace_service,
+        "remove",
+        lambda name, **kw: {
+            "status": "dependents_enabled",
+            "name": name,
+            "dependents": ["alpha", "beta"],
+        },
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "remove", "alpha", "--yes"])
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "required by enabled dependents" in (out.out + out.err)
+    assert "alpha, beta" in (out.out + out.err)
+
+
+def test_remove_reports_a_still_active_bundle_with_the_next_command(device, monkeypatch, capsys):
+    from core import marketplace_service
+
+    _installed(device)
+    monkeypatch.setattr(
+        marketplace_service,
+        "remove",
+        lambda name, **kw: {"status": "still_active", "name": name, "enabled": True},
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "remove", "alpha", "--yes"])
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "still enabled" in (out.out + out.err)
+    assert "ephe plugin disable alpha" in (out.out + out.err)
+
+
+def test_remove_reports_an_unknown_failure_code(device, monkeypatch, capsys):
+    from core import marketplace_service
+
+    _installed(device)
+    monkeypatch.setattr(
+        marketplace_service,
+        "remove",
+        lambda name, **kw: {"status": "failed", "code": "lockfile_error", "name": name},
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "remove", "alpha", "--yes"])
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "lockfile_error" in (out.out + out.err)
+
+
+def _fake_install(status: dict):
+    from core import plugin_market
+
+    return lambda *a, **k: status
+
+
+def test_install_success_names_the_version_and_the_switch(device, monkeypatch, capsys):
+    from core import plugin_market
+
+    monkeypatch.setattr(
+        plugin_market,
+        "install_from_marketplace",
+        _fake_install(
+            {"status": "extracted", "version": "2.0.0", "warning": "local_trust"}
+        ),
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(
+            ["plugin", "install", "alpha", "--trust-local"]
+        )
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "v2.0.0" in out and "local trust" in out
+
+
+def test_install_refusal_names_the_trust_flag(device, monkeypatch, capsys):
+    from core import plugin_market
+
+    monkeypatch.setattr(
+        plugin_market,
+        "install_from_marketplace",
+        _fake_install({"status": "local_trust_required", "error": "needs consent"}),
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "install", "alpha"])
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "--trust-local" in (out.out + out.err)
+
+
+def test_an_unknown_action_is_a_parser_error_not_a_silent_success(device):
+    with pytest.raises(SystemExit) as excinfo:
+        ephe_cli.build_parser().parse_args(["plugin", "frobnicate", "alpha"])
+    assert excinfo.value.code != 0
+
+
+def test_enable_success_reports_the_state(device, monkeypatch, capsys):
+    from core import plugin_runtime
+
+    _installed(device)
+
+    class _Snapshot:
+        state = type("S", (), {"value": "enabled"})()
+
+    monkeypatch.setattr(
+        plugin_runtime.lifecycle(), "set_enabled", lambda *a, **k: _Snapshot(), raising=False
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "enable", "alpha"])
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "next agent turn" in out
+
+
+def test_an_unreachable_status_still_names_a_next_step(monkeypatch, capsys):
+    """`local_trust_required` gets the flag hint even when no other branch matches."""
+    from core import plugin_market
+
+    monkeypatch.setattr(
+        plugin_market,
+        "install_from_marketplace",
+        _fake_install({"status": "local_trust_required"}),
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "install", "alpha"])
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "trust-local" in (out.out + out.err)
+
+
+def test_install_of_an_unknown_id_names_the_listing(monkeypatch, capsys):
+    from core import plugin_market
+
+    monkeypatch.setattr(
+        plugin_market,
+        "install_from_marketplace",
+        _fake_install({"status": "unknown_plugin", "error": "not listed"}),
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "install", "nope"])
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "plugin-marketplace.json" in (out.out + out.err)
