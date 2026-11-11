@@ -339,13 +339,17 @@ async def post_plugin_client_tool(plugin_id: str, body: dict, request: Request) 
         )
         if not approved:
             return {"result": denial}
+    failed = False
     try:
         result = await execute_tool(name, arguments, policy=policy)
     except Exception:  # noqa: BLE001 - the boundary answers a code, never the text
-        # The exception type and its traceback stay in the server log: a page that shows
-        # an internal class name is a page an attacker can read this build with.
+        # The exception, its type and its traceback stay in the server log. Nothing from
+        # this handler reaches the page: the raise below happens outside it, so the only
+        # values in the answer are the route's own code and the plugin id (CWE-209).
         _LOGGER.exception("plugin tool %s failed", name)
-        raise Refused("tool_failed", plugin=plugin_id) from None
+        failed = True
+    if failed:
+        raise Refused("tool_failed", plugin=plugin_id)
     return {"result": result}
 
 

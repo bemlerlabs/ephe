@@ -360,7 +360,14 @@ def test_a_failing_tool_does_not_name_its_exception(client, monkeypatch) -> None
     async def boom(*_a, **_k):
         raise KeyError("secret-internals")
 
+    from types import SimpleNamespace
+
     monkeypatch.setattr("core.tools.registry.execute_tool", boom, raising=True)
+    monkeypatch.setattr(
+        "core.plugin_runtime.tool_gate",
+        lambda name: SimpleNamespace(plugin=PLUGIN_ID, visible=True),
+        raising=True,
+    )
     monkeypatch.setattr(
         "core.tools.session_ctx.get_current_policy", lambda *a, **k: object(), raising=True
     )
@@ -372,3 +379,32 @@ def test_a_failing_tool_does_not_name_its_exception(client, monkeypatch) -> None
     body = answer.text
     assert "KeyError" not in body
     assert "secret-internals" not in body
+
+
+def test_a_failing_tool_never_leaks_its_class_path_or_message(client, monkeypatch) -> None:
+    """CWE-209/CWE-497: the answer is the route's own code, the log keeps the rest."""
+    async def boom(*_a, **_k):
+        raise FileNotFoundError("/Users/someone/.ephe/secret/engine.key missing")
+
+    from types import SimpleNamespace
+
+    monkeypatch.setattr("core.tools.registry.execute_tool", boom, raising=True)
+    monkeypatch.setattr(
+        "core.plugin_runtime.tool_gate",
+        lambda name: SimpleNamespace(plugin=PLUGIN_ID, visible=True),
+        raising=True,
+    )
+    monkeypatch.setattr(
+        "core.tools.session_ctx.get_current_policy", lambda *a, **k: object(), raising=True
+    )
+    answer = client.post(
+        f"/api/plugins/{PLUGIN_ID}/client/tool",
+        json={"name": "read", "arguments": {"path": "notes.txt"}},
+    )
+    body = answer.text
+    assert answer.status_code in (409, 500), answer.text
+    assert "FileNotFoundError" not in body
+    assert "/Users/someone" not in body
+    assert "engine.key" not in body
+    assert "tool_failed" in body
+    assert answer.json()["error"]["reason_params"] == {"plugin": PLUGIN_ID}
