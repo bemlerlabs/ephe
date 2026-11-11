@@ -24,6 +24,10 @@ Ephe – Bad Liebenzell, Schwarzwald
 
 from __future__ import annotations
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 import json
 import queue
 
@@ -337,10 +341,11 @@ async def post_plugin_client_tool(plugin_id: str, body: dict, request: Request) 
             return {"result": denial}
     try:
         result = await execute_tool(name, arguments, policy=policy)
-    except Exception as exc:  # noqa: BLE001 - the boundary answers a code, never the text
-        # A traceback names files and internals the page has no use for, so the
-        # plugin client receives the coded refusal the rest of this router uses.
-        raise Refused("tool_failed", plugin=plugin_id, kind=type(exc).__name__) from None
+    except Exception:  # noqa: BLE001 - the boundary answers a code, never the text
+        # The exception type and its traceback stay in the server log: a page that shows
+        # an internal class name is a page an attacker can read this build with.
+        _LOGGER.exception("plugin tool %s failed", name)
+        raise Refused("tool_failed", plugin=plugin_id) from None
     return {"result": result}
 
 
