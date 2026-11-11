@@ -13,9 +13,14 @@ release tags. The release channel is the default everywhere.
 ## The two channels
 
 `release` installs a tagged release. A tag is cut deliberately and the desktop
-bundle that carries it is signed. This is the quiet, default channel.
+bundle that carries it is signed. This is the quiet, default channel. What
+earns a tag is the rule in [RELEASE_POLICY.md](RELEASE_POLICY.md): a milestone,
+a shell change or a contract break — a fix does not.
 
-`commit` also follows the tip of `main` between tags. The comparison is
+`commit` is the rolling channel: it follows the tip of `main` between tags and
+carries the quality-of-life work and the fixes that do not need the shell to
+change. No tag, no release notes, no signed bundle — see
+[RELEASE_POLICY.md](RELEASE_POLICY.md). The comparison is
 ancestry-based: a checkout that is ahead of `main` or has diverged from it is
 never told to go backwards. An untagged build is named honestly, for example
 `0.6.3+1a2b3c4d5e6f` — the version the tree carries plus the commit it runs.

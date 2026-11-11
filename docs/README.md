@@ -15,6 +15,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `SWITCHING.md` | Import an existing local-agent setup into Ephe |
 | `CLI.md` | `ephe` command reference and the engine-resolution rule |
 | `UPDATES.md` | The three update paths: desktop app, PWA, terminal; release vs commit channels |
+| `RELEASE_POLICY.md` | What earns a release tag and what rolls untagged: milestones are tagged, QoL and fixes ride the rolling channel |
 | `MOBILE.md` | Pairing a phone over the LAN, the QR walkthrough and the public-access rule |
 | `TELEGRAM.md` | The Telegram channel: gateway status, pairing, hardening |
 | `VOICE.md` | The offline voice loop (Piper TTS) |
