@@ -58,7 +58,7 @@ export default function EmbeddingModelPrompt() {
       data-testid="embedding-model-prompt"
       role="status"
       aria-live="polite"
-      className="mx-4 mb-2 flex items-start gap-3 rounded-lg border border-line/60 bg-surface/80 px-3 py-2 text-ui-xs text-ink-soft shadow-sm"
+      className="mx-4 mb-2 flex items-start gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ui-xs text-ink-soft"
     >
       <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{t('chat.model.embeddingPromptTitle')}</p>
@@ -80,7 +80,7 @@ export default function EmbeddingModelPrompt() {
           <button
             type="button"
             data-testid="embedding-model-download"
-            className="rounded-md bg-brand px-2.5 py-1 font-medium text-canvas hover:opacity-90"
+            className="rounded-md bg-brand px-2 py-1 font-medium text-canvas"
             onClick={async () => {
               setAsking(true)
               const started = await startEmbeddingDownload()
@@ -99,7 +99,7 @@ export default function EmbeddingModelPrompt() {
           <button
             type="button"
             data-testid="embedding-model-dismiss"
-            className="rounded-md px-2.5 py-1 text-ink-faint hover:text-foreground"
+            className="rounded-md px-2 py-1 text-ink-faint"
             onClick={() => {
               dismissOffer()
               setStatus(null)
