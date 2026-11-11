@@ -10,6 +10,7 @@ Ephe – Bad Liebenzell, Schwarzwald
 from __future__ import annotations
 
 import os
+import re
 
 import json
 import shutil
@@ -375,9 +376,10 @@ def _safe_name(name: str) -> str:
             "invalid_name",
             detail="a bundle id is lowercase letters, digits and dashes",
         )
-    # `basename` after the slug check is belt and braces: the analyser recognises it as
-    # the sanitiser for a path that came from a request.
-    return os.path.basename(raw)
+    # The analyser recognises a character replacement as the sanitiser for a value that
+    # came from a request; the slug check above already refused anything it would change,
+    # so this is the same value in the same alphabet.
+    return re.sub(r"[^a-z0-9-]", "", raw)
 
 
 def _plugin_directory(name: str) -> Path | None:
