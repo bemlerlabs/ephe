@@ -58,9 +58,9 @@ export default function EmbeddingModelPrompt() {
       data-testid="embedding-model-prompt"
       role="status"
       aria-live="polite"
-      className="mx-2 mb-2 flex flex-wrap items-start gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ui-xs text-ink-soft sm:mx-4"
+      className="mx-2 mb-2 hidden items-start gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ui-xs text-ink-soft sm:flex"
     >
-      <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+      <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{t('chat.model.embeddingPromptTitle')}</p>
         <p className="mt-0.5 text-ink-faint">
           {status.downloading
