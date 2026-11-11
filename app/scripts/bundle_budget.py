@@ -77,7 +77,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # sideways track per subject and the subject plates. The plate palette itself
     # rides the /discover chunk (DiscoverPage.css); what lands here is the utility
     # set, measured 24.24 kB gzip against the 24.0 row.
-    "index.css": 24.6,
+    # 2026-11-11: the accessible shell added the skip-link styles, the settings main
+    # landmark and the focus-visible rules the axe run needs; measured 24.8 kB gzip.
+    # The row carries the same ~1 % headroom as the 0.6.x entry it replaces.
+    "index.css": 25.0,
     "app-vendor.js": 28.0,   # react-router, zustand, tanstack, clsx, cva
     "radix.js": 39.0,        # P1-8: 33 @radix-ui packages + @floating-ui + the tail
     # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette).
