@@ -246,9 +246,9 @@ def test_a_bundled_plugin_names_the_reason_it_stays(device, capsys) -> None:
     assert "cannot be removed" in err
 
 
-def _installed(device: Path, name: str = "alpha") -> None:
+def _installed(device: Path, name: str = "alpha", *, enabled: bool = False) -> None:
     write_bundle(device / "plugins", name)
-    mark_installed(name, enabled=False)
+    mark_installed(name, enabled=enabled)
 
 
 def test_remove_names_dependents_when_they_block_it(device, monkeypatch, capsys):
@@ -414,3 +414,52 @@ def test_install_of_an_unknown_id_names_the_listing(monkeypatch, capsys):
     out = capsys.readouterr()
     assert code == 1
     assert "plugin-marketplace.json" in (out.out + out.err)
+
+
+def test_the_remove_preview_names_what_would_go_and_what_would_stay(device, monkeypatch, capsys):
+    """The preview is the promise: every record it names has to be one removal touches."""
+    from core import marketplace_service
+
+    _installed(device, enabled=True)
+    monkeypatch.setattr(
+        marketplace_service,
+        "removal_facts",
+        lambda name: {
+            "bundle": True,
+            "bundled": False,
+            "registry": True,
+            "mount": True,
+            "state_record": True,
+            "surface_record": True,
+            "data": True,
+            "creator_draft": True,
+        },
+        raising=True,
+    )
+    code = ephe_cli.cmd_plugin(
+        ephe_cli.build_parser().parse_args(["plugin", "remove", "alpha"])
+    )
+    out = capsys.readouterr().out
+    assert code == 0  # a preview never writes and never fails
+    assert "switch" in out
+    assert "stored files" in out
+    assert "lifecycle state record" in out
+
+
+def test_a_bundle_without_a_name_is_skipped_in_the_list(device, monkeypatch, capsys):
+    """A catalogue row with no name is not a row; the list must not print an empty line."""
+    from core import plugin_store
+
+    real = plugin_store.load_catalog
+
+    def _catalog(*a, **k):
+        data = real()
+        for segment in ("public", "personal"):
+            data[segment].append({"name": "", "version": "1.0.0"})
+        return data
+
+    monkeypatch.setattr(plugin_store, "load_catalog", _catalog, raising=True)
+    code = ephe_cli.cmd_plugin(ephe_cli.build_parser().parse_args(["plugin", "list"]))
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "\n  \n" not in out
