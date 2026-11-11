@@ -31,6 +31,7 @@ Ephe – Bad Liebenzell, Schwarzwald
 from __future__ import annotations
 
 import logging
+import re
 import os
 from pathlib import Path
 from typing import Any
@@ -116,9 +117,49 @@ def onnx_path(directory: Path | None = None) -> Path | None:
     return found[0] if found else None
 
 
+def missing_files(directory: Path | None = None) -> list[str]:
+    """What a complete model directory still needs, named for a person."""
+    missing: list[str] = []
+    if tokenizer_path(directory) is None:
+        missing.append("tokenizer.json")
+    graph = onnx_path(directory)
+    if graph is None:
+        missing.append(f"onnx/{ONNX_VARIANT}")
+        return missing
+    for name in _external_data_names(graph):
+        if not graph.with_name(name).is_file():
+            missing.append(f"onnx/{name}")
+    return missing
+
+
+#: `[A-Za-z0-9_.-]+.onnx_data` inside the graph's bytes, which is how the ONNX
+#: protobuf stores an external weight file's location.
+_EXTERNAL_DATA_RE = re.compile(rb"[A-Za-z0-9_.\-]+\.onnx_data")
+
+
+def _external_data_names(graph: Path) -> list[str]:
+    """The weight files this graph names, in the order they appear.
+
+    A graph that keeps its weights inside itself names none, and needs none — the
+    fixtures in tests are exactly that shape. The shipped fp16 export names
+    `model_fp16.onnx_data`, and a directory holding the graph without it loads
+    nowhere; that half-fetched state is what `missing_files()` has to see.
+    """
+    try:
+        blob = graph.read_bytes()
+    except OSError:
+        return []
+    names: list[str] = []
+    for match in _EXTERNAL_DATA_RE.finditer(blob):
+        name = match.group(0).decode("ascii", "ignore")
+        if name not in names:
+            names.append(name)
+    return names
+
+
 def model_present() -> bool:
-    """True when both the tokenizer and the graph sit on disk already."""
-    return tokenizer_path() is not None and onnx_path() is not None
+    """True when the tokenizer, the graph and its external weights all sit on disk."""
+    return not missing_files()
 
 
 def offline() -> bool:
@@ -168,10 +209,11 @@ def ensure_model() -> Path:
     """The model directory, fetched only under consent, else the caller is turned away."""
     if model_present():
         return model_dir()
+    missing = ", ".join(missing_files())
     if offline():
-        raise EmbeddingGemmaNotAvailable(refusal(f"{ENV_OFFLINE}=1 forbids any fetch"))
+        raise EmbeddingGemmaNotAvailable(refusal(f"{ENV_OFFLINE}=1 forbids any fetch; missing: {missing}"))
     if not download_consent():
-        raise EmbeddingGemmaNotAvailable(refusal("no consent given"))
+        raise EmbeddingGemmaNotAvailable(refusal(f"no consent given; missing: {missing}"))
     target = model_dir()
     logger.info(
         "memory: fetching %s from %s (%d MB) into %s",
@@ -179,7 +221,8 @@ def ensure_model() -> Path:
     )
     _fetch(MODEL_REPO, target, _ALLOW_PATTERNS)
     if not model_present():
-        raise EmbeddingGemmaNotAvailable(refusal("the fetch left the directory incomplete"))
+        missing = ", ".join(missing_files())
+        raise EmbeddingGemmaNotAvailable(refusal(f"the fetch left the directory incomplete; missing: {missing}"))
     return target
 
 
@@ -276,3 +319,24 @@ class EmbeddingGemmaEmbedder:
         # Prefix first, then normalise: Matryoshka quality lives in the leading
         # dimensions, and a unit vector has to be unit after the cut.
         return _normalise(sentence[:, : self.dim])
+
+
+def model_status() -> dict[str, Any]:
+    """What a surface needs to offer the fetch, and nothing it could mistake for one.
+
+    Read-only and cheap: no import of onnxruntime, no network. `present` is the
+    loadability answer (`missing_files()` empty), `consent` says whether an
+    automatic fetch would be allowed — the surface's own button is a separate
+    decision and does not set it.
+    """
+    missing = missing_files()
+    return {
+        "label": MODEL_LABEL,
+        "present": not missing,
+        "missing": missing,
+        "size_mb": MODEL_SIZE_MB,
+        "repo": MODEL_REPO,
+        "host": MODEL_HOST,
+        "consent": download_consent(),
+        "offline": offline(),
+    }
