@@ -516,7 +516,7 @@
       "embeddingPromptBody": "The memory searches lexically without it. The model is {{size}} and comes from Hugging Face; it stays on this device.",
       "embeddingDownloading": "Downloading the embedding model ({{size}}). Memory search improves when it finishes.",
       "embeddingInProgress": "Downloading…",
-      "embeddingDownload": "Download {{size}}",
+      "embeddingDownload": "Download",
       "embeddingNotNow": "Not now",
       "embeddingMissing": "Missing: {{files}}",
       "embeddingSizeUnknown": "a few hundred MB"

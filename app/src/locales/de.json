@@ -516,7 +516,7 @@
       "embeddingPromptBody": "Ohne das Modell sucht die Memory nur lexikalisch. Es ist {{size}} groß, kommt von Hugging Face und bleibt auf diesem Gerät.",
       "embeddingDownloading": "Embedding-Modell wird geladen ({{size}}). Danach sucht die Memory besser.",
       "embeddingInProgress": "Lädt…",
-      "embeddingDownload": "{{size}} herunterladen",
+      "embeddingDownload": "Herunterladen",
       "embeddingNotNow": "Nicht jetzt",
       "embeddingMissing": "Fehlt: {{files}}",
       "embeddingSizeUnknown": "einige hundert MB"
