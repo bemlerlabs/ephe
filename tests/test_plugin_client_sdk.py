@@ -141,10 +141,9 @@ def test_a_tool_this_bundle_owns_runs_when_the_gate_approves(client, monkeypatch
 def test_a_tool_that_raises_answers_the_coded_refusal_and_never_its_text(client, monkeypatch):
     """GIVEN a tool this bundle owns raises while it runs
     WHEN the page calls it over its own mount
-    THEN the answer is the router's coded refusal, naming the exception's kind and the
-    plugin, and the exception's text never reaches the page — a traceback names files
-    and internals the page has no use for. (The refusal is what the route documents;
-    today it fails on an unregistered code, which is the defect pinned above.)"""
+    THEN the answer is the router's coded refusal naming only the plugin: the exception's
+    kind and its text stay in the server log, because a page that shows an internal class
+    name is a page an attacker can read this build with (CodeQL py/stack-trace-exposure)."""
 
     async def fake_execute(name, arguments, policy=None):
         raise ValueError("SECRET-INTERNAL-PATH-/Users/someone/.ephe")
@@ -163,7 +162,7 @@ def test_a_tool_that_raises_answers_the_coded_refusal_and_never_its_text(client,
     assert response.status_code == 500
     error = response.json()["error"]
     assert error["reason_code"] == "tool_failed"
-    assert error["reason_params"] == {"plugin": "web-research", "kind": "ValueError"}
+    assert error["reason_params"] == {"plugin": "web-research"}
     assert "SECRET-INTERNAL-PATH" not in response.text
 
 

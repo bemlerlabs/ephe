@@ -353,3 +353,22 @@ def test_a_stale_credential_does_not_refuse_a_tool_that_never_asked(audit_rows):
 
     assert approved is True
     assert denial == ""
+
+
+def test_a_failing_tool_does_not_name_its_exception(client, monkeypatch) -> None:
+    """CodeQL py/stack-trace-exposure: the page gets a code, the log gets the class."""
+    async def boom(*_a, **_k):
+        raise KeyError("secret-internals")
+
+    monkeypatch.setattr("core.tools.registry.execute_tool", boom, raising=True)
+    monkeypatch.setattr(
+        "core.tools.session_ctx.get_current_policy", lambda *a, **k: object(), raising=True
+    )
+    answer = client.post(
+        f"/api/plugins/{PLUGIN_ID}/client/tool",
+        json={"name": "read", "arguments": {"path": "notes.txt"}},
+    )
+    assert answer.status_code >= 400, answer.text
+    body = answer.text
+    assert "KeyError" not in body
+    assert "secret-internals" not in body
