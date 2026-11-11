@@ -30,7 +30,7 @@ import queue
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 
-from core import plugin_runtime, plugin_switch_policy
+from core import plugin_lifecycle_types, plugin_runtime, plugin_switch_policy
 from core.plugin_lifecycle import (
     STATE_FILENAME,
     LifecycleError,
@@ -59,6 +59,10 @@ def _mutation_guard(request: Request) -> None:
             detail={
                 "code": "unauthorized",
                 "detail": "X-Requested-With: XMLHttpRequest required",
+                "next": (
+                    "Send this request from the Ephe app, or repeat it with the header "
+                    "X-Requested-With: XMLHttpRequest."
+                ),
             },
         )
 
@@ -82,7 +86,12 @@ def _state_payload(snapshot: PluginSnapshot) -> dict:
 
 
 def _lifecycle_http_error(exc: LifecycleError) -> HTTPException:
-    detail: dict = {"code": exc.code, "detail": exc.detail}
+    """The code, the detail and the move: a switch that refuses still leaves a next call."""
+    detail: dict = {
+        "code": exc.code,
+        "detail": exc.detail,
+        "next": plugin_lifecycle_types.next_step_for(exc.code),
+    }
     if exc.snapshot is not None:
         detail["current"] = _state_payload(exc.snapshot)
     return HTTPException(status_code=exc.status, detail=detail)
@@ -107,7 +116,13 @@ def _read_only_guard(action: str, plugin_id: str = "", scope: str = "") -> None:
     plugin_switch_policy.audit_refusal(action=action, plugin=plugin_id, scope=scope)
     raise HTTPException(
         status_code=423,
-        detail={"code": plugin_switch_policy.READ_ONLY_CODE},
+        detail={
+            "code": plugin_switch_policy.READ_ONLY_CODE,
+            "detail": "the plugin switch surface is read-only",
+            "next": (
+                "Turn plugins.plugin_lifecycle_read_only off, then retry the switch."
+            ),
+        },
     )
 
 
@@ -123,9 +138,15 @@ def _signature_gate(plugin_id: str) -> None:
     audit_event(
         "plugin_gate", tool=plugin_id, decision="signature_denied", detail=reason
     )
+    # A coded refusal, not a sentence only: the switch surface has to name the
+    # reason (drift, a missing record, an untrusted key) in the reader's language.
     raise HTTPException(
         status_code=409,
-        detail=f"plugin '{plugin_id}' failed signature check: {reason}",
+        detail={
+            "code": "signature_denied",
+            "detail": f"plugin '{plugin_id}' failed signature check: {reason}",
+            "next": plugin_lifecycle_types.next_step_for("signature_denied"),
+        },
     )
 
 
@@ -134,7 +155,12 @@ def _scope_from(body: dict) -> str:
     if scope not in _SCOPES:
         raise HTTPException(
             status_code=400,
-            detail={"code": "invalid_request", "field": "scope"},
+            detail={
+                "code": "invalid_request",
+                "detail": "scope has to be 'user' or 'workspace'",
+                "field": "scope",
+                "next": "Send scope as 'user' or 'workspace', then retry the call.",
+            },
         )
     return str(scope)
 
@@ -174,7 +200,8 @@ def _unknown_bundle(plugin_id: str) -> None:
 
     if is_addressable(plugin_id):
         return
-    raise HTTPException(status_code=404, detail={"code": "plugin_unknown"})
+    # The code alone used to be the message; the registry has the sentence and the move.
+    raise Refused("plugin_unknown")
 
 
 @router.get("/plugins/{plugin_id}/state")
@@ -218,6 +245,26 @@ def _known_bundle(plugin_id: str) -> None:
         raise Refused("plugin_unknown")
 
 
+#: The header a surface call carries its mount credential in. A surface POST has no
+#: path segment to borrow the way the mount URL does, so the value travels beside
+#: the arguments it is the consent for.
+SURFACE_TOKEN_HEADER = "X-Surface-Token"
+
+
+def _surface_token(request: Request, body: dict) -> str:
+    """The mount credential a surface call offers, from the header or the body.
+
+    The body field is the one `POST .../surface-token` reads when it renews, so a
+    caller that already holds the value has one shape to build either way. The
+    value is only *read* here; `confirm_for_surface` decides whether it is live.
+    """
+    offered = request.headers.get(SURFACE_TOKEN_HEADER) or ""
+    if offered:
+        return offered
+    value = body.get("surface")
+    return value if isinstance(value, str) else ""
+
+
 @router.get("/plugins/{plugin_id}/client/storage")
 def get_plugin_client_storage(plugin_id: str, key: str = "") -> dict:
     """One stored page value. A missing key is present=false and creates nothing."""
@@ -256,10 +303,16 @@ def put_plugin_client_storage(plugin_id: str, body: dict) -> dict:
 
 
 @router.post("/plugins/{plugin_id}/client/tool")
-async def post_plugin_client_tool(plugin_id: str, body: dict) -> dict:
-    """Run one tool this bundle owns. The chat approval gate still applies."""
+async def post_plugin_client_tool(plugin_id: str, body: dict, request: Request) -> dict:
+    """Run one tool this bundle owns, for a click in that bundle's own surface.
+
+    A surface call has no chat turn behind it, so the gate it meets is the one that
+    takes the mount credential as the consent (``confirm_for_surface``). Without a
+    live credential for this bundle the answer stays the one this route gave before:
+    the call meets the chat gate and is refused where no dialog can open (PE2E).
+    """
     from core.plugin_runtime import tool_gate
-    from core.tools.chat_gate import confirm_for_chat
+    from core.tools.chat_gate import confirm_for_surface
     from core.tools.registry import execute_tool
     from core.tools.session_ctx import get_current_policy
 
@@ -276,7 +329,9 @@ async def post_plugin_client_tool(plugin_id: str, body: dict) -> dict:
         raise Refused("tool_not_available", plugin=plugin_id, transport="plugin")
     policy = get_current_policy()
     if policy is None:
-        approved, denial = await confirm_for_chat(name, arguments)
+        approved, denial = await confirm_for_surface(
+            name, arguments, plugin=plugin_id, surface=_surface_token(request, body)
+        )
         if not approved:
             return {"result": denial}
     try:

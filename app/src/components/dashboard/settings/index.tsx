@@ -205,7 +205,12 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
           ref={panelRef}
           tabIndex={-1}
           onKeyDown={panelKeyDown}
-          className="fixed inset-0 z-modal bg-background flex flex-col outline-none"
+          /* A route sheet is chrome, not a modal: it covers the rail and the page,
+             and stays on the overlay step. The plugin dock and the confirm sheet are
+             portalled after the shell on purpose, so a surface opened from this page
+             (or a question asked on it) paints above it. The real modal step belongs
+             to the command palette, dialogs and toasts. */
+          className="fixed inset-0 z-overlay bg-background flex flex-col outline-none"
         >
           {/* Header row: ← Back to the task | H1 + language pill | ? icon (ref-16/21).
               All three carry the 24 px touch floor unguarded (W13). */}
@@ -297,7 +302,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
 
             <div
               // P4 finding 5: the dialog role belongs on the FULL PAGE (see above) —
-              // this column is its content, not a dialog of its own.
+              // this column is its content.
               role="region"
               aria-label={t(`settings.${activeTab}`)}
               data-testid="settings-panel"

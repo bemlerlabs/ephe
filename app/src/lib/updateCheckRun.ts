@@ -22,11 +22,16 @@ export interface UpdateCheckInfo {
   error?: string
   /** Which source answered: a tagged release, or merges that reached the
    *  default branch before the next tag. */
-  channel?: 'release' | 'main'
-  /** Commits between this build and the branch tip, on the main channel. */
+  channel?: 'release' | 'commit'
+  /** Which channel the surface is set to (`release` or `commit`). It stays
+   *  `commit` even when a newer release answers, so both facts can be shown. */
+  updateChannel?: 'release' | 'commit'
+  /** Commits between this build and the branch tip, on the commit channel. */
   commitsBehind?: number
   /** The commit this build runs on, when the backend knows it. */
   commit?: string
+  /** The branch tip a commit update would move to. */
+  git_sha?: string
   /** Whether the backend can actually pull this channel, asked before the
    *  surface offers the button. A release install has no checkout to move, and
    *  a checkout on another branch is not one a pull may take. */
@@ -81,18 +86,26 @@ export interface UpdateState {
    *  reported with the sentence about an unreachable release source. */
   failedAt?: 'check' | 'install'
   /** Which source answered the check (see UpdateCheckInfo). */
-  channel?: 'release' | 'main'
+  channel?: 'release' | 'commit'
+  /** Which channel the surface is set to. */
+  updateChannel?: 'release' | 'commit'
   /** Commits between this build and the default branch tip. */
   commitsBehind?: number
   /** The commit this build runs on, when the backend knows it. */
   commit?: string
+  /** The branch tip a commit update would move to. */
+  git_sha?: string
   /** The steps an applied update ran, in order. */
   steps?: Array<{ name: string; ok: boolean; detail: string }>
   /** True when the update moved the checkout, so a relaunch is owed. */
   restart?: boolean
-  /** Why the commit path is closed here (`not_a_checkout`, `not_on_main`,
-   *  `dirty_tree`). Empty when it is open. */
+  /** Why the update path is closed here (`not_a_checkout`, `not_on_main`,
+   *  `dirty_tree`). Undefined when it is open or unknown. */
   applyBlocked?: string
+  /** Whether the backend can move the tree for this answer. A release answer
+   *  needs this for the PWA's own release update; the desktop installs the
+   *  release itself through the signed updater. */
+  applyOk?: boolean
   /** The code behind a failed apply, so the surface can own the sentence. */
   reasonCode?: string
   /** The newest released version's page, when the feed named one. */
@@ -131,9 +144,9 @@ async function runDesktopCheck(force: boolean): Promise<UpdateState> {
   const updater = await import('@tauri-apps/plugin-updater')
   const [current, update] = await Promise.all([shellVersion(), updater.check()])
   // A tagged release is the only thing the signed updater can install. Merges
-  // the backend reports on the main channel are still news the user can take,
+  // the backend reports on the commit channel are still news the user can take,
   // and the dialog points at the comparison instead of offering an install.
-  const main = !update?.available && local?.channel === 'main' ? local : undefined
+  const main = !update?.available && local?.channel === 'commit' ? local : undefined
   const base = {
     current: current ?? update?.currentVersion ?? local?.current,
     latest: update?.version ?? main?.latest ?? current ?? local?.latest,
@@ -141,11 +154,14 @@ async function runDesktopCheck(force: boolean): Promise<UpdateState> {
     platform: readPlatform(),
     asset: readAsset(update?.rawJson),
     date: update?.date,
-    channel: update?.available ? ('release' as const) : main ? ('main' as const) : undefined,
+    channel: update?.available ? ('release' as const) : main ? ('commit' as const) : undefined,
+    updateChannel: local?.updateChannel,
     commitsBehind: main?.commitsBehind,
     commit: main?.commit,
+    git_sha: main?.git_sha,
     url: main?.url,
-    applyBlocked: main?.apply && !main.apply.ok ? (main.apply.code ?? 'other') : undefined,
+    applyOk: local?.apply?.ok,
+    applyBlocked: local?.apply && !local.apply.ok ? (local.apply.code ?? 'other') : undefined,
     releaseUrl: main?.releaseUrl ?? local?.releaseUrl,
   }
   return update?.available || main
@@ -184,8 +200,11 @@ export async function runCheck(force = false): Promise<UpdateState> {
       notes: info.notes,
       url: info.url,
       channel: info.channel,
+      updateChannel: info.updateChannel,
       commitsBehind: info.commitsBehind,
       commit: info.commit,
+      git_sha: info.git_sha,
+      applyOk: info.apply?.ok,
       applyBlocked: info.apply && !info.apply.ok ? (info.apply.code ?? 'other') : undefined,
       releaseUrl: info.releaseUrl,
     }
@@ -202,21 +221,35 @@ export async function runCheck(force = false): Promise<UpdateState> {
   }
 }
 
-/**
- * Take the newest commits: the same pull and installer `ephe update` runs,
- * behind one click. The backend refuses a dirty tree, another branch or a
- * second click, and says why.
- */
-export async function applyUpdate(): Promise<ApplyResult> {
+async function postUpdate(path: string, confirm: string): Promise<ApplyResult> {
   try {
-    const r = await fetch(apiUrl('/api/update/apply'), {
+    const r = await fetch(apiUrl(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ confirm: 'update' }),
+      body: JSON.stringify({ confirm }),
     })
     if (!r.ok) return { ok: false, reason: `HTTP ${r.status}` }
     return (await r.json()) as ApplyResult
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : String(e) }
   }
+}
+
+/**
+ * Take the newest commits: the same pull and installer the desktop/PWA commit
+ * channel offers, behind one click. The backend refuses a dirty tree, another
+ * branch or a second click, and says why.
+ */
+export function applyUpdate(): Promise<ApplyResult> {
+  return postUpdate('/api/update/apply', 'update')
+}
+
+/**
+ * Take the newest release tag through the backend, for the PWA. The desktop
+ * installs a release with the signed updater instead; a browser has no bundle
+ * to replace, so the backend moves the tree the page is served from and the
+ * service worker reloads the new build.
+ */
+export function applyRelease(): Promise<ApplyResult> {
+  return postUpdate('/api/update/release', 'release')
 }

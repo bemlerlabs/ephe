@@ -125,6 +125,7 @@ DENIAL_PARAMS = {
     "secret_path_denied": {"path": "~/.ssh/id_rsa"},
     "plugin_family_undeclared": {"family": "write"},
     "creator_privilege_missing": {"privilege": "files"},
+    "surface_token_refused": {},
 }
 
 #: per bundle: the directive set and the surface name to look for

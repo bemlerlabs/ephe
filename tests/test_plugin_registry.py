@@ -174,6 +174,11 @@ def test_every_declared_tool_has_one_activation_owner() -> None:
 
 
 def test_a_tool_declared_by_two_plugins_fails_closed(tmp_path) -> None:
+    """Two version-1 activators of one kernel tool are contested, not merged.
+
+    The fixture activates a kernel name: a version-1 claim on a first-party name is
+    dropped by the scan instead of contesting it (tests/test_shadow_reserved_tool_names.py).
+    """
     for name in ("alpha", "beta"):
         plugin_dir = tmp_path / name
         plugin_dir.mkdir()
@@ -184,11 +189,11 @@ def test_a_tool_declared_by_two_plugins_fails_closed(tmp_path) -> None:
                     "name": name,
                     "version": "1.0.0",
                     "description": name,
-                    "permissions": {"tool_families": ["network"], "data_roots": []},
+                    "permissions": {"tool_families": ["write"], "data_roots": []},
                     "components": {
                         "skills": [],
                         "commands": [],
-                        "tools": ["web_search"],
+                        "tools": ["delete_file"],
                     },
                 }
             ),
@@ -199,7 +204,7 @@ def test_a_tool_declared_by_two_plugins_fails_closed(tmp_path) -> None:
     with pytest.raises(RegistryError) as err:
         load_tool_activations(tmp_path)
     assert err.value.code == "duplicate_tool_activation"
-    assert "web_search" in err.value.detail
+    assert "delete_file" in err.value.detail
 
 
 def test_a_surface_only_v2_bundle_carries_no_activation(tmp_path) -> None:

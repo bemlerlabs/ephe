@@ -41,8 +41,10 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # the model matrix brought it to 32.97 kB; the ~10% headroom rule gives the
     # row 36.3. 2026-10-30: the nav's second level grew to every area, which is a
     # table of the blocks each page renders (TAB_PARTS); measured again at 36.91,
-    # so the row is 40.6.
-    "SettingsPanel.js": 40.6,
+    # so the row is 40.6. 2026-11-10: the plugin store's journey (status,
+    # capabilities, open, remove, empty and error states) paints inside this
+    # chunk; measured again at 40.72, so the row is 45.0.
+    "SettingsPanel.js": 45.0,
     # 2026-10-22: the scheduler panel crossed the 12 kB small ceiling after the Agent Center
     # and Teams sections moved into their own lazy chunks, so it earned this row at 14.8.
     # 2026-11-03: measured against app/dist at `dab4a455`, the build emits no SchedulerPanel
@@ -205,7 +207,9 @@ MEASURED_GZIP_KB: dict[str, float] = {
     "dates-format.js": 3.63,
     "de.js": 44.66,
     "en.js": 40.39,
-    "SettingsPanel.js": 32.97,
+    # 2026-11-10: re-measured with the plugin journey (status, abilities, open,
+    # remove, empty and error states): 40.72 kB gzip.
+    "SettingsPanel.js": 40.69,
     "SchedulerPanel.js": 13.45,
     # 2026-10-14, same instrument and day as the budgets above.
     "core.js": 24.01,

@@ -13,7 +13,7 @@ export function UpdateFacts({
   channelLabel,
 }: {
   commit?: string
-  channel?: 'release' | 'main'
+  channel?: 'release' | 'commit'
   commitLabel: string
   channelLabel: string
 }) {

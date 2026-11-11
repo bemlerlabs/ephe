@@ -250,6 +250,190 @@ class RefreshThrottle:
         self._last = self._clock()
 
 
+# Installed bundles (GET /api/plugins `installed`)
+
+#: The state word a row carries when its folder cannot be read as a manifest. Every other
+#: word is a lifecycle state (`enabled`, `disabled`, `failed`, `paused`, ...), so a surface
+#: can render one column without a second vocabulary.
+INSTALLED_STATE_ERROR = "error"
+
+
+def _capabilities(manifest: dict[str, Any] | None) -> dict[str, Any]:
+    """What one manifest declares, normalized for a read-only row.
+
+    The names are the contract's own: `tool_claims` is what the mount publishes and
+    `ui_descriptor` is what the shell opens, so the row cannot drift from either.
+    """
+    empty: dict[str, Any] = {"tools": [], "surface": None, "commands": [], "skills": []}
+    if not isinstance(manifest, dict):
+        return empty
+    from core import plugin_ui_capabilities
+    from core.plugin_tools_contract import tool_claims
+
+    components = manifest.get("components")
+    components = components if isinstance(components, dict) else {}
+    tools = [
+        {
+            "name": claim.name,
+            "family": claim.family,
+            "description": claim.description,
+        }
+        for claim in tool_claims(manifest)
+    ]
+    commands = []
+    raw_commands = components.get("commands")
+    for command in raw_commands if isinstance(raw_commands, list) else []:
+        name = command.get("name") if isinstance(command, dict) else None
+        if not isinstance(name, str) or not name:
+            continue
+        commands.append(
+            {
+                "name": f"/{name}",
+                "description": str(command.get("description") or ""),
+            }
+        )
+    skills = [
+        pack
+        for pack in (
+            components.get("skills")
+            if isinstance(components.get("skills"), list)
+            else []
+        )
+        if isinstance(pack, str) and pack
+    ]
+    descriptor = plugin_ui_capabilities.ui_descriptor(manifest)
+    surface = None
+    if descriptor.get("entry"):
+        surface = {
+            "title": str(descriptor.get("title") or ""),
+            "type": str(descriptor.get("type") or ""),
+            "entry": str(descriptor["entry"]),
+        }
+    return {"tools": tools, "surface": surface, "commands": commands, "skills": skills}
+
+
+def _installed_lifecycle(registry_file: Path | None) -> Any:
+    from core.plugin_lifecycle import STATE_FILENAME
+
+    state_path = (
+        Path(registry_file).parent / STATE_FILENAME if registry_file is not None else None
+    )
+    try:
+        from core import plugin_runtime
+
+        return plugin_runtime.lifecycle(state_path)
+    except Exception:
+        return None
+
+
+def _installed_switch(
+    reader: Any, name: str, registry_enabled: bool | None
+) -> tuple[str, bool]:
+    """The switch word and the boolean for one installed bundle.
+
+    The lifecycle is the only switch truth (`plugins_view` reads it the same way); the
+    registry is the fallback for a bundle the process has not scanned yet.
+    """
+    if reader is not None:
+        try:
+            snapshot = reader.effective(name)
+            return snapshot.state.value, bool(snapshot.enabled)
+        except Exception:
+            pass
+    enabled = True if registry_enabled is None else bool(registry_enabled)
+    return ("enabled" if enabled else "disabled"), enabled
+
+
+def installed_bundles(
+    catalog_file: Path | None = None,
+    registry_file: Path | None = None,
+    *,
+    catalog: dict[str, list[dict[str, Any]]] | None = None,
+) -> list[dict[str, Any]]:
+    """Every bundle directory this device can load, one row per name.
+
+    The scan is the installed authority (`core.plugin_manifest.scan_plugins`), so a
+    folder a user copied or Creator Mode installed appears here even without a catalogue
+    line. A folder whose manifest is quarantined stays in the list with
+    ``state: "error"`` and its reason, because "installed but broken" is a row a reader
+    has to see. Sorted by name; the scan already resolves a user bundle over a builtin
+    identity, so no name appears twice.
+    """
+    from core import plugin_manifest, plugin_mount_trust, plugin_rail
+
+    try:
+        scanned = plugin_manifest.scan_plugins()
+        builtin_root = plugin_manifest.builtin_plugins_root().resolve()
+    except Exception:
+        return []
+    catalog = catalog if catalog is not None else load_catalog(catalog_file)
+    catalog_names = {
+        str(entry.get("name") or "")
+        for segment in ("public", "personal")
+        for entry in catalog.get(segment, []) or []
+        if isinstance(entry, dict) and entry.get("name")
+    }
+    registry_enabled = {
+        str(item.get("name")): item.get("enabled") is not False
+        for item in load_registry(registry_file)
+        if item.get("name")
+    }
+    reader = _installed_lifecycle(registry_file)
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in scanned:
+        directory = Path(entry["dir"])
+        manifest = entry.get("manifest")
+        name = str(manifest["name"]) if manifest else directory.name
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        error = str(entry.get("error") or "")
+        if error or not isinstance(manifest, dict):
+            state, enabled = INSTALLED_STATE_ERROR, False
+            rail = ""
+        else:
+            state, enabled = _installed_switch(reader, name, registry_enabled.get(name))
+            try:
+                rail = plugin_rail.rail_fact(manifest)["rail"]
+            except Exception:  # noqa: BLE001 — a row still names the bundle
+                rail = ""
+        try:
+            source = (
+                "builtin" if directory.resolve().is_relative_to(builtin_root) else "user"
+            )
+        except (OSError, ValueError):
+            source = "user"
+        try:
+            capabilities = _capabilities(manifest)
+        except Exception:  # noqa: BLE001 — one unreadable manifest never breaks the list
+            capabilities = {"tools": [], "surface": None, "commands": [], "skills": []}
+        try:
+            trust = plugin_mount_trust.bundle_trust(directory)
+        except OSError:
+            # The signature record sits in a folder this process may not traverse; the
+            # row still names the bundle instead of the view failing on it.
+            trust = "local"
+        rows.append(
+            {
+                "id": name,
+                "name": name,
+                "version": str((manifest or {}).get("version") or ""),
+                "description": str((manifest or {}).get("description") or ""),
+                "source": source,
+                "trust": trust,
+                "origin": str((manifest or {}).get("origin") or ""),
+                "state": state,
+                "enabled": enabled,
+                "rail": rail,
+                "in_catalog": name in catalog_names,
+                "error": error,
+                "capabilities": capabilities,
+            }
+        )
+    return sorted(rows, key=lambda row: row["name"])
+
+
 # Aggregated view (GET /api/plugins)
 
 def _mapp_entry(entry: dict[str, Any], enabled_lookup: dict[str, bool]) -> dict[str, Any]:
@@ -339,8 +523,22 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
     # shown this line since E4, but nobody produced it; now it comes from the
     # same registry as the switches. Folder presence still suffices for loading
     # (see the detect_orphans docs) — the list explains, it does not block.
+    # Two bundles that claim one tool or one memory provider: neither serves it, and this
+    # section names both so the conflict is visible instead of silent.
+    try:
+        from core import plugin_runtime
+
+        view["contested"] = plugin_runtime.contested_names()
+    except Exception:  # noqa: BLE001 — the list stays readable, the section stays coded
+        view["contested"] = {"tools": [], "memory_providers": []}
     view["orphans"] = detect_orphans(
         catalog, sorted({str(i["name"]) for i in reg_items if i.get("name")})
+    )
+    # PE2E 3b: the catalogue is not the installed set. A bundle Creator Mode made on
+    # this machine has no catalogue line, so it used to reach the surface as an orphan
+    # name only. `installed` is the folder truth, with the switch and the capabilities.
+    view["installed"] = installed_bundles(
+        catalog_file, registry_file, catalog=catalog
     )
     # E4b: attach manifest facts (source, permissions) where a dir exists —
     # the detail sheet shows what a plugin declares, best-effort, never fatal.

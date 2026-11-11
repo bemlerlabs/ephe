@@ -148,11 +148,18 @@ class TestInstall:
         assert plan["status"] == "ready", plan
         result = marketplace_service.install(plan)
         assert result["status"] == "extracted", result
-        assert result.get("enabled") is True, result
+        # The install lands on `plugins.plugin_autorun` (default off), and the
+        # legacy registry row says the same. The service used to force a fresh
+        # install on while the registry row it had just written said off — the
+        # switch gesture asks for "on" explicitly instead (`marketplace_switch`).
+        assert result.get("enabled") is False, result
         assert installed_version() == "1.0.0"
         from core import plugin_runtime
 
-        assert plugin_runtime.lifecycle().snapshot("alpha").enabled is True
+        assert plugin_runtime.lifecycle().snapshot("alpha").enabled is False
+        from core.plugin_store import load_registry
+
+        assert {row["name"]: row["enabled"] for row in load_registry()}["alpha"] is False
         lock = json.loads((market["cfg"] / "plugin-lock.json").read_text())
         assert lock["plugins"][0]["version"] == "1.0.0"
 
@@ -196,7 +203,9 @@ class TestInstall:
         data.mkdir(parents=True)
         (data / "x.json").write_text("{}")
 
-        result = marketplace_service.remove("alpha")
+        # `install` activates a fresh bundle, and a removal no longer switches it off
+        # on its own: `force=True` is the caller's explicit permission (PE2E 8d).
+        result = marketplace_service.remove("alpha", force=True)
         assert result["status"] == "removed"
         assert data.is_dir()
 
@@ -204,7 +213,7 @@ class TestInstall:
             marketplace_service.plan(
                 market["source"]["id"], "alpha", "1.0.0", allow_local_trust=True, approve_permissions=True)
         )
-        marketplace_service.remove("alpha", delete_data=True)
+        marketplace_service.remove("alpha", delete_data=True, force=True)
         assert not data.exists()
 
 

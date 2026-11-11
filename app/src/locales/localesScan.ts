@@ -32,9 +32,7 @@ import { expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-/* ------------------------------------------------------------------ */
 /* Material                                                            */
-/* ------------------------------------------------------------------ */
 
 export const read = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -73,9 +71,7 @@ export function hasKey(keys: Set<string>, dotted: string): boolean {
   return keys.has(dotted) || keys.has(`${dotted}_one`) || keys.has(`${dotted}_other`)
 }
 
-/* ------------------------------------------------------------------ */
 /* Class (a): single-brace {placeholder}                               */
-/* ------------------------------------------------------------------ */
 
 /**
  * Finds `{word}` in single braces. Doubles are stripped first so that
@@ -93,9 +89,7 @@ export function singleBraceViolations(entries: Array<[string, string]>): string[
   })
 }
 
-/* ------------------------------------------------------------------ */
 /* Class (b): dynamically built keys                              */
-/* ------------------------------------------------------------------ */
 
 /** Members of an `export type X = | 'a' | 'b'` union, read line by line. */
 export function unionMembers(src: string, typeName: string): string[] {
@@ -189,9 +183,7 @@ export function dynamicKeyDemands(): Array<{ key: string; from: string }> {
   return demands
 }
 
-/* ------------------------------------------------------------------ */
 /* Class (c): transcribed umlauts                                     */
-/* ------------------------------------------------------------------ */
 
 /**
  * Everything that is not prose is stripped before the check: paths, URLs,
@@ -254,6 +246,8 @@ export const AE_OE_UE_ALLOW = new Set([
   'steuerung',
   'steuerungen',
   'zuerst',
+  // The product's own word for a bundle's trust level.
+  'vertrauen',
   // "der Kern feuert dieses Event" — a real German word, not a transcription  <!-- language-gate: ignore (the quoted sample the stopword entry documents) -->
   'feuert',
   'feuere',
@@ -340,6 +334,4 @@ export function transcriptionViolations(entries: Array<[string, string]>): strin
   return out
 }
 
-/* ------------------------------------------------------------------ */
 /* Tests                                                               */
-/* ------------------------------------------------------------------ */

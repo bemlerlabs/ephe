@@ -308,6 +308,24 @@ class LifecyclePersistence:
                 for scope, entry in scopes.items():
                     if loaded_scopes.get(scope) != entry:
                         plugins.setdefault(str(name), {})[str(scope)] = entry
+            # A row this instance removed (`forget`) has to stay removed; the
+            # old merge refilled it from the file another writer left. Only keys
+            # this instance had loaded can have been deleted here, so a
+            # neighbour's later row survives.
+            for name, loaded_scopes in loaded_plugins.items():
+                if not isinstance(loaded_scopes, dict):
+                    continue
+                local_scopes = local_plugins.get(name)
+                if not isinstance(local_scopes, dict):
+                    plugins.pop(str(name), None)
+                    continue
+                for scope in loaded_scopes:
+                    if scope not in local_scopes:
+                        scopes = plugins.get(str(name))
+                        if isinstance(scopes, dict):
+                            scopes.pop(str(scope), None)
+                            if not scopes:
+                                plugins.pop(str(name), None)
         for key in ("pause_all", "legacy_imported"):
             if local.get(key) != loaded.get(key):
                 merged[key] = local.get(key)

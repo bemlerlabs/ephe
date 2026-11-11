@@ -108,26 +108,31 @@ describe('U-1 — automatic detection', () => {
     expect(probe.state()?.current).toBe('0.1.0-beta.4')
   })
 
-  it('a merge before the next tag arrives on the main channel, not as an install', async () => {
+  it('a merge before the next tag arrives on the commit channel, not as an install', async () => {
     global.fetch = fetchStub({
       enabled: true,
       available: true,
-      channel: 'main',
+      channel: 'commit',
+      updateChannel: 'commit',
       current: '0.6.0',
       commit: '2a1405a837f0',
-      latest: 'deadbeefcafe',
+      git_sha: 'deadbeefcafe',
+      latest: '0.6.0+deadbeefcafe',
       commitsBehind: 2,
       url: 'https://github.com/bemlerlabs/ephe/compare/2a1405a837f0...main',
       notes: 'fix(chat): quieter rows',
+      apply: { ok: true, code: '' },
     }) as unknown as typeof fetch
     const probe = await mount()
     await flush()
     const state = probe.state()
     expect(state?.phase).toBe('available')
-    expect(state?.channel).toBe('main')
+    expect(state?.channel).toBe('commit')
+    expect(state?.updateChannel).toBe('commit')
     expect(state?.commitsBehind).toBe(2)
     expect(state?.commit).toBe('2a1405a837f0')
-    expect(state?.latest).toBe('deadbeefcafe')
+    expect(state?.latest).toBe('0.6.0+deadbeefcafe')
+    expect(state?.applyOk).toBe(true)
   })
 
   it('the apply button takes the commits and reports the steps', async () => {
@@ -259,7 +264,7 @@ describe('U-1 — automatic detection', () => {
     const fetchMock = fetchStub({
       enabled: true,
       available: true,
-      channel: 'main',
+      channel: 'commit',
       latest: 'deadbeefcafe',
     })
     global.fetch = fetchMock as unknown as typeof fetch

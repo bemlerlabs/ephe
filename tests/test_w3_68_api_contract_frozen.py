@@ -52,13 +52,14 @@ Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
   workspace's ``.ephe/learning/heuristics.md`` (rules, map, the switch), and
   ``PATCH``/``DELETE /api/sol/heuristics/{rule_id}`` are the same edit and delete a
   hand edit performs, so the settings surface and the file cannot disagree.
-  One update addition: ``POST /api/update/apply`` runs the same pull and installer
-  ``ephe update`` runs, so a user on a checkout can take the merges between two
-  tags from the dialog instead of a terminal. It refuses a dirty tree, another
-  branch and a second click. ``POST /api/update/install`` is its second half on
-  its own — the installer, no git — for the desktop shell that has already moved
+  Three update additions: ``POST /api/update/apply`` runs the same pull and
+  installer the commit channel offers, so a user on a checkout can take the
+  merges between two tags from the dialog instead of a terminal.
+  ``POST /api/update/release`` moves that checkout to the newest release tag for
+  the PWA's release channel, never to the branch tip. ``POST /api/update/install``
+  is the installer alone, no git, for the desktop shell that has already moved
   the checkout and must not leave the tree newer than the packages around it.
-  These are the two routes under /api/update that write.
+  These are the three routes under /api/update that write.
 
 The routing table carries one more /api surface than the schema documents —
 ``GET /api/docs`` (``docs_url``), pinned below — and the proxy catch-all is
@@ -72,6 +73,11 @@ published without its ``:path`` converter; neither is a second route.
   ``POST /api/device/forget`` runs ``core.persistence.forget`` under the CLI's own
   dry-run-first promise, refusing whole a request that names an entry the declaration
   keeps or never names.
+  One lifecycle route lands with the PLIFE hardening: ``POST /api/plugins/{id}/reload``
+  re-enters the hot mount after an edit (``core.plugin_hot_reload.reload_bundle``, which
+  had no caller), so a changed contract is refused in the same words a mount uses and
+  the descriptors of the last accepted mount stay served. Documented in
+  ``docs/PLUGINS.md`` under the API surface.
   Two consent routes land with the Creator gate (#26): ``GET /api/creator/consent`` is
   what a consent surface reads — the permissions the guard states, and the ones this
   session holds — and ``PUT /api/creator/consent`` writes that answer into the same store
@@ -284,6 +290,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/plugins/{plugin_id}/client/tool",
     "POST /api/plugins/{plugin_id}/enable",
     "POST /api/plugins/{plugin_id}/hot-mount",
+    "POST /api/plugins/{plugin_id}/reload",
     "POST /api/plugins/{plugin_id}/state/remove",
     "POST /api/plugins/{plugin_id}/surface-token",
     "POST /api/project/index",
@@ -314,6 +321,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/tour",
     "POST /api/update/apply",
     "POST /api/update/install",
+    "POST /api/update/release",
     "POST /api/vision/analyze",
     "POST /api/vision/base64",
     "POST /api/workspaces",

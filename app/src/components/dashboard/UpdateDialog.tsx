@@ -43,6 +43,8 @@ interface Props {
   onInstall: () => void
   /** Take the newest commits a release has not been cut from yet. */
   onApply: () => void
+  /** Take the newest release tag through the backend (the PWA path). */
+  onApplyRelease?: () => void
   onRelaunch: () => void
   releasesUrl?: string
   /** Why a restart is held back right now — undefined when nothing holds it. */
@@ -56,6 +58,7 @@ export function UpdateDialog({
   onCheck,
   onInstall,
   onApply,
+  onApplyRelease,
   onRelaunch,
   releasesUrl,
   restartBlocked = null,
@@ -71,9 +74,9 @@ export function UpdateDialog({
    *  value the download ended with, which is 100 %. */
   const barValue = installing ? 100 : downloading ? pct : null
   const running = downloading || installing
-  /** Merges before the next tag: there is nothing for the updater to install,
-   *  so the surface shows the range and points at the comparison. */
-  const mainChannel = state.channel === 'main' && state.phase === 'available'
+  /** Merges before the next tag: there is nothing for the signed updater to
+   *  install, so the surface shows the range and points at the comparison. */
+  const commitChannel = state.channel === 'commit' && state.phase === 'available'
   /** The commit path is closed here — a release install has no checkout to
    *  move, a branch checkout is not one a pull may take. The surface states
    *  that instead of offering a button guaranteed to refuse. */
@@ -81,10 +84,16 @@ export function UpdateDialog({
   const blockedKey = updateBlockedKey(blocked)
   const failedStructural =
     state.failedAt === 'install' &&
-    (state.reasonCode === 'not_a_checkout' || state.reasonCode === 'not_on_main')
+    (state.reasonCode === 'not_a_checkout' ||
+      state.reasonCode === 'not_on_main' ||
+      state.reasonCode === 'ahead_of_release' ||
+      state.reasonCode === 'tag_missing')
   /** The one action and its words, read from the same contract the settings page
    *  reads so the two surfaces cannot offer one answer two different gestures. */
   const action = updateActionOf(state)
+  /** Which channel the surface is set to. It stays `commit` when a newer
+   *  release answered, so the dialog can name both facts without lying. */
+  const shownChannel = state.updateChannel ?? state.channel
   /** The Details block is worth opening wherever the release carries facts —
    *  not only in the desktop build: the browser can read the versions and the
    *  notes just as well. */
@@ -140,18 +149,38 @@ export function UpdateDialog({
                 t('update.checkFailed')
               ))}
             {state.phase === 'unsupported' && t('update.disabledHint')}
-            {mainChannel && blocked ? (
+            {commitChannel && blocked ? (
               <span className="mt-1 block" data-testid="update-apply-blocked">
                 {t(`update.blocked.${blockedKey}`)}
               </span>
             ) : null}
-            {mainChannel && t('update.mainChannel', { count: state.commitsBehind ?? 0 })}
-            {applying && t('update.applying')}
-            {applied && t('update.applied')}
+            {commitChannel && t('update.commitChannel', { count: state.commitsBehind ?? 0 })}
+            {applying &&
+              t(state.channel === 'release' ? 'update.applyingRelease' : 'update.applying')}
+            {applied && t(state.channel === 'release' ? 'update.appliedRelease' : 'update.applied')}
             {downloading && t('update.downloading', { version: state.latest ?? '' })}
             {installing && t('update.installing', { version: state.latest ?? '' })}
             {state.phase === 'ready' && t('update.ready')}
           </p>
+
+          {shownChannel && (
+            <p data-testid="update-channel" className="mt-1 text-scale-ui text-ink-faint">
+              {t('update.channelLine', { channel: t(`update.channelName.${shownChannel}`) })}
+              {' — '}
+              {t(`update.channelHint.${shownChannel}`)}
+              {state.channel && state.channel !== shownChannel
+                ? ` ${t('update.channelFrom', {
+                    channel: t(`update.channelName.${state.channel}`),
+                  })}`
+                : null}
+            </p>
+          )}
+
+          {desktop && state.channel === 'commit' && (
+            <p data-testid="update-commit-shell-note" className="mt-2 text-scale-ui text-ink-soft">
+              {t('update.commitShellNote')}
+            </p>
+          )}
 
           {hasFacts && (
             <div
@@ -162,7 +191,7 @@ export function UpdateDialog({
               <span className="update-orb" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-scale-data tabular-nums text-ink-soft">
-                  <span>{mainChannel ? (state.commit ?? '—') : (state.current ?? '—')}</span>
+                  <span>{commitChannel ? (state.commit ?? '—') : (state.current ?? '—')}</span>
                   <span className="px-2 text-brand" aria-hidden="true">
                     →
                   </span>
@@ -196,7 +225,11 @@ export function UpdateDialog({
                     {step.ok ? '✓' : '✗'}
                   </span>
                   <span>
-                    {step.name === 'pull' ? t('update.stepPull') : t('update.stepInstall')}
+                    {step.name === 'pull'
+                      ? t('update.stepPull')
+                      : step.name === 'release'
+                        ? t('update.stepRelease')
+                        : t('update.stepInstall')}
                   </span>
                 </p>
               ))}
@@ -242,7 +275,7 @@ export function UpdateDialog({
             </div>
           )}
 
-          {!desktop && state.phase === 'available' && !mainChannel && (
+          {!desktop && state.phase === 'available' && !action?.takesEffect && (
             <p data-testid="update-browser-note" className="mt-3 text-scale-ui text-ink-soft">
               {t('update.browserNote')}
             </p>
@@ -265,7 +298,7 @@ export function UpdateDialog({
             </section>
           )}
 
-          {hasFacts ? <UpdateDetailRows state={state} mainChannel={mainChannel} /> : null}
+          {hasFacts ? <UpdateDetailRows state={state} commitChannel={commitChannel} /> : null}
 
           <Rule className="mt-3" tone={running ? 'now' : 'rule'} />
           <div className="flex items-center gap-2 pt-3">
@@ -279,7 +312,7 @@ export function UpdateDialog({
                 {t(action.labelKey)}
               </button>
             )}
-            {mainChannel && blocked && state.releaseUrl && (
+            {commitChannel && blocked && state.releaseUrl && (
               <a
                 href={state.releaseUrl}
                 target="_blank"
@@ -290,7 +323,7 @@ export function UpdateDialog({
                 {t('update.getRelease')}
               </a>
             )}
-            {mainChannel && state.url && (
+            {commitChannel && state.url && (
               <a
                 href={state.url}
                 target="_blank"
@@ -300,6 +333,16 @@ export function UpdateDialog({
               >
                 {t('update.viewChanges')}
               </a>
+            )}
+            {action?.run === 'release' && (
+              <button
+                type="button"
+                data-testid="update-apply-release"
+                onClick={onApplyRelease}
+                className="flex-1 whitespace-nowrap bg-brand px-3 py-2 text-center text-scale-ui font-medium text-white transition-[background-color] duration-base ease-settle hover:bg-brand-glow"
+              >
+                {t(action.labelKey)}
+              </button>
             )}
             {action?.run === 'install' && (
               <button

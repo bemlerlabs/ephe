@@ -219,8 +219,11 @@ def merge_mounts(
     for plugin_id, record in (local or {}).items():
         if (loaded or {}).get(plugin_id) != record:
             records[str(plugin_id)] = record
+    # An unmount deletes this instance's record. Removing *every* key the local
+    # section does not name also deleted a mount another process wrote after this
+    # one loaded the file; only a key this instance had can be a deletion here.
     for plugin_id in list(records):
-        if plugin_id not in (local or {}):
+        if plugin_id in (loaded or {}) and plugin_id not in (local or {}):
             records.pop(plugin_id, None)
     return merged
 

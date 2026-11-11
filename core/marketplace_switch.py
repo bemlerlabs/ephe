@@ -54,9 +54,32 @@ def switch(
             _audit_refusal(name, planned)
             return planned
         result = install(planned)
-        if result.get("status") != "extracted":
+        if result.get("status") not in {"extracted", "already_installed"}:
             return result
-        active = bool(result.get("enabled", True))
+        active = bool(result.get("enabled"))
+        # The install rebuilt the portfolio: this machine was fetched before the
+        # bundle existed and does not know its name (`unknown_plugin`).
+        lifecycle = plugin_runtime.lifecycle()
+        if not active:
+            # The install landed on the state `plugins.plugin_autorun` decided.
+            # This gesture asked for "on", so it is the one that says so — as a
+            # second, explicit transition, not by overriding the setting inside
+            # the installer.
+            try:
+                active = lifecycle.set_enabled(
+                    name, True, actor="marketplace", reason="switch"
+                ).enabled
+            except LifecycleError as exc:
+                _audit(name, "switch_on", exc.code)
+                return {
+                    "status": "installed_disabled",
+                    "name": name,
+                    "version": str(result.get("version") or ""),
+                    "enabled": False,
+                    "phase": "installed",
+                    "code": exc.code,
+                    "activation_error": exc.detail or exc.code,
+                }
         _audit(name, "switch_on", f"installed v{result.get('version', '')}")
         return {
             "status": "enabled" if active else "installed_disabled",

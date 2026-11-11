@@ -80,7 +80,7 @@ Un teléfono en tu red local puede abrir la PWA después de ejecutar `ephe start
 #### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash
 ```
 
 Para leer el script antes de ejecutarlo, usa el repositorio:
@@ -96,7 +96,7 @@ El instalador prepara Python y el entorno local, compila la aplicación web y la
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -108,7 +108,7 @@ La instalación en Windows aún no está verificada de extremo a extremo para es
 
 Docker y todas las opciones del instalador se describen en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-El comando nombra la versión que incluye este árbol, `v0.6.3`; la etiqueta resuelve cuando se publica. El instalador de Bash usa `--desktop` por defecto; pasa `--cli` o define `EPHE_MODE=cli` para instalar solo la terminal.
+El comando nombra la versión que incluye este árbol, `v0.6.4`; la etiqueta resuelve cuando se publica. El instalador de Bash usa `--desktop` por defecto; pasa `--cli` o define `EPHE_MODE=cli` para instalar solo la terminal.
 
 Antes de usar `ephe` en una terminal nueva, activa el entorno instalado.
 Para la instalación predeterminada en macOS o Linux:
@@ -161,7 +161,7 @@ La clave del motor permanece en el llavero del sistema o en `~/.ephe/engine.key`
 
 Elige el modo de respuesta en la cabecera: Analyst, Architect, Operator o Creator. El perfil de aprobación del cuadro de entrada es el techo por encima del modo, y el perfil estricto predeterminado pregunta antes de modificar archivos y ejecutar comandos de shell. Los modos opcionales y las aprobaciones recordadas pueden permitir la ejecución sin otra pregunta. La celda de la sesión se destruye al terminar; los archivos y ajustes guardados permanecen en el disco.
 
-No hay cuenta ni registro. La comprobación de actualizaciones pregunta a GitHub por la última versión; cualquier otra ruta de red espera tu acción. Las funciones en línea opcionales se enumeran en la configuración. Los detalles están en [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) y [SECURITY.md](SECURITY.md).
+No hay cuenta ni registro. La comprobación de actualizaciones consulta a GitHub cuál es la versión más reciente (y, en el canal commit opcional, la punta de main); cualquier otro acceso de red espera a que actúes. Las funciones en línea opcionales aparecen en Setup y Settings. Los detalles están en [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) y [SECURITY.md](SECURITY.md).
 
 ## Plugins, habilidades y conectores
 

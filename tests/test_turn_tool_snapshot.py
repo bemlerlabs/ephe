@@ -38,6 +38,10 @@ from core.tools.mcp_client import register_mcp_tool, unregister_mcp_tools
 from core.tools.registry import get_tool_schemas, invalidate_tool_schema_cache
 
 _REGISTRY = default_registry()
+
+#: One name per run: plugin files in this suite mount their own fixtures, and this test is
+#: about when a change becomes visible.
+_TICK = f"tick_{uuid.uuid4().hex[:8]}"
 _TOUCHED_PLUGINS: set[str] = set()
 _TOUCHED_MCP = False
 
@@ -171,7 +175,13 @@ class TestPerTurnFreeze:
         WHEN the same turn makes its revision-half request, then a new turn runs
         THEN every request of the turn carries the array the turn started with,
         and only the new turn's request offers the change."""
+        from core import plugin_runtime
         from core.chat import chat_with_tools
+        from core.tools import dynamic_registry
+
+        # Start from the kernel's registry: this test is about the turn snapshot.
+        dynamic_registry.default_registry().unregister_all_plugins()
+        plugin_runtime.invalidate_ownership_cache()
 
         class _Recorder:
             def __init__(self):
@@ -185,11 +195,11 @@ class TestPerTurnFreeze:
                 if not self.mutated:
                     self.mutated = True
                     _register_mcp("mcp_zeta_probe")
-                    assert _REGISTRY.register(_descriptor("turnprobe", "tick")).ok
+                    assert _REGISTRY.register(_descriptor("turnprobe", _TICK)).ok
                 return _text_response()
 
         recorder = _Recorder()
-        allowed = ["read_file", "tick", "mcp_zeta_probe"]
+        allowed = ["read_file", _TICK, "mcp_zeta_probe"]
         turn_id = f"turn-{uuid.uuid4().hex}"
         history = [{"role": "user", "content": "check the tide"}]
 
@@ -213,7 +223,7 @@ class TestPerTurnFreeze:
             assert recorder.arrays[0] == recorder.arrays[-1]
             offered = json.loads(recorder.arrays[0])
             assert "mcp_zeta_probe" not in offered
-            assert "tick" not in offered
+            assert _TICK not in offered
             assert offered == sorted(offered)
 
             recorder.arrays.clear()
@@ -226,7 +236,7 @@ class TestPerTurnFreeze:
             )
         next_names = json.loads(recorder.arrays[0])
         assert "mcp_zeta_probe" in next_names
-        assert "tick" in next_names
+        assert _TICK in next_names
         assert next_names == sorted(next_names)
 
     @pytest.mark.asyncio

@@ -9,7 +9,11 @@ Ephe – Bad Liebenzell, Schwarzwald
 """
 from __future__ import annotations
 
+import os
+import re
+
 import json
+import shutil
 import urllib.parse
 from collections.abc import Callable
 from pathlib import Path
@@ -321,13 +325,25 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
             (_installed_manifest(name) or {}).get("permissions")
         )
         if old_manifest is None:
+            # The switch a fresh install lands on is `plugins.plugin_autorun` (E5), the same
+            # value the registry row carries - not "on". A fresh install used to answer
+            # enabled:true while the registry said false, and the two disagreed everywhere.
+            from core import plugin_switch_policy
+            from core.settings_schema import deep_bool
+
+            # A shipped (bundled/official) pack is installed to be usable: it lands on.
+            # A local artifact follows the conservative `plugins.plugin_autorun` default.
+            shipped = str(plan_data.get("trust") or "") in {"bundled", "official", "verified"}
+            land_on = (shipped or deep_bool("plugins.plugin_autorun")) and not (
+                plugin_switch_policy.read_only()
+            )
             try:
                 from core import plugin_runtime
 
                 plugin_runtime.lifecycle().set_enabled(
-                    name, True, actor="marketplace", reason="install"
+                    name, land_on, actor="marketplace", reason="install"
                 )
-                result["enabled"] = True
+                result["enabled"] = land_on
             except Exception:  # noqa: BLE001 — installed is still a success
                 result["enabled"] = False
                 result["activation_error"] = "activation_failed"
@@ -345,24 +361,277 @@ def rollback(name: str) -> dict[str, Any]:
     return result
 
 
-def remove(name: str, *, delete_data: bool = False) -> dict[str, Any]:
+#: The one alphabet a bundle id may use. Every path built from a request value goes
+#: through `_safe_name` first (the CodeQL path-injection review).
+_SAFE_NAME_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _safe_name(name: str) -> str:
+    """The id as a slug, or a coded refusal - never a path a request can bend."""
+    raw = str(name)
+    if not _SAFE_NAME_RE.match(raw):
+        from server.refusals import Refused
+
+        raise Refused(
+            "invalid_name",
+            detail="a bundle id is lowercase letters, digits and dashes",
+        )
+    # The analyser recognises a character replacement as the sanitiser for a value that
+    # came from a request; the slug check above already refused anything it would change,
+    # so this is the same value in the same alphabet.
+    return re.sub(r"[^a-z0-9-]", "", raw)
+
+
+def _plugin_directory(name: str) -> Path | None:
+    """The installed folder for one id, or None when the id is not a slug."""
+    try:
+        return plugin_versions.plugin_dir(plugin_versions.plugins_root(), str(name))
+    except ValueError:
+        return None
+
+
+def _state_home(name: str) -> Path | None:
+    """The bundle's own state folder (`mcp/homes/plugin_<id>`), or None if unprovable."""
+    from core import plugin_state
+
+    try:
+        return plugin_state.state_home(os.path.basename(_safe_name(name)))
+    except ValueError:
+        return None
+
+
+def _legacy_data_directory(name: str) -> Path:
+    return config_root() / plugin_versions.DATA_DIRNAME / os.path.basename(_safe_name(name))
+
+
+def _data_present(name: str) -> bool:
+    """Whether any folder this product hands a bundle for storage is still there."""
+    state_home = _state_home(name)
+    return _legacy_data_directory(name).is_dir() or (
+        state_home is not None and state_home.is_dir()
+    )
+
+
+def _creator_draft(name: str) -> Path:
+    from core.tools.creator_tools import STAGING_DIRNAME
+
+    return config_root() / STAGING_DIRNAME / "plugins" / os.path.basename(_safe_name(name))
+
+
+def _bundled_directory(name: str) -> Path | None:
+    """The first-party folder for one id, which a removal never deletes."""
+    from core import plugin_manifest
+    from core.plugin_store import PLUGIN_NAME_RE
+
+    if not PLUGIN_NAME_RE.match(str(name)):
+        return None
+    return plugin_manifest.builtin_plugins_root() / str(name)
+
+
+def removal_facts(name: str) -> dict[str, Any]:
+    """What a removal finds on this device, without removing anything.
+
+    One reader for the preview and the commit: the CLI asks before it writes and the
+    route answers with the same facts afterwards, so a preview cannot promise a
+    cleanup the product path does not perform.
+    """
+    name = _safe_name(name)
     from core import plugin_runtime
-    from core.plugin_lifecycle import LifecycleError
+    from core.plugin_lifecycle import SCOPES
+    from core.plugin_store import load_registry
+
+    name = str(name)
+    directory = _plugin_directory(name)
+    mounts: dict[str, Any] = {}
+    surfaces: dict[str, Any] = {}
+    committed = False
+    lifecycle = None
+    try:
+        lifecycle = plugin_runtime.lifecycle()
+    except Exception:  # noqa: BLE001 — the preview still answers the disk facts
+        lifecycle = None
+    if lifecycle is not None:
+        try:
+            mounts = lifecycle.mount_records()
+        except Exception:  # noqa: BLE001
+            mounts = {}
+        try:
+            surfaces = lifecycle.surface_hosts()
+        except Exception:  # noqa: BLE001
+            surfaces = {}
+        committed = any(
+            lifecycle.has_committed_state(name, scope) for scope in SCOPES
+        )
+    bundled = _bundled_directory(name)
+    return {
+        "bundle": directory is not None and directory.is_dir(),
+        "bundled": bundled is not None and bundled.is_dir(),
+        "registry": any(
+            str(item.get("name")) == name for item in load_registry()
+        ),
+        "mount": name in mounts,
+        "state_record": committed,
+        "surface_record": name in surfaces,
+        "data": _data_present(name),
+        "creator_draft": _creator_draft(name).is_dir(),
+    }
+
+
+def _switch_now(name: str) -> tuple[str, bool]:
+    """The current switch word and position, falling back to the registry."""
+    from core import plugin_runtime
 
     try:
         snapshot = plugin_runtime.lifecycle().snapshot(name)
-        if snapshot.enabled:
-            plugin_runtime.lifecycle().set_enabled(
-                name, False, actor="marketplace", reason="remove"
+        return snapshot.state.value, bool(snapshot.enabled)
+    except Exception:  # noqa: BLE001 — a folder the process has not scanned yet
+        from core.plugin_store import load_registry
+
+        enabled = next(
+            (
+                item.get("enabled") is not False
+                for item in load_registry()
+                if str(item.get("name")) == name
+            ),
+            True,
+        )
+        return ("enabled" if enabled else "disabled"), enabled
+
+
+def _deactivate(name: str) -> bool:
+    """Switch the bundle off in every scope that carries a committed position.
+
+    A bundle that never had a committed row reads as the product default (on), so the
+    user scope is written in that case as well. Returns whether it now reads off.
+    """
+    from core import plugin_runtime
+    from core.plugin_lifecycle import SCOPES, LifecycleError
+
+    lifecycle = plugin_runtime.lifecycle()
+    wrote = False
+    for scope in SCOPES:
+        try:
+            if not lifecycle.has_committed_state(name, scope):
+                continue
+            lifecycle.set_enabled(
+                name, False, scope=scope, actor="marketplace", reason="remove"
             )
-    except LifecycleError as exc:
-        return _audit_refusal(name, _refused(exc.code, exc.detail))
-    result = plugin_versions.remove_plugin(name, delete_data=delete_data)
-    if result.get("status") == "removed":
-        _invalidate()
-    else:
+            wrote = True
+        except LifecycleError:
+            continue
+    if not wrote:
+        lifecycle.set_enabled(
+            name, False, actor="marketplace", reason="remove"
+        )
+    return not plugin_runtime.lifecycle().effective(name).enabled
+
+
+def remove(
+    name: str, *, delete_data: bool = False, force: bool = False
+) -> dict[str, Any]:
+    """Remove one installed bundle through the one product path.
+
+    An enabled bundle is refused with ``still_active`` and the state it is in; the
+    caller decides whether to switch it off first. ``force=True`` is that decision:
+    the switch is turned off through the lifecycle, then the folder leaves. The
+    answer names what was removed and what stayed, because a removal that reports
+    "removed" while a state row, a mount record or a data folder survives is the
+    scene the reader later trips over.
+    """
+    name = _safe_name(name)
+    from core import plugin_runtime
+    from core.plugin_lifecycle import LifecycleError
+
+    name = str(name)
+    facts = removal_facts(name)
+    if not facts["bundle"]:
+        if facts["bundled"]:
+            return {"status": "bundled", "name": name}
+        return {"status": "not_installed", "name": name}
+    version = _installed_version(name)
+    state, enabled = _switch_now(name)
+    if enabled and not force:
+        _audit_refusal(
+            name,
+            {"status": "still_active", "state": state, "version": version},
+        )
+        return {
+            "status": "still_active",
+            "name": name,
+            "version": version,
+            "state": state,
+            "enabled": True,
+        }
+    result = plugin_versions.remove_plugin(name, delete_data=False)
+    deactivated = False
+    if result.get("status") == "plugin_enabled":
+        if not force:
+            _audit_refusal(name, result)
+            return {
+                "status": "still_active",
+                "name": name,
+                "version": version,
+                "state": state,
+                "enabled": True,
+            }
+        try:
+            deactivated = _deactivate(name)
+        except LifecycleError as exc:
+            return _audit_refusal(name, _refused(exc.code, exc.detail))
+        if not deactivated:
+            _audit_refusal(name, {"status": "still_active", "state": state})
+            return {
+                "status": "still_active",
+                "name": name,
+                "version": version,
+                "state": state,
+                "enabled": True,
+            }
+        result = plugin_versions.remove_plugin(name, delete_data=False)
+    if result.get("status") != "removed":
         _audit_refusal(name, result)
-    return result
+        return result
+    mount_removed = False
+    try:
+        unmounted = plugin_runtime.lifecycle().unmount(
+            name, actor="marketplace", reason="remove"
+        )
+        mount_removed = facts["mount"] or bool(unmounted.removed)
+    except Exception:  # noqa: BLE001 — the folder is gone; a stale record is reported
+        mount_removed = False
+    if delete_data:
+        for folder in (_legacy_data_directory(name), _state_home(name)):
+            if folder is not None and folder.is_dir():
+                shutil.rmtree(folder, ignore_errors=True)
+    data_removed = bool(delete_data and facts["data"] and not _data_present(name))
+    _invalidate()
+    # `removed` says what the removal took (facts read before it ran); `remains` says what
+    # is still there, so it is read again after folder, rows and mount are gone.
+    after = removal_facts(name)
+    lock_error = str(result.get("lockfile_error") or "")
+    answer: dict[str, Any] = {
+        "status": "removed",
+        "name": name,
+        "version": version,
+        "state": state,
+        "deactivated": deactivated,
+        "data_removed": data_removed,
+        "removed": {
+            "bundle": True,
+            "registry": bool(facts["registry"]),
+            "mount": bool(mount_removed),
+            "data": bool(data_removed),
+        },
+        "remains": {
+            "data": bool(after["data"] and not data_removed),
+            "state_record": bool(after["state_record"]),
+            "surface_record": bool(after["surface_record"]),
+            "creator_draft": bool(after["creator_draft"]),
+        },
+    }
+    if lock_error:
+        answer["lockfile_error"] = lock_error
+    return answer
 
 
 from core.marketplace_inventory import (
@@ -377,6 +646,7 @@ __all__ = [
     "permission_delta",
     "plan",
     "remove",
+    "removal_facts",
     "rollback",
     "updates",
 ]

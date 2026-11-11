@@ -1,17 +1,28 @@
-"""Ephe — Update check (update-experience wave)
+"""Ephe — update check (update-experience wave)
 core/update_check.py
 
 The app tells the user when a newer Ephe release exists. PWA and desktop
 share this source of truth; the desktop shell additionally offers an
 in-place update through the Tauri updater (see app/src-tauri).
 
-Contract (pinned in tests/test_r67_update_check.py):
+Two channels, named for what they follow:
+- `release` (default): only published release tags. This is the only channel
+  the terminal CLI/TUI ever uses.
+- `commit`: also every merge on the default branch between tags. The version
+  of such a build is honest about being untagged: `<release>+<sha>`.
+
+The setting is `appearance.update_channel`; `EPHE_UPDATE_CHANNEL` overrides it
+for one process. An unknown value falls back to `release` — never silently to
+the unquiet channel.
+
+Contract (pinned in tests/test_update_channel.py and
+tests/test_r67_update_check.py):
 - semver comparison tolerates "v"-prefixed tags; equal versions are NOT an
   update.
 - Fail-soft: an unreachable release source yields available=False with an
   error field — the app never breaks because the check failed.
-- TTL cache (default 6 h) keeps the release source from being hammered;
-  force=True bypasses it.
+- TTL cache (default 6 h) per channel keeps the release source from being
+  hammered; force=True bypasses it.
 - The deep setting `appearance.update_check` (default ON) gates the check —
   privacy-first: opt-out is one toggle, and nothing but an anonymous request
   to the release source is involved (no telemetry, no identifiers).
@@ -24,7 +35,6 @@ import json
 import logging
 import os
 import re
-import subprocess
 import time
 import urllib.request
 from pathlib import Path
@@ -41,7 +51,9 @@ MAIN_BRANCH = "main"
 # live, and a button that keeps reporting a stale failure reads as broken. A
 # short failure TTL also makes an explicit refresh unnecessary in most cases.
 FAILURE_TTL_S = 300
-_cache: dict[str, Any] = {"at": None, "value": None}
+#: The answer is cached per channel: a release-only question (the terminal) and
+#: a commit question (the app) must not read each other's answer.
+_cache: dict[str, dict[str, Any]] = {}
 
 _SEMVER_RE = re.compile(r"^\D*(\d+)\.(\d+)\.(\d+)")
 # The full form keeps the prerelease, because a beta product's whole update
@@ -138,7 +150,7 @@ def _fetch_latest() -> dict[str, Any]:
 
 def installed_commit() -> str:
     """The commit this build runs on: baked at packaging time, else the checkout's
-    HEAD. Empty when neither is known, and then the continuous channel stays quiet."""
+    HEAD. Empty when neither is known, and then the commit channel stays quiet."""
     baked = (os.environ.get("EPHE_BUILD_COMMIT") or "").strip()
     if baked:
         return baked
@@ -199,8 +211,13 @@ def _fetch_main_compare(commit: str) -> dict[str, Any]:
     }
 
 
-def _main_channel(commit: str) -> dict[str, Any] | None:
-    """The continuous channel's answer for `commit`, or None when there is none.
+def _commit_channel(commit: str, current: str) -> dict[str, Any] | None:
+    """The commit channel's answer for `commit`, or None when there is none.
+
+    The comparison is ancestry-based, so a checkout that is ahead of main or has
+    diverged from it is never told to go backwards. The tip is reported as
+    `git_sha` and the version as `<release>+<sha>`: that build is not a release
+    and must not read like one.
 
     A lookup failure returns None rather than raising: the release answer is in
     hand already and a secondary source going down must not erase it."""
@@ -213,14 +230,26 @@ def _main_channel(commit: str) -> dict[str, Any] | None:
     # has and the build lacks, `behind` what the build carries and main does not.
     if main["behind"] or main["ahead"] <= 0:
         return None
+    sha = main["tip"]
+    message = main["message"]
+    if not sha:
+        try:
+            head = _fetch_head()
+        except Exception:  # noqa: BLE001 — no sha, no honest answer
+            return None
+        sha, message = head["sha"], message or head["message"]
+    if not sha:
+        return None
+    short = sha[:12]
     return {
         "available": True,
-        "channel": "main",
-        "latest": (main["tip"] or MAIN_BRANCH)[:12],
+        "channel": "commit",
+        "latest": f"{current}+{short}",
+        "git_sha": short,
         "commit": commit[:12],
         "commitsBehind": main["ahead"],
         "url": f"https://github.com/{release_repo()}/compare/{commit}...{MAIN_BRANCH}",
-        "notes": main["message"],
+        "notes": message,
     }
 
 
@@ -232,63 +261,116 @@ def update_check_enabled() -> bool:
 
 
 #: The two answers a user can ask for: a published release, or the branch itself.
-CHANNELS = ("stable", "commit")
+CHANNELS = ("release", "commit")
+DEFAULT_CHANNEL = "release"
+CHANNEL_ENV = "EPHE_UPDATE_CHANNEL"
+#: The names earlier builds wrote. They map onto the current pair instead of
+#: becoming "unknown": a stored `stable` means exactly what `release` means.
+_CHANNEL_ALIASES = {"stable": "release", "main": "commit"}
+
+
+def normalize_channel(value: Any) -> str:
+    """`release`/`commit`, with the old names mapped and anything else -> release.
+
+    An unknown value is a configuration mistake. It must not silently opt a
+    reader into the channel that follows every commit."""
+    chosen = str(value or "").strip().lower()
+    chosen = _CHANNEL_ALIASES.get(chosen, chosen)
+    return chosen if chosen in CHANNELS else DEFAULT_CHANNEL
 
 
 def update_channel() -> str:
-    """Deep setting `appearance.update_channel` (default `commit`).
+    """The configured channel: `EPHE_UPDATE_CHANNEL`, else the deep setting.
 
-    `stable` offers only published releases; `commit` also follows the default
-    branch between tags. An unknown value falls back to the default rather than
-    silencing updates.
-    """
+    The environment wins for one process (the terminal and tests need to pin
+    it); the stored setting is the durable choice the surfaces offer. A broken
+    settings file keeps the default rather than silencing updates."""
+    override = os.environ.get(CHANNEL_ENV)
+    if override is not None and override.strip():
+        return normalize_channel(override)
     from core.settings_schema import deep_select
 
     try:
-        chosen = str(deep_select("appearance.update_channel") or "").strip()
+        chosen = deep_select("appearance.update_channel")
     except Exception:  # noqa: BLE001 — a broken settings file keeps the default
-        return "commit"
-    return chosen if chosen in CHANNELS else "commit"
+        return DEFAULT_CHANNEL
+    return normalize_channel(chosen)
 
 
-def check_for_update(force: bool = False) -> dict[str, Any]:
-    """Full contract result; cached within the TTL unless force=True."""
+def release_status() -> dict[str, Any]:
+    """The newest release compared to this build. Raises when the feed is down.
+
+    This is the one release comparison every path shares: the check below, the
+    terminal update, and the PWA's release route."""
+    latest = _fetch_latest()
+    current = current_version()
+    tag = str(latest.get("tag") or "")
+    return {
+        "available": _is_newer(tag, current),
+        "current": current,
+        "latest": tag.removeprefix("v").removeprefix("V"),
+        "tag": tag,
+        "url": str(latest.get("url") or ""),
+        "notes": str(latest.get("notes") or ""),
+    }
+
+
+def _attach_apply_hint(result: dict[str, Any], release_url: str) -> None:
+    """The pull a channel offers may not be runnable here; the check says so up
+    front instead of letting a dialog offer a button that must refuse.
+
+    A release answer is installed by the signed desktop updater, but the PWA
+    takes the same release through the backend; a commit answer always needs a
+    checkout that may run the pull."""
+    try:
+        from core import update_apply
+
+        result["apply"] = update_apply.probe(release=result.get("channel") == "release")
+    except Exception:  # noqa: BLE001 — the answer stands without a probe
+        result["apply"] = {"ok": False, "code": "other"}
+    result["releaseUrl"] = release_url
+
+
+def check_for_update(force: bool = False, channel: str | None = None) -> dict[str, Any]:
+    """Full contract result; cached per channel within the TTL unless force=True.
+
+    `channel` pins the question for this call. The terminal passes `release`
+    so a stored `commit` setting can never make the CLI follow main."""
+    effective = normalize_channel(channel) if channel is not None else update_channel()
     if not update_check_enabled():
-        return {"enabled": False, "available": False}
+        return {"enabled": False, "available": False, "updateChannel": effective}
     now = time.monotonic()
-    cached = _cache["value"]
-    if not force and cached is not None and _cache["at"] is not None:
-        ttl = FAILURE_TTL_S if "error" in cached else UPDATE_TTL_S
-        if now - _cache["at"] < ttl:
-            return dict(cached)
+    cached = _cache.get(effective)
+    if not force and cached is not None and cached.get("at") is not None:
+        ttl = FAILURE_TTL_S if "error" in cached["value"] else UPDATE_TTL_S
+        if now - cached["at"] < ttl:
+            return dict(cached["value"])
 
     current = current_version()
     commit = installed_commit()
-    channel = update_channel()
     try:
-        latest = _fetch_latest()
-        newer_release = _is_newer(latest["tag"], current)
-        result = {
+        status = release_status()
+        result: dict[str, Any] = {
             "enabled": True,
-            "available": newer_release,
+            "available": status["available"],
             "current": current,
-            "latest": latest["tag"].removeprefix("v").removeprefix("V"),
-            "url": latest["url"],
-            "notes": latest["notes"],
+            "latest": status["latest"],
+            "url": status["url"],
+            "notes": status["notes"],
+            # Which source answered: a tagged release, or the branch.
             "channel": "release",
-            "updateChannel": channel,
+            # Which channel the surface is set to; it stays `commit` when a
+            # newer release answers, so the dialog can say both facts.
+            "updateChannel": effective,
         }
-        if commit and channel == "commit":
-            result["commit"] = commit[:12]
-            if not newer_release:
-                # A merge that has not been tagged yet is still an update the user
-                # can take. Only `behind` says so: ahead and diverged would be
-                # telling a checkout to go backwards.
-                result.update(_main_channel(commit) or {})
-        if result.get("channel") == "main":
-            import core.update_apply as apply_mod
-
-            apply_mod.attach_channel_hint(result, latest["url"])
+        if effective == "commit":
+            if commit:
+                result["commit"] = commit[:12]
+            if commit and not status["available"]:
+                found = _commit_channel(commit, current)
+                if found:
+                    result.update(found)
+        _attach_apply_hint(result, status["url"])
     except Exception as exc:  # noqa: BLE001 — the check must never break the app
         # The exception is for the log below. The client gets a fixed sentence.
         logger.warning("update check failed: %s", exc)
@@ -297,15 +379,15 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
             "available": False,
             "current": current,
             "error": "the release source could not be reached",
-            "updateChannel": channel,
+            "updateChannel": effective,
         }
-    _cache["at"], _cache["value"] = now, result
+    _cache[effective] = {"at": now, "value": result}
     return dict(result)
 
 
 def _reset_cache() -> None:
     """Test seam: drop the TTL cache."""
-    _cache["at"], _cache["value"] = None, None
+    _cache.clear()
 
 
 # One answer a day across process starts.
@@ -357,44 +439,3 @@ def daily_check(now: float | None = None) -> dict[str, Any]:
     if fresh.get("enabled", True):
         _save_daily_state(fresh, stamp)
     return fresh
-
-
-def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "-C", str(root), *args], capture_output=True, text=True, timeout=30
-    )
-
-
-def run_update(root: Path | None = None) -> tuple[bool, str]:
-    """Pull the checkout and reinstall. Returns (ok, one line to show)."""
-    checkout = Path(root) if root is not None else Path(__file__).resolve().parents[1]
-    installer = checkout / "install.sh"
-    if not installer.exists():
-        return False, "install.sh not found"
-
-    pulled = _git(checkout, "pull", "--ff-only")
-    if pulled.returncode != 0:
-        tail = (pulled.stderr or pulled.stdout or "").strip().splitlines()
-        return False, tail[-1] if tail else "git pull failed"
-
-    env = os.environ.copy()
-    env["EPHE_NO_START"] = "1"
-    try:
-        installed = subprocess.run(
-            ["bash", str(installer), "--no-start"],
-            cwd=str(checkout),
-            env=env,
-            capture_output=True,
-            text=True,
-        )
-    except Exception as exc:
-        return False, str(exc)
-    if installed.returncode != 0:
-        tail = (installed.stderr or installed.stdout or "").strip().splitlines()
-        return False, tail[-1] if tail else f"installer exited {installed.returncode}"
-    _reset_cache()
-    try:
-        Path(state_path()).unlink()
-    except Exception:
-        pass
-    return True, "updated"

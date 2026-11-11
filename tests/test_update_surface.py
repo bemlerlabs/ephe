@@ -44,7 +44,7 @@ def test_a_development_branch_is_refused_without_naming_it(tmp_path: Path) -> No
 
 def test_the_cli_reports_the_refusal_as_one_sentence(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
-        "core.update_apply.apply_update",
+        "core.update_apply.apply_release",
         lambda root=None: {
             "ok": False,
             "reason": "not_on_main",

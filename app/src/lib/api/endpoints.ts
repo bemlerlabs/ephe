@@ -219,6 +219,12 @@ export interface PluginEntry {
   module?: string
   /** Tool families the manifest already declares, joined for the detail sheet. */
   configuration?: string
+  /**
+   * Component groups an installed bundle carries (`tools`, `commands`, `skills`,
+   * `ui`), filled by the store view for rows merged from the marketplace's installed
+   * list. Catalog entries get their abilities from `rail` and `surface` instead.
+   */
+  components?: string[]
 }
 
 /** Megabytes a bundle keeps, and how many files. No path. */

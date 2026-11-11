@@ -329,6 +329,20 @@ class DynamicToolRegistry:
             _invalidate_schema_cache()
             return Outcome(True)
 
+    def unregister_all_plugins(self) -> int:
+        """Drop every plugin-owned descriptor; the kernel map is untouched.
+
+        A process that mounts bundles shares one registry, so a test file that installs
+        bundles leaves descriptors behind for the next one. This is the seam that makes
+        that state explicit instead of leaking it through `_by_plugin`.
+        """
+        with self._lock:
+            owners = list(self._by_plugin)
+        total = 0
+        for plugin_id in owners:
+            total += self.unregister_plugin(plugin_id)
+        return total
+
     def unregister_plugin(self, plugin_id: str) -> int:
         """Drop every descriptor of one plugin and return how many were live; 0 for an unknown id."""
         with self._lock:

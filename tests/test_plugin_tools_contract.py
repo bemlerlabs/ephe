@@ -150,15 +150,19 @@ def _holds_a_callable(value) -> bool:
 
 
 def test_a_version_1_manifest_still_declares_kernel_tool_names(tmp_path) -> None:
-    _write(tmp_path, _manifest("legacy", version=1, tools=["read_file"]))
+    """A kernel name stays activatable; a first-party name does not (see the SHADOW pin)."""
+    _write(
+        tmp_path,
+        _manifest("legacy", version=1, tools=["create_video"], families=("write",)),
+    )
     manifest, error = load_manifest(tmp_path / "legacy")
     assert error is None and manifest is not None
     claims = tool_claims(manifest)
     assert [(claim.name, claim.contributed) for claim in claims] == [
-        ("read_file", False)
+        ("create_video", False)
     ]
     scanned = scan_tool_activations(tmp_path)
-    assert scanned.owners == (("read_file", "legacy"),)
+    assert scanned.owners == (("create_video", "legacy"),)
     assert scanned.conflicts == ()
     assert scanned.contributed == ()
 

@@ -16,6 +16,8 @@ import {
   describeCommandDescription,
   buildHelpText,
   isAppCommand,
+  announceSlashCommandsChanged,
+  SLASH_COMMANDS_CHANGED,
 } from './slashCommands'
 
 const listSkills = vi.hoisted(() => async () => ({
@@ -201,6 +203,20 @@ describe('filterCommands', () => {
       const menu = filterCommands('/', getSkillSlashCommands()).map((c) => c.cmd)
       expect(menu).toContain('research')
       expect(menu.filter((c) => c === 'compact')).toHaveLength(1) // static wins the dupe
+    })
+
+    it('GIVEN a plugin switch WHEN announced THEN the cache drops and listeners run', async () => {
+      await loadSkillSlashCommands()
+      expect(getSkillSlashCommands().length).toBeGreaterThan(0)
+      const listener = vi.fn()
+      window.addEventListener(SLASH_COMMANDS_CHANGED, listener)
+      announceSlashCommandsChanged()
+      window.removeEventListener(SLASH_COMMANDS_CHANGED, listener)
+      expect(listener).toHaveBeenCalledTimes(1)
+      // The next reader refetches instead of serving the set from before the switch.
+      expect(getSkillSlashCommands()).toEqual([])
+      await loadSkillSlashCommands()
+      expect(getSkillSlashCommands().length).toBeGreaterThan(0)
     })
 
     it('GIVEN 200-char description WHEN loaded THEN truncated with real ellipsis, not hard-cut', () => {

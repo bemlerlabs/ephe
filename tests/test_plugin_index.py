@@ -307,17 +307,42 @@ def test_anti_rollback_floor(device, tmp_path) -> None:
 def test_reinstalling_the_same_version_is_not_a_downgrade(device, tmp_path) -> None:
     """GIVEN 2.0.0 is installed
     WHEN the same 2.0.0 is installed again
-    THEN it replaces cleanly, so a repair is possible and only a lower version
-    is refused."""
+    THEN identical bytes are a coded no-op, and changed bytes still replace —
+    that is the repair path, and only a lower version is refused.
+
+    The no-op is the idempotency the owner asked for: a retry used to move the
+    installed directory into the backup slot and write it back, which is the
+    window two concurrent installers raced in. A repair still runs: the installed
+    bytes differ from the artifact, so the candidate replaces them."""
     payload, record, public = _signed_at(tmp_path / "v2", "2.0.0")
-    for _ in range(2):
-        status = plugin_market.install_from_marketplace(
-            "my-tool",
-            marketplace={"plugins": [_entry_at(payload, "2.0.0", record)]},
-            fetcher=lambda url: payload,
-            trusted_public_keys=[public],
-        )
-        assert status["status"] == "extracted"
+    first = plugin_market.install_from_marketplace(
+        "my-tool",
+        marketplace={"plugins": [_entry_at(payload, "2.0.0", record)]},
+        fetcher=lambda url: payload,
+        trusted_public_keys=[public],
+    )
+    assert first["status"] == "extracted"
+
+    again = plugin_market.install_from_marketplace(
+        "my-tool",
+        marketplace={"plugins": [_entry_at(payload, "2.0.0", record)]},
+        fetcher=lambda url: payload,
+        trusted_public_keys=[public],
+    )
+    assert again["status"] == "already_installed"
+    assert again["version"] == "2.0.0"
+
+    # Damage the installed directory, then install the same 2.0.0: the differing
+    # bytes are replaced, so a repair still works.
+    (device / "plugins" / "my-tool" / "README.md").write_text("damaged\n", encoding="utf-8")
+    repaired = plugin_market.install_from_marketplace(
+        "my-tool",
+        marketplace={"plugins": [_entry_at(payload, "2.0.0", record)]},
+        fetcher=lambda url: payload,
+        trusted_public_keys=[public],
+    )
+    assert repaired["status"] == "extracted"
+    assert (device / "plugins" / "my-tool" / "README.md").read_text(encoding="utf-8") == "signed content\n"
 
 
 def test_an_archive_member_that_climbs_out_is_refused(device, tmp_path) -> None:

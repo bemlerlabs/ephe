@@ -71,20 +71,41 @@ def manifest_of(plugin: str, directory: Path) -> dict[str, Any]:
 
 
 def refuse_contested_names(plugin: str, descriptors) -> None:
-    """Refuse a name the portfolio contests, or one a live name space already holds."""
+    """Refuse a name the portfolio contests, a reserved one, or one a live space holds.
+
+    The reservation is asked once, owner-aware: the shipped bundle may re-serve its own
+    name, every other bundle — including one staged in the user root — is refused with the
+    namespace code, the held name and the free name it can choose instead.
+    """
     from core import plugin_tools_contract
     from core.plugin_lifecycle_types import LifecycleError
     from core.plugin_registry import scan_tool_activations
+    from core.sandbox.runner import resolve_plugin_dir
 
+    directory = resolve_plugin_dir(plugin)
+    reserved = plugin_tools_contract.reserved_tool_names()
     scanned = scan_tool_activations(None)
     for descriptor in descriptors:
-        collision = plugin_tools_contract.reserved_namespace(descriptor.name)
-        if collision:
+        held = plugin_tools_contract.reserved_tool(
+            descriptor.name,
+            plugin_id=plugin,
+            plugin_dir=directory,
+            reserved=reserved,
+        )
+        if held is not None:
             raise LifecycleError(
-                collision,
+                held.code,
                 409,
-                f"{descriptor.name!r} is held by the {collision} name space; "
-                f"plugin '{plugin}' cannot serve it",
+                f"{descriptor.name!r} is held by the {held.code} name space "
+                f"(owner: {held.owner}); plugin '{plugin}' cannot serve it; "
+                f"{held.action(plugin)}",
+                data={
+                    "code": plugin_tools_contract.RESERVED_TOOL_CODE,
+                    "name": held.name,
+                    "namespace": held.code,
+                    "owner": held.owner,
+                    "action": held.action(plugin),
+                },
             )
         if descriptor.name in scanned.conflicts:
             raise LifecycleError(

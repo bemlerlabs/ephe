@@ -9,10 +9,15 @@
  */
 
 /* The host covers the viewport and takes no click from the page behind it: a
-   surface that floats must not turn the workbench into a backdrop. */
+   surface that floats must not turn the workbench into a backdrop. It carries one
+   step above the overlay ladder's chrome (`--z-index-overlay`), because `position:
+   fixed` makes it a stacking context of its own: without a step of its own, its
+   windows sat under the settings sheet even though every window named a higher
+   z-index than the sheet. The modal step above stays with menus and dialogs. */
 .overlay-host {
   position: fixed;
   inset: 0;
+  z-index: calc(var(--z-index-overlay) + 1);
   pointer-events: none;
 }
 

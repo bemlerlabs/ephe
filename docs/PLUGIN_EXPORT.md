@@ -6,7 +6,7 @@ the next change.
 
 ## 1. What is in the tree
 
-`ephe plugin` accepts four actions: `list`, `enable`, `disable`, `install`
+`ephe plugin` accepts five actions: `list`, `enable`, `disable`, `install`, `remove`
 (`ephe_cli.py`, `cmd_plugin`). `install` calls
 `core.plugin_market.install_from_marketplace`, which resolves one row of
 `plugin-marketplace.json`, fetches the zip, and commits it through

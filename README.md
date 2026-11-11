@@ -77,7 +77,7 @@ A phone on your local network can open the PWA after `ephe start --lan --open`; 
 #### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash
 ```
 
 To read the script before it runs, use the checkout:
@@ -93,7 +93,7 @@ The installer prepares Python and the local environment, builds the web app, and
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -105,7 +105,7 @@ Windows installation is not yet verified end to end for this revision.
 
 Docker and every installer flag are described in [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-The command names the release this tree ships, `v0.6.3`; the tag resolves once it is published. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
+The command names the release this tree ships, `v0.6.4`; the tag is published, so the URL resolves. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
 
 Before using `ephe` in a new terminal, activate the installed environment.
 For the default installation on macOS or Linux:
@@ -156,7 +156,7 @@ A local engine keeps the prompt on your machine. A remote engine, web search, pu
 
 Choose the response mode in the header: Analyst, Architect, Operator or Creator. The composer's approval profile is the ceiling above it, and the default strict profile asks before file edits and shell commands. Opt-in modes and remembered approvals can allow execution without another prompt. The session cell is destroyed when the session ends; saved artifacts and settings remain on disk.
 
-There is no account and no sign-up. The update check asks GitHub for the newest release; every other network path waits for your action. The optional online features are listed in Setup and Settings; the details are in [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) and [SECURITY.md](SECURITY.md).
+There is no account and no sign-up. The update check asks GitHub for the newest release (and, on the opt-in commit channel, the tip of main); every other network path waits for your action. The optional online features are listed in Setup and Settings. The details are in [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
 ## Plugins, skills, and connectors
 

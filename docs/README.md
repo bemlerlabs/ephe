@@ -14,7 +14,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `FIRST_RUN.md` | The same walkthrough at length, with the screens and the measured sequence |
 | `SWITCHING.md` | Import an existing local-agent setup into Ephe |
 | `CLI.md` | `ephe` command reference and the engine-resolution rule |
-| `OPERATIONS.md` | Start, stop and own the backend: the port lifecycle, `ephe stop`, `ephe status`, the pidfile |
+| `UPDATES.md` | The three update paths: desktop app, PWA, terminal; release vs commit channels |
 | `MOBILE.md` | Pairing a phone over the LAN, the QR walkthrough and the public-access rule |
 | `TELEGRAM.md` | The Telegram channel: gateway status, pairing, hardening |
 | `VOICE.md` | The offline voice loop (Piper TTS) |

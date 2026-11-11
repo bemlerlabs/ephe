@@ -11,6 +11,11 @@ therefore bypassed every confirmation dialog (Wave G1, audit 2026-10-02).
 Approval comes from the request context (``core.vision._sandbox_cb_var``),
 the same callback the SSE handler sets via ``set_sandbox_confirm_cb``.
 No channel reachable ⇒ no execution; that is conservative, not convenient.
+
+The third path asks nobody: a plugin surface calling one of its own tools has no
+turn behind it. ``confirm_for_surface`` reads the mount credential that page was
+served under as the click's consent and leaves a ``surface-consent`` line; every
+other promise in this file still holds there (``docs/PLUGINS.md``).
 """
 from __future__ import annotations
 
@@ -66,7 +71,18 @@ DENIAL_REASONS = {
         "this Creator session was not granted the '{privilege}' permission — ask the user "
         "to grant it, or choose a call that needs less"
     ),
+    # PE2E: the call arrived from a surface but the credential it offered is not the
+    # live one this bundle was served under — a value minted for another bundle, or
+    # one whose window ran out. The move belongs to the page: mount it again.
+    "surface_token_refused": (
+        "the surface credential is not live for this plugin — reopen the surface so it "
+        "mints a fresh one"
+    ),
 }
+
+#: Status of the audit line a surface-consented call leaves. The decision beside it
+#: says which way the call fell, so one grep answers why a page's tool ran or did not.
+SURFACE_CONSENT_STATUS = "surface-consent"
 
 #: The move a denied run leaves open. Every denial carries it — a bare "was not executed"
 #: tells the model what did not happen and stops, which is half a refusal. Appended to the
@@ -151,6 +167,22 @@ def denial_message(name: str, reason: str = "not_approved", **params) -> Denied:
     return Denied(body, reason, params)
 
 
+def _protected_path_denial(name: str, args: dict, *, audit: bool) -> Optional[Denied]:
+    """The protected-root refusal, taken before any dialog is offered."""
+    from core.path_guard import deny_paths, verifiable_artifact
+
+    denied_hits = deny_paths(args)
+    if denied_hits and name in {"verify_artifact", "qa_pptx_deck", "inspect_pptx_template"}:
+        denied_hits = [value for value in denied_hits if not verifiable_artifact(value)]
+    if not denied_hits:
+        return None
+    if audit:
+        from core.audit_log import audit_event
+
+        audit_event("security", tool=name, args=args, decision="denied", status="protected-root")
+    return denial_message(name, "secret_path_denied", path=denied_hits[0])
+
+
 async def confirm_for_chat(
     name: str,
     args: dict,
@@ -166,17 +198,11 @@ async def confirm_for_chat(
     exception name reaches the engine instead of dying in this function.
     """
     from core.tools.approval import chat_tool_requires_confirm
-    from core.path_guard import deny_paths, secret_paths, verifiable_artifact
+    from core.path_guard import secret_paths
 
-    denied_hits = deny_paths(args)
-    if denied_hits and name in {"verify_artifact", "qa_pptx_deck", "inspect_pptx_template"}:
-        denied_hits = [value for value in denied_hits if not verifiable_artifact(value)]
-    if denied_hits:
-        if audit:
-            from core.audit_log import audit_event
-
-            audit_event("security", tool=name, args=args, decision="denied", status="protected-root")
-        return False, denial_message(name, "secret_path_denied", path=denied_hits[0])
+    path_refusal = _protected_path_denial(name, args, audit=audit)
+    if path_refusal is not None:
+        return False, path_refusal
 
     # A read-only tool stays read-only; a credential-shaped file is the one exception,
     # because its content is the secret whatever the tool intends to do with it.
@@ -191,7 +217,7 @@ async def confirm_for_chat(
         try:
             if await _resolve(cb(name, args or {})):
                 return True, ""
-        except Exception as exc:  # noqa: BLE001 — refusal, not an aborted turn
+        except Exception as exc:  # noqa: BLE001 — a failed channel is a refusal
             reason = "approval_channel_failed"
             params = {"error": type(exc).__name__}
         else:
@@ -202,6 +228,99 @@ async def confirm_for_chat(
 
         audit_event("approval", tool=name, args=args, decision="denied", status="chat-gate")
     return False, denial_message(name, reason, **params)
+
+
+def _surface_token_live(plugin: str, token: str) -> bool:
+    """Whether `token` is a live mount credential for exactly `plugin`.
+
+    The mint lives in the server layer, which imports this gate, so the import is
+    local — a module-level one would close the cycle at boot. A mint that cannot be
+    read is not a consent, the same direction every other answer here takes.
+    """
+    if not plugin or not token:
+        return False
+    try:
+        from server import plugin_surface_nonce
+
+        return plugin_surface_nonce.verify_surface_nonce(plugin, token)
+    except Exception:  # noqa: BLE001 — an unreadable credential is not an approval
+        return False
+
+
+def _surface_row(name: str, args: dict, decision: str, plugin: str, detail: str = "") -> None:
+    """One line per surface-gated call, so the reason a page's tool ran is readable."""
+    try:
+        from core.audit_log import audit_event
+
+        audit_event(
+            "approval",
+            tool=name,
+            args=args,
+            decision=decision,
+            status=SURFACE_CONSENT_STATUS,
+            detail=f"plugin={plugin} {detail}".strip(),
+        )
+    except Exception:  # noqa: BLE001 — the log never blocks the call it records
+        pass
+
+
+async def confirm_for_surface(
+    name: str,
+    args: dict,
+    *,
+    plugin: str,
+    surface: str = "",
+    audit: bool = True,
+) -> tuple[bool, str]:
+    """(approved, denial) for one tool call a plugin surface asked for.
+
+    `confirm_for_chat` asks because a turn is running and someone is looking at the
+    dialog. A surface call has no turn: no policy is in scope, the callback is None,
+    and every tool a bundle owns was refused with `no_approval_channel` although the
+    reader had just clicked in the page (PE2E). That click is the consent, and
+    `surface` is the proof it came from *this* page — the mount credential
+    `POST /api/plugins/{id}/surface-token` mints, verified against the same record
+    the mount route reads.
+
+    The credential buys one thing: a dialog nobody could answer. The mode promise, a
+    protected root and a credential-shaped file are decided before it and stay
+    decided, because the page names the arguments and the dialog exists to show them.
+    Without a live credential for this bundle the call gets the answer it got before.
+    """
+    from core.path_guard import secret_paths
+    from core.tools.approval import chat_tool_requires_confirm
+
+    path_refusal = _protected_path_denial(name, args, audit=audit)
+    if path_refusal is not None:
+        return False, path_refusal
+
+    mode_refusal = mode_denial(name)
+    if mode_refusal is not None:
+        if audit:
+            _surface_row(name, args, "denied", plugin, f"mode={mode_refusal.code}")
+        return False, mode_refusal
+
+    # A tool that never asked still never asks: a stale credential must not refuse a
+    # call that would have run uncredentialed.
+    secret = secret_paths(args)
+    if not chat_tool_requires_confirm(name) and not secret:
+        return True, ""
+
+    if _surface_token_live(plugin, surface):
+        if secret:
+            # The click names no path, so a secret-shaped file keeps the dialog.
+            return await confirm_for_chat(name, args, audit=audit)
+        if audit:
+            _surface_row(name, args, "approved", plugin)
+        return True, ""
+
+    if surface:
+        # A dead credential is refused, not treated as absent.
+        if audit:
+            _surface_row(name, args, "denied", plugin, "token_refused")
+        return False, denial_message(name, "surface_token_refused")
+
+    return await confirm_for_chat(name, args, audit=audit)
 
 
 #: The three answers a delegated call can get. The first is the design's own
@@ -269,9 +388,11 @@ async def gate_delegated_tool(name: str, args: dict, *, who: str = "delegate") -
 
 __all__ = [
     "confirm_for_chat",
+    "confirm_for_surface",
     "denial_message",
     "mode_denial",
     "gate_delegated_tool",
+    "SURFACE_CONSENT_STATUS",
     "DELEGATE_EXEMPT",
     "DELEGATE_APPROVED",
     "DELEGATE_DENIED",

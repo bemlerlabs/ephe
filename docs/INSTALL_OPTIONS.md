@@ -34,7 +34,7 @@ supported one.
 This path has not been verified end to end on Windows for this revision.
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.3/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 

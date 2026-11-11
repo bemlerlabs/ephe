@@ -15,6 +15,7 @@ import type { UpdateState } from '@/lib/updateCheckRun'
 const check = vi.fn()
 const install = vi.fn()
 const apply = vi.fn()
+const applyRelease = vi.fn()
 const relaunch = vi.fn()
 let state: UpdateState = { phase: 'idle', progress: null }
 
@@ -22,7 +23,17 @@ vi.mock('@/lib/useUpdateCheck', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/useUpdateCheck')>()),
   useUpdateCheck: () => {
     const [open, setOpen] = useState(false)
-    return { state, open, setOpen, check, install, apply, relaunch, restartBlocked: null }
+    return {
+      state,
+      open,
+      setOpen,
+      check,
+      install,
+      apply,
+      applyRelease,
+      relaunch,
+      restartBlocked: null,
+    }
   },
 }))
 vi.mock('react-i18next', () => ({
@@ -38,7 +49,7 @@ const pullable: UpdateState = {
   current: '0.5.7',
   commit: '2a1405a8',
   latest: 'deadbeef',
-  channel: 'main',
+  channel: 'commit',
   commitsBehind: 3,
   url: 'https://example.invalid/compare/2a1405a8...main',
 }
@@ -66,17 +77,17 @@ describe('UpdateSection', () => {
     expect(check).toHaveBeenCalled()
   })
 
-  it('reports the main channel with its distance instead of a release', () => {
+  it('reports the commit channel with its distance instead of a release', () => {
     state = {
       phase: 'available',
       progress: null,
       current: '0.5.1',
-      channel: 'main',
+      channel: 'commit',
       commitsBehind: 3,
     }
     render(<UpdateSection />)
 
-    expect(screen.getByTestId('settings-updates-status').textContent).toBe('update.mainChannel')
+    expect(screen.getByTestId('settings-updates-status').textContent).toBe('update.commitChannel')
     // A build without a commit names none — no empty row.
     expect(screen.queryByText('update.detailsCommit')).toBeNull()
   })
@@ -132,7 +143,27 @@ describe('UpdateSection', () => {
     state = { ...pullable, phase: 'applied', current: 'deadbeef', restart: true }
     view.rerender(<UpdateSection />)
     expect(screen.getByTestId('settings-updates-status').textContent).toBe('update.titleApplied')
-    expect(screen.queryByText('update.mainChannel')).toBeNull()
+    expect(screen.queryByText('update.commitChannel')).toBeNull()
+  })
+
+  it('takes a release through the backend when this installation can move', () => {
+    state = {
+      phase: 'available',
+      progress: null,
+      current: '0.6.0',
+      latest: '0.7.0',
+      channel: 'release',
+      updateChannel: 'release',
+      applyOk: true,
+      url: 'https://example.invalid/releases/0.7.0',
+    }
+    render(<UpdateSection />)
+
+    expect(updateActionOf(state)?.run).toBe('release')
+    fireEvent.click(screen.getByTestId('settings-updates-apply'))
+    expect(applyRelease).toHaveBeenCalledTimes(1)
+    expect(apply).not.toHaveBeenCalled()
+    expect(install).not.toHaveBeenCalled()
   })
 
   it('offers the sheet the same action the row offers, from one contract', () => {

@@ -92,14 +92,20 @@ pub fn is_clean(porcelain: &str) -> bool {
 }
 
 /// The arguments of the two commands that move a permitted checkout onto the
-/// release. The root is never one of them: it is the process's working
-/// directory, so a path read from `~/.ephe/desktop.json` cannot become part of
-/// a command line.
-const FETCH: [&str; 3] = ["fetch", "origin", "main:refs/remotes/origin/main"];
-const CHECKOUT: [&str; 4] = ["checkout", "-B", "main", "origin/main"];
-
-pub fn move_commands() -> [&'static [&'static str]; 2] {
-    [&FETCH[..], &CHECKOUT[..]]
+/// release the shell runs. The root is never one of them: it is the process's
+/// working directory, so a path read from `~/.ephe/desktop.json` cannot become
+/// part of a command line.
+///
+/// The target is the shell's own tag, not `origin/main`: a signed release must
+/// leave the backend on the code the shell was built from. `-B main` keeps the
+/// checkout a branch (so the commit channel can later fast-forward it to main)
+/// while pinning the working tree to the tag.
+pub fn move_commands(shell: &str) -> [Vec<String>; 2] {
+    let tag = format!("refs/tags/v{shell}");
+    [
+        vec!["fetch".into(), "origin".into(), format!("{tag}:{tag}")],
+        vec!["checkout".into(), "-B".into(), "main".into(), tag],
+    ]
 }
 
 /// What the shell's environment refresh answered.
@@ -240,15 +246,26 @@ mod tests {
 
     #[test]
     fn the_move_commands_carry_no_path_at_all() {
-        let [fetch, checkout] = move_commands();
-        assert_eq!(fetch, FETCH.as_slice());
-        assert_eq!(checkout, CHECKOUT.as_slice());
-        for args in move_commands() {
+        let [fetch, checkout] = move_commands("0.6.3");
+        assert_eq!(
+            fetch,
+            vec!["fetch", "origin", "refs/tags/v0.6.3:refs/tags/v0.6.3"]
+        );
+        assert_eq!(checkout, vec!["checkout", "-B", "main", "refs/tags/v0.6.3"]);
+        for args in move_commands("0.6.3") {
             assert!(
-                !args.iter().any(|a| *a == "-C" || a.starts_with('/')),
+                !args.iter().any(|a| a == "-C" || a.starts_with('/')),
                 "a command line must not carry the backend's path: {args:?}"
             );
         }
+    }
+
+    #[test]
+    fn a_release_move_targets_the_shells_own_tag_not_main() {
+        let [fetch, checkout] = move_commands("0.7.0-beta.2");
+        assert!(fetch.join(" ").contains("refs/tags/v0.7.0-beta.2"));
+        assert!(!fetch.join(" ").contains("origin/main"));
+        assert_eq!(checkout.last().map(String::as_str), Some("refs/tags/v0.7.0-beta.2"));
     }
 
     #[test]
@@ -486,9 +503,12 @@ mod runtime {
                 if let Err(grund) = permission(&facts) {
                     return remember(make_status("mismatch", shell, &backend, grund));
                 }
-                let [fetch, checkout] = move_commands();
-                let ran = |args: &[&str]| git_in(root, args).is_some();
-                if !ran(fetch) || !ran(checkout) {
+                let [fetch, checkout] = move_commands(shell);
+                let ran = |args: &[String]| {
+                    let borrowed: Vec<&str> = args.iter().map(String::as_str).collect();
+                    git_in(root, &borrowed).is_some()
+                };
+                if !ran(&fetch) || !ran(&checkout) {
                     return remember(make_status(
                         "mismatch",
                         shell,

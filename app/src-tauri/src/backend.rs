@@ -723,6 +723,29 @@ fn ergebnis_fur_besetzten_port(
             );
             Ergebnis::FremderPort
         }
+        Some(s) if same_project(&s.root, &befehl.projekt) && s.version != env!("CARGO_PKG_VERSION") => {
+            // This checkout's own backend, answering for a different version than this
+            // window's code: after an in-app update the tree moves to the new tag while the
+            // process still runs what it loaded before (measured 2026-11-10: shell 0.6.3,
+            // backend answered 0.6.2 for the 0.6.3 tree). An accompanying backend must
+            // speak this window's version, so it is replaced - not reused and not left to
+            // answer for a version nobody is running.
+            let stale = format!(
+                "backend {} answers on port {} for this checkout; this window {} restarts it",
+                if s.version.is_empty() { "unknown" } else { &s.version },
+                port,
+                env!("CARGO_PKG_VERSION")
+            );
+            log::warn!("{stale}");
+            notiz(home, &stale);
+            if s.pid > 1 && stop_process(s.pid as u32, port) {
+                return match starten(befehl, key) {
+                    Ok(()) => Ergebnis::Gestartet,
+                    Err(e) => Ergebnis::StartFehler(e.to_string()),
+                };
+            }
+            Ergebnis::Inkompatibel(stale)
+        }
         Some(s) if s.api_contract != API_CONTRACT => {
             let found = format!(
                 "backend {} speaks contract {}; this shell {} expects contract {}",
@@ -1569,5 +1592,29 @@ mod tests {
             ]
         );
         let _ = fs::remove_dir_all(&scratch);
+    }
+}
+
+#[cfg(test)]
+mod stale_version_tests {
+    use super::*;
+
+    /// An in-app update leaves the tree on the new tag and the process on the old code.
+    /// Such a backend is this checkout's own and must be replaced, not reused.
+    #[test]
+    fn a_backend_answering_an_older_version_for_this_checkout_is_replaceable() {
+        let peer = PeerStatement {
+            key_challenge: false,
+            detail: String::new(),
+            pid: 4242,
+            owner: "someone-else".to_string(),
+            root: "/x".to_string(),
+            version: "0.0.0-old".to_string(),
+            api_contract: API_CONTRACT,
+            instance_id: String::new(),
+        };
+        // The rule lives in the decision arm; this pins the two facts it keys on.
+        assert!(same_project(&peer.root, Path::new("/x")));
+        assert_ne!(peer.version, env!("CARGO_PKG_VERSION"));
     }
 }

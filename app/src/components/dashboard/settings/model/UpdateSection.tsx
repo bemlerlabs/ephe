@@ -24,8 +24,8 @@ export function UpdateSection() {
     checking: t('update.checking'),
     current: t('update.titleCurrent'),
     available:
-      state.channel === 'main'
-        ? t('update.mainChannel', { count: state.commitsBehind ?? 0 })
+      state.channel === 'commit'
+        ? t('update.commitChannel', { count: state.commitsBehind ?? 0 })
         : t('update.titleAvailable'),
     downloading: t('update.titleDownloading'),
     installing: t('update.titleInstalling'),
@@ -42,7 +42,9 @@ export function UpdateSection() {
   const facts: [string, string | undefined][] = [
     [t('update.detailsVersion'), state.current],
     [t('update.detailsCommit'), state.commit],
-    [t('update.detailsChannel'), state.channel],
+    // The setting, not the source of this one answer: a commit setting must read
+    // `commit` even when a newer release supplied the available version.
+    [t('update.detailsChannel'), state.updateChannel ?? state.channel],
   ]
 
   return (
@@ -73,7 +75,13 @@ export function UpdateSection() {
           <button
             type="button"
             data-testid="settings-updates-apply"
-            onClick={() => void (action.run === 'apply' ? update.apply() : update.install())}
+            onClick={() =>
+              void (action.run === 'apply'
+                ? update.apply()
+                : action.run === 'release'
+                  ? update.applyRelease()
+                  : update.install())
+            }
             className="focus-ring rounded-md bg-brand px-2.5 py-1 text-ui-xs font-medium text-white hover:bg-brand-glow"
           >
             {t(action.labelKey)}
@@ -105,6 +113,7 @@ export function UpdateSection() {
           onCheck={() => void update.check()}
           onInstall={() => void update.install()}
           onApply={() => void update.apply()}
+          onApplyRelease={() => void update.applyRelease()}
           onRelaunch={() => void update.relaunch()}
           releasesUrl={state.url}
           restartBlocked={update.restartBlocked}

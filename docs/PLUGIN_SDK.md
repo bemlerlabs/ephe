@@ -10,6 +10,31 @@
 > (marketplace install), `core/plugin_signing.py` (ES256),
 > `core/plugin_runtime.py` (activation); REST: `server/routes/plugins.py`.
 
+## Quickstart: an installed plugin in ten lines
+
+A plugin is a folder under the plugins root, and folder presence is the install: the
+scanner reads `~/.ephe/plugins/<name>/ephe-plugin.json`, and `ephe plugin list` shows that
+row with its switch state. Nine lines from an empty folder, with a shell and nothing else:
+
+```bash
+mkdir -p ~/.ephe/plugins/hello-card/ui
+cat > ~/.ephe/plugins/hello-card/ephe-plugin.json <<'JSON'
+{"manifest_version": 1, "name": "hello-card", "version": "0.1.0",
+ "description": "Says hello.", "permissions": {"tool_families": [], "data_roots": []},
+ "components": {"ui": {"type": "floating-window", "entry": "ui/index.html", "title": "Hello"}, "skills": [], "commands": []}}
+JSON
+printf '<!doctype html><meta charset="utf-8"><p>Hello.</p>\n' > ~/.ephe/plugins/hello-card/ui/index.html
+ephe plugin list
+ephe plugin enable hello-card
+```
+
+`ephe plugin list` prints `hello-card` with `on`. A row whose state reads `invalid` is a
+folder the loader refused, and the line under the table names why — the usual causes are a
+`name` that differs from the folder, a file a component declares but does not ship, and a
+JSON typo. The switch applies from the next agent turn. Everything below this point explains
+what the nine lines contain; the manifest fields are in [PLUGINS.md](PLUGINS.md), and the
+marketplace path is §5.
+
 ## 0. Mental model
 
 A plugin is a **folder** under `~/.ephe/plugins/<name>/` holding an
@@ -56,7 +81,7 @@ are the next change.
 Check the visibility:
 
 ```bash
-ephe plugin list                                      # is "my-tool" in the catalog, enabled?
+ephe plugin list                                      # is "my-tool" installed and enabled?
 curl -s localhost:8765/api/plugins | python3 -m json.tool   # quarantine + error per entry
 curl -s localhost:8765/api/plugins/commands             # is /my-tool in the slash menu?
 ```
@@ -353,7 +378,7 @@ backed out), `unknown_plugin` / `no_url` (honest, no crash).
 
 | Symptom | Most likely cause | First look |
 |---|---|---|
-| The plugin is missing from `ephe plugin list` | the scan overlooks the folder: folder name ≠ `manifest.name` (a hard rule) or a JSON error | the `GET /api/plugins` scan output, the `error` field per entry |
+| The plugin is missing from `ephe plugin list` | the folder is not under the plugins root, or its name ≠ `manifest.name` (a hard rule) | `ephe plugin list --json`: a quarantined folder is an `installed` row with `state: "error"` and its reason |
 | enabled, but the skills/commands are empty | `components` declared incompletely, or the master switch is off | complete `components`; `POST /api/plugins/master` |
 | Quarantine after an edit | the E4b drift gate: a signature record exists and the content changed | is `plugins.plugin_signature_check` ON? re-sign or update `ephe-plugin.sig.json` |
 | The command does not appear in the composer | `name` without the leading `/`? only validated plugins return entries | `GET /api/plugins/commands` |

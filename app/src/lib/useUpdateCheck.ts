@@ -30,9 +30,11 @@ import {
 } from '@/lib/restartGuard'
 import { readAsset, readManifestNotes, readPlatform } from '@/lib/updateDetails'
 import {
+  applyRelease,
   applyUpdate,
   isDesktopShell,
   runCheck,
+  type ApplyResult,
   type UpdateCheckInfo,
   type UpdatePhase,
   type UpdateState,
@@ -68,7 +70,13 @@ const SETTLED: readonly UpdatePhase[] = [
 ]
 
 /** The closures that end the retry loop rather than inviting another click. */
-const BLOCKED_CODES = ['not_a_checkout', 'not_on_main', 'dirty_tree']
+const BLOCKED_CODES = [
+  'not_a_checkout',
+  'not_on_main',
+  'dirty_tree',
+  'ahead_of_release',
+  'tag_missing',
+]
 
 function initialState(): UpdateState {
   return { phase: 'idle', progress: null }
@@ -210,14 +218,15 @@ async function relaunch(): Promise<boolean> {
 }
 
 /**
- * Take the newest commits the check found. The backend owns the guards; the
- * surface owns the words, so a refusal arrives as a sentence with its reason
- * rather than as a silent no-op.
+ * Take the update the backend can move: the newest commits on the commit
+ * channel, or the newest release tag for a PWA on the release channel. The
+ * backend owns the guards; the surface owns the words, so a refusal arrives as
+ * a sentence with its reason rather than as a silent no-op.
  */
-async function apply(): Promise<boolean> {
+async function applyOne(call: () => Promise<ApplyResult>): Promise<boolean> {
   token += 1
   setPhase('applying', { progress: null })
-  const result = await applyUpdate()
+  const result = await call()
   if (!result.ok) {
     // The code travels beside the prose: the surface owns the sentence the
     // user reads, the backend's detail stays as the technical line.
@@ -236,6 +245,14 @@ async function apply(): Promise<boolean> {
     current: result.after ?? undefined,
   })
   return true
+}
+
+function apply(): Promise<boolean> {
+  return applyOne(applyUpdate)
+}
+
+function applyReleaseNow(): Promise<boolean> {
+  return applyOne(applyRelease)
 }
 
 /** The machine's three self-asked moments, started with the first surface and
@@ -320,6 +337,7 @@ export function useUpdateCheck() {
     check,
     install,
     apply,
+    applyRelease: applyReleaseNow,
     relaunch,
     restartBlocked,
     dismiss: () => current.latest && setDismissed(current.latest),
@@ -329,7 +347,7 @@ export function useUpdateCheck() {
 /** What one click can do about the answer, and the words the click carries. */
 export interface UpdateAction {
   /** Which run of the machine the click starts. */
-  run: 'apply' | 'install'
+  run: 'apply' | 'release' | 'install'
   /** The label: the sheet and the settings page say the same words because they
    *  read the same answer. */
   labelKey: string
@@ -340,17 +358,20 @@ export interface UpdateAction {
 
 export function updateActionOf(answer: UpdateState): UpdateAction | null {
   if (answer.phase !== 'available') return null
-  if (answer.channel === 'main') {
+  if (answer.channel === 'commit') {
     return answer.applyBlocked
       ? null
       : { run: 'apply', labelKey: 'update.applyNow', takesEffect: true }
   }
   const desktop = isDesktopShell()
-  return {
-    run: 'install',
-    labelKey: desktop ? 'update.installAndRestart' : 'update.viewReleases',
-    takesEffect: desktop,
+  // The signed updater owns a desktop release. A browser has no bundle to
+  // replace; it can still ask the backend to move the tree to the release tag,
+  // and the service worker then loads the new build.
+  if (desktop) return { run: 'install', labelKey: 'update.installAndRestart', takesEffect: true }
+  if (answer.applyOk === true) {
+    return { run: 'release', labelKey: 'update.applyNow', takesEffect: true }
   }
+  return { run: 'install', labelKey: 'update.viewReleases', takesEffect: false }
 }
 
 /** The sentence for an answer with nothing to click: why the update cannot run
@@ -359,9 +380,15 @@ export function updateNoticeOf(answer: UpdateState, desktop = isDesktopShell()):
   if (answer.phase === 'failed') return updateFailureKey(answer)
   if (answer.phase === 'unsupported') return 'update.disabledHint'
   if (answer.phase !== 'available') return null
-  if (answer.channel === 'main')
-    return answer.applyBlocked ? `update.blocked.${updateBlockedKey(answer.applyBlocked)}` : null
-  return desktop ? null : 'update.browserNote'
+  if (answer.channel === 'commit') {
+    if (answer.applyBlocked) {
+      return `update.blocked.${updateBlockedKey(answer.applyBlocked)}`
+    }
+    // The commit channel moves the backend and the PWA. The installed desktop
+    // shell is a signed bundle and stays on its release until the next one.
+    return desktop ? 'update.commitShellNote' : null
+  }
+  return desktop || answer.applyOk ? null : 'update.browserNote'
 }
 
 /** Which of the closed-commit-path sentences a refusal or a block answers with. */

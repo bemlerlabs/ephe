@@ -166,7 +166,9 @@ def test_a_bundled_install_lands_the_pack_in_the_profile(tmp_path, monkeypatch) 
     assert len(list((installed / "skills").iterdir())) == 10
     assert plugin_runtime.lifecycle().snapshot("superpowers").enabled is True
 
-    removed = marketplace_service.remove("superpowers")
+    # A fresh install is switched on, and removal refuses an active bundle unless the
+    # caller says force (PE2E 8d: one semantic for the route and the CLI).
+    removed = marketplace_service.remove("superpowers", force=True)
     assert removed["status"] == "removed", removed
     assert not installed.exists()
     plugin_runtime.invalidate_ownership_cache()
