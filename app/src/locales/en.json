@@ -2174,7 +2174,8 @@
     "file_path_not_allowed": "path is outside the workspace and its output folder — pick a file from one of those two",
     "file_path_protected": "path is protected (credential or system file) — this route cannot read it; choose another file",
     "file_not_found": "file not found — check the path or whether the file still exists",
-    "file_too_large": "file is larger than the preview limit ({{max_mb}} MB) — open it directly instead"
+    "file_too_large": "file is larger than the preview limit ({{max_mb}} MB) — open it directly instead",
+    "sandbox_start_refused": "plugin '{{plugin}}' was not started: the OS boundary refused to exec its worker ({{reason}}) — check that the backend host allows the plugin worker, then run the tool again"
   },
   "reader": {
     "fetch_empty_url": "[fetch failed] The URL is empty.",

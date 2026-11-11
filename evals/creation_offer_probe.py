@@ -8,11 +8,14 @@ that looks like a capability that is missing.
 
 So this runs the real server against a local OpenAI-compatible stub that keeps every request
 it is given and answers with one scripted reply. No key, no quota, no opinion - it prints the
-request and lets the reader judge it.
+request and lets the reader judge it. Every round is kept, so the probe also answers whether
+each model input still carried the message the turn was run with: a round that lost it is
+not a turn the engine could answer, and no offer reading is printed as if it were.
 
     ./.venv/bin/python evals/creation_offer_probe.py [--message TEXT] [--privileges files,code]
 
-Exit is 0 when the Creator calls the grant covers are all in the array the stub was handed.
+Exit is 0 when the Creator calls the grant covers are all in the array the stub was handed
+and no round lost the request.
 """
 from __future__ import annotations
 
@@ -133,10 +136,24 @@ def covered_calls(privileges: list[str] | tuple[str, ...] = ()) -> list[str]:
     return sorted(name for name in CREATOR_CALLS if judge(name)[0] in held)
 
 
-def describe(requests: list[dict], privileges: list[str] | tuple[str, ...] = ()) -> dict:
+def describe(
+    requests: list[dict],
+    privileges: list[str] | tuple[str, ...] = (),
+    prompt: str = "",
+) -> dict:
+    """What the captured calls prove, including whether each round still holds the ask.
+
+    `prompt` is the message the turn was run with. A turn is several model calls, and a
+    round whose messages no longer carry the request grades an engine that was never
+    asked: `prompt_rounds_lost` names those rounds, so an offer reading printed for such
+    a turn cannot be mistaken for a turn the model could answer.
+    """
+    from evals.creation_transcript import rounds_without_request
+
     first = requests[0] if requests else {}
     names = offer_of(requests)
     covered = covered_calls(privileges)
+    lost = rounds_without_request(requests, prompt)
     system = next(
         (str(m.get("content") or "") for m in (first.get("messages") or []) if m.get("role") == "system"),
         "",
@@ -151,6 +168,10 @@ def describe(requests: list[dict], privileges: list[str] | tuple[str, ...] = ())
         # The defect: a call the grant *does* cover, and the array still does not carry.
         "creator_covered": covered,
         "creator_missing_from_grant": [n for n in covered if n not in names],
+        # The other defect: a round the request never reached.
+        "prompt_rounds": len(requests),
+        "prompt_rounds_lost": [row["round"] for row in lost],
+        "prompt_lost_detail": lost,
         "system_chars": len(system),
         "system_head": system[:400],
         "model": first.get("model"),
@@ -194,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
         if "http_error" in consent:
             raise SystemExit(f"consent refused: {consent['http_error']} {consent.get('body', '')[:200]}")
         _run_turn(base, args.message)
-        reading = describe(handler.requests, privileges)
+        reading = describe(handler.requests, privileges, prompt=args.message)
         reading["privileges"] = privileges
         (out / "offer.json").write_text(json.dumps(reading, indent=1), encoding="utf-8")
         (out / "requests.json").write_text(
@@ -211,11 +232,20 @@ def main(argv: list[str] | None = None) -> int:
                 "covered and absent : "
                 f"{', '.join(reading['creator_missing_from_grant']) or '(none)'}"
             )
+            print(
+                "rounds without ask : "
+                f"{', '.join(str(n) for n in reading['prompt_rounds_lost']) or '(none)'}"
+            )
             print(f"model addressed    : {reading['model']}")
             print(f"system prompt head : {reading['system_head'][:220]}")
             print(f"full reading       : {out / 'offer.json'}")
             print(f"the request itself : {out / 'requests.json'}")
-        code = 0 if not reading["creator_missing_from_grant"] and reading["calls"] else 1
+        answered = (
+            not reading["creator_missing_from_grant"]
+            and not reading["prompt_rounds_lost"]
+            and reading["calls"]
+        )
+        code = 0 if answered else 1
     finally:
         proc.terminate()
         try:

@@ -46,6 +46,7 @@ RAIL_PARAMS = {
     PLUGIN_WORKER_RESTART_EXHAUSTED: {"reason": "plugin worker died 3 times in a row"},
     PLUGIN_ENTRY_REFUSED: {"plugin": "acme", "reason": "the entry walks out of the plugin"},
     PLUGIN_STATE_FULL: {"plugin": "acme", "used_mb": "129", "cap_mb": "128"},
+    "sandbox_start_refused": {"plugin": "acme", "reason": "exec refused"},
 }
 
 #: where the rail's codes are emitted; a second literal spelling would be the drift.
@@ -107,6 +108,7 @@ def test_the_rail_emits_only_registered_codes():
         PLUGIN_WORKER_RESTART_EXHAUSTED,
         PLUGIN_ENTRY_REFUSED,
         PLUGIN_STATE_FULL,
+        "sandbox_start_refused",
     }
     for code in CODES:
         assert code in REASONS, f"{code} reaches a surface with no entry in REASONS"

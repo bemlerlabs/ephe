@@ -320,9 +320,10 @@ def test_a_persisted_engine_choice_in_the_config_root_is_refused(tmp_path):
 
 def test_the_engine_environment_owns_an_empty_builtin_plugin_root(tmp_path):
     """The run's environment names the checkout in no variable that answers a catalog:
-    the builtin plugin root points into the run's own config folder and stays empty, so a
-    graded turn cannot list the developer's working tree as installed plugins."""
-    from evals.creation_transcript import engine_environment
+    the builtin plugin root points into the run's own config folder and carries no bundle
+    unless the run declared one, so a graded turn cannot list the developer's working tree
+    as installed plugins. The record says which bundles were declared, and here: none."""
+    from evals.creation_transcript import DECLARATION_FILENAME, engine_environment
 
     key = tmp_path / "engine.key"
     key.write_text("sk-" + "0" * 32 + "\n", encoding="utf-8")
@@ -337,4 +338,88 @@ def test_the_engine_environment_owns_an_empty_builtin_plugin_root(tmp_path):
     builtin = Path(env["EPHE_BUILTIN_PLUGINS_ROOT"])
     assert builtin == config / "builtin-plugins"
     assert builtin.is_dir()
-    assert list(builtin.iterdir()) == []
+    assert [item.name for item in builtin.iterdir()] == [DECLARATION_FILENAME]
+    record = json.loads((builtin / DECLARATION_FILENAME).read_text(encoding="utf-8"))
+    assert record == {"bundles": []}
+
+
+# the declared bundle the run home has to carry (class 4d)
+
+
+def test_declared_bundles_names_the_shipped_bundle_that_declares_a_tool():
+    """GIVEN the network calls two cases name WHEN the declared bundles are asked for
+    THEN the shipped bundle whose manifest declares them is named, read from the
+    product's own declaration and not from what happens to be installed."""
+    from evals.creation_transcript import declared_bundles
+
+    assert "web-research" in declared_bundles(["fetch_url", "web_search"])
+    assert declared_bundles(["create_plugin_scaffold"]) == ()
+
+
+def test_the_run_home_declares_the_bundle_the_cases_name(tmp_path):
+    """GIVEN a run home built with a declared bundle WHEN its guard is asked
+    THEN the network calls are ruled `network` from that declaration, so a case that
+    grades the network privilege does not depend on the operator's install."""
+    from core import plugin_manifest
+    from core.tools import creator_guard
+    from evals.creation_transcript import engine_environment
+
+    key = tmp_path / "engine.key"
+    key.write_text("sk-" + "0" * 32 + "\n", encoding="utf-8")
+    config = tmp_path / "config"
+    env = engine_environment(
+        key_file=key,
+        config_dir=config,
+        base_url="https://api.deepseek.example/v1",
+        model="deepseek-test",
+        port=8802,
+        declared_bundles=["web-research"],
+    )
+    declared = Path(env[plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT])
+    assert (declared / "web-research" / plugin_manifest.MANIFEST_FILENAME).is_file(), (
+        "the run home carries no declaration for web-research"
+    )
+    record = json.loads((declared / "declaration.json").read_text(encoding="utf-8"))
+    assert record["bundles"] == ["web-research"]
+
+    import os
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(declared))
+        creator_guard.invalidate_family_map()
+        assert creator_guard.judge("fetch_url") == ("network", "family")
+        assert creator_guard.judge("web_search") == ("network", "family")
+    assert os.environ.get(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT) != str(declared)
+
+
+def test_a_grader_reads_the_declaration_the_turn_ran_with(tmp_path, monkeypatch):
+    """GIVEN a run home that recorded its declared bundles WHEN the grader adopts it
+    THEN the guard answers from that home, and a home that recorded nothing is left
+    alone so an older run keeps the checkout's declarations."""
+    import os
+
+    from core import plugin_manifest
+    from core.tools import creator_guard
+    from evals.creation_transcript import adopt_declaration, engine_environment
+
+    key = tmp_path / "engine.key"
+    key.write_text("sk-" + "0" * 32 + "\n", encoding="utf-8")
+    config = tmp_path / "config"
+    engine_environment(
+        key_file=key,
+        config_dir=config,
+        base_url="https://api.deepseek.example/v1",
+        model="deepseek-test",
+        port=8803,
+        declared_bundles=["web-research"],
+    )
+    monkeypatch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(tmp_path / "elsewhere"))
+    creator_guard.invalidate_family_map()
+    assert adopt_declaration(config) == str(config / "builtin-plugins")
+    assert creator_guard.judge("fetch_url") == ("network", "family")
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    monkeypatch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(tmp_path / "elsewhere"))
+    assert adopt_declaration(bare) == ""
+    assert os.environ[plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT] == str(tmp_path / "elsewhere")

@@ -7,9 +7,9 @@ POST /api/plugins/{id}/state/remove   → delete one stored file inside that fol
 GET  /api/plugins/{id}/client/storage → one page-sdk value, by key
 PUT  /api/plugins/{id}/client/storage → write or clear that key
 POST /api/plugins/{id}/client/tool    → run one tool this bundle owns
-PUT  /api/plugins/{id}/enabled        → the lifecycle switch (scope, version, ETag)
+PUT  /api/plugins/{id}/enabled        → the lifecycle switch, and the mount it owes
 POST /api/plugins/{id}/cancel         → cancel a pending activation
-POST /api/plugins/{id}/enable         → one-release compatibility shim
+POST /api/plugins/{id}/enable         → one-release compatibility shim (same two movements)
 POST /api/plugins/master              → legacy control; off pauses every plugin
 GET  /api/plugins/events              → SSE state/pending/failed/paused events
 GET  /api/plugins/commands            → commands of enabled plugins
@@ -34,6 +34,7 @@ from core import plugin_lifecycle_types, plugin_runtime, plugin_switch_policy
 from core.plugin_lifecycle import (
     STATE_FILENAME,
     LifecycleError,
+    PluginLifecycle,
     PluginSnapshot,
     PluginState,
     subscribe,
@@ -343,6 +344,170 @@ async def post_plugin_client_tool(plugin_id: str, body: dict, request: Request) 
     return {"result": result}
 
 
+def _mount_facts(plugin_id: str) -> dict:
+    """What the rail holds for this bundle, read from the lifecycle's own record.
+
+    The record is the snapshot a restart replays (`core/plugin_mount_replay.py`), so an
+    answer built from it says what survived rather than what one call attempted. A
+    bundle that declares no tool has no record: nothing is on the rail, and `names` is
+    empty instead of a claim.
+    """
+    record = plugin_runtime.lifecycle().mount_records().get(plugin_id) or {}
+    names = [str(name) for name in record.get("names") or []]
+    return {"mounted": bool(names), "names": names}
+
+
+def _mount_after_enable(
+    lifecycle: PluginLifecycle,
+    plugin_id: str,
+    *,
+    before: PluginSnapshot,
+    scope: str,
+    reason: str,
+) -> None:
+    """Mount what the switch just promised, and take the switch back if it refuses."""
+    try:
+        lifecycle.mount(plugin_id, actor="user", reason=reason or "enable mounts")
+    except LifecycleError as exc:
+        rolled_back = _roll_back_enable(
+            lifecycle, plugin_id, before=before, scope=scope, cause=exc
+        )
+        raise _mount_failed(lifecycle, plugin_id, exc, rolled_back=rolled_back) from exc
+
+
+def _roll_back_enable(
+    lifecycle: PluginLifecycle,
+    plugin_id: str,
+    *,
+    before: PluginSnapshot,
+    scope: str,
+    cause: LifecycleError,
+) -> bool:
+    """Return the switch to the position this call found, if this call moved it.
+
+    An enable of a bundle that was already on owns no switch movement, so there is
+    nothing to take back: the mount's own rollback restored the descriptor set the last
+    accepted mount published, and that set stays served.
+    """
+    if before.enabled:
+        return False
+    try:
+        lifecycle.set_enabled(
+            plugin_id,
+            False,
+            scope=scope,
+            actor="user",
+            reason=f"enable rolled back: the mount refused ({cause.code})",
+        )
+    except LifecycleError:
+        return False
+    return True
+
+
+def _mount_failed(
+    lifecycle: PluginLifecycle,
+    plugin_id: str,
+    exc: LifecycleError,
+    *,
+    rolled_back: bool,
+) -> HTTPException:
+    """The one answer for "the switch and the mount disagreed", with the mount's reason.
+
+    The status is the mount's own (a moved contract is a 409, a broken manifest a 422),
+    because that is the condition the reader has to resolve; `cause` carries the mount's
+    code so a card can render the diff or the entry the detail names.
+    """
+    current = lifecycle.effective(plugin_id)
+    if rolled_back:
+        because = "the switch was taken back to off; nothing of this bundle is served."
+    else:
+        because = "the switch was already on; the last accepted tool set stays served."
+    detail: dict = {
+        "code": "mount_failed",
+        "detail": (
+            f"the tools of '{plugin_id}' could not be mounted "
+            f"({exc.code}: {exc.detail}) — {because}"
+        ),
+        "next": plugin_lifecycle_types.next_step_for(exc.code),
+        "cause": exc.code,
+        "rolled_back": rolled_back,
+        "current": _state_payload(current),
+    }
+    # The mount's structured alarm rides beside the code, as it does on the mount route:
+    # a moved contract is shown as the fields that moved.
+    for name, value in exc.data.items():
+        detail.setdefault(str(name), value)
+    return HTTPException(status_code=exc.status, detail=detail)
+
+
+def _unmount_after_disable(
+    lifecycle: PluginLifecycle, plugin_id: str, *, reason: str
+) -> None:
+    """Take the names back with the switch; a cleanup that fails is a coded error.
+
+    The switch is already committed off, so nothing is offered either way — the gate
+    withholds every tool of a disabled bundle and the surface answers 404. What failed
+    is the record: the mount's own rollback put the descriptor set back, so a retry of
+    the same call finishes the cleanup instead of finding a half-removed bundle.
+    """
+    try:
+        lifecycle.unmount(plugin_id, actor="user", reason=reason or "disable unmounts")
+    except LifecycleError as exc:
+        error = _lifecycle_http_error(exc)
+        if isinstance(error.detail, dict):
+            error.detail["current"] = _state_payload(lifecycle.effective(plugin_id))
+        raise error from exc
+
+
+def _apply_switch(
+    plugin_id: str,
+    enabled: bool,
+    *,
+    scope: str,
+    expected_version: str | None,
+    expected_etag: str | None,
+    idempotency_key: str | None,
+    reason: str,
+) -> PluginSnapshot:
+    """One switch movement and the mount it owes, behind the guards the caller passed.
+
+    A 0.6.4 owner test read `PUT .../enabled {"enabled": true}` as "it works" and got a
+    200 with the tool missing from the offer: the switch alone published nothing. So an
+    enable mounts and a disable unmounts, in this one call.
+
+    The mount runs after the switch committed, so a refused mount could leave the switch
+    on with nothing served. It does not: the mount's own rollback restores every
+    artifact it wrote, and `_roll_back_enable` takes the switch back when this call was
+    the one that moved it. The 202 path is untouched — an activation that has not
+    settled is answered by the event stream, and the mount belongs to the answer that
+    settles it.
+    """
+    lifecycle = plugin_runtime.lifecycle()
+    try:
+        before = lifecycle.effective(plugin_id)
+        snapshot = lifecycle.set_enabled(
+            plugin_id,
+            enabled,
+            scope=scope,
+            expected_version=expected_version,
+            expected_etag=expected_etag,
+            idempotency_key=idempotency_key,
+            actor="user",
+            reason=reason,
+        )
+    except LifecycleError as exc:
+        raise _lifecycle_http_error(exc) from exc
+    if snapshot.state in (PluginState.ENABLING, PluginState.DISABLING):
+        return snapshot
+    if enabled:
+        _mount_after_enable(
+            lifecycle, plugin_id, before=before, scope=scope, reason=reason
+        )
+    else:
+        _unmount_after_disable(lifecycle, plugin_id, reason=reason)
+    return snapshot
+
+
 @router.put("/plugins/{plugin_id}/enabled")
 def put_plugin_enabled(
     plugin_id: str,
@@ -351,7 +516,7 @@ def put_plugin_enabled(
     if_match: str | None = Header(default=None, alias="If-Match"),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> dict:
-    """One endpoint for both directions; commits only after the registry confirms."""
+    """One endpoint for both directions, and the mount each direction owes."""
     _read_only_guard("set", plugin_id, _audit_scope(body))
     enabled = body.get("enabled")
     if not isinstance(enabled, bool):
@@ -368,19 +533,15 @@ def put_plugin_enabled(
     scope = _scope_from(body)
     if enabled:
         _signature_gate(plugin_id)
-    try:
-        snapshot = plugin_runtime.lifecycle().set_enabled(
-            plugin_id,
-            enabled,
-            scope=scope,
-            expected_version=expected_version,
-            expected_etag=if_match,
-            idempotency_key=idempotency_key,
-            actor="user",
-            reason=str(body.get("reason") or ""),
-        )
-    except LifecycleError as exc:
-        raise _lifecycle_http_error(exc) from exc
+    snapshot = _apply_switch(
+        plugin_id,
+        enabled,
+        scope=scope,
+        expected_version=expected_version,
+        expected_etag=if_match,
+        idempotency_key=idempotency_key,
+        reason=str(body.get("reason") or ""),
+    )
     _invalidate_caches()
     response.headers["ETag"] = snapshot.etag
     if snapshot.state in (PluginState.ENABLING, PluginState.DISABLING):
@@ -390,7 +551,9 @@ def put_plugin_enabled(
             "token": snapshot.etag,
             "poll": "/api/plugins/events",
         }
-    return _state_payload(snapshot)
+    payload = _state_payload(snapshot)
+    payload.update(_mount_facts(plugin_id))
+    return payload
 
 
 @router.post("/plugins/{plugin_id}/cancel")
@@ -441,7 +604,12 @@ def post_plugin_enable(
     if_match: str | None = Header(default=None, alias="If-Match"),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> dict:
-    """One-release shim: delegates to the lifecycle, never reports a failed write as 200."""
+    """One-release shim: same two movements as `PUT .../enabled`, its own old payload.
+
+    A caller on the old route asked for the same thing the new one did, so it gets the
+    same mount (or unmount). Only the answer stays the one the release before this one
+    promised: `id`, `enabled`, `saved`.
+    """
     _read_only_guard("legacy_enable", plugin_id, _audit_scope(body))
     if "enabled" not in body:
         raise HTTPException(
@@ -457,19 +625,15 @@ def post_plugin_enable(
     scope = _scope_from(body)
     if enabled:
         _signature_gate(plugin_id)
-    try:
-        snapshot = plugin_runtime.lifecycle().set_enabled(
-            plugin_id,
-            enabled,
-            scope=scope,
-            expected_version=body.get("expected_version"),
-            expected_etag=if_match,
-            idempotency_key=idempotency_key,
-            actor="user",
-            reason=str(body.get("reason") or "legacy enable route"),
-        )
-    except LifecycleError as exc:
-        raise _lifecycle_http_error(exc) from exc
+    snapshot = _apply_switch(
+        plugin_id,
+        enabled,
+        scope=scope,
+        expected_version=body.get("expected_version"),
+        expected_etag=if_match,
+        idempotency_key=idempotency_key,
+        reason=str(body.get("reason") or "legacy enable route"),
+    )
     _invalidate_caches()
     return {"id": plugin_id, "enabled": snapshot.enabled, "saved": True}
 

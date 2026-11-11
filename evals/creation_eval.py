@@ -58,6 +58,7 @@ CHECKS: tuple[str, ...] = (
     "capability_declared",
     "capability_undeclared_refused",
     "staging_empty",
+    "offer_matches_grant",
     "mounts",
     "no_console_errors",
     "survives_reload",
@@ -68,8 +69,18 @@ CHECKS: tuple[str, ...] = (
 #: staged tree has to clear before anything else about it is interesting.
 REQUIRED_CHECK = "manifest_valid"
 
-#: The one check a refused turn can answer.
+#: The one check a refused turn answers about bytes: nothing was staged.
 DENIAL_CHECK = "staging_empty"
+
+#: The check a refused turn answers about the offer it was given. Its subject is the array
+#: the grant produced before any call was made, so no call generates it and no privilege
+#: has to reach it - the same shape as a refusal's empty folder, one layer earlier.
+OFFER_CHECK = "offer_matches_grant"
+
+#: The checks whose subject no call produces, so `_validate_reachability` has no call to
+#: route them through. Both are decided before a turn can act: a refusal names what the
+#: turn left, and the offer names what it was handed.
+GRANT_CHECKS: frozenset[str] = frozenset({OFFER_CHECK})
 
 #: How many bundles a case says its turn leaves. The end-state instrument resolves one
 #: staged folder, so a bundle turn leaves one; a refusal leaves none, which is the
@@ -156,7 +167,7 @@ def expected_bundles(case: dict) -> int:
     that contradicts the kind is refused before a receipt can describe an end state the
     instrument cannot attribute. The grader does not read it - `evals.creation_checks`
     counts the staged folders itself and accepts exactly one - so the field is a stated
-    contract the set enforces at load time, not a second count the checks would honour.
+    contract the set enforces at load time.
     """
     expect = case.get("expect")
     if not isinstance(expect, dict):
@@ -229,8 +240,12 @@ def _validate_turn_shape(case: dict, bundles: int) -> None:
                 f"{cid}: a refused turn leaves no bundle, so expect.bundles is "
                 f"{REFUSED_BUNDLES}, got {bundles}"
             )
-        if checks != [DENIAL_CHECK]:
-            raise ValueError(f"{cid}: a refused turn is graded on {DENIAL_CHECK} alone")
+        extra = [name for name in checks if name != DENIAL_CHECK and name not in GRANT_CHECKS]
+        if DENIAL_CHECK not in checks or extra:
+            raise ValueError(
+                f"{cid}: a refused turn is graded on {DENIAL_CHECK} and "
+                f"{', '.join(sorted(GRANT_CHECKS))}, nothing else ({extra or 'missing ' + DENIAL_CHECK})"
+            )
         return
     if bundles != DEFAULT_BUNDLES:
         raise ValueError(
@@ -317,6 +332,9 @@ def _validate_reachability(case: dict) -> None:
     cid = case["id"]
     granted = frozenset(case.get("privileges") or ())
     for name in case["checks"]:
+        if name in GRANT_CHECKS:
+            # The offer is decided before any call; no call generates it.
+            continue
         call = CHECK_CALLS[name]
         if call in HARNESS_CALLS:
             continue

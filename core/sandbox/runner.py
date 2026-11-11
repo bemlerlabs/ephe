@@ -189,6 +189,17 @@ def _classify(name: str, outcome: WorkerOutcome, spec_timeout: float) -> RunResu
             name, "ran out of the memory it was given", outcome.stderr
         ))
     if outcome.status == "nonzero":
+        refused = mcp_sandbox.start_refusal(outcome.stderr)
+        if refused is not None:
+            # The boundary refused the child's own exec: the worker never ran. The raw
+            # line names `execvp` and a host path, so the sandbox module turns it into a
+            # code, a reason and the move; the stderr itself stays out of the answer.
+            return RunResult(
+                "start_refused",
+                "refusal",
+                f"[TOOL-DENIED] plugin tool '{name}' was not started: {refused.sentence()}",
+                code=refused.code,
+            )
         return RunResult("nonzero", "error", _error_line(
             name, f"exited with code {outcome.exit_code}", outcome.stderr
         ))

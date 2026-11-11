@@ -6,10 +6,10 @@ import os
 from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core.auto_memory import source_labels, source_of
 from core.memory import Memory
@@ -196,9 +196,11 @@ async def memory_list(limit: int = 100) -> MemoryListResponse:
 # and answer with a 422 for a body whose "text" field is missing.
 
 class MemoryProviderRequest(BaseModel):
-    #: Literal instead of an if-branch: a typo (postgres, mem0, kepta2) becomes
-    #: a 422, not a puzzling default brain.
-    provider: Literal["kepta", "kepta-bridge"]
+    #: One of `core.memory_provider.available_providers()`: the two kernel ids plus the
+    #: ids active bundles declare (`capabilities.memory`, MEM-P1). Membership is checked
+    #: against that list at request time, so a typo (postgres, mem0, kepta2) is a 422
+    #: instead of a persisted choice every later read silently ignores.
+    provider: str = Field(min_length=1, max_length=40)
 
 
 def _rebind_memory_instances() -> None:
@@ -211,9 +213,19 @@ def _rebind_memory_instances() -> None:
 @router.put("/memory/provider", response_model=dict)
 async def set_memory_provider(request: MemoryProviderRequest) -> dict:
     """Writes the storage choice as a readable record and puts it into effect."""
-    from core.memory_provider import write_provider_record
+    from core.memory_provider import available_providers, write_provider_record
 
-    write_provider_record(request.provider, reason="settings")
+    chosen = request.provider.strip()
+    available = available_providers()
+    if chosen not in available:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Unknown memory provider: {chosen!r} — choose one of "
+                f"{', '.join(available)}."
+            ),
+        )
+    write_provider_record(chosen, reason="settings")
     _rebind_memory_instances()
     memory = _get_memory()
     return {

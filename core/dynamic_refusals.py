@@ -44,6 +44,7 @@ CODES: tuple[str, ...] = (
     PLUGIN_WORKER_RESTART_EXHAUSTED,
     PLUGIN_ENTRY_REFUSED,
     PLUGIN_STATE_FULL,
+    "sandbox_start_refused",
 )
 
 #: The code for a supervisor status that refused the spawn instead of running it. The

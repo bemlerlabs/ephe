@@ -7,7 +7,7 @@ transcript the engine produced. The end-state half is what the harness reads bac
 the bundle the turn left behind, graded by `evals.creation_checks` (offline) and
 `evals.creation_checks_browser` (engine).
 
-This module wires the two halves together and prints a receipt whose rates are per
+It prints a receipt.
 category. A category whose cases cannot pass is work in the plan with its transcript
 attached, not copy in a marketing page — which is the claim the set exists to keep
 honest.
@@ -32,6 +32,7 @@ from evals.creation_checks import (
 )
 from evals.creation_checks_browser import SurfaceSession, browser_verdicts
 from evals.creation_eval import CATEGORIES, load_cases
+from evals.creation_transcript import adopt_declaration
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -327,6 +328,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="print the receipt as JSON")
     args = parser.parse_args(argv)
 
+    # The offer a case's grant produced was built in the run home, so the check that
+    # compares it with the guard has to read that home's declaration - not the operator's
+    # portfolio, which is what the process would otherwise scan (class 4d, 2026-11-11).
+    if args.config is not None:
+        adopted = adopt_declaration(args.config)
+        if adopted:
+            print(f"declaration: {adopted}", file=sys.stderr)
     cases = load_cases(args.cases) if args.cases else load_cases()
     staging_roots: dict[str, Path] = {}
     if args.staging:

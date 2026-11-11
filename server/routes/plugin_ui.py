@@ -101,22 +101,73 @@ def _declared_surface(plugin_id: str) -> tuple[Path, dict]:
     directory arrives as the refusal this route already speaks.
     """
     try:
-        return _surface_behind_the_read(plugin_id)
+        plugin_dir, descriptor = _declared_bundle(plugin_id)
     except OSError:
         raise Refused(
             "plugin_ui_unavailable",
             plugin=plugin_id,
             reason=plugin_surface.REFUSED_SHAPES["unreadable"],
         ) from None
+    if not plugin_runtime.is_plugin_active(plugin_id):
+        raise Refused(
+            "plugin_ui_unavailable",
+            plugin=plugin_id,
+            reason="the plugin is switched off",
+        )
+    return plugin_dir, descriptor
 
 
-def _surface_behind_the_read(plugin_id: str) -> tuple[Path, dict]:
-    """The four questions a mount asks, in the order a reader would ask them.
+def _declared_surface_for_mint(plugin_id: str) -> tuple[Path, dict]:
+    """The same bundle, with the switch answered as a conflict instead of a 404.
 
-    Is a plugin installed under this id, is it switched on, does its manifest still
-    pass the contract, does it declare a surface at all. A manifest that fails
-    validation arrives here as `(None, error)` from `load_manifest`, and its error
-    text rides in the `{reason}` slot — the quarantined plugin keeps its own words.
+    `POST .../surface-token` is asked for a credential, not for a document: a bundle
+    that is switched off still has its surface, and the reason no credential is minted
+    is the switch. A missing page is the wrong word for it, and a bare 401 is the wrong
+    answer — 0.6.4 sent one and named no move. The code stays the surface family's own
+    (`plugin_ui_unavailable`, whose sentence says the plugin is switched off and whose
+    next step says to switch it on), because a code of its own would need a key in both
+    reader bundles.
+    """
+    try:
+        plugin_dir, descriptor = _declared_bundle(plugin_id)
+    except OSError:
+        raise Refused(
+            "plugin_ui_unavailable",
+            plugin=plugin_id,
+            reason=plugin_surface.REFUSED_SHAPES["unreadable"],
+        ) from None
+    if not plugin_runtime.is_plugin_active(plugin_id):
+        raise _SwitchedOff(plugin_id)
+    return plugin_dir, descriptor
+
+
+class _SwitchedOff(Refused):
+    """A switched-off bundle asked for a mount credential: a conflict, with the move.
+
+    The code, the sentence and the reason params are the surface family's; only the HTTP
+    condition differs, because nothing is missing — the switch is off. 409 is what a
+    caller can act on: enable it, then ask again.
+    """
+
+    def __init__(self, plugin_id: str) -> None:
+        super().__init__(
+            "plugin_ui_unavailable",
+            plugin=plugin_id,
+            reason="the plugin is switched off",
+        )
+        self.status_code = 409
+
+
+def _declared_bundle(plugin_id: str) -> tuple[Path, dict]:
+    """The four questions a mount asks, minus the switch.
+
+    Is a plugin installed under this id, does its manifest still pass the contract, does
+    it declare a surface at all. A manifest that fails validation arrives here as
+    `(None, error)` from `load_manifest`, and its error text rides in the `{reason}`
+    slot — the quarantined plugin keeps its own words. The switch is the caller's
+    question:
+    a document is 404 while it is off (`_declared_surface`), a credential is a conflict
+    (`_declared_surface_for_mint`).
     """
     plugin_dir = _plugin_dir(plugin_id)
     if plugin_dir is None:
@@ -124,12 +175,6 @@ def _surface_behind_the_read(plugin_id: str) -> tuple[Path, dict]:
             "plugin_ui_unavailable",
             plugin=plugin_id,
             reason="no plugin is installed under that id",
-        )
-    if not plugin_runtime.is_plugin_active(plugin_id):
-        raise Refused(
-            "plugin_ui_unavailable",
-            plugin=plugin_id,
-            reason="the plugin is switched off",
         )
     manifest, error = load_manifest(plugin_dir)
     if manifest is None:
@@ -435,8 +480,12 @@ async def post_surface_token(plugin_id: str, request: Request) -> dict:
     already on screen keeps its URL. A dead value, or a value minted for another
     plugin, is a 401: bringing it back would make a URL copied into history live
     again. A body with no `surface` still mints a fresh credential.
+
+    A bundle that is switched off answers a coded conflict that names the switch
+    (`_declared_surface_for_mint`): the surface exists, no credential opens it, and the
+    move is to enable the bundle first.
     """
-    _declared_surface(plugin_id)
+    _declared_surface_for_mint(plugin_id)
     offered = await _offered_surface(request)
     if offered:
         renewed = plugin_surface_nonce.renew_surface_nonce(plugin_id, offered)

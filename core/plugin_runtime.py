@@ -37,6 +37,7 @@ from core.plugin_memory_contract import (
     MemoryProviderTable,
     scan_memory_providers,
 )
+from core.plugin_planner_contract import PlanStrategyTable, scan_plan_strategies
 from core.plugin_registry import ToolActivations, scan_tool_activations
 from core.plugin_store import REGISTRY_FILENAME, config_root, migrate_registry_items
 
@@ -158,6 +159,20 @@ def _memory_providers_cached(
     return scan_memory_providers(plugin_manifest.scan_plugins())
 
 
+@lru_cache(maxsize=8)
+def _plan_strategies_cached(
+    user_root: str, builtin_root: str
+) -> PlanStrategyTable:
+    """The plan strategies the portfolio declares, and the ids two bundles claim.
+
+    Read from the same scan the tool gate reads and cached the same way, so a mount, an
+    install or an edit retires the table in `invalidate_ownership_cache` and the next
+    read sees the folder as it is now. `scan_plan_strategies` takes the entries, which
+    keeps this the only place that scans for them.
+    """
+    return scan_plan_strategies(plugin_manifest.scan_plugins())
+
+
 def invalidate_ownership_cache() -> None:
     """Drops the manifest-derived view after an install, remove or edit."""
     global _LIFECYCLE, _LIFECYCLE_KEY
@@ -165,6 +180,7 @@ def invalidate_ownership_cache() -> None:
     _versions_cached.cache_clear()
     _dependencies_cached.cache_clear()
     _memory_providers_cached.cache_clear()
+    _plan_strategies_cached.cache_clear()
     with _LIFECYCLE_LOCK:
         _LIFECYCLE = None
         _LIFECYCLE_KEY = None
@@ -334,6 +350,14 @@ def memory_provider_claim(provider_id: str) -> MemoryProviderClaim | None:
     return memory_providers().get(str(provider_id))
 
 
+# Plan strategies
+
+
+def plan_strategies() -> PlanStrategyTable:
+    """Every plan strategy the scanned portfolio declares, with the contested ids."""
+    return _plan_strategies_cached(*_roots_key())
+
+
 # Gate decisions
 
 
@@ -414,6 +438,7 @@ def contested_names() -> dict[str, list[dict[str, Any]]]:
         }
         for name in activations.conflicts
     ]
+    plan_table = _plan_strategies_cached(*_roots_key())
     table = _memory_providers_cached(*_roots_key())
     memory_providers = [
         {
@@ -427,7 +452,23 @@ def contested_names() -> dict[str, list[dict[str, Any]]]:
         }
         for provider_id in table.contested
     ]
-    return {"tools": tools, "memory_providers": memory_providers}
+    plan_strategies = [
+        {
+            "name": strategy_id,
+            "reason": plan_table.conflict_reason(strategy_id),
+            "claims": [
+                {"plugin": claim.plugin_id, "declaration": claim.strategy_id}
+                for claim in plan_table.claims
+                if claim.strategy_id == strategy_id
+            ],
+        }
+        for strategy_id in plan_table.contested
+    ]
+    return {
+        "tools": tools,
+        "memory_providers": memory_providers,
+        "plan_strategies": plan_strategies,
+    }
 
 
 def tool_gate(tool_name: str, path=None) -> Gate:

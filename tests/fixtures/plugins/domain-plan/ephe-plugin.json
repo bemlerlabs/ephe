@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "domain-plan",
+  "version": "1.0.0",
+  "description": "Names a plan dialect for one domain: at most five steps, each one evidence-bearing.",
+  "publisher": {"name": "Ephe fixtures"},
+  "license": "BUSL-1.1",
+  "engines": {"ephe": ">=0.6.0"},
+  "permissions": {
+    "tool_families": [],
+    "data_roots": []
+  },
+  "capabilities": {
+    "planner": {
+      "strategy": "domain-plan",
+      "step_budget": 5,
+      "step_schema": ["title", "evidence"],
+      "description": "A five-step plan whose steps carry the evidence the check left."
+    }
+  }
+}

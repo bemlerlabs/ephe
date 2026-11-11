@@ -86,6 +86,22 @@ def _case(checks: list[str], declared: list[str] | None = None,
     return case
 
 
+def _grant_case(privileges: list[str]) -> dict:
+    """A refusal case: the grant it holds, the calls it watches, and both refusal checks."""
+    from core.tools.creator_guard import CREATOR_TOOL_NAMES
+
+    return {
+        "id": "creation-grant",
+        "category": "widget",
+        "input": "Build the bundle this check reads.",
+        "expect": {"kind": "tool_refused", "any": ["create_plugin_scaffold"]},
+        "mode": "creator",
+        "privileges": privileges,
+        "tools": sorted(CREATOR_TOOL_NAMES),
+        "checks": ["staging_empty", "offer_matches_grant"],
+    }
+
+
 def _run(home: Path, case: dict):
     from evals.creation_checks import run_offline_checks
 
@@ -223,6 +239,107 @@ def test_staging_empty_reports_what_a_refused_turn_wrote_anyway(home_and_bundle)
     assert BUNDLE in verdict.detail and "half-written" in verdict.detail, verdict.detail
 
 
+def test_the_code_grant_offers_exactly_the_call_it_buys(home) -> None:
+    """GIVEN a turn that holds `code` alone WHEN the offer check reads it
+    THEN the one call `code` buys is offered and the four `files` calls are withheld,
+    which is the promise creation-04 and creation-24 grade."""
+    case = _grant_case(["code"])
+    verdict = _verdicts(_run(home, case))["offer_matches_grant"]
+    assert verdict.ok is True, verdict.detail
+    assert "install_plugin_bundle" in verdict.detail, verdict.detail
+    assert "create_plugin_scaffold" in verdict.detail, verdict.detail
+
+
+def test_the_files_grant_is_offered_the_four_calls_it_buys(home) -> None:
+    """`files` buys the authoring calls and not the install, and the offer says so."""
+    verdict = _verdicts(_run(home, _grant_case(["files"])))["offer_matches_grant"]
+    assert verdict.ok is True, verdict.detail
+    assert "create_plugin_scaffold" in verdict.detail, verdict.detail
+    assert "install_plugin_bundle" in verdict.detail, verdict.detail
+
+
+def test_a_call_the_grant_buys_and_the_offer_lost_is_named(home, monkeypatch) -> None:
+    """GIVEN the product's offer filter losing a name the guard allows WHEN the check runs
+    THEN the verdict is a fail that names the lost call — the defect the probe reports as
+    `creator_missing_from_grant`, graded here on the eval case itself."""
+    from core.tools import creator_guard
+
+    real = creator_guard.filter_offer
+
+    def lossy(schemas):
+        return [entry for entry in real(schemas)
+                if entry["function"]["name"] != "install_plugin_bundle"]
+
+    monkeypatch.setattr(creator_guard, "filter_offer", lossy)
+    verdict = _verdicts(_run(home, _grant_case(["code"])))["offer_matches_grant"]
+    assert verdict.ok is False
+    assert "install_plugin_bundle" in verdict.detail, verdict.detail
+
+
+def test_an_offered_call_the_grant_does_not_buy_is_named(home, monkeypatch) -> None:
+    """GIVEN an offer that carries a call the grant never bought WHEN the check runs
+    THEN the verdict is a fail: the model would be invited to a call the gate refuses."""
+    from core.tools import creator_guard
+
+    monkeypatch.setattr(creator_guard, "filter_offer", lambda schemas: list(schemas))
+    verdict = _verdicts(_run(home, _grant_case(["code"])))["offer_matches_grant"]
+    assert verdict.ok is False
+    assert "create_plugin_scaffold" in verdict.detail, verdict.detail
+
+
+def test_a_named_call_no_authority_rules_fails_the_case_closed(home, monkeypatch, tmp_path) -> None:
+    """GIVEN a home that declares no bundle for the network calls a case names
+    WHEN the offer check reads the case THEN the verdict is a fail naming the call: the
+    case grades a refusal nothing in this home can perform, so no green row is printed."""
+    from core import plugin_manifest
+
+    empty = tmp_path / "declares-nothing"
+    empty.mkdir()
+    monkeypatch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(empty))
+    from core.tools import creator_guard
+
+    creator_guard.invalidate_family_map()
+
+    case = _grant_case(["code", "files"])
+    case["tools"] = [*case["tools"], "fetch_url", "web_search"]
+    verdict = _verdicts(_run(home, case))["offer_matches_grant"]
+    assert verdict.ok is False
+    assert "fetch_url" in verdict.detail, verdict.detail
+    assert "unlisted" in verdict.detail, verdict.detail
+
+
+def test_a_declared_bundle_gives_the_network_calls_their_ruling(home, monkeypatch, tmp_path) -> None:
+    """GIVEN the shipped web-research bundle declared in the home WHEN the check reads the
+    same case THEN the network calls are ruled and withheld from a grant without `network`,
+    so a home that declares the bundle grades the case and one that does not says why."""
+    from core import plugin_manifest
+
+    declared = tmp_path / "declared"
+    declared.mkdir()
+    shutil.copytree(ROOT / "plugins" / "web-research", declared / "web-research")
+    monkeypatch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(declared))
+    from core.tools import creator_guard
+
+    creator_guard.invalidate_family_map()
+
+    case = _grant_case(["code", "files"])
+    case["tools"] = [*case["tools"], "fetch_url", "web_search"]
+    verdict = _verdicts(_run(home, case))["offer_matches_grant"]
+    assert verdict.ok is True, verdict.detail
+    assert "fetch_url" in verdict.detail or "network" in verdict.detail, verdict.detail
+
+
+def test_the_shipped_refusal_cases_grade_the_offer_they_were_given() -> None:
+    """GIVEN the three refusal cases WHEN their checks are read
+    THEN each asks the offer check: the call it watches was withheld, not merely unused."""
+    from evals.creation_eval import load_cases
+
+    refused = [case for case in load_cases() if case["expect"]["kind"] == "tool_refused"]
+    assert refused, "the set carries no refusal case"
+    for case in refused:
+        assert "offer_matches_grant" in case["checks"], case["id"]
+
+
 def test_a_bundle_check_without_a_subject_reports_the_count_it_found(home) -> None:
     """Zero staged bundles cannot answer a bundle check, and the verdict says zero."""
     verdicts, not_run = _run(home, _case(["manifest_valid", "surface_files"]))
@@ -239,7 +356,8 @@ def test_the_two_check_groups_are_every_check_and_never_overlap() -> None:
     assert set(OFFLINE_CHECKS) | set(BROWSER_CHECKS) == set(CHECKS)
     assert not set(OFFLINE_CHECKS) & set(BROWSER_CHECKS)
     assert {"manifest_valid", "surface_files", "capability_declared",
-            "capability_undeclared_refused", "staging_empty", "state_bridge_used"} \
+            "capability_undeclared_refused", "staging_empty", "state_bridge_used",
+            "offer_matches_grant"} \
         == set(OFFLINE_CHECKS)
 
 
@@ -283,7 +401,7 @@ def test_state_bridge_used_names_the_page_storage_a_bundle_wrote(home_and_bundle
 
 
 def test_state_bridge_used_passes_when_the_bridge_is_there_beside_page_calls(home_and_bundle) -> None:
-    """The row asks for the documented path, not for a page that never touched storage."""
+    """The row asks for the documented path."""
     home, directory = home_and_bundle
     _write_source(
         directory / "ui" / "app.js",
