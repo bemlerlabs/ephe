@@ -57,6 +57,16 @@ _THREAD_LOCKS: dict[str, threading.Lock] = {}
 _THREAD_LOCKS_GUARD = threading.Lock()
 
 
+#: A bundle id never leaves this alphabet, so a lock file name built from it cannot
+#: walk anywhere (CodeQL: py/path-injection, one of five in the 0.6.4 review).
+_SAFE_LOCK_KEY_RE = __import__("re").compile(r"[^a-z0-9-]")
+
+
+def _lock_key(name: str) -> str:
+    """A filesystem-safe key for the per-name install lock."""
+    return _SAFE_LOCK_KEY_RE.sub("-", str(name).lower())[:64] or "unnamed"
+
+
 def _thread_lock(key: str) -> threading.Lock:
     with _THREAD_LOCKS_GUARD:
         lock = _THREAD_LOCKS.get(key)
@@ -82,7 +92,7 @@ def _install_lock(root: Path, name: str):
         handle = None
         try:
             lock_dir.mkdir(parents=True, exist_ok=True)
-            handle = open(lock_dir / f"install-{name}.lock", "a+", encoding="utf-8")
+            handle = open(lock_dir / f"install-{_lock_key(name)}.lock", "a+", encoding="utf-8")
             try:
                 import fcntl
 

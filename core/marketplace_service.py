@@ -358,6 +358,24 @@ def rollback(name: str) -> dict[str, Any]:
     return result
 
 
+#: The one alphabet a bundle id may use. Every path built from a request value goes
+#: through `_safe_name` first (CodeQL: py/path-injection in the 0.6.4 review).
+_SAFE_NAME_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _safe_name(name: str) -> str:
+    """The id as a slug, or a coded refusal - never a path a request can bend."""
+    raw = str(name)
+    if not _SAFE_NAME_RE.match(raw):
+        from server.refusals import Refused
+
+        raise Refused(
+            "invalid_name",
+            detail="a bundle id is lowercase letters, digits and dashes",
+        )
+    return raw
+
+
 def _plugin_directory(name: str) -> Path | None:
     """The installed folder for one id, or None when the id is not a slug."""
     try:
@@ -371,13 +389,13 @@ def _state_home(name: str) -> Path | None:
     from core import plugin_state
 
     try:
-        return plugin_state.state_home(str(name))
+        return plugin_state.state_home(_safe_name(name))
     except ValueError:
         return None
 
 
 def _legacy_data_directory(name: str) -> Path:
-    return config_root() / plugin_versions.DATA_DIRNAME / str(name)
+    return config_root() / plugin_versions.DATA_DIRNAME / _safe_name(name)
 
 
 def _data_present(name: str) -> bool:
@@ -391,7 +409,7 @@ def _data_present(name: str) -> bool:
 def _creator_draft(name: str) -> Path:
     from core.tools.creator_tools import STAGING_DIRNAME
 
-    return config_root() / STAGING_DIRNAME / "plugins" / str(name)
+    return config_root() / STAGING_DIRNAME / "plugins" / _safe_name(name)
 
 
 def _bundled_directory(name: str) -> Path | None:
@@ -411,6 +429,7 @@ def removal_facts(name: str) -> dict[str, Any]:
     route answers with the same facts afterwards, so a preview cannot promise a
     cleanup the product path does not perform.
     """
+    name = _safe_name(name)
     from core import plugin_runtime
     from core.plugin_lifecycle import SCOPES
     from core.plugin_store import load_registry
@@ -513,6 +532,7 @@ def remove(
     "removed" while a state row, a mount record or a data folder survives is the
     scene the reader later trips over.
     """
+    name = _safe_name(name)
     from core import plugin_runtime
     from core.plugin_lifecycle import LifecycleError
 
