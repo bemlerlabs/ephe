@@ -439,7 +439,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
 
     app.add_exception_handler(RequestValidationError, _request_validation_handler)
 
-    from server.refusals import Refused
+    from server.refusals import Refused, refusal_body
 
     # A refusal that knows its reason travels in the same envelope, with the reason beside
     # the transport code — the sentence stays what it is, the surface gets a key to answer in.
@@ -448,12 +448,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         # The same mapping the plain handler uses, so a coded 404 or 429 keeps the transport
         # code its route answered with before the code existed.
         transport = _transport_code(exc.status_code)
-        body = error_payload(transport, exc.message, rid)
-        body["error"]["reason_code"] = exc.code
-        if exc.params:
-            body["error"]["reason_params"] = dict(exc.params)
-        if exc.next:
-            body["error"]["next"] = exc.next
+        body = refusal_body(exc, transport, rid)
         return JSONResponse(
             body, status_code=exc.status_code, headers={REQUEST_ID_HEADER: rid or ""}
         )

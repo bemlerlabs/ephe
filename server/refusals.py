@@ -20,6 +20,8 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from core.observability import error_payload
+
 from core.dynamic_refusals import (
     PLUGIN_STATE_FULL,
     PLUGIN_ENTRY_REFUSED,
@@ -385,3 +387,20 @@ class Refused(HTTPException):
     def next(self) -> str:
         """The move this refusal leaves, or "" when its family has no sentence yet."""
         return NEXT_STEPS.get(self.code, "")
+
+
+def refusal_body(exc: Refused, transport: str, request_id: str | None) -> dict:
+    """The envelope a coded refusal answers with, built without raising.
+
+    The app's exception handler and the one route that has to answer a failed plugin
+    tool both use this, so the shape cannot drift between them. Nothing here reads the
+    exception that caused a refusal: the sentence, the code and the params are the
+    route's own values (CWE-209).
+    """
+    body = error_payload(transport, exc.message, request_id)
+    body["error"]["reason_code"] = exc.code
+    if exc.params:
+        body["error"]["reason_params"] = dict(exc.params)
+    if exc.next:
+        body["error"]["next"] = exc.next
+    return body

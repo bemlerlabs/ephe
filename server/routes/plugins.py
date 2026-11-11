@@ -32,9 +32,10 @@ import json
 import queue
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from core import plugin_lifecycle_types, plugin_runtime, plugin_switch_policy
+from core.observability import REQUEST_ID_HEADER, ErrorCode
 from core.plugin_lifecycle import (
     STATE_FILENAME,
     LifecycleError,
@@ -45,7 +46,7 @@ from core.plugin_lifecycle import (
     unsubscribe,
 )
 from core.plugin_store import config_root, plugins_view
-from server.refusals import Refused
+from server.refusals import Refused, refusal_body
 
 _SCOPES = ("user", "workspace")
 
@@ -213,7 +214,7 @@ def _unknown_bundle(plugin_id: str) -> None:
 def get_plugin_state(plugin_id: str) -> dict:
     """Bytes kept, bytes allowed, and the stored-file names. No host path."""
     from core.plugin_state import report
-    from server.refusals import Refused
+    from server.refusals import Refused, refusal_body
 
     _unknown_bundle(plugin_id)
     try:
@@ -230,7 +231,7 @@ def get_plugin_state(plugin_id: str) -> dict:
 def post_plugin_state_remove(plugin_id: str, body: dict) -> dict:
     """Delete one stored file the reader named, then return the report."""
     from core.plugin_state import remove_stored_file
-    from server.refusals import Refused
+    from server.refusals import Refused, refusal_body
 
     _read_only_guard("remove", plugin_id, _audit_scope(body))
     _unknown_bundle(plugin_id)
@@ -339,18 +340,28 @@ async def post_plugin_client_tool(plugin_id: str, body: dict, request: Request) 
         )
         if not approved:
             return {"result": denial}
-    failed = False
     try:
         result = await execute_tool(name, arguments, policy=policy)
     except Exception:  # noqa: BLE001 - the boundary answers a code, never the text
-        # The exception, its type and its traceback stay in the server log. Nothing from
-        # this handler reaches the page: the raise below happens outside it, so the only
-        # values in the answer are the route's own code and the plugin id (CWE-209).
         _LOGGER.exception("plugin tool %s failed", name)
-        failed = True
-    if failed:
-        raise Refused("tool_failed", plugin=plugin_id)
+        return _failed_tool_answer(plugin_id, request)
     return {"result": result}
+
+
+def _failed_tool_answer(plugin_id: str, request: Request) -> JSONResponse:
+    """The route's own coded refusal for a tool that raised, built without a raise.
+
+    The exception lives and dies in its handler: it is logged with its traceback there,
+    and this function receives only the plugin id. A page therefore reads the code and
+    the plugin, never a class name, a path or a message (CWE-209, CWE-497).
+    """
+    exc = Refused("tool_failed", plugin=plugin_id)
+    rid = getattr(request.state, "rid", None)
+    return JSONResponse(
+        refusal_body(exc, ErrorCode.INTERNAL, rid),
+        status_code=exc.status_code,
+        headers={REQUEST_ID_HEADER: rid or ""},
+    )
 
 
 def _mount_facts(plugin_id: str) -> dict:

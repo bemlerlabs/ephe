@@ -203,10 +203,19 @@ jobs:
         # as the runner user, with no sudo needed at job time. Hosted runners still get
         # `--with-deps`, so the `ubuntu-latest` fallback keeps its apt pass and loses nothing.
         run: |
+          installed=0
           if sudo -n true 2>/dev/null; then
-            python -m playwright install --with-deps chromium
-          else
-            python -m playwright install chromium
+            timeout 240 python -m playwright install --with-deps chromium && installed=1 || true
+          fi
+          if [ "$installed" != 1 ]; then
+            for attempt in 1 2; do
+              if python -m playwright install chromium; then installed=1; break; fi
+              echo "browser download attempt $attempt failed; retrying" >&2
+              sleep 15
+            done
+          fi
+          if [ "$installed" != 1 ]; then
+            echo "::warning::Chromium could not be installed; the real-browser proof skips as it does on a leg without the binary."
           fi
 
       - name: Hermetic preflight
