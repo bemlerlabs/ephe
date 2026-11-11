@@ -53,6 +53,7 @@ import { useStatusPanelData } from '../AgentStatusSections'
 import AgenticBar, { runStateOf } from '@/components/shell/AgenticBar'
 import EngineStatusPill from '@/components/shell/EngineStatusPill'
 import {
+  composerBlocked,
   readBackendReadiness,
   onBackendReadiness,
   type BackendReadiness,
@@ -884,9 +885,9 @@ export default function ChatLayout() {
                 hasMessages={(currentSession?.messages.length ?? 0) > 0}
                 contextPercent={contextPercent}
               />
-              {readiness?.ready === false && <BackendNotReady readiness={readiness} />}
+              {composerBlocked(readiness) && readiness && <BackendNotReady readiness={readiness} />}
               <ChatInput
-                disabled={readiness?.ready === false}
+                disabled={composerBlocked(readiness)}
                 onSend={(msg, att) => void handleSend(msg, att)}
                 streaming={isTyping}
                 onStop={handleStop}

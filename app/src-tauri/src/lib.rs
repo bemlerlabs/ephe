@@ -155,7 +155,7 @@ async fn backend_parity() -> parity::Status {
 /// The shell starts nothing without `~/.ephe/desktop.json` — that is the promise — and
 /// the surface used to answer "Ready" with a live composer while nothing ran. Only this
 /// process knows whether the line exists and what its start attempt answered, so it
-/// answers with one value: `bereit`, the state, the address, the file, a sentence and
+/// answers with one value: `ready`, the state, the address, the file, a sentence and
 /// the one action that would change it (`backend::Readiness`). The state is decided
 /// where the start is decided; this reads the recorded answer and never waits on a
 /// socket.
@@ -171,7 +171,7 @@ fn backend_readiness() -> Result<serde_json::Value, String> {
         // The shell starts a backend on Unix only (`mod backend`), so on another
         // platform the honest answer is that this window cannot serve one at all.
         Ok(serde_json::json!({
-            "bereit": false,
+            "ready": false,
             "state": "unsupported",
             "port": 8765,
             "base_url": "http://127.0.0.1:8765",
@@ -264,6 +264,33 @@ fn clamp_window_size(width: u32, height: u32) -> (u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::clamp_window_size;
+    use crate::backend;
+
+    #[test]
+    fn the_readiness_contract_speaks_one_field_name() {
+        // A surface reads `ready`. The unix answer is the serialised `Readiness` and the
+        // stub below is written by hand; when the two spellings drifted, the surface read
+        // a missing field as "not ready" and locked the composer for the whole window.
+        let unix = backend::Readiness {
+            ready: true,
+            state: "ready",
+            port: 8765,
+            base_url: "http://127.0.0.1:8765".into(),
+            config: String::new(),
+            sentence: String::new(),
+            action: String::new(),
+        };
+        let json = serde_json::to_value(&unix).expect("serialisable");
+        assert_eq!(json["ready"], serde_json::json!(true));
+        assert!(json.get("bereit").is_none(), "the wire has one name: {json}");
+
+        #[cfg(not(unix))]
+        {
+            let stub = backend_readiness().expect("stub answer");
+            assert!(stub.get("bereit").is_none(), "the stub spells it `ready`: {stub}");
+            assert_eq!(stub["ready"], serde_json::json!(false));
+        }
+    }
 
     #[test]
     fn the_global_shortcut_is_one_explicit_chord() {

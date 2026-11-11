@@ -80,7 +80,7 @@ Un teléfono en tu red local puede abrir la PWA después de ejecutar `ephe start
 #### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.7/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash
 ```
 
 Para leer el script antes de ejecutarlo, usa el repositorio:
@@ -96,7 +96,7 @@ El instalador prepara Python y el entorno local, compila la aplicación web y la
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.7/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -108,7 +108,7 @@ La instalación en Windows aún no está verificada de extremo a extremo para es
 
 Docker y todas las opciones del instalador se describen en [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-El comando nombra la versión que incluye este árbol, `v0.6.7`; la etiqueta resuelve cuando se publica. El instalador de Bash usa `--desktop` por defecto; pasa `--cli` o define `EPHE_MODE=cli` para instalar solo la terminal.
+El comando nombra la versión que incluye este árbol, `v0.6.8`; la etiqueta resuelve cuando se publica. El instalador de Bash usa `--desktop` por defecto; pasa `--cli` o define `EPHE_MODE=cli` para instalar solo la terminal.
 
 Antes de usar `ephe` en una terminal nueva, activa el entorno instalado.
 Para la instalación predeterminada en macOS o Linux:
