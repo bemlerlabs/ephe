@@ -35,18 +35,24 @@ export default function EngineStatusPill({
         ? 'bg-mist/40'
         : 'bg-status-warning'
   return (
-    <button
-      type="button"
-      data-testid="engine-status-pill"
-      data-engine-state={state}
-      role="status"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="hidden lg:inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground hover:bg-surface-interactive transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
-    >
-      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} aria-hidden="true" />
-      <span className="whitespace-nowrap">{label}</span>
-    </button>
+    <>
+      <button
+        type="button"
+        data-testid="engine-status-pill"
+        data-engine-state={state}
+        aria-label={label}
+        title={label}
+        onClick={onClick}
+        className="hidden lg:inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground hover:bg-surface-interactive transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
+      >
+        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} aria-hidden="true" />
+        <span className="whitespace-nowrap">{label}</span>
+      </button>
+      {/* role=status is not allowed on a button; the changing state is announced
+          from its own live node, the control stays a control. */}
+      <span role="status" aria-live="polite" data-testid="engine-status-live" className="sr-only">
+        {label}
+      </span>
+    </>
   )
 }

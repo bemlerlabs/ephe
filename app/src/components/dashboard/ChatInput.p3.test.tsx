@@ -288,13 +288,17 @@ describe('P3-3 @-Mentions sind tastaturbedienbar', () => {
     expect(ta().value).toBe('@rea')
   })
 
-  it('Listbox-Rollen + aria-activedescendant am Textfeld', async () => {
+  it('no combobox ARIA on the textarea; the listbox carries the name', async () => {
     render(<ChatInput onSend={vi.fn()} />)
     fireEvent.change(ta(), { target: { value: '@', selectionStart: 1 } })
     await screen.findByTestId('mention-popup')
     expect(screen.getByRole('listbox', { name: /Dateien im Workspace/i })).toBeTruthy()
-    expect(ta().getAttribute('aria-controls')).toBe('mention-listbox')
-    expect(ta().getAttribute('aria-activedescendant')).toBe('mention-opt-0')
+    // A <textarea> can carry neither role=combobox nor its expanded/controls pair:
+    // the listbox is named, the input stays a plain text field.
+    expect(ta().getAttribute('role')).toBeNull()
+    expect(ta().getAttribute('aria-expanded')).toBeNull()
+    expect(ta().getAttribute('aria-controls')).toBeNull()
+    expect(ta().getAttribute('aria-activedescendant')).toBeNull()
   })
 })
 
@@ -307,6 +311,13 @@ async function openModelMenu() {
 }
 
 describe('P3-4 Modell-Menü: Höhe, Scrollen, Suche, Markierung, Tastatur', () => {
+  it('the visible model name is part of the accessible name', async () => {
+    await openModelMenu()
+    // WCAG 2.5.3: with a configured model the chip shows its name, not only "…".
+    expect(screen.getByTestId('model-chip').textContent).toContain('gemma4')
+    expect(screen.getByTestId('model-chip').getAttribute('aria-label')).toContain('gemma4')
+  })
+
   it('Liste ist höhenbegrenzt und scrollbar (kein Überhang über den Rand)', async () => {
     await openModelMenu()
     const list = screen.getByTestId('model-chip-list')
@@ -423,7 +434,7 @@ describe('P3-6 Denk-Chip ist reiner Status mit einem Detail-Zugang', () => {
   it('bleibt Status-Optik, ist aber der eine Zugang zu den Zahlen', async () => {
     render(<ChatInput onSend={vi.fn()} />)
     const chip = await screen.findByTestId('composer-thinking-chip')
-    // It is a disclosure now, not a switch: the state still cannot be toggled,
+    // It is a disclosure: the state still cannot be toggled,
     // but the composer's secondary figures live behind this one control.
     expect(chip.tagName).toBe('BUTTON')
     expect(chip.getAttribute('aria-expanded')).toBe('false')

@@ -45,12 +45,12 @@ export function SettingsGroup({
         <div className="flex items-end justify-between gap-3 px-1">
           <div className="min-w-0">
             {title && (
-              <h4 className="flex items-center gap-1.5 text-scale-ui font-medium text-ink">
+              <h3 className="flex items-center gap-1.5 text-scale-ui font-medium text-ink">
                 {Icon && (
                   <Icon className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden="true" />
                 )}
                 <span className="truncate">{title}</span>
-              </h4>
+              </h3>
             )}
             {description && <p className="pt-0.5 text-scale-data text-ink-faint">{description}</p>}
           </div>

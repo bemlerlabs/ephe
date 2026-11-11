@@ -60,13 +60,12 @@ describe('AgentStatusButton (H3, Referenz-Paritaet)', () => {
     expect(screen.queryByTestId('agent-status-activity')).toBeNull()
   })
 
-  it('names the pill by the control it is, not by the state it echoes', async () => {
-    // The run line above already reports "Ready" as the app's status. The pill opens
-    // the agent panel, so its accessible name says what using it does; the visible
-    // idle word stays for a glance (textContent still carries it, asserted above).
+  it('the accessible name carries the visible state word', async () => {
+    // WCAG 2.5.3: speech input says what the user sees. The panel door is the
+    // action, the idle word is the label — both belong in the name.
     render(<AgentStatusButton messages={IDLE} />)
     const pill = await screen.findByTestId('agent-status-pill')
-    expect(pill.getAttribute('aria-label')).toBe('agentStatus.title')
+    expect(pill.getAttribute('aria-label')).toBe('agentStatus.title: agentStatus.idle')
     expect(pill.getAttribute('aria-expanded')).toBe('false')
   })
 
@@ -163,7 +162,7 @@ describe('AgentStatusButton (H3, Referenz-Paritaet)', () => {
     // The row is quiet: the visible word is the state, the name/action is the panel.
     expect(screen.queryByTestId('agent-status-expand')).toBeNull()
     expect(pill.getAttribute('title')).toBe('agentStatus.expandStatus')
-    expect(pill.getAttribute('aria-label')).toBe('agentStatus.title')
+    expect(pill.getAttribute('aria-label')).toBe('agentStatus.title: Agent researcher')
     fireEvent.click(pill)
     expect(await screen.findByTestId('agent-status-popover')).toBeTruthy()
   })

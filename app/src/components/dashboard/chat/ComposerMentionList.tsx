@@ -27,11 +27,15 @@ export default function ComposerMentionList({
 }) {
   const { t } = useTranslation()
   if (items.length === 0) return null
+  const activeItem = items[Math.min(activeIndex, items.length - 1)]
   return (
     <div
       className="mb-2 rounded-lg border border-hairline bg-surface overflow-hidden"
       data-testid="mention-popup"
     >
+      <p aria-live="polite" data-testid="mention-status" className="sr-only">
+        {activeItem ? `${String(t('chat.mentionTitle'))}: ${activeItem.name}` : ''}
+      </p>
       <p className="px-2.5 pt-1.5 text-ui-xs uppercase tracking-wide text-ink-faint">
         {t('chat.mentionTitle')}
       </p>

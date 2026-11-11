@@ -74,16 +74,18 @@ export function useDismissOnOutside(
 /**
  * Pull focus into an open menu (keyboard operation) and hand it back to the
  * trigger when the menu closes by keyboard. An outside click deliberately does
- * NOT call `release` — focus stays where the user clicked.
+ * NOT call `release` — focus stays where the user clicked. `open` is required
+ * for a control that mounts closed (the same component renders trigger + menu).
  */
-export function useMenuFocus(anchorRef: RefObject<HTMLElement | null>) {
+export function useMenuFocus(anchorRef: RefObject<HTMLElement | null>, open = true) {
   const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
+    if (!open) return
     // requestAnimationFrame: in the test renderer the portal node is only in the
     // document after this commit.
     const id = requestAnimationFrame(() => ref.current?.focus())
     return () => cancelAnimationFrame(id)
-  }, [])
+  }, [open])
   const release = useCallback(() => {
     anchorRef.current?.focus()
   }, [anchorRef])
@@ -141,22 +143,18 @@ export function ComposerMenu({
 }: ComposerMenuProps) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [left, setLeft] = useState<number>(pos?.left ?? 0)
-  const anchorCenter = pos?.left ?? 0
+  const anchorLeft = pos?.left ?? 0
   const anchorBottom = pos?.bottom ?? 0
-
-  useEffect(() => {
-    setLeft(anchorCenter)
-  }, [anchorCenter])
 
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
     const w = el.offsetWidth
     // jsdom measures 0 — then the anchor centre stays put (no flickering).
-    if (!w || !anchorCenter) return
-    const next = clampCenter(anchorCenter, w, window.innerWidth)
+    if (!w || !anchorLeft) return
+    const next = clampCenter(anchorLeft, w, window.innerWidth)
     if (next !== left) setLeft(next)
-  }, [anchorCenter, anchorBottom, left, children])
+  }, [anchorLeft, anchorBottom, left, children])
 
   useDismissOnOutside(true, onClose, () => [ref.current, anchorRef.current])
 
@@ -167,7 +165,14 @@ export function ComposerMenu({
       data-testid={testId}
       role={role ?? undefined}
       aria-label={ariaLabel}
-      style={{ left, bottom: anchorBottom }}
+      style={{
+        left,
+        bottom: anchorBottom,
+        maxWidth: 'calc(100vw - 16px)',
+        // The class ceiling alone can still run past the top edge on a short
+        // window; the anchor sits `bottom` px above the viewport floor.
+        maxHeight: `min(70vh, 30rem, calc(100vh - ${Math.round(anchorBottom)}px - 8px))`,
+      }}
       className={`fixed -translate-x-1/2 z-modal rounded-xl border border-hairline bg-surface shadow-elevation-2 max-h-[min(70vh,30rem)] ${widthClass} ${
         scroll === 'self'
           ? 'overflow-y-auto overscroll-contain py-1.5'
@@ -241,6 +246,9 @@ export function MenuOptionRow({
       aria-checked={role === 'menuitemradio' ? selected : undefined}
       aria-current={active ? 'true' : undefined}
       aria-disabled={disabled || undefined}
+      // Roving tabindex: the menu container holds focus and names the active row
+      // through aria-activedescendant, so the rows themselves stay out of the
+      // Tab order.
       tabIndex={-1}
       title={title}
       aria-label={ariaLabel}

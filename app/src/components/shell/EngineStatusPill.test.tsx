@@ -13,6 +13,11 @@ describe('the engine status pill', () => {
     expect(pill.getAttribute('data-engine-state')).toBe('online')
     expect(pill.getAttribute('aria-label')).toBeTruthy()
     expect(pill.textContent).toBeTruthy()
+    // role=status is not allowed on a button; the state change is announced
+    // from the sibling live node instead.
+    expect(pill.getAttribute('role')).toBeNull()
+    expect(screen.getByTestId('engine-status-live').getAttribute('role')).toBe('status')
+    expect(screen.getByTestId('engine-status-live').textContent).toBe(pill.textContent)
   })
 
   it('sticks to the edge of the header on phones', () => {

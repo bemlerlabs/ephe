@@ -57,6 +57,13 @@ export default function ComposerSlashMenu({
       className="mb-2 rounded-lg border border-hairline bg-surface overflow-hidden"
       data-testid="slash-menu"
     >
+      {/* The textarea cannot announce the active option itself (no combobox role
+          on <textarea>), so the moving highlight is read from here. */}
+      <p aria-live="polite" data-testid="slash-menu-status" className="sr-only">
+        {activeCmd
+          ? `${String(t('chat.commandsTitle'))}: /${activeCmd}`
+          : String(t('chat.commandsTitle'))}
+      </p>
       {/* Skill triggers push the list to 60+ rows: cap the height and
           scroll inside the menu instead of growing past the viewport. */}
       <div

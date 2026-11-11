@@ -21,6 +21,7 @@ import { matchFields, matchRows, matchTabs } from './model/settingsSearch'
 import type { SettingsPanelProps, TabKey } from './types'
 import { READONLY_TABS } from './types'
 import { isDesktopShell } from '@/lib/tauriBridge'
+import { stableFocusTarget } from '@/hooks/useFocusReturn'
 
 /** Make everything outside the dialog unreachable (P4 finding 5): the siblings
  *  along the ancestor chain get `inert` (keyboard/mouse/AT) and `aria-hidden`
@@ -94,6 +95,14 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
   // listener before it can fire — otherwise the panel would lose the focus it
   // just set.
   const panelKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' && helpOn) {
+      // The topmost disclosure owns Escape; closing the whole page under it
+      // would also throw the help state away.
+      e.preventDefault()
+      e.stopPropagation()
+      setHelpOn(false)
+      return
+    }
     if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f') {
       const input = panelRef.current?.querySelector<HTMLInputElement>(
         '[data-testid="settings-search"]',
@@ -167,6 +176,17 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
       release()
       const invoker = invokerRef.current
       if (invoker && invoker.isConnected) invoker.focus()
+      // The /settings route has no invoker on screen (it was reached directly);
+      // wait for the shell it returns to and hand focus there, never to <body>.
+      else {
+        let tries = 0
+        const handBack = () => {
+          const target = stableFocusTarget()
+          if (target) target.focus()
+          else if (tries++ < 60) requestAnimationFrame(handBack)
+        }
+        requestAnimationFrame(handBack)
+      }
     }
   }, [isOpen, panelRef])
 
@@ -241,7 +261,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
                 type="button"
                 data-testid="settings-lang-pill"
                 onClick={() => void selectLanguage(nextLangCode)}
-                aria-label={t('settings.languagePillAria')}
+                aria-label={`${String(t('settings.languagePillAria'))}: ${String(langLabel)}`}
                 title={t('settings.languagePillAria')}
                 className="rounded-full border border-control bg-surface px-2.5 py-0.5 min-h-6 text-ui-xs text-ink-soft transition-colors hover:text-foreground hover:border-brand/40 pointer-coarse:min-h-11"
               >
@@ -300,10 +320,11 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
               />
             </nav>
 
-            <div
+            <main
               // P4 finding 5: the dialog role belongs on the FULL PAGE (see above) —
-              // this column is its content.
-              role="region"
+              // this column is its content, and the settings route's skip target.
+              id="settings-content"
+              tabIndex={-1}
               aria-label={t(`settings.${activeTab}`)}
               data-testid="settings-panel"
               className="flex-1 min-w-0 overflow-y-auto px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
@@ -325,7 +346,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
                   </m.div>
                 </AnimatePresence>
               )}
-            </div>
+            </main>
           </div>
 
           {/* Footer save — DD-24: the only save button on the surface; it writes the

@@ -230,6 +230,11 @@ function ConfirmSurface() {
 // must stay inside the Router provider too.
 function AppInner() {
   const { open, query, setQuery, inputRef, grouped, t, setOpen, recordUsage } = useCommandPalette()
+  const { pathname } = useLocation()
+  // The composer only exists on the chat routes; the settings page brings its own
+  // content landmark, so each route gets a target that is really there.
+  const hasComposer = pathname === '/' || pathname.startsWith('/chat')
+  const contentTarget = pathname.startsWith('/settings') ? 'settings-content' : 'main-content'
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return
     void restoreHostSurfaces(t).catch(() => {})
@@ -241,20 +246,27 @@ function AppInner() {
     <>
       {/* R33 a11y: keyboard-only path to the primary action. Without this the
           chat input sits behind ~30 tab stops; one Enter lands the caret there. */}
+      {hasComposer && (
+        <a
+          href="#ephe-chat-input"
+          onClick={(e) => {
+            e.preventDefault()
+            document.getElementById('ephe-chat-input')?.focus()
+          }}
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-modal focus:px-4 focus:py-2 focus:bg-status-success focus:text-black focus:rounded-lg"
+        >
+          {t('a11y.skipToInput')}
+        </a>
+      )}
+
+      {/* Skip to content link for a11y. The click is handled like the input
+          link: a bare `href="#…"` would be a route change under HashRouter. */}
       <a
-        href="#ephe-chat-input"
+        href={`#${contentTarget}`}
         onClick={(e) => {
           e.preventDefault()
-          document.getElementById('ephe-chat-input')?.focus()
+          document.getElementById(contentTarget)?.focus()
         }}
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-modal focus:px-4 focus:py-2 focus:bg-status-success focus:text-black focus:rounded-lg"
-      >
-        {t('a11y.skipToInput')}
-      </a>
-
-      {/* Skip to content link for a11y */}
-      <a
-        href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-modal focus:px-4 focus:py-2 focus:bg-status-success focus:text-black focus:rounded-lg"
       >
         {t('a11y.skipToContent')}

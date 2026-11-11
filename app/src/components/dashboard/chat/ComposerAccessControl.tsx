@@ -56,7 +56,7 @@ export default function ComposerAccessControl({
     const at = ACCESS_PROFILES.findIndex((entry) => entry.key === profile)
     if (at >= 0) setIndex(at)
   }, [profile, setIndex])
-  const { ref, release } = useMenuFocus(anchorRef)
+  const { ref, release } = useMenuFocus(anchorRef, open)
   // A stored value outside the register (an old `autonomous` row) still shows a
   // word: the badge this control replaces named it through the same leaves.
   const short = String(t(`chat.perm.${profile}`, { defaultValue: profile }))

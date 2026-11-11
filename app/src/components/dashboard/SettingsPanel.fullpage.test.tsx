@@ -217,10 +217,13 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     // title is an h2 too — a lone h1 would break the outline a screen reader builds.
     const title = screen.getByTestId('settings-title-h1')
     expect(title.tagName).toBe('H2')
-    expect(screen.getByRole('region', { name: 'settings.engine' })).toBeInTheDocument()
+    expect(screen.getByRole('main', { name: 'settings.engine' })).toBeInTheDocument()
     expect(screen.getByTestId('settings-page').querySelector('h1')).toBeNull()
     const pill = screen.getByTestId('settings-lang-pill')
     expect(pill.textContent).toContain('Deutsch')
+    // WCAG 2.5.3: the visible language is part of the accessible name.
+    expect(pill.getAttribute('aria-label')).toContain('Deutsch')
+    expect(pill.getAttribute('aria-label')).toContain('settings.languagePillAria')
     fireEvent.click(pill)
     expect(changeLanguage).toHaveBeenCalledWith('en')
   })
@@ -231,6 +234,17 @@ describe('Settings-Vollseite (P6 B6, ref-16/17/18/20)', () => {
     expect(screen.queryByTestId('settings-help-hint')).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('settings-help'))
     expect(screen.getByTestId('settings-help-hint')).toHaveTextContent('engine')
+  })
+
+  it('Escape closes the help disclosure before it closes the page', async () => {
+    const onClose = vi.fn()
+    render(<SettingsPanel isOpen onClose={onClose} initialTab="engine" />)
+    const page = await screen.findByTestId('settings-page')
+    fireEvent.click(screen.getByTestId('settings-help'))
+    expect(screen.getByTestId('settings-help-hint')).toBeInTheDocument()
+    fireEvent.keyDown(page, { key: 'Escape' })
+    expect(screen.queryByTestId('settings-help-hint')).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   // W10 g8: at 390 px the header controls measured 22 / 20 / 17.6 x 26 px, all

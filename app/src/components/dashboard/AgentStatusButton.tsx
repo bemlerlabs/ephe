@@ -186,6 +186,14 @@ export default function AgentStatusButton({
   // sub-agent activity counts too (the reference shows "Working for 29s" per turn).
   const working = running.length > 0 || Boolean(activeTurn)
   const current = running[0]
+  // The pill's visible word; it also has to appear in the accessible name (2.5.3).
+  const stateLabel = working
+    ? current
+      ? current.label
+      : t('agentStatus.workingFor', { time: elapsed ?? '' })
+    : engineOnline === false
+      ? t('agentStatus.offline')
+      : t('agentStatus.idle')
 
   const openTab = (tab: string) => {
     window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab } }))
@@ -208,8 +216,8 @@ export default function AgentStatusButton({
         aria-expanded={open}
         onClick={openPopover}
         title={t('agentStatus.expandStatus')}
-        // The visible word is the state; the name says what the control opens.
-        aria-label={t('agentStatus.title')}
+        // The visible word is the state; the name keeps it and adds what the control opens.
+        aria-label={`${String(t('agentStatus.title'))}: ${String(stateLabel)}`}
         className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full text-ui-sm font-medium transition-colors border min-h-9 max-lg:min-h-11 ${working ? 'border-brand/30 bg-brand/10 text-brand-deep' : 'border-control bg-canvas text-ink-soft hover:text-foreground/80'}`}
       >
         {working ? (
@@ -219,7 +227,7 @@ export default function AgentStatusButton({
         )}
         {working ? (
           <span data-testid="agent-status-activity" className="max-w-40 truncate">
-            {current ? current.label : t('agentStatus.workingFor', { time: elapsed ?? '' })}
+            {stateLabel}
           </span>
         ) : engineOnline === false ? (
           <span
@@ -227,10 +235,10 @@ export default function AgentStatusButton({
             className="max-w-32 truncate"
             title={t('agentStatus.offlineHint')}
           >
-            {t('agentStatus.offline')}
+            {stateLabel}
           </span>
         ) : (
-          <span className="max-w-32 truncate">{t('agentStatus.idle')}</span>
+          <span className="max-w-32 truncate">{stateLabel}</span>
         )}
         {runningTasks.length > 0 && (
           <span className="rounded-full bg-surface px-1.5 text-ui-xs font-mono shrink-0">

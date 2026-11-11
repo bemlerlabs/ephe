@@ -129,7 +129,7 @@ const focusablesIn = (el: HTMLElement) =>
   )
 
 describe('Einstellungen sind ein echter modalen Dialog (P4 Befund 5)', () => {
-  it('die Vollseite traegt role=dialog + aria-modal=true, die Detail-Spalte ist Region', async () => {
+  it('die Vollseite traegt role=dialog + aria-modal=true, die Detail-Spalte ist main', async () => {
     render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
     const page = await screen.findByTestId('settings-page')
     expect(page.getAttribute('role')).toBe('dialog')
@@ -138,7 +138,8 @@ describe('Einstellungen sind ein echter modalen Dialog (P4 Befund 5)', () => {
     // No second dialog inside the dialog: the column is content, not a modality.
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
     const panel = screen.getByTestId('settings-panel')
-    expect(panel.getAttribute('role')).toBe('region')
+    expect(panel.tagName).toBe('MAIN')
+    expect(panel.id).toBe('settings-content')
     expect(panel.getAttribute('aria-modal')).toBeNull()
   })
 
