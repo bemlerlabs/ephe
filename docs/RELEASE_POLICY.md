@@ -116,3 +116,22 @@ and loses the assumption that a fix implies a release.
 - The release notes stay readable because they are written per milestone.
 - The slow approach to 1.0 stays slow on purpose, without the product also
   being stale between milestones.
+
+## Questions this policy answers
+
+**"A fix is urgent. Do we cut a patch release?"** No. Land it on `main`. A rolling
+surface that clicked "check for updates" five minutes ago already has the old build;
+the next click has the fix. A release would change the number, sign a bundle and
+write notes for something a user cannot point at.
+
+**"Then how does a release user get the fix?"** At the next milestone, in one
+signed step, together with everything else that rolled in between. That is the
+trade the default channel makes on purpose.
+
+**"What if the fix is for something a release user sees today?"** That is the case
+for a milestone sooner, not for a patch release. If it is security, the fix still
+lands on `main` first; only a fix that must ride the shell waits for the tag.
+
+**"What does the app show a rolling user?"** The build identity — the version the
+tree carries plus the commit — and no notes. They did not ask for an announcement;
+they asked for the fix.
