@@ -187,3 +187,12 @@ def test_a_bundled_plugin_is_not_removable(client, device) -> None:
     assert response.status_code == 409
     assert response.json()["error"]["detail"]["code"] == "bundled_not_removable"
     assert (Path(__file__).resolve().parents[1] / "plugins" / "countdown").is_dir()
+
+def test_a_request_borne_name_cannot_bend_a_path() -> None:
+    """CodeQL's path-injection review: the id a request carries is a slug or a refusal."""
+    from core import marketplace_service
+
+    for hostile in ("../outside", "/etc/passwd", "a/b", "..", "", "ALPHA", "a b"):
+        with pytest.raises(Exception) as excinfo:
+            marketplace_service.removal_facts(hostile)
+        assert getattr(excinfo.value, "status_code", 400) == 400, hostile
