@@ -51,7 +51,7 @@ class TestSelection:
     def test_frische_Installation_bekommt_kepta(self, cfg):
         """G: empty device folder, nothing configured
         W: Memory()
-        T: kepta — and the decision sits visibly as a record, not as a guess"""
+        T: kepta — and the decision sits visibly as a record"""
         from core.memory import Memory
         from core.memory_provider import read_provider_record
 
@@ -254,6 +254,27 @@ class TestProviderRoutes:
         assert body["provider"] == "kepta"
         assert body["scope"].startswith("kepta_")
         assert body["vector_leg"] is False
+        assert body["chunks"] == 0
+        assert body["chunks_embedded"] == 0
+
+    def test_stats_report_the_vector_coverage_as_numbers(self, client):
+        """Without a model every chunk is stored without a vector; "carries" would
+        describe the wrapper."""
+        assert client.post("/api/memory/store", json={"text": "Der Gateway läuft auf 8765"}).status_code == 200
+        body = client.get("/api/memory/stats").json()
+        assert body["total"] == 1
+        assert body["chunks"] >= 1
+        assert body["chunks_embedded"] == 0
+        assert body["vector_leg"] is False
+
+    def test_providers_route_names_what_the_switch_accepts(self, client):
+        """The switch surface has to render the reachable ids, not a hardcoded pair."""
+        from core.memory_provider import available_providers
+
+        response = client.get("/api/memory/providers")
+        assert response.status_code == 200, response.text
+        assert response.json()["providers"] == list(available_providers())
+        assert "chroma" not in response.json()["providers"]
 
     def test_die_einstellung_nimmt_keinen_namen_an_der_das_produkt_verlassen_hat(self, client):
         r = client.put("/api/memory/provider", json={"provider": "chroma"})

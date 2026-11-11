@@ -166,21 +166,22 @@ class PruneRequest(BaseModel):
     dry_run: bool = False
 
 
-def _registered_entries() -> list[dict]:
+def _registered_entries(registry: dict) -> list[dict]:
     """The registry rows as a list, newest activity first, with list metadata.
 
-    `message_count` reads the session file, which is the cost the store decision
-    measures against its 0.2.0 trigger. `namespace` is `user` for a session a
-    surface created, or the mirror prefix (`rest-`/`pwa-`) for a mirror row.
+    The route has already read the registry; this function must not read it again per
+    row. `message_count` reads the session file, which is the cost the store decision
+    measures against its 0.2.0 trigger, and it is cached per transcript stat.
+    `namespace` is `user` for a session a surface created, or the mirror prefix
+    (`rest-`/`pwa-`) for a mirror row.
     """
     from core import multi_session as ms
     from core import session_lifecycle as life
 
-    rows = [dict(e) for e in life.read_registry().get("sessions", []) if e.get("id")]
+    rows = [dict(e) for e in registry.get("sessions", []) if e.get("id")]
     for row in rows:
         sid = str(row.get("id"))
-        info = ms.session_info(sid) or {}
-        row["message_count"] = int(info.get("message_count") or 0)
+        row["message_count"] = ms.message_count(sid)
         row["namespace"] = life.namespace_of(sid) or "user"
     rows.sort(key=lambda e: str(e.get("last_active") or ""), reverse=True)
     return rows
@@ -191,7 +192,8 @@ async def list_sessions() -> dict:
     """What the store holds: totals per namespace, bytes, and the registered list."""
     from core import session_lifecycle as life
 
-    return {**life.store_stats(), "sessions": _registered_entries()}
+    registry = life.read_registry()
+    return {**life.store_stats(registry=registry), "sessions": _registered_entries(registry)}
 
 
 @router.delete("/sessions/{session_id}")
@@ -266,16 +268,16 @@ def _namespace_of(session_id: str) -> str:
     return life.namespace_of(session_id) or "user"
 
 
-def _session_entry(session_id: str, meta: dict) -> dict:
+def _session_entry(session_id: str, meta: dict, *, message_count: int | None = None) -> dict:
     from core import multi_session as ms
 
-    info = ms.session_info(session_id) or {}
+    count = ms.message_count(session_id) if message_count is None else message_count
     return {
         "id": session_id,
         "title": str(meta.get("title") or ""),
         "created_at": meta.get("created_at", ""),
         "last_active": meta.get("last_active", ""),
-        "message_count": int(info.get("message_count") or 0),
+        "message_count": count,
         "namespace": _namespace_of(session_id),
     }
 
@@ -305,7 +307,10 @@ async def read_session(session_id: str) -> dict:
     messages = ms.load_messages(session_id)
     if len(messages) > MAX_TRANSCRIPT_MESSAGES:
         raise HTTPException(status_code=413, detail="session transcript has too many messages")
-    return {**_session_entry(session_id, meta), "messages": messages}
+    return {
+        **_session_entry(session_id, meta, message_count=len(messages)),
+        "messages": messages,
+    }
 
 
 @router.patch("/sessions/{session_id}")

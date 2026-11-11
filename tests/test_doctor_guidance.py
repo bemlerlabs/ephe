@@ -15,6 +15,7 @@ import pytest
 
 import ephe_cli
 from core.engine_config import EngineChoice
+from core.workspace_rules import RULES_NAME
 
 #: The real voice row, captured before `doctor_box` replaces it: the read-only test
 #: below runs the doctor's own probe rather than the fixture's stand-in.
@@ -262,3 +263,46 @@ def test_doctor_on_a_fresh_home_creates_no_voice_folder(doctor_box, tmp_path, ca
     assert not (config_dir / "voices").exists(), "the voice row created the folder it looked for"
     assert not config_dir.exists(), "a read-only probe left state behind"
     assert code == 0
+
+
+def test_the_context_row_names_the_workspace_files_and_stays_off_the_exit_code(
+    doctor_box, tmp_path, capsys
+):
+    """What the workspace contributed is a fact about the prompt, so the row reports it
+    beside the rest and a workspace with a capped file leaves the verdict alone."""
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / RULES_NAME).write_text("a rule", encoding="utf-8")
+    doctor_box.setenv("EPHE_WORKSPACE", str(workspace))
+    doctor_box.setattr(ephe_cli, "_active_engine_choice", lambda: None)
+    doctor_box.setattr(ephe_cli, "_json_get", lambda *_a, **_k: None)
+
+    code = ephe_cli.cmd_doctor(_parser().parse_args(["doctor"]))
+
+    rows = [line for line in capsys.readouterr().out.splitlines() if "Context files" in line]
+    assert len(rows) == 1
+    assert "1 included" in rows[0]
+    assert "ephe context" in rows[0]
+    assert code == 0
+
+
+def test_the_context_row_survives_a_broken_report(monkeypatch, capsys):
+    """A resolver that raises must not take the doctor down with it."""
+    import argparse
+    import json as _json
+
+    from core import _cli_context
+
+    monkeypatch.setattr(
+        _cli_context, "doctor_row", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
+    import ephe_cli
+
+    code = ephe_cli.cmd_doctor(
+        argparse.Namespace(fix=False, json=True, model=None, port=None, host=None)
+    )
+    payload = _json.loads(capsys.readouterr().out)
+    rows = {row["name"]: row["detail"] for row in payload["checks"]}
+    assert "Context files" in rows
+    assert "report skipped (RuntimeError)" in rows["Context files"]
+    assert code in (0, 1)

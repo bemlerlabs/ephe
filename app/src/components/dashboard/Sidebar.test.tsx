@@ -196,6 +196,10 @@ describe('Sidebar-Desktop-Collapse', () => {
     )
     const btn = screen.getByTestId('sidebar-settings-btn')
     expect(btn).toBeTruthy()
+    // WCAG 2.5.3: no aria-label that drops the visible "v0.6.8" line — the
+    // button is named by the text it shows.
+    expect(btn.getAttribute('aria-label')).toBeNull()
+    expect(btn.textContent).toContain('sidebar.settingsAndProfile')
     fireEvent.click(btn)
     expect(onOpen).toHaveBeenCalledTimes(1)
   })

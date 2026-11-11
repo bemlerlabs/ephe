@@ -173,14 +173,25 @@ def _plan_strategies_cached(
     return scan_plan_strategies(plugin_manifest.scan_plugins())
 
 
-def invalidate_ownership_cache() -> None:
-    """Drops the manifest-derived view after an install, remove or edit."""
+def invalidate_ownership_cache(*, manifests_changed: bool = True) -> None:
+    """Drops the manifest-derived view after an install, remove or edit.
+
+    ``manifests_changed=False`` is the mount's own call: publishing a bundle's
+    descriptors moves the served set but not one manifest, so the answers a replay pass
+    read from the folders are still the answers. The per-call caches are cleared either
+    way; only the pass-level answers are kept.
+    """
     global _LIFECYCLE, _LIFECYCLE_KEY
+    from core import plugin_mount_trust, plugin_scan_cache
+
     _activations_cached.cache_clear()
     _versions_cached.cache_clear()
     _dependencies_cached.cache_clear()
     _memory_providers_cached.cache_clear()
     _plan_strategies_cached.cache_clear()
+    if manifests_changed:
+        plugin_mount_trust.invalidate_mount_answers()
+        plugin_scan_cache.invalidate()
     with _LIFECYCLE_LOCK:
         _LIFECYCLE = None
         _LIFECYCLE_KEY = None

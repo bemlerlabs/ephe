@@ -62,7 +62,7 @@ describe('the context figure has one home', () => {
   it('the desktop breakdown control opens the detail without re-reading the numbers', () => {
     render(<StatusBar messages={messages} />)
     const toggle = screen.getByTestId('statusbar-breakdown-toggle')
-    expect(toggle.getAttribute('aria-label')).toBe('Token breakdown')
+    expect(toggle.getAttribute('aria-label')).toBe('Token breakdown: 88% free')
     expect(toggle.getAttribute('aria-haspopup')).toBe('dialog')
     // The control states the remainder and opens the detail; no token pair.
     expect(toggle.textContent).toBe('88% free')

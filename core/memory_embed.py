@@ -3,9 +3,10 @@
 core/memory_embed.py
 
 Two vectorizers behind one factory: `embeddinggemma-2` (768 dimensions narrowed
-to 256) is the default, `all-MiniLM-L6-v2` (384 dimensions) is the fallback for a
-machine that has not fetched the larger graph or has declared itself offline. Both
-run offline as ONNX and both L2-normalise. The Kepta port needs exactly that, and
+to 256) is the default; `all-MiniLM-L6-v2` (384 dimensions) is the fallback for a
+machine that has not fetched the larger graph, and only while MiniLM's artifact
+still sits in the retired store's cache. Both run offline as ONNX and both
+L2-normalise. The Kepta port needs exactly that, and
 each model file plus its arithmetic lives in its own module
 (`core/memory_embed_gemma.py`, `core/memory_embed_onnx.py`) — this module owns
 *which* one loads, the kill switch for the case where neither is there, and the
@@ -58,9 +59,10 @@ def effective_label() -> str:
     """The label this process writes and filters on, decided without loading a graph.
 
     EmbeddingGemma needs 540 MB on disk before it can load, so the fallback covers
-    a machine that has not allowed that fetch. The returned string is one label, so
-    a caller that writes it into `chunks.embedding_model` cannot widen a filter or
-    mix the two spaces.
+    a machine that has not allowed that fetch while MiniLM is still cached. Without
+    either artifact nothing loads and the vector arm stays off; the label alone
+    cannot make it carry. The returned string is one label, so a caller that writes
+    it into `chunks.embedding_model` cannot widen a filter or mix the two spaces.
     """
     if is_disabled():
         return ""

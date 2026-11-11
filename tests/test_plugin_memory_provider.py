@@ -255,7 +255,7 @@ class TestResolution:
 
         provider, reason = resolve_provider(explicit="team-memory")
         assert provider == "team-memory"
-        assert "Plugin 'team-memory'" in reason
+        assert "plugin 'team-memory'" in reason
 
     def test_the_provider_id_lists_with_the_builtins_while_active(self, cfg, roots) -> None:
         from core.memory_provider import available_providers
@@ -438,4 +438,4 @@ class TestPrecedenceIsUnchanged:
 
         provider, reason = resolve_provider()
         assert provider == "kepta"
-        assert "frischer Workspace" in reason
+        assert "fresh workspace" in reason

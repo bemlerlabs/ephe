@@ -72,9 +72,9 @@ describe('MessageBubble — Tool-Zeilen Spinner + Status-Suffix (P3 Ephe-Norm)',
     expect(screen.getByTestId('tool-row-status').textContent).toContain('ok')
   })
 
-  it('fehlgeschlagene Gruppe: „Failed"-Suffix in Gefahren-Farbe', () => {
+  it('fehlgeschlagene Gruppe: „1 step failed" in Gefahren-Farbe', () => {
     render(<MessageBubble message={toolMsg([shellCall('s1', 'failed')], false)} />)
-    expect(screen.getByTestId('tool-row-status').textContent).toContain('Failed')
+    expect(screen.getByTestId('tool-row-status').textContent).toContain('1 step failed')
     expect(screen.getByTestId('tool-row-status').className).toContain('text-status-danger')
   })
 })

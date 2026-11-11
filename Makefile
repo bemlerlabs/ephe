@@ -6,7 +6,7 @@
 PY ?= .venv/bin/python
 UI ?= npm --prefix app
 
-.PHONY: help verify test test-python test-web build doctor clean
+.PHONY: help verify test test-python test-web build doctor agents-md clean
 
 help:
 	@echo "verify        everything a pull request has to pass"
@@ -14,9 +14,10 @@ help:
 	@echo "test-python   pytest over tests/"
 	@echo "test-web      vitest over app/src"
 	@echo "build         type-check and build the web app"
+	@echo "agents-md     check the agent instruction hub and its area files"
 	@echo "doctor        report the toolchain versions this repository expects"
 
-verify: test build
+verify: test build agents-md
 
 test: test-python test-web
 
@@ -28,6 +29,9 @@ test-web:
 
 build:
 	$(UI) run build
+
+agents-md:
+	$(PY) scripts/agents_md_check.py
 
 doctor:
 	@echo "python : $$($(PY) -V 2>&1 || echo 'not found — create .venv and run uv sync')"

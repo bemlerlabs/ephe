@@ -30,27 +30,73 @@ jobs:
           python-version: '3.13.18'  # CI-5: the patch is pinned, the minor floats nowhere
 
       - name: Install the pinned uv
+        # PyPI, bounded: a transient registry miss in an installer is not a verdict about the
+        # tree. The pin is the one every other leg activates, so the retry does not move it.
         run: |
           python3 -m venv .uv
-          .uv/bin/pip install --quiet uv==0.13.6
+          installed=0
+          for attempt in 1 2 3; do
+            if .uv/bin/pip install --quiet uv==0.13.6; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; this leg has no resolver"
+            exit 1
+          fi
           echo "$PWD/.uv/bin" >> "$GITHUB_PATH"
 
       - name: The locks agree with the manifests
         run: uv lock --check
 
       - name: Install
-        run: uv sync --extra dev --extra tui
+        # `uv sync` reads PyPI for the locked set; the retry separates a registry miss from a
+        # lock that cannot be installed at all.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if uv sync --extra dev --extra tui; then installed=1; break; fi
+            echo "uv sync attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv sync could not complete against PyPI; the suite has no environment to run in"
+            exit 1
+          fi
 
       - name: Enable user namespaces for the MCP sandbox
         # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
         # map a uid there and every stdio MCP server refuses to start. The product keeps that
         # refusal; the test host provides the kernel setting the sandbox needs. Older images
         # without the key stay green.
+        #
+        # apt is this leg's other network dependency. The install is bounded and retried; when
+        # it still cannot reach the mirror the warning names the skipped proofs instead of
+        # failing the leg on the runner's network.
         run: |
           if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          command -v bwrap >/dev/null || { sudo apt-get update; sudo apt-get install -y bubblewrap; }
+          if command -v bwrap >/dev/null 2>&1; then
+            echo "bubblewrap already present: $(command -v bwrap)"
+            exit 0
+          fi
+          set +e
+          ok=0
+          for attempt in 1 2 3; do
+            sudo timeout 300 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y bubblewrap \
+              && { ok=1; break; }
+            echo "apt attempt $attempt did not finish; retrying" >&2
+            sleep 10
+          done
+          if [ "$ok" = 1 ]; then
+            bwrap --version
+          else
+            echo "::warning::bubblewrap could not be installed (apt/network); the sandbox proofs skip with the probe's reason and this leg does not gate on them."
+          fi
 
       - name: Tests
         run: uv run python -m pytest tests/ -q -p no:cacheprovider
@@ -67,10 +113,22 @@ jobs:
       - name: Activate the pnpm this repository pins
         # Before setup-node, whose `cache: pnpm` step shells out to `pnpm store path`:
         # without a pnpm on PATH that step is the whole failure. frontend-build.yml
-        # carries the same order for the same reason.
+        # carries the same order for the same reason. corepack's fetch is bounded.
         run: |
           corepack enable
-          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          activated=0
+          for attempt in 1 2 3; do
+            if corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate; then
+              activated=1
+              break
+            fi
+            echo "corepack prepare attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$activated" != 1 ]; then
+            echo "::error::the pinned pnpm could not be downloaded from registry.npmjs.org; the setup-node cache step cannot resolve a store"
+            exit 1
+          fi
           pnpm --version
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -80,7 +138,18 @@ jobs:
           cache-dependency-path: app/pnpm-lock.yaml
 
       - name: Install
-        run: cd app && pnpm install --frozen-lockfile
+        # registry.npmjs.org, bounded: the same retry shape as the Python install above.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if (cd app && pnpm install --frozen-lockfile); then installed=1; break; fi
+            echo "pnpm install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::pnpm install could not reach registry.npmjs.org; the web checks have no dependencies"
+            exit 1
+          fi
 
       - name: Type check
         run: cd app && pnpm exec tsc --noEmit

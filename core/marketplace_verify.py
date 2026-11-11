@@ -76,6 +76,9 @@ _SHELL_PIPE = re.compile(r"\b(?:curl|wget)\b[^|]{0,200}\|\s*(?:ba|z|da)?sh\b")
 
 _TEXT_SUFFIXES = {".json", ".md", ".yaml", ".yml", ".toml"}
 
+#: The verdict file written beside an installed artifact.
+VERDICT_FILENAME = "VERIFY.json"
+
 
 def _walk_env(payload: Any) -> set[str]:
     names: set[str] = set()
@@ -88,6 +91,25 @@ def _walk_env(payload: Any) -> set[str]:
         for item in payload:
             names.update(_walk_env(item))
     return names
+
+
+def _text_findings(text: str, field: str) -> list[dict[str, str]]:
+    """The markers both the file walk and the flat-skill scan apply to one text."""
+    findings: list[dict[str, str]] = []
+    instruction = _instruction_finding(text)
+    if instruction:
+        findings.append({**instruction, "file": field})
+    for match in _SHELL_PIPE.finditer(text.lower()):
+        findings.append(
+            {"class": "shell-download", "severity": HIGH, "file": field, "marker": match.group(0)[:80]}
+        )
+    return findings
+
+
+def _verdict(findings: list[dict[str, str]]) -> dict[str, Any]:
+    high = [one for one in findings if one["severity"] == HIGH]
+    verdict = "refused" if high else ("checked" if findings else "checked-clean")
+    return {"verdict": verdict, "findings": findings}
 
 
 def verify_artifact(root: Path) -> dict[str, Any]:
@@ -103,14 +125,7 @@ def verify_artifact(root: Path) -> dict[str, Any]:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        lowered = text.lower()
-        instruction = _instruction_finding(text)
-        if instruction:
-            findings.append({**instruction, "file": rel})
-        for match in _SHELL_PIPE.finditer(lowered):
-            findings.append(
-                {"class": "shell-download", "severity": HIGH, "file": rel, "marker": match.group(0)[:80]}
-            )
+        findings.extend(_text_findings(text, rel))
         if path.suffix.lower() == ".json":
             try:
                 env_names.update(_walk_env(json.loads(text)))
@@ -124,18 +139,35 @@ def verify_artifact(root: Path) -> dict[str, Any]:
                         {"class": "unpinned-install", "severity": INFO, "file": rel, "marker": match.group(0)[:80]}
                     )
                     break
-    high = [one for one in findings if one["severity"] == HIGH]
-    verdict = "refused" if high else ("checked" if findings else "checked-clean")
     return {
-        "verdict": verdict,
-        "findings": findings,
+        **_verdict(findings),
         "env": sorted(env_names),
     }
 
 
+def verify_skill_text(
+    *, trigger: str = "", description: str = "", system_prompt: str = ""
+) -> dict[str, Any]:
+    """Scan the text a flat skill save would persist as system-prompt material.
+
+    An archive is walked as files; a flat skill is a few fields that become the
+    same prompt text. The markers are the ones `verify_artifact` uses, so a
+    directive refused in a pack is refused in `POST /api/skills` and in
+    `skill_manage create` as well.
+    """
+    findings: list[dict[str, str]] = []
+    for field, value in (
+        ("trigger", trigger),
+        ("description", description),
+        ("system_prompt", system_prompt),
+    ):
+        findings.extend(_text_findings(str(value or ""), field))
+    return {**_verdict(findings), "mode": "text"}
+
+
 def write_verdict(root: Path, verdict: dict[str, Any]) -> None:
     """Persist the verdict beside the artifact so installed rows can show it."""
-    target = Path(root) / "VERIFY.json"
+    target = Path(root) / VERDICT_FILENAME
     try:
         target.write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
     except OSError:
@@ -144,7 +176,7 @@ def write_verdict(root: Path, verdict: dict[str, Any]) -> None:
 
 def read_verdict(root: Path) -> dict[str, Any] | None:
     try:
-        payload = json.loads((Path(root) / "VERIFY.json").read_text(encoding="utf-8"))
+        payload = json.loads((Path(root) / VERDICT_FILENAME).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     return payload if isinstance(payload, dict) else None
@@ -158,20 +190,11 @@ def verify_entry(fields: dict[str, str]) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     for field, value in fields.items():
         text = str(value or "")
-        lowered = text.lower()
-        instruction = _instruction_finding(text)
-        if instruction:
-            findings.append({**instruction, "file": field})
-        for match in _SHELL_PIPE.finditer(lowered):
-            findings.append(
-                {"class": "shell-download", "severity": HIGH, "file": field, "marker": match.group(0)[:80]}
-            )
+        findings.extend(_text_findings(text, field))
         if field in {"install_hint", "spec"}:
-            match = _UNPINNED.search(lowered)
+            match = _UNPINNED.search(text.lower())
             if match:
                 findings.append(
                     {"class": "unpinned-install", "severity": INFO, "file": field, "marker": match.group(0)[:80]}
                 )
-    high = [one for one in findings if one["severity"] == HIGH]
-    verdict = "refused" if high else ("checked" if findings else "checked-clean")
-    return {"verdict": verdict, "findings": findings, "mode": "static"}
+    return {**_verdict(findings), "mode": "static"}

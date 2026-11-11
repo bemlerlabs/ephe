@@ -15,6 +15,7 @@ export interface MothGuideHandle {
   flyToControl(element: Element | null): void
   flyToElement(element: Element | null): void
   flyToPanelPerch(panel: Element | null): void
+  perchIn(element: Element | null): void
   finale(): void
   burst(x: number, y: number): void
   position(): { x: number; y: number }
@@ -116,11 +117,33 @@ export const InteractiveMothGuide = forwardRef<MothGuideHandle, GuideProps>(
         flyToPanelPerch(panel) {
           if (!panel) return
           const rect = panel.getBoundingClientRect()
-          home.current = {
-            x: Math.max(110, rect.left - Math.min(170, window.innerWidth * 0.14)),
-            y: rect.top + rect.height * 0.28,
-          }
+          // A phone lays the card across the whole width, so the desktop perch to
+          // its left would sit on the copy. Hover below the card instead; a step
+          // whose card leaves no room there perches the guide in its own empty
+          // band (`perchIn`), as the engine stop does.
+          home.current =
+            window.innerWidth <= 900
+              ? {
+                  x: Math.max(110, Math.min(window.innerWidth - 110, rect.right - 110)),
+                  y: Math.min(window.innerHeight - 96, rect.bottom + 104),
+                }
+              : {
+                  x: Math.max(110, rect.left - Math.min(170, window.innerWidth * 0.14)),
+                  y: rect.top + rect.height * 0.28,
+                }
           // A click flight keeps its target until its lock runs out.
+          if (performance.now() >= lockUntil.current && !finale.current) {
+            target.current = { ...home.current }
+            pendingBurst.current = false
+          }
+        },
+        perchIn(element) {
+          if (!element) return
+          const rect = element.getBoundingClientRect()
+          home.current = {
+            x: Math.max(110, Math.min(window.innerWidth - 110, rect.left + rect.width / 2)),
+            y: rect.top + rect.height / 2,
+          }
           if (performance.now() >= lockUntil.current && !finale.current) {
             target.current = { ...home.current }
             pendingBurst.current = false

@@ -11,6 +11,7 @@
  */
 import './FirstRunIntro.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useDeepBool } from '@/lib/deepSettings'
@@ -196,10 +197,16 @@ export default function FirstRunIntro({ onDone }: { onDone?: () => void } = {}) 
   const textIn = still || shown === 'awakening'
   const delay = (at: number) => ({ animationDelay: `${still ? 0 : at}ms` })
 
-  return (
+  // The scene sits outside the app tree. A route sheet (settings) walks up from
+  // its own dialog and marks every sibling inert; as a sibling of <App/> the
+  // intro was among them, so its skip control could not be hit at all. The
+  // portal makes it a body child and `data-inert-exempt` keeps that walk off it:
+  // the first-run scene owns the screen until it ends, on every route.
+  return createPortal(
     <div
       ref={overlayRef}
       data-testid="first-run-intro"
+      data-inert-exempt=""
       data-phase={leaving ? 'leaving' : 'running'}
       data-act={shown}
       data-beat={still ? 'still' : shown}
@@ -254,6 +261,7 @@ export default function FirstRunIntro({ onDone }: { onDone?: () => void } = {}) 
           {t('welcome.introSkipHint')}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

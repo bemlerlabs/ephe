@@ -16,11 +16,12 @@ change the hash it signs (see `plugin_manifest.dir_sha256`). That exclusion is
 by file NAME at any depth, so a record hidden in a subdirectory would escape
 the hash entirely: `verify_skill_pack` refuses any pack that carries one.
 
-Two more names are excluded from the pack hash: the signature file itself and
-the install-time provenance note (`.ephe-install.json`, core/skill_provenance.py).
-The note is written AFTER a pack is installed, with a timestamp — including it
-would invalidate the signature on every install. Excluded, a signed pack still
-verifies once it is on disk.
+Three more names are excluded from the pack hash: the signature file itself, the
+install-time provenance note (`.ephe-install.json`, core/skill_provenance.py) and
+the install-time static-check verdict (`VERIFY.json`, core/marketplace_verify.py).
+The last two are written AFTER a pack is installed — including them would
+invalidate the signature or the provenance hash on every install. Excluded, a
+signed pack still verifies once it is on disk.
 
 Verify NEVER throws — any problem is `(False, reason)`, matching
 `plugin_signing.verify_plugin_dir`.
@@ -38,6 +39,7 @@ from pathlib import Path
 from typing import Any
 
 from core import skill_provenance
+from core.marketplace_verify import VERDICT_FILENAME
 from core.plugin_manifest import dir_sha256
 from core.plugin_signing import (  # noqa: F401 — the reused RFC 8785 + ES256 machinery
     canonical_json,
@@ -50,9 +52,9 @@ SIG_ALG = "ES256"
 #: The signature record, inside the pack directory (next to SKILL.md).
 SIG_FILENAME = "ephe-skill.sig.json"
 
-#: What the pack hash must NOT cover: the signature itself and the provenance
-#: note written after install. Both are metadata about the pack, not content.
-HASH_EXCLUDED = frozenset({SIG_FILENAME, skill_provenance.RECORD_FILE})
+#: What the pack hash must NOT cover: the signature itself and the two records
+#: written after install. All three are metadata about the pack, not content.
+HASH_EXCLUDED = frozenset({SIG_FILENAME, skill_provenance.RECORD_FILE, VERDICT_FILENAME})
 
 
 def pack_sha256(skill_dir: Path) -> str:

@@ -44,9 +44,26 @@ jobs:
           python-version: '3.12'
 
       - name: Install Semgrep
+        # PyPI is this step's only network dependency, and it is not always reachable from a
+        # runner: on 2026-11-11 a DNS outage took three required legs out inside their installer.
+        # Three bounded attempts turn a transient miss into a retry, and the failure that survives
+        # is named here instead of arriving as a pip traceback. A scanner that never installed
+        # cannot report a clean scan, so the step still refuses rather than skipping.
         run: |
           python -m venv "$RUNNER_TEMP/semgrep-venv"
-          "$RUNNER_TEMP/semgrep-venv/bin/python" -m pip install --quiet "semgrep==1.181.0"
+          installed=0
+          for attempt in 1 2 3; do
+            if "$RUNNER_TEMP/semgrep-venv/bin/python" -m pip install --quiet "semgrep==1.181.0"; then
+              installed=1
+              break
+            fi
+            echo "semgrep install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::semgrep==1.181.0 could not be installed from PyPI; no scan ran, so this leg has no verdict"
+            exit 1
+          fi
 
       - name: Scan (ERROR severity blocks)
         run: |

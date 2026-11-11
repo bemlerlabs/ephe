@@ -79,7 +79,21 @@ jobs:
           set -uo pipefail
           . scripts/lint_policy.sh
           python3 -m venv "$EPHE_LINT_VENV"
-          "$EPHE_LINT_VENV/bin/pip" install -q "ruff==${EPHE_RUFF_VERSION}" "mypy==${EPHE_MYPY_VERSION}"
+          # PyPI is this required leg's network dependency; three bounded attempts separate a
+          # transient miss from a pin that cannot install, and the loop below names the tool.
+          installed=0
+          for attempt in 1 2 3; do
+            if "$EPHE_LINT_VENV/bin/pip" install -q "ruff==${EPHE_RUFF_VERSION}" "mypy==${EPHE_MYPY_VERSION}"; then
+              installed=1
+              break
+            fi
+            echo "lint tool install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::ruff==${EPHE_RUFF_VERSION} and mypy==${EPHE_MYPY_VERSION} could not be installed from PyPI; a lint leg without its linters is not a pass"
+            exit 1
+          fi
           echo "$EPHE_LINT_VENV/bin" >> "$GITHUB_PATH"
           # Fails naming the tool that did not install: a lint leg without its linter is the
           # silently-clean report this repo has spent a week refusing.

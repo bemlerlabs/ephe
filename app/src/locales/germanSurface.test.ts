@@ -47,6 +47,8 @@ const SAME_BY_DESIGN = new Set<string>([
   'agentPanel.fileViewMarkdown', // Markdown
   'discover.category.cloud', // Cloud
   'discover.category.web', // Web
+  'discover.category.design', // Design
+  'discover.category.monitoring', // Monitoring
   'discover.category.sandbox', // Sandbox
   // The frame's two area names, spelled as the areas are called in both languages: the
   // German surface already searches "Workspaces durchsuchen" and keeps the Discover shelf
@@ -106,11 +108,10 @@ const SAME_BY_DESIGN = new Set<string>([
   'chat.replayTitle', // Replay
   'chat.roundOk', // ok — the technical outcome token, the same in both languages
   'chat.skillsTitle', // Skills
-  'chat.watchBound', // {{kind}} {{tool}} {{ts}} — placeholders, not prose
+  'chat.watchBound', // {{kind}} {{tool}} {{ts}} — placeholders only
   'chat.watchPause', // Pause — the same word in both languages
   'commandPalette.items.preview', // Browser
   'header.branches', // Branches
-  'memory.storeIndex', // Index
   'modelPicker.free', // Free — the plan name the service itself prints
   'modelPicker.sortName', // Name — the same word in both languages
   'modelPicker.tools', // Tools — the German surface's own word for the tool list
@@ -138,6 +139,7 @@ const SAME_BY_DESIGN = new Set<string>([
   'settings.hooksTitle', // Hooks
   'settings.networkBind', // Bind
   'settings.persona', // Persona
+  'settings.context.stage.persona', // Persona — the layer keeps the product's own word
   'settings.shortcutsGroup.navigation', // Navigation
   'settings.skills', // Skills
   'settings.skillsTitle', // Skills
@@ -146,8 +148,6 @@ const SAME_BY_DESIGN = new Set<string>([
   'settings.voice', // Audio
   'sidebar.filterTitle', // Filter
   'sidebar.navScheduled', // Automations — the file's own short form ("Automations-Vorlagen")
-  'streamGroup.terminal', // Terminal
-  'streamGroup.web', // Web
   'update.title', // Updates
   'update.details', // Details
   'update.detailsVersion', // Version
@@ -177,9 +177,7 @@ const stale = [...SAME_BY_DESIGN].filter(
   (key) => de.get(key) === undefined || en.get(key) !== de.get(key),
 )
 
-/* ------------------------------------------------------------------ */
 /* Class: an English sentence pasted among the German copy.            */
-/* ------------------------------------------------------------------ */
 
 const PLACEHOLDER = /\{\{[^{}]*\}\}/g
 const URL = /\b(?:https?:\/\/|www\.)\S+/gi

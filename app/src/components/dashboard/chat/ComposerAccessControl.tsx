@@ -16,6 +16,7 @@ import { ChevronDown, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ACCESS_PROFILES, type AccessProfile } from './accessProfiles'
 import { ComposerMenu, MenuOptionRow, useMenuFocus, useRovingSelection } from './ComposerMenu'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { MenuPos } from './composerPopups'
 
 export interface ComposerAccessControlProps {
@@ -39,6 +40,9 @@ export default function ComposerAccessControl({
   onPick,
 }: ComposerAccessControlProps) {
   const { t } = useTranslation()
+  // QA-E2E F7: at 320 px the label answered "Voller Zu…"; the icon, the
+  // aria-label and the title keep the full name at every width.
+  const narrow = useMediaQuery('(max-width: 340px)')
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -52,7 +56,7 @@ export default function ComposerAccessControl({
     const at = ACCESS_PROFILES.findIndex((entry) => entry.key === profile)
     if (at >= 0) setIndex(at)
   }, [profile, setIndex])
-  const { ref, release } = useMenuFocus(anchorRef)
+  const { ref, release } = useMenuFocus(anchorRef, open)
   // A stored value outside the register (an old `autonomous` row) still shows a
   // word: the badge this control replaces named it through the same leaves.
   const short = String(t(`chat.perm.${profile}`, { defaultValue: profile }))
@@ -104,7 +108,7 @@ export default function ComposerAccessControl({
         }`}
       >
         <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-        <span className="truncate min-w-0">{short}</span>
+        <span className={narrow ? 'hidden' : 'truncate min-w-0'}>{short}</span>
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"

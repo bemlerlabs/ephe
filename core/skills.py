@@ -143,6 +143,23 @@ class SkillLoadError(Exception):
     "Skill file invalid or not found."
 
 
+class SkillRefused(SkillLoadError):
+    """The static directive scan refused the text this save would persist.
+
+    The format is fine; the content aims the model at its own instructions or
+    at an exfiltration. The findings travel with the refusal, so the HTTP
+    answer and the tool answer can name what was matched.
+    """
+
+    def __init__(self, findings: list[dict]) -> None:
+        self.findings = findings
+        marker = next((str(one.get("marker") or "") for one in findings if one.get("marker")), "")
+        message = "the skill text carries an instruction or download shape"
+        if marker:
+            message += f" ('{marker}')"
+        super().__init__(message + " — rewrite it without directives, then retry")
+
+
 def _unreachable_engine_note() -> str:
     """The engine-down note for the engine this skill test really dialled.
 
@@ -988,6 +1005,14 @@ class SkillLoader:
 
         # Validate before writing
         _parse_skill(safe_name, content)  # raises SkillLoadError if invalid
+
+        from core.marketplace_verify import verify_skill_text
+
+        verdict = verify_skill_text(
+            trigger=trigger, description=description, system_prompt=system_prompt
+        )
+        if verdict["verdict"] == "refused":
+            raise SkillRefused(verdict["findings"])
 
         path.write_text(content, encoding="utf-8")
         self._clear_cache()

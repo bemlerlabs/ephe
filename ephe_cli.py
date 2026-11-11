@@ -1259,6 +1259,17 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     except Exception:  # noqa: BLE001 — the mirror must never break doctor
         checks.append(("Environment (agent tools)", True, "mirror skipped"))
 
+    # The workspace's own instruction files: what the prompt carried, what was capped and
+    # what stayed out. A state the workspace decides, so the row reports it and never
+    # decides the exit code; `ephe context` prints the files themselves.
+    try:
+        from core import _cli_context
+
+        context_detail = _cli_context.doctor_row()
+    except Exception as exc:  # noqa: BLE001 — the report must never break doctor
+        context_detail = f"report skipped ({exc.__class__.__name__})"
+    informational.append(("Context files", True, context_detail))
+
     # W4 S2: integrity check skills-lock.json vs. disk — one structured line per
     # deviation (skills_lock_mismatch pack=... status=...).
     try:
@@ -1378,6 +1389,13 @@ def _doctor_next_step(
     if failing:
         return "ephe doctor --fix", "apply the safe local repairs named above"
     return "ephe", "start the app"
+
+
+def cmd_context(args: argparse.Namespace) -> int:
+    """`ephe context`: the workspace's context files as the resolver read them."""
+    from core import _cli_context
+
+    return _cli_context.run(as_json=args.json)
 
 
 def _open_local_app(port: int, host: str) -> None:
@@ -2558,9 +2576,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
     choice = engine_for_headless_run(args, getattr(args, "model", None))
 
     token = args.token
-    if args.lan and not token:
-        token = secrets.token_urlsafe(16)
     host = "0.0.0.0" if args.lan else args.host
+    # A bind that can answer beyond this machine carries a token, whether the
+    # person asked with --lan or named an address with --host. The PWA server
+    # decides the same question through the same predicate.
+    from run_server import _is_loopback
+
+    if not _is_loopback(host) and not token:
+        token = secrets.token_urlsafe(16)
 
     app = create_openai_app(api_token=token or None)
     print("  ─────────────────────────────────────")
@@ -2570,7 +2593,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     if token:
         print(f"  Auth:    X-Auth-Token: {token}")
     else:
-        print("  Auth:    none (localhost only — use --lan to require a token)")
+        print("  Auth:    none (loopback bind only)")
     # Read the paths off the app just built: the banner used to print the PWA's
     # /api/docs, a route this engine app never serves.
     print(f"  Docs:    http://{host}:{args.port}{app.docs_url}")
@@ -2983,6 +3006,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  ephe status                    Say whether the backend is running\n"
             "  ephe start --lan --open        Expose on LAN for QR mobile pairing, open browser\n"
             "  ephe doctor --fix              Check setup and repair safe local drift\n"
+            "  ephe context                   Show the workspace context files, caps and status\n"
             "  ephe update                    Install the newest release tag, deps, model\n"
             "  ephe tui --model <tag>         Start the terminal UI on your own tag\n"
             "  ephe serve                      Run OpenAI-compatible engine (/v1/chat/completions)\n"
@@ -3172,6 +3196,21 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--json", action="store_true", help="Machine-readable output")
     doctor.add_argument("--fix", action="store_true", help="Repair safe local drift: release-tag fast-forward, dependencies, Ollama service and model")
     doctor.set_defaults(func=cmd_doctor)
+
+    ctx = sub.add_parser(
+        "context",
+        help="Show the context files the workspace contributes, file by file",
+        description=(
+            "Every file the workspace contributes to the prompt, with the layer it belongs\n"
+            "to, its character count, the status the reader gave it (included, truncated,\n"
+            "denied, empty, unreadable, skipped) and the caps in force. A file that stayed\n"
+            "out is named with its reason instead of disappearing. The header names the\n"
+            "workspace root that was read; --json carries the same report for a script."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ctx.add_argument("--json", action="store_true", help="Machine-readable output")
+    ctx.set_defaults(func=cmd_context)
 
     code = sub.add_parser(
         "code",

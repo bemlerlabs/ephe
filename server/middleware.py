@@ -478,17 +478,25 @@ def audit_ws_refusal(websocket, marker: str, *, path: str = "") -> None:
     _refusal_recorded(key)
 
 
+#: Paths a LAN caller may only reach with the token. `/api/health` is the one
+#: exception and answers its liveness-only form. Every non-frontend static mount
+#: belongs here: a mount is a second door onto bytes the routes already gate.
+AUTH_PREFIXES = ("/api/", "/charts", "/audio", "/images")
+
+#: The subset a media element can request. `<img>`, `<audio>` and `<iframe>` cannot
+#: send a header, so the token the QR link already carries is accepted as `?token=`.
+MEDIA_TOKEN_PREFIXES = ("/api/file", "/charts", "/audio", "/images")
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     """Protects every /api/* endpoint in LAN mode — except loopback (the desktop app itself)."""
     async def dispatch(self, request: Request, call_next):
         if LAN_AUTH_TOKEN is not None and not _is_loopback_client(request):
             path = request.url.path
-            # `/charts` is not under /api and was therefore never checked: the mount
-            # served the whole system temp directory to anyone who could reach the port.
-            if path.startswith(("/api/", "/charts")) and path != "/api/health":
+            if path.startswith(AUTH_PREFIXES) and path != "/api/health":
                 token = offered_token(request.headers)
-                if token is None and path.startswith(("/api/file", "/charts")):
-                    # Media elements (img/iframe) cannot send headers —
+                if token is None and path.startswith(MEDIA_TOKEN_PREFIXES):
+                    # Media elements (img/audio/iframe) cannot send headers —
                     # token fallback via query string only for the file-read routes.
                     token = request.query_params.get("token")
                 if token is None or not tokens_match(str(token), LAN_AUTH_TOKEN):

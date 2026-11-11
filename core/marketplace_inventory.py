@@ -69,6 +69,9 @@ def installed() -> dict[str, Any]:
                 ),
                 "permissions": _permissions(manifest.get("permissions")),
                 "verification": _verification(directory),
+                # The installed tile asks the icon route only for a bundle that
+                # declares one; every other row paints the lettermark (QA-E2E F5).
+                "has_icon": bool(manifest.get("icon")),
             }
         )
     return {"plugins": sorted(rows, key=lambda row: row["name"])}

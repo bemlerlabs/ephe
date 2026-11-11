@@ -3,7 +3,7 @@
 v2 (R25): before old turns are dropped, their Q/A pairs are handed to an
 injectable ``memory_sink`` (best effort — a sink failure must never block
 compaction). The productive sink (``default_memory_sink``) stores pairs durably
-in the Chroma memory with ``source="compaction"``; the dedupe in
+in the knowledge store with ``source="compaction"``; the dedupe in
 ``core.auto_memory`` works across auto_memory + compaction, so repeated
 compactions of the same history do not produce duplicate entries.
 """
@@ -80,7 +80,7 @@ _LEDGER_BUCKETS = (
 
 
 def _default_memory_sink() -> MemorySink | None:
-    """Returns the productive sink (lazy — load chroma only when needed)."""
+    """Returns the productive sink (lazy — load the store only when needed)."""
     try:
         from core.auto_memory import maybe_store_turn
 
@@ -144,7 +144,7 @@ def compact_history(
     R25: ``memory_sink`` receives every discarded Q/A pair, BEFORE it falls out of
     the context — memory preservation instead of information loss. The default is
     NO preservation (the compact prompt build on the engine path must stay without
-    Chroma roundtrips); productive preservation runs checkpoint-
+    store roundtrips); productive preservation runs checkpoint-
     based via ``core.compaction_memory.preserve_compacted_pairs`` (once
     per turn AFTER the answer, no re-work cost).
     """

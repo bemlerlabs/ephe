@@ -45,9 +45,23 @@ jobs:
       # `pnpm store path` — without a pnpm on PATH that step is the whole failure
       # ("Unable to locate executable file: pnpm", every run since 2026-09-07).
       - name: Activate the pnpm this repo pins
+        # corepack fetches the pinned pnpm from registry.npmjs.org, the same host the install
+        # below needs. Three bounded attempts keep a transient miss from reddening the build.
         run: |
           corepack enable
-          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          activated=0
+          for attempt in 1 2 3; do
+            if corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate; then
+              activated=1
+              break
+            fi
+            echo "corepack prepare attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$activated" != 1 ]; then
+            echo "::error::the pinned pnpm could not be downloaded from registry.npmjs.org; the build has no package manager"
+            exit 1
+          fi
           pnpm --version
 
       - name: Setup Node.js
@@ -58,7 +72,19 @@ jobs:
           cache-dependency-path: app/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: cd app && pnpm install --frozen-lockfile
+        # registry.npmjs.org has no local copy on a fresh runner; the install is bounded and
+        # retried, and a failure that survives names the host it could not reach.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if (cd app && pnpm install --frozen-lockfile); then installed=1; break; fi
+            echo "pnpm install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::pnpm install could not reach registry.npmjs.org; the build has no dependencies"
+            exit 1
+          fi
 
       - name: Type check
         run: cd app && pnpm exec tsc --noEmit
@@ -227,11 +253,45 @@ jobs:
           node-version: 22.23.4
           package-manager-cache: false
 
-      - name: Install and build with npm
-        # The two commands `install.sh`'s fallback runs, verbatim.
+      - name: Install with npm
+        # The install `install.sh`'s fallback runs. registry.npmjs.org is the one host this job
+        # needs, and a transport failure there is not a verdict about the fallback: the install
+        # is retried with npm's own fetch backoff. Three attempts that all end in a socket error
+        # record `NPM_FALLBACK=0` and skip the build with a warning. ERESOLVE, a missing peer or
+        # a published version above the Cargo lock are the defects this job exists to catch, so
+        # those stay red. A transport failure is the one case the log can name, so this step
+        # reads the log for it before it decides to warn.
         run: |
           cd app
-          npm install --no-package-lock --legacy-peer-deps
+          installed=0
+          for attempt in 1 2 3; do
+            set +e
+            npm install --no-package-lock --legacy-peer-deps \
+              --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 \
+              2>&1 | tee "$RUNNER_TEMP/npm-install.log"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" = 0 ]; then installed=1; break; fi
+            echo "npm install attempt $attempt exited $status; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" = 1 ]; then
+            exit 0
+          fi
+          if grep -Eqi 'econnreset|etimedout|eai_again|enotfound|econnrefused|socket hang up|network' "$RUNNER_TEMP/npm-install.log"; then
+            echo "NPM_FALLBACK=0" >> "$GITHUB_ENV"
+            echo "::warning::npm install never reached the registry (transport error in the log); the fallback build and its lockfile checks are skipped for this run."
+            exit 0
+          fi
+          echo "::error::npm install failed without a transport error; the fallback path itself is broken (see the log above)."
+          exit 1
+
+      - name: Build with npm
+        if: env.NPM_FALLBACK != '0'
+        # The second command `install.sh`'s fallback runs, plus the single-lockfile contract
+        # this job has always held.
+        run: |
+          cd app
           npm run build
           test -f dist/index.html
           test ! -e package-lock.json

@@ -45,6 +45,9 @@ export function RoundRow({
   const failed =
     calls.some(isToolError) ||
     calls.some((call) => call.status === 'failed' || call.status === 'denied')
+  const failedCalls = calls.filter(
+    (call) => isToolError(call) || call.status === 'failed' || call.status === 'denied',
+  ).length
   const waiting = calls.some((call) => call.status === 'waiting')
   const total = calls.length
   const done = calls.filter((call) => call.status !== 'pending').length
@@ -72,16 +75,20 @@ export function RoundRow({
     return sum + Math.max(0, end - phase.start)
   }, 0)
 
-  // Failures and approvals open themselves; everything else waits for a click.
-  const [open, setOpen] = useState(() => defaultOpen || failed || waiting)
+  // Failures and approvals open themselves while the turn runs; a restored turn
+  // stays folded. The first screen after a cold open was a wall of red tool bodies
+  // from a previous session (QA-E2E F6) — the row still names the failure.
+  const [open, setOpen] = useState(() => defaultOpen || (failed && live) || waiting)
   useEffect(() => {
-    if (failed || waiting) setOpen(true)
-  }, [failed, waiting])
+    if ((failed && live) || waiting) setOpen(true)
+  }, [failed, live, waiting])
 
   const outcome = running
     ? t('chat.rowWorking')
     : failed
-      ? t('chat.rowFailed')
+      ? live
+        ? t('chat.rowFailed')
+        : t('chat.failedSteps', { count: failedCalls })
       : waiting
         ? t('chat.toolWaiting')
         : t('chat.roundOk')

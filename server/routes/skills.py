@@ -17,7 +17,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from core import path_guard, skill_provenance, skill_signing
-from core.skills import SkillLoader, SkillLoadError, BUILTIN_SKILLS_DIR, _parse_skill
+from core.marketplace_verify import verify_artifact, write_verdict
+from core.skills import SkillLoader, SkillLoadError, SkillRefused, BUILTIN_SKILLS_DIR, _parse_skill
 
 router = APIRouter(tags=["Skills"])
 
@@ -35,6 +36,26 @@ _SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 class _ArchiveRejected(Exception):
     """The archive violates one of the install guards."""
+
+
+def _static_check_refusal(findings: list[dict]) -> HTTPException:
+    """SEC-3: the one answer for a skill whose text carries a directive.
+
+    The refusal carries its code, the findings and the next step; nothing was
+    enabled.
+    """
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": "static_check_failed",
+            "detail": "the skill text carries instruction or download shapes",
+            "next": (
+                "Rewrite the description and system prompt without directives (no "
+                "'ignore previous', no request for the system prompt), then retry."
+            ),
+            "findings": findings,
+        },
+    )
 
 
 def _get_loader() -> SkillLoader:
@@ -181,6 +202,8 @@ async def create_skill(request: SkillCreateRequest) -> SkillDetail:
             tools=request.tools,
             system_prompt=request.system_prompt,
         )
+    except SkillRefused as exc:
+        raise _static_check_refusal(exc.findings) from exc
     except SkillLoadError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return SkillDetail(
@@ -335,6 +358,8 @@ async def update_skill(name: str, request: SkillCreateRequest) -> SkillDetail:
             tools=request.tools,
             system_prompt=request.system_prompt,
         )
+    except SkillRefused as exc:
+        raise _static_check_refusal(exc.findings) from exc
     except SkillLoadError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return SkillDetail(
@@ -500,7 +525,7 @@ def _install_archive_bytes(
             raise HTTPException(status_code=422, detail="No SKILL.md found in archive")
 
         # Validate ALL candidates first — only then is anything written.
-        parsed: list[tuple[Path, object]] = []
+        parsed: list[tuple[Path, object, dict]] = []
         for cand in candidates:
             content = (cand / "SKILL.md").read_text(encoding="utf-8")
             try:
@@ -531,9 +556,14 @@ def _install_archive_bytes(
                         status_code=422,
                         detail=f"signed pack '{skill.name}' failed signature check: {reason}",
                     )
-            parsed.append((cand, skill))
+            # SEC-3: the same static check the marketplace install runs, on this
+            # door too. It reads the extracted candidate before anything is moved.
+            verdict = verify_artifact(cand)
+            if verdict["verdict"] == "refused":
+                raise _static_check_refusal(verdict["findings"])
+            parsed.append((cand, skill, verdict))
 
-        for cand, skill in parsed:  # type: ignore[arg-type]
+        for cand, skill, _verdict in parsed:  # type: ignore[arg-type]
             if loader.is_builtin(skill.name):
                 raise HTTPException(
                     status_code=403,
@@ -541,7 +571,7 @@ def _install_archive_bytes(
                 )
 
         user_dir.mkdir(parents=True, exist_ok=True)
-        for cand, skill in parsed:  # type: ignore[arg-type]
+        for cand, skill, verdict in parsed:  # type: ignore[arg-type]
             installed_dir = user_dir / skill.name
             entry = {"name": skill.name, "version": skill.version, "trigger": skill.trigger}
             if installed_dir.exists():
@@ -568,6 +598,7 @@ def _install_archive_bytes(
             else:
                 result.installed.append(entry)
             shutil.move(str(cand), str(installed_dir))
+            write_verdict(installed_dir, verdict)
             record = skill_provenance.record_install(
                 installed_dir, kind=kind, origin=origin, version=skill.version, pack_id=pack_id
             )

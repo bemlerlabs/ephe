@@ -409,6 +409,8 @@ export default function ChatInput({
             onPick={applySuggestion}
           />
         )}
+        {/* ARIA-in-HTML has no combobox for <textarea>: the field stays a plain
+            textbox, the slash and mention popups are named listboxes. */}
         <textarea
           ref={textareaRef}
           value={message}
@@ -428,15 +430,6 @@ export default function ChatInput({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          aria-expanded={slashOpen || mentionOpen}
-          aria-controls={mentionOpen ? 'mention-listbox' : 'slash-menu'}
-          aria-activedescendant={
-            mentionOpen && mentionItems.length > 0
-              ? `mention-opt-${Math.min(mentionIndex, mentionItems.length - 1)}`
-              : slashOpen && slashFlat[slashIndex]
-                ? `slash-opt-${slashFlat[slashIndex].cmd}`
-                : undefined
-          }
           className="block w-full bg-transparent py-1 text-foreground placeholder:text-ink-faint resize-none outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 text-ui-input max-sm:min-h-11 pointer-coarse:min-h-11 max-h-32"
           rows={1}
         />

@@ -164,6 +164,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/memory/deleted",
     "GET /api/memory/export",
     "GET /api/memory/list",
+    "GET /api/memory/providers",
     "GET /api/memory/search",
     "GET /api/memory/stats",
     "GET /api/metrics",

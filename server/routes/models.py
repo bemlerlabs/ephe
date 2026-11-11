@@ -13,12 +13,15 @@ still needs the documented switch. A surface that polls the status sees
 """
 from __future__ import annotations
 
+import logging
 import threading
 
 from fastapi import APIRouter, Header, HTTPException
 
 from core import memory_embed_gemma
 from core.audit_log import audit_event
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Models"])
 
@@ -51,18 +54,53 @@ def get_embedding_model() -> dict:
     return _status_payload()
 
 
+def _failure_text(exc: Exception) -> str:
+    """The sentence the surface prints in place of the exception's class name.
+
+    `EmbeddingGemmaNotAvailable` already carries the reason a person can act on
+    (`refusal()`); any other failure keeps its class for a bug report and adds the
+    message that says what broke.
+    """
+    if isinstance(exc, memory_embed_gemma.EmbeddingGemmaNotAvailable):
+        return str(exc)
+    detail = str(exc).strip()
+    return f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__
+
+
+def _apply_new_model() -> None:
+    """Hand the running process the model that just landed on disk.
+
+    The embedding factory caches a loaded model (or a None after a failed load) for
+    the process, the memory facade caches the provider that holds the lazy embedder,
+    and this app caches the facade itself. Without all three resets a finished fetch
+    changes nothing until restart — worse, the cached provider keeps the fallback
+    label and would stamp the new vectors with the wrong model name.
+    """
+    from core import memory_embed
+    from core.memory import Memory
+
+    memory_embed.reset_cache()
+    Memory.reset_scoped_instances()
+    from server.routes.memory import _get_memory
+
+    _get_memory.cache_clear()
+
+
 def _fetch_in_background() -> None:
     try:
-        memory_embed_gemma.ensure_model()
+        memory_embed_gemma.ensure_model(allow_fetch=True)
     except Exception as exc:  # noqa: BLE001 — the reason goes to the log and the status
+        reason = _failure_text(exc)
         with _state_lock:
-            _state["error"] = type(exc).__name__
+            _state["error"] = reason
+        logger.warning("embedding model fetch failed: %s", reason)
         audit_event(
             "embedding_model_fetch_failed",
-            detail={"reason": type(exc).__name__},
+            detail={"reason": reason},
             status="failed",
         )
     else:
+        _apply_new_model()
         with _state_lock:
             _state["done"] = True
         audit_event("embedding_model_fetched", detail={"label": memory_embed_gemma.MODEL_LABEL})
@@ -76,11 +114,13 @@ def post_embedding_model_download(
     body: dict | None = None,
     x_requested_with: str | None = Header(default=None, alias=XHR_HEADER),
 ) -> dict:
-    """Start the fetch a user asked for. Consent for this one fetch is the call.
+    """Start the fetch a user asked for. This call is the consent for one fetch.
 
-    The XHR marker keeps a cross-origin form POST out; the confirm word keeps a stray
-    script out. Neither replaces a person: this route is only ever reached by the
-    popup's button or an explicit CLI flag.
+    It passes `allow_fetch=True` so the fetch does not stop at the setting the
+    click deliberately does not write. The XHR marker keeps a cross-origin form
+    POST out; the confirm word keeps a stray script out. Neither replaces a
+    person: this route is only ever reached by the popup's button or an explicit
+    CLI flag.
     """
     if x_requested_with != XHR_VALUE:
         raise HTTPException(status_code=403, detail="missing X-Requested-With")

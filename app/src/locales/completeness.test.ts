@@ -135,6 +135,25 @@ function loopArray(rel: string, varName: string): string[] {
 
 const SET = 'components/dashboard/settings/model'
 
+/** Categories are shipped data, not source literals: read them from the catalogue. */
+function featuredCategories(): string[] {
+  for (const base of [process.cwd(), resolve(process.cwd(), '..')]) {
+    const path = resolve(base, 'marketplace/featured.json')
+    if (!existsSync(path)) continue
+    const data = JSON.parse(readFileSync(path, 'utf8')) as {
+      entries?: Array<{ category?: unknown }>
+    }
+    return [
+      ...new Set(
+        (data.entries ?? [])
+          .map((entry) => entry.category)
+          .filter((one): one is string => typeof one === 'string' && one !== ''),
+      ),
+    ]
+  }
+  throw new Error(`marketplace/featured.json not found below ${process.cwd()}`)
+}
+
 function dynamicDemands(): Array<{ key: string; from: string }> {
   const out: Array<{ key: string; from: string }> = []
   const add = (prefix: string, values: string[], from: string) => {
@@ -210,9 +229,22 @@ function dynamicDemands(): Array<{ key: string; from: string }> {
     for (const field of ['title', 'prompt'])
       out.push({ key: `welcome.cards.${i}.${field}`, from: 'CARD_ICONS (WelcomeEmptyState.tsx)' })
 
-  // streamGroup.<family>: the summary labels held in SUMMARY_KEY.
-  for (const m of text('lib/toolStreamModel.ts').matchAll(/'(streamGroup(?:\.\w+)+)'/g))
-    out.push({ key: m[1] as string, from: 'SUMMARY_KEY (lib/toolStreamModel.ts)' })
+  // discover.{category,section}.<category>: the hero, the filters and the shelf
+  // headings resolve these from the catalogue's own category values.
+  for (const category of featuredCategories())
+    for (const family of ['discover.category', 'discover.section'])
+      out.push({ key: `${family}.${category}`, from: 'marketplace/featured.json' })
+
+  // chat.toolTip<Family>.{title,body}: the hint map reached through a computed
+  // key (`t(\`${tipKey}.title\`)`), which no literal scan can see.
+  for (const m of text('components/dashboard/ToolCallDisplay.tsx').matchAll(
+    /'(chat\.toolTip[A-Za-z]+)'/g,
+  ))
+    for (const field of ['title', 'body'])
+      out.push({
+        key: `${m[1]}.${field}`,
+        from: 'familyTipKey (components/dashboard/ToolCallDisplay.tsx)',
+      })
 
   return out
 }

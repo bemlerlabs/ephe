@@ -94,15 +94,32 @@ import { useChatStore } from '@/store/chatStore'
 import { useChatLayoutModel } from './model'
 import type { MockInstance } from 'vitest'
 
-function dbSession(id: string, title: string, rows: number, updatedAt = 2000) {
+function dbSession(id: string, title: string, rows: number, updatedAt = 2000, failure = false) {
+  const messages = Array.from({ length: rows }, (_, i) => ({
+    role: 'user',
+    content: `${id}-row-${i}`,
+    timestamp: 1,
+  }))
+  if (failure) {
+    messages.push({
+      role: 'assistant',
+      content: `[tool-error 'read_file': access denied]`,
+      timestamp: 2,
+      tool_calls: [
+        {
+          id: `${id}-failed`,
+          name: 'read_file',
+          args: { path: '/private/tmp/no' },
+          status: 'failed',
+          result: 'access denied',
+        },
+      ],
+    } as never)
+  }
   return {
     id,
     title,
-    messages: Array.from({ length: rows }, (_, i) => ({
-      role: 'user',
-      content: `${id}-row-${i}`,
-      timestamp: 1,
-    })),
+    messages,
     mode: 'ask',
     createdAt: 1000,
     updatedAt,
@@ -317,5 +334,62 @@ describe('W10-8 — the cold open that restores history', () => {
     await settle()
 
     expect(infoCalls()).toEqual([])
+  })
+})
+
+/**
+ * QA-E2E F6: the cold open landed on the previous run's red failed-tool bodies.
+ * A restored conversation that ends in failed steps stays folded; the count
+ * toast gives way to the card that names it once.
+ */
+describe('QA-E2E F6 — a restored conversation that ends in failures', () => {
+  it('folds the transcript and drops the competing count toast', async () => {
+    dbMock.restored = [dbSession('owner-task', 'Owner transcript', 2, 2000, true)]
+
+    const { result } = renderHook(() => useChatLayoutModel())
+    await settle()
+
+    expect(result.current.restoredConversation).toEqual({ sessionId: 'owner-task' })
+    expect(result.current.restoredRevealed).toBe(false)
+    expect(useChatStore.getState().activeSessionId).toBe('owner-task')
+    expect(infoCalls()).toEqual(['chat.restoringHistory'])
+  })
+
+  it('opens the transcript on request', async () => {
+    dbMock.restored = [dbSession('owner-task', 'Owner transcript', 2, 2000, true)]
+    const { result } = renderHook(() => useChatLayoutModel())
+    await settle()
+
+    act(() => {
+      result.current.revealRestoredConversation()
+    })
+
+    expect(result.current.restoredRevealed).toBe(true)
+  })
+
+  it('starts the new task the card offers', async () => {
+    dbMock.restored = [dbSession('owner-task', 'Owner transcript', 2, 2000, true)]
+    const { result } = renderHook(() => useChatLayoutModel())
+    await settle()
+
+    act(() => {
+      result.current.startTaskFromRestored()
+    })
+
+    const store = useChatStore.getState()
+    expect(store.sessions.some((session) => session.id === 'owner-task')).toBe(true)
+    expect(store.activeSessionId).not.toBe('owner-task')
+    expect(store.currentSession?.messages).toHaveLength(0)
+    expect(result.current.restoredRevealed).toBe(true)
+  })
+
+  it('keeps a healthy restore on screen and discloses it with the count', async () => {
+    dbMock.restored = [dbSession('owner-task', 'Owner transcript', 2)]
+
+    const { result } = renderHook(() => useChatLayoutModel())
+    await settle()
+
+    expect(result.current.restoredConversation).toBeNull()
+    expect(infoCalls()).toEqual(['chat.restoringHistory', 'chat.historyRestored·{"count":2}'])
   })
 })

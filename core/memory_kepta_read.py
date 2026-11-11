@@ -94,19 +94,34 @@ class KeptaReadMixin:
             )
         self._db.commit()
 
+    def _vector_leg(self) -> bool:
+        """Whether a vector embedder is really available, not just wrapped."""
+        embedder = self._embedder
+        if embedder is None:
+            return False
+        if getattr(embedder, "lazy", False):
+            from core.memory_embed import get_embedder
+
+            return get_embedder() is not None
+        return True
+
     def stats(self) -> dict[str, Any]:
-        embedded = self._db.execute(
-            "SELECT COUNT(*) AS c FROM chunks c JOIN memories m ON m.id = c.memory_id "
-            "WHERE m.scope = ? AND c.embedding IS NOT NULL",
+        chunks = self._db.execute(
+            "SELECT COUNT(*) AS total, "
+            "COALESCE(SUM(CASE WHEN c.embedding IS NOT NULL THEN 1 ELSE 0 END), 0) AS embedded "
+            "FROM chunks c JOIN memories m ON m.id = c.memory_id "
+            "WHERE m.scope = ?",
             (self._scope,),
         ).fetchone()
+        vector_leg = self._vector_leg()
         return {
             "total": self.count(),
             "deleted": self.deleted_count(),
-            "chunks_embedded": int(embedded["c"]),
-            "vector_leg": self._embedder is not None,
+            "chunks": int(chunks["total"]),
+            "chunks_embedded": int(chunks["embedded"]),
+            "vector_leg": vector_leg,
             "lexical_leg": self._fts_enabled,
-            "embedding_model": self._embed_model if self._embedder is not None else "",
+            "embedding_model": self._embed_model if vector_leg else "",
             "scope": self._scope,
             "provider": "kepta",
             "db_path": self._db_path,

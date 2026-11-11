@@ -14,6 +14,7 @@ vi.mock('react-i18next', () => ({
         'chat.roundOk': 'ok',
         'chat.rowWorking': 'Working',
         'chat.rowFailed': 'Failed',
+        'chat.failedSteps': '{{count}} steps failed',
         'chat.toolWaiting': 'Waiting for approval',
         'chat.thoughtForSeconds': 'Thought for {{duration}}',
         'chat.thoughtForSecondsCount': 'Thought for {{duration}} · {{count}} pauses',
@@ -139,5 +140,51 @@ describe('ToolStreamRows — a finished round is one calm line', () => {
     expect(row.textContent).toContain('1/2')
     expect(within(row).getByTestId('tool-row-tail').textContent).toContain('LAST')
     expect(within(row).getByTestId('tool-row-status').textContent).toContain('Working')
+  })
+
+  it('groups a restored failed round into one folded line (F6)', () => {
+    const failed = [
+      {
+        id: 'f1',
+        name: 'read_file',
+        args: { path: '/one' },
+        status: 'failed',
+        result: '[tool-error] access denied',
+        duration_ms: 335,
+      },
+      {
+        id: 'f2',
+        name: 'read_file',
+        args: { path: '/two' },
+        status: 'failed',
+        result: '[tool-error] access denied',
+        duration_ms: 12,
+      },
+    ]
+    render(<ToolStreamRows tool_calls={failed as never} streaming={false} />)
+    const row = screen.getByTestId('tool-stream-row-read')
+    expect(within(row).getByTestId('tool-row-status').textContent).toContain('2 steps failed')
+    // The red body is not part of the restored first screen.
+    expect(within(row).queryByTestId('round-body')).toBeNull()
+    expect(within(row).queryByTestId('tool-details')).toBeNull()
+
+    fireEvent.click(within(row).getByRole('button'))
+    expect(within(row).getAllByTestId('tool-details')).toHaveLength(2)
+  })
+
+  it('still opens a failing round while the turn runs', () => {
+    const failed = [
+      {
+        id: 'l1',
+        name: 'read_file',
+        args: { path: '/one' },
+        status: 'failed',
+        result: '[tool-error] access denied',
+      },
+    ]
+    render(<ToolStreamRows tool_calls={failed as never} streaming />)
+    const row = screen.getByTestId('tool-stream-row-read')
+    expect(within(row).getByTestId('round-body')).toBeTruthy()
+    expect(within(row).getByTestId('tool-row-status').textContent).toContain('Failed')
   })
 })

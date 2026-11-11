@@ -127,6 +127,10 @@ test-results/
 # Hermes agent local state (plans, memory)
 .hermes/
 
+# A personal agent note beside the hub. The repository's instruction set is `AGENTS.md`
+# plus the area files; an override is one operator's own addition and stays out of it.
+AGENTS.override.md
+
 # W19 repo hygiene: local QA screenshot dumps + legacy/dead media stay on
 # disk, out of the tree (curated demo assets in docs/media stay tracked)
 docs/media/deep_dive_*

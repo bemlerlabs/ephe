@@ -10,23 +10,27 @@ import { useEffect, useState } from 'react'
 import { BASE_URL, LAN_TOKEN } from '@/lib/api'
 import slugAngle from './slugAngle'
 
-const loads = new Map<string, Promise<string>>()
+const loads = new Map<string, Promise<string | null>>()
 
-function loadPluginIcon(pluginId: string): Promise<string> {
+/**
+ * One fetch per plugin id, and the refusal is remembered with it. The icon route
+ * 404s for every manifest that names no icon; deleting the failed promise made
+ * each visit ask again (four 404s on every settings open, QA-E2E F5).
+ */
+function loadPluginIcon(pluginId: string): Promise<string | null> {
   const hit = loads.get(pluginId)
   if (hit) return hit
   const headers: Record<string, string> = { 'X-Requested-With': 'XMLHttpRequest' }
   if (LAN_TOKEN) headers['X-Auth-Token'] = LAN_TOKEN
   const pending = fetch(`${BASE_URL}/api/plugins/icon/${encodeURIComponent(pluginId)}`, {
     headers,
-  }).then(async (response) => {
-    if (!response.ok) throw new Error(String(response.status))
-    return URL.createObjectURL(await response.blob())
   })
+    .then(async (response) => {
+      if (!response.ok) throw new Error(String(response.status))
+      return URL.createObjectURL(await response.blob())
+    })
+    .catch(() => null)
   loads.set(pluginId, pending)
-  pending.catch(() => {
-    if (loads.get(pluginId) === pending) loads.delete(pluginId)
-  })
   return pending
 }
 
@@ -57,11 +61,18 @@ export default function PluginIcon({
   pluginId,
   name,
   size,
+  hasIcon,
 }: {
   pluginId: string
   name: string
   /** Rendered edge in px; the default keeps the 44 px tile of the installed list. */
   size?: number
+  /**
+   * `false` from the plugin payload means the manifest names no icon, and the
+   * route would answer 404. `undefined` keeps the old request for callers that
+   * predate the field.
+   */
+  hasIcon?: boolean
 }) {
   const [src, setSrc] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
@@ -72,9 +83,12 @@ export default function PluginIcon({
     let live = true
     setSrc(null)
     setFailed(false)
+    if (hasIcon === false) return
     loadPluginIcon(pluginId).then(
       (url) => {
-        if (live) setSrc(url)
+        if (!live) return
+        if (url === null) setFailed(true)
+        else setSrc(url)
       },
       () => {
         if (live) setFailed(true)
@@ -83,7 +97,7 @@ export default function PluginIcon({
     return () => {
       live = false
     }
-  }, [pluginId])
+  }, [pluginId, hasIcon])
 
   if (failed || !src) {
     return <Lettermark pluginId={pluginId} initial={initial} edge={edge} />

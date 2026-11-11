@@ -19,7 +19,9 @@ The weights stay out of the install. `ensure_model()` answers the three ways
   * missing, no consent → `EmbeddingGemmaNotAvailable`, naming the repo, the host
                           and the size, plus how to allow it;
   * missing, consent    → fetch into `~/.ephe/models/embeddinggemma-2`, then load.
-`EPHE_OFFLINE=1` outranks consent: an offline process reaches out to nobody.
+`allow_fetch=True` is the one-click path: the caller states that a person asked for
+this fetch, so the consent setting stays untouched. `EPHE_OFFLINE=1` outranks both:
+an offline process reaches out to nobody.
 
 Consent has two spellings, the same pair the speech model uses:
 `EPHE_EMBEDDINGGEMMA_DOWNLOAD=1` for a shell, and the
@@ -193,7 +195,7 @@ def refusal(reason: str) -> str:
         f"EmbeddingGemma 2 is not on disk ({reason}). It comes from "
         f"{MODEL_HOST}/{MODEL_REPO} (~{MODEL_SIZE_MB} MB). Allow the fetch with "
         f"{ENV_DOWNLOAD}=1 or the '{SETTING_ALLOW_DOWNLOAD}' setting; all-MiniLM-L6-v2 "
-        f"stays selectable through 'memory.embedder'."
+        f"stays selectable through 'memory.embedder' while its artifact is on disk."
     )
 
 
@@ -205,14 +207,18 @@ def _fetch(repo_id: str, target: Path, allow_patterns: tuple[str, ...]) -> None:
     snapshot_download(repo_id=repo_id, local_dir=str(target), allow_patterns=list(allow_patterns))
 
 
-def ensure_model() -> Path:
-    """The model directory, fetched only under consent, else the caller is turned away."""
+def ensure_model(*, allow_fetch: bool = False) -> Path:
+    """The model directory, fetched only under consent or an explicit one-shot call.
+
+    `allow_fetch=True` is the click itself: it authorises this fetch and writes no
+    setting, so the next start still needs the documented switch.
+    """
     if model_present():
         return model_dir()
     missing = ", ".join(missing_files())
     if offline():
         raise EmbeddingGemmaNotAvailable(refusal(f"{ENV_OFFLINE}=1 forbids any fetch; missing: {missing}"))
-    if not download_consent():
+    if not (allow_fetch or download_consent()):
         raise EmbeddingGemmaNotAvailable(refusal(f"no consent given; missing: {missing}"))
     target = model_dir()
     logger.info(

@@ -3,6 +3,12 @@
   "notes": "What the PWA and the desktop shell may differ on, declared once. scripts/tauri_parity.py refuses a route in app/src/App.tsx without an entry here, and a read of isTauri / isDesktopShell / window.__TAURI__ in app/src that is not counted here. shell-parity.spec.ts compares the routes below in both platforms and removes only the selectors listed under platform_only.",
   "routes": [
     {
+      "path": "/welcome",
+      "probe": "/welcome",
+      "page": "LandingPage",
+      "anchor": "[data-testid=\"landing-page\"]"
+    },
+    {
       "path": "/",
       "probe": "/",
       "page": "ChatPage",

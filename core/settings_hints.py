@@ -227,11 +227,11 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
     ),
     "memory.dedupe_score_threshold": (
         "Ab welchem Aehnlichkeitswert (0,5 bis 1) ein gefundener Eintrag als Duplikat "
-        "zählt und das neue Paar nicht eingetragen wird. Chroma liefert für "
-        "identischen Text etwa 0,89, nie 1,0.",
+        "zählt und das neue Paar nicht eingetragen wird. Ein identischer Text kann "
+        "darunter liegen; ob wirklich geschrieben wurde, entscheidet der Bestand danach.",
         "From which similarity (0.5 to 1) a found entry counts as a duplicate and "
-        "the new pair is not stored. Chroma returns about 0.89 for identical text, "
-        "never 1.0.",
+        "the new pair is not stored. An identical text can score below it; whether "
+        "the write landed is decided by the store's count afterwards.",
     ),
     "memory.inject_max_entries": (
         "Wie viele Einträge höchstens in den System-Prompt gehoben werden (1-50) — "
@@ -256,11 +256,11 @@ HINTS: Final[dict[str, tuple[str, str]]] = {
     ),
     "memory.embedder_allow_download": (
         "Erlaubt einen einmaligen Bezug der EmbeddingGemma-Gewichte (540 MB) von "  # language-gate: ignore (shipped product string)
-        "huggingface.co ins Geräteverzeichnis; ohne diese Erlaubnis bleibt die "  # language-gate: ignore (shipped product string)
-        "Vektorsuche bei all-MiniLM-L6-v2.",  # language-gate: ignore (shipped product string)
+        "huggingface.co ins Geräteverzeichnis; ohne diese Erlaubnis bleibt der "  # language-gate: ignore (shipped product string)
+        "Vektor-Arm aus, außer all-MiniLM-L6-v2 liegt noch im Cache des stillgelegten Speichers.",  # language-gate: ignore (shipped product string)
         "Allows a one-time fetch of the EmbeddingGemma weights (540 MB) from "
-        "huggingface.co into the device folder; without that permission vector "
-        "search stays on all-MiniLM-L6-v2.",
+        "huggingface.co into the device folder; without that permission the vector "
+        "arm stays off unless all-MiniLM-L6-v2 is still in the retired store's cache.",
     ),
     "ephemera.idle_ttl_minutes": (
         "Wie lange eine Zelle ohne jeden Lauf überlebt; der nächste Zugriff räumt "

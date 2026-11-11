@@ -28,6 +28,7 @@ import { BudgetContinueCard } from '../BudgetContinueCard'
 import { SolInsightCard } from '../SolInsightCard'
 import { StepPill } from '../StepPill'
 import ChatSkeleton from './ChatSkeleton'
+import RestoredConversation from './RestoredConversation'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
 import { syncDockStatus } from '@/lib/dockStatus'
@@ -202,12 +203,24 @@ export default function ChatLayout() {
     approveSandboxForTool,
     denySandboxForTool,
     handleAnswerAsk,
+    restoredConversation,
+    restoredRevealed,
+    revealRestoredConversation,
+    startTaskFromRestored,
   } = useChatLayoutModel()
   const companionEnabled = useDeepBool('appearance.companion_enabled', false)
   // F8: the ring reads the same occupancy as the status bar — one numerator,
   // one denominator, so the two cannot contradict each other.
   const occupancy = useContextOccupancy(currentSession?.messages, contextWindow, currentSession?.id)
   const contextPercent = (currentSession?.messages.length ?? 0) > 0 ? occupancy.percent : null
+  // QA-E2E F6: the boot restore that ends in failed steps stays folded until the
+  // reader asks for it or sends into it (handleSend reveals).
+  const restoredFolded = Boolean(
+    restoredConversation &&
+    currentSession &&
+    restoredConversation.sessionId === currentSession.id &&
+    !restoredRevealed,
+  )
   // The updater replaces the shell and not the backend it starts; the two are
   // allowed to disagree for exactly one reason — nobody told the user. The
   // shell's own comparison runs on the start thread, so this reads after it.
@@ -446,7 +459,11 @@ export default function ChatLayout() {
                       <h1
                         data-tauri-drag-region
                         onDoubleClick={startTitleEdit}
-                        title={t('a11y.sessionTitleHint')}
+                        title={`${
+                          currentSession?.title === DEFAULT_SESSION_TITLE
+                            ? t('sidebar.newChat')
+                            : currentSession?.title || t('nav.appName')
+                        } — ${t('a11y.sessionTitleHint')}`}
                         data-testid="session-title"
                         className="text-ui-sm font-semibold text-foreground/90 select-none truncate min-w-0 max-w-80 cursor-text"
                       >
@@ -769,6 +786,11 @@ export default function ChatLayout() {
               <ChatSkeleton />
             ) : !currentSession || currentSession.messages.length === 0 ? (
               <WelcomeEmptyState onStartMission={(text) => void handleSend(text)} />
+            ) : restoredFolded ? (
+              <RestoredConversation
+                onShow={revealRestoredConversation}
+                onNewTask={startTaskFromRestored}
+              />
             ) : (
               <>
                 <div data-testid="chat-scroll-region" className="flex flex-1 min-h-0 relative">

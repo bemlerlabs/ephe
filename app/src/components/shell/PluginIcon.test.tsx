@@ -100,6 +100,31 @@ describe('PluginIcon', () => {
     expect(tile.textContent).toBe('C')
   })
 
+  it('asks nothing when the payload says the manifest has no icon', async () => {
+    render(<PluginIcon pluginId="cve-popup" name="CVE" hasIcon={false} />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(screen.getByTestId('plugin-icon-cve-popup').tagName).toBe('SPAN')
+  })
+
+  it('remembers a refused icon, so a second tile does not ask again', async () => {
+    fetchMock.mockResolvedValue(svgResponse(404))
+    render(<PluginIcon pluginId="foreman" name="Foreman" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    render(<PluginIcon pluginId="foreman" name="Foreman" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByTestId('plugin-icon-foreman').every((el) => el.tagName === 'SPAN')).toBe(
+      true,
+    )
+  })
+
   it('keeps a deterministic lettermark angle', () => {
     const angle = (slug: string) => [...slug].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 360
     expect(angle('documents')).toBe(angle('documents'))

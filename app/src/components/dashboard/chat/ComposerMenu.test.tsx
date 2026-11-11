@@ -187,6 +187,33 @@ describe('useMenuFocus — focus in via rAF, hand back to the anchor', () => {
     anchor.remove()
     menu.remove()
   })
+
+  it('waits for open before pulling focus — a menu mounted closed focuses nothing', () => {
+    const anchor = document.createElement('button')
+    document.body.appendChild(anchor)
+    const anchorRef = { current: anchor } as RefObject<HTMLElement | null>
+
+    const { result, rerender, unmount } = renderHook(
+      ({ open }: { open: boolean }) => useMenuFocus(anchorRef, open),
+      { initialProps: { open: false } },
+    )
+    const menu = document.createElement('div')
+    menu.tabIndex = -1
+    document.body.appendChild(menu)
+    // The portal only commits once the menu is open; without the flag the
+    // mount-time effect runs against a null ref and never tries again.
+    ;(result.current.ref as { current: HTMLDivElement | null }).current = menu
+    expect(raf).not.toHaveBeenCalled()
+
+    rerender({ open: true })
+    const cb = raf.mock.calls[0]?.[0] as FrameRequestCallback
+    cb(0)
+    expect(document.activeElement).toBe(menu)
+
+    unmount()
+    anchor.remove()
+    menu.remove()
+  })
 })
 
 // ComposerMenu (Portal)
@@ -246,6 +273,27 @@ describe('ComposerMenu — portal menu without a scrim', () => {
     expect(menu.style.left).toBe('120px')
     expect(menu.style.bottom).toBe('64px')
     expect(screen.getByTestId('cm-body')).toBeTruthy()
+  })
+
+  it('keeps the measured clamp — a later effect must not reset it to the anchor', () => {
+    const width = Object.getOwnPropertyDescriptor(window, 'innerWidth')
+    const offset = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 320 })
+    // jsdom has no box; the clamp is the measured menu width against the viewport.
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+      configurable: true,
+      get: () => 288,
+    })
+    try {
+      render(<MenuHost pos={{ left: 468, bottom: 64 }} />)
+      const menu = screen.getByTestId('cm')
+      // 320 - 8 margin - 144 half-width: fully inside the narrow viewport.
+      expect(menu.style.left).toBe('168px')
+      expect(menu.style.maxWidth).toBe('calc(100vw - 16px)')
+    } finally {
+      if (width) Object.defineProperty(window, 'innerWidth', width)
+      if (offset) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offset)
+    }
   })
 
   it('role=null omits the attribute, listbox sets it', () => {

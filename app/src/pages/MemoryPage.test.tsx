@@ -33,6 +33,7 @@ const api = vi.hoisted(() => ({
   restoreMemoryEntry: vi.fn(async () => ({ restored: '' })),
   migrateMemory: vi.fn(),
   setMemoryProvider: vi.fn(async () => ({ provider: 'kepta', reason: '', scope: '' })),
+  listMemoryProviders: vi.fn(async () => ({ providers: ['kepta', 'kepta-bridge'] })),
 }))
 
 vi.mock('@/lib/api', () => api)
@@ -64,6 +65,8 @@ const STATS = {
   vector_leg: true,
   lexical_leg: false,
   deleted: 2,
+  chunks: 7,
+  chunks_embedded: 7,
 }
 
 function renderAt(path = '/memory') {
@@ -221,9 +224,26 @@ describe('MemoryPage — Gehirne', () => {
   it('wechselt das Gehirn nur auf Wunsch', async () => {
     renderAt('/memory/gehirne')
     const row = await screen.findByTestId('memory-page-switch')
-    fireEvent.click(row.querySelectorAll('button')[1]!)
-    // The button reads "Index"; the value on the wire stays the backend contract.
-    expect(row.querySelectorAll('button')[1]?.textContent).toBe('memory.storeIndex')
-    await waitFor(() => expect(api.setMemoryProvider).toHaveBeenCalledWith('chroma'))
+    const buttons = row.querySelectorAll('button')
+    expect(buttons).toHaveLength(2)
+    // The labels come from the backend's list; the retired store is not offered.
+    expect(buttons[1]?.textContent).toBe('memory.storeBridge')
+    expect(row.textContent).not.toContain('memory.storeIndex')
+    fireEvent.click(buttons[1]!)
+    await waitFor(() => expect(api.setMemoryProvider).toHaveBeenCalledWith('kepta-bridge'))
+  })
+
+  it('names the vector coverage in numbers, not just "carries"', async () => {
+    api.getMemoryStats.mockResolvedValue({
+      ...STATS,
+      vector_leg: false,
+      chunks: 268,
+      chunks_embedded: 0,
+    })
+    renderAt('/memory/gehirne')
+    const coverage = await screen.findByTestId('memory-vector-coverage')
+    expect(coverage.textContent).toContain('0')
+    expect(coverage.textContent).toContain('268')
+    expect(screen.getByTestId('memory-leg-vector').textContent).toContain('memory.legOff')
   })
 })

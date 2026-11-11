@@ -513,14 +513,53 @@
     "accessSaveFailed": "The profile was not changed — the request failed.",
     "model": {
       "embeddingPromptTitle": "Better memory search: download the embedding model?",
-      "embeddingPromptBody": "The memory searches lexically without it. The model is {{size}} and comes from Hugging Face; it stays on this device.",
-      "embeddingDownloading": "Downloading the embedding model ({{size}}). Memory search improves when it finishes.",
+      "embeddingPromptBody": "The memory searches lexically and by entity without it; the vector arm needs a model on disk. It is {{size}}, comes from Hugging Face and stays on this device.",
+      "embeddingDownloading": "Downloading the embedding model ({{size}}). New notes are stored with vectors once it is loaded.",
       "embeddingInProgress": "Downloading…",
       "embeddingDownload": "Download",
       "embeddingNotNow": "Not now",
       "embeddingMissing": "Missing: {{files}}",
-      "embeddingSizeUnknown": "a few hundred MB"
-    }
+      "embeddingSizeUnknown": "a few hundred MB",
+      "embeddingFetchFailed": "The download did not finish: {{reason}}",
+      "embeddingStartFailed": "The download could not be started. Try again."
+    },
+    "toolTipShell": {
+      "title": "Shell command",
+      "body": "Runs a whitelisted command in the workspace and shows its output."
+    },
+    "toolTipEdit": {
+      "title": "File edit",
+      "body": "The agent changed this file — the diff shows before/after."
+    },
+    "toolTipWrite": {
+      "title": "File created",
+      "body": "The agent wrote this file; the content preview is expandable."
+    },
+    "toolTipRead": {
+      "title": "File read",
+      "body": "The agent read this file for context."
+    },
+    "toolTipSearch": {
+      "title": "Search",
+      "body": "The agent searched the workspace for matches."
+    },
+    "toolTipWeb": {
+      "title": "Web lookup",
+      "body": "The agent fetched information from the web."
+    },
+    "toolTipTask": {
+      "title": "Step update",
+      "body": "The agent created or updated a step on the to-do list."
+    },
+    "toolTipGeneric": {
+      "title": "Tool call",
+      "body": "The agent used one of its tools."
+    },
+    "failedSteps_one": "{{count}} step failed",
+    "failedSteps_other": "{{count}} steps failed",
+    "restoredConversationTitle": "Earlier conversation restored",
+    "restoredConversationBody": "This conversation ends in failed steps. Open it, or start a new task.",
+    "restoredConversationShow": "Show conversation"
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",
@@ -597,6 +636,41 @@
     "groupMore": "More surfaces"
   },
   "settings": {
+    "contextReport": "Context",
+    "context": {
+      "title": "What the agent read",
+      "subtitle": "The prompt the agent was built from, layer by layer, and every workspace rule file that was found — with what happened to it.",
+      "refresh": "Refresh the report",
+      "layersCount_one": "characters in one layer",
+      "layersCount_other": "characters across {{count}} layers",
+      "capsTitle": "Caps",
+      "capsHint": "Where the resolver cut a file short or left it out.",
+      "capsNoFiles": "No workspace rule file was reported for this prompt.",
+      "capsNone": "No cap was hit — every reported file fits whole.",
+      "capsTruncated_one": "One file was cut at its cap; {{chars}} characters still reached the prompt.",
+      "capsTruncated_other": "{{count}} files were cut at their caps; {{chars}} characters still reached the prompt.",
+      "capsSkipped_one": "One file found no room under the layer's combined cap.",
+      "capsSkipped_other": "{{count}} files found no room under the layer's combined cap.",
+      "stagesTitle": "Layers",
+      "stageFigures": "{{chars}} chars · {{percent}}% of the prompt",
+      "fileReason": "Reason: {{reason}}",
+      "readNote": "These are the characters the model received. A file marked refused, unreadable, empty or left out did not speak, and says so here.",
+      "emptyTitle": "No prompt layers",
+      "emptyBody": "The backend answered with no layer for the assembled prompt. Nothing from identity, persona, workspace rules or profile stands in front of the model right now.",
+      "unreachable": "The prompt layers could not be loaded — the backend did not answer.",
+      "retry": "Try again",
+      "stage": {
+        "identity": "Identity",
+        "persona": "Persona",
+        "toolGuidelines": "Tool guidelines",
+        "customInstructions": "Custom instructions",
+        "workspaceRules": "Workspace rules",
+        "userProfile": "Profile",
+        "corrections": "Corrections",
+        "feedback": "Feedback",
+        "date": "Date"
+      }
+    },
     "agents": "Agents",
     "agentsTitle": "Agents",
     "agentsHint": "Local helpers for delegated work. Name, model, tools and instructions belong to the agent; the main agent routes to it by name.",
@@ -770,7 +844,7 @@
     "memoryGroupStore": "Store",
     "memoryVectorsHint": "How many facts sit in this working folder. One is written after an answer once it clears the hurdles above.",
     "memoryProvider": "Knowledge backend",
-    "memoryProviderHint": "Which knowledge store speaks here. It is chosen through EPHE_MEMORY_PROVIDER or the record file in the device folder, not on this page.",
+    "memoryProviderHint": "Which knowledge store speaks here. It is chosen through EPHE_MEMORY_PROVIDER or the record file in the device folder; the Memory page writes that record.",
     "memoryScope": "Collection",
     "memoryScopeHint": "Which working folder speaks here — knowledge hangs on the folder, not on an account. Without the name, “empty” cannot be told apart from “wrong folder”.",
     "memoryExportHint": "Download every note as JSON, including the metadata that drives deletion and order.",
@@ -1538,7 +1612,6 @@
     "skip": "Skip the tour",
     "back": "Back",
     "continue": "Continue",
-    "next": "Continue →",
     "step": "{{current}} of {{total}}",
     "saving": "Saving…",
     "checking": "Reading your engine…",
@@ -1547,29 +1620,40 @@
     "greeting": {
       "eyebrow": "Welcome",
       "title": "This is your place",
-      "body": "Ephe runs on your machine. The engine you pick in a moment is where your words go — a local one keeps them here.",
+      "body": "Ephe runs on your machine. Three short questions — where it works, which engine answers, what may run on its own — then the desk is yours.",
       "cta": "Walk on"
     },
-    "usage": {
-      "title": "What will you bring here?",
-      "hint": "This only decides what Ephe offers first. Nothing is locked in.",
-      "code": "Writing code",
-      "research": "Research",
-      "documents": "Documents",
-      "mix": "A mix of all three",
-      "skip": "Skip this question"
+    "workspace": {
+      "title": "Where does Ephe work?",
+      "body": "One folder is the project: Ephe reads, writes and runs commands there, and relative paths resolve against it.",
+      "checking": "Reading the folder…",
+      "current": "Workspace",
+      "chosenHint": "Ephe works in this folder.",
+      "defaultHint": "No folder chosen yet — Ephe uses this default.",
+      "unavailable": "The current folder could not be read. You can set it in Settings → Behaviour.",
+      "choose": "Choose a folder",
+      "change": "Change folder",
+      "reset": "Use the default folder",
+      "settingsHint": "Change it later in Settings → Behaviour.",
+      "import": "Import a setup you already have…",
+      "imported": "Imported {{skills}} skill packs, {{servers}} tool servers. Persona: {{persona}}.",
+      "personaYes": "copied",
+      "personaNo": "none found"
     },
     "engine": {
       "title": "Which engine does Ephe use?",
-      "body": "Ephe installs nothing and pulls no models — just pick your existing engine and model.",
+      "body": "Ephe ships no engine and picks none for you. Your words go only to the engine you choose.",
+      "quiet": "Until you choose one, nothing is sent — the chat stays read-only.",
+      "cli": "In a terminal, the same choice:",
+      "where": "This opens the engine setup, the same screen as Settings → Engine.",
       "configured": "{{model}} is ready at {{endpoint}}.",
       "change": "Change engine",
       "choose": "Choose your engine",
-      "skip": "Skip for now"
+      "skip": "Not now — nothing is sent"
     },
     "activate": {
-      "title": "What should be on from the start?",
-      "hint": "Each of these is a switch. You can turn any of them off here or later in Settings.",
+      "title": "What should run on its own?",
+      "hint": "Three switches. Turn any of them off here or later in Settings.",
       "memory": "Learn from our conversations",
       "memoryHint": "Ephe remembers what matters from your conversations — you can edit or delete it.",
       "skills": "Skills",
@@ -1585,22 +1669,17 @@
       "allow": "Allow",
       "deny": "Decline"
     },
-    "carry": {
-      "title": "Bring anything over?",
-      "body": "Ephe can copy from a setup you already have — a persona file, skill packs, tool servers, or a few model settings. It never overwrites what is here, and imported skills arrive switched off.",
-      "choose": "Choose a folder",
-      "fresh": "Start fresh →",
-      "imported": "Imported {{skills}} skill packs, {{servers}} tool servers. Persona: {{persona}}.",
-      "personaYes": "copied",
-      "personaNo": "none found",
-      "pwaNote": "Import is available in the Ephe desktop app. Start fresh here, or bring your setup over there later."
-    },
     "desk": {
       "eyebrow": "Ready",
       "title": "That's everything. The desk is yours.",
       "body": "The questions are done. Ephe steps aside and the workspace is yours.",
       "hint": "Your engine, skills and memory can change at any time in Settings.",
-      "cta": "Open the workspace"
+      "cta": "Open the workspace",
+      "rules": {
+        "title": "Project rules",
+        "body": "Put an AGENTS.md in your workspace root. Ephe reads it at the start of every turn, together with any .ephe/rules/*.md.",
+        "context": "Type /context in the chat to see what Ephe read."
+      }
     }
   },
   "setup": {
@@ -2261,7 +2340,15 @@
     "kepta_instance_unreachable": "The Kepta instance is not reachable: {{url}} ({{error}}). Check whether it runs, or point {{env}} at the local brain.",
     "kepta_writes_its_own_ids": "The Kepta bridge assigns its own ids; it takes none from outside.",
     "kepta_empty_text_is_data_loss": "Empty text would be silent data loss.",
-    "kepta_clear_needs_the_instance": "The Kepta bridge has no clear(): emptying a shared instance is not a local action. Clean up inside the Kepta instance itself."
+    "kepta_clear_needs_the_instance": "The Kepta bridge has no clear(): emptying a shared instance is not a local action. Clean up inside the Kepta instance itself.",
+    "ask_user_needs_question": "[ask_user] A question is required — 0 characters were passed, so nothing was asked.",
+    "tool_path_denied": "access denied: '{{path}}' is not in the allowed directories.\nAllowed: HOME, Desktop, Documents, Downloads, tmp",
+    "skill_create_refused": "[skill_manage] create refused: the skill text carries an instruction shape ('{{marker}}') — rewrite it without directives, then retry.",
+    "browser_no_host": "No host in the URL — the browser has nothing to open.",
+    "browser_metadata_host": "{{host}} is the environment's metadata endpoint — the headless browser never opens it.",
+    "browser_address_blocked": "{{host}} stands on {{address}} ({{kind}}) — metadata, link-local and unspecified targets are blocked for the headless browser.",
+    "browser_private_blocked": "{{host}} stands on {{address}} ({{kind}}) — internal networks are blocked for the headless browser by default. For the local dev server: EPHE_FETCH_ALLOW_PRIVATE=1.",
+    "browser_internal_name": "{{host}} is an internal-only name — the headless browser never opens it."
   },
   "codeBlock": {
     "copy": "Copy code",
@@ -2343,7 +2430,6 @@
     "noPricingTitle": "The cost figure needs pricing for the active engine — `pricing` with `in_per_m` and `out_per_m` per million tokens in ~/.ephe/engine.json. This engine carries none, so the token count is all the row can state.",
     "cacheTitle": "Prompt cache: {{percent}}% of the last turn's prompt tokens were served from cache"
   },
-  "taskDock": {},
   "toolbar": {
     "uptime": "Backend uptime",
     "uptimeShort": "{{minutes}} min up",
@@ -2442,19 +2528,6 @@
     "offline": "Offline",
     "offlineHint": "The engine is not reachable. Open Settings → Engine to check the address, then run `ephe doctor`.",
     "usageNeedsPricing": "USD needs pricing for this engine: `pricing` with `in_per_m` and `out_per_m` in Settings → Engine. Until then the row states tokens only."
-  },
-  "streamGroup": {
-    "terminal": "Terminal",
-    "read": "Read",
-    "search": "Searched",
-    "web": "Web",
-    "edit": "Edited",
-    "write": "Wrote",
-    "task": "Steps",
-    "subagent": "Helper",
-    "tool": "Tool",
-    "count_one": "{{count}} call",
-    "count_other": "{{count}} calls"
   },
   "slash": {
     "desc": {
@@ -2688,8 +2761,8 @@
       "papierkorb": "Trash",
       "gehirne": "Brains"
     },
-    "groupBrains": "Two stores, one knowledge",
-    "groupBrainsHint": "Ephe can think in its archive or in its index. This page says which one answers, why, and whether both arms carry.",
+    "groupBrains": "One knowledge store",
+    "groupBrainsHint": "Ephe thinks in its archive. This page says which store answers, why, and whether both arms carry.",
     "provider": "Active store",
     "providerUnknown": "The backend does not name its store — the list stays usable.",
     "legs": "Arms of the store",
@@ -2727,9 +2800,10 @@
     "correctedCount_other": "{{count}} writings belong to a lineage.",
     "reportSource": "{{source}} memories in the source",
     "storeArchive": "Archive",
-    "storeIndex": "Index",
     "reportTargetHere": "The target is Ephe's own archive inside its device folder.",
-    "providerSwitched": "Notes are stored in \"{{provider}}\" from now on."
+    "providerSwitched": "Notes are stored in \"{{provider}}\" from now on.",
+    "storeBridge": "Bridge",
+    "vectorCoverage": "{{embedded}} of {{chunks}} notes have a vector."
   },
   "tools": {
     "title": "Tools",
@@ -2997,10 +3071,8 @@
     "seeAll": "All {{count}}",
     "cardDetail": "Details",
     "badge": {
-      "pick": "curated",
       "recent": "new",
-      "bundled": "included",
-      "popular": "popular"
+      "bundled": "included"
     },
     "category": {
       "skills": "Skills",
@@ -3017,7 +3089,12 @@
       "utility": "Utility",
       "other": "Other",
       "testing": "Testing",
-      "sandbox": "Sandbox"
+      "sandbox": "Sandbox",
+      "data": "Data",
+      "design": "Design",
+      "finance": "Finance",
+      "monitoring": "Monitoring",
+      "search": "Search"
     },
     "section": {
       "skills": "Short commands Ephe already knows.",
@@ -3034,7 +3111,12 @@
       "utility": "Small tools that help in any session.",
       "testing": "Checks before anything ships.",
       "sandbox": "Isolated runtimes for risky work.",
-      "other": "Everything else the registry offers."
+      "other": "Everything else the registry offers.",
+      "data": "Datasets, tables and the queries over them.",
+      "design": "Design files, prototypes and assets.",
+      "finance": "Payments, billing and money data.",
+      "monitoring": "Metrics, logs and alerts.",
+      "search": "Full-text and semantic search."
     },
     "detailInstall": "Launch line",
     "detailAttached": "Attached as",
@@ -3094,5 +3176,90 @@
     "featuredEyebrow": "Featured picks",
     "featuredLede": "Publishers with a verified endpoint, ranked above the long tail.",
     "whyFeatured": "Why it is here"
+  },
+  "landing": {
+    "eyebrow": "Local-first agent workspace",
+    "title": "One command. Your engine. Your machine.",
+    "lede": "Ephe runs a coding agent on your computer. You choose the engine, you approve the tools, and the files stay where they are. No account, and nothing is sent until you choose.",
+    "primaryCta": "Install in 60 seconds",
+    "secondaryCta": "Read the source",
+    "proof": {
+      "eyebrow": "Evidence",
+      "title": "Three numbers, and where they come from",
+      "lede": "Two are other people's measurements; the third is a count of what Ephe ships. Each line names the agent that was measured, the number of runs, and the source.",
+      "agentsMdValue": "28.6%",
+      "agentsMdLabel": "faster median run",
+      "agentsMdBody": "With a root AGENTS.md, the median run on 124 real pull requests across 10 repositories finished 28.6% sooner and emitted 16.6% fewer output tokens. The measured agent was Codex.",
+      "agentsMdSource": "Lulla et al., JAWs 2026 · arXiv:2601.20404",
+      "realmValue": "10–15 pp",
+      "realmLabel": "the bound on correctness",
+      "realmBody": "A two-agent ablation (17 tasks, 288 runs) kept correctness inside a 10–15 point equivalence bound. The runs that failed failed on implementation skill; missing repository knowledge was not what broke them. That is why Ephe's guarantees sit in gates a machine runs.",
+      "realmSource": "Khatri, REALM 2026 · aclanthology.org/2026.realm-1.5",
+      "accountsValue": "0",
+      "accountsLabel": "accounts and default models",
+      "accountsBody": "There is no account and no sign-up, and Ephe ships no model weights. Until an engine is chosen in setup, the chat stays closed and the headless commands stop with an instruction."
+    },
+    "compare": {
+      "eyebrow": "The comparison",
+      "title": "Six questions that decide where your work runs",
+      "lede": "Other coding agents answer these in their own documentation. Below are Ephe's answers, each beside the file in this repository that proves it. No cell is filled from memory.",
+      "question": "Question",
+      "ephe": "Ephe's answer"
+    },
+    "row": {
+      "engineQuestion": "Engine choice",
+      "engineAnswer": "You pick. A local Ollama, a remote Ollama, or any OpenAI-compatible endpoint. Until you choose, the chat stays closed and nothing is sent.",
+      "accountQuestion": "Account required",
+      "accountAnswer": "None. No sign-up, no login, no subscription.",
+      "licenseQuestion": "License",
+      "licenseAnswer": "BUSL-1.1, source-available. Each release falls to Apache 2.0 four years after it ships; production use needs a commercial licence.",
+      "pluginsQuestion": "Plugin model",
+      "pluginsAnswer": "A directory with ephe-plugin.json: versioned, content-hashed, signed. Permission families are declared in the manifest and validated fail-closed; an installed plugin lands disabled until you enable it.",
+      "contextQuestion": "Context files",
+      "contextAnswer": "AGENTS.md at the workspace root, plus .ephe/rules/*.md. Together they are capped at 12,000 characters (6,000 per file), and every file is provenance-marked and reported with its status.",
+      "verificationQuestion": "Verification",
+      "verificationAnswer": "The repository gates itself: a per-chunk bundle budget, a per-module coverage floor, a language gate and an architecture check. In the product, a claim stays attached to the tool result behind it."
+    },
+    "install": {
+      "eyebrow": "Install",
+      "title": "Try it in 60 seconds",
+      "lede": "The installer prepares Python, builds the web app and starts it at http://127.0.0.1:8765. The command names release {{version}}.",
+      "macosLinux": "macOS and Linux",
+      "copy": "Copy command",
+      "copied": "Command copied.",
+      "copyFailed": "The clipboard refused. Select the line and copy it yourself.",
+      "read": "Read install.sh before it runs",
+      "windows": "Windows (PowerShell)",
+      "windowsNote": "Installation on Windows is not yet verified end to end.",
+      "configure": "No engine is needed to start: the app opens its own setup and sends nothing until you choose one. ephe configure writes the same choice to ~/.ephe/engine.json for the terminal.",
+      "after": "Then ephe doctor reads back the engine, the model and the server state, and ephe start --open opens the app."
+    },
+    "migrate": {
+      "eyebrow": "Moving over",
+      "title": "Bring the setup you already have",
+      "lede": "Coming from another coding agent? ephe import reads the setup you already have and prints a plan. Nothing is written until you add --apply, and the skills it imports land disabled until you enable them.",
+      "carries": "What carries over",
+      "persona": "Persona file (SOUL.md, persona.md, AGENT.md, IDENTITY.md)",
+      "personaLands": "~/.ephe/persona.md — an existing persona is never overwritten",
+      "skills": "Skill packs (a <name>/SKILL.md tree)",
+      "skillsLands": "~/.ephe/skills/<name>/ — disabled until you enable them",
+      "mcp": "Tool servers (.mcp.json, mcp.json)",
+      "mcpLands": "merged into ~/.ephe/mcp.json — existing servers win",
+      "settings": "Settings (config.yaml, config.yml, config.json)",
+      "settingsLands": "mapped onto Ephe settings; anything unmapped is reported and left out",
+      "stays": "What stays where it is",
+      "history": "Message history is not read.",
+      "engine": "The engine is not imported: Ephe has no silent default, so you pick it once.",
+      "plugins": "Another product's plugins have no runtime here. Their skills come over where they map to the open skill-pack format.",
+      "rules": "AGENTS.md keeps its meaning, and .ephe/rules/*.md adds to it. Only AGENTS.md is read as project rules.",
+      "docLink": "Read the switching guide"
+    },
+    "footer": {
+      "license": "BUSL-1.1, source-available. Each release becomes Apache 2.0 four years after it ships.",
+      "nav": "About Ephe",
+      "docs": "Documentation",
+      "source": "Source",
+      "issues": "Issues"
+    }
   }
 }

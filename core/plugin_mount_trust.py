@@ -24,6 +24,7 @@ two it is mounting.
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -39,12 +40,100 @@ from core.plugin_mount_records import ARTIFACT_FIELD
 __all__ = [
     "TRUST_LOCAL",
     "TRUST_SIGNED",
+    "MountNamespace",
     "bundle_trust",
     "content_digest",
+    "invalidate_mount_answers",
     "moved_content",
     "manifest_of",
     "refuse_contested_names",
 ]
+
+#: Bumped by `invalidate_mount_answers`; a namespace holding an older number re-reads.
+_ANSWERS_GENERATION = 0
+_ANSWERS_LOCK = threading.Lock()
+
+
+def invalidate_mount_answers() -> None:
+    """Drop the portfolio answers a mount namespace may still hold.
+
+    The ownership cache drops the manifest-derived views after an install, a remove or
+    an edit; a namespace that spans such a write must not answer from what it read
+    before it.
+    """
+    global _ANSWERS_GENERATION
+    with _ANSWERS_LOCK:
+        _ANSWERS_GENERATION += 1
+
+
+def _answers_generation() -> int:
+    with _ANSWERS_LOCK:
+        return _ANSWERS_GENERATION
+
+
+class MountNamespace:
+    """The portfolio answers one replay pass asks for, read at most once.
+
+    A replay re-mounts every recorded bundle, and each mount asks the same two
+    questions: which names are reserved, and which names the scanned bundles claim.
+    The folders cannot change inside one pass, so the pass reads both answers once and
+    drops them with the pass; a namespace built for a single mount answers the same
+    questions for that mount only. A write between the pass and an answer moves the
+    generation, and the namespace re-reads instead of serving the pre-write portfolio.
+    """
+
+    __slots__ = ("_generation", "_reserved", "_entries", "_scanned")
+
+    def __init__(self) -> None:
+        self._generation = _answers_generation()
+        self._reserved: dict[str, Any] | None = None
+        self._entries: list[dict[str, Any]] | None = None
+        self._scanned: Any | None = None
+
+    def _refresh(self) -> None:
+        generation = _answers_generation()
+        if generation != self._generation:
+            self._generation = generation
+            self._reserved = None
+            self._entries = None
+            self._scanned = None
+
+    @property
+    def entries(self) -> list[dict[str, Any]]:
+        self._refresh()
+        if self._entries is None:
+            from core import plugin_manifest
+
+            self._entries = plugin_manifest.scan_plugins(None)
+        return self._entries
+
+    @property
+    def reserved(self) -> dict[str, Any]:
+        self._refresh()
+        if self._reserved is None:
+            from core import plugin_tools_contract
+
+            self._reserved = plugin_tools_contract.reserved_tool_names()
+        return self._reserved
+
+    @property
+    def scanned(self):
+        self._refresh()
+        if self._scanned is None:
+            from core.plugin_registry import scan_tool_activations
+
+            self._scanned = scan_tool_activations(
+                None, entries=self.entries, reserved=self.reserved
+            )
+        return self._scanned
+
+    def directory(self, plugin: str) -> Path | None:
+        """The bundle directory the portfolio holds for one plugin id, if any."""
+        for record in self.entries:
+            manifest = record.get("manifest")
+            if isinstance(manifest, dict) and str(manifest.get("name")) == plugin:
+                return Path(record["dir"])
+        return None
 
 
 def content_digest(directory: Path) -> str:
@@ -70,21 +159,21 @@ def manifest_of(plugin: str, directory: Path) -> dict[str, Any]:
     return manifest
 
 
-def refuse_contested_names(plugin: str, descriptors) -> None:
+def refuse_contested_names(plugin: str, descriptors, *, namespace=None) -> None:
     """Refuse a name the portfolio contests, a reserved one, or one a live space holds.
 
     The reservation is asked once, owner-aware: the shipped bundle may re-serve its own
     name, every other bundle — including one staged in the user root — is refused with the
-    namespace code, the held name and the free name it can choose instead.
+    namespace code, the held name and the free name it can choose instead. ``namespace``
+    is the replay pass's shared answer set; without one this mount reads its own.
     """
     from core import plugin_tools_contract
     from core.plugin_lifecycle_types import LifecycleError
-    from core.plugin_registry import scan_tool_activations
-    from core.sandbox.runner import resolve_plugin_dir
 
-    directory = resolve_plugin_dir(plugin)
-    reserved = plugin_tools_contract.reserved_tool_names()
-    scanned = scan_tool_activations(None)
+    answers = namespace if namespace is not None else MountNamespace()
+    directory = answers.directory(plugin)
+    reserved = answers.reserved
+    scanned = answers.scanned
     for descriptor in descriptors:
         held = plugin_tools_contract.reserved_tool(
             descriptor.name,

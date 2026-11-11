@@ -1,4 +1,4 @@
-/* The first open — four questions with the bee as guide. The stage is the
+/* The first open — three questions with the bee as guide. The stage is the
    scene's ground, quieter than the intro: a low ember light, the panel as a
    sheet on it, and the being moving one place per answer. */
 .tour-stage {
@@ -89,36 +89,6 @@
   line-height: 1.65;
   color: var(--color-ink-soft);
 }
-.tour-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 1.25rem;
-}
-.tour-card {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-height: 56px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-hairline);
-  background: var(--color-surface-raised);
-  color: var(--color-ink-soft);
-  font-size: var(--text-scale-ui, 14px);
-  text-align: start;
-  cursor: pointer;
-  transition:
-    border-color 180ms var(--ease-settle),
-    background-color 180ms var(--ease-settle),
-    color 180ms var(--ease-settle);
-}
-.tour-card:hover { border-color: var(--color-hairline-strong); color: var(--color-ink); }
-.tour-card.is-selected {
-  border-color: #ffbf47;
-  background: rgb(255 191 71 / 0.12);
-  color: var(--color-ink);
-}
-.tour-card.is-selected svg { color: #ffbf47; }
 .tour-text-action { display: inline-block; margin-top: 0.9rem; }
 .tour-engine {
   margin-top: 1.1rem;
@@ -127,6 +97,55 @@
   background: var(--color-surface-raised);
   display: grid;
   gap: 0.35rem;
+}
+.tour-engine-where {
+  display: block;
+  margin-top: 0.9rem;
+}
+.tour-cli {
+  margin-top: 0.55rem;
+  font-size: var(--text-scale-ui, 14px);
+  color: rgb(247 240 224 / 0.62);
+}
+.tour-cli code {
+  padding: 0.08rem 0.3rem;
+  border-radius: 0.25rem;
+  background: rgb(255 191 71 / 0.12);
+  font-family: var(--font-mono, monospace);
+  color: #ffd27a;
+}
+.tour-workspace {
+  margin-top: 1.1rem;
+  padding: 12px 14px;
+  border-inline-start: 2px solid var(--color-brand);
+  background: var(--color-surface-raised);
+  display: grid;
+  gap: 0.3rem;
+}
+.tour-workspace-label {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tour-workspace-path {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-scale-ui, 14px);
+  color: #f7f0e0;
+}
+.tour-workspace-hint {
+  line-height: 1.5;
+}
+.tour-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  margin-top: 0.3rem;
+}
+.tour-workspace-actions .tour-text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0;
 }
 .tour-actions {
   display: flex;
@@ -204,6 +223,30 @@
   font-size: var(--text-scale-ui, 14px);
   color: var(--color-ink-soft);
 }
+.tour-rules {
+  margin-top: 1.1rem;
+  padding: 12px 14px;
+  border: 1px solid rgb(255 191 71 / 0.28);
+  background: rgb(255 191 71 / 0.06);
+}
+.tour-rules-title {
+  font-size: var(--text-scale-ui, 14px);
+  font-weight: 600;
+  color: #f7f0e0;
+}
+.tour-rules-body,
+.tour-rules-context {
+  margin-top: 0.35rem;
+  font-size: var(--text-scale-ui, 14px);
+  line-height: 1.55;
+  color: rgb(247 240 224 / 0.72);
+}
+.tour-rules-context {
+  color: rgb(247 240 224 / 0.6);
+}
+.tour-desk-actions {
+  margin-top: 0.9rem;
+}
 .tour-error {
   margin-top: 1rem;
   font-size: var(--text-scale-ui, 14px);
@@ -236,13 +279,11 @@
     transform: none !important;
   }
   .tour-panel { width: 100%; }
-  .tour-cards { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tour-panel,
   .tour-body,
   .tour-bee,
-  .tour-card,
   .tour-switch,
   .tour-switch-thumb,
   .tour-primary,
@@ -255,7 +296,6 @@
 html.no-motion .tour-panel,
 html.no-motion .tour-body,
 html.no-motion .tour-bee,
-html.no-motion .tour-card,
 html.no-motion .tour-switch,
 html.no-motion .tour-switch-thumb {
   animation: none !important;
@@ -532,7 +572,6 @@ html.no-motion .tour-bee { transform: none !important; }
 .tour-stage[data-step="2"] .tour-stage-frame { transform: scale(1.06) translateX(1%); }
 .tour-stage[data-step="3"] .tour-stage-frame { transform: scale(1.05) translateY(-1%); }
 .tour-stage[data-step="4"] .tour-stage-frame { transform: scale(1.06) translateX(-0.5%); }
-.tour-stage[data-step="5"] .tour-stage-frame { transform: scale(1.07) translateY(-1.5%); }
 .tour-stage-shade {
   position: fixed;
   inset: 0;

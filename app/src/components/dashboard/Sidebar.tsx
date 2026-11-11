@@ -480,6 +480,54 @@ export default function Sidebar({
   // them; the drawer is the only place they can live.
   const actionsInColumn = !isDesktop
 
+  // The phone drawer is a dialog: closed it leaves the tab order (inert), open it
+  // takes focus, traps Tab and Escape hands focus back to the header trigger.
+  const drawerRef = useRef<HTMLElement | null>(null)
+  const drawerWasOpen = useRef(false)
+  useEffect(() => {
+    if (isDesktop) {
+      drawerWasOpen.current = false
+      return
+    }
+    if (isOpen) {
+      drawerWasOpen.current = true
+      drawerRef.current?.querySelector<HTMLElement>('[data-testid="sidebar-close"]')?.focus()
+    } else if (drawerWasOpen.current) {
+      drawerWasOpen.current = false
+      document.querySelector<HTMLElement>('[data-testid="header-menu-toggle"]')?.focus()
+    }
+  }, [isDesktop, isOpen])
+
+  const onDrawerKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (isDesktop || !isOpen) return
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+      return
+    }
+    if (e.key !== 'Tab') return
+    const root = drawerRef.current
+    if (!root) return
+    const focusable = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    )
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (!first || !last) return
+    const active = document.activeElement as HTMLElement | null
+    const inside = Boolean(active && root.contains(active))
+    if (e.shiftKey && (!inside || active === first)) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && (!inside || active === last)) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+
   // DD-25: null-message placeholders (automatically created fresh sessions)
   // are not conversations — they skewed the list as a "New Session,
   // 0 messages" phantom. Hidden, except the currently active one (otherwise the
@@ -794,6 +842,7 @@ export default function Sidebar({
           Mobile: drawer with spring transition + backdrop, z ABOVE the header
           (otherwise the header blocks the X close — regression finding round 10). */}
       <m.aside
+        ref={drawerRef}
         initial={isDesktop ? false : { x: -320 }}
         animate={isDesktop ? { x: 0 } : { x: isOpen ? 0 : -320 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
@@ -801,10 +850,13 @@ export default function Sidebar({
           isDesktop ? 'relative z-overlay' : 'fixed z-modal'
         } w-72 transition-[width] duration-base overflow-hidden`}
         style={isDesktop ? { width: closed ? 0 : sidebarWidth } : undefined}
-        inert={closed || undefined}
-        role={isDesktop ? undefined : 'dialog'}
-        aria-modal={isDesktop ? undefined : true}
+        inert={isDesktop ? closed || undefined : !isOpen || undefined}
+        role={!isDesktop && isOpen ? 'dialog' : undefined}
+        aria-modal={!isDesktop && isOpen ? true : undefined}
+        aria-hidden={!isDesktop && !isOpen ? true : undefined}
         aria-label={t('a11y.sidebar')}
+        onKeyDown={onDrawerKeyDown}
+        id="chat-sidebar"
         data-testid="chat-sidebar"
         data-collapsed={closed || undefined}
       >
@@ -847,6 +899,7 @@ export default function Sidebar({
             <button
               onClick={onClose}
               aria-label={t('a11y.close')}
+              data-testid="sidebar-close"
               className="lg:hidden p-2.5 rounded-lg hover:bg-surface text-ink-soft hover:text-foreground transition-colors max-lg:min-w-11 max-lg:min-h-11"
             >
               <X className="h-4 w-4" />
@@ -1292,7 +1345,6 @@ export default function Sidebar({
             title={t('sidebar.settingsAndProfile')}
             data-testid="sidebar-settings-btn"
             className="w-full glass-control rounded-xl px-2.5 py-2 flex items-center gap-2.5 text-ink-soft hover:text-foreground hover:bg-brand/10 transition-all"
-            aria-label={t('sidebar.settingsAndProfile')}
           >
             <span
               className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0"

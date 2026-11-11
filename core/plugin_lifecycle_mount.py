@@ -99,8 +99,14 @@ class LifecycleMount:
         expected_etag: str | None = None,
         actor: str = "user",
         reason: str = "",
+        namespace=None,
     ) -> MountResult:
-        """Put one bundle's declared tools on the rail, or leave everything as it was."""
+        """Put one bundle's declared tools on the rail, or leave everything as it was.
+
+        ``namespace`` is the replay pass's shared portfolio answers
+        (`core.plugin_mount_trust.MountNamespace`); a user-facing mount leaves it out and
+        reads the folders for that one transition.
+        """
         with self._lock:
             return self._mount_locked(
                 str(plugin_id),
@@ -110,6 +116,7 @@ class LifecycleMount:
                 expected_etag=expected_etag,
                 actor=actor,
                 reason=reason,
+                namespace=namespace,
             )
 
     def mount_records(self) -> dict[str, dict]:
@@ -164,7 +171,7 @@ class LifecycleMount:
 
     def _mount_locked(
         self, plugin, *, acknowledge, acknowledge_artifact, expected_version,
-        expected_etag, actor, reason
+        expected_etag, actor, reason, namespace=None
     ) -> MountResult:
         from core.plugin_lifecycle_types import LifecycleError
 
@@ -194,7 +201,7 @@ class LifecycleMount:
             step = STEP_DESCRIPTORS
             descriptors = self._mount_descriptors(manifest)
             step = STEP_CLAIMS
-            refuse_contested_names(plugin, descriptors)
+            refuse_contested_names(plugin, descriptors, namespace=namespace)
             step = STEP_PIN
             records = pin_records(descriptors)
             first, diffs = self._mount_check_pins(plugin, descriptors, acknowledge)
@@ -341,7 +348,9 @@ class LifecycleMount:
         """
         from core import plugin_runtime
 
-        plugin_runtime.invalidate_ownership_cache()
+        # The served set moved; the portfolio on disk did not, so a replay pass keeps
+        # the answers it already read.
+        plugin_runtime.invalidate_ownership_cache(manifests_changed=False)
         for tool_name in names:
             self._publish(
                 "plugin.tool_registered",

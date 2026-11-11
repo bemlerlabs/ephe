@@ -110,6 +110,10 @@ export default function StatusBar({
   // The row states what is left because that is the number a person plans with; the meter
   // beside it shows the fill.
   const remainingPercent = Math.max(0, Math.min(100, Math.round(100 - effectivePercent)))
+  // The button below shows this figure; WCAG 2.5.3 wants it in the name too.
+  const percentLabel = t('statusBar.remainingPercent', {
+    percent: formatNumber(remainingPercent, i18n.language),
+  })
   const meterColor = danger ? 'bg-status-danger' : warn ? 'bg-status-warning' : 'bg-status-success'
 
   return (
@@ -197,17 +201,13 @@ export default function StatusBar({
         data-testid="statusbar-breakdown-toggle"
         aria-expanded={expanded}
         aria-haspopup="dialog"
-        aria-label={t('statusBar.breakdownHint')}
+        aria-label={`${String(t('statusBar.breakdownHint'))}: ${percentLabel}`}
         title={t('statusBar.breakdownHint')}
         className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1 py-1.5 -my-1.5 text-ui-xs font-mono tabular-nums transition-colors hover:bg-surface-interactive hover:text-foreground/80 ${
           danger ? 'text-status-danger' : warn ? 'text-status-warning' : 'text-ink-soft'
         }`}
       >
-        <span data-testid="statusbar-percent">
-          {t('statusBar.remainingPercent', {
-            percent: formatNumber(remainingPercent, i18n.language),
-          })}
-        </span>
+        <span data-testid="statusbar-percent">{percentLabel}</span>
         {compactionActive && (
           <span
             data-testid="statusbar-compaction-marker"
@@ -245,6 +245,16 @@ export default function StatusBar({
           compactionActive={compactionActive}
           tokPerSec={tokPerSec}
           ttftMs={active?.ttftMs ?? null}
+          onClose={() => setExpanded(false)}
+          onOpenReport={() => {
+            setExpanded(false)
+            // The settings panel mounts only after its open event; the tab request
+            // travels with it, the same pair the other surfaces send.
+            window.dispatchEvent(
+              new CustomEvent('ephe:settings-tab', { detail: { tab: 'contextReport' } }),
+            )
+            window.dispatchEvent(new CustomEvent('ephe:open-settings'))
+          }}
         />
       )}
     </div>

@@ -33,6 +33,17 @@ describe('settings primitives — native contract', () => {
     expect(group.querySelector('.sticky')).toBeNull()
   })
 
+  it('places the group title one heading level below the page header', () => {
+    render(
+      <SettingsGroup title="Everyday" testid="group">
+        <SettingsRow title="Font scale" />
+      </SettingsGroup>,
+    )
+    // PageHeader is an h2; an h4 skipped a level and axe flagged the outline.
+    const heading = screen.getByText('Everyday').closest('h1,h2,h3,h4,h5,h6')
+    expect(heading?.tagName).toBe('H3')
+  })
+
   it('keeps a 44 px row floor and a sentence-face value', () => {
     render(
       <SettingsRow title="Font scale" testid="row">

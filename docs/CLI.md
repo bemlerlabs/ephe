@@ -33,7 +33,7 @@ Stops the backend that `~/.ephe/run/backend-<port>.json` and `/api/health` agree
 Prints pid, version, root and owner of the backend on the port, and whether the pidfile proves ownership. Exit 0 when an Ephe backend answers, 1 when nothing does.
 
 ## `ephe doctor [--fix] [--json]`
-Diagnoses the local setup: Python, project files, the engine (chosen, reachable, key bound), model (installed + load test), the **image endpoint** (informational) and **voice (TTS)** (informational).
+Diagnoses the local setup: Python, project files, the engine (chosen, reachable, key bound), model (installed + load test), the **context files** the workspace contributes, the **image endpoint** (informational) and **voice (TTS)** (informational).
 
 The last line is the one to act on: `Next: <command>   # <why>` names the single step that
 moves this setup forward — the engine setup, a model pull, a safe repair, or the app.
@@ -47,6 +47,21 @@ The model line covers a tag that exists: `--model`, else `EPHE_MODEL`, else the 
 local-Ollama choice. `--fix` repairs the safe drift: release-tag fast-forward, dependencies
 (`.[gui,voice]`), Ollama service + model, PWA build. With no tag there is nothing to pull,
 so the repair is skipped instead of turning the run red.
+
+The `Context files` row counts what the workspace contributed (loaded, capped, refused) and
+points at `ephe context` for the files themselves. It reports a state, so it never moves the
+exit code.
+
+## `ephe context [--json]`
+The files the workspace contributes to the prompt, one row per file: the layer it belongs
+to, its character count, the status the reader gave it (`included`, `truncated`, `denied`,
+`empty`, `unreadable`, `skipped`) with the reason a file stayed out, and the caps in force.
+The header names the workspace root that was read.
+
+The files, the caps and the status words come from `core/workspace_rules.py`, the same
+resolver the system prompt is built from, so this report and what the model received cannot
+drift. `--json` prints `{workspace, layers, caps, total_chars, counts, source}`, where each
+layer carries `{name, file, chars, status, reason, scope}`.
 
 ## `ephe update [--model <name>] [--channel release|commit]`
 Release-tag fast-forward, dependencies, installer invocation. The default channel is
@@ -193,6 +208,7 @@ ephe start --model <tag>       # name the tag your engine serves
 ephe doctor                    # setup check (Ollama, model, server)
 ephe doctor --fix              # safe local repairs (repo, deps, Ollama, model)
 ephe doctor --json             # machine-readable health report
+ephe context                   # the workspace context files, caps and status
 ephe update                    # newest release tag + dependencies + model
 ephe                           # terminal UI (Textual); opens its setup if no engine is chosen
 ephe tui                       # same surface, named

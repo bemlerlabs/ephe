@@ -148,9 +148,18 @@ jobs:
         run: |
           set -uo pipefail
           # No -e here on purpose: a failed install must land in the resolution below, which names
-          # the tool that is missing, rather than aborting on a pip traceback.
-          pip install --quiet "uv==0.13.6" "pip-audit==2.10.1" \
-            || echo "::notice::the tool install did not complete; the resolution below names what is missing"
+          # the tool that is missing, rather than aborting on a pip traceback. PyPI is a hard
+          # dependency of this audit, so the install is bounded and retried: three attempts, then
+          # the resolution below refuses by tool name.
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --quiet "uv==0.13.6" "pip-audit==2.10.1"; then installed=1; break; fi
+            echo "audit tool install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::notice::the tool install did not complete after three attempts; the resolution below names what is missing"
+          fi
           if [ -n "${EPHE_LEG_VENV:-}" ] && ! pip -V | grep -q "$EPHE_LEG_VENV"; then
             echo "::error::install resolves outside the job's own venv: $(pip -V)"
             exit 1

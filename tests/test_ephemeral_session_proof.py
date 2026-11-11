@@ -245,15 +245,18 @@ def test_every_declared_entry_names_code_that_is_in_the_tree():
 def test_the_code_declares_nothing_the_manifest_does_not_cover():
     """The reverse-engineered set and the written one have to answer the same question.
 
-    Three names come from prose about a *project's* own `.ephe` folder — a workspace keeps
-    its search index, its rules and its learning map beside itself, and `declared_names()`
-    reads a mention of `.ephe/<name>` the same way it reads a `config_root() / <name>`
-    expression. They are excluded here with their reason rather than by teaching the scan
-    to guess which sentence is a path.
+    Names come from prose about a *project's* own `.ephe` folder — a workspace keeps its
+    search index, its rules and its context overlays beside itself, and the scan reads a
+    mention of `.ephe/<name>` the same way it reads a `config_root() / <name>` expression.
+    They are excluded here with their reason rather than by teaching the scan to guess
+    which sentence is a path.
     """
     from core.persistence import declared_names as manifest_names
 
-    workspace_local = {"index.db", "rules"}
+    # The other workspace-local names are the context overlays a project may keep beside
+    # itself (`core/workspace_rules.py`): they live in the user's workspace, never in the
+    # device folder this declaration describes.
+    workspace_local = {"index.db", "rules", "user.md", "persona.md"}
     scanned = declared_names() - workspace_local
     undeclared = sorted(scanned - set(manifest_names()))
     assert not undeclared, f"{len(undeclared)} names the code reaches are undeclared: {undeclared}"

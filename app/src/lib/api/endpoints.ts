@@ -194,6 +194,11 @@ export interface PluginEntry {
   version?: string
   sha256?: string
   manifest?: boolean
+  /**
+   * Whether `/api/plugins/icon/{id}` can answer. `false` means the manifest names
+   * no icon and the tile paints its lettermark without a request.
+   */
+  has_icon?: boolean
   source?: 'builtin' | 'user'
   permissions?: string[]
   /** E3: provenance — first-party (built-in) vs external (vendor/community). */

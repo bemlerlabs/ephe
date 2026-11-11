@@ -36,15 +36,21 @@ export default function ComposerModelChip({
   onSetup: () => void
 }) {
   const { t } = useTranslation()
+  const visible = needsSetup ? t('chat.setupEngineChip') : model || '…'
+  const action = needsSetup ? t('chat.setupEngineChipAria') : t('chat.modelChipAria')
+  // WCAG 2.5.3: what the chip shows is part of what it answers to. The empty
+  // placeholder carries no word, so it does not enter the name.
+  const accessibleName = visible === '…' ? action : `${String(action)}: ${String(visible)}`
   return (
     <>
       <button
         type="button"
         ref={anchorRef}
         onClick={onToggle}
-        aria-label={needsSetup ? t('chat.setupEngineChipAria') : t('chat.modelChipAria')}
+        aria-label={accessibleName}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={needsSetup ? t('chat.setupEngineChip') : model || undefined}
         data-testid="model-chip"
         data-needs-setup={needsSetup ? 'true' : 'false'}
         className={`inline-flex items-center gap-1.5 min-w-6 min-h-6 rounded-md border px-1.5 py-0.5 text-ui-xs transition-colors max-lg:min-h-11 max-lg:min-w-11 ${
@@ -53,9 +59,7 @@ export default function ComposerModelChip({
             : 'border-control bg-surface text-ink-faint hover:text-foreground hover:border-brand/30'
         }`}
       >
-        <span className="truncate max-w-36 min-w-0 max-lg:max-w-28">
-          {needsSetup ? t('chat.setupEngineChip') : model || '…'}
-        </span>
+        <span className="truncate max-w-36 min-w-0 max-lg:max-w-28">{visible}</span>
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"

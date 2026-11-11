@@ -226,3 +226,304 @@ class TestTheRulesDirectory:
         stage = next(s for s in context_stages()["stages"] if s["name"] == "workspace_rules")
         assert (result.text or "")[:220] == stage["preview"]
         assert [f["name"] for f in stage["files"]] == [RULES_NAME]
+
+
+class TestTheOptionalLayers:
+    """CTX-CONTRACT: SOUL, USER and MEMORY join AGENTS and the rules directory."""
+
+    def test_soul_at_the_root_wins_over_its_alias(self, workspace):
+        from core.workspace_rules import SOUL_NAME, read_workspace_rules
+
+        (workspace / SOUL_NAME).write_text("root-voice", encoding="utf-8")
+        alias = workspace / ".ephe" / "persona.md"
+        alias.parent.mkdir(parents=True)
+        alias.write_text("alias-voice", encoding="utf-8")
+
+        result = read_workspace_rules()
+        text = result.text or ""
+        assert "root-voice" in text
+        assert "alias-voice" not in text
+        soul = next(e for e in result.files if e.layer == "soul")
+        assert soul.status == "included"
+        assert soul.name == "SOUL.md"
+
+    def test_the_persona_alias_is_read_when_the_root_is_absent(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        alias = workspace / ".ephe" / "persona.md"
+        alias.parent.mkdir(parents=True)
+        alias.write_text("alias-voice", encoding="utf-8")
+
+        result = read_workspace_rules()
+        assert "alias-voice" in (result.text or "")
+        assert next(e for e in result.files if e.layer == "soul").name == ".ephe/persona.md"
+
+    def test_user_preferences_alias_and_cap(self, workspace):
+        from core.workspace_rules import USER_FILE_MAX, read_workspace_rules
+
+        alias = workspace / ".ephe" / "user.md"
+        alias.parent.mkdir(parents=True)
+        alias.write_text("y" * (USER_FILE_MAX + 120), encoding="utf-8")
+
+        result = read_workspace_rules()
+        entry = next(e for e in result.files if e.layer == "user")
+        assert entry.name == ".ephe/user.md"
+        assert entry.status == "truncated"
+        assert entry.chars <= USER_FILE_MAX
+        assert "truncated" in (result.text or "")
+
+    def test_memory_is_private_only(self, workspace):
+        from core.workspace_rules import MEMORY_NAME, read_workspace_rules
+
+        (workspace / MEMORY_NAME).write_text("private-note", encoding="utf-8")
+
+        private = read_workspace_rules()
+        assert "private-note" in (private.text or "")
+        assert next(e for e in private.files if e.layer == "memory").scope == "private"
+
+        shared = read_workspace_rules(shared=True)
+        assert "private-note" not in (shared.text or "")
+        entry = next(e for e in shared.files if e.layer == "memory")
+        assert entry.status == "skipped"
+        assert entry.reason == "shared-context"
+        assert entry.chars == 0
+
+    def test_layer_order_is_the_precedence_order(self, workspace):
+        from core.workspace_rules import (
+            MEMORY_NAME,
+            RULES_NAME,
+            SOUL_NAME,
+            USER_NAME,
+            read_workspace_rules,
+        )
+
+        rules = workspace / ".ephe" / "rules"
+        rules.mkdir(parents=True)
+        (workspace / RULES_NAME).write_text("agents-body", encoding="utf-8")
+        (rules / "10-project.md").write_text("rules-body", encoding="utf-8")
+        (workspace / SOUL_NAME).write_text("soul-body", encoding="utf-8")
+        (workspace / USER_NAME).write_text("user-body", encoding="utf-8")
+        (workspace / MEMORY_NAME).write_text("memory-body", encoding="utf-8")
+
+        text = read_workspace_rules().text or ""
+        assert (
+            text.index("agents-body")
+            < text.index("rules-body")
+            < text.index("soul-body")
+            < text.index("user-body")
+            < text.index("memory-body")
+        )
+
+    def test_every_layer_names_its_own_file(self, workspace):
+        from core.workspace_rules import MEMORY_NAME, SOUL_NAME, USER_NAME, read_workspace_rules
+
+        for name in (SOUL_NAME, USER_NAME, MEMORY_NAME):
+            (workspace / name).write_text(f"{name}-body", encoding="utf-8")
+        text = read_workspace_rules().text or ""
+        for name in (SOUL_NAME, USER_NAME, MEMORY_NAME):
+            assert f"from {workspace / name}" in text
+
+    def test_identity_md_is_not_a_layer(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        (workspace / "IDENTITY.md").write_text("identity-body", encoding="utf-8")
+        result = read_workspace_rules()
+        assert "identity-body" not in (result.text or "")
+        assert not any(e.layer == "identity" for e in result.files)
+
+    def test_an_empty_overlay_is_named_not_injected(self, workspace):
+        from core.workspace_rules import SOUL_NAME, read_workspace_rules
+
+        (workspace / SOUL_NAME).write_text("   \n", encoding="utf-8")
+        result = read_workspace_rules()
+        assert result.text is None
+        entry = next(e for e in result.files if e.layer == "soul")
+        assert entry.status == "empty"
+
+    def test_explain_reports_every_layer_and_the_caps(self, workspace):
+        from core.workspace_rules import (
+            MEMORY_NAME,
+            RULES_NAME,
+            SOUL_NAME,
+            USER_NAME,
+            WORKSPACE_CONTEXT_MAX,
+            explain_workspace_context,
+        )
+
+        rules = workspace / ".ephe" / "rules"
+        rules.mkdir(parents=True)
+        (workspace / RULES_NAME).write_text("agents-body", encoding="utf-8")
+        (rules / "a.md").write_text("rule-body", encoding="utf-8")
+        (workspace / SOUL_NAME).write_text("soul-body", encoding="utf-8")
+        (workspace / USER_NAME).write_text("user-body", encoding="utf-8")
+        (workspace / MEMORY_NAME).write_text("memory-body", encoding="utf-8")
+
+        answer = explain_workspace_context()
+        assert set(answer) == {"layers", "caps", "total_chars"}
+        assert answer["caps"]["total"] == WORKSPACE_CONTEXT_MAX
+        assert answer["caps"]["per_file"]["memory"] == 6_000
+        assert answer["caps"]["per_file"]["user"] == 4_000
+        assert answer["total_chars"] <= answer["caps"]["total"]
+        names = {layer["name"] for layer in answer["layers"]}
+        assert names == {"agents", "rules", "soul", "user", "memory"}
+        for layer in answer["layers"]:
+            assert set(layer) == {"name", "file", "chars", "status", "reason", "scope"}
+        assert next(layer for layer in answer["layers"] if layer["name"] == "memory")["scope"] == (
+            "private"
+        )
+
+
+class TestPathScopedRules:
+    """CTX-CONTRACT: a rule file may declare where it applies."""
+
+    FRONTMATTER = '---\npaths:\n  - "src/**/*.ts"\n---\n'
+
+    def _rules(self, ws: Path) -> Path:
+        rules = ws / ".ephe" / "rules"
+        rules.mkdir(parents=True)
+        return rules
+
+    def test_a_rule_without_frontmatter_always_loads(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        self._rules(workspace).joinpath("global.md").write_text("global-body", encoding="utf-8")
+        text = read_workspace_rules(paths=["docs/readme.md"]).text or ""
+        assert "global-body" in text
+
+    def test_the_frontmatter_is_not_injected(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ts.md").write_text(
+            self.FRONTMATTER + "typescript-rule", encoding="utf-8"
+        )
+        text = read_workspace_rules(paths=["src/lib/a.ts"]).text or ""
+        assert "typescript-rule" in text
+        assert "paths:" not in text
+        assert "---" not in text
+
+    def test_a_matching_path_loads_the_rule(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ts.md").write_text(self.FRONTMATTER + "typescript-rule", encoding="utf-8")
+        entry = next(
+            e
+            for e in read_workspace_rules(paths=["src/lib/a.ts"]).files
+            if e.name.endswith("ts.md")
+        )
+        assert entry.status == "included"
+
+    def test_a_non_matching_path_skips_the_rule_and_names_the_reason(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ts.md").write_text(self.FRONTMATTER + "typescript-rule", encoding="utf-8")
+        result = read_workspace_rules(paths=["docs/readme.md"])
+        assert "typescript-rule" not in (result.text or "")
+        entry = next(e for e in result.files if e.name.endswith("ts.md"))
+        assert entry.status == "skipped"
+        assert entry.reason == "path-filter"
+        assert entry.chars == 0
+
+    def test_without_a_turn_path_the_rule_loads_as_before(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ts.md").write_text(self.FRONTMATTER + "typescript-rule", encoding="utf-8")
+        assert "typescript-rule" in (read_workspace_rules().text or "")
+
+    def test_an_empty_turn_still_loads_unscoped_rules(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "global.md").write_text("global-body", encoding="utf-8")
+        (rules / "ts.md").write_text(self.FRONTMATTER + "typescript-rule", encoding="utf-8")
+        text = read_workspace_rules(paths=[]).text or ""
+        assert "global-body" in text
+        assert "typescript-rule" not in text
+
+    def test_an_absolute_path_inside_the_workspace_matches(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ts.md").write_text(self.FRONTMATTER + "typescript-rule", encoding="utf-8")
+        text = read_workspace_rules(paths=[str(workspace / "src" / "lib" / "a.ts")]).text or ""
+        assert "typescript-rule" in text
+
+    def test_an_absolute_path_outside_the_workspace_does_not_match(self, workspace, tmp_path):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ts.md").write_text(self.FRONTMATTER + "typescript-rule", encoding="utf-8")
+        outside = tmp_path / "outside.ts"
+        text = read_workspace_rules(paths=[str(outside)]).text or ""
+        assert "typescript-rule" not in text
+
+    def test_a_dot_directory_keeps_its_leading_dot(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "ci.md").write_text(
+            '---\npaths:\n  - ".github/**"\n---\nci-rule', encoding="utf-8"
+        )
+        assert "ci-rule" in (
+            read_workspace_rules(paths=[".github/workflows/tests.yml"]).text or ""
+        )
+
+    def test_an_inline_list_is_read(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "py.md").write_text(
+            '---\npaths: ["src/*.py"]\n---\npython-rule', encoding="utf-8"
+        )
+        assert "python-rule" in (read_workspace_rules(paths=["src/app.py"]).text or "")
+
+    def test_a_malformed_paths_value_degrades_to_no_filter(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "broken.md").write_text(
+            "---\npaths: [\n---\nstill-a-rule", encoding="utf-8"
+        )
+        result = read_workspace_rules(paths=["docs/readme.md"])
+        assert "still-a-rule" in (result.text or "")
+
+    def test_a_star_stays_inside_one_segment(self, workspace):
+        from core.workspace_rules import read_workspace_rules
+
+        rules = self._rules(workspace)
+        (rules / "root-py.md").write_text(
+            '---\npaths:\n  - "*.py"\n---\nroot-python-rule', encoding="utf-8"
+        )
+        nested = read_workspace_rules(paths=["src/app.py"]).text or ""
+        assert "root-python-rule" not in nested
+        flat = read_workspace_rules(paths=["app.py"]).text or ""
+        assert "root-python-rule" in flat
+
+
+class TestTheContextContractSurface:
+    def test_the_stage_route_carries_the_layer_report(self, workspace):
+        from core.workspace_rules import MEMORY_NAME, SOUL_NAME, explain_workspace_context
+        from server.routes.context import context_stages
+
+        (workspace / SOUL_NAME).write_text("soul-body", encoding="utf-8")
+        (workspace / MEMORY_NAME).write_text("memory-body", encoding="utf-8")
+
+        answer = context_stages()
+        assert answer["workspace_context"] == explain_workspace_context()
+        stage = next(s for s in answer["stages"] if s["name"] == "workspace_rules")
+        assert {layer["name"] for layer in stage["layers"]} == {"soul", "memory"}
+        assert stage["caps"]["total"] == explain_workspace_context()["caps"]["total"]
+
+    def test_total_chars_never_exceeds_the_contract_cap(self, workspace, monkeypatch):
+        from core import workspace_rules as wr
+
+        monkeypatch.setattr(wr, "WORKSPACE_CONTEXT_MAX", 220)
+        (workspace / wr.RULES_NAME).write_text("r" * 500, encoding="utf-8")
+        (workspace / wr.SOUL_NAME).write_text("s" * 500, encoding="utf-8")
+        (workspace / wr.USER_NAME).write_text("u" * 500, encoding="utf-8")
+        (workspace / wr.MEMORY_NAME).write_text("m" * 500, encoding="utf-8")
+        answer = wr.explain_workspace_context()
+        assert answer["total_chars"] <= 220

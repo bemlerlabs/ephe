@@ -50,6 +50,10 @@ describe('StatusBar', () => {
     const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → ~12% used
     render(<StatusBar messages={msgs} />)
     expect(screen.getByTestId('statusbar-percent').textContent).toBe('88% free')
+    // WCAG 2.5.3: the visible figure is part of the name the button answers to.
+    expect(screen.getByTestId('statusbar-breakdown-toggle').getAttribute('aria-label')).toBe(
+      'Token breakdown: 88% free',
+    )
     // The raw figures are behind the status pill now, not in the row all day.
     expect(screen.queryByTestId('statusbar-storage-chip')).toBeNull()
     expect(screen.queryByText(/free of/)).toBeNull()

@@ -101,8 +101,7 @@ def dynamic_tool_schemas() -> list[dict]:
     nothing until its descriptors come back, and the CLI, the TUI and an imported server
     all reach the tool set through this call.
     """
-    plugin_mount_replay.ensure_published()
-    plugin_mount_replay.publish_shipped_contributed()
+    plugin_mount_replay.publish_for_read()
     schemas = [_envelope(d) for d in default_registry().descriptor_snapshot()]
     by_name = {
         str((entry.get("function") or {}).get("name") or ""): entry for entry in schemas

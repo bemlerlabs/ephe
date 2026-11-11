@@ -1163,8 +1163,7 @@ async def _execute_tool_core(
         # has to reach the same mount, or a contributed name reads as missing.
         from core import plugin_mount_replay
 
-        plugin_mount_replay.ensure_published()
-        plugin_mount_replay.publish_shipped_contributed()
+        plugin_mount_replay.publish_for_read()
         # Enum repair still rewrites a bad value once, before the worker.
         # A missing required parameter stays the refusal the validator named.
         # Filling that parameter would start the worker on an empty value.

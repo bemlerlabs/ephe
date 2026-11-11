@@ -242,7 +242,10 @@ plus a `## System Prompt` section, and `core/skills.py` refuses a pack when that
 is missing. The heading is structure; the install-time
 static check (`core/marketplace_verify.py`) reads **directive phrases**,
 and one gate applies to every artifact — community, local and bundled alike (the old
-first-party exemption is gone; a first-party bundle now passes on its text).
+first-party exemption is gone; a first-party bundle now passes on its text). The same
+scan runs on every skill write path: pack upload, URL install, `POST`/`PUT`
+`/api/skills` and `skill_manage create`. Each refuses with 409 `static_check_failed`,
+the findings and the next step, and writes nothing.
 
 | The artifact text contains | Verdict |
 |---|---|

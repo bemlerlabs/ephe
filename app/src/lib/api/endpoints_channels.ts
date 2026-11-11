@@ -6,6 +6,7 @@ import { BASE_URL, LAN_TOKEN, request } from './http'
 import type {
   DiscordStatus,
   MemoryEntry,
+  MemoryProviders,
   MemoryTrash,
   MigrateReport,
   MobileQR,
@@ -90,9 +91,14 @@ export function restoreMemoryEntry(id: string): Promise<{ restored: string }> {
   return request(`/api/memory/${encodeURIComponent(id)}/restore`, { method: 'POST' })
 }
 
+/** R2-A: the selectable stores, from the list the PUT validates against. */
+export function listMemoryProviders(): Promise<MemoryProviders> {
+  return request<MemoryProviders>('/api/memory/providers')
+}
+
 /** R2-A: which brain writes, and why it switched. */
 export function setMemoryProvider(
-  provider: 'kepta' | 'chroma',
+  provider: string,
 ): Promise<{ provider: string; reason: string; scope: string }> {
   return request('/api/memory/provider', {
     method: 'PUT',

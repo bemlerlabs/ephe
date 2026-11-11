@@ -22,6 +22,10 @@ export interface MemoryStats {
   /** R2-A: why this brain answers (env, provider.json, resolution). */
   reason?: string
   vector_leg?: boolean
+  /** Chunks in the store and how many of them carry a vector. `vector_leg`
+   *  says an embedder can load; these two say what it covers. */
+  chunks?: number
+  chunks_embedded?: number
   lexical_leg?: boolean
   deleted?: number
   /**
@@ -50,6 +54,11 @@ export interface MemoryTrash {
   total: number
   restore_supported?: boolean
   detail?: string
+}
+
+/** GET /api/memory/providers — the store ids the switch accepts. */
+export interface MemoryProviders {
+  providers: string[]
 }
 
 /** Report from POST /api/memory/migrate — the dry run is the decision. */

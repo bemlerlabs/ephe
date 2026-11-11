@@ -13,6 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Any
 from core import mcp_catalog, plugin_manifest, plugin_tools_contract
 from core.skills import Skill, SkillLoader
 
@@ -90,7 +91,12 @@ class ToolActivations:
         return dict(self._claims).get(tool_name, ())
 
 
-def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
+def scan_tool_activations(
+    plugins_root: Path | None = None,
+    *,
+    entries: list[dict[str, Any]] | None = None,
+    reserved: dict[str, Any] | None = None,
+) -> ToolActivations:
     """Like load_tool_activations, but reports conflicting tools instead of raising.
 
     A claim on a reserved name is dropped before it can own anything: the first-party
@@ -102,15 +108,21 @@ def scan_tool_activations(plugins_root: Path | None = None) -> ToolActivations:
     refusal belongs to `verify`, to the install path and to the mount, not to the offer —
     a scan that let a competing claim win is how a disabled bundle silently removed
     `web_search` from every session.
+
+    ``entries`` and ``reserved`` let a caller that already read the portfolio — a mount
+    replay pass — hand the answers over instead of walking the folders once more.
     """
-    reserved = plugin_tools_contract.reserved_tool_names()
+    if reserved is None:
+        reserved = plugin_tools_contract.reserved_tool_names()
     owners: dict[str, str] = {}
     claimants: dict[str, list[tuple[str, str]]] = {}
     conflicts: set[str] = set()
     contributed: set[str] = set()
-    for entry in plugin_manifest.scan_plugins(
-        None if plugins_root is None else Path(plugins_root)
-    ):
+    if entries is None:
+        entries = plugin_manifest.scan_plugins(
+            None if plugins_root is None else Path(plugins_root)
+        )
+    for entry in entries:
         manifest = entry["manifest"]
         if entry["error"] or not manifest:
             continue

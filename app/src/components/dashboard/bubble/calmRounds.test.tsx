@@ -129,15 +129,18 @@ describe('calm rounds (UI-CHAT)', () => {
     expect(within(shell).getByTestId('round-thought').textContent).toBe('4s')
   })
 
-  it('keeps a failed round one line; the reason lives in the opened body', () => {
+  it('keeps a restored failed round one folded line (F6)', () => {
     render(<MessageBubble message={turn()} />)
     const failed = screen.getByTestId('tool-stream-row-read')
     const summary = within(failed).getByRole('button')
     const summaryText = summary.textContent ?? ''
     expect(summaryText).toContain('read_file')
-    expect(summaryText.toLowerCase()).toContain('failed')
+    expect(summaryText).toContain('1 step failed')
     expect(summaryText).not.toContain('fetch failed')
-    // a failure opens itself, so the reader sees why without a click
+    // A restored failure is folded: the reason sits one click away, on the
+    // first screen after a start.
+    expect(within(failed).queryByTestId('tool-failure-reason')).toBeNull()
+    fireEvent.click(summary)
     expect(within(failed).getByTestId('tool-failure-reason').textContent).toContain('HTTP 404')
     expect(screen.queryByTestId('proof-ledger')).toBeNull()
   })
