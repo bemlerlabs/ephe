@@ -2,7 +2,8 @@
  * Locale gate — three classes that keep the German locale files clean for good.
  *
  * WHY THIS FILE EXISTS
- * * The three classes are not invented rules but proven breakages
+ * --------------------
+ * The three classes are not invented rules but proven breakages
  * (as of 2026-10-05, wave "P1 Sprache"): // language-gate: ignore — "P1 Sprache" is that wave's own name, quoted verbatim
  *
  * (a) SINGLE-BRACE PLACEHOLDERS. i18next only substitutes `{{word}}`; anything with
@@ -26,6 +27,7 @@
  *     specificity fixtures below push back: `Kohlenmonoxid`, paths like
  *     `/Users/beispiel/Strasse/projekt` and base64/sha hash values must not fail. // language-gate: ignore — fixture path quoted verbatim from the tests below
  *     Otherwise nobody can satisfy the rule.
+ */
 import { expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -57,6 +59,7 @@ export const enLeaves = leaves(en)
  * nested objects AND the flat dotted keys of the inventory
  * ("deepSection.chat", "plugins.orphans") are covered — that is exactly how
  * i18next resolves.
+ */
 export function keySet(entries: Array<[string, string]>): Set<string> {
   return new Set(entries.map(([k]) => k))
 }
@@ -73,6 +76,7 @@ export function hasKey(keys: Set<string>, dotted: string): boolean {
 /**
  * Finds `{word}` in single braces. Doubles are stripped first so that
  * `{{count}}` does not pass as two single-brace placeholders.
+ */
 export function singleBraces(value: string): string[] {
   const stripped = value.replace(/\{\{[^{}]*\}\}/g, '\u0000')
   return [...stripped.matchAll(/\{\s*([A-Za-z_][\w.]*)\s*\}/g)].map((m) => `{${m[1]}}`)
@@ -151,6 +155,7 @@ export const upperFirst = (s: string): string => s.charAt(0).toUpperCase() + s.s
  * They are reported, not removed — the palette is not this gate's file. The
  * exception invalidates itself: as soon as the key gets a real section
  * (TabKey/NAV), the gate demands it in the locales too.
+ */
 export const DEAD_ENTRIES: Record<string, string> = {
   'settings.deep':
     'src/hooks/paletteExtraItems.ts SETTINGS_NAV_KEYS nennt "deep"; TabKey, NAV und die section-Zuordnung in settings/model.tsx kennen kein "deep" — der Eintrag öffnet eine leere Fläche. Gemeldet am 2026-10-05.',
@@ -183,8 +188,9 @@ export function dynamicKeyDemands(): Array<{ key: string; from: string }> {
 /**
  * Everything that is not prose is stripped before the check: paths, URLs,
  * file names, `{{placeholder}`, code in backticks and command sequences. That
- * is exactly what this line is for — "'Strasse' inside a path" is a path rather than a
+ * is exactly what this line is for — "'Strasse' inside a path" is a path, not a
  * heading, and base64 hash values appear in paths and manifests.
+ */
 export const NON_PROSE =
   /(?:https?:\/\/|file:\/\/|~\/|\.{1,2}\/|\/[\w.@+-]+(?:\/[\w.@+-]+)+|[\w@-]+\.(?:tsx?|jsx?|py|md|json|ya?ml|toml|sh|css|scss|html|db|sqlite|lock|zip|tgz|png|svg)\b|`[^`]*`|\{\{[^{}]*\}\}|[A-Z][A-Z0-9]{2,}(?:_[A-Z0-9]+)+)/g
 
@@ -193,13 +199,15 @@ export const NON_PROSE =
  * word that itself carries ä/ö/ü/ß is already correct ("übersteuern" contains
  * "ue" and is still right). On top, at least 4 letters must be present —
  * otherwise hash fragments ("…8ae…", "Oe") would fail.
+ */
 export const TRANSCRIPTION = /(?:ae|oe|ue)/i
 export const HEX_ONLY = /^[0-9a-fA-F]+$/
 
 /**
  * Technical and loanwords that really spell ae|oe|ue. Anyone adding here also
- * writes why the word is not a transcription — the list is not a
+ * writes why the word is not a transcription — the list is the excuse, not a
  * free pass.
+ */
 export const AE_OE_UE_ALLOW = new Set([
   'aktuell',
   'aktuelle',
@@ -232,16 +240,15 @@ export const AE_OE_UE_ALLOW = new Set([
   'quellen',
   'quellenliste',
   // the same stem with a second half: a note about a source, spelled with "ue"
-  // because "Quelle" is the word.
+  // because "Quelle" is the word, not because an umlaut was typed away
   'quellennotiz',
   'steuern',
   'steuerung',
   'steuerungen',
   'zuerst',
-  // "Vertrauen" is the product's word for the trust level of a bundle; the "ue"
-  // spelling is the standard German one.
+  // The product's own word for a bundle's trust level.
   'vertrauen',
-  // "der Kern feuert dieses Event" — a real German word.  <!-- language-gate: ignore (the quoted sample the stopword entry documents) -->
+  // "der Kern feuert dieses Event" — a real German word, not a transcription  <!-- language-gate: ignore (the quoted sample the stopword entry documents) -->
   'feuert',
   'feuere',
   'feuern',
@@ -261,6 +268,7 @@ export const AE_OE_UE_ALLOW = new Set([
  * German (Fluss, Schloss, dass, muss). A blanket ss rule could be satisfied by
  * nobody, so what stands here is the set of stems whose standard spelling
  * requires a ß.
+ */
 export const SHARP_S_WORDS = [
   'aussen',
   'ausser',
@@ -292,9 +300,10 @@ export const SHARP_S_WORDS = [
 ]
 
 /**
- * Known mutilated forms: here the umlaut itself is missing,
+ * Known mutilated forms: here the umlaut itself is missing, not just the
  * transcription ("offnen" instead of "öffnen"). No rule in the world catches
  * that, so it stands here as a dictionary — with the finding that produced it.
+ */
 export const MUTILATED: Record<string, string> = {
   offnen: 'öffnen',
   ahnlich: 'ähnlich',

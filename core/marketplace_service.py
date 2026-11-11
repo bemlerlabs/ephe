@@ -328,7 +328,12 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
             from core import plugin_switch_policy
             from core.settings_schema import deep_bool
 
-            land_on = deep_bool("plugins.plugin_autorun") and not plugin_switch_policy.read_only()
+            # A shipped (bundled/official) pack is installed to be usable: it lands on.
+            # A local artifact follows the conservative `plugins.plugin_autorun` default.
+            shipped = str(plan_data.get("trust") or "") in {"bundled", "official", "verified"}
+            land_on = (shipped or deep_bool("plugins.plugin_autorun")) and not (
+                plugin_switch_policy.read_only()
+            )
             try:
                 from core import plugin_runtime
 
