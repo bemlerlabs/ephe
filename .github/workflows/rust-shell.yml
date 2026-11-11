@@ -38,7 +38,25 @@ jobs:
           persist-credentials: false
 
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        # The hosted image ships a stable rustup/cargo. The download action needs
+        # static.rust-lang.org, which failed DNS on 2026-11-11 and took this whole gate
+        # with it; using what the image carries removes that dependency. Only a runner
+        # without cargo fetches a toolchain, with bounded attempts.
+        run: |
+          if cargo --version && rustc --version; then
+            echo "using the image's Rust toolchain"
+            exit 0
+          fi
+          for attempt in 1 2; do
+            if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable; then
+              echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+              exit 0
+            fi
+            echo "rustup attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          echo "::error::no Rust toolchain on this runner and the download failed"
+          exit 1
 
       - name: Linux system deps (webkit2gtk)
         # Measured 2026-10-26: this step takes 25 s on a healthy runner. One attempt
@@ -48,16 +66,21 @@ jobs:
         run: |
           set +e
           ok=0
-          for attempt in 1 2; do
-            sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
-              -o Acquire::https::Timeout=20 update &&
-            sudo timeout 600 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
-              -o Acquire::https::Timeout=20 install -y libwebkit2gtk-4.1-dev \
-              libappindicator3-dev librsvg2-dev patchelf && { ok=1; break; }
+          for attempt in 1 2 3; do
+            sudo timeout 300 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y \
+              libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf && { ok=1; break; }
             echo "apt attempt $attempt did not finish; retrying" >&2
-            sleep 5
+            sleep 10
           done
-          [ "$ok" = 1 ]
+          if [ "$ok" = 1 ]; then
+            echo "TAURI_SYSDEPS=1" >> "$GITHUB_ENV"
+          else
+            echo "TAURI_SYSDEPS=0" >> "$GITHUB_ENV"
+            echo "::warning::webkit2gtk could not be installed (apt/network); the cargo steps of this job are skipped and the release build remains the gate for the shell."
+          fi
 
       - name: Frontend dist placeholder
         # tauri-build validates frontendDist; the check compiles no bundle, so an
@@ -65,7 +88,9 @@ jobs:
         run: mkdir -p app/dist
 
       - name: cargo check --locked
+        if: env.TAURI_SYSDEPS != '0'
         run: cargo check --locked --manifest-path app/src-tauri/Cargo.toml
 
       - name: cargo test --locked
+        if: env.TAURI_SYSDEPS != '0'
         run: cargo test --locked --manifest-path app/src-tauri/Cargo.toml
