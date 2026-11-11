@@ -168,6 +168,18 @@ class _FailingCatalog(_FakeCatalog):
         raise FileNotFoundError("User skill 'coded-skill' not found.")
 
 
+class _RefusingCatalog(_FakeCatalog):
+    """The static directive scan refused the text the tool was asked to persist."""
+
+    def save(self, **_kw):
+        from core.skills import SkillRefused
+
+        raise SkillRefused(
+            [{"class": "description-instructions", "severity": "high",
+              "marker": "ignore previous", "file": "system_prompt"}]
+        )
+
+
 def _mem_line(monkeypatch, *calls: dict):
     """One collection behind the whole call sequence, so a remove sees the add."""
     import core.memory
@@ -243,6 +255,12 @@ def _bg(monkeypatch, action: str, *, live: bool = False, status: str = "done", o
             process_tools._BG_TASKS.pop("bgC", None)
 
     return asyncio.run(run())
+
+
+def _ask_line(monkeypatch, question: str = ""):
+    from core.tools.ask_gate import ask_user
+
+    return asyncio.run(ask_user(question=question))
 
 
 def _fetch_call(monkeypatch, url: str, get) -> Reason:
@@ -346,6 +364,14 @@ TOOL_CASES = (
         ("error",),
     ),
     (
+        "skill_create_refused",
+        lambda mp: _skill_line(
+            mp, catalog=_RefusingCatalog, action="create", name="x", trigger="t",
+            description="d", system_prompt="p",
+        ),
+        ("marker",),
+    ),
+    (
         "skill_saved",
         lambda mp: _skill_line(
             mp, action="create", name="x", trigger="t", description="d", system_prompt="p"
@@ -375,6 +401,7 @@ TOOL_CASES = (
     ("process_already_state", lambda mp: _bg(mp, "kill"), ("task_id", "state")),
     ("process_output_pending", lambda mp: _bg(mp, "poll", status="running"), ("task_id",)),
     ("process_no_output", lambda mp: _bg(mp, "poll"), ("task_id", "status")),
+    ("ask_user_needs_question", _ask_line, ()),
     ("fetch_empty_url", lambda mp: _fetch_call(mp, "", _no_http), ()),
     (
         "fetch_scheme_blocked",
@@ -427,9 +454,11 @@ def _browser_line(monkeypatch, url: str, *, unresolvable: bool = False) -> Reaso
     return browser_url.url_policy(url)[1]
 
 
-#: The headless browser's five policy refusals. `core/browser.py:go()` prefixes them with
-#: the detector marker and carries the code on — the marker is engine-side, the sentence
-#: behind it is what the card resolves.
+#: The headless browser's ten policy refusals: five for the scheme/file scope and
+#: five for the address classes `core.net_guard.py` names for the fetch channel.
+#: The browser answers in its own code family (`browser_*`), so a card can say
+#: which tool was blocked. `core/browser.py:go()` prefixes the line with the
+#: detector marker and carries the code on.
 BROWSER_CASES = (
     ("browser_url_empty", lambda mp: _browser_line(mp, ""), ()),
     ("browser_scheme_blocked", lambda mp: _browser_line(mp, "javascript:alert(1)"), ("scheme",)),
@@ -443,6 +472,27 @@ BROWSER_CASES = (
         "browser_outside_artifact_roots",
         lambda mp: _browser_line(mp, "file:///etc/hosts"),
         ("resolved",),
+    ),
+    ("browser_no_host", lambda mp: _browser_line(mp, "http:///x"), ()),
+    (
+        "browser_metadata_host",
+        lambda mp: _browser_line(mp, "http://metadata.google.internal/computeMetadata/v1/"),
+        ("host",),
+    ),
+    (
+        "browser_address_blocked",
+        lambda mp: _browser_line(mp, "http://169.254.169.254/latest/meta-data/"),
+        ("host", "address", "kind"),
+    ),
+    (
+        "browser_private_blocked",
+        lambda mp: _browser_line(mp, "http://127.0.0.1:8765/api/settings"),
+        ("host", "address", "kind"),
+    ),
+    (
+        "browser_internal_name",
+        lambda mp: _browser_line(mp, "http://db.internal/x"),
+        ("host",),
     ),
 )
 
@@ -487,6 +537,23 @@ BRIDGE_CASES = (
     ),
     ("kepta_empty_text_is_data_loss", lambda mp: _bridge_error(lambda: _bridge(mp).update("e1", "  ")), ()),
     ("kepta_clear_needs_the_instance", lambda mp: _bridge_error(lambda: _bridge(mp).clear()), ()),
+)
+
+
+def _file_error(path: str) -> BaseException:
+    from core.tools.base import FileNotAllowedError
+
+    try:
+        raise FileNotAllowedError(path)
+    except FileNotAllowedError as exc:
+        return exc
+
+
+#: The path refusal of the file tools. `FileNotAllowedError` is a `PermissionError`, so the
+#: code rides on the exception (`core.reason.coded`) and the registry's error sink lifts it
+#: into the `[tool-error ...]` line the card renders.
+FILE_CASES = (
+    ("tool_path_denied", lambda mp: _file_error("/etc/passwd"), ("path",)),
 )
 
 
@@ -541,15 +608,18 @@ def test_the_emitted_codes_are_the_documented_set():
     tools = {case[0] for case in TOOL_CASES}
     browser = {case[0] for case in BROWSER_CASES}
     assert len(guards) == 15, "two guard sites share a wording, every other one stands alone"
-    assert len(tools) == 40, "every tool line names one reason of its own"
-    assert len(browser) == 5, "the browser policy has five refusals and no more"
+    assert len(tools) == 42, "every tool line names one reason of its own"
+    assert len(browser) == 10, "the browser policy names ten refusals and no more"
     bridge = {case[0] for case in BRIDGE_CASES}
     assert len(bridge) == 5, "the bridge refuses five things and says which"
-    named = guards | tools | browser | bridge
-    assert len(named) == 65, "two surfaces share a code"
-    assert (guards & tools | guards & browser | guards & bridge
-            | tools & browser | tools & bridge | browser & bridge) == set(), \
-        "a code names two surfaces, so the card cannot tell them apart"
+    files = {case[0] for case in FILE_CASES}
+    assert len(files) == 1, "the file tools share one path refusal"
+    surfaces = (guards, tools, browser, bridge, files)
+    named = set().union(*surfaces)
+    assert len(named) == 73, "two surfaces share a code"
+    assert all(
+        not (a & b) for i, a in enumerate(surfaces) for b in surfaces[i + 1:]
+    ), "a code names two surfaces, so the card cannot tell them apart"
     # The three entries the reader route owns itself are the only ones no emitter names.
     # Plural forms (`_one`/`_other`) are i18next's own mechanism; they collapse onto their
     # base key before the set comparison.
@@ -557,7 +627,7 @@ def test_the_emitted_codes_are_the_documented_set():
     for lng, bundle in BUNDLES.items():
         base = {plural.sub("", key) for key in bundle}
         assert base == named | set(OWNED_BY_THE_ROUTE), f"{lng}.json/reader drifted"
-        assert len(base) == 68
+        assert len(base) == 76
 
 
 @pytest.mark.parametrize(("code", "build", "param_names"), BRIDGE_CASES,

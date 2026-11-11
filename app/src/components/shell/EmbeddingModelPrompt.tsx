@@ -24,6 +24,7 @@ export default function EmbeddingModelPrompt() {
   const { t } = useTranslation()
   const [status, setStatus] = useState<EmbeddingModelStatus | null>(null)
   const [asking, setAsking] = useState(false)
+  const [startError, setStartError] = useState('')
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const read = useCallback(async () => {
@@ -47,7 +48,10 @@ export default function EmbeddingModelPrompt() {
     }
   }, [status?.downloading, read])
 
-  const offerVisible = status !== null && !status.present && !status.error
+  // A failed fetch is exactly when the card has to stay: it carries the reason
+  // and the retry. Only a model that is actually loadable removes the offer.
+  const offerVisible = status !== null && !status.present
+  const failure = status?.error || startError
   if (!offerVisible) return null
   if (!status.downloading && !asking && recentlyDismissed()) return null
 
@@ -67,9 +71,16 @@ export default function EmbeddingModelPrompt() {
             ? t('chat.model.embeddingDownloading', { size })
             : t('chat.model.embeddingPromptBody', { size })}
         </p>
-        {status.missing.length > 0 && !status.downloading && (
+        {status.missing.length > 0 && !status.downloading && !failure && (
           <p className="mt-0.5 text-ink-faint">
             {t('chat.model.embeddingMissing', { files: status.missing.join(', ') })}
+          </p>
+        )}
+        {failure && !status.downloading && (
+          <p data-testid="embedding-model-error" className="mt-0.5 text-status-danger">
+            {status.error
+              ? t('chat.model.embeddingFetchFailed', { reason: status.error })
+              : failure}
           </p>
         )}
       </div>
@@ -83,14 +94,16 @@ export default function EmbeddingModelPrompt() {
             className="rounded-md bg-brand px-2 py-1 font-medium text-canvas"
             onClick={async () => {
               setAsking(true)
+              setStartError('')
               const started = await startEmbeddingDownload()
               setAsking(false)
               if (started) {
                 await read()
               } else {
-                // The route refused (offline, older build): keep the offer, say nothing new.
-                dismissOffer()
-                setStatus(null)
+                // The route refused (offline, older build): the offer stays, with
+                // its reason, so the next click is possible without a reload.
+                setStartError(t('chat.model.embeddingStartFailed'))
+                await read()
               }
             }}
           >

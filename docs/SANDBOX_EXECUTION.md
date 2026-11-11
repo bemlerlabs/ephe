@@ -266,6 +266,11 @@ it means the scope is the gate:
   /tmp; symlinks resolved, no `../` escape). `javascript:`, `gopher:`, `chrome:`, `ws:`,
   `ftp:`, `about:` are refused. Before this, `file:` was explicitly whitelisted —
   "open file:///Users/x/.ssh/id_rsa" was a file reader that never asked.
+- Address reach follows `core/net_guard.py`: metadata, link-local, unspecified and
+  internal-only names are refused always; loopback/RFC1918/IPv6-local need
+  `EPHE_FETCH_ALLOW_PRIVATE=1`. `core/browser.py::_guard_route` installs that check on the
+  whole page context, so a redirect, a sub-resource and a public name that resolves
+  into loopback get their own answer before the browser connects.
 - `browser_exec` now keeps its declared time budget (1–300 s, default 120): on expiry it returns the
   stdout captured up to that point and discards the session, instead of leaving the turn stuck on an
   endless loop.

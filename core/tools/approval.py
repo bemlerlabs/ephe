@@ -1,6 +1,6 @@
 """P0-1 / threat model E1: approval gates, diff preview and ``--dry-run``.
 
-Conservative defaults (release bar from AGENTS.md):
+Conservative defaults (AGENTS.md, Boundaries):
 
 - Destructive / mutating tools need **explicit** approval *before* execution.
 - Without a policy and without interactivity, a MUTATING run is rejected

@@ -19,6 +19,10 @@ class _Ctx:
     def __init__(self, kwargs: dict) -> None:
         self.kwargs = kwargs
         self.pages = 0
+        self.routes: list[tuple[str, object]] = []
+
+    async def route(self, pattern: str, handler) -> None:
+        self.routes.append((pattern, handler))
 
     async def new_page(self) -> _Page:
         self.pages += 1

@@ -48,12 +48,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 25
-    env:
-      # The sandbox families prove a confined child on the boundary this job installs
-      # below. Without the variable a host without the capability skips those proofs and
-      # the leg still goes green; with it, the absence is red. `tests/support/capabilities.py`
-      # reads it, so no test file decides this on its own.
-      EPHE_REQUIRE_OS_BOUNDARY: "1"
+    # The sandbox families prove a confined child on the boundary this job installs below.
+    # The "these proofs must not skip" flag is not job-wide: the install step sets it only
+    # when it actually provided the boundary, and the step above the suite reports what this
+    # run did not prove when it could not.
     strategy:
       fail-fast: false
       matrix:
@@ -110,8 +108,21 @@ jobs:
         # Pinned, not `pip install uv`: an unpinned resolver makes the guard's verdict
         # depend on which uv happened to ship that day. The freshness check, lockfile
         # lane and scratch resolver must use the same pin.
+        #
+        # PyPI is this step's network dependency; the install is bounded and retried so a
+        # transient miss does not read as a stale lock. A failure that survives refuses,
+        # because a freshness check that did not run is not a pass.
         run: |
-          pip install "uv==0.13.6"
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; the lock freshness check has no verdict"
+            exit 1
+          fi
           uv lock --check
 
       - name: Install package (with dev tools)
@@ -132,17 +143,44 @@ jobs:
         # handled in tests/test_cpython_cell_e1.py: the policy read skips on its own
         # probe, and the refusal case pins the library present so the security assertion
         # keeps running on every leg.
+        #
+        # PyPI is a network dependency of this install; three bounded attempts separate a
+        # transient registry miss from a dependency that cannot install at all, and the
+        # failure that survives names which one it was.
         run: |
-          pip install --upgrade pip
-          pip install -e ".[dev,tui]"
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --upgrade pip && pip install -e ".[dev,tui]"; then installed=1; break; fi
+            echo "package install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::the package install could not reach PyPI; the suite has no environment to run in"
+            exit 1
+          fi
 
       - name: Activate the pnpm this repo pins
         # The hosted image carries node but no pnpm, and tracked tests shell out to it (the
         # lockfile gate first). Same activation the frontend leg and setup.sh use, from
         # app/package.json's `packageManager`.
+        #
+        # corepack fetches the pinned pnpm from registry.npmjs.org: three bounded attempts,
+        # because a tracked test that shells out to pnpm has no verdict without it.
         run: |
           corepack enable
-          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          activated=0
+          for attempt in 1 2 3; do
+            if corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate; then
+              activated=1
+              break
+            fi
+            echo "corepack prepare attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$activated" != 1 ]; then
+            echo "::error::the pinned pnpm could not be downloaded from registry.npmjs.org; the tests that shell out to it cannot run"
+            exit 1
+          fi
           pnpm --version
 
       - name: Setup Node.js
@@ -159,12 +197,37 @@ jobs:
       - name: Install the app type checker
         # This leg only reads `app/node_modules/.bin/tsc`; the postinstall artefacts the
         # frontend leg builds stay unnecessary, so the install runs with `--ignore-scripts`.
-        run: cd app && pnpm install --frozen-lockfile --ignore-scripts
+        #
+        # registry.npmjs.org is a network dependency with no local copy on a fresh runner; the
+        # install is bounded and retried, and a failure that survives says so by name.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if (cd app && pnpm install --frozen-lockfile --ignore-scripts); then installed=1; break; fi
+            echo "pnpm install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::pnpm install could not reach registry.npmjs.org; the SDK type check has no toolchain"
+            exit 1
+          fi
 
-      - name: Rust toolchain
-        # `tests/test_coding_loop_languages.py` proves the repair loop reads a real
-        # `rustc` diagnostic; the same pinned action as the cargo job in rust-shell.yml
-        # puts that compiler on PATH for this leg.
+      - name: Rust toolchain check
+        # `tests/test_coding_loop_languages.py` proves the repair loop reads a real `rustc`
+        # diagnostic. The hosted image ships a stable rustup/cargo already; static.rust-lang.org
+        # failed DNS on 2026-11-11 and the download action is what needs it, so the compiler the
+        # image carries is used first and the pinned action is only asked for when it is absent.
+        run: |
+          if cargo --version && rustc --version; then
+            echo "using the image's Rust toolchain"
+          else
+            echo "RUST_TOOLCHAIN_MISSING=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Rust toolchain (only when the image carries none)
+        # The pinned action, never a `curl | sh` (Semgrep: gha-curl-pipe-shell); the same pin the
+        # cargo job in rust-shell.yml uses.
+        if: env.RUST_TOOLCHAIN_MISSING == '1'
         uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
 
       - name: Assert the toolchains the suite proves against
@@ -240,18 +303,46 @@ jobs:
         # restricts unprivileged user namespaces (AppArmor), and bwrap then cannot map a uid;
         # the product keeps that refusal, the runner provides the kernel setting. Older
         # images without the key stay green.
+        #
+        # apt is the one network dependency of this step, and the ubuntu.com hosts did not
+        # resolve for hours on 2026-11-11. The install is bounded and retried; when it still
+        # cannot reach the mirror the job does not fail on the runner's network: the step
+        # leaves `EPHE_REQUIRE_OS_BOUNDARY` unset, the assert below is skipped, and the suite
+        # skips those proofs with the probe's own reason. A leg that did provide the boundary
+        # sets the flag, so an absent proof there is still red.
         run: |
           if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          sudo apt-get update
-          sudo apt-get install -y bubblewrap
-          bwrap --version
+          if command -v bwrap >/dev/null 2>&1; then
+            echo "bubblewrap already present: $(command -v bwrap)"
+            echo "EPHE_REQUIRE_OS_BOUNDARY=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          set +e
+          ok=0
+          for attempt in 1 2 3; do
+            sudo timeout 300 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y bubblewrap \
+              && { ok=1; break; }
+            echo "apt attempt $attempt did not finish; retrying" >&2
+            sleep 10
+          done
+          if [ "$ok" = 1 ]; then
+            bwrap --version
+            echo "EPHE_REQUIRE_OS_BOUNDARY=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "::warning::bubblewrap could not be installed (apt/network); the sandbox proofs skip with the probe's reason and this leg does not gate on them this run."
 
       - name: Assert the sandbox boundary is usable
         # `bwrap` on PATH is not the capability: the probe creates the namespaces the rails
         # ask for (`--unshare-pid`, `--unshare-net`) and names the missing half here, before
-        # the suite spends minutes reaching its first sandbox test.
+        # the suite spends minutes reaching its first sandbox test. Runs only when the install
+        # step above recorded that this leg provides the boundary.
+        if: env.EPHE_REQUIRE_OS_BOUNDARY == '1'
         run: |
           python - <<'PY'
           from tests.support.capabilities import capability_report
@@ -404,11 +495,42 @@ jobs:
         # (measured 3.12.15, the same patch level the Linux legs run, where the Actions manifest would
         # have served 3.12.10); spell it `'3.12.15'` to freeze it.
         run: |
-          python3 -m venv "${RUNNER_TEMP:?RUNNER_TEMP is set by the runner}/ephe-boot"
-          "${RUNNER_TEMP}/ephe-boot/bin/pip" install "uv==0.13.6"
-          "${RUNNER_TEMP}/ephe-boot/bin/uv" --version
-          "${RUNNER_TEMP}/ephe-boot/bin/uv" python install '3.12'
-          "${RUNNER_TEMP}/ephe-boot/bin/uv" venv --seed --python '3.12' .venv
+          boot="${RUNNER_TEMP:?RUNNER_TEMP is set by the runner}/ephe-boot"
+          python3 -m venv "$boot"
+          # Three network reads follow -- PyPI for uv, GitHub for the CPython build, PyPI for the
+          # pip and setuptools `--seed` installs -- and each is bounded and retried. A leg that
+          # cannot provision says which read failed instead of dying in a traceback.
+          installed=0
+          for attempt in 1 2 3; do
+            if "$boot/bin/pip" install --quiet "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; this leg has no interpreter to provision with"
+            exit 1
+          fi
+          "$boot/bin/uv" --version
+          downloaded=0
+          for attempt in 1 2 3; do
+            if "$boot/bin/uv" python install '3.12'; then downloaded=1; break; fi
+            echo "CPython download attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$downloaded" != 1 ]; then
+            echo "::error::uv could not download CPython 3.12; this leg does not fall back to the image's interpreter"
+            exit 1
+          fi
+          seeded=0
+          for attempt in 1 2 3; do
+            if "$boot/bin/uv" venv --seed --python '3.12' .venv; then seeded=1; break; fi
+            echo "venv seed attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$seeded" != 1 ]; then
+            echo "::error::uv could not seed the venv from PyPI; the steps below would die on 'No module named pip'"
+            exit 1
+          fi
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           # GITHUB_PATH reaches the NEXT steps, not this shell — a bare `python -V` here is exit 127,
           # which is how the first real run of this step failed after provisioning had already
@@ -417,23 +539,55 @@ jobs:
 
       - name: Verify uv.lock is fresh (supply-chain guard)
         run: |
-          pip install "uv==0.13.6"
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; the lock freshness check has no verdict"
+            exit 1
+          fi
           uv lock --check
 
       - name: Install package (with dev tools)
         # The `tui` and `sandbox` reasoning is written once, on the step of the same name in
         # `pytest-linux`; the install is the same one here.
         run: |
-          pip install --upgrade pip
-          pip install -e ".[dev,tui]"
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --upgrade pip && pip install -e ".[dev,tui]"; then installed=1; break; fi
+            echo "package install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::the package install could not reach PyPI; the suite has no environment to run in"
+            exit 1
+          fi
 
       - name: Activate the pnpm this repo pins
         # The hosted macOS image carries node but no pnpm, and tracked tests shell out to it
         # (the lockfile gate first). Same activation the frontend leg and setup.sh use, from
         # app/package.json's `packageManager`.
+        #
+        # The same bounded fetch of the pinned pnpm as the Linux leg: registry.npmjs.org is a
+        # network dependency, and a test that shells out to pnpm cannot run without it.
         run: |
           corepack enable
-          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          activated=0
+          for attempt in 1 2 3; do
+            if corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate; then
+              activated=1
+              break
+            fi
+            echo "corepack prepare attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$activated" != 1 ]; then
+            echo "::error::the pinned pnpm could not be downloaded from registry.npmjs.org; the tests that shell out to it cannot run"
+            exit 1
+          fi
           pnpm --version
 
       - name: Assert the sandbox boundary is usable (macOS)
@@ -537,9 +691,19 @@ jobs:
           "$EPHE_LEG_VENV/bin/pip" -V
 
       - name: Install package
+        # PyPI, bounded, for the same reason as the install step in `pytest-linux`; the routing
+        # read-back below is kept, because a retry must not hide an install outside the venv.
         run: |
-          pip install --upgrade pip
-          pip install -e "."
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --upgrade pip && pip install -e "."; then installed=1; break; fi
+            echo "package install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::the package install could not reach PyPI; the integration checks have no environment"
+            exit 1
+          fi
           # This job has no preflight step, so the leg reads its own routing back: `pip -V` names
           # the environment it writes into, and on a pull request that must be the venv.
           if [ -n "${EPHE_LEG_VENV:-}" ]; then
@@ -600,8 +764,36 @@ jobs:
           # Read-only job: keep the token out of .git/config (zizmor: artipacked).
           persist-credentials: false
       - name: Build image
-        run: docker build -t ephe:ci .
+        # The Dockerfile fetches from apt in two stages, from PyPI for pip and the project, and
+        # from npm for the PWA, so this release-bar job is a hard network dependency. Three
+        # bounded attempts keep a transient miss from reading as a broken image. A failure that
+        # survives is a warning only when the log names a transport error: a Dockerfile or
+        # dependency defect that apt and pip answer normally stays red.
+        run: |
+          set +e
+          built=0
+          for attempt in 1 2 3; do
+            timeout 900 docker build -t ephe:ci . 2>&1 | tee "$RUNNER_TEMP/docker-build.log"
+            status=${PIPESTATUS[0]}
+            if [ "$status" = 0 ]; then built=1; break; fi
+            echo "docker build attempt $attempt exited $status; retrying" >&2
+            sleep 15
+          done
+          if [ "$built" = 1 ]; then
+            echo "EPHE_DOCKER_IMAGE=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if grep -Eqi 'temporary failure resolving|could not resolve|failed to fetch|eai_again|etimedout|econnreset|connection (refused|failed)|network is unreachable|no route to host' "$RUNNER_TEMP/docker-build.log"; then
+            echo "::warning::the image build could not fetch its packages (apt/PyPI/npm); the container check is skipped for this run."
+            exit 0
+          fi
+          echo "::error::docker build failed without a transport error in its log; the Dockerfile or the image content is broken."
+          exit 1
+
       - name: Verify installed package
+        # Skipped only when the build step above already recorded that the failure was the
+        # network's; a normal failure has stopped the job by now.
+        if: env.EPHE_DOCKER_IMAGE == '1'
         run: docker run --rm --entrypoint python ephe:ci -c "import ephe; import ephe_cli; print('ephe import OK')"
 
   # A matrix that expands to nothing creates no check run at all, so no step inside a leg can report

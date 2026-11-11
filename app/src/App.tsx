@@ -8,13 +8,16 @@ import { Toaster } from '@/components/ui'
 import PageErrorBoundary from '@/components/dashboard/PageErrorBoundary'
 import { AppShell } from '@/components/shell'
 import { useCommandPalette } from '@/hooks'
-import { CommandPalette, ConfirmHost } from '@/components/ui'
 import { consumeSetupIntent, shouldLeaveSetup } from '@/lib'
 import { gateSnapshot, loadSetupGate, subscribeGate, type SetupGate } from '@/lib'
+import { pendingConfirm, registerConfirmHost, subscribeConfirm } from '@/lib/confirmAction'
 import { restoreHostSurfaces } from '@/lib/restoreHostSurfaces'
 
 // Route-level code-splitting: chat, setup and memory are independent bundles
 const ChatPage = lazy(() => import('./pages/ChatPage'))
+// The public welcome page is a landing surface of its own: it loads on demand and draws
+// its own frame (no app shell), so a first visit can read the product without a backend.
+const LandingPage = lazy(() => import('./pages/landing'))
 const SetupPage = lazy(() => import('./pages/SetupPage'))
 // R2-A: memory is its own page, not a strip to the right of the chat.
 const MemoryPage = lazy(() => import('./pages/MemoryPage'))
@@ -31,6 +34,13 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 // for a surface, and its stylesheet rides its own chunk the way ChatPage.css and
 // DiscoverPage.css do, so the entry sheet keeps the shell's weight alone.
 const OverlayHost = lazy(() => import('./components/shell/OverlayHost'))
+// Two surfaces that paint nothing until they are asked to: the command palette
+// while it is closed and the confirm sheet while no question is pending. Their
+// chunks and the Radix overlay stack they share arrive with the first ask.
+const CommandPalette = lazy(() => import('./components/ui/CommandPalette'))
+const ConfirmHost = lazy(() =>
+  import('./components/ui/ConfirmDialog').then((m) => ({ default: m.ConfirmHost })),
+)
 
 /**
  * First-run engine gate:
@@ -193,6 +203,28 @@ function DataRoute({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * Registers the confirm host as soon as the shell mounts and paints the sheet
+ * from `lib/confirmAction`'s pending question. The chunk is fetched when the
+ * first question arrives, so a load that never asks one does not carry the
+ * Radix dialog stack; the sheet stays mounted after that so a second question
+ * does not refetch it.
+ */
+function ConfirmSurface() {
+  const request = useSyncExternalStore(subscribeConfirm, pendingConfirm)
+  const [asked, setAsked] = useState(false)
+  useEffect(() => registerConfirmHost(), [])
+  useEffect(() => {
+    if (request) setAsked(true)
+  }, [request])
+  if (!asked) return null
+  return (
+    <Suspense fallback={null}>
+      <ConfirmHost />
+    </Suspense>
+  )
+}
+
 // AppInner runs BELOW <Router> in the tree, so useCommandPalette() (which calls
 // useNavigate()) sees the Router context. The command palette navigates, so it
 // must stay inside the Router provider too.
@@ -202,9 +234,8 @@ function AppInner() {
     if (import.meta.env.MODE === 'test') return
     void restoreHostSurfaces(t).catch(() => {})
   }, [t])
-  // Note: the Cmd+K handler lives only in the hook (useCommandPalette).
-  // A second handler here would toggle the same state twice → the palette would
-  // stay closed on every keypress (a double toggle is a no-op).
+  // The Cmd+K handler lives only in `useCommandPalette`; a second one here would
+  // toggle the same state twice and leave the palette closed on every keypress.
 
   return (
     <>
@@ -247,6 +278,14 @@ function AppInner() {
             }
           />
           <Route path="/setup" element={<SetupGateRoute />} />
+          <Route
+            path="/welcome"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <LandingPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/memory"
             element={
@@ -345,7 +384,7 @@ function AppInner() {
         </Routes>
       </AppShell>
 
-      <ConfirmHost />
+      <ConfirmSurface />
 
       {/* W1-4: the plugin surfaces this tab shows. The host paints nothing while the
           stack is empty, and every window it does paint lives inside its own box —
@@ -356,19 +395,23 @@ function AppInner() {
         <OverlayHost />
       </Suspense>
 
-      <CommandPalette
-        open={open}
-        query={query}
-        setQuery={setQuery}
-        inputRef={inputRef}
-        grouped={grouped}
-        t={t}
-        onClose={() => setOpen(false)}
-        onSelect={(cmd) => {
-          recordUsage(cmd.id)
-          cmd.action()
-        }}
-      />
+      {open ? (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={open}
+            query={query}
+            setQuery={setQuery}
+            inputRef={inputRef}
+            grouped={grouped}
+            t={t}
+            onClose={() => setOpen(false)}
+            onSelect={(cmd) => {
+              recordUsage(cmd.id)
+              cmd.action()
+            }}
+          />
+        </Suspense>
+      ) : null}
     </>
   )
 }

@@ -245,6 +245,16 @@ export default function StatusBar({
           compactionActive={compactionActive}
           tokPerSec={tokPerSec}
           ttftMs={active?.ttftMs ?? null}
+          onClose={() => setExpanded(false)}
+          onOpenReport={() => {
+            setExpanded(false)
+            // The settings panel mounts only after its open event; the tab request
+            // travels with it, the same pair the other surfaces send.
+            window.dispatchEvent(
+              new CustomEvent('ephe:settings-tab', { detail: { tab: 'contextReport' } }),
+            )
+            window.dispatchEvent(new CustomEvent('ephe:open-settings'))
+          }}
         />
       )}
     </div>

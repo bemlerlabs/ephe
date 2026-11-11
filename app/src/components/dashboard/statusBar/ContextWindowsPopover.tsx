@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Layers } from 'lucide-react'
 import { formatPercent } from '@/lib/contextMeter'
 import type { ContextBudget } from '@/lib/api'
 import { formatNumber, formatRate } from '@/lib/dateLocale'
@@ -20,6 +21,8 @@ export function ContextWindowsPopover({
   compactionActive,
   tokPerSec,
   ttftMs,
+  onClose,
+  onOpenReport,
 }: {
   budget: ContextBudget | null
   /** W3-52: the effective figures the row shows — passed in, not re-derived from
@@ -34,20 +37,21 @@ export function ContextWindowsPopover({
   /** W19 F5: secondary metrics of the running turn — now inside the popover. */
   tokPerSec: number | null
   ttftMs: number | null
+  /** Esc and the report entry close the pop-up through the row that opened it. */
+  onClose?: () => void
+  /** Opens the full report in Settings; omitted where no report surface is mounted. */
+  onOpenReport?: () => void
 }) {
   const { t, i18n } = useTranslation()
   const rows = budget?.breakdown ?? []
   const stages = budget?.stages ?? []
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const el = document.querySelector('[data-testid="statusbar-tok-chip"]')
-        if (el instanceof HTMLElement) el.click()
-      }
+      if (e.key === 'Escape') onClose?.()
     }
     globalThis.addEventListener('keydown', onKey)
     return () => globalThis.removeEventListener('keydown', onKey)
-  }, [])
+  }, [onClose])
   return createPortal(
     <div
       role="dialog"
@@ -161,6 +165,17 @@ export function ContextWindowsPopover({
             </li>
           ))}
         </ul>
+      )}
+      {onOpenReport && (
+        <button
+          type="button"
+          onClick={onOpenReport}
+          data-testid="context-popover-report"
+          className="mt-2 flex w-full items-center gap-1.5 border-t border-hairline pt-2 text-left text-ui-xs text-ink-soft transition-colors hover:text-foreground"
+        >
+          <Layers className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden="true" />
+          <span className="min-w-0 break-words">{t('settings.context.title')}</span>
+        </button>
       )}
     </div>,
     document.body,

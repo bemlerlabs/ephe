@@ -34,10 +34,9 @@ describe('classifyToolCall — SubAgent-Familie', () => {
     expect(m.target).toBe('research · Rates die Zahl')
   })
 
-  it('Aggregation nutzt das SubAgent-Gruppenlabel', () => {
+  it('aggregation assigns the call to the subagent family', () => {
     const groups = aggregateToolCalls([shape({})])
     expect(groups).toHaveLength(1)
     expect(groups[0]!.family).toBe('subagent')
-    expect(groups[0]!.summaryKey).toBe('streamGroup.subagent')
   })
 })

@@ -512,15 +512,54 @@
     "accessFullWarning": "Voller Zugriff: jedes Werkzeug läuft ohne Rückfrage. Der Modus entscheidet weiterhin, was läuft.",
     "accessSaveFailed": "Das Profil wurde nicht geändert — die Anfrage ist fehlgeschlagen.",
     "model": {
-      "embeddingPromptTitle": "Bessere Memory-Suche: Embedding-Modell herunterladen?",
-      "embeddingPromptBody": "Ohne das Modell sucht die Memory nur lexikalisch. Es ist {{size}} groß, kommt von Hugging Face und bleibt auf diesem Gerät.",
-      "embeddingDownloading": "Embedding-Modell wird geladen ({{size}}). Danach sucht die Memory besser.",
+      "embeddingPromptTitle": "Bessere Wissenssuche: Embedding-Modell herunterladen?",
+      "embeddingPromptBody": "Ohne das Modell sucht das Wissen über Lexik und Entitäten; der Vektor-Arm braucht ein Modell auf der Platte. Es ist {{size}} groß, kommt von Hugging Face und bleibt auf diesem Gerät.",
+      "embeddingDownloading": "Embedding-Modell wird geladen ({{size}}). Neue Merksätze bekommen danach Vektoren.",
       "embeddingInProgress": "Lädt…",
       "embeddingDownload": "Herunterladen",
       "embeddingNotNow": "Nicht jetzt",
       "embeddingMissing": "Fehlt: {{files}}",
-      "embeddingSizeUnknown": "einige hundert MB"
-    }
+      "embeddingSizeUnknown": "einige hundert MB",
+      "embeddingFetchFailed": "Der Download ist nicht durchgelaufen: {{reason}}",
+      "embeddingStartFailed": "Der Download ließ sich nicht starten. Versuch es noch einmal."
+    },
+    "toolTipShell": {
+      "title": "Shell-Befehl",
+      "body": "Führt einen freigegebenen Befehl im Arbeitsbereich aus und zeigt die Ausgabe."
+    },
+    "toolTipEdit": {
+      "title": "Datei geändert",
+      "body": "Der Agent hat diese Datei verändert — der Diff zeigt vorher/nachher."
+    },
+    "toolTipWrite": {
+      "title": "Datei erstellt",
+      "body": "Der Agent hat diese Datei geschrieben; der Inhalt ist aufklappbar."
+    },
+    "toolTipRead": {
+      "title": "Datei gelesen",
+      "body": "Der Agent hat diese Datei als Kontext gelesen."
+    },
+    "toolTipSearch": {
+      "title": "Suche",
+      "body": "Der Agent hat den Arbeitsbereich nach Treffern durchsucht."
+    },
+    "toolTipWeb": {
+      "title": "Web-Abfrage",
+      "body": "Der Agent hat Informationen aus dem Web geladen."
+    },
+    "toolTipTask": {
+      "title": "Schritte-Update",
+      "body": "Ephe hat einen Schritt der To-do-Liste angelegt oder aktualisiert."
+    },
+    "toolTipGeneric": {
+      "title": "Tool-Aufruf",
+      "body": "Der Agent hat eines seiner Werkzeuge benutzt."
+    },
+    "failedSteps_one": "{{count}} Schritt fehlgeschlagen",
+    "failedSteps_other": "{{count}} Schritte fehlgeschlagen",
+    "restoredConversationTitle": "Frühere Unterhaltung wiederhergestellt",
+    "restoredConversationBody": "Diese Unterhaltung endet mit fehlgeschlagenen Schritten. Öffne sie oder beginne eine neue Aufgabe.",
+    "restoredConversationShow": "Unterhaltung anzeigen"
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
@@ -597,6 +636,41 @@
     "groupMore": "Weitere Flächen"
   },
   "settings": {
+    "contextReport": "Kontext",
+    "context": {
+      "title": "Was der Agent gelesen hat",
+      "subtitle": "Der Prompt, aus dem der Agent gebaut wurde, Schicht für Schicht — und jede gefundene Workspace-Regeldatei mit dem, was mit ihr passiert ist.",
+      "refresh": "Bericht neu laden",
+      "layersCount_one": "Zeichen in einer Schicht",
+      "layersCount_other": "Zeichen über {{count}} Schichten",
+      "capsTitle": "Kappen",
+      "capsHint": "Wo der Resolver eine Datei gekürzt oder ausgelassen hat.",
+      "capsNoFiles": "Für diesen Prompt wurde keine Workspace-Regeldatei gemeldet.",
+      "capsNone": "Keine Kappe griff — jede gemeldete Datei passt vollständig.",
+      "capsTruncated_one": "Eine Datei wurde an ihrer Kappe gekürzt; {{chars}} Zeichen kamen trotzdem in den Prompt.",
+      "capsTruncated_other": "{{count}} Dateien wurden an ihrer Kappe gekürzt; {{chars}} Zeichen kamen trotzdem in den Prompt.",
+      "capsSkipped_one": "Eine Datei fand keinen Platz mehr unter der gemeinsamen Kappe der Schicht.",
+      "capsSkipped_other": "{{count}} Dateien fanden keinen Platz mehr unter der gemeinsamen Kappe der Schicht.",
+      "stagesTitle": "Schichten",
+      "stageFigures": "{{chars}} Zeichen · {{percent}} % des Prompts",
+      "fileReason": "Grund: {{reason}}",
+      "readNote": "Das sind die Zeichen, die das Modell erreicht haben. Eine Datei, die verweigert, unlesbar, leer oder ausgelassen wurde, hat nicht gesprochen — und steht hier mit genau diesem Vermerk.",
+      "emptyTitle": "Keine Prompt-Schichten",
+      "emptyBody": "Das Backend hat keine Schicht für den zusammengesetzten Prompt gemeldet. Im Moment steht vor dem Modell nichts aus Identität, Persona, Workspace-Regeln oder Profil.",
+      "unreachable": "Die Prompt-Schichten ließen sich nicht laden — das Backend hat nicht geantwortet.",
+      "retry": "Noch einmal versuchen",
+      "stage": {
+        "identity": "Identität",
+        "persona": "Persona",
+        "toolGuidelines": "Werkzeug-Leitlinien",
+        "customInstructions": "Eigene Anweisungen",
+        "workspaceRules": "Workspace-Regeln",
+        "userProfile": "Profil",
+        "corrections": "Korrekturen",
+        "feedback": "Rückmeldungen",
+        "date": "Datum"
+      }
+    },
     "agents": "Agenten",
     "agentsTitle": "Agenten",
     "agentsHint": "Lokale Helfer für delegierte Arbeit. Name, Modell, Werkzeuge und Anweisungen gehören zum Agenten; der Hauptagent adressiert ihn über den Namen.",
@@ -770,7 +844,7 @@
     "memoryGroupStore": "Bestand",
     "memoryVectorsHint": "So viele Merksätze liegen in diesem Arbeitsordner. Geschrieben wird nach einer Antwort, sobald sie die Hürden oben übersteht.",
     "memoryProvider": "Herkunft des Wissens",
-    "memoryProviderHint": "Welches Wissen hier spricht. Gewählt wird es über EPHE_MEMORY_PROVIDER bzw. die Merker-Datei im Geräte-Ordner, nicht über diese Seite.",
+    "memoryProviderHint": "Welches Wissen hier spricht. Gewählt wird es über EPHE_MEMORY_PROVIDER bzw. die Merker-Datei im Geräte-Ordner; die Wissens-Seite schreibt diesen Record.",
     "memoryScope": "Sammlung",
     "memoryScopeHint": "Welcher Arbeitsordner hier spricht — das Wissen hängt am Ordner, nicht an einem Konto. Ohne den Namen ist „leer“ nicht von „falscher Ordner“ zu unterscheiden.",
     "memoryExportHint": "Alle Merksätze als JSON herunterladen, inklusive der Metadaten, die Löschung und Reihenfolge steuern.",
@@ -1538,7 +1612,6 @@
     "skip": "Tour überspringen",
     "back": "Zurück",
     "continue": "Weiter",
-    "next": "Weiter →",
     "step": "{{current}} von {{total}}",
     "saving": "Wird gespeichert…",
     "checking": "Engine wird gelesen…",
@@ -1547,29 +1620,40 @@
     "greeting": {
       "eyebrow": "Willkommen",
       "title": "Das ist dein Ort",
-      "body": "Ephe läuft auf deiner Maschine. Die Engine, die du gleich wählst, ist dorthin, wo deine Worte gehen — lokal bleibt alles hier.",
+      "body": "Ephe läuft auf deiner Maschine. Drei kurze Fragen — wo sie arbeitet, welche Engine antwortet, was von allein laufen darf — dann gehört dir der Schreibtisch.",
       "cta": "Weitergehen"
     },
-    "usage": {
-      "title": "Was bringst du hierher?",
-      "hint": "Das entscheidet nur, was Ephe dir zuerst anbietet. Nichts ist festgelegt.",
-      "code": "Code schreiben",
-      "research": "Recherche",
-      "documents": "Dokumente",
-      "mix": "Von allem etwas",
-      "skip": "Diese Frage überspringen"
+    "workspace": {
+      "title": "Wo arbeitet Ephe?",
+      "body": "Ein Ordner ist das Projekt: Dort liest und schreibt Ephe Dateien und führt Befehle aus; relative Pfade lösen sich darin auf.",
+      "checking": "Ordner wird gelesen…",
+      "current": "Arbeitsordner",
+      "chosenHint": "Ephe arbeitet in diesem Ordner.",
+      "defaultHint": "Noch kein Ordner gewählt — Ephe nutzt diesen Standard.",
+      "unavailable": "Der aktuelle Ordner konnte nicht gelesen werden. Du kannst ihn in den Einstellungen → Verhalten setzen.",
+      "choose": "Ordner wählen",
+      "change": "Ordner ändern",
+      "reset": "Standardordner nutzen",
+      "settingsHint": "Später unter Einstellungen → Verhalten.",
+      "import": "Vorhandene Einrichtung übernehmen…",
+      "imported": "{{skills}} Skill-Pakete, {{servers}} Tool-Server übernommen. Persona: {{persona}}.",
+      "personaYes": "übernommen",
+      "personaNo": "keine gefunden"
     },
     "engine": {
       "title": "Welche Engine nutzt Ephe?",
-      "body": "Ephe installiert nichts und lädt keine Modelle — wähle einfach deine vorhandene Engine und das Modell.",
+      "body": "Ephe bringt keine Engine mit und wählt keine für dich. Deine Worte gehen nur an die Engine, die du aussuchst.",
+      "quiet": "Bis du eine aussuchst, wird nichts gesendet — der Chat bleibt read-only.",
+      "cli": "Im Terminal geht dasselbe:",
+      "where": "Das öffnet die Engine-Einrichtung — derselbe Bildschirm wie Einstellungen → Engine.",
       "configured": "{{model}} ist bereit unter {{endpoint}}.",
       "change": "Engine ändern",
       "choose": "Engine wählen",
-      "skip": "Vorerst überspringen"
+      "skip": "Jetzt nicht — es wird nichts gesendet"
     },
     "activate": {
-      "title": "Was soll von Anfang an an sein?",
-      "hint": "Jeder davon ist ein Schalter. Du kannst ihn hier oder später in den Einstellungen wieder ausmachen.",
+      "title": "Was soll von allein laufen?",
+      "hint": "Drei Schalter. Mach jeden hier oder später in den Einstellungen aus.",
       "memory": "Aus unseren Gesprächen lernen",
       "memoryHint": "Ephe merkt sich, was aus deinen Gesprächen wichtig ist — du kannst es bearbeiten oder löschen.",
       "skills": "Skills",
@@ -1585,22 +1669,17 @@
       "allow": "Erlauben",
       "deny": "Ablehnen"
     },
-    "carry": {
-      "title": "Etwas mitbringen?",
-      "body": "Ephe kann aus einer vorhandenen Einrichtung übernehmen — Persona-Datei, Skill-Pakete, Tool-Server oder ein paar Modell-Einstellungen. Bestehendes wird nie überschrieben, importierte Skills kommen ausgeschaltet an.",
-      "choose": "Ordner wählen",
-      "fresh": "Frisch starten →",
-      "imported": "{{skills}} Skill-Pakete, {{servers}} Tool-Server übernommen. Persona: {{persona}}.",
-      "personaYes": "übernommen",
-      "personaNo": "keine gefunden",
-      "pwaNote": "Der Import ist in der Ephe-Desktop-App verfügbar. Fahre hier neu fort oder bringe deine Einrichtung später dort mit."
-    },
     "desk": {
       "eyebrow": "Bereit",
       "title": "Das war alles. Der Schreibtisch gehört dir.",
       "body": "Die Fragen sind durch. Ephe tritt zur Seite, der Arbeitsbereich gehört dir.",
       "hint": "Engine, Skills und Erinnerung kannst du jederzeit in den Einstellungen ändern.",
-      "cta": "Arbeitsbereich öffnen"
+      "cta": "Arbeitsbereich öffnen",
+      "rules": {
+        "title": "Projektregeln",
+        "body": "Lege eine AGENTS.md ins Wurzelverzeichnis deines Arbeitsordners. Ephe liest sie zu Beginn jedes Turns, zusammen mit allen .ephe/rules/*.md.",
+        "context": "Tippe im Chat /context, um zu sehen, was Ephe gelesen hat."
+      }
     }
   },
   "setup": {
@@ -2261,7 +2340,15 @@
     "kepta_instance_unreachable": "Die Kepta-Instanz ist nicht erreichbar: {{url}} ({{error}}). Prüfen, ob sie läuft, oder {{env}} auf das lokale Gehirn abstellen.",
     "kepta_writes_its_own_ids": "Die Kepta-Bridge setzt ihre eigenen IDs; von außen nimmt sie keine.",
     "kepta_empty_text_is_data_loss": "Leerer Text wäre stille Datenvernichtung.",
-    "kepta_clear_needs_the_instance": "Die Kepta-Bridge hat kein clear(): eine geteilte Instanz leerzuräumen ist keine lokale Handlung. In der Kepta-Instanz selbst aufräumen."
+    "kepta_clear_needs_the_instance": "Die Kepta-Bridge hat kein clear(): eine geteilte Instanz leerzuräumen ist keine lokale Handlung. In der Kepta-Instanz selbst aufräumen.",
+    "ask_user_needs_question": "[ask_user] Eine Frage ist nötig — es wurden 0 Zeichen übergeben, es wurde also nichts gefragt.",
+    "tool_path_denied": "Zugriff verweigert: '{{path}}' liegt nicht in den erlaubten Ordnern.\nErlaubt: HOME, Desktop, Documents, Downloads, tmp",
+    "skill_create_refused": "[skill_manage] create abgelehnt: der Skill-Text enthält eine Anweisungsform ('{{marker}}') — formuliere ihn ohne Direktiven neu und versuche es erneut.",
+    "browser_no_host": "kein Host in der URL — der Browser hat nichts zu öffnen.",
+    "browser_metadata_host": "{{host}} ist der Metadaten-Endpoint der Umgebung — der Headless-Browser öffnet ihn nie.",
+    "browser_address_blocked": "{{host}} steht auf {{address}} ({{kind}}) — Metadaten-, Link-local- und Unspecified-Ziele sind dem Headless-Browser gesperrt.",
+    "browser_private_blocked": "{{host}} steht auf {{address}} ({{kind}}) — interne Netze sind dem Headless-Browser standardmäßig gesperrt. Für den lokalen Dev-Server: EPHE_FETCH_ALLOW_PRIVATE=1.",
+    "browser_internal_name": "{{host}} ist ein rein interner Name — der Headless-Browser öffnet ihn nie."
   },
   "codeBlock": {
     "copy": "Code kopieren",
@@ -2343,7 +2430,6 @@
     "noPricingTitle": "Die Kostenzahl braucht einen Preis zum aktiven Engine — `pricing` mit `in_per_m` und `out_per_m` je Million Token in ~/.ephe/engine.json. Den trägt dieser Engine nicht, darum steht in der Zeile nur der Tokenzähler.",
     "cacheTitle": "Prompt-Cache: {{percent}}% der Prompt-Token des letzten Turns kamen aus dem Cache"
   },
-  "taskDock": {},
   "toolbar": {
     "uptime": "Backend-Laufzeit",
     "uptimeShort": "{{minutes}} Min. Laufzeit",
@@ -2442,19 +2528,6 @@
     "offline": "Getrennt",
     "offlineHint": "Die Engine ist nicht erreichbar. Einstellungen → Engine prüfen, dann `ephe doctor` ausführen.",
     "usageNeedsPricing": "USD braucht Preise für diese Engine: `pricing` mit `in_per_m` und `out_per_m` unter Einstellungen → Engine. Bis dahin nennt die Zeile nur Tokens."
-  },
-  "streamGroup": {
-    "terminal": "Terminal",
-    "read": "Gelesen",
-    "search": "Durchsucht",
-    "web": "Web",
-    "edit": "Bearbeitet",
-    "write": "Erstellt",
-    "task": "Schritte",
-    "subagent": "Helfer",
-    "tool": "Werkzeug",
-    "count_one": "{{count}} Aufruf",
-    "count_other": "{{count}} Aufrufe"
   },
   "slash": {
     "desc": {
@@ -2688,8 +2761,8 @@
       "papierkorb": "Papierkorb",
       "gehirne": "Gehirne"
     },
-    "groupBrains": "Zwei Speicher, ein Wissen",
-    "groupBrainsHint": "Ephe kann in seinem Archiv oder in seinem Index denken. Die Seite nennt, welches gerade antwortet, warum, und ob beide Arme tragen.",
+    "groupBrains": "Ein Speicher, ein Wissen",
+    "groupBrainsHint": "Ephe denkt in seinem Archiv. Die Seite nennt, welcher Speicher antwortet, warum, und ob beide Arme tragen.",
     "provider": "Aktiver Speicher",
     "providerUnknown": "Das Backend nennt seinen Speicher nicht — die Liste bleibt benutzbar.",
     "legs": "Arme des Speichers",
@@ -2727,9 +2800,10 @@
     "correctedCount_other": "{{count}} Schreibungen gehören zu einer Abstammung.",
     "reportSource": "{{source}} Merksätze in der Quelle",
     "storeArchive": "Archiv",
-    "storeIndex": "Index",
     "reportTargetHere": "Ziel ist das eigene Archiv im Geräte-Ordner von Ephe.",
-    "providerSwitched": "Der Speicher für Merksätze ist jetzt „{{provider}}\"."
+    "providerSwitched": "Der Speicher für Merksätze ist jetzt „{{provider}}\".",
+    "storeBridge": "Brücke",
+    "vectorCoverage": "{{embedded}} von {{chunks}} Merksätzen haben einen Vektor."
   },
   "tools": {
     "title": "Werkzeuge",
@@ -2997,10 +3071,8 @@
     "seeAll": "Alle {{count}}",
     "cardDetail": "Details",
     "badge": {
-      "pick": "Kuratiert",
       "recent": "Neu",
-      "bundled": "Enthalten",
-      "popular": "Beliebt"
+      "bundled": "Enthalten"
     },
     "category": {
       "skills": "Skills",
@@ -3017,7 +3089,12 @@
       "utility": "Werkzeuge",
       "other": "Weitere",
       "testing": "Testen",
-      "sandbox": "Sandbox"
+      "sandbox": "Sandbox",
+      "data": "Daten",
+      "design": "Design",
+      "finance": "Finanzen",
+      "monitoring": "Monitoring",
+      "search": "Suche"
     },
     "section": {
       "skills": "Kurze Befehle, die Ephe schon kennt.",
@@ -3034,7 +3111,12 @@
       "utility": "Kleine Helfer für jede Sitzung.",
       "testing": "Prüfungen, bevor etwas rausgeht.",
       "sandbox": "Abgeschottete Laufzeiten für riskante Arbeit.",
-      "other": "Alles Weitere aus dem Register."
+      "other": "Alles Weitere aus dem Register.",
+      "data": "Datensätze, Tabellen und die Abfragen darüber.",
+      "design": "Design-Dateien, Prototypen und Assets.",
+      "finance": "Zahlungen, Abrechnung und Finanzdaten.",
+      "monitoring": "Metriken, Logs und Warnungen.",
+      "search": "Volltext- und semantische Suche."
     },
     "detailInstall": "Startzeile",
     "detailAttached": "Angebunden als",
@@ -3094,5 +3176,90 @@
     "featuredEyebrow": "Empfohlene Dienste",
     "featuredLede": "Anbieter mit geprüftem Endpunkt, vor dem langen Rest.",
     "whyFeatured": "Warum es hier steht"
+  },
+  "landing": {
+    "eyebrow": "Lokaler Arbeitsplatz für einen Agenten",
+    "title": "Ein Befehl. Deine Engine. Deine Maschine.",
+    "lede": "Ephe betreibt einen Coding-Agenten auf deinem Rechner. Du wählst die Engine, du gibst die Werkzeuge frei, und die Dateien bleiben, wo sie sind. Kein Konto, und nichts wird gesendet, bevor du dich entschieden hast.",
+    "primaryCta": "In 60 Sekunden installieren",
+    "secondaryCta": "Repository ansehen",
+    "proof": {
+      "eyebrow": "Belege",
+      "title": "Drei Zahlen und ihre Herkunft",
+      "lede": "Zwei sind fremde Messungen, die dritte ist eine Zählung dessen, was Ephe mitliefert. Jede Zeile nennt den gemessenen Agenten, die Zahl der Läufe und die Quelle.",
+      "agentsMdValue": "28,6 %",
+      "agentsMdLabel": "schnellere Median-Laufzeit",
+      "agentsMdBody": "Mit einer AGENTS.md im Projektstamm waren 124 echte Pull Anfragen auf 10 Repositories im Median 28,6 % schneller fertig und gaben 16,6 % weniger Ausgabe-Tokens aus. Gemessener Agent war Codex.",
+      "agentsMdSource": "Lulla u. a., JAWs 2026 · arXiv:2601.20404",
+      "realmValue": "10–15 Pp.",
+      "realmLabel": "die Schranke bei der Korrektheit",
+      "realmBody": "Eine Ablation mit zwei Agenten (17 Aufgaben, 288 Läufe) hielt die Korrektheit innerhalb einer Äquivalenzschranke von 10–15 Prozentpunkten. Die gescheiterten Läufe scheiterten an der Umsetzung; fehlendes Repository-Wissen war nicht der Auslöser. Deshalb liegen die Zusagen von Ephe in Prüfungen, die eine Maschine fährt.",
+      "realmSource": "Khatri, REALM 2026 · ACL Anthology",
+      "accountsValue": "keine",
+      "accountsLabel": "Konten und voreingestellte Modelle",
+      "accountsBody": "Es gibt kein Konto und keine Anmeldung, und Ephe liefert keine Modellgewichte mit. Bis im Setup eine Engine gewählt ist, bleibt der Chat geschlossen und die Headless-Befehle halten mit einem Hinweis an."
+    },
+    "compare": {
+      "eyebrow": "Der Vergleich",
+      "title": "Sechs Fragen, die entscheiden, wo deine Arbeit läuft",
+      "lede": "Andere Coding-Agenten beantworten diese Fragen in ihrer eigenen Dokumentation. Unten stehen die Antworten von Ephe, jede neben der Datei in diesem Repository, die sie belegt. Keine Zelle ist aus dem Gedächtnis gefüllt.",
+      "question": "Frage",
+      "ephe": "Antwort von Ephe"
+    },
+    "row": {
+      "engineQuestion": "Wahl der Engine",
+      "engineAnswer": "Du wählst: ein lokales Ollama, ein entferntes Ollama oder einen beliebigen OpenAI-kompatiblen Endpunkt. Bis dahin bleibt der Chat geschlossen und nichts wird gesendet.",
+      "accountQuestion": "Konto nötig",
+      "accountAnswer": "Nein. Keine Anmeldung, kein Login, kein Abo.",
+      "licenseQuestion": "Lizenz",
+      "licenseAnswer": "BUSL-1.1, Repository einsehbar. Jede Version fällt vier Jahre nach ihrer Veröffentlichung auf Apache 2.0 zurück; produktiver Einsatz braucht eine kommerzielle Lizenz.",
+      "pluginsQuestion": "Plugin-Modell",
+      "pluginsAnswer": "Ein Verzeichnis mit ephe-plugin.json: versioniert, inhaltsgehasht, signiert. Berechtigungsfamilien stehen im Manifest und werden fail-closed geprüft; ein installiertes Plugin landet deaktiviert, bis du es einschaltest.",
+      "contextQuestion": "Kontextdateien",
+      "contextAnswer": "AGENTS.md im Projektstamm, dazu .ephe/rules/*.md. Zusammen sind sie auf 12.000 Zeichen begrenzt (6.000 je Datei), und jede Datei wird mit Herkunft und Status gemeldet.",
+      "verificationQuestion": "Prüfung",
+      "verificationAnswer": "Das Repository prüft sich selbst: ein Bundle-Budget je Chunk, eine Coverage-Untergrenze je Modul, ein Sprach-Gate und eine Architekturprüfung. Im Produkt bleibt eine Aussage an das Werkzeug-Ergebnis gebunden, aus dem sie stammt."
+    },
+    "install": {
+      "eyebrow": "Installation",
+      "title": "In 60 Sekunden ausprobieren",
+      "lede": "Das Installationsskript richtet Python ein, baut die Web-App und startet sie auf http://127.0.0.1:8765. Der Befehl nennt Release {{version}}.",
+      "macosLinux": "macOS und Linux",
+      "copy": "Befehl kopieren",
+      "copied": "Befehl kopiert.",
+      "copyFailed": "Die Zwischenablage hat nicht geantwortet. Markiere die Zeile und kopiere sie selbst.",
+      "read": "install.sh vor dem Ausführen lesen",
+      "windows": "Windows mit PowerShell",
+      "windowsNote": "Die Installation unter Windows ist noch nicht durchgehend geprüft.",
+      "configure": "Zum Start ist keine Engine nötig: die App öffnet ihr eigenes Setup und sendet nichts, bis du eine wählst. ephe configure schreibt dieselbe Wahl für das Terminal nach ~/.ephe/engine.json.",
+      "after": "Danach liest ephe doctor Engine, Modell und Serverzustand zurück, und ephe start --open öffnet die App."
+    },
+    "migrate": {
+      "eyebrow": "Umzug",
+      "title": "Bring dein vorhandenes Setup mit",
+      "lede": "Du kommst von einem anderen Coding-Agenten? ephe import liest das vorhandene Setup und druckt einen Plan. Nichts wird geschrieben, bis du --apply ergänzt, und importierte Skills landen deaktiviert, bis du sie aktivierst.",
+      "carries": "Was mitkommt",
+      "persona": "Persona-Datei (SOUL.md, persona.md, AGENT.md, IDENTITY.md)",
+      "personaLands": "~/.ephe/persona.md — eine vorhandene Persona wird nie überschrieben",
+      "skills": "Skill-Pakete (ein <name>/SKILL.md-Baum)",
+      "skillsLands": "~/.ephe/skills/<name>/ — deaktiviert, bis du sie einschaltest",
+      "mcp": "Werkzeug-Server (.mcp.json, mcp.json)",
+      "mcpLands": "zusammengeführt in ~/.ephe/mcp.json — vorhandene Server gewinnen",
+      "settings": "Einstellungen (config.yaml, config.yml, config.json)",
+      "settingsLands": "auf Ephe-Einstellungen abgebildet; was nicht passt, wird gemeldet und weggelassen",
+      "stays": "Was bleibt, wo es ist",
+      "history": "Der Nachrichtenverlauf wird nicht gelesen.",
+      "engine": "Die Engine wird nicht importiert: Ephe hat keine stille Voreinstellung, du wählst sie einmal.",
+      "plugins": "Plugins eines anderen Produkts laufen hier nicht. Ihre Skills kommen mit, wo sie auf das offene Skill-Pack-Format passen.",
+      "rules": "AGENTS.md behält seine Bedeutung, .ephe/rules/*.md ergänzt sie. Als Projektregeln wird ausschließlich AGENTS.md gelesen.",
+      "docLink": "Den Umzugsleitfaden lesen"
+    },
+    "footer": {
+      "license": "BUSL-1.1, Repository einsehbar. Jede Version wird vier Jahre nach ihrer Veröffentlichung Apache 2.0.",
+      "nav": "Über Ephe",
+      "docs": "Dokumentation",
+      "source": "Repository",
+      "issues": "Fehlerberichte"
+    }
   }
 }

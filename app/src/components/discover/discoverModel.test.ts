@@ -314,6 +314,19 @@ describe('discover names', () => {
     expect(categoryFacets(items)).toEqual(['skills', 'code', 'web'])
     expect(items.find((one) => one.id === 'connector:registry:r')?.title).toBe('Miru')
   })
+
+  it('offers every category the catalogue ships, in shelf order', () => {
+    const items = buildItems({
+      ...base,
+      catalog: ['data', 'design', 'finance', 'monitoring', 'search'].map((category, i) => ({
+        id: `c${i}`,
+        name: `c${i}`,
+        description: '',
+        category,
+      })),
+    })
+    expect(categoryFacets(items)).toEqual(['search', 'finance', 'data', 'monitoring', 'design'])
+  })
 })
 
 describe('discover curated icons', () => {

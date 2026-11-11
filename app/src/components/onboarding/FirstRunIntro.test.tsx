@@ -12,6 +12,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { DeepSection } from '@/types'
 import { seedDeepSettings } from '@/lib/deepSettings'
 import { INTRO_SEEN_KEY as BOOT_SEEN_KEY } from '@/lib/firstRun'
@@ -285,5 +287,41 @@ describe('FirstRunIntro', () => {
     expect(CTA_AT_MS).toBeLessThan(SCENE_MS)
     expect(TITLE_AT_MS).toBeLessThan(LINE_AT_MS)
     expect(LINE_AT_MS).toBeLessThan(CTA_AT_MS)
+  })
+})
+
+/**
+ * QA-E2E F1: a route sheet makes its siblings inert, and the intro used to be one
+ * of those siblings. The regression was structural, so the test pins the structure:
+ * the scene lives under <body> and carries the exemption the settings sheet honours.
+ */
+describe('the scene sits outside the app tree (F1)', () => {
+  it('mounts on <body>, not in the container a route sheet walks', () => {
+    const { container } = render(<FirstRunIntro />)
+    const stage = screen.getByTestId('first-run-intro')
+    expect(stage.parentElement).toBe(document.body)
+    expect(container.contains(stage)).toBe(false)
+  })
+
+  it('carries the inert exemption the settings sheet reads', () => {
+    render(<FirstRunIntro />)
+    expect(screen.getByTestId('first-run-intro').hasAttribute('data-inert-exempt')).toBe(true)
+  })
+
+  it('keeps the skip below the 48px header band and above the modal layer', () => {
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/components/onboarding/FirstRunIntro.css'),
+      'utf8',
+    )
+    const skip = css.slice(
+      css.indexOf('.intro-skip {'),
+      css.indexOf('}', css.indexOf('.intro-skip {')),
+    )
+    expect(skip).toMatch(/top:\s*max\(3\.5rem/)
+    const stage = css.slice(
+      css.indexOf('.intro-stage {'),
+      css.indexOf('}', css.indexOf('.intro-stage {')),
+    )
+    expect(stage).toMatch(/z-index:\s*1000/)
   })
 })

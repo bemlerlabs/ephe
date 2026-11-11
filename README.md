@@ -90,6 +90,8 @@ cd ephe
 
 The installer prepares Python and the local environment, builds the web app, and starts it at `http://127.0.0.1:8765`. If macOS asks whether to open it, use System Settings → Privacy & Security → Open Anyway.
 
+Prefer a tour before the first task? Open `http://127.0.0.1:8765/#/welcome`; the page lists what Ephe guarantees and the file in this repository that proves each line.
+
 #### Windows (PowerShell)
 
 ```powershell
@@ -192,3 +194,9 @@ The index is [docs/README.md](docs/README.md). Start with the [quickstart](docs/
 - Security reports: the private channel in [SECURITY.md](SECURITY.md).
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 - Licence: Business Source License 1.1 (BUSL-1.1), source-available. The terms are in [LICENSE](LICENSE); production use is described in [COMMERCIAL.md](COMMERCIAL.md). Each version falls to Apache 2.0 four years after its first public release.
+
+### Agent instructions
+
+[AGENTS.md](AGENTS.md) holds the rules a contributor and an agent both follow. [app/AGENTS.md](app/AGENTS.md) adds the front-end ones, `.github/AGENTS.md` the workflow ones, and `AGENTS.override.md` is a gitignored personal copy.
+Before the first turn the agent reads the workspace instruction files. [The context contract](docs/CONTEXT_CONTRACT.md) names the file list, the precedence between layers, the caps and the status words the surface reports.
+Reviews follow [CONTRIBUTING.md](CONTRIBUTING.md); the local gates behind them are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).

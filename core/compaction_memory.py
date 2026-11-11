@@ -1,7 +1,7 @@
 """Ephe – compaction_memory: preserving memory before it is discarded (R25 v2).
 
 Why checkpoint-based instead of inside the engine path? ``compact_history`` runs
-on every turn with a long history — a Chroma roundtrip per discarded pair would
+on every turn with a long history — a store roundtrip per discarded pair would
 worsen TTFT there (the R25 latency budgets). This preservation therefore runs
 ONCE per turn AFTER the answer (in ``routes/chat.py``, alongside Auto-Memory)
 and is **incremental**: one checkpoint per session counts which Q/A pairs are
@@ -15,8 +15,8 @@ assignment, and a bare count would then skip a pair that was never stored
 (a decision, silently lost as "already done"). Every checkpoint therefore
 stores a fingerprint over the pairs it counted; the reader trusts the count
 only when that fingerprint still matches the current window, otherwise it
-re-derives from the store. The content-based Chroma dedupe ("auto_memory" +
-"compaction", score ≥ 0.85) absorbs the duplicates that re-derivation produces.
+re-derives from the store. The store's duplicate merge ("auto_memory" +
+"compaction") absorbs the duplicates that re-derivation produces.
 """
 from __future__ import annotations
 
@@ -192,7 +192,7 @@ def _verified_progress(
     superset of what was stored and nothing before the frontier moved. A
     legacy counter without a fingerprint, a corrupt value, a count past the end
     of the (possibly shrunken) window, or a mutated prefix all read as 0:
-    re-deriving from the store is safe (Chroma dedupe absorbs true duplicates),
+    re-deriving from the store is safe (its duplicate merge absorbs true duplicates),
     silently skipping an un-stored decision is not.
     """
     try:

@@ -175,7 +175,7 @@ async def skill_manage(action: str, name: str = "", trigger: str = "",
     Uses exclusively ``SkillLoader`` (single source of truth for the
     catalog). create writes a validated markdown skill.
     """
-    from core.skills import SkillLoader, SkillLoadError
+    from core.skills import SkillLoader, SkillLoadError, SkillRefused
     action = (action or "").strip().lower()
     loader = SkillLoader()
 
@@ -218,6 +218,17 @@ async def skill_manage(action: str, name: str = "", trigger: str = "",
                 test_input=test_input,
                 test_expect_tool=test_expect_tool,
                 test_expect_contains=test_expect_contains,
+            )
+        except SkillRefused as exc:
+            marker = next(
+                (str(one.get("marker") or "") for one in exc.findings if one.get("marker")),
+                "instruction",
+            )
+            return reason(
+                "skill_create_refused",
+                f"[skill_manage] create refused: the skill text carries an instruction shape "
+                f"('{marker}') — rewrite it without directives, then retry.",
+                marker=marker,
             )
         except (SkillLoadError, Exception) as exc:  # noqa: BLE001
             return reason("skill_create_failed", f"[skill_manage] create failed: {exc}",

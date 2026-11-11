@@ -14,9 +14,6 @@ export interface ToolCallShape {
 
 export interface ToolStreamGroup {
   family: ToolFamily
-  /** i18n key of the family label ("streamGroup.terminal" etc.). */
-  summaryKey: string
-  count: number
   calls: ToolCallShape[]
   /** Target of the solo call (file basename for 1x edit/write/read), otherwise ''. */
   target: string
@@ -24,17 +21,6 @@ export interface ToolStreamGroup {
   deletions: number
   /** Any call of the group failed or was refused (red accent). */
   hasFailure: boolean
-}
-
-const SUMMARY_KEY: Partial<Record<ToolFamily, string>> = {
-  shell: 'streamGroup.terminal',
-  read: 'streamGroup.read',
-  search: 'streamGroup.search',
-  web: 'streamGroup.web',
-  edit: 'streamGroup.edit',
-  write: 'streamGroup.write',
-  task: 'streamGroup.task',
-  subagent: 'streamGroup.subagent',
 }
 
 /**
@@ -56,14 +42,11 @@ export function aggregateToolCalls(calls: ToolCallShape[]): ToolStreamGroup[] {
     const last = groups[groups.length - 1]
     if (last && last.family === model.family) {
       last.calls.push(tc)
-      last.count += 1
       last.hasFailure = last.hasFailure || failed
       continue
     }
     groups.push({
       family: model.family,
-      summaryKey: SUMMARY_KEY[model.family] ?? 'streamGroup.tool',
-      count: 1,
       calls: [tc],
       target: model.target,
       additions: model.stats?.added ?? 0,

@@ -110,8 +110,12 @@ async def test_the_launch_applies_the_same_setting_the_gate_asks(empty_profile):
     from core.browser import PlaywrightBrowserManager
 
     seen: list[dict[str, object]] = []
+    routes: list[str] = []
 
     class FakeContext:
+        async def route(self, pattern, handler):
+            routes.append(pattern)
+
         async def new_page(self):
             return object()
 
@@ -131,6 +135,7 @@ async def test_the_launch_applies_the_same_setting_the_gate_asks(empty_profile):
     await manager._ensure_page("session-without-one")
     assert "storage_state" not in seen[-1]
     assert len(seen) == 2
+    assert routes == ["**/*", "**/*"]
 
 
 @pytest.mark.asyncio

@@ -15,7 +15,9 @@ and that refusal is the reported reason its tools are absent.
 
 `ensure_published` runs once per process. Every surface reaches the tool set through
 `core.tools.registry`, so the hook belongs on that read rather than on one startup path
-that the CLI, the TUI and an imported server would each have to remember to call.
+that the CLI, the TUI and an imported server would each have to remember to call. The
+whole read shares one `MountNamespace`, so a dozen recorded bundles ask the folder
+questions once.
 """
 
 from __future__ import annotations
@@ -41,16 +43,35 @@ def reset() -> None:
     _ran = False
 
 
-def ensure_published() -> None:
-    """Re-publish what the state document says is mounted, at most once per process."""
+def ensure_published(namespace=None) -> None:
+    """Re-publish what the state document says is mounted, at most once per process.
+
+    ``namespace`` carries the portfolio answers of this read, so the replay and the
+    shipped-bundle mount that follows it in `core.tools.dynamic_wiring` share one read
+    of the folders.
+    """
     global _ran
     if _ran:
         return
     _ran = True
-    republish_all()
+    republish_all(namespace=namespace)
 
 
-def publish_shipped_contributed() -> dict[str, dict[str, Any]]:
+def publish_for_read() -> None:
+    """The mount step of one tool-set read: the restart replay, then shipped bundles.
+
+    Both halves run in the same read and ask the same portfolio questions, so they share
+    one namespace. A read that finds nothing to mount reads no folder: the namespace is
+    lazy, and neither half asks it a question unless a mount is attempted.
+    """
+    from core.plugin_mount_trust import MountNamespace
+
+    answers = MountNamespace()
+    ensure_published(namespace=answers)
+    publish_shipped_contributed(namespace=answers)
+
+
+def publish_shipped_contributed(namespace=None) -> dict[str, dict[str, Any]]:
     """Publish first-party contributed tools through the mount, when their names are absent.
 
     A version 1 name lived in the kernel map and the switch only hid it. A version 2
@@ -65,7 +86,11 @@ def publish_shipped_contributed() -> dict[str, dict[str, Any]]:
     from core.plugin_lifecycle_types import LifecycleError
     from core.plugin_manifest import BUILTIN_PLUGINS_ROOT, load_manifest
     from core.plugin_mount_records import descriptor_registry
+    from core.plugin_mount_trust import MountNamespace
     from core.plugin_tools_contract import tool_claims
+
+    if namespace is None:
+        namespace = MountNamespace()
 
     if not BUILTIN_PLUGINS_ROOT.is_dir():
         return {}
@@ -89,7 +114,10 @@ def publish_shipped_contributed() -> dict[str, dict[str, Any]]:
             continue
         try:
             result = lifecycle.mount(
-                plugin, actor="startup", reason="shipped contributed tools"
+                plugin,
+                actor="startup",
+                reason="shipped contributed tools",
+                namespace=namespace,
             )
         except LifecycleError as exc:
             out[plugin] = {
@@ -104,22 +132,29 @@ def publish_shipped_contributed() -> dict[str, dict[str, Any]]:
     return out
 
 
-def republish_all() -> dict[str, dict[str, Any]]:
+def republish_all(namespace=None) -> dict[str, dict[str, Any]]:
     """Re-mount every recorded bundle and return the per-bundle outcome."""
     from core import plugin_runtime
+    from core.plugin_mount_trust import MountNamespace
 
     lifecycle = plugin_runtime.lifecycle()
     records = lifecycle.mount_records()
+    if records and namespace is None:
+        namespace = MountNamespace()
     out: dict[str, dict[str, Any]] = {}
     for plugin in sorted(records):
-        out[plugin] = republish_one(lifecycle, plugin, records.get(plugin) or {})
+        out[plugin] = republish_one(
+            lifecycle, plugin, records.get(plugin) or {}, namespace=namespace
+        )
     global _last
     _last = out
     _audit_summary(out)
     return out
 
 
-def republish_one(lifecycle, plugin: str, record: dict[str, Any]) -> dict[str, Any]:
+def republish_one(
+    lifecycle, plugin: str, record: dict[str, Any], *, namespace=None
+) -> dict[str, Any]:
     """One bundle's replay: the transition's own answer, or its own refusal.
 
     Nothing is acknowledged here. #17's content guard already decides by class — a `local`
@@ -130,7 +165,9 @@ def republish_one(lifecycle, plugin: str, record: dict[str, Any]) -> dict[str, A
     from core.plugin_lifecycle import LifecycleError
 
     try:
-        result = lifecycle.mount(plugin, actor="startup", reason="restart replay")
+        result = lifecycle.mount(
+            plugin, actor="startup", reason="restart replay", namespace=namespace
+        )
     except LifecycleError as exc:
         return {"status": STATUS_REFUSED, "detail": f"{exc.code}: {exc.detail}"[:400]}
     except Exception as exc:  # noqa: BLE001 — a bundle that cannot be read is reported

@@ -423,7 +423,7 @@ export function PluginCard({
       className="glass-reading space-y-2 rounded-xl p-3"
     >
       <div className="flex items-start gap-2">
-        <PluginIcon pluginId={p.id} name={p.name} />
+        <PluginIcon pluginId={p.id} name={p.name} hasIcon={p.has_icon} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="min-w-0 truncate text-ui-xs font-medium text-foreground/90">

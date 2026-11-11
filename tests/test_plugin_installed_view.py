@@ -103,6 +103,34 @@ def test_every_bundle_appears_once_and_a_builtin_names_its_own_face(device) -> N
     assert countdown["source"] == "builtin"
     assert countdown["in_catalog"] is True
     assert countdown["capabilities"]["surface"]["title"] == "Countdown"
+    # QA-E2E F5: the tile asks the icon route only for a bundle that declares one.
+    assert countdown["has_icon"] is True
+    catalog_row = next(entry for entry in view["public"] if entry["name"] == "countdown")
+    assert catalog_row["has_icon"] is True
+
+
+def test_has_icon_follows_the_manifest_so_the_tile_can_skip_the_404(device) -> None:
+    import json
+
+    from core import plugin_runtime, plugin_store
+
+    directory = write_bundle(device / "plugins", "no-icon")
+    mark_installed("no-icon", enabled=False)
+
+    view = plugin_store.plugins_view()
+    assert _row(view, "no-icon")["has_icon"] is False
+
+    manifest_path = directory / "ephe-plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["icon"] = "icon.svg"
+    (directory / "icon.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"></svg>', encoding="utf-8"
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    plugin_runtime.invalidate_ownership_cache()
+
+    view = plugin_store.plugins_view()
+    assert _row(view, "no-icon")["has_icon"] is True
 
 
 def test_the_route_serves_the_installed_list(device) -> None:
@@ -121,3 +149,4 @@ def test_the_route_serves_the_installed_list(device) -> None:
     row = _row(view, "hello-widget")
     assert row["state"] == "disabled"
     assert row["capabilities"]["tools"][0]["name"] == "now"
+    assert row["has_icon"] is False

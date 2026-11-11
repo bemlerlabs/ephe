@@ -19,6 +19,7 @@ from playwright.async_api import async_playwright, Page, Browser, Playwright
 from core.browser_url import (
     PERSISTENT_PROFILE_UNWIRED,
     browser_profile_settings,
+    navigation_guard,
     url_policy,
 )
 from core.tool_markers import BROWSER_DENIED_MARKER
@@ -248,6 +249,27 @@ class PlaywrightBrowserManager:
         self._watched: dict[str, dict] = {}
         self._lock = asyncio.Lock()
 
+    async def _guard_route(self, route) -> None:
+        """The address gate for every request this context makes.
+
+        `go()` refuses before the page is asked for; a redirect and a sub-resource
+        are requests the first answer says nothing about, and the browser resolves
+        each on its own. So each one goes through `navigation_guard` here.
+        """
+        url = str(getattr(getattr(route, "request", None), "url", "") or "")
+        scheme = url.split("://", 1)[0].lower() if "://" in url else ""
+        try:
+            if scheme in ("http", "https"):
+                allowed, _decision = await navigation_guard(url)
+                if not allowed:
+                    await route.abort()
+                    return
+            # In-memory schemes (about:, data:, blob:) are not network reach;
+            # `go()` has already answered what a page may be opened from.
+            await route.continue_()
+        except Exception:  # noqa: BLE001 — a request already handled is not a second one
+            pass
+
     async def _ensure_page(self, session: str = "default") -> Page:
         # A directly set page (hermetic tests inject _page) takes precedence.
         if self._page is not None:
@@ -274,6 +296,10 @@ class PlaywrightBrowserManager:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 **({"storage_state": profile["storage_state"]} if profile["storage_state"] else {}),
             )
+            # SEC-5: the policy that said yes to the address is not enough on a page
+            # that redirects or loads a sub-resource from somewhere else. The context
+            # carries the guard, so pages opened later in this session inherit it.
+            await context.route("**/*", self._guard_route)
             page = await context.new_page()
             self._pages[session] = (context, page)
             return page

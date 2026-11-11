@@ -1,6 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
+import { DESKTOP_BASE_URL } from './lib/desktopBaseUrl'
 
 /**
  * WD-33: the language the user reads, and only that one.
@@ -69,6 +70,45 @@ function storedLanguage(): Language {
   return languageFrom(stored, typeof navigator !== 'undefined' ? navigator.language : '')
 }
 
+/** The one boot read. A backend that is not there yet costs this much, never a stalled paint. */
+const SETTINGS_READ_TIMEOUT_MS = 1200
+
+/**
+ * The language saved for this installation. The desktop window and the PWA read one
+ * `/api/settings`; when this answer was missing, the Tauri origin (no localStorage
+ * choice) booted English while the same installation's PWA booted German.
+ *
+ * The saved product setting is the source of truth, so it outranks a cached detector
+ * value; `selectLanguage` writes it back through `/api/settings`. The read is skipped
+ * on a surface without an origin (file://) and bounded, so an unreachable backend
+ * falls back to the stored/browser language instead of delaying the first paint.
+ */
+async function serverLanguage(): Promise<Language | null> {
+  if (typeof window === 'undefined' || typeof fetch !== 'function') return null
+  if (window.location.protocol === 'file:') return null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), SETTINGS_READ_TIMEOUT_MS)
+  try {
+    // LAN mode guards /api/* with the token the QR link carries; `lib/api` reads it
+    // from the same place, but this read runs before that module is loaded.
+    const token = new URLSearchParams(window.location.search).get('token')
+    const query = token ? `?token=${encodeURIComponent(token)}` : ''
+    const response = await fetch(`${DESKTOP_BASE_URL}/api/settings${query}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return null
+    const body = (await response.json()) as { language?: unknown }
+    if (typeof body.language !== 'string') return null
+    const base = baseLanguage(body.language)
+    return isLanguage(base) ? base : null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** One chunk per language: this call is what keeps a catalog out of the entry chunk. */
 const loadCatalog = (language: Language) =>
   import(`./locales/${language}.json`) as Promise<{ default: TranslationCatalog }>
@@ -133,6 +173,10 @@ await i18n
   .use(catalogBackend)
   .use(initReactI18next)
   .init({
+    // The boot language is stated rather than re-detected: the catalog bundled below
+    // is the one `storedLanguage()` chose. The saved product setting is applied by
+    // `applyServerLanguage` before the first render, so no detector cache can win.
+    lng: activeLanguage,
     // Only the active language is bundled at init; `partialBundledLanguages` is what
     // sends every other language through `catalogBackend` instead of answering from this
     // object alone.
@@ -163,5 +207,18 @@ const syncDocumentLang = (lng: string) => {
 }
 i18n.on('languageChanged', syncDocumentLang)
 syncDocumentLang(i18n.language)
+
+/**
+ * QA-E2E F2: apply the language saved for this installation before the first paint.
+ * `main.tsx` awaits this beside the bundle, so the desktop window (no detector cache)
+ * booted English while the same installation's PWA booted German. It is a separate
+ * call rather than an import-time read: only the entry may delay the first frame, and
+ * a component that imports this module must not fire a request of its own.
+ */
+export async function applyServerLanguage(): Promise<void> {
+  const language = await serverLanguage()
+  if (!language || language === baseLanguage(i18n.language)) return
+  await i18n.changeLanguage(language)
+}
 
 export default i18n

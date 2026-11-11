@@ -92,6 +92,8 @@ export interface MarketInstalledRow {
   origin: 'bundled' | 'user'
   components: string[]
   permissions: { tool_families: string[]; data_roots: string[] }
+  /** The installed manifest names an icon the plugin route can serve. */
+  has_icon?: boolean
 }
 
 export interface MarketUpdate {

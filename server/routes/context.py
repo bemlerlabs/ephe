@@ -208,6 +208,7 @@ def context_stages() -> dict:
     Nothing here is secret; refusing to show it is what competitors do.
     """
     stages: list[dict] = []
+    workspace_context: dict | None = None
 
     def add(name: str, text: str | None) -> None:
         body = (text or "").strip()
@@ -241,20 +242,31 @@ def context_stages() -> dict:
     try:
         from dataclasses import asdict
 
-        from core.workspace_rules import DENIED, UNREADABLE, read_workspace_rules
+        from core.workspace_rules import (
+            DENIED,
+            UNREADABLE,
+            explain_workspace_context,
+            read_workspace_rules,
+        )
 
         rules = read_workspace_rules()
+        workspace_context = explain_workspace_context()
         if rules.text:
             add("workspace_rules", rules.text)
         # A refused or unreadable file did not speak, but the surface has to say it
         # was seen and why it stayed out; a stage with 0 chars carries that report.
         noteworthy = any(entry.status in (DENIED, UNREADABLE) for entry in rules.files)
-        if noteworthy and not any(s["name"] == "workspace_rules" for s in stages):
+        has_layers = bool(workspace_context.get("layers"))
+        if (noteworthy or has_layers) and not any(s["name"] == "workspace_rules" for s in stages):
             stages.append({"name": "workspace_rules", "chars": 0, "preview": ""})
         if rules.files and any(s["name"] == "workspace_rules" for s in stages):
             for stage in stages:
                 if stage["name"] == "workspace_rules":
                     stage["files"] = [asdict(entry) for entry in rules.files]
+                    # CTX-CONTRACT: the one resolver also names every layer, so the
+                    # surface shows persona, preferences and memory beside the rules.
+                    stage["layers"] = workspace_context.get("layers", [])
+                    stage["caps"] = workspace_context.get("caps", {})
     except Exception:
         pass
 
@@ -284,4 +296,7 @@ def context_stages() -> dict:
         pass
 
     total = sum(s["chars"] for s in stages)
-    return {"stages": stages, "total_chars": total}
+    answer = {"stages": stages, "total_chars": total}
+    if workspace_context is not None:
+        answer["workspace_context"] = workspace_context
+    return answer

@@ -49,6 +49,7 @@ import { toggleCompanionEnabled } from '@/lib/companionToggle'
 import { SHORTCUTS_EVENT } from '../ShortcutOverlay'
 import { apiUrl } from '@/lib/api/http'
 import { takePendingSettingsOpen } from '@/lib/openSettings'
+import { isToolError } from '@/lib/toolRound'
 
 /**
  * Chat layout (PWA-Chat-UX-Plan, Phase C1/C2).
@@ -347,6 +348,19 @@ export function useChatLayoutModel() {
   }, [])
 
   // ── C2: load sessions from IndexedDB (once, on mount) ──────────────
+  // QA-E2E F6: a restored conversation that ends in failed steps opens folded.
+  // The first screen after a start was the previous run's red tool bodies; the
+  // transcript is one click away, and a new task is offered beside it.
+  const [restoredConversation, setRestoredConversation] = useState<{
+    sessionId: string
+  } | null>(null)
+  const [restoredRevealed, setRestoredRevealed] = useState(false)
+  const revealRestoredConversation = useCallback(() => setRestoredRevealed(true), [])
+  const startTaskFromRestored = useCallback(() => {
+    setRestoredRevealed(true)
+    createSession()
+  }, [createSession])
+
   useEffect(() => {
     // W10-8 (FINDINGS 2026-10-12, high): a cold open settles on ANOTHER task's
     // restored transcript (~50 rows) and no surface said so. Disclose both halves
@@ -356,16 +370,27 @@ export function useChatLayoutModel() {
       toastBus.info(tRef.current('chat.restoringHistory'), undefined, undefined, 'history-restore')
     }
     void initFromDb().then(() => {
-      const restored = useChatStore.getState().sessions
-      if (before === 0 && restored.length > 0) {
-        const messages = restored.reduce((sum, s) => sum + s.messages.length, 0)
-        toastBus.info(
-          tRef.current('chat.historyRestored', { count: messages }),
-          undefined,
-          undefined,
-          'history-restore',
-        )
+      const state = useChatStore.getState()
+      const restored = state.sessions
+      if (before !== 0 || restored.length === 0) return
+      const active = restored.find((session) => session.id === state.activeSessionId)
+      const endsInFailure =
+        active?.messages.some((message) =>
+          (message.tool_calls ?? []).some((call) => isToolError(call)),
+        ) ?? false
+      if (active && endsInFailure) {
+        // The folded card below carries the disclosure; a toast with a message
+        // count would be the second, competing version of the same fact.
+        setRestoredConversation({ sessionId: active.id })
+        return
       }
+      const messages = restored.reduce((sum, s) => sum + s.messages.length, 0)
+      toastBus.info(
+        tRef.current('chat.historyRestored', { count: messages }),
+        undefined,
+        undefined,
+        'history-restore',
+      )
     })
   }, [initFromDb])
 
@@ -1017,6 +1042,8 @@ export function useChatLayoutModel() {
       if (!useChatStore.getState().currentSession) {
         createSession()
       }
+      // Sending into the restored conversation is the request to see it.
+      setRestoredRevealed(true)
 
       // G3: attachment text (code blocks + path hints) into the payload, images → images
       const payload = compositePayload(message, attachments ?? [])
@@ -1343,5 +1370,9 @@ export function useChatLayoutModel() {
     approveSandboxForTool,
     denySandboxForTool,
     handleAnswerAsk,
+    restoredConversation,
+    restoredRevealed,
+    revealRestoredConversation,
+    startTaskFromRestored,
   }
 }

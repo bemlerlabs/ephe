@@ -5,6 +5,8 @@
   --intro-cream: #fffdf5;
   position: fixed;
   inset: 0;
+  /* Above the four-step overlay ladder (overlay 20, modal 30): the scene owns
+     every route until it ends. */
   z-index: 1000;
   overflow: hidden;
   background: #020504;
@@ -105,7 +107,9 @@
 
 .intro-skip {
   position: absolute;
-  top: max(1rem, env(safe-area-inset-top));
+  /* Below the 48px header band every shell surface draws: the control must not
+     share a hit point with chrome that a route sheet owns. */
+  top: max(3.5rem, calc(env(safe-area-inset-top) + 0.75rem));
   inset-inline-end: 1rem;
   z-index: 3;
   min-height: 2.4rem;

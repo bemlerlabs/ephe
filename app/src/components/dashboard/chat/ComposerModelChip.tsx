@@ -45,6 +45,7 @@ export default function ComposerModelChip({
         aria-label={needsSetup ? t('chat.setupEngineChipAria') : t('chat.modelChipAria')}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={needsSetup ? t('chat.setupEngineChip') : model || undefined}
         data-testid="model-chip"
         data-needs-setup={needsSetup ? 'true' : 'false'}
         className={`inline-flex items-center gap-1.5 min-w-6 min-h-6 rounded-md border px-1.5 py-0.5 text-ui-xs transition-colors max-lg:min-h-11 max-lg:min-w-11 ${

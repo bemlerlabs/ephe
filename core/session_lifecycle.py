@@ -132,11 +132,15 @@ def _stamp(paths: list[Path], *, oldest: bool) -> dict | None:
     }
 
 
-def store_stats() -> dict:
-    """The holdings, counted honestly: per namespace, in bytes, and what a list reaches."""
+def store_stats(registry: dict | None = None) -> dict:
+    """The holdings, counted honestly: per namespace, in bytes, and what a list reaches.
+
+    ``registry`` is the caller's already-read registry, so the list route reads that
+    file once for its stats and its rows.
+    """
     sdir = _sessions_dir()
     files = session_files(sdir)
-    registry = read_registry(sdir)
+    registry = read_registry(sdir) if registry is None else registry
     registered_ids = {str(e.get("id")) for e in registry.get("sessions", []) if e.get("id")}
     by_namespace = {ns: {"files": 0, "bytes": 0} for ns in (*MIRROR_NAMESPACES, "")}
     total_bytes = 0

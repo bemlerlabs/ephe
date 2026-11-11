@@ -313,3 +313,80 @@ def test_serve_banner_names_the_engine_app_routes(monkeypatch, capsys):
     assert f"{base}{app.docs_url}" in out
     assert f"{base}{app.openapi_url}" in out
     assert "/api/docs" not in out
+
+
+# A bind that answers beyond this machine carries a token.
+
+
+def _serve_args(host: str, token: str = ""):
+    import argparse
+
+    return argparse.Namespace(host=host, port=8766, lan=False, token=token, model=None)
+
+
+def _run_serve(monkeypatch, args) -> dict:
+    """Run cmd_serve with uvicorn and the port preflight stubbed; report the app's token."""
+    import ephe_cli
+    import server.openai as so
+
+    captured: dict = {}
+    real_create = create_openai_app
+
+    def _capturing_create(*, api_token=None):
+        captured["api_token"] = api_token
+        return real_create(api_token=api_token)
+
+    monkeypatch.setattr(
+        ephe_cli,
+        "_serve_preflight",
+        lambda _a: SimpleNamespace(allowed=True, stopped=False, reused=False, message=""),
+    )
+    monkeypatch.setattr(
+        ephe_cli,
+        "engine_for_headless_run",
+        lambda *_a, **_k: SimpleNamespace(provider="local_ollama", model="gemma4:12b"),
+    )
+    monkeypatch.setattr(so, "create_openai_app", _capturing_create)
+    monkeypatch.setattr("uvicorn.run", lambda *_a, **_k: None)
+
+    assert ephe_cli.cmd_serve(args) == 0
+    return captured
+
+
+def test_a_non_loopback_serve_bind_generates_and_prints_a_token(monkeypatch, capsys):
+    """`--host 0.0.0.0` without --lan used to serve the user's engine unauthenticated."""
+    captured = _run_serve(monkeypatch, _serve_args("0.0.0.0"))
+
+    token = captured["api_token"]
+    assert token
+    out = capsys.readouterr().out
+    assert f"X-Auth-Token: {token}" in out
+    assert "http://0.0.0.0:8766/v1/chat/completions" in out
+    assert "localhost only" not in out
+
+
+def test_the_generated_token_gates_the_non_loopback_serve(fake_provider, monkeypatch):
+    captured = _run_serve(monkeypatch, _serve_args("0.0.0.0"))
+    app = create_openai_app(api_token=captured["api_token"])
+
+    with TestClient(app) as client:
+        assert client.get("/v1/models").status_code == 401
+        assert (
+            client.get(
+                "/v1/models", headers={"X-Auth-Token": captured["api_token"]}
+            ).status_code
+            == 200
+        )
+
+
+def test_an_explicit_token_survives_a_non_loopback_bind(monkeypatch):
+    captured = _run_serve(monkeypatch, _serve_args("0.0.0.0", token="planned-token"))
+
+    assert captured["api_token"] == "planned-token"
+
+
+def test_a_loopback_serve_bind_stays_token_free(monkeypatch, capsys):
+    captured = _run_serve(monkeypatch, _serve_args("127.0.0.1"))
+
+    assert captured["api_token"] is None
+    assert "Auth:    none" in capsys.readouterr().out

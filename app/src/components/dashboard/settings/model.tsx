@@ -36,6 +36,7 @@ import {
   Bot,
   UsersRound,
   KeyRound,
+  Layers,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { TabKey } from './types'
@@ -66,6 +67,7 @@ import { ShortcutsSection } from './model/sections-shortcuts'
 import { NetworkSection } from './model/sections-network'
 import { VaultSection } from './model/sections-vault'
 import { BehaviourSection } from './model/sections-behaviour'
+import ContextReport from './ContextReport'
 
 // Agent Center and Teams are their own lazy chunks: a reader who opens Engine
 // should not download two editors. The settings register is already a route
@@ -100,6 +102,7 @@ const NAV_ICON: Record<TabKey, LucideIcon> = {
   voice: Volume2,
   memory: Brain,
   persona: UserRound,
+  contextReport: Layers,
   mobile: Smartphone,
   language: Languages,
   privacy: Shield,
@@ -122,7 +125,7 @@ export const NAV: { key: TabKey; icon: React.ComponentType<{ className?: string 
 export const NAV_GROUPS: { groupKey: string; keys: TabKey[] }[] = [
   {
     groupKey: 'settings.groupModels',
-    keys: ['engine', 'generation', 'agents', 'teams', 'memory', 'persona'],
+    keys: ['engine', 'generation', 'agents', 'teams', 'memory', 'persona', 'contextReport'],
   },
   {
     groupKey: 'settings.groupLook',
@@ -181,6 +184,7 @@ export function useSettingsPanelModel(props: SettingsPanelProps) {
     memory: <MemorySection model={model} />,
     ephemera: <EphemeraSection model={model} />,
     persona: renderPersona(model),
+    contextReport: <ContextReport />,
     mobile: renderMobile(model),
     language: renderLanguage(model),
     privacy: renderPrivacy(model),

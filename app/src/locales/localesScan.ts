@@ -71,6 +71,29 @@ export function hasKey(keys: Set<string>, dotted: string): boolean {
   return keys.has(dotted) || keys.has(`${dotted}_one`) || keys.has(`${dotted}_other`)
 }
 
+/**
+ * Empty objects carry no leaf, so `leaves()` and the parity gate walk past them:
+ * `taskDock: {}` survived a full locale deletion. This lists the paths so a
+ * removed family cannot leave its container behind.
+ */
+export function emptyObjects(node: unknown, prefix = ''): string[] {
+  if (Array.isArray(node))
+    return node.length === 0 && prefix
+      ? [prefix]
+      : node.flatMap((item, i) => emptyObjects(item, `${prefix}.${i}`))
+  if (node && typeof node === 'object') {
+    const entries = Object.entries(node)
+    if (entries.length === 0) return prefix ? [prefix] : []
+    return entries.flatMap(([k, v]) => emptyObjects(v, prefix ? `${prefix}.${k}` : k))
+  }
+  return []
+}
+
+/** The `{{name}}` tokens of one value; formatting options stay outside the name. */
+export function placeholderSet(value: string): Set<string> {
+  return new Set([...value.matchAll(/\{\{\s*(\w+)/g)].map((m) => m[1] as string))
+}
+
 /* Class (a): single-brace {placeholder}                               */
 
 /**

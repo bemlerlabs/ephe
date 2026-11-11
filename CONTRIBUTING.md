@@ -23,11 +23,9 @@ pnpm run dev      # Vite dev server
 
 ## Coding Standards
 
-| Area | Standard |
-|------|----------|
-| **Python** | PEP 8, type hints everywhere, `async/await` consistently |
-| **JavaScript/TypeScript** | ES2022+, TypeScript strict mode (PWA in `app/`) |
-| **CSS** | Tailwind v4 (via `@tailwindcss/vite`) plus design tokens in `app/src/styles/globals.css`; no SCSS |
+- **Python**: PEP 8, type hints everywhere, `async/await` consistently.
+- **JavaScript/TypeScript**: ES2022+, TypeScript strict mode (PWA in `app/`).
+- **CSS**: Tailwind v4 (via `@tailwindcss/vite`) plus design tokens in `app/src/styles/globals.css`; no SCSS.
 | **Commits** | [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `test:`) |
 
 ### Commit attribution
@@ -86,6 +84,16 @@ cd app && npx tsc --noEmit && pnpm run build
 > any other change. This repository is public, which is what lets the install one-liner in the
 > README be fetched anonymously.
 
+## Agent instructions
+
+The rules an AI coding agent has to follow live in [`AGENTS.md`](AGENTS.md). It is the hub: the four
+invariants, the commands every change runs, the boundaries, and a routing table into the area files
+under `server/`, `tests/`, `app/`, `app/src-tauri/` and `.github/`. `scripts/agents_md_check.py`
+checks the caps, the section order, the routing table and every `make` target and script path the
+files name; it runs in CI and through `make verify`, so an edit that breaks the routing fails like a
+test. A note of your own can sit in `AGENTS.override.md` beside the hub; that filename is gitignored
+and is not part of the repository's instruction set.
+
 ## Adding Features
 
 ### New Tool
@@ -122,12 +130,11 @@ reserved for first-time contributors. If you want to take one, comment
 
 ## Project Principles
 
-| Do | Don't |
-|----|-------|
-| Local execution; the engine choice stays the user's | Add mandatory API keys or a silent engine default |
-| Privacy by design | Add external analytics/telemetry |
-| Async everywhere (no blocking calls in main thread) | Break cross-platform compatibility |
-| Keep server binding conservative (127.0.0.1 default) | Bind to 0.0.0.0 without explicit opt-in |
+- Local execution; the engine choice stays the user's. Never add mandatory API keys or a silent
+  engine default.
+- Privacy by design. No external analytics or telemetry.
+- Async everywhere: no blocking calls on the main thread, and no cross-platform break.
+- Keep server binding conservative (`127.0.0.1` by default). No `0.0.0.0` without explicit opt-in.
 | One reader per field, one code path per sentence | Ship a knob, string or endpoint nobody reads |
 
 ## Origin and disclosure
@@ -141,7 +148,7 @@ disclosed, what is rejected, and which CI gate enforces each rule — is
   carry no stamp. A pull request states in one line whether an AI tool drafted a substantial part
   of the change.
 - **Understood is the bar.** Nothing lands that the responsible human cannot explain line by line,
-  regardless of who or what wrote it. Unexplainable changes are rejected, not annotated.
+  regardless of who or what wrote it. An unexplainable change is rejected.
 - **Own voice.** Comments, messages and docs are terse and name the *reason* (a constraint, a
   number, a bug being guarded), never the intent of the change. No template prose, no placeholder
   text, no tool signatures in the tree.

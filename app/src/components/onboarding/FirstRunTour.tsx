@@ -1,22 +1,26 @@
 'use client'
 
 /**
- * The first open after the six-second scene: four questions, then the desk.
+ * The first open after the six-second scene: three questions, then the desk.
  *
  * The greeting and the desk frame the questions; the moth is the guide. The
  * answers land in the device marker (`/api/tour`), not in the browser: the PWA
  * and the desktop app must agree on whether the tour has been walked. The engine
- * question hands off to the shipped setup card instead of re-implementing it; the
- * tour resumes at the activation stop when that page reloads.
+ * question hands off to the shipped setup card instead of re-implementing it.
+ *
+ * The step numbers live here, with the flow: workspace, engine, what runs on its
+ * own. A marker written by the four-question build (carry was stop 4, the desk 5)
+ * resumes on the desk instead of opening a stop this build no longer has.
  */
 import './FirstRunTour.css'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { Code2, FileText, Layers, Loader2, Search, ShieldCheck } from 'lucide-react'
+import { FolderOpen, Loader2, ShieldCheck } from 'lucide-react'
 import { useDeepBool } from '@/lib/deepSettings'
 import { InteractiveMothGuide, type MothGuideHandle } from './InteractiveMothGuide'
 import { PaperMothGlyph } from '@/components/brand/PaperMothGlyph'
+import FolderPickerDialog from '@/components/dashboard/FolderPickerDialog'
 import {
   gateSnapshot,
   loadSetupGate,
@@ -29,9 +33,11 @@ import {
   enableSkill,
   getPlugins,
   getSettings,
+  listFs,
   listSkills,
   saveSections,
   setPluginEnabled,
+  updateSettings,
 } from '@/lib/api'
 import { apiUrl } from '@/lib/api/http'
 import {
@@ -39,26 +45,34 @@ import {
   shouldOpenTour,
   tourForceFromUrl,
   writeTourMarker,
-  TOUR_DESK_STEP,
-  TOUR_QUESTION_COUNT,
   TOUR_VERSION,
   type TourActivate,
   type TourAnswers,
-  type TourCarry,
   type TourMarker,
-  type TourUsage,
 } from '@/lib/firstRunTour'
 
-const USAGE_OPTIONS: { value: TourUsage; key: string; icon: typeof Code2 }[] = [
-  { value: 'code', key: 'tour.usage.code', icon: Code2 },
-  { value: 'research', key: 'tour.usage.research', icon: Search },
-  { value: 'documents', key: 'tour.usage.documents', icon: FileText },
-  { value: 'mix', key: 'tour.usage.mix', icon: Layers },
-]
+/** Three questions: workspace, engine, what runs on its own. */
+export const TOUR_STEPS = 3
+/** The desk closes the flow as a frame; it asks nothing. */
+export const TOUR_DESK = 4
+// The marker module still exports the four-question counts it clamps with; the flow
+// numbers live with the flow, and `resumeStep` folds an older marker onto the desk.
 
 interface EngineView {
   model?: string
   endpoint?: string
+}
+
+interface WorkspaceView {
+  path: string
+  /** False while the neutral folder stands in for a project the user picked. */
+  chosen: boolean
+}
+
+/** A resumed marker from an older flow cannot point at a stop this build does not render. */
+function resumeStep(raw: number): number {
+  if (raw >= TOUR_DESK) return TOUR_DESK
+  return Math.max(0, raw)
 }
 
 interface ImportSummary {
@@ -141,7 +155,9 @@ export default function FirstRunTour() {
   const [activateStart, setActivateStart] = useState<TourActivate | null>(null)
   const [activateReady, setActivateReady] = useState(false)
   const [imported, setImported] = useState<ImportSummary | null>(null)
-  const [carry, setCarry] = useState<TourCarry | null>(null)
+  const [workspace, setWorkspace] = useState<WorkspaceView | null>(null)
+  const [workspaceLoading, setWorkspaceLoading] = useState(true)
+  const [workspacePicking, setWorkspacePicking] = useState(false)
   const [sparked, setSparked] = useState(false)
   const [finale, setFinale] = useState(false)
   const [guardPreview, setGuardPreview] = useState(false)
@@ -170,7 +186,7 @@ export default function FirstRunTour() {
     }
     booted.current = true
     setAnswers(marker.answers)
-    setStep(force ? 0 : marker.step)
+    setStep(force ? 0 : resumeStep(marker.step))
     setOpen(true)
   }, [marker, gate, force])
 
@@ -211,7 +227,7 @@ export default function FirstRunTour() {
         ...base,
         walked,
         skipped,
-        step: skipped ? base.step : TOUR_DESK_STEP,
+        step: skipped ? Math.min(base.step, TOUR_DESK) : TOUR_DESK,
         answers,
       }
       try {
@@ -246,8 +262,14 @@ export default function FirstRunTour() {
 
   useEffect(() => {
     if (!open) return
-    dialogRef.current?.focus()
+    // The folder picker is its own dialog above the tour: while it is open the
+    // picker owns Escape, and trapping Tab inside the card would put its
+    // controls out of reach.
+    if (workspacePicking) return
     const node = dialogRef.current
+    // A state change re-runs this effect (the escapes close over the marker); it
+    // must not pull focus out of the control the person is already using.
+    if (node && !node.contains(document.activeElement)) node.focus()
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
@@ -282,11 +304,31 @@ export default function FirstRunTour() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeTour])
+  }, [open, leaveTour, workspacePicking])
 
   useEffect(() => {
     if (open) titleRef.current?.focus()
   }, [open, step])
+
+  useEffect(() => {
+    if (step !== 1) return
+    let alive = true
+    setWorkspaceLoading(true)
+    void listFs()
+      .then((listing) => {
+        if (!alive || !listing.workspace) return
+        setWorkspace({ path: listing.workspace, chosen: listing.workspace_set === true })
+      })
+      .catch(() => {
+        if (alive) setWorkspace(null)
+      })
+      .finally(() => {
+        if (alive) setWorkspaceLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [step])
 
   useEffect(() => {
     if (step !== 2) return
@@ -339,11 +381,53 @@ export default function FirstRunTour() {
   }, [step, activateReady])
 
   const openEngineSetup = useCallback(() => {
-    goTo(3)
+    // Resume at the engine stop when the setup card returns the user to the tour:
+    // the answer they just gave is the one this step checks.
+    goTo(2)
     markSetupIntent()
     setOpen(false)
     window.location.hash = '#/setup'
   }, [goTo])
+
+  const readWorkspace = useCallback(async () => {
+    const listing = await listFs()
+    if (!listing.workspace) return
+    setWorkspace({ path: listing.workspace, chosen: listing.workspace_set === true })
+  }, [])
+
+  const applyWorkspace = useCallback(
+    async (path: string) => {
+      setWorkspacePicking(false)
+      setBusy(true)
+      setError('')
+      try {
+        await updateSettings({ workspace_dir: path })
+        setWorkspace({ path, chosen: true })
+        // The server resolves the path; a failed re-read must not turn a saved
+        // choice into "could not save".
+        await readWorkspace().catch(() => {})
+      } catch {
+        setError(t('tour.saveError'))
+      } finally {
+        setBusy(false)
+      }
+    },
+    [readWorkspace, t],
+  )
+
+  const resetWorkspace = useCallback(async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await updateSettings({ workspace_dir: '' })
+    } catch {
+      setError(t('tour.saveError'))
+      setBusy(false)
+      return
+    }
+    await readWorkspace().catch(() => setWorkspace(null))
+    setBusy(false)
+  }, [readWorkspace, t])
 
   const saveActivate = useCallback(async () => {
     setBusy(true)
@@ -414,7 +498,6 @@ export default function FirstRunTour() {
         servers: Array.isArray(applied.mcp_servers) ? applied.mcp_servers.length : 0,
         persona: applied.persona === true,
       })
-      setCarry('imported')
       setAnswers((current) => ({ ...current, carry: 'imported' }))
     } catch {
       setError(t('tour.importError'))
@@ -429,7 +512,11 @@ export default function FirstRunTour() {
     if (!open || still) return
     const id = window.setTimeout(() => {
       const panel = dialogRef.current?.querySelector('[data-testid="tour-panel"]')
-      guideRef.current?.flyToPanelPerch(panel ?? null)
+      const core = dialogRef.current?.querySelector('[data-testid="tour-engine-core"]')
+      // On a phone the card fills the width and its engine band is the one empty
+      // room the guide can take without sitting on a line of copy.
+      if (step === 2 && core && window.innerWidth <= 900) guideRef.current?.perchIn(core)
+      else guideRef.current?.flyToPanelPerch(panel ?? null)
     }, 60)
     return () => window.clearTimeout(id)
   }, [open, still, step])
@@ -445,7 +532,10 @@ export default function FirstRunTour() {
       if (still) return
       const control = (event.target as HTMLElement).closest('[data-testid]')
       const id = control?.getAttribute('data-testid') ?? ''
-      if (control && /^tour-(usage-|toggle-|guard-|continue|start|next|engine-)/.test(id)) {
+      if (
+        control &&
+        /^tour-(toggle-|guard-|continue|start|finish|back|engine-|workspace-|import)/.test(id)
+      ) {
         guideRef.current?.flyToControl(control)
       } else {
         guideRef.current?.flyTo(event.clientX, event.clientY)
@@ -465,10 +555,10 @@ export default function FirstRunTour() {
   if (!open) return null
 
   const configured = gate.configured || Boolean(engine?.model)
-  const question = step >= 1 && step <= TOUR_QUESTION_COUNT
+  const question = step >= 1 && step <= TOUR_STEPS
   const eyebrow = question
-    ? t('tour.step', { current: step, total: TOUR_QUESTION_COUNT })
-    : step === TOUR_DESK_STEP
+    ? t('tour.step', { current: step, total: TOUR_STEPS })
+    : step === TOUR_DESK
       ? t('tour.desk.eyebrow')
       : t('tour.greeting.eyebrow')
 
@@ -490,11 +580,11 @@ export default function FirstRunTour() {
         <button
           type="button"
           className="tour-primary focus-ring"
-          disabled={!answers.usage}
-          onClick={() => goTo(2, { usage: answers.usage })}
+          disabled={busy}
+          onClick={() => goTo(2)}
           data-testid="tour-continue"
         >
-          {t('tour.continue')}
+          {busy ? t('tour.saving') : t('tour.continue')}
         </button>
       )
     }
@@ -521,22 +611,6 @@ export default function FirstRunTour() {
           data-testid="tour-continue"
         >
           {busy ? t('tour.saving') : t('tour.continue')}
-        </button>
-      )
-    }
-    if (step === 4) {
-      return (
-        <button
-          type="button"
-          className="tour-primary focus-ring"
-          onClick={() => {
-            const choice = carry ?? 'fresh'
-            setCarry(choice)
-            goTo(TOUR_DESK_STEP, { carry: choice })
-          }}
-          data-testid="tour-next"
-        >
-          {carry === 'imported' ? t('tour.next') : t('tour.carry.fresh')}
         </button>
       )
     }
@@ -609,36 +683,73 @@ export default function FirstRunTour() {
           {step === 1 && (
             <>
               <h2 id="tour-title" ref={titleRef} tabIndex={-1} className="tour-title font-display">
-                {t('tour.usage.title')}
+                {t('tour.workspace.title')}
               </h2>
-              <p className="tour-line">{t('tour.usage.hint')}</p>
-              <div className="tour-cards" role="radiogroup" aria-label={t('tour.usage.title')}>
-                {USAGE_OPTIONS.map(({ value, key, icon: Icon }) => {
-                  const selected = answers.usage === value
-                  return (
+              <p className="tour-line">{t('tour.workspace.body')}</p>
+              {workspaceLoading ? (
+                <p className="tour-line inline-flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  {t('tour.workspace.checking')}
+                </p>
+              ) : workspace ? (
+                <div className="tour-workspace" data-testid="tour-workspace-current">
+                  <span className="tour-workspace-label text-scale-ui text-ink-faint">
+                    {t('tour.workspace.current')}
+                  </span>
+                  <span className="tour-workspace-path">{workspace.path}</span>
+                  <span className="tour-workspace-hint text-scale-ui text-ink-faint">
+                    {workspace.chosen
+                      ? t('tour.workspace.chosenHint')
+                      : t('tour.workspace.defaultHint')}
+                  </span>
+                  <span className="tour-workspace-actions">
                     <button
-                      key={value}
                       type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      data-testid={`tour-usage-${value}`}
-                      onClick={() => setAnswers((current) => ({ ...current, usage: value }))}
-                      className={`tour-card focus-ring${selected ? ' is-selected' : ''}`}
+                      className="tour-text-action"
+                      onClick={() => setWorkspacePicking(true)}
+                      data-testid="tour-workspace-choose"
                     >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                      <span>{t(key)}</span>
+                      <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                      {workspace.chosen ? t('tour.workspace.change') : t('tour.workspace.choose')}
                     </button>
-                  )
-                })}
-              </div>
-              <button
-                type="button"
-                className="tour-text-action"
-                onClick={() => goTo(2)}
-                data-testid="tour-skip-question"
-              >
-                {t('tour.usage.skip')}
-              </button>
+                    {workspace.chosen && (
+                      <button
+                        type="button"
+                        className="tour-text-action"
+                        onClick={() => void resetWorkspace()}
+                        data-testid="tour-workspace-reset"
+                      >
+                        {t('tour.workspace.reset')}
+                      </button>
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <p className="tour-line">{t('tour.workspace.unavailable')}</p>
+              )}
+              <p className="tour-line">{t('tour.workspace.settingsHint')}</p>
+              {isDesktop() && (
+                <button
+                  type="button"
+                  className="tour-text-action"
+                  disabled={busy}
+                  onClick={() => void chooseFolder()}
+                  data-testid="tour-import"
+                >
+                  {busy ? t('tour.saving') : t('tour.workspace.import')}
+                </button>
+              )}
+              {imported && (
+                <p className="tour-imported" data-testid="tour-import-summary">
+                  {t('tour.workspace.imported', {
+                    skills: imported.skills,
+                    servers: imported.servers,
+                    persona: imported.persona
+                      ? t('tour.workspace.personaYes')
+                      : t('tour.workspace.personaNo'),
+                  })}
+                </p>
+              )}
             </>
           )}
 
@@ -647,6 +758,11 @@ export default function FirstRunTour() {
               <h2 id="tour-title" ref={titleRef} tabIndex={-1} className="tour-title font-display">
                 {t('tour.engine.title')}
               </h2>
+              <p className="tour-line">{t('tour.engine.body')}</p>
+              {!configured && <p className="tour-line">{t('tour.engine.quiet')}</p>}
+              <p className="tour-cli">
+                {t('tour.engine.cli')} <code>ephe configure</code>
+              </p>
               <div
                 className="tour-engine-core"
                 data-testid="tour-engine-core"
@@ -669,13 +785,16 @@ export default function FirstRunTour() {
                       endpoint: engine?.endpoint ?? '—',
                     })}
                   </p>
+                  <span className="text-scale-ui text-ink-faint">{t('tour.engine.where')}</span>
                   <button type="button" className="tour-text-action" onClick={openEngineSetup}>
                     {t('tour.engine.change')}
                   </button>
                 </div>
               ) : (
                 <>
-                  <p className="tour-line">{t('tour.engine.body')}</p>
+                  <span className="tour-engine-where text-scale-ui text-ink-faint">
+                    {t('tour.engine.where')}
+                  </span>
                   <div className="tour-actions">
                     <button
                       type="button"
@@ -777,59 +896,17 @@ export default function FirstRunTour() {
             </>
           )}
 
-          {step === 4 && (
-            <>
-              <h2 id="tour-title" ref={titleRef} tabIndex={-1} className="tour-title font-display">
-                {t('tour.carry.title')}
-              </h2>
-              <p className="tour-line">{t('tour.carry.body')}</p>
-              {imported ? (
-                <p className="tour-imported" data-testid="tour-import-summary">
-                  {t('tour.carry.imported', {
-                    skills: imported.skills,
-                    servers: imported.servers,
-                    persona: imported.persona
-                      ? t('tour.carry.personaYes')
-                      : t('tour.carry.personaNo'),
-                  })}
-                </p>
-              ) : (
-                <div className="tour-actions">
-                  {isDesktop() ? (
-                    <button
-                      type="button"
-                      className="tour-primary focus-ring"
-                      disabled={busy}
-                      onClick={() => void chooseFolder()}
-                      data-testid="tour-import"
-                    >
-                      {busy ? t('tour.saving') : t('tour.carry.choose')}
-                    </button>
-                  ) : (
-                    <p className="tour-line">{t('tour.carry.pwaNote')}</p>
-                  )}
-                  <button
-                    type="button"
-                    className="tour-ghost focus-ring"
-                    onClick={() => {
-                      setCarry('fresh')
-                      goTo(TOUR_DESK_STEP, { carry: 'fresh' })
-                    }}
-                    data-testid="tour-fresh"
-                  >
-                    {t('tour.carry.fresh')}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {step === TOUR_DESK_STEP && (
+          {step === TOUR_DESK && (
             <>
               <h2 id="tour-title" ref={titleRef} tabIndex={-1} className="tour-title font-display">
                 {t('tour.desk.title')}
               </h2>
               <p className="tour-line">{t('tour.desk.body')}</p>
+              <div className="tour-rules" data-testid="tour-rules">
+                <p className="tour-rules-title">{t('tour.desk.rules.title')}</p>
+                <p className="tour-rules-body">{t('tour.desk.rules.body')}</p>
+                <p className="tour-rules-context">{t('tour.desk.rules.context')}</p>
+              </div>
               <p className="tour-desk-actions text-scale-ui text-ink-faint">
                 {t('tour.desk.hint')}
               </p>
@@ -859,6 +936,11 @@ export default function FirstRunTour() {
           {primary}
         </footer>
       </section>
+      <FolderPickerDialog
+        open={workspacePicking}
+        onClose={() => setWorkspacePicking(false)}
+        onPick={(path) => void applyWorkspace(path)}
+      />
     </div>
   )
 }

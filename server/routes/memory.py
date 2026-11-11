@@ -132,6 +132,10 @@ class MemoryStatsResponse(BaseModel):
     #: The vector leg is optional: without a local embedding model BM25 and
     #: entities carry the search. Hiding that would be a broken memory with a green UI.
     vector_leg: bool = True
+    #: How much of the store the vector arm actually covers. `vector_leg` alone
+    #: says an embedder can load; these two say whether the chunks carry vectors.
+    chunks: int = 0
+    chunks_embedded: int = 0
     lexical_leg: bool = False
     deleted: int = 0
     #: D5's trash, as a capability rather than as a hope: `deleted` staying 0 is
@@ -164,6 +168,8 @@ async def memory_stats() -> MemoryStatsResponse:
             provider=stats.get("provider", memory.provider_kind),
             reason=str(stats.get("reason") or memory.provider_reason or ""),
             vector_leg=bool(stats.get("vector_leg", True)),
+            chunks=int(stats.get("chunks", 0) or 0),
+            chunks_embedded=int(stats.get("chunks_embedded", 0) or 0),
             lexical_leg=bool(stats.get("lexical_leg", False)),
             deleted=int(stats.get("deleted", 0) or 0),
             restore_supported=_keeps_trash(memory),
@@ -188,6 +194,20 @@ async def memory_list(limit: int = 100) -> MemoryListResponse:
     raw = _read(lambda memory: memory.list_all(limit=limit))
     entries = [MemoryEntry(id=e["id"], text=e["text"], metadata=e.get("metadata", {})) for e in raw]
     return MemoryListResponse(entries=entries, total=len(entries))
+
+
+class MemoryProvidersResponse(BaseModel):
+    #: The ids the switch accepts right now: the kernel's stores plus the ones an
+    #: active bundle declares. Read from the same list `PUT /memory/provider` checks.
+    providers: list[str]
+
+
+@router.get("/memory/providers", response_model=MemoryProvidersResponse)
+async def memory_providers() -> MemoryProvidersResponse:
+    """The selectable stores, so a surface does not have to hardcode names."""
+    from core.memory_provider import available_providers
+
+    return MemoryProvidersResponse(providers=list(available_providers()))
 
 
 # Wave D: provider switch and migration

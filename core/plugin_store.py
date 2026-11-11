@@ -349,6 +349,7 @@ def installed_bundles(
     registry_file: Path | None = None,
     *,
     catalog: dict[str, list[dict[str, Any]]] | None = None,
+    scanned: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Every bundle directory this device can load, one row per name.
 
@@ -357,12 +358,14 @@ def installed_bundles(
     line. A folder whose manifest is quarantined stays in the list with
     ``state: "error"`` and its reason, because "installed but broken" is a row a reader
     has to see. Sorted by name; the scan already resolves a user bundle over a builtin
-    identity, so no name appears twice.
+    identity, so no name appears twice. ``scanned`` is the view's one scan, handed down
+    so the three sections of `plugins_view` read the folders once.
     """
     from core import plugin_manifest, plugin_mount_trust, plugin_rail
 
     try:
-        scanned = plugin_manifest.scan_plugins()
+        if scanned is None:
+            scanned = plugin_manifest.scan_plugins()
         builtin_root = plugin_manifest.builtin_plugins_root().resolve()
     except Exception:
         return []
@@ -427,6 +430,9 @@ def installed_bundles(
                 "enabled": enabled,
                 "rail": rail,
                 "in_catalog": name in catalog_names,
+                # The icon route answers 404 when the manifest names none; the tile
+                # reads this first and paints the lettermark instead of asking.
+                "has_icon": bool((manifest or {}).get("icon")),
                 "error": error,
                 "capabilities": capabilities,
             }
@@ -451,6 +457,9 @@ def _mapp_entry(entry: dict[str, Any], enabled_lookup: dict[str, bool]) -> dict[
         "tags": [str(t) for t in tags] if isinstance(tags, list) else [],
         "example_prompts": [str(p) for p in prompts] if isinstance(prompts, list) else [],
         "enabled": enabled,
+        # Set by the manifest pass below when this name has an installed folder.
+        # The icon route cannot answer for a catalog line with no bundle behind it.
+        "has_icon": False,
     }
     # E2: catalog entries may declare manifest-based artifacts.
     if "manifest" in entry:
@@ -474,8 +483,12 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
     legacy ``master_enabled`` value is never consulted. ``read_only`` mirrors the
     operator brake on the switch surface.
     """
-    from core import plugin_switch_policy
+    from core import plugin_scan_cache, plugin_switch_policy
 
+    try:
+        scanned = plugin_scan_cache.scan()
+    except Exception:  # noqa: BLE001 — a folder walk that fails leaves the sections empty
+        scanned = []
     catalog = load_catalog(catalog_file)
     reg_items = load_registry(registry_file)
     names = [
@@ -538,7 +551,7 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
     # this machine has no catalogue line, so it used to reach the surface as an orphan
     # name only. `installed` is the folder truth, with the switch and the capabilities.
     view["installed"] = installed_bundles(
-        catalog_file, registry_file, catalog=catalog
+        catalog_file, registry_file, catalog=catalog, scanned=scanned
     )
     # E4b: attach manifest facts (source, permissions) where a dir exists —
     # the detail sheet shows what a plugin declares, best-effort, never fatal.
@@ -547,9 +560,7 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
         from core.plugin_ui_capabilities import ui_descriptor
 
         by_name = {
-            str(e["manifest"]["name"]): e
-            for e in plugin_manifest.scan_plugins()
-            if e["manifest"]
+            str(e["manifest"]["name"]): e for e in scanned if e.get("manifest")
         }
         for seg in ("public", "personal"):
             for entry in view[seg]:
@@ -594,11 +605,9 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
 
     manifests: dict = {}
     try:
-        from core import plugin_manifest
-
         manifests = {
             str(item["manifest"]["name"]): item["manifest"]
-            for item in plugin_manifest.scan_plugins()
+            for item in scanned
             if item.get("manifest")
         }
     except Exception:
@@ -606,6 +615,10 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
     for seg in ("public", "personal"):
         for entry in view[seg]:
             plugin_id = str(entry.get("id") or "")
+            # The tile asks the icon route only when a manifest behind this name
+            # declares one; the route answers 404 for every other line, and that
+            # request was the only HTTP error on the plugins page (QA-E2E F5).
+            entry["has_icon"] = bool(manifests.get(plugin_id, {}).get("icon"))
             try:
                 entry["state_usage"] = plugin_state.summary_for(
                     plugin_id, manifests.get(plugin_id)

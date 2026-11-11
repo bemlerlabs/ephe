@@ -28,6 +28,7 @@ export type TabKey =
   | 'voice'
   | 'memory'
   | 'persona'
+  | 'contextReport'
   | 'mobile'
   | 'language'
   | 'privacy'
@@ -54,6 +55,7 @@ export const NAV_KEYS = [
   'teams',
   'memory',
   'persona',
+  'contextReport',
   'appearance',
   'language',
   'voice',
@@ -108,6 +110,9 @@ export const READONLY_TABS: ReadonlySet<TabKey> = new Set([
   'mcp',
   'persona',
   'voice',
+  // The context report only reads: its figures come from the live prompt
+  // resolver, so there is nothing here the footer save could write.
+  'contextReport',
   'mobile',
   // Agent Center and Agent Teams save through their own endpoints and buttons.
   'agents',

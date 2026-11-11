@@ -553,6 +553,10 @@ class _FakeBrowserContext:
         self.pages: list = []
         self.viewport = None
         self.user_agent = None
+        self.routes: list = []
+
+    async def route(self, pattern, handler):
+        self.routes.append((pattern, handler))
 
     async def new_page(self):
         page = _FakePage()
@@ -599,6 +603,7 @@ def test_ensure_page_launches_a_browser_and_opens_one_session_page(monkeypatch):
     assert context.viewport == {"width": 1280, "height": 800}
     assert "Chrome/120" in context.user_agent
     assert context.pages == [page]
+    assert [pattern for pattern, _handler in context.routes] == ["**/*"]
 
 
 def test_ensure_page_reuses_an_open_session_page_without_relaunching(monkeypatch):

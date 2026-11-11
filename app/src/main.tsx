@@ -1,7 +1,8 @@
 import { createRoot } from 'react-dom/client'
 import { Suspense, lazy, useState } from 'react'
-// Side-effect import: i18n must be initialized before App renders.
-import './i18n'
+// i18n must be initialized before App renders; the saved product language is
+// applied at the entry, before the first frame (see applyServerLanguage).
+import { applyServerLanguage } from './i18n'
 import { installDbAutoFlush, installExternalLinks } from '@/lib'
 import { deepBool, initDeepSettings } from '@/lib'
 import { ensureGlobalShortcut } from '@/lib'
@@ -175,21 +176,32 @@ window.addEventListener('resize', () => void applyPlatformChrome())
 const captureFilm =
   import.meta.env.DEV && new URLSearchParams(window.location.search).get('film') === 'capture'
 
-if (captureFilm) {
-  const IntroFilm = lazy(() => import('./components/onboarding/IntroFilm'))
-  root.render(
-    <IconScale>
-      <Suspense fallback={null}>
-        <IntroFilm capture />
-      </Suspense>
-    </IconScale>,
-  )
-} else {
-  root.render(
-    <IconScale>
-      <Suspense fallback={null}>
-        <Boot />
-      </Suspense>
-    </IconScale>,
-  )
+// QA-E2E F2: the language the user saved on this installation is read once here,
+// before the first render, so the window and the PWA of one install open in the
+// same language. The await sits inside this function rather than at module scope:
+// a top-level await turns the entry asynchronous and Rollup then splits its static
+// imports (deepSettings, firstRun, setupGate) into extra first-paint chunks. Nothing
+// has painted while the read runs, so the language still lands without a flicker.
+async function paint() {
+  await applyServerLanguage()
+  if (captureFilm) {
+    const IntroFilm = lazy(() => import('./components/onboarding/IntroFilm'))
+    root.render(
+      <IconScale>
+        <Suspense fallback={null}>
+          <IntroFilm capture />
+        </Suspense>
+      </IconScale>,
+    )
+  } else {
+    root.render(
+      <IconScale>
+        <Suspense fallback={null}>
+          <Boot />
+        </Suspense>
+      </IconScale>,
+    )
+  }
 }
+
+void paint()

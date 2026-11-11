@@ -27,6 +27,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 |---|---|
 | `FEATURE_STATUS.md` | What is active, experimental and planned, with the limits the table does not capture |
 | `ARCHITECTURE.md` | Topology, module map and the contracts between them |
+| `CONTEXT_CONTRACT.md` | The workspace context layers, their precedence, caps, status words and `paths:` rules |
 | `SECURITY_AND_PRIVACY.md` | The security and privacy mechanisms in one table |
 | `SECURITY_THREAT_MODEL.md` | STRIDE threat model, including the engine-token paths |
 | `SANDBOX_EXECUTION.md` | The Ephemora cell sandbox (opt-in) |

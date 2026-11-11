@@ -161,6 +161,43 @@ class TestThreeLeges:
         assert max(scores) >= 0.3, "Top-Treffer muss den Injection-Threshold überleben"
 
 
+class TestHonestVectorCoverage:
+    def test_vector_leg_asks_the_model_not_the_wrapper(self, tmp_path, monkeypatch):
+        """`LazyEmbedder` is not None by construction; the store's vector arm is
+        only there when a model actually loads."""
+        from core import memory_embed
+        from core.memory_kepta import KeptaProvider
+        from core.memory_provider import LazyEmbedder
+
+        monkeypatch.setattr(memory_embed, "get_embedder", lambda: None)
+        p = KeptaProvider(
+            db_path=str(tmp_path / "lazy.db"), scope="s", embedder=LazyEmbedder()
+        )
+        assert p.stats()["vector_leg"] is False
+        p.close()
+
+    def test_chunks_and_their_vectors_are_reported_separately(self, tmp_path):
+        from core.memory_kepta import KeptaProvider
+
+        text = "The projector in the meeting room has a broken HDMI cable"
+        with_vectors = KeptaProvider(
+            db_path=str(tmp_path / "vectors.db"), scope="s", embedder=make_embedder()
+        )
+        with_vectors.store(text)
+        covered = with_vectors.stats()
+        assert covered["chunks"] >= 1
+        assert covered["chunks_embedded"] == covered["chunks"]
+
+        without_vectors = KeptaProvider(
+            db_path=str(tmp_path / "plain.db"), scope="s", embedder=None
+        )
+        without_vectors.store(text)
+        plain = without_vectors.stats()
+        assert plain["chunks"] >= 1
+        assert plain["chunks_embedded"] == 0
+        assert plain["vector_leg"] is False
+
+
 class TestRetentionAndAccess:
     def test_retention_faktor_an_kepta_konstanten(self):
         from core.memory_kepta_schema import retention_factor

@@ -25,8 +25,6 @@ describe('aggregateToolCalls (I1, Referenz-Paritaet)', () => {
     expect(groups).toHaveLength(1)
     expect(groups[0]!.family).toBe('shell')
     expect(groups[0]!.calls).toHaveLength(3)
-    expect(groups[0]!.summaryKey).toBe('streamGroup.terminal')
-    expect(groups[0]!.count).toBe(3)
   })
 
   it('bricht die Gruppe bei Familienwechsel (shell -> edit -> shell = 3 Gruppen)', () => {
@@ -68,8 +66,7 @@ describe('aggregateToolCalls (I1, Referenz-Paritaet)', () => {
       call({ id: 'r2', name: 'read_file', args: { path: '/p/b.ts' } }),
     ])
     expect(groups[0]!.family).toBe('read')
-    expect(groups[0]!.count).toBe(2)
-    expect(groups[0]!.summaryKey).toBe('streamGroup.read')
+    expect(groups[0]!.calls).toHaveLength(2)
   })
 
   it('leere Eingabe -> keine Gruppen', () => {

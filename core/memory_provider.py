@@ -186,13 +186,13 @@ def resolve_provider(
     own: a memory across the network stays something a user opts into.
     """
     if persist_dir or collection_name:
-        return KEPTA, "benannter Speicher: der Aufrufer gibt Pfad oder Scope vor"
+        return KEPTA, "named store: the caller supplies a path or scope"
     if explicit:
         if explicit in VALID_PROVIDERS:
-            return explicit, "explicit übergeben"
+            return explicit, "passed explicitly"
         claim, why = plugin_provider(explicit)
         if claim is not None:
-            return claim.provider_id, f"explicit übergeben (Plugin {claim.plugin_id!r})"
+            return claim.provider_id, f"passed explicitly (plugin {claim.plugin_id!r})"
         raise ValueError(_unknown(explicit, why))
     env = (os.environ.get(ENV_PROVIDER) or "").strip().lower()
     if env in VALID_PROVIDERS:
@@ -224,9 +224,9 @@ def resolve_provider(
             )
     if legacy_store_present():
         write_provider_record(KEPTA, reason="existing-data")
-        return KEPTA, "Altbestand gefunden — Kepta ist das Gehirn, ein Import steht bereit"
+        return KEPTA, "legacy store found — Kepta is the brain, an import is ready"
     write_provider_record(KEPTA, reason="fresh-install")
-    return KEPTA, "frischer Workspace — Kepta-Core ist das neue Gehirn"
+    return KEPTA, "fresh workspace — Kepta core is the new brain"
 
 
 def _lazy_embedder() -> Callable[[list[str]], list[list[float]]] | None:
@@ -251,7 +251,13 @@ def _lazy_embedder() -> Callable[[list[str]], list[list[float]]] | None:
 
 
 class LazyEmbedder:
-    """Wrapper with identical callability, so that `is not None` reveals the layer."""
+    """Wrapper with identical callability; `lazy` marks the unresolved layer.
+
+    The wrapper itself is always non-None, so a stats reader cannot treat presence
+    as an active vector arm without asking the model.
+    """
+
+    lazy = True
 
     def __call__(self, texts: list[str]) -> list[list[float]]:
         return _lazy_embedder()(texts)  # type: ignore[misc]

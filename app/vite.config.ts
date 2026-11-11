@@ -33,6 +33,18 @@ function buildSha(): string {
 // origin so the Vite page keeps working without a second allowlist entry.
 const API_TARGET = process.env.EPHE_API_TARGET || 'http://127.0.0.1:8765'
 
+// The UI primitives the first paint itself renders. The rest of
+// `src/components/ui` is opened by a lazy route; the old rule named the whole
+// directory, so every primitive a route imported became a static dependency of
+// the shell (the dialog primitive alone held the 35.8 kB Radix overlay stack on
+// the first load).
+const SHELL_UI = [
+  '/src/components/ui/ErrorBoundary',
+  '/src/components/ui/Skeleton',
+  '/src/components/ui/Toaster',
+  '/src/components/ui/iconScale',
+] as const
+
 const RADIX_VENDOR = [
   '@radix-ui/',
   '@floating-ui/',
@@ -44,10 +56,9 @@ const RADIX_VENDOR = [
   'aria-hidden',
 ] as const
 
-// Note: the service-worker cache version is NOT stamped by a Vite plugin but by
-// scripts/stamp-sw-version.mjs after the build (the build script in
-// package.json) — Vite only copies public/ into dist/ after closeBundle(),
-// so a build hook would run too early.
+// The service-worker cache version is stamped by scripts/stamp-sw-version.mjs
+// after the build (the package.json build script): Vite copies public/ into
+// dist/ after closeBundle(), so a build hook would run too early.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   // One version source: package.json (the UI reads __APP_VERSION__).
@@ -104,6 +115,15 @@ export default defineConfig({
     sourcemap: true,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
+      // The `@/components/ui` barrel is imported through its index, so Vite
+      // keeps every module it re-exports unless told otherwise — the app has no
+      // `sideEffects` field, and Rollup then assumes each primitive may run
+      // something at import time. They are pure component modules; marking them
+      // side-effect-free lets the barrel keep its shape while only the
+      // primitives a surface imports reach that surface's chunk.
+      treeshake: {
+        moduleSideEffects: (id: string) => !id.includes('/src/components/ui/'),
+      },
       output: {
         manualChunks(id: string) {
           // Route bundles are already split via React.lazy; split heavy vendors.
@@ -138,9 +158,9 @@ export default defineConfig({
             ) {
               return 'markdown'
             }
-            // framer-motion + its runtime on their own. NOTE: the app shell
-            // (App.tsx) imports `MotionConfig` — the reduced-motion provider —
-            // and nothing else from the library, so this chunk is on the first
+            // framer-motion + its runtime on their own. App.tsx imports
+            // `MotionConfig`, the reduced-motion provider, and nothing else
+            // from the library, so this chunk is on the first
             // paint for a 1.4 kB module. Measured: splitting the provider (and
             // its static closure: motion-dom's `isMotionValue` + frameloop +
             // value system, ~17 kB) into a chunk of its own was tried and does
@@ -203,11 +223,9 @@ export default defineConfig({
               return 'app-vendor'
             }
           }
-          // The app's own primitive layer (`src/components/ui/*`): every Dialog,
-          // Tabs, ScrollArea and the CommandPalette. It is the only thing between
-          // the app shell and Radix, so it gets its own chunk instead of growing
-          // the entry with them.
-          if (id.includes('/src/components/ui/')) {
+          // The shell's own primitive layer, and only that: a module another
+          // route needs is split with that route.
+          if (SHELL_UI.some((module) => id.includes(module))) {
             return 'ui'
           }
         },

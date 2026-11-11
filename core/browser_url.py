@@ -6,11 +6,14 @@ core/browser.py already carries enough weight per session.
 """
 from __future__ import annotations
 
+import asyncio
+import ipaddress
 import os
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from core.reason import reason
+from core import net_guard
+from core.reason import Reason, reason
 from core.engine_config import config_root
 
 # URL-Policy: what the headless browser is allowed to load at all
@@ -118,6 +121,104 @@ def _split_scheme(raw: str) -> tuple[str, str]:
     return "", f"https://{raw}"
 
 
+def _is_ip_literal(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return True
+
+
+def _metadata_refusal(host: str) -> Reason:
+    return reason(
+        "browser_metadata_host",
+        f"{host} is the environment's metadata endpoint — the headless browser never opens it.",
+        host=host,
+    )
+
+
+def _always_blocked_refusal(host: str, address: str, kind: str) -> Reason:
+    return reason(
+        "browser_address_blocked",
+        f"{host} stands on {address} ({kind}) — metadata, link-local and unspecified "
+        "targets are blocked for the headless browser.",
+        host=host,
+        address=address,
+        kind=kind,
+    )
+
+
+def _private_blocked_refusal(host: str, address: str, kind: str) -> Reason:
+    return reason(
+        "browser_private_blocked",
+        f"{host} stands on {address} ({kind}) — internal networks are blocked for the "
+        "headless browser by default. For the local dev server: EPHE_FETCH_ALLOW_PRIVATE=1.",
+        host=host,
+        address=address,
+        kind=kind,
+    )
+
+
+def _browser_reason(note: Reason) -> Reason:
+    """A `net_guard` address refusal, said in the browser's own code family.
+
+    The two channels decide alike; they do not answer in the same words. A card
+    that shows the refusal has to name which tool was blocked, and the
+    `reader.<code>` families are kept apart for exactly that.
+    """
+    code = getattr(note, "code", "")
+    params = dict(getattr(note, "params", {}) or {})
+    host = str(params.get("host") or "")
+    if code == "metadata_host":
+        return _metadata_refusal(host)
+    if code in ("always_blocked_class", "private_blocked_default"):
+        address = str(params.get("address") or host)
+        kind = str(params.get("kind") or "")
+        if code == "always_blocked_class":
+            return _always_blocked_refusal(host, address, kind)
+        return _private_blocked_refusal(host, address, kind)
+    return note
+
+
+def _address_refusal(candidate: str) -> Reason | None:
+    """The fetch channel's address classes, decided from the name alone.
+
+    `core.net_guard.py` states the rule for `fetch_url`; the browser reaches the
+    same networks, so it asks the same questions: is this an IP literal or a name
+    that only exists inside a network, and has the private opt-in been given?
+    No resolver runs here — that half is `navigation_guard`, on every request.
+    """
+    try:
+        host = (urlsplit(candidate).hostname or "").strip().rstrip(".").lower()
+    except ValueError:
+        host = ""
+    if not host:
+        return reason("browser_no_host", "No host in the URL — the browser has nothing to open.")
+    if host in net_guard.METADATA_HOSTS:
+        return _metadata_refusal(host)
+    if host == "localhost" or host.endswith(".localhost"):
+        kind, address = "loopback", "127.0.0.1"
+    else:
+        if host in net_guard.INTERNAL_NAME_HOSTS or any(
+            host.endswith(suffix) for suffix in net_guard.INTERNAL_NAME_SUFFIXES
+        ):
+            return reason(
+                "browser_internal_name",
+                f"{host} is an internal-only name — the headless browser never opens it.",
+                host=host,
+            )
+        if not _is_ip_literal(host):
+            return None
+        kind, address = net_guard.classify_address(host), host
+    if kind == "public":
+        return None
+    if kind in net_guard.ALWAYS_BLOCKED_KINDS:
+        return _always_blocked_refusal(host, address, kind)
+    if not net_guard.allow_private_by_default():
+        return _private_blocked_refusal(host, address, kind)
+    return None
+
+
 def url_policy(url: str) -> tuple[bool, str]:
     """(allowed, URL or reason) — a decision, no side effect.
 
@@ -125,6 +226,12 @@ def url_policy(url: str) -> tuple[bool, str]:
     (symlinks resolved, no ``../`` escape). Everything else — javascript:,
     gopher:, chrome:, ws:, ftp:, about: — is blocked, because the headless
     browser is a web tool, not a host access channel.
+
+    The address rules `core.net_guard.py` applies to the fetch channel apply
+    here as well: a metadata, link-local, unspecified or internal-only target is
+    refused, and loopback/RFC1918/IPv6-local need ``EPHE_FETCH_ALLOW_PRIVATE=1``.
+    That half needs no resolver; `navigation_guard` adds the resolution half for
+    every request the browser makes.
 
     A refusal is a `core.reason.Reason`: the sentence the model reads lives here,
     the wording the card shows is ``reader.<code>`` in both locale bundles.
@@ -134,6 +241,9 @@ def url_policy(url: str) -> tuple[bool, str]:
         return False, reason("browser_url_empty", "Empty URL — the browser loads nothing.")
     scheme, candidate = _split_scheme(raw)
     if scheme in ("", "http", "https"):
+        refused = _address_refusal(candidate)
+        if refused is not None:
+            return False, refused
         return True, candidate
     if scheme == "data":
         return True, candidate
@@ -180,3 +290,21 @@ def url_policy(url: str) -> tuple[bool, str]:
     )
 
 
+async def navigation_guard(url: str, *, resolver=None) -> tuple[bool, str]:
+    """(allowed, URL or reason) for one request the browser is about to make.
+
+    `url_policy` answers without a network. A public-looking name can still
+    resolve into loopback, and the browser then connects on its own, so the
+    resolution half of `core.net_guard.py` runs here before the request is
+    allowed. Redirects and sub-resources are requests of their own and get their
+    own answer; the browser manager installs this on the whole context.
+    """
+    allowed, decision = url_policy(url)
+    if not allowed:
+        return False, decision
+    if not decision.lower().startswith(("http://", "https://")):
+        return True, decision
+    ok, note = await asyncio.to_thread(net_guard.check_url, decision, resolver=resolver)
+    if not ok:
+        return False, _browser_reason(note)
+    return True, decision

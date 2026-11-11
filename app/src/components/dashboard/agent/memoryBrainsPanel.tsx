@@ -8,11 +8,17 @@
  * It owns its own request state because nothing outside this panel reads the report
  * or the switching flag; the page only decides which sub-page to show.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Archive, Brain, Database, GitCommitHorizontal, Layers, ListChecks } from 'lucide-react'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
-import { migrateMemory, setMemoryProvider, type MemoryStats, type MigrateReport } from '@/lib/api'
+import {
+  listMemoryProviders,
+  migrateMemory,
+  setMemoryProvider,
+  type MemoryStats,
+  type MigrateReport,
+} from '@/lib/api'
 import { toastBus } from '@/lib/toast'
 
 // `id` is the stable handle the tests select on; `label` is the surface word and
@@ -43,11 +49,32 @@ export function MemoryBrainsPanel({
   const { t } = useTranslation()
   const [report, setReport] = useState<MigrateReport | null>(null)
   const [switching, setSwitching] = useState(false)
+  const [providers, setProviders] = useState<string[]>([])
   const provider = stats?.provider ?? ''
   // The surface names its own stores, not the names behind them. The wire value
   // stays the backend contract; the word belongs to Ephe.
   const storeName = (wire: string) =>
-    wire === 'kepta' ? t('memory.storeArchive') : wire === 'chroma' ? t('memory.storeIndex') : wire
+    wire === 'kepta'
+      ? t('memory.storeArchive')
+      : wire === 'kepta-bridge'
+        ? t('memory.storeBridge')
+        : wire
+
+  // The list comes from the backend for the same reason the switch validates
+  // against it: a hardcoded pair offers a store the route would refuse.
+  useEffect(() => {
+    let alive = true
+    void listMemoryProviders()
+      .then((answer) => {
+        if (alive) setProviders(answer.providers ?? [])
+      })
+      .catch(() => {
+        if (alive && stats?.provider) setProviders([stats.provider])
+      })
+    return () => {
+      alive = false
+    }
+  }, [stats?.provider])
 
   const runMigration = async (dryRun: boolean) => {
     setSwitching(true)
@@ -65,7 +92,7 @@ export function MemoryBrainsPanel({
     }
   }
 
-  const chooseProvider = async (next: 'kepta' | 'chroma') => {
+  const chooseProvider = async (next: string) => {
     setSwitching(true)
     try {
       const r = await setMemoryProvider(next)
@@ -107,9 +134,22 @@ export function MemoryBrainsPanel({
           description={t('memory.legsHint')}
           testid="memory-page-legs"
         >
-          <span className="flex items-center gap-3">
-            <Leg id="vector" label={t('memory.legVector')} ok={stats?.vector_leg} />
-            <Leg id="lexical" label={t('memory.legLexical')} ok={stats?.lexical_leg} />
+          <span className="flex flex-col items-end gap-0.5">
+            <span className="flex items-center gap-3">
+              <Leg id="vector" label={t('memory.legVector')} ok={stats?.vector_leg} />
+              <Leg id="lexical" label={t('memory.legLexical')} ok={stats?.lexical_leg} />
+            </span>
+            {stats?.chunks !== undefined && stats.chunks > 0 && (
+              <span
+                data-testid="memory-vector-coverage"
+                className="font-mono text-ui-2xs text-ink-faint"
+              >
+                {t('memory.vectorCoverage', {
+                  embedded: stats.chunks_embedded ?? 0,
+                  chunks: stats.chunks,
+                })}
+              </span>
+            )}
           </span>
         </SettingsRow>
         <SettingsRow
@@ -129,7 +169,7 @@ export function MemoryBrainsPanel({
           testid="memory-page-switch"
         >
           <span className="flex items-center gap-2">
-            {(['kepta', 'chroma'] as const).map((next) => (
+            {providers.map((next) => (
               <button
                 key={next}
                 type="button"

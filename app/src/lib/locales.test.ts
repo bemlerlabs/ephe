@@ -40,12 +40,14 @@ import {
   deLeaves,
   deRaw,
   dynamicKeyDemands,
+  emptyObjects,
   en,
   enKeys,
   enLeaves,
   hasKey,
   leaves,
   navKeys,
+  placeholderSet,
   singleBraceViolations,
   singleBraces,
   tabKeys,
@@ -190,6 +192,44 @@ describe('Klasse (c) — keine Umlaut-Umschreibung im deutschen File', () => {
     expect(found.join('\n')).toContain('Aehnlichkeit')
     expect(found.join('\n')).toContain('öffnen')
     expect(found.join('\n')).toContain('ß')
+  })
+})
+
+describe('class (d) — placeholder parity and empty containers', () => {
+  it('de and en interpolate the same {{placeholders}} per key', () => {
+    const enByKey = new Map(enLeaves)
+    const drift = deLeaves.flatMap(([key, value]) => {
+      const other = enByKey.get(key)
+      if (other === undefined) return [] // key parity is its own gate
+      const mine = [...placeholderSet(value)].sort()
+      const theirs = [...placeholderSet(other)].sort()
+      return mine.join('\u0000') === theirs.join('\u0000')
+        ? []
+        : [`${key}: de ${JSON.stringify(mine)} vs en ${JSON.stringify(theirs)}`]
+    })
+    expect(drift).toEqual([])
+  })
+
+  it('neither bundle carries an empty object', () => {
+    expect({ de: emptyObjects(de), en: emptyObjects(en) }).toEqual({ de: [], en: [] })
+  })
+
+  it('the dead families sit in no bundle', () => {
+    const dead = (entries: Array<[string, string]>) =>
+      entries
+        .map(([key]) => key)
+        .filter(
+          (key) =>
+            key.startsWith('streamGroup.') ||
+            key === 'discover.badge.popular' ||
+            key === 'discover.badge.pick',
+        )
+    expect({ de: dead(deLeaves), en: dead(enLeaves) }).toEqual({ de: [], en: [] })
+  })
+
+  it('check: a real placeholder drift is caught', () => {
+    expect([...placeholderSet('{{count, number}} files')].sort()).toEqual(['count'])
+    expect([...placeholderSet('{{n}} files')].sort()).toEqual(['n'])
   })
 })
 

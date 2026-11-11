@@ -1,8 +1,8 @@
 /**
  * i18n key lint (finding 2026-10-02): every `t('…')` literal has to exist in
- * `de.json` AND `en.json` — otherwise the raw path leaks into the UI. Dynamic
- * keys (`t(\`a.${x}\`)`) are ignored on purpose; they cannot be
- * checked statically and have their own runtime fallbacks.
+ * `de.json` AND `en.json` — otherwise the raw path leaks into the UI. A template
+ * whose variable stands first (`t(\`${tipKey}.title\`)`) is resolved through the
+ * record that fills the variable, so the family is checked instead of skipped.
  */
 import { describe, it, expect } from 'vitest'
 import i18next from 'i18next'
@@ -32,6 +32,70 @@ function extractKeys(): Map<string, string> {
     }
   }
   return hits
+}
+
+const NAMESPACES = new Set(Object.keys(de))
+const LOCALE_FILES = new Set(['de.json', 'en.json'])
+const corpus = Object.entries(sources).filter(
+  ([p]) => !TEST_FILE.test(p) && !LOCALE_FILES.has(p.split('/').pop() ?? ''),
+)
+const corpusText = corpus.map(([, raw]) => raw).join('\n')
+
+/**
+ * Record declarations whose values name locale keys — the `familyTipKey` shape.
+ * Only values inside a bundle namespace count, so an ordinary options object
+ * cannot feed the lint.
+ */
+function mapDeclarations(from: string): Map<string, string[]> {
+  const out = new Map<string, string[]>()
+  const decl = /(?:const|let)\s+([A-Za-z_$][\w$]*)\s*(?::\s*Record<[^>]+>)?\s*=\s*\{/g
+  for (const m of from.matchAll(decl)) {
+    let depth = 0
+    let end = -1
+    const open = (m.index ?? 0) + m[0].length - 1
+    for (let i = open; i < from.length; i++) {
+      if (from[i] === '{') depth += 1
+      else if (from[i] === '}') {
+        depth -= 1
+        if (depth === 0) {
+          end = i
+          break
+        }
+      }
+    }
+    if (end < 0) continue
+    const values = [...from.slice(open + 1, end).matchAll(/:\s*(['"])([^'"]+)\1/g)]
+      .map((v) => v[2] ?? '')
+      .filter((v) => !v.includes('$') && NAMESPACES.has(v.split('.')[0] ?? ''))
+    if (values.length) out.set(m[1] ?? '', values)
+  }
+  return out
+}
+
+/** `t(\`${var}.suffix\`)` — the variable-first template neither gate could see. */
+function variableFirstTemplates(): Array<{ name: string; suffix: string; file: string }> {
+  const out: Array<{ name: string; suffix: string; file: string }> = []
+  for (const [file, raw] of corpus) {
+    for (const m of raw.matchAll(/(?<![A-Za-z0-9_$.])t\(\s*`([^`]*)`\s*\)/g)) {
+      const hit = /^\$\{([A-Za-z_$][\w$]*)\}([^`]*)$/.exec(m[1] ?? '')
+      if (hit) out.push({ name: hit[1] ?? '', suffix: hit[2] ?? '', file })
+    }
+  }
+  return out
+}
+
+/** The values behind a template variable — the map itself, or the map it indexes. */
+function valuesFor(name: string, maps: Map<string, string[]>): string[] {
+  const direct = maps.get(name)
+  if (direct) return direct
+  const alias = new RegExp(`(?:const|let)\\s+${name}\\s*=\\s*([^\\n]+)`).exec(corpusText)
+  if (!alias) return []
+  const expression = alias[1] ?? ''
+  const mapName = /^\s*([A-Za-z_$][\w$]*)\[/.exec(expression)?.[1]
+  const values = mapName ? [...(maps.get(mapName) ?? [])] : []
+  for (const m of expression.matchAll(/'([A-Za-z][\w.-]*(?:\.[\w-]+)+)'/g))
+    if (NAMESPACES.has((m[1] ?? '').split('.')[0] ?? '')) values.push(m[1] ?? '')
+  return [...new Set(values)]
 }
 
 function createInstance(lng: 'de' | 'en') {
@@ -74,22 +138,21 @@ describe('i18n key lint — alle t()-Literals in de.json und en.json', () => {
   })
 
   it('der Bestand ungenutzter Schlüssel wächst nicht (Schulden-Ratsche)', () => {
-    // Measurement rule, deliberately narrow: dead means the full key sits in no
-    // source outside the language files AND no dynamic pattern
-    // (`t(\`artifacts.kind.${key}\`)`) can reach it. What runs over a
-    // computed variable (`t(\`${tipKey}.title\`)`) is not provably
-    // dead and is left alone here — only whoever rechecks the family by hand may
-    // delete it. The number is measured, not approved.
-    const localeFiles = new Set(['de.json', 'en.json'])
-    const corpus = Object.entries(sources).filter(
-      ([p]) => !TEST_FILE.test(p) && !localeFiles.has(p.split('/').pop() ?? ''),
-    )
-    const src = corpus.map(([, raw]) => raw).join('\n')
+    // Measurement rule: dead means the full key sits in no source outside the
+    // language files, no dynamic pattern (`t(\`artifacts.kind.${key}\`)`) can
+    // reach it, and no resolved map holds it. Keys in a record are references
+    // here because the template test below resolves the template that reads it.
     const lits = new Set<string>(
-      [...src.matchAll(/['"`]([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_$[\]-]+)+)/g)].map((m) => m[1] ?? ''),
+      [...corpusText.matchAll(/['"`]([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_$[\]-]+)+)/g)].map(
+        (m) => m[1] ?? '',
+      ),
     )
+    const maps = mapDeclarations(corpusText)
+    for (const values of maps.values()) for (const value of values) lits.add(value)
+    for (const { name, suffix } of variableFirstTemplates())
+      for (const value of valuesFor(name, maps)) lits.add(`${value}${suffix}`)
     const dyn = new Set<string>(
-      [...src.matchAll(/['"`]([A-Za-z0-9_.$-]*?)(?:\$\{|\s*\+)/g)]
+      [...corpusText.matchAll(/['"`]([A-Za-z0-9_.$-]*?)(?:\$\{|\s*\+)/g)]
         .map((m) => m[1] ?? '')
         .filter(Boolean),
     )
@@ -107,10 +170,27 @@ describe('i18n key lint — alle t()-Literals in de.json und en.json', () => {
         ![...lits].some((L) => L === k || L.startsWith(`${k}.`)) &&
         ![...dyn].some((P) => k.startsWith(P)),
     )
-    // 2026-10-06: 83 keys deleted; what remains are the 16 of the computed
-    // `chat.toolTip*` family — those are dead, but not provably dead.
+    // 2026-11-11: the 13 remaining leaves (streamGroup, discover.badge) and the
+    // empty taskDock object were removed; a new dead key is a regression.
     if (process.env.EPHE_TOTE_LISTE) console.log('TOT:', dead.join('\n') || 'keine')
-    expect(dead.length).toBeLessThanOrEqual(16)
+    expect(dead).toEqual([])
+  })
+
+  it('resolves a variable prefix through its record map', () => {
+    const maps = mapDeclarations(corpusText)
+    const templates = variableFirstTemplates()
+    expect(templates.length).toBeGreaterThan(0)
+    const missing: string[] = []
+    for (const { name, suffix, file } of templates) {
+      const values = valuesFor(name, maps)
+      expect(values.length, `no map for ${name} (${file})`).toBeGreaterThan(0)
+      for (const value of values) {
+        const key = `${value}${suffix}`
+        if (!present(deInst, key)) missing.push(`${key}  ←  de, ${file}`)
+        if (!present(enInst, key)) missing.push(`${key}  ←  en, ${file}`)
+      }
+    }
+    expect(missing).toEqual([])
   })
 
   it('de- und en-Schluessel sind deckungsgleich (keine einseitigen Ergaenzungen)', () => {
@@ -149,9 +229,9 @@ describe('i18n key lint — alle t()-Literals in de.json und en.json', () => {
  * letters out of a de value, minus every token of an en value — the same "de-only
  * lexicon" that signal 3 of `docs/GERMAN_LITERALS_2026-10-08.md` measures with), never
  * from a hand-written word list. Comments are stripped before the scan: they are
- * developer prose, not surface.
+ * developer prose, never the surface.
  *
- * The list is a ratchet, not a sweep: buckets 1 and 2 of that inventory are still open
+ * The list is a ratchet: buckets 1 and 2 of that inventory are still open
  * in other source files, so a file joins the list once its own surface runs through `t()`
  * or an English-but-dead `defaultValue`.
  */

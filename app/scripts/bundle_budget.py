@@ -110,8 +110,11 @@ BUDGETS_GZIP_KB: dict[str, float] = {
     # 2026-11-09: measured from app/dist at 0.6.0: de.js 49.98 kB, en.js 45.17 kB.
     # Creator mode added the consent, guard and staging copy the German half
     # carries twice over. The same ~10% rule gives both rows their new numbers.
-    "de.js": 55.0,           # measured 49.98
-    "en.js": 49.7,           # measured 45.17
+    # 2026-11-11: the welcome page, the context report, the three-step tour and the
+    # restored-conversation card added copy to both bundles; measured de.js 55.08 kB,
+    # en.js 49.78 kB. The rows keep the same ~10 % headroom as the ones above.
+    "de.js": 60.6,           # measured 55.08
+    "en.js": 54.8,           # measured 49.78
     # 2026-10-14: the chat's fence highlighter is on demand, so these are lazy
     # chunks like any route chunk — but each one that passes the small ceiling
     # ships unwatched without a row here. A fence fetches core, the JS engine,

@@ -28,6 +28,7 @@ import json
 import os
 import re
 import secrets
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -406,16 +407,49 @@ def transcript_size(sid: str) -> int | None:
         return None
 
 
+#: Message counts already read, keyed by sid and retired by the transcript's stat.
+_COUNT_CACHE_LOCK = threading.Lock()
+_COUNT_CACHE_MAX = 2048
+_COUNT_CACHE: dict[str, tuple[tuple[str, int, int], int]] = {}
+
+
+def message_count(sid: str) -> int:
+    """Messages in one transcript, parsed at most once per (path, mtime, size).
+
+    The session list asks every registered row for this number, and parsing each
+    transcript to count its entries was the whole cost of the request. A write moves
+    `mtime` (and usually the size), so the number retires with the write it describes;
+    an unchanged transcript is one `stat` and no parse.
+    """
+    path = _session_file(sid)
+    if path is None:
+        return 0
+    try:
+        stat = path.stat()
+    except OSError:
+        return 0
+    key = (str(path), stat.st_mtime_ns, stat.st_size)
+    with _COUNT_CACHE_LOCK:
+        cached = _COUNT_CACHE.get(sid)
+        if cached is not None and cached[0] == key:
+            return cached[1]
+    count = len(load_messages(sid))
+    with _COUNT_CACHE_LOCK:
+        _COUNT_CACHE[sid] = (key, count)
+        while len(_COUNT_CACHE) > _COUNT_CACHE_MAX:
+            _COUNT_CACHE.pop(next(iter(_COUNT_CACHE)))
+    return count
+
+
 def session_info(sid: str) -> dict[str, Any] | None:
     """Meta info + message count for a session. None when unknown."""
     meta = get_session(sid)
     if meta is None:
         return None
-    msgs = load_messages(sid)
     return {
         "id": sid,
         "title": meta.get("title", ""),
-        "message_count": len(msgs),
+        "message_count": message_count(sid),
         "created_at": meta.get("created_at", ""),
         "updated_at": meta.get("last_active", ""),
         "is_active": meta.get("id") == get_active_id(),

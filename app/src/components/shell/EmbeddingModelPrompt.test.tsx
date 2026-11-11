@@ -79,4 +79,22 @@ describe('embedding model offer', () => {
     await waitFor(() => expect(model.readEmbeddingModel).not.toHaveBeenCalled())
     expect(screen.queryByTestId('embedding-model-prompt')).toBeNull()
   })
+
+  it('stays visible and names the reason when the fetch failed', async () => {
+    vi.mocked(model.readEmbeddingModel).mockResolvedValue(status({ error: 'the hub answered 503' }))
+    render(<EmbeddingModelPrompt />)
+    const card = await screen.findByTestId('embedding-model-prompt')
+    expect(card.textContent).toContain('the hub answered 503')
+    expect(screen.getByTestId('embedding-model-download')).toBeTruthy()
+  })
+
+  it('keeps the offer when the route refuses to start', async () => {
+    vi.mocked(model.startEmbeddingDownload).mockResolvedValue(false)
+    render(<EmbeddingModelPrompt />)
+    fireEvent.click(await screen.findByTestId('embedding-model-download'))
+    await waitFor(() => expect(model.startEmbeddingDownload).toHaveBeenCalledTimes(1))
+    const card = await screen.findByTestId('embedding-model-prompt')
+    expect(card.textContent).toContain('chat.model.embeddingStartFailed')
+    expect(model.recentlyDismissed()).toBe(false)
+  })
 })

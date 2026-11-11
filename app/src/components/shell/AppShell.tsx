@@ -23,7 +23,7 @@ const OWNS_ITS_SCROLL = new Set(['/', '/chat'])
 export default function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
 
-  if (pathname === '/setup') return <>{children}</>
+  if (pathname === '/setup' || pathname === '/welcome') return <>{children}</>
 
   const owns = OWNS_ITS_SCROLL.has(pathname)
 
