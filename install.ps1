@@ -7,7 +7,7 @@
   2026-08-21).
 
   Env (same names as install.sh): EPHE_INSTALL_DIR, EPHE_PORT, EPHE_MODE,
-  EPHE_NO_START, EPHE_DRY_RUN, EPHE_REPO_URL, EPHE_OLLAMA_HOST.
+  EPHE_NO_START, EPHE_DRY_RUN, EPHE_REPO_URL, EPHE_OLLAMA_HOST, EPHE_REF.
 #>
 [CmdletBinding()]
 param(
@@ -17,6 +17,7 @@ param(
   [switch]$Cli,
   [switch]$Desktop,
   [switch]$DryRun,
+  [string]$Ref,
   [Alias("h")][switch]$Help
 )
 
@@ -53,8 +54,8 @@ function Run([string]$Label, [scriptblock]$Command) {
 }
 
 if ($Help) {
-  Write-Host "Usage: install.ps1 [-InstallDir <path>] [-Port <1-65535>] [-Cli|-Desktop] [-NoStart] [-DryRun]"
-  Write-Host "Env:   EPHE_INSTALL_DIR, EPHE_PORT, EPHE_MODE, EPHE_NO_START, EPHE_DRY_RUN"
+  Write-Host "Usage: install.ps1 [-InstallDir <path>] [-Port <1-65535>] [-Cli|-Desktop] [-NoStart] [-DryRun] [-Ref vX.Y.Z]"
+  Write-Host "Env:   EPHE_INSTALL_DIR, EPHE_PORT, EPHE_MODE, EPHE_NO_START, EPHE_DRY_RUN, EPHE_REF"
   Write-Host ""
   Write-Host "Ephe - one-command install. The AI engine is chosen in the app"
   Write-Host "(local Ollama or an external endpoint such as DGX)."
@@ -62,6 +63,7 @@ if ($Help) {
   Write-Host ""
   Write-Host "  -Cli       Minimal CLI path: installs only the TUI (textual), starts 'ephe tui'"
   Write-Host "  -Desktop   (default) Desktop/PWA: installs gui+voice, starts 'ephe start --open'"
+  Write-Host "  -Ref       Check out this release tag instead of the branch tip (a release install)."
   Write-Host ""
   Write-Host "Without a mode switch the installer asks interactively when a console is available."
   exit 0
@@ -72,6 +74,11 @@ if ($Help) {
 # EPHE_MODE used to fall through to the desktop branch, so both are checked here,
 # where the message can still name the value that was wrong (parity with install.sh).
 $RepoUrl = if ($env:EPHE_REPO_URL) { $env:EPHE_REPO_URL } else { "https://github.com/bemlerlabs/ephe.git" }
+if (-not $Ref) { $Ref = $env:EPHE_REF }
+if ($Ref -and $Ref -notmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*$') {
+  [Console]::Error.WriteLine("EPHE_REF/-Ref must be a git ref name such as v0.7.0, got '$Ref'.")
+  exit 2
+}
 $OllamaHost = if ($env:EPHE_OLLAMA_HOST) { $env:EPHE_OLLAMA_HOST } else { "127.0.0.1:11434" }
 $OllamaUrl = if ($OllamaHost -notmatch '^https?://') { "http://$OllamaHost" } else { $OllamaHost }
 
@@ -149,15 +156,31 @@ if (-not (Test-ProjectRoot)) {
   if (Test-Path -LiteralPath (Join-Path $InstallDir ".git")) {
     Ok "Existing repository found: $InstallDir"
     Set-Location $InstallDir
-    try {
-      Run "git pull --ff-only" { git pull --ff-only }
-    } catch {
-      Warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+    if ($Ref) {
+      try {
+        Run "git fetch --tags origin" { git fetch --tags --force origin }
+        Run "git checkout $Ref" { git checkout --detach $Ref }
+      } catch {
+        Warn "Could not check out $Ref; continuing with the version on disk."
+      }
+    } else {
+      try {
+        Run "git pull --ff-only" { git pull --ff-only }
+      } catch {
+        Warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+      }
     }
   } elseif (Test-Path -LiteralPath $InstallDir) {
     Fail "$InstallDir already exists but is not a Git repository. Choose another -InstallDir."
   } else {
     Run "git clone $RepoUrl $InstallDir" { git clone $RepoUrl $InstallDir }
+    if ($Ref) {
+      try {
+        Run "git checkout $Ref" { git -C $InstallDir checkout --detach $Ref }
+      } catch {
+        Fail "Could not check out $Ref in $InstallDir; the tag must exist in $RepoUrl."
+      }
+    }
     if ($script:DryRun) {
       Ok "Dry run stops here: the clone was not created."
       exit 0
@@ -167,7 +190,7 @@ if (-not (Test-ProjectRoot)) {
   # Re-enter from the checkout so the second half runs with the project as cwd.
   $Shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
   & $Shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path (Get-Location) "install.ps1") `
-    -InstallDir $InstallDir -Port $Port -NoStart:$NoStart -Cli:$Cli -DryRun:$DryRun
+    -InstallDir $InstallDir -Port $Port -NoStart:$NoStart -Cli:$Cli -DryRun:$DryRun -Ref $Ref
   exit $LASTEXITCODE
 }
 

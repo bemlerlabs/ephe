@@ -31,7 +31,10 @@ row. `run_shell`, `read_file`, `write_file`, `edit_file`, `list_directory`,
 `file_search`, `load_workspace`, `analyze_project`, `run_tests`, `run_linter`,
 `format_code` and `scaffold_project` run the kernel shell and file tools, one
 method per action. The command check and the path check stay in those
-functions. The command, the path and the file body stay out of the audit row.
+functions. `run_shell` asks the chat gate the model path uses before it runs.
+A credential-shaped file path is refused rather than read, and a write under a
+declared data root is refused because that line is a read grant. The command,
+the path and the file body stay out of the audit row.
 `create_pdf`, `create_docx`, `create_qrcode`, `extract_pdf_text`,
 `build_document`, `export_source_brief`, `create_source_notebook`,
 `query_source_notebook` and `verify_artifact` run the kernel document
@@ -715,6 +718,107 @@ def _kept(args: dict[str, Any], key: str) -> Any:
     return None
 
 
+def _credential_refusal(name: str, args: dict[str, Any]) -> dict[str, Any] | None:
+    """Refuse a file method whose path is credential-shaped, or None when it is not.
+
+    The model path forces a dialog for such a name even when the tool is read-only
+    (`core/tools/chat_gate.py`). A bridged call has no dialog of its own and its worker
+    clock can outlast a person's answer, so the bridge takes the other branch of the
+    same rule and refuses. The code names the rule and the text names the next step.
+
+    A path outside the granted roots is left to the kernel: its own refusal names the
+    boundary that answered, and a credential rule on top would hide that.
+    """
+    from core.path_guard import secret_paths
+
+    if not secret_paths(args):
+        return None
+    from core.tools.base import _is_path_allowed
+    from core.tools.file_ops import _resolve_against_workspace
+
+    path = _text_arg(args, "path")
+    if path and not _is_path_allowed(_resolve_against_workspace(path)):
+        return None
+    return {
+        "ok": False,
+        "code": bridge.PATH_DENIED,
+        "detail": (
+            f"{name} names a credential-shaped path, and a bridged call carries no dialog "
+            "of its own. Ask the user to handle the file in the chat, or choose a path "
+            "that is not credential-shaped."
+        ),
+    }
+
+
+def _write_scope_refusal(args: dict[str, Any]) -> dict[str, Any] | None:
+    """The read-only-root refusal, taken before a credential dialog could ask about it."""
+    from core.tools.base import _plugin_write_refusal
+    from core.tools.file_ops import _resolve_against_workspace
+
+    denial = _plugin_write_refusal(_resolve_against_workspace(_text_arg(args, "path")))
+    if not denial:
+        return None
+    return {"ok": False, "code": bridge.PATH_DENIED, "detail": denial}
+
+
+def _consent_refusal(name: str, args: dict[str, Any]) -> dict[str, Any] | None:
+    """Ask the active approval gate before a bridged call that changes the host.
+
+    Two gates exist, and the bridge carries whichever one the outer call already used.
+    A registry call with an `ApprovalPolicy` asks that policy, so a `--yes` run keeps
+    its standing answer and an interactive run sees the command that would run. A chat
+    turn has no policy: the request-scoped dialog answers, because the worker runs while
+    that turn is open. With nobody to ask, the call is refused instead of run
+    unconfirmed, and the refusal keeps the gate's code beside the reason.
+    """
+    from core.tools.session_ctx import get_current_policy
+
+    policy = get_current_policy()
+    if policy is not None:
+        from core.tools.approval import request_approval
+
+        async def _decide() -> Any:
+            return await request_approval(name, args, policy)
+
+        try:
+            decision = _run_kernel(_decide)
+        except TimeoutError:
+            return {
+                "ok": False,
+                "code": bridge.CONSENT_REQUIRED,
+                "detail": "the approval gate did not answer; ask the user, or choose a call that needs no approval",
+            }
+        if decision.approved:
+            return None
+        return {
+            "ok": False,
+            "code": bridge.CONSENT_REQUIRED,
+            "detail": f"not_approved: {decision.report}",
+        }
+
+    from core.tools.chat_gate import confirm_for_chat
+
+    async def _ask() -> tuple[bool, Any]:
+        return await confirm_for_chat(name, args)
+
+    try:
+        approved, denial = _run_kernel(_ask)
+    except TimeoutError:
+        return {
+            "ok": False,
+            "code": bridge.CONSENT_REQUIRED,
+            "detail": "the approval dialog did not answer; ask the user, or choose a call that needs no approval",
+        }
+    if approved:
+        return None
+    code = str(getattr(denial, "code", "") or "not_approved")
+    return {
+        "ok": False,
+        "code": bridge.CONSENT_REQUIRED,
+        "detail": f"{code}: {denial}",
+    }
+
+
 def _tool_sentence(name: str, factory: Callable[[], Any]) -> dict[str, Any]:
     # Path and command checks stay in the kernel function. The audit row names the method.
     wait_seconds, timeout_message = _clock(name)
@@ -734,6 +838,9 @@ def _tool_sentence(name: str, factory: Callable[[], Any]) -> dict[str, Any]:
                 "detail": kind,
                 "confirm": exc,
             }
+        if kind == "ReadOnlyRootError":
+            # A declared data root is a read grant, so the child gets a code.
+            return {"ok": False, "code": bridge.PATH_DENIED, "detail": str(exc)}
         if kind in _SENTENCE_ERRORS:
             text = f"[tool-error '{name}': {exc}]"
         elif isinstance(exc, TimeoutError):
@@ -754,6 +861,12 @@ def run_shell(args: dict[str, Any]) -> dict[str, Any]:
     command = _text_arg(args, "command")
     cwd = _kept(args, "cwd")
     background = _kept(args, "run_in_background")
+    gate_args: dict[str, Any] = {"command": command}
+    if cwd is not None:
+        gate_args["cwd"] = str(cwd)
+    refusal = _consent_refusal("run_shell", gate_args)
+    if refusal is not None:
+        return refusal
 
     def _call():
         extra: dict[str, Any] = {}
@@ -772,6 +885,9 @@ def read_file(args: dict[str, Any]) -> dict[str, Any]:
     path = _text_arg(args, "path")
     offset = _kept(args, "offset")
     limit = _kept(args, "limit")
+    refusal = _credential_refusal("read_file", args)
+    if refusal is not None:
+        return refusal
 
     def _call():
         extra: dict[str, Any] = {}
@@ -789,6 +905,9 @@ def write_file(args: dict[str, Any]) -> dict[str, Any]:
 
     path = _text_arg(args, "path")
     content = _text_arg(args, "content")
+    refusal = _write_scope_refusal(args) or _credential_refusal("write_file", args)
+    if refusal is not None:
+        return refusal
     return _tool_sentence("write_file", lambda: kernel_write(path, content))
 
 
@@ -799,6 +918,9 @@ def edit_file(args: dict[str, Any]) -> dict[str, Any]:
     old_string = _text_arg(args, "old_string")
     new_string = _text_arg(args, "new_string")
     replace_all = _kept(args, "replace_all")
+    refusal = _write_scope_refusal(args) or _credential_refusal("edit_file", args)
+    if refusal is not None:
+        return refusal
 
     def _call():
         if replace_all is None:
@@ -812,6 +934,9 @@ def list_directory(args: dict[str, Any]) -> dict[str, Any]:
     from core.tools.file_ops import list_directory as kernel_list
 
     path = _text_arg(args, "path")
+    refusal = _credential_refusal("list_directory", args)
+    if refusal is not None:
+        return refusal
     return _tool_sentence("list_directory", lambda: kernel_list(path))
 
 
@@ -820,6 +945,9 @@ def file_search(args: dict[str, Any]) -> dict[str, Any]:
 
     query = _text_arg(args, "query")
     root = _kept(args, "path")
+    refusal = _credential_refusal("file_search", args)
+    if refusal is not None:
+        return refusal
 
     def _call():
         if root is None:

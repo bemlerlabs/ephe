@@ -18,6 +18,7 @@ the same backend serves is.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import threading
 from pathlib import Path
@@ -25,6 +26,7 @@ from typing import Any
 
 PULL_TIMEOUT_S = 180
 INSTALL_TIMEOUT_S = 1800
+RELEASE_TAG = re.compile(r"v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)")
 _BUSY = threading.Lock()
 
 
@@ -46,12 +48,13 @@ _REFUSAL_DETAIL = {
     "dirty_tree": "this checkout has local changes; commit or set them aside first",
     "release_unreachable": "the release source could not be reached",
     "tag_missing": "the release tag is not in this checkout",
+    "tag_invalid": "the requested tag is not a release tag (vX.Y.Z)",
     "fetch_failed": "the release tag could not be fetched",
     "ahead_of_release": (
         "this checkout is ahead of the newest release; "
         "the release channel never moves it backwards"
     ),
-    "release_failed": "the release tag did not fast-forward",
+    "release_failed": "the release tag did not move the checkout",
 }
 
 
@@ -84,30 +87,46 @@ def probe(root: Path | None = None, *, release: bool = False) -> dict[str, Any]:
     return {"ok": True, "code": ""}
 
 
-def apply_release(root: Path | None = None) -> dict[str, Any]:
-    """Move the checkout to the newest published release tag, or stop.
+def apply_release(root: Path | None = None, tag: str | None = None) -> dict[str, Any]:
+    """Move the checkout to a release tag, or stop.
 
     The release feed decides *whether* to move; the tag, not the branch tip,
     decides *where* to. A checkout on `main` is fast-forwarded to the tag, so
     merges after the tag stay out of a release-pinned installation. A checkout
     already past the newest tag is refused: the release channel never rewrites
-    a tree backwards. A checkout already on the tag is a no-op."""
+    a tree backwards.
+
+    An explicit `tag` is the documented rollback: the caller names the release
+    to run, and a tree ahead of it is moved back to that tag (detached, so no
+    branch is rewritten). It is an owner decision per release; the feed never
+    proposes it."""
     base = root or project_root()
     from core import update_check
 
-    # The feed is asked before git is touched: an unreachable source is an
-    # answer, so no git command runs for it.
-    try:
-        status = update_check.release_status()
-    except Exception:  # noqa: BLE001 — no answer, no command
-        return _refusal("release_unreachable", _REFUSAL_DETAIL["release_unreachable"])
-    if not status.get("available"):
-        return {
-            "ok": True,
-            "reason": "latest_release",
-            "detail": f"Ephe {status.get('current', '?')} is the newest release",
-            "steps": [],
-        }
+    explicit = (tag or "").strip()
+    if explicit:
+        match = RELEASE_TAG.fullmatch(explicit)
+        if not match:
+            return _refusal("tag_invalid", _REFUSAL_DETAIL["tag_invalid"])
+        explicit = explicit if explicit.startswith("v") else f"v{match.group(1)}"
+        target_tag = explicit
+    else:
+        # The feed is asked before git is touched: an unreachable source is an
+        # answer, so no git command runs for it.
+        try:
+            status = update_check.release_status()
+        except Exception:  # noqa: BLE001 — no answer, no command
+            return _refusal("release_unreachable", _REFUSAL_DETAIL["release_unreachable"])
+        if not status.get("available"):
+            return {
+                "ok": True,
+                "reason": "latest_release",
+                "detail": f"Ephe {status.get('current', '?')} is the newest release",
+                "steps": [],
+            }
+        target_tag = str(status.get("tag") or "")
+        if not target_tag:
+            return _refusal("tag_missing", _REFUSAL_DETAIL["tag_missing"])
     ready = probe(base, release=True)
     if not ready["ok"]:
         return _refusal(ready["code"], _REFUSAL_DETAIL.get(ready["code"], ""))
@@ -115,10 +134,7 @@ def apply_release(root: Path | None = None) -> dict[str, Any]:
         return _refusal("busy", "an update is already running")
     try:
         steps: list[dict[str, Any]] = []
-        tag = str(status.get("tag") or "")
-        if not tag:
-            return _refusal("tag_missing", _REFUSAL_DETAIL["tag_missing"])
-        ref = f"refs/tags/{tag}"
+        ref = f"refs/tags/{target_tag}"
         if _git(base, "rev-parse", "--verify", ref).returncode != 0:
             try:
                 fetched = _git(
@@ -130,6 +146,8 @@ def apply_release(root: Path | None = None) -> dict[str, Any]:
                 _step("fetch", fetched.returncode == 0, (fetched.stdout + fetched.stderr).strip()[-600:])
             )
             if fetched.returncode != 0:
+                if explicit:
+                    return _refusal("tag_missing", _REFUSAL_DETAIL["tag_missing"])
                 return {
                     "ok": False,
                     "reason": "fetch_failed",
@@ -146,29 +164,35 @@ def apply_release(root: Path | None = None) -> dict[str, Any]:
             return {
                 "ok": True,
                 "reason": "latest_release",
-                "detail": f"already on release {tag}",
+                "detail": f"already on release {target_tag}",
                 "steps": steps,
                 "before": before,
                 "after": before,
                 "restart": False,
-                "tag": tag,
+                "tag": target_tag,
             }
         ancestor = _git(base, "merge-base", "--is-ancestor", "HEAD", target_sha)
-        if ancestor.returncode != 0:
+        if ancestor.returncode != 0 and not explicit:
             return {
                 "ok": False,
                 "reason": "ahead_of_release",
                 "detail": _REFUSAL_DETAIL["ahead_of_release"],
                 "steps": steps,
             }
+        # A forward move keeps the branch pointer on the tag; an explicit move
+        # that would rewrite history checks the tag out detached instead.
+        if ancestor.returncode == 0:
+            command = ("merge", "--ff-only", ref)
+        else:
+            command = ("checkout", "--detach", ref)
         try:
-            merged = _git(base, "merge", "--ff-only", ref, timeout=PULL_TIMEOUT_S)
+            moved = _git(base, *command, timeout=PULL_TIMEOUT_S)
         except subprocess.TimeoutExpired:
             return _refusal("release_failed", _REFUSAL_DETAIL["release_failed"])
         steps.append(
-            _step("release", merged.returncode == 0, (merged.stdout + merged.stderr).strip()[-600:])
+            _step("release", moved.returncode == 0, (moved.stdout + moved.stderr).strip()[-600:])
         )
-        if merged.returncode != 0:
+        if moved.returncode != 0:
             return {
                 "ok": False,
                 "reason": "release_failed",
@@ -187,11 +211,11 @@ def apply_release(root: Path | None = None) -> dict[str, Any]:
         return {
             "ok": True,
             "reason": "",
-            "detail": f"{tag} installed ({before} → {after})",
+            "detail": f"{target_tag} installed ({before} → {after})",
             "steps": steps,
             "before": before,
             "after": after,
-            "tag": tag,
+            "tag": target_tag,
             "restart": before_sha != after_sha,
         }
     finally:

@@ -87,6 +87,28 @@ def test_the_host_record_survives_a_new_process(client, device) -> None:
     assert listed == _record()
 
 
+def test_a_canvas_overlay_is_a_record_the_shell_can_keep(client) -> None:
+    response = client.put(
+        f"/api/plugins/{PLUGIN}/surface-host", json=_record(slot="canvas-overlay")
+    )
+    assert response.status_code == 200
+    assert response.json()["surface"]["slot"] == "canvas-overlay"
+
+
+def test_a_dock_panel_is_not_a_placement_the_shell_can_keep(client) -> None:
+    response = client.put(
+        f"/api/plugins/{PLUGIN}/surface-host", json=_record(slot="dock-panel")
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["reason_code"] == "invalid_request"
+
+
+def test_the_slot_vocabulary_is_the_one_the_shell_carries() -> None:
+    from core.plugin_surface_host import SLOTS
+
+    assert SLOTS == frozenset({"overlay", "native", "canvas-overlay"})
+
+
 def test_an_unknown_bundle_is_refused(client) -> None:
     response = client.put("/api/plugins/not-a-bundle/surface-host", json=_record())
     assert response.status_code == 404

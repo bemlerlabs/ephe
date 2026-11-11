@@ -7,7 +7,9 @@ install. Both manifests once shipped a dead tag -- the cask named `0.1.0-beta.1`
 manifest `0.1.0-beta.2`, two URLs that answered 404 -- while the published release was
 `0.1.0-beta.3`. The files parse, the version reads as a well-formed string, and the only thing
 wrong with them is a claim about a release nobody served, which is why no existing gate saw it.
-This check asks that one question and names the surface when the answer is no.
+This check asks that one question and names the surface when the answer is no. The cask and
+the Scoop manifest also carry a hash, so the same run judges it: a committed template may carry
+only the sentinel, and the publish job passes the numbers it measured from the released assets.
 
 The reference is the latest published release, read from the GitHub release API -- the same
 release `releases/latest/download/latest.json` serves to the updater. When that answer is
@@ -59,6 +61,13 @@ CARRIERS = (
 )
 
 CASK_VERSION = re.compile(r'(?m)^\s*version\s+"([^"]+)"')
+CASK_SHA = re.compile(r'(?m)^\s*sha256\s+"([0-9a-f]{64})"')
+SCOOP_SHA = re.compile(r'"hash"\s*:\s*"([0-9a-f]{64})"')
+
+#: The only hash a committed template may carry. It is replaced by `scripts/render_packaging.py`
+#: with the number the publish job measured from the released asset. A copied hash is a claim
+#: about an artifact nobody measured, and the one in this tree was exactly that.
+SENTINEL_SHA256 = "0" * 64
 
 
 def pyproject_version(path: Path) -> str:
@@ -85,6 +94,33 @@ def manifest_versions(root: Path) -> dict[str, str]:
         else:
             found[label] = str(json.loads(text)["version"])
     return found
+
+
+def manifest_hashes(root: Path) -> dict[str, str]:
+    """The two artifact hashes the shipped manifests claim, keyed by the label the report prints."""
+    cask = (root / SURFACES[0][1]).read_text(encoding="utf-8")
+    scoop = (root / SURFACES[1][1]).read_text(encoding="utf-8")
+    cask_match = CASK_SHA.search(cask)
+    scoop_match = SCOOP_SHA.search(scoop)
+    if not cask_match:
+        raise ValueError(f"{SURFACES[0][1]} carries no sha256 line")
+    if not scoop_match:
+        raise ValueError(f"{SURFACES[1][1]} carries no hash field")
+    return {"cask": cask_match.group(1), "scoop": scoop_match.group(1)}
+
+
+def hash_verdict(label: str, claimed: str, measured: str | None, asset: str) -> tuple[bool, str]:
+    """Whether a template hash is the measured asset, the sentinel, or a claim nobody proved."""
+    if claimed == SENTINEL_SHA256:
+        return True, f"{label} carries the template sentinel, replaced when the {asset} is rendered"
+    if measured is None:
+        return False, (
+            f"{label} claims {claimed[:16]}… but no run measured the {asset}; "
+            "use the sentinel or pass --source-sha256/--dmg-sha256"
+        )
+    if claimed == measured:
+        return True, f"{label} {claimed[:16]}… matches the measured {asset}"
+    return False, f"{label} claims {claimed[:16]}…, the {asset} measures {measured[:16]}…"
 
 
 def carrier_version(root: Path) -> str:
@@ -166,10 +202,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--release", help="judge against this version instead of the feed")
     parser.add_argument("--published", help="judge as if the feed served this version, no network")
     parser.add_argument("--offline", action="store_true", help="judge against the tree carriers, no network")
+    parser.add_argument("--dmg-sha256", help="the measured sha256 of the released aarch64 DMG")
+    parser.add_argument("--source-sha256", help="the measured sha256 of the released source archive")
     args = parser.parse_args(argv)
+
+    measured = {"cask": args.dmg_sha256, "scoop": args.source_sha256}
+    assets = {"cask": "DMG", "scoop": "source archive"}
+    for label, value in measured.items():
+        if value is not None and not re.fullmatch(r"[0-9a-f]{64}", value):
+            print(
+                f"packaging-freshness: --{'dmg' if label == 'cask' else 'source'}-sha256 "
+                f"{value!r} is not a lowercase 64-character sha256"
+            )
+            return 2
 
     try:
         versions = manifest_versions(args.root)
+        hashes = manifest_hashes(args.root)
         reference, source = resolve_reference(args.root, args.release, args.offline, args.published)
     except (OSError, ValueError, KeyError) as exc:
         print(f"packaging-freshness: cannot decide the reference or a manifest: {exc}")
@@ -191,14 +240,20 @@ def main(argv: list[str] | None = None) -> int:
             stale.append(f"{label} {version} vs {expected}")
         print(f"packaging-freshness: {'ok   ' if agrees else 'STALE'} {label} {version} vs {expected}")
 
+    for label in ("cask", "scoop"):
+        agrees, detail = hash_verdict(label, hashes[label], measured[label], assets[label])
+        if not agrees:
+            stale.append(detail)
+        print(f"packaging-freshness: {'ok   ' if agrees else 'STALE'} hash {label} {detail}")
+
     if stale:
         print(
-            f"packaging-freshness: FAIL — {len(stale)} manifest(s) name a version neither the feed "
-            "nor the tree's candidate names; point them at the published tag with its measured "
-            "hash, or cut the release they name: " + "; ".join(stale)
+            f"packaging-freshness: FAIL — {len(stale)} manifest claim(s) name a release or a hash "
+            "no measurement supports; point them at the published tag with its measured hash, "
+            "or cut the release they name: " + "; ".join(stale)
         )
         return 1
-    print(f"packaging-freshness: PASS — {len(versions)} manifest(s) name {expected}")
+    print(f"packaging-freshness: PASS — {len(versions)} manifest(s) name {expected}, their hashes are measured or the sentinel")
     return 0
 
 

@@ -158,7 +158,7 @@ export function Toaster() {
                 removeItem(item.id)
               }}
               aria-label={t('toast.close')}
-              className="inline-flex items-center justify-center shrink-0 min-h-6 min-w-6 text-ink-faint hover:text-foreground/70 transition-colors"
+              className="inline-flex items-center justify-center shrink-0 min-h-6 min-w-6 text-ink-faint hover:text-foreground/70 transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11"
             >
               <X className="h-3.5 w-3.5" />
             </button>

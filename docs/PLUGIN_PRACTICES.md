@@ -101,18 +101,25 @@ Events are persisted durably before they are published:
 
 **Why this matters**: An in-memory event bus loses events on crash. A durable event log survives crashes and can be replayed. The SSE bus is a view over the durable log, not the source.
 
-## 9. React Slots
+## 9. Surface Placement
 
-**Status**: Implemented (2026-11-08)
+**Status**: Implemented (2026-11-08; the placement cut 2026-11-12)
 
-Plugins declare where they render via the manifest's `slot` field:
-- `app/src/lib/pluginSurface.ts:42-47` — `SurfaceDescriptor.slot?: 'overlay' | 'native' | 'side-panel'`
-- `app/src/lib/pluginSurface.ts:71-77` — `resolveSurfaceSlot()` honors the declaration over the runtime default
-- `app/src/lib/surfaceHost.ts:22` — `SurfaceSlot` type re-exported from pluginSurface
+A plugin declares where it renders through `components.ui.type`, the one placement
+declaration the manifest owns (`core/plugin_ui_capabilities.py` `UI_TYPES`):
+- `app/src/lib/surfacePlacement.ts` — the pure resolver both product surfaces read
+- `app/src/lib/pluginDisplay.ts` — asks it once, then opens the desktop window or paints the overlay stack
+- `app/src/lib/surfaceHost.ts` — the `HostSlot` record of where the shell put the surface
 
-A plugin that declares `slot: 'side-panel'` renders in the side panel even on desktop, where the default would be a native window.
+A `floating-window` gets the desktop's own window and the browser's framed surface; a
+`canvas-overlay` is the framed surface on both; a `dock-panel` is refused with the code
+`surface_dock_panel_unavailable` until the shell owns a docked region. A bundle cannot name
+a slot, a position or a DOM node, and a shell that cannot host the declared placement
+refuses it instead of quietly choosing another.
 
-**Why this matters**: Host-decided placement forces every plugin into the same slot. Plugin-declared placement lets a plugin say "I'm a sidebar tool" or "I'm a full-screen workspace" — the manifest is the contract, not the runtime guess.
+**Why this matters**: A placement declaration lets a bundle pick among the surfaces the
+shell already owns instead of the shell guessing. The list stays closed so a bundle cannot
+invent a region, move its own box or reach into the product tree.
 
 ## 10. Theme Tokens
 

@@ -257,6 +257,47 @@ describe('a surface asked for in the desktop shell', () => {
     expect(outcome.unmet).toEqual([])
     expect(notices()).toEqual([])
   })
+
+  /// `canvas-overlay` used to be refused by the shell while the browser painted it, so
+  /// one bundle showed on one product surface and not the other. It is a frame here now,
+  /// and the window command is never asked for it.
+  it('paints a canvas-overlay in the overlay stack and asks for no window', async () => {
+    const outcome = await showPluginSurface(
+      { pluginId: 'desk-canvas', descriptor: descriptor({ type: 'canvas-overlay' }) },
+      t,
+    )
+    expect(outcome).toMatchObject({ opened: true, side: 'overlay', refusal: null })
+    expect(invoke).not.toHaveBeenCalled()
+    expect(surfaceOf('desk-canvas')?.surfaceType).toBe('canvas-overlay')
+    expect(saveHostSurface).toHaveBeenCalledWith(
+      'desk-canvas',
+      expect.objectContaining({ slot: 'canvas-overlay', open: true, placed: true }),
+    )
+  })
+
+  /// The silent downgrade this cut removes: a dock-panel used to float here as a frame.
+  /// It is a refusal now, decided before the mint, so no credential and no half-open
+  /// surface is left behind for a placement the shell cannot host.
+  it('refuses a dock-panel with a code and paints nothing', async () => {
+    const outcome = await showPluginSurface(
+      { pluginId: 'desk-dock', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    expect(outcome).toMatchObject({
+      opened: false,
+      side: null,
+      message: 'surface.dockPanelUnavailable',
+      refusal: {
+        reason_code: 'surface_dock_panel_unavailable',
+        next: expect.stringContaining('floating-window'),
+      },
+    })
+    expect(mint).not.toHaveBeenCalled()
+    expect(invoke).not.toHaveBeenCalled()
+    expect(saveHostSurface).not.toHaveBeenCalled()
+    expect(stack().surfaces).toEqual([])
+    expect(errors()).toEqual([expect.objectContaining({ title: 'surface.dockPanelUnavailable' })])
+  })
 })
 
 describe('the same surface in a browser tab', () => {
@@ -368,6 +409,50 @@ describe('the same surface in a browser tab', () => {
     )
     expect(outcome.unmet).toEqual([])
     expect(notices()).toEqual([])
+  })
+
+  it('honours canvas-overlay exactly as the desktop half now does', async () => {
+    const outcome = await showPluginSurface(
+      { pluginId: 'tab-canvas', descriptor: descriptor({ type: 'canvas-overlay' }) },
+      t,
+    )
+    expect(outcome).toMatchObject({ opened: true, side: 'overlay', refusal: null })
+    expect(surfaceOf('tab-canvas')?.surfaceType).toBe('canvas-overlay')
+    expect(saveHostSurface).toHaveBeenCalledWith(
+      'tab-canvas',
+      expect.objectContaining({ slot: 'canvas-overlay', open: true }),
+    )
+  })
+
+  it('refuses a dock-panel loudly instead of floating it', async () => {
+    const outcome = await showPluginSurface(
+      { pluginId: 'tab-dock', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    expect(outcome).toMatchObject({
+      opened: false,
+      side: null,
+      message: 'surface.dockPanelUnavailable',
+      refusal: { reason_code: 'surface_dock_panel_unavailable' },
+    })
+    expect(mint).not.toHaveBeenCalled()
+    expect(saveHostSurface).not.toHaveBeenCalled()
+    expect(stack().surfaces).toEqual([])
+    expect(errors()).toEqual([expect.objectContaining({ title: 'surface.dockPanelUnavailable' })])
+  })
+
+  it('refuses a type the shell does not know instead of painting it', async () => {
+    const outcome = await showPluginSurface(
+      { pluginId: 'tab-unknown', descriptor: descriptor({ type: 'side-panel' }) },
+      t,
+    )
+    expect(outcome).toMatchObject({
+      opened: false,
+      message: 'surface.typeUnknown',
+      refusal: { reason_code: 'surface_type_unknown' },
+    })
+    expect(mint).not.toHaveBeenCalled()
+    expect(stack().surfaces).toEqual([])
   })
 
   it('answers whether the surface stands, and follows the dock close', async () => {

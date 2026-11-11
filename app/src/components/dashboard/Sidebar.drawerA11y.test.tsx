@@ -124,3 +124,16 @@ describe('the mobile drawer is a dialog only while open', () => {
     )
   })
 })
+
+describe('the task list scroller is reachable', () => {
+  it('is a named region with its own tab stop', async () => {
+    render(<DrawerHost />)
+    const view = await screen.findByTestId('sessions-view')
+    expect(view.getAttribute('role')).toBe('region')
+    expect(view.getAttribute('aria-label')).toBe('sidebar.sessionsRegion')
+    expect(view.tabIndex).toBe(0)
+    // The keyboard can land on it; it is not a hidden stop.
+    view.focus()
+    expect(document.activeElement).toBe(view)
+  })
+})

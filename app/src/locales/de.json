@@ -607,6 +607,7 @@
       "showProjectPath": "Projektpfad anzeigen"
     },
     "noSessions": "Noch keine Aufgaben",
+    "sessionsRegion": "Aufgaben",
     "helperChat": "Helfer",
     "actionSearch": "Suchen",
     "viewGroup": "Gruppe",
@@ -2583,7 +2584,9 @@
     "overlayRefused": "Dieser Tab konnte die Plugin-Fläche nicht zeigen.",
     "landedDifferently": "Die Fläche hat nicht die Form, die sie verlangt hat.",
     "notOnTop": "Ein Browser-Tab kann eine Fläche nicht über andere Fenster stellen.",
-    "closeFailed": "Das Plugin-Fenster hat das Schließen nicht bestätigt."
+    "closeFailed": "Das Plugin-Fenster hat das Schließen nicht bestätigt.",
+    "dockPanelUnavailable": "Dieses Plugin verlangt ein Dock-Panel, und Ephe hat noch keines. Es bleibt geschlossen; eine floating-window- oder canvas-overlay-Fläche zeigt es stattdessen.",
+    "typeUnknown": "Dieses Plugin nennt einen Flächentyp, den Ephe nicht kennt. Es bleibt geschlossen; prüfe components.ui.type in seinem Manifest."
   },
   "common": {
     "changeFailed": "Änderung fehlgeschlagen",

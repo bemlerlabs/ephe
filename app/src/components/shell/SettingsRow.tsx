@@ -111,7 +111,9 @@ export function SettingsRow({
         )}
       </div>
       {children && (
-        <div className="flex shrink-0 items-center justify-end gap-2 max-sm:w-full">{children}</div>
+        <div className="flex shrink-0 items-center justify-end gap-2 max-sm:w-full max-sm:flex-wrap">
+          {children}
+        </div>
       )}
     </div>
   )

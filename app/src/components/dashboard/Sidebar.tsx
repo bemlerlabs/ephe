@@ -1286,8 +1286,17 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Session List — Date Grouped */}
-        <div className="flex-1 overflow-y-auto pb-2 px-3" data-testid="sessions-view">
+        {/* Session List — Date Grouped. The scroller is a named region with
+            its own tab stop: a keyboard user needs to reach the list itself to
+            scroll it where the engine (Firefox, WebKit) does not focus a scroll
+            container on its own. */}
+        <div
+          className="flex-1 overflow-y-auto pb-2 px-3 focus-ring"
+          data-testid="sessions-view"
+          role="region"
+          aria-label={t('sidebar.sessionsRegion')}
+          tabIndex={0}
+        >
           {dateGroups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-10 h-10 rounded-xl glass-control flex items-center justify-center mb-3">

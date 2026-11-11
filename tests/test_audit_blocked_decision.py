@@ -39,6 +39,17 @@ def _tool_exec_lines() -> list[dict]:
     return audit_log.tail(kind="tool_exec")
 
 
+def _approved_shell(command: str) -> str:
+    """A shell the gate has approved. These tests read the audit line."""
+    from core.tools.approval import ApprovalPolicy
+
+    return asyncio.run(
+        execute_tool(
+            "run_shell", {"command": command}, policy=ApprovalPolicy(auto_approve=True)
+        )
+    )
+
+
 class TestResultDecision:
     @pytest.mark.parametrize(
         "raw",
@@ -91,14 +102,14 @@ class TestResultDecision:
 class TestAuditRecordsTheBlockade:
     def test_blocked_shell_command_leaves_a_blocked_line(self):
         """The everyday case of the finding: redirection blocked, audit says 'ok'."""
-        out = asyncio.run(execute_tool("run_shell", {"command": "echo test > /tmp/ephe-i1-9.txt"}))
+        out = _approved_shell("echo test > /tmp/ephe-i1-9.txt")
         assert out.startswith("⚠️ Security:")
         line = _tool_exec_lines()[-1]
         assert line["tool"] == "run_shell"
         assert line["decision"] == "blocked"
 
     def test_allowed_command_is_not_marked_blocked(self):
-        out = asyncio.run(execute_tool("run_shell", {"command": "echo ephe-i1-9"}))
+        out = _approved_shell("echo ephe-i1-9")
         assert "ephe-i1-9" in out
         line = _tool_exec_lines()[-1]
         assert line["decision"] == ""
@@ -113,7 +124,7 @@ class TestAuditRecordsTheBlockade:
         """What stands in the log, the display has to be able to show as well. `tail()`
         reads the file and parses JSON — what gets through here also gets through the
         API; a field that does not survive the roundtrip is gone from the display."""
-        asyncio.run(execute_tool("run_shell", {"command": "echo x > /tmp/ephe-i1-9-b.txt"}))
+        _approved_shell("echo x > /tmp/ephe-i1-9-b.txt")
         entry = _tool_exec_lines()[-1]
         assert entry["decision"] == "blocked", "decision='' in the file would be the old lie"
         assert json.loads(json.dumps(entry))["decision"] == "blocked"

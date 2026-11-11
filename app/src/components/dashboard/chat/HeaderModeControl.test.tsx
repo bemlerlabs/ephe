@@ -114,3 +114,14 @@ describe('the header mode control', () => {
     expect(trigger.getAttribute('aria-label')).toBe('Response mode: Operator')
   })
 })
+
+describe('the header mode control — the thumb target', () => {
+  it('reaches 44 x 44 on a coarse pointer without losing its desktop floor', () => {
+    render(<HeaderModeControl />)
+    const tokens = screen.getByTestId('header-mode-control').className.split(/\s+/)
+    expect(tokens, 'desktop 24 px floor').toContain('min-h-6')
+    expect(tokens, 'touch height').toContain('pointer-coarse:min-h-11')
+    expect(tokens, 'touch width').toContain('pointer-coarse:min-w-11')
+    expect(tokens, 'glyph and label stay centred in the square').toContain('justify-center')
+  })
+})

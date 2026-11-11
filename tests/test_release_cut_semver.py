@@ -11,6 +11,7 @@ quietly restore either refusal.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -59,12 +60,22 @@ def _fixture(tmp_path: Path, version: str, changelog: str) -> Path:
     root = tmp_path
     (root / "scripts").mkdir()
     shutil.copy(SCRIPT, root / "scripts" / "release_cut.sh")
+    shutil.copy(REPO / "scripts" / "version_carriers.py", root / "scripts" / "version_carriers.py")
     (root / "app" / "src-tauri").mkdir(parents=True)
     (root / "pyproject.toml").write_text(
         f'[project]\nname = "ephe"\nversion = "{version}"\n', encoding="utf-8"
     )
     for target in (root / "app" / "package.json", root / "app" / "src-tauri" / "tauri.conf.json"):
         target.write_text(json.dumps({"version": version}), encoding="utf-8")
+    (root / "app" / "src-tauri" / "Cargo.toml").write_text(
+        f'[package]\nname = "app"\nversion = "{version}"\n', encoding="utf-8"
+    )
+    (root / "app" / "src-tauri" / "Cargo.lock").write_text(
+        f'[[package]]\nname = "app"\nversion = "{version}"\n', encoding="utf-8"
+    )
+    (root / "uv.lock").write_text(
+        f'[[package]]\nname = "ephe"\nversion = "{version}"\n', encoding="utf-8"
+    )
     (root / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
     git = ["git", "-C", str(root)]
     subprocess.run([*git, "init", "-q", "-b", "main"], check=True, capture_output=True)
@@ -77,10 +88,14 @@ def _fixture(tmp_path: Path, version: str, changelog: str) -> Path:
 
 def _cut(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", str(root / "scripts" / "release_cut.sh"), "--dry-run", "--skip-gates", "--local"],
+        [
+            "bash", str(root / "scripts" / "release_cut.sh"),
+            "--dry-run", "--skip-gates", "--skip-reason", "semver fixture", "--local",
+        ],
         capture_output=True,
         text=True,
         cwd=root,
+        env={**os.environ, "EPHE_RELEASE_RECEIPT": str(root.parent / "release-skips.jsonl")},
     )
 
 

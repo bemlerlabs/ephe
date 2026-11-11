@@ -432,7 +432,10 @@ export default function ChatLayout() {
                     aria-label={t('settings.companionQuickLabel')}
                     title={t('settings.companionQuickLabel')}
                     onClick={() => void toggleCompanionEnabled()}
-                    className="header-companion-toggle focus-ring"
+                    /* Under 360 px the run bar needs the last 32 px for a 44 px
+                       palette target; the toggle keeps its home in the settings
+                       register on those phones and returns with the room. */
+                    className="header-companion-toggle focus-ring max-[359px]:hidden!"
                   >
                     <Sparkles
                       className={`h-4 w-4 ${companionEnabled ? 'text-brand' : 'text-ink-faint'}`}

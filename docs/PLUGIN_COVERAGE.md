@@ -13,8 +13,8 @@ grader or the client shell).
 | Tools | Plugin | `core/plugin_tools_contract.py:137` `validate_tools` → `core/tools/dynamic_registry.py:289` `register` → `core/sandbox/runner.py:256` `run_plugin_tool`; gate `core/plugin_runtime.py:360` | none on the rail; a kernel tool has no manifest route *out*, which is the one-name-one-provider rule, not a gap | — |
 | Memory | Plugin since MEM-P1 (provider); the stores stay kernel | `core/plugin_memory_contract.py` `validate_memory` → `core/plugin_runtime.py:322` `memory_providers` → `core/memory_provider.py:169` `resolve_provider`, `:256` `open_provider` | in-process provider code: only the `kepta-bridge` wire protocol is declarable, because nothing imports plugin code (ruling A1) | M (done) |
 | Planner | Kernel loop; a plugin names the plan strategy since PLAN-P1 | `core/plugin_planner_contract.py:161` `validate_planner` → `core/plugin_runtime.py:356` `plan_strategies` → `core/ephe_plan.py:84` `plan_strategy`, clamped at `:157` `_step_budget`; the loop stays `core/react.py:170` `react_loop` | a step schema with a reader: the guard text still instructs one shape, so nothing fails a plan that ignores a declared field | L (first cut landed) |
-| Evaluator | Kernel grader; the bundle supplies cases | `core/plugin_golden.py:171` `grade`, `:120` `load_golden`, `:509` reads `prompts/golden.jsonl` | a grader or `expect.kind` a manifest could add; the vocabulary is closed inside the grader | L |
-| UI | Plugin for the surface, kernel for the shell | `core/plugin_ui_capabilities.py:302` `validate_ui`, `server/routes/plugin_ui.py:73` router, `core/plugin_surface_host.py` slot record | the shell's own pages and component slots: a bundle cannot register into the app's tree, only ship one framed document | L |
+| Evaluator | Kernel grader; the bundle supplies cases and, since EVAL-P1, names presets of the kernel's own kinds | `core/plugin_golden.py:249` `grade`, `:193` `load_golden`, `:163` `_declared_kinds`, `:579` `measure_matrix`; contract `core/plugin_evaluator_contract.py:224` `validate_evaluator`, `:260` `evaluator_kinds` | a grader or a new `expect.kind` a manifest could add: the vocabulary stays the kernel's five primitives, and a preset resolves only inside the suite that declares it | L (first cut landed) |
+| UI | Plugin for the surface, kernel for the shell; the placement first cut landed | `core/plugin_ui_capabilities.py:302` `validate_ui`, `server/routes/plugin_ui.py:73` router, `app/src/lib/surfacePlacement.ts` placement resolver, `core/plugin_surface_host.py` slot record | the shell's own pages and component slots: a bundle declares one placement from the closed list (`floating-window`, `canvas-overlay`, and `dock-panel` once a dock exists) and still cannot register into the app's tree or name a slot the shell does not own | L (first cut landed) |
 | Runtime | Kernel by design | `core/plugin_runtime.py:360` `tool_gate`, `core/plugin_lifecycle.py` state machine, `core/plugin_lifecycle_mount.py:92` `mount` | a turn hook: `components.hooks` is reserved; the live hook API is the process-wide `~/.ephe/hooks.json` (E5); a bundle has none | L |
 | Commands | Plugin | `core/plugin_manifest.py:231` `manifest_commands`, `core/plugin_commands.py:26` | none | — |
 | Skills | Plugin (pack tree the manifest lists) | `core/plugin_manifest.py:217` `active_skill_roots`, `core/skills.py:638` | none; a pack is a directory with `SKILL.md`, never code | — |
@@ -42,8 +42,10 @@ Config as JSON Schema — `cordis_inspect_query` shows `Service`, `Event`, `Conf
    string run in a confined worker, so a bundle cannot export a Service, an Event or a
    Config schema into the backend.
 3. Client half: Cordis registers components into named Slots at runtime and the tree is
-   inspectable live; ephe ships at most one HTML document per bundle in a window slot
-   (`components.ui`), with the capability list for that document and no registration API.
+   inspectable live; ephe ships at most one HTML document per bundle, placed by
+   `components.ui.type` among the placements the shell owns (its window, the overlay
+   stack, and a docked region once one exists), with the capability list for that
+   document and no registration API.
 4. Configuration: Cordis validates each entry's Config against a JSON Schema at mount
    time; ephe validates the whole manifest fail-closed at load time. The two are not the
    same instrument: ephe refuses the bundle, it does not coerce a field.
@@ -147,6 +149,63 @@ before the change and after it; 47 tests in `tests/test_plugin_planner_strategy.
 them red before the implementation and all green after; `pytest tests/ -k "plan or plugin or
 manifest"` reports 1478 passed, 1 skipped.
 
+## The next cut: `capabilities.evaluator` (EVAL-P1)
+
+The evaluator was the cheapest of the three Ls because its seam was a vocabulary. The
+pass³ matrix, the engine resolution, the mode and privilege handling, the case schema and
+the receipt are the kernel's, and a bundle's suite was already the one place a bundle wrote
+its own claims. What it could not do was name a check: the five kinds were a tuple in
+`core/plugin_golden.py`. A preset answers one question — which kernel primitive a case in
+this bundle's suite grades with, and with which fragments — so the seam moves the
+vocabulary and leaves the instrument where it is.
+
+`capabilities.evaluator` is one object in a version 2 manifest:
+`kinds` holds one to eight entries, each with `id` (a lowercase slug; the five kernel kind
+names stay reserved), `from` (`contains` or `not_contains` in this cut), `any` (the
+fragments, each at least three characters) and `description`. A case names the preset in
+`expect.kind` and passes nothing else, so the manifest is the one place the fragments are
+written. No permission family is asked for and none is granted: a preset is data the
+grader reads, so it opens no file, no socket and no subprocess.
+
+The shape, in four steps that each have a test:
+
+- The contract (`core/plugin_evaluator_contract.py:224` `validate_evaluator`): the list
+  above, fail-closed in the same style as `capabilities.memory` and `capabilities.planner`
+  — an unknown field, an unknown or reserved id, a duplicate id, a base outside this cut,
+  a missing or malformed argument, a fragment shorter than three characters and a blank
+  description each quarantine the whole bundle. `argument_error` is the per-kind argument
+  rule, and `core/plugin_golden.py` calls the same function for a case, so the two readers
+  cannot drift apart.
+- The resolution (`core/plugin_golden.py:163` `_declared_kinds`): the manifest beside the
+  suite the loader reads, once per suite, through `validate_evaluator`. A preset resolves
+  only inside the bundle that declares it, so a pass³ number never depends on which other
+  bundles are installed and no id can be contested. A bundle with no readable manifest
+  declares no presets, and a case that names one is refused as an unknown kind.
+- The matcher (`core/plugin_golden.py:249` `grade`): the loader puts the resolved
+  primitive beside what the author wrote — `matcher` holds the primitive and its
+  arguments, `kind_source` names the declared id or `kernel` — and `grade` reads the
+  matcher. `measure_matrix` and `pass3_matrix` rows carry both, and the anti-slop gate in
+  `verify_all` tests the resolved primitive, so a declared `not_contains` preset satisfies
+  it and a declared `contains` one does not.
+- The two holes that were open in the case validator: `expect.any` accepted an empty
+  string, so `contains: [""]` always passed, and a case could carry a hand-written
+  `matcher` that no manifest declared. The first is now refused for every string kind
+  (blank fragments, and a blank member beside a valid one), the second is refused by name
+  at load time, and a case that names a declared kind may not restate its arguments.
+
+What the first cut does not do is widen the vocabulary: `artifact`, `tool_use` and
+`tool_refused` presets and composition (`all_of` / `none_of`) are the second cut, and the
+field names for their arguments are already reserved so a manifest written for them is
+refused for its `from`. A bundle still cannot add a primitive, shadow a kernel kind name,
+grade another bundle's suite, satisfy the anti-slop gate with a base other than
+`not_contains`, or change what the engine is asked.
+
+Verification: 49 tests in `tests/test_plugin_evaluator_kinds.py`, 41 of them red against
+the previous `core/plugin_golden.py` (the eight that were green read the new contract
+module directly, which a red-first run cannot count); `ephe bench` exits 0 with the same
+153 cases across the same 17 bundles, so the shipped matrix did not move; the golden,
+memory and planner suites are green before and after.
+
 ## Open, in the order the table costs them
 
 - The settings surface still offers the two kernel ids only (`server/routes/memory.py:201`
@@ -154,7 +213,11 @@ manifest"` reports 1478 passed, 1 skipped.
   `EPHE_MEMORY_PROVIDER` and through the record, and the route is an S.
 - The planner step schema has no reader yet, and the settings surface has no planner
   section: a bundle's own lifecycle and `EPHE_PLAN_STRATEGY` are the only switches. The
-  evaluator grader kinds, a runtime turn hook and client slot registration stay kernel; each
-  is an L and each wants its own contract module before any code moves.
+  evaluator's first cut names presets of the kernel's five primitives; `artifact`, `tool_use`
+  and `tool_refused` presets plus composition are its second cut, and no surface lists a
+  declared preset yet. Client slot registration's first cut has landed: both product surfaces
+  honor `components.ui.type` through `app/src/lib/surfacePlacement.ts`, and `dock-panel` is a
+  coded refusal until the shell owns a docked region. A runtime turn hook stays kernel; each
+  remaining seam is an L and wants its own contract module before any code moves.
 - A second memory transport (anything but `kepta-bridge`) is a new wire contract with its
   own tests; the vocabulary stays closed until one is written down.

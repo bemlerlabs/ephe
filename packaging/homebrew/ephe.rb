@@ -10,7 +10,7 @@
 cask "ephe" do
   version "0.6.8"
   license "BUSL-1.1"
-  sha256 "fe79c63f40c8091f22e233adc0fb2005d63258a3a088a1dbc1c5bacbbcedf0ba" # 0.1.0 candidate DMG; render_packaging replaces it at release
+  sha256 "0000000000000000000000000000000000000000000000000000000000000000" # template sentinel; render_packaging replaces it with the released DMG hash
 
   url "https://github.com/bemlerlabs/ephe/releases/download/v#{version}/Ephe_#{version}_aarch64.dmg"
   name "Ephe"

@@ -43,6 +43,6 @@ remove the fork guard to make a fork green.
 `release.yml` builds on a `v*` tag on `main`. It reads the signing material from the release
 environment, builds both bundles, and drafts the release; the owner publishes it. The runbook is
 [`RELEASE_PROCESS.md`](RELEASE_PROCESS.md), the policy behind the tag is
-[`docs/RELEASE_POLICY.md`](../docs/RELEASE_POLICY.md). The version agreement across the five carriers
-is pinned by `tests/test_version_sync.py`, and the release gate runs the suite before it builds a
+[`docs/RELEASE_POLICY.md`](../docs/RELEASE_POLICY.md). The version agreement across the six carriers
+is pinned by `tests/test_version_sync.py` and `scripts/version_carriers.py`, and the release gate runs the suite before it builds a
 bundle, so a half-edited version stops the release instead of shipping a mislabeled one.

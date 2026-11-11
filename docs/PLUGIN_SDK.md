@@ -177,10 +177,19 @@ A refusal is an exception with a `code` attribute, and the code is the part you 
 |---|---|
 | `bridge_method_unknown` | No such method in this build; the text names what exists |
 | `bridge_method_denied` | The method works in a family this bundle did not declare, or the host's own guard refused the address |
+| `bridge_path_denied` | A file method named a path the host will not touch: a credential-shaped name, or a write under a declared `data_roots` entry, which is a read grant |
+| `bridge_consent_required` | A call that changes the host needed a human's yes and did not get one; the text starts with the gate's own code |
 | `bridge_args_invalid` | A required argument was missing or blank |
 | `bridge_payload_too_large` | The message is past the byte ceiling |
 | `bridge_call_limit` | The 32 calls of this run are spent |
 | `bridge_internal` | The host could not complete it. The text is an exception class name. A search whose backends refused carries the status line the kernel tool already writes |
+
+The file methods keep their grants where the declaration put them. A credential-shaped path
+(`core/path_guard.py::secret_shaped`) is refused instead of read, because the bridge has no
+dialog of its own, and a write under a declared `data_roots` entry is refused because that line
+is a read grant. `run_shell` reaches the approval gate the outer call used — the active
+`ApprovalPolicy` or the chat dialog — and runs only on a yes; with nobody to ask it answers
+`bridge_consent_required` and starts no command.
 
 A `fetch_url` refusal keeps the code the kernel tool put on the sentence. The worker hands that code back with the text, and the host puts it on the sentence again. The model still reads the sentence. A memory sentence does the same, and keeps the flag that says whether the action happened, so a stored entry is a completion.
 

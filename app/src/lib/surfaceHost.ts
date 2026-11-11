@@ -5,14 +5,19 @@
  * scroll and form values on its own storage route, and this record has no
  * field for them. `placed` is false while the shell has not reported a
  * position; a restore then leaves the shell's own placement alone.
+ *
+ * The slot names where the shell put the surface, not what the manifest asked
+ * for: `native` is the desktop's own window, `overlay` is the browser's frame
+ * for a `floating-window`, and `canvas-overlay` is the frame both halves give
+ * that type. `dock-panel` is absent because the shell has no docked region yet
+ * and refuses the type instead of recording a placement it cannot host.
  */
 import { request } from './api/http'
-import type { SurfaceSlot } from './pluginSurface'
 
-export type { SurfaceSlot }
+export type HostSlot = 'native' | 'overlay' | 'canvas-overlay'
 
 export type HostSurface = {
-  slot: SurfaceSlot
+  slot: HostSlot
   x: number
   y: number
   width: number

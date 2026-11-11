@@ -50,6 +50,21 @@ class FileNotAllowedError(PermissionError):
         )
 
 
+class ReadOnlyRootError(FileNotAllowedError):
+    """Path is inside a plugin's declared data root, which is a read grant.
+
+    Kept apart from `FileNotAllowedError` so the bridge can answer with a code: a
+    plugin author reads why the write was refused, not just that some path was.
+    """
+    def __init__(self, path: str) -> None:
+        self.path = path
+        super().__init__(path)
+        self.args = (
+            f"access denied: '{path}' is inside a declared data root, which is a read grant "
+            "for a plugin; write in the workspace or in the plugin's own state folder",
+        )
+
+
 class DirectoryNotFoundError(FileNotFoundError):
     """Directory does not exist."""
     def __init__(self, path: str) -> None:
@@ -205,24 +220,35 @@ AMATEUR_DECK_TERMS = {
 
 # Whitelist Helpers
 
+def _plugin_file_roots(plugin: str) -> tuple[Path, list[Path]] | None:
+    """The workspace and the declared read roots for one plugin call.
+
+    None is the fail-closed answer: a plugin call without a usable workspace may touch
+    nothing. The resolution is shared with the confined worker, so a relative root is a
+    name inside the workspace on both rails and a symlink that leaves it widens neither.
+    """
+    try:
+        from core.engine_config import get_workspace_dir, validate_workspace_dir
+
+        workspace = validate_workspace_dir(get_workspace_dir())
+    except (OSError, ValueError):
+        return None
+    if not workspace:
+        return None
+    resolved_root = Path(workspace).resolve()
+    from core.capability_policy import resolved_data_roots
+
+    return resolved_root, resolved_data_roots(plugin, resolved_root)
+
+
 def _get_allowed_roots() -> list[Path]:
     plugin = PLUGIN_FILE_SCOPE.get()
     if plugin:
-        try:
-            from core.engine_config import get_workspace_dir, validate_workspace_dir
-
-            workspace = validate_workspace_dir(get_workspace_dir())
-        except (OSError, ValueError):
+        roots = _plugin_file_roots(plugin)
+        if roots is None:
             return []
-        if not workspace:
-            return []
-        root = Path(workspace)
-        resolved_root = root.resolve()
-        from core.capability_policy import resolved_data_roots
-
-        # One resolution, shared with the confined worker: a relative root is a name inside
-        # the workspace, and a symlink that leaves it does not widen the file scope.
-        return [resolved_root, *resolved_data_roots(plugin, resolved_root)]
+        workspace, data_roots = roots
+        return [workspace, *data_roots]
     home = Path.home()
     roots = [
         home,
@@ -285,3 +311,44 @@ def _is_path_allowed(path: Path) -> bool:
         except ValueError:
             continue
     return False
+
+
+def _plugin_write_refusal(path: Path) -> str:
+    """The sentence for a plugin write outside the workspace, or "" when it may write.
+
+    `permissions.data_roots` is a read grant on both rails: the confined worker is
+    mounted read-only over it and the kernel file tools answer the same way. The
+    workspace is the one host folder a plugin call may change; the worker's own
+    `state_dir` never reaches these roots.
+    """
+    plugin = PLUGIN_FILE_SCOPE.get()
+    if not plugin:
+        return ""
+    roots = _plugin_file_roots(plugin)
+    if roots is None:
+        return ""
+    workspace, data_roots = roots
+    from core.path_guard import within
+
+    if within(path, workspace):
+        return ""
+    if not any(within(path, root) for root in data_roots):
+        return ""
+    return (
+        "a declared data root is a read grant for a plugin, so it stays read-only; "
+        "write in the workspace or in the plugin's own state folder"
+    )
+
+
+def check_write_path(path: Path) -> None:
+    """Refuse a path this call may not write, with the rule it broke.
+
+    A path outside every granted root keeps `FileNotAllowedError`; a path inside a
+    plugin's declared data root raises `ReadOnlyRootError`, so the bridge answers with
+    a code instead of a sentence the plugin has to parse.
+    """
+    resolved = path.resolve()
+    if not _is_path_allowed(resolved):
+        raise FileNotAllowedError(str(resolved))
+    if _plugin_write_refusal(resolved):
+        raise ReadOnlyRootError(str(resolved))

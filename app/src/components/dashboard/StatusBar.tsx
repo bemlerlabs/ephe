@@ -203,7 +203,7 @@ export default function StatusBar({
         aria-haspopup="dialog"
         aria-label={`${String(t('statusBar.breakdownHint'))}: ${percentLabel}`}
         title={t('statusBar.breakdownHint')}
-        className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1 py-1.5 -my-1.5 text-ui-xs font-mono tabular-nums transition-colors hover:bg-surface-interactive hover:text-foreground/80 ${
+        className={`flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md px-1 py-1.5 -my-1.5 min-h-6 text-ui-xs font-mono tabular-nums transition-colors hover:bg-surface-interactive hover:text-foreground/80 pointer-coarse:my-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${
           danger ? 'text-status-danger' : warn ? 'text-status-warning' : 'text-ink-soft'
         }`}
       >

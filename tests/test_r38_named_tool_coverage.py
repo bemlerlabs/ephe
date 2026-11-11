@@ -208,10 +208,17 @@ def test_the_description_tier_does_not_widen_a_name_hit():
 
 
 def test_full_core_session_keeps_the_short_answer():
-    """GIVEN an array built without a whitelist
+    """GIVEN a session that asked for every request-gated family, so its array holds
+    the whole CORE set
     WHEN tool_search matches nothing
-    THEN no omission is claimed, because nothing was omitted."""
-    _visible(None)
+    THEN no omission is claimed, because nothing was omitted.
+
+    Without the request words the array leaves the browser/vision/clipboard
+    families out (PERF-BE-REST), and the honest answer names them instead.
+    """
+    from core.chat_context import _tools_for_messages
+
+    _tools_for_messages([{"role": "user", "content": "browser screenshot clipboard"}])
     assert search("qqzz wwyymm") == NO_MATCH_CORE_ACTIVE
 
 

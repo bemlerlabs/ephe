@@ -77,8 +77,10 @@ def test_the_feed_notes_come_from_the_release_body_instrument():
 def test_the_key_guard_runs_before_the_bundle_is_built():
     text = SCRIPT.read_text(encoding="utf-8")
     probe = text.find("key-probe")
-    build = text.find("npx tauri build")
-    assert probe != -1 and build != -1, "the probe sign and the bundle build are both here"
+    # The unsigned local path also calls npx tauri build; the signed release build is the
+    # one that has to sit after the probe.
+    build = text.find("npx tauri build --config")
+    assert probe != -1 and build != -1, "the probe sign and the signed bundle build are both here"
     assert probe < build, "a wrong key has to stop the run before the build spends its minutes"
     assert "pinned updater key" in text or "the app pins" in text, (
         "the refusal names both ids, because the reader cannot tell a stale feed from a "

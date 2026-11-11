@@ -135,6 +135,21 @@ describe('the isolation attribute, in both directions', () => {
     expect(frame.getAttribute('referrerpolicy')).toBe('no-referrer')
   })
 
+  /// Seam C's first cut: a `canvas-overlay` is carried by this stack on both halves,
+  /// and it is the same boundary as any other frame — the type changes placement, not
+  /// isolation.
+  it('paints a canvas-overlay as the same framed surface', () => {
+    render(<OverlayHost />)
+    open('acme-canvas', { surfaceType: 'canvas-overlay' })
+    expect(boxes()).toHaveLength(1)
+    expect(boxes()[0]?.getAttribute('data-surface-type')).toBe('canvas-overlay')
+    expect(frames()[0]?.getAttribute('sandbox')).toBe('allow-scripts allow-popups')
+    expect(frames()[0]?.getAttribute('title')).toBe('Countdown')
+    expect(frames()[0]?.getAttribute('src')).toBe(
+      'http://127.0.0.1:8765/api/plugins/ui/acme-canvas/n0nce/',
+    )
+  })
+
   it('puts the same directive on every surface in the stack', () => {
     render(<OverlayHost />)
     open('a')

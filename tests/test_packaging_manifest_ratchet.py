@@ -28,7 +28,7 @@ def write(path: Path, text: str) -> None:
 
 def plant_tree(root: Path, *, release: str = "1.2.3", cask: str = "1.2.3",
                scoop: str = "1.2.3", npm: str = "1.2.3") -> Path:
-    """The five files the ratchet reads: three manifests and the three version carriers."""
+    """The six files the ratchet reads: three manifests and the three version carriers."""
     write(root / "pyproject.toml", f'[project]\nname = "ephe"\nversion = "{release}"\n')
     write(root / "app" / "package.json", json.dumps({"version": release}) + "\n")
     write(root / "app" / "src-tauri" / "tauri.conf.json", json.dumps({"version": release}) + "\n")

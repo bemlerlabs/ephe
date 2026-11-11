@@ -607,6 +607,7 @@
       "showProjectPath": "Show project path"
     },
     "noSessions": "No tasks yet",
+    "sessionsRegion": "Tasks",
     "helperChat": "Helper",
     "actionSearch": "Search",
     "viewGroup": "Group",
@@ -2583,7 +2584,9 @@
     "overlayRefused": "This tab could not show the plugin surface.",
     "landedDifferently": "The surface is not the shape it asked for.",
     "notOnTop": "A browser tab cannot hold a surface above other windows.",
-    "closeFailed": "The plugin window did not confirm the close."
+    "closeFailed": "The plugin window did not confirm the close.",
+    "dockPanelUnavailable": "This plugin asks for a dock panel and Ephe has no dock yet. It stays closed; a floating-window or canvas-overlay surface shows it instead.",
+    "typeUnknown": "This plugin names a surface type Ephe does not know. It stays closed; check components.ui.type in its manifest."
   },
   "common": {
     "changeFailed": "Change failed",

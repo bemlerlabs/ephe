@@ -33,6 +33,13 @@ Kinds (mechanical, no model in the grader):
                 withheld leaves: the Creator guard takes a name the session holds no
                 privilege for out of the offer (`core.tools.creator_guard.filter_offer`),
                 so that turn can never return a denial line for it
+
+A case may instead name a preset its own bundle declares in
+`capabilities.evaluator` (`core/plugin_evaluator_contract.py`). The preset is a name for
+one of the kinds above, resolved from the manifest beside the suite, and the manifest —
+never the case — writes its fragments. The loader records the resolved primitive on the
+case as `matcher` and where it came from as `kind_source`, so a receipt names what the
+author wrote and the primitive that graded it.
 """
 from __future__ import annotations
 
@@ -42,7 +49,8 @@ import os
 import re
 from pathlib import Path
 
-KINDS: tuple[str, ...] = ("artifact", "tool_use", "contains", "not_contains", "tool_refused")
+from core.plugin_evaluator_contract import KINDS as KINDS
+from core.plugin_evaluator_contract import EvaluatorKind, argument_error
 
 _REQUIRED = frozenset({"id", "input", "expect"})
 
@@ -51,8 +59,16 @@ _REQUIRED = frozenset({"id", "input", "expect"})
 #: a Creator case without them grades a mode the engine was never in.
 _OPTIONAL = ("mode", "privileges", "tools")
 
+#: The two case fields only the loader writes. `matcher` is the primitive a declared
+#: preset resolves to; `kind_source` says where it came from. A case that wrote either
+#: one would hand the grader a rule no manifest declared, so both are refused by name
+#: instead of being overwritten on the way in.
+_LOADER_FIELDS = frozenset({"matcher", "kind_source"})
 
-def _validate(case: dict, plugin: str, seen: set[str]) -> dict:
+
+def _validate(
+    case: dict, plugin: str, seen: set[str], kinds: dict[str, EvaluatorKind]
+) -> dict:
     missing = _REQUIRED - set(case)
     if missing:
         raise ValueError(f"{plugin}: case missing fields {sorted(missing)}")
@@ -65,24 +81,51 @@ def _validate(case: dict, plugin: str, seen: set[str]) -> dict:
     if not isinstance(case["input"], str) or len(case["input"]) < 8:
         raise ValueError(f"{plugin}: {cid} input too short")
     _validate_context(case, plugin, cid)
-    expect = case["expect"]
-    if not isinstance(expect, dict) or expect.get("kind") not in KINDS:
+    forged = sorted(set(case) & _LOADER_FIELDS)
+    if forged:
         raise ValueError(
-            f"{plugin}: {cid} unknown expect.kind {expect.get('kind')!r} - allowed: {', '.join(KINDS)}"
+            f"{plugin}: {cid} may not carry {', '.join(forged)} - the loader sets it"
         )
-    kind = expect["kind"]
-    if kind == "artifact":
-        if not isinstance(expect.get("suffix"), str) or not expect["suffix"].startswith("."):
-            raise ValueError(f"{plugin}: {cid} artifact needs a suffix like '.pdf'")
+    expect = case["expect"]
+    if not isinstance(expect, dict):
+        raise ValueError(f"{plugin}: {cid} expect must be an object")
+    declared = expect.get("kind")
+    if declared in kinds:
+        # The manifest is the one place a preset's arguments are written; a case that
+        # restated any of them could silently disagree with the check it names.
+        extra = sorted(set(expect) - {"kind"})
+        if extra:
+            raise ValueError(
+                f"{plugin}: {cid} declared kind {declared!r} takes no arguments "
+                f"beside kind ({', '.join(extra)})"
+            )
+        preset = kinds[declared]
+        matcher = {"kind": preset.base, "any": list(preset.any)}
+        source = preset.kind_id
+    elif declared in KINDS:
+        error = argument_error(declared, expect)
+        if error:
+            raise ValueError(f"{plugin}: {cid} {error}")
+        matcher = _matcher(declared, expect)
+        source = "kernel"
     else:
-        any_list = expect.get("any")
-        if not isinstance(any_list, list) or not any_list or not all(isinstance(s, str) for s in any_list):
-            raise ValueError(f"{plugin}: {cid} {kind} needs any: [strings]")
-        if kind == "tool_refused" and "reason" in expect and (
-            not isinstance(expect["reason"], str) or len(expect["reason"]) < 3
-        ):
-            raise ValueError(f"{plugin}: {cid} tool_refused reason must be a phrase to find")
-    return case
+        allowed = ", ".join(KINDS)
+        if kinds:
+            allowed += f"; declared here: {', '.join(sorted(kinds))}"
+        raise ValueError(
+            f"{plugin}: {cid} unknown expect.kind {declared!r} - allowed: {allowed}"
+        )
+    return {**case, "matcher": matcher, "kind_source": source}
+
+
+def _matcher(kind: str, expect: dict) -> dict:
+    """The primitive a validated kernel case grades with, its arguments copied off it."""
+    if kind == "artifact":
+        return {"kind": kind, "suffix": expect["suffix"]}
+    matcher = {"kind": kind, "any": list(expect["any"])}
+    if kind == "tool_refused" and "reason" in expect:
+        matcher["reason"] = expect["reason"]
+    return matcher
 
 
 def _validate_context(case: dict, plugin: str, cid: str) -> None:
@@ -117,9 +160,44 @@ def _validate_context(case: dict, plugin: str, cid: str) -> None:
         raise ValueError(f"{plugin}: {cid} tools must be a non-empty list of names")
 
 
+def _declared_kinds(path: Path) -> dict[str, EvaluatorKind]:
+    """The presets the manifest beside a suite declares.
+
+    The suite path is fixed by construction (`<plugin>/prompts/golden.jsonl`), so the
+    manifest is too. One question is asked of it: does the section this loader reads
+    declare a preset the kernel cannot honour? A manifest the rest of the contract refuses
+    stays the scanner's and the DoD gate's finding, so `ephe bench` does not report one
+    manifest violation twice; an absent or unreadable manifest declares no presets, and a
+    case that names one is refused as an unknown kind.
+    """
+    from core.plugin_evaluator_contract import evaluator_kinds, validate_evaluator
+    from core.plugin_manifest import MANIFEST_FILENAME
+
+    if path.parent.name != "prompts":
+        return {}
+    plugin_dir = path.parent.parent
+    try:
+        manifest = json.loads(
+            (plugin_dir / MANIFEST_FILENAME).read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(manifest, dict):
+        return {}
+    error = validate_evaluator(manifest)
+    if error:
+        raise ValueError(f"{plugin_dir.name}: {error}")
+    return evaluator_kinds(manifest)
+
+
 def load_golden(path: Path, plugin: str) -> list[dict]:
     """Reads a golden suite fail-closed: one broken line is an
-    error, not a skipped sentence — garbage never lands in the matrix."""
+    error, not a skipped sentence — garbage never lands in the matrix.
+
+    A case may name a preset the sibling manifest declares; the loader resolves it once
+    per suite and records the primitive and its source on every case.
+    """
+    kinds = _declared_kinds(path)
     seen: set[str] = set()
     cases: list[dict] = []
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -131,7 +209,7 @@ def load_golden(path: Path, plugin: str) -> list[dict]:
             raise ValueError(f"{plugin}: line {i} is not JSON ({exc})") from exc
         if not isinstance(raw, dict):
             raise ValueError(f"{plugin}: line {i} is not an object")
-        cases.append(_validate(raw, plugin, seen))
+        cases.append(_validate(raw, plugin, seen, kinds))
     if not cases:
         raise ValueError(f"{plugin}: empty golden suite")
     return cases
@@ -169,16 +247,23 @@ def _failed_output(output: str) -> bool:
 
 
 def grade(case: dict, transcript: str) -> bool:
-    """Grade one case against one transcript — pure string physics."""
-    expect = case["expect"]
-    kind = expect["kind"]
+    """Grade one case against one transcript — pure string physics.
+
+    A case the loader read carries `matcher`, the primitive a declared preset resolved
+    to; a hand-built case is graded on its own `expect`. An expect whose kind is neither
+    is a failure, so a raw declared-name case grades false rather than by accident.
+    """
+    matcher = case.get("matcher") or case["expect"]
+    kind = matcher.get("kind")
+    if kind not in KINDS:
+        return False
     marker = "\n[EPHE-TOOL-EVENTS]\n"
     answer = (transcript.split(marker, 1)[0] if marker in transcript else transcript).lower()
     whole = transcript.lower()
     if kind == "artifact":
-        pattern = re.compile(r"\S+" + re.escape(expect["suffix"].lower()) + r"\b")
+        pattern = re.compile(r"\S+" + re.escape(matcher["suffix"].lower()) + r"\b")
         return bool(pattern.search(whole))
-    any_list = [s.lower() for s in expect["any"]]
+    any_list = [s.lower() for s in matcher["any"]]
     if kind == "contains":
         return any(s in answer for s in any_list)
     if kind == "not_contains":
@@ -189,7 +274,7 @@ def grade(case: dict, transcript: str) -> bool:
             for name, output in _events(transcript)
         )
     if kind == "tool_refused":
-        return _refused(any_list, expect.get("reason"), _events(transcript))
+        return _refused(any_list, matcher.get("reason"), _events(transcript))
     return False
 
 
@@ -553,6 +638,8 @@ def measure_matrix(
             "command": case.get("command"),
             "input": case["input"],
             "expect": case["expect"],
+            "matcher": case.get("matcher"),
+            "kind_source": case.get("kind_source", "kernel"),
             "reps": reps,
             "passes": passes,
             "pass3": passes == runs,
@@ -568,7 +655,8 @@ def measure_matrix(
 def pass3_matrix(plugin_dir: Path, *, runs: list[str], report: Path | None = None) -> list[dict]:
     """pass³ in the repo semantics of evals/bench_option_b.py (TAU-
     Reliability): a case only counts when ALL runs pass — a majority
-    is not reliability. rows: id/input/command/expect/passes/pass3."""
+    is not reliability. rows: id/input/command/expect/matcher/kind_source/
+    passes/pass3."""
     plugin = plugin_dir.name
     cases = load_golden(plugin_dir / "prompts" / "golden.jsonl", plugin)
     system_prompt, allowed_tools = plugin_prompt(plugin_dir)
@@ -594,6 +682,8 @@ def pass3_matrix(plugin_dir: Path, *, runs: list[str], report: Path | None = Non
                 "input": case["input"],
                 "command": case.get("command"),
                 "expect": case["expect"],
+                "matcher": case.get("matcher"),
+                "kind_source": case.get("kind_source", "kernel"),
                 "passes": passes,
                 "pass3": passes == len(runs),
             }
@@ -628,7 +718,9 @@ def verify_all(plugins_dir: Path) -> list[dict]:
             issues.append("prompts/rubric.md is missing")
         if len(cases) < 6:
             issues.append(f"only {len(cases)} cases (< 6)")
-        if cases and not any(c["expect"]["kind"] == "not_contains" for c in cases):
+        if cases and not any(
+            (c.get("matcher") or c["expect"]).get("kind") == "not_contains" for c in cases
+        ):
             issues.append("no anti-slop trap (not_contains)")
         names = _command_names(pdir)
         for c in cases:

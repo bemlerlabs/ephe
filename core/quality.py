@@ -16,6 +16,7 @@ from core.tool_markers import (
     CURRENT_REFUSAL_MARKERS,
     FETCH_FAILED_MARKER,
     LEGACY_REFUSAL_MARKERS,
+    RESEARCH_FAILED_MARKER,
 )
 
 
@@ -61,6 +62,7 @@ ERROR_RESULT_PREFIXES: tuple[str, ...] = (
     "[MCP-tool-error",
     "ARTIFACT_FAILED:",
     FETCH_FAILED_MARKER,
+    RESEARCH_FAILED_MARKER,
 )
 
 

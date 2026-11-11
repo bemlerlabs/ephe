@@ -3,11 +3,15 @@
  *
  * The desktop half (#43, `pluginSurface.ts`) hands the plugin document to a window of
  * its own label; the browser half (#44, `components/shell/OverlayHost.tsx`) paints the
- * same document in a frame the shell draws. A caller — today the plugin store's switch
- * row, tomorrow the creator card that will follow it — asks this module for the surface
- * and is answered with the one its platform has. "Am I in the shell?" is asked here and
- * nowhere else, and it is asked with the signal `pluginSurface.ts` already reads through
- * the bridge, so no fourth platform detector joins the three the tree carries.
+ * same document in a frame the shell draws. Which one a caller gets is the manifest's
+ * `components.ui.type`, resolved by `surfacePlacement.ts` before either half is asked:
+ * a `floating-window` takes the desktop window and the browser frame, a
+ * `canvas-overlay` takes the frame on both, and a `dock-panel` is refused until the
+ * shell owns a docked region. A caller — the plugin store's switch row, the creator
+ * card that follows it, the restore after a restart — asks this module for the surface
+ * and is answered with the one the shell can host. "Am I in the shell?" is asked here
+ * and nowhere else, and it is asked with the signal `pluginSurface.ts` already reads
+ * through the bridge, so no fourth platform detector joins the three the tree carries.
  *
  * The rule that shapes every path below is the owner's: a fallback is loud. A surface
  * asked for on the desktop and refused there stays refused — the user is told, in the
@@ -36,7 +40,7 @@
  */
 import { useChatStore } from '@/store'
 import type { Rect, SurfaceSpec, Viewport } from '@/components/shell/overlayModel'
-import { lastHost, saveHostSurface, type HostSurface } from '@/lib/surfaceHost'
+import { lastHost, saveHostSurface, type HostSlot, type HostSurface } from '@/lib/surfaceHost'
 import { ApiError } from './api/http'
 import { toastBus } from './toast'
 import {
@@ -52,6 +56,7 @@ import {
   type SurfaceDescriptor,
   type SurfaceInfo,
 } from './pluginSurface'
+import { resolveSurfacePlacement, type SurfaceRefusal } from './surfacePlacement'
 
 export { canOpenNativeSurface }
 
@@ -89,6 +94,9 @@ export type SurfaceOutcome = {
   note: string
   /** The copy key the refusal was read out under; empty when the surface is on screen. */
   message: string
+  /** The coded refusal the placement answered with; null while a surface is on screen.
+   *  `reason_code` is what a caller branches on and `next` is the move the author has. */
+  refusal: SurfaceRefusal | null
 }
 
 /** The size `core/plugin_ui_capabilities.py` falls back to for a descriptor that names
@@ -157,6 +165,33 @@ function reportFailure(t: Translate, key: string, detail: string): SurfaceOutcom
     unmet: [],
     note: '',
     message: key,
+    refusal: null,
+  }
+}
+
+/** The copy key each refusal code is read out under, in both bundles. */
+const REFUSAL_COPY: Record<SurfaceRefusal['reason_code'], string> = {
+  surface_dock_panel_unavailable: 'surface.dockPanelUnavailable',
+  surface_type_unknown: 'surface.typeUnknown',
+}
+
+/**
+ * A placement the shell cannot host: a loud toast in the reader's language, and the
+ * coded envelope on the outcome so a caller that is not a person can act on it. The
+ * sentence carries the move, so the `next` field never has to reach a German surface.
+ */
+function reportRefusal(t: Translate, refusal: SurfaceRefusal): SurfaceOutcome {
+  const key = REFUSAL_COPY[refusal.reason_code]
+  toastBus.error(t(key))
+  return {
+    opened: false,
+    side: null,
+    created: false,
+    handle: '',
+    unmet: [],
+    note: '',
+    message: key,
+    refusal,
   }
 }
 
@@ -177,17 +212,24 @@ function overlaySpec(pluginId: string, descriptor: SurfaceDescriptor, url: strin
 /**
  * Show this plugin's surface where this platform can show it.
  *
- * The decision is one line long — the bridge is there or it is not — and it is the only
- * place that asks. Both branches report their own failures and return; neither hands the
- * call to the other half.
+ * The placement is `surfacePlacement.ts`'s answer, asked once here and nowhere else.
+ * A refused type never reaches either branch: the caller gets the coded envelope and
+ * the user the sentence. Both branches report their own failures and return; neither
+ * hands the call to the other half.
  */
 export async function showPluginSurface(
   request: SurfaceRequest,
   t: Translate,
 ): Promise<SurfaceOutcome> {
   const { pluginId, descriptor } = request
+  // The manifest's type decides the placement before anything is asked for: a refused
+  // type must not mint a credential or leave a half-open surface behind.
+  const placement = resolveSurfacePlacement(descriptor.type, {
+    isDesktop: canOpenNativeSurface(),
+  })
+  if (placement.kind === 'refused') return reportRefusal(t, placement.refusal)
   watchNativeSurfaces()
-  const native = canOpenNativeSurface()
+  const native = placement.kind === 'native'
 
   // A surface that already stands is revealed on both halves. Only the browser half can
   // do it from the URL it already holds: `plugin_window_open` re-points the window at
@@ -211,7 +253,7 @@ export async function showPluginSurface(
     holdSurfaceCredential(pluginId, url, descriptor)
     void saveHostSurface(
       pluginId,
-      hostAfterOpen(pluginId, native ? 'native' : 'overlay', request.host, descriptor),
+      hostAfterOpen(pluginId, placement.kind, request.host, descriptor),
     ).catch(() => {})
   }
   return outcome
@@ -219,14 +261,14 @@ export async function showPluginSurface(
 
 function hostAfterOpen(
   pluginId: string,
-  slot: 'native' | 'overlay',
+  slot: HostSlot,
   host: HostSurface | undefined,
   descriptor: SurfaceDescriptor,
 ): HostSurface {
   const standing = overlaySurface(pluginId)
   if (standing) {
     return {
-      slot: 'overlay',
+      slot,
       x: Math.round(standing.bounds.x),
       y: Math.round(standing.bounds.y),
       width: Math.round(standing.bounds.width),
@@ -288,6 +330,7 @@ async function openOnDesktop(
     unmet: [],
     note: info.note,
     message: '',
+    refusal: null,
   }
 }
 
@@ -324,6 +367,7 @@ function openInBrowser(
     unmet,
     note: '',
     message: '',
+    refusal: null,
   }
 }
 

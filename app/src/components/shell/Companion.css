@@ -428,6 +428,15 @@ body.ephe-tour-open [data-testid='ephe-mark-hero'] {
   flex: none;
 }
 
+/* The summon switch is a thumb target on a phone: 32 px is under the 44 px
+   floor the rest of the header's touch targets hold. */
+@media (pointer: coarse) {
+  .header-companion-toggle {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
 [data-copilot-highlight='true'] {
   outline: 2px dashed rgb(124 159 240 / 0.8);
   outline-offset: 2px;

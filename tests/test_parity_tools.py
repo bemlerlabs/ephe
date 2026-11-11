@@ -109,9 +109,13 @@ def test_process_manage_unknown_id():
 
 
 def test_process_manage_background_roundtrip():
+    from core.tools.approval import ApprovalPolicy
+
     async def _run():
         tid = await execute_tool(
-            "run_shell", {"command": "echo parity-bg", "run_in_background": True}
+            "run_shell",
+            {"command": "echo parity-bg", "run_in_background": True},
+            policy=ApprovalPolicy(auto_approve=True),
         )
         assert tid.startswith("bg")
         waited = await execute_tool(

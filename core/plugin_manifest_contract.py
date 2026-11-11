@@ -85,9 +85,10 @@ KNOWN_TOOL_FAMILIES = {"read", "write", "shell", "network", "memory", "vision", 
 
 #: The sections a `capabilities` object may carry. Each one's body is validated by the
 #: module beside this file (`core/plugin_memory_contract.py`,
-#: `core/plugin_planner_contract.py`); this is the one list a new section is added to, so
-#: a section nobody implements stays a typo and stays refused.
-CAPABILITY_SECTIONS = frozenset({"memory", "planner"})
+#: `core/plugin_planner_contract.py`, `core/plugin_evaluator_contract.py`); this is the one
+#: list a new section is added to, so a section nobody implements stays a typo and stays
+#: refused.
+CAPABILITY_SECTIONS = frozenset({"memory", "planner", "evaluator"})
 
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
@@ -267,6 +268,11 @@ def validate_manifest(
     planner_error = validate_planner(manifest)
     if planner_error:
         return planner_error
+    from core.plugin_evaluator_contract import validate_evaluator
+
+    evaluator_error = validate_evaluator(manifest)
+    if evaluator_error:
+        return evaluator_error
     return None
 
 

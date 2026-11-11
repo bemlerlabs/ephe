@@ -80,7 +80,7 @@ Un teléfono en tu red local puede abrir la PWA después de ejecutar `ephe start
 #### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8
 ```
 
 Para leer el script antes de ejecutarlo, usa el repositorio:
@@ -97,7 +97,7 @@ El instalador prepara Python y el entorno local, compila la aplicación web y la
 
 ```powershell
 irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
 ```
 
 Desde un repositorio local, ejecuta el mismo `powershell -ExecutionPolicy Bypass -File .\install.ps1` después de abrir PowerShell en esa carpeta.

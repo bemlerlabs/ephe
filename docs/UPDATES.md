@@ -85,6 +85,12 @@ code 0, even when the checkout carries commits past that tag. If a newer release
 exists but the checkout already contains it, the command refuses instead of
 rewriting the tree backwards.
 
+`ephe update --tag vX.Y.Z` installs one named release instead of the newest. It
+is the rollback path: a checkout ahead of that tag is moved back to it
+(detached, so no branch is rewritten), and a missing or malformed tag stops the
+command before git runs. Without `--tag` the command keeps the forward-only
+rule above.
+
 `ephe update --channel commit` is the explicit exception, for a checkout that
 serves the desktop or PWA backend. It follows `main`'s tip and says so; after
 that the checkout is no longer release-pinned. The default command does not do

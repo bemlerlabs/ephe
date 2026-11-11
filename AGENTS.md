@@ -88,6 +88,8 @@ never with a recursive `grep`.
 
 - `core/` — engine adapters, tools, memory, skills and decisions; `server/` imports it and
   never the reverse.
+- `core/web_intake/` — the `web_research` tool's search, crawl, evidence and citation check;
+  its bounds live in `policy.py`, and the operator model is in [`docs/WEB_INTAKE.md`](docs/WEB_INTAKE.md).
 - `server/` — the FastAPI app and its routes; the product server on `:8765` also serves `app/dist`.
 - `app/` — the React PWA; the Tauri shell lives in `app/src-tauri/`.
 - `plugins/` — first-party plugin bundles (`ephe-plugin.json`, sha256-hashed).

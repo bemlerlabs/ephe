@@ -309,15 +309,23 @@ export default function ChatInput({
         dismissMention()
         return
       }
-      if (e.key === 'Enter' || e.key === 'Tab') {
+      if (e.key === 'Enter') {
         e.preventDefault()
         applyMention(mentionItems[Math.min(mentionIndex, mentionItems.length - 1)]!)
+        return
+      }
+      if (e.key === 'Tab') {
+        // Tab belongs to the page: close the popup and let focus move on. The
+        // menu used to take the keystroke as a pick, which left the caret in the
+        // field and made Tab unable to leave the composer.
+        dismissMention()
         return
       }
     }
     // R33: full keyboard control of the slash menu — ArrowUp/Down walk the
     // highlighted row, Escape dismisses the popup (keystroke stays in the
-    // input), Enter/Tab picks the highlighted suggestion.
+    // input), Enter picks the highlighted suggestion and Tab closes the popup
+    // so focus can leave the composer.
     if (slashOpen) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault()
@@ -330,9 +338,15 @@ export default function ChatInput({
         setSlashDismissed(true)
         return
       }
-      if (e.key === 'Enter' || e.key === 'Tab') {
+      if (e.key === 'Enter') {
         e.preventDefault()
         confirmSlash(slashFlat[Math.min(slashIndex, slashFlat.length - 1)])
+        return
+      }
+      if (e.key === 'Tab') {
+        // Tab closes the popup and keeps moving through the page; swallowing it
+        // here trapped keyboard focus in the composer while the menu was open.
+        setSlashDismissed(true)
         return
       }
     }

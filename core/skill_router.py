@@ -51,10 +51,14 @@ class SkillRoute:
     ``decision`` is None for the deterministic tiers (trigger, factory/artifact
     intent, named tool) — a rule match is not a choice. The fuzzy tier always
     returns one, including when the result is "no skill" below the floor.
+    ``top_score`` is the strongest TF-IDF candidate behind that "no skill":
+    the caller uses it to tell a near miss (the compact skill index still helps)
+    from a message no skill shares a term with (the index is noise).
     """
 
     skill: Skill | None
     decision: decisions.Decision | None = None
+    top_score: float = 0.0
 
 
 class SkillVerdictBackend:
@@ -112,6 +116,7 @@ def route_skills(
         return SkillRoute(None)
 
     by_name = {c.skill.name: c for c in candidates}
+    top_score = max(c.score for c in candidates)
     names = list(by_name)
     effective = backend
     if effective is None and decisions.is_engine_configured():
@@ -128,5 +133,5 @@ def route_skills(
     chosen = by_name[decision.chosen]
     # The floor is a TF-IDF contract; the engine's choice is the engine's own.
     if decision.backend == SkillVerdictBackend.name and chosen.score < floor:
-        return SkillRoute(None, decision)
-    return SkillRoute(chosen.skill, decision)
+        return SkillRoute(None, decision, top_score)
+    return SkillRoute(chosen.skill, decision, top_score)

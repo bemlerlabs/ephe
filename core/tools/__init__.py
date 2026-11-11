@@ -7,6 +7,7 @@ Usage: from core.tools import web_search, execute_tool, get_tool_schemas
 from core.tools.base import (
     WebSearchError,
     FileNotAllowedError,
+    ReadOnlyRootError,
     DirectoryNotFoundError,
     ShellConfirmationRequired,
     SandboxConfirmationRequired,
@@ -266,7 +267,7 @@ __all__ = [
     "MCPClient", "MCPServerSpec", "parse_server_spec", "set_mcp_servers",
     "sync_mcp_tools", "register_mcp_tool", "unregister_mcp_tools",
     "get_mcp_tools", "call_registered_mcp_tool", "mcp_tool_names",
-    "WebSearchError", "FileNotAllowedError", "DirectoryNotFoundError",
+    "WebSearchError", "FileNotAllowedError", "ReadOnlyRootError", "DirectoryNotFoundError",
     "ShellConfirmationRequired", "SandboxConfirmationRequired", "ShellTimeoutError",
     "ALLOWED_COMMANDS", "BLOCKED_PATTERNS", "ALLOWED_ROOTS",
     "SHELL_TIMEOUT_SECONDS", "MAX_FILE_CHARS", "MAX_WORKSPACE_CHARS",

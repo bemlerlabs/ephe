@@ -6,9 +6,10 @@ name: Release
 #   - with TAURI_SIGNING_PRIVATE_KEY set, the guard step below passes
 #     createUpdaterArtifacts=true to `tauri build`, so the bundler writes the .tar.gz/.AppImage
 #     signatures and tauri-action assembles latest.json from them and uploads both to the draft;
-#   - without the key the build stays unsigned, no signature and no manifest are produced, and the
-#     endpoint keeps answering 404. An unsigned manifest is worse than a 404, so that is the honest
-#     outcome rather than a degraded one.
+#   - without the key the build-bundles job refuses the tag before it builds. A tagged release
+#     is a milestone release, and it ships a signed shell: an unsigned draft would be a release
+#     no installed desktop can reach through the updater. `scripts/release_desktop.sh --unsigned`
+#     is the local, publish-forbidden path for a build on a machine with no key.
 # createUpdaterArtifacts deliberately lives in this workflow and not in tauri.conf.json: a committed
 # `true` is honoured by every `npm run tauri build` (the desktop check in AGENTS.md), and the bundler
 # then refuses that build outright when the key is absent. The guard has to sit where the key is.
@@ -49,6 +50,28 @@ permissions:
   contents: read
 
 jobs:
+  # The tag has to name the version the tree carries. `release.yml` takes the release name
+  # and the notes from `GITHUB_REF_NAME` and the bundle version from `tauri.conf.json`, so a
+  # hand-pushed tag can publish bundles of one version under another and the package job then
+  # looks for an asset that was never built. `release_cut.sh` refuses that locally; a direct
+  # `git push origin vX.Y.Z` bypasses the cut. This is the first job, before any build.
+  version-guard:
+    name: Version guard (tag names the tree)
+    if: github.event_name == 'push'
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: The tag and all six carriers name one version
+        run: python scripts/version_guard.py --tag "$GITHUB_REF_NAME"
+
   # R45: a hard gate before the bundle build — a broken tree produces no draft release.
   # `build-bundles` needs this job and `frontend-gate`; either one red stops the release.
   test-gate:
@@ -129,6 +152,23 @@ jobs:
         # the release box, through scripts/release_checklist.py. Exit 1 is a task that flipped
         # between its reps, exit 2 a cohort the gate cannot read.
         run: python evals/pass3_release_gate.py --runs evals/runs --no-engine-check
+      - name: Release checklist
+        # The same script `scripts/release_cut.sh` runs before it tags. The workflow already
+        # ran the pass^3 gate in the step above, and the signing key is scoped to the build
+        # job's environment (its own guard refuses an unsigned tagged build), so the checklist
+        # is told which of its items this event owns. On a tag push the tag already exists, so
+        # `--tagged` keeps `tag-free` from refusing the release it is checking; the version
+        # guard is what compares that tag with the carriers.
+        run: |
+          set -euo pipefail
+          # `--tagged` skips the tag-free item in both events: a tag push already created
+          # the tag, and a dispatch is a rehearsal that must not fail on a published one.
+          # The cut owns tag-free for a real release.
+          args=(--skip-pass3 --skip-signing --tagged)
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            args+=(--version "${GITHUB_REF_NAME#v}")
+          fi
+          python scripts/release_checklist.py "${args[@]}"
 
   # The frontend half of the release bar. v0.1.1 shipped while this file's test gate ran only
   # pytest and pass^3, and two other workflows were red on the same commit over the ModelPicker's
@@ -178,7 +218,7 @@ jobs:
 
   build-bundles:
     name: Tauri bundles (${{ matrix.os }})
-    needs: [test-gate, frontend-gate]
+    needs: [version-guard, test-gate, frontend-gate]
     # A tag push is the only event that builds. The release event consumes the assets already
     # created, and the dispatch is the gate's dry run.
     if: github.event_name == 'push'
@@ -216,6 +256,22 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Refuse an unsigned tagged release
+        # A tag is a milestone release, and the policy ships a signed shell. Without the key
+        # the bundler writes no .sig, tauri-action posts no latest.json, and the draft is a
+        # release no installed desktop can reach. A warning was the old behaviour and it let
+        # exactly that draft exist; the build now stops before it spends a cold Rust compile.
+        # The key is read, never printed: this step only asks whether it is empty.
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is empty in the release environment: a tagged milestone must ship a signed updater bundle, so this build stops instead of drafting an unsigned release."
+            exit 1
+          fi
+          echo "Signing key present: the bundles and the updater manifest can be produced."
 
       - name: Activate the pnpm this repo pins
         # Same defect as Frontend Build: `cache: pnpm` needs a pnpm binary, and nothing
@@ -278,9 +334,8 @@ jobs:
         id: updater
         # The one input that separates a signed release from an unsigned one. `createUpdaterArtifacts`
         # makes the bundler emit the platform signatures, and tauri-action assembles latest.json from
-        # them; without the key the bundler refuses that build ("a public key has been found, but no
-        # private key"), which is why the flag is passed as a --config override here and not committed
-        # into tauri.conf.json. `shell: bash` keeps the step off the runner's default shell.
+        # them. The guard above already refused a run without the key; this step repeats the test so
+        # a future edit that drops the guard still cannot call an unsigned build a release.
         shell: bash
         env:
           # Read, never printed: the step only asks whether the environment secret is empty. The build
@@ -297,23 +352,17 @@ jobs:
           # Linux stops at deb and AppImage here because tauri-bundler 2.10.3 (CLI 2.12.3)
           # rejects a semver prerelease in the RPM version field; the RPM is bundled in its own
           # step below, from the binary this job already compiled.
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::no signing key: an unsigned tagged release is not published."
+            exit 1
+          fi
           targets=''
           if [ "${{ runner.os }}" = "Linux" ]; then
             targets=',"targets":["deb","appimage"]'
           fi
-          if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
-            echo 'signed=true' >> "$GITHUB_OUTPUT"
-            echo "config=--config '{\"bundle\":{\"createUpdaterArtifacts\":true${targets}}}'" >> "$GITHUB_OUTPUT"
-            echo "Signing key present: bundles carry .sig files and latest.json is assembled." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'signed=false' >> "$GITHUB_OUTPUT"
-            if [ -n "$targets" ]; then
-              echo "config=--config '{\"bundle\":{\"targets\":[\"deb\",\"appimage\"]}}'" >> "$GITHUB_OUTPUT"
-            else
-              echo 'config=' >> "$GITHUB_OUTPUT"
-            fi
-            echo "No signing key: bundles upload unsigned, with no .sig and no latest.json, and the feed stays a 404." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo 'signed=true' >> "$GITHUB_OUTPUT"
+          echo "config=--config '{\"bundle\":{\"createUpdaterArtifacts\":true${targets}}}'" >> "$GITHUB_OUTPUT"
+          echo "Signing key present: bundles carry .sig files and latest.json is assembled." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up Python
         # The release body is cut from CHANGELOG.md by a stdlib script, and this job provisions no
@@ -545,6 +594,20 @@ jobs:
             echo "source_sha=${source_sha}"
           } >> "$GITHUB_OUTPUT"
           echo "measured ${TAG}: dmg sha256=${dmg_sha} source sha256=${source_sha}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refuse a template hash the release did not measure
+        # The templates carry a sentinel, never a copied hash. This is the one run that holds both
+        # measured numbers, so it is the run that compares them with what the tap and the bucket
+        # would receive. A stale or invented hash stops the publish before the bucket is written.
+        env:
+          VERSION: ${{ steps.assets.outputs.version }}
+          DMG_SHA: ${{ steps.assets.outputs.dmg_sha }}
+          SOURCE_SHA: ${{ steps.assets.outputs.source_sha }}
+        run: |
+          python3 scripts/packaging_freshness.py \
+            --release "$VERSION" \
+            --dmg-sha256 "$DMG_SHA" \
+            --source-sha256 "$SOURCE_SHA"
 
       - name: Render the tap and bucket manifests
         # One step renders both files from the in-tree templates, so the two package surfaces cannot

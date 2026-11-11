@@ -88,6 +88,120 @@ CORE_TOOLS: frozenset[str] = frozenset({
     "tool_search", "tool_describe", "tool_call",
 })
 
+#: Families of CORE tools a turn carries only when the message asks for them.
+#: A chat turn and a browser turn share almost no vocabulary, and these three
+#: families are 7.6 KB of the 27.8 KB base array (measured 2026-11-12). Leaving
+#: one out does not remove its tools: tool_search names them as "not in this
+#: session's array, reachable through tool_call", and a direct call still
+#: dispatches through the registry.
+REQUESTED_ONLY_FAMILIES: dict[str, frozenset[str]] = {
+    "browser": frozenset({
+        "browser_go", "browser_screenshot", "browser_click", "browser_type",
+        "browser_press", "browser_scroll", "browser_evaluate", "browser_exec",
+    }),
+    "vision": frozenset({
+        "analyze_image", "take_screenshot", "vision_click", "vision_type",
+        "get_display_info",
+    }),
+    "clipboard": frozenset({"clipboard_read", "clipboard_write"}),
+}
+
+#: Vocabulary that asks for a family. Single tokens match on word boundaries
+#: (``tab`` does not fire on ``table``); a phrase with a space matches as text.
+#: German words are here because the user's own message is not the product
+#: surface, and a German-language turn has to reach the same tools.
+_FAMILY_SIGNALS: dict[str, tuple[str, ...]] = {
+    "browser": (
+        "browser", "browsers", "browse", "webpage", "web page", "website",
+        "web site", "url", "http", "https", "navigate", "click", "clicking",
+        "scroll", "tab", "webseite", "seite", "klicke", "scrolle", "navigiere",
+        "link", "button", "form", "login", "log in", "sign in", "anmelden",
+    ),
+    "vision": (
+        "screenshot", "screenshots", "screen", "screengrab", "display",
+        "monitor", "vision", "desktop", "bildschirm", "anzeige",
+    ),
+    "clipboard": (
+        "clipboard", "copy", "paste", "zwischenablage", "kopiere", "kopieren",
+        "einfuegen", "einfügen",
+    ),
+}
+
+#: The family scan reads the tail of the conversation: a follow-up turn ("now log
+#: in") inherits the browser family from the turn before it, and a family used
+#: long ago does not linger as a standing cost.
+_FAMILY_SCAN_MESSAGES = 8
+_FAMILY_SCAN_CHARS = 20_000
+
+
+def _message_text(message: object) -> str:
+    """Content plus the names of the tool calls in one history entry."""
+    if isinstance(message, dict):
+        parts = [str(message.get("content") or "")]
+        calls = message.get("tool_calls") or []
+    else:
+        parts = [str(getattr(message, "content", "") or "")]
+        calls = getattr(message, "tool_calls", None) or []
+    for call in calls:
+        function = call.get("function") if isinstance(call, dict) else getattr(call, "function", None)
+        name = (
+            function.get("name")
+            if isinstance(function, dict)
+            else getattr(function, "name", "")
+        )
+        if name:
+            parts.append(str(name))
+    return " ".join(part for part in parts if part)
+
+
+def requested_tool_families(messages: list) -> frozenset[str]:
+    """The request-gated families the recent conversation asks for."""
+    recent = list(messages or [])[-_FAMILY_SCAN_MESSAGES:]
+    chunks: list[str] = []
+    used = 0
+    for message in recent:
+        text = _message_text(message)
+        if not text:
+            continue
+        chunks.append(text)
+        used += len(text)
+        if used >= _FAMILY_SCAN_CHARS:
+            break
+    text = "\n".join(chunks).lower()[:_FAMILY_SCAN_CHARS]
+    families = {
+        family
+        for family, signals in _FAMILY_SIGNALS.items()
+        if any(
+            (signal in text) if " " in signal
+            else re.search(rf"(?<![a-z0-9]){re.escape(signal)}(?![a-z0-9])", text) is not None
+            for signal in signals
+        )
+    }
+    if any(
+        getattr(message, "images", None)
+        or (isinstance(message, dict) and message.get("images"))
+        for message in recent
+    ):
+        families.add("vision")
+    return frozenset(families)
+
+
+def drop_unrequested_families(tools: list[dict], messages: list) -> list[dict]:
+    """Remove the request-gated families this turn did not ask for.
+
+    Only the base (no-whitelist) array goes through here; an active skill named
+    its tools, so its whitelist is not second-guessed.
+    """
+    wanted = requested_tool_families(messages)
+    drop: set[str] = set()
+    for family, names in REQUESTED_ONLY_FAMILIES.items():
+        if family not in wanted:
+            drop |= names
+    if not drop:
+        return tools
+    return [tool for tool in tools if tool.get("function", {}).get("name") not in drop]
+
+
 #: Short descriptions for the discovery view (compact, precise).
 _TOOL_HINTS: dict[str, str] = {
     "create_pdf": "PDF document from title and content (report/brief/notes).",

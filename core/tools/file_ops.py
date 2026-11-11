@@ -14,6 +14,7 @@ from core.tools.base import (
     FileNotAllowedError,
     MAX_FILE_CHARS,
     _is_path_allowed,
+    check_write_path,
 )
 
 
@@ -182,9 +183,7 @@ async def edit_file(path: str, old_string: str, new_string: str, replace_all: bo
     replace_all=True lifts the ambiguity barrier (all hits).
     """
     resolved = _resolve_against_workspace(path)
-
-    if not _is_path_allowed(resolved):
-        raise FileNotAllowedError(str(resolved))
+    check_write_path(resolved)
 
     if not resolved.exists():
         # Create path: a missing file has by definition 0 occurrences of
@@ -288,8 +287,7 @@ async def delete_file(path: str) -> str:
     """Deletes a file in the workspace (approval-gated). N4-W2: rename =
     create + delete, since the tool list has no own rename primitive."""
     resolved = _resolve_against_workspace(path)
-    if not _is_path_allowed(resolved):
-        raise FileNotAllowedError(str(resolved))
+    check_write_path(resolved)
     if not resolved.exists():
         return f"deleted: no (already absent) '{resolved}'"
     if resolved.is_dir():
@@ -307,8 +305,7 @@ async def write_file(path: str, content: str) -> str:
     import difflib
 
     resolved = _resolve_against_workspace(path)
-    if not _is_path_allowed(resolved):
-        raise FileNotAllowedError(str(resolved))
+    check_write_path(resolved)
     content = str(content or "")
     if len(content) > MAX_WRITE_CHARS:
         raise ValueError(f"content too large: {len(content)} characters (limit {MAX_WRITE_CHARS})")

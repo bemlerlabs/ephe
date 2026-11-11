@@ -131,7 +131,7 @@ def test_given_natural_notebooklm_slides_request_when_resolved_then_source_noteb
     """
     from server.routes.chat import _resolve_skill_invocation
 
-    skill, content = _resolve_skill_invocation(
+    skill, content, _route = _resolve_skill_invocation(
         "erstelle mir ein notebook lm slides für ki architektur mit bilder"
     )
 

@@ -268,6 +268,13 @@ def _tools_for_messages(messages: list, allowed_tool_names: list[str] | None = N
             tool for tool in tools
             if tool.get("function", {}).get("name") in visible
         ]
+        # PERF-BE-REST: the request-gated families (browser, vision, clipboard)
+        # ship only when this turn asks for them. The tools stay dispatchable and
+        # tool_search names the omitted ones, so this narrows the payload, not the
+        # reach. The whitelist path above is a skill's own decision and untouched.
+        from core.tools.discovery import drop_unrequested_families
+
+        tools = drop_unrequested_families(tools, messages)
     # Recorded for tool_search: it must not claim that omitted core tools are active.
     # The image filter below stays outside the record on purpose — it removes a tool
     # for one message (a turn without images), while the session keeps its landscape.

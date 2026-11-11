@@ -32,6 +32,7 @@ from __future__ import annotations
 import ipaddress
 import os
 import socket
+from dataclasses import dataclass
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from core.reason import reason
@@ -307,6 +308,115 @@ def _is_ip_literal(host: str) -> bool:
     return True
 
 
+@dataclass(frozen=True)
+class GuardedResponse:
+    """One checked read: status, decoded text, the response headers, and the note.
+
+    ``headers`` is the missing half for a caller that revalidates a page (ETag,
+    Last-Modified, Content-Type). ``guarded_fetch`` kept its 3-tuple so every
+    existing caller and test reads the same answer; new code asks for this.
+    """
+
+    status: int
+    text: str
+    headers: dict[str, str]
+    note: str
+    url: str
+
+
+async def guarded_get(
+    url: str,
+    *,
+    resolver=None,
+    allow_private: bool | None = None,
+    max_bytes: int = MAX_DOWNLOAD_BYTES,
+    timeout: float = FETCH_TIMEOUT_SECONDS,
+    transport=None,
+    headers: dict[str, str] | None = None,
+) -> GuardedResponse:
+    """Fetches over checked hops — every redirect on its own, with response headers.
+
+    ``headers`` are sent to the address the call names and never to a redirect
+    target: a credential placed in a header must not follow a 302 to another
+    host. The address check, the pin and the byte cap are the same ones
+    ``guarded_fetch`` applies, because this function is that path.
+    """
+    import httpx
+
+    current = (url or "").strip()
+    target = ""
+    for hop in range(MAX_REDIRECT_HOPS + 1):
+        allowed, decision, addresses = _evaluate(
+            current, allow_private=allow_private, resolver=resolver
+        )
+        if not allowed:
+            return GuardedResponse(0, f"[refused] {decision}", {}, decision, current)
+        target = decision
+        pinned_url, sni, host_header = pinned_request(current, addresses)
+        collected = bytearray()
+        truncated = False
+        request_headers = {"Host": host_header}
+        if hop == 0 and headers:
+            request_headers.update({str(k): str(v) for k, v in headers.items()})
+        try:
+            client_kwargs = {"timeout": timeout, "follow_redirects": False}
+            if transport is not None:
+                client_kwargs["transport"] = transport
+            async with httpx.AsyncClient(**client_kwargs) as client:
+                request = client.build_request("GET", pinned_url, headers=request_headers)
+                if sni:
+                    # TLS validates against the host name, TCP goes to the checked address.
+                    request.extensions["sni_hostname"] = sni
+                response = await client.send(request, stream=True)
+                try:
+                    status = int(response.status_code)
+                    response_headers = {
+                        str(k).lower(): str(v) for k, v in response.headers.items()
+                    }
+                    if status in (301, 302, 303, 307, 308):
+                        location = response.headers.get("location") or ""
+                        if not location:
+                            return GuardedResponse(
+                                status, "", response_headers, "Redirect carried no target.", current
+                            )
+                        current = urljoin(current, location)
+                        continue
+                    async for chunk in response.aiter_bytes():
+                        collected += chunk
+                        if len(collected) >= max_bytes:
+                            truncated = True
+                            break
+                finally:
+                    await response.aclose()
+        except Exception as exc:  # noqa: BLE001 — the channel returns lines, not stack traces
+            return GuardedResponse(
+                0,
+                f"[error] {type(exc).__name__}: {exc}",
+                {},
+                f"{target}: {type(exc).__name__}",
+                current,
+            )
+        text = bytes(collected).decode("utf-8", errors="replace")
+        # The note is for things that stand out, not for every healthy request:
+        # a success stays an empty line, otherwise the caller reads warnings everywhere.
+        if truncated:
+            return GuardedResponse(
+                status,
+                text[:max_bytes],
+                response_headers,
+                f"{target}: answer capped at {max_bytes} bytes.",
+                current,
+            )
+        return GuardedResponse(status, text, response_headers, "", current)
+    return GuardedResponse(
+        0,
+        "[error] too many redirects.",
+        {},
+        f"{MAX_REDIRECT_HOPS} redirects exceeded — last hop {current}",
+        current,
+    )
+
+
 async def guarded_fetch(
     url: str,
     *,
@@ -325,53 +435,12 @@ async def guarded_fetch(
     ``transport`` is only the test hook for the request path without a network;
     in production httpx decides.
     """
-    import httpx
-
-    current = (url or "").strip()
-    target = ""
-    for _hop in range(MAX_REDIRECT_HOPS + 1):
-        allowed, decision, addresses = _evaluate(
-            current, allow_private=allow_private, resolver=resolver
-        )
-        if not allowed:
-            return 0, f"[refused] {decision}", decision
-        target = decision
-        pinned_url, sni, host_header = pinned_request(current, addresses)
-        collected = bytearray()
-        truncated = False
-        try:
-            client_kwargs = {"timeout": timeout, "follow_redirects": False}
-            if transport is not None:
-                client_kwargs["transport"] = transport
-            async with httpx.AsyncClient(**client_kwargs) as client:
-                request = client.build_request("GET", pinned_url, headers={"Host": host_header})
-                if sni:
-                    # TLS validates against the host name, TCP goes to the checked address.
-                    request.extensions["sni_hostname"] = sni
-                response = await client.send(request, stream=True)
-                try:
-                    status = int(response.status_code)
-                    if status in (301, 302, 303, 307, 308):
-                        location = response.headers.get("location") or ""
-                        if not location:
-                            return status, "", "Redirect carried no target."
-                        current = urljoin(current, location)
-                        continue
-                    async for chunk in response.aiter_bytes():
-                        collected += chunk
-                        if len(collected) >= max_bytes:
-                            truncated = True
-                            break
-                finally:
-                    await response.aclose()
-        except Exception as exc:  # noqa: BLE001 — the channel returns lines, not stack traces
-            return 0, f"[error] {type(exc).__name__}: {exc}", f"{target}: {type(exc).__name__}"
-        text = bytes(collected).decode("utf-8", errors="replace")
-        # The note is for things that stand out, not for every healthy request:
-        # a success stays an empty line, otherwise the caller reads warnings everywhere.
-        if truncated:
-            return status, text[:max_bytes], f"{target}: answer capped at {max_bytes} bytes."
-        return status, text, ""
-    return 0, "[error] too many redirects.", (
-        f"{MAX_REDIRECT_HOPS} redirects exceeded — last hop {current}"
+    response = await guarded_get(
+        url,
+        resolver=resolver,
+        allow_private=allow_private,
+        max_bytes=max_bytes,
+        timeout=timeout,
+        transport=transport,
     )
+    return response.status, response.text, response.note
