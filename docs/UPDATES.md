@@ -8,7 +8,7 @@ release tags. The release channel is the default everywhere.
 |---|---|---|---|
 | Desktop app | `release` | backend + PWA only | the signed `.app` plus the backend checkout at its tag; between releases the backend and the PWA |
 | PWA in a browser | `release` | backend + PWA | the backend checkout and the assets the server sends |
-| Terminal CLI/TUI | `release` only | not offered | the checkout, fast-forwarded to a release tag |
+| Terminal CLI/TUI | `release` only | `release` | the checkout, fast-forwarded to a release tag (the commit channel needs an explicit `--channel commit`) |
 
 ## The two channels
 
