@@ -14,6 +14,7 @@ could see, what it could not, and which row the audit log got.
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import re
@@ -667,8 +668,9 @@ def test_vision_type_leaves_an_omitted_enter_off_the_wire():
 
 def test_the_codes_the_child_raises_are_the_codes_the_host_answers_with():
     """One vocabulary, checked from both ends so neither half can rename on its own."""
-    for name in ("METHOD_UNKNOWN", "METHOD_DENIED", "ARGS_INVALID", "PAYLOAD_TOO_LARGE",
-                 "RATE_LIMITED", "INTERNAL", "BRIDGE_VERSION"):
+    for name in ("METHOD_UNKNOWN", "METHOD_DENIED", "PATH_DENIED", "CONSENT_REQUIRED",
+                 "ARGS_INVALID", "PAYLOAD_TOO_LARGE", "RATE_LIMITED", "INTERNAL",
+                 "BRIDGE_VERSION"):
         assert getattr(bridge_client, name) == getattr(bridge, name), name
 
 
@@ -1372,6 +1374,15 @@ def test_the_shipped_shell_asks_the_host_and_keeps_the_command_out(monkeypatch):
         "core.audit_log.audit_event", lambda kind, **kw: rows.append({"kind": kind, **kw})
     )
 
+    async def _yes(name: str, args: dict) -> bool:
+        return True
+
+    # The bridged shell asks the chat gate before it runs; this test is about the
+    # handler and the audit row, so the gate is answered here rather than in a UI.
+    monkeypatch.setattr(
+        "core.tools.chat_gate._approval_callback", lambda on_confirm=None: _yes
+    )
+
     plain = run_plugin_tool(
         by_name["run_shell"],
         {"command": "command-must-stay-out"},
@@ -1850,6 +1861,170 @@ def test_a_refused_file_path_keeps_the_kernel_sentence(monkeypatch):
     assert "method=read_file" in row
     assert "target=n/a" in row
     assert "file-must-stay-out" not in row
+
+
+@pytest.fixture()
+def file_rail(tmp_path, monkeypatch):
+    """A workspace, a declared data root, and the plugin file scope around one call."""
+    from core.tools.base import PLUGIN_FILE_SCOPE
+
+    workspace = tmp_path / "workspace"
+    declared = tmp_path / "declared"
+    workspace.mkdir()
+    declared.mkdir()
+    monkeypatch.setattr("core.engine_config.get_workspace_dir", lambda: str(workspace))
+    monkeypatch.setattr(
+        "core.capability_policy.resolved_data_roots",
+        lambda plugin, root: [declared.resolve()],
+    )
+    rows: list[dict] = []
+    monkeypatch.setattr(
+        "core.audit_log.audit_event", lambda kind, **kw: rows.append({"kind": kind, **kw})
+    )
+    token = PLUGIN_FILE_SCOPE.set(PLUGIN_ID)
+    try:
+        yield SimpleNamespace(
+            tmp=tmp_path, workspace=workspace, declared=declared, rows=rows
+        )
+    finally:
+        PLUGIN_FILE_SCOPE.reset(token)
+
+
+def test_a_credential_shaped_read_is_refused_with_a_code_and_a_next_step(file_rail):
+    """The model path asks before a `.env` read; a bridged call has no dialog, so it refuses."""
+    note = file_rail.workspace / "notes.md"
+    note.write_text("plain note\n", encoding="utf-8")
+    env = file_rail.workspace / ".env"
+    env.write_text("API_KEY=sk-test-1234567890abcdef\n", encoding="utf-8")
+    identity = _identity(families=frozenset({"read"}), family="read")
+
+    plain = _dispatch({"method": "read_file", "args": {"path": str(note)}}, identity)
+    assert plain["ok"] is True and "plain note" in plain["result"]["text"]
+
+    refused = _dispatch({"method": "read_file", "args": {"path": str(env)}}, identity)
+    assert refused["ok"] is False and refused["code"] == bridge.PATH_DENIED
+    assert "credential-shaped" in refused["detail"]
+    assert "Ask the user" in refused["detail"]
+    assert "API_KEY" not in refused["detail"]
+
+    row = [item for item in _bridge_rows(file_rail.rows) if item["decision"] == "denied"][-1]
+    assert "method=read_file" in row["detail"]
+    assert f"code={bridge.PATH_DENIED}" in row["detail"]
+    assert "API_KEY" not in row["detail"]
+
+
+def test_a_declared_data_root_is_read_only_on_both_rails(file_rail):
+    """The worker is mounted read-only there and the host bridge answers the same way."""
+    from core.tools.base import ReadOnlyRootError
+    from core.tools.file_ops import write_file as kernel_write
+
+    note = file_rail.declared / "note.md"
+    note.write_text("read me\n", encoding="utf-8")
+    identity = _identity(families=frozenset({"read", "write"}), family="write")
+
+    read = _dispatch({"method": "read_file", "args": {"path": str(note)}}, identity)
+    assert read["ok"] is True and "read me" in read["result"]["text"]
+
+    target = file_rail.declared / "written-by-plugin.txt"
+    refused = _dispatch(
+        {"method": "write_file", "args": {"path": str(target), "content": "PLUGIN-WROTE"}},
+        identity,
+    )
+    assert refused["ok"] is False and refused["code"] == bridge.PATH_DENIED
+    assert "read grant" in refused["detail"]
+    assert not target.exists()
+
+    edited = _dispatch(
+        {
+            "method": "edit_file",
+            "args": {"path": str(note), "old_string": "read me", "new_string": "changed"},
+        },
+        identity,
+    )
+    assert edited["ok"] is False and edited["code"] == bridge.PATH_DENIED
+    assert note.read_text(encoding="utf-8") == "read me\n"
+
+    with pytest.raises(ReadOnlyRootError):
+        asyncio.run(kernel_write(str(target), "PLUGIN-WROTE"))
+    assert not target.exists()
+
+    allowed = _dispatch(
+        {
+            "method": "write_file",
+            "args": {"path": str(file_rail.workspace / "out.txt"), "content": "ok"},
+        },
+        identity,
+    )
+    assert allowed["ok"] is True
+    assert (file_rail.workspace / "out.txt").read_text(encoding="utf-8") == "ok"
+
+    bundle = file_rail.tmp / "bundle"
+    bundle.mkdir()
+    (bundle / "handlers.py").write_text(
+        "def run(arguments, state_dir):\n    return {}\n", encoding="utf-8"
+    )
+    spec, error = build_spec(
+        plugin_id=PLUGIN_ID,
+        plugin_dir=bundle,
+        entry="handlers.py",
+        host_roots=(str(file_rail.declared.resolve()),),
+    )
+    assert error == "", error
+    assert str(file_rail.declared.resolve()) in spec.read_roots()
+
+    denied_rows = [item for item in _bridge_rows(file_rail.rows) if item["decision"] == "denied"]
+    assert "method=write_file" in denied_rows[0]["detail"]
+    assert f"code={bridge.PATH_DENIED}" in denied_rows[0]["detail"]
+
+
+def test_a_bridged_shell_goes_through_the_chat_gate(file_rail, monkeypatch):
+    """No dialog, no run: the bridge asks the same gate the model path uses."""
+    from core.vision import _sandbox_cb_var
+
+    ran: list[str] = []
+
+    async def _shell(command: str, run_in_background: bool = False, cwd: str | None = None) -> str:
+        ran.append(command)
+        return "ran"
+
+    monkeypatch.setattr("core.tools._shell_exec.run_shell", _shell)
+    identity = _identity(families=frozenset({"shell"}), family="shell")
+    payload = {
+        "method": "run_shell",
+        "args": {"command": "echo bridge-command-must-stay-out"},
+    }
+
+    refused = _dispatch(payload, identity)
+    assert refused["ok"] is False and refused["code"] == bridge.CONSENT_REQUIRED
+    assert "no_approval_channel" in refused["detail"]
+    assert "Ask, or choose a read-only path." in refused["detail"]
+    assert ran == []
+    row = [item for item in _bridge_rows(file_rail.rows) if item["decision"] == "denied"][-1]
+    assert "method=run_shell" in row["detail"]
+    assert "bridge-command-must-stay-out" not in row["detail"]
+
+    async def _yes(name: str, args: dict) -> bool:
+        return True
+
+    token = _sandbox_cb_var.set(_yes)
+    try:
+        allowed = _dispatch(payload, identity)
+    finally:
+        _sandbox_cb_var.reset(token)
+    assert allowed["ok"] is True and allowed["result"]["text"] == "ran"
+    assert ran == ["echo bridge-command-must-stay-out"]
+
+    async def _no(name: str, args: dict) -> bool:
+        return False
+
+    token = _sandbox_cb_var.set(_no)
+    try:
+        denied = _dispatch(payload, identity)
+    finally:
+        _sandbox_cb_var.reset(token)
+    assert denied["ok"] is False and denied["code"] == bridge.CONSENT_REQUIRED
+    assert "not_approved_by_user" in denied["detail"]
+    assert ran == ["echo bridge-command-must-stay-out"]
 
 
 @capabilities.requires_boundary

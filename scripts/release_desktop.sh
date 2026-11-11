@@ -12,11 +12,45 @@
 # password in the macOS keychain under the service name
 # ephe-updater-signing — not in a plaintext file, not in the repo, never in
 # any output. Anyone building from another machine exports both themselves.
+#
+#   scripts/release_desktop.sh             signed build with the updater feed
+#   scripts/release_desktop.sh --publish   build, then create the GitHub release
+#   scripts/release_desktop.sh --unsigned  local build only: no key, no .sig, no feed,
+#                                          and --publish is refused
+#   scripts/release_desktop.sh --dry-run   print the build plan, touch nothing
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="$(node -p "require('./app/package.json').version")"
 KEY_FILE="${EPHE_UPDATER_KEY:-$HOME/.tauri/ephe.key}"
+PUBLISH=0
+UNSIGNED=0
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    --publish) PUBLISH=1 ;;
+    --unsigned) UNSIGNED=1 ;;
+    --dry-run) DRY_RUN=1 ;;
+    *) echo "  ✗ unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
+
+if [ "$DRY_RUN" = 1 ]; then
+  echo "  dry run: would build Ephe ${VERSION} from ${KEY_FILE} and write the updater feed."
+  echo "  nothing was built, signed or published."
+  exit 0
+fi
+
+if [ "$UNSIGNED" = 1 ]; then
+  if [ "$PUBLISH" = 1 ]; then
+    echo "  ✗ --unsigned is a local build; --publish needs the signed updater artifacts." >&2
+    exit 2
+  fi
+  echo "  … local unsigned build of Ephe ${VERSION}: no key, no updater artifacts, not publishable"
+  (cd app && npx tauri build)
+  echo "  ✓ unsigned build finished; this tree has no .sig and no latest.json."
+  exit 0
+fi
 
 # The repository the release is published to, and the one the updater feed points
 # at — one value, because a feed that names a different repository than the
@@ -144,7 +178,7 @@ echo
 echo "  ✓ artifacts under ${BUNDLE}/macos/ and ${BUNDLE}/dmg/"
 ls -1 "${BUNDLE}/macos" "${BUNDLE}/dmg" 2>/dev/null | sed 's/^/      /'
 
-if [[ "${1:-}" == "--publish" ]]; then
+if [ "$PUBLISH" = 1 ]; then
   TAG="v${VERSION}"
   if gh release view "$TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1; then
     echo "  ⚠ $TAG already exists in $RELEASE_REPO — nothing created. Upload the artifacts again:"

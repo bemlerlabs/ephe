@@ -156,6 +156,7 @@ _CREDENTIAL_BOUND_TOOLS: frozenset[str] = frozenset({
 NETWORK_TOOLS: frozenset[str] = frozenset({
     "web_search",
     "fetch_url",
+    "web_research",
     "browser_go",
 })
 

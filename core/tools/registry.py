@@ -62,6 +62,7 @@ from core.tools.workbench_tools import (
 from core.tools.discovery import tool_search, tool_describe, tool_call
 from core.tools.state_tools import skill_manage
 from core.tools.subagent_tool import spawn_agent, SPAWN_AGENT_SCHEMA
+from core.tools.web_research import WEB_RESEARCH_TOOL_SCHEMAS, web_research
 
 
 def _error_line(line: str, exc: BaseException) -> str:
@@ -488,6 +489,7 @@ _DISCOVERY_TOOL_SCHEMAS: list[dict] = [
 TOOL_MAP: dict[str, object] = {
     "manage_tasks": manage_tasks,
     "query_codebase": query_codebase,
+    "web_research": web_research,
     "discover_projects": discover_projects,
     "delete_file": delete_file,
     "get_datetime": get_datetime,
@@ -1406,6 +1408,9 @@ def _all_tool_schemas() -> list[dict]:
     schemas.extend(_UTILITY_TOOL_SCHEMAS)
     # QD-012: the workspace index reader (always visible; it answers from local rows)
     schemas.extend(CODEBASE_TOOL_SCHEMAS)
+    # Web intake: the search-and-pages tool. Offered always; without a provider it
+    # refuses with the setting to add, which is cheaper than hiding the capability.
+    schemas.extend(WEB_RESEARCH_TOOL_SCHEMAS)
     # G1: the ask gate — a tool the model calls to pause the run on a question.
     schemas.extend(ASK_TOOL_SCHEMAS)
     # R36-S: sub-agent delegation — offered while the user keeps the control on.

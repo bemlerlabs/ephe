@@ -613,7 +613,7 @@ def test_given_readme_quickstart_when_checked_then_first_path_is_one_command():
     first_command = bash_blocks[0].strip()
     assert re.fullmatch(
         r"curl -fsSL https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
-        r"v\d+\.\d+\.\d+/install\.sh \| bash",
+        r"v\d+\.\d+\.\d+/install\.sh \| bash -s -- --tag v\d+\.\d+\.\d+",
         first_command,
     )
     assert "\n" not in first_command
@@ -632,7 +632,7 @@ def test_given_readme_hero_when_checked_then_first_terminal_command_is_installer
     assert bash_blocks
     assert re.fullmatch(
         r"curl -fsSL https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
-        r"v\d+\.\d+\.\d+/install\.sh \| bash",
+        r"v\d+\.\d+\.\d+/install\.sh \| bash -s -- --tag v\d+\.\d+\.\d+",
         bash_blocks[0].strip(),
     )
     assert "local-first workspace for an AI agent" in readme[:1500]
@@ -1340,7 +1340,9 @@ def test_given_dry_run_when_it_runs_then_it_writes_nothing_into_home_and_claims_
 def test_given_existing_checkout_when_the_update_fails_then_the_install_continues():
     """A dirty or offline clone must not stop the one-command install at the pull."""
     script = (ROOT / "install.sh").read_text(encoding="utf-8")
-    assert "run git pull --ff-only || warn" in script
+    assert 'run git -C "$dir" pull --ff-only' in script
+    assert "Could not update the existing checkout" in script
+    assert "pin_existing" in script
 
 
 def test_given_install_sh_when_a_command_fails_then_the_error_trap_names_the_line(tmp_path):

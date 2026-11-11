@@ -114,7 +114,7 @@ class TestSchemaView:
         from core.tools.registry import TOOL_MAP
 
         counted = len(TOOL_MAP)
-        assert counted == 37, (
+        assert counted == 38, (
             f"TOOL_MAP holds {counted} names; the anchor is the literal on this line. "
             "A disabled plugin must never thin the dispatch map — check the gate first. "
             "If a tool really was added or removed from the kernel map, land it in "

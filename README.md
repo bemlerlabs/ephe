@@ -77,7 +77,7 @@ A phone on your local network can open the PWA after `ephe start --lan --open`; 
 #### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8
 ```
 
 To read the script before it runs, use the checkout:
@@ -96,7 +96,7 @@ Prefer a tour before the first task? Open `http://127.0.0.1:8765/#/welcome`; the
 
 ```powershell
 irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
 ```
 
 From a local checkout, run the same `powershell -ExecutionPolicy Bypass -File .\install.ps1` after opening PowerShell in that folder.
@@ -107,7 +107,7 @@ Windows installation is not yet verified end to end for this revision.
 
 Docker and every installer flag are described in [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md).
 
-The command names the release this tree ships, `v0.6.8`; the tag is published, so the URL resolves. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
+The command names the release this tree ships, `v0.6.8`; the tag is published, so the URL resolves. `--tag v0.6.8` makes the installer check that tag out instead of the branch tip, so a release install starts on the released commit. An existing checkout in the install folder is moved to that tag; without the flag it keeps its branch and fast-forwards. The Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the terminal-only install.
 
 Before using `ephe` in a new terminal, activate the installed environment.
 For the default installation on macOS or Linux:

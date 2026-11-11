@@ -211,6 +211,91 @@ def test_the_release_probe_allows_a_detached_tag_but_not_another_branch(tmp_path
 
 
 
+def test_an_explicit_tag_moves_the_checkout_backwards(tmp_path, monkeypatch):
+    """The documented rollback: the caller names the release, and a tree ahead of it moves back
+    to that tag detached instead of being refused as `ahead_of_release`."""
+    repo = make_repo(tmp_path)  # main is at D, v0.6.3 is two commits back
+    monkeypatch.setattr(
+        update_check,
+        "_fetch_latest",
+        lambda: pytest.fail("an explicit tag must not ask the release feed"),
+    )
+
+    out = update_apply.apply_release(repo, tag="v0.6.3")
+
+    assert out["ok"] is True, out
+    assert out["tag"] == "v0.6.3"
+    assert git(repo, "rev-parse", "HEAD") == git(repo, "rev-parse", "v0.6.3^{commit}")
+    assert git(repo, "rev-parse", "--abbrev-ref", "HEAD") == "HEAD"
+    assert not (repo / "d.txt").exists()
+    assert out["restart"] is True
+
+
+def test_an_explicit_tag_moves_forward_to_that_tag(tmp_path, monkeypatch):
+    repo = make_repo(tmp_path)
+    git(repo, "checkout", "-q", "v0.6.3")
+    monkeypatch.setattr(update_check, "_fetch_latest", lambda: pytest.fail("no feed"))
+
+    out = update_apply.apply_release(repo, tag="v0.6.4")
+
+    assert out["ok"] is True, out
+    assert git(repo, "rev-parse", "HEAD") == git(repo, "rev-parse", "v0.6.4^{commit}")
+    assert (repo / "c.txt").exists()
+    assert not (repo / "d.txt").exists()
+
+
+def test_an_explicit_tag_may_omit_the_v_prefix(tmp_path, monkeypatch):
+    repo = make_repo(tmp_path)
+    monkeypatch.setattr(update_check, "_fetch_latest", lambda: pytest.fail("no feed"))
+    out = update_apply.apply_release(repo, tag="0.6.3")
+    assert out["ok"] is True, out
+    assert out["tag"] == "v0.6.3"
+
+
+def test_a_malformed_explicit_tag_stops_before_git(tmp_path, monkeypatch):
+    repo = make_repo(tmp_path)
+    monkeypatch.setattr(
+        update_apply, "_git", lambda *args, **kwargs: pytest.fail("git ran for a malformed tag")
+    )
+    out = update_apply.apply_release(repo, tag="latest")
+    assert out["ok"] is False
+    assert out["reason"] == "tag_invalid"
+
+
+def test_an_unknown_explicit_tag_is_a_tag_missing_refusal(tmp_path, monkeypatch):
+    repo = make_repo(tmp_path)
+    monkeypatch.setattr(update_check, "_fetch_latest", lambda: pytest.fail("no feed"))
+    out = update_apply.apply_release(repo, tag="v9.9.9")
+    assert out["ok"] is False
+    assert out["reason"] == "tag_missing"
+
+
+def test_the_cli_parses_and_forwards_the_release_tag(monkeypatch):
+    parsed = ephe_cli.build_parser().parse_args(["update", "--tag", "v0.6.3"])
+    assert parsed.tag == "v0.6.3"
+    seen: dict[str, object] = {}
+
+    def release(root=None, tag=None):
+        seen["tag"] = tag
+        return {"ok": True, "reason": "latest_release", "detail": "current", "steps": []}
+
+    monkeypatch.setattr(update_apply, "apply_release", release)
+    code = ephe_cli.cmd_update(Namespace(json=False, model=None, tag="v0.6.3"))
+
+    assert code == 0
+    assert seen["tag"] == "v0.6.3"
+
+
+def test_the_cli_refuses_a_tag_on_the_commit_channel(monkeypatch):
+    monkeypatch.setattr(
+        update_apply, "apply_update", lambda root=None: pytest.fail("commit path must not run")
+    )
+    code = ephe_cli.cmd_update(
+        Namespace(json=False, model=None, channel="commit", tag="v0.6.3")
+    )
+    assert code == 2
+
+
 class TestReleaseRoute:
     def test_the_route_needs_the_browser_marker_and_the_word(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))

@@ -86,6 +86,8 @@ KERNEL_PRIVILEGES: dict[str, str] = {
     "manage_tasks": "",
     "skill_manage": "",
     "plugin_manager": "",
+    # Reaches the open web for a question; every request still passes net_guard.
+    "web_research": "network",
     # Reads or describes an index, or forwards to a call that is judged on its own name
     # one frame deeper (the ruling `chat_gate.READ_ONLY_MODE_TOOLS` makes for tool_call).
     "tool_search": "",

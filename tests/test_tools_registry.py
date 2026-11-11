@@ -90,11 +90,24 @@ class TestExecuteTool:
     @pytest.mark.asyncio
     async def test_run_shell_now_executes_not_raises(self):
         """
-        GIVEN  run_shell now performs real execution (no more throw)
-        WHEN   execute_tool("run_shell", {"command": "ls"}) is called (without policy)
-        THEN   no ShellConfirmationRequired — the command runs (whitelist gate)
+        GIVEN  run_shell performs real execution (no more throw)
+        WHEN   execute_tool("run_shell", {"command": "ls"}) reaches the bridge
+        THEN   the command runs only after the approval gate answers; with no
+               channel it is refused, and the whitelist gate stays in place
         """
-        result = await execute_tool("run_shell", {"command": "echo ok"})
+        from core.vision import _sandbox_cb_var
+
+        refused = await execute_tool("run_shell", {"command": "echo ok"})
+        assert "not executed" in refused
+
+        async def _yes(name: str, args: dict) -> bool:
+            return True
+
+        token = _sandbox_cb_var.set(_yes)
+        try:
+            result = await execute_tool("run_shell", {"command": "echo ok"})
+        finally:
+            _sandbox_cb_var.reset(token)
         assert "ok" in result
         assert "ShellConfirmationRequired" not in result
 
@@ -162,6 +175,8 @@ class TestToolMap:
             "write_plugin_source",
             "verify_plugin_bundle",
             "install_plugin_bundle",
+            # Research: site-scoped search and crawl over the open web, with citations
+            "web_research",
         }
         assert set(TOOL_MAP.keys()) == expected_tools
 
@@ -208,7 +223,8 @@ class TestGetFilteredToolSchemas:
         WHEN   get_filtered_tool_schemas is called
         THEN   only the known tools are returned
         """
-        result = get_filtered_tool_schemas(["web_search", "unknown_tool"])
+        result = get_filtered_tool_schemas(["web_research",
+        "web_search", "unknown_tool"])
         # P0-1: META_TOOL_NAMES + memory + skill_manage are always injected (at least 1)
         assert len(result) >= 1
         names = [e["function"]["name"] for e in result]

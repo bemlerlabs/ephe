@@ -10,11 +10,11 @@ the surface translates, and the params that sentence interpolates.
 """
 from __future__ import annotations
 
-import re
 import time
 
 from core.reason import Reason
 from core.tool_markers import FETCH_FAILED_MARKER, FETCH_REFUSED_MARKER
+from core.web_intake.crawl import html_to_text as _html_to_text
 
 _FETCH_TTL_SECONDS = 900.0          # 15 minutes, like the reference
 _FETCH_CACHE_MAX = 50
@@ -38,25 +38,6 @@ _GUARD_CODES = {
 
 def _now() -> float:
     return time.monotonic()
-
-
-def _html_to_text(html: str) -> str:
-    """Regex-based reduction to plain text (headings/lists markdown-like)."""
-    text = html
-    text = re.sub(r"<(script|style)\b.*?</\s*\1\s*>", " ", text, flags=re.S | re.I)
-
-    def _heading(match: re.Match) -> str:
-        level = min(int(match.group(1)), 6)
-        return "\n" + "#" * level + " " + match.group(2).strip() + "\n"
-
-    text = re.sub(r"<h([1-6])[^>]*>(.*?)</h\s*\1>", _heading, text, flags=re.S | re.I)
-    text = re.sub(r"<li[^>]*>(.*?)</li>", r"\n- \1", text, flags=re.S | re.I)
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n\s*\n(\s*\n)+", "\n\n", text)
-    if len(text) > _FETCH_HTML_CAP:
-        text = text[:_FETCH_HTML_CAP] + f"\n\n[... truncated at {_FETCH_HTML_CAP} chars]"
-    return text.strip()
 
 
 class FetchRefused(RuntimeError):
@@ -141,7 +122,7 @@ async def fetch_url(url: str, prompt: str = "") -> str:
                 status=str(status),
                 url=url,
             )
-        doc = _html_to_text(html)
+        doc = _html_to_text(html, _FETCH_HTML_CAP)
         _FETCH_CACHE[url] = (_now(), doc)
         while len(_FETCH_CACHE) > _FETCH_CACHE_MAX:
             _FETCH_CACHE.pop(next(iter(_FETCH_CACHE)), None)

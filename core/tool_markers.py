@@ -33,10 +33,18 @@ FETCH_REFUSED_MARKER = "[fetch refused]"
 #: error prefix in `core.quality` and deliberately not a refusal marker.
 FETCH_FAILED_MARKER = "[fetch failed]"
 
+#: `web_research` — the run never started (no search provider, an empty query, a
+#: site outside the fetch channel). The answer names the setting that opens it.
+RESEARCH_REFUSED_MARKER = "[research refused]"
+
+#: `web_research` — the provider or the pages were reached and did not deliver.
+RESEARCH_FAILED_MARKER = "[research failed]"
+
 #: What a refusal starts with today. The detector unpacks this tuple.
 CURRENT_REFUSAL_MARKERS: tuple[str, ...] = (
     BROWSER_DENIED_MARKER,
     FETCH_REFUSED_MARKER,
+    RESEARCH_REFUSED_MARKER,
 )
 
 #: Retired German wordings, kept for the matcher only.

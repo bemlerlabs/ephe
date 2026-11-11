@@ -191,7 +191,7 @@ export function RegisterNav({
                   aria-expanded={!folded.includes(group.groupKey)}
                   aria-label={t('settings.groupFold')}
                   onClick={() => toggleGroup(group.groupKey)}
-                  className="focus-ring ml-1 hidden align-middle md:inline-flex"
+                  className="focus-ring ml-1 hidden min-h-6 min-w-6 items-center justify-center align-middle md:inline-flex"
                 >
                   {folded.includes(group.groupKey) ? (
                     <ChevronRight className="h-3 w-3" strokeWidth={1.5} />

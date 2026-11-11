@@ -55,7 +55,7 @@ export default function AgenticBar({
       data-state={state}
       className={
         inline
-          ? 'ephe-run relative flex h-full min-w-0 flex-1 items-center gap-2 overflow-hidden select-none'
+          ? 'ephe-run relative flex h-full min-w-0 flex-1 items-center gap-2 overflow-hidden select-none max-sm:min-w-11'
           : 'workbench-bar ephe-run relative flex h-8 flex-shrink-0 items-center gap-3 px-4 max-lg:h-10 select-none'
       }
     >
@@ -63,8 +63,16 @@ export default function AgenticBar({
         data-testid="workbench-state"
         className="inline-flex shrink-0 items-center gap-1.5 text-ui-xs text-ink-soft"
       >
-        <PaperMothGlyph size="18px" className="ephe-run-mark" testId="agentic-moth" />
-        {t(`workbench.${state}`)}
+        <PaperMothGlyph
+          size="18px"
+          className="ephe-run-mark max-[379px]:hidden"
+          testId="agentic-moth"
+        />
+        {/* Below 430 px the run line and the palette button cannot both stand in
+            the header's last pixels; the word keeps its place in the live region,
+            the mark alone states the run, and under 380 px the bar belongs to the
+            palette button so the state moves entirely behind the screen reader. */}
+        <span className="max-[429px]:sr-only">{t(`workbench.${state}`)}</span>
       </span>
       {plan && plan.total > 0 && (
         <span
@@ -80,7 +88,7 @@ export default function AgenticBar({
         aria-label={`${t('chat.openPalette')} (⌘K)`}
         title={`${t('chat.openPalette')} (⌘K)`}
         data-testid="workbench-command"
-        className="focus-ring ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-ui-2xs text-ink-faint transition-colors hover:bg-surface-interactive hover:text-foreground"
+        className="focus-ring ml-auto inline-flex shrink-0 items-center justify-center gap-1 rounded-md px-1.5 py-0.5 min-h-6 min-w-6 text-ui-2xs text-ink-faint transition-colors hover:bg-surface-interactive hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11"
       >
         <Command className="h-3 w-3" aria-hidden="true" />
         {/* The chord stays in the name, not as a second glyph beside the icon:

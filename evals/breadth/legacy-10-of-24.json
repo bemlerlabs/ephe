@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "evidence": "legacy-reconstruction",
+  "total": 24,
+  "passed": 10,
+  "note": "Reconstruction of the arithmetic the 2026-11-09 paid receipt printed, from the defect classes the register documents (4a creation-04, 4c creation-15/24, 4d creation-20). The original receipt is not in the tree; this file reproduces its headline 10/24 and the four rows no turn verdict can support.",
+  "cases": [
+    {
+      "case_id": "creation-01",
+      "category": "widget",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-02",
+      "category": "widget",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-03",
+      "category": "widget",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-04",
+      "category": "widget",
+      "turn_ok": null,
+      "turn_detail": "4a: the offer never held the creator call, so the turn was not graded",
+      "checks": [],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-05",
+      "category": "game",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-06",
+      "category": "game",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-07",
+      "category": "game",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-08",
+      "category": "game",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-09",
+      "category": "scene3d",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-10",
+      "category": "scene3d",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-11",
+      "category": "scene3d",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-12",
+      "category": "scene3d",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-13",
+      "category": "dashboard",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-14",
+      "category": "dashboard",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-15",
+      "category": "dashboard",
+      "turn_ok": null,
+      "turn_detail": "4c: the request left the turn before the model saw it, so the turn was not graded",
+      "checks": [],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-16",
+      "category": "dashboard",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-17",
+      "category": "form-tool",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-18",
+      "category": "form-tool",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-19",
+      "category": "form-tool",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-20",
+      "category": "form-tool",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": [
+        "offer_matches_grant"
+      ]
+    },
+    {
+      "case_id": "creation-21",
+      "category": "utility",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": true
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-22",
+      "category": "utility",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-23",
+      "category": "utility",
+      "turn_ok": true,
+      "turn_detail": "the transcript satisfies the expect block",
+      "checks": [
+        {
+          "check": "manifest_valid",
+          "ok": false,
+          "detail": "the staged bundle has no declared entry"
+        }
+      ],
+      "not_run": []
+    },
+    {
+      "case_id": "creation-24",
+      "category": "utility",
+      "turn_ok": null,
+      "turn_detail": "4a/4c: the offer never held the call and the request left the turn",
+      "checks": [],
+      "not_run": []
+    }
+  ]
+}

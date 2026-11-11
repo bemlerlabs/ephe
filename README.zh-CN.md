@@ -80,7 +80,7 @@ Ephe 是一个在你电脑上运行 AI 智能体的工作区。你给它一个�
 #### macOS 和 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8
 ```
 
 要在运行前阅读脚本，请使用仓库：
@@ -97,7 +97,7 @@ cd ephe
 
 ```powershell
 irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
 ```
 
 在本地仓库中，打开 PowerShell 进入该文件夹后运行同样的 `powershell -ExecutionPolicy Bypass -File .\install.ps1`。

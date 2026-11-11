@@ -53,24 +53,34 @@ def test_a_matching_public_half_passes(tmp_path):
     assert "matches" in item.detail
 
 
-def test_a_mismatched_public_half_warns_and_names_the_match(tmp_path):
+def test_a_mismatched_public_half_fails_and_names_the_match(tmp_path):
     root = _root(tmp_path)
     wrong = _key(tmp_path, "ephe.key", "a different public key\n")
     _key(tmp_path, "ephe2.key", PUBKEY)
 
     item = checklist.check_signing_key(root, str(wrong))
-    assert item.status == "WARN"
+    assert item.status == "FAIL"
     assert "does not match" in item.detail
     assert "ephe2.key.pub" in item.detail
 
 
 def test_a_missing_public_half_is_not_a_pass(tmp_path):
     item = checklist.check_signing_key(_root(tmp_path), str(_key(tmp_path, public=None)))
-    assert item.status == "WARN"
+    assert item.status == "FAIL"
     assert "cannot be matched" in item.detail
 
 
-def test_a_missing_private_key_warns(tmp_path):
+def test_a_missing_private_key_fails(tmp_path):
     item = checklist.check_signing_key(_root(tmp_path), str(tmp_path / "keys" / "absent.key"))
-    assert item.status == "WARN"
+    assert item.status == "FAIL"
     assert "missing" in item.detail
+
+
+def test_an_empty_updater_pubkey_is_a_failure(tmp_path):
+    root = tmp_path / "repo"
+    conf = root / "app" / "src-tauri" / "tauri.conf.json"
+    conf.parent.mkdir(parents=True)
+    conf.write_text(json.dumps({"plugins": {"updater": {"pubkey": ""}}}), encoding="utf-8")
+    item = checklist.check_signing_key(root, str(_key(tmp_path)))
+    assert item.status == "FAIL"
+    assert "pubkey is empty" in item.detail

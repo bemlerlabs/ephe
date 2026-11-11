@@ -15,17 +15,16 @@
  *
  * In a browser tab there is no shell, so `canOpenNativeSurface` is false and the
  * overlay dock (#44, `components/shell/OverlayHost.tsx`) is the surface that shows
- * the same plugin. Which of the two a call is answered with is W1-5's decision
- * (`pluginDisplay.ts`, #20); this file holds only the desktop commands and the URL
- * both halves mount. Both halves take the same URL: `mintSurfaceCredential()` buys
- * the per-mount nonce the route asks for and `surfaceMountUrl()` puts it where a
- * frame can carry it — in the path, because a frame sends no header for the
- * document it loads or for the files that document derives.
+ * the same plugin. Which placement a call is answered with is `surfacePlacement.ts`'s
+ * decision, asked from `pluginDisplay.ts` (#20); this file holds only the desktop
+ * commands and the URL both halves mount. Both halves take the same URL:
+ * `mintSurfaceCredential()` buys the per-mount nonce the route asks for and
+ * `surfaceMountUrl()` puts it where a frame can carry it — in the path, because a
+ * frame sends no header for the document it loads or for the files that document
+ * derives.
  */
 import { BASE_URL, request } from './api/http'
 import { bridge } from './openExternal'
-
-export type SurfaceSlot = 'overlay' | 'native' | 'side-panel'
 
 export type SurfaceDescriptor = {
   type: string
@@ -39,12 +38,6 @@ export type SurfaceDescriptor = {
    * on: `pluginDisplay.ts` keeps it out of the mount and reports the flag in `unmet`.
    */
   always_on_top?: boolean
-  /**
-   * Where the surface renders: overlay (browser tab), native (desktop window), or
-   * side-panel (docked sidebar). The manifest declares the slot; the host honors it.
-   * When absent, the runtime picks native on desktop, overlay in the browser.
-   */
-  slot?: SurfaceSlot
 }
 
 export type SurfaceInfo = {
@@ -62,19 +55,6 @@ export type SurfaceBounds = { x: number; y: number; width: number; height: numbe
 
 /** Only the desktop has a native window to hand a surface. */
 export const canOpenNativeSurface = (): boolean => bridge() !== null
-
-/**
- * The slot a surface renders in: the manifest's declaration wins, or the runtime
- * default when the manifest says nothing. A plugin that declares `side-panel` on
- * desktop gets the side panel, not a native window — the declaration is the contract.
- */
-export function resolveSurfaceSlot(
-  declared: SurfaceSlot | undefined,
-  runtime: { isDesktop: boolean },
-): SurfaceSlot {
-  if (declared !== undefined) return declared
-  return runtime.isDesktop ? 'native' : 'overlay'
-}
 
 /**
  * The label the shell gives this plugin's window: `PLUGIN_LABEL_PREFIX` plus the id,

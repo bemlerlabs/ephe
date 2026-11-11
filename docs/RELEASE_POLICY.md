@@ -106,7 +106,7 @@ and loses the assumption that a fix implies a release.
 - One rolling build is bad: revert the commit on `main`. Rolling users get the
   revert on their next click; nothing signed has to happen.
 - A milestone is bad: the previous tag stays installable, and a device can be
-  moved to it with the release update's explicit tag argument.
+  moved to it with `ephe update --tag vX.Y.Z`.
 
 ## What this buys
 

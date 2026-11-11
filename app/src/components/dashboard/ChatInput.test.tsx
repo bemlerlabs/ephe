@@ -151,6 +151,17 @@ describe('ChatInput Slash-Commands (Phase F)', () => {
     expect(ta().value).toBe('/')
   })
 
+  it('B14: Tab closes the slash menu and lets focus leave the composer', async () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.change(ta(), { target: { value: '/' } })
+    await screen.findByTestId('slash-menu')
+    // Tab is the page's: it must not be read as a pick (the old branch inserted
+    // the first suggestion and kept the caret in the field).
+    fireEvent.keyDown(ta(), { key: 'Tab' })
+    expect(screen.queryByTestId('slash-menu')).toBeNull()
+    expect(ta().value).toBe('/')
+  })
+
   it('P3: Datei-Drop auf Input-Zone → Attachment-Chip', async () => {
     render(<ChatInput onSend={vi.fn()} />)
     const file = new File(['hallo'], 'test.txt', { type: 'text/plain' })

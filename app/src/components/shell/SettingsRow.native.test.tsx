@@ -56,6 +56,17 @@ describe('settings primitives — native contract', () => {
     expect(value.className).not.toContain('w-44')
   })
 
+  it('wraps a two-button action row at phone width instead of pushing it off the left edge', () => {
+    render(
+      <SettingsRow title="Image endpoint" testid="row">
+        <button type="button">Save</button>
+        <button type="button">Test</button>
+      </SettingsRow>,
+    )
+    const actions = screen.getByText('Save').parentElement as HTMLElement
+    expect(actions.className.split(/\s+/), 'phone wrap').toContain('max-sm:flex-wrap')
+  })
+
   it('marks a set switch by position and graphite, not brand fill', () => {
     render(<Switch checked onChange={() => {}} label="Animations" testid="switch" />)
     const sw = screen.getByTestId('switch')

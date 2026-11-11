@@ -4,9 +4,9 @@
  * Finding P3-3: the popup opened but was not keyboard-operable —
  * ArrowDown produced no highlight, Enter SENT the message (the reviewer
  * ended up with a junk session «@read»), Escape left the list open. The list
- * is a real listbox now: highlight starts at row 1, Enter/Tab inserts,
- * Escape closes (the text stays untouched — the composer itself holds
- * both, see ChatInput.handleKeyDown).
+ * is a real listbox now: highlight starts at row 1, Enter inserts, Tab closes
+ * and moves on, Escape closes (the text stays untouched — the composer itself
+ * holds both, see ChatInput.handleKeyDown).
  */
 import { useTranslation } from 'react-i18next'
 

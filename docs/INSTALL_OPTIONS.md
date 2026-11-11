@@ -6,6 +6,7 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 | Path | Command | For |
 |---|---|---|
 | Existing checkout | `./install.sh` | the default first run, macOS and Linux |
+| Release (one-liner) | `curl … \| bash -s -- --tag vX.Y.Z` | a pinned release install, macOS and Linux |
 | macOS app (DMG) | the `.dmg` from the GitHub release, then right-click → Open | a prebuilt app, no toolchain |
 | Windows (PowerShell) | the one-liner under [Windows PowerShell](#windows-powershell-one-liner) | Windows, with or without a checkout |
 | Docker | `docker compose up` | development and advanced setups |
@@ -15,6 +16,15 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 ```bash
 ./install.sh
 ```
+
+## Release pinning
+
+`install.sh --tag vX.Y.Z` (or `EPHE_REF=vX.Y.Z`) fetches the tag and checks it out detached, so a
+release install runs the released commit instead of the tip of `main`. `install.ps1 -Ref vX.Y.Z`
+does the same on Windows. An existing checkout in the install folder is moved to the named tag; a
+failed fetch keeps the version on disk and warns. Without a tag the installer keeps the branch and
+fast-forwards, which is the rolling path; `ephe update --tag vX.Y.Z` moves an installation to a
+specific release later, including back to an older one.
 
 ## macOS App (DMG)
 
@@ -35,7 +45,7 @@ This path has not been verified end to end on Windows for this revision.
 
 ```powershell
 irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
 ```
 
 Or run it straight from a local checkout:
@@ -45,7 +55,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 A release ships no Windows binary — macOS and Linux artifacts only — so this source install is the
-only Windows path: it fetches the tag archive and builds on the machine, and the gate is
+only Windows path: the download names the release and `-Ref` checks it out, and the build runs on the machine, and the gate is
 PowerShell's execution policy rather than a code signature (see the artifact list in
 [`INSTALL.md`](INSTALL.md#windows-powershell)).
 

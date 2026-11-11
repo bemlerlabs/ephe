@@ -12,10 +12,13 @@
 #   scripts/release_cut.sh                        check the tree, then cut vX.Y.Z
 #   scripts/release_cut.sh --message "headline"   cut with the round's headline
 #   scripts/release_cut.sh --push                 cut, then push (starts release.yml)
-#   scripts/release_cut.sh --skip-gates           structure only, no gate set
+#   scripts/release_cut.sh --skip-gates --skip-reason "why"   structure only, with a receipt
 #   scripts/release_cut.sh --full                 gates plus the pytest bar and tsc
 #
-# Environment: EPHE_RELEASE_BRANCH (default main), EPHE_RELEASE_REMOTE (default origin).
+# Environment: EPHE_RELEASE_BRANCH (default main), EPHE_RELEASE_REMOTE (default origin),
+# EPHE_RELEASE_SKIP_REASON (the --skip-gates reason), EPHE_RELEASE_RECEIPT (default
+# ~/.ephe/release-skips.jsonl). `--skip-gates` without a reason is refused and every skip
+# appends a record with the tag, the commit and the reason, so a bypass is auditable.
 # Refusals exit 1 and each names the fix; a usage or environment error exits 2.
 # The runbook is docs/RELEASE_RUNBOOK.md.
 set -uo pipefail
@@ -33,6 +36,8 @@ SKIP_GATES=0
 FULL_GATES=0
 ALLOW_DIRTY=0
 ALLOW_LOCAL=0
+SKIP_REASON="${EPHE_RELEASE_SKIP_REASON:-}"
+RECEIPT="${EPHE_RELEASE_RECEIPT:-$HOME/.ephe/release-skips.jsonl}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -45,6 +50,8 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY_RUN=1; shift ;;
     --push) DO_PUSH=1; shift ;;
     --skip-gates) SKIP_GATES=1; shift ;;
+    --skip-reason) SKIP_REASON="${2:-}"; shift 2 ;;
+    --skip-reason=*) SKIP_REASON="${1#*=}"; shift ;;
     --full) FULL_GATES=1; shift ;;
     --allow-dirty) ALLOW_DIRTY=1; shift ;;
     --local) ALLOW_LOCAL=1; shift ;;
@@ -122,16 +129,6 @@ read_pyproject_version() {
   sed -n 's/^version *= *"\([^"]*\)".*/\1/p' "$ROOT/pyproject.toml" | head -1
 }
 
-read_json_field() {
-  "$PY" - "$1" "$2" <<'PYEOF'
-import json, sys
-try:
-    print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))
-except Exception:
-    print("")
-PYEOF
-}
-
 # last released version = the topmost `## [...]` header that starts with a digit, kept whole
 # including its prerelease, so a beta line compares against the beta that is actually on top.
 last_released_version() {
@@ -158,21 +155,19 @@ gate_tsc()    { ( cd "$ROOT/app" && npx tsc --noEmit ); }
 
 printf 'ephe release — branch %s @ %s\n' "$BRANCH" "$(git rev-parse --short HEAD 2>/dev/null || echo '?')"
 
-# 1. version carriers agree, and the candidate is valid
-PYV="$(read_pyproject_version)"
-PKGV="$(read_json_field "$ROOT/app/package.json" version)"
-TAURIV="$(read_json_field "$ROOT/app/src-tauri/tauri.conf.json" version)"
-
-if [ -z "$PYV" ]; then
-  refuse "cannot read [project].version from pyproject.toml" "fix the manifest"
+# 1. all six version carriers agree, and the candidate is valid. The list lives in
+# scripts/version_carriers.py, the same file the checklist, the bump and release.yml's
+# version guard read, so a carrier added there is checked here without a second edit.
+CARRIER_OUT="$("$PY" "$ROOT/scripts/version_carriers.py" --root "$ROOT" --check 2>&1)"
+CARRIER_RC=$?
+if [ "$CARRIER_RC" -eq 0 ]; then
+  PYV="$("$PY" "$ROOT/scripts/version_carriers.py" --root "$ROOT" --print)"
+  ok "version carriers agree: $PYV (six files)"
 else
-  if [ "$PYV" = "$PKGV" ] && [ "$PYV" = "$TAURIV" ]; then
-    ok "version carriers agree: $PYV"
-  else
-    bad "version carriers disagree"
-    printf '             pyproject.toml %s | app/package.json %s | tauri.conf.json %s\n' "$PYV" "${PKGV:-?}" "${TAURIV:-?}"
-    refuse "the three version carriers do not name the same X.Y.Z" "bump all three to one version, commit, re-run"
-  fi
+  bad "version carriers disagree or cannot be read"
+  printf '%s\n' "$CARRIER_OUT" | sed 's/^/             /' | head -10
+  refuse "the six version carriers do not name the same X.Y.Z" "run $PY scripts/bump_version.py --version X.Y.Z, commit, re-run"
+  PYV="$(read_pyproject_version)"
 fi
 
 V="$PYV"
@@ -268,10 +263,40 @@ else
   printf '  warn     could not fetch %s — sync check skipped (offline?)\n' "$REMOTE"
 fi
 
-# 7. gates
+# 7. gates. The checklist is the release bar's own script, so the cut and release.yml run the
+# same checks instead of two disjoint sets. `--skip-gates` skips that set only with a reason,
+# and the reason is written to a receipt beside the tag it would have protected.
 if [ "$SKIP_GATES" = 1 ]; then
-  printf '  skip     gate set (--skip-gates)\n'
+  if [ -z "$SKIP_REASON" ]; then
+    bad "--skip-gates needs a reason"
+    refuse "'--skip-gates' was passed without a reason" "pass --skip-reason \"...\" or set EPHE_RELEASE_SKIP_REASON"
+  else
+    printf '  skip     gate set (--skip-gates: %s)\n' "$SKIP_REASON"
+    mkdir -p "$(dirname "$RECEIPT")" 2>/dev/null || true
+    if "$PY" - "$RECEIPT" "$TAG" "$(git rev-parse HEAD 2>/dev/null || echo '?')" "$SKIP_REASON" <<'PYEOF'
+import datetime
+import json
+import sys
+
+path, tag, head, reason = sys.argv[1:5]
+record = {
+    "at": datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    "tag": tag,
+    "head": head,
+    "reason": reason,
+}
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(record, sort_keys=True) + "\n")
+PYEOF
+    then
+      printf '  receipt  %s\n' "$RECEIPT"
+    else
+      bad "the skip receipt could not be written"
+      refuse "the --skip-gates reason could not be recorded" "set EPHE_RELEASE_RECEIPT to a writable path"
+    fi
+  fi
 else
+  run_gate "release checklist" "$PY" "$ROOT/scripts/release_checklist.py" --version "$V"
   # A rebase merge rewrites the commits it lands, so a bullet written on a branch can name an sha
   # the trunk carries under a different one, and a reader following that link lands nowhere. The
   # tool proves each move by patch id, so a stale address stops the cut instead of shipping in

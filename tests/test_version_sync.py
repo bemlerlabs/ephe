@@ -9,6 +9,7 @@ whose label disagrees with the version its own health endpoint reports.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 from pathlib import Path
@@ -34,6 +35,26 @@ CARRIERS = {
 UV_LOCK = ROOT / "uv.lock"
 CARGO_LOCK = ROOT / "app" / "src-tauri" / "Cargo.lock"
 CARGO_MANIFEST = ROOT / "app" / "src-tauri" / "Cargo.toml"
+
+
+def _shared_carriers():
+    """The cut and the checklist read this list; this test must not keep a second one."""
+    spec = importlib.util.spec_from_file_location(
+        "version_carriers_shared", ROOT / "scripts" / "version_carriers.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_carrier_paths_are_the_shared_list():
+    expected = set(CARRIERS) | {
+        PYPROJECT.relative_to(ROOT).as_posix(),
+        UV_LOCK.relative_to(ROOT).as_posix(),
+        CARGO_LOCK.relative_to(ROOT).as_posix(),
+    }
+    assert set(_shared_carriers().CARRIERS) == expected
 
 
 def declared_version() -> str:

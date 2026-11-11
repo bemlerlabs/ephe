@@ -34,8 +34,9 @@ export function useComposerMentions({
   const [mentionItems, setMentionItems] = useState<{ name: string; path: string; type: string }[]>(
     [],
   )
-  // P3-3: the highlight starts at row 1 — Enter/Tab insert instead of sending the
-  // message (the reviewer produced a junk session «@read» that way).
+  // P3-3: the highlight starts at row 1 — Enter inserts instead of sending the
+  // message (the reviewer produced a junk session «@read» that way); Tab closes
+  // the popup and leaves focus to the page.
   const [mentionIndex, setMentionIndex] = useState(0)
   // Out-of-order listFs responses: only the newest request may write.
   const mentionSeqRef = useRef(0)

@@ -46,6 +46,9 @@ describe('the toaster at phone width', () => {
     const close = screen.getByRole('button', { name: 'toast.close' })
     expect(has(close, 'min-h-6'), 'dismiss 24px height').toBe(true)
     expect(has(close, 'min-w-6'), 'dismiss 24px width').toBe(true)
+    // B18: a thumb gets the 44 px target; the 24 px floor stays for the mouse.
+    expect(has(close, 'pointer-coarse:min-h-11'), 'dismiss 44px touch height').toBe(true)
+    expect(has(close, 'pointer-coarse:min-w-11'), 'dismiss 44px touch width').toBe(true)
     expect(close.querySelector('svg'), 'the glyph stays inline, not the target').not.toBeNull()
   })
 

@@ -23,6 +23,9 @@ if [[ "$LOCAL_OLLAMA_URL" != http://* && "$LOCAL_OLLAMA_URL" != https://* ]]; th
 fi
 NO_START="${EPHE_NO_START:-0}"
 DRY_RUN="${EPHE_DRY_RUN:-0}"
+# A release install checks out the tag its installer URL names. Without a ref the
+# installer keeps the checkout on its branch and fast-forwards, which is the rolling path.
+REF="${EPHE_REF:-}"
 
 # --- Download integrity (supply-chain gate) ---------------------------------
 # Piped `curl | sh` is a classic supply-chain attack point: a compromised vendor
@@ -38,15 +41,19 @@ DRY_RUN="${EPHE_DRY_RUN:-0}"
 # this script deliberately has no Ollama download/hash anymore.
 UV_INSTALL_SHA256="${EPHE_UV_INSTALL_SHA256:-283cbef4bdaca819bd896b0dacb8a085c4c05dbc880642aa5001d97bc4db74ba}"
 
-for arg in "$@"; do
-  case "$arg" in
-    --no-start) NO_START=1 ;;
-    --dry-run) DRY_RUN=1 ;;
-    --cli|--headless|--tui) INSTALL_MODE="cli" ;;
-    --desktop|--gui|--web|--pwa) INSTALL_MODE="desktop" ;;
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-start) NO_START=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --cli|--headless|--tui) INSTALL_MODE="cli"; shift ;;
+    --desktop|--gui|--web|--pwa) INSTALL_MODE="desktop"; shift ;;
+    --tag|--ref)
+      if [ $# -lt 2 ]; then echo "--tag needs a release tag such as v0.7.0." >&2; exit 2; fi
+      REF="$2"; shift 2 ;;
+    --tag=*|--ref=*) REF="${1#*=}"; shift ;;
     --help|-h)
-      echo "Usage: ./install.sh [--no-start] [--dry-run] [--cli|--desktop]"
-      echo "Env: EPHE_INSTALL_DIR, EPHE_PORT, EPHE_NO_START, EPHE_DRY_RUN"
+      echo "Usage: ./install.sh [--no-start] [--dry-run] [--cli|--desktop] [--tag vX.Y.Z]"
+      echo "Env: EPHE_INSTALL_DIR, EPHE_PORT, EPHE_NO_START, EPHE_DRY_RUN, EPHE_REF"
       echo ""
       echo "Ephe — one-command install. The AI engine is chosen in the app"
       echo "(local Ollama or an external endpoint such as DGX)."
@@ -57,9 +64,10 @@ for arg in "$@"; do
       echo "  --desktop  (default) Desktop/PWA: installs gui+voice, starts 'ephe start --open'"
       echo ""
       echo "Defaults to Desktop; choose --cli or EPHE_MODE=cli for terminal-only use."
+      echo "  --tag     Check out this release tag instead of the branch tip (a release install)."
       exit 0
       ;;
-    *) echo "Unknown argument: $arg" >&2; exit 2 ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
@@ -92,6 +100,11 @@ case "${INSTALL_MODE:-desktop}" in
   cli|desktop) ;;
   *) echo "EPHE_MODE must be 'cli' or 'desktop', got '${INSTALL_MODE}'." >&2; exit 2 ;;
 esac
+
+if [ -n "$REF" ] && ! printf '%s' "$REF" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
+  echo "EPHE_REF/--tag must be a git ref name such as v0.7.0, got '${REF}'." >&2
+  exit 2
+fi
 
 step() { echo -e "${GREEN}▶${NC} ${BOLD}$1${NC}"; }
 info() { echo -e "  ${DIM}$1${NC}"; }
@@ -258,6 +271,43 @@ echo -e "${GREEN}${BOLD}Ephe offline-first installer${NC}"
 echo -e "${DIM}One-command install. The AI engine is chosen in the app (local Ollama or an external endpoint).${NC}"
 echo ""
 
+# Clone the release the installer was fetched from, then detach at its ref. A ref
+# that does not resolve is a refusal, not a quiet fallback to main: a release install
+# that silently runs another build is the defect this path exists to prevent.
+clone_checkout() {
+  if ! run git clone "$REPO_URL" "$INSTALL_DIR"; then
+    echo "" >&2
+    echo -e "  ${RED}✗${NC} Could not clone $REPO_URL" >&2
+    echo -e "  ${DIM}The repository is private (or renamed), or this machine has no access to it.${NC}" >&2
+    echo -e "  ${DIM}Next step: ask the repository owner for access, or point the installer at a checkout${NC}" >&2
+    echo "  Licence: Business Source License 1.1 (BUSL-1.1) — see LICENSE in $INSTALL_DIR"
+    echo -e "  ${DIM}you can reach: EPHE_REPO_URL=<clone URL> ./install.sh (a local path or file:// URL works).${NC}" >&2
+    exit 1
+  fi
+  if [ -n "$REF" ]; then
+    run git -C "$INSTALL_DIR" checkout --detach "$REF" \
+      || fail "Could not check out $REF in $INSTALL_DIR; the tag must exist in $REPO_URL."
+  fi
+}
+
+# An existing checkout is moved to the named release on a release install and
+# fast-forwarded on the rolling path. A failed fetch keeps the disk version, with a
+# warning that names the ref it could not reach.
+pin_existing() {
+  local dir="$1"
+  if [ -n "$REF" ]; then
+    if run git -C "$dir" fetch --tags --force origin; then
+      run git -C "$dir" checkout --detach "$REF" \
+        || warn "Could not check out $REF; continuing with the version on disk."
+    else
+      warn "Could not fetch $REF from origin; continuing with the version on disk."
+    fi
+  else
+    run git -C "$dir" pull --ff-only \
+      || warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+  fi
+}
+
 if ! is_project_root; then
   step "Preparing the install folder"
   command -v git >/dev/null 2>&1 || fail "Git is missing. Install Git and run the command again."
@@ -272,7 +322,7 @@ if ! is_project_root; then
   if [[ -d "$INSTALL_DIR/.git" ]]; then
     ok "Existing repository found: $INSTALL_DIR"
     cd "$INSTALL_DIR"
-    run git pull --ff-only || warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+    pin_existing "$INSTALL_DIR"
   elif [[ -e "$INSTALL_DIR" ]]; then
     # The default install folder is also where a person's notebooks live, so the common case is a
     # folder that holds their work and no clone: refusing there stranded an installation behind its
@@ -287,23 +337,15 @@ if ! is_project_root; then
       [[ "$DRY_RUN" == "1" ]] || mkdir -p "$(dirname "$INSTALL_DIR")"
       if [[ -d "$INSTALL_DIR/.git" ]]; then
         cd "$INSTALL_DIR"
-        run git pull --ff-only || warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+        pin_existing "$INSTALL_DIR"
       else
-        run git clone "$REPO_URL" "$INSTALL_DIR" || fail "Could not clone $REPO_URL into $INSTALL_DIR"
+        clone_checkout
       fi
     else
       fail "$INSTALL_DIR already exists but is not a Git repository. Set EPHE_INSTALL_DIR to a different path."
     fi
   else
-    if ! run git clone "$REPO_URL" "$INSTALL_DIR"; then
-      echo "" >&2
-      echo -e "  ${RED}✗${NC} Could not clone $REPO_URL" >&2
-      echo -e "  ${DIM}The repository is private (or renamed), or this machine has no access to it.${NC}" >&2
-      echo -e "  ${DIM}Next step: ask the repository owner for access, or point the installer at a checkout${NC}" >&2
-      echo "  Licence: Business Source License 1.1 (BUSL-1.1) — see LICENSE in $INSTALL_DIR"
-      echo -e "  ${DIM}you can reach: EPHE_REPO_URL=<clone URL> ./install.sh (a local path or file:// URL works).${NC}" >&2
-      exit 1
-    fi
+    clone_checkout
     if [[ "$DRY_RUN" == "1" ]]; then
       ok "Dry run stops here: the clone was not created."
       exit 0

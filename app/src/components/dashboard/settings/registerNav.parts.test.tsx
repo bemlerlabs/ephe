@@ -60,3 +60,29 @@ describe('settings nav page parts', () => {
     expect(screen.getByTestId('settings-nav-part-appearance-appearance-presets')).toBeTruthy()
   })
 })
+
+describe('the settings nav fold toggles', () => {
+  it('hold the 24 px WCAG floor in both axes', () => {
+    render(
+      <RegisterNav
+        query=""
+        tabHits={none}
+        fieldHits={none}
+        rowHits={none}
+        activeTab="engine"
+        sections={[]}
+        t={t}
+        onJump={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    )
+    const folds = screen.getAllByTestId(/^settings-fold-/)
+    expect(folds.length).toBeGreaterThan(0)
+    for (const fold of folds) {
+      const tokens = (fold.className as string).split(/\s+/)
+      expect(tokens, 'fold height').toContain('min-h-6')
+      expect(tokens, 'fold width').toContain('min-w-6')
+      expect(tokens, 'glyph centred in the target').toContain('justify-center')
+    }
+  })
+})

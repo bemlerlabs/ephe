@@ -143,23 +143,29 @@ SANDBOX_KEEPALIVE_SECONDS: float = 20.0
 # (owner decision 2026-10-11).
 DEFAULT_MODEL = os.environ.get("EPHE_MODEL", "")
 def _resolve_skill_invocation(message: str):
-    """Return (skill, stripped_message) for explicit slash or high-confidence natural skill requests."""
+    """Return (skill, stripped_message, route) for explicit or natural skill requests.
+
+    The route is None for the deterministic tiers (slash command, the notebook
+    alias): those already decided and the caller only needs the skill. The fuzzy
+    tier's route is passed on so the prompt builder can tell a near miss from a
+    message no skill shares a term with without routing the same message twice.
+    """
     stripped = (message or "").strip()
     if not stripped.startswith("/"):
         lowered = stripped.lower()
         if "notebooklm" in lowered or "notebook lm" in lowered or "quellen-notebook" in lowered:
             notebook_skill = SkillLoader().resolve_trigger("/notebook")
             if notebook_skill:
-                return notebook_skill, stripped
-        skill = SkillLoader().resolve_for_message(stripped)
-        return skill, stripped
+                return notebook_skill, stripped, None
+        route = SkillLoader().route_for_message(stripped)
+        return route.skill, stripped, route
     parts = stripped.split(maxsplit=1)
     trigger = parts[0]
     skill = SkillLoader().resolve_trigger(trigger)
     if not skill:
-        return None, message
+        return None, message, None
     user_content = parts[1].strip() if len(parts) > 1 else stripped
-    return skill, user_content
+    return skill, user_content, None
 
 
 def new_turn_id() -> str:
@@ -383,7 +389,31 @@ def _dispatch_post_turn_jobs(user_message: str, answer: str, session_id: str, hi
         _post_turn_worker(user_message, answer, session_id, history)
 
 
-def _compose_extra_system(skill, *, ask_mode: bool) -> str | None:
+def _skill_index_worth_sending(message: str, route) -> bool:
+    """Whether a 0-hit turn still has a plausible skill behind it.
+
+    The compact index is the semantic fallback for a near miss: the deterministic
+    layer found no route, so the model gets the catalog to choose from. A message
+    that shares no term with any skill (a greeting, a trivia question) gets no
+    index — the ~1.9k tokens would pay for a choice already ruled out.
+    """
+    if not (message or "").strip():
+        return True
+    if route is None:
+        try:
+            from core.skills import SkillLoader
+
+            route = SkillLoader().route_for_message(message)
+        except Exception:
+            return True
+    if route.skill is not None:
+        return True
+    return float(getattr(route, "top_score", 0.0) or 0.0) > 0.0
+
+
+def _compose_extra_system(
+    skill, *, ask_mode: bool, route=None, message: str = ""
+) -> str | None:
     """Deep audit 2026-09-13 (F2): compose system prompt + references + guard.
 
     Progressive disclosure: references/gold examples (reference_text/example_text)
@@ -430,11 +460,12 @@ def _compose_extra_system(skill, *, ask_mode: bool) -> str | None:
         # the few-shot example weighs more than the free reference -> first.
         _fit(f"## Example\n{skill.example_text}")
         _fit(f"## Reference\n{skill.reference_text}")
-    elif not ask_mode:
+    elif not ask_mode and _skill_index_worth_sending(message, route):
         # P1-1: 0-hit fallback — the deterministic layer (trigger,
         # factory/artifact intent, tool name, phrase score) has no result.
         # A compact index gives the model the semantic choice
-        # before the ask_mode guard effectively shuts the answer away.
+        # before the ask_mode guard effectively shuts the answer away. A turn
+        # with no plausible candidate skips it (PERF-BE-REST §3).
         try:
             from core.skills import SkillLoader
             index = SkillLoader().build_skill_index()
@@ -510,7 +541,9 @@ def _resolve_mode(mode: str) -> dict[str, bool]:
     }
 
 
-def _mode_context(mode: str, *, skill, message: str) -> tuple[str | None, list[str] | None, dict[str, bool]]:
+def _mode_context(
+    mode: str, *, skill, message: str, route=None
+) -> tuple[str | None, list[str] | None, dict[str, bool]]:
     """Mode → (extra_system_prompt, allowed_tool_names, mode_flags).
 
     Used identically by BOTH chat routes (/chat and /chat/stream),
@@ -522,7 +555,7 @@ def _mode_context(mode: str, *, skill, message: str) -> tuple[str | None, list[s
     flags = _resolve_mode(mode)
     ask_mode = flags["analyst"]
     plan_mode = flags["architect"]
-    extra_system = _compose_extra_system(skill, ask_mode=ask_mode)
+    extra_system = _compose_extra_system(skill, ask_mode=ask_mode, route=route, message=message)
     if needs_compute_guard(message):
         extra_system = f"{extra_system}\n\n{COMPUTE_GUARD}" if extra_system else COMPUTE_GUARD
     # #92: a request for a web page carries the design floors of the answer, because an
@@ -1116,9 +1149,25 @@ async def chat(request: ChatRequest) -> ChatResponse:
             )
         except Exception:
             history_ctx = []
-    # P4: mode parity — identical mode semantics as /chat/stream.
+    # P4: mode parity — identical mode semantics as /chat/stream. The skill
+    # resolver is part of that parity: without it every REST turn carried the
+    # 7.9 KB skill index plus the full base array, while the same message on the
+    # PWA path carried the skill and its whitelist. A hit sends the skill (the
+    # index would duplicate it); a miss sends the compact index as the fallback.
+    try:
+        rest_route = SkillLoader().route_for_message(request.message)
+    except Exception:
+        rest_route = None
+    # A skill that declares no tools keeps the REST turn's base array: an empty
+    # whitelist is the ask-mode signal, not "this skill happens to name none".
+    rest_skill = rest_route.skill if rest_route is not None else None
+    if rest_skill is not None and not rest_skill.tools:
+        rest_skill = None
     rest_extra_system, rest_allowed_tools, _mode_flags = _mode_context(
-        request.mode, skill=None, message=request.message
+        request.mode,
+        skill=rest_skill,
+        message=request.message,
+        route=rest_route,
     )
     # W10: the same mode travels to the execution choke point, so a tool reached
     # outside the offer list (tool_call bridge) is refused there.
@@ -1860,7 +1909,7 @@ async def _sandbox_confirm(
 
     # R23: session profile — „Für diese Sitzung merken" allows repetitions  # language-gate: ignore (quoted product label, app/src/locales/de.json:56 remember)
     # of the same tool without asking again. run_shell (NEVER_REMEMBER) excepted:
-    # per command HEAD (B-7 head memo), not per tool TYPE.
+    # the HEAD of the command decides (B-7 head memo); a tool TYPE is too coarse.
     from core.security_config import (
         remember_shell_heads,
         remember_tool,
@@ -2246,7 +2295,9 @@ async def chat_stream(
             try:
                 messages = list(hist)
                 # Build images into the user message (12B multimodal)
-                active_skill, user_content = _resolve_skill_invocation(request.message)
+                active_skill, user_content, active_route = _resolve_skill_invocation(
+                    request.message
+                )
                 user_msg: dict = {"role": "user", "content": user_content}
                 if request.images:
                     user_msg["images"] = request.images
@@ -2374,7 +2425,10 @@ async def chat_stream(
                 # live audit: "hello.txt angelegt ✅" hallucinated without tool access).
                 # P4: shared mode context → identical semantics as /chat (non-stream).
                 extra_system, allowed_tools, mode_flags = _mode_context(
-                    request.mode, skill=active_skill, message=request.message
+                    request.mode,
+                    skill=active_skill,
+                    message=request.message,
+                    route=active_route,
                 )
                 ask_mode = mode_flags["analyst"]
                 plan_mode = mode_flags["architect"]

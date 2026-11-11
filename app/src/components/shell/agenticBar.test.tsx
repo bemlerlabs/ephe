@@ -102,3 +102,34 @@ describe('RunRail — the run down the edge of the work column', () => {
     ).toEqual(['done', 'active', 'pending'])
   })
 })
+
+describe('AgenticBar — touch floor and the narrow header', () => {
+  const renderInline = () => render(<AgenticBar inline state="ready" onOpenPalette={vi.fn()} />)
+
+  it('gives the palette button a 24 px floor and a 44 px target on a coarse pointer', () => {
+    renderInline()
+    const command = screen.getByTestId('workbench-command')
+    const tokens = command.className.split(/\s+/)
+    expect(tokens, 'desktop floor').toEqual(expect.arrayContaining(['min-h-6', 'min-w-6']))
+    expect(tokens, 'touch target').toEqual(
+      expect.arrayContaining(['pointer-coarse:min-h-11', 'pointer-coarse:min-w-11']),
+    )
+  })
+
+  it('keeps the palette button named when the chord is not printed', () => {
+    renderInline()
+    const command = screen.getByTestId('workbench-command')
+    expect(command.textContent?.trim()).toBe('')
+    expect(command.getAttribute('aria-label')).toContain('chat.openPalette')
+  })
+
+  it('hands the last header pixels to the button and keeps the state for AT', () => {
+    renderInline()
+    const bar = screen.getByTestId('agentic-bar')
+    expect(bar.className.split(/\s+/)).toContain('max-sm:min-w-11')
+    const glyph = screen.getByTestId('agentic-moth')
+    expect(glyph.classList.contains('max-[379px]:hidden')).toBe(true)
+    const word = screen.getByTestId('workbench-state').querySelector('span')
+    expect(word?.className).toContain('max-[429px]:sr-only')
+  })
+})

@@ -6,6 +6,7 @@ explicit and visible to the UI.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import json
 import random as _random
@@ -273,6 +274,68 @@ class ToolWireViolation(ValueError):
     """
 
 
+#: One pooled HTTP client per endpoint, created once per event loop.
+#: A client per call paid a fresh TCP/TLS handshake and connection pool on every
+#: round of a turn; on a remote or Tailnet endpoint that handshake is the first
+#: token's dominant fixed cost. The tuple holds the factory the client was built
+#: with and its loop, because httpx pools are loop-bound and a test that patches
+#: ``httpx.AsyncClient`` must not inherit the previous patch's transport.
+_SHARED_HTTP_CLIENTS: dict[
+    tuple[str, str, str], tuple[Any, asyncio.AbstractEventLoop, httpx.AsyncClient]
+] = {}
+
+
+def _retire_http_client(entry: tuple[Any, asyncio.AbstractEventLoop, httpx.AsyncClient]) -> None:
+    """Close a pooled client the next call may not reuse (loop or factory changed)."""
+    _factory, loop, client = entry
+    try:
+        if loop.is_closed():
+            return
+        if loop.is_running():
+            asyncio.run_coroutine_threadsafe(client.aclose(), loop)
+    except Exception:
+        pass
+
+
+def _shared_http_client(
+    base_url: str, api_key: str, timeout: float | httpx.Timeout
+) -> httpx.AsyncClient:
+    """The pooled client for one endpoint (and one timeout profile) on this loop.
+
+    The timeout is part of the key because a changed ``advanced.api_timeout`` has to
+    take effect without a restart; the stream and the non-stream call keep their own
+    pool, as they did when each built its own client. Without a running loop (a
+    helper called outside asyncio) an unpooled client is the only thing the call can
+    use; the chat paths always run inside one.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return httpx.AsyncClient(timeout=timeout)
+    key = (base_url, api_key, repr(timeout))
+    factory = httpx.AsyncClient
+    cached = _SHARED_HTTP_CLIENTS.get(key)
+    if cached is not None and cached[0] is factory and cached[1] is loop:
+        return cached[2]
+    if cached is not None:
+        _SHARED_HTTP_CLIENTS.pop(key, None)
+        _retire_http_client(cached)
+    client = factory(timeout=timeout)
+    _SHARED_HTTP_CLIENTS[key] = (factory, loop, client)
+    return client
+
+
+async def aclose_shared_http_clients() -> None:
+    """Close every pooled endpoint client (app shutdown, test teardown)."""
+    entries = list(_SHARED_HTTP_CLIENTS.values())
+    _SHARED_HTTP_CLIENTS.clear()
+    for _factory, _loop, client in entries:
+        try:
+            await client.aclose()
+        except Exception:
+            pass
+
+
 class OpenAICompatibleAsyncClient:
     """Small adapter exposing the subset of Ollama's AsyncClient used here."""
 
@@ -513,15 +576,21 @@ class OpenAICompatibleAsyncClient:
             payload["stream_options"] = {"include_usage": True}
             return await self._collect_zen_stream(payload)
 
-        async with httpx.AsyncClient(timeout=self.api_timeout_seconds()) as client:
-            response = await client.post(self._chat_url(), headers=self._headers(), json=payload)
-            challenge = _key_challenge(response.status_code, self.base_url, self.api_key)
-            if challenge is not None:
-                raise challenge
-            if response.status_code >= 400:
-                raise _status_error(response)
-            response.raise_for_status()
-            data = response.json()
+        client = _shared_http_client(
+            self.base_url, self.api_key, self.api_timeout_seconds()
+        )
+        response = await client.post(
+            self._chat_url(),
+            headers=self._headers(),
+            json=payload,
+        )
+        challenge = _key_challenge(response.status_code, self.base_url, self.api_key)
+        if challenge is not None:
+            raise challenge
+        if response.status_code >= 400:
+            raise _status_error(response)
+        response.raise_for_status()
+        data = response.json()
 
         from core.tools.session_ctx import record_measured_usage
 
@@ -570,59 +639,59 @@ class OpenAICompatibleAsyncClient:
         return float(deep_number("advanced.api_timeout"))
 
     async def _stream_chat(self, payload: dict[str, Any]) -> AsyncIterator[dict]:
-        async with httpx.AsyncClient(timeout=self.STREAM_TIMEOUT) as client:
-            async with client.stream(
-                "POST",
-                self._chat_url(),
-                headers=self._headers(),
-                json=payload,
-            ) as response:
-                challenge = _key_challenge(response.status_code, self.base_url, self.api_key)
-                if challenge is not None:
-                    raise challenge
-                if 400 <= response.status_code < 500:
-                    # Row #51: on this path the body is still in the buffer, and the
-                    # mapper dies on `response.text` (ResponseNotRead) — the reader then
-                    # saw httpx's url line where the engine's reason belongs. The
-                    # non-streaming branch has opened the body since W13; a 4xx gets the
-                    # same treatment here, and a 5xx keeps the line every caller had.
-                    await response.aread()
-                    raise _status_error(response)
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if not line.startswith("data:"):
-                        continue
-                    raw = line.removeprefix("data:").strip()
-                    if raw == "[DONE]":
-                        break
-                    if not raw:
-                        continue
-                    data = json.loads(raw)
-                    # N8a: the measured usage block arrives (with include_usage=true)
-                    # in the last data frame before [DONE].
-                    from core.tools.session_ctx import record_measured_usage
+        client = _shared_http_client(self.base_url, self.api_key, self.STREAM_TIMEOUT)
+        async with client.stream(
+            "POST",
+            self._chat_url(),
+            headers=self._headers(),
+            json=payload,
+        ) as response:
+            challenge = _key_challenge(response.status_code, self.base_url, self.api_key)
+            if challenge is not None:
+                raise challenge
+            if 400 <= response.status_code < 500:
+                # Row #51: on this path the body is still in the buffer, and the
+                # mapper dies on `response.text` (ResponseNotRead) — the reader then
+                # saw httpx's url line where the engine's reason belongs. The
+                # non-streaming branch has opened the body since W13; a 4xx gets the
+                # same treatment here, and a 5xx keeps the line every caller had.
+                await response.aread()
+                raise _status_error(response)
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                raw = line.removeprefix("data:").strip()
+                if raw == "[DONE]":
+                    break
+                if not raw:
+                    continue
+                data = json.loads(raw)
+                # N8a: the measured usage block arrives (with include_usage=true)
+                # in the last data frame before [DONE].
+                from core.tools.session_ctx import record_measured_usage
 
-                    record_measured_usage(data.get("usage"))
-                    # The final usage frame carries choices=[] (no delta) — with an
-                    # empty list [0] must not be indexed, otherwise the parser breaks
-                    # the stream in the middle of the answer (empty answer).
-                    choices = data.get("choices") or []
-                    delta = choices[0].get("delta", {}) if choices else {}
-                    reasoning = delta.get("reasoning_content") or delta.get("reasoning")
-                    if reasoning:
-                        # Reasoning as its own channel — the consumer
-                        # (core.chat.stream_response) forwards it to on_thinking
-                        # instead of mixing it into the answer stream.
-                        yield {"message": {"reasoning_content": reasoning}}
-                    content = delta.get("content") or ""
-                    if content:
-                        yield {"message": {"content": content}}
-                    raw_tool_calls = delta.get("tool_calls")
-                    if raw_tool_calls:
-                        # Tool-call deltas (OpenAI format, arguments arrive in
-                        # fragments) — without them the tool detection could
-                        # not stream (sglang/vLLM stream them correctly).
-                        yield {"message": {"tool_calls": raw_tool_calls}}
+                record_measured_usage(data.get("usage"))
+                # The final usage frame carries choices=[] (no delta) — with an
+                # empty list [0] must not be indexed, otherwise the parser breaks
+                # the stream in the middle of the answer (empty answer).
+                choices = data.get("choices") or []
+                delta = choices[0].get("delta", {}) if choices else {}
+                reasoning = delta.get("reasoning_content") or delta.get("reasoning")
+                if reasoning:
+                    # Reasoning as its own channel — the consumer
+                    # (core.chat.stream_response) forwards it to on_thinking
+                    # instead of mixing it into the answer stream.
+                    yield {"message": {"reasoning_content": reasoning}}
+                content = delta.get("content") or ""
+                if content:
+                    yield {"message": {"content": content}}
+                raw_tool_calls = delta.get("tool_calls")
+                if raw_tool_calls:
+                    # Tool-call deltas (OpenAI format, arguments arrive in
+                    # fragments) — without them the tool detection could
+                    # not stream (sglang/vLLM stream them correctly).
+                    yield {"message": {"tool_calls": raw_tool_calls}}
 
     async def _collect_zen_stream(self, payload: dict[str, Any]) -> ProviderChatResponse:
         """Aggregate the zen gateway's SSE stream into one ProviderChatResponse.

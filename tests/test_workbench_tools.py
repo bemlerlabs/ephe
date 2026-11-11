@@ -13,7 +13,7 @@ import time
 import pytest
 
 from core.tools import TOOL_MAP, execute_tool, get_tool_schemas
-from core.tools.approval import classify_tool
+from core.tools.approval import ApprovalPolicy, classify_tool
 
 READERS = ("read_transcript", "read_cell_journal")
 
@@ -250,7 +250,9 @@ def test_list_then_kill_a_real_background_job(bg_register):
 
     async def run() -> None:
         tid = await execute_tool(
-            "run_shell", {"command": "tail -f /dev/null", "run_in_background": True}
+            "run_shell",
+            {"command": "tail -f /dev/null", "run_in_background": True},
+            policy=ApprovalPolicy(auto_approve=True),
         )
         assert tid.startswith("bg"), tid
 
@@ -270,7 +272,9 @@ def test_list_then_kill_a_real_background_job(bg_register):
 def test_poll_on_a_listed_done_job_returns_its_output(bg_register):
     async def run() -> None:
         tid = await execute_tool(
-            "run_shell", {"command": "echo workbench-live", "run_in_background": True}
+            "run_shell",
+            {"command": "echo workbench-live", "run_in_background": True},
+            policy=ApprovalPolicy(auto_approve=True),
         )
         waited = await execute_tool(
             "process_manage", {"action": "wait", "task_id": tid, "timeout_s": 5}

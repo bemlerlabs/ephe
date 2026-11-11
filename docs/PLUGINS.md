@@ -50,7 +50,8 @@
 | `components.skills` | Pack directory names that MUST ship a `SKILL.md` under `skills/` |
 | `components.commands` | `{ name (slug), description (non-empty), template? }` — template placeholders are expanded server-side |
 | `components.agents` | Agent profiles: `{ name, description?, tools (⊆ TOOL_MAP), model?, timeout? }` — bundle helper agents; fail-closed validation (unknown tool quarantines the agent) |
-| `components.hooks` / `mcp` | **Reserved** (E4b/E6): accepted structurally, never executed by the current runtime |
+| `components.hooks` | **Reserved** (E5): accepted structurally, never executed by the current runtime |
+| `components.mcp` | Version 2: the bundle's own MCP server (`{ "entry": "server.py:main" }`), started over stdio when the bundle is mounted (`core/plugin_mcp_server.py`); a tool with `transport: "mcp"` rides it |
 
 ## Manifest v2 (`manifest_version: 2`)
 
@@ -75,6 +76,22 @@ shape follows the version, never the entry.
   ]
 }
 ```
+
+### The surface placement
+
+`components.ui.type` is the one placement declaration, and both product surfaces honor
+it alike (`core/plugin_ui_capabilities.py` `UI_TYPES`, `app/src/lib/surfacePlacement.ts`):
+
+| `components.ui.type` | PWA / browser | Desktop |
+|---|---|---|
+| `floating-window` | a framed surface in the overlay stack | a window of its own (`ephe-plugin-<id>`) |
+| `canvas-overlay` | a framed surface in the overlay stack | the same framed surface in the overlay stack |
+| `dock-panel` | refused with the code `surface_dock_panel_unavailable` | refused with the same code |
+
+A placement changes where the document renders and grants nothing: the nonce, the sandbox
+and the capability list stay the mount's. A shell that cannot host the declared placement
+refuses it and names the move; it never falls back to another placement. The docked region
+does not exist yet, so `dock-panel` is refused on both halves until it lands.
 
 | Field | Rules |
 |---|---|
@@ -150,6 +167,45 @@ Reachability is the lifecycle's answer: `resolve_provider` accepts the id throug
 answers like an unknown one. `docs/PLUGIN_SDK.md` §3d is the author's guide;
 `docs/PLUGIN_COVERAGE.md` is the audit that says which capability classes still have no
 manifest route at all.
+
+### A declared grader preset (v2)
+
+`capabilities.evaluator` names checks a bundle's own golden suite grades with. A declared
+kind is a name for one of the kernel's grader primitives, and the kernel answers every
+consequence: `core/plugin_evaluator_contract.py` validates the section, and
+`core/plugin_golden.py` resolves it from the manifest beside the suite it loads. A case
+names the preset in `expect.kind` and passes nothing else.
+
+```json
+"capabilities": {
+  "evaluator": {
+    "kinds": [
+      {
+        "id": "no-slop",
+        "from": "not_contains",
+        "any": ["as an AI", "lorem ipsum", "TODO:"],
+        "description": "Placeholder text never reaches the answer."
+      }
+    ]
+  }
+}
+```
+
+| Field | Rules |
+|---|---|
+| `evaluator.kinds` | One to eight entries, in a version 2 manifest |
+| `kinds[].id` | Lowercase slug, at most 40 characters. `artifact`, `tool_use`, `contains`, `not_contains` and `tool_refused` are kernel kind names and are refused |
+| `kinds[].from` | `contains` or `not_contains`. The other three kernel primitives are the next cut, and a manifest naming one is refused for its `from` |
+| `kinds[].any` | One or more fragments, each at least three characters; the base's own argument |
+| `kinds[].description` | Required and non-empty. Recorded on the resolved kind; no surface prints it yet |
+
+A preset resolves only inside the bundle that declares it, so a case in another bundle's
+suite that names it is refused as an unknown kind, and two bundles may use the same id
+without a contest. An `ephe bench` receipt carries the declared name in `expect`, the
+primitive in `matcher` and the declaring kind or `kernel` in `kind_source`, so a report
+names the preset and the primitive behind it. A declared `not_contains` preset satisfies
+the anti-slop gate; a declared `contains` one does not. No permission family is asked for:
+a preset is data the grader reads.
 
 ## Vendored libraries
 
@@ -452,6 +508,5 @@ without shell, 10 s cap, every run audit-logged.
 
 - `components.agents` → user-defined helper-agent profiles (E5).
 - `components.hooks` → user-defined event hooks (E5).
-- `components.mcp` → per-plugin tool-server definitions (E4/E5).
 - Signature verification (ES256 over the canonical manifest) at install and
   enable time (E4).

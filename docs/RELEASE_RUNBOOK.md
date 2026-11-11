@@ -27,7 +27,13 @@ with a new pull request.
 `pyproject.toml` `[project].version` is the source. `app/package.json`,
 `app/src-tauri/tauri.conf.json` and `app/src-tauri/Cargo.toml` carry copies;
 `uv.lock` and `app/src-tauri/Cargo.lock` follow. `tests/test_version_sync.py`
-names all six.
+names all six, and `scripts/version_carriers.py` is the one list the cut, the
+checklist, `scripts/bump_version.py` and the release workflow's version guard read.
+Bump all six with one command rather than by hand:
+
+```bash
+python scripts/bump_version.py --version X.Y.Z
+```
 
 The install lines carry the same number: the three root READMEs and the four
 start documents (`docs/QUICKSTART.md`, `docs/INSTALL.md`,
@@ -49,13 +55,16 @@ python scripts/changelog_unreleased.py --check   # every feat/fix commit since t
 python scripts/catalog_freshness.py              # the committed catalogs are what their sources imply
 ```
 
+`scripts/release_cut.sh` runs `scripts/release_checklist.py` as its first gate, so the cut and the
+tag-triggered workflow judge the same checklist instead of two disjoint sets.
+
 ## 3a. The signing key
 
 The updater pubkey in `app/src-tauri/tauri.conf.json` belongs to the `ephe2` key pair
 
 ```
-minisign key id  B5D5C1A5DB5711E0     ->  ~/.tauri/ephe2.key.pub  (matches the config, byte for byte)
-                                        ~/.tauri/ephe.key.pub    (key id DDDF31267F76F66C, matches nothing)
+minisign key id  e01157dba5c1d5b5     ->  ~/.tauri/ephe2.key.pub  (matches the config, byte for byte)
+                                        ~/.tauri/ephe.key.pub    (the retired pair, matches nothing)
 ```
 
 A build signed with the default path produces a bundle the client refuses, so the local signed
@@ -67,9 +76,20 @@ EPHE_UPDATER_KEY="$HOME/.tauri/ephe2.key" python scripts/release_checklist.py --
 ```
 
 The private key is passphrase-protected: the passphrase is an owner input, entered when the build
-signs, and CI carries the same pair as the `TAURI_SIGNING_PRIVATE_KEY` secret. `ephe.key` stays on
-disk as the retired pair, which is why the check names a matching sibling instead of failing
-outright.
+signs, and CI carries the same pair as the `TAURI_SIGNING_PRIVATE_KEY` secret. A missing or
+mismatched key is a checklist FAIL and a `release.yml` build refusal, not a warning: a milestone
+release ships a signed shell. `ephe.key` stays on disk as the retired pair, which is why the check
+names a matching sibling.
+
+A machine with no key can still rehearse or build locally. `--dry-run` prints the plan and
+touches nothing; `--unsigned` builds without updater artifacts:
+
+```bash
+scripts/release_desktop.sh --dry-run
+scripts/release_desktop.sh --unsigned
+```
+
+The unsigned build has no `.sig` and no `latest.json`, and `--publish` is refused on it.
 
 ### The browser the frontend gate drives
 
@@ -115,13 +135,17 @@ The dispatch runs the release-bar test gate and the frontend gate.
 ## 5. Tag
 
 `scripts/release_cut.sh` refuses a wrong branch, a dirty tree, disagreeing
-version carriers, an existing tag and a HEAD that is not on `origin/main`. A
-rehearsal writes nothing:
+version carriers (all six), an existing tag and a HEAD that is not on
+`origin/main`. A rehearsal writes nothing:
 
 ```bash
 scripts/release_cut.sh --dry-run
 scripts/release_cut.sh --push
 ```
+
+`--skip-gates` is the audited exception: it needs `--skip-reason "why"` (or
+`EPHE_RELEASE_SKIP_REASON`) and appends a record with the tag, the commit and the
+reason to `~/.ephe/release-skips.jsonl` (or `EPHE_RELEASE_RECEIPT`).
 
 The annotated `vX.Y.Z` tag starts `release.yml`. The test gate and the frontend
 gate run first; the Tauri bundles land as a draft release.
@@ -130,4 +154,21 @@ gate run first; the Tauri bundles land as a draft release.
 
 The owner publishes the draft. That click is what moves `releases/latest` and
 the updater feed. `readme_check.py --public` is the check that the install lines
-name a tag that exists.
+name a tag that exists. The publish job measures the released DMG and source
+archive, refuses a template hash that matches neither, renders the tap and bucket
+manifests, and then publishes them and the npm wrapper.
+
+## 7. After the tag
+
+Policy: `main` carries the next milestone from the day the previous one shipped.
+Move all six carriers in one commit and do not tag again for a fix:
+
+```bash
+python scripts/bump_version.py --next-minor
+git add pyproject.toml app/package.json app/src-tauri/tauri.conf.json \
+  app/src-tauri/Cargo.toml app/src-tauri/Cargo.lock uv.lock
+git commit -m "chore: open the next milestone"
+```
+
+A version that stays equal to the last tag makes `main` look like the release it
+already shipped, and a release-pinned installation then cannot tell them apart.

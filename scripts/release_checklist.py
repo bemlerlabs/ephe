@@ -1,45 +1,35 @@
 #!/usr/bin/env python3
-"""The release checklist as code: run it before a tag and it refuses a release that is incomplete.
+"""The release checklist as code: run it before a tag and it refuses an incomplete release.
 
-`docs/RELEASE_CHECKLIST.md` and `docs/RELEASE_RUNBOOK.md` describe a release by hand. This is the
-same list, runnable, so the one step a busy release skips is the one that blocks it. It reads files
-and git state, and the pass^3 check runs a reader over the committed cohort's manifests. It never
-writes, never tags, never runs the test suite, so it is safe to run at any moment and cheap enough
-to run on every attempt.
+`docs/RELEASE_RUNBOOK.md` describes the release by hand; this is the same list, runnable, so the
+step a busy release skips is the one that blocks it. It reads files and git state, and the pass^3
+check runs a reader over the committed cohort. It never writes, tags or runs the test suite.
 
 What it refuses (a FAIL, exit 1):
-  version-agreement   the three version carriers disagree (pyproject.toml, app/package.json,
-                      app/src-tauri/tauri.conf.json). The runbook keeps them in sync by hand until
-                      P4-16 collapses them; this is the check that the hand did not slip.
-  version-shape       the version is not a concrete X.Y.Z (the `0.0.0+unknown` sentinel), so the
-                      release would ship with no number.
-  changelog-section   CHANGELOG.md carries no non-empty `## [X.Y.Z]` section. `latest.json` cuts its
-                      notes from the top changelog block, so an empty block ships a blank release.
-  unreleased-current  `scripts/changelog_unreleased.py --check` fails: a changelog-worthy commit
-                      since the last tag is named nowhere.
-  pass3-gate          `evals/pass3_release_gate.py` does not return release-ok over the cohort given
-                      by `$EPHE_RELEASE_RUNS` (default `evals/runs`). The gate's exit codes are
-                      reported with the gate's words: 0 release-ok, 1 blocked-flaky (a task flipped
-                      between reps), 2 untrusted (the instrument declined to certify). A deliberate
-                      mismatch is carried by naming a reason in `$EPHE_RELEASE_ENGINE_MISMATCH_REASON`,
-                      which goes to the gate as `--allow-engine-mismatch` and is recorded in this
-                      line. This is the engine arm the release workflow cannot run, so it runs here.
-  tree-committed      a version carrier or CHANGELOG.md is modified against HEAD. The tree you tag
-                      is the tree that ships; an uncommitted bump is not that tree.
+  version-agreement   the six carriers in `scripts/version_carriers.py` disagree, or one names
+                      another number than the release. The cut, the bump and the workflow's
+                      version guard read the same list.
+  version-shape       the version is not a concrete X.Y.Z (the `0.0.0+unknown` sentinel).
+  changelog-section   CHANGELOG.md carries no non-empty `## [X.Y.Z]` section; `latest.json` cuts
+                      its notes from that block, so an empty block ships a blank release.
+  unreleased-current  `scripts/changelog_unreleased.py --check` fails.
+  pass3-gate          `evals/pass3_release_gate.py` is not release-ok over `$EPHE_RELEASE_RUNS`
+                      (default `evals/runs`). The gate's words are reported: 0 release-ok,
+                      1 blocked-flaky, 2 untrusted; `$EPHE_RELEASE_ENGINE_MISMATCH_REASON` carries
+                      a deliberate mismatch as `--allow-engine-mismatch`. This is the engine arm
+                      the release workflow cannot run, so it runs here.
+  tree-committed      a version carrier or CHANGELOG.md is modified against HEAD.
   tag-free            the tag `vX.Y.Z` already exists, locally or (with `--remote`) on origin.
+  signing-key         the private key is absent or does not match `plugins.updater.pubkey`; a
+                      milestone release ships a signed shell, so this refuses (`--skip-signing`
+                      is for the release workflow, whose build guard owns the same check).
 
-What it warns about without blocking:
-  feed-wired          the updater pubkey or the endpoint list is empty, so a signed build would post
-                      a feed no client reads.
-  signing-key         `~/.tauri/ephe.key` is absent, or its public half does not match
-                      `plugins.updater.pubkey`, so a local signed build would post a feed the
-                      client refuses.
+What it warns about:
+  feed-wired          the updater pubkey or endpoint list is empty.
   branch              HEAD is not `main`.
 
-Exit codes follow the other gates in `scripts/`: 0 the tree is ready to tag, 1 the checklist is
-incomplete, 2 an input could not be read. A silent pass is worse than the defect it watches. These
-are this script's own codes; the pass3-gate item reports the gate's codes with the gate's words
-(0 release-ok / 1 blocked-flaky / 2 untrusted), so an instrument refusal never reads as a red tree.
+Exit codes: 0 ready to tag, 1 incomplete, 2 an input could not be read. The pass3-gate item
+reports the gate's codes with the gate's words, so an instrument refusal never reads as a red tree.
 """
 from __future__ import annotations
 
@@ -68,12 +58,8 @@ RELEASE_ENGINE_MISMATCH_ENV = "EPHE_RELEASE_ENGINE_MISMATCH_REASON"
 # mistake an instrument refusal (2 untrusted) for a red product (1 blocked-flaky).
 GATE_DECISION = {0: "release-ok", 1: "blocked-flaky", 2: "untrusted"}
 
-# path -> reader label, kept in the order the runbook lists them.
-CARRIERS = (
-    ("pyproject.toml", "[project].version"),
-    ("app/package.json", "version"),
-    ("app/src-tauri/tauri.conf.json", "version"),
-)
+# The six carriers live in one module so the cut, the bump, the checklist and the release
+# workflow's version guard cannot drift from each other.
 CHANGELOG = "CHANGELOG.md"
 TAURI_CONF = "app/src-tauri/tauri.conf.json"
 UNRELEASED = "scripts/changelog_unreleased.py"
@@ -93,30 +79,21 @@ class Item:
         return {"name": self.name, "status": self.status, "detail": self.detail}
 
 
-def read_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+def _carriers():
+    local = str(Path(__file__).resolve().parent)
+    if local not in sys.path:
+        sys.path.insert(0, local)
+    import version_carriers
 
-
-def pyproject_version(path: Path) -> str:
-    """`[project].version`. tomllib is 3.11+, and the gates also run on 3.10, so read the line."""
-    text = path.read_text(encoding="utf-8")
-    section = re.search(r"(?ms)^\[project\]\s*$(.*?)(?=^\[[^\]]+\]|\Z)", text)
-    body = section.group(1) if section else text
-    match = re.search(r"(?m)^\s*version\s*=\s*[\"']([^\"']+)[\"']", body)
-    if not match:
-        raise ValueError("no [project].version line")
-    return match.group(1)
+    return version_carriers
 
 
 def carrier_versions(root: Path) -> dict[str, str]:
-    versions: dict[str, str] = {}
-    for rel, _label in CARRIERS:
-        path = root / rel
-        if rel.endswith(".json"):
-            versions[rel] = str(read_json(path)["version"])
-        else:
-            versions[rel] = pyproject_version(path)
-    return versions
+    return _carriers().read_versions(root)
+
+
+def declared_version(root: Path) -> str:
+    return _carriers().declared_version(root)
 
 
 def changelog_sections(text: str) -> list[tuple[str, list[str]]]:
@@ -140,9 +117,10 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess:
 
 
 def check_version_agreement(versions: dict[str, str], release: str) -> Item:
-    distinct = sorted(set(versions.values()))
-    if len(distinct) == 1 and distinct[0] == release:
-        return Item("version-agreement", "PASS", f"all carriers carry {release}")
+    normalize = _carriers().normalized
+    distinct = sorted({normalize(value) for value in versions.values()})
+    if len(distinct) == 1 and distinct[0] == normalize(release):
+        return Item("version-agreement", "PASS", f"all six carriers carry {release}")
     if len(distinct) == 1:
         return Item(
             "version-agreement",
@@ -285,7 +263,7 @@ def check_tree_committed(root: Path) -> Item:
         if "->" in path:
             path = path.split("->")[-1].strip()
         dirty.append(path)
-    carriers = {rel for rel, _ in CARRIERS} | {CHANGELOG}
+    carriers = set(_carriers().CARRIERS) | {CHANGELOG}
     blocked = sorted(p for p in dirty if p in carriers)
     if blocked:
         return Item("tree-committed", "FAIL", f"modified against HEAD: {', '.join(blocked)}")
@@ -339,22 +317,41 @@ def check_branch(root: Path) -> Item:
     return Item("branch", "WARN", f"HEAD is {branch or 'unknown'}, not main")
 
 
-def run(root: Path, release: str | None, remote: bool) -> tuple[int, list[Item]]:
+def run(
+    root: Path,
+    release: str | None,
+    remote: bool,
+    *,
+    tagged: bool = False,
+    skip_pass3: bool = False,
+    skip_signing: bool = False,
+) -> tuple[int, list[Item]]:
     if release is None:
-        release = pyproject_version(root / "pyproject.toml")
+        release = declared_version(root)
     versions = carrier_versions(root)
     items = [
         check_version_agreement(versions, release),
         check_version_shape(release),
         check_changelog(root, release),
         check_unreleased_current(root),
-        check_pass3_gate(root),
+        (
+            Item("pass3-gate", "SKIP", "the caller ran the gate itself")
+            if skip_pass3
+            else check_pass3_gate(root)
+        ),
         check_tree_committed(root),
-        check_tag_free(root, release, remote),
-        check_feed_wired(root),
-        check_signing_key(root),
-        check_branch(root),
     ]
+    # At a tag-push event the tag is the reason the job runs; `tag-free` would refuse the
+    # release it is checking. The version guard owns the tag/build agreement there.
+    if not tagged:
+        items.append(check_tag_free(root, release, remote))
+    items.append(check_feed_wired(root))
+    items.append(
+        Item("signing-key", "SKIP", "the release workflow's build guard owns the key")
+        if skip_signing
+        else check_signing_key(root)
+    )
+    items.append(check_branch(root))
     return (1 if any(i.status == "FAIL" for i in items) else 0), items
 
 
@@ -363,18 +360,32 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--root", type=Path, default=REPO, help="repository root")
     ap.add_argument("--version", help="the version to release; default: pyproject.toml")
     ap.add_argument("--remote", action="store_true", help="also check the tag on origin")
+    ap.add_argument("--tagged", action="store_true", help="the tag already exists (release workflow)")
+    ap.add_argument("--skip-pass3", action="store_true", help="a caller already ran the pass^3 gate")
+    ap.add_argument(
+        "--skip-signing",
+        action="store_true",
+        help="the release workflow's build guard owns the signing-key check",
+    )
     ap.add_argument("--json", action="store_true", help="print a machine-readable verdict")
     args = ap.parse_args(argv)
 
     try:
-        code, items = run(args.root, args.version, args.remote)
+        code, items = run(
+            args.root,
+            args.version,
+            args.remote,
+            tagged=args.tagged,
+            skip_pass3=args.skip_pass3,
+            skip_signing=args.skip_signing,
+        )
     except (OSError, ValueError, KeyError) as exc:
         print(f"release-check: cannot read an input: {type(exc).__name__}: {exc}")
         return 2
 
     if args.json:
         payload = {
-            "version": args.version or pyproject_version(args.root / "pyproject.toml"),
+            "version": args.version or declared_version(args.root),
             "verdict": "ready" if code == 0 else "incomplete",
             "items": [i.as_dict() for i in items],
         }

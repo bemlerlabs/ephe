@@ -119,6 +119,17 @@ async def lifespan(fastapi_app: FastAPI):
     warm_task = asyncio.create_task(asyncio.to_thread(warmup_whisper))
     _background_tasks.append(warm_task)
 
+    # A route's handler imports its core half where it runs, so the first click
+    # paid for it. Warm those paths in one thread while the shell still polls
+    # /api/health. Only the production app (get_app) opts in: a TestClient that
+    # calls create_app() must not race a warmup against the test's own config.
+    if getattr(fastapi_app.state, "warm_handlers", False):
+        from server.warmup import warm_request_paths
+
+        _background_tasks.append(
+            asyncio.create_task(asyncio.to_thread(warm_request_paths))
+        )
+
     # --- GUI Automation Safety Setup ---
     def configure_gui_safety():
         import sys
@@ -195,13 +206,32 @@ async def lifespan(fastapi_app: FastAPI):
     except Exception:
         pass
 
+    # The pooled engine clients hold keep-alive sockets; a backend that exits
+    # without closing them leaves the endpoint's side waiting for a timeout.
+    try:
+        from core.model_provider import aclose_shared_http_clients
 
-def create_app(lan_mode: bool = False) -> FastAPI:
+        await aclose_shared_http_clients()
+    except Exception:
+        pass
+
+    # A health poll whose engine probe is still running must not outlive the loop.
+    try:
+        from server.routes.health import aclose_engine_probes
+
+        await aclose_engine_probes()
+    except Exception:
+        pass
+
+
+def create_app(lan_mode: bool = False, *, warm_handlers: bool = False) -> FastAPI:
     """
     FastAPI app factory.
     Used in tests (TestClient) and in run.py (uvicorn).
 
     lan_mode: when True, an auth token is generated + security/rate limit enabled.
+    warm_handlers: warm the heavy request paths in the background at startup; the
+    production entry (get_app) sets it, a test that builds the app does not.
     """
     # Init auth (generates the token in LAN mode)
     from server.middleware import (
@@ -222,6 +252,7 @@ def create_app(lan_mode: bool = False) -> FastAPI:
         docs_url="/api/docs",
         redoc_url=None,
     )
+    app.state.warm_handlers = warm_handlers
 
     # Security Middleware
     app.add_middleware(SecurityHeadersMiddleware)
@@ -639,9 +670,14 @@ def mount_frontend(app: FastAPI) -> None:
 
 # Standalone instance (for uvicorn directly)
 def get_app() -> FastAPI:
-    """Creates the app with LAN mode taken from the env variable."""
+    """Creates the production app: LAN mode from the env, handler warmup on.
+
+    ``EPHE_WARMUP=0`` turns the startup warmup off; it is a diagnostic switch for
+    a machine whose first click is cheaper than its background thread.
+    """
     lan = (os.environ.get("EPHE_LAN")) == "1"
-    return create_app(lan_mode=lan)
+    warm = os.environ.get("EPHE_WARMUP", "1") != "0"
+    return create_app(lan_mode=lan, warm_handlers=warm)
 
 
 _MOBILE_HTML = """<!doctype html>

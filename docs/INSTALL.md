@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8
 ```
 
 From a checkout you already have:
@@ -42,9 +42,11 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.6.8` tag. The fetch answers HTTP 200 once
-that tag is published; the checkout path above is the alternative for reading the script before
-it runs.
+The one-liner fetches `install.sh` from the public `v0.6.8` tag and passes `--tag v0.6.8`, so the
+installer checks that tag out instead of the branch tip. The fetch answers HTTP 200 once that tag
+is published; the checkout path above is the alternative for reading the script before it runs.
+An existing checkout in the install folder is moved to the named tag; without `--tag` the
+installer keeps the branch and fast-forwards, which is the rolling path.
 
 For the end-to-end first-run walkthrough — install, the engine choice (hosted API key or local
 Ollama runtime), and the first answer — see [FIRST_RUN.md](FIRST_RUN.md).
@@ -53,14 +55,14 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8 --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
 irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
 ```
 
 From a checkout:

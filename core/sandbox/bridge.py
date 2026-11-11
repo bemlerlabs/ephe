@@ -46,6 +46,8 @@ MAX_BRIDGE_BYTES = 64 * 1024
 #: the code, the human reads the audit row, and neither gets a string from the host to parse.
 METHOD_UNKNOWN = "bridge_method_unknown"
 METHOD_DENIED = "bridge_method_denied"
+PATH_DENIED = "bridge_path_denied"
+CONSENT_REQUIRED = "bridge_consent_required"
 ARGS_INVALID = "bridge_args_invalid"
 PAYLOAD_TOO_LARGE = "bridge_payload_too_large"
 RATE_LIMITED = "bridge_call_limit"
@@ -54,6 +56,8 @@ INTERNAL = "bridge_internal"
 BRIDGE_CODES = (
     METHOD_UNKNOWN,
     METHOD_DENIED,
+    PATH_DENIED,
+    CONSENT_REQUIRED,
     ARGS_INVALID,
     PAYLOAD_TOO_LARGE,
     RATE_LIMITED,

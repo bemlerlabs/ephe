@@ -1935,17 +1935,26 @@ def cmd_update(args: argparse.Namespace) -> int:
     """Move this checkout to the newest release, and reinstall it.
 
     The terminal is release-only: the default path asks the release feed and
-    fast-forwards to the tag. `--channel commit` is the explicit exception for
-    a checkout that serves the desktop/PWA backend; it follows main instead and
-    says so, because that checkout is no longer release-pinned."""
+    fast-forwards to the tag. `--tag vX.Y.Z` names one release instead, the
+    rollback path, and a tree ahead of it is moved back to that tag.
+    `--channel commit` is the explicit exception for a checkout that serves the
+    desktop/PWA backend; it follows main instead and says so, because that
+    checkout is no longer release-pinned."""
     from core.update_apply import apply_release, apply_update
 
     channel = getattr(args, "channel", "release")
+    tag = getattr(args, "tag", None)
+    if channel == "commit" and tag:
+        print("  --tag applies to the release channel only; --channel commit follows main.")
+        return 2
     # The tree the CLI lives in, named here so a test that moves PROJECT_ROOT
     # moves the update with it — this used to read the module's own default and
     # ran an installer wherever the process happened to start.
     if channel == "commit":
         result = apply_update(PROJECT_ROOT)
+    elif tag:
+        # The documented rollback: name the release to run, not the newest one.
+        result = apply_release(PROJECT_ROOT, tag=tag)
     else:
         result = apply_release(PROJECT_ROOT)
     if args.json:
@@ -3351,6 +3360,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="release (default): fast-forward to the newest release tag. "
              "commit: follow main's tip — the explicit exception for a checkout that "
              "serves the desktop/PWA backend.",
+    )
+    update.add_argument(
+        "--tag",
+        help="Run this release tag instead of the newest one; the rollback path for a "
+             "release that should no longer run. The checkout is moved back to the tag.",
     )
     update.add_argument("--json", action="store_true", help="Machine-readable output")
     update.set_defaults(func=cmd_update)
