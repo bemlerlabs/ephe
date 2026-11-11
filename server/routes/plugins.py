@@ -459,6 +459,53 @@ def _unmount_after_disable(
         raise error from exc
 
 
+def _set_enabled_with_rescan(
+    lifecycle,
+    plugin_id: str,
+    enabled: bool,
+    *,
+    scope: str,
+    expected_version: str | None,
+    expected_etag: str | None,
+    idempotency_key: str | None,
+    reason: str,
+):
+    """One switch movement, and one rebuild if the manifest view predates the bundle.
+
+    `ephe plugin install` in a terminal while the app is running installs into the same
+    folder the server scans, but the process keeps its version map until something
+    invalidates it. The answer used to be "not installed" for a bundle the installed list
+    was already showing; a bundle whose folder exists is worth one rescan before that is
+    said.
+    """
+    try:
+        return lifecycle.set_enabled(
+            plugin_id,
+            enabled,
+            scope=scope,
+            expected_version=expected_version,
+            expected_etag=expected_etag,
+            idempotency_key=idempotency_key,
+            actor="user",
+            reason=reason,
+        )
+    except LifecycleError as exc:
+        if exc.code != "unknown_plugin":
+            raise
+        plugin_runtime.invalidate_ownership_cache()
+        rebuilt = plugin_runtime.lifecycle()
+        return rebuilt.set_enabled(
+            plugin_id,
+            enabled,
+            scope=scope,
+            expected_version=expected_version,
+            expected_etag=expected_etag,
+            idempotency_key=idempotency_key,
+            actor="user",
+            reason=reason,
+        )
+
+
 def _apply_switch(
     plugin_id: str,
     enabled: bool,
@@ -485,14 +532,14 @@ def _apply_switch(
     lifecycle = plugin_runtime.lifecycle()
     try:
         before = lifecycle.effective(plugin_id)
-        snapshot = lifecycle.set_enabled(
+        snapshot = _set_enabled_with_rescan(
+            lifecycle,
             plugin_id,
             enabled,
             scope=scope,
             expected_version=expected_version,
             expected_etag=expected_etag,
             idempotency_key=idempotency_key,
-            actor="user",
             reason=reason,
         )
     except LifecycleError as exc:

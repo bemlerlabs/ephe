@@ -380,6 +380,6 @@ elif [[ -e "$DATA_DIR" || -L "$DATA_DIR" ]] || [[ "$app_state_remaining" == "1" 
   printf '%s\n' "That run also clears the app's Library state under $HOME/Library."
 else
   printf '%b\n' "${GREEN}${BOLD}Ephe is gone from this machine.${NC}"
-  printf '%s\n' "Reinstall at any time with: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.5/install.sh | bash"
+  printf '%s\n' "Reinstall at any time with: curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.6/install.sh | bash"
 fi
 printf '%s\n' ""

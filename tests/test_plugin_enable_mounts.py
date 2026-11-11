@@ -568,3 +568,20 @@ def test_enable_disable_enable_ends_mounted(client, lane):
     # The surface is open again on the same switch: the mint the disable refused works.
     minted = client.post(f"/api/plugins/{_PLUGIN}/surface-token", json={})
     assert minted.status_code == 200, minted.text
+
+
+def test_a_bundle_installed_by_another_process_is_found_on_enable(client, lane, monkeypatch) -> None:
+    """A stale manifest view is one rescan away from the truth."""
+    from core import plugin_runtime
+
+    _write_bundle(lane["root"])
+    # The lifecycle was built with the bundle absent, which is what a process that only
+    # learned about it later holds; the route has to rebuild before it says "not installed".
+    stale = plugin_runtime.lifecycle()
+    plugin_runtime._versions_cached.cache_clear()
+    monkeypatch.setattr(plugin_runtime, "lifecycle", lambda *a, **k: stale)
+
+    answer = _enable(client)
+
+    assert answer.status_code == 200, answer.text
+    assert answer.json()["state"] == "enabled"
