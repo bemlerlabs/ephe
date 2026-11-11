@@ -37,26 +37,22 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Rust toolchain
+      - name: Rust toolchain check
         # The hosted image ships a stable rustup/cargo. The download action needs
         # static.rust-lang.org, which failed DNS on 2026-11-11 and took this whole gate
-        # with it; using what the image carries removes that dependency. Only a runner
-        # without cargo fetches a toolchain, with bounded attempts.
+        # with it; using what the image carries removes that dependency.
         run: |
           if cargo --version && rustc --version; then
             echo "using the image's Rust toolchain"
-            exit 0
+          else
+            echo "RUST_TOOLCHAIN_MISSING=1" >> "$GITHUB_ENV"
           fi
-          for attempt in 1 2; do
-            if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable; then
-              echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-              exit 0
-            fi
-            echo "rustup attempt $attempt failed; retrying" >&2
-            sleep 15
-          done
-          echo "::error::no Rust toolchain on this runner and the download failed"
-          exit 1
+
+      - name: Rust toolchain (only when the image carries none)
+        # The pinned action, never a `curl | sh`: a workflow that pipes a download into a
+        # shell is the finding Semgrep blocks (gha-curl-pipe-shell), and it is right.
+        if: env.RUST_TOOLCHAIN_MISSING == '1'
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
 
       - name: Linux system deps (webkit2gtk)
         # Measured 2026-10-26: this step takes 25 s on a healthy runner. One attempt
