@@ -53,10 +53,11 @@ def policy_snapshot() -> dict[str, Any]:
             ),
             "filesystem_reach": (
                 "enforced where a boundary exists: whole-home deny with child home, "
-                "temp and measured runtime prefixes re-opened (Seatbelt last-rule-"
-                "wins; bubblewrap tmpfs + ro-bind), plus exactly the roots the "
-                "descriptor declared, read-only; not_enforced — and execution "
-                "refused as sandbox_unavailable — where the boundary is missing"
+                "temp, measured runtime prefixes and every symlink hop of the command's "
+                "own path re-opened (Seatbelt last-rule-wins; bubblewrap tmpfs + "
+                "ro-bind), plus exactly the roots the descriptor declared, read-only; "
+                "not_enforced — and execution refused as sandbox_unavailable — where "
+                "the boundary is missing"
             )
             if has_boundary
             else (

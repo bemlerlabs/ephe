@@ -39,6 +39,7 @@ from core.redact import redact
 from core.tools.creator_guard import CREATOR_MODE, PRIVILEGES
 from evals.creation_transcript import (
     build_transcript,
+    declared_bundles,
     engine_environment,
     take_staged_bundles,
     tool_events,
@@ -281,12 +282,19 @@ def main(argv: list[str] | None = None) -> int:
     nonce = time.strftime("%d%H%M%S", time.localtime())
     cases = [c for c in load_cases(args.cases) if not args.only or c["id"] in args.only]
     plans = [plan_case(case, nonce) for case in cases]
+    # The run home declares the bundles the cases name, so a privilege the guard rules by a
+    # manifest declaration (the network family over `fetch_url`) does not depend on which
+    # bundle the operator happens to have installed (class 4d, 2026-11-11).
+    declared = declared_bundles(
+        name for case in cases for name in (case.get("tools") or ())
+    )
     env = engine_environment(
         key_file=args.key_file,
         config_dir=config,
         base_url=args.base_url,
         model=args.model,
         port=args.port,
+        declared_bundles=declared,
     )
     base = f"http://127.0.0.1:{args.port}"
     env.pop("EPHE_LIVE_PORT", None)

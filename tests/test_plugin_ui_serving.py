@@ -263,10 +263,18 @@ def test_the_bare_mount_url_redirects_to_the_directory_shape(tmp_path, monkeypat
 
 
 def test_a_disabled_plugin_is_refused_while_its_active_sibling_serves(tmp_path, monkeypatch):
+    """A mount credential is bought while the bundle is on; switching it off closes the
+    document that credential points at. The credential belongs to the surface's life, not
+    to the switch, so the reader meets the 404 and not a stale frame."""
     app = _app(tmp_path, monkeypatch,
-               specs={PLUGIN_ID: {}, "acme-other": {"capabilities": ["notifications"]}},
-               disabled=("acme-other",))
-    refused = _document(app, "acme-other")
+               specs={PLUGIN_ID: {}, "acme-other": {"capabilities": ["notifications"]}})
+    surface = _mint(app, "acme-other")
+    switched_off = _call(
+        app, "/api/plugins/acme-other/enabled", method="PUT",
+        body={"enabled": False}, headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+    assert switched_off.status_code == 200, switched_off.text
+    refused = _document(app, "acme-other", surface)
     assert refused.status_code == 404, refused.text
     assert refused.json()["error"]["reason_code"] == "plugin_ui_unavailable"
     assert _document(app).status_code == 200

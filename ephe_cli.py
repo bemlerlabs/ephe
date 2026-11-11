@@ -1598,9 +1598,43 @@ def cmd_start(args: argparse.Namespace, config_path=None) -> int:
                 webbrowser.open(url)
                 break
             time.sleep(1)
-        return process.wait()
+        return _wait_until_interrupted(process)
 
-    return _run(cmd, env=env).returncode
+    try:
+        return _run(cmd, env=env).returncode
+    except KeyboardInterrupt:
+        return _report_shutdown()
+
+
+def _report_shutdown() -> int:
+    """Name the stop and answer with the code a shell reports for Ctrl-C (130).
+
+    The backend sits in the same foreground process group, so a terminal already sent
+    it the same SIGINT and the runner reaps it. The only thing the CLI used to add was
+    a traceback; this is the sentence and the exit code instead.
+    """
+    print("\n  ○ Ephe backend stopped — nothing was left running.")
+    return 130
+
+
+def _wait_until_interrupted(process: subprocess.Popen) -> int:
+    """The `--open` branch's foreground wait, with Ctrl-C as the stop it is.
+
+    Unlike `_run`, this branch owns the child: a child that did not receive the
+    terminal's interrupt (a scripted kill, a test) is asked to stop explicitly, so the
+    port is not left held by a backend nobody can see.
+    """
+    try:
+        return int(process.wait())
+    except KeyboardInterrupt:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+        return _report_shutdown()
 
 
 def _desktop_bundle_path(target_dir: Path) -> Path | None:
@@ -2293,6 +2327,22 @@ def _plugin_remove(args: argparse.Namespace) -> int:
     return 0
 
 
+def _bundled_plugins_for(plugin_id: str) -> list[str]:
+    """The bundled plugin ids a listing id names — itself, or the slug it replaced.
+
+    `core.plugin_store.LEGACY_SLUG_MAP` owns that vocabulary; this keeps only names
+    whose folder is in this checkout, so the sentence names something that is here.
+    """
+    from core.plugin_store import LEGACY_SLUG_MAP
+
+    candidates = LEGACY_SLUG_MAP.get(plugin_id, [plugin_id])
+    return [
+        name
+        for name in candidates
+        if (PROJECT_ROOT / "plugins" / name / "ephe-plugin.json").is_file()
+    ]
+
+
 def cmd_plugin(args: argparse.Namespace) -> int:
     """E4a: plugin management (list / enable / disable / install / remove)."""
     from core import plugin_market, plugin_runtime
@@ -2337,6 +2387,23 @@ def cmd_plugin(args: argparse.Namespace) -> int:
                 "disabled until you enable it"
             )
             return 0
+        if status["status"] == "unknown_plugin":
+            bundled = _bundled_plugins_for(pid)
+            if bundled:
+                # Nothing is downloadable under this id: it is a name for a plugin
+                # that ships with Ephe, so the honest answer is the switch
+                # failed download of an artifact that was never published.
+                named = (
+                    f"'{pid}'"
+                    if bundled == [pid]
+                    else f"'{pid}' ships with Ephe as {', '.join(bundled)}"
+                )
+                print(
+                    f"  ⓘ {named} — nothing to install. Turn it on with "
+                    f"`ephe plugin enable {bundled[0]}`.",
+                    file=sys.stderr,
+                )
+                return 1
         reason = status.get("error") or status["status"]
         print(
             f"[error] install of '{pid}' failed: {status['status']} ({reason})",
@@ -3359,7 +3426,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.set_defaults(func=cmd_serve)
 
-    # Wave D4b: a memory door for foreign MCP agents. stdio, not HTTP — the
+    # Wave D4b: a memory door for foreign MCP agents. stdio — the
     # user starts the server themselves, the command line is the consent.
     memory_mcp = sub.add_parser(
         "memory-mcp",
@@ -3740,13 +3807,47 @@ def _failure_fix(exc: BaseException) -> str:
     )
 
 
+def _attached_to_a_terminal() -> bool:
+    """True when both streams the terminal app uses are a TTY.
+
+    The app reads keys from stdin and draws on stdout; a pipe on either side is enough
+    to leave it waiting for input nobody can type.
+    """
+    try:
+        return bool(sys.stdin and sys.stdin.isatty() and sys.stdout and sys.stdout.isatty())
+    except Exception:  # pragma: no cover — exotic stream objects
+        return False
+
+
+def require_terminal_for_tui() -> None:
+    """`ephe tui` without a terminal is a usage error.
+
+    Measured: `python -m ephe_cli tui < /dev/null` with stdout on a pipe never returned;
+    the app painted its frame into the pipe and then waited for keys. A script, a CI step
+    or `| tee` therefore hung until it was killed. The front door answers instead, with
+    the same exit code the bare `ephe` path already returns without a TTY.
+    """
+    if _attached_to_a_terminal():
+        return
+    print(
+        "[error] `ephe tui` needs an interactive terminal: stdin and stdout are not a TTY "
+        "here, so the app has nothing to draw on and nobody to read keys from.",
+        file=sys.stderr,
+    )
+    print(
+        'next: run it from a terminal, or use `ephe code "<task>"` for a non-interactive run.',
+        file=sys.stderr,
+    )
+    raise SystemExit(2)
+
+
 def _default_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
     """The call that names no verb opens the terminal app when a person is at the keyboard.
 
     Without a terminal there is nothing to draw, so the usage page is the answer a
     script or a CI step can read, and exit 2 keeps it a usage error there.
     """
-    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+    if not _attached_to_a_terminal():
         parser.print_help()
         raise SystemExit(2)
     return parser.parse_args(["tui"])
@@ -3757,6 +3858,8 @@ def main() -> None:
     args = _parse_args(parser)
     if getattr(args, "command", None) is None:
         args = _default_command(parser)
+    if getattr(args, "command", None) == "tui":
+        require_terminal_for_tui()
     try:
         raise SystemExit(args.func(args))
     except SystemExit:

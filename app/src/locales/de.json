@@ -2174,7 +2174,8 @@
     "file_path_not_allowed": "Pfad liegt außerhalb des Arbeitsbereichs und seines Ausgabeordners — nimm eine Datei aus einem der beiden Ordner",
     "file_path_protected": "Pfad ist geschützt (Zugangsdaten oder Systemdatei) — diese Route kann sie nicht lesen; wähle eine andere Datei",
     "file_not_found": "Datei nicht gefunden — prüfe den Pfad oder ob die Datei noch existiert",
-    "file_too_large": "Datei ist größer als das Vorschau-Limit ({{max_mb}} MB) — öffne sie direkt"
+    "file_too_large": "Datei ist größer als das Vorschau-Limit ({{max_mb}} MB) — öffne sie direkt",
+    "sandbox_start_refused": "plugin '{{plugin}}' wurde nicht gestartet: die OS-Grenze verweigerte den Start des Workers ({{reason}}) — prüfen, ob der Backend-Host den Plugin-Worker zulässt, dann das Werkzeug erneut ausführen"
   },
   "reader": {
     "fetch_empty_url": "Die URL ist leer.",

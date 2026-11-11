@@ -22,6 +22,14 @@ verdict naming the layer that answered:
     accepts it is reported as a failure of this check: the case graded a refusal the
     platform never performs.
   * `staging_empty` — the refusal case's end state, which is an empty staging folder.
+  * `offer_matches_grant` — the offer the case's grant produced, compared with the calls
+    `core.tools.creator_guard.judge` allows that grant. A refusal case watches a call the
+    turn never made, and a call can be missing from the offer for two reasons: the guard
+    withheld it (the promise) or the array lost it (the defect the paid run's class 4a
+    was). This check tells them apart by running the product's own filter over the grant
+    the case states, so both directions are graded, and it fails closed on a name the home
+    cannot rule at all — a case that watches such a call would print a refusal nothing in
+    that home can perform.
   * `state_bridge_used` — the bundle's own source, read for the state-path call. A file
     outside `vendor/` that writes through the SDK's `storage` methods answers yes; one
     that writes only page storage answers no and names what it writes. Page storage now
@@ -41,7 +49,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from evals.creation_eval import CHECKS, DENIAL_CHECK
+from evals.creation_eval import CHECKS, DENIAL_CHECK, GRANT_CHECKS, OFFER_CHECK
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,6 +60,7 @@ OFFLINE_CHECKS: tuple[str, ...] = (
     "capability_declared",
     "capability_undeclared_refused",
     "staging_empty",
+    "offer_matches_grant",
     "state_bridge_used",
 )
 
@@ -126,6 +135,8 @@ def run_offline_checks(
     for name in case.get("checks", []):
         if name == DENIAL_CHECK:
             verdicts.append(_staging_empty(root_dir))
+        elif name == OFFER_CHECK:
+            verdicts.append(_offer_matches_grant(case))
         elif name in OFFLINE_CHECKS:
             verdicts.append(_bundle_check(name, case, root_dir))
         else:
@@ -400,6 +411,111 @@ def _name_owners(own: str) -> dict[str, str]:
         return {}
     owners.pop(own, None)
     return owners
+
+
+def _offer_matches_grant(case: dict) -> Verdict:
+    """The offer the case's grant produced, against the calls the guard allows that grant.
+
+    Both directions are a failure of their own: a call the grant buys and the array lost
+    is the class-4a defect (a grant that promises a call the model is never handed), and a
+    call the array carries that the grant does not buy is the invitation the consent gate
+    exists to refuse. A name the case watches that no authority in this home rules is a
+    third failure: the case grades a refusal that cannot happen here, so a green row would
+    be a verdict about nothing.
+    """
+    from core.tools.creator_guard import CREATOR_TOOL_NAMES, judge
+
+    held = frozenset(str(privilege) for privilege in (case.get("privileges") or ()))
+    offered = _offered_creator_calls(held)
+    covered: set[str] = set()
+    withheld: set[str] = set()
+    problems: list[str] = []
+    for name in sorted(CREATOR_TOOL_NAMES):
+        privilege, basis = judge(name)
+        if basis == "unlisted":
+            problems.append(
+                f"core.tools.creator_guard.judge rules {name!r} {basis!r}, so no grant can "
+                "reach it and the offer cannot be compared with a ruling"
+            )
+            continue
+        if not privilege or privilege in held:
+            covered.add(name)
+        else:
+            withheld.add(name)
+    lost = sorted(covered - offered)
+    extra = sorted(offered & withheld)
+    if lost:
+        problems.append(
+            f"the grant buys {', '.join(lost)} and "
+            "core.tools.creator_guard.filter_offer does not offer it"
+        )
+    if extra:
+        problems.append(
+            f"the offer carries {', '.join(extra)}, which the grant does not buy"
+        )
+    watched = _watched_names(case, held, problems)
+    if problems:
+        return Verdict(OFFER_CHECK, False, "; ".join(problems))
+    return Verdict(
+        OFFER_CHECK, True,
+        f"core.tools.creator_guard.filter_offer offers {_names(covered)} for the grant "
+        f"{sorted(held) or 'no privileges'} and withholds {_names(withheld)}"
+        + (f"; the case watches {watched}" if watched else ""),
+    )
+
+
+def _watched_names(case: dict, held: frozenset[str], problems: list[str]) -> str:
+    """The calls a case names beyond the Creator five, with the grant's relation to each.
+
+    `tools` is the case's own statement of what the turn is offered. A name in it that the
+    guard cannot rule is the class-4d defect: the case grades the call's absence while the
+    home has no authority to withhold or refuse it, so the reading would be true for the
+    wrong reason (the tool is not dispatchable at all).
+    """
+    from core.tools.creator_guard import CREATOR_TOOL_NAMES, judge
+
+    watched: list[str] = []
+    for name in sorted({str(entry) for entry in (case.get("tools") or ())} - set(CREATOR_TOOL_NAMES)):
+        privilege, basis = judge(name)
+        if basis == "unlisted":
+            problems.append(
+                f"the case names {name!r} and no authority in this home rules it "
+                f"({basis}) - the home declares no bundle for it, so the call it watches "
+                "cannot be withheld or refused here"
+            )
+            continue
+        relation = "in the grant" if not privilege or privilege in held else "not in the grant"
+        watched.append(f"{name} ({privilege or 'no privilege'}, {basis}, {relation})")
+    return ", ".join(watched)
+
+
+def _names(names: set[str]) -> str:
+    """A sorted name list for a verdict line, with an explicit empty answer."""
+    return ", ".join(sorted(names)) or "(none)"
+
+
+def _offered_creator_calls(held: frozenset[str]) -> set[str]:
+    """The Creator calls the product's own offer filter keeps for one grant.
+
+    `filter_offer` reads the active session's grant from the consent store, and a grader
+    must not write a consent row for a case it is grading. The one read is therefore
+    substituted with the grant the case states; the rule, the names and the guard all stay
+    the product's, so a re-ruling or a new Creator call reaches this reading unchanged.
+    """
+    from unittest.mock import patch
+
+    from core.tools import creator_guard, session_ctx
+    from core.tools.creator_tools import CREATOR_TOOL_SCHEMAS
+
+    token = session_ctx.set_current_mode(creator_guard.CREATOR_MODE)
+    try:
+        with patch.object(
+            creator_guard, "_active_session_privileges", return_value=held
+        ):
+            kept = creator_guard.filter_offer(CREATOR_TOOL_SCHEMAS)
+    finally:
+        session_ctx.reset_current_mode(token)
+    return {str(entry.get("function", {}).get("name")) for entry in kept}
 
 
 def _staging_empty(root: Path) -> Verdict:

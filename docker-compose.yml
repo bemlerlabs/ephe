@@ -50,10 +50,12 @@ services:
       ollama:
         condition: service_healthy
     environment:
-      # W18: the engine is the user's declared choice, so compose refuses to start without
-      # one instead of choosing for them (`:?` aborts with the message below).
-      - EPHE_MODEL_PROVIDER=${EPHE_MODEL_PROVIDER:?set the engine you want (local_ollama, custom_ollama, openai_compatible)}
-      - EPHE_MODEL=${EPHE_MODEL:?set the model tag your engine serves}
+      # W18 keeps the app from choosing an engine at run time; this file is the
+      # declaration instead. It ships the bundled `ollama` service and pulls exactly
+      # one tag, so those two are the defaults the documented `docker compose up` runs
+      # with. Another engine means overriding both variables.
+      - EPHE_MODEL_PROVIDER=${EPHE_MODEL_PROVIDER:-local_ollama}
+      - EPHE_MODEL=${EPHE_MODEL:-gemma4:12b}
       # For an external engine, use instead:
       #   EPHE_MODEL_PROVIDER=openai_compatible
       #   EPHE_OPENAI_COMPAT_BASE_URL=http://your-engine-host:8000/v1

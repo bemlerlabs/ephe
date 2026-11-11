@@ -236,10 +236,11 @@ def confined_argv(
     """The child argv under the platform boundary — or None, which means do not spawn.
 
     On macOS: `sandbox-exec` with `mcp_sandbox.build_profile` (whole-home deny,
-    child-home writes, measured runtime prefixes) plus one appended read-only
-    allow per declared root; Seatbelt's last-rule-wins makes the append exact, and
-    an undeclared path still sits behind the deny. On Linux: the same bubblewrap
-    mounts with each declared root bound read-only. Anywhere else: None.
+    child-home writes, measured runtime prefixes, and every symlink hop of the
+    command's own path) plus one appended read-only allow per declared root;
+    Seatbelt's last-rule-wins makes the append exact, and an undeclared path still
+    sits behind the deny. On Linux: the same bubblewrap mounts with each declared
+    root bound read-only. Anywhere else: None.
     """
     boundary = mcp_sandbox.platform_boundary()
     if boundary == "seatbelt":

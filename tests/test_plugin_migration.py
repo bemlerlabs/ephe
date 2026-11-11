@@ -2,8 +2,8 @@
 
 The import maps the legacy slugs once, keeps an explicit off, retires the old
 global bypass with a notice, and preserves unrelated state. The shipped
-portfolio is 14 plugins, 51 skills, 7 MCP entries and three legacy marketplace
-ids; no plugin is deleted.
+portfolio is 14 plugins, 51 skills and 7 MCP entries; the legacy marketplace ids
+resolve through the migration map, and no plugin is deleted.
 """
 from __future__ import annotations
 
@@ -201,7 +201,9 @@ def test_portfolio_counts_and_no_deletion() -> None:
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7
     assert len(mcp_catalog.catalog_entries()) == 7
     legacy = json.loads((ROOT / "plugin-marketplace.json").read_text(encoding="utf-8"))
-    assert {
-        entry["name"] for entry in legacy["plugins"]
-    } == {"web-search", "document-factory", "coding-suite"}
+    # The v1 listing carries no artifact (QA 2026-11-11): nothing is hosted for the
+    # legacy slugs, and an entry with an empty url was not installable. The ids still
+    # resolve to the bundled plugins through the migration map, and no plugin is gone.
+    assert legacy["plugins"] == []
+    assert "marketplace/index.json" in legacy["note"]
     assert all((ROOT / "plugins" / name).is_dir() for name in {p.id for p in registry.plugins})

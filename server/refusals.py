@@ -320,6 +320,11 @@ REASONS: dict[str, tuple[int, str]] = {
         413,
         "file is larger than the preview limit ({max_mb} MB) — open it directly instead",
     ),
+    "sandbox_start_refused": (
+        502,
+        "plugin '{plugin}' was not started: the OS boundary refused its worker "
+        "({reason}) — check the backend host, then run the tool again.",
+    ),
 }
 
 
@@ -346,6 +351,10 @@ NEXT_STEPS: dict[str, str] = {
     "tool_not_available": "Check that plugin on Extensions, then call the tool again.",
     "sandbox_unavailable": (
         "Check the confinement of the backend host, then run the tool again."
+    ),
+    "sandbox_start_refused": (
+        502,
+        "Check that the backend host lets the plugin worker start, then run the tool again."
     ),
     "plugin_lifecycle_read_only": (
         "Turn plugins.plugin_lifecycle_read_only off, then retry the switch."

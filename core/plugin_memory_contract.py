@@ -41,6 +41,11 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 
+#: The sections a `capabilities` object may carry. The list belongs to the manifest
+#: contract, where every section module adds its own name; this module validates the
+#: `memory` body and refuses a name nobody implements.
+from core.plugin_manifest_contract import CAPABILITY_SECTIONS as CAPABILITY_SECTIONS
+
 __all__ = [
     "BUILTIN_PROVIDER_IDS",
     "CAPABILITY_SECTIONS",
@@ -57,8 +62,6 @@ __all__ = [
 
 #: Provider ids the kernel owns; a manifest may not take one.
 BUILTIN_PROVIDER_IDS: frozenset[str] = frozenset({"kepta", "kepta-bridge"})
-#: The capability sections this contract knows. One name, so an unknown one is a typo.
-CAPABILITY_SECTIONS: frozenset[str] = frozenset({"memory"})
 #: The wire protocols a declared provider may speak. `kepta-bridge` is the only one.
 MEMORY_TRANSPORTS: tuple[str, ...] = ("kepta-bridge",)
 DEFAULT_TRANSPORT = "kepta-bridge"

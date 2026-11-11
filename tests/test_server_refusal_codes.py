@@ -166,6 +166,10 @@ SERVER_SENTENCES = {
         "plugin worker in, and a plugin tool runs nowhere else — check the confinement of "
         "the backend host, then run the tool again"
     ),
+    "sandbox_start_refused": (
+        "plugin 'acme' was not started: the OS boundary refused its worker "
+        "(exec refused) — check the backend host, then run the tool again."
+    ),
     "plugin_worker_restart_exhausted": (
         "plugin worker died 3 times in a row (restart budget 3) — the tool is refused for "
         "this turn instead of respawning again — check that worker's exit status in the "
@@ -276,6 +280,7 @@ PARAMS = {
     "plugin_ui_asset_refused": {"plugin": "acme", "reason": "the path leaves the plugin directory"},
     "tool_not_available": {"plugin": "acme", "transport": "plugin"},
     "sandbox_unavailable": {"plugin": "acme"},
+    "sandbox_start_refused": {"plugin": "acme", "reason": "exec refused"},
     "plugin_worker_restart_exhausted": {
         "reason": (
             "plugin worker died 3 times in a row (restart budget 3) — the tool is refused "
@@ -361,6 +366,7 @@ STATUSES = {
     "file_path_protected": 403,
     "file_not_found": 404,
     "file_too_large": 413,
+    "sandbox_start_refused": 502,
 }
 
 

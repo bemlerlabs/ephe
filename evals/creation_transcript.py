@@ -11,13 +11,23 @@ against replayed frames instead:
 * the staging root a case is graded against holds the bundles that case's turn wrote and
   nothing from the case before it, because `evals.creation_checks.staged_bundles` refuses a
   subject count other than one.
+* every round of a turn carries the user's request in its model input. A turn is a
+  sequence of model calls, and a round whose messages no longer hold the request grades an
+  engine that was never asked the question — the shape six of the 24 paid turns returned
+  as "I don't see an actual request".
+
+It also owns the run home's declaration: the guard rules a contributed name by the family
+its manifest declares, so the bundles a case names have to be declared in the home the
+turn runs in, not found by accident in the operator's install (`engine_environment`).
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -36,6 +46,88 @@ MARKER = "\n[EPHE-TOOL-EVENTS]\n"
 from core.tools.discovery import META_TOOL_NAMES
 
 _OK_STATUSES = {"completed", "ok", "done", "success", None, ""}
+
+#: The record `engine_environment` writes into the run home's builtin root. A grader that
+#: reads it adopts the declaration the turn ran with.
+DECLARATION_FILENAME = "declaration.json"
+
+
+def _content_text(content: object) -> str:
+    """One message's text, whether the provider carries a string or content parts."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for part in content:
+            if isinstance(part, dict):
+                parts.append(str(part.get("text") or ""))
+            elif part is not None:
+                parts.append(str(part))
+        return " ".join(parts)
+    return "" if content is None else str(content)
+
+
+def rounds_without_request(
+    requests: list[dict], request: str
+) -> list[dict[str, Any]]:
+    """The rounds of one turn whose model input no longer holds the user's request.
+
+    `requests` is what the engine was handed, in order: the probe keeps every payload of
+    a turn, and each one carries the messages the provider received. A round is reported
+    with its index and the roles it does carry, because a reader needs to see what the
+    engine was given instead of the question. An empty `request` names no round: there is
+    nothing to look for, and a zero-round turn has no model input at all.
+    """
+    wanted = str(request or "").strip()
+    if not wanted:
+        return []
+    rows: list[dict[str, Any]] = []
+    for index, payload in enumerate(requests):
+        messages = payload.get("messages") if isinstance(payload, dict) else None
+        kept = [message for message in (messages or []) if isinstance(message, dict)]
+        carried = any(
+            str(message.get("role") or "") == "user"
+            and wanted in _content_text(message.get("content"))
+            for message in kept
+        )
+        if carried:
+            continue
+        rows.append(
+            {
+                "round": index,
+                "messages": len(kept),
+                "roles": sorted({str(message.get("role") or "") for message in kept}),
+            }
+        )
+    return rows
+
+
+def declared_bundles(tool_names) -> tuple[str, ...]:
+    """The shipped bundles whose manifests declare one of `tool_names`, by folder name.
+
+    `core.tools.creator_guard.judge` rules a contributed name by the family its manifest
+    declares, so a name's privilege exists only while a declaration does. The declaration
+    the product ships is the first-party root, and this reads it directly instead of the
+    root the current process happens to scan: a run home that carries these bundles then
+    rules the names the run's cases grade, whether or not the operator installed anything.
+    """
+    from core.plugin_tools_contract import tool_claims
+
+    wanted = {str(name) for name in (tool_names or ()) if name}
+    if not wanted:
+        return ()
+    try:
+        scanned = plugin_manifest.scan_plugins(plugin_manifest.BUILTIN_PLUGINS_ROOT)
+    except OSError:
+        return ()
+    found: list[str] = []
+    for entry in scanned:
+        manifest = entry.get("manifest")
+        if entry.get("error") or not isinstance(manifest, dict):
+            continue
+        if wanted & {claim.name for claim in tool_claims(manifest)}:
+            found.append(Path(str(entry.get("dir") or "")).name)
+    return tuple(sorted(set(found)))
 
 
 def _fold(text: object) -> str:
@@ -172,6 +264,7 @@ def engine_environment(
     base_url: str,
     model: str,
     port: int,
+    declared_bundles: object = (),
 ) -> dict[str, str]:
     """The environment a proof server runs in: this engine, this root, this key, nowhere else.
 
@@ -179,11 +272,12 @@ def engine_environment(
     it to decide whether an `Origin` is one it holds; a harness that posted to a different
     number than the one it advertised would be refused by its own trust check.
 
-    `EPHE_BUILTIN_PLUGINS_ROOT` points at an empty folder inside the run, so the plugin
-    catalog a graded turn can read names no first-party bundle from the checkout (no
-    absolute path from the working tree either). The folder is created here, because a
-    run-owned root that does not exist would make the silence depend on a skip rule
-    rather than on the run owning the root.
+    `EPHE_BUILTIN_PLUGINS_ROOT` points at a folder inside the run, so the catalog a graded
+    turn can read is a copy the run owns and never a path into the working tree. It carries
+    exactly the `declared_bundles`, and `DECLARATION_FILENAME` records which ones. A name the cases grade
+    needs its declaration to be ruled at all — `core.tools.creator_guard.judge` answers
+    `network` for `fetch_url` only while a manifest declares it — so the run home declares
+    the bundles its cases name instead of inheriting whatever the operator installed.
     """
     key = _read_key(key_file)
     config = Path(config_dir)
@@ -195,6 +289,8 @@ def engine_environment(
         )
     builtin_root = config / "builtin-plugins"
     builtin_root.mkdir(parents=True, exist_ok=True)
+    declared = tuple(sorted({str(name) for name in (declared_bundles or ()) if name}))
+    _declare_bundles(builtin_root, declared)
     env = dict(os.environ)
     env.update(
         {
@@ -208,3 +304,51 @@ def engine_environment(
         }
     )
     return env
+
+
+def _declare_bundles(builtin_root: Path, declared: tuple[str, ...]) -> None:
+    """Copy the declared bundles into the run's own root, and record the list.
+
+    A declaration whose bundle is missing from the product's first-party root is an error
+    rather than a silently empty root: a case that grades the name would then read as
+    unmeasurable turn after turn, and the run would not say why.
+    """
+    for name in declared:
+        source = plugin_manifest.BUILTIN_PLUGINS_ROOT / name
+        if not (source / plugin_manifest.MANIFEST_FILENAME).is_file():
+            raise ValueError(
+                f"the declared bundle {name!r} is not shipped at {source}; a run home "
+                "can only declare a bundle the product ships"
+            )
+        target = builtin_root / name
+        if not target.exists():
+            shutil.copytree(source, target)
+    (builtin_root / DECLARATION_FILENAME).write_text(
+        json.dumps({"bundles": list(declared)}, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def adopt_declaration(config: Path | str) -> str:
+    """Point this process at the declaration the turn ran with, and answer that root.
+
+    The grader runs in the operator's process, whose roots are the operator's install and
+    the checkout. A run home that recorded a non-empty declaration is the home the offer
+    was built in, so the guard has to answer from it — otherwise the receipt grades the
+    turn against a portfolio the turn never saw. A home that recorded nothing (an older
+    run, a probe) is left alone and the product's own declaration stands.
+    """
+    root = Path(config) / "builtin-plugins"
+    record = root / DECLARATION_FILENAME
+    try:
+        declared = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    bundles = declared.get("bundles") if isinstance(declared, dict) else None
+    if not isinstance(bundles, list) or not bundles:
+        return ""
+    os.environ[plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT] = str(root)
+    from core.tools import creator_guard
+
+    creator_guard.invalidate_family_map()
+    return str(root)

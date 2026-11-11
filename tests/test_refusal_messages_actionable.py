@@ -95,6 +95,7 @@ HTTP_PARAMS = {
     # answer with. `reason` is the emitter's own sentence, framed by the move left.
     "tool_not_available": {"plugin": "acme", "transport": "plugin"},
     "sandbox_unavailable": {"plugin": "acme"},
+    "sandbox_start_refused": {"plugin": "acme", "reason": "exec refused"},
     "plugin_worker_restart_exhausted": {
         "reason": "plugin worker died 3 times in a row (restart budget 3) — the tool is refused"
     },

@@ -80,7 +80,7 @@ Ephe 是一个在你电脑上运行 AI 智能体的工作区。你给它一个�
 #### macOS 和 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.5/install.sh | bash
 ```
 
 要在运行前阅读脚本，请使用仓库：
@@ -96,7 +96,7 @@ cd ephe
 #### Windows（PowerShell）
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.5/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -108,7 +108,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 Docker 和安装程序的全部参数见 [docs/INSTALL_OPTIONS.md](docs/INSTALL_OPTIONS.md)。
 
-命令指向本代码树自带的发行版 `v0.6.4`；标签在发布后解析。Bash 安装程序默认使用 `--desktop`；只安装终端时传入 `--cli` 或设置 `EPHE_MODE=cli`。
+命令指向本代码树自带的发行版 `v0.6.5`；标签在发布后解析。Bash 安装程序默认使用 `--desktop`；只安装终端时传入 `--cli` 或设置 `EPHE_MODE=cli`。
 
 在新的终端里使用 `ephe` 之前，先激活已安装的环境。
 macOS 或 Linux 的默认安装：

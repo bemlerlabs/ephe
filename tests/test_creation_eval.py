@@ -521,13 +521,23 @@ def test_the_mount_checks_are_the_browser_checks() -> None:
 
 def test_every_check_has_a_reachability_rule_naming_its_call() -> None:
     """GIVEN the check vocabulary WHEN the reachability table is read
-    THEN every check but the accepted refusal has a generating call, and every call is
-    a name the privilege gate can rule on - a check added without a rule would load
-    without anyone saying which grant reaches it."""
-    from core.tools.creator_guard import judge
-    from evals.creation_eval import CHECK_CALLS, CHECKS, DENIAL_CHECK
+    THEN every check whose subject a call produces has a generating call, and every call
+    is a name the privilege gate can rule on - a check added without a rule would load
+    without anyone saying which grant reaches it.
 
-    assert set(CHECK_CALLS) == set(CHECKS) - {DENIAL_CHECK}, (
+    Two checks have no generating call on purpose, and the set names them: `staging_empty`
+    reads a refusal's empty folder, and `offer_matches_grant` reads the array the grant
+    produced before a call exists (class 4a/4d, 2026-11-11). Both exceptions are declared
+    in `GRANT_CHECKS`, so a third one cannot join them by being forgotten here.
+    """
+    from core.tools.creator_guard import judge
+    from evals.creation_eval import CHECK_CALLS, CHECKS, DENIAL_CHECK, GRANT_CHECKS
+
+    assert GRANT_CHECKS == {"offer_matches_grant"}, (
+        f"the checks with no generating call are {sorted(GRANT_CHECKS)}; the reachability "
+        "rule below is written for exactly one of them"
+    )
+    assert set(CHECK_CALLS) == set(CHECKS) - {DENIAL_CHECK} - set(GRANT_CHECKS), (
         "the reachability table and the check vocabulary disagree"
     )
     for call in sorted(set(CHECK_CALLS.values())):

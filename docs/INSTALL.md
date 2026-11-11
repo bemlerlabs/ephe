@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.5/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -42,7 +42,7 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.6.4` tag. The fetch answers HTTP 200 once
+The one-liner fetches `install.sh` from the public `v0.6.5` tag. The fetch answers HTTP 200 once
 that tag is published; the checkout path above is the alternative for reading the script before
 it runs.
 
@@ -53,13 +53,13 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.sh | bash -s -- --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.5/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.4/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.5/install.ps1 -OutFile install.ps1
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
@@ -73,7 +73,7 @@ A release ships macOS and Linux artifacts only: an `aarch64` `.dmg`, and the Lin
 `AppImage` and `rpm` packages. There is no Windows binary, so there is no `.exe` for SmartScreen to
 check and nothing for a publisher signature to cover; the Windows path is a source install through
 `install.ps1`, which fetches the tag archive and builds locally. The gate you meet there is
-PowerShell's execution policy (`-ExecutionPolicy Bypass -File`), not a code signature. This path
+PowerShell's execution policy (`-ExecutionPolicy Bypass -File`). This path
 has not been verified end to end for this revision.
 
 Switches mirror the environment: `-InstallDir`, `-Port`, `-Cli`, `-Desktop`, `-NoStart`, `-DryRun`,
@@ -167,7 +167,7 @@ A mismatch leaves that script unexecuted and continues on the distro interpreter
 Keep this fallback unless you independently verify an updated checksum from a trusted source.
 Do not copy the mismatching download's own hash into the trusted pin.
 
-This check covers the uv installer, not every downstream download. Windows can install Python
+This check covers the uv installer. Windows can install Python
 through winget and resolves packages through pip. Both installers pin the pip bootstrap wheel
 by version and hash.
 
@@ -210,7 +210,7 @@ a downloaded file. None of the three repairs or weakens the signature, and `code
 
 ## The macOS bundle seal
 
-A `.app` that fails `codesign --verify` is not a cosmetic warning: macOS binds every privacy grant
+A `.app` that fails `codesign --verify` breaks macOS's privacy grants
 (the microphone among them) to the code requirement, and an unsealed bundle loses those grants on
 every rebuild. The build therefore signs the **whole** bundle, and the release records what it
 signed:
@@ -228,8 +228,8 @@ itself is invalid. Two states are legal and mean different things:
 | Ad-hoc (the default: no Apple secrets in the release) | passes; `Identifier=com.ephe.ephe`, `flags=0x10002(adhoc,runtime)`, sealed resources | rejects: no Developer ID and no ticket |
 | Developer ID + notarized (optional) | passes; `TeamIdentifier` set | accepts: the ticket is stapled |
 
-The released DMG is ad-hoc signed. Notarization is an optional bonus, not a requirement: no Apple
-account is involved in a release, and a release without one is a supported release, not a degraded
+The released DMG is ad-hoc signed. Notarization is optional: no Apple
+account is involved in a release, and a release without one is supported
 one. A repository that carries the Apple signing secrets (`APPLE_CERTIFICATE`,
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`) **and** the notarization ones (`APPLE_ID`,
 `APPLE_PASSWORD`, `APPLE_TEAM_ID`, or `APPLE_API_KEY` with `APPLE_API_ISSUER`) gets a Developer ID
@@ -238,7 +238,7 @@ run produced into its step summary, and the seal audit names it as `state=adhoc-
 `state=developer-id-notarized`; both pass `codesign --verify --deep --strict`.
 
 The first-launch step for a downloaded copy is in [The macOS app (DMG)](#the-macos-app-dmg) above.
-It is the normal install path for a build macOS has not seen before, not a workaround for a broken
+It is the normal install path for a build macOS has not seen before
 release.
 
 A local build gets the same sealed bundle. `ephe desktop` builds with the default ad-hoc identity;
@@ -262,8 +262,12 @@ docker compose up          # then open http://localhost:8765
 
 Both ports are published on the host loopback only (`127.0.0.1:8765` and `127.0.0.1:11434`), so
 nothing on your network can reach the container until you decide otherwise. The image brings its own
-Python and Node.js, so the mode-specific requirements above do not apply to the host. Without
-Compose, keep the same posture explicitly:
+Python and Node.js, so the mode-specific requirements above do not apply to the host. The engine is
+part of the Compose file: it starts the bundled `ollama` service, and `EPHE_MODEL_PROVIDER` /
+`EPHE_MODEL` default to `local_ollama` and the tag that service pulls. Another engine is an
+override of both variables — for example `EPHE_MODEL_PROVIDER=openai_compatible` with
+`EPHE_OPENAI_COMPAT_BASE_URL` and `EPHE_OPENAI_COMPAT_MODEL`. Without Compose, keep the same
+posture explicitly:
 
 ```bash
 docker run --rm -p 127.0.0.1:8765:8765 ephe:latest
@@ -328,7 +332,7 @@ reached: the window geometry the app restores, WebKit's store and the URL cache.
 ./uninstall.sh --yes         # remove all three without asking about the data tree
 ```
 
-`~/Library` state follows the same rule as `~/.ephe`: it is app state, not a product file, so it
+`~/Library` state follows the same rule as `~/.ephe`: it is app state, so it
 goes only with `--yes` (or after the prompt answered yes), stays with `--keep-data`, and a machine
 where the app was never opened is told that none of the three directories exists.
 
@@ -375,8 +379,9 @@ OS filesystem boundary:
 - **macOS**: a Seatbelt profile denies reads of the user's whole home, re-opens only the
   child's own home, and allows writes only in that home and the temp directory. The
   interpreter prefixes (the running Ephe venv and the command's resolved install prefix)
-  are the measured read exceptions; without them the deny also refuses the interpreter
-  that runs the child.
+  and every symlink hop of the command's own path are the measured read exceptions. A uv
+  venv reaches its binary through an alias directory that `realpath` collapses; without
+  that hop the deny also refuses the interpreter that runs the child.
 - **Linux**: bubblewrap (`bwrap`) with a read-only root, the user's home, `/run/user/<uid>`
   and a config root outside the home replaced by empty tmpfs mounts, and only the child
   home bound back in.

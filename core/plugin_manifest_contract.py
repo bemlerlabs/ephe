@@ -83,6 +83,12 @@ KNOWN_COMPONENT_KEYS = frozenset(
 #: fails closed (declared-but-absent capabilities never run).
 KNOWN_TOOL_FAMILIES = {"read", "write", "shell", "network", "memory", "vision", "docs", "browser", "voice"}
 
+#: The sections a `capabilities` object may carry. Each one's body is validated by the
+#: module beside this file (`core/plugin_memory_contract.py`,
+#: `core/plugin_planner_contract.py`); this is the one list a new section is added to, so
+#: a section nobody implements stays a typo and stays refused.
+CAPABILITY_SECTIONS = frozenset({"memory", "planner"})
+
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
@@ -256,6 +262,11 @@ def validate_manifest(
     memory_error = validate_memory(manifest)
     if memory_error:
         return memory_error
+    from core.plugin_planner_contract import validate_planner
+
+    planner_error = validate_planner(manifest)
+    if planner_error:
+        return planner_error
     return None
 
 

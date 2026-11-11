@@ -6,8 +6,12 @@ away from the user's `~/.ssh` and `~/.ephe`. Neither stops an absolute
 `open()` on the engine key. This module adds the OS boundary:
 
 - macOS: a Seatbelt profile that denies reads of the user's whole home, allows
-  writes only in the child's own home plus temp, and re-opens only the child
-  home for reading.
+  writes only in the child's own home plus temp, and re-opens the child home, the
+  measured runtime prefixes and every symlink hop of the command's own path. The
+  hops matter: a uv venv's interpreter is `bin/python -> python3.12 ->
+  <uv>/cpython-3.12-alias/bin/python3.12`, and the kernel asks for metadata on the
+  alias on the way to the resolved tree, so opening only the resolved prefix leaves
+  `execvp` refused with `Operation not permitted` (exit 71).
 - Linux: bubblewrap, with the user's home (and a config root outside it, and
   `/run/user/<uid>`) replaced by empty tmpfs mounts; the command's runtime
   prefixes and the child home are bound back in after the tmpfs, and the shared
@@ -25,10 +29,13 @@ unavailable, and the receipt says so instead of calling SC-02 closed.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
+
 from core.engine_config import config_root
 
 #: The enumeration the first macOS profile used. The profile now denies the
@@ -162,6 +169,83 @@ def _runtime_prefixes(command: str | None, real_home: str) -> list[str]:
     return sorted(roots)
 
 
+#: How many symlink hops the command's own path may cross before the walk stops. A venv
+#: interpreter is two hops; the bound is what keeps a loop from spinning the builder.
+_MAX_LINK_HOPS = 16
+
+
+def _literal_path(path: str) -> str:
+    """`path` with its parent directories resolved and its own final name kept.
+
+    The final component stays as written because it may be the symlink the kernel
+    checks under its own name; `/tmp` standing for `/private/tmp` is the other half.
+    """
+    parent, name = os.path.split(os.path.abspath(path))
+    return os.path.join(os.path.realpath(parent), name)
+
+
+def _exec_chain(command: str) -> list[str]:
+    """Every path an `execvp` of `command` walks, one symlink hop at a time.
+
+    `os.path.realpath` answers where the chain ends. The installed interpreter walks
+    `bin/python -> python3.12 -> <uv>/cpython-3.12-alias/bin/python3.12`; the alias is a
+    directory symlink whose metadata the kernel asks for on the way.
+    """
+    chain: list[str] = []
+    seen: set[str] = set()
+    current = os.path.abspath(command)
+    while current and current not in seen and len(chain) < _MAX_LINK_HOPS:
+        chain.append(current)
+        seen.add(current)
+        try:
+            target = os.readlink(current)
+        except OSError:
+            break
+        if not os.path.isabs(target):
+            target = os.path.join(os.path.dirname(current), target)
+        current = os.path.normpath(target)
+    return chain
+
+
+def _symlink_components(path: str) -> list[str]:
+    """Every component of `path` that is a symlink, under its own name."""
+    links: list[str] = []
+    parts = Path(os.path.abspath(path)).parts
+    if not parts:
+        return links
+    current = Path(parts[0])
+    for part in parts[1:]:
+        current = current / part
+        if os.path.islink(current):
+            links.append(_literal_path(str(current)))
+    return links
+
+
+def _exec_links(command: str | None, real_home: str) -> list[str]:
+    """The vnodes of the command's own chain that sit behind the whole-home deny.
+
+    Two kinds are needed, each with one literal allow: the hops themselves and every
+    symlink *component* the kernel walks on the way to one. The installed interpreter
+    reaches its binary through the `cpython-3.12-alias` directory symlink, and the
+    kernel checks that vnode under its own name — `realpath` never reports it. A path
+    inside a secret subtree contributes nothing, the rule `_runtime_prefixes` applies.
+    """
+    if not command:
+        return []
+    candidates: set[str] = set()
+    for hop in (*_exec_chain(command), os.path.realpath(command)):
+        candidates.add(_literal_path(hop))
+        candidates.update(_symlink_components(hop))
+    links: set[str] = set()
+    for path in candidates:
+        if not _under(path, real_home) or path == real_home:
+            continue
+        if any(_under(path, os.path.join(real_home, rel)) for rel in DENY_READ_SUBPATHS):
+            continue
+        links.add(path)
+    return sorted(links)
+
+
 #: The one rule that closes the accidental door. Measured 2026-11-05: a confined plugin
 #: worker opened a TCP connection to a loopback port the backend was listening on and read
 #: `200` from `/api/health` and `/api/memory/list`, with no token. The profile had no
@@ -178,7 +262,9 @@ def build_profile(home: str, command: str | None = None, *, deny_network: bool =
     this macOS: an allow after the deny wins for the child home while
     `~/.ephe/engine.key` stays refused). A config root outside HOME is denied
     as well. Runtime prefixes are measured exceptions: without them the whole-
-    home deny also refuses the interpreter that runs the child.
+    home deny also refuses the interpreter that runs the child, and the links of
+    the command's own chain are the second exception — a resolved prefix does not
+    cover a vnode `execvp` crosses on its way there.
     """
     real_home = os.path.realpath(os.path.expanduser("~"))
     child_home = os.path.realpath(home)
@@ -187,6 +273,10 @@ def build_profile(home: str, command: str | None = None, *, deny_network: bool =
     runtime = "".join(
         f'(allow file-read* (subpath "{prefix}"))\n'
         for prefix in _runtime_prefixes(command, real_home)
+    )
+    links = "".join(
+        f'(allow file-read* (literal "{link}"))\n'
+        for link in _exec_links(command, real_home)
     )
     outside_config = ""
     if device_root != real_home and not device_root.startswith(real_home + os.sep):
@@ -210,6 +300,7 @@ def build_profile(home: str, command: str | None = None, *, deny_network: bool =
         '  (literal "/dev/stderr")\n'
         ")\n"
         f"{runtime}"
+        f"{links}"
         # Last rule wins for this subtree; it must stay after the denies.
         f'(allow file-read* (subpath "{child_home}"))\n'
     )
@@ -270,3 +361,48 @@ def wrap(command: str, args: list[str], home: str) -> list[str] | None:
     if boundary == "bubblewrap":
         return [*build_bwrap(home, command), "--chdir", os.path.realpath(home), command, *args]
     return None
+
+
+#: The code a boundary's own exec refusal travels under. The tool result carries it as
+#: `reason_code`; a route that answers HTTP with it registers the same string in
+#: `core.dynamic_refusals.CODES` and `server.refusals.REASONS` (out of this module's
+#: scope, the route is where the code is born a second time).
+SANDBOX_START_REFUSED = "sandbox_start_refused"
+
+#: The one line `sandbox-exec` writes when the profile refuses the child's exec, measured
+#: on this macOS against 0.6.4 (the shape the live report carried and exit 71).
+_EXEC_REFUSED = re.compile(
+    r"sandbox-exec:\s*execvp\(\) of .*? failed: Operation not permitted"
+)
+
+
+@dataclass(frozen=True)
+class StartRefusal:
+    """A worker the boundary would not start: a code, a reason, and the move left."""
+
+    code: str
+    reason: str
+    action: str
+
+    def sentence(self) -> str:
+        """One model-facing sentence; it names no host path."""
+        return f"{self.reason} — {self.action}"
+
+
+def start_refusal(stderr: str) -> StartRefusal | None:
+    """The boundary's own exec refusal as data, or None when this is another failure.
+
+    `sandbox-exec` answers an exec the profile refuses with one fixed sentence about
+    `execvp` and the child's own path. That line tells a model neither which tool
+    failed nor what to do, and it hands a host path to every reader. The recognized
+    shape becomes the code, the reason and the move; every other stderr stays the
+    worker's own failure and is classified as before.
+    """
+    if not stderr or _EXEC_REFUSED.search(stderr) is None:
+        return None
+    return StartRefusal(
+        code=SANDBOX_START_REFUSED,
+        reason="the OS boundary refused to start the worker's interpreter",
+        action="repair the install so its interpreter can be executed (reinstall this "
+        "build), then run the tool again",
+    )

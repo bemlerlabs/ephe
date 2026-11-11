@@ -137,6 +137,8 @@ def _is_newer(candidate: str, current: str) -> bool:
 def _fetch_latest() -> dict[str, Any]:
     """Anonymous request against the GitHub release feed. Raises on network
     failure (the caller turns that into an honest unavailable-result)."""
+    if os.environ.get(OPT_OUT_ENV):
+        raise RuntimeError("update check switched off")
     url = f"https://api.github.com/repos/{release_repo()}/releases/latest"
     req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
     with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310 — https, pinned host
