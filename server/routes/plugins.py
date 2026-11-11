@@ -340,12 +340,26 @@ async def post_plugin_client_tool(plugin_id: str, body: dict, request: Request) 
         )
         if not approved:
             return {"result": denial}
-    try:
-        result = await execute_tool(name, arguments, policy=policy)
-    except Exception:  # noqa: BLE001 - the boundary answers a code, never the text
-        _LOGGER.exception("plugin tool %s failed", name)
+    ok, result = await _run_bundle_tool(name, arguments, policy)
+    if not ok:
         return _failed_tool_answer(plugin_id, request)
     return {"result": result}
+
+
+async def _run_bundle_tool(name: str, arguments: dict, policy: object) -> tuple[bool, object]:
+    """Run one tool; `(True, result)` or `(False, None)` after logging the failure.
+
+    The exception is caught, logged and swallowed here, so the route that answers the
+    page never holds one: its response is built from a boolean and its own code, never
+    from anything a raised exception carried (CWE-209, CWE-497).
+    """
+    from core.tools.registry import execute_tool
+
+    try:
+        return True, await execute_tool(name, arguments, policy=policy)
+    except Exception:  # noqa: BLE001 - the boundary answers a code, never the text
+        _LOGGER.exception("plugin tool %s failed", name)
+        return False, None
 
 
 def _failed_tool_answer(plugin_id: str, request: Request) -> JSONResponse:
