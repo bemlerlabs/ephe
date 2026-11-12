@@ -374,7 +374,7 @@ def plan_strategies() -> PlanStrategyTable:
 
 
 def turn_hooks() -> tuple[TurnHook, ...]:
-    """Every turn-end hook the scanned portfolio declares, in plugin-id order.
+    """Every declared turn hook, at either end of a turn, in plugin-id order.
 
     Read through `core.plugin_scan_cache.scan()` rather than another `lru_cache`: the cache
     is keyed by the folders' signature, has a two-second ceiling and is dropped by

@@ -68,9 +68,9 @@ def installed() -> dict[str, Any]:
                     for key, value in (manifest.get("components") or {}).items()
                     if value
                 ),
-                # The row the settings surface reads carries the turn-end declaration
-                # itself, so a locally installed bundle states its hook and not only the
-                # component group it belongs to.
+                # The row the settings surface reads carries the start and end
+                # declarations themselves, so a locally installed bundle states its
+                # hooks and not only the component group they belong to.
                 "hooks": hook_facts(manifest),
                 "permissions": _permissions(manifest.get("permissions")),
                 "verification": _verification(directory),

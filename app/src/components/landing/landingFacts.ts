@@ -6,13 +6,14 @@
  * the checkout, so a row whose proof file disappeared fails the suite instead of shipping.
  */
 export const REPO_URL = 'https://github.com/bemlerlabs/ephe'
-export const REPO_BLOB = `${REPO_URL}/blob/main/`
 const RAW = 'https://raw.githubusercontent.com/bemlerlabs/ephe'
 
 /** The installer URL names the release this tree carries — the same version the UI prints. */
 export const INSTALL_VERSION = __APP_VERSION__
 
-export const INSTALL_COMMAND = `curl -fsSL ${RAW}/v${INSTALL_VERSION}/install.sh | bash`
+export const REPO_BLOB = `${REPO_URL}/blob/v${INSTALL_VERSION}/`
+
+export const INSTALL_COMMAND = `curl -fsSL ${RAW}/v${INSTALL_VERSION}/install.sh | bash -s -- --tag v${INSTALL_VERSION}`
 export const WINDOWS_COMMAND = `irm ${RAW}/v${INSTALL_VERSION}/install.ps1 -OutFile install.ps1`
 
 export const SWITCHING_DOC = `${REPO_BLOB}docs/SWITCHING.md`
@@ -42,7 +43,7 @@ export interface ComparisonRow {
   id: ComparisonRowId
   questionKey: string
   answerKey: string
-  /** Path inside the checkout, relative to its root; the cell links to it on the main branch. */
+  /** Path inside the checkout, relative to its root; the cell links to it on the release this tree ships. */
   proofPath: string
 }
 

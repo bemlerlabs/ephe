@@ -41,7 +41,9 @@ start documents (`docs/QUICKSTART.md`, `docs/INSTALL.md`,
 `raw.githubusercontent.com` URL and in the sentence beneath it. They name the
 new tag *before* it exists — `scripts/release_cut.sh` tags the commit that
 carries them — so `readme_check.py --public` is what proves the tag now exists
-(step 6). Flip all seven files in the version commit, not after the tag.
+(step 6). Flip all seven files in the version commit, not after the tag. `SECURITY.md`'s
+supported-versions table is not one of the six carriers and no test reads it, so move its
+`0.Y.x` row and its floor in the same commit.
 
 ## 3. Local gates
 
@@ -160,8 +162,9 @@ manifests, and then publishes them and the npm wrapper.
 
 ## 7. After the tag
 
-Policy: `main` carries the next milestone from the day the previous one shipped.
-Move all six carriers in one commit and do not tag again for a fix:
+Policy: `main` carries the version the last release commit brought. When the next
+milestone opens, one commit moves the six carriers to its number; that is
+bookkeeping, and a fix is never tagged:
 
 ```bash
 python scripts/bump_version.py --next-minor
@@ -170,5 +173,6 @@ git add pyproject.toml app/package.json app/src-tauri/tauri.conf.json \
 git commit -m "chore: open the next milestone"
 ```
 
-A version that stays equal to the last tag makes `main` look like the release it
-already shipped, and a release-pinned installation then cannot tell them apart.
+An untagged build of `main` is `version+sha` and never compares as newer than the
+release of the same version, so the shipped number does not shadow the release in
+the update path.

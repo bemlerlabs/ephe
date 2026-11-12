@@ -194,3 +194,31 @@ def test_the_registry_classifies_a_refusal_as_blocked_and_a_provider_error_as_er
     assert failed.startswith(RESEARCH_FAILED_MARKER)
     assert is_error_result(failed)
     assert result_decision(failed) == ""
+
+
+def test_a_malformed_site_restriction_is_refused_before_the_provider(monkeypatch):
+    monkeypatch.setenv("EPHE_SEARCH_API_URL", "https://search.test/find")
+    monkeypatch.setenv("EPHE_SEARCH_API_KEY", "test-key")
+    out = asyncio.run(web_research("anything", site="http://[::1"))
+    assert out.startswith(RESEARCH_REFUSED_MARKER)
+    assert out.code == "web_site_malformed"
+    assert "http://[::1" in out
+    assert "Next:" in out
+
+
+def test_a_redirect_outside_the_site_restriction_is_a_gap(monkeypatch):
+    with FixtureServer() as server:
+        server.route("/robots.txt", ALLOW_ROBOTS, content_type="text/plain")
+        page = server.route("/page", "<p>The moon drifts away at about 3.8 cm per year.</p>")
+        hop = server.route(
+            "/hop",
+            status=302,
+            headers={"Location": page.replace("127.0.0.1", "localhost")},
+        )
+        _search(server, [{"title": "Moon", "url": hop}])
+        monkeypatch.setenv("EPHE_SEARCH_API_URL", server.url("/search"))
+        monkeypatch.setenv("EPHE_SEARCH_API_KEY", "test-key")
+        out = asyncio.run(web_research("moon drift", site="127.0.0.1", max_pages=2))
+    assert "No page could be read" in out
+    assert "left the site restriction" in out
+    assert "3.8 cm per year" not in out

@@ -109,16 +109,33 @@ def result_decision(raw: str) -> str:
     return ""
 
 
+def _untrusted_summary(tool: str) -> str | None:
+    """The fence's summary when ``tool`` returns third-party text, else ``None``.
+
+    Web and MCP results are attacker-shaped, and this row is what a system message
+    quotes. The fence lives in ``core._chat_tools_results``; the import is local
+    because that module sits beside the chat path this one is imported from.
+    """
+    from core._chat_tools_results import _UNTRUSTED_EVIDENCE, is_untrusted_tool
+
+    return _UNTRUSTED_EVIDENCE if is_untrusted_tool(tool) else None
+
+
 def normalize_tool_result(tool: str, result: str) -> ToolResult:
     raw = str(result or "")
+    # Third-party text decides the row's wording before any error prefix does.
+    untrusted = _untrusted_summary(tool)
     if is_error_result(raw):
         return ToolResult(
             tool=tool,
             status="error",
-            summary=raw.strip("[]"),
-            warnings=[raw],
+            summary=untrusted or raw.strip("[]"),
+            warnings=[] if untrusted else [raw],
             raw=raw,
         )
+
+    if untrusted is not None:
+        return ToolResult(tool=tool, status="success", summary=untrusted, raw=raw)
 
     artifacts = _artifacts_from_raw(raw)
     if artifacts:

@@ -38,7 +38,7 @@ These workflows ship as first-party plugins. The chat names the tool result behi
 |---|---|
 | Write a document from sources | [documents](plugins/documents) and [local-document-factory](plugins/local-document-factory) produce PDF or DOCX with sources and a verification step |
 | Build a deck or a spreadsheet | [presentations](plugins/presentations) writes PPTX with evidence; a speaker note stays in the deck spec and the pptx has no notes page. [spreadsheets](plugins/spreadsheets) builds one XLSX sheet with labeled inputs, assumptions and formulas |
-| Research with dated sources | [web-research](plugins/web-research) keeps direct URLs, dates and quoted evidence; web access is opt-in |
+| Research with dated sources | [web-research](plugins/web-research) searches and fetches; the `web_research` kernel tool ([core/web_intake](core/web_intake)) keeps the evidence store with direct URLs, dates and quoted passages; web access is opt-in |
 | Browse with a real browser | [browser-use](plugins/browser-use) navigates, clicks and types behind the approval gate |
 | Prove a bug fix | [code-shell](plugins/code-shell) reproduces a defect, applies the smallest fix and proves it with a test run |
 | Keep notes you can recall | [memory](plugins/memory) stores, recalls and deletes durable facts after confirmation; [private-research-notebook](plugins/private-research-notebook) builds cited answers from local sources |
@@ -126,7 +126,7 @@ For a checkout or custom location, use the `.venv` inside that folder instead.
 
 ### 2. Choose the engine
 
-The app opens the Setup page. Pick a local Ollama model, a remote Ollama, or an OpenAI-compatible endpoint. For the terminal, `ephe configure` writes the same choice to `~/.ephe/engine.json`. Without a choice the app stays in Setup and the headless commands stop with instructions; there is no hidden default.
+The first start needs this choice. The app opens the Setup page. Pick a local Ollama model, a remote Ollama, or an OpenAI-compatible endpoint. For the terminal, `ephe configure` writes the same choice to `~/.ephe/engine.json`. Without a choice the app stays in Setup and the headless commands stop with instructions; there is no hidden default.
 
 For a hosted endpoint, enter its key on the same page. The app keeps it in the OS keychain or in `~/.ephe/engine.key` (0600), never in `engine.json`, and never prints it. A sidecar, `~/.ephe/engine.key.binding.json`, binds the key to this engine by its SHA-256; a stored key without that binding is refused.
 
@@ -162,9 +162,9 @@ There is no account and no sign-up. The update check asks GitHub for the newest 
 
 ## Plugins, skills, and connectors
 
-Ephe ships nine first-party plugins, seven capability presets, five first-party skill packs and one bundled third-party skill pack (Superpowers, MIT). A plugin adds commands and a skill pack; a preset is a capability without a plugin quality claim; the built-in skills are separate ([docs/SKILLS.md](docs/SKILLS.md)).
+Ephe ships nine first-party plugins, seven capability presets, five first-party skill packs and one bundled third-party skill pack (Superpowers, MIT), plus the `countdown` reference bundle: 17 first-party bundles in the tree. A plugin adds commands and a skill pack; a preset is a capability without a plugin quality claim; the built-in skills are separate ([docs/SKILLS.md](docs/SKILLS.md)).
 
-The Plugin Store in Settings shows what each entry can do. The Superpowers pack is bundled third-party content: it is not signed, so it installs into your own profile only after a confirmation. A public catalogue for external publishers is planned.
+The Plugin Store in Settings shows what each entry can do. The Superpowers pack is bundled third-party content and installs into your own profile only after a confirmation. No bundled pack carries a signature record (`ephe-plugin.sig.json`); a signed bundle would mount as `signed`, a bundled pack mounts as local content. A public catalogue for external publishers is planned.
 
 MCP servers are added by hand in Settings → MCP servers. The catalogue provides setup hints and links; it does not install those external servers.
 

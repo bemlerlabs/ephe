@@ -21,6 +21,7 @@ import type {
   SurfaceSpec,
   Viewport,
 } from '@/components/shell/overlayModel'
+import type { DockPanel, DockSpec } from '@/components/shell/dockModel'
 
 export type {
   ToolCall,
@@ -276,6 +277,21 @@ export interface ChatState {
   restoreOverlay: (key: string, viewport: Viewport) => void
   moveOverlay: (key: string, to: { x: number; y: number }, viewport: Viewport) => void
   resizeOverlay: (key: string, size: Size, viewport: Viewport) => void
+  /**
+   * The one docked plugin surface: a `dock-panel` bundle fills the shell's named
+   * region (`components/shell/DockHost.tsx`). Transient shell state like the overlay
+   * stack — no dock reaches the persist path, and the host record is the only saved
+   * fact about it.
+   */
+  dock: DockPanel | null
+  /** One dock at a time: a second plugin displaces the standing panel and is answered
+   *  with it, so the caller can close the displaced surface loudly. */
+  openDock: (spec: DockSpec) => { replaced: DockPanel | null; created: boolean }
+  closeDock: (pluginId?: string) => void
+  /** Replace the mount URL after the standing credential has died. */
+  retargetDock: (pluginId: string, url: string) => void
+  /** Fold or unfold the phone sheet; a wide window ignores the flag. */
+  collapseDock: (pluginId: string, collapsed: boolean) => void
   /** IndexedDB hydration + server mirror (P0-3), once per app start. */
   initFromDb: () => Promise<void>
 }

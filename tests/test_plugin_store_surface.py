@@ -65,6 +65,8 @@ def test_the_countdown_row_carries_its_surface_descriptor(tmp_path, hermetic_con
     assert surface["always_on_top"] is True
     assert surface["capabilities"] == ["audio-out", "dock-badge", "notifications"]
     assert surface["grants"] == []
+    # The row states where the shell puts the surface, in the contract's own word.
+    assert surface["placement"] == "window"
 
 
 def test_a_bundle_without_a_surface_key_stays_unopened(tmp_path, hermetic_config) -> None:
@@ -75,3 +77,27 @@ def test_a_bundle_without_a_surface_key_stays_unopened(tmp_path, hermetic_config
         registry_file=tmp_path / "plugins.json",
     )
     assert "surface" not in view["public"][0]
+
+
+def test_a_dock_panel_row_carries_the_dock_placement(tmp_path, hermetic_config) -> None:
+    from core import plugin_store
+
+    manifest = {
+        "manifest_version": 2,
+        "name": "docklet",
+        "publisher": "docklet-labs",
+        "license": "MIT",
+        "components": {
+            "ui": {"type": "dock-panel", "entry": "ui/index.html", "title": "Docklet"}
+        },
+    }
+    caps = plugin_store._capabilities(manifest)
+    assert caps["surface"]["type"] == "dock-panel"
+    assert caps["surface"]["placement"] == "dock"
+
+
+def test_every_surface_type_has_one_placement_word() -> None:
+    from core.plugin_ui_capabilities import SURFACE_PLACEMENTS, UI_TYPES
+
+    assert set(SURFACE_PLACEMENTS) == set(UI_TYPES)
+    assert set(SURFACE_PLACEMENTS.values()) == {"window", "canvas", "dock"}

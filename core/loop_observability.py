@@ -259,7 +259,7 @@ def note_turn_end() -> dict | None:
     """Close the bound turn with a summary event; a no-op without an observer.
 
     Returns the record it emitted, so a caller that has to hand the turn's own duration to
-    another rail (the turn-end hook) reads the one number instead of starting a second
+    another rail (the turn hooks) reads the one number instead of starting a second
     clock.
     """
     observer = _ACTIVE.get()

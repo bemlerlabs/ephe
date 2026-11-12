@@ -228,12 +228,12 @@ class TestContract:
             == "capabilities.evaluator.kinds[1].id: duplicate id 'no-slop'"
         )
 
-    def test_a_base_outside_this_cut_is_refused(self, contract_root) -> None:
-        manifest = _manifest([_kind(**{"from": "artifact"})])
+    def test_a_base_outside_the_kernel_primitives_is_refused(self, contract_root) -> None:
+        manifest = _manifest([_kind(**{"from": "regex"})])
         assert (
             _error(contract_root, manifest)
-            == "capabilities.evaluator.kinds[0].from: 'artifact' is not a base this "
-            "kernel grades yet (contains, not_contains)"
+            == "capabilities.evaluator.kinds[0].from: 'regex' is not a base this kernel "
+            "grades (artifact, tool_use, contains, not_contains, tool_refused)"
         )
 
     def test_a_preset_without_its_arguments_is_refused(self, contract_root) -> None:

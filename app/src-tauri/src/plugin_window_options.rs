@@ -64,7 +64,7 @@ const MAX_SLUG_CHARS: usize = 64;
 pub const REFUSAL_FROM_A_SURFACE: &str = "plugin windows open from the Ephe window only";
 const REFUSAL_BAD_ID: &str = "this plugin id cannot name a window";
 const REFUSAL_BAD_URL: &str = "only the plugin surface route loads in a plugin window";
-const REFUSAL_TYPE: &str = "this surface type has no native window yet";
+const REFUSAL_TYPE: &str = "this surface type has no native window";
 const REFUSAL_UNKNOWN: &str = "no plugin window carries that handle";
 /// A window-server failure does say something, but the engine's own words about it
 /// are not for the workbench console: these four carry the action that failed and
@@ -74,8 +74,13 @@ const REFUSAL_NAVIGATE: &str = "the plugin window would not take the new address
 const REFUSAL_CLOSE: &str = "the plugin window would not close";
 const REFUSAL_GEOMETRY: &str = "the plugin window would not take the size or position";
 
-/// The one surface type with a native window today. `dock-panel` and
-/// `canvas-overlay` are in the same vocabulary and land with #44.
+/// The one surface type with a native window. The other two placements render in
+/// the PWA the desktop shell already hosts (`frontendDist` in `tauri.conf.json`):
+/// `canvas-overlay` is a frame in the overlay stack and `dock-panel` fills the dock
+/// region (`app/src/components/shell/DockHost.tsx`). Both are the same bundle the
+/// browser renders, so neither needs a second native path — the frontend resolver
+/// (`app/src/lib/surfacePlacement.ts`) never asks this command for them, and a type
+/// that reaches it anyway is refused rather than given a window the region owns.
 const NATIVE_SURFACE_TYPE: &str = "floating-window";
 
 /// What a plugin surface window is asked for. The shape is `ui_descriptor()` of
@@ -613,10 +618,15 @@ mod tests {
     #[test]
     fn only_a_floating_window_has_a_native_window_here() {
         assert!(surface_type_is_native(&descriptor()));
+        // `dock-panel` fills the PWA dock region and `canvas-overlay` the overlay
+        // stack, on the desktop's own PWA as much as in a browser tab.
         for other in ["dock-panel", "canvas-overlay", ""] {
             let mut descriptor = descriptor();
             descriptor.surface_type = other.to_string();
-            assert!(!surface_type_is_native(&descriptor), "{other} is #44");
+            assert!(
+                !surface_type_is_native(&descriptor),
+                "{other} is hosted by the shell's PWA region"
+            );
         }
     }
 }

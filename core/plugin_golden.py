@@ -40,6 +40,12 @@ one of the kinds above, resolved from the manifest beside the suite, and the man
 never the case — writes its fragments. The loader records the resolved primitive on the
 case as `matcher` and where it came from as `kind_source`, so a receipt names what the
 author wrote and the primitive that graded it.
+
+A case may also compose two or more of those presets: `expect` is
+`{"kind": "all_of" | "none_of", "of": [preset id, …]}`, every member resolves to the
+primitive it names, and the case passes only when all of them pass (or none does). A
+composition that names a primitive or another composition is refused at load time, so the
+manifest stays the one place a fragment list is written.
 """
 from __future__ import annotations
 
@@ -49,8 +55,14 @@ import os
 import re
 from pathlib import Path
 
+from core.plugin_evaluator_contract import COMPOSITIONS
 from core.plugin_evaluator_contract import KINDS as KINDS
-from core.plugin_evaluator_contract import EvaluatorKind, argument_error
+from core.plugin_evaluator_contract import (
+    MIN_COMPOSITION_MEMBERS,
+    EvaluatorKind,
+    argument_error,
+    preset_matcher,
+)
 
 _REQUIRED = frozenset({"id", "input", "expect"})
 
@@ -90,7 +102,11 @@ def _validate(
     if not isinstance(expect, dict):
         raise ValueError(f"{plugin}: {cid} expect must be an object")
     declared = expect.get("kind")
-    if declared in kinds:
+    if declared in COMPOSITIONS:
+        matcher, source = _composition(
+            declared, expect, plugin=plugin, cid=cid, kinds=kinds
+        )
+    elif declared in kinds:
         # The manifest is the one place a preset's arguments are written; a case that
         # restated any of them could silently disagree with the check it names.
         extra = sorted(set(expect) - {"kind"})
@@ -100,9 +116,14 @@ def _validate(
                 f"beside kind ({', '.join(extra)})"
             )
         preset = kinds[declared]
-        matcher = {"kind": preset.base, "any": list(preset.any)}
+        matcher = preset_matcher(preset)
         source = preset.kind_id
     elif declared in KINDS:
+        if "of" in expect:
+            raise ValueError(
+                f"{plugin}: {cid} {declared} does not compose - "
+                "of belongs to all_of and none_of"
+            )
         error = argument_error(declared, expect)
         if error:
             raise ValueError(f"{plugin}: {cid} {error}")
@@ -116,6 +137,63 @@ def _validate(
             f"{plugin}: {cid} unknown expect.kind {declared!r} - allowed: {allowed}"
         )
     return {**case, "matcher": matcher, "kind_source": source}
+
+
+def _composition(
+    kind: str,
+    expect: dict,
+    *,
+    plugin: str,
+    cid: str,
+    kinds: dict[str, EvaluatorKind],
+) -> tuple[dict, str]:
+    """Resolve one `all_of` / `none_of` case into the primitives it combines.
+
+    A member is a preset id this bundle declares: naming a primitive here would write a
+    fragment list outside the manifest, and a preset id is the one reference whose
+    arguments already resolved. Every member appears once, and the list holds at least
+    `MIN_COMPOSITION_MEMBERS`; it cannot outgrow the eight presets a manifest may declare.
+    """
+    extra = sorted(set(expect) - {"kind", "of"})
+    if extra:
+        raise ValueError(
+            f"{plugin}: {cid} {kind} takes only of beside kind ({', '.join(extra)})"
+        )
+    members = expect.get("of")
+    if not isinstance(members, list) or not all(
+        isinstance(member, str) for member in members
+    ):
+        raise ValueError(f"{plugin}: {cid} {kind} needs of: [preset ids]")
+    if len(members) < MIN_COMPOSITION_MEMBERS:
+        raise ValueError(
+            f"{plugin}: {cid} {kind} needs at least "
+            f"{MIN_COMPOSITION_MEMBERS} presets in of"
+        )
+    names: set[str] = set()
+    matchers: list[dict] = []
+    for member in members:
+        if member in names:
+            raise ValueError(f"{plugin}: {cid} {kind} names {member!r} twice")
+        names.add(member)
+        if member in KINDS:
+            raise ValueError(
+                f"{plugin}: {cid} {kind} member {member!r} is a kernel kind, "
+                "not a declared preset"
+            )
+        if member in COMPOSITIONS:
+            raise ValueError(
+                f"{plugin}: {cid} {kind} member {member!r} is a composition id, "
+                "not a declared preset"
+            )
+        preset = kinds.get(member)
+        if preset is None:
+            declared = ", ".join(sorted(kinds)) or "none"
+            raise ValueError(
+                f"{plugin}: {cid} {kind} member {member!r} is not a declared preset - "
+                f"declared here: {declared}"
+            )
+        matchers.append(preset_matcher(preset))
+    return {"kind": kind, "of": matchers}, f"{kind}({', '.join(members)})"
 
 
 def _matcher(kind: str, expect: dict) -> dict:
@@ -249,32 +327,67 @@ def _failed_output(output: str) -> bool:
 def grade(case: dict, transcript: str) -> bool:
     """Grade one case against one transcript — pure string physics.
 
-    A case the loader read carries `matcher`, the primitive a declared preset resolved
-    to; a hand-built case is graded on its own `expect`. An expect whose kind is neither
-    is a failure, so a raw declared-name case grades false rather than by accident.
+    A case the loader read carries `matcher`, the primitive a declared preset resolved to
+    or the composition of primitives its case names; a hand-built case is graded on its
+    own `expect`. A matcher that is neither a primitive nor a composition is a failure, and
+    so is every malformed one: only the loader writes a matcher, so anything else never
+    passed the loader and grades false rather than by accident.
     """
     matcher = case.get("matcher") or case["expect"]
-    kind = matcher.get("kind")
-    if kind not in KINDS:
-        return False
     marker = "\n[EPHE-TOOL-EVENTS]\n"
     answer = (transcript.split(marker, 1)[0] if marker in transcript else transcript).lower()
-    whole = transcript.lower()
+    return _grade_matcher(
+        matcher, answer=answer, whole=transcript.lower(), events=_events(transcript)
+    )
+
+
+def _grade_matcher(
+    matcher: object, *, answer: str, whole: str, events: list[tuple[str, str]]
+) -> bool:
+    """One primitive or one composition against an already-lowercased transcript."""
+    if not isinstance(matcher, dict):
+        return False
+    kind = matcher.get("kind")
+    if kind in COMPOSITIONS:
+        members = matcher.get("of")
+        if (
+            not isinstance(members, list)
+            or not members
+            or not all(isinstance(member, dict) for member in members)
+        ):
+            return False
+        passed = [
+            _grade_matcher(member, answer=answer, whole=whole, events=events)
+            for member in members
+        ]
+        return all(passed) if kind == "all_of" else not any(passed)
+    if kind not in KINDS:
+        return False
     if kind == "artifact":
-        pattern = re.compile(r"\S+" + re.escape(matcher["suffix"].lower()) + r"\b")
+        suffix = matcher.get("suffix")
+        if not isinstance(suffix, str) or not suffix:
+            return False
+        pattern = re.compile(r"\S+" + re.escape(suffix.lower()) + r"\b")
         return bool(pattern.search(whole))
-    any_list = [s.lower() for s in matcher["any"]]
+    fragments = matcher.get("any")
+    if (
+        not isinstance(fragments, list)
+        or not fragments
+        or not all(isinstance(fragment, str) for fragment in fragments)
+    ):
+        return False
+    any_list = [fragment.lower() for fragment in fragments]
     if kind == "contains":
-        return any(s in answer for s in any_list)
+        return any(fragment in answer for fragment in any_list)
     if kind == "not_contains":
-        return not any(s in answer for s in any_list)
+        return not any(fragment in answer for fragment in any_list)
     if kind == "tool_use":
         return any(
             name in any_list and not _failed_output(output)
-            for name, output in _events(transcript)
+            for name, output in events
         )
     if kind == "tool_refused":
-        return _refused(any_list, matcher.get("reason"), _events(transcript))
+        return _refused(any_list, matcher.get("reason"), events)
     return False
 
 
@@ -298,6 +411,33 @@ def _refused(any_list: list[str], reason: object, events: list[tuple[str, str]])
     return not any(
         name in any_list and not _failed_output(output) for name, output in events
     )
+
+
+def _rejects_listed_fragments(matcher: object) -> bool:
+    """Whether the check fails when a fragment it names reaches the answer.
+
+    The anti-slop gate asks for that shape in one of three: the kernel's `not_contains`
+    primitive, an `all_of` that carries one, or a `none_of` over `contains` checks — no
+    member may match, so every listed fragment is forbidden. A `none_of` over
+    `not_contains` presets passes only when the trap fails, and one that also names
+    another kind is not a text trap, so neither counts.
+    """
+    if not isinstance(matcher, dict):
+        return False
+    kind = matcher.get("kind")
+    if kind == "not_contains":
+        return True
+    members = matcher.get("of")
+    if not isinstance(members, list) or not members:
+        return False
+    if kind == "all_of":
+        return any(_rejects_listed_fragments(member) for member in members)
+    if kind == "none_of":
+        return all(
+            isinstance(member, dict) and member.get("kind") == "contains"
+            for member in members
+        )
+    return False
 
 
 def plugin_prompt(plugin_dir: Path) -> tuple[str, list[str] | None]:
@@ -721,7 +861,7 @@ def verify_all(plugins_dir: Path) -> list[dict]:
         if len(cases) < 6:
             issues.append(f"only {len(cases)} cases (< 6)")
         if cases and not any(
-            (c.get("matcher") or c["expect"]).get("kind") == "not_contains" for c in cases
+            _rejects_listed_fragments(c.get("matcher") or c["expect"]) for c in cases
         ):
             issues.append("no anti-slop trap (not_contains)")
         names = _command_names(pdir)

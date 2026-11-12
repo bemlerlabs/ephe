@@ -167,3 +167,48 @@ def test_a_freshness_window_reuses_a_cached_page_without_a_request():
     assert first.pages[0].from_cache is False
     assert second.pages[0].from_cache is True
     assert len(requests) == 1
+
+
+def test_a_malformed_seed_is_a_gap_not_a_crash():
+    run = _run(["http://[::1"])
+    assert run.pages == []
+    assert run.gaps
+    assert run.gaps[0].code == "url_malformed"
+
+
+def test_a_malformed_href_does_not_cost_the_page_its_other_links():
+    with FixtureServer() as server:
+        server.route("/robots.txt", ALLOW_ROBOTS, content_type="text/plain")
+        seed = server.route(
+            "/seed",
+            '<p>seed</p><a href="http://[::1">bad</a><a href="/child">child</a>',
+        )
+        child = server.route("/child", "<p>child text</p>")
+        run = _run([seed], max_pages=2, depth=2)
+    assert [entry.url for entry in run.pages] == [seed, child]
+
+
+def test_a_redirect_outside_the_site_restriction_is_a_gap():
+    with FixtureServer() as server:
+        server.route("/robots.txt", ALLOW_ROBOTS, content_type="text/plain")
+        page = server.route("/page", "<p>after the redirect</p>")
+        server.route(
+            "/hop",
+            status=302,
+            headers={"Location": page.replace("127.0.0.1", "localhost")},
+        )
+        run = _run([server.url("/hop")], site="127.0.0.1", max_pages=2)
+    assert run.pages == []
+    assert run.gaps
+    assert run.gaps[0].code == "site_scope"
+    assert "site restriction" in run.gaps[0].reason
+
+
+def test_a_redirect_inside_the_site_restriction_is_read():
+    with FixtureServer() as server:
+        server.route("/robots.txt", ALLOW_ROBOTS, content_type="text/plain")
+        page = server.route("/page", "<p>after the redirect</p>")
+        server.route("/hop", status=302, headers={"Location": page})
+        run = _run([server.url("/hop")], site="127.0.0.1", max_pages=2)
+    assert [entry.url for entry in run.pages] == [page]
+    assert run.gaps == []

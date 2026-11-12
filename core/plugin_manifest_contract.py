@@ -230,8 +230,8 @@ def validate_manifest(
     if hooks_error:
         return hooks_error
     # agents / mcp and the later declarative components: accepted structurally, never
-    # executed by the P1 runtime. `hooks` is not in this list: a version 2 turn-end hook
-    # is validated above and dispatched by `core/plugin_turn_hooks.py`.
+    # executed by the P1 runtime. `hooks` is not in this list: a version 2 turn hook is
+    # validated above and dispatched by `core/plugin_turn_hooks.py`.
     for reserved in (
         "agents",
         "mcp",

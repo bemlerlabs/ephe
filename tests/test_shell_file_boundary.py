@@ -7,6 +7,7 @@ not open the file.
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -152,3 +153,57 @@ async def test_cat_of_a_dotenv_name_does_not_spawn(tmp_path: Path, monkeypatch: 
 
     mocked.assert_not_called()
     assert "file-tool roots" in out
+
+
+@pytest.fixture()
+def plugin_scope(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """A plugin call's workspace and its declared (read-only) data root."""
+    from core.tools.base import PLUGIN_FILE_SCOPE
+
+    workspace = tmp_path / "ws"
+    declared = tmp_path / "declared"
+    workspace.mkdir()
+    declared.mkdir()
+    (workspace / "notes.txt").write_text("notes\n", encoding="utf-8")
+    (declared / "note.md").write_text("read me\n", encoding="utf-8")
+    monkeypatch.setattr("core.engine_config.get_workspace_dir", lambda: str(workspace))
+    monkeypatch.setattr(
+        "core.capability_policy.resolved_data_roots",
+        lambda plugin, root: [declared.resolve()],
+    )
+    token = PLUGIN_FILE_SCOPE.set("acme-research")
+    try:
+        yield SimpleNamespace(workspace=workspace, declared=declared)
+    finally:
+        PLUGIN_FILE_SCOPE.reset(token)
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        "mkdir {declared}/new",
+        "cp {workspace}/notes.txt {declared}/copy.txt",
+        "mv {workspace}/notes.txt {declared}/moved.txt",
+        "touch {declared}/touched.txt",
+        "chmod 600 {declared}/note.md",
+    ],
+)
+def test_a_shell_writer_cannot_use_a_declared_data_root(template: str, plugin_scope) -> None:
+    """A read grant is not a write target — the command is refused before it runs."""
+    command = template.format(
+        workspace=plugin_scope.workspace, declared=plugin_scope.declared
+    )
+    refusal = validate_shell_command(command, root=str(plugin_scope.workspace))
+    assert refusal is not None, command
+    assert "read grant" in refusal
+
+
+def test_a_shell_writer_still_works_in_the_workspace(plugin_scope) -> None:
+    """The rail that matters keeps working: reads of the data root and writes of the workspace."""
+    root = str(plugin_scope.workspace)
+    assert validate_shell_command(f"cat {plugin_scope.declared}/note.md", root=root) is None
+    assert validate_shell_command("mkdir build", root=root) is None
+    assert validate_shell_command("cp notes.txt copy.txt", root=root) is None
+    assert validate_shell_command("mv notes.txt moved.txt", root=root) is None
+    assert validate_shell_command("touch fresh.txt", root=root) is None
+    assert validate_shell_command("chmod 600 notes.txt", root=root) is None

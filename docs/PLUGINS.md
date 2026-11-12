@@ -49,7 +49,7 @@
 | `components.skills` | Pack directory names that MUST ship a `SKILL.md` under `skills/` |
 | `components.commands` | `{ name (slug), description (non-empty), template? }` — template placeholders are expanded server-side |
 | `components.agents` | Agent profiles: `{ name, description?, tools (⊆ TOOL_MAP), model?, timeout? }` — bundle helper agents; fail-closed validation (unknown tool quarantines the agent) |
-| `components.hooks` | Version 2: `{ "turn_end": { "entry": "hooks/turn_end.py:main", "timeout_seconds": 2 } }` — one confined worker run after every turn while the bundle is active. The payload is fixed and metadata-only; see **A declared turn hook (v2)** |
+| `components.hooks` | Version 2: `{ "turn_start": { "entry": …, "timeout_seconds": … }, "turn_end": { … } }` — at most one confined worker run at the start and one at the end of every turn while the bundle is active. The payload is fixed and metadata-only; see **A declared turn hook (v2)** |
 | `components.mcp` | Version 2: the bundle's own MCP server (`{ "entry": "server.py:main" }`), started over stdio when the bundle is mounted (`core/plugin_mcp_server.py`); a tool with `transport: "mcp"` rides it |
 
 ## Manifest v2 (`manifest_version: 2`)
@@ -85,12 +85,16 @@ it alike (`core/plugin_ui_capabilities.py` `UI_TYPES`, `app/src/lib/surfacePlace
 |---|---|---|
 | `floating-window` | a framed surface in the overlay stack | a window of its own (`ephe-plugin-<id>`) |
 | `canvas-overlay` | a framed surface in the overlay stack | the same framed surface in the overlay stack |
-| `dock-panel` | refused with the code `surface_dock_panel_unavailable` | refused with the same code |
+| `dock-panel` | the shell's docked region: a 360 px right column, a bottom sheet behind a toggle on a phone | the same docked region, because the shell renders the same PWA |
 
 A placement changes where the document renders and grants nothing: the nonce, the sandbox
 and the capability list stay the mount's. A shell that cannot host the declared placement
-refuses it and names the move; it never falls back to another placement. The docked region
-does not exist yet, so `dock-panel` is refused on both halves until it lands.
+refuses it and names the move; it never falls back to another placement. The dock holds one
+panel at a time, its width and chrome belong to the shell, and a second `dock-panel` bundle
+takes the dock from the first — the displaced surface is closed, its host record says so,
+and the user is told which plugin lost the dock. The region's width is the shell's (360 px,
+a bottom sheet on a phone), so a `dock-panel` descriptor's `default_size` is not honoured
+there; the size is a window hint, and the dock has no window.
 
 | Field | Rules |
 |---|---|
@@ -170,7 +174,7 @@ manifest route at all.
 ### A declared grader preset (v2)
 
 `capabilities.evaluator` names checks a bundle's own golden suite grades with. A declared
-kind is a name for one of the kernel's grader primitives, and the kernel answers every
+kind is a name for one of the kernel's five grader primitives, and the kernel answers every
 consequence: `core/plugin_evaluator_contract.py` validates the section, and
 `core/plugin_golden.py` resolves it from the manifest beside the suite it loads. A case
 names the preset in `expect.kind` and passes nothing else.
@@ -184,6 +188,12 @@ names the preset in `expect.kind` and passes nothing else.
         "from": "not_contains",
         "any": ["as an AI", "lorem ipsum", "TODO:"],
         "description": "Placeholder text never reaches the answer."
+      },
+      {
+        "id": "wrote-pdf",
+        "from": "artifact",
+        "suffix": ".pdf",
+        "description": "A PDF path is in the transcript."
       }
     ]
   }
@@ -193,30 +203,60 @@ names the preset in `expect.kind` and passes nothing else.
 | Field | Rules |
 |---|---|
 | `evaluator.kinds` | One to eight entries, in a version 2 manifest |
-| `kinds[].id` | Lowercase slug, at most 40 characters. `artifact`, `tool_use`, `contains`, `not_contains` and `tool_refused` are kernel kind names and are refused |
-| `kinds[].from` | `contains` or `not_contains`. The other three kernel primitives are the next cut, and a manifest naming one is refused for its `from` |
-| `kinds[].any` | One or more fragments, each at least three characters; the base's own argument |
+| `kinds[].id` | Lowercase slug, at most 40 characters. The five primitive names and the two composition names (`all_of`, `none_of`) are kernel names and are refused |
+| `kinds[].from` | One of the five kernel primitives: `artifact`, `tool_use`, `contains`, `not_contains`, `tool_refused` |
+| `kinds[].any` | One or more fragments, each at least three characters; the argument of `tool_use`, `contains`, `not_contains` and `tool_refused` |
+| `kinds[].suffix` | `artifact`'s argument, a dotted suffix such as `.pdf` |
+| `kinds[].reason` | Optional `tool_refused` argument: the phrase the refusal's own text has to carry |
 | `kinds[].description` | Required and non-empty. Recorded on the resolved kind; no surface prints it yet |
+
+A preset that carries an argument its base does not read is refused: `artifact` with
+`any` and `contains` with `suffix` are manifest errors.
 
 A preset resolves only inside the bundle that declares it, so a case in another bundle's
 suite that names it is refused as an unknown kind, and two bundles may use the same id
 without a contest. An `ephe bench` receipt carries the declared name in `expect`, the
 primitive in `matcher` and the declaring kind or `kernel` in `kind_source`, so a report
-names the preset and the primitive behind it. A declared `not_contains` preset satisfies
-the anti-slop gate; a declared `contains` one does not. No permission family is asked for:
-a preset is data the grader reads.
+names the preset and the primitive behind it. No permission family is asked for: a preset
+is data the grader reads.
+
+A case may compose the presets its bundle declares, with `all_of` when every named check
+has to pass and `none_of` when none may:
+
+```json
+{"id": "acme-7", "input": "…", "expect": {"kind": "all_of", "of": ["wrote-pdf", "no-slop"]}}
+```
+
+| Field | Rules |
+|---|---|
+| `expect.of` | Two or more declared preset ids of this bundle, each once. A primitive name, a composition name and an undeclared id are refused, and a manifest declares at most eight presets, so a composition names at most eight |
+| `expect` beside `kind` and `of` | Refused, so a member's arguments stay in the manifest |
+
+The members resolve to the primitive each preset names and the receipt carries the whole
+composition: `matcher` is `{"kind": "all_of", "of": […]}` and `kind_source` reads
+`all_of(wrote-pdf, no-slop)`. A composition that passes one member and fails another is a
+failed case, and a `none_of` passes only when every member fails.
+
+The anti-slop gate is satisfied by a check that fails when a listed fragment reaches the
+answer: a direct `not_contains` case, an `all_of` that carries one, or a `none_of` over
+`contains` presets. A `none_of` over the trap itself passes only when the trap fails, and
+one that names an `artifact` or a `tool_use` preset forbids no fragment; neither satisfies
+the gate.
 
 ### A declared turn hook (v2)
 
-`components.hooks.turn_end` names one hook the kernel runs in the confined worker at the
-end of every turn. The kernel answers every consequence: `core/plugin_hooks_contract.py`
-validates the section, `core/plugin_runtime.turn_hooks()` registers it from the same scan
-the tool gate reads, `core/chat.py` queues it in the `finally` that closes the turn, and
-`core/plugin_turn_hooks.py` runs it. Nothing imports plugin code in the backend process.
+`components.hooks` names at most one hook for the start of a turn and one for its end, and
+the kernel runs each in the confined worker while the bundle is active. The kernel answers
+every consequence: `core/plugin_hooks_contract.py` validates the section,
+`core/plugin_runtime.turn_hooks()` registers it from the same scan the tool gate reads,
+`core/chat.py` queues the start hook before the loop and the end hook in the `finally` that
+closes the turn, and `core/plugin_turn_hooks.py` runs both. Nothing imports plugin code in
+the backend process.
 
 ```json
 "components": {
   "hooks": {
+    "turn_start": { "entry": "hooks/turn_start.py:main", "timeout_seconds": 1 },
     "turn_end": { "entry": "hooks/turn_end.py:main", "timeout_seconds": 2 }
   }
 }
@@ -224,7 +264,16 @@ the tool gate reads, `core/chat.py` queues it in the `finally` that closes the t
 
 The hook handler is `main(arguments, state_dir)` — two parameters, because a hook has no
 bridge; one that asks for the launcher's third argument fails its own run. `arguments` is
-the fixed payload:
+the fixed payload of the event that fired:
+
+```json
+{
+  "event": "turn_start",
+  "plugin": "acme-hook",
+  "turn_id": "…",
+  "started_at": "2026-11-12T08:00:00.000+00:00"
+}
+```
 
 ```json
 {
@@ -239,18 +288,20 @@ the fixed payload:
 
 | Field | Rules |
 |---|---|
-| `components.hooks` | Version 2 only; a version 1 manifest that carries the section is quarantined. One event in this cut: `turn_end` |
-| `hooks.turn_end.entry` | `path.py:callable` inside the plugin directory, validated by the contributed tool's own rule. Absolute, escaping or non-`.py` paths, a missing `:` and a callable that is not an identifier are refused |
-| `hooks.turn_end.timeout_seconds` | Whole number, 1–3. A bool, a missing value and a value outside the window are refused |
+| `components.hooks` | Version 2 only; a version 1 manifest that carries the section is quarantined. Two events: `turn_start` and `turn_end`, one entry each and at most two hooks per bundle |
+| `hooks.turn_start.entry`, `hooks.turn_end.entry` | `path.py:callable` inside the plugin directory, validated by the contributed tool's own rule. Absolute, escaping or non-`.py` paths, a missing `:` and a callable that is not an identifier are refused |
+| `hooks.<event>.timeout_seconds` | Whole number, 1–3. A bool, a missing value and a value outside the window are refused |
 | the payload | Fixed by the kernel and metadata-only. No answer text, no history, no tool arguments, no context report; a manifest field that asks for one is refused as an unknown field |
+| `started_at` | The kernel's clock when the turn began, ISO 8601 UTC. The start payload carries no stop reason, no tool name and no duration, because the turn has none yet |
 | `stop_reason` | The loop's own word: `answer`, `budget`, `repair`, `stall` or `steered`. Empty when the turn ended before the loop named one, so a hook that needs to tell a failed turn from a stopped one reads the field as it is |
 
-The run is fire-and-forget: the turn queues it and returns. One daemon thread drains a
-queue of at most eight pending runs; a full queue drops the run and writes an audit row
-with status `dropped`. The bundle is re-asked at dispatch and again in the worker thread,
-so a bundle switched off or paused between the two spawns nothing. Every run is confined
-the way a contributed tool is: the network is denied at the OS boundary, host secrets are
-scrubbed from the child environment, reads are the plugin directory and the declared
+The run is fire-and-forget: the turn queues it and returns, at either end. One daemon
+thread drains a queue of at most eight pending runs; a full queue drops the run and writes
+an audit row with status `dropped`. A dispatch for one event runs only the hooks declared
+for that event. The bundle is re-asked at dispatch and again in the worker thread, so a
+bundle switched off or paused between the two spawns nothing. Every run is confined the way
+a contributed tool is: the network is denied at the OS boundary, host secrets are scrubbed
+from the child environment, reads are the plugin directory and the declared
 `permissions.data_roots`, writes stay under the bundle's state root, and the reply is
 discarded — nothing a hook writes reaches the model, the answer or the session. No bridge
 is passed, so a handler that takes the launcher's third argument fails its own run.
@@ -259,11 +310,12 @@ A measured turn never spawns a hook: `core/plugin_golden.run_measured` runs its 
 `plugin_turn_hooks.suppressed()`, because a pass³ number that carried a bundle's hook would
 not be comparable with one that did not. Each dispatch writes one `plugin_hook` audit row
 (plugin, worker status, duration, the event); the payload never enters the trail. A hook-only
-bundle reports the `worker` rail, and the store row carries the event beside the tools.
+bundle reports the `worker` rail, and the store row carries both events beside the tools.
 
-What this cut does not do: `turn_start`, `pre_tool`/`post_tool`, a mutating or vetoing
-hook, an answer-bearing payload and a network transport. The user's own process-wide hook
-chain (`~/.ephe/hooks.json`, E5) stays a separate contract.
+What this cut does not do: `pre_tool`/`post_tool`, a mutating or vetoing hook, a hook that
+transforms or suppresses the turn it observes, an answer-bearing payload and a network
+transport. The user's own process-wide hook chain (`~/.ephe/hooks.json`, E5) stays a
+separate contract.
 
 ## Vendored libraries
 

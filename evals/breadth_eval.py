@@ -354,6 +354,11 @@ def breadth_report(
         defects.append(
             f"the run carries {run.evidence!r} evidence; a quotable rate needs 'engine'"
         )
+    if not (run.engine or {}).get("model"):
+        defects.append(
+            "the run names no engine model; a quotable rate has to say which engine "
+            "produced it"
+        )
     return {
         "evidence": run.evidence,
         "engine": run.engine,
@@ -574,9 +579,19 @@ def run_paid_round(
     model: str,
     timeout: float = 10800.0,
 ) -> dict:
-    """One paid round: the creation run spends the turns, the creation grader scores them."""
+    """One paid round: the creation run spends the turns, the creation grader scores them.
+
+    The graded receipt is written beside the turns before it is returned, and an existing
+    one is reused: a crash in aggregation must not require paying for the same turns twice.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    receipt_path = out_dir / "receipt.json"
+    if receipt_path.is_file():
+        try:
+            return json.loads(receipt_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            pass
     turn = [sys.executable, str(REPO / "evals" / "creation_run.py"),
             "--out", str(out_dir), "--cases", str(cases_path),
             "--key-file", str(key_file), "--base-url", base_url, "--model", model]
@@ -595,9 +610,11 @@ def run_paid_round(
             f"(turns exited {turn_run.returncode}): {tail}"
         )
     try:
-        return json.loads(graded.stdout)
+        receipt = json.loads(graded.stdout)
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"the grader printed no receipt: {exc}") from exc
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    return receipt
 
 
 def paid_runs(
@@ -631,12 +648,13 @@ def paid_runs(
 
 
 def _load_receipt(path: Path, expected: dict[str, str], index: int,
-                  evidence: str | None) -> Run:
+                  evidence: str | None, engine: dict | None = None) -> Run:
     try:
         document = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ReceiptError(f"{path}: {exc}") from exc
-    return runs_from_receipt(document, expected, index=index, evidence=evidence)
+    return runs_from_receipt(document, expected, index=index, evidence=evidence,
+                             engine=engine)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -651,6 +669,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="replay a graded receipt; repeat three times for repeatability")
     parser.add_argument("--evidence", default=None,
                         help="evidence label for --receipt files (default: the file's own)")
+    parser.add_argument("--engine-model", default=None,
+                        help="the model a --receipt replay was run on; a quotable rate "
+                             "has to name the engine that produced it")
     parser.add_argument("--real", action="store_true",
                         help=f"spend engine turns: {RUNS_EXPECTED} rounds of the set")
     parser.add_argument("--key-file", type=Path, help="one-line engine key for --real")
@@ -692,7 +713,11 @@ def main(argv: list[str] | None = None) -> int:
                 f"repeatability, got {len(args.receipt)}"
             )
         try:
-            runs = [_load_receipt(path, expected, index, args.evidence)
+            engine = (
+                {"provider": "openai_compatible", "model": args.engine_model}
+                if args.engine_model else None
+            )
+            runs = [_load_receipt(path, expected, index, args.evidence, engine=engine)
                     for index, path in enumerate(args.receipt, 1)]
         except ReceiptError as exc:
             print(f"breadth-eval: no run — {exc}", file=sys.stderr)

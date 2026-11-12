@@ -1,5 +1,5 @@
 # ◑ Ephe – Docker Compose
-# Advanced option: docker compose up → http://localhost:8765
+# Advanced option: name your engine, then `docker compose up` → http://localhost:8765
 #
 # Binding (I2-4, AGENTS.md: conservative server binding):
 # Both ports are published on the HOST LOOPBACK only, so nothing reaches this
@@ -9,8 +9,15 @@
 # (EPHE_LAN stays 1 below, so /api/* keeps requiring the pairing token; scan
 # the in-app QR code from a device on the same Wi-Fi.)
 #
-# The engine is an explicit choice (no silent default, W18): this compose file
-# declares the bundled Ollama service via EPHE_MODEL_PROVIDER=local_ollama.
+# The engine is an explicit choice (AGENTS.md: no silent engine default, W18).
+# This file names no provider and no model tag, and it pulls nothing: without
+# EPHE_MODEL_PROVIDER, Compose stops before a container starts and names the
+# variable. The same choice reaches the container through a prepared
+# `~/.ephe/engine.json` (written by `ephe configure`) in the ephe_data volume.
+#   EPHE_MODEL_PROVIDER=local_ollama EPHE_MODEL=your-tag \
+#   EPHE_OLLAMA_PULL=your-tag docker compose up
+# EPHE_OLLAMA_PULL is optional: the bundled `ollama` service downloads exactly
+# that one tag into its cache. Nothing is downloaded without it.
 # Point it at any OpenAI-compatible endpoint instead (DGX Spark / vLLM) with:
 #   EPHE_MODEL_PROVIDER=openai_compatible \
 #   EPHE_OPENAI_COMPAT_BASE_URL=http://your-engine-host:8000/v1 \
@@ -27,11 +34,13 @@ services:
       - "${EPHE_PUBLISH_HOST:-127.0.0.1}:11434:11434"
     environment:
       - OLLAMA_MODELS=/root/.ollama
+      # Empty until the operator names a tag; see the entrypoint below.
+      - EPHE_OLLAMA_PULL=${EPHE_OLLAMA_PULL:-}
     entrypoint: >
       /bin/sh -c "
         ollama serve &
         until ollama list >/dev/null 2>&1; do sleep 1; done &&
-        ollama pull gemma4:12b &&
+        if [ -n \"$$EPHE_OLLAMA_PULL\" ]; then ollama pull \"$$EPHE_OLLAMA_PULL\"; fi &&
         wait
       "
     healthcheck:
@@ -50,24 +59,26 @@ services:
       ollama:
         condition: service_healthy
     environment:
-      # W18 keeps the app from choosing an engine at run time; this file is the
-      # declaration instead. It ships the bundled `ollama` service and pulls exactly
-      # one tag, so those two are the defaults the documented `docker compose up` runs
-      # with. Another engine means overriding both variables.
-      - EPHE_MODEL_PROVIDER=${EPHE_MODEL_PROVIDER:-local_ollama}
-      - EPHE_MODEL=${EPHE_MODEL:-gemma4:12b}
+      # The choice is the operator's; this file supplies no default. Compose
+      # refuses to start while EPHE_MODEL_PROVIDER is unset, and a provider
+      # named without its model fails in the container with the variable it
+      # needs (`EPHE_MODEL`, or `EPHE_OPENAI_COMPAT_MODEL` for the compat path).
+      - "EPHE_MODEL_PROVIDER=${EPHE_MODEL_PROVIDER:?name the engine you chose (local_ollama, custom_ollama or openai_compatible)}"
+      - EPHE_MODEL=${EPHE_MODEL:-}
       # For an external engine, use instead:
       #   EPHE_MODEL_PROVIDER=openai_compatible
       #   EPHE_OPENAI_COMPAT_BASE_URL=http://your-engine-host:8000/v1
       #   EPHE_OPENAI_COMPAT_MODEL=your-model-id
       - EPHE_OPENAI_COMPAT_BASE_URL=${EPHE_OPENAI_COMPAT_BASE_URL:-}
       - EPHE_OPENAI_COMPAT_MODEL=${EPHE_OPENAI_COMPAT_MODEL:-}
-      # In-network name of the bundled `ollama` service below, so `docker compose
-      # up` talks to the container it just started. To use a daemon running on the
-      # host instead, override with http://host.docker.internal:11434 (the mapping
-      # under extra_hosts makes that resolve on Linux too).
+      # In-network name of the bundled `ollama` service below, so a chosen
+      # local_ollama talks to the container it just started. To use a daemon
+      # running on the host instead, override with
+      # http://host.docker.internal:11434 (the mapping under extra_hosts makes
+      # that resolve on Linux too).
       - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
       - EPHE_LOCAL_OLLAMA_BASE_URL=${EPHE_LOCAL_OLLAMA_BASE_URL:-http://ollama:11434}
+      - EPHE_CUSTOM_OLLAMA_BASE_URL=${EPHE_CUSTOM_OLLAMA_BASE_URL:-}
       - EPHE_DOCKER=1
       # Any non-loopback bind forces LAN auth (run_server.py: fail-closed).
       - EPHE_LAN=${EPHE_LAN:-1}
@@ -87,11 +98,11 @@ services:
 
 volumes:
   ollama_data:
-    # Ollama model cache (gemma4:12b, downloaded once)
+    # Ollama model cache. `ollama pull <tag>` fills it, here or on the host.
     # Pinned so the cache and your data keep their name when the checkout
     # directory is renamed; a compose-derived name would follow the project.
     name: ephe_ollama_data
   ephe_data:
-    # YOUR personal knowledge: memory, sessions, skills, profile
+    # YOUR personal knowledge: memory, sessions, skills, profile, engine.json
     # This is local app data; optional online features must be enabled explicitly.
     name: ephe_ephe_data

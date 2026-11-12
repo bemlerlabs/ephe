@@ -13,11 +13,13 @@ from typing import Any
 
 SURFACES_FIELD = "surfaces"
 
-#: Where the shell put the surface: its own window, or a frame in the overlay stack.
-#: `overlay` is the browser's frame for a `floating-window` surface; `canvas-overlay`
-#: is the frame both halves give that type. `dock-panel` is absent on purpose: the
-#: shell has no docked region yet, so no surface can be recorded there.
-SLOTS = frozenset({"overlay", "native", "canvas-overlay"})
+#: Where the shell put the surface: its own window, the overlay stack, or the dock
+#: region. `overlay` is the browser's frame for a `floating-window` surface;
+#: `canvas-overlay` is the frame both halves give that type; `dock` is the named
+#: region (`app/src/components/shell/DockHost.tsx`) a `dock-panel` fills on both
+#: halves. A placement a shell version cannot host stays out of this set: a record
+#: it cannot restore is a placement it does not have.
+SLOTS = frozenset({"overlay", "native", "canvas-overlay", "dock"})
 
 FIELDS = (
     "slot",

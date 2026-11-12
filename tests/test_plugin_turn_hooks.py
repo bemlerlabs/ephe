@@ -1,11 +1,12 @@
-"""HOOK-P1 — the turn-end dispatcher: one confined run per active bundle, never the turn.
+"""HOOK-P1 — the turn-hook dispatcher: one confined run per active bundle, never the turn.
 
-The seam this file pins: after a turn the kernel queues one run per active bundle, in
-plugin-id order, with the fixed metadata payload and nothing else; the run goes through the
-same confined runner a contributed tool uses, with the declared timeout and no bridge; the
-turn does not wait for it; a full queue drops and audits; a bundle switched off or paused
-spawns nothing; and a measured turn enters `suppressed()` so a pass³ number never carries a
-bundle's hook.
+The seam this file pins: at the start and at the end of a turn the kernel queues one run
+per active bundle that declared that event, in plugin-id order, with the fixed metadata
+payload and nothing else; the run goes through the same confined runner a contributed tool
+uses, with the declared timeout and no bridge; the turn does not wait for it; a full queue
+drops and audits; a bundle switched off or paused spawns nothing; a dispatch for one event
+never runs a hook declared for the other; and a measured turn enters `suppressed()` so a
+pass³ number never carries a bundle's hook.
 
 The child really runs in `test_the_hook_receives_the_metadata_payload_and_no_network`; the
 rest patch `run_worker` or `_execute`, because the subject is the queue, the ordering and
@@ -43,19 +44,28 @@ def main(arguments, state_dir):
 '''
 
 
-def _manifest(name: str, *, timeout: int = 2, entry: str = "hooks/turn_end.py:main") -> dict:
+def _manifest(
+    name: str, *, event: str = "turn_end", timeout: int = 2, both: bool = False
+) -> dict:
+    """One bundle whose hooks cover `event`, or both ends of the turn when `both`."""
+    hooks = {
+        event: {"entry": f"hooks/{event}.py:main", "timeout_seconds": timeout}
+    }
+    if both:
+        hooks = {
+            "turn_start": {"entry": "hooks/turn_start.py:main", "timeout_seconds": timeout},
+            "turn_end": {"entry": "hooks/turn_end.py:main", "timeout_seconds": timeout},
+        }
     return {
         "manifest_version": 2,
         "name": name,
         "version": "1.0.0",
-        "description": "Runs one hook when a turn ends.",
+        "description": "Runs one hook when a turn starts or ends.",
         "publisher": {"name": "Acme"},
         "license": "MIT",
         "engines": {"ephe": ">=0.6.0"},
         "permissions": {"tool_families": [], "data_roots": []},
-        "components": {
-            "hooks": {"turn_end": {"entry": entry, "timeout_seconds": timeout}}
-        },
+        "components": {"hooks": hooks},
     }
 
 
@@ -63,14 +73,19 @@ def _write_bundle(
     plugins: Path,
     name: str = "acme-hook",
     *,
+    event: str = "turn_end",
     timeout: int = 2,
+    both: bool = False,
     body: str = HOOK_BODY,
 ) -> Path:
     directory = plugins / name
     (directory / "hooks").mkdir(parents=True, exist_ok=True)
-    (directory / "hooks" / "turn_end.py").write_text(body, encoding="utf-8")
+    events = ("turn_start", "turn_end") if both else (event,)
+    for one in events:
+        (directory / "hooks" / f"{one}.py").write_text(body, encoding="utf-8")
     (directory / "ephe-plugin.json").write_text(
-        json.dumps(_manifest(name, timeout=timeout)), encoding="utf-8"
+        json.dumps(_manifest(name, event=event, timeout=timeout, both=both)),
+        encoding="utf-8",
     )
     return directory
 
@@ -81,6 +96,13 @@ def _dispatch(**overrides: object) -> None:
         stop_reason=str(overrides.get("stop_reason", "answer")),
         tool_names=overrides.get("tool_names", ["file_search", "read_file"]),  # type: ignore[arg-type]
         duration_ms=float(overrides.get("duration_ms", 12.5)),  # type: ignore[arg-type]
+    )
+
+
+def _dispatch_start(**overrides: object) -> None:
+    plugin_turn_hooks.note_turn_start(
+        turn_id=str(overrides.get("turn_id", "turn-1")),
+        started_at=overrides.get("started_at", "2026-11-12T08:00:00+00:00"),  # type: ignore[arg-type]
     )
 
 
@@ -214,6 +236,102 @@ def test_a_turn_end_that_names_no_tool_carries_an_empty_list(
     assert plugin_turn_hooks.flush(5.0)
     assert captured[0]["tool_names"] == []
     assert captured[0]["stop_reason"] == "answer"
+
+
+def test_the_turn_start_payload_is_the_kernel_metadata_and_nothing_else(
+    plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from core.sandbox import supervisor
+    from core.sandbox.supervisor import WorkerOutcome
+
+    directory = _active(plugins, event="turn_start")
+    captured: dict = {}
+
+    def fake_run_worker(spec, *, protocol_check=None, stdin_payload=None, bridge_dispatch=None):
+        captured["spec"] = spec
+        captured["request"] = json.loads(stdin_payload)
+        captured["bridge"] = bridge_dispatch
+        return WorkerOutcome(status="ok")
+
+    monkeypatch.setattr(supervisor, "run_worker", fake_run_worker)
+    plugin_turn_hooks.note_turn_start(
+        turn_id="turn-9", started_at="2026-11-12T08:00:00+00:00"
+    )
+    assert plugin_turn_hooks.flush(5.0)
+
+    request = captured["request"]
+    payload = request["arguments"]
+    assert payload == {
+        "event": "turn_start",
+        "plugin": "acme-hook",
+        "turn_id": "turn-9",
+        "started_at": "2026-11-12T08:00:00+00:00",
+    }
+    for forbidden in (
+        "answer",
+        "history",
+        "content",
+        "messages",
+        "context",
+        "tool_names",
+        "stop_reason",
+        "duration_ms",
+    ):
+        assert forbidden not in payload
+    assert request["tool"] == "turn_start"
+    assert request["callable"] == "main"
+    assert request["entry_file"] == str(directory / "hooks" / "turn_start.py")
+    assert request["state_dir"] == str(mcp_sandbox.home_for("plugin_acme-hook"))
+    assert captured["spec"].timeout_seconds == 2.0
+    assert captured["bridge"] is None
+
+    rows = _rows(audit)
+    assert [row["status"] for row in rows] == ["ok"]
+    assert rows[0]["detail"] == "turn_start"
+
+
+def test_the_turn_start_clock_is_the_kernel_clock(
+    plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from datetime import datetime
+
+    from core.sandbox import supervisor
+    from core.sandbox.supervisor import WorkerOutcome
+
+    _active(plugins, event="turn_start")
+    captured: list[dict] = []
+
+    def fake_run_worker(spec, *, protocol_check=None, stdin_payload=None, bridge_dispatch=None):
+        captured.append(json.loads(stdin_payload)["arguments"])
+        return WorkerOutcome(status="ok")
+
+    monkeypatch.setattr(supervisor, "run_worker", fake_run_worker)
+    plugin_turn_hooks.note_turn_start(turn_id="turn-10")
+    assert plugin_turn_hooks.flush(5.0)
+
+    started_at = datetime.fromisoformat(captured[0]["started_at"])
+    assert started_at.utcoffset() is not None
+    assert started_at.utcoffset().total_seconds() == 0
+    assert len(captured[0]["started_at"]) <= plugin_turn_hooks.MAX_PAYLOAD_NAME_CHARS
+
+
+def test_a_turn_start_dispatch_never_runs_a_turn_end_hook(
+    plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _active(plugins, both=True)
+    events: list[str] = []
+    monkeypatch.setattr(
+        plugin_turn_hooks,
+        "_execute",
+        lambda hook, payload: events.append(payload["event"]),
+    )
+    _dispatch_start()
+    assert plugin_turn_hooks.flush(5.0)
+    assert events == ["turn_start"]
+
+    _dispatch()
+    assert plugin_turn_hooks.flush(5.0)
+    assert events == ["turn_start", "turn_end"]
 
 
 def test_the_turn_returns_before_the_run_completes(
@@ -359,6 +477,35 @@ def test_a_full_queue_drops_the_run_and_audits_it(
     assert len(runs) == plugin_turn_hooks.QUEUE_DEPTH + 1
 
 
+def test_a_full_queue_drops_a_turn_start_run_and_audits_its_event(
+    plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _active(plugins, event="turn_start")
+    started = threading.Event()
+    release = threading.Event()
+    runs: list[str] = []
+
+    def blocking(hook, payload):
+        runs.append(payload["event"])
+        started.set()
+        release.wait(10)
+        return "ok"
+
+    monkeypatch.setattr(plugin_turn_hooks, "_execute", blocking)
+    _dispatch_start()
+    assert started.wait(5)
+    for _ in range(plugin_turn_hooks.QUEUE_DEPTH):
+        _dispatch_start()
+    _dispatch_start()
+
+    dropped = [row for row in _rows(audit) if row["status"] == "dropped"]
+    assert len(dropped) == 1
+    assert dropped[0]["detail"] == "turn_start"
+    release.set()
+    assert plugin_turn_hooks.flush(10)
+    assert len(runs) == plugin_turn_hooks.QUEUE_DEPTH + 1
+
+
 def test_a_raising_run_is_contained_and_audited(
     plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -405,7 +552,7 @@ def test_a_measured_turn_runs_no_hook(
 ) -> None:
     import core.chat as chat_module
 
-    _active(plugins)
+    _active(plugins, both=True)
     calls: list[str] = []
     monkeypatch.setattr(
         plugin_turn_hooks, "_execute", lambda hook, payload: calls.append(hook.plugin_id)
@@ -414,6 +561,7 @@ def test_a_measured_turn_runs_no_hook(
 
     async def fake_chat(**kwargs):
         seen.append(plugin_turn_hooks._SUPPRESSED.get())
+        plugin_turn_hooks.note_turn_start(turn_id="bench")
         plugin_turn_hooks.note_turn_end(
             turn_id="bench", stop_reason="answer", tool_names=(), duration_ms=1
         )
@@ -456,6 +604,29 @@ def test_the_hook_receives_the_metadata_payload_and_no_network(
     assert denied, "the worker reached the network, and the boundary promised it would not"
     assert (directory / "hooks" / "turn_end.py").is_file()
     assert [row["status"] for row in _rows(audit)] == ["ok"]
+
+
+@pytest.mark.requires_boundary
+def test_the_turn_start_hook_receives_the_start_payload(
+    plugins: Path, audit: Path
+) -> None:
+    directory = _active(plugins, event="turn_start", timeout=1)
+    plugin_turn_hooks.note_turn_start(
+        turn_id="turn-8", started_at="2026-11-12T08:00:00+00:00"
+    )
+    assert plugin_turn_hooks.flush(10)
+
+    home = mcp_sandbox.home_for("plugin_acme-hook")
+    received = json.loads((home / "received.json").read_text(encoding="utf-8"))
+    assert received == {
+        "event": "turn_start",
+        "plugin": "acme-hook",
+        "turn_id": "turn-8",
+        "started_at": "2026-11-12T08:00:00+00:00",
+    }
+    assert (directory / "hooks" / "turn_start.py").is_file()
+    assert [row["status"] for row in _rows(audit)] == ["ok"]
+    assert _rows(audit)[0]["detail"] == "turn_start"
 
 
 class _ScriptedClient:
@@ -532,6 +703,75 @@ async def test_the_chat_finally_hands_the_turn_to_the_hook(
     assert handed["tool_names"] == ["read_file"]
     assert handed["duration_ms"] > 0
     assert handed["observer_bound"] is True
+
+
+@pytest.mark.asyncio
+async def test_the_chat_hands_the_turn_to_the_start_hook_before_it_starts(
+    plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from core.chat import chat_with_tools
+
+    order: list[str] = []
+
+    class _OrderedClient:
+        async def chat(self, **kwargs):  # noqa: ARG002
+            order.append("chat")
+            return _response(content="done")
+
+        async def aclose(self) -> None:
+            return None
+
+    handed: dict = {}
+
+    def fake_start(**kwargs):
+        order.append("start")
+        handed.update(kwargs)
+
+    monkeypatch.setattr(plugin_turn_hooks, "note_turn_start", fake_start)
+    client = _OrderedClient()
+    with patch("core.chat.build_provider_client", return_value=client), patch(
+        "core.chat.execute_tool", new=AsyncMock(return_value="ok")
+    ):
+        answer = await chat_with_tools(
+            model="gemma4:12b",
+            history=[{"role": "user", "content": "hello"}],
+            on_chunk=lambda chunk: None,
+            allowed_tool_names=[],
+            turn_id="turn-start-9",
+        )
+
+    assert answer == "done"
+    assert order[0] == "start"
+    assert handed["turn_id"] == "turn-start-9"
+
+
+@pytest.mark.asyncio
+async def test_a_failing_start_dispatch_leaves_the_turn_alone(
+    plugins: Path, audit: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from core.chat import chat_with_tools
+
+    client = _ScriptedClient([_response(content="done")])
+
+    def boom(**kwargs):
+        raise RuntimeError("start dispatch failed")
+
+    monkeypatch.setattr(plugin_turn_hooks, "note_turn_start", boom)
+    with patch("core.chat.build_provider_client", return_value=client), patch(
+        "core.chat.execute_tool", new=AsyncMock(return_value="ok")
+    ):
+        answer = await chat_with_tools(
+            model="gemma4:12b",
+            history=[{"role": "user", "content": "hello"}],
+            on_chunk=lambda chunk: None,
+            allowed_tool_names=[],
+        )
+
+    assert answer == "done"
 
 
 @pytest.mark.asyncio

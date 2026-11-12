@@ -34,6 +34,10 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 // for a surface, and its stylesheet rides its own chunk the way ChatPage.css and
 // DiscoverPage.css do, so the entry sheet keeps the shell's weight alone.
 const OverlayHost = lazy(() => import('./components/shell/OverlayHost'))
+// The docked plugin region (#44's second placement): one panel in the shell's own
+// right column, a bottom sheet behind a toggle on a phone. It paints nothing while no
+// bundle asks for the dock, and its stylesheet rides its own chunk like the overlay's.
+const DockHost = lazy(() => import('./components/shell/DockHost'))
 // Two surfaces that paint nothing until they are asked to: the command palette
 // while it is closed and the confirm sheet while no question is pending. Their
 // chunks and the Radix overlay stack they share arrive with the first ask.
@@ -405,6 +409,13 @@ function AppInner() {
           the boundary around it holds an empty fallback. */}
       <Suspense fallback={null}>
         <OverlayHost />
+      </Suspense>
+
+      {/* The named dock region a `dock-panel` bundle fills. The shell keeps it outside
+          the overlay stack: a docked panel is chrome beside the workbench, not a
+          window above it, and only one panel stands at a time (`dockModel.ts`). */}
+      <Suspense fallback={null}>
+        <DockHost />
       </Suspense>
 
       {open ? (

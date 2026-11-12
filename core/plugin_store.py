@@ -315,14 +315,20 @@ def _capabilities(manifest: dict[str, Any] | None) -> dict[str, Any]:
             "title": str(descriptor.get("title") or ""),
             "type": str(descriptor.get("type") or ""),
             "entry": str(descriptor["entry"]),
+            # The region the shell gives that type, so the row can say where the
+            # surface lands without a second reading of `type`.
+            "placement": plugin_ui_capabilities.surface_placement(
+                str(descriptor.get("type") or "")
+            ),
         }
     return {
         "tools": tools,
         "surface": surface,
         "commands": commands,
         "skills": skills,
-        # The event a bundle runs a confined worker for at the end of every turn. The row
-        # reads it beside the tools, because a hook is code the bundle carries.
+        # The events a bundle runs a confined worker for at the start and at the end of
+        # every turn. The row reads them beside the tools, because a hook is code the
+        # bundle carries.
         "hooks": hook_facts(manifest),
     }
 
@@ -578,7 +584,7 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
     # the detail sheet shows what a plugin declares, best-effort, never fatal.
     try:
         from core import plugin_manifest
-        from core.plugin_ui_capabilities import ui_descriptor
+        from core.plugin_ui_capabilities import surface_placement, ui_descriptor
 
         by_name = {
             str(e["manifest"]["name"]): e for e in scanned if e.get("manifest")
@@ -617,7 +623,13 @@ def plugins_view(catalog_file: Path | None = None, registry_file: Path | None = 
                 # reads as "there is nothing here to open".
                 descriptor = ui_descriptor(found["manifest"])
                 if descriptor.get("entry"):
-                    entry["surface"] = descriptor
+                    # The placement word rides beside the descriptor so the switch row
+                    # states where the surface lands; the descriptor itself stays the
+                    # contract's own view, unchanged.
+                    entry["surface"] = {
+                        **descriptor,
+                        "placement": surface_placement(str(descriptor.get("type") or "")),
+                    }
     except Exception:
         pass
     # #106: the Extensions row says how much of its ceiling a bundle has spent.

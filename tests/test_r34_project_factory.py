@@ -19,13 +19,19 @@ import asyncio
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from core.skills import BUILTIN_SKILLS_DIR, SkillLoader
 from core.tools import base as tools_base
-from core.tools import build_document, scaffold_project, verify_artifact
-from core.tools import factory_tools, verify_tools
+from core.tools import (
+    build_document,
+    factory_tools,
+    scaffold_project,
+    verify_artifact,
+    verify_tools,
+)
 
 
 @pytest.fixture(scope="module")
@@ -162,6 +168,66 @@ class TestScaffoldProject:
     def test_given_outside_allowed_roots_when_scaffolded_then_denied(self):
         out = asyncio.run(scaffold_project("/etc/zz-not-allowed", template="generic"))
         assert out.startswith("[factory-error:") and "outside allowed roots" in out
+
+
+class TestScaffoldScope:
+    """The scaffold writes only where the call may write, and a data root is a read grant.
+
+    A plugin call has its own roots: the workspace it may change plus the read roots its
+    manifest declared. Until this class existed the scaffold resolved ALLOWED_ROOTS, which
+    is plugin-agnostic, so a bridged call could land a whole skeleton in the checkout cwd
+    or in a declared read-only data root.
+    """
+
+    @pytest.fixture()
+    def plugin_scope(self, tmp_path, monkeypatch):
+        from core.tools.base import PLUGIN_FILE_SCOPE
+
+        workspace = tmp_path / "workspace"
+        declared = tmp_path / "declared"
+        workspace.mkdir()
+        declared.mkdir()
+        monkeypatch.setattr("core.engine_config.get_workspace_dir", lambda: str(workspace))
+        monkeypatch.setattr(
+            "core.capability_policy.resolved_data_roots",
+            lambda plugin, root: [declared.resolve()],
+        )
+        token = PLUGIN_FILE_SCOPE.set("acme-research")
+        try:
+            yield SimpleNamespace(
+                workspace=workspace, declared=declared, outside=tmp_path / "outside"
+            )
+        finally:
+            PLUGIN_FILE_SCOPE.reset(token)
+
+    def test_a_scope_escape_writes_no_file(self, plugin_scope):
+        """A target outside the workspace and the declared read roots is refused."""
+        target = plugin_scope.outside / "escaped"
+        out = asyncio.run(
+            scaffold_project(str(target), template="python-cli", project_name="Escape")
+        )
+        assert out.startswith("[factory-error:") and "outside allowed roots" in out, out
+        assert not target.exists()
+
+    def test_a_declared_data_root_stays_read_only(self, plugin_scope):
+        """The manifest grants the data root as a read; the scaffold writes in the workspace."""
+        from core.tools.base import ReadOnlyRootError
+
+        target = plugin_scope.declared / "project"
+        with pytest.raises(ReadOnlyRootError):
+            asyncio.run(scaffold_project(str(target), template="generic"))
+        assert list(plugin_scope.declared.iterdir()) == []
+
+    def test_the_workspace_still_takes_a_full_skeleton(self, plugin_scope):
+        """The rail that matters keeps working: a scope set, a workspace target, five files."""
+        target = plugin_scope.workspace / "inside"
+        out = asyncio.run(
+            scaffold_project(str(target), template="python-cli", project_name="Inside")
+        )
+        assert out.startswith("PROJECT_SCAFFOLD_VERIFIED"), out
+        written = list(target.rglob("*"))
+        assert len([p for p in written if p.is_file()]) >= 5
+        assert (target / "README.md").is_file()
 
 
 class TestBuildDocument:

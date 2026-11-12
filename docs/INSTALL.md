@@ -259,27 +259,34 @@ be present`.
 ## Docker
 
 ```bash
-docker compose up          # then open http://localhost:8765
+EPHE_MODEL_PROVIDER=local_ollama EPHE_MODEL=<tag> EPHE_OLLAMA_PULL=<tag> docker compose up
 ```
 
 Both ports are published on the host loopback only (`127.0.0.1:8765` and `127.0.0.1:11434`), so
 nothing on your network can reach the container until you decide otherwise. The image brings its own
-Python and Node.js, so the mode-specific requirements above do not apply to the host. The engine is
-part of the Compose file: it starts the bundled `ollama` service, and `EPHE_MODEL_PROVIDER` /
-`EPHE_MODEL` default to `local_ollama` and the tag that service pulls. Another engine is an
-override of both variables — for example `EPHE_MODEL_PROVIDER=openai_compatible` with
-`EPHE_OPENAI_COMPAT_BASE_URL` and `EPHE_OPENAI_COMPAT_MODEL`. Without Compose, keep the same
-posture explicitly:
+Python and Node.js, so the mode-specific requirements above do not apply to the host. The Compose
+file chooses no engine and downloads no model: `EPHE_MODEL_PROVIDER` has no default, so
+`docker compose up` alone stops before a container starts and names the variable. Name the engine
+and, for an Ollama engine, the tag you already use — or put a `~/.ephe/engine.json` written by
+`ephe configure` into the `ephe_data` volume. `EPHE_OLLAMA_PULL` is optional and only lets the
+bundled `ollama` service download that one tag; without it nothing is downloaded. Another engine is
+a different pair of values, not a switch of a default — for example
+`EPHE_MODEL_PROVIDER=openai_compatible` with `EPHE_OPENAI_COMPAT_BASE_URL` and
+`EPHE_OPENAI_COMPAT_MODEL`. Without Compose, keep the same posture explicitly:
 
 ```bash
-docker run --rm -p 127.0.0.1:8765:8765 ephe:latest
+docker run --rm -p 127.0.0.1:8765:8765 \
+  -e EPHE_MODEL_PROVIDER=local_ollama \
+  -e EPHE_LOCAL_OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  -e EPHE_MODEL=<tag> --add-host=host.docker.internal:host-gateway ephe:latest
 ```
 
 LAN or mobile access is an opt-in: `EPHE_LAN` is set in the Compose file, and any non-loopback bind
 forces it, so the pairing token guards the API:
 
 ```bash
-EPHE_PUBLISH_HOST=0.0.0.0 docker compose up   # then scan the in-app QR code
+EPHE_PUBLISH_HOST=0.0.0.0 EPHE_MODEL_PROVIDER=local_ollama EPHE_MODEL=<tag> \
+  docker compose up   # then scan the in-app QR code
 ```
 
 ## After install
@@ -288,14 +295,15 @@ EPHE_PUBLISH_HOST=0.0.0.0 docker compose up   # then scan the in-app QR code
 launcher at the same path, so a fresh terminal answers `ephe` directly:
 
 ```bash
-ephe configure    # choose the engine from the shell (optional: the app asks on first run)
+ephe configure    # choose the engine; without it the app opens Setup and headless verbs stop
 ephe doctor       # check engine, model and server state
 ephe tui          # CLI mode: the terminal app
 ephe start --open # desktop mode: start the local app, then open http://127.0.0.1:8765
 ```
 
-No engine is needed for the first start: the terminal app opens its own setup (provider,
-endpoint, API key, model) and sends nothing until you choose one.
+The first start needs that choice: `ephe configure` stores it for the terminal, and the app opens
+its own setup (provider, endpoint, API key, model) when none is stored. Nothing is sent until you
+choose one.
 
 Once a backend runs, `ephe status` says whether one answers on the port and whether this
 installation owns it, and `ephe stop` ends the one it started. See

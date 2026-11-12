@@ -25,6 +25,7 @@ from core.net_guard import (
     address_is_public,
     check_url,
     guarded_fetch,
+    guarded_get,
 )
 from core.tool_markers import FETCH_REFUSED_MARKER
 
@@ -68,6 +69,41 @@ class _FakeResponse:
         async def gen():
             for c in chunks:
                 yield c
+
+        return gen()
+
+
+class _DripResponse:
+    """A slow-drip body: one byte per ``drip`` seconds, for as long as it is read.
+
+    The per-hop read timeout fires only when a single read blocks longer than
+    ``timeout``; a server that answers just inside that window never trips it.
+    Only a whole-call deadline bounds this.
+    """
+
+    status_code = 200
+    headers: dict = {}
+
+    def __init__(self, drip: float = 0.02, count: int = 500):
+        self._drip = drip
+        self._count = count
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def aclose(self):
+        return None
+
+    def aiter_bytes(self, chunk_size: int = 64 * 1024):
+        drip, count = self._drip, self._count
+
+        async def gen():
+            for _ in range(count):
+                await asyncio.sleep(drip)
+                yield b"x"
 
         return gen()
 
@@ -292,3 +328,92 @@ def test_fetch_url_holt_eine_oeffentliche_seite_durch_den_guard(fake_httpx):
     assert fake_httpx.seen == ["https://93.184.216.34/artikel"]
     assert fake_httpx.hosts == ["example.com"]
     assert fake_httpx.sni == ["example.com"]
+
+
+# 5. A URL the parser cannot read is a refusal, never an exception out of the guard
+
+
+def test_a_malformed_url_is_refused_and_never_raised():
+    # urlsplit raises on an unclosed IPv6 bracket, and `parts.port` raises for a
+    # port outside 0-65535 or a non-numeric one. Both left the guard as ValueError.
+    for url in ("http://[::1", "https://example.com:99999/", "https://example.com:abc/"):
+        allowed, note = check_url(url, resolver=_resolver({"example.com": ["93.184.216.34"]}))
+        assert allowed is False, url
+        assert note.code == "url_malformed", (url, note)
+        assert note.params == {"url": url}
+        assert url in note
+
+
+def test_guarded_get_refuses_a_malformed_url_without_a_request(fake_httpx):
+    response = asyncio.run(guarded_get("http://[::1"))
+    assert response.status == 0
+    assert response.text.startswith("[refused]")
+    assert response.note.code == "url_malformed"
+    assert fake_httpx.seen == [], "a URL that cannot be parsed must not reach a socket"
+
+
+def test_fetch_url_names_a_malformed_url_instead_of_a_transport_fault(fake_httpx):
+    from core.tools import fetch_tools
+
+    fetch_tools._FETCH_CACHE.clear()
+    out = asyncio.run(fetch_tools.fetch_url("http://[::1"))
+    assert out.startswith(FETCH_REFUSED_MARKER), out
+    assert out.code == "url_malformed"
+    assert fake_httpx.seen == []
+
+
+# 6. The whole call has a deadline
+
+
+def test_a_slow_drip_ends_at_the_total_deadline(fake_httpx):
+    # The drip answers inside the per-hop read timeout every time, so only the
+    # whole-call budget ends it. No wall-clock ceiling is asserted here: this file
+    # runs in the parallel pytest leg, and `tests/test_timing_assertion_guard.py`
+    # keeps a clock reading out of it. The old code came back with a 200 and the
+    # drip's body; the deadline answers status 0 instead.
+    fake_httpx.script = [_DripResponse(drip=0.02, count=300)]
+    status, text, note = asyncio.run(
+        guarded_fetch(
+            "https://example.com/drip",
+            resolver=_resolver({"example.com": ["93.184.216.34"]}),
+            timeout=15.0,
+            deadline=0.2,
+        )
+    )
+    assert status == 0
+    assert text.startswith("[error]")
+    assert "deadline" in note.lower()
+    assert "fetch deadline" in text
+
+
+def test_the_deadline_bounds_a_redirect_chain_as_a_whole(fake_httpx):
+    # Every hop answers inside the per-hop read timeout; the chain still has to end
+    # under one budget. No clock is read here (see the note above).
+    fake_httpx.script = [
+        _DripResponse(drip=0.02, count=300),
+        _FakeResponse(302, {"location": "https://example.com/next"}),
+    ]
+    status, _text, note = asyncio.run(
+        guarded_fetch(
+            "https://example.com/drip",
+            resolver=_resolver({"example.com": ["93.184.216.34"]}),
+            deadline=0.2,
+        )
+    )
+    assert status == 0
+    assert "deadline" in note.lower()
+
+
+def test_a_body_never_grows_past_the_hard_cap(fake_httpx):
+    # One chunk larger than the cap: the stored text stops at the cap itself.
+    fake_httpx.script = [_FakeResponse(200, chunks=[b"x" * (MAX_DOWNLOAD_BYTES + 10_000)])]
+    response = asyncio.run(
+        guarded_get(
+            "https://example.com/big.bin",
+            resolver=_resolver({"example.com": ["93.184.216.34"]}),
+            max_bytes=1_000,
+        )
+    )
+    assert response.status == 200
+    assert len(response.text) == 1_000
+    assert "capped" in response.note

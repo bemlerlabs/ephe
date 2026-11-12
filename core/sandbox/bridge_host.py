@@ -750,12 +750,12 @@ def _credential_refusal(name: str, args: dict[str, Any]) -> dict[str, Any] | Non
     }
 
 
-def _write_scope_refusal(args: dict[str, Any]) -> dict[str, Any] | None:
+def _write_scope_refusal(args: dict[str, Any], key: str = "path") -> dict[str, Any] | None:
     """The read-only-root refusal, taken before a credential dialog could ask about it."""
     from core.tools.base import _plugin_write_refusal
     from core.tools.file_ops import _resolve_against_workspace
 
-    denial = _plugin_write_refusal(_resolve_against_workspace(_text_arg(args, "path")))
+    denial = _plugin_write_refusal(_resolve_against_workspace(_text_arg(args, key)))
     if not denial:
         return None
     return {"ok": False, "code": bridge.PATH_DENIED, "detail": denial}
@@ -770,7 +770,29 @@ def _consent_refusal(name: str, args: dict[str, Any]) -> dict[str, Any] | None:
     turn has no policy: the request-scoped dialog answers, because the worker runs while
     that turn is open. With nobody to ask, the call is refused instead of run
     unconfirmed, and the refusal keeps the gate's code beside the reason.
+
+    A helper's call arrives here a second time: the delegated gate already asked for the
+    tool whose worker now bridges `run_shell`. The delegated answer covers this channel
+    once, and the line says so, so one decision is not two dialogs.
     """
+    from core.tools.chat_gate import claim_delegated_consent
+
+    consented = claim_delegated_consent()
+    if consented:
+        try:
+            from core.audit_log import audit_event
+
+            audit_event(
+                "approval",
+                tool=name,
+                decision="approved",
+                status="delegated-consent",
+                detail=f"the delegated gate confirmed {consented}; the bridge did not ask again",
+            )
+        except Exception:  # noqa: BLE001 — the log never blocks the call it records
+            pass
+        return None
+
     from core.tools.session_ctx import get_current_policy
 
     policy = get_current_policy()
@@ -1036,6 +1058,9 @@ def scaffold_project(args: dict[str, Any]) -> dict[str, Any]:
     project_name = _kept(args, "project_name")
     description = _kept(args, "description")
     author = _kept(args, "author")
+    refusal = _write_scope_refusal(args, "target_dir")
+    if refusal is not None:
+        return refusal
 
     def _call():
         extra: dict[str, Any] = {}

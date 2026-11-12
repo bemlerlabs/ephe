@@ -18,9 +18,10 @@ import json
 import os
 import re
 import time
+from pathlib import Path
 
+from core.tools.base import PLUGIN_FILE_SCOPE, check_write_path
 from core.tools.verify_tools import _resolve_allowed_path, _verify
-
 
 BULLET_STRIP = re.compile(r"^[-*]\s*")
 
@@ -293,6 +294,10 @@ def _write_manifest_files(root: str, files: dict[str, str]) -> list[str]:
     for rel, content in files.items():
         rel = _safe_relative(rel)
         full = os.path.join(root, rel.replace("/", os.sep))
+        # Under a plugin scope every file takes the write door, not just the target
+        # folder: a symlink inside the workspace must not open a data root.
+        if PLUGIN_FILE_SCOPE.get():
+            check_write_path(Path(full))
         parent = os.path.dirname(full)
         if not os.path.isdir(parent):
             os.makedirs(parent)
@@ -320,7 +325,7 @@ async def scaffold_project(
         allowed = ", ".join(sorted(_TEMPLATES))
         return f"[factory-error: unknown template '{template}'. Allowed: {allowed}]"
     try:
-        root = _resolve_allowed_path(target_dir)
+        root = _resolve_allowed_path(target_dir, write=True)
     except ValueError as exc:
         return f"[factory-error: {exc}]"
     if os.path.isdir(root) and os.listdir(root):
@@ -345,6 +350,10 @@ async def scaffold_project(
         )
     try:
         written = _write_manifest_files(root, files)
+    except PermissionError:
+        # A refuse from the write door is coded (ReadOnlyRootError for a data root); the
+        # bridge turns it into PATH_DENIED, so it must not become a plain sentence.
+        raise
     except OSError as exc:
         return f"[factory-error: writing failed: {exc}]"
     required = [r for r in ("README.md", "LICENSE", ".gitignore", "Makefile", "docs/USAGE.md") if r in files]

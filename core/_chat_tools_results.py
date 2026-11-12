@@ -38,8 +38,11 @@ from core.steering import Steer
 # as an instruction. The fence is reused from core.channels.injection_guard, not
 # reimplemented here.
 
-#: Web tools whose output is external content.
-WEB_UNTRUSTED_TOOLS: frozenset[str] = frozenset({"fetch_url", "web_search"})
+#: Web tools whose output is external content. `fetch_url` and `web_search` are the
+#: web-research bundle's tools; `web_research` is the kernel one. The kernel half of
+#: this list is tied to the registry by tests/test_injection_loop.py, so a renamed or
+#: added web tool cannot leave the fence without a failing test.
+WEB_UNTRUSTED_TOOLS: frozenset[str] = frozenset({"fetch_url", "web_search", "web_research"})
 
 #: The discovery meta tool that forwards to a tool named in its own arguments.
 _META_FORWARD_TOOL = "tool_call"

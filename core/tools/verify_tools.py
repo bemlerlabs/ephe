@@ -14,6 +14,7 @@ import json
 import os
 import re
 import zipfile
+from pathlib import Path
 
 from core.tools import base as tools_base
 
@@ -80,8 +81,26 @@ def _near_names(sp: str) -> str:
     return " — nothing of that name here; in this folder: " + ", ".join(chosen)
 
 
-def _resolve_allowed_path(path: str) -> str:
-    """Resolves a user path and enforces the ALLOWED_ROOTS boundary."""
+def _allowed_roots() -> list:
+    """The roots a factory path may sit under in this call.
+
+    A plugin call carries its own roots — the workspace it may change plus the read roots
+    its manifest declared. The kernel path keeps ``ALLOWED_ROOTS``. Skipping this split
+    made the plugin scope invisible to the factory, so a bridged call wrote where the
+    plugin's own file tools would have been refused.
+    """
+    if tools_base.PLUGIN_FILE_SCOPE.get():
+        return list(tools_base._get_allowed_roots())
+    return list(tools_base.ALLOWED_ROOTS)
+
+
+def _resolve_allowed_path(path: str, *, write: bool = False) -> str:
+    """Resolves a user path and enforces the boundary of this call.
+
+    ``write=True`` sends the target through the same door as ``write_file``: a declared
+    data root is a read grant, so a write there raises ``ReadOnlyRootError`` before a
+    single file is created.
+    """
     sp = os.path.expanduser(str(path))
     if not os.path.isabs(sp):
         # Same base as write_file/read_file (file_ops._resolve_against_workspace):
@@ -90,14 +109,17 @@ def _resolve_allowed_path(path: str) -> str:
 
         sp = os.path.join(get_workspace_dir(), sp)
     sp = os.path.realpath(sp)
-    for root in tools_base.ALLOWED_ROOTS:
+    roots = _allowed_roots()
+    for root in roots:
         try:
             resolved_root = os.path.realpath(str(root))
         except OSError:
             continue
         if sp == resolved_root or sp.startswith(resolved_root + os.sep):
+            if write:
+                tools_base.check_write_path(Path(sp))
             return sp
-    allowed = ", ".join(str(r) for r in tools_base.ALLOWED_ROOTS)
+    allowed = ", ".join(str(r) for r in roots)
     raise ValueError(f"Path outside allowed roots: {path} (allowed: {allowed})")
 
 

@@ -254,6 +254,30 @@ describe('Plugin surface row (W1-7)', () => {
     render(renderPlugins(model({ pluginView: view([entry('documents')]) })))
     expect(screen.queryByTestId('plugin-surface-documents')).toBeNull()
   })
+
+  /// The row states the placement the store view names, so a docked bundle is not
+  /// offered as if it were a window before the user opens it.
+  it('names the dock placement as its own fact', () => {
+    const docked = { ...surface, type: 'dock-panel', placement: 'dock' as const }
+    render(
+      renderPlugins(
+        model({ pluginView: view([entry('docklet', { surface: docked }) as PluginEntry]) }),
+      ),
+    )
+    expect(screen.getByTestId('plugin-dock-fact-docklet').textContent).toContain(
+      'settings.pluginCapDock',
+    )
+  })
+
+  it('leaves the dock fact off a window surface', () => {
+    const windowed = { ...surface, placement: 'window' as const }
+    render(
+      renderPlugins(
+        model({ pluginView: view([entry('countdown', { surface: windowed }) as PluginEntry]) }),
+      ),
+    )
+    expect(screen.queryByTestId('plugin-dock-fact-countdown')).toBeNull()
+  })
 })
 
 describe('Plugin scope (task 99)', () => {

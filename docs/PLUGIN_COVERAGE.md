@@ -13,9 +13,9 @@ grader or the client shell).
 | Tools | Plugin | `core/plugin_tools_contract.py:292` `validate_tools` → `core/tools/dynamic_registry.py:289` `register` → `core/sandbox/runner.py:267` `run_plugin_tool`; gate `core/plugin_runtime.py:485` | none on the rail; a kernel tool has no manifest route *out*, which is the one-name-one-provider rule, not a gap | — |
 | Memory | Plugin since MEM-P1 (provider); the stores stay kernel | `core/plugin_memory_contract.py` `validate_memory` → `core/plugin_runtime.py:349` `memory_providers` → `core/memory_provider.py:173` `resolve_provider`, `:266` `open_provider` | in-process provider code: only the `kepta-bridge` wire protocol is declarable, because nothing imports plugin code (ruling A1) | M (done) |
 | Planner | Kernel loop; a plugin names the plan strategy since PLAN-P1 | `core/plugin_planner_contract.py:161` `validate_planner` → `core/plugin_runtime.py:367` `plan_strategies` → `core/ephe_plan.py:84` `plan_strategy`, clamped at `:157` `_step_budget`; the loop stays `core/react.py:170` `react_loop` | a step schema with a reader: the guard text still instructs one shape, so nothing fails a plan that ignores a declared field | L (first cut landed) |
-| Evaluator | Kernel grader; the bundle supplies cases and, since EVAL-P1, names presets of the kernel's own kinds | `core/plugin_golden.py:249` `grade`, `:193` `load_golden`, `:163` `_declared_kinds`, `:579` `measure_matrix`; contract `core/plugin_evaluator_contract.py:224` `validate_evaluator`, `:260` `evaluator_kinds` | a grader or a new `expect.kind` a manifest could add: the vocabulary stays the kernel's five primitives, and a preset resolves only inside the suite that declares it | L (first cut landed) |
-| UI | Plugin for the surface, kernel for the shell; the placement first cut landed | `core/plugin_ui_capabilities.py:302` `validate_ui`, `server/routes/plugin_ui.py:73` router, `app/src/lib/surfacePlacement.ts` placement resolver, `core/plugin_surface_host.py` slot record | the shell's own pages and component slots: a bundle declares one placement from the closed list (`floating-window`, `canvas-overlay`, and `dock-panel` once a dock exists) and still cannot register into the app's tree or name a slot the shell does not own | L (first cut landed) |
-| Runtime | Kernel loop; a bundle declares one turn-end hook since HOOK-P1 | `core/plugin_runtime.py:503` `tool_gate`, `core/plugin_lifecycle.py` state machine, `core/plugin_lifecycle_mount.py:92` `mount`; hook contract `core/plugin_hooks_contract.py:117` `validate_hooks` → `core/plugin_runtime.py:376` `turn_hooks` → `core/chat.py:399` dispatch → `core/plugin_turn_hooks.py:275` `_execute` | an event beyond `turn_end`, a hook that transforms or vetoes a turn, an answer-bearing payload and a network transport; a hook observes one turn's metadata and cannot insert text | L (first cut landed) |
+| Evaluator | Kernel grader; the bundle supplies cases and, since EVAL-P1/P2, names presets of the kernel's five kinds and composes them with `all_of`/`none_of` | `core/plugin_golden.py:327` `grade`, `:344` `_grade_matcher`, `:142` `_composition`, `:271` `load_golden`, `:241` `_declared_kinds`, `:721` `measure_matrix`, `:416` `_rejects_listed_fragments`; contract `core/plugin_evaluator_contract.py:255` `validate_evaluator`, `:291` `evaluator_kinds`, `:128` `preset_matcher` | a grader or a new `expect.kind` a manifest could add: the vocabulary stays the kernel's five primitives and the two compositions, and a preset resolves only inside the suite that declares it | L (first and second cut landed) |
+| UI | Plugin for the surface, kernel for the shell; the placement cut and the dock landed | `core/plugin_ui_capabilities.py:302` `validate_ui`, `server/routes/plugin_ui.py:73` router, `app/src/lib/surfacePlacement.ts` placement resolver, `app/src/components/shell/DockHost.tsx` dock region, `core/plugin_surface_host.py` slot record | the shell's own pages and component slots: a bundle declares one placement from the closed list (`floating-window`, `canvas-overlay`, `dock-panel`) and still cannot register into the app's tree or name a slot the shell does not own | L (first cut landed) |
+| Runtime | Kernel loop; a bundle declares turn-start and turn-end hooks since HOOK-P1 | `core/plugin_runtime.py:503` `tool_gate`, `core/plugin_lifecycle.py` state machine, `core/plugin_lifecycle_mount.py:92` `mount`; hook contract `core/plugin_hooks_contract.py:124` `validate_hooks` → `core/plugin_runtime.py:376` `turn_hooks` → `core/chat.py:284` start dispatch and `:406` end dispatch → `core/plugin_turn_hooks.py:330` `_execute` | `pre_tool`/`post_tool`, a hook that transforms or vetoes a turn, an answer-bearing payload and a network transport; a hook observes one turn's metadata and cannot insert text | L (first cut landed) |
 | Commands | Plugin | `core/plugin_manifest.py:231` `manifest_commands`, `core/plugin_commands.py:26` | none | — |
 | Skills | Plugin (pack tree the manifest lists) | `core/plugin_manifest.py:217` `active_skill_roots`, `core/skills.py:655` | none; a pack is a directory with `SKILL.md`, never code | — |
 
@@ -44,8 +44,8 @@ Config as JSON Schema — `cordis_inspect_query` shows `Service`, `Event`, `Conf
 3. Client half: Cordis registers components into named Slots at runtime and the tree is
    inspectable live; ephe ships at most one HTML document per bundle, placed by
    `components.ui.type` among the placements the shell owns (its window, the overlay
-   stack, and a docked region once one exists), with the capability list for that
-   document and no registration API.
+   stack, and the docked region), with the capability list for that document and no
+   registration API.
 4. Configuration: Cordis validates each entry's Config against a JSON Schema at mount
    time; ephe validates the whole manifest fail-closed at load time. The two are not the
    same instrument: ephe refuses the bundle, it does not coerce a field.
@@ -169,19 +169,19 @@ grader reads, so it opens no file, no socket and no subprocess.
 
 The shape, in four steps that each have a test:
 
-- The contract (`core/plugin_evaluator_contract.py:224` `validate_evaluator`): the list
+- The contract (`core/plugin_evaluator_contract.py:255` `validate_evaluator`): the list
   above, fail-closed in the same style as `capabilities.memory` and `capabilities.planner`
   — an unknown field, an unknown or reserved id, a duplicate id, a base outside this cut,
   a missing or malformed argument, a fragment shorter than three characters and a blank
   description each quarantine the whole bundle. `argument_error` is the per-kind argument
   rule, and `core/plugin_golden.py` calls the same function for a case, so the two readers
   cannot drift apart.
-- The resolution (`core/plugin_golden.py:163` `_declared_kinds`): the manifest beside the
+- The resolution (`core/plugin_golden.py:241` `_declared_kinds`): the manifest beside the
   suite the loader reads, once per suite, through `validate_evaluator`. A preset resolves
   only inside the bundle that declares it, so a pass³ number never depends on which other
   bundles are installed and no id can be contested. A bundle with no readable manifest
   declares no presets, and a case that names one is refused as an unknown kind.
-- The matcher (`core/plugin_golden.py:249` `grade`): the loader puts the resolved
+- The matcher (`core/plugin_golden.py:327` `grade`): the loader puts the resolved
   primitive beside what the author wrote — `matcher` holds the primitive and its
   arguments, `kind_source` names the declared id or `kernel` — and `grade` reads the
   matcher. `measure_matrix` and `pass3_matrix` rows carry both, and the anti-slop gate in
@@ -193,12 +193,11 @@ The shape, in four steps that each have a test:
   (blank fragments, and a blank member beside a valid one), the second is refused by name
   at load time, and a case that names a declared kind may not restate its arguments.
 
-What the first cut does not do is widen the vocabulary: `artifact`, `tool_use` and
-`tool_refused` presets and composition (`all_of` / `none_of`) are the second cut, and the
-field names for their arguments are already reserved so a manifest written for them is
-refused for its `from`. A bundle still cannot add a primitive, shadow a kernel kind name,
-grade another bundle's suite, satisfy the anti-slop gate with a base other than
-`not_contains`, or change what the engine is asked.
+What the first cut did not do is widen the vocabulary: `artifact`, `tool_use` and
+`tool_refused` presets and composition (`all_of` / `none_of`) were the second cut, and the
+field names for their arguments were already reserved then. A bundle still could not add a
+primitive, shadow a kernel kind name, grade another bundle's suite, satisfy the anti-slop
+gate with a base other than `not_contains`, or change what the engine was asked.
 
 Verification: 49 tests in `tests/test_plugin_evaluator_kinds.py`, 41 of them red against
 the previous `core/plugin_golden.py` (the eight that were green read the new contract
@@ -206,37 +205,88 @@ module directly, which a red-first run cannot count); `ephe bench` exits 0 with 
 153 cases across the same 17 bundles, so the shipped matrix did not move; the golden,
 memory and planner suites are green before and after.
 
+## The second cut: composed presets (EVAL-P2)
+
+The first cut named two bases and graded one check per case. The second cut finishes the
+vocabulary and makes a case's verdict a composition of checks: the three remaining kernel
+primitives become declarable bases with their own arguments, and `expect.kind` accepts
+`all_of` and `none_of` over the presets the bundle declares.
+
+The manifest side is the first cut's shape with wider values: `kinds[].from` accepts
+`artifact` (`suffix`), `tool_use` (`any`), `contains` and `not_contains` (`any`) and
+`tool_refused` (`any`, optional `reason`); a base still reads its own argument and nothing
+else, each fragment still clears three characters, the eight-preset ceiling holds, and the
+five primitive names plus `all_of` and `none_of` stay reserved. The case side is new
+grammar: `{"kind": "all_of", "of": [id, …]}` or `{"kind": "none_of", "of": [id, …]}` — two
+or more preset ids of the same bundle, each once, no argument of its own. A member that
+names a primitive or another composition is refused, so a fragment list cannot leave the
+manifest, and a composition cannot outgrow the eight presets a manifest may declare.
+
+What stayed kernel in this cut: the five primitives and their definitions, the pass³
+matrix, the engine and privilege handling of a case, the receipt format and the anti-slop
+gate. The new code is one resolution path (`core/plugin_golden.py:142` `_composition`),
+one recursive grader over the resolved matcher (`:344` `_grade_matcher`) and the gate's one
+predicate over the resolved check (`:416` `_rejects_listed_fragments`). Every argument
+mapping lives once, in `core/plugin_evaluator_contract.py:128` `preset_matcher`, so the
+direct-preset path and a composition member build the same matcher.
+
+Receipts keep the first cut's shape: `expect` is what the author wrote, `matcher` is the
+primitive or the composition of primitives, and `kind_source` names the declared id or, for
+a composition, its members (`all_of(no-slop, wrote-pdf)`). The anti-slop gate reads the
+resolved check, so a suite still has to carry a shape that fails when a listed fragment
+reaches the answer: a `not_contains` case, an `all_of` that carries one, or a `none_of`
+over `contains` presets. A `none_of` over the trap itself passes only when the trap fails,
+so it does not count and the gate reports the same finding line.
+
+A bundle still cannot move its fragments out of the manifest, add a primitive or a
+composition, grade another bundle's suite, shadow a kernel name with a preset id, or run
+code in the grader. No route, no surface and no permission family moved: no surface lists a
+declared preset yet, and `docs/PLUGINS.md` carries the author-facing grammar.
+
+Verification: 46 tests in `tests/test_plugin_evaluator_composition.py`, 39 of them red
+against the two previous modules (the seven green ones read a shape the old loader already
+refused, or the unchanged creation suite); the first-cut file's one stale pin — a manifest
+naming `artifact` as `from` — is replaced by the out-of-vocabulary case; `ephe bench` exits
+0 with the same 153 cases across the same 17 bundles, so the shipped matrix did not move;
+the creation eval loads its 24 cases through the same loader, all still graded by the
+kernel.
+
 ## The third cut: `components.hooks.turn_end` (HOOK-P1)
+## The third cut: `components.hooks` (HOOK-P1)
 
 The turn hook was the highest-risk of the three Ls because it puts bundle code on a new
 time axis: before it, a bundle's code ran when a tool was called; after it, the code runs at
-the end of every turn. The first cut makes the seam an observer and nothing more. The
-kernel fixes the event, the payload and the confinement, so the manifest names one entry
-and one bound and cannot ask for anything else.
+both ends of every turn. The first cut makes the seam an observer and nothing more. The
+kernel fixes the events, the payloads and the confinement, so the manifest names at most one
+entry per event with one bound and cannot ask for anything else.
 
-`components.hooks.turn_end` is one object in a version 2 manifest:
-`{"entry": "hooks/turn_end.py:main", "timeout_seconds": 2}`. The event vocabulary is
-`HOOK_EVENTS` (`turn_end` in this cut), the entry obeys the contributed tool's own lexical
-and containment rule, and the timeout is a whole number in 1–3 seconds. A version 1
-manifest that carries the section, an unknown event, an unknown field and a malformed entry
-each quarantine the whole bundle.
+`components.hooks` holds one object per event in a version 2 manifest, one for the start of
+a turn and one for its end:
+`{"turn_start": {"entry": "hooks/turn_start.py:main", "timeout_seconds": 1}, "turn_end":
+{"entry": "hooks/turn_end.py:main", "timeout_seconds": 2}}`. The event vocabulary is
+`HOOK_EVENTS` (`turn_start`, `turn_end`), one hook per event and at most two per bundle, the
+entry obeys the contributed tool's own lexical and containment rule, and the timeout is a
+whole number in 1–3 seconds. A version 1 manifest that carries the section, an unknown
+event, an unknown field and a malformed entry each quarantine the whole bundle.
 
 The shape, in four steps that each have a test:
 
-- The contract (`core/plugin_hooks_contract.py:117` `validate_hooks`): the object above,
+- The contract (`core/plugin_hooks_contract.py:124` `validate_hooks`): the object above,
   fail-closed in the same style as the planner and evaluator sections. The payload is not
   a field — it is the kernel's — so a manifest that asks for the answer is refused as an
   unknown field rather than silently ignored.
 - The registration (`core/plugin_runtime.py:376` `turn_hooks`): every declared hook from
-  `core.plugin_scan_cache.scan()`, in plugin-id order, with the folder it was scanned from.
-  The scan cache already retires the table on a mount, an install or an edit, so this seam
-  adds no second cache and no second invalidation.
-- The dispatch (`core/chat.py:399`): the turn's `finally`, before `reset_observer`, calls
-  `core/plugin_turn_hooks.note_turn_end` inside its own `try/except`, with the turn id, the
-  loop's stop reason, the names of the tools the turn called and the turn's own duration.
-  The enqueue is fire-and-forget; a full queue (eight pending runs) drops the run and
-  audits the drop, and the turn's result is never touched.
-- The execution (`core/plugin_turn_hooks.py:275` `_execute`): `resolve_entry_file` →
+  `core.plugin_scan_cache.scan()`, in plugin-id order and in the order a turn reaches its
+  events, with the folder it was scanned from. The scan cache already retires the table on a
+  mount, an install or an edit, so this seam adds no second cache and no second invalidation.
+- The dispatch (`core/chat.py:284` `note_turn_start`, `:406` `note_turn_end`): the start
+  hook is queued before the loop, the end hook in the turn's `finally` before
+  `reset_observer`, each inside its own `try/except`. The end call carries the turn id, the
+  loop's stop reason, the names of the tools the turn called and the turn's own duration;
+  the start call carries the turn id and the kernel's clock. A dispatch runs only the hooks
+  declared for its event. The enqueue is fire-and-forget; a full queue (eight pending runs)
+  drops the run and audits the drop, and the turn's result is never touched.
+- The execution (`core/plugin_turn_hooks.py:330` `_execute`): `resolve_entry_file` →
   `build_spec` → `run_worker`, the same confined run a contributed tool uses, with the
   declared timeout, the bundle's declared data roots and no bridge dispatch. The reply is
   discarded, so nothing the hook writes reaches the model, the answer or the session. The
@@ -244,14 +294,15 @@ The shape, in four steps that each have a test:
   `plugin_activity.begin_call`/`end_call` so switching it off stops it the way it stops a
   tool call.
 
-What the first cut does not do: `turn_start`, `pre_tool`/`post_tool`, a mutating or vetoing
-hook, an answer-bearing payload, a network transport and a per-event surface. The user's
-own process-wide hook chain (`~/.ephe/hooks.json`, E5) stays a separate contract, and
-`docs/CONTEXT_CONTRACT.md` still names one resolver deciding what the model sees: a hook is
-not a second channel, and the payload makes that true by construction.
+What the first cut does not do: `pre_tool`/`post_tool`, a mutating or vetoing hook, a hook
+that transforms or suppresses the turn, an answer-bearing payload, a network transport and a
+per-event surface beyond the two row lines. The user's own process-wide hook chain
+(`~/.ephe/hooks.json`, E5) stays a separate contract, and `docs/CONTEXT_CONTRACT.md` still
+names one resolver deciding what the model sees: a hook is not a second channel, and the
+payloads make that true by construction.
 
-Verification: 36 contract tests in `tests/test_plugin_hooks_contract.py` and 13 dispatcher
-tests in `tests/test_plugin_turn_hooks.py`, one of them a real confined worker proving the
+Verification: 43 contract tests in `tests/test_plugin_hooks_contract.py` and 22 dispatcher
+tests in `tests/test_plugin_turn_hooks.py`, two of them real confined workers proving each
 metadata payload and the network deny. The per-turn cost of a spawn is not measured yet;
 this document says so rather than implying a number.
 
@@ -263,12 +314,13 @@ this document says so rather than implying a number.
   bundle leaves the list.
 - The planner step schema has no reader yet, and the settings surface has no planner
   section: a bundle's own lifecycle and `EPHE_PLAN_STRATEGY` are the only switches. The
-  evaluator's first cut names presets of the kernel's five primitives; `artifact`, `tool_use`
-  and `tool_refused` presets plus composition are its second cut, and no surface lists a
-  declared preset yet. Client slot registration's first cut has landed: both product surfaces
-  honor `components.ui.type` through `app/src/lib/surfacePlacement.ts`, and `dock-panel` is a
-  coded refusal until the shell owns a docked region. The turn hook's first cut has landed as
-  an observer: `turn_end` only, one hook per bundle, metadata-only and unmeasured per turn.
-  Each remaining seam is an L and wants its own contract module before any code moves.
+  evaluator's two cuts name presets of the kernel's five primitives and compose them, and
+  no surface lists a declared preset yet. Client slot registration landed on both product
+  surfaces: `components.ui.type` resolves through `app/src/lib/surfacePlacement.ts`, and
+  `dock-panel` fills the shell's named dock region instead of a refusal. The turn hook
+  observes both ends of a turn: `turn_start` and `turn_end`, one hook per event, at most two
+  per bundle, metadata-only and unmeasured per turn. A transforming or vetoing hook and a
+  slot that registers into the app's own tree stay L; each wants its own contract module
+  before any code moves.
 - A second memory transport (anything but `kepta-bridge`) is a new wire contract with its
   own tests; the vocabulary stays closed until one is written down.

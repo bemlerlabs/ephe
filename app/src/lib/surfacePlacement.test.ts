@@ -1,12 +1,12 @@
 /**
- * Seam C, first cut — the placement `components.ui.type` asks for, on both halves.
+ * Seam C — the placement `components.ui.type` asks for, on both halves.
  *
  * The manifest names one of three types and the shell owns every placement they resolve
  * to. These cases pin the table: a `floating-window` gets the desktop's own window only
  * where a window exists, a `canvas-overlay` is the frame on both halves, and a
- * `dock-panel` is a coded refusal until the docked region lands — never a silent
- * fallback to a frame. A type outside the vocabulary is refused the same way, because a
- * descriptor a manifest validator never saw is still not something to guess at.
+ * `dock-panel` is the docked region on both halves — the desktop renders the same PWA,
+ * so its dock is the browser's dock. A type outside the vocabulary is refused, because
+ * a descriptor a manifest validator never saw is still not something to guess at.
  */
 import { describe, expect, it } from 'vitest'
 import { resolveSurfacePlacement, type SurfaceType } from './surfacePlacement'
@@ -48,38 +48,29 @@ describe('a canvas-overlay', () => {
 })
 
 describe('a dock-panel', () => {
-  it('is refused with a code in a browser tab instead of floating as a frame', () => {
-    const resolved = resolveSurfacePlacement('dock-panel', BROWSER)
-    expect(resolved.kind).toBe('refused')
-    if (resolved.kind !== 'refused') return
-    expect(resolved.refusal.reason_code).toBe('surface_dock_panel_unavailable')
-    expect(resolved.refusal.next).toContain('floating-window')
-    expect(resolved.refusal.next).toContain('canvas-overlay')
+  it('takes the shell dock in a browser tab, not a refusal and not a floating frame', () => {
+    expect(resolveSurfacePlacement('dock-panel', BROWSER)).toEqual({
+      kind: 'dock',
+      refusal: null,
+    })
   })
 
-  it('is refused the same way on the desktop', () => {
-    const resolved = resolveSurfacePlacement('dock-panel', DESKTOP)
-    expect(resolved.kind).toBe('refused')
-    if (resolved.kind !== 'refused') return
-    expect(resolved.refusal.reason_code).toBe('surface_dock_panel_unavailable')
+  it('takes the same dock on the desktop, because the shell renders the same PWA', () => {
+    expect(resolveSurfacePlacement('dock-panel', DESKTOP)).toEqual({
+      kind: 'dock',
+      refusal: null,
+    })
   })
 })
 
 describe('the refusal envelope', () => {
   it('carries exactly the code and the move, so a caller can branch on it', () => {
-    const resolved = resolveSurfacePlacement('dock-panel', BROWSER)
-    if (resolved.kind !== 'refused') throw new Error('dock-panel resolved to a placement')
-    expect(Object.keys(resolved.refusal).sort()).toEqual(['next', 'reason_code'])
-    expect(typeof resolved.refusal.reason_code).toBe('string')
-    expect(resolved.refusal.next.length).toBeGreaterThan(0)
-  })
-
-  it('refuses a type outside the declared vocabulary instead of guessing a shape', () => {
     const resolved = resolveSurfacePlacement('side-panel', BROWSER)
-    expect(resolved.kind).toBe('refused')
-    if (resolved.kind !== 'refused') return
+    if (resolved.kind !== 'refused') throw new Error('side-panel resolved to a placement')
+    expect(Object.keys(resolved.refusal).sort()).toEqual(['next', 'reason_code'])
     expect(resolved.refusal.reason_code).toBe('surface_type_unknown')
     expect(resolved.refusal.next).toContain('components.ui.type')
+    expect(resolved.refusal.next).toContain('dock-panel')
   })
 })
 

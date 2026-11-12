@@ -8,7 +8,7 @@
  * section's answer to "which rows exist" in one place.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Compass, MessageSquarePlus, MonitorPlay, Puzzle } from 'lucide-react'
+import { Compass, MessageSquarePlus, MonitorPlay, PanelRight, Puzzle } from 'lucide-react'
 import PluginIcon from '@/components/shell/PluginIcon'
 import PluginSwitch from '@/components/ui/PluginSwitch'
 import type {
@@ -38,6 +38,12 @@ import {
 import type { SettingsModel } from './types'
 
 const SCOPE_MODES = ['analyst', 'architect', 'operator', 'creator'] as const
+
+/** The events the kernel dispatches a bundle's hook for, and their row labels. */
+const HOOK_LABEL_KEYS: Record<string, string> = {
+  turn_start: 'settings.pluginHookTurnStart',
+  turn_end: 'settings.pluginHookTurnEnd',
+}
 
 function viaPreset(row: PluginEntry, view: PluginView): boolean {
   return (
@@ -252,6 +258,15 @@ function PluginCapabilities({
           <span className="truncate">{t('settings.pluginCapSurface', { title: surface })}</span>
         </span>
       )}
+      {p.surface?.placement === 'dock' && (
+        <span
+          data-testid={`plugin-dock-fact-${p.id}`}
+          className="inline-flex min-w-0 items-center gap-1 rounded-md bg-surface px-1.5 py-0.5 text-ui-xs text-foreground/70"
+        >
+          <PanelRight className="h-3 w-3 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+          <span className="truncate">{t('settings.pluginCapDock')}</span>
+        </span>
+      )}
       {names.length > 0 ? (
         <span className="inline-flex min-w-0 items-center gap-1 rounded-md bg-surface px-1.5 py-0.5 text-ui-xs text-foreground/70">
           <span className="shrink-0">{t('settings.pluginCapCommands')}:</span>
@@ -403,7 +418,6 @@ export function PluginCard({
   } = model
   const [busySurface, setBusySurface] = useState(false)
   const status = pluginStatus(p)
-  const turnHook = p.hooks?.[0]
 
   // The display module reports a refusal itself (toast + outcome). The row only keeps
   // one request in flight, so a second click cannot mount two surfaces.
@@ -575,11 +589,19 @@ export function PluginCard({
             {t('settings.pluginDetailConfiguration')}:{' '}
             {p.configuration ? p.configuration : t('settings.pluginDetailNone')}
           </p>
-          {turnHook && (
-            <p data-testid={`plugin-hook-${p.id}`} className="text-ui-xs text-ink-faint">
-              {t('settings.pluginHookTurnEnd', { seconds: turnHook.timeout_seconds })}
-            </p>
-          )}
+          {(p.hooks ?? []).map((hook) => {
+            const labelKey = HOOK_LABEL_KEYS[hook.event]
+            if (!labelKey) return null
+            return (
+              <p
+                key={hook.event}
+                data-testid={`plugin-hook-${p.id}-${hook.event}`}
+                className="text-ui-xs text-ink-faint"
+              >
+                {t(labelKey, { seconds: hook.timeout_seconds })}
+              </p>
+            )
+          })}
           <fieldset
             data-testid={`plugin-scope-include-${p.id}`}
             disabled

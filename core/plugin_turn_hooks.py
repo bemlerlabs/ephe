@@ -1,13 +1,14 @@
-"""Ephe — the turn-end hook: one confined worker run per active bundle, after the turn.
+"""Ephe — the turn hooks: one confined worker run per active bundle, at either end.
 
 core/plugin_turn_hooks.py
 
-The dispatcher half of `components.hooks.turn_end`. `core/chat.py` calls
-`note_turn_end` in the `finally` that already closes the loop's observer, and this module
-answers with a bounded queue, one daemon thread and the same confined runner a contributed
-tool uses (`core/sandbox/runner.resolve_entry_file` → `core/sandbox/worker_spec.build_spec`
-→ `core/sandbox/supervisor.run_worker`). The plugin's code runs in the child, never here
-(ruling A1), the reply is discarded, and the turn never waits on any of it.
+The dispatcher half of `components.hooks`. `core/chat.py` calls `note_turn_start` when the
+turn's observer is bound and `note_turn_end` in the `finally` that already closes it. One
+bounded queue, one daemon thread and the same confined runner a contributed tool uses
+(`core/sandbox/runner.resolve_entry_file` → `core/sandbox/worker_spec.build_spec` →
+`core/sandbox/supervisor.run_worker`) carry both events. The plugin's code runs in the
+child, never here (ruling A1), the reply is discarded, and the turn never waits on any of
+it.
 
 Why not `run_plugin_tool`: that function is the tool rail's, and it writes `tool_start` /
 `tool_exec` rows, applies the restart budget and passes the bridge. A hook has no served
@@ -15,12 +16,13 @@ tool name, no model-facing result and no bridge, so it calls the three steps dir
 audits its own row. Reusing the tool rail would have put a hook's run in a call log the
 user reads as "the model asked for this".
 
-What crosses into the child: the fixed payload in `build_payload`. It carries the turn id,
-the loop's stop reason, the tool names the turn called and the turn's duration. It never
-carries the answer, the history, a tool argument or anything from the context report —
-`tests/test_plugin_turn_hooks.py` pins the exact key set. The reply is read for its status
-only and thrown away, so nothing the hook writes can reach the model, the answer or the
-session.
+What crosses into the child: the fixed payload in `build_turn_start_payload` or
+`build_turn_end_payload`. The start payload carries the turn id and the moment the turn
+began; the end payload carries the loop's stop reason, the tool names the turn called and
+the turn's duration. Neither ever carries the answer, the history, a tool argument or
+anything from the context report — `tests/test_plugin_turn_hooks.py` pins both exact key
+sets. The reply is read for its status only and thrown away, so nothing the hook writes can
+reach the model, the answer or the session.
 
 Every boundary is the tool rail's and none is loosened: the network is denied at the OS
 boundary for every worker, `child_env` scrubs host secrets, reads are confined to the
@@ -53,8 +55,9 @@ import queue
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from core.plugin_hooks_contract import TurnHook
 
@@ -94,7 +97,24 @@ _THREAD: threading.Thread | None = None
 _STOP = object()
 
 
-def build_payload(
+def build_turn_start_payload(
+    *, plugin_id: str, turn_id: str, started_at: str = ""
+) -> dict[str, Any]:
+    """The whole start payload: identifiers and the moment the turn began.
+
+    Metadata-only by construction. It has no field a turn's messages, its tools or its
+    result could reach, and both ids are bounded so a caller-supplied value cannot grow
+    the request. ``started_at`` defaults to the kernel's clock.
+    """
+    return {
+        "event": "turn_start",
+        "plugin": str(plugin_id)[:MAX_PAYLOAD_ID_CHARS],
+        "turn_id": str(turn_id)[:MAX_PAYLOAD_ID_CHARS],
+        "started_at": str(started_at or _utc_now())[:MAX_PAYLOAD_ID_CHARS],
+    }
+
+
+def build_turn_end_payload(
     *,
     plugin_id: str,
     turn_id: str,
@@ -102,7 +122,7 @@ def build_payload(
     tool_names: Iterable[str],
     duration_ms: float,
 ) -> dict[str, Any]:
-    """The whole payload: identifiers, the loop's stop reason, tool names and a duration.
+    """The whole end payload: identifiers, the loop's stop reason, tool names, duration.
 
     Bounded at the edges so a caller-supplied id or a long name cannot grow the request,
     and stable in shape so a hook can read every field without asking whether it exists.
@@ -124,6 +144,28 @@ def build_payload(
     }
 
 
+def _utc_now() -> str:
+    """The kernel's clock for a start payload, in the audit trail's own format."""
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+
+
+def note_turn_start(*, turn_id: str = "", started_at: str = "") -> None:
+    """Queue one run per active turn_start hook, in plugin-id order. Returns before any run.
+
+    Called from `core/chat.py` once the turn's observer is bound, so a hook sees the turn
+    before the loop runs. A hook that cannot be queued is an audit fact; the turn does not
+    fail on it.
+    """
+    if _SUPPRESSED.get():
+        return
+    _queue_event(
+        "turn_start",
+        lambda hook: build_turn_start_payload(
+            plugin_id=hook.plugin_id, turn_id=turn_id, started_at=started_at
+        ),
+    )
+
+
 def note_turn_end(
     *,
     turn_id: str = "",
@@ -131,7 +173,7 @@ def note_turn_end(
     tool_names: Iterable[str] = (),
     duration_ms: float = 0.0,
 ) -> None:
-    """Queue one run per active hook, in plugin-id order. Returns before any run starts.
+    """Queue one run per active turn_end hook, in plugin-id order. Returns before any run.
 
     Never raises: a hook that cannot be queued is a fact for the audit trail, not a turn
     that fails. Called from the turn's `finally`, before `reset_observer`, so the stop
@@ -139,6 +181,22 @@ def note_turn_end(
     """
     if _SUPPRESSED.get():
         return
+    _queue_event(
+        "turn_end",
+        lambda hook: build_turn_end_payload(
+            plugin_id=hook.plugin_id,
+            turn_id=turn_id,
+            stop_reason=stop_reason,
+            tool_names=tool_names,
+            duration_ms=duration_ms,
+        ),
+    )
+
+
+def _queue_event(
+    event: str, payload_for: Callable[[TurnHook], dict[str, Any]]
+) -> None:
+    """Queue the active hooks of one event; the two dispatch sites share this path."""
     try:
         from core import plugin_runtime
 
@@ -146,19 +204,14 @@ def note_turn_end(
     except Exception:  # noqa: BLE001 — an unreadable portfolio spawns nothing
         return
     for hook in hooks:
+        if hook.event != event:
+            continue
         try:
             if not plugin_runtime.is_plugin_active(hook.plugin_id):
                 continue
         except Exception:  # noqa: BLE001 — an unreadable switch spawns nothing
             continue
-        payload = build_payload(
-            plugin_id=hook.plugin_id,
-            turn_id=turn_id,
-            stop_reason=stop_reason,
-            tool_names=tool_names,
-            duration_ms=duration_ms,
-        )
-        _enqueue(_Job(hook, payload))
+        _enqueue(_Job(hook, payload_for(hook)))
 
 
 def flush(timeout: float = 10.0) -> bool:
@@ -186,7 +239,7 @@ def reset() -> None:
 
     The wait is bounded: a test that leaves a run blocked must not hang the suite. A run
     that outlives the bound is a daemon thread the interpreter reaps at exit, and the next
-    `note_turn_end` starts a fresh queue.
+    dispatch starts a fresh queue.
     """
     global _QUEUE, _THREAD
     with _LOCK:
@@ -285,8 +338,9 @@ def _execute(hook: TurnHook, payload: dict[str, Any]) -> str:
     plugin_dir = str(hook.plugin_dir or "")
     if not plugin_dir:
         return "refused"
-    # The manifest writes `hooks/turn_end.py:main`; the confined worker names a dotted
-    # module, the same conversion the contributed-tool rail applies (`module_entry`).
+    # The manifest writes `hooks/turn_end.py:main` or `hooks/turn_start.py:main`; the
+    # confined worker names a dotted module, the same conversion the contributed-tool rail
+    # applies (`module_entry`).
     dotted = module_entry(hook.entry)
     entry_file, _ = resolve_entry_file(plugin_dir, dotted)
     if entry_file is None:

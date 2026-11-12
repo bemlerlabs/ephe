@@ -56,14 +56,22 @@ def _empty_resolver(host: str) -> list[str]:
     return []
 
 
-#: the 16 refusal statements of `core/net_guard.py`, one row per emission site, and
+#: the 18 refusal statements of `core/net_guard.py`, one row per emission site, and
 #: the parameters each one interpolates. `allow_private` is set wherever the answer
-#: depends on it, so an exported environment variable cannot flip a row.
+#: depends on it, so an exported environment variable cannot flip a row. Two codes
+#: repeat a wording: `not_resolvable` (a name that does not resolve) and
+#: `url_malformed` (the parser and the port check share one sentence).
 CASES = (
     ("url_empty", lambda _mp: _guard(""), ()),
     ("url_without_scheme", lambda _mp: _guard("example.com/docs"), ()),
     ("scheme_blocked", lambda _mp: _guard("file:///etc/passwd"), ("scheme",)),
     ("no_host", lambda _mp: _guard("https:///x"), ("url",)),
+    ("url_malformed", lambda _mp: _guard("http://[::1"), ("url",)),
+    (
+        "url_malformed",
+        lambda _mp: _guard("https://example.com:99999/", resolver=_resolver({})),
+        ("url",),
+    ),
     (
         "metadata_host",
         lambda _mp: _guard("http://metadata.google.internal/", resolver=_resolver({})),
@@ -96,6 +104,7 @@ CASES = (
     ),
     ("scheme_outside_channel", lambda _mp: _by_name("file:///etc/passwd"), ("scheme",)),
     ("no_host_in_url", lambda _mp: _by_name("https:///x"), ()),
+    ("url_malformed", lambda _mp: _by_name("http://[::1"), ("url",)),
     ("internal_target_name", lambda _mp: _by_name("http://localhost:8765/x"), ("host",)),
     ("internal_name_suffix", lambda _mp: _by_name("http://db.internal/x"), ("host",)),
     (
@@ -607,7 +616,7 @@ def test_the_emitted_codes_are_the_documented_set():
     guards = {case[0] for case in CASES}
     tools = {case[0] for case in TOOL_CASES}
     browser = {case[0] for case in BROWSER_CASES}
-    assert len(guards) == 15, "two guard sites share a wording, every other one stands alone"
+    assert len(guards) == 16, "two codes share a wording, every other one stands alone"
     assert len(tools) == 42, "every tool line names one reason of its own"
     assert len(browser) == 10, "the browser policy names ten refusals and no more"
     bridge = {case[0] for case in BRIDGE_CASES}
@@ -616,7 +625,7 @@ def test_the_emitted_codes_are_the_documented_set():
     assert len(files) == 1, "the file tools share one path refusal"
     surfaces = (guards, tools, browser, bridge, files)
     named = set().union(*surfaces)
-    assert len(named) == 73, "two surfaces share a code"
+    assert len(named) == 74, "two surfaces share a code"
     assert all(
         not (a & b) for i, a in enumerate(surfaces) for b in surfaces[i + 1:]
     ), "a code names two surfaces, so the card cannot tell them apart"
@@ -627,7 +636,7 @@ def test_the_emitted_codes_are_the_documented_set():
     for lng, bundle in BUNDLES.items():
         base = {plural.sub("", key) for key in bundle}
         assert base == named | set(OWNED_BY_THE_ROUTE), f"{lng}.json/reader drifted"
-        assert len(base) == 76
+        assert len(base) == 77
 
 
 @pytest.mark.parametrize(("code", "build", "param_names"), BRIDGE_CASES,

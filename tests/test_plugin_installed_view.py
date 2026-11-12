@@ -123,6 +123,46 @@ def test_a_declared_turn_hook_is_a_row_fact(device) -> None:
     assert row["rail"] == "worker"
 
 
+def test_both_declared_hook_events_are_row_and_marketplace_facts(device) -> None:
+    import json
+
+    from tests.support.plugin_bundle import write_bundle
+
+    directory = write_bundle(device / "plugins", "hook-widget")
+    (directory / "hooks").mkdir()
+    for event in ("turn_start", "turn_end"):
+        (directory / "hooks" / f"{event}.py").write_text(
+            "def main(arguments, state_dir):\n    return 'ok'\n", encoding="utf-8"
+        )
+    manifest_path = directory / "ephe-plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["components"]["hooks"] = {
+        "turn_start": {"entry": "hooks/turn_start.py:main", "timeout_seconds": 1},
+        "turn_end": {"entry": "hooks/turn_end.py:main", "timeout_seconds": 3},
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    mark_installed("hook-widget", enabled=True)
+
+    from core import marketplace_inventory, plugin_runtime, plugin_store
+
+    plugin_runtime.invalidate_ownership_cache()
+    view = plugin_store.plugins_view()
+    row = _row(view, "hook-widget")
+
+    expected = [
+        {"event": "turn_start", "timeout_seconds": 1},
+        {"event": "turn_end", "timeout_seconds": 3},
+    ]
+    assert row["capabilities"]["hooks"] == expected
+    assert row["rail"] == "worker"
+
+    market = {
+        plugin["name"]: plugin
+        for plugin in marketplace_inventory.installed()["plugins"]
+    }
+    assert market["hook-widget"]["hooks"] == expected
+
+
 def test_every_bundle_appears_once_and_a_builtin_names_its_own_face(device) -> None:
     from core import plugin_store
 

@@ -277,6 +277,13 @@ async def chat_with_tools(
             on_tool_start(name, arguments, *call)
 
     try:
+        # Before the loop: the start hook sees the turn begin, never its content.
+        try:
+            from core import plugin_turn_hooks
+
+            plugin_turn_hooks.note_turn_start(turn_id=turn_id)
+        except Exception:  # noqa: BLE001 — a hook never changes a turn's result
+            pass
         history_in = list(history)
         messages: list = compact_history(history_in, threshold_tokens=_comp_th(model))
         note_compaction("history", len(history_in) - len(messages))

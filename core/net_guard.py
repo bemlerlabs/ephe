@@ -29,19 +29,25 @@ Deliberate decisions:
 """
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import os
 import socket
+import time
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
-from core.reason import reason
+from core.reason import Reason, reason
 
 #: Upper bound for one document text. The fetch channel feeds prompts, not
 #: disks — 2 MB is far above any sensible page source.
 MAX_DOWNLOAD_BYTES = 2_000_000
 MAX_REDIRECT_HOPS = 5
 FETCH_TIMEOUT_SECONDS = 15.0
+#: Hard ceiling for one checked read: every hop plus the body. The per-hop timeout
+#: only fires when a single read blocks, so a server that drips a byte just inside
+#: that window otherwise holds the call (and the turn) for as long as it likes.
+FETCH_DEADLINE_SECONDS = 20.0
 
 #: Hostnames that point at the metadata endpoint (GCP and the standard shorthand).
 METADATA_HOSTS = frozenset({"metadata.google.internal", "metadata.goog"})
@@ -102,6 +108,11 @@ def _resolve(host: str) -> list[str]:
     return sorted({info[4][0] for info in infos})
 
 
+def _malformed(value: str) -> Reason:
+    """A URL the parser cannot read — a refusal, never an exception out of the guard."""
+    return reason("url_malformed", f"{value} is malformed, so there is no target.", url=value)
+
+
 def check_url(
     url: str,
     *,
@@ -132,7 +143,13 @@ def _evaluate(
             "URL without a scheme — put https:// (or http://) in front of it.",
         ), ()
     candidate = raw if "://" in raw else f"https://{raw}"
-    parts = urlsplit(candidate)
+    try:
+        parts = urlsplit(candidate)
+        # The second parser edge: `urlsplit` accepts `host:99999` and `host:abc`,
+        # and only reading the port raises on them.
+        parts.port
+    except ValueError:
+        return False, _malformed(raw), ()
     scheme = parts.scheme.lower()
     if scheme not in ("http", "https"):
         # The sentence keeps its own word for a missing scheme; the param is what a
@@ -226,7 +243,11 @@ def reach_by_name(url: str, *, allow_private: bool | None = None) -> tuple[bool,
     list of requests.
     """
     raw = (url or "").strip()
-    parts = urlsplit(raw if "://" in raw else f"//{raw}", scheme="https")
+    try:
+        parts = urlsplit(raw if "://" in raw else f"//{raw}", scheme="https")
+        parts.port
+    except ValueError:
+        return False, _malformed(raw)
     scheme = parts.scheme.lower()
     if scheme not in ("http", "https"):
         return False, reason(
@@ -285,7 +306,12 @@ def pinned_request(
     scheme = parts.scheme.lower()
     host = (parts.hostname or "").strip().rstrip(".").lower()
     default_port = 443 if scheme == "https" else 80
-    port = parts.port or default_port
+    try:
+        port = parts.port or default_port
+    except ValueError:
+        # `_evaluate` refuses a malformed port before this runs; the fallback keeps
+        # a direct caller from getting a ValueError out of a helper that checks nothing.
+        port = default_port
     target = addresses[0] if addresses else host
     literal = f"[{target}]" if ":" in target else target
     netloc = literal if port == default_port else f"{literal}:{port}"
@@ -331,6 +357,7 @@ async def guarded_get(
     allow_private: bool | None = None,
     max_bytes: int = MAX_DOWNLOAD_BYTES,
     timeout: float = FETCH_TIMEOUT_SECONDS,
+    deadline: float = FETCH_DEADLINE_SECONDS,
     transport=None,
     headers: dict[str, str] | None = None,
 ) -> GuardedResponse:
@@ -340,10 +367,27 @@ async def guarded_get(
     target: a credential placed in a header must not follow a 302 to another
     host. The address check, the pin and the byte cap are the same ones
     ``guarded_fetch`` applies, because this function is that path.
+
+    ``timeout`` bounds one read; ``deadline`` bounds the whole call — every hop
+    and the body. A server that sends a byte just inside the read timeout never
+    trips that timeout, so the deadline is what stops a slow drip. ``deadline <= 0``
+    turns the ceiling off.
     """
     import httpx
 
+    budget = float(deadline) if deadline and deadline > 0 else 0.0
+    deadline_at = time.monotonic() + budget if budget else None
     current = (url or "").strip()
+
+    def _expired() -> GuardedResponse:
+        return GuardedResponse(
+            0,
+            f"[error] the fetch deadline of {budget:g}s expired",
+            {},
+            f"deadline of {budget:g}s exceeded (timeout)",
+            current,
+        )
+
     target = ""
     for hop in range(MAX_REDIRECT_HOPS + 1):
         allowed, decision, addresses = _evaluate(
@@ -358,36 +402,48 @@ async def guarded_get(
         request_headers = {"Host": host_header}
         if hop == 0 and headers:
             request_headers.update({str(k): str(v) for k, v in headers.items()})
+        remaining = None if deadline_at is None else deadline_at - time.monotonic()
+        if remaining is not None and remaining <= 0:
+            return _expired()
         try:
             client_kwargs = {"timeout": timeout, "follow_redirects": False}
             if transport is not None:
                 client_kwargs["transport"] = transport
-            async with httpx.AsyncClient(**client_kwargs) as client:
-                request = client.build_request("GET", pinned_url, headers=request_headers)
-                if sni:
-                    # TLS validates against the host name, TCP goes to the checked address.
-                    request.extensions["sni_hostname"] = sni
-                response = await client.send(request, stream=True)
-                try:
-                    status = int(response.status_code)
-                    response_headers = {
-                        str(k).lower(): str(v) for k, v in response.headers.items()
-                    }
-                    if status in (301, 302, 303, 307, 308):
-                        location = response.headers.get("location") or ""
-                        if not location:
-                            return GuardedResponse(
-                                status, "", response_headers, "Redirect carried no target.", current
-                            )
-                        current = urljoin(current, location)
-                        continue
-                    async for chunk in response.aiter_bytes():
-                        collected += chunk
-                        if len(collected) >= max_bytes:
-                            truncated = True
-                            break
-                finally:
-                    await response.aclose()
+            # `None` disables the timer; a positive value bounds the whole hop,
+            # body included, however the server paces it.
+            async with asyncio.timeout(remaining):
+                async with httpx.AsyncClient(**client_kwargs) as client:
+                    request = client.build_request("GET", pinned_url, headers=request_headers)
+                    if sni:
+                        # TLS validates against the host name, TCP goes to the checked address.
+                        request.extensions["sni_hostname"] = sni
+                    response = await client.send(request, stream=True)
+                    try:
+                        status = int(response.status_code)
+                        response_headers = {
+                            str(k).lower(): str(v) for k, v in response.headers.items()
+                        }
+                        if status in (301, 302, 303, 307, 308):
+                            location = response.headers.get("location") or ""
+                            if not location:
+                                return GuardedResponse(
+                                    status, "", response_headers, "Redirect carried no target.", current
+                                )
+                            current = urljoin(current, location)
+                            continue
+                        async for chunk in response.aiter_bytes():
+                            room = max_bytes - len(collected)
+                            if room <= 0:
+                                truncated = True
+                                break
+                            collected += chunk[:room]
+                            if len(chunk) > room or len(collected) >= max_bytes:
+                                truncated = True
+                                break
+                    finally:
+                        await response.aclose()
+        except TimeoutError:
+            return _expired()
         except Exception as exc:  # noqa: BLE001 — the channel returns lines, not stack traces
             return GuardedResponse(
                 0,
@@ -424,6 +480,7 @@ async def guarded_fetch(
     allow_private: bool | None = None,
     max_bytes: int = MAX_DOWNLOAD_BYTES,
     timeout: float = FETCH_TIMEOUT_SECONDS,
+    deadline: float = FETCH_DEADLINE_SECONDS,
     transport=None,
 ) -> tuple[int, str, str]:
     """Fetches (status, text, note) over checked hops — every redirect on its own.
@@ -441,6 +498,7 @@ async def guarded_fetch(
         allow_private=allow_private,
         max_bytes=max_bytes,
         timeout=timeout,
+        deadline=deadline,
         transport=transport,
     )
     return response.status, response.text, response.note

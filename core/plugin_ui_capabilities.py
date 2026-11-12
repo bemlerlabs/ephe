@@ -89,6 +89,23 @@ from core.plugin_manifest import _under
 #: The three surfaces a plugin may ask the shell to create.
 UI_TYPES = frozenset({"floating-window", "dock-panel", "canvas-overlay"})
 
+#: The shell region each declared type takes, named once and read by the store row.
+#: `window` is the desktop's own window (a frame in a browser tab), `canvas` is the
+#: framed surface on both halves, and `dock` is the shell's right-column region (a
+#: bottom sheet on a phone). The behavior behind each word is
+#: `app/src/lib/surfacePlacement.ts`; this table only lets a row state the placement
+#: without re-deriving it from the type in a second vocabulary.
+SURFACE_PLACEMENTS = {
+    "floating-window": "window",
+    "canvas-overlay": "canvas",
+    "dock-panel": "dock",
+}
+
+
+def surface_placement(surface_type: str) -> str:
+    """The placement word for a declared type, or "" for one this contract refuses."""
+    return SURFACE_PLACEMENTS.get(surface_type, "")
+
 #: Fields a descriptor has to state; everything else has a default below.
 REQUIRED_UI_FIELDS = ("type", "entry", "title")
 

@@ -12,6 +12,7 @@ import {
   makeToolActions,
   makeCheckpointActions,
   makeOverlayActions,
+  makeDockActions,
 } from './chat'
 
 /**
@@ -28,6 +29,7 @@ import {
  *   tools.ts        — makeToolActions (tool-call upserts, activities, sandbox tokens)
  *   checkpoints.ts  — makeCheckpointActions (P2-7)
  *   overlay.ts      — makeOverlayActions (W1-4: the plugin overlay stack, #44)
+ *   dock.ts         — makeDockActions (the one docked plugin surface)
  */
 export const useChatStore = create<ChatState>((set, get) => {
   const setFn = set as unknown as import('./chat').SetFn
@@ -53,6 +55,7 @@ export const useChatStore = create<ChatState>((set, get) => {
     solInsights: [],
     enginePricing: null,
     overlay: EMPTY_STACK,
+    dock: null,
     setEnginePricing: (p) => set({ enginePricing: p }),
     ...makeSessionActions(setFn, getFn, persistActive),
     ...makeStreamActions(ctx),
@@ -60,6 +63,7 @@ export const useChatStore = create<ChatState>((set, get) => {
     ...makeToolActions(ctx),
     ...makeCheckpointActions(ctx),
     ...makeOverlayActions(ctx),
+    ...makeDockActions(ctx),
   } as ChatState
 })
 

@@ -103,17 +103,21 @@ Events are persisted durably before they are published:
 
 ## 9. Surface Placement
 
-**Status**: Implemented (2026-11-08; the placement cut 2026-11-12)
+**Status**: Implemented (2026-11-08; the placement cut 2026-11-12, the dock 2026-11-12)
 
 A plugin declares where it renders through `components.ui.type`, the one placement
 declaration the manifest owns (`core/plugin_ui_capabilities.py` `UI_TYPES`):
 - `app/src/lib/surfacePlacement.ts` — the pure resolver both product surfaces read
-- `app/src/lib/pluginDisplay.ts` — asks it once, then opens the desktop window or paints the overlay stack
+- `app/src/lib/pluginDisplay.ts` — asks it once, then opens the desktop window, paints the overlay stack or fills the dock
+- `app/src/components/shell/DockHost.tsx` — the docked region: a fixed right column, a
+  bottom sheet behind a toggle on a phone, sandboxed frame and shell-owned chrome
 - `app/src/lib/surfaceHost.ts` — the `HostSlot` record of where the shell put the surface
 
 A `floating-window` gets the desktop's own window and the browser's framed surface; a
-`canvas-overlay` is the framed surface on both; a `dock-panel` is refused with the code
-`surface_dock_panel_unavailable` until the shell owns a docked region. A bundle cannot name
+`canvas-overlay` is the framed surface on both; a `dock-panel` fills the shell's docked
+region on both, because the desktop renders the same PWA. The dock holds one panel at a
+time (`app/src/components/shell/dockModel.ts`): a second dock-panel displaces the first,
+and the displaced panel is closed and reported rather than dropped. A bundle cannot name
 a slot, a position or a DOM node, and a shell that cannot host the declared placement
 refuses it instead of quietly choosing another.
 

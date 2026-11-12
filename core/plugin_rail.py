@@ -44,13 +44,13 @@ def rail_fact(manifest: dict[str, Any] | None) -> dict[str, Any]:
     """The rail and the two counts that decided it, so a surface can show its work.
 
     `contributed` counts the version 2 entries the bundle carries itself — one per tool
-    and one per turn-end hook — while `activated` counts the kernel names a version 1 list
+    and one per turn hook — while `activated` counts the kernel names a version 1 list
     turns on. A hook counts here because it is bundle code on a new time axis: a hook-only
     bundle that reported `declarative` would claim to execute nothing while a confined
-    worker was spawned at the end of every turn. A manifest that never validated arrives
-    here as nothing, and nothing is `declarative`: declaring no code is a fact about the
-    bundle, while an unreadable manifest is a fact about the reader, and the second one
-    belongs in the notice beside this column.
+    worker was spawned at either end of every turn. A manifest that never validated
+    arrives here as nothing, and nothing is `declarative`: declaring no code is a fact
+    about the bundle, while an unreadable manifest is a fact about the reader, and the
+    second one belongs in the notice beside this column.
     """
     if not isinstance(manifest, dict):
         return {"rail": RAIL_DECLARATIVE, "contributed": 0, "activated": 0}

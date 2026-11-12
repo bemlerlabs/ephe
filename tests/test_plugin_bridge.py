@@ -1977,6 +1977,98 @@ def test_a_declared_data_root_is_read_only_on_both_rails(file_rail):
     assert f"code={bridge.PATH_DENIED}" in denied_rows[0]["detail"]
 
 
+def test_a_bridged_scaffold_writes_only_where_the_scope_allows(file_rail):
+    """A skeleton is five files and one makedirs: it takes the same door as `write_file`.
+
+    Without the write-scope rail the scaffold answered ALLOWED_ROOTS, which carries no
+    plugin scope, so a bridged call wrote into the checkout cwd or a declared data root.
+    """
+    identity = _identity(families=frozenset({"write"}), family="write")
+    method = {
+        "method": "scaffold_project",
+        "args": {"target_dir": str(file_rail.declared / "project"), "template": "generic"},
+    }
+
+    refused = _dispatch(method, identity)
+    assert refused["ok"] is False and refused["code"] == bridge.PATH_DENIED
+    assert "read grant" in refused["detail"]
+    assert list(file_rail.declared.iterdir()) == []
+
+    outside = _dispatch(
+        {
+            "method": "scaffold_project",
+            "args": {"target_dir": str(file_rail.tmp / "outside"), "template": "generic"},
+        },
+        identity,
+    )
+    assert outside["ok"] is True
+    assert "outside allowed roots" in outside["result"]["text"]
+    assert not (file_rail.tmp / "outside").exists()
+
+    allowed = _dispatch(
+        {
+            "method": "scaffold_project",
+            "args": {"target_dir": str(file_rail.workspace / "project"), "template": "generic"},
+        },
+        identity,
+    )
+    assert allowed["ok"] is True
+    assert allowed["result"]["text"].startswith("PROJECT_SCAFFOLD_VERIFIED")
+    assert (file_rail.workspace / "project" / "README.md").is_file()
+
+
+def test_a_delegated_approval_answers_the_bridged_shell_dialog_only_once(file_rail, monkeypatch):
+    """One approval, one dialog.
+
+    A helper's call is gated by the delegated gate. The call's own worker then bridges
+    `run_shell`, where the bridge asks the same gate a second time for the same action.
+    The delegated answer covers that second channel exactly once; the next shell command
+    in the run asks for itself.
+    """
+    from core.tools.chat_gate import gate_delegated_tool
+    from core.vision import _sandbox_cb_var
+
+    ran: list[str] = []
+
+    async def _shell(command: str, run_in_background: bool = False, cwd: str | None = None) -> str:
+        ran.append(command)
+        return "ran"
+
+    monkeypatch.setattr("core.tools._shell_exec.run_shell", _shell)
+    identity = _identity(families=frozenset({"shell"}), family="shell")
+    payload = {"method": "run_shell", "args": {"command": "echo delegated"}}
+    asked: list[str] = []
+
+    async def _watch(name: str, args: dict) -> bool:
+        asked.append(name)
+        return name == "scout"
+
+    async def _turn():
+        allowed, denial, _record = await gate_delegated_tool(
+            "scout", {"unit": "x"}, who="subagent test"
+        )
+        assert allowed, denial
+
+        def _bridge():
+            return _dispatch(payload, identity)
+
+        return await asyncio.to_thread(_bridge), await asyncio.to_thread(_bridge)
+
+    token = _sandbox_cb_var.set(_watch)
+    try:
+        first, second = asyncio.run(_turn())
+    finally:
+        _sandbox_cb_var.reset(token)
+
+    assert asked == ["scout", "run_shell"], asked
+    assert first["ok"] is True and first["result"]["text"] == "ran"
+    assert ran == ["echo delegated"]
+    assert second["ok"] is False and second["code"] == bridge.CONSENT_REQUIRED
+    rows = [row for row in file_rail.rows if row.get("status") == "delegated-consent"]
+    assert len(rows) == 1 and rows[0]["decision"] == "approved"
+    assert "delegated gate" in rows[0]["detail"]
+
+
 def test_a_bridged_shell_goes_through_the_chat_gate(file_rail, monkeypatch):
     """No dialog, no run: the bridge asks the same gate the model path uses."""
     from core.vision import _sandbox_cb_var
