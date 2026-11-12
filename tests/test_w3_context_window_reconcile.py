@@ -5,7 +5,7 @@ Two sources can name the window of the active engine: the static tier table in
 (``max_model_len`` in ``/v1/models``; the health surface's ``context_length``
 where the model list carries no window field). ``resolve_context_window``
 reconciles them in one order — env override > probed value > tier table >
-documented legacy 8192 — so the numbers the meter shows can never come from two
+documented floor — so the numbers the meter shows can never come from two
 sources at once.
 
 The shipped POWER row was reconciled against a live probe of the DGX engine on
@@ -92,7 +92,7 @@ def test_shipped_power_row_is_reconciled_with_the_live_probe():
     assert TIER_CONTEXT_WINDOWS[ModelTier.POWER] == LIVE_PROBED_POWER_WINDOW
     assert TIER_CONTEXT_WINDOWS[ModelTier.OFFLINE] == 32768
     assert TIER_CONTEXT_WINDOWS[ModelTier.FAST] == 16384
-    assert LEGACY_CONTEXT_WINDOW == 8192
+    assert LEGACY_CONTEXT_WINDOW == 32768
     assert LEGACY_CONTEXT_WINDOW not in TIER_CONTEXT_WINDOWS.values()
 
 
