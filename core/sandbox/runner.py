@@ -240,7 +240,7 @@ def worker_data_roots(plugin_id: str) -> tuple[str, ...]:
     Validation refuses a declaration that is not a folder when the manifest loads, so this
     filter is the window between that read and the spawn: a root the disk gave up in between
     is left out of the profile, which binds nothing new, and the tool still runs. The
-    turn-end hook (`core/plugin_turn_hooks.py`) reads this same function, so one declaration
+    turn hooks (`core/plugin_turn_hooks.py`) read this same function, so one declaration
     binds the same paths on both rails.
     """
     from core import engine_config

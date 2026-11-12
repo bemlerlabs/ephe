@@ -180,9 +180,12 @@ export interface PluginSurfaceDescriptor {
   always_on_top?: boolean
   capabilities?: string[]
   grants?: string[]
+  /** The region the shell gives `type`, in the store view's one word: `window`,
+   *  `canvas`, or `dock`. The row states the placement from this fact. */
+  placement?: 'window' | 'canvas' | 'dock'
 }
 
-/** One turn-end hook a bundle declares: the event and the bound it runs under. */
+/** One turn hook a bundle declares: the event and the bound it runs under. */
 export interface PluginHookFact {
   event: string
   timeout_seconds: number
@@ -221,8 +224,9 @@ export interface PluginEntry {
   /** W1-7: the one surface this bundle declares; the switch row opens it from here. */
   surface?: PluginSurfaceDescriptor
   /**
-   * Turn-end hooks the installed manifest declares, with the bound each run sits under.
-   * One entry in this cut; an empty or absent list means the bundle runs no hook.
+   * Turn hooks the installed manifest declares, with the bound each run sits under.
+   * One entry per event (`turn_start`, `turn_end`); an empty or absent list means the
+   * bundle runs no hook.
    */
   hooks?: PluginHookFact[]
   /** #106: megabytes kept against the ceiling. File names stay on the state route. */

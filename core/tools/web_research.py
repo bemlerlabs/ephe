@@ -292,7 +292,18 @@ async def run_research(
             )
         )
 
-    site_host = policy.site_host(site)
+    try:
+        site_host = policy.site_host(site)
+    except ValueError:
+        shown = str(site or "").strip()[:120]
+        return ResearchResult(
+            text=_refusal(
+                "web_site_malformed",
+                f"The site restriction '{shown}' is not a host name.",
+                "pass a host such as docs.python.org, or drop 'site'",
+                site=shown,
+            )
+        )
     if site_host:
         reachable, why = policy.link_reach(f"https://{site_host}")
         if not reachable:

@@ -19,6 +19,7 @@ other promise in this file still holds there (``docs/PLUGINS.md``).
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
 from typing import Any, Callable, Optional
 
 #: Leaf module (contextvars only) — no import cycle with the registry that calls us.
@@ -28,6 +29,48 @@ from core.tools.session_ctx import get_current_mode
 ConfirmCallback = Callable[[str, dict], Any]
 
 DENIAL_PREFIX = "[TOOL-DENIED]"
+
+
+class _DelegateConsent:
+    """The one bridged ask a delegated approval already answered.
+
+    A helper's call is gated once by :func:`gate_delegated_tool`. The call's own
+    confirmed worker can then bridge ``run_shell``, and the bridge asks the same gate
+    again for the same action — two dialogs for one decision. This object carries the
+    first answer across that boundary, and it is spent on the first use: the person
+    approved one call, so exactly one bridged gate may ride on that answer.
+    """
+
+    __slots__ = ("spent", "tool")
+
+    def __init__(self, tool: str) -> None:
+        self.tool = tool
+        self.spent = False
+
+
+#: Shared by reference across the worker's thread and context copies, so the one shot
+#: is one shot for the whole call and not one per copied context.
+_DELEGATED_CONSENT: ContextVar[Optional[_DelegateConsent]] = ContextVar(
+    "delegated_consent", default=None
+)
+
+
+def claim_delegated_consent() -> str:
+    """The tool whose delegated approval covers this bridged gate, or "" when none does.
+
+    Read by ``core.sandbox.bridge_host`` before its own dialogs: the second channel stays
+    quiet once, and a later command in the same run is gated on its own.
+    """
+    consent = _DELEGATED_CONSENT.get()
+    if consent is None or consent.spent:
+        return ""
+    consent.spent = True
+    return consent.tool
+
+
+def _set_delegated_consent(tool: str = "") -> None:
+    """Arm the one-shot marker after a human said yes, and clear it on every other answer."""
+    _DELEGATED_CONSENT.set(_DelegateConsent(tool) if tool else None)
 
 
 def _approval_callback(on_confirm: Optional[ConfirmCallback]) -> Optional[ConfirmCallback]:
@@ -363,22 +406,26 @@ async def gate_delegated_tool(name: str, args: dict, *, who: str = "delegate") -
     The answer is the record. A read-only call runs *exempt*, and it says so;
     everything else goes to the dialog the main turn uses, where a missing channel
     counts as a no. ``record`` is a sentence for the caller to keep, so the line
-    lands wherever the run is read back.
+    lands wherever the run is read back. An approval arms the one bridged second
+    channel (``claim_delegated_consent``) so the same call is not asked about twice.
     """
     from core.tools.approval import chat_tool_requires_confirm
     from core.path_guard import secret_paths
 
     if not chat_tool_requires_confirm(name) and not secret_paths(args):
+        _set_delegated_consent()
         record = f"[gate] {who}: {name} ran exempt from the approval gate (read-only tool)."
         _delegate_row(name, args, DELEGATE_EXEMPT, who)
         return True, "", record
 
     approved, denial = await confirm_for_chat(name, args, audit=False)
     if approved:
+        _set_delegated_consent(name)
         record = f"[gate] {who}: {name} was approved by the user before it ran."
         _delegate_row(name, args, DELEGATE_APPROVED, who)
         return True, "", record
 
+    _set_delegated_consent()
     reason = str(getattr(denial, "code", "")) or DELEGATE_DENIED
     text = DENIAL_REASONS.get(reason, reason)
     record = f"[gate] {who}: {name} was denied ({text or reason})."
@@ -392,6 +439,7 @@ __all__ = [
     "denial_message",
     "mode_denial",
     "gate_delegated_tool",
+    "claim_delegated_consent",
     "SURFACE_CONSENT_STATUS",
     "DELEGATE_EXEMPT",
     "DELEGATE_APPROVED",

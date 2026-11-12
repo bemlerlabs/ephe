@@ -235,3 +235,17 @@ def test_search_sends_the_key_in_a_header_and_never_in_the_url(monkeypatch):
     assert "q=moon+drift" in captured["url"]
     assert "freshness=week" in captured["url"]
     assert captured["headers"] == {"Authorization": "Bearer secret-key"}
+
+
+def test_a_malformed_href_is_skipped_and_the_rest_kept():
+    links = extract_links(
+        '<a href="http://[::1">bad</a><a href="/ok">ok</a>',
+        "https://example.com/base",
+    )
+    assert links == ("https://example.com/ok",)
+
+
+def test_a_malformed_url_is_outside_the_site_and_never_raises():
+    # `in_site` reads provider-supplied links, so a bad string is outside the site.
+    assert policy.in_site("http://[::1", "example.com") is False
+    assert policy.in_site("https://example.com:99999/", "example.com") is False

@@ -120,6 +120,34 @@ def verify_health(health: dict, *, model: str, base_url: str) -> dict:
     return health
 
 
+def verify_endpoint_model(base_url: str, *, model: str, key: str, timeout: float = 10.0) -> str:
+    """The endpoint itself has to list the model this run pays for.
+
+    `/api/health` echoes the environment the harness set up, so a wrong tag reaches the
+    first turn while the preflight agrees with itself. The provider's own `/models` answer
+    is the only place the served identity is visible before turns are spent; an endpoint
+    that cannot be read, or does not list the tag, refuses the whole run.
+    """
+    url = base_url.rstrip("/") + "/models"
+    request = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001  every failure here is the same refusal
+        raise HealthMismatch(f"the endpoint did not answer /models at {url}: {exc}") from exc
+    served = [
+        str(item.get("id"))
+        for item in payload.get("data") or []
+        if isinstance(item, dict) and item.get("id")
+    ]
+    if model not in served:
+        raise HealthMismatch(
+            f"the endpoint serves {sorted(served)[:8]}, this run pays for {model!r} "
+            f"at {base_url}"
+        )
+    return model
+
+
 def run_record(case: dict, events: list[dict], *, staged: list[str], engine_error: str) -> dict:
     """What one turn did, in the fields the receipt quotes — and nothing the engine said.
 
@@ -306,6 +334,8 @@ def main(argv: list[str] | None = None) -> int:
     code = 0
     try:
         verify_health(wait_for_health(base, proc, 120.0), model=args.model, base_url=args.base_url)
+        key = Path(args.key_file).read_text(encoding="utf-8").strip()
+        verify_endpoint_model(args.base_url, model=args.model, key=key)
         for case, plan in zip(cases, plans):
             consent = put_consent(base, plan.session_id, plan.privileges)
             engine_error = ""

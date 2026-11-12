@@ -29,8 +29,9 @@ exhaustive on purpose; "it has been a while" is not on it.
    ride the shell; a backend fix does not.
 
 Everything else — and that is the overwhelming majority of commits — is
-rolling. The version number on `main` names the *next milestone*; it does not
-change with a fix, and an untagged build says so: `0.7.0+1a2b3c4d5e6f`.
+rolling. The version number on `main` is the one the last release commit
+brought; it does not change with a fix, and an untagged build says so:
+`0.7.0+1a2b3c4d5e6f`.
 
 ## The rolling channel
 
@@ -91,13 +92,16 @@ and loses the assumption that a fix implies a release.
 
 ## Version numbers
 
-- `main` carries the next milestone version from the day the previous one
-  shipped. It does not move for fixes.
+- `main` carries the version of the last release commit merged into it. It does
+  not move for fixes; a new number arrives with the next milestone's release
+  commit, never on a fix.
 - An untagged build is `version+sha`. It never compares as newer than a release
   of the same version in the updater, so a rolling user and a release user do
   not fight over the same number.
-- A milestone release takes the version from `main` and tags it. There is no
-  separate "release branch version".
+- The release commit writes the version into the six carriers on the release
+  branch; the merge brings it to `main`, and the tag is cut on that commit.
+  `scripts/release_cut.sh` refuses a HEAD whose carriers disagree or that is not
+  on `origin/main`, so the branch and the tag cannot name different versions.
 
 ## Rollback
 

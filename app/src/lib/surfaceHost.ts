@@ -8,13 +8,14 @@
  *
  * The slot names where the shell put the surface, not what the manifest asked
  * for: `native` is the desktop's own window, `overlay` is the browser's frame
- * for a `floating-window`, and `canvas-overlay` is the frame both halves give
- * that type. `dock-panel` is absent because the shell has no docked region yet
- * and refuses the type instead of recording a placement it cannot host.
+ * for a `floating-window`, `canvas-overlay` is the frame both halves give that
+ * type, and `dock` is the shell's named region on both halves. The panel's box
+ * below is not meaningful for `dock` (the region owns the width), so a dock
+ * record carries `placed: false` and the box only satisfies the record shape.
  */
 import { request } from './api/http'
 
-export type HostSlot = 'native' | 'overlay' | 'canvas-overlay'
+export type HostSlot = 'native' | 'overlay' | 'canvas-overlay' | 'dock'
 
 export type HostSurface = {
   slot: HostSlot

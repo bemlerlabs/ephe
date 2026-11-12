@@ -235,3 +235,41 @@ def test_the_grading_command_names_the_run_scoped_home(tmp_path, capsys, monkeyp
     assert "--config" in line
     assert str(tmp_path / "config") in line
     assert "--browser" in line
+
+
+def test_the_endpoint_must_list_the_model_the_run_pays_for():
+    """The health echo cannot prove the provider serves the tag; its /models can."""
+    import http.server
+    import threading
+
+    from evals.creation_run import HealthMismatch, verify_endpoint_model
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802  the stdlib spells it this way
+            body = b'{"data": [{"id": "served-model"}]}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):
+            return
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}/v1"
+        assert verify_endpoint_model(base, model="served-model", key="k") == "served-model"
+        with pytest.raises(HealthMismatch):
+            verify_endpoint_model(base, model="absent-model", key="k")
+    finally:
+        server.shutdown()
+
+
+def test_an_unreachable_endpoint_refuses_before_a_turn():
+    from evals.creation_run import HealthMismatch, verify_endpoint_model
+
+    with pytest.raises(HealthMismatch):
+        verify_endpoint_model("http://127.0.0.1:9/v1", model="m", key="k", timeout=1.0)

@@ -95,7 +95,15 @@ def test_a_canvas_overlay_is_a_record_the_shell_can_keep(client) -> None:
     assert response.json()["surface"]["slot"] == "canvas-overlay"
 
 
-def test_a_dock_panel_is_not_a_placement_the_shell_can_keep(client) -> None:
+def test_a_dock_panel_is_a_record_the_shell_keeps(client) -> None:
+    response = client.put(f"/api/plugins/{PLUGIN}/surface-host", json=_record(slot="dock"))
+    assert response.status_code == 200
+    assert response.json()["surface"]["slot"] == "dock"
+    listed = client.get("/api/plugins/surface-hosts").json()["surfaces"][PLUGIN]
+    assert listed["slot"] == "dock"
+
+
+def test_a_manifest_type_is_not_a_host_slot(client) -> None:
     response = client.put(
         f"/api/plugins/{PLUGIN}/surface-host", json=_record(slot="dock-panel")
     )
@@ -106,7 +114,7 @@ def test_a_dock_panel_is_not_a_placement_the_shell_can_keep(client) -> None:
 def test_the_slot_vocabulary_is_the_one_the_shell_carries() -> None:
     from core.plugin_surface_host import SLOTS
 
-    assert SLOTS == frozenset({"overlay", "native", "canvas-overlay"})
+    assert SLOTS == frozenset({"overlay", "native", "canvas-overlay", "dock"})
 
 
 def test_an_unknown_bundle_is_refused(client) -> None:

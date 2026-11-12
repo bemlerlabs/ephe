@@ -259,8 +259,34 @@ describe('what a plugin can do, in the row', () => {
         }),
       ),
     )
-    expect(screen.getByTestId('plugin-hook-acme-hook').textContent).toBe(
+    expect(screen.getByTestId('plugin-hook-acme-hook-turn_end').textContent).toBe(
       (DE.settings.pluginHookTurnEnd ?? '').replace('{{seconds}}', '2'),
+    )
+  })
+
+  it('names both hook events when a bundle declares both ends', () => {
+    render(
+      renderPlugins(
+        model({
+          expandedPlugin: 'acme-hook',
+          pluginView: view([
+            entry('acme-hook', {
+              rail: 'worker',
+              contributed_tools: 2,
+              hooks: [
+                { event: 'turn_start', timeout_seconds: 1 },
+                { event: 'turn_end', timeout_seconds: 3 },
+              ],
+            }),
+          ]),
+        }),
+      ),
+    )
+    expect(screen.getByTestId('plugin-hook-acme-hook-turn_start').textContent).toBe(
+      (DE.settings.pluginHookTurnStart ?? '').replace('{{seconds}}', '1'),
+    )
+    expect(screen.getByTestId('plugin-hook-acme-hook-turn_end').textContent).toBe(
+      (DE.settings.pluginHookTurnEnd ?? '').replace('{{seconds}}', '3'),
     )
   })
 

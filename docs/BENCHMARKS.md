@@ -10,8 +10,9 @@ on τ-bench retail.
 **Per-plugin golden matrix** (`ephe bench`): every production plugin carries a golden suite —
 `plugins/<name>/prompts/golden.jsonl` (at least 6 mechanically gradable cases: real artifacts, real
 tool calls, anti-slop traps) plus `prompts/rubric.md`. The grader vocabulary is the kernel's five
-kinds; a bundle may name presets of `contains` and `not_contains` in `capabilities.evaluator`, and a
-preset grades only inside the suite that declares it (`docs/PLUGINS.md`). **153 cases across 17
+kinds; a bundle may name presets of any of them in `capabilities.evaluator` and compose two or more
+with `all_of` / `none_of`, and a preset grades only inside the suite that declares it
+(`docs/PLUGINS.md`). **153 cases across 17
 plugins** — the verify gate's own count (`ephe bench`, no engine, 2026-11-12; its summary line reads
 `153 cases over 17 plugins; 0 plugins with findings`). Two paths share one semantics:
 

@@ -97,10 +97,19 @@ def site_host(value: str) -> str:
 
 
 def in_site(url: str, site: str) -> bool:
-    """True while the host is the named one or a subdomain of it."""
+    """True while the host is the named one or a subdomain of it.
+
+    A URL the parser cannot read is outside every site: the restriction is a
+    boundary, so an unparsable link fails closed instead of raising mid-crawl.
+    """
     if not site:
         return True
-    host = (urlsplit(url).hostname or "").strip().lower().rstrip(".")
+    try:
+        parts = urlsplit(url)
+        parts.port
+        host = (parts.hostname or "").strip().lower().rstrip(".")
+    except ValueError:
+        return False
     return host == site or host.endswith(f".{site}")
 
 

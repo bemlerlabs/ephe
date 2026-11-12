@@ -290,11 +290,11 @@ jobs:
         # `app/src-tauri/Cargo.lock` was audited by no workflow at all: hygiene.yml reads it
         # only to compare Tauri plugin major/minor against package.json. Dependabot's
         # crates.io alerts were the only reader, and an alert has no exit code — measured
-        # 2026-10-14, 512 crates are pinned there, three carried an advisory record, and
+        # 2026-10-14, the lockfile pinned 512 crates, three carried an advisory record, and
         # rustls 0.23.45 (runtime: tauri-plugin-updater -> reqwest -> rustls) carried eight
         # records no gate in this repository could fail on.
         #
-        # 512 crates are queried in one batched request rather than one per crate, and the
+        # Every pinned crate is queried in one batched request rather than one per crate, and the
         # crates that carry nothing are not printed: the job summary is for decisions.
         run: |
           set +e

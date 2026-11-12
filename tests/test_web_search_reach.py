@@ -43,6 +43,16 @@ def test_a_scheme_outside_the_channel_is_reachable_or_not():
     assert "file" in reason
 
 
+@pytest.mark.parametrize("url", ["http://[::1", "https://example.com:99999/"])
+def test_a_malformed_hit_is_a_refusal_not_a_crash(url):
+    # The result list is provider-controlled: one bad row must not turn the whole
+    # search call into a ValueError.
+    reachable, reason = reach_by_name(url)
+    assert reachable is False
+    assert reason.code == "url_malformed"
+    assert reason.params == {"url": url}
+
+
 @pytest.mark.parametrize(
     "url",
     [

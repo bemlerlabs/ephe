@@ -6,10 +6,11 @@
  * same document in a frame the shell draws. Which one a caller gets is the manifest's
  * `components.ui.type`, resolved by `surfacePlacement.ts` before either half is asked:
  * a `floating-window` takes the desktop window and the browser frame, a
- * `canvas-overlay` takes the frame on both, and a `dock-panel` is refused until the
- * shell owns a docked region. A caller — the plugin store's switch row, the creator
- * card that follows it, the restore after a restart — asks this module for the surface
- * and is answered with the one the shell can host. "Am I in the shell?" is asked here
+ * `canvas-overlay` takes the frame on both, and a `dock-panel` fills the shell's
+ * named region (`components/shell/DockHost.tsx`) on both. A caller — the plugin
+ * store's switch row, the creator card that follows it, the restore after a restart —
+ * asks this module for the surface and is answered with the one the shell can host.
+ * "Am I in the shell?" is asked here
  * and nowhere else, and it is asked with the signal `pluginSurface.ts` already reads
  * through the bridge, so no fourth platform detector joins the three the tree carries.
  *
@@ -57,6 +58,7 @@ import {
   type SurfaceInfo,
 } from './pluginSurface'
 import { resolveSurfacePlacement, type SurfaceRefusal } from './surfacePlacement'
+import { DOCK_WIDTH, dockKey, type DockPanel } from '@/components/shell/dockModel'
 
 export { canOpenNativeSurface }
 
@@ -64,7 +66,7 @@ export { canOpenNativeSurface }
 export type Translate = (key: string, options?: Record<string, unknown>) => string
 
 /** Which surface this platform answered with. */
-export type SurfaceSide = 'native' | 'overlay'
+export type SurfaceSide = 'native' | 'overlay' | 'dock'
 
 export type SurfaceRequest = {
   pluginId: string
@@ -131,6 +133,15 @@ function watchNativeSurfaces(): void {
 const overlaySurface = (pluginId: string) =>
   useChatStore.getState().overlay.surfaces.find((surface) => surface.pluginId === pluginId)
 
+/** The one docked panel, when it is this plugin's. */
+const dockPanel = (pluginId: string): DockPanel | undefined => {
+  const docked = useChatStore.getState().dock
+  return docked && docked.pluginId === pluginId ? docked : undefined
+}
+
+/** The mount URL of the panel already on screen in the dock, if any. */
+const dockUrl = (pluginId: string): string => dockPanel(pluginId)?.url ?? ''
+
 /** The desktop half's answer, read from the ledger the shell fills. */
 export const isNativeSurfaceOpen = (pluginId: string): boolean =>
   nativeLedger.has(nativeSurfaceLabel(pluginId))
@@ -138,7 +149,11 @@ export const isNativeSurfaceOpen = (pluginId: string): boolean =>
 /** Is this plugin's surface on screen — on whichever side this platform has one. */
 export function isPluginSurfaceOpen(pluginId: string): boolean {
   watchNativeSurfaces()
-  return isNativeSurfaceOpen(pluginId) || overlaySurface(pluginId) !== undefined
+  return (
+    isNativeSurfaceOpen(pluginId) ||
+    overlaySurface(pluginId) !== undefined ||
+    dockPanel(pluginId) !== undefined
+  )
 }
 
 /**
@@ -171,7 +186,6 @@ function reportFailure(t: Translate, key: string, detail: string): SurfaceOutcom
 
 /** The copy key each refusal code is read out under, in both bundles. */
 const REFUSAL_COPY: Record<SurfaceRefusal['reason_code'], string> = {
-  surface_dock_panel_unavailable: 'surface.dockPanelUnavailable',
   surface_type_unknown: 'surface.typeUnknown',
 }
 
@@ -230,13 +244,14 @@ export async function showPluginSurface(
   if (placement.kind === 'refused') return reportRefusal(t, placement.refusal)
   watchNativeSurfaces()
   const native = placement.kind === 'native'
+  const docked = placement.kind === 'dock'
 
-  // A surface that already stands is revealed on both halves. Only the browser half can
-  // do it from the URL it already holds: `plugin_window_open` re-points the window at
-  // whatever address it is given, so a desktop reveal buys a live credential like any
-  // other open. The same reasoning is `overlayModel`'s reveal rule — a mounted document
-  // keeps the state its credential bought it.
-  const carried = native ? '' : (overlaySurface(pluginId)?.url ?? '')
+  // A surface that already stands is revealed on both halves. Only the dock and the
+  // overlay can do it from the URL they already hold: `plugin_window_open` re-points the
+  // window at whatever address it is given, so a desktop reveal buys a live credential
+  // like any other open. The same reasoning is `overlayModel`'s reveal rule — a mounted
+  // document keeps the state its credential bought it.
+  const carried = native ? '' : docked ? dockUrl(pluginId) : (overlaySurface(pluginId)?.url ?? '')
   let url = request.url ?? carried
   if (!url) {
     try {
@@ -248,7 +263,9 @@ export async function showPluginSurface(
 
   const outcome = native
     ? await openOnDesktop(pluginId, url, descriptor, t, request.host)
-    : openInBrowser(pluginId, descriptor, url, request.viewport ?? viewportNow(), t, request.host)
+    : docked
+      ? openInDock(pluginId, descriptor, url, t)
+      : openInBrowser(pluginId, descriptor, url, request.viewport ?? viewportNow(), t, request.host)
   if (outcome.opened) {
     holdSurfaceCredential(pluginId, url, descriptor)
     void saveHostSurface(
@@ -265,6 +282,20 @@ function hostAfterOpen(
   host: HostSurface | undefined,
   descriptor: SurfaceDescriptor,
 ): HostSurface {
+  if (slot === 'dock') {
+    // The region owns the width and the panel has no draggable box, so the record keeps
+    // the panel open without claiming a placement the user made.
+    return {
+      slot,
+      x: 0,
+      y: 0,
+      width: DOCK_WIDTH,
+      height: host?.height || descriptor.height || DEFAULT_SURFACE_SIZE.height,
+      open: true,
+      minimized: false,
+      placed: false,
+    }
+  }
   const standing = overlaySurface(pluginId)
   if (standing) {
     return {
@@ -334,6 +365,55 @@ async function openOnDesktop(
   }
 }
 
+/**
+ * The docked region: the panel is a store write `DockHost.tsx` paints, and the region
+ * owns its width, order and chrome. A panel this open displaced is closed here rather
+ * than dropped from the store — its credential is released and its host record is
+ * marked closed, and the user is told which plugin lost the dock.
+ */
+function openInDock(
+  pluginId: string,
+  descriptor: SurfaceDescriptor,
+  url: string,
+  t: Translate,
+): SurfaceOutcome {
+  const opened = useChatStore.getState().openDock({
+    pluginId,
+    title: descriptor.title ?? '',
+    url,
+    surfaceType: descriptor.type,
+  })
+  if (opened.replaced && opened.replaced.pluginId !== pluginId) {
+    closeDisplacedDock(opened.replaced, t)
+  }
+  const standing = dockPanel(pluginId)
+  if (!standing) {
+    // The region paints from this store, so a panel it does not hold is a surface the
+    // user will never see. Say it; the desktop has no window to try.
+    return reportFailure(t, 'surface.dockRefused', '')
+  }
+  const unmet = descriptor.always_on_top ? ['always_on_top'] : []
+  if (unmet.length) toastBus.info(t('surface.landedDifferently'), t('surface.notOnTopDock'))
+  return {
+    opened: true,
+    side: 'dock',
+    created: opened.created,
+    handle: dockKey(pluginId),
+    unmet,
+    note: '',
+    message: '',
+    refusal: null,
+  }
+}
+
+/** A panel the newest dock ask displaced: loud, with the credential and the record. */
+function closeDisplacedDock(panel: DockPanel, t: Translate): void {
+  releaseSurfaceCredential(panel.pluginId)
+  const prior = lastHost(panel.pluginId)
+  if (prior) void saveHostSurface(panel.pluginId, { ...prior, open: false }).catch(() => {})
+  toastBus.error(t('surface.dockReplaced', { title: panel.title || panel.pluginId }))
+}
+
 function openInBrowser(
   pluginId: string,
   descriptor: SurfaceDescriptor,
@@ -396,6 +476,14 @@ export async function hidePluginSurface(pluginId: string, t: Translate): Promise
       if (prior) void saveHostSurface(pluginId, { ...prior, open: false }).catch(() => {})
     } else toastBus.error(t('surface.closeFailed'))
     return closed
+  }
+  const docked = dockPanel(pluginId)
+  if (docked) {
+    releaseSurfaceCredential(pluginId)
+    useChatStore.getState().closeDock(pluginId)
+    const prior = lastHost(pluginId)
+    if (prior) void saveHostSurface(pluginId, { ...prior, open: false }).catch(() => {})
+    return dockPanel(pluginId) === undefined
   }
   const standing = overlaySurface(pluginId)
   if (standing) {
@@ -552,6 +640,8 @@ async function installStandingCredential(
     }
   } else if (overlaySurface(pluginId)) {
     useChatStore.getState().retargetOverlay(pluginId, url)
+  } else if (dockPanel(pluginId)) {
+    useChatStore.getState().retargetDock(pluginId, url)
   } else {
     releaseSurfaceCredential(pluginId)
     return

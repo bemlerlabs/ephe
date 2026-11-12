@@ -17,14 +17,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/surfaceHost', () => ({
   saveHostSurface: vi.fn(async () => {}),
-  lastHost: () => undefined,
+  lastHost: vi.fn(() => undefined),
   loadHostSurfaces: async () => ({}),
   hostRecord: (value: unknown) => value,
 }))
 import { useChatStore } from '@/store'
 import { EMPTY_STACK, type OverlayStack } from '@/components/shell/overlayModel'
 import { toastBus, type ToastItem } from '@/lib/toast'
-import { saveHostSurface } from '@/lib/surfaceHost'
+import { lastHost, saveHostSurface } from '@/lib/surfaceHost'
 import {
   canOpenNativeSurface,
   nativeSurfaceLabel,
@@ -32,6 +32,7 @@ import {
   type SurfaceInfo,
 } from '@/lib/pluginSurface'
 import {
+  hidePluginSurface,
   isNativeSurfaceOpen,
   isPluginSurfaceOpen,
   releaseEverySurfaceCredential,
@@ -106,7 +107,7 @@ beforeEach(() => {
   mint.mockClear()
   mint.mockImplementation(async () => jsonResponse({ plugin: 'a', surface: 'n0nce' }))
   vi.mocked(saveHostSurface).mockClear()
-  useChatStore.setState({ overlay: EMPTY_STACK })
+  useChatStore.setState({ overlay: EMPTY_STACK, dock: null })
   toasts = []
   unsubscribe = toastBus.subscribe((item) => toasts.push(item))
   vi.stubGlobal('fetch', mint)
@@ -120,6 +121,7 @@ afterEach(() => {
 })
 
 const stack = (): OverlayStack => useChatStore.getState().overlay
+const dockOf = () => useChatStore.getState().dock
 const surfaceOf = (pluginId: string) => stack().surfaces.find((s) => s.pluginId === pluginId)
 const errors = () => toasts.filter((item) => item.kind === 'error')
 const notices = () => toasts.filter((item) => item.kind === 'info')
@@ -275,28 +277,35 @@ describe('a surface asked for in the desktop shell', () => {
     )
   })
 
-  /// The silent downgrade this cut removes: a dock-panel used to float here as a frame.
-  /// It is a refusal now, decided before the mint, so no credential and no half-open
-  /// surface is left behind for a placement the shell cannot host.
-  it('refuses a dock-panel with a code and paints nothing', async () => {
+  /// The desktop renders the same PWA, so a dock-panel takes the same docked region a
+  /// browser tab does. The native window command is never asked for it: dock-panel has
+  /// no second native path, and a window would be the silent downgrade this cut removes.
+  it('docks a dock-panel in the shell region and asks for no window', async () => {
     const outcome = await showPluginSurface(
       { pluginId: 'desk-dock', descriptor: descriptor({ type: 'dock-panel' }) },
       t,
     )
     expect(outcome).toMatchObject({
-      opened: false,
-      side: null,
-      message: 'surface.dockPanelUnavailable',
-      refusal: {
-        reason_code: 'surface_dock_panel_unavailable',
-        next: expect.stringContaining('floating-window'),
-      },
+      opened: true,
+      side: 'dock',
+      created: true,
+      handle: 'dock:desk-dock',
+      message: '',
+      refusal: null,
     })
-    expect(mint).not.toHaveBeenCalled()
     expect(invoke).not.toHaveBeenCalled()
-    expect(saveHostSurface).not.toHaveBeenCalled()
     expect(stack().surfaces).toEqual([])
-    expect(errors()).toEqual([expect.objectContaining({ title: 'surface.dockPanelUnavailable' })])
+    expect(dockOf()).toMatchObject({
+      pluginId: 'desk-dock',
+      title: 'Countdown',
+      surfaceType: 'dock-panel',
+      url: '/api/plugins/ui/desk-dock/n0nce/',
+      collapsed: false,
+    })
+    expect(saveHostSurface).toHaveBeenCalledWith(
+      'desk-dock',
+      expect.objectContaining({ slot: 'dock', open: true, placed: false }),
+    )
   })
 })
 
@@ -424,21 +433,17 @@ describe('the same surface in a browser tab', () => {
     )
   })
 
-  it('refuses a dock-panel loudly instead of floating it', async () => {
+  /// The region a dock-panel fills is the shell's own, so it is neither a floating
+  /// frame nor a refusal: the stack stays empty and the dock holds the panel.
+  it('puts a dock-panel in the dock instead of floating it', async () => {
     const outcome = await showPluginSurface(
       { pluginId: 'tab-dock', descriptor: descriptor({ type: 'dock-panel' }) },
       t,
     )
-    expect(outcome).toMatchObject({
-      opened: false,
-      side: null,
-      message: 'surface.dockPanelUnavailable',
-      refusal: { reason_code: 'surface_dock_panel_unavailable' },
-    })
-    expect(mint).not.toHaveBeenCalled()
-    expect(saveHostSurface).not.toHaveBeenCalled()
+    expect(outcome).toMatchObject({ opened: true, side: 'dock', refusal: null })
+    expect(mint).toHaveBeenCalledTimes(1)
     expect(stack().surfaces).toEqual([])
-    expect(errors()).toEqual([expect.objectContaining({ title: 'surface.dockPanelUnavailable' })])
+    expect(dockOf()?.pluginId).toBe('tab-dock')
   })
 
   it('refuses a type the shell does not know instead of painting it', async () => {
@@ -578,5 +583,108 @@ describe('the desktop window keeps the same credential', () => {
       url: '/api/plugins/ui/desk-dead/fresh-nonce/',
       descriptor: expect.objectContaining({ type: 'floating-window' }),
     })
+  })
+})
+
+describe('the docked region', () => {
+  beforeEach(() => {
+    shell(undefined)
+  })
+
+  it('holds one panel at a time and closes the displaced plugin loudly', async () => {
+    const first = await showPluginSurface(
+      { pluginId: 'dock-first', descriptor: descriptor({ type: 'dock-panel', title: 'First' }) },
+      t,
+    )
+    expect(first.created).toBe(true)
+    vi.mocked(lastHost).mockReturnValueOnce({
+      slot: 'dock',
+      x: 0,
+      y: 0,
+      width: 360,
+      height: 240,
+      open: true,
+      minimized: false,
+      placed: false,
+    })
+    const second = await showPluginSurface(
+      { pluginId: 'dock-second', descriptor: descriptor({ type: 'dock-panel', title: 'Second' }) },
+      t,
+    )
+    expect(second).toMatchObject({ opened: true, side: 'dock', created: true })
+    expect(dockOf()?.pluginId).toBe('dock-second')
+    // The displaced panel is not dropped: its record says closed and the user hears it.
+    expect(saveHostSurface).toHaveBeenCalledWith(
+      'dock-first',
+      expect.objectContaining({ slot: 'dock', open: false }),
+    )
+    expect(errors()).toEqual([expect.objectContaining({ title: 'surface.dockReplaced' })])
+  })
+
+  it('reveals the same plugin without re-minting or replacing it', async () => {
+    const first = await showPluginSurface(
+      { pluginId: 'dock-reveal', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    const second = await showPluginSurface(
+      { pluginId: 'dock-reveal', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    expect(first.created).toBe(true)
+    expect(second).toMatchObject({ opened: true, side: 'dock', created: false })
+    expect(mint).toHaveBeenCalledTimes(1)
+    expect(errors()).toEqual([])
+  })
+
+  it('closes from the same path the store row uses and records it closed', async () => {
+    await showPluginSurface(
+      { pluginId: 'dock-close', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    expect(isPluginSurfaceOpen('dock-close')).toBe(true)
+    vi.mocked(lastHost).mockReturnValueOnce({
+      slot: 'dock',
+      x: 0,
+      y: 0,
+      width: 360,
+      height: 240,
+      open: true,
+      minimized: false,
+      placed: false,
+    })
+    expect(await hidePluginSurface('dock-close', t)).toBe(true)
+    expect(dockOf()).toBeNull()
+    expect(isPluginSurfaceOpen('dock-close')).toBe(false)
+    expect(saveHostSurface).toHaveBeenCalledWith(
+      'dock-close',
+      expect.objectContaining({ slot: 'dock', open: false }),
+    )
+  })
+
+  it('names above-window placement as a flag a docked panel cannot hold', async () => {
+    const outcome = await showPluginSurface(
+      { pluginId: 'dock-ontop', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    expect(outcome.unmet).toEqual(['always_on_top'])
+    expect(notices()).toEqual([
+      expect.objectContaining({
+        title: 'surface.landedDifferently',
+        description: 'surface.notOnTopDock',
+      }),
+    ])
+  })
+
+  it('keeps the standing panel when another plugin asks for a type the dock cannot host', async () => {
+    await showPluginSurface(
+      { pluginId: 'dock-held', descriptor: descriptor({ type: 'dock-panel' }) },
+      t,
+    )
+    const refused = await showPluginSurface(
+      { pluginId: 'dock-bad', descriptor: descriptor({ type: 'side-panel' }) },
+      t,
+    )
+    expect(refused.opened).toBe(false)
+    expect(dockOf()?.pluginId).toBe('dock-held')
   })
 })

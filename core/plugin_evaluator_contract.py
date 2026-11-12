@@ -4,17 +4,20 @@ core/plugin_evaluator_contract.py
 
 A bundle may name the checks its own golden suite grades with. It says so once, in a
 version 2 manifest, and the kernel decides every consequence: a declared kind is a name for
-one of the kernel's own string primitives, resolved when that bundle's suite loads, and it
-grades only cases in that suite. Nothing here imports plugin code, and nothing here runs at
-turn time — a preset is data the grader reads, so it needs no permission family and no
-lifecycle read.
+one of the kernel's five primitives, resolved when that bundle's suite loads, and it grades
+only cases in that suite. A case may combine two or more of those presets with `all_of` or
+`none_of`. Nothing here imports plugin code, and nothing here runs at turn time — a preset
+is data the grader reads, so it needs no permission family and no lifecycle read.
 
 Why the vocabulary stays the kernel's. `core/plugin_golden.grade` is the instrument that
 measures every other claim in this tree, so a bundle may name a check the kernel already
-runs, never add one: `contains` and `not_contains` are the two bases this cut accepts, the
-arguments come from the manifest, and the five primitive names stay reserved. A case names
-the preset in `expect.kind` and passes nothing else, so the manifest is the one place the
-fragment list is written and a case cannot silently disagree with it.
+runs, never add one: `artifact`, `tool_use`, `contains`, `not_contains` and `tool_refused`
+are the five bases, the arguments come from the manifest, and the five primitive names plus
+the two composition names stay reserved. A case names the preset in `expect.kind` and
+passes nothing else, so the manifest is the one place the fragment list is written and a
+case cannot silently disagree with it. Composition is the case's grammar: `expect.kind` is
+`all_of` or `none_of`, and `of` lists the declared preset ids it combines — at least two,
+each at most once, never an argument of its own.
 
 Why a preset resolves only inside its own suite. A case that reached another bundle's kind
 would make a pass³ number depend on which other bundles are installed, and would create a
@@ -25,15 +28,16 @@ Fail-closed rules, in one list: `capabilities` in a version 1 manifest, an unkno
 an `evaluator` that is not an object, an unknown field, `kinds` that is not a list or is
 empty or holds more than `MAX_EVALUATOR_KINDS`, a kind that is not an object, an unknown
 kind field, an id that is not a lowercase slug or is past `MAX_KIND_ID_CHARS`, an id the
-kernel owns, a duplicate id, a `from` outside the bases this cut grades, the base's own
-arguments missing or malformed, a fragment that is blank or shorter than
-`MIN_FRAGMENT_CHARS`, and a missing or blank description. Each of them quarantines the
-whole bundle.
+kernel owns (a primitive name or a composition name), a duplicate id, a `from` outside the
+five bases, the base's own arguments missing or malformed, a fragment that is blank or
+shorter than `MIN_FRAGMENT_CHARS`, and a missing or blank description. Each of them
+quarantines the whole bundle.
 
-What this cut does not do: `artifact`, `tool_use` and `tool_refused` presets, and
-composition (`all_of` / `none_of`), are the second cut. `KIND_FIELDS` already names their
-arguments so a manifest written against the later shape is refused for its `from` rather
-than for a typo.
+What stays the kernel's: the five primitives and their definitions, the composition
+grammar, the pass³ semantics, the case schema and its id prefix, the anti-slop gate, the
+receipt format, and the rule that a number names the engine that produced it. A bundle
+still cannot add a primitive or a composition, run code in the grader, grade another
+bundle's suite, or write the loader's own fields.
 
 Ephe – Bad Liebenzell, Schwarzwald
 """
@@ -50,31 +54,40 @@ from core.plugin_manifest_contract import CAPABILITY_SECTIONS as CAPABILITY_SECT
 
 __all__ = [
     "CAPABILITY_SECTIONS",
+    "COMPOSITIONS",
     "EVALUATOR_FIELDS",
     "KINDS",
     "KIND_FIELDS",
     "MAX_EVALUATOR_KINDS",
     "MAX_KIND_ID_CHARS",
+    "MIN_COMPOSITION_MEMBERS",
     "MIN_FRAGMENT_CHARS",
     "PRESET_BASES",
     "EvaluatorKind",
     "argument_error",
     "evaluator_kinds",
+    "preset_matcher",
     "validate_evaluator",
 ]
 
 #: The kernel's grader vocabulary. `core/plugin_golden` re-exports this tuple, so the
 #: grader and the contract read one table instead of two that happen to agree.
 KINDS: tuple[str, ...] = ("artifact", "tool_use", "contains", "not_contains", "tool_refused")
-#: The bases a declared preset may name in this cut: the two string tests, one rule set.
-PRESET_BASES: tuple[str, ...] = ("contains", "not_contains")
-#: A suite reads up to this many presets; a longer list is a vocabulary, not a check.
+#: The composition grammar a case may use in `expect.kind`. It combines declared presets;
+#: a manifest names a primitive in `from`.
+COMPOSITIONS: tuple[str, ...] = ("all_of", "none_of")
+#: The bases a declared preset may name: every primitive the kernel already grades.
+PRESET_BASES: tuple[str, ...] = KINDS
+#: A suite reads up to this many presets; more per-case checks are written as cases.
 MAX_EVALUATOR_KINDS = 8
 #: Ceiling on a kind id: it rides in a case, a receipt and a refusal sentence.
 MAX_KIND_ID_CHARS = 40
 #: Floor on a declared fragment. A preset is reused by every case that names it, so a
 #: two-character fragment would clear almost any answer the engine writes.
 MIN_FRAGMENT_CHARS = 3
+#: Below two members a composition is an alias; that case names the single preset
+#: directly.
+MIN_COMPOSITION_MEMBERS = 2
 EVALUATOR_FIELDS: frozenset[str] = frozenset({"kinds"})
 KIND_FIELDS: frozenset[str] = frozenset(
     {"id", "from", "any", "suffix", "reason", "description"}
@@ -98,9 +111,9 @@ class EvaluatorKind:
     """One declared preset, normalized the way the suite loader reads it.
 
     ``kind_id`` is the name a case writes in `expect.kind`; ``base`` is the kernel
-    primitive the grader actually runs, and ``any`` the fragment list the manifest fixed
-    for it. ``plugin_id`` owns the declaration, which is what makes a resolution own-suite
-    only.
+    primitive the grader actually runs, and the argument fields hold what the manifest
+    fixed for it. ``plugin_id`` owns the declaration, which is what makes a resolution
+    own-suite only.
     """
 
     kind_id: str
@@ -108,6 +121,22 @@ class EvaluatorKind:
     any: tuple[str, ...] = ()
     plugin_id: str = ""
     description: str = ""
+    suffix: str = ""
+    reason: str = ""
+
+
+def preset_matcher(preset: EvaluatorKind) -> dict[str, Any]:
+    """The kernel matcher a declared preset resolves to, its arguments included.
+
+    The loader copies this onto a case and into a composition, so the argument mapping
+    exists once, next to the rule that validated it.
+    """
+    if preset.base == "artifact":
+        return {"kind": "artifact", "suffix": preset.suffix}
+    matcher: dict[str, Any] = {"kind": preset.base, "any": list(preset.any)}
+    if preset.base == "tool_refused" and preset.reason:
+        matcher["reason"] = preset.reason
+    return matcher
 
 
 def _evaluator_section(manifest: dict) -> dict | None:
@@ -198,6 +227,8 @@ def _kind_error(kind: Any, index: int, seen: set[str]) -> str | None:
         return f"{where}.id: lowercase slug expected (a-z0-9-)"
     if kind_id in KINDS:
         return f"{where}.id: {kind_id!r} is a kernel kind id"
+    if kind_id in COMPOSITIONS:
+        return f"{where}.id: {kind_id!r} is a composition id"
     if not _SLUG_RE.match(kind_id):
         return f"{where}.id: lowercase slug expected (a-z0-9-)"
     if len(kind_id) > MAX_KIND_ID_CHARS:
@@ -209,7 +240,7 @@ def _kind_error(kind: Any, index: int, seen: set[str]) -> str | None:
     base = kind.get("from")
     if base not in PRESET_BASES:
         allowed = ", ".join(PRESET_BASES)
-        return f"{where}.from: {base!r} is not a base this kernel grades yet ({allowed})"
+        return f"{where}.from: {base!r} is not a base this kernel grades ({allowed})"
 
     error = argument_error(base, kind, min_fragment=MIN_FRAGMENT_CHARS)
     if error:
@@ -273,8 +304,10 @@ def evaluator_kinds(manifest: Any) -> dict[str, EvaluatorKind]:
         declared[str(kind["id"])] = EvaluatorKind(
             kind_id=str(kind["id"]),
             base=str(kind["from"]),
-            any=tuple(str(fragment) for fragment in kind["any"]),
+            any=tuple(str(fragment) for fragment in kind.get("any") or ()),
             plugin_id=str(manifest.get("name") or ""),
             description=str(kind["description"]),
+            suffix=str(kind.get("suffix") or ""),
+            reason=str(kind.get("reason") or ""),
         )
     return declared

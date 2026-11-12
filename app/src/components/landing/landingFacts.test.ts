@@ -73,7 +73,10 @@ describe('the landing page states only what the checkout holds', () => {
 
   it('prints the installer command the README carries', () => {
     const readme = read('README.md')
-    expect(readme).toContain(INSTALL_COMMAND)
+    const first = readme.match(/```bash\n(curl -fsSL [^\n]*install\.sh \| bash[^\n]*)\n```/)
+    expect(first, 'README has no one-line installer command').not.toBeNull()
+    expect(first![1]).toBe(INSTALL_COMMAND)
+    expect(INSTALL_COMMAND).toContain(`--tag v${INSTALL_VERSION}`)
     expect(INSTALL_COMMAND).toContain(`/v${INSTALL_VERSION}/install.sh`)
     expect(existsSync(resolve(ROOT, 'install.sh'))).toBe(true)
     expect(existsSync(resolve(ROOT, 'install.ps1'))).toBe(true)

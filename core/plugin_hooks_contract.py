@@ -1,19 +1,21 @@
-"""Ephe — `components.hooks`: the one observer a bundle runs when a turn ends.
+"""Ephe — `components.hooks`: the observers a bundle runs around a turn.
 
 core/plugin_hooks_contract.py
 
-A version 2 bundle may name one hook for the end of a turn. It says so once, in the
-manifest, and the kernel decides every consequence: the event vocabulary, the payload,
-the ordering, the confinement, the timeout and the silence. Nothing here imports plugin
-code, and nothing here runs at turn time — the claim is data the dispatcher reads, and
-`core/plugin_turn_hooks.py` is the one place a process is started from it.
+A version 2 bundle may name at most one hook for the start of a turn and one for its end.
+It says so once, in the manifest, and the kernel decides every consequence: the event
+vocabulary, the payload, the ordering, the confinement, the timeout and the silence.
+Nothing here imports plugin code, and nothing here runs at turn time — the claim is data
+the dispatcher reads, and `core/plugin_turn_hooks.py` is the one place a process is
+started from it.
 
-The payload is fixed by the kernel and metadata-only, by construction: the hook reads a
-turn id, the loop's stop reason, the names of the tools the turn called and the turn's
-duration. No answer text, no history, no tool arguments, and nothing of the workspace or
-context report. `docs/CONTEXT_CONTRACT.md` makes that resolver the one channel that
-decides what the model sees; a hook is not a second one, and a manifest field asking for
-the answer is refused here rather than silently ignored.
+Both payloads are fixed by the kernel and metadata-only, by construction. The start
+payload carries the turn id and the moment the turn began; the end payload carries the
+loop's stop reason, the names of the tools the turn called and the turn's duration. No
+answer text, no history, no tool arguments, and nothing of the workspace or context
+report. `docs/CONTEXT_CONTRACT.md` makes that resolver the one channel that decides what
+the model sees; a hook is not a second one, and a manifest field asking for the answer is
+refused here rather than silently ignored.
 
 Why version 2 only. A live hook is the same class of bundle code as a contributed tool
 entry, and version 2 is where identity and licence are already mandatory
@@ -23,14 +25,14 @@ quarantined, exactly like a version 1 `capabilities` object.
 Fail-closed rules, in one list: `components.hooks` in a version 1 manifest, a `hooks`
 value that is not an object, an event outside `HOOK_EVENTS`, an event body that is not an
 object, an unknown field, a missing or malformed `entry` (the same lexical and containment
-rule a tool entry obeys, through `_entry_field_error`), and a `timeout_seconds` that is a
-bool, not a whole number, or outside `MIN_HOOK_TIMEOUT_SECONDS` .. `MAX_HOOK_TIMEOUT_SECONDS`.
-Each of them quarantines the whole bundle.
+rule a tool entry obeys, through `_entry_field_error`), a `timeout_seconds` that is a
+bool, not a whole number, or outside `MIN_HOOK_TIMEOUT_SECONDS` .. `MAX_HOOK_TIMEOUT_SECONDS`,
+and more hooks than `MAX_HOOKS_PER_BUNDLE`. Each of them quarantines the whole bundle.
 
-One hook per bundle, one event in this cut. `turn_start`, `pre_tool` and `post_tool`, a
-mutating or vetoing hook, an answer-bearing payload and a network transport are later
-cuts, each with its own approval and audit design; the event tuple is where one gets
-added, and a name a manifest guesses is refused.
+At most two hooks per bundle, one per event, and the two events are a turn's start and its
+end. `pre_tool`, `post_tool`, a mutating or vetoing hook, an answer-bearing payload and a
+network transport are later cuts, each with its own approval and audit design; the event
+tuple is where one gets added, and a name a manifest guesses is refused.
 
 Everything a hook writes stays inside its confined run and its own state root: the bundle
 directory and its declared `permissions.data_roots` are the only reads, and the reply is
@@ -49,6 +51,7 @@ from typing import Any, Iterable
 __all__ = [
     "HOOK_EVENTS",
     "HOOK_FIELDS",
+    "MAX_HOOKS_PER_BUNDLE",
     "MAX_HOOK_TIMEOUT_SECONDS",
     "MIN_HOOK_TIMEOUT_SECONDS",
     "TurnHook",
@@ -58,11 +61,15 @@ __all__ = [
     "validate_hooks",
 ]
 
-#: The events a hook may listen for. A later event is a row in this tuple plus its
-#: dispatch site in the kernel, never a name a manifest invents.
-HOOK_EVENTS: tuple[str, ...] = ("turn_end",)
+#: The events a hook may listen for, in the order a turn reaches them. A later event is
+#: a row in this tuple plus its dispatch site in the kernel, never a name a manifest
+#: invents.
+HOOK_EVENTS: tuple[str, ...] = ("turn_start", "turn_end")
 #: The fields one event body carries. The payload is not a field: it is the kernel's.
 HOOK_FIELDS: frozenset[str] = frozenset({"entry", "timeout_seconds"})
+#: One hook per event, so the vocabulary bounds a bundle at two runs per turn. The cap is
+#: checked on its own so a grown vocabulary cannot quietly grant a third spawn per turn.
+MAX_HOOKS_PER_BUNDLE = 2
 #: The window a run must fit in. The lower bound keeps a hook from being a pause, the
 #: upper bound keeps a per-turn spawn from outliving the turn's own user.
 MIN_HOOK_TIMEOUT_SECONDS = 1
@@ -71,7 +78,7 @@ MAX_HOOK_TIMEOUT_SECONDS = 3
 
 @dataclass(frozen=True)
 class TurnHook:
-    """One declared turn-end hook, normalized the way the dispatcher reads it.
+    """One declared turn hook, normalized the way the dispatcher reads it.
 
     ``plugin_id`` owns the declaration and is what the lifecycle gate asks about.
     ``plugin_dir`` is the folder the claim was scanned from; it is empty for a claim read
@@ -130,7 +137,13 @@ def validate_hooks(manifest: Any, plugin_dir: Path) -> str | None:
     if unknown_events:
         return (
             "components.hooks: unknown event(s): "
-            f"{', '.join(unknown_events)} ({', '.join(HOOK_EVENTS)} is the only event)"
+            f"{', '.join(unknown_events)} (known events are "
+            f"{', '.join(HOOK_EVENTS)})"
+        )
+    if len(hooks) > MAX_HOOKS_PER_BUNDLE:
+        return (
+            f"components.hooks: at most {MAX_HOOKS_PER_BUNDLE} hooks per bundle, one per "
+            f"event; {len(hooks)} declared"
         )
     for event in HOOK_EVENTS:
         if event not in hooks:
@@ -207,4 +220,13 @@ def scan_turn_hooks(entries: Iterable[dict[str, Any]]) -> tuple[TurnHook, ...]:
         directory = str(entry.get("dir") or "")
         for claim in hook_claims(manifest):
             hooks.append(replace(claim, plugin_dir=directory))
-    return tuple(sorted(hooks, key=lambda hook: (hook.plugin_id, hook.event)))
+    order = {event: index for index, event in enumerate(HOOK_EVENTS)}
+    return tuple(
+        sorted(
+            hooks,
+            key=lambda hook: (
+                hook.plugin_id,
+                order.get(hook.event, len(HOOK_EVENTS)),
+            ),
+        )
+    )

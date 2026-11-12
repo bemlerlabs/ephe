@@ -70,12 +70,20 @@ def page_title(html: str) -> str:
 
 
 def extract_links(html: str, base: str) -> tuple[str, ...]:
-    """Same-document links in reading order, capped, http(s) only."""
+    """Same-document links in reading order, capped, http(s) only.
+
+    An href the parser rejects (`http://[::1`, a port outside 0-65535) is skipped:
+    one malformed link on a page must not abort the page or the crawl.
+    """
     links: list[str] = []
     seen: set[str] = set()
     for match in _LINK.finditer(html or ""):
-        target = urljoin(base, match.group(1).strip())
-        if urlsplit(target).scheme not in ("http", "https"):
+        try:
+            target = urljoin(base, match.group(1).strip())
+            scheme = urlsplit(target).scheme
+        except ValueError:
+            continue
+        if scheme not in ("http", "https"):
             continue
         target = target.split("#", 1)[0]
         if target and target not in seen:
@@ -219,6 +227,10 @@ async def robots_for(
     return rules
 
 
+def _outside_site(url: str, site: str) -> bool:
+    return bool(site) and not policy.in_site(url, site)
+
+
 async def fetch_page(
     url: str,
     *,
@@ -226,8 +238,20 @@ async def fetch_page(
     allow_private: bool | None = None,
     timeout: float = policy.REQUEST_TIMEOUT_SECONDS,
     cache_window: float = 0.0,
+    site: str = "",
 ) -> CrawlPage | CrawlGap:
+    try:
+        parts = urlsplit(url)
+        parts.port
+        host = (parts.hostname or "").lower()
+    except ValueError:
+        return _gap(url, "the URL is malformed — nothing was requested", "url_malformed")
+
     cached = PAGE_CACHE.get(url)
+    if cached and _outside_site(str(cached.get("url") or url), site):
+        # A record from a redirect that left the site is not reusable; the request
+        # below re-checks the landing URL like any other hop.
+        cached = None
     if cached and cache_window > 0 and _age_seconds(cached.get("fetched_at", "")) < cache_window:
         return _page_from_record(cached, from_cache=True)
 
@@ -236,7 +260,6 @@ async def fetch_page(
     if not allowed:
         return _gap(url, why, "robots_disallowed")
 
-    host = (urlsplit(url).hostname or "").lower()
     await limiter.wait(host, rules.crawl_delay)
 
     headers: dict[str, str] = {}
@@ -254,6 +277,12 @@ async def fetch_page(
     )
     if response.status == 0:
         return _gap(url, response.note, "")
+    if _outside_site(response.url or url, site):
+        return _gap(
+            url,
+            f"the redirect left the site restriction (landed on {response.url})",
+            "site_scope",
+        )
     if response.status == 304 and cached:
         fetched_at = now_iso()
         cached["fetched_at"] = fetched_at
@@ -353,6 +382,7 @@ async def crawl(
             allow_private=allow_private,
             timeout=timeout,
             cache_window=window,
+            site=site,
         )
         if isinstance(result, CrawlGap):
             run.gaps.append(result)

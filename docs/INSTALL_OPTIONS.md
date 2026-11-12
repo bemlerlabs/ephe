@@ -9,7 +9,7 @@ back out. Sibling reference: [`INSTALL.md`](INSTALL.md).
 | Release (one-liner) | `curl … \| bash -s -- --tag vX.Y.Z` | a pinned release install, macOS and Linux |
 | macOS app (DMG) | the `.dmg` from the GitHub release, then right-click → Open | a prebuilt app, no toolchain |
 | Windows (PowerShell) | the one-liner under [Windows PowerShell](#windows-powershell-one-liner) | Windows, with or without a checkout |
-| Docker | `docker compose up` | development and advanced setups |
+| Docker | `EPHE_MODEL_PROVIDER=… EPHE_MODEL=… docker compose up` | development and advanced setups, with the engine you name |
 
 ## Existing Checkout
 
@@ -65,7 +65,7 @@ On macOS and Linux, Bash defaults to Desktop; choose `--cli` or `EPHE_MODE=cli` 
 ## Docker
 
 ```bash
-docker compose up          # then open http://localhost:8765
+EPHE_MODEL_PROVIDER=local_ollama EPHE_MODEL=<tag> EPHE_OLLAMA_PULL=<tag> docker compose up
 ```
 
 Docker is available for development and advanced users; the primary first-run path is the
@@ -73,10 +73,20 @@ one-command installer above. **Both ports are published on the host's loopback i
 (`127.0.0.1:8765` and `127.0.0.1:11434`), so nothing on your network can reach the container until
 you decide otherwise.
 
+The Compose file chooses no engine and downloads no model. `EPHE_MODEL_PROVIDER` has no default,
+so `docker compose up` alone stops before a container starts and names the variable; name the
+engine and the tag (`EPHE_MODEL`, or `EPHE_OPENAI_COMPAT_MODEL` for the compat path), or mount a
+`~/.ephe/engine.json` written by `ephe configure` into the `ephe_data` volume. `EPHE_OLLAMA_PULL`
+is optional: it lets the bundled `ollama` service download exactly the tag you name, and nothing
+is downloaded without it.
+
 Without Compose, keep the same posture explicitly:
 
 ```bash
-docker run --rm -p 127.0.0.1:8765:8765 ephe:latest
+docker run --rm -p 127.0.0.1:8765:8765 \
+  -e EPHE_MODEL_PROVIDER=local_ollama \
+  -e EPHE_LOCAL_OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  -e EPHE_MODEL=<tag> --add-host=host.docker.internal:host-gateway ephe:latest
 ```
 
 Mobile or LAN access is an opt-in; it is off by default. To open it, publish on all interfaces and let the
@@ -84,7 +94,8 @@ pairing token guard the API — `EPHE_LAN` is already set in the Compose file, a
 bind forces it:
 
 ```bash
-EPHE_PUBLISH_HOST=0.0.0.0 docker compose up   # then scan the in-app QR code
+EPHE_PUBLISH_HOST=0.0.0.0 EPHE_MODEL_PROVIDER=local_ollama EPHE_MODEL=<tag> \
+  docker compose up   # then scan the in-app QR code
 ```
 
 ## Uninstall
@@ -119,11 +130,12 @@ http://127.0.0.1:8765
 ```
 
 On first run you pick the engine in the app: local Ollama (bring your own models), remote Ollama, or
-an OpenAI-compatible endpoint (e.g. a DGX Spark — no download, no install). Which tag runs inside the
-engine is your choice and Ephe never makes it: nothing is sized from this machine's RAM, nothing is
-pulled for you, and no model is treated as the default. A local Ollama tag needs the memory its own
-size asks for — around 16 GB unified memory for a 12-billion-parameter model, less for a smaller one,
-none for a remote endpoint.
+an OpenAI-compatible endpoint (e.g. a DGX Spark — no download, no install). The first start needs
+that choice: the app opens its Setup page, or `ephe configure` writes the same choice to
+`~/.ephe/engine.json` for the terminal. Which tag runs inside the engine is your choice and Ephe
+never makes it: nothing is sized from this machine's RAM, nothing is pulled for you, and no model is
+treated as the default. A local Ollama tag needs the memory its own size asks for — around 16 GB
+unified memory for a 12-billion-parameter model, less for a smaller one, none for a remote endpoint.
 
 **Installer checks:** the Bash installer checks the downloaded uv installer against a pinned SHA256.
 A mismatch leaves it unexecuted and selects the distro interpreter fallback. Change

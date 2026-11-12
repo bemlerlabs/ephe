@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Post-release bump: move every version carrier to the next milestone number.
 
-The policy says `main` carries the next milestone version from the day the previous one
-shipped. A hand edit that misses one of the six carriers is exactly the drift the release
-checklist refuses, and a miss in either lockfile only surfaces in the tag CI after the tag
-is public. This script writes all six through `scripts/version_carriers.py` and re-reads
-them before it reports success, so the bump either lands whole or names the file it could
-not write.
+The policy says `main` carries the version the last release commit brought, and the next
+milestone opens with one commit that moves all six carriers. A hand edit that misses one
+of them is exactly the drift the release checklist refuses, and a miss in either lockfile
+only surfaces in the tag CI after the tag is public. This script writes all six through
+`scripts/version_carriers.py` and re-reads them before it reports success, so the bump
+either lands whole or names the file it could not write.
 
   scripts/bump_version.py --version 0.7.0     the next milestone
   scripts/bump_version.py --next-minor        the declared major.minor + 1

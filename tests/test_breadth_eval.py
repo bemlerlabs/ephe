@@ -62,6 +62,7 @@ def _fixture(expected: dict[str, str], runs: dict[str, list[str]]) -> list:
     document = {
         "schema": 1,
         "evidence": "engine",
+        "engine": {"provider": "openai_compatible", "model": "fixture-model"},
         "runs": len(next(iter(runs.values()))),
         "cases": [{"id": case_id, "outcomes": outcomes}
                   for case_id, outcomes in runs.items()],
@@ -146,6 +147,7 @@ def test_a_complete_engine_receipt_with_full_classes_is_quotable():
     run = runs_from_receipt(
         _receipt(expected, {case_id: PASS for case_id in expected}),
         expected, evidence="engine",
+        engine={"provider": "openai_compatible", "model": "fixture-model"},
     )
 
     report = breadth_report(run, expected, min_cases=4, min_per_class=2)
@@ -193,7 +195,10 @@ def test_the_legacy_report_prints_the_old_number_with_its_denominator_and_labels
 def test_a_class_below_the_floor_makes_the_rate_unquotable():
     expected = _small_expected()
     statuses = {"a": PASS, "b": FAIL, "c": PASS, "d": PASS}
-    run = runs_from_receipt(_receipt(expected, statuses), expected, evidence="engine")
+    run = runs_from_receipt(
+        _receipt(expected, statuses), expected, evidence="engine",
+        engine={"provider": "openai_compatible", "model": "fixture-model"},
+    )
 
     report = breadth_report(run, expected, min_cases=4, min_per_class=3)
 
@@ -332,3 +337,20 @@ def test_real_mode_without_an_engine_refuses_before_a_turn_is_spent():
         main(["--real"])
 
     assert raised.value.code == 2
+
+
+def test_a_receipt_replay_can_name_the_engine_and_then_be_quotable(tmp_path):
+    from evals.breadth_eval import expected_cases
+
+    expected = expected_cases()
+    receipt = _receipt(expected, {case_id: PASS for case_id in expected})
+    path = tmp_path / "receipt.json"
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    code = breadth.main(["--receipt", str(path), "--evidence", "engine",
+                         "--engine-model", "fixture-model",
+                         "--json-out", str(tmp_path / "r.json")])
+    assert code == 0
+    report = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert report["breadth"]["quotable"] is True
+    assert report["breadth"]["engine"]["model"] == "fixture-model"

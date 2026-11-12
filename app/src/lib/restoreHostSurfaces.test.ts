@@ -113,6 +113,47 @@ describe('restoring host surfaces', () => {
     )
   })
 
+  it('restores a dock record on both halves', async () => {
+    for (const desktop of [false, true]) {
+      platform.desktop = desktop
+      resetHostRestore()
+      show.mockClear()
+      load.mockResolvedValue({ docklet: record('dock') })
+      ask.mockResolvedValue({
+        public: [{ name: 'docklet', surface: { type: 'dock-panel', entry: 'ui/index.html' } }],
+        personal: [],
+      })
+      await restoreHostSurfaces(t)
+      expect(show).toHaveBeenCalledTimes(1)
+      expect(show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pluginId: 'docklet',
+          host: expect.objectContaining({ slot: 'dock' }),
+        }),
+        t,
+      )
+    }
+  })
+
+  /// The dock holds one panel. A crash can leave two open dock records behind, and only
+  /// the last one written was on screen; re-opening the older one would displace it.
+  it('restores only the newest open dock record', async () => {
+    load.mockResolvedValue({
+      older: record('dock'),
+      newer: record('dock'),
+    })
+    ask.mockResolvedValue({
+      public: [
+        { name: 'older', surface: { type: 'dock-panel', entry: 'ui/index.html' } },
+        { name: 'newer', surface: { type: 'dock-panel', entry: 'ui/index.html' } },
+      ],
+      personal: [],
+    })
+    await restoreHostSurfaces(t)
+    expect(show).toHaveBeenCalledTimes(1)
+    expect(show).toHaveBeenCalledWith(expect.objectContaining({ pluginId: 'newer' }), t)
+  })
+
   it('restores a canvas-overlay record on both halves', async () => {
     for (const desktop of [false, true]) {
       platform.desktop = desktop

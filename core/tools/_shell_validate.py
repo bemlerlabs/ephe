@@ -11,6 +11,7 @@ from core.tools.base import (
     ALLOWED_COMMANDS,
     BLOCKED_PATTERNS,
     _is_path_allowed,
+    _plugin_write_refusal,
 )
 
 # Separators between command segments (as standalone shlex tokens).
@@ -247,6 +248,16 @@ _PATH_REFUSAL = (
 )
 
 _FIND_REFUSAL = "⚠️ Security: find -exec, -ok and -delete are refused."
+
+_READ_ONLY_ROOT_REFUSAL = (
+    "⚠️ Security: a declared data root is a read grant for a plugin, so this command may "
+    "read it but not write there — write in the workspace instead."
+)
+
+#: Heads whose operands the command writes. The file door admits a plugin's declared data
+#: roots as reads, so without this list `mkdir`/`cp`/`mv` (and touch/chmod) would land
+#: files in a grant the worker mounts read-only.
+_WRITE_HEADS = {"mkdir", "touch", "chmod", "cp", "mv"}
 
 _INTERPRETER_VALUE_FLAGS = {"-m", "-W", "-X"}
 
@@ -524,6 +535,88 @@ def _find_blocked(args: list[str]) -> str | None:
     return None
 
 
+def _destination_paths(args: list[str]) -> list[str]:
+    """The write target of ``cp``: every ``-t`` value, otherwise the last operand."""
+    targets: list[str] = []
+    for index, token in enumerate(args):
+        flag, inline = _split_flag(token)
+        if flag not in {"-t", "--target-directory"}:
+            continue
+        if inline is not None:
+            targets.append(inline)
+        elif index + 1 < len(args):
+            targets.append(args[index + 1])
+    if targets:
+        return targets
+    paths = _positional_paths("cp", args)
+    return paths[-1:] if paths else []
+
+
+def _write_targets(head: str, args: list[str]) -> list[str]:
+    """Operands of one head that the command writes. ``mv`` also writes its source."""
+    if head == "cp":
+        return _destination_paths(args)
+    paths = _positional_paths(head, args)
+    if head == "chmod":
+        return _chmod_paths(paths)
+    # `mv` removes the source entry too, so a data root is changed on both ends.
+    return paths
+
+
+def _read_only_root_refusal(path: Path) -> str | None:
+    try:
+        real = path.expanduser().resolve()
+    except (OSError, RuntimeError, ValueError):
+        return _PATH_REFUSAL
+    return _READ_ONLY_ROOT_REFUSAL if _plugin_write_refusal(real) else None
+
+
+def _glob_write_refusal(token: str, root: str) -> str | None:
+    if "**" in token or _glob_is_secret(token):
+        return _PATH_REFUSAL
+    expanded = os.path.expanduser(os.path.expandvars(token))
+    path = Path(expanded)
+    if path.is_absolute():
+        base, pattern = path.parent, path.name
+    else:
+        base, pattern = Path(root), token
+    try:
+        matches = []
+        for index, match in enumerate(base.glob(pattern)):
+            if index >= 200:
+                return _PATH_REFUSAL
+            matches.append(match)
+    except (OSError, ValueError):
+        return _PATH_REFUSAL
+    for match in matches:
+        refusal = _read_only_root_refusal(match)
+        if refusal is not None:
+            return refusal
+    return None
+
+
+def _write_target_refusal(
+    token: str, root: str, container_workspace: str | None = None
+) -> str | None:
+    """The read-only-grant refusal for one write operand, or None when it may write."""
+    if not token:
+        return None
+    if "$" in token:
+        expanded = os.path.expandvars(token)
+        if "$" in expanded:
+            return _PATH_REFUSAL
+        token = expanded
+    token, escaped = _container_path(token, container_workspace)
+    if escaped:
+        return _PATH_REFUSAL
+    if any(ch in token for ch in "*?["):
+        return _glob_write_refusal(token, root)
+    path = Path(os.path.expanduser(token))
+    if not path.is_absolute():
+        path = Path(root) / path
+    return _read_only_root_refusal(path)
+
+
 def _refuse_segment_paths(
     seg: list[str], root: str, container_workspace: str | None = None
 ) -> str | None:
@@ -548,6 +641,11 @@ def _refuse_segment_paths(
         refusal = _check_path_token(token, root, container_workspace)
         if refusal is not None:
             return refusal
+    if head in _WRITE_HEADS:
+        for token in _write_targets(head, args):
+            refusal = _write_target_refusal(token, root, container_workspace)
+            if refusal is not None:
+                return refusal
     return None
 
 

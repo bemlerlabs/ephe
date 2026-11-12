@@ -91,7 +91,7 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 # container stops with an actionable hint instead of picking an engine itself.
 #   docker run -e EPHE_MODEL_PROVIDER=local_ollama \
 #     -e EPHE_LOCAL_OLLAMA_BASE_URL=http://host.docker.internal:11434 \
-#     -e EPHE_MODEL=gemma4:12b ...
+#     -e EPHE_MODEL=your-model-tag ...
 #
 # Binding (I2-4). EPHE_BIND is the address *inside* the container's own network
 # namespace, and it stays 0.0.0.0 on purpose: with `-p` publishing, Docker's

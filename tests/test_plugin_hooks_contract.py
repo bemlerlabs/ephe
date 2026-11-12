@@ -1,10 +1,10 @@
-"""HOOK-P1 — the turn hook a manifest may declare (`components.hooks`).
+"""HOOK-P1 — the turn hooks a manifest may declare (`components.hooks`).
 
-The seam this file pins: a version 2 manifest names one hook for the end of a turn, with
-one entry inside the bundle directory and one bound in seconds; the manifest scan registers
-it, and the dispatcher is the only reader. The kernel fixes the event vocabulary, the
-payload, the confinement and the timeout's window, so the manifest cannot ask for the
-answer, a second event or a longer run.
+The seam this file pins: a version 2 manifest names at most one hook per end of a turn,
+with one entry inside the bundle directory and one bound in seconds; the manifest scan
+registers them, and the dispatcher is the only reader. The kernel fixes the event
+vocabulary, the payload, the confinement and the timeout's window, so the manifest cannot
+ask for the answer, a third event or a longer run.
 
 What the kernel keeps, and this file therefore checks under a declared hook too: the entry
 rule is a contributed tool's (`_entry_field_error`), the version rule is the capability
@@ -20,6 +20,7 @@ import pytest
 
 from core.plugin_hooks_contract import (
     HOOK_EVENTS,
+    MAX_HOOKS_PER_BUNDLE,
     MAX_HOOK_TIMEOUT_SECONDS,
     MIN_HOOK_TIMEOUT_SECONDS,
     TurnHook,
@@ -108,13 +109,51 @@ class TestContract:
             )
             assert error is not None and "manifest_version 2 required" in error
 
-    def test_a_hook_is_one_event_in_this_cut(self, root: Path) -> None:
-        assert HOOK_EVENTS == ("turn_end",)
-        error = _error(
-            root,
-            _manifest(hooks={"turn_end": _hook(), "turn_start": _hook()}),
+    def test_the_vocabulary_is_both_ends_of_a_turn(self) -> None:
+        assert HOOK_EVENTS == ("turn_start", "turn_end")
+        assert MAX_HOOKS_PER_BUNDLE == 2
+
+    def test_both_ends_may_be_declared_and_both_are_facts(self, root: Path) -> None:
+        from core.plugin_manifest import load_manifest
+
+        hooks = {
+            "turn_start": _hook(entry="hooks/turn_start.py:main", timeout_seconds=1),
+            "turn_end": _hook(),
+        }
+        manifest, error = load_manifest(_write(root, _manifest(hooks=hooks)))
+        assert error is None
+        assert [(claim.event, claim.entry) for claim in hook_claims(manifest)] == [
+            ("turn_start", "hooks/turn_start.py:main"),
+            ("turn_end", "hooks/turn_end.py:main"),
+        ]
+        assert hook_facts(manifest) == [
+            {"event": "turn_start", "timeout_seconds": 1},
+            {"event": "turn_end", "timeout_seconds": 2},
+        ]
+
+    @pytest.mark.parametrize("event", ["pre_tool", "post_tool", "turn_begin"])
+    def test_an_event_outside_the_vocabulary_is_refused_by_name(
+        self, root: Path, event: str
+    ) -> None:
+        error = _error(root, _manifest(hooks={event: _hook()}))
+        assert error is not None and event in error
+        assert "turn_start" in error and "turn_end" in error
+
+    def test_a_third_hook_is_refused_even_when_the_vocabulary_grows(
+        self, root: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from core import plugin_hooks_contract as contract
+
+        monkeypatch.setattr(
+            contract, "HOOK_EVENTS", ("turn_start", "turn_end", "pre_tool")
         )
-        assert error is not None and "turn_start" in error
+        hooks = {
+            "turn_start": _hook(entry="hooks/turn_start.py:main"),
+            "turn_end": _hook(),
+            "pre_tool": _hook(entry="hooks/pre_tool.py:main"),
+        }
+        error = _error(root, _manifest(hooks=hooks))
+        assert error is not None and "at most 2" in error
 
     def test_hooks_has_to_be_an_object(self, root: Path) -> None:
         error = _error(root, _manifest(hooks=[_hook()]))
@@ -213,6 +252,22 @@ class TestRegistration:
         assert [hook.plugin_id for hook in hooks] == ["alpha", "zulu"]
         assert hooks[0].plugin_dir == str(second)
 
+    def test_the_scan_orders_a_bundles_start_before_its_end(self, tmp_path: Path) -> None:
+        hooks = scan_turn_hooks(
+            [
+                self._entry(
+                    tmp_path / "acme",
+                    _manifest(
+                        hooks={
+                            "turn_end": _hook(),
+                            "turn_start": _hook(entry="hooks/turn_start.py:main"),
+                        }
+                    ),
+                )
+            ]
+        )
+        assert [hook.event for hook in hooks] == ["turn_start", "turn_end"]
+
     def test_an_unreadable_entry_contributes_no_hook(self, tmp_path: Path) -> None:
         hooks = scan_turn_hooks(
             [
@@ -241,4 +296,15 @@ class TestRegistration:
                 "description": "Counts.",
             }
         ]
+        assert rail_fact(manifest)["contributed"] == 2
+
+    def test_a_bundle_with_both_ends_counts_two_contributions(self) -> None:
+        from core.plugin_rail import rail_fact
+
+        manifest = _manifest(
+            hooks={
+                "turn_start": _hook(entry="hooks/turn_start.py:main"),
+                "turn_end": _hook(),
+            }
+        )
         assert rail_fact(manifest)["contributed"] == 2
