@@ -2,13 +2,85 @@
  * Issues #193/#194: the surface reads the shell's readiness instead of assuming it.
  */
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { composerBlocked, readBackendReadiness } from './backendReadiness'
+import {
+  composerBlocked,
+  readBackendReadiness,
+  watchBackendReadinessUntilSendable,
+} from './backendReadiness'
 
 const win = window as unknown as { __TAURI__?: unknown }
 
 afterEach(() => {
   delete win.__TAURI__
   vi.restoreAllMocks()
+})
+
+const state = (name: string, isReady = false) => ({
+  ready: isReady,
+  state: name,
+  port: 8765,
+  baseUrl: '',
+  config: '',
+  sentence: '',
+  action: '',
+})
+
+/** The bridge answering every invoke with the states the queue names, in order. */
+function invokeQueue(states: Array<ReturnType<typeof state>>) {
+  const invoke = vi.fn(async () => {
+    const s = states[Math.min(invoke.mock.calls.length - 1, states.length - 1)]
+    return { ...s, base_url: 'http://127.0.0.1:8765' }
+  })
+  win.__TAURI__ = { core: { invoke } }
+  return invoke
+}
+
+describe('watchBackendReadinessUntilSendable', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('keeps polling a blocking answer and hands over the first one that lets sending', async () => {
+    vi.useFakeTimers()
+    invokeQueue([state('unconfigured'), state('unconfigured'), state('ready', true)])
+    const next = vi.fn()
+    watchBackendReadinessUntilSendable(state('unconfigured'), composerBlocked, next)
+    await vi.advanceTimersByTimeAsync(1000) // first re-read (0.8 s): still dead
+    expect(next).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(4000) // second (2.3 s) and third (3.8 s): the shell recorded the start
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(next.mock.calls[0]?.[0]?.ready).toBe(true)
+  })
+
+  it('does nothing for a window that can already send', async () => {
+    vi.useFakeTimers()
+    const invoke = invokeQueue([state('ready', true)])
+    const next = vi.fn()
+    watchBackendReadinessUntilSendable(state('ready', true), composerBlocked, next)
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(next).not.toHaveBeenCalled()
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('says nothing outside the shell', () => {
+    const next = vi.fn()
+    watchBackendReadinessUntilSendable(state('unconfigured'), composerBlocked, next)
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  it('stops polling once unsubscribed — a closed window asks the shell no more', async () => {
+    vi.useFakeTimers()
+    const invoke = invokeQueue([state('unconfigured')])
+    const next = vi.fn()
+    const off = watchBackendReadinessUntilSendable(state('unconfigured'), composerBlocked, next)
+    await vi.advanceTimersByTimeAsync(2000)
+    const before = invoke.mock.calls.length
+    expect(before).toBeGreaterThan(0)
+    off()
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(invoke.mock.calls.length).toBe(before)
+    expect(next).not.toHaveBeenCalled()
+  })
 })
 
 describe('backend readiness', () => {

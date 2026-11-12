@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import StatusBar from '@/components/dashboard/StatusBar'
+import { CONTEXT_WINDOW_TOKENS } from '@/lib/contextMeter'
 import type { ChatMessage } from '@/types'
 
 vi.mock('@/lib/api', async (importOriginal) => {
@@ -53,27 +54,27 @@ const messages: ChatMessage[] = [
 
 describe('the context figure has one home', () => {
   it('the bar keeps the percentage named, at every width', () => {
-    render(<StatusBar messages={messages} />)
+    render(<StatusBar messages={messages} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     const meter = screen.getByTestId('statusbar-meter')
     expect(meter.getAttribute('role')).toBe('img')
-    expect(meter.getAttribute('aria-label')).toBe('Context used: 12%')
+    expect(meter.getAttribute('aria-label')).toBe('Context used: 4.0%')
   })
 
   it('the desktop breakdown control opens the detail without re-reading the numbers', () => {
-    render(<StatusBar messages={messages} />)
+    render(<StatusBar messages={messages} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     const toggle = screen.getByTestId('statusbar-breakdown-toggle')
-    expect(toggle.getAttribute('aria-label')).toBe('Token breakdown: 88% free')
+    expect(toggle.getAttribute('aria-label')).toBe('Token breakdown: 96% free')
     expect(toggle.getAttribute('aria-haspopup')).toBe('dialog')
     // The control states the remainder and opens the detail; no token pair.
-    expect(toggle.textContent).toBe('88% free')
+    expect(toggle.textContent).toBe('96% free')
     expect(toggle.textContent).not.toMatch(/tok/)
   })
 
   it('states the remainder at every width and keeps no second token chip', () => {
-    render(<StatusBar messages={messages} />)
+    render(<StatusBar messages={messages} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     const percent = screen.getByTestId('statusbar-percent')
     // One figure, always: the remainder in percent. It no longer steps out at md.
-    expect(percent.textContent).toBe('88% free')
+    expect(percent.textContent).toBe('96% free')
     expect(percent.className).not.toContain('md:hidden')
     expect(screen.queryByTestId('statusbar-tok-chip')).toBeNull()
   })

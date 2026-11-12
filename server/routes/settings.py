@@ -356,6 +356,17 @@ async def update_settings(req: SettingsRequest) -> dict:
         # (Persistence is best-effort; the session-local choice still applies.)
         _clear_setup_skip()
 
+    # A body without a provider block changes no engine, so no switch was made and
+    # no probe ran; the key still answers — with what the active engine's cache and
+    # the fallback order name right now — because both surfaces read one number.
+    _engine_window = None
+    try:
+        from server.routes.model_provider import _active_context_window
+
+        _engine_window = await _active_context_window(get_active_provider())
+    except Exception:
+        _engine_window = None
+
     return {
         "provider": _active_provider_dict(),
         # The window the switch just resolved: the engine's own reported maximum

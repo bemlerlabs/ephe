@@ -305,10 +305,10 @@
     {
       "file": "app/src/lib/backendReadiness.ts",
       "marker": "isDesktopShell",
-      "count": 2,
-      "surface": "backend readiness",
-      "web": "a browser tab has the server it was loaded from, so readiness is not asked",
-      "desktop": "the shell answers backend_readiness and emits ephe:backend-state"
+      "count": 3,
+      "surface": "backend readiness: the state listener, the readiness read, and the self-healing poll until the composer can send",
+      "web": "a browser tab has the server it was loaded from, so readiness is not asked and the watcher is a no-op",
+      "desktop": "backend_readiness answers from the recorded start state, ephe:backend-state fires once per start, and while the answer still blocks sending the state is re-read on a short timer until it no longer does"
     },
     {
       "file": "app/src/lib/backendReadiness.ts",

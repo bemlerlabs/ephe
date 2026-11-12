@@ -29,33 +29,30 @@ export function useContextOccupancy(
   windowTokens?: number,
   sessionId?: string,
 ): ContextOccupancy {
+  // A model/provider switch invalidates the cached server window: the surfaces
+  // re-fetch, but until the answer arrives the old denominator must not sit
+  // beside the new engine's messages — the offline estimate takes over instead.
+  // Two channels carry the switch: the 'ephe:model-changed' event (composer chip)
+  // and the caller's own window prop (the settings page knows the number from the
+  // switch response). Nothing else moves this value; a mount with a settled prop
+  // keeps the offline estimate stable, which is what the meter tests pin.
   const [budget, setBudget] = useState<ContextBudget | null>(null)
-  // Dynamic model limit: a model/provider switch fires 'ephe:model-changed'
-  // (useComposerModelSelection) after the backend already probed the new engine.
-  // The cached server answer must not survive that switch — the next fetch below
-  // re-reads it — and holding the old window in the meantime would show the old
-  // engine's denominator beside the new engine's messages.
-  const [probed, setProbed] = useState<number | null>(null)
+  const [seenWindow, setSeenWindow] = useState(windowTokens)
   useEffect(() => {
-    const onModelChanged = (event: Event) => {
-      setBudget(null)
-      // The switch response carries the engine's own reported window as the event
-      // detail (useComposerModelSelection): settle on it right away instead of
-      // showing the old engine's denominator until the next fetch answers.
-      const detail = (event as CustomEvent<{ contextWindow?: number | null }>).detail
-      setProbed(
-        typeof detail?.contextWindow === 'number' && detail.contextWindow > 0
-          ? detail.contextWindow
-          : null,
-      )
-    }
+    const onModelChanged = () => setBudget(null)
     window.addEventListener('ephe:model-changed', onModelChanged)
     return () => window.removeEventListener('ephe:model-changed', onModelChanged)
   }, [])
-  // Order: the server's own count first, then the number the switch itself probed,
-  // then the caller's provider-list value — one denominator at a time, never an
-  // average of two engines.
-  const effectiveWindow = budget?.window_tokens || probed || windowTokens
+  useEffect(() => {
+    if (windowTokens !== seenWindow) {
+      setSeenWindow(windowTokens)
+      setBudget(null)
+    }
+  }, [windowTokens, seenWindow])
+  // Order: the server's own count first, then the caller's window — one
+  // denominator at a time. A model switch clears the cached budget below, so the
+  // estimate over the caller's (fresh) window answers while the re-fetch runs.
+  const effectiveWindow = budget?.window_tokens || windowTokens
   const usage = useMemo(
     () => estimateContextUsage(messages || [], effectiveWindow),
     [messages, effectiveWindow],
@@ -73,7 +70,7 @@ export function useContextOccupancy(
     return () => {
       cancelled = true
     }
-  }, [sessionId, messages?.length, probed])
+  }, [sessionId, messages?.length, seenWindow])
 
   // P5-1 measurement order: 1) the real server count (rest mirror filled),
   // 2) the measured usage balance of the last turn, 3) the offline estimate.

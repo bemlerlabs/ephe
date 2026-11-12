@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import StatusBar from '@/components/dashboard/StatusBar'
+import { CONTEXT_WINDOW_TOKENS } from '@/lib/contextMeter'
 import type { ChatMessage } from '@/types'
 
 // W2: deterministic budget behaviour — Partial '{}' like the e2e stub.
@@ -47,12 +48,12 @@ function makeMsgs(role: 'user' | 'assistant', text: string): ChatMessage[] {
 
 describe('StatusBar', () => {
   it('states the context remainder in percent, not the raw token pair', () => {
-    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → ~12% used
-    render(<StatusBar messages={msgs} />)
-    expect(screen.getByTestId('statusbar-percent').textContent).toBe('88% free')
+    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → 4% of the 24576 floor the render pins
+    render(<StatusBar messages={msgs} windowTokens={CONTEXT_WINDOW_TOKENS} />)
+    expect(screen.getByTestId('statusbar-percent').textContent).toBe('96% free')
     // WCAG 2.5.3: the visible figure is part of the name the button answers to.
     expect(screen.getByTestId('statusbar-breakdown-toggle').getAttribute('aria-label')).toBe(
-      'Token breakdown: 88% free',
+      'Token breakdown: 96% free',
     )
     // The raw figures are behind the status pill now, not in the row all day.
     expect(screen.queryByTestId('statusbar-storage-chip')).toBeNull()
@@ -60,23 +61,23 @@ describe('StatusBar', () => {
   })
 
   it('no warning text without onCompact (Action statt toter Hinweis, Phase F)', () => {
-    const msgs = makeMsgs('user', 'x'.repeat(70000)) // ~16k tok > 75%
-    render(<StatusBar messages={msgs} />)
+    const msgs = makeMsgs('user', 'x'.repeat(90000)) // ~21.4k tok > 75% of the floor
+    render(<StatusBar messages={msgs} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     expect(screen.queryByText(/kompakt empfohlen/)).toBeNull()
   })
 
   it('shows the Compact-Button at high usage WHEN onCompact geparlt', () => {
     const onCompact = vi.fn()
-    const msgs = makeMsgs('user', 'x'.repeat(70000)) // ~16k tok > 75%
-    render(<StatusBar messages={msgs} onCompact={onCompact} />)
+    const msgs = makeMsgs('user', 'x'.repeat(90000)) // ~21.4k tok > 75% of the floor
+    render(<StatusBar messages={msgs} onCompact={onCompact} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     const btn = screen.getByRole('button', { name: /Compact/i })
     fireEvent.click(btn)
     expect(onCompact).toHaveBeenCalledTimes(1)
   })
 
   it('no Compact-Button ohne onCompact (backwards-kompatibel)', () => {
-    const msgs = makeMsgs('user', 'x'.repeat(70000))
-    render(<StatusBar messages={msgs} />)
+    const msgs = makeMsgs('user', 'x'.repeat(90000))
+    render(<StatusBar messages={msgs} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     expect(screen.queryByRole('button', { name: /Compact/i })).toBeNull()
   })
 
@@ -84,14 +85,14 @@ describe('StatusBar', () => {
   // The meter has to fall back to the offline estimate instead of crashing on
   // undefined.toLocaleString().
   it('W2: Partial-Budget {} faellt auf die Offline-Schaetzung zurueck', () => {
-    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → 12% used
-    render(<StatusBar messages={msgs} />)
-    expect(screen.getByTestId('statusbar-percent').textContent).toBe('88% free')
+    const msgs = makeMsgs('user', 'x'.repeat(4200)) // ~1000 tok → 4% of the 24576 floor the render pins
+    render(<StatusBar messages={msgs} windowTokens={CONTEXT_WINDOW_TOKENS} />)
+    expect(screen.getByTestId('statusbar-percent').textContent).toBe('96% free')
   })
 
   it('opens the context popover from the breakdown control', () => {
     const msgs = makeMsgs('assistant', 'a'.repeat(420)) // ~100 tok
-    render(<StatusBar messages={msgs} />)
+    render(<StatusBar messages={msgs} windowTokens={CONTEXT_WINDOW_TOKENS} />)
     // The row no longer prints the breakdown inline — the popover is its home, so the
     // one control that opens it now just opens it (the number lives in the composer).
     fireEvent.click(screen.getByTestId('statusbar-breakdown-toggle'))
@@ -103,7 +104,7 @@ describe('StatusBar', () => {
       {
         id: 'a-1',
         role: 'assistant',
-        content: 'x'.repeat(4200), // ~1000 tok
+        content: 'x'.repeat(4200), // ~1000 tok → 4% of the floor
         timestamp: Date.now() - 2000, // turn started 2s ago
         streaming: true,
       },
