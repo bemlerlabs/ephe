@@ -119,9 +119,11 @@ def get_model_config(tier: ModelTier) -> ModelConfig:
 #: schemas alone are ~6.6k tokens, so the very first tool result forced a compaction and
 #: the loop compacted on almost every round (measured 2026-11-12: 153 compactions in ten
 #: creator turns, which is what made the model re-build bundles it had already built).
-#: 32_768 fits the whole prompt with room for a few results and stays under the window
-#: every current OpenAI-compatible server offers; a real probe still overrides it.
-LEGACY_CONTEXT_WINDOW = 32768
+#: 24_576 fits the whole prompt with room for a few results and stays under the window
+#: every current OpenAI-compatible server offers; a real probe still overrides it. It is
+#: deliberately not a tier value, so `window_source: legacy` stays distinguishable from a
+#: tier row the meter would be reading as a measurement.
+LEGACY_CONTEXT_WINDOW = 24576
 
 #: Windows of the shipped model classes, the POWER row reconciled with a live
 #: probe of the running engine on 2026-10-11: the DGX engine reports

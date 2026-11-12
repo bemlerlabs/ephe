@@ -92,7 +92,7 @@ def test_shipped_power_row_is_reconciled_with_the_live_probe():
     assert TIER_CONTEXT_WINDOWS[ModelTier.POWER] == LIVE_PROBED_POWER_WINDOW
     assert TIER_CONTEXT_WINDOWS[ModelTier.OFFLINE] == 32768
     assert TIER_CONTEXT_WINDOWS[ModelTier.FAST] == 16384
-    assert LEGACY_CONTEXT_WINDOW == 32768
+    assert LEGACY_CONTEXT_WINDOW == 24576
     assert LEGACY_CONTEXT_WINDOW not in TIER_CONTEXT_WINDOWS.values()
 
 
@@ -102,9 +102,9 @@ def test_probe_reconciles_over_the_tier_row(monkeypatch):
     THEN the probe wins (source 'engine') and the tier row is only the fallback."""
     monkeypatch.delenv("EPHE_CONTEXT_WINDOW", raising=False)
     _configure_power(monkeypatch, "gemma4:26b")
-    _seed_probe(monkeypatch, "gemma4:26b", "http://127.0.0.1:8000", 32768)
+    _seed_probe(monkeypatch, "gemma4:26b", "http://127.0.0.1:8000", 24576)
 
-    assert resolve_context_window("gemma4:26b") == (32768, "engine")
+    assert resolve_context_window("gemma4:26b") == (24576, "engine")
 
     from server.routes.model_provider import _CONTEXT_WINDOW_CACHE
 
@@ -118,7 +118,7 @@ def test_env_override_still_beats_probe_and_row(monkeypatch):
     THEN the manual override wins — the top of the reconciliation order."""
     monkeypatch.setenv("EPHE_CONTEXT_WINDOW", "999999")
     _configure_power(monkeypatch, "gemma4:26b")
-    _seed_probe(monkeypatch, "gemma4:26b", "http://127.0.0.1:8000", 32768)
+    _seed_probe(monkeypatch, "gemma4:26b", "http://127.0.0.1:8000", 24576)
 
     assert resolve_context_window("gemma4:26b") == (999999, "env")
 

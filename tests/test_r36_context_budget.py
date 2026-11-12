@@ -154,7 +154,7 @@ def test_known_model_fills_the_window_from_the_tier_table(sessions_root, monkeyp
 def test_unknown_model_falls_back_to_the_legacy_constant(sessions_root, monkeypatch):
     """GIVEN no probe, no override and an unknown model id
     WHEN the route resolves the window
-    THEN it keeps the documented 32768 floor (env and probe still win)."""
+    THEN it keeps the documented 24576 floor (env and probe still win)."""
     _clean_env(monkeypatch)
     from core import multi_session as ms
     from core.model_provider import ModelProviderConfig
@@ -180,7 +180,7 @@ def test_unknown_model_falls_back_to_the_legacy_constant(sessions_root, monkeypa
     b = _get("w3b").json()
 
     assert b["window_source"] == "legacy"
-    assert b["window_tokens"] == 32768
+    assert b["window_tokens"] == 24576
 
 
 def test_compaction_flag_uses_counted_history(sessions_root, monkeypatch):
@@ -213,7 +213,7 @@ def test_window_from_model_entry_knows_the_names_servers_write():
 
     assert window_from_model_entry({"id": "m", "max_model_len": 262144}) == 262144
     assert window_from_model_entry({"context_length": 131072}) == 131072
-    assert window_from_model_entry({"max_context_length": 32768}) == 32768
+    assert window_from_model_entry({"max_context_length": 24576}) == 24576
     # DeepSeek writes this one (docs/receipts/context-window-probe-W7-6.json).
     assert window_from_model_entry({"id": "m", "context_window": 1048576}) == 1048576
     # No field, nonsense, null: the probe stays silent, it does not guess.
