@@ -58,6 +58,43 @@ type TauriEventBridge = {
   listen: (name: string, cb: (event: { payload?: unknown }) => void) => Promise<() => void>
 }
 
+/** Poll the shell again while its answer still blocks sending, until it stops.
+ *
+ * The state event fires exactly once per start attempt, and the shell starts the
+ * backend on a thread that races this window's mount: a surface that asked before
+ * the attempt was recorded saw the pre-attempt answer, and the one event may have
+ * been emitted before any listener existed. A stale lock then lives as long as the
+ * window does. This closes the race for every consumer at once: while readiness
+ * blocks sending, the recorded answer is re-read on a short timer, and the first
+ * answer that no longer blocks is handed on. `composerBlocked` is the sole judge,
+ * so "worth another look" is the same question as "can this window send". */
+export function watchBackendReadinessUntilSendable(
+  initial: BackendReadiness | null,
+  isBlocked: (value: BackendReadiness | null) => boolean,
+  next: (value: BackendReadiness) => void,
+): () => void {
+  if (!isDesktopShell()) return () => {}
+  let active = isBlocked(initial)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const tick = () => {
+    if (!active) return
+    void readBackendReadiness().then((value) => {
+      if (!active || !value) return
+      if (!isBlocked(value)) {
+        active = false
+        next(value)
+        return
+      }
+      timer = setTimeout(tick, 1500)
+    })
+  }
+  if (active) timer = setTimeout(tick, 800)
+  return () => {
+    active = false
+    if (timer) clearTimeout(timer)
+  }
+}
+
 /** Subscribe to the shell's state changes; returns the unsubscribe.
  *
  * The channel is `window.__TAURI__.event`, the same one the update flow uses — @tauri-apps/api is

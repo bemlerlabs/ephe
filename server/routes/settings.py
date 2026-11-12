@@ -217,6 +217,20 @@ async def update_settings(req: SettingsRequest) -> dict:
         except ProviderSetupError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+        # Dynamic default: the moment an engine is chosen, its own reported window
+        # becomes the context window. The probe is asked NOW, inside the switch the
+        # user just made - not lazily at the next status-bar poll - so every later
+        # answer (budget meter, compaction, the chat loop) reads the fresh value from
+        # the probe cache. A failed probe leaves the fallback order (env > probe cache
+        # > tier > legacy) untouched; the switch itself never depends on it.
+        _engine_window = None
+        try:
+            from server.routes.model_provider import _active_context_window
+
+            _engine_window = await _active_context_window(get_active_provider())
+        except Exception:
+            _engine_window = None
+
         if key:
             # The env copy answers this process only; the stored copy is what the
             # next start reads, so it is bound to the engine that just validated.
@@ -342,8 +356,24 @@ async def update_settings(req: SettingsRequest) -> dict:
         # (Persistence is best-effort; the session-local choice still applies.)
         _clear_setup_skip()
 
+    # A body without a provider block changes no engine, so no switch was made and
+    # no probe ran; the key still answers — with what the active engine's cache and
+    # the fallback order name right now — because both surfaces read one number.
+    _engine_window = None
+    try:
+        from server.routes.model_provider import _active_context_window
+
+        _engine_window = await _active_context_window(get_active_provider())
+    except Exception:
+        _engine_window = None
+
     return {
         "provider": _active_provider_dict(),
+        # The window the switch just resolved: the engine's own reported maximum
+        # when the probe answered, None when nothing named one (the surface keeps its
+        # previous value; the backend keeps its fallback order). Same key the
+        # model-providers route answers with, so both surfaces read one number.
+        "context_window": _engine_window,
         "memory_enabled": os.environ.get("EPHE_MEMORY_ENABLED", "1") != "0",
         "language": os.environ.get("EPHE_LANGUAGE", "de"),
         "workspace_dir": _workspace_dir_dict(),

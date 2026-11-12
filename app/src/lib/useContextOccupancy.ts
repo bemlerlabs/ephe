@@ -29,7 +29,29 @@ export function useContextOccupancy(
   windowTokens?: number,
   sessionId?: string,
 ): ContextOccupancy {
+  // A model/provider switch invalidates the cached server window: the surfaces
+  // re-fetch, but until the answer arrives the old denominator must not sit
+  // beside the new engine's messages — the offline estimate takes over instead.
+  // Two channels carry the switch: the 'ephe:model-changed' event (composer chip)
+  // and the caller's own window prop (the settings page knows the number from the
+  // switch response). Nothing else moves this value; a mount with a settled prop
+  // keeps the offline estimate stable, which is what the meter tests pin.
   const [budget, setBudget] = useState<ContextBudget | null>(null)
+  const [seenWindow, setSeenWindow] = useState(windowTokens)
+  useEffect(() => {
+    const onModelChanged = () => setBudget(null)
+    window.addEventListener('ephe:model-changed', onModelChanged)
+    return () => window.removeEventListener('ephe:model-changed', onModelChanged)
+  }, [])
+  useEffect(() => {
+    if (windowTokens !== seenWindow) {
+      setSeenWindow(windowTokens)
+      setBudget(null)
+    }
+  }, [windowTokens, seenWindow])
+  // Order: the server's own count first, then the caller's window — one
+  // denominator at a time. A model switch clears the cached budget below, so the
+  // estimate over the caller's (fresh) window answers while the re-fetch runs.
   const effectiveWindow = budget?.window_tokens || windowTokens
   const usage = useMemo(
     () => estimateContextUsage(messages || [], effectiveWindow),
@@ -48,7 +70,7 @@ export function useContextOccupancy(
     return () => {
       cancelled = true
     }
-  }, [sessionId, messages?.length])
+  }, [sessionId, messages?.length, seenWindow])
 
   // P5-1 measurement order: 1) the real server count (rest mirror filled),
   // 2) the measured usage balance of the last turn, 3) the offline estimate.
@@ -72,9 +94,15 @@ export function useContextOccupancy(
   // used figure — in the measured branch too, not just beside the server mirror.
   const countedLive = mirrorLive || (measuredTotal > 0 && !!effectiveWindow)
   const remaining =
-    countedLive && effectiveWindow
-      ? Math.max(0, effectiveWindow - tokens)
-      : usage.remaining
+    countedLive && effectiveWindow ? Math.max(0, effectiveWindow - tokens) : usage.remaining
 
-  return { budget, window: effectiveWindow, usage, percent, tokens, remaining, tokenizer: budget?.tokenizer }
+  return {
+    budget,
+    window: effectiveWindow,
+    usage,
+    percent,
+    tokens,
+    remaining,
+    tokenizer: budget?.tokenizer,
+  }
 }

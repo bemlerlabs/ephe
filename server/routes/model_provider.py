@@ -279,4 +279,15 @@ async def update_model_provider(req: ProviderUpdateRequest) -> dict:
 
     _clear_setup_skip()
 
-    return {"active": active.to_dict()}
+    # Dynamic default (same contract as POST /settings): the switch asks the engine
+    # for its own reported window NOW, so the next /api/context/budget, the meter and
+    # the chat loop read the new engine's maximum from the probe cache instead of a
+    # stale entry or a fallback row. A probe that cannot answer is None — the switch
+    # succeeded either way and the fallback order (env > cache > tier > legacy) stands.
+    window = None
+    try:
+        window = await _active_context_window(active)
+    except Exception:
+        window = None
+
+    return {"active": active.to_dict(), "context_window": window}

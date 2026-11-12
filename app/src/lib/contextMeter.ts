@@ -17,8 +17,15 @@ import { formatNumber } from './dateLocale'
 /** chars-per-token heuristic for a Latin run; every tokenizer answers differently */
 export const CHARS_PER_TOKEN = 4.2
 
-/** fallback window for a meter whose backend has not reported one yet */
-export const CONTEXT_WINDOW_TOKENS = 8192
+/** Fallback window for a meter whose backend has not reported one yet.
+ *
+ *  8 192 was the pre-2026-11 number and it could not hold a shipped turn: the tool
+ *  schemas alone are ~6.6k tokens, so a meter reading this value showed a full
+ *  context before the engine ever answered. It mirrors core.model_config's
+ *  LEGACY_CONTEXT_WINDOW — the documented floor of every engine — and is a display
+ *  fallback only: the real number comes from /api/context/budget or the engine
+ *  probe, and the backend (tests/test_w14_audit_fixes.py) pins its side. */
+export const CONTEXT_WINDOW_TOKENS = 24576
 
 /** CJK counts as ~1 token per character in the tokenizer (calibration, P0-3) */
 export const CJK_TOKENS_PER_CHAR = 1

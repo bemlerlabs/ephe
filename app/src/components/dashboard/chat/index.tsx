@@ -56,6 +56,7 @@ import EngineStatusPill from '@/components/shell/EngineStatusPill'
 import {
   composerBlocked,
   readBackendReadiness,
+  watchBackendReadinessUntilSendable,
   onBackendReadiness,
   type BackendReadiness,
 } from '@/lib/backendReadiness'
@@ -126,7 +127,16 @@ export default function ChatLayout() {
   useEffect(() => {
     let alive = true
     void readBackendReadiness().then((value) => {
-      if (alive) setReadiness(value)
+      if (!alive) return
+      setReadiness(value)
+      // One cold read races the shell's start thread: the state event fires exactly
+      // once, possibly before this listener exists, so a window that asked too early
+      // kept a locked composer for its whole life. While the answer blocks sending,
+      // the recorded state is re-read until it stops — the shell answers from a
+      // mutex, never a socket, so re-asking is cheap.
+      watchBackendReadinessUntilSendable(value, composerBlocked, (v) => {
+        if (alive) setReadiness(v)
+      })
     })
     const off = onBackendReadiness((value) => setReadiness(value))
     return () => {

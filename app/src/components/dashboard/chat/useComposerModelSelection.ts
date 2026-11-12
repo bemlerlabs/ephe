@@ -133,9 +133,16 @@ export function useComposerModelSelection() {
             /* Private Mode */
           }
         }
-        // P1b: model/provider switch — the context window may have changed;
-        // ChatLayout reloads it through this event (re-fetch).
-        window.dispatchEvent(new CustomEvent('ephe:model-changed'))
+        // P1b: model/provider switch — the context window changed with the engine.
+        // The backend already probed the new engine inside the switch, so the
+        // surfaces re-read their number through this event (re-fetch); the switch
+        // response's own context_window is carried as the event detail so a surface
+        // can settle on it without waiting for the poll.
+        window.dispatchEvent(
+          new CustomEvent('ephe:model-changed', {
+            detail: { contextWindow: r.context_window ?? null },
+          }),
+        )
       })
       .catch(() => toastBus.error(t('common.changeFailed')))
   }
