@@ -8,7 +8,7 @@
 # version and the sha256 from the published release. This file is the template it reads, so
 # keep its shape; the numbers are checked against the release by scripts/packaging_freshness.py.
 cask "ephe" do
-  version "0.6.8"
+  version "0.7.0"
   license "BUSL-1.1"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000" # template sentinel; render_packaging replaces it with the released DMG hash
 

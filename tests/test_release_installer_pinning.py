@@ -76,6 +76,9 @@ def test_a_dry_run_reports_the_clone_and_the_tag_checkout(tmp_path):
 
 
 def test_the_install_documents_pass_the_tag():
+    from scripts.version_carriers import read_versions
+
+    tag = f"v{next(iter(read_versions(ROOT).values()))}"
     for name in (
         "README.md",
         "README.es.md",
@@ -86,4 +89,4 @@ def test_the_install_documents_pass_the_tag():
         "docs/FIRST_RUN.md",
     ):
         text = (ROOT / name).read_text(encoding="utf-8")
-        assert "--tag v0.6.8" in text or "-Ref v0.6.8" in text, f"{name} names no release ref"
+        assert f"--tag {tag}" in text or f"-Ref {tag}" in text, f"{name} names no release ref"

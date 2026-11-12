@@ -6,15 +6,15 @@ clean machine, is [FIRST_RUN.md](FIRST_RUN.md).
 ## 1 · Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.7.0/install.sh | bash -s -- --tag v0.7.0
 ```
 
-`--tag v0.6.8` checks out the release tag rather than the branch tip. On Windows, use
+`--tag v0.7.0` checks out the release tag rather than the branch tip. On Windows, use
 PowerShell. This installation path is not yet verified end to end for this revision:
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.7.0/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.7.0
 ```
 
 macOS asks once about an unnotarized app: **System Settings → Privacy & Security → Open Anyway**.
