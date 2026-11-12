@@ -51,6 +51,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
     case 'goal_check':
     case 'budget':
     case 'sol_insight':
+    case 'citation_check':
     case 'steer':
     case 'gap':
     case 'skill_created':
@@ -82,7 +83,7 @@ function assertExhaustive(event: StreamEvent, sink: string[] = []): void {
 }
 
 describe('StreamEvent (Diskriminierte Union)', () => {
-  it('deckt alle 36 Backend-Event-Typen exhaustiv ab', () => {
+  it('deckt alle 37 Backend-Event-Typen exhaustiv ab', () => {
     const events: StreamEvent[] = [
       { type: 'thinking_start' },
       { type: 'thinking_chunk', data: 'Ich überlege…' },
@@ -136,8 +137,23 @@ describe('StreamEvent (Diskriminierte Union)', () => {
           verified_at: '2026-10-29T14:00:00Z',
         },
       },
-      { type: 'steer', status: 'landed', actor: 'user', msg: 'Direction changed', text: 't', agent_id: 'a1' },
-      { type: 'swarm_created', swarm_id: 's1', agents: [{ agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' }, { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' }], model: 'gemma4:12b' },
+      {
+        type: 'steer',
+        status: 'landed',
+        actor: 'user',
+        msg: 'Direction changed',
+        text: 't',
+        agent_id: 'a1',
+      },
+      {
+        type: 'swarm_created',
+        swarm_id: 's1',
+        agents: [
+          { agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' },
+          { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' },
+        ],
+        model: 'gemma4:12b',
+      },
       { type: 'swarm_agent_started', swarm_id: 's1', agent_id: 'a1', subtask: 't' },
       { type: 'swarm_agent_done', swarm_id: 's1', agent_id: 'a1', summary: 'done' },
       {

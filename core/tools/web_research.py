@@ -1,21 +1,28 @@
 """web_research — one question, several pages, an answer that carries its sources.
 
 The tool makes no model call. Its answer is extractive: every sentence is copied
-from the page it names, and ``core.web_intake.verify`` checks the copy against
-the stored text before the result is returned. A model paraphrases from the
-evidence afterwards; the compiled answer is the part it can cite without
-inventing a source.
+from the page or the workspace line it names, and ``core.web_intake.verify``
+checks the copy against the stored text before the result is returned. A model
+paraphrases from the evidence afterwards; the compiled answer is the part it can
+cite without inventing a source.
 
-The first cut is a tool, not a route and not a surface. It is off until the user
-configures a search provider, and it answers with the settings to add rather than
-searching and failing quietly.
+``workspace_scope`` mixes local evidence into the same answer. A file line keeps
+its ``path:line`` address, a page keeps its ``s_…`` id, and one citation check
+covers both.
+
+The first cut is a tool, not a surface. It is off until the user configures a
+search provider, and it answers with the settings to add rather than searching
+and failing quietly.
 """
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from core.reason import Reason, reason
 from core.tool_markers import RESEARCH_FAILED_MARKER, RESEARCH_REFUSED_MARKER
+from core.web_intake import ledger as research_ledger
 from core.web_intake import policy
 from core.web_intake.crawl import CrawlPage, crawl
 from core.web_intake.evidence import EvidenceSource, EvidenceStore
@@ -26,7 +33,16 @@ from core.web_intake.search import (
     SearchUnavailable,
     search,
 )
-from core.web_intake.verify import sentences, verify_claims
+from core.web_intake.verify import (
+    Verification,
+    sentences,
+    verify_claims,
+)
+from core.web_intake.workspace_scope import (
+    MAX_CLAIM_CHARS,
+    WorkspaceHit,
+    search_workspace,
+)
 
 WEB_RESEARCH_TOOL_SCHEMAS = [
     {
@@ -38,7 +54,9 @@ WEB_RESEARCH_TOOL_SCHEMAS = [
                 "returns an extractive answer whose every sentence names the source "
                 "id it was copied from, followed by the evidence and the pages that "
                 "were refused. Needs a configured search provider; without one it "
-                "answers with a coded refusal naming the settings to add."
+                "answers with a coded refusal naming the settings to add. With "
+                "'workspace_scope' the answer also carries lines from this workspace, "
+                "each under its path:line address."
             ),
             "parameters": {
                 "type": "object",
@@ -73,6 +91,14 @@ WEB_RESEARCH_TOOL_SCHEMAS = [
                             "which a cached page is reused without a request."
                         ),
                     },
+                    "workspace_scope": {
+                        "type": "string",
+                        "description": (
+                            "Optional workspace subtree or symbol to mix into the "
+                            "answer. A path prefix keeps files below it; a bare word "
+                            "keeps lines carrying it. Each local claim names path:line."
+                        ),
+                    },
                 },
                 "required": ["query"],
             },
@@ -89,6 +115,24 @@ _STOP_TERMS = frozenset(
     "were what when where which while will with would your".split()
 )
 _FAKE_CITATION = re.compile(r"\[s_[0-9a-f]{12}\]")
+#: Page text cannot mint a workspace reference either; the pattern is the one
+#: `verify.WORKSPACE_CITATION` resolves, stripped before the real one is appended.
+_FAKE_WORKSPACE = re.compile(
+    r"\[[A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:py|ts|tsx|js|jsx|md|json|toml|css|html|yml|yaml):\d+\]"
+)
+
+
+@dataclass
+class ResearchResult:
+    """The tool's text plus the run a surface can read as data.
+
+    ``run`` is None for a refusal, a failed provider and a run that read nothing:
+    there is no evidence to publish, so no entry enters the ledger.
+    """
+
+    text: str
+    run: research_ledger.ResearchRun | None = None
+    verification: Verification = field(default_factory=Verification)
 
 
 def _refusal(code: str, detail: str, next_step: str, **params: str) -> Reason:
@@ -113,8 +157,8 @@ def _terms(query: str) -> list[str]:
 
 
 def _clean(sentence: str) -> str:
-    """Page text cannot mint a source id: markers are removed before one is appended."""
-    return _FAKE_CITATION.sub("", sentence).strip()
+    """Page text cannot mint a source: both citation shapes are removed first."""
+    return _FAKE_WORKSPACE.sub("", _FAKE_CITATION.sub("", sentence)).strip()
 
 
 def _select_claims(
@@ -157,8 +201,25 @@ def _select_claims(
     return claims, bool(matched)
 
 
+def _workspace_claims(hits: list[WorkspaceHit], limit: int) -> list[WorkspaceHit]:
+    claims: list[WorkspaceHit] = []
+    seen: set[str] = set()
+    for hit in hits:
+        text = _clean(hit.text)
+        if not 30 <= len(text) <= MAX_CLAIM_CHARS:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        claims.append(WorkspaceHit(path=hit.path, line=hit.line, text=text))
+        if len(claims) >= limit:
+            break
+    return claims
+
+
 def _format_source(source: EvidenceSource) -> str:
-    excerpt = _FAKE_CITATION.sub("", re.sub(r"\s+", " ", source.extract)).strip()
+    excerpt = _clean(re.sub(r"\s+", " ", source.extract))
     if len(excerpt) > _EXCERPT_CHARS:
         excerpt = excerpt[:_EXCERPT_CHARS].rstrip() + " [...]"
     return (
@@ -170,6 +231,10 @@ def _format_source(source: EvidenceSource) -> str:
     )
 
 
+def _format_workspace(hit: WorkspaceHit) -> str:
+    return f"[{hit.reference}] {hit.text}"
+
+
 def _gaps_text(gaps: list[str]) -> str:
     if not gaps:
         return ""
@@ -179,47 +244,65 @@ def _gaps_text(gaps: list[str]) -> str:
     return "Gaps\n" + "\n".join(f"- {line}" for line in lines)
 
 
-async def web_research(
+def _merge(report: Verification, part: Verification) -> None:
+    report.checked += part.checked
+    report.verified += part.verified
+    report.issues.extend(part.issues)
+    report.rejected.extend(part.rejected)
+
+
+async def run_research(
     query: str = "",
     site: str = "",
     max_pages: int = policy.DEFAULT_PAGES,
     depth: int = policy.DEFAULT_DEPTH,
     freshness: str = "any",
-) -> str:
+    workspace_scope: str = "",
+    workspace_root: str | Path | None = None,
+) -> ResearchResult:
+    """One research run as text plus data; ``web_research`` returns the text only."""
     query = (query or "").strip()
     if not query:
-        return _refusal(
-            "web_query_empty",
-            "The query is empty, so no page was requested.",
-            "pass the question in 'query'",
+        return ResearchResult(
+            text=_refusal(
+                "web_query_empty",
+                "The query is empty, so no page was requested.",
+                "pass the question in 'query'",
+            )
         )
     try:
         window = policy.normalize_freshness(freshness)
     except ValueError:
-        return _refusal(
-            "web_freshness_unknown",
-            f"'{freshness}' is not a freshness the crawler knows.",
-            "use any, day, week, month or year",
+        return ResearchResult(
+            text=_refusal(
+                "web_freshness_unknown",
+                f"'{freshness}' is not a freshness the crawler knows.",
+                "use any, day, week, month or year",
+            )
         )
     pages_limit, levels = policy.normalize_limits(max_pages, depth)
 
     config = SearchConfig.from_environment()
     if not config.configured:
-        return _refusal(
-            "web_search_not_configured",
-            "No search provider is configured, so no page was requested.",
-            NEXT_STEP,
+        return ResearchResult(
+            text=_refusal(
+                "web_search_not_configured",
+                "No search provider is configured, so no page was requested.",
+                NEXT_STEP,
+            )
         )
 
     site_host = policy.site_host(site)
     if site_host:
         reachable, why = policy.link_reach(f"https://{site_host}")
         if not reachable:
-            return _refusal(
-                "web_site_outside_reach",
-                f"The site restriction '{site_host}' is out of reach: {why}.",
-                "name a public host, or drop 'site'",
-                site=site_host,
+            return ResearchResult(
+                text=_refusal(
+                    "web_site_outside_reach",
+                    f"The site restriction '{site_host}' is out of reach: {why}.",
+                    "name a public host, or drop 'site'",
+                    site=site_host,
+                )
             )
 
     try:
@@ -230,23 +313,25 @@ async def web_research(
             freshness=window,
         )
     except SearchNotConfigured:
-        return _refusal(
-            "web_search_not_configured",
-            "No search provider is configured, so no page was requested.",
-            NEXT_STEP,
+        return ResearchResult(
+            text=_refusal(
+                "web_search_not_configured",
+                "No search provider is configured, so no page was requested.",
+                NEXT_STEP,
+            )
         )
     except SearchUnavailable as exc:
-        return _failed("web_search_failed", f"Search failed: {exc.detail}.")
-
-    if not hits:
-        return (
-            f"[web_research] query={query!r} provider={config.provider}\n"
-            "The provider answered with no results. Next: rephrase the query, or "
-            "name a site whose pages already answer it."
+        return ResearchResult(
+            text=_failed("web_search_failed", f"Search failed: {exc.detail}.")
         )
 
     seeds: list[str] = []
     gaps: list[str] = []
+    if not hits:
+        gaps.append(
+            "the provider answered with no results; rephrase the query or name a site"
+        )
+
     for hit in hits:
         if site_host and not policy.in_site(hit.url, site_host):
             gaps.append(f"{hit.url}: outside the site restriction")
@@ -280,49 +365,156 @@ async def web_research(
         )
         by_url[page.url] = source
 
+    scope = (workspace_scope or "").strip()
+    workspace_hits: list[WorkspaceHit] = []
+    if scope:
+        root = Path(workspace_root).expanduser() if workspace_root is not None else None
+        workspace_hits = search_workspace(query, root=root, scope=scope)
+        if not workspace_hits:
+            gaps.append(f"workspace scope {scope!r}: no line carried the query terms")
+
     header = (
         f"[web_research] query={query!r} provider={config.provider} "
         f"pages={len(run.pages)}/{run.considered} gaps={len(gaps)} depth={levels} "
         f"freshness={window or 'any'}"
+        + (f" workspace={len(workspace_hits)}" if scope else "")
     )
-    if not run.pages:
-        body = "No page could be read, so no answer is given."
-        return "\n\n".join(
-            part for part in (header, body, _gaps_text(gaps),
-                              "Next: loosen the site restriction or check the provider's results.") if part
+    if not run.pages and not workspace_hits:
+        body = (
+            "No page or workspace line could be read, so no answer is given."
+            if scope else "No page could be read, so no answer is given."
+        )
+        return ResearchResult(
+            text="\n\n".join(
+                part for part in (
+                    header,
+                    body,
+                    _gaps_text(gaps),
+                    "Next: loosen the site restriction or check the provider's results.",
+                ) if part
+            )
         )
 
-    claims, matched = _select_claims(run.pages, _terms(query), by_url)
+    web_claims, matched = _select_claims(run.pages, _terms(query), by_url)
+    local_claims = _workspace_claims(workspace_hits, limit=2) if workspace_hits else []
+    if local_claims:
+        web_claims = web_claims[: max(0, _MAX_CLAIMS - len(local_claims))]
+    workspace_map = {hit.reference: hit for hit in workspace_hits}
+
     answer_lines: list[str] = []
+    report = Verification()
     rejected = 0
-    for sentence, source in claims:
+    for sentence, source in web_claims:
         line = f"{sentence} [{source.source_id}]"
-        report = verify_claims([line], store)
-        if report.verified == 1:
+        part = verify_claims([line], store)
+        _merge(report, part)
+        if part.verified == 1:
             answer_lines.append(f"- {sentence} [{source.source_id}]")
+        else:
+            rejected += 1
+    for hit in local_claims:
+        line = f"{hit.text} [{hit.reference}]"
+        part = verify_claims([line], store, workspace_map)
+        _merge(report, part)
+        if part.verified == 1:
+            answer_lines.append(f"- {hit.text} [{hit.reference}]")
         else:
             rejected += 1
     if rejected:
         gaps.append(f"{rejected} sentence(s) did not survive the source-text check")
 
     if answer_lines:
-        heading = "Answer (extractive; each sentence names the page it was copied from)"
-        answer = heading + "\n" + "\n".join(answer_lines)
-        check = (
-            f"Citation check: {len(answer_lines)} of {len(claims)} sentence(s) verified "
-            "against the stored page text."
-        )
-        if not matched:
+        if local_claims:
+            heading = (
+                "Answer (extractive; each sentence names the page or the file line "
+                "it was copied from)"
+            )
+            check = (
+                f"Citation check: {len(answer_lines)} of {len(web_claims) + len(local_claims)} "
+                "claim(s) verified against the stored page text and file lines."
+            )
+        else:
+            heading = "Answer (extractive; each sentence names the page it was copied from)"
+            check = (
+                f"Citation check: {len(answer_lines)} of {len(web_claims)} sentence(s) verified "
+                "against the stored page text."
+            )
+        if not matched and not local_claims:
             check += " No sentence carried a query term; the first passages are shown."
+        answer = heading + "\n" + "\n".join(answer_lines)
     else:
-        answer = "No sentence of the read pages answered the query."
+        answer = (
+            "No sentence of the read pages or workspace lines answered the query."
+            if scope else "No sentence of the read pages answered the query."
+        )
         check = ""
 
-    evidence = "Sources\n" + "\n\n".join(
-        _format_source(source) for source in store.sources()
+    evidence_parts = []
+    if store.sources():
+        evidence_parts.append("Sources\n" + "\n\n".join(
+            _format_source(source) for source in store.sources()
+        ))
+    if local_claims:
+        evidence_parts.append("Workspace sources\n" + "\n".join(
+            _format_workspace(hit) for hit in local_claims
+        ))
+
+    text = "\n\n".join(
+        part for part in (header, answer, check, *evidence_parts, _gaps_text(gaps)) if part
     )
-    return "\n\n".join(
-        part
-        for part in (header, answer, check, evidence, _gaps_text(gaps))
-        if part
+
+    recorded = research_ledger.note_run(
+        query=query,
+        site=site_host,
+        provider=config.provider,
+        depth=levels,
+        freshness=window,
+        pages=len(run.pages),
+        considered=run.considered,
+        sources=list(store.sources()),
+        workspace=list(local_claims),
+        claims=[
+            research_ledger.ResearchClaim(
+                text=line.text, source_id=line.source_id, reference=line.reference
+            )
+            for line in _claims_of(web_claims, local_claims)
+        ],
+        answer=answer_lines,
+        gaps=gaps,
+        verification=report,
+        store=store,
     )
+    return ResearchResult(text=text, run=recorded, verification=report)
+
+
+def _claims_of(
+    web_claims: list[tuple[str, EvidenceSource]],
+    local_claims: list[WorkspaceHit],
+) -> list[research_ledger.ResearchClaim]:
+    claims = [
+        research_ledger.ResearchClaim(text=sentence, source_id=source.source_id)
+        for sentence, source in web_claims
+    ]
+    claims.extend(
+        research_ledger.ResearchClaim(text=hit.text, reference=hit.reference)
+        for hit in local_claims
+    )
+    return claims
+
+
+async def web_research(
+    query: str = "",
+    site: str = "",
+    max_pages: int = policy.DEFAULT_PAGES,
+    depth: int = policy.DEFAULT_DEPTH,
+    freshness: str = "any",
+    workspace_scope: str = "",
+) -> str:
+    return (await run_research(
+        query=query,
+        site=site,
+        max_pages=max_pages,
+        depth=depth,
+        freshness=freshness,
+        workspace_scope=workspace_scope,
+    )).text

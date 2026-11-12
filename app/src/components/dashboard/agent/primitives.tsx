@@ -43,6 +43,9 @@ export type Tab =
   | 'browser'
   | 'side'
 
+/** The PREVIEW_OPEN_EVENT payload: which tab or URL the pane should show. */
+export type PanelOpenDetail = { url?: string; tab?: Tab; toggle?: boolean }
+
 // P6 B1 (ref-10): the + menu is normalised to exactly four entries — the
 // menu key order is part of the contract. P6 B5: 'browser' is the
 // menu name of the ONE URL pane (tab key 'preview'); 'review' maps to

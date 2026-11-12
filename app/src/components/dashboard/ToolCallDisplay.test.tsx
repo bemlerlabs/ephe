@@ -16,8 +16,27 @@ const taskList = [
   { id: 't1', title: 'Readme schreiben', status: 'done', project: null },
   { id: 't2', title: 'Tests gruen', status: 'pending', project: null },
 ]
+const researchApi = vi.hoisted(() => ({
+  getResearchEvidence: vi.fn(
+    async (): Promise<{
+      ok: boolean
+      runs: unknown[]
+      sources: unknown[]
+      workspace: unknown[]
+      total: number
+    }> => ({
+      ok: true,
+      runs: [],
+      sources: [],
+      workspace: [],
+      total: 0,
+    }),
+  ),
+}))
+
 vi.mock('@/lib/api', () => ({
   getTasks: vi.fn(async () => taskList),
+  getResearchEvidence: researchApi.getResearchEvidence,
 }))
 
 function tc(partial: Partial<ToolCall> & { id: string }): ToolCall {
@@ -339,5 +358,48 @@ describe('ToolCallDisplay — Status-Labels i18n (I6 P2c)', () => {
     expect(screen.queryByText('waiting')).not.toBeInTheDocument()
     expect(screen.getAllByText('run_shell')).toHaveLength(1)
     expect(screen.getByTestId('tool-outcome').textContent).toContain('Wartet auf Freigabe')
+  })
+})
+
+describe('ToolCallDisplay — research evidence entry', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('en')
+  })
+
+  it('opens the source cards of a finished web_research call', async () => {
+    researchApi.getResearchEvidence.mockResolvedValueOnce({
+      ok: true,
+      total: 1,
+      runs: [],
+      sources: [
+        {
+          source_id: 's_a66928a39d45',
+          url: 'https://example.org/moon',
+          title: 'Moon drift',
+          fetched_at: '2026-11-12T00:00:00Z',
+          sha256: 'a'.repeat(64),
+          excerpt: 'The moon drifts away from Earth at about 3.8 cm per year.',
+          query: 'moon drift',
+          run_id: 'r_1',
+        },
+      ],
+      workspace: [],
+    })
+    render(
+      <ToolCallDisplay
+        live={false}
+        tool_calls={[
+          tc({
+            id: 'research-1',
+            name: 'web_research',
+            args: { query: 'moon drift' },
+            result: '[web_research] query="moon drift"',
+          }),
+        ]}
+      />,
+    )
+    expect(await screen.findByTestId('research-evidence')).toBeInTheDocument()
+    expect(screen.getByTestId('research-source-card')).toBeInTheDocument()
+    expect(screen.getByText('Raw tool output')).toBeInTheDocument()
   })
 })

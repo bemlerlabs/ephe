@@ -255,11 +255,17 @@ def note_budget_low(remaining: int) -> None:
         observer.note_budget_low(remaining)
 
 
-def note_turn_end() -> None:
-    """Close the bound turn with a summary event; a no-op without an observer."""
+def note_turn_end() -> dict | None:
+    """Close the bound turn with a summary event; a no-op without an observer.
+
+    Returns the record it emitted, so a caller that has to hand the turn's own duration to
+    another rail (the turn-end hook) reads the one number instead of starting a second
+    clock.
+    """
     observer = _ACTIVE.get()
     if observer is not None:
-        observer.note_turn_end()
+        return observer.note_turn_end()
+    return None
 
 
 __all__ = [

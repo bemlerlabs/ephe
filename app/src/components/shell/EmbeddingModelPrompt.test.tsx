@@ -34,6 +34,15 @@ const status = (over: Partial<model.EmbeddingModelStatus> = {}): model.Embedding
   downloading: false,
   downloaded: false,
   error: '',
+  reembed: {
+    running: false,
+    done: false,
+    total: 0,
+    embedded: 0,
+    remaining: 0,
+    label: '',
+    error: '',
+  },
   ...over,
 })
 

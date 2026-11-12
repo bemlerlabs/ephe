@@ -216,23 +216,34 @@ describe('ChatLayout Slash-Commands (G6)', () => {
 
   it('/model zeigt die System-Message mit Model-Key', async () => {
     typeSlash('/model')
-    await waitFor(() => {
-      expect(screen.getByText('chat.modelNow')).toBeTruthy()
-    })
+    // The bubble chunk (and with it the markdown pipeline) is fetched with the
+    // first transcript row, so the answer text arrives through a dynamic import.
+    await waitFor(
+      () => {
+        expect(screen.getByText('chat.modelNow')).toBeTruthy()
+      },
+      { timeout: 5000 },
+    )
   })
 
   it('/skills listet die Backend-Skills', async () => {
     typeSlash('/skills')
-    await waitFor(() => {
-      expect(screen.getByText('chat.skillList')).toBeTruthy()
-    })
+    await waitFor(
+      () => {
+        expect(screen.getByText('chat.skillList')).toBeTruthy()
+      },
+      { timeout: 5000 },
+    )
   })
 
   it('/sessions zeigt die Session-Liste', async () => {
     typeSlash('/sessions')
-    await waitFor(() => {
-      expect(screen.getByText('chat.sessionList')).toBeTruthy()
-    })
+    await waitFor(
+      () => {
+        expect(screen.getByText('chat.sessionList')).toBeTruthy()
+      },
+      { timeout: 5000 },
+    )
   })
 
   it('/settings öffnet das Einstellungen-Panel', async () => {

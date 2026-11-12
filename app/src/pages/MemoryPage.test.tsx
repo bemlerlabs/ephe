@@ -39,6 +39,12 @@ const api = vi.hoisted(() => ({
 vi.mock('@/lib/api', () => api)
 vi.mock('@/lib/toast', () => ({ toastBus: { success: vi.fn(), error: vi.fn() } }))
 
+const embedding = vi.hoisted(() => ({
+  readEmbeddingModel: vi.fn(async () => null),
+  startEmbeddingReembed: vi.fn(async () => true),
+}))
+vi.mock('@/lib/embeddingModel', () => embedding)
+
 import MemoryPage from './MemoryPage'
 
 const HIT = {
@@ -85,6 +91,8 @@ beforeEach(() => {
   api.listMemory.mockResolvedValue({ entries: [HIT, SUPERSEDED, CORRECTION], total: 3 })
   api.searchMemory.mockResolvedValue({ results: [HIT] })
   api.getMemoryStats.mockResolvedValue(STATS)
+  vi.mocked(embedding.readEmbeddingModel).mockResolvedValue(null)
+  vi.mocked(embedding.startEmbeddingReembed).mockResolvedValue(true)
   api.migrateMemory.mockResolvedValue({
     dry_run: true,
     provider_source: 'chroma',
@@ -245,5 +253,32 @@ describe('MemoryPage — Gehirne', () => {
     expect(coverage.textContent).toContain('0')
     expect(coverage.textContent).toContain('268')
     expect(screen.getByTestId('memory-leg-vector').textContent).toContain('memory.legOff')
+  })
+
+  it('shows the same coverage on the inventory page', async () => {
+    api.getMemoryStats.mockResolvedValue({
+      ...STATS,
+      vector_leg: true,
+      chunks: 45,
+      chunks_embedded: 0,
+    })
+    renderAt('/memory')
+    const coverage = await screen.findByTestId('memory-page-vector-coverage')
+    expect(coverage.textContent).toContain('memory.vectorCoverage')
+    expect(coverage.textContent).toContain('0')
+    expect(coverage.textContent).toContain('45')
+    expect(coverage.className).toContain('text-status-warn')
+  })
+
+  it('offers to re-embed the notes without a vector', async () => {
+    api.getMemoryStats.mockResolvedValue({
+      ...STATS,
+      vector_leg: true,
+      chunks: 268,
+      chunks_embedded: 12,
+    })
+    renderAt('/memory/gehirne')
+    fireEvent.click(await screen.findByTestId('memory-reembed-start'))
+    await waitFor(() => expect(embedding.startEmbeddingReembed).toHaveBeenCalledTimes(1))
   })
 })

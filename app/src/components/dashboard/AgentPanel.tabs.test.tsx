@@ -85,6 +85,21 @@ describe('AgentPanel Multi-Tabs (Runden-G, Referenz-Paritaet)', () => {
     }
   })
 
+  it('mounts with the request that opened the chat gate (boot hand-off)', async () => {
+    setPersistedTabs([])
+    const ready = vi.fn()
+    render(
+      <MemoryRouter>
+        <AgentPanel boot={{ tab: 'files' }} onReady={ready} />
+      </MemoryRouter>,
+    )
+    const tab = (await screen.findByRole('tab', {
+      name: 'agentPanel.tabFiles',
+    })) as HTMLElement
+    expect(tab.getAttribute('aria-selected')).toBe('true')
+    expect(ready).toHaveBeenCalled()
+  })
+
   it('Karte oeffnet den Tab als aktive Pille (role=tab, aria-selected)', async () => {
     setPersistedTabs([])
     renderPanel()

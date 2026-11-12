@@ -34,6 +34,11 @@ SMALL_CHUNK_KB = 12.0
 BUDGETS_GZIP_KB: dict[str, float] = {
     "index.js": 160.0,       # React 19 runtime + App shell, the entry chunk
     "ChatPage.js": 112.0,    # chat shell only — wave-3 split moved the panes out
+    # 2026-11-12 (PERF-FE-2): the message bubble left the chat route chunk, so
+    # the empty chat no longer pulls the markdown pipeline (react-markdown,
+    # remark/rehype and the fence renderers) before the first turn. Measured
+    # 20.13 kB gzip from app/dist; the row carries the ~10 % headroom.
+    "MessageBubble.js": 22.2,
     "AgentPanel.js": 118.0,  # W3-1: agent panel + xterm, its own lazy chunk
     # 2026-10-20: the settings register left ChatPage (112.1 kB, 0.1 over) and
     # became its own lazy chunk, opened rather than painted. ChatPage now
@@ -190,6 +195,7 @@ MEASURED_GZIP_KB: dict[str, float] = {
     "index.js": 88.62,
     "ChatPage.js": 97.55,
     "AgentPanel.js": 105.94,
+    "MessageBubble.js": 20.13,
     "markdown.js": 123.49,
     # 2026-10-15 (n21-bundle): `m` + `LazyMotion features={domAnimation}` for every
     # animated surface (the root mounts the feature set once, App.tsx) — the drag

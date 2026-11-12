@@ -23,6 +23,7 @@ import { readerText } from '@/lib/readerText'
 import { BrowserWatch } from './agent/BrowserWatch'
 import { RunWatch } from './agent/RunWatch'
 import { StepEvidence } from './agent/StepEvidence'
+import { ResearchEvidence } from './ResearchEvidence'
 import './ToolCallDisplay.css'
 /**
  * Ephe — tool activities in the chat stream (UI-CHAT: one calm row per call).
@@ -573,6 +574,25 @@ function WebBody({
   useEffect(() => {
     if (live) setShowPage(true)
   }, [live])
+  if (tool.name === 'web_research') {
+    // The reader surface replaces the raw argument dump; the answer text stays
+    // one disclosure down so the evidence is what opens first.
+    return (
+      <div className="min-w-0 max-w-full">
+        <ResearchEvidence tool={tool} />
+        {typeof tool.result === 'string' && tool.result.trim() !== '' && (
+          <details className="mt-1 min-w-0">
+            <summary className="cursor-pointer text-ui-2xs text-ink-faint">
+              {t('chat.research.rawOutput')}
+            </summary>
+            <div className="mt-1">
+              <ResultPre result={tool.result} />
+            </div>
+          </details>
+        )}
+      </div>
+    )
+  }
   return (
     <>
       <GenericBody tool={tool} />

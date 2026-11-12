@@ -30,6 +30,7 @@ function mockStore() {
     markLastUsage: vi.fn(),
     markBudgetReached: vi.fn(),
     markSolInsight: vi.fn(),
+    markCitationCheck: vi.fn(),
     setReflecting: vi.fn(),
     setRevising: vi.fn(),
     setQualityCheck: vi.fn(),

@@ -10,8 +10,8 @@ import Sidebar from './Sidebar'
 
 vi.mock('framer-motion', () => ({
   m: {
-    aside: (props: Record<string, unknown>) => (
-      <aside data-testid="chat-sidebar" {...(props as React.ComponentProps<'aside'>)} />
+    div: (props: Record<string, unknown>) => (
+      <div data-testid="chat-sidebar" {...(props as React.ComponentProps<'div'>)} />
     ),
   },
 }))

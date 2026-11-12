@@ -403,6 +403,7 @@ export function PluginCard({
   } = model
   const [busySurface, setBusySurface] = useState(false)
   const status = pluginStatus(p)
+  const turnHook = p.hooks?.[0]
 
   // The display module reports a refusal itself (toast + outcome). The row only keeps
   // one request in flight, so a second click cannot mount two surfaces.
@@ -574,6 +575,11 @@ export function PluginCard({
             {t('settings.pluginDetailConfiguration')}:{' '}
             {p.configuration ? p.configuration : t('settings.pluginDetailNone')}
           </p>
+          {turnHook && (
+            <p data-testid={`plugin-hook-${p.id}`} className="text-ui-xs text-ink-faint">
+              {t('settings.pluginHookTurnEnd', { seconds: turnHook.timeout_seconds })}
+            </p>
+          )}
           <fieldset
             data-testid={`plugin-scope-include-${p.id}`}
             disabled

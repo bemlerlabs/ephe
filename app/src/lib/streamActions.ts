@@ -57,6 +57,7 @@ type Store = Pick<
   | 'markLastUsage'
   | 'markBudgetReached'
   | 'markSolInsight'
+  | 'markCitationCheck'
   | 'setReflecting'
   | 'setRevising'
   | 'setQualityCheck'
@@ -229,6 +230,17 @@ export function applyStreamEvent(event: StreamEvent, store: Store): void {
     case 'sol_insight':
       // SOL: a rule the turn proved. The card names it and links to the store.
       store.markSolInsight(event.heuristic)
+      break
+
+    case 'citation_check':
+      // Wave 3 (web intake): the server checked the answer's claims against the
+      // run's evidence; the card shows what the sources did not carry.
+      store.markCitationCheck({
+        runId: event.run_id,
+        checked: event.checked,
+        verified: event.verified,
+        unverified: event.unverified,
+      })
       break
 
     case 'artifact_check':

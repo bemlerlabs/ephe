@@ -15,6 +15,7 @@ import { BubbleActions } from './bubbleActions'
 import { TurnHeadRow } from './turnHeadRow'
 import { StreamBlocks } from './streamBlocks'
 import { SourcesBar } from './sourcesBar'
+import { CitationCheck } from './CitationCheck'
 import { ToolStreamRows } from './toolStreamRows'
 import { SwarmDeck } from './SwarmDeck'
 import LiveAskCard from './liveAskCard'
@@ -52,6 +53,11 @@ export function AssistantBubble({
   // QD-015 W1: the card reads the raw block; the prose path must not repeat it.
   // Memoized on the source string, so a finished bubble still skips re-parsing.
   const answerText = useMemo(() => stripRenderedCards(m.content ?? ''), [m.content])
+  // A research call brings its own source cards; the URL chips under the answer
+  // would show the same pages a second time.
+  const hasResearchCards = Boolean(
+    m.tool_calls?.some((tool) => tool.name === 'web_research' && tool.status === 'completed'),
+  )
   const [copied, setCopied] = useState(false)
   const [fb, setFb] = useState<'up' | 'down' | null>(null)
   // P6 timeline (ref-01): event rows of a finished turn collapse;
@@ -216,11 +222,13 @@ export function AssistantBubble({
                 <span className="inline-block h-3.5 w-1.5 ml-0.5 bg-brand animate-pulse align-text-bottom" />
               )}
               {/* K3 Z14: source bar directly under the answer text (1:1) */}
-              {!m.streaming && <SourcesBar tool_calls={m.tool_calls} />}
+              {!m.streaming && !hasResearchCards && <SourcesBar tool_calls={m.tool_calls} />}
             </div>
           )}
         </>
       )}
+
+      {!m.streaming && <CitationCheck check={m.citationCheck} />}
 
       <AssistantExtras m={m} onPickOption={onPickOption} onRetry={onRetry} />
 

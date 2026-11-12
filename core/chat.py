@@ -265,6 +265,16 @@ async def chat_with_tools(
     # SOL: a caller that wants the learned rules passes its own turn (`.learned`).
     sol, sol_token = open_sol_turn(sol_turn)  # type: ignore[arg-type]
     turn_ok = False
+    # The names the turn's tool calls carried, for the turn-end hook's fixed payload. The
+    # arguments never enter this list: a manifest cannot ask for them, and a hook is not a
+    # second context channel.
+    hook_tool_names: list[str] = []
+
+    def _note_tool_name(name: str, arguments: dict, *call: object) -> None:
+        if name and name not in hook_tool_names:
+            hook_tool_names.append(name)
+        if on_tool_start is not None:
+            on_tool_start(name, arguments, *call)
 
     try:
         history_in = list(history)
@@ -342,7 +352,7 @@ async def chat_with_tools(
             detection_streamed=detection_streamed,
             on_chunk=on_chunk,
             on_thinking=on_thinking,
-            on_tool_start=on_tool_start,
+            on_tool_start=_note_tool_name,
             on_tool_done=on_tool_done,
             on_phase=on_phase,
             on_shell_confirm=on_shell_confirm,
@@ -382,7 +392,18 @@ async def chat_with_tools(
             on_phase=on_phase,
         )
     finally:
-        note_turn_end()
+        turn_summary = note_turn_end()
+        try:
+            from core import plugin_turn_hooks
+
+            plugin_turn_hooks.note_turn_end(
+                turn_id=turn_id,
+                stop_reason=observer.counters.stop_reason,
+                tool_names=hook_tool_names,
+                duration_ms=float((turn_summary or {}).get("wall_ms") or 0.0),
+            )
+        except Exception:  # noqa: BLE001 — a hook never changes a turn's result
+            pass
         reset_observer(observer_token)
         close_sol_turn(sol, sol_token, ok=turn_ok, task=task_from(history))  # type: ignore[arg-type]
         # P1-4: close the upstream connection explicitly — a client disconnect

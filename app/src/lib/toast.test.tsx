@@ -62,12 +62,14 @@ describe('Toaster (G4)', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  it('rendert einen empfangenen Toast im aria-live-Bereich', () => {
+  it('rendert einen empfangenen Toast im standing aria-live-Bereich', () => {
     render(<Toaster />)
+    // The region exists before the first message; an inserted region may never be announced.
+    expect(screen.getByTestId('toaster-live').textContent).toBe('')
     act(() => {
       toastBus.error('Backend getrennt')
     })
-    expect(screen.getByRole('status').textContent).toContain('Backend getrennt')
+    expect(screen.getByRole('alert').textContent).toContain('Backend getrennt')
   })
 
   it('dismissed Toast verschwindet nach Auto-Timeout', () => {
@@ -106,7 +108,7 @@ describe('Toaster (G4)', () => {
     act(() => {
       vi.advanceTimersByTime(60_000)
     })
-    expect(screen.getByText('Neue Version wartet')).toBeTruthy()
+    expect(screen.getAllByText('Neue Version wartet').length).toBeGreaterThan(0)
     act(() => {
       screen.getByRole('button', { name: /schlie[ßs]en|close/i }).click()
     })

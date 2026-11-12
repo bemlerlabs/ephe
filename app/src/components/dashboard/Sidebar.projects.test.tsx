@@ -29,8 +29,8 @@ vi.mock('framer-motion', () => ({
   // The surfaces animate with `m` — LazyMotion's core component; the app root
   // mounts the feature set once (App.tsx). The stub has to answer for `m`.
   m: {
-    aside: (props: Record<string, unknown>) => (
-      <aside data-testid="chat-sidebar" {...(props as React.ComponentProps<'aside'>)} />
+    div: (props: Record<string, unknown>) => (
+      <div data-testid="chat-sidebar" {...(props as React.ComponentProps<'div'>)} />
     ),
   },
 }))

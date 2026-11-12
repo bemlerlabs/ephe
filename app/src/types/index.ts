@@ -184,6 +184,14 @@ export type MessageBlock =
    *  arrival slot (thinking → tool → thinking → tool, the reference pattern). */
   | { kind: 'thinking'; index: number }
 
+/** Wave 3 (web intake): one citation check over a model-written answer. */
+export interface CitationCheckState {
+  runId: string
+  checked: number
+  verified: number
+  unverified: string[]
+}
+
 /** Chat message in the store (local, persisted) */
 export interface ChatMessage {
   id: string
@@ -210,6 +218,9 @@ export interface ChatMessage {
    *  status panel shows this goal — the one the loop works toward — and falls back
    *  to the session's opening query only where no goal run recorded one). */
   goal?: GoalRunState
+  /** Wave 3 (web intake): what the citation check made of this answer. The
+   *  card names the count and the claims no stored source carried. */
+  citationCheck?: CitationCheckState
   /** P1-7: time-to-first-token of the running answer in ms (turn start → first content chunk) */
   ttftMs?: number
   /** P6-Timeline (ref-01): measured turn wall-time (stream end − turn start) */
@@ -731,6 +742,16 @@ export interface StreamBudget {
   extra: number
 }
 
+/** Wave 3 (web intake): the citation check a research turn ran over the answer.
+ *  `unverified` holds the sentences no stored source carried, capped by the server. */
+export interface StreamCitationCheck {
+  type: 'citation_check'
+  run_id: string
+  checked: number
+  verified: number
+  unverified: string[]
+}
+
 /** SOL: one rule a turn proved. The card names it; the store file holds it. */
 export interface SolHeuristic {
   id: string
@@ -816,6 +837,7 @@ export type StreamEvent =
   | StreamGoalCheck
   | StreamBudget
   | StreamSolInsight
+  | StreamCitationCheck
   | StreamGap
   | StreamSkillCreated
   | StreamSwarmCreated

@@ -559,7 +559,17 @@
     "failedSteps_other": "{{count}} Schritte fehlgeschlagen",
     "restoredConversationTitle": "Frühere Unterhaltung wiederhergestellt",
     "restoredConversationBody": "Diese Unterhaltung endet mit fehlgeschlagenen Schritten. Öffne sie oder beginne eine neue Aufgabe.",
-    "restoredConversationShow": "Unterhaltung anzeigen"
+    "restoredConversationShow": "Unterhaltung anzeigen",
+    "research": {
+      "sourcesTitle": "Quellen",
+      "evidenceFor": "Belege für „{{query}}“",
+      "workspaceTitle": "Aus diesem Arbeitsbereich",
+      "sourceOpened": "{{host}} öffnen",
+      "sourceMeta": "{{host}} · {{time}} · SHA-256:{{sha}}",
+      "rawOutput": "Rohe Werkzeugausgabe",
+      "citationAll": "Jede Aussage ist durch eine gespeicherte Quelle belegt ({{checked}} geprüft).",
+      "citationMissing": "{{missing}} von {{checked}} Aussagen haben keine gespeicherte Quelle."
+    }
   },
   "sidebar": {
     "navAgents": "Sub-Agenten & Schwärme",
@@ -1426,6 +1436,7 @@
     "pluginCapCommands": "Befehle",
     "pluginCapCommandsOff": "Befehle: nach dem Aktivieren",
     "pluginCapComponents": "Bausteine: {{list}}",
+    "pluginHookTurnEnd": "Turn-Ende-Hook: ein abgeschotteter Lauf nach jedem Auftrag (Grenze {{seconds}} s)",
     "pluginSourceLabel": "Quelle: {{source}}",
     "pluginTrustLabel": "Vertrauen: {{trust}}",
     "pluginSourceBuiltin": "Mitgeliefert",
@@ -1932,7 +1943,8 @@
   "toast": {
     "close": "Meldung schließen",
     "previewReady": "Browser bereit: {{name}}",
-    "open": "Öffnen"
+    "open": "Öffnen",
+    "region": "Benachrichtigungen"
   },
   "sw": {
     "updateAvailable": "Neue Version verfügbar",
@@ -2806,7 +2818,13 @@
     "reportTargetHere": "Ziel ist das eigene Archiv im Geräte-Ordner von Ephe.",
     "providerSwitched": "Der Speicher für Merksätze ist jetzt „{{provider}}\".",
     "storeBridge": "Brücke",
-    "vectorCoverage": "{{embedded}} von {{chunks}} Merksätzen haben einen Vektor."
+    "vectorCoverage": "{{embedded}} von {{chunks}} Merksätzen haben einen Vektor.",
+    "vectorCoverageEmpty": "Noch keine Merksätze gespeichert, also nichts zu vektorisieren.",
+    "vectorCoverageOff": "Der Vektor-Arm ist aus: {{embedded}} von {{chunks}} Merksätzen haben einen Vektor.",
+    "vectorReembed": "Fehlende Vektoren nachtragen",
+    "vectorReembedRunning": "Vektoren werden nachgetragen: {{embedded}} von {{total}} Merksätzen…",
+    "vectorReembedStartFailed": "Das Nachtragen konnte nicht gestartet werden. Bitte erneut versuchen.",
+    "vectorReembedFailed": "Nachtragen gestoppt: {{reason}}"
   },
   "tools": {
     "title": "Werkzeuge",

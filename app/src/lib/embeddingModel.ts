@@ -8,6 +8,17 @@
  */
 import { request } from '@/lib/api/http'
 
+/** The pass that gives chunks stored before the fetch a vector under the new model. */
+export type EmbeddingReembed = {
+  running: boolean
+  done: boolean
+  total: number
+  embedded: number
+  remaining: number
+  label: string
+  error: string
+}
+
 export type EmbeddingModelStatus = {
   label: string
   present: boolean
@@ -20,6 +31,31 @@ export type EmbeddingModelStatus = {
   downloading: boolean
   downloaded: boolean
   error: string
+  /** Counters of the re-embed pass; absent on a backend that predates it. */
+  reembed: EmbeddingReembed
+}
+
+const NO_REEMBED: EmbeddingReembed = {
+  running: false,
+  done: false,
+  total: 0,
+  embedded: 0,
+  remaining: 0,
+  label: '',
+  error: '',
+}
+
+function parseReembed(raw: unknown): EmbeddingReembed {
+  const value = (raw ?? {}) as Record<string, unknown>
+  return {
+    running: value.running === true,
+    done: value.done === true,
+    total: Number(value.total ?? 0),
+    embedded: Number(value.embedded ?? 0),
+    remaining: Number(value.remaining ?? 0),
+    label: String(value.label ?? ''),
+    error: String(value.error ?? ''),
+  }
 }
 
 type RawStatus = Record<string, unknown>
@@ -37,6 +73,7 @@ function parse(raw: RawStatus): EmbeddingModelStatus {
     downloading: raw.downloading === true,
     downloaded: raw.downloaded === true,
     error: String(raw.error ?? ''),
+    reembed: raw.reembed ? parseReembed(raw.reembed) : { ...NO_REEMBED },
   }
 }
 
@@ -55,6 +92,19 @@ export async function startEmbeddingDownload(): Promise<boolean> {
     const body = await request<{ started?: boolean }>('/api/models/embedding/download', {
       method: 'POST',
       body: JSON.stringify({ confirm: 'download' }),
+    })
+    return body.started === true
+  } catch {
+    return false
+  }
+}
+
+/** Start one pass over the chunks the active label does not cover. */
+export async function startEmbeddingReembed(): Promise<boolean> {
+  try {
+    const body = await request<{ started?: boolean }>('/api/models/embedding/reembed', {
+      method: 'POST',
+      body: JSON.stringify({ confirm: 'reembed' }),
     })
     return body.started === true
   } catch {

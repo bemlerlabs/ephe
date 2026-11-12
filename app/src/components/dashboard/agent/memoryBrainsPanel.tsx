@@ -8,7 +8,7 @@
  * It owns its own request state because nothing outside this panel reads the report
  * or the switching flag; the page only decides which sub-page to show.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Archive, Brain, Database, GitCommitHorizontal, Layers, ListChecks } from 'lucide-react'
 import { SettingsGroup, SettingsRow } from '@/components/shell/SettingsRow'
@@ -19,7 +19,14 @@ import {
   type MemoryStats,
   type MigrateReport,
 } from '@/lib/api'
+import {
+  readEmbeddingModel,
+  startEmbeddingReembed,
+  type EmbeddingReembed,
+} from '@/lib/embeddingModel'
 import { toastBus } from '@/lib/toast'
+
+const REEMBED_POLL_MS = 1500
 
 // `id` is the stable handle the tests select on; `label` is the surface word and
 // comes from the locale — a testid built from the label would change with the
@@ -50,7 +57,74 @@ export function MemoryBrainsPanel({
   const [report, setReport] = useState<MigrateReport | null>(null)
   const [switching, setSwitching] = useState(false)
   const [providers, setProviders] = useState<string[]>([])
+  const [reembed, setReembed] = useState<EmbeddingReembed | null>(null)
+  const [reembedding, setReembedding] = useState(false)
+  const [reembedStartFailed, setReembedStartFailed] = useState(false)
+  const reembedTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const provider = stats?.provider ?? ''
+  const chunks = stats?.chunks ?? 0
+  const embedded = stats?.chunks_embedded ?? 0
+  // A pass can only help when the vector arm loads; coverage is honest even when it
+  // cannot (0 of N stays visible, the action waits for a model).
+  const coverageIncomplete = chunks > 0 && embedded < chunks
+  const canReembed = coverageIncomplete && stats?.vector_leg === true
+
+  useEffect(
+    () => () => {
+      if (reembedTimer.current) clearInterval(reembedTimer.current)
+    },
+    [],
+  )
+
+  const followReembed = () => {
+    if (reembedTimer.current) clearInterval(reembedTimer.current)
+    reembedTimer.current = setInterval(async () => {
+      const status = await readEmbeddingModel()
+      const pass = status?.reembed ?? null
+      setReembed(pass)
+      if (pass?.running) return
+      if (reembedTimer.current) clearInterval(reembedTimer.current)
+      reembedTimer.current = null
+      setReembedding(false)
+      onReload()
+    }, REEMBED_POLL_MS)
+  }
+
+  const startReembed = async () => {
+    setReembedStartFailed(false)
+    setReembedding(true)
+    const started = await startEmbeddingReembed()
+    if (started) {
+      followReembed()
+      return
+    }
+    // `started: false` also means "a pass is already running": follow that one
+    // instead of claiming a failure the store does not have.
+    const status = await readEmbeddingModel()
+    setReembed(status?.reembed ?? null)
+    if (status?.reembed.running) {
+      followReembed()
+      return
+    }
+    setReembedding(false)
+    setReembedStartFailed(true)
+  }
+
+  // The fetch starts the pass by itself. A Brains page opened while it runs shows
+  // the progress instead of a button whose click would return "already running".
+  useEffect(() => {
+    if (!canReembed) return
+    let alive = true
+    void readEmbeddingModel().then((status) => {
+      if (!alive || !status?.reembed.running) return
+      setReembed(status.reembed)
+      setReembedding(true)
+      followReembed()
+    })
+    return () => {
+      alive = false
+    }
+  }, [canReembed])
   // The surface names its own stores, not the names behind them. The wire value
   // stays the backend contract; the word belongs to Ephe.
   const storeName = (wire: string) =>
@@ -139,15 +213,54 @@ export function MemoryBrainsPanel({
               <Leg id="vector" label={t('memory.legVector')} ok={stats?.vector_leg} />
               <Leg id="lexical" label={t('memory.legLexical')} ok={stats?.lexical_leg} />
             </span>
-            {stats?.chunks !== undefined && stats.chunks > 0 && (
+            {chunks > 0 && (
               <span
                 data-testid="memory-vector-coverage"
-                className="font-mono text-ui-2xs text-ink-faint"
+                className={`font-mono text-ui-2xs ${
+                  embedded === 0 ? 'text-status-warn' : 'text-ink-faint'
+                }`}
               >
-                {t('memory.vectorCoverage', {
-                  embedded: stats.chunks_embedded ?? 0,
-                  chunks: stats.chunks,
-                })}
+                {t('memory.vectorCoverage', { embedded, chunks })}
+              </span>
+            )}
+            {canReembed && (
+              <span className="flex flex-col items-end gap-0.5">
+                {reembedding ? (
+                  <span
+                    data-testid="memory-reembed-progress"
+                    className="font-mono text-ui-2xs text-ink-faint"
+                  >
+                    {t('memory.vectorReembedRunning', {
+                      embedded: reembed?.embedded ?? 0,
+                      total: reembed?.total ?? chunks,
+                    })}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    data-testid="memory-reembed-start"
+                    onClick={() => void startReembed()}
+                    className="rounded-lg border border-control px-2 py-1 text-ui-2xs font-medium text-ink-faint transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
+                  >
+                    {t('memory.vectorReembed')}
+                  </button>
+                )}
+                {reembedStartFailed && (
+                  <span
+                    data-testid="memory-reembed-error"
+                    className="text-ui-2xs text-status-danger"
+                  >
+                    {t('memory.vectorReembedStartFailed')}
+                  </span>
+                )}
+                {!reembedding && reembed?.error && (
+                  <span
+                    data-testid="memory-reembed-error"
+                    className="text-ui-2xs text-status-danger"
+                  >
+                    {t('memory.vectorReembedFailed', { reason: reembed.error })}
+                  </span>
+                )}
               </span>
             )}
           </span>

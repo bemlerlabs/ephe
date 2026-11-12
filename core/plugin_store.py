@@ -264,10 +264,17 @@ def _capabilities(manifest: dict[str, Any] | None) -> dict[str, Any]:
     The names are the contract's own: `tool_claims` is what the mount publishes and
     `ui_descriptor` is what the shell opens, so the row cannot drift from either.
     """
-    empty: dict[str, Any] = {"tools": [], "surface": None, "commands": [], "skills": []}
+    empty: dict[str, Any] = {
+        "tools": [],
+        "surface": None,
+        "commands": [],
+        "skills": [],
+        "hooks": [],
+    }
     if not isinstance(manifest, dict):
         return empty
     from core import plugin_ui_capabilities
+    from core.plugin_hooks_contract import hook_facts
     from core.plugin_tools_contract import tool_claims
 
     components = manifest.get("components")
@@ -309,7 +316,15 @@ def _capabilities(manifest: dict[str, Any] | None) -> dict[str, Any]:
             "type": str(descriptor.get("type") or ""),
             "entry": str(descriptor["entry"]),
         }
-    return {"tools": tools, "surface": surface, "commands": commands, "skills": skills}
+    return {
+        "tools": tools,
+        "surface": surface,
+        "commands": commands,
+        "skills": skills,
+        # The event a bundle runs a confined worker for at the end of every turn. The row
+        # reads it beside the tools, because a hook is code the bundle carries.
+        "hooks": hook_facts(manifest),
+    }
 
 
 def _installed_lifecycle(registry_file: Path | None) -> Any:
@@ -410,7 +425,13 @@ def installed_bundles(
         try:
             capabilities = _capabilities(manifest)
         except Exception:  # noqa: BLE001 — one unreadable manifest never breaks the list
-            capabilities = {"tools": [], "surface": None, "commands": [], "skills": []}
+            capabilities = {
+                "tools": [],
+                "surface": None,
+                "commands": [],
+                "skills": [],
+                "hooks": [],
+            }
         try:
             trust = plugin_mount_trust.bundle_trust(directory)
         except OSError:

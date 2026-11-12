@@ -342,7 +342,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P5 Toasts: Sprachwechsel zeigt Success-Toast (role="status", auto-dismiss)', async ({
+  test('P5 Toasts: Sprachwechsel zeigt Success-Toast (live region, auto-dismiss)', async ({
     page,
   }) => {
     const errors: string[] = []
@@ -354,8 +354,11 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
       .getByRole('radio', { name: /English/i })
       .first()
       .click()
-    // The toast speaks the language it just switched to.
-    const toast = page.getByRole('status').filter({ hasText: /Sprache geändert|Language changed/i })
+    // The toast row speaks the language it just switched to; the announcement
+    // itself is the standing live region, not the row.
+    const toast = page
+      .getByTestId('toaster-rail')
+      .filter({ hasText: /Sprache geändert|Language changed/i })
     await expect(toast).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: path.join(SHOTS, '08b-toast-sprache.png') })
     // auto-dismiss: the toast disappears on its own (5s + buffer)

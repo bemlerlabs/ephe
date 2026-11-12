@@ -95,7 +95,13 @@ def test_a_click_fetches_the_weights_and_writes_no_consent(tmp_path, monkeypatch
     monkeypatch.setattr("core.memory_embed_gemma._fetch", fake_fetch)
     reset: list[int] = []
     rebound: list[int] = []
+    reembeds: list[dict] = []
     monkeypatch.setattr("core.memory_embed.reset_cache", lambda: reset.append(1))
+    # The pass reads and writes the real store on a thread of its own; this test is
+    # about the fetch handing the process the new model, so the start is recorded.
+    monkeypatch.setattr(
+        "core.memory_reembed.start", lambda **kwargs: reembeds.append(kwargs) or True
+    )
     from core.memory import Memory
 
     monkeypatch.setattr(
@@ -118,6 +124,7 @@ def test_a_click_fetches_the_weights_and_writes_no_consent(tmp_path, monkeypatch
     assert body["error"] == ""
     assert reset and rebound, "a finished fetch has to hand the running process the new model"
     assert _get_memory.cache_info().currsize == 0, "the route cache must not keep the stale facade"
+    assert reembeds, "a finished fetch has to re-embed the chunks the new model does not cover"
     assert memory_embed_gemma.download_consent() is False, "a click is not a standing opt-in"
 
 

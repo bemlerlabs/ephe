@@ -32,7 +32,6 @@
       { "name": "research", "description": "Run deep research", "template": "Research: {input}" }
     ],
     "agents": [],
-    "hooks": {},
     "mcp": {}
   }
 }
@@ -44,13 +43,13 @@
 | `name` | Lowercase slug `^[a-z0-9][a-z0-9-]*$`; MUST equal the directory name |
 | `version` | Semver `X.Y.Z` |
 | `description` | Non-empty string |
-| `permissions.tool_families` | Subset of `read, write, shell, network, memory, vision, docs, browser` |
+| `permissions.tool_families` | Subset of `read, write, shell, network, memory, vision, docs, browser, voice` |
 | `permissions.state_cap_mb` | Optional positive whole number of megabytes, at most 16384. The ceiling on the folder the confined worker keeps state in; `core/plugin_state.py` holds the default (512 MiB). A bundle at its ceiling is refused before a worker starts, with the code `plugin_state_full` and both numbers in the sentence. A value that is not a whole number — including `true`, which Python reads as 1 — quarantines the manifest |
 | `permissions.data_roots` | List of path strings, read-granted to both rails: the kernel file scope a bundle calls through, and the confined worker's boundary. Absolute paths must be existing directories and may not be a home or system root; a relative name resolves inside the current workspace and an escape quarantines the manifest. Grants read, never write |
 | `components.skills` | Pack directory names that MUST ship a `SKILL.md` under `skills/` |
 | `components.commands` | `{ name (slug), description (non-empty), template? }` — template placeholders are expanded server-side |
 | `components.agents` | Agent profiles: `{ name, description?, tools (⊆ TOOL_MAP), model?, timeout? }` — bundle helper agents; fail-closed validation (unknown tool quarantines the agent) |
-| `components.hooks` | **Reserved** (E5): accepted structurally, never executed by the current runtime |
+| `components.hooks` | Version 2: `{ "turn_end": { "entry": "hooks/turn_end.py:main", "timeout_seconds": 2 } }` — one confined worker run after every turn while the bundle is active. The payload is fixed and metadata-only; see **A declared turn hook (v2)** |
 | `components.mcp` | Version 2: the bundle's own MCP server (`{ "entry": "server.py:main" }`), started over stdio when the bundle is mounted (`core/plugin_mcp_server.py`); a tool with `transport: "mcp"` rides it |
 
 ## Manifest v2 (`manifest_version: 2`)
@@ -206,6 +205,65 @@ primitive in `matcher` and the declaring kind or `kernel` in `kind_source`, so a
 names the preset and the primitive behind it. A declared `not_contains` preset satisfies
 the anti-slop gate; a declared `contains` one does not. No permission family is asked for:
 a preset is data the grader reads.
+
+### A declared turn hook (v2)
+
+`components.hooks.turn_end` names one hook the kernel runs in the confined worker at the
+end of every turn. The kernel answers every consequence: `core/plugin_hooks_contract.py`
+validates the section, `core/plugin_runtime.turn_hooks()` registers it from the same scan
+the tool gate reads, `core/chat.py` queues it in the `finally` that closes the turn, and
+`core/plugin_turn_hooks.py` runs it. Nothing imports plugin code in the backend process.
+
+```json
+"components": {
+  "hooks": {
+    "turn_end": { "entry": "hooks/turn_end.py:main", "timeout_seconds": 2 }
+  }
+}
+```
+
+The hook handler is `main(arguments, state_dir)` — two parameters, because a hook has no
+bridge; one that asks for the launcher's third argument fails its own run. `arguments` is
+the fixed payload:
+
+```json
+{
+  "event": "turn_end",
+  "plugin": "acme-hook",
+  "turn_id": "…",
+  "stop_reason": "answer",
+  "tool_names": ["file_search", "read_file"],
+  "duration_ms": 4210
+}
+```
+
+| Field | Rules |
+|---|---|
+| `components.hooks` | Version 2 only; a version 1 manifest that carries the section is quarantined. One event in this cut: `turn_end` |
+| `hooks.turn_end.entry` | `path.py:callable` inside the plugin directory, validated by the contributed tool's own rule. Absolute, escaping or non-`.py` paths, a missing `:` and a callable that is not an identifier are refused |
+| `hooks.turn_end.timeout_seconds` | Whole number, 1–3. A bool, a missing value and a value outside the window are refused |
+| the payload | Fixed by the kernel and metadata-only. No answer text, no history, no tool arguments, no context report; a manifest field that asks for one is refused as an unknown field |
+| `stop_reason` | The loop's own word: `answer`, `budget`, `repair`, `stall` or `steered`. Empty when the turn ended before the loop named one, so a hook that needs to tell a failed turn from a stopped one reads the field as it is |
+
+The run is fire-and-forget: the turn queues it and returns. One daemon thread drains a
+queue of at most eight pending runs; a full queue drops the run and writes an audit row
+with status `dropped`. The bundle is re-asked at dispatch and again in the worker thread,
+so a bundle switched off or paused between the two spawns nothing. Every run is confined
+the way a contributed tool is: the network is denied at the OS boundary, host secrets are
+scrubbed from the child environment, reads are the plugin directory and the declared
+`permissions.data_roots`, writes stay under the bundle's state root, and the reply is
+discarded — nothing a hook writes reaches the model, the answer or the session. No bridge
+is passed, so a handler that takes the launcher's third argument fails its own run.
+
+A measured turn never spawns a hook: `core/plugin_golden.run_measured` runs its turn inside
+`plugin_turn_hooks.suppressed()`, because a pass³ number that carried a bundle's hook would
+not be comparable with one that did not. Each dispatch writes one `plugin_hook` audit row
+(plugin, worker status, duration, the event); the payload never enters the trail. A hook-only
+bundle reports the `worker` rail, and the store row carries the event beside the tools.
+
+What this cut does not do: `turn_start`, `pre_tool`/`post_tool`, a mutating or vetoing
+hook, an answer-bearing payload and a network transport. The user's own process-wide hook
+chain (`~/.ephe/hooks.json`, E5) stays a separate contract.
 
 ## Vendored libraries
 
@@ -370,24 +428,27 @@ in the middle of a turn.
 
 ## Marketplace (E4a)
 
-`plugin-marketplace.json` (repo root) lists installable artifacts:
+Two listings feed the one installer, `core.plugin_market.install_from_marketplace`:
 
-```json
-{
-  "version": 1,
-  "plugins": [
-    { "name": "web-search", "version": "1.0.0", "sha256": "…", "url": "https://…/web-search.zip", "description": "…", "tags": [] }
-  ]
-}
-```
+- `plugin-marketplace.json` (repo root, format 1) is the file `ephe plugin install`
+  resolves (`core/plugin_listing.py`). This tree ships it with `"plugins": []`: an entry
+  belongs there only when a release hosts a ZIP at an https URL and records its sha256
+  beside it. A name that is neither listed nor a shipped bundle answers `unknown_plugin`;
+  a legacy marketplace id that maps to a shipped bundle answers with the id to switch on.
+- The in-app store installs from `marketplace/index.json` (format 2, the `ephe-bundled`
+  source): 22 entries — 9 plugins, 7 presets and 6 skill packs. `core/marketplace_sources.py`
+  keeps the last good read of that index and of any signed HTTPS source in
+  `~/.ephe/marketplace-cache`, and `/api/market/*` serves the plan, install, update,
+  rollback and remove steps. `docs/DISCOVER_MARKETPLACE_DESIGN.md` is the store's design page.
 
+A format-1 entry carries `name`, `version`, `sha256`, `url`, `description` and `tags`.
 Install flow (strictly verify-first):
 
 1. `resolve` the entry → 2. `fetch` the artifact (injectable fetcher; never
 network in tests) → 3. `sha256` compare against the entry → 4. SAFE unzip
 (zip-slip guard: every member must stay inside the destination) → 5. manifest
-validation → 6. static check of the staged text. Outcomes: `extracted` (enabled
-by default), `hash_mismatch` (nothing extracted), `unsafe_archive` (rejected),
+validation → 6. static check of the staged text. Outcomes: `extracted` (enabled only when
+`plugins.plugin_autorun` is on), `hash_mismatch` (nothing extracted), `unsafe_archive` (rejected),
 `quarantined` (extracted directory removed again), `unknown_plugin` / `no_url`
 (honest, no crash).
 
@@ -403,7 +464,7 @@ CLI:
 ephe plugin list                 # installed bundles first, then the catalog
 ephe plugin enable web-search    # takes effect on the next agent turn
 ephe plugin disable web-search
-ephe plugin install web-search   # from plugin-marketplace.json
+ephe plugin install web-search   # from the format-1 listing
 ephe plugin remove web-search    # preview; --yes removes, --keep-data keeps the files
 ```
 
@@ -493,20 +554,15 @@ Contract: the command receives one JSON line on stdin
 pre_tool → `{"args": {…}}` (transform) or `{"block": "reason"}` (deny);
 post_tool → `{"result": "…"}`. Fail-tolerant (crash = ignored + audit line),
 `match` filters per tool, `priority` orders (lower first), argv execution
-without shell, 10 s cap, every run audit-logged.
+without shell, 10 s cap, every run audit-logged. The core fires `pre_tool` and `post_tool`;
+`session_start`, `turn_end` and `pre_compact` are accepted in the file and reachable only through
+`fire_event`, which has no production caller yet (`core/user_hooks.py` `LIVE_EVENTS`).
 
 ## Deep wiring (E5)
 
 - `plugins.plugin_autorun` (default OFF): whether a freshly INSTALLED
   marketplace plugin lands enabled or disabled in the registry.
-- `plugins.mcp_servers_count` reflects the LIVE configured server count.
 - `plugins.plugin_signature_check` (default ON): the enable-time drift gate (E4b).
-- `tts` plugin: an explicit registry-disable denies `/api/audio/synthesize`
-  with an honest 403 (no silent stock change without a toggle).
-
-## Reserved for later waves
-
-- `components.agents` → user-defined helper-agent profiles (E5).
-- `components.hooks` → user-defined event hooks (E5).
-- Signature verification (ES256 over the canonical manifest) at install and
-  enable time (E4).
+- `voice` plugin: an explicit registry-disable denies `/api/audio/synthesize`
+  with an honest 403 (no silent stock change without a toggle). The legacy
+  `tts` slug is migrated on read.

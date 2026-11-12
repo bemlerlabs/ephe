@@ -69,6 +69,13 @@ export function makeStreamActions(ctx: StoreCtx): Partial<ChatState> {
       }))
     },
 
+    // The check lands on the answer it judged, so a later turn's bubble never
+    // inherits the verdict of an earlier one.
+    markCitationCheck: (check) => {
+      set((s) => updateActiveMessage(s, (m) => ({ ...m, citationCheck: check })))
+      persistActive()
+    },
+
     appendChunk: (chunk) => {
       set((s) =>
         updateActiveMessage(s, (m) => {

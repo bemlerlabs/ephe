@@ -43,19 +43,24 @@ def rail_of(manifest: dict[str, Any] | None) -> str:
 def rail_fact(manifest: dict[str, Any] | None) -> dict[str, Any]:
     """The rail and the two counts that decided it, so a surface can show its work.
 
-    `contributed` counts version 2 entries the bundle carries itself, `activated` counts the
-    kernel names a version 1 list turns on. A manifest that never validated reaches this
-    function as nothing at all, and nothing is `declarative`: declaring no tool is a fact
-    about the bundle, while an unreadable manifest is a fact about the reader, and the second
-    one belongs in the notice beside this column.
+    `contributed` counts the version 2 entries the bundle carries itself — one per tool
+    and one per turn-end hook — while `activated` counts the kernel names a version 1 list
+    turns on. A hook counts here because it is bundle code on a new time axis: a hook-only
+    bundle that reported `declarative` would claim to execute nothing while a confined
+    worker was spawned at the end of every turn. A manifest that never validated arrives
+    here as nothing, and nothing is `declarative`: declaring no code is a fact about the
+    bundle, while an unreadable manifest is a fact about the reader, and the second one
+    belongs in the notice beside this column.
     """
     if not isinstance(manifest, dict):
         return {"rail": RAIL_DECLARATIVE, "contributed": 0, "activated": 0}
 
+    from core.plugin_hooks_contract import hook_claims
     from core.plugin_tools_contract import tool_claims
 
     claims = tool_claims(manifest)
     contributed = sum(1 for claim in claims if claim.contributed)
+    contributed += len(hook_claims(manifest))
     activated = sum(1 for claim in claims if not claim.contributed)
     if contributed:
         rail = RAIL_WORKER

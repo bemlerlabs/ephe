@@ -43,7 +43,7 @@ export default function EngineStatusPill({
         aria-label={label}
         title={label}
         onClick={onClick}
-        className="hidden lg:inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground hover:bg-surface-interactive transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="hidden lg:inline-flex min-h-6 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-ui-xs text-ink-soft hover:text-foreground hover:bg-surface-interactive transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2"
       >
         <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} aria-hidden="true" />
         <span className="whitespace-nowrap">{label}</span>

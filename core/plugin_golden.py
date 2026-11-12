@@ -548,7 +548,9 @@ def run_measured(
 
         return answer, dict(get_measured_usage() or {})
 
-    with _case_context(case, session_id, mode, privileges):
+    from core import plugin_turn_hooks
+
+    with _case_context(case, session_id, mode, privileges), plugin_turn_hooks.suppressed():
         answer, usage = asyncio.run(_turn())
     return answer + "\n[EPHE-TOOL-EVENTS]\n" + "\n".join(tool_events), usage
 

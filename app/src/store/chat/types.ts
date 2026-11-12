@@ -2,6 +2,7 @@ import type {
   Activity,
   ArtifactInfo,
   ChatMessage,
+  CitationCheckState,
   PendingToolCall,
   PlanCardSpec,
   Session,
@@ -239,6 +240,8 @@ export interface ChatState {
   /** SOL: the rules this turn proved, shown as cards until the next turn. */
   solInsights: SolHeuristic[]
   markSolInsight: (rule: SolHeuristic) => void
+  /** Wave 3 (web intake): the citation check belongs to the answer it judged. */
+  markCitationCheck: (check: CitationCheckState) => void
   /** Wave 3 (cost monitor): the price table of the active model — USD per 1M tokens
    *  from engine.json `pricing` (via /api/model/providers). null = no price kept →
    *  the status bar shows no cost chip (never guess a number). */

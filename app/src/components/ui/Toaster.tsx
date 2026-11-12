@@ -41,8 +41,14 @@ function useRightClearance(): string | undefined {
  * G4 — global toaster (mounted once in App/Main).
  *
  * Subscribes to the toastBus, renders up to MAX_VISIBLE toasts
- * bottom-right, auto-dismiss (errors stay longer). a11y: each toast
- * role="status" + aria-live (error: assertive).
+ * bottom-right, auto-dismiss (errors stay longer).
+ *
+ * Announcements come from two live regions that are mounted for the life of the
+ * app, not from the toast rows: a region that is inserted together with its text
+ * may never be announced, because the accessibility tree only reports a change
+ * when the region was already there. The rows keep the text and the dismiss
+ * button for reading and for the pointer; they carry no live semantics, so a
+ * single message is not spoken twice.
  *
  * Where the stack sits: on a phone it hangs under the header; on a wide window it
  * keeps the top-right corner, under the chat's own top bar. The phone case is a
@@ -104,67 +110,104 @@ export function Toaster() {
     }
   }, [removeItem])
 
-  if (items.length === 0) return null
+  // The newest message of each tone is what the standing regions carry. Deriving
+  // it from the rows keeps a dismissed toast from leaving stale text behind.
+  const announcement = (kind: 'error' | 'other') => {
+    const item = [...items]
+      .reverse()
+      .find((x) => (kind === 'error' ? x.kind === 'error' : x.kind !== 'error'))
+    if (!item) return ''
+    return item.description ? `${item.title}. ${item.description}` : item.title
+  }
+  const polite = announcement('other')
+  const assertive = announcement('error')
 
   return (
     <div
+      role="region"
+      aria-label={t('toast.region')}
       data-inert-exempt=""
-      data-testid="toaster-rail"
-      data-cleared={right ? 'true' : 'false'}
-      // The clearance is a custom property, so the phone rule keeps its centring: only
-      // the wide layout reads a right offset, and below lg the rail stays where the
-      // composer measurement put it.
-      style={{ ['--toast-right']: right ?? '1rem' } as React.CSSProperties}
-      className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:right-[var(--toast-right)] lg:top-[calc(env(safe-area-inset-top)+3.75rem)]"
+      data-testid="toaster-region"
     >
-      {items.map((item) => {
-        const Icon =
-          item.kind === 'error' ? AlertTriangle : item.kind === 'success' ? CheckCircle : Info
-        const iconColor =
-          item.kind === 'error'
-            ? 'text-status-danger'
-            : item.kind === 'success'
-              ? 'text-status-success'
-              : 'text-foreground/60'
-        return (
-          <div
-            key={item.id}
-            role="status"
-            aria-live={item.kind === 'error' ? 'assertive' : 'polite'}
-            className="float-surface p-3 flex items-start gap-2.5 text-ui-sm"
-            data-float="3"
-          >
-            <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconColor}`} />
-            <div className="flex-1 min-w-0">
-              <p className="text-foreground/90 leading-tight">{item.title}</p>
-              {item.description && (
-                <p className="text-ink-faint text-ui-xs mt-0.5 leading-tight">{item.description}</p>
-              )}
-              {item.action && (
+      {/* Mounted from the first paint, so the change that follows is a change. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="toaster-live"
+        className="sr-only"
+      >
+        {polite}
+      </div>
+      <div
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        data-testid="toaster-live-alert"
+        className="sr-only"
+      >
+        {assertive}
+      </div>
+      {items.length > 0 && (
+        <div
+          data-testid="toaster-rail"
+          data-cleared={right ? 'true' : 'false'}
+          // The clearance is a custom property, so the phone rule keeps its centring: only
+          // the wide layout reads a right offset, and below lg the rail stays where the
+          // composer measurement put it.
+          style={{ ['--toast-right']: right ?? '1rem' } as React.CSSProperties}
+          className="fixed z-modal flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:top-[calc(env(safe-area-inset-top)+4rem)] lg:right-[var(--toast-right)] lg:top-[calc(env(safe-area-inset-top)+3.75rem)]"
+        >
+          {items.map((item) => {
+            const Icon =
+              item.kind === 'error' ? AlertTriangle : item.kind === 'success' ? CheckCircle : Info
+            const iconColor =
+              item.kind === 'error'
+                ? 'text-status-danger'
+                : item.kind === 'success'
+                  ? 'text-status-success'
+                  : 'text-foreground/60'
+            return (
+              <div
+                key={item.id}
+                className="float-surface p-3 flex items-start gap-2.5 text-ui-sm"
+                data-float="3"
+              >
+                <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconColor}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground/90 leading-tight">{item.title}</p>
+                  {item.description && (
+                    <p className="text-ink-faint text-ui-xs mt-0.5 leading-tight">
+                      {item.description}
+                    </p>
+                  )}
+                  {item.action && (
+                    <button
+                      onClick={() => {
+                        item.action?.onClick()
+                        removeItem(item.id)
+                      }}
+                      className="mt-2 text-ui-xs font-medium text-brand hover:text-brand transition-colors"
+                    >
+                      {item.action.label}
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => {
-                    item.action?.onClick()
+                    item.onDismiss?.()
                     removeItem(item.id)
                   }}
-                  className="mt-2 text-ui-xs font-medium text-brand hover:text-brand transition-colors"
+                  aria-label={t('toast.close')}
+                  className="inline-flex items-center justify-center shrink-0 min-h-6 min-w-6 text-ink-faint hover:text-foreground/70 transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 >
-                  {item.action.label}
+                  <X className="h-3.5 w-3.5" />
                 </button>
-              )}
-            </div>
-            <button
-              onClick={() => {
-                item.onDismiss?.()
-                removeItem(item.id)
-              }}
-              aria-label={t('toast.close')}
-              className="inline-flex items-center justify-center shrink-0 min-h-6 min-w-6 text-ink-faint hover:text-foreground/70 transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )
-      })}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

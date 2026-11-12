@@ -563,7 +563,7 @@ export default function ChatInput({
               aria-controls="composer-details"
               title={t('chat.composerDetails')}
               onClick={() => setDetailsOpen((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 transition-colors hover:bg-surface hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 max-lg:min-h-11 max-lg:px-1 max-sm:hidden"
+              className="inline-flex min-h-6 items-center gap-1 rounded-md px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 transition-colors hover:bg-surface hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 max-lg:min-h-11 max-lg:px-1 max-sm:hidden"
             >
               <Brain className="h-3 w-3 shrink-0" aria-hidden="true" />
               <span>{t(thinkingChipKey)}</span>

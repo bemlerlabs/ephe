@@ -33,11 +33,12 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `SANDBOX_EXECUTION.md` | The Ephemora cell sandbox (opt-in) |
 | `COMPOSER_MODES.md` | The four response modes, the header control and what each mode sends |
 | `COMPOSER_MOBILE.md` | The composer's mobile lane and its measured floors |
+| `ACCESSIBILITY.md` | The target-size floor, the 44 px desktop assessment and the gates that hold both |
 | `EPHEMERIDES.md` | The Ephemerides |
 | `PERSONA_PACKS.md` | Persona packs: versioned markdown bundles behind `~/.ephe/persona.md` |
 | `SKILLS.md` | The built-in skill packs and the artifact tools they route to |
 | `SKILL_PACKS.md` | How a skill pack is put together |
-| `WEB_INTAKE.md` | The `web_research` tool: provider, crawl bounds, evidence and citation check |
+| `WEB_INTAKE.md` | The `web_research` tool, its two evidence routes, hybrid workspace evidence and the citation check |
 
 ## Extending
 

@@ -22,8 +22,7 @@ import { toastBus } from '@/lib/toast'
 import { Toaster } from './Toaster'
 
 function rail(): HTMLElement {
-  const close = screen.getByRole('button', { name: 'toast.close' })
-  return close.closest('[role="status"]')!.parentElement as HTMLElement
+  return screen.getByTestId('toaster-rail')
 }
 
 function raise() {
@@ -68,9 +67,7 @@ describe('the rail beside an open panel', () => {
     // jsdom's innerWidth is 1024; the panel clamps itself to 95vw and the rail must read
     // the same clamp, or a 1400px column would push the stack off the left edge.
     broadcast({ open: true, dock: 'right', width: 1400, tab: 'files' })
-    expect(rail().style.getPropertyValue('--toast-right')).toBe(
-      `${Math.round(1024 * 0.95) + 16}px`,
-    )
+    expect(rail().style.getPropertyValue('--toast-right')).toBe(`${Math.round(1024 * 0.95) + 16}px`)
   })
 
   it('keeps the wide-layout anchor on the custom property, so phones stay centred', () => {
