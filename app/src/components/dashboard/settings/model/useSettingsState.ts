@@ -32,6 +32,8 @@ import type { SettingsPanelProps, TabKey } from '../types'
 // One definition of "a tab stop in the dialog". Initial focus and the trap used
 // to carry separate strings: the initial one also matched disabled buttons, so a
 // disabled first control would have left the focus on <body> instead of the panel.
+import { clearSettingsIntent, takeSettingsIntent } from '@/lib/settingsIntent'
+
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
@@ -210,6 +212,18 @@ export function useSettingsState(props: SettingsPanelProps) {
   // that opens. A control-level request (the palette's row entries) carries the row's
   // own label as the panel's search, so the panel names the row it lands on.
   const [requestedTab, setRequestedTab] = useState<TabKey | null>(null)
+  // A request that arrived while the register chunk was still loading: the module
+  // kept it, the first render takes it, so the click that opened the register also
+  // lands on the tab it named.
+  useEffect(() => {
+    const intent = takeSettingsIntent()
+    if (!intent) return
+    if (intent.tab) {
+      setRequestedTab(intent.tab as TabKey)
+      setActiveTab(intent.tab as TabKey)
+    }
+    if (intent.query) setSettingsQuery(intent.query)
+  }, [])
   const initialTabResolved = requestedTab ?? initialTab
   useEffect(() => {
     const onTab = (e: Event) => {
@@ -222,6 +236,7 @@ export function useSettingsState(props: SettingsPanelProps) {
         setActiveTab(detail.tab as TabKey)
       }
       if (detail.query) setSettingsQuery(detail.query)
+      clearSettingsIntent()
     }
     window.addEventListener('ephe:settings-tab', onTab)
     return () => window.removeEventListener('ephe:settings-tab', onTab)

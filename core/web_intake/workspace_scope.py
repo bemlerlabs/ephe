@@ -64,17 +64,54 @@ def terms_of(query: str) -> list[str]:
     ]
 
 
+PATH_SUFFIXES = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".rs",
+                 ".md", ".txt", ".json", ".toml", ".yaml", ".yml", ".css", ".html")
+
+
+def _scope_parts(scope: str) -> list[str] | None:
+    """The relative parts a scope names, or None when it cannot be one.
+
+    A scope arrives from a tool call, so it is not trusted to stay inside the
+    workspace: an absolute path, a drive letter, a leading ``~`` or any ``..``
+    segment is refused rather than joined and resolved, because a resolved path
+    that starts outside the root is exactly the escape this scan must not take.
+    """
+    raw = (scope or "").strip().replace("\\", "/").strip("/")
+    if not raw:
+        return []
+    if raw.startswith("~") or Path(raw).is_absolute() or (len(raw) > 1 and raw[1] == ":"):
+        return None
+    parts = [part for part in raw.split("/") if part not in ("", ".")]
+    if any(part == ".." for part in parts):
+        return None
+    return parts
+
+
+def _path_scope_root(root: Path, scope: str) -> Path | None:
+    """The workspace folder a path-like scope names, confined to the root."""
+    parts = _scope_parts(scope)
+    if not parts:
+        return None
+    candidate = root.joinpath(*parts)
+    try:
+        resolved = candidate.resolve()
+        resolved.relative_to(root)
+    except (OSError, ValueError):
+        return None
+    return resolved if resolved.is_dir() else None
+
+
 def _is_path_scope(root: Path, scope: str) -> bool:
     """A scope is a path prefix when it names a path; a bare word is a symbol."""
-    raw = scope.strip().strip("/")
-    if not raw:
-        return True
-    if "/" in raw or raw.endswith((".py", ".ts", ".tsx", ".md", ".json", ".toml")):
-        return True
-    try:
-        return (root / raw).is_dir()
-    except OSError:
+    parts = _scope_parts(scope)
+    if parts is None:
         return False
+    if not parts:
+        return True
+    raw = "/".join(parts)
+    if "/" in raw or raw.endswith(PATH_SUFFIXES):
+        return True
+    return _path_scope_root(root, scope) is not None
 
 
 def _scope_matches(relative: str, scope: str) -> bool:
@@ -92,6 +129,10 @@ def _candidate_files(root: Path, scope: str, max_files: int) -> list[Path]:
         patterns = read_ignore_patterns(root)
     except OSError:
         return []
+    parts = _scope_parts(scope)
+    if parts is None:
+        return []
+    prefix = "/".join(parts)
     path_scope = _is_path_scope(root, scope)
     kept: list[Path] = []
     for current, directories, names in os.walk(root):
@@ -113,7 +154,7 @@ def _candidate_files(root: Path, scope: str, max_files: int) -> list[Path]:
             relative = name if relative_dir == "." else f"{relative_dir}/{name}"
             if ignored_relative_path(relative, patterns):
                 continue
-            if path_scope and not _scope_matches(relative, scope):
+            if path_scope and not _scope_matches(relative, prefix):
                 continue
             kept.append(base / name)
             if len(kept) >= max_files:

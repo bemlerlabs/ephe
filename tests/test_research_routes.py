@@ -312,3 +312,30 @@ async def test_a_turn_without_a_research_run_adds_no_citation_frame(monkeypatch)
 
     raw = await _drive(monkeypatch, plain_turn)
     assert not [event for event in _events(raw) if event.get("type") == "citation_check"]
+
+
+def test_a_workspace_scope_cannot_leave_the_workspace(tmp_path):
+    """The scan takes a tool-call argument; it refuses anything outside the root."""
+    from core.web_intake.workspace_scope import search_workspace
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "note.md").write_text("the moon drifts away", encoding="utf-8")
+    outside = tmp_path.parent / "outside"
+    outside.mkdir(exist_ok=True)
+    (outside / "secret.md").write_text("the moon drifts away", encoding="utf-8")
+
+    assert search_workspace("moon", root=tmp_path) != []
+    for scope in (str(outside), "../outside", "~/secret", "src/../../outside"):
+        assert search_workspace("moon", root=tmp_path, scope=scope) == [], scope
+
+
+def test_a_workspace_scope_prefix_stays_inside_its_folder(tmp_path):
+    from core.web_intake.workspace_scope import search_workspace
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "src" / "a.md").write_text("orbit math here", encoding="utf-8")
+    (tmp_path / "docs" / "b.md").write_text("orbit math there", encoding="utf-8")
+
+    hits = search_workspace("orbit", root=tmp_path, scope="src")
+    assert [hit.path for hit in hits] == ["src/a.md"]

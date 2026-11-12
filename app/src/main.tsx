@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import { Suspense, lazy, useState } from 'react'
 // i18n must be initialized before App renders; the saved product language is
 // applied at the entry, before the first frame (see applyServerLanguage).
+import '@/lib/settingsIntent'
 import { applyServerLanguage } from './i18n'
 import { installDbAutoFlush, installExternalLinks } from '@/lib'
 import { deepBool, initDeepSettings } from '@/lib'
