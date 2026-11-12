@@ -114,7 +114,16 @@ def get_model_config(tier: ModelTier) -> ModelConfig:
 
 #: Documented legacy case without any probe (the window the pre-2026-10-11 shipped
 #: default carried; a 12B local Modelfile with num_ctx left at its build default).
-LEGACY_CONTEXT_WINDOW = 8192
+#: The floor for an engine whose window nothing names: env, a live probe and the tier
+#: row all beat it. 8_192 was the old value and it cannot hold a shipped turn: the tool
+#: schemas alone are ~6.6k tokens, so the very first tool result forced a compaction and
+#: the loop compacted on almost every round (measured 2026-11-12: 153 compactions in ten
+#: creator turns, which is what made the model re-build bundles it had already built).
+#: 24_576 fits the whole prompt with room for a few results and stays under the window
+#: every current OpenAI-compatible server offers; a real probe still overrides it. It is
+#: deliberately not a tier value, so `window_source: legacy` stays distinguishable from a
+#: tier row the meter would be reading as a measurement.
+LEGACY_CONTEXT_WINDOW = 24576
 
 #: Windows of the shipped model classes, the POWER row reconciled with a live
 #: probe of the running engine on 2026-10-11: the DGX engine reports

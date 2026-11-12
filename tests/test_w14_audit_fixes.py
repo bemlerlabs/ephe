@@ -70,11 +70,11 @@ def _configured_tiers(monkeypatch, names: dict[str, str]) -> None:
 def test_tier_table_carries_the_shipped_windows():
     """GIVEN the tier table
     WHEN the windows are read
-    THEN they carry the real model limits (not the legacy 8192)."""
+    THEN they carry the real model limits (not the legacy floor)."""
     assert TIER_CONTEXT_WINDOWS[ModelTier.OFFLINE] == 32768
     assert TIER_CONTEXT_WINDOWS[ModelTier.FAST] == 16384
     assert TIER_CONTEXT_WINDOWS[ModelTier.POWER] == 262144
-    assert LEGACY_CONTEXT_WINDOW == 8192
+    assert LEGACY_CONTEXT_WINDOW == 24576
     assert LEGACY_CONTEXT_WINDOW not in TIER_CONTEXT_WINDOWS.values()
 
 
@@ -134,7 +134,7 @@ def test_engine_probe_wins_over_the_tier_table(monkeypatch):
 def test_tier_table_fills_the_gap_without_probe(monkeypatch):
     """GIVEN no probe and no override
     WHEN a model the user configured into a tier is active
-    THEN the tier table fills the gap (source 'tier'), not the legacy 8192."""
+    THEN the tier table fills the gap (source 'tier'), not the legacy floor."""
     monkeypatch.delenv("EPHE_CONTEXT_WINDOW", raising=False)
     _configured_tiers(monkeypatch, {"power": "gemma4:26b"})
     window, source = resolve_context_window("gemma4:26b")
@@ -145,7 +145,7 @@ def test_tier_table_fills_the_gap_without_probe(monkeypatch):
 def test_legacy_constant_only_for_unknown_models(monkeypatch):
     """GIVEN no env value, no probe, unknown model
     WHEN the window is resolved
-    THEN the documented 8192 fallback remains (offline-first)."""
+    THEN the documented 24576 fallback remains (offline-first)."""
     monkeypatch.delenv("EPHE_CONTEXT_WINDOW", raising=False)
     window, source = resolve_context_window("irgendein-modell")
     assert window == LEGACY_CONTEXT_WINDOW

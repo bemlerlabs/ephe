@@ -132,8 +132,8 @@ def test_window_threshold_anteilig(monkeypatch):
     monkeypatch.setenv("EPHE_CONTEXT_WINDOW", "10000")
     assert window_threshold("any-model") == 8000
     monkeypatch.delenv("EPHE_CONTEXT_WINDOW")
-    # without a probe/tier the documented legacy value 8192 applies → 80 % of it
-    assert window_threshold("unbekannt-modell") == int(8192 * 0.8)
+    # without a probe/tier the documented legacy floor 24576 applies → 80 % of it
+    assert window_threshold("unbekannt-modell") == int(24576 * 0.8)
     # model-specific: the tier table gives 16384 for gemma4:12b → 13107
     assert window_threshold("gemma4:12b") == int(16384 * 0.8)
 

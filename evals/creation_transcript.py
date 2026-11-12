@@ -265,6 +265,7 @@ def engine_environment(
     model: str,
     port: int,
     declared_bundles: object = (),
+    context_window: int | None = None,
 ) -> dict[str, str]:
     """The environment a proof server runs in: this engine, this root, this key, nowhere else.
 
@@ -303,6 +304,11 @@ def engine_environment(
             "EPHE_PORT": str(port),
         }
     )
+    if context_window:
+        # The provider's /models entry carries no window, so the product would fall back
+        # to its floor; the harness names the window it measured the model to have, the
+        # same value the product's own probe would record.
+        env["EPHE_CONTEXT_WINDOW"] = str(int(context_window))
     return env
 
 
