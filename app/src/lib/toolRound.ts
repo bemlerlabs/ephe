@@ -64,6 +64,9 @@ export function shouldAutoOpen(tool: ToolCall): boolean {
   const model = classifyToolCall(tool)
   if (tool.status !== 'completed') return false
   if (isToolError(tool)) return true
+  // A research run's cards are the reason the reader opens the row; the answer
+  // text behind them is what the panel makes readable.
+  if (tool.name === 'web_research') return true
   if (model.family === 'edit' && typeof tool.result === 'string' && isDiffLike(tool.result)) {
     return true
   }

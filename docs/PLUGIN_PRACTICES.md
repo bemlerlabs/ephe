@@ -22,7 +22,7 @@ The audit log and run ledger are append-only JSONL files with SHA-256 hash chain
 When a plugin mounts, each tool produces its own `plugin.tool_registered` event on the SSE bus. The batch `plugin.mount` event rides alongside for consumers that want the whole set in one frame, but the per-tool event is the registration effect — a subscriber can react to each tool individually.
 
 **Evidence**:
-- `core/plugin_lifecycle_mount.py:333-352` — `_mount_notify()` emits one event per tool
+- `core/plugin_lifecycle_mount.py:340` — `_mount_notify()` emits one event per tool
 - `tests/test_plugin_registration_events.py` — pins the per-tool event count
 
 **Why this matters**: A batch event forces every subscriber to decompose the tool list. Per-tool events let a subscriber filter by tool name and react to each registration independently — the waterfall pattern starts here.
@@ -61,7 +61,7 @@ The pub/sub bus supports filtered subscriptions: a caller can ask for events fro
 
 Each async task owns its context via Python `ContextVar`:
 - `core/tools/session_ctx.py` — `_CURRENT_SESSION`, `_CURRENT_POLICY`, `_CURRENT_MODE`, `_FAILOVER_NOTE`, `_MEASURED_USAGE`
-- `server/routes/chat.py:1017` — publishes mode per-turn, resets in `finally`
+- `server/routes/chat.py:579` — `_publish_tool_mode()`, published per turn at `:1174` and reset in `finally` at `:1218`
 
 **Why this matters**: Context leakage between concurrent tasks causes cross-session pollution. `ContextVar` ensures each task sees its own values, even when multiple sessions run in parallel.
 
@@ -72,8 +72,8 @@ Each async task owns its context via Python `ContextVar`:
 Session state is projected into derived views:
 - `core/ephe_plan.py` — `EphePlan.try_from_markdown()` and `from_ledger()` project session state into a plan view
 - `core/run/ledger.py` — five phase projections: `now`, `waiting`, `changed`, `result`, `next`
-- `core/fleet_rows.py:76` — `ledger_projection()` for fleet-wide views
-- `core/trajectory.py:240` — combines turn + run ledger projection
+- `core/fleet_rows.py:75` — `ledger_view()` for fleet-wide views
+- `core/trajectory.py:239` — `_with_ledger()` combines turn + run ledger projection
 
 **Why this matters**: Raw session state is a log of events; a projection is a query over that log. The plan card, the stats panel, and the outline are all projections — different views over the same source.
 
@@ -82,9 +82,9 @@ Session state is projected into derived views:
 **Status**: Implemented
 
 Plugin state is stored as JSON files with validation:
-- `core/plugin_state.py:256` — `CLIENT_STORE_NAME = "client-store.json"`
-- `core/plugin_state.py:267-280` — `_read_client_store()` parses JSON
-- `core/plugin_state.py:293-329` — `client_set()` writes JSON with validation
+- `core/plugin_state.py:288` — `CLIENT_STORE_NAME = "client-store.json"`
+- `core/plugin_state.py:299-316` — `_read_client_store()` parses JSON
+- `core/plugin_state.py:345-381` — `client_set()` writes JSON with validation
 - Byte caps: `CLIENT_VALUE_MAX = 8192`, `CLIENT_STORE_MAX = 65536`
 
 **Why this matters**: JSON is human-readable, diff-friendly, and validates against a schema. Binary formats (SQLite, protobuf) are faster but opaque — a plugin state file you can't read is a plugin state file you can't debug.
@@ -142,13 +142,14 @@ The frontend uses a comprehensive token system:
 **Status**: Implemented
 
 Tool calls, refusals, and completions are emitted as typed SSE events:
-- `server/routes/chat.py:1179-1432` — `_make_stream_callbacks()` emits 20+ typed events:
+- `server/routes/chat.py:1345` — `_make_stream_callbacks()` builds the per-turn frames;
+  `core/goal_loop.py:112-129` emits the three goal frames the route relays:
   - `tool_start`, `tool_done`, `chunk`, `thinking`, `thinking_chunk`
   - `activity`, `plan`, `file_result`, `artifact_check`, `stdout`
   - `error`, `done`, `sandbox_confirm`, `ask_user`, `skill_created`
   - `run_snapshot`, `failover`, `project_progress`
   - `goal_start`, `goal_turn`, `goal_check`
-- Each event carries `turn_id`, `call_id`, and structured payloads
+- A turn frame carries `turn_id`, a tool frame adds `call_id`, and every payload is structured
 
 **Why this matters**: Untyped events force the client to parse strings. Typed events with structured payloads let the client switch on `event.type` and render accordingly — the conversation is a state machine, not a text stream.
 
@@ -166,7 +167,7 @@ Tool calls, refusals, and completions are emitted as typed SSE events:
 | Session projections | Implemented | — |
 | Plain JSON state | Implemented | — |
 | Durable events | Implemented | — |
-| React slots | Implemented | 2026-11-08 |
+| Surface placement | Implemented | 2026-11-08 |
 | Theme tokens | Implemented | — |
 | Conversation events | Implemented | — |
 

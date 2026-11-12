@@ -83,6 +83,11 @@ published without its ``:path`` converter; neither is a second route.
   session holds — and ``PUT /api/creator/consent`` writes that answer into the same store
   the enforcement reads. Neither keeps a copy of its own, because a consent a page
   remembered apart from the gate is how a dialog comes to promise a refused call.
+  Two research routes land with the web-intake surface: ``GET /api/research/evidence``
+  is the list a source card reads from the run ledger, and ``POST /api/research/run``
+  is the explicit call. It does not run the tool automatically: ``web_research``
+  keeps its NETWORK approval class, and this route is what a user-invoked surface
+  or script calls.
 """
 from __future__ import annotations
 
@@ -189,6 +194,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "GET /api/proxy/{port}",
     "GET /api/proxy/{port}/{full_path}",
     "GET /api/reader",
+    "GET /api/research/evidence",
     "GET /api/schedule",
     "GET /api/schedule/presets",
     "GET /api/schedule/results",
@@ -288,6 +294,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/mobile/ping",
     "POST /api/model/providers/probe",
     "POST /api/models/embedding/download",
+    "POST /api/models/embedding/reembed",
     "POST /api/plugins/master",
     "POST /api/plugins/{plugin_id}/cancel",
     "POST /api/plugins/{plugin_id}/client/tool",
@@ -298,6 +305,7 @@ FROZEN_ROUTES: tuple[str, ...] = (
     "POST /api/plugins/{plugin_id}/surface-token",
     "POST /api/project/index",
     "POST /api/project/search",
+    "POST /api/research/run",
     "POST /api/sandbox/approve",
     "POST /api/schedule",
     "POST /api/schedule/{job_id}/run",

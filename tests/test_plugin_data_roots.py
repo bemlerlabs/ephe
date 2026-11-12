@@ -24,7 +24,7 @@ import pytest
 from core import mcp_sandbox, plugin_manifest
 from core.capability_policy import resolved_data_roots
 from core.plugin_state import usage as state_usage
-from core.sandbox.runner import _data_roots, run_plugin_tool
+from core.sandbox.runner import run_plugin_tool, worker_data_roots
 from core.sandbox.worker_spec import build_spec
 from tests.support import capabilities
 
@@ -143,9 +143,9 @@ def test_a_root_that_is_not_a_folder_never_reaches_the_worker(lane, monkeypatch)
     """Two doors on one rule: the manifest refuses the declaration, the runner binds nothing.
 
     `validate_data_roots` refuses a declared path that is not a directory when the manifest
-    loads, and `_data_roots` filters the same shape again for the window between that read and
-    the spawn. The scan that follows a bad declaration hides the bundle, so the worker never
-    sees the path either way.
+    loads, and `worker_data_roots` filters the same shape again for the window between that
+    read and the spawn. The scan that follows a bad declaration hides the bundle, so the
+    worker never sees the path either way.
     """
     workspace = lane["tmp"] / "work"
     workspace.mkdir()
@@ -153,7 +153,7 @@ def test_a_root_that_is_not_a_folder_never_reaches_the_worker(lane, monkeypatch)
     _install(lane["tmp"], monkeypatch, [str(gone)])
     _, error = plugin_manifest.load_manifest(Path(plugin_manifest.PLUGINS_ROOT_OVERRIDE) / PLUGIN_ID)
     assert error and "gone" in error, error
-    assert _data_roots(PLUGIN_ID) == (), "an unloaded bundle grants no root"
+    assert worker_data_roots(PLUGIN_ID) == (), "an unloaded bundle grants no root"
 
 
 def test_a_host_root_never_moves_the_plugin_directory(tmp_path):

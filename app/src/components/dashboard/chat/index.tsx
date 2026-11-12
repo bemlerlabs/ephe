@@ -28,6 +28,7 @@ import { BudgetContinueCard } from '../BudgetContinueCard'
 import { SolInsightCard } from '../SolInsightCard'
 import { StepPill } from '../StepPill'
 import ChatSkeleton from './ChatSkeleton'
+import { DeferredAgentPanel, DeferredSettingsPanel } from './panels'
 import RestoredConversation from './RestoredConversation'
 import { useChatStore, DEFAULT_SESSION_TITLE } from '@/store/chatStore'
 import { announceBackendParity, announceBuildParity } from '@/lib/backendParity'
@@ -47,7 +48,6 @@ import HeaderCompanion from '@/components/shell/HeaderCompanion'
 import { CellLifeLine } from '../CellLifeLine'
 import { useContextOccupancy } from '@/lib/useContextOccupancy'
 import { registerRunStop } from '@/lib/runControl'
-import MessageBubble from '../MessageBubble'
 import StatusBar from '../StatusBar'
 import TimelineRail from '../TimelineRail'
 import { useStatusPanelData } from '../AgentStatusSections'
@@ -73,6 +73,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Skeleton,
 } from '@/components/ui'
 import { EpheMark } from '@/components/shell/EpheMark'
 import { useChatLayoutModel } from './model'
@@ -80,13 +81,20 @@ import { useChatReadingWidth } from '@/lib/deepSettings'
 import { useTaskDeepLink } from './useTaskDeepLink'
 import { isMacPlatform } from '@/lib/shortcuts'
 
-// W3-1: the two heavy panes are their own chunks. The agent panel drags in xterm
-// and every tab; the artifact rail is only needed once a turn produced a file.
-// Both load after the chat shell paints instead of riding in the ChatPage chunk.
-const AgentPanel = lazy(() => import('../AgentPanel'))
-// The register is opened, not painted: its own chunk keeps ChatPage under the
-// first-paint budget as the appearance surface grows.
-const SettingsPanel = lazy(() => import('../SettingsPanel'))
+// The bubble owns the markdown pipeline (react-markdown, remark/rehype, the
+// fence renderers). The empty chat paints none of it, so the chunk is fetched
+// with the first transcript row instead of with the route.
+const MessageBubble = lazy(() => import('../MessageBubble'))
+
+/** One row's height while the bubble chunk is on the wire. The virtualizer
+ *  measures the row once the bubble paints and corrects the offset. */
+function MessageBubbleSkeleton() {
+  return (
+    <div aria-hidden="true" className="flex justify-start py-2">
+      <Skeleton className="h-14 w-3/4 rounded-2xl" />
+    </div>
+  )
+}
 
 /**
  * The virtual row key. A row restored from the server mirror arrives without an `id`
@@ -859,25 +867,27 @@ export default function ChatLayout() {
                               paddingBottom: 16,
                             }}
                           >
-                            <MessageBubble
-                              sessionId={currentSession?.id}
-                              animateEntrance={
-                                virtualItem.index >= (currentSession?.messages.length ?? 0) - 3
-                              }
-                              // D2: direct msg reference (no {...msg} spread) —
-                              // updateActiveMessage creates a new object per chunk only for
-                              // the ACTIVE message; historical bubbles keep
-                              // their reference → memo skips them.
-                              message={msg}
-                              onApproveSandbox={approveSandboxForTool}
-                              onDenySandbox={denySandboxForTool}
-                              onEdit={handleEditMessage}
-                              onRegenerate={handleRegenerate}
-                              onRetry={handleRetry}
-                              onPickOption={handlePickOption}
-                              onAnswerAsk={handleAnswerAsk}
-                              prevUserContent={prevUserAt[virtualItem.index] ?? ''}
-                            />
+                            <Suspense fallback={<MessageBubbleSkeleton />}>
+                              <MessageBubble
+                                sessionId={currentSession?.id}
+                                animateEntrance={
+                                  virtualItem.index >= (currentSession?.messages.length ?? 0) - 3
+                                }
+                                // D2: direct msg reference (no {...msg} spread) —
+                                // updateActiveMessage creates a new object per chunk only for
+                                // the ACTIVE message; historical bubbles keep
+                                // their reference → memo skips them.
+                                message={msg}
+                                onApproveSandbox={approveSandboxForTool}
+                                onDenySandbox={denySandboxForTool}
+                                onEdit={handleEditMessage}
+                                onRegenerate={handleRegenerate}
+                                onRetry={handleRetry}
+                                onPickOption={handlePickOption}
+                                onAnswerAsk={handleAnswerAsk}
+                                prevUserContent={prevUserAt[virtualItem.index] ?? ''}
+                              />
+                            </Suspense>
                           </div>
                         )
                       })}
@@ -943,17 +953,13 @@ export default function ChatLayout() {
         {/* Round 14: shortcut cheatsheet ('?') */}
         <ShortcutOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
         {/* G2/G1: agent panel (tabs: live preview | terminal), opens via Cmd-K */}
-        <Suspense fallback={null}>
-          <AgentPanel messages={currentSession?.messages ?? []} />
-        </Suspense>
+        <DeferredAgentPanel messages={currentSession?.messages ?? []} />
         {/* Settings Panel */}
-        <Suspense fallback={null}>
-          <SettingsPanel
-            isOpen={settingsOpen}
-            initialTab={settingsTab === 'model' ? 'engine' : settingsTab}
-            onClose={() => setSettingsOpen(false)}
-          />
-        </Suspense>
+        <DeferredSettingsPanel
+          isOpen={settingsOpen}
+          initialTab={settingsTab === 'model' ? 'engine' : settingsTab}
+          onClose={() => setSettingsOpen(false)}
+        />
       </div>
     </ErrorBoundary>
   )

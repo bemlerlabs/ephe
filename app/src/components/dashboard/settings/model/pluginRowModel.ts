@@ -109,6 +109,7 @@ export function installedEntry(row: MarketInstalledRow): PluginEntry {
     source: row.origin === 'user' ? 'user' : 'builtin',
     permissions: row.permissions?.tool_families ?? [],
     components: row.components ?? [],
+    hooks: row.hooks,
     has_icon: row.has_icon,
     manifest: false,
   }

@@ -11,8 +11,9 @@ on τ-bench retail.
 `plugins/<name>/prompts/golden.jsonl` (at least 6 mechanically gradable cases: real artifacts, real
 tool calls, anti-slop traps) plus `prompts/rubric.md`. The grader vocabulary is the kernel's five
 kinds; a bundle may name presets of `contains` and `not_contains` in `capabilities.evaluator`, and a
-preset grades only inside the suite that declares it (`docs/PLUGINS.md`). **92 cases across 14
-plugins** as of the E4 wave. Two paths share one semantics:
+preset grades only inside the suite that declares it (`docs/PLUGINS.md`). **153 cases across 17
+plugins** — the verify gate's own count (`ephe bench`, no engine, 2026-11-12; its summary line reads
+`153 cases over 17 plugins; 0 plugins with findings`). Two paths share one semantics:
 
 - `ephe bench` (no flags) is the structural verify-gate every CI run and every commit passes; it
   needs no engine.

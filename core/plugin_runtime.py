@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from core import plugin_manifest
+from core.plugin_hooks_contract import TurnHook, scan_turn_hooks
 from core.plugin_lifecycle import (
     STATE_FILENAME,
     LifecycleError,
@@ -367,6 +368,23 @@ def memory_provider_claim(provider_id: str) -> MemoryProviderClaim | None:
 def plan_strategies() -> PlanStrategyTable:
     """Every plan strategy the scanned portfolio declares, with the contested ids."""
     return _plan_strategies_cached(*_roots_key())
+
+
+# Turn hooks
+
+
+def turn_hooks() -> tuple[TurnHook, ...]:
+    """Every turn-end hook the scanned portfolio declares, in plugin-id order.
+
+    Read through `core.plugin_scan_cache.scan()` rather than another `lru_cache`: the cache
+    is keyed by the folders' signature, has a two-second ceiling and is dropped by
+    `invalidate_ownership_cache`, so a mount, an install or an edit retires this table the
+    same way it retires every other manifest-derived answer. N observers fire; there is no
+    contested id and no one-winner rule, because a hook owns no shared resource.
+    """
+    from core import plugin_scan_cache
+
+    return scan_turn_hooks(plugin_scan_cache.scan())
 
 
 # Gate decisions

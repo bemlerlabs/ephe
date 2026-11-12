@@ -4,7 +4,7 @@ Format contract for `ephe-plugin.json` (docs/PLUGINS.md):
 
 1. A valid manifest loads: name (slug), version (semver), description,
    optional permissions (tool_families ⊆ known families, data_roots),
-   optional components (skills, commands; agents/hooks/mcp reserved).
+   optional components (skills, commands; agents/mcp reserved, hooks live in v2).
 2. Fail-closed validation: unknown tool family, missing skill pack dir,
    bad slug/semver, or a name/directory mismatch is an ERROR — the plugin
    is quarantined (never half-loaded).
@@ -118,7 +118,6 @@ class TestValidation:
             "components": {
                 **VALID_MANIFEST["components"],
                 "agents": [{"name": "scout", "tools": ["read_file"]}],
-                "hooks": {"turn_end": []},
                 "mcp": {"servers": []},
             },
         }

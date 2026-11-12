@@ -68,7 +68,6 @@ are the next change.
       { "name": "my-tool", "description": "Short, what the command does", "template": "Use {input}" }
     ],
     "agents": [],
-    "hooks": {},
     "mcp": {}
   }
 }
@@ -93,7 +92,7 @@ curl -s localhost:8765/api/plugins/commands             # is /my-tool in the sla
 | Skill packs | `components.skills[]` | directory names; `SKILL.md` mandatory; on a name collision the user/built-in packs always beat the bundled ones |
 | Slash commands | `components.commands[]` | `{name, description, template?}`; the server expands the placeholder (`{input}`) — no JS in the composer |
 | Helper agents | `components.agents[]` | `{name, description?, tools ⊆ TOOL_MAP, model?, timeout?}`; `timeout` clamp 30–900 s; an unknown tool ⇒ the profile is quarantined; an empty tool set never loads |
-| Hooks | `components.hooks` | reserved — accepted structurally, never executed; the active hook API is `~/.ephe/hooks.json` (E5) |
+| Turn hook | `components.hooks` (a manifest v2 object) | one `turn_end` entry `{entry, timeout_seconds}`; the handler is `main(arguments, state_dir)` and receives the kernel's fixed metadata payload (turn id, stop reason, tool names, duration — never the answer). Runs in the confined worker after every turn while the bundle is active, at most once per turn, 1–3 s; `docs/PLUGINS.md` § A declared turn hook (v2) |
 | MCP | `components.mcp` | reserved |
 | Surface | `components.ui` | one descriptor `{type, entry, title, default_size?, capabilities?}`; `entry` is an `.html` document inside the bundle, and `capabilities` is the closed vocabulary of `core/plugin_ui_capabilities.py` |
 | Contributed tools | `components.tools[]` (a manifest v2 list) | one object per tool `{name, entry, family, description, parameters?}`; `entry` is a `path.py:callable` inside the bundle and the served name is the declared one (`web_search` is served as `web_search`; the namespace is the package, not the name); `family` has to be one `permissions.tool_families` declares; rules and the DoD checks in `docs/PLUGINS.md` |

@@ -182,6 +182,12 @@ export interface PluginSurfaceDescriptor {
   grants?: string[]
 }
 
+/** One turn-end hook a bundle declares: the event and the bound it runs under. */
+export interface PluginHookFact {
+  event: string
+  timeout_seconds: number
+}
+
 /** One plugin entry from the aggregated store view (GET /api/plugins). */
 export interface PluginEntry {
   id: string
@@ -214,6 +220,11 @@ export interface PluginEntry {
   activated_tools?: number
   /** W1-7: the one surface this bundle declares; the switch row opens it from here. */
   surface?: PluginSurfaceDescriptor
+  /**
+   * Turn-end hooks the installed manifest declares, with the bound each run sits under.
+   * One entry in this cut; an empty or absent list means the bundle runs no hook.
+   */
+  hooks?: PluginHookFact[]
   /** #106: megabytes kept against the ceiling. File names stay on the state route. */
   state_usage?: PluginStateUsage
   /** #99: `session` when a mode names this bundle, otherwise `global`. */

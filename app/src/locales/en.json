@@ -559,7 +559,17 @@
     "failedSteps_other": "{{count}} steps failed",
     "restoredConversationTitle": "Earlier conversation restored",
     "restoredConversationBody": "This conversation ends in failed steps. Open it, or start a new task.",
-    "restoredConversationShow": "Show conversation"
+    "restoredConversationShow": "Show conversation",
+    "research": {
+      "sourcesTitle": "Sources",
+      "evidenceFor": "Evidence for \"{{query}}\"",
+      "workspaceTitle": "From this workspace",
+      "sourceOpened": "Open {{host}}",
+      "sourceMeta": "{{host}} · {{time}} · sha256:{{sha}}",
+      "rawOutput": "Raw tool output",
+      "citationAll": "Every claim is backed by a stored source ({{checked}} checked).",
+      "citationMissing": "{{missing}} of {{checked}} claims carry no stored source."
+    }
   },
   "sidebar": {
     "navAgents": "Sub-Agents & Swarms",
@@ -1426,6 +1436,7 @@
     "pluginCapCommands": "Commands",
     "pluginCapCommandsOff": "Commands after enabling",
     "pluginCapComponents": "Components: {{list}}",
+    "pluginHookTurnEnd": "Turn-end hook: a confined run after every turn ({{seconds}} s limit)",
     "pluginSourceLabel": "Source: {{source}}",
     "pluginTrustLabel": "Trust: {{trust}}",
     "pluginSourceBuiltin": "Bundled",
@@ -1932,7 +1943,8 @@
   "toast": {
     "close": "Dismiss notification",
     "previewReady": "Browser ready: {{name}}",
-    "open": "Open"
+    "open": "Open",
+    "region": "Notifications"
   },
   "sw": {
     "updateAvailable": "New version available",
@@ -2806,7 +2818,13 @@
     "reportTargetHere": "The target is Ephe's own archive inside its device folder.",
     "providerSwitched": "Notes are stored in \"{{provider}}\" from now on.",
     "storeBridge": "Bridge",
-    "vectorCoverage": "{{embedded}} of {{chunks}} notes have a vector."
+    "vectorCoverage": "{{embedded}} of {{chunks}} notes have a vector.",
+    "vectorCoverageEmpty": "No notes stored yet, so there is nothing to vectorise.",
+    "vectorCoverageOff": "The vector arm is off: {{embedded}} of {{chunks}} notes carry a vector.",
+    "vectorReembed": "Re-embed missing vectors",
+    "vectorReembedRunning": "Re-embedding {{embedded}} of {{total}} notes…",
+    "vectorReembedStartFailed": "The re-embed could not be started. Try again.",
+    "vectorReembedFailed": "Re-embedding stopped: {{reason}}"
   },
   "tools": {
     "title": "Tools",

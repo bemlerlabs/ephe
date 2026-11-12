@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from core import __version__, marketplace_index, marketplace_sources, plugin_manifest
+from core.plugin_hooks_contract import hook_facts
 from core.plugin_store import load_registry
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,10 @@ def installed() -> dict[str, Any]:
                     for key, value in (manifest.get("components") or {}).items()
                     if value
                 ),
+                # The row the settings surface reads carries the turn-end declaration
+                # itself, so a locally installed bundle states its hook and not only the
+                # component group it belongs to.
+                "hooks": hook_facts(manifest),
                 "permissions": _permissions(manifest.get("permissions")),
                 "verification": _verification(directory),
                 # The installed tile asks the icon route only for a bundle that

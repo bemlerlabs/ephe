@@ -2249,6 +2249,34 @@ async def chat_stream(
             # the idle detection of the frontend reader.
             queue.put_nowait(("raw", comment))
 
+        def _emit_citation_check(answer: str) -> None:
+            """Mark a model-written answer's unsupported claims, never blocking the turn.
+
+            The run is the one this turn's web_research call recorded. A turn with no
+            research run, an empty answer or a check that throws adds no frame: the
+            answer has already streamed and stays as it is.
+            """
+            try:
+                from core.web_intake.ledger import default_ledger
+                from core.web_intake.verify import verify_answer
+
+                run = default_ledger().latest_for_turn(turn_id)
+                if run is None or not str(answer or "").strip():
+                    return
+                workspace = {hit.reference: hit for hit in run.workspace}
+                report = verify_answer(answer, run.store, workspace)
+                if report.checked == 0:
+                    return
+                emit({
+                    "type": "citation_check",
+                    "run_id": run.run_id,
+                    "checked": report.checked,
+                    "verified": report.verified,
+                    "unverified": report.unverified[:5],
+                })
+            except Exception:
+                logger.debug("citation check skipped", exc_info=True)
+
         # R36-S: sub-agent event bridge — spawn_agent routes its live events
         # (started/tool/done) into exactly this SSE stream. Request-scoped
         # ContextVar, which is why it is set HERE; core code stays transport-agnostic.
@@ -2282,6 +2310,14 @@ async def chat_stream(
             # silently: no error, no done, and the SSE generator would have
             # waited on the queue forever (a client hang without a diagnosis).
             _done_sent = False
+            # The research ledger names the turn a web_research call belongs to; the
+            # tool runs inside this task, so the ContextVar is the whole seam.
+            from core.web_intake.ledger import (
+                bind_turn as _bind_research_turn,
+                reset_turn as _reset_research_turn,
+            )
+
+            _research_turn_token = _bind_research_turn(turn_id)
             # W32: turn observability — start stamp + counters set early,
             # so the finally entry is complete even on an early exception.
             _turn_t0 = time.perf_counter()
@@ -2685,6 +2721,7 @@ async def chat_stream(
                 emit({"type": "reflect", "status": "done", "needs_revision": reflexion.needs_revision})
 
                 if not reflexion.needs_revision:
+                    _emit_citation_check(first_answer)
                     _emit_usage_frame()
                     emit({"type": "done"})
                     _done_sent = True
@@ -2730,6 +2767,7 @@ async def chat_stream(
                 # P6: the revised answer as its own ASSISTANT step.
                 if rev_chunks:
                     emit({"type": "assistant", "text": "".join(rev_chunks)})
+                    _emit_citation_check("".join(rev_chunks))
 
             except ProviderSetupError as exc:
                 emit({"type": "progress", "phase": "engine_error", "tool": "", "turn_id": turn_id, "elapsed_ms": 0})
@@ -2773,6 +2811,10 @@ async def chat_stream(
                 except Exception:
                     emit({"type": "error", "msg": _error_msg(exc)})
             finally:
+                try:
+                    _reset_research_turn(_research_turn_token)
+                except Exception:
+                    pass
                 _beat_task.cancel()
                 # N1: a steer the turn never read is reported before the turn
                 # closes. The loop reports its own leftovers, so this covers the

@@ -98,6 +98,32 @@ export default function MemoryPage() {
 
         <PageHeader title={t('memory.title')} subtitle={t('memory.subtitle')} />
 
+        {/* The inventory states the vector coverage in numbers: "carries" next to
+            0 of 45 was the contradiction this line removes. The diagnosis sub-page
+            repeats it beside the legs and the re-embed action. */}
+        {view !== 'gehirne' && stats && stats.chunks !== undefined && (
+          <p
+            data-testid="memory-page-vector-coverage"
+            className={`mb-3 text-ui-xs ${
+              stats.chunks > 0 && (stats.chunks_embedded ?? 0) === 0
+                ? 'text-status-warn'
+                : 'text-ink-faint'
+            }`}
+          >
+            {stats.chunks === 0
+              ? t('memory.vectorCoverageEmpty')
+              : stats.vector_leg === false
+                ? t('memory.vectorCoverageOff', {
+                    embedded: stats.chunks_embedded ?? 0,
+                    chunks: stats.chunks,
+                  })
+                : t('memory.vectorCoverage', {
+                    embedded: stats.chunks_embedded ?? 0,
+                    chunks: stats.chunks,
+                  })}
+          </p>
+        )}
+
         {/* These are sub-pages with their own address, not tabs: a tab list
             without a panel relationship would be the very semantics gap that was
             only just closed in the agent panel. */}

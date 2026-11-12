@@ -265,6 +265,7 @@ export function classifyToolCall(tool: ToolCallShape): ToolCardModel {
       }
     }
     case 'web_search':
+    case 'web_research':
     case 'browser_go':
     case 'browser_click':
     case 'browser_type':

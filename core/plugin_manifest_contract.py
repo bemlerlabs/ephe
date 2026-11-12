@@ -224,11 +224,16 @@ def validate_manifest(
     library_error = validate_libraries(manifest, plugin_dir)
     if library_error:
         return library_error
-    # agents / hooks / mcp and the later declarative components: accepted
-    # structurally, never executed by the P1 runtime.
+    from core.plugin_hooks_contract import validate_hooks
+
+    hooks_error = validate_hooks(manifest, plugin_dir)
+    if hooks_error:
+        return hooks_error
+    # agents / mcp and the later declarative components: accepted structurally, never
+    # executed by the P1 runtime. `hooks` is not in this list: a version 2 turn-end hook
+    # is validated above and dispatched by `core/plugin_turn_hooks.py`.
     for reserved in (
         "agents",
-        "hooks",
         "mcp",
         "resources",
         "prompts",

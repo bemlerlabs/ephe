@@ -29,6 +29,7 @@ function mockStore() {
     markLastUsage: vi.fn(),
     markBudgetReached: vi.fn(),
     markSolInsight: vi.fn(),
+    markCitationCheck: vi.fn(),
     setReflecting: vi.fn(),
     setRevising: vi.fn(),
     setQualityCheck: vi.fn(),
@@ -124,6 +125,25 @@ describe('applyStreamEvent (Event → Store-Action Mapping)', () => {
     expect(store.setRevising).toHaveBeenCalledWith(true)
   })
 
+  it('citation_check → markCitationCheck (the verdict lands on the answer)', () => {
+    applyStreamEvent(
+      {
+        type: 'citation_check',
+        run_id: 'r_1',
+        checked: 3,
+        verified: 2,
+        unverified: ['The moon is made of cheese.'],
+      },
+      store,
+    )
+    expect(store.markCitationCheck).toHaveBeenCalledWith({
+      runId: 'r_1',
+      checked: 3,
+      verified: 2,
+      unverified: ['The moon is made of cheese.'],
+    })
+  })
+
   it('sandbox_confirm → resolveSandbox (Token + Tool + Args + optionaler Diff)', () => {
     applyStreamEvent(
       {
@@ -183,7 +203,15 @@ describe('applyStreamEvent (Event → Store-Action Mapping)', () => {
       status: 'running',
     })
     applyStreamEvent(
-      { type: 'swarm_created', swarm_id: 'sw-1', agents: [{ agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' }, { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' }], model: 'gemma4:e4b' },
+      {
+        type: 'swarm_created',
+        swarm_id: 'sw-1',
+        agents: [
+          { agent_id: 'a1', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h1' },
+          { agent_id: 'a2', role: 'researcher', model: 'gemma4:e4b', task_spec_hash: 'h2' },
+        ],
+        model: 'gemma4:e4b',
+      },
       store,
     )
     expect(store.upsertActivity).toHaveBeenLastCalledWith({

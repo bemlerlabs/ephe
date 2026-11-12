@@ -15,6 +15,7 @@ import { m, AnimatePresence } from 'framer-motion'
 import { Check, Loader2 } from 'lucide-react'
 
 import SearchInput from '@/components/shell/SearchInput'
+import { PageHeaderAreaTitle } from '@/components/shell/pageHeaderArea'
 import { useSettingsPanelModel, NAV, languageOptions } from './model'
 import { RegisterNav } from './registerNav'
 import { matchFields, matchRows, matchTabs } from './model/settingsSearch'
@@ -342,7 +343,11 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.15 }}
                   >
-                    {section[activeTab]}
+                    {/* A section title equal to the tab label is the same name twice —
+                        the page title stays visible, only its heading role goes. */}
+                    <PageHeaderAreaTitle.Provider value={String(t(`settings.${activeTab}`))}>
+                      {section[activeTab]}
+                    </PageHeaderAreaTitle.Provider>
                   </m.div>
                 </AnimatePresence>
               )}

@@ -89,7 +89,38 @@ def test_a_quarantined_folder_is_listed_as_an_error_row(device) -> None:
         "surface": None,
         "commands": [],
         "skills": [],
+        "hooks": [],
     }
+
+
+def test_a_declared_turn_hook_is_a_row_fact(device) -> None:
+    import json
+
+    from tests.support.plugin_bundle import write_bundle
+
+    directory = write_bundle(device / "plugins", "hook-widget")
+    (directory / "hooks").mkdir()
+    (directory / "hooks" / "turn_end.py").write_text(
+        "def main(arguments, state_dir):\n    return 'ok'\n", encoding="utf-8"
+    )
+    manifest_path = directory / "ephe-plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["components"]["hooks"] = {
+        "turn_end": {"entry": "hooks/turn_end.py:main", "timeout_seconds": 2}
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    mark_installed("hook-widget", enabled=True)
+
+    from core import plugin_runtime, plugin_store
+
+    plugin_runtime.invalidate_ownership_cache()
+    view = plugin_store.plugins_view()
+    row = _row(view, "hook-widget")
+
+    assert row["capabilities"]["hooks"] == [
+        {"event": "turn_end", "timeout_seconds": 2}
+    ]
+    assert row["rail"] == "worker"
 
 
 def test_every_bundle_appears_once_and_a_builtin_names_its_own_face(device) -> None:

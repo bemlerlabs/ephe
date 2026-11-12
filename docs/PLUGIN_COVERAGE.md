@@ -10,14 +10,14 @@ grader or the client shell).
 
 | Capability class | Today | Evidence | Missing extension point | Effort |
 |---|---|---|---|---|
-| Tools | Plugin | `core/plugin_tools_contract.py:137` `validate_tools` → `core/tools/dynamic_registry.py:289` `register` → `core/sandbox/runner.py:256` `run_plugin_tool`; gate `core/plugin_runtime.py:360` | none on the rail; a kernel tool has no manifest route *out*, which is the one-name-one-provider rule, not a gap | — |
-| Memory | Plugin since MEM-P1 (provider); the stores stay kernel | `core/plugin_memory_contract.py` `validate_memory` → `core/plugin_runtime.py:322` `memory_providers` → `core/memory_provider.py:169` `resolve_provider`, `:256` `open_provider` | in-process provider code: only the `kepta-bridge` wire protocol is declarable, because nothing imports plugin code (ruling A1) | M (done) |
-| Planner | Kernel loop; a plugin names the plan strategy since PLAN-P1 | `core/plugin_planner_contract.py:161` `validate_planner` → `core/plugin_runtime.py:356` `plan_strategies` → `core/ephe_plan.py:84` `plan_strategy`, clamped at `:157` `_step_budget`; the loop stays `core/react.py:170` `react_loop` | a step schema with a reader: the guard text still instructs one shape, so nothing fails a plan that ignores a declared field | L (first cut landed) |
+| Tools | Plugin | `core/plugin_tools_contract.py:292` `validate_tools` → `core/tools/dynamic_registry.py:289` `register` → `core/sandbox/runner.py:267` `run_plugin_tool`; gate `core/plugin_runtime.py:485` | none on the rail; a kernel tool has no manifest route *out*, which is the one-name-one-provider rule, not a gap | — |
+| Memory | Plugin since MEM-P1 (provider); the stores stay kernel | `core/plugin_memory_contract.py` `validate_memory` → `core/plugin_runtime.py:349` `memory_providers` → `core/memory_provider.py:173` `resolve_provider`, `:266` `open_provider` | in-process provider code: only the `kepta-bridge` wire protocol is declarable, because nothing imports plugin code (ruling A1) | M (done) |
+| Planner | Kernel loop; a plugin names the plan strategy since PLAN-P1 | `core/plugin_planner_contract.py:161` `validate_planner` → `core/plugin_runtime.py:367` `plan_strategies` → `core/ephe_plan.py:84` `plan_strategy`, clamped at `:157` `_step_budget`; the loop stays `core/react.py:170` `react_loop` | a step schema with a reader: the guard text still instructs one shape, so nothing fails a plan that ignores a declared field | L (first cut landed) |
 | Evaluator | Kernel grader; the bundle supplies cases and, since EVAL-P1, names presets of the kernel's own kinds | `core/plugin_golden.py:249` `grade`, `:193` `load_golden`, `:163` `_declared_kinds`, `:579` `measure_matrix`; contract `core/plugin_evaluator_contract.py:224` `validate_evaluator`, `:260` `evaluator_kinds` | a grader or a new `expect.kind` a manifest could add: the vocabulary stays the kernel's five primitives, and a preset resolves only inside the suite that declares it | L (first cut landed) |
 | UI | Plugin for the surface, kernel for the shell; the placement first cut landed | `core/plugin_ui_capabilities.py:302` `validate_ui`, `server/routes/plugin_ui.py:73` router, `app/src/lib/surfacePlacement.ts` placement resolver, `core/plugin_surface_host.py` slot record | the shell's own pages and component slots: a bundle declares one placement from the closed list (`floating-window`, `canvas-overlay`, and `dock-panel` once a dock exists) and still cannot register into the app's tree or name a slot the shell does not own | L (first cut landed) |
-| Runtime | Kernel by design | `core/plugin_runtime.py:360` `tool_gate`, `core/plugin_lifecycle.py` state machine, `core/plugin_lifecycle_mount.py:92` `mount` | a turn hook: `components.hooks` is reserved; the live hook API is the process-wide `~/.ephe/hooks.json` (E5); a bundle has none | L |
+| Runtime | Kernel loop; a bundle declares one turn-end hook since HOOK-P1 | `core/plugin_runtime.py:503` `tool_gate`, `core/plugin_lifecycle.py` state machine, `core/plugin_lifecycle_mount.py:92` `mount`; hook contract `core/plugin_hooks_contract.py:117` `validate_hooks` → `core/plugin_runtime.py:376` `turn_hooks` → `core/chat.py:399` dispatch → `core/plugin_turn_hooks.py:275` `_execute` | an event beyond `turn_end`, a hook that transforms or vetoes a turn, an answer-bearing payload and a network transport; a hook observes one turn's metadata and cannot insert text | L (first cut landed) |
 | Commands | Plugin | `core/plugin_manifest.py:231` `manifest_commands`, `core/plugin_commands.py:26` | none | — |
-| Skills | Plugin (pack tree the manifest lists) | `core/plugin_manifest.py:217` `active_skill_roots`, `core/skills.py:638` | none; a pack is a directory with `SKILL.md`, never code | — |
+| Skills | Plugin (pack tree the manifest lists) | `core/plugin_manifest.py:217` `active_skill_roots`, `core/skills.py:655` | none; a pack is a directory with `SKILL.md`, never code | — |
 
 The start suspicion held for planner, evaluator and runtime, and not for tools, commands,
 skills or the surface half of UI. Memory was the class with a kernel seam already written
@@ -206,18 +206,69 @@ module directly, which a red-first run cannot count); `ephe bench` exits 0 with 
 153 cases across the same 17 bundles, so the shipped matrix did not move; the golden,
 memory and planner suites are green before and after.
 
+## The third cut: `components.hooks.turn_end` (HOOK-P1)
+
+The turn hook was the highest-risk of the three Ls because it puts bundle code on a new
+time axis: before it, a bundle's code ran when a tool was called; after it, the code runs at
+the end of every turn. The first cut makes the seam an observer and nothing more. The
+kernel fixes the event, the payload and the confinement, so the manifest names one entry
+and one bound and cannot ask for anything else.
+
+`components.hooks.turn_end` is one object in a version 2 manifest:
+`{"entry": "hooks/turn_end.py:main", "timeout_seconds": 2}`. The event vocabulary is
+`HOOK_EVENTS` (`turn_end` in this cut), the entry obeys the contributed tool's own lexical
+and containment rule, and the timeout is a whole number in 1–3 seconds. A version 1
+manifest that carries the section, an unknown event, an unknown field and a malformed entry
+each quarantine the whole bundle.
+
+The shape, in four steps that each have a test:
+
+- The contract (`core/plugin_hooks_contract.py:117` `validate_hooks`): the object above,
+  fail-closed in the same style as the planner and evaluator sections. The payload is not
+  a field — it is the kernel's — so a manifest that asks for the answer is refused as an
+  unknown field rather than silently ignored.
+- The registration (`core/plugin_runtime.py:376` `turn_hooks`): every declared hook from
+  `core.plugin_scan_cache.scan()`, in plugin-id order, with the folder it was scanned from.
+  The scan cache already retires the table on a mount, an install or an edit, so this seam
+  adds no second cache and no second invalidation.
+- The dispatch (`core/chat.py:399`): the turn's `finally`, before `reset_observer`, calls
+  `core/plugin_turn_hooks.note_turn_end` inside its own `try/except`, with the turn id, the
+  loop's stop reason, the names of the tools the turn called and the turn's own duration.
+  The enqueue is fire-and-forget; a full queue (eight pending runs) drops the run and
+  audits the drop, and the turn's result is never touched.
+- The execution (`core/plugin_turn_hooks.py:275` `_execute`): `resolve_entry_file` →
+  `build_spec` → `run_worker`, the same confined run a contributed tool uses, with the
+  declared timeout, the bundle's declared data roots and no bridge dispatch. The reply is
+  discarded, so nothing the hook writes reaches the model, the answer or the session. The
+  bundle is re-asked for its switch in the worker thread, and the run is registered with
+  `plugin_activity.begin_call`/`end_call` so switching it off stops it the way it stops a
+  tool call.
+
+What the first cut does not do: `turn_start`, `pre_tool`/`post_tool`, a mutating or vetoing
+hook, an answer-bearing payload, a network transport and a per-event surface. The user's
+own process-wide hook chain (`~/.ephe/hooks.json`, E5) stays a separate contract, and
+`docs/CONTEXT_CONTRACT.md` still names one resolver deciding what the model sees: a hook is
+not a second channel, and the payload makes that true by construction.
+
+Verification: 36 contract tests in `tests/test_plugin_hooks_contract.py` and 13 dispatcher
+tests in `tests/test_plugin_turn_hooks.py`, one of them a real confined worker proving the
+metadata payload and the network deny. The per-turn cost of a spawn is not measured yet;
+this document says so rather than implying a number.
+
 ## Open, in the order the table costs them
 
-- The settings surface still offers the two kernel ids only (`server/routes/memory.py:201`
-  `Literal["kepta", "kepta-bridge"]`); a declared provider is reachable through
-  `EPHE_MEMORY_PROVIDER` and through the record, and the route is an S.
+- The settings surface reads the selectable set (`server/routes/memory.py:205` `/memory/providers`
+  → `core/memory_provider.py:95` `available_providers`): the kernel's two ids plus an active
+  bundle's declared one, so the client offers what the route would accept and a switched-off
+  bundle leaves the list.
 - The planner step schema has no reader yet, and the settings surface has no planner
   section: a bundle's own lifecycle and `EPHE_PLAN_STRATEGY` are the only switches. The
   evaluator's first cut names presets of the kernel's five primitives; `artifact`, `tool_use`
   and `tool_refused` presets plus composition are its second cut, and no surface lists a
   declared preset yet. Client slot registration's first cut has landed: both product surfaces
   honor `components.ui.type` through `app/src/lib/surfacePlacement.ts`, and `dock-panel` is a
-  coded refusal until the shell owns a docked region. A runtime turn hook stays kernel; each
-  remaining seam is an L and wants its own contract module before any code moves.
+  coded refusal until the shell owns a docked region. The turn hook's first cut has landed as
+  an observer: `turn_end` only, one hook per bundle, metadata-only and unmeasured per turn.
+  Each remaining seam is an L and wants its own contract module before any code moves.
 - A second memory transport (anything but `kepta-bridge`) is a new wire contract with its
   own tests; the vocabulary stays closed until one is written down.

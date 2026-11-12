@@ -22,6 +22,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from core.plugin_hooks_contract import hook_facts
+
 MODES: tuple[str, ...] = ("analyst", "architect", "operator", "creator")
 
 # Spellings the composer already resolves. edit-auto stays its own factor.
@@ -168,6 +170,7 @@ def annotate_view(
             entry["provided_by_modes"] = provided
             entry["module"] = module_text(manifest)
             entry["configuration"] = configuration_text(manifest)
+            entry["hooks"] = hook_facts(manifest)
             buckets[str(entry["scope"])].append(entry)
     view["global"] = buckets["global"]
     view["session"] = buckets["session"]

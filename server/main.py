@@ -85,6 +85,7 @@ from server.routes import (
     secrets,
     update,
     reader,
+    research,
     workspaces,
     events,
     sol,
@@ -574,6 +575,7 @@ def create_app(lan_mode: bool = False, *, warm_handlers: bool = False) -> FastAP
     app.include_router(proxy.router, prefix="/api")
     app.include_router(update.router, prefix="/api")
     app.include_router(reader.router, prefix="/api")
+    app.include_router(research.router, prefix="/api")
     app.include_router(workspaces.router, prefix="/api")
 
     # Static files (audio recordings for playback)

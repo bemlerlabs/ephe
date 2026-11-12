@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { ChatMessage } from '@/types'
 import { PANEL_STATE_EVENT } from '@/lib/panelEvents'
+import type { PanelOpenDetail } from './primitives'
 import { SubagentsTab, MemoryTab, TrajectoryTab, SideConversationTab } from './tabsA'
 import { PreviewTab } from './previewTab'
 import { ReviewTab, TerminalTab } from './tabsC'
@@ -28,7 +29,17 @@ import { PanelEmptyState } from './panelEmptyState'
 // the PREVIEW_OPEN_EVENT listener (usePreviewNav), agent/user shell runs
 // (useShellRuns), the frost pulse (usePanelPulse). The order of these calls is
 // part of the contract: it decides the registration order of the effects.
-export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[] }) {
+export default function AgentPanel({
+  messages = [],
+  boot = null,
+  onReady,
+}: {
+  messages?: ChatMessage[]
+  /** The open request that mounted this pane, handed over by the chat gate. */
+  boot?: PanelOpenDetail | null
+  /** Called once the PREVIEW_OPEN_EVENT listener is registered. */
+  onReady?: () => void
+}) {
   const { t } = useTranslation()
   // Anyone who reduces motion gets the same content without the transition — the
   // toggle stays, the wobble does not.
@@ -56,7 +67,7 @@ export default function AgentPanel({ messages = [] }: { messages?: ChatMessage[]
     forward,
     canBack,
     canForward,
-  } = usePreviewNav({ open, setOpen, tabState, openTab })
+  } = usePreviewNav({ open, setOpen, tabState, openTab, boot, onReady })
 
   useEffect(() => {
     if (!open) return

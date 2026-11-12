@@ -7,11 +7,12 @@ entity graph, fused with Reciprocal Rank Fusion, then weighted by recency,
 confidence and oblivion retention. Ported from the Kepta-Core
 `src/core/{store,engine}.ts` (MIT v2.6.11) — the constants and the ranking chain
 were taken over unchanged so that Ephe's hits behave like those of a running Kepta.
-The port sits spread over four modules — `memory_kepta_schema` (schema, decay
+The port sits spread over five modules — `memory_kepta_schema` (schema, decay
 curve, encoders), `memory_kepta_ranking` (legs, RRF, boosts), `memory_kepta_read`
-(listings, counters, search, access feedback, stats) and this one (the provider
-class) — because the architecture limit pulls at 400 lines per module and these
-responsibilities are different anyway.
+(listings, counters, search, access feedback, stats), `memory_kepta_reembed` (the
+pass after a model switch) and this one (the provider class) — because the
+architecture limit pulls at 400 lines per module and these responsibilities are
+different anyway.
 
 Ephe extensions over Kepta (design + rationale: docs/MEMORY_KEPTA_DESIGN.md):
   * a `metadata` column (version 2) for Ephe's free dict (source/priority/hits),
@@ -37,6 +38,7 @@ from typing import Any, Callable
 from core import sqlite_util
 from core.memory_kepta_ranking import entry
 from core.memory_kepta_read import KeptaReadMixin
+from core.memory_kepta_reembed import KeptaReembedMixin
 from core.memory_kepta_schema import (
     DEDUPE_SIMILARITY,
     MAX_ENTITIES_PER_MEMORY,
@@ -54,7 +56,7 @@ from core.memory_kepta_schema import (
 logger = logging.getLogger(__name__)
 
 
-class KeptaProvider(KeptaReadMixin):
+class KeptaProvider(KeptaReadMixin, KeptaReembedMixin):
     """MemoryProvider based on SQLite. Every access is bound to `scope`."""
 
     def __init__(

@@ -3,13 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
 import { normalizeBrowserUrl } from './previewUrl'
-import { Tab, TabState } from './primitives'
+import { Tab, TabState, type PanelOpenDetail } from './primitives'
 
 type Host = {
   open: boolean
   setOpen: (next: boolean) => void
   tabState: TabState
   openTab: (key: Tab) => void
+  /** The request that mounted the pane, when the chat gate held it back. */
+  boot?: PanelOpenDetail | null
+  onReady?: () => void
 }
 
 /**
@@ -42,6 +45,10 @@ export function usePreviewNav(host: Host) {
   const openTabRef = useRef(host.openTab)
   openTabRef.current = host.openTab
   const setOpenRef = useRef(host.setOpen)
+  const bootRef = useRef(host.boot)
+  bootRef.current = host.boot
+  const onReadyRef = useRef(host.onReady)
+  onReadyRef.current = host.onReady
   // Focus moves are deferred by 40–60 ms so the panel can mount first; the ids are
   // kept because a timer that outlives the component fires into a torn-down document.
   // CI's vitest saw exactly that: `ReferenceError: document is not defined`, thrown
@@ -78,47 +85,53 @@ export function usePreviewNav(host: Host) {
     later(() => inputRef.current?.focus(), 40)
   }
 
-  useEffect(() => {
-    const onOpen = (e: Event) => {
-      const detail = (e as CustomEvent<{ url?: string; tab?: Tab; toggle?: boolean }>).detail
-      // Round G: the header toggle collapses/expands — the tab inventory stays intact.
-      if (
-        detail?.toggle &&
-        openRef.current &&
-        !detail.url &&
-        (!detail.tab || detail.tab === tabStateRef.current.active)
-      ) {
-        setOpenRef.current(false)
-        return
-      }
-      if (detail?.url !== undefined) {
-        // P6 B5: every URL into the ONE url pane (ref-22/24) — external http(s)
-        // URLs (source chips, palette) and internal /api/ paths behave identically
-        // (address bar, history, reload).
-        setUrl(detail.url)
-        // Show a decoded path in the URL bar (%2F… is unreadable); safe fallback
-        try {
-          setDraft(decodeURIComponent(detail.url))
-        } catch {
-          setDraft(detail.url)
-        }
-        pushHist(detail.url)
-        openTabRef.current(detail.tab === 'browser' ? 'preview' : (detail.tab ?? 'preview'))
-      } else if (detail?.tab) openTabRef.current(detail.tab)
-      setOpenRef.current(true)
-      // The follow-through into the address bar only applies while the user is
-      // still outside the panel (source chip, palette, chat). If the keyboard
-      // already stands inside the panel — say in an open overflow menu — this
-      // focus after 60 ms would be a theft.
-      if (detail?.url !== undefined) {
-        later(() => {
-          const active = document.activeElement
-          if (panelRef.current && active && panelRef.current.contains(active)) return
-          inputRef.current?.focus()
-        }, 60)
-      }
+  const applyOpenRef = useRef<(detail: PanelOpenDetail | undefined) => void>(() => {})
+  applyOpenRef.current = (detail: PanelOpenDetail | undefined) => {
+    // Round G: the header toggle collapses/expands — the tab inventory stays intact.
+    if (
+      detail?.toggle &&
+      openRef.current &&
+      !detail.url &&
+      (!detail.tab || detail.tab === tabStateRef.current.active)
+    ) {
+      setOpenRef.current(false)
+      return
     }
+    if (detail?.url !== undefined) {
+      // P6 B5: every URL into the ONE url pane (ref-22/24) — external http(s)
+      // URLs (source chips, palette) and internal /api/ paths behave identically
+      // (address bar, history, reload).
+      setUrl(detail.url)
+      // Show a decoded path in the URL bar (%2F… is unreadable); safe fallback
+      try {
+        setDraft(decodeURIComponent(detail.url))
+      } catch {
+        setDraft(detail.url)
+      }
+      pushHist(detail.url)
+      openTabRef.current(detail.tab === 'browser' ? 'preview' : (detail.tab ?? 'preview'))
+    } else if (detail?.tab) openTabRef.current(detail.tab)
+    setOpenRef.current(true)
+    // The follow-through into the address bar only applies while the user is
+    // still outside the panel (source chip, palette, chat). If the keyboard
+    // already stands inside the panel — say in an open overflow menu — this
+    // focus after 60 ms would be a theft.
+    if (detail?.url !== undefined) {
+      later(() => {
+        const active = document.activeElement
+        if (panelRef.current && active && panelRef.current.contains(active)) return
+        inputRef.current?.focus()
+      }, 60)
+    }
+  }
+
+  useEffect(() => {
+    const onOpen = (e: Event) => applyOpenRef.current((e as CustomEvent<PanelOpenDetail>).detail)
     window.addEventListener(PREVIEW_OPEN_EVENT, onOpen)
+    // The chat shell mounts this pane on the first request that arrives, so that
+    // request was dispatched before these hooks existed: apply it now.
+    if (bootRef.current) applyOpenRef.current(bootRef.current)
+    onReadyRef.current?.()
     return () => {
       window.removeEventListener(PREVIEW_OPEN_EVENT, onOpen)
       // Unmount cancels every pending focus: the DOM it was aiming at is gone.

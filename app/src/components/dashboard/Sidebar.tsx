@@ -482,7 +482,7 @@ export default function Sidebar({
 
   // The phone drawer is a dialog: closed it leaves the tab order (inert), open it
   // takes focus, traps Tab and Escape hands focus back to the header trigger.
-  const drawerRef = useRef<HTMLElement | null>(null)
+  const drawerRef = useRef<HTMLDivElement | null>(null)
   const drawerWasOpen = useRef(false)
   useEffect(() => {
     if (isDesktop) {
@@ -841,7 +841,7 @@ export default function Sidebar({
           with !isOpen it would therefore push the sidebar out of the viewport).
           Mobile: drawer with spring transition + backdrop, z ABOVE the header
           (otherwise the header blocks the X close — regression finding round 10). */}
-      <m.aside
+      <m.div
         ref={drawerRef}
         initial={isDesktop ? false : { x: -320 }}
         animate={isDesktop ? { x: 0 } : { x: isOpen ? 0 : -320 }}
@@ -851,7 +851,10 @@ export default function Sidebar({
         } w-72 transition-[width] duration-base overflow-hidden`}
         style={isDesktop ? { width: closed ? 0 : sidebarWidth } : undefined}
         inert={isDesktop ? closed || undefined : !isOpen || undefined}
-        role={!isDesktop && isOpen ? 'dialog' : undefined}
+        // A neutral element carries the dialog: ARIA in HTML refuses `dialog` on
+        // <aside>, and axe flags it while the phone drawer is open. On the wide
+        // window the column keeps the complementary landmark it had as an aside.
+        role={isDesktop ? 'complementary' : isOpen ? 'dialog' : undefined}
         aria-modal={!isDesktop && isOpen ? true : undefined}
         aria-hidden={!isDesktop && !isOpen ? true : undefined}
         aria-label={t('a11y.sidebar')}
@@ -1374,11 +1377,11 @@ export default function Sidebar({
             }
           </button>
         </div>
-      </m.aside>
+      </m.div>
 
       {/* R26: Session context menu — fixed, cursor/button-anchored, OUTSIDE the
-          aside (the mobile drawer has a transform → fixed children would anchor
-          to it instead of the viewport). */}
+          drawer (its mobile transform would anchor fixed children to it instead
+          of the viewport). */}
       {menu && menuSession && (
         <div
           data-testid="session-context-menu"

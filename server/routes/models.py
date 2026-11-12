@@ -18,7 +18,7 @@ import threading
 
 from fastapi import APIRouter, Header, HTTPException
 
-from core import memory_embed_gemma
+from core import memory_embed_gemma, memory_reembed
 from core.audit_log import audit_event
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,9 @@ def _status_payload() -> dict:
             downloaded=bool(_state["done"]),
             error=str(_state["error"]),
         )
+    # The fetch is only half the state: a model on disk says nothing about the
+    # chunks written before it, so the same answer carries the re-embed counters.
+    status["reembed"] = memory_reembed.status()
     return status
 
 
@@ -96,17 +99,59 @@ def _fetch_in_background() -> None:
         logger.warning("embedding model fetch failed: %s", reason)
         audit_event(
             "embedding_model_fetch_failed",
-            detail={"reason": reason},
+            detail=f"reason={reason}",
             status="failed",
         )
     else:
         _apply_new_model()
         with _state_lock:
             _state["done"] = True
-        audit_event("embedding_model_fetched", detail={"label": memory_embed_gemma.MODEL_LABEL})
+        # New vectors for the new model: without this pass the ranking leg filters
+        # on the new label and finds none of the chunks already in the store.
+        memory_reembed.start(memory_factory=_memory_factory())
+        audit_event("embedding_model_fetched", detail=f"label={memory_embed_gemma.MODEL_LABEL}")
     finally:
         with _state_lock:
             _state["downloading"] = False
+
+
+def _memory_factory():
+    """The route's own facade factory, imported at call time so server modules do
+    not depend on each other's import order."""
+    from server.routes.memory import _get_memory
+
+    return _get_memory
+
+
+@router.post("/models/embedding/reembed")
+def post_embedding_model_reembed(
+    body: dict | None = None,
+    x_requested_with: str | None = Header(default=None, alias=XHR_HEADER),
+) -> dict:
+    """Start the pass that gives the chunks already stored the active vectors.
+
+    The fetch starts it by itself, so this is the resume path: a process that
+    restarted mid-pass, or a store written while the vector arm was off, needs a
+    button rather than a second download. Nothing is fetched here.
+    """
+    if x_requested_with != XHR_VALUE:
+        raise HTTPException(status_code=403, detail="missing X-Requested-With")
+    if (body or {}).get("confirm") != "reembed":
+        raise HTTPException(status_code=400, detail="missing confirm: reembed")
+    from core.memory_embed import is_disabled
+
+    if not memory_embed_gemma.model_present():
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "model_missing", "detail": "the embedding model is not on disk"},
+        )
+    if is_disabled():
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "vector_arm_off", "detail": "EPHE_MEMORY_EMBEDDER disables the vector arm"},
+        )
+    started = memory_reembed.start(memory_factory=_memory_factory())
+    return {"started": started, "reembed": memory_reembed.status()}
 
 
 @router.post("/models/embedding/download")

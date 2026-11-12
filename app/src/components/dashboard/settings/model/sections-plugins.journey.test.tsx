@@ -244,6 +244,26 @@ describe('what a plugin can do, in the row', () => {
     expect(strip.textContent).toContain('8 Werkzeuge')
   })
 
+  it('names the turn-end hook and its bound in the detail sheet', () => {
+    render(
+      renderPlugins(
+        model({
+          expandedPlugin: 'acme-hook',
+          pluginView: view([
+            entry('acme-hook', {
+              rail: 'worker',
+              contributed_tools: 1,
+              hooks: [{ event: 'turn_end', timeout_seconds: 2 }],
+            }),
+          ]),
+        }),
+      ),
+    )
+    expect(screen.getByTestId('plugin-hook-acme-hook').textContent).toBe(
+      (DE.settings.pluginHookTurnEnd ?? '').replace('{{seconds}}', '2'),
+    )
+  })
+
   it('says "no tools" for a declarative bundle instead of drawing a zero', () => {
     render(
       renderPlugins(

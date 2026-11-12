@@ -91,6 +91,8 @@ export interface MarketInstalledRow {
   enabled: boolean
   origin: 'bundled' | 'user'
   components: string[]
+  /** Turn-end hooks the manifest declares, with the bound each run sits under. */
+  hooks?: { event: string; timeout_seconds: number }[]
   permissions: { tool_families: string[]; data_roots: string[] }
   /** The installed manifest names an icon the plugin route can serve. */
   has_icon?: boolean

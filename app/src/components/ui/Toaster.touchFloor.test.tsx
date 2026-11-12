@@ -33,8 +33,7 @@ function stack(): HTMLElement {
   act(() => {
     toastBus.error('Backend getrennt')
   })
-  const close = screen.getByRole('button', { name: 'toast.close' })
-  return close.closest('[role="status"]')!.parentElement as HTMLElement
+  return screen.getByTestId('toaster-rail')
 }
 
 describe('the toaster at phone width', () => {

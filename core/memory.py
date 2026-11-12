@@ -479,6 +479,27 @@ class Memory:
         """
         self._provider.update(doc_id, text)
 
+    def reembed_missing(
+        self, *, batch_size: int = 16, on_progress: Callable[[int, int], None] | None = None
+    ) -> dict[str, Any]:
+        """Vectorise the chunks the active label does not cover yet.
+
+        The label and the embedder come from the same factory the search uses, so a
+        run cannot stamp vectors the ranking leg will not select. Only the local
+        store can do this: a bridge's chunks live on the other machine.
+        """
+        from core.memory_embed import get_embedder, model_name
+
+        if self.provider_kind != "kepta":
+            raise RuntimeError(f"re-embedding needs the local store, not {self.provider_kind!r}")
+        embed = get_embedder()
+        label = model_name()
+        if embed is None or not label:
+            raise RuntimeError("no embedding model is loadable in this process")
+        return self._provider.reembed_missing(
+            embed, label, batch_size=batch_size, on_progress=on_progress
+        )
+
     @property
     def collection_name(self) -> str:
         """Name of the collection actually used (workspace-scoped)."""

@@ -229,7 +229,7 @@ _BUDGETS: dict[str, RestartBudget] = {}
 _BUDGET_LOCK = threading.Lock()
 
 
-def _data_roots(plugin_id: str) -> tuple[str, ...]:
+def worker_data_roots(plugin_id: str) -> tuple[str, ...]:
     """The declared data roots the boundary can actually bind, and how many it could not.
 
     The declaration used to reach one rail: a plugin that asked a kernel tool to read a
@@ -239,7 +239,9 @@ def _data_roots(plugin_id: str) -> tuple[str, ...]:
 
     Validation refuses a declaration that is not a folder when the manifest loads, so this
     filter is the window between that read and the spawn: a root the disk gave up in between
-    is left out of the profile, which binds nothing new, and the tool still runs.
+    is left out of the profile, which binds nothing new, and the tool still runs. The
+    turn-end hook (`core/plugin_turn_hooks.py`) reads this same function, so one declaration
+    binds the same paths on both rails.
     """
     from core import engine_config
     from core.capability_policy import resolved_data_roots
@@ -277,7 +279,7 @@ def run_plugin_tool(
         ), code=PLUGIN_ENTRY_REFUSED)
     rel = "/".join(_entry_parts(descriptor.entry))
     home = mcp_sandbox.home_for(f"plugin_{descriptor.plugin_id}")
-    host_roots = _data_roots(descriptor.plugin_id)
+    host_roots = worker_data_roots(descriptor.plugin_id)
     spec, build_error = build_spec(
         plugin_id=descriptor.plugin_id, plugin_dir=plugin_dir, entry=rel,
         launcher=LAUNCHER, timeout_seconds=timeout_seconds, memory_cap_mb=memory_cap_mb,
