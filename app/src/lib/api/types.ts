@@ -79,7 +79,8 @@ export interface ModelProvidersResponse {
   providers: Array<{ id?: string; provider?: string; model?: string; label: string }>
   local_models: string[]
   local_model_options: ModelOption[]
-  /** max_model_len of the active engine (vLLM); null with Ollama -> default 8192. */
+  /** Max window of the active engine (vLLM max_model_len, SGLang context_length,
+   *  the router's context_window); null with Ollama -> the documented floor. */
   context_window?: number | null
   /** Wave 3 (cost monitor): price table USD per 1M tokens from engine.json
    *  `pricing`; null = not maintained → the UI shows no cost chip. */

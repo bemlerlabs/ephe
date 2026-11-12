@@ -48,7 +48,7 @@ export default function StatusBar({
 }: StatusBarProps & { sessionId?: string }) {
   const { t, i18n } = useTranslation()
   // P0-1: the effective window follows the active provider — the backend value
-  // (env override > engine probe > tier table) beats the frontend default 8192.
+  // (env override > engine probe > tier table) beats the frontend floor.
   // One derivation, shared with the composer's ring (F8).
   const {
     budget,

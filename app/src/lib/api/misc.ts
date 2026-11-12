@@ -106,7 +106,9 @@ export function getVoiceSettings(): Promise<VoiceSettings> {
 }
 
 export function saveVoiceSettings(
-  payload: Partial<Omit<VoiceSettings, 'piper_available' | 'installed_piper_voices' | 'stt_model_cached'>>,
+  payload: Partial<
+    Omit<VoiceSettings, 'piper_available' | 'installed_piper_voices' | 'stt_model_cached'>
+  >,
 ): Promise<VoiceSettings> {
   return request('/api/settings/voice', { method: 'PUT', body: JSON.stringify(payload) })
 }
@@ -238,7 +240,7 @@ export function setModelProvider(
   provider: string,
   model?: string,
   baseUrl?: string,
-): Promise<{ active: ProviderSettings }> {
+): Promise<{ active: ProviderSettings; context_window?: number | null }> {
   return request('/api/model/provider', {
     method: 'PUT',
     body: JSON.stringify({

@@ -30,7 +30,32 @@ export function useContextOccupancy(
   sessionId?: string,
 ): ContextOccupancy {
   const [budget, setBudget] = useState<ContextBudget | null>(null)
-  const effectiveWindow = budget?.window_tokens || windowTokens
+  // Dynamic model limit: a model/provider switch fires 'ephe:model-changed'
+  // (useComposerModelSelection) after the backend already probed the new engine.
+  // The cached server answer must not survive that switch — the next fetch below
+  // re-reads it — and holding the old window in the meantime would show the old
+  // engine's denominator beside the new engine's messages.
+  const [probed, setProbed] = useState<number | null>(null)
+  useEffect(() => {
+    const onModelChanged = (event: Event) => {
+      setBudget(null)
+      // The switch response carries the engine's own reported window as the event
+      // detail (useComposerModelSelection): settle on it right away instead of
+      // showing the old engine's denominator until the next fetch answers.
+      const detail = (event as CustomEvent<{ contextWindow?: number | null }>).detail
+      setProbed(
+        typeof detail?.contextWindow === 'number' && detail.contextWindow > 0
+          ? detail.contextWindow
+          : null,
+      )
+    }
+    window.addEventListener('ephe:model-changed', onModelChanged)
+    return () => window.removeEventListener('ephe:model-changed', onModelChanged)
+  }, [])
+  // Order: the server's own count first, then the number the switch itself probed,
+  // then the caller's provider-list value — one denominator at a time, never an
+  // average of two engines.
+  const effectiveWindow = budget?.window_tokens || probed || windowTokens
   const usage = useMemo(
     () => estimateContextUsage(messages || [], effectiveWindow),
     [messages, effectiveWindow],
@@ -48,7 +73,7 @@ export function useContextOccupancy(
     return () => {
       cancelled = true
     }
-  }, [sessionId, messages?.length])
+  }, [sessionId, messages?.length, probed])
 
   // P5-1 measurement order: 1) the real server count (rest mirror filled),
   // 2) the measured usage balance of the last turn, 3) the offline estimate.
@@ -72,9 +97,15 @@ export function useContextOccupancy(
   // used figure — in the measured branch too, not just beside the server mirror.
   const countedLive = mirrorLive || (measuredTotal > 0 && !!effectiveWindow)
   const remaining =
-    countedLive && effectiveWindow
-      ? Math.max(0, effectiveWindow - tokens)
-      : usage.remaining
+    countedLive && effectiveWindow ? Math.max(0, effectiveWindow - tokens) : usage.remaining
 
-  return { budget, window: effectiveWindow, usage, percent, tokens, remaining, tokenizer: budget?.tokenizer }
+  return {
+    budget,
+    window: effectiveWindow,
+    usage,
+    percent,
+    tokens,
+    remaining,
+    tokenizer: budget?.tokenizer,
+  }
 }
