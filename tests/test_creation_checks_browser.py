@@ -6,7 +6,9 @@ whether loading it leaves an error behind, and whether the same answer survives 
 reload. Those are promises about a running server and a real engine, so this file reads
 them from one — the same route, the same per-mount nonce and the same sandboxed frame
 the product uses (`tests/test_plugin_surface_isolation_browser.py` measured that frame's
-authority; this one asks what the document shows).
+authority; this one asks what the document shows). The mount is framed the way the shell
+frames it: a same-origin host page holds the iframe and answers the `ephe.sdk` protocol,
+so a surface that asks its host is answered rather than told it has none.
 
 Two layers, so the rules can be read without an engine:
 
@@ -196,7 +198,7 @@ def test_the_page_snippets_are_valid_javascript(tmp_path: Path) -> None:
     """A syntax error in the page code costs every live test its run; node settles it first."""
     from evals.creation_checks_browser import JS_SNIPPETS
 
-    assert set(JS_SNIPPETS) == {"PROBE_HOOK", "CONTENT_PROBE"}
+    assert set(JS_SNIPPETS) == {"PROBE_HOOK", "CONTENT_PROBE", "HOST_SCRIPT"}
     for name, script in JS_SNIPPETS.items():
         path = tmp_path / f"{name}.js"
         path.write_text(script, encoding="utf-8")
@@ -204,6 +206,16 @@ def test_the_page_snippets_are_valid_javascript(tmp_path: Path) -> None:
             ["node", "--check", str(path)], capture_output=True, text=True, check=False
         )
         assert result.returncode == 0, f"{name}: {result.stderr}"
+
+
+def test_the_host_page_frames_the_mount_in_the_product_sandbox() -> None:
+    """The host's iframe is the shell's: this mount document, this sandbox, same origin."""
+    from evals.creation_checks_browser import SURFACE_SANDBOX, host_document
+
+    mount = "http://127.0.0.1:1/api/plugins/ui/demo/abc123/"
+    document = host_document(mount, "demo")
+    assert f'src="{mount}"' in document, document
+    assert f'sandbox="{SURFACE_SANDBOX}"' in document, document
 
 
 
@@ -299,10 +311,9 @@ def test_a_bundle_that_writes_local_storage_mounts_clean(surface) -> None:
     The mount serves the page-storage shim ahead of the bundle's first script, so the
     property answers, the write does not raise, and both loads report no error. The
     rendered marker proves the area answered rather than the script dying on the way.
-    The eval navigates the mount top-level, where no embedding host exists, so the
-    write is answered with `storage_no_host`; that the value survives a reload in the
-    product's frame is measured by
-    `tests/test_plugin_surface_storage_shim_browser.py`.
+    The eval frames the mount in its same-origin host, so the shim's write is answered
+    by that host instead of failing with `storage_no_host`; where the value lands in the
+    product is measured by `tests/test_plugin_surface_storage_shim_browser.py`.
     """
     session, home = surface
     name = _stage(
@@ -319,6 +330,61 @@ def test_a_bundle_that_writes_local_storage_mounts_clean(surface) -> None:
     assert load.errors == () and reload.errors == (), (load.errors, reload.errors)
     assert load.text == STORAGE_MARKER_CHARS, load
     assert reload.text == STORAGE_MARKER_CHARS, reload
+
+
+#: A surface that keeps its state through `ephe.storage` and asks for a tool, which is the
+#: shape the paid run's `note-studio` had. The element starts empty so the collector waits
+#: for the answer instead of settling on a placeholder.
+SDK_STATE_ENTRY = """<!doctype html><html><body><p id="state"></p>
+<script src="ephe.js"></script><script src="state.js"></script></body></html>
+"""
+
+SDK_STATE_APP = """
+var out = document.getElementById("state");
+ephe.storage.set("theme", "dark")
+  .then(function () { return ephe.storage.get("theme"); })
+  .then(function (value) {
+    return ephe.callTool("eval-no-tool", {}).then(
+      function () { out.textContent = "tool-allowed-" + value; },
+      function (error) { out.textContent = "stored-" + value + "-refused-" + error.code; }
+    );
+  })
+  .catch(function (error) {
+    console.error("ephe sdk failed: " + String(error && error.code));
+    out.textContent = "failed-" + String(error && error.code);
+  });
+"""
+
+#: What a surface that got its two answers renders, whitespace stripped.
+SDK_STATE_MARKER = "stored-dark-refused-sdk_refused"
+
+
+@pytest.mark.parametrize("surface", ENGINES, indirect=True)
+def test_a_surface_that_asks_its_host_mounts_and_reloads_clean(surface) -> None:
+    """F3 of the 2026-11-12 analysis: the mount is framed, so its host answers it.
+
+    `ephe.storage.set` and `ephe.storage.get` travel the `ephe.sdk` bridge to the eval's
+    same-origin host, which keeps them in its own `localStorage`; `tool.call` comes back
+    as the coded `sdk_refused` refusal, because a browser row runs no tool. The marker
+    names all three answers, and both loads are clean. Read top-level, the same page
+    renders `failed-sdk_no_host` and the console row goes red — the false error the
+    analysis recorded for creation-18's storage-using surface.
+    """
+    session, home = surface
+    name = _stage(
+        home,
+        "eval-sdk-state",
+        {"ui/index.html": SDK_STATE_ENTRY, "ui/state.js": SDK_STATE_APP},
+    )
+    load, reload = session.evidence(name)
+    rows = _verdicts(
+        _case(["mounts", "no_console_errors", "survives_reload"]), load, reload, plugin=name
+    )
+    for check, verdict in rows.items():
+        assert verdict.ok is True, f"{check}: {verdict.detail}"
+    assert load.errors == () and reload.errors == (), (load.errors, reload.errors)
+    assert load.text == len(SDK_STATE_MARKER), load
+    assert reload.text == len(SDK_STATE_MARKER), reload
 
 
 @pytest.mark.parametrize("surface", ENGINES, indirect=True)
@@ -347,6 +413,19 @@ def test_a_page_error_fails_the_console_row_in_a_real_engine(surface) -> None:
     rows = _verdicts(_case(["no_console_errors"]), load, plugin=name)
     assert rows["no_console_errors"].ok is False, rows["no_console_errors"].detail
     assert "eval-page-error" in rows["no_console_errors"].detail
+
+
+@pytest.mark.parametrize("surface", ENGINES, indirect=True)
+def test_a_console_error_in_the_framed_surface_fails_the_console_row(surface) -> None:
+    """The hook has to run inside the iframe: a `console.error` there is still the surface's."""
+    session, home = surface
+    name = _stage(
+        home, "eval-console", {"ui/app.js": "console.error('eval-console-error');\n"}
+    )
+    load, _reload = session.evidence(name)
+    rows = _verdicts(_case(["no_console_errors"]), load, plugin=name)
+    assert rows["no_console_errors"].ok is False, rows["no_console_errors"].detail
+    assert "eval-console-error" in rows["no_console_errors"].detail
 
 
 @pytest.mark.parametrize("surface", ENGINES, indirect=True)

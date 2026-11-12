@@ -339,6 +339,97 @@ def test_real_mode_without_an_engine_refuses_before_a_turn_is_spent():
     assert raised.value.code == 2
 
 
+def test_a_missing_receipt_is_refused_with_its_path(tmp_path, capsys):
+    """A path that holds no receipt is a named refusal, not an empty run."""
+    path = tmp_path / "absent.json"
+
+    code = main(["--receipt", str(path)])
+
+    assert code == 2
+    err = capsys.readouterr().err
+    assert str(path) in err
+    assert "no receipt" in err
+
+
+def test_an_empty_receipt_is_refused_with_its_path(tmp_path, capsys):
+    """A crashed grader leaves 0 bytes, and the operator has to see which file."""
+    path = tmp_path / "receipt.json"
+    path.write_bytes(b"")
+
+    code = main(["--receipt", str(path)])
+
+    assert code == 2
+    err = capsys.readouterr().err
+    assert str(path) in err
+    assert "the receipt is empty" in err
+
+
+def test_an_empty_receipt_is_cleared_before_a_round_and_the_new_one_written_atomically(
+    tmp_path, monkeypatch
+):
+    """A 0-byte file is not a finished receipt, and it may not survive into the round.
+
+    `run_paid_round` reuses a graded receipt so a crash does not cost the same turns twice.
+    A crash used to leave 0 bytes behind; reading that as "not finished yet" left the
+    round waiting on a file nothing would ever write again. The empty file is cleared
+    before the turns are spent, and the graded receipt lands in one atomic write.
+    """
+    import subprocess
+
+    out = tmp_path / "run-1"
+    out.mkdir()
+    stale = out / "receipt.json"
+    stale.write_bytes(b"")
+    expected = _small_expected()
+    fresh = _receipt(expected, {case_id: PASS for case_id in expected})
+    seen: list[tuple[str, bool]] = []
+
+    def fake_run(argv, **kwargs):
+        command = " ".join(str(part) for part in argv)
+        seen.append((command, stale.exists()))
+        if "creation_runner.py" in command:
+            return subprocess.CompletedProcess(argv, 0, stdout=json.dumps(fresh), stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(breadth.subprocess, "run", fake_run)
+
+    receipt = breadth.run_paid_round(
+        out,
+        cases_path=REPO / "evals" / "creation" / "cases.jsonl",
+        key_file=tmp_path / "key",
+        base_url="https://engine.invalid",
+        model="pinned-model",
+    )
+
+    assert len(seen) == 2
+    assert seen[0][1] is False, "the stale 0-byte receipt was still there when turns were spent"
+    assert seen[1][1] is False
+    assert receipt == fresh
+    assert json.loads(stale.read_text(encoding="utf-8")) == fresh
+    assert [path.name for path in out.iterdir()] == ["receipt.json"]
+
+
+def test_a_round_whose_grading_printed_no_receipt_names_the_path(tmp_path, monkeypatch):
+    """Grading that prints nothing is a failed round, and the error says where to look."""
+    import subprocess
+
+    out = tmp_path / "run-1"
+
+    def fake_run(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(breadth.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="receipt.json"):
+        breadth.run_paid_round(
+            out,
+            cases_path=REPO / "evals" / "creation" / "cases.jsonl",
+            key_file=tmp_path / "key",
+            base_url="https://engine.invalid",
+            model="pinned-model",
+        )
+
+
 def test_a_receipt_replay_can_name_the_engine_and_then_be_quotable(tmp_path):
     from evals.breadth_eval import expected_cases
 

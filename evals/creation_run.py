@@ -199,6 +199,10 @@ def post_turn(base: str, plan: CasePlan, timeout: float) -> tuple[list[dict], li
     The harness answers the sandbox dialog because the run is measuring what the engine
     builds when it is allowed to, and a turn that stopped at the dialog would be recorded as
     a tool that never fired.
+
+    No `tool_budget` is sent. The product's own default is what a chat turn gets
+    (`core.chat.MAX_TOOL_ITERATIONS`, 25), and a harness that pinned 16 graded the budget
+    stops and compaction it had caused itself.
     """
     body = json.dumps(
         {
@@ -206,7 +210,6 @@ def post_turn(base: str, plan: CasePlan, timeout: float) -> tuple[list[dict], li
             "history": [],
             "session_id": plan.session_id,
             "mode": plan.mode,
-            "tool_budget": 16,
         }
     ).encode()
     req = urllib.request.Request(base + "/api/chat/stream", data=body, headers=_headers(base))

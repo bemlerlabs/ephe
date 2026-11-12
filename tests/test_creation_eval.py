@@ -153,14 +153,76 @@ def test_a_bundle_case_cannot_expect_an_empty_staging_folder(tmp_path: Path) -> 
         load_cases(_write_cases(tmp_path, [case]))
 
 
-def test_a_refused_turn_cannot_expect_a_bundle(tmp_path: Path) -> None:
-    """GIVEN a refusal case that says its turn leaves a bundle WHEN it is loaded
-    THEN loading refuses: nothing staged is the whole verdict of a refused turn."""
+def test_a_refused_turn_that_leaves_a_bundle_grades_that_bundle(tmp_path: Path) -> None:
+    """GIVEN a refusal case whose task the grant can build WHEN it is loaded
+    THEN it says its turn leaves one bundle and grades that bundle, so the set can
+    measure a withheld call without asking the turn to refuse the build as well.
+
+    The grant the case states buys the authoring calls and not the call it watches;
+    the turn builds with the first and is refused the second, which is the end state
+    both the bundle rows and the offer row read."""
+    from evals.creation_eval import load_cases
+
+    case = _denial_case("creation-17", "widget")
+    case["privileges"] = ["files"]
+    case["expect"]["any"] = ["install_plugin_bundle"]
+    case["expect"]["bundles"] = 1
+    case["checks"] = ["manifest_valid", "surface_files", "offer_matches_grant"]
+    path = _write_cases(tmp_path, [case])
+    assert [item["id"] for item in load_cases(path)] == ["creation-17"]
+
+
+def test_a_buildable_refusal_still_grades_the_withheld_call(tmp_path: Path) -> None:
+    """GIVEN a refusal that leaves a bundle and asks for no offer check WHEN it is loaded
+    THEN loading refuses: the bundle rows alone would pass a turn whose withheld call
+    was never withheld, which is the guard's promise the case exists to grade."""
     from evals.creation_eval import load_cases
 
     case = _denial_case("creation-17", "widget")
     case["expect"]["bundles"] = 1
-    with pytest.raises(ValueError, match="bundles"):
+    case["checks"] = ["manifest_valid", "surface_files"]
+    with pytest.raises(ValueError, match="offer_matches_grant"):
+        load_cases(_write_cases(tmp_path, [case]))
+
+
+def test_a_buildable_refusal_still_reads_its_bundle(tmp_path: Path) -> None:
+    """GIVEN a refusal that leaves a bundle and asks for no loader row WHEN it is loaded
+    THEN loading refuses: a staged folder and no manifest verdict is a bundle nobody read."""
+    from evals.creation_eval import load_cases
+
+    case = _denial_case("creation-17", "widget")
+    case["expect"]["bundles"] = 1
+    case["checks"] = ["offer_matches_grant"]
+    with pytest.raises(ValueError, match="manifest_valid"):
+        load_cases(_write_cases(tmp_path, [case]))
+
+
+def test_a_buildable_refusal_may_not_also_grade_an_empty_folder(tmp_path: Path) -> None:
+    """GIVEN a refusal that says it leaves a bundle and grades the empty folder WHEN it
+    is loaded THEN loading refuses: the two verdicts describe opposite end states."""
+    from evals.creation_eval import load_cases
+
+    case = _denial_case("creation-17", "widget")
+    case["expect"]["bundles"] = 1
+    case["checks"] = ["staging_empty", "manifest_valid", "offer_matches_grant"]
+    with pytest.raises(ValueError, match="staging_empty"):
+        load_cases(_write_cases(tmp_path, [case]))
+
+
+def test_a_buildable_refusal_may_not_also_be_a_rejection_probe(tmp_path: Path) -> None:
+    """GIVEN a refusal that says it leaves a bundle and grades the loader's refusal WHEN
+    it is loaded THEN loading refuses: one manifest cannot be both accepted and rejected."""
+    from evals.creation_eval import load_cases
+
+    case = _denial_case("creation-23", "widget")
+    case["privileges"] = ["files"]
+    case["expect"]["any"] = ["install_plugin_bundle"]
+    case["expect"]["bundles"] = 1
+    case["checks"] = [
+        "manifest_valid", "offer_matches_grant", "capability_undeclared_refused",
+    ]
+    case["capabilities"] = {"undeclared": ["shell"]}
+    with pytest.raises(ValueError, match="capability_undeclared_refused"):
         load_cases(_write_cases(tmp_path, [case]))
 
 
@@ -177,26 +239,30 @@ def test_the_bundle_count_has_to_be_a_whole_number(tmp_path: Path) -> None:
 
 def test_the_bundle_count_defaults_from_the_expected_kind() -> None:
     """GIVEN a case silent about its bundle count WHEN the count is read
-    THEN a bundle turn means one and a refusal means none, the two shapes the
-    end-state checks can attribute."""
+    THEN a bundle turn means one and a refusal means none, and a refusal that stated
+    one keeps it, because its task was buildable and its checks read the folder."""
     from evals.creation_eval import expected_bundles
 
     assert expected_bundles(_case("creation-19", "widget")) == 1
     assert expected_bundles(_denial_case("creation-20", "widget")) == 0
+    buildable = _denial_case("creation-21", "widget")
+    buildable["expect"]["bundles"] = 1
+    assert expected_bundles(buildable) == 1
 
 
 def test_every_shipped_case_says_how_many_bundles_its_turn_leaves() -> None:
     """GIVEN the shipped set WHEN each case's bundle count is read
-    THEN every line states it, and it is the one shape its checks can grade."""
-    from evals.creation_eval import expected_bundles
+    THEN every line states it, and the number is the one shape its checks can grade:
+    a case that grades an empty folder leaves none, every other case leaves one."""
+    from evals.creation_eval import DENIAL_CHECK, expected_bundles
 
     for case in _load_cases():
-        refused = case["expect"]["kind"] == "tool_refused"
         assert "bundles" in case["expect"], (
             f"{case['id']} leaves its bundle count implicit; the end state it grades "
             "has to say how many folders it reads"
         )
-        assert expected_bundles(case) == (0 if refused else 1), case["id"]
+        expected = 0 if DENIAL_CHECK in case["checks"] else 1
+        assert expected_bundles(case) == expected, case["id"]
 
 
 def test_the_two_bundle_turns_now_ask_for_one_bundle() -> None:
@@ -209,6 +275,26 @@ def test_the_two_bundle_turns_now_ask_for_one_bundle() -> None:
         assert "one" in case["input"].lower().split(), (
             f"{cid} asks for work without saying it is one bundle: {case['input']!r}"
         )
+
+
+def test_a_buildable_refusal_grades_one_bundle_and_the_withheld_call() -> None:
+    """GIVEN creation-20 and creation-24, whose task the allowed calls can build
+    WHEN the set is loaded THEN each leaves one bundle, grades that bundle, and keeps
+    the offer check that says which call the grant withheld.
+
+    The old rubric asked these two turns for an empty folder, so they could only pass
+    by refusing to build the thing they were asked for and then naming the missing
+    step in prose. That measured a work refusal. The coherent end state is the built
+    folder plus the withheld call."""
+    cases = {case["id"]: case for case in _load_cases()}
+    for cid, extra in (("creation-20", set()), ("creation-24", {"state_bridge_used"})):
+        case = cases[cid]
+        assert case["expect"]["kind"] == "tool_refused", cid
+        assert case["expect"]["bundles"] == 1, cid
+        assert "staging_empty" not in case["checks"], cid
+        assert {"manifest_valid", "surface_files", "offer_matches_grant"} | extra <= set(
+            case["checks"]
+        ), case["id"]
 
 
 def test_a_declared_family_is_asked_for_in_the_case_prompt() -> None:
@@ -347,10 +433,11 @@ def test_a_named_capability_must_be_the_one_the_case_checks(tmp_path: Path) -> N
         load_cases(bare_verdict)
 
 
-def test_a_denial_case_is_graded_on_what_it_left_behind(tmp_path: Path) -> None:
-    """GIVEN a case whose turn is meant to be refused WHEN it is loaded
-    THEN its checks are the ones a refusal can answer: nothing was staged. A denial
-    case that still asks for a mount would be graded on a bundle that never existed."""
+def test_a_refusal_that_left_nothing_is_graded_on_what_it_left_behind(tmp_path: Path) -> None:
+    """GIVEN a refusal case that says its turn leaves nothing WHEN it is loaded
+    THEN its checks are the ones the empty folder can answer: a bundle row would read
+    a folder the turn was never allowed to leave. The line that states no bundle and
+    asks for one refuses every bundle row, mount rows included."""
     from evals.creation_eval import load_cases
 
     wrong_shape = _write_cases(
@@ -392,6 +479,19 @@ def test_the_rubric_documents_every_check_the_cases_may_ask_for() -> None:
     text = RUBRIC_PATH.read_text(encoding="utf-8")
     missing = [name for name in CHECKS if name not in text]
     assert not missing, f"the rubric does not describe these checks: {missing}"
+
+
+def test_the_rubric_grades_a_buildable_refusal_as_a_bundle_and_the_withheld_call() -> None:
+    """GIVEN the refusal rubric WHEN it is read THEN it says what the two buildable
+    refusal cases grade: one bundle and the withheld call, where the old rubric expected
+    an empty folder, so the copy and the loader state the same end state."""
+    from evals.creation_eval import ROOT, RUBRIC_PATH
+
+    phrase = "one bundle and the withheld call, not an empty folder"
+    rubric = " ".join(RUBRIC_PATH.read_text(encoding="utf-8").split())
+    readme = " ".join((ROOT / "evals" / "README.md").read_text(encoding="utf-8").split())
+    assert phrase in rubric, "the rubric does not describe the end state a buildable refusal grades"
+    assert phrase in readme, "the eval README does not describe the same end state"
 
 
 def test_the_rubric_documents_the_bundle_count() -> None:

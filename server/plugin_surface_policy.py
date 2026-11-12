@@ -61,6 +61,20 @@ _BASELINE_DIRECTIVES = (
 #: to the bundle's own state root. This directive is unchanged by that.
 _ISOLATION_DIRECTIVE = "sandbox allow-scripts allow-popups"
 
+#: Inline CSS a document may apply. A generated surface styles its boxes with a
+#: `style` attribute — eval creation-11 puts one on every bar of its `orbit-bars`
+#: surface — and the closed `default-src` refuses each of them, so the mount fails
+#: to draw while the plugin itself is correct. The grant carries neither execution
+#: nor reach: inline CSS cannot run script, `script-src` keeps its exact `'self'`
+#: so no inline `<script>` and no event handler rides the same word in, a `url()`
+#: an inline rule names still resolves under `default-src 'self'` on this host,
+#: and the opaque origin with no `connect-src` leaves CSS no channel to carry a
+#: value out. Documents only, since a style attribute and a `<style>` block are
+#: document-level sources and an asset response has no element to apply them to;
+#: the shell's own policy (`app/src-tauri/tauri.conf.json`) already carries this
+#: relaxation for React's inline style attributes.
+_DOCUMENT_STYLE_DIRECTIVE = "style-src 'self' 'unsafe-inline'"
+
 #: A plugin SVG is script-capable as a document. Served as an image it runs nothing;
 #: opened as a document it gets the same isolation the icon route already imposes
 #: (`server/routes/plugins.py`), with `frame-ancestors 'none'` so no page can frame
@@ -97,8 +111,9 @@ def surface_content_security_policy(
 
     `capabilities` is `ui_descriptor()["capabilities"]`: a name the manifest paid
     for. Nothing here opens a directive on a guess about what a plugin needs.
-    `isolate` adds the sandbox directive, and the route sets it for documents —
-    the entry and every nested HTML — keeping it off the script and style
+    `isolate` adds the directives a document needs and an asset does not — the
+    inline-style allowance and the sandbox — and the route sets it for documents,
+    the entry and every nested HTML, keeping both off the script and style
     responses a browser loads *inside* the mount.
     """
     declared = set(capabilities or ())
@@ -132,6 +147,7 @@ def surface_content_security_policy(
     # on `default-src 'self'` until the manifest can say which hosts it means.
 
     if isolate:
+        directives.insert(directives.index("object-src 'none'"), _DOCUMENT_STYLE_DIRECTIVE)
         directives.append(_ISOLATION_DIRECTIVE)
     directives.append("frame-ancestors " + " ".join(frame_ancestors(ancestors)))
     return "; ".join(directives)

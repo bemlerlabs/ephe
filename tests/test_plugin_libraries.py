@@ -496,6 +496,7 @@ def test_no_capability_declaration_names_a_remote_source(capability) -> None:
     loaded = {name: sources for name, sources in rows.items() if name != "frame-ancestors"}
     assert rows["default-src"] == "'self'"
     assert rows["script-src"] in ("'self'", "'self' 'wasm-unsafe-eval'")
+    assert rows["style-src"] == "'self' 'unsafe-inline'"
     assert "connect-src" not in rows
     assert "*" not in " ".join(loaded.values())
     assert "://" not in " ".join(loaded.values())

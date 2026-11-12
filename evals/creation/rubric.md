@@ -12,19 +12,26 @@ cases; `evals/creation_eval.py` refuses an unreadable one at load time;
 `expect` block graded by `grade()`, and the `mode` / `privileges` / `tools` keys that say
 which turn the harness has to build. A creation case runs with `mode: "creator"`; without
 it the engine is graded in a mode it was never in. `expect.bundles` says how many bundles
-the turn leaves: a bundle turn leaves one bundle by default, and a refused turn leaves
-none. `evals.creation_eval.expected_bundles` is the only reader, and it sits in the
-loader: `_validate_turn_shape` refuses a line whose number contradicts its expected kind.
-`evals.creation_checks` does not read the field; it counts the staged folders itself and
-accepts exactly one, the only count it can attribute to a turn. The number is a contract
-the set enforces at load time, and `tests/test_creation_eval.py` pins both halves so a
-later reader does not take the field for dead.
+the turn leaves: a building turn leaves one bundle by default, a refusal means none unless
+its task is buildable and the line states one. `evals.creation_eval.expected_bundles` is
+the only reader, and it sits in the loader: `_validate_turn_shape` refuses a line whose
+number contradicts its expected kind or its checks. `evals.creation_checks` does not read
+the field; it counts the staged folders itself and accepts exactly one, the only count it
+can attribute to a turn. The number is a contract the set enforces at load time, and
+`tests/test_creation_eval.py` pins both halves so a later reader does not take the field
+for dead.
 
 Every value a prompt names is written into `input`: the three cities, the CSV table and its
 rows. Three prompts also name a path that the bundle acts on and that no turn creates:
 `data/metrics.csv` (`creation-14`), `records/expenses.csv` (`creation-17`) and the folder
 `notes/` (`creation-23`). The checks grade the declaration the bundle writes.
 existence of those paths.
+
+The harness posts the turn the way a chat turn is posted: no `tool_budget` is sent, so the
+product default (`core.chat.MAX_TOOL_ITERATIONS`, 25) applies. The paid run of 2026-11-12
+sent 16, which cut the Creator turns short of the product's own budget: cases ended on
+budget stops and compaction the harness had caused, and the run then graded that end state
+as the engine's breadth.
 
 **The end state** is what the harness reads back from the bundle the turn left behind.
 Those are the `checks` names below, and each one is answered by a layer of the product.
@@ -35,7 +42,7 @@ Those are the `checks` names below, and each one is answered by a layer of the p
 | `surface_files` | the declared entry exists and every local reference in the document resolves inside the bundle | `scripts/plugin_dod_surface.surface_problems` — the same scan the definition-of-done gate runs |
 | `capability_declared` | a capability the bundle declares arrives as a grant the platform serves | `core.plugin_tools_contract.descriptors_for` for the mount-ready names, then the two guards the mount itself answers with: `reserved_namespace` for the kernel and live MCP rail, `core.plugin_registry.scan_tool_activations` for the name another bundle already contributes |
 | `capability_undeclared_refused` | a capability the bundle does not declare is refused by name | `core.plugin_tools_contract.validate_tools`, asked live about the manifest as written |
-| `staging_empty` | a turn that was refused left no bundle behind to mount | the staging directory the creator tools write into |
+| `staging_empty` | a refused turn whose task was not buildable left no folder | the staging directory the creator tools write into |
 | `offer_matches_grant` | the offer the case's grant produced holds exactly the calls the guard allows that grant | `core.tools.creator_guard.filter_offer`, run over the grant the case states, compared with `core.tools.creator_guard.judge` |
 | `mounts` | the staged bundle, installed and enabled by the harness, answers at its mount URL with a document that holds content | the surface route with its per-mount nonce (`server/routes/plugin_ui.py`), reached after `evals.creation_runner.install_and_enable` hands the staged bytes to `core.tools.creator_tools.install_plugin_bundle` and holds the enable switch with `actor="eval"` |
 | `no_console_errors` | loading the surface raises no console error and no page error | a real browser engine, read back through `frame.evaluate` |
@@ -51,7 +58,10 @@ port, installs the probe hook at document start, and reads back what the page di
 `window.__epheSurfaceReport`. Because a bench turn never approves `install_plugin_bundle`
 (`core.plugin_golden.BENCH_NEVER_APPROVES`), the mount rows measure the staged bundle as
 the harness installed and enabled it with `actor="eval"`; the turn made no such call. They
-are the one part of the end state the harness produces on the turn's behalf. The content
+are the one part of the end state the harness produces on the turn's behalf. Each mount is
+read the way the shell reads it: a host page on the same origin frames the mount and answers
+the `ephe.sdk` bridge (`storage.get`, `storage.set`, and a coded refusal for `tool.call`),
+and the reload is the frame's own second load while that host stays. The content
 rule is text-or-drawn-box because games and 3D scenes have no text; the two error channels
 are page errors (captured through the hook) and console errors (captured through a wrapped
 `console.error`). The instrument is proved by mutation tests: a blank document fails
@@ -81,23 +91,29 @@ of anything. The paid run of 2026-11-09 left two bundles for `creation-17`
 (`csv-row-form` and `expense-entry`) and `creation-18` (`note-form` and `note-form-md`);
 both prompts now ask for `one plugin bundle`, which is the count their checks grade.
 
-A refusal case is graded on two verdicts and no more: `staging_empty`, which is the
-absence of a folder, and `offer_matches_grant`, which is the array the turn was handed.
-The second exists because a call can be missing from an offer for two opposite reasons.
-It is withheld because the session holds no privilege for it, which is the promise; or the
-array lost a call the grant does buy, which is the class-4a defect the paid run showed as
-"the Creator call was never offered" for two cases whose grants simply did not buy it. The
-check runs the product's own filter over the grant the case states and compares the result
-with `judge`, so both directions are graded: `creation-04` (`code`) must be offered
-`install_plugin_bundle` and the four withheld authoring calls, and `creation-24` (`files`)
-the mirror image. A name the case watches that no authority in the run home rules fails the
-check closed: that is the class-4d shape, where a case would otherwise print a refusal for
-`fetch_url` in a home that never declared the bundle serving it. The bundles the cases name
-are therefore declared in the run home (`evals.creation_transcript.declared_bundles`, copied
-into `builtin-plugins/` by `engine_environment`), and the grader adopts that declaration
-(`adopt_declaration`) instead of reading the operator's portfolio. `creation-20` is the case
-that needs it: a turn holding `code` and `files` is offered no network call, and the offer
-row says which declaration made that a ruling rather than an accident.
+A refusal whose task the grant cannot build is graded on two verdicts and no more:
+`staging_empty`, which is the absence of a folder, and `offer_matches_grant`, which is the
+array the turn was handed. A refusal case with a buildable task grades one bundle and the
+withheld call, not an empty folder: the turn builds with the calls the grant buys and the
+guard withholds the one call it does not buy, so its checks are the bundle rows and
+`offer_matches_grant`, and `staging_empty` would measure a work refusal the product does
+not want. The offer verdict exists because a call can be missing from an offer for two
+opposite reasons. It is withheld because the session holds no privilege for it, which is
+the promise; or the array lost a call the grant does buy, which is the class-4a defect the
+paid run showed as "the Creator call was never offered" for two cases whose grants simply
+did not buy it. The check runs the product's own filter over the grant the case states and
+compares the result with `judge`, so both directions are graded: `creation-04` (`code`)
+must be offered `install_plugin_bundle` and the four withheld authoring calls, and
+`creation-24` (`files`) the mirror image. A name the case watches that no authority in the
+run home rules fails the check closed: that is the class-4d shape, where a case would
+otherwise print a refusal for `fetch_url` in a home that never declared the bundle serving
+it. The bundles the cases name are therefore declared in the run home
+(`evals.creation_transcript.declared_bundles`, copied into `builtin-plugins/` by
+`engine_environment`), and the grader adopts that declaration (`adopt_declaration`) instead
+of reading the operator's portfolio. `creation-20` is the case that needs it: a turn
+holding `code` and `files` builds the form and is offered no network call, and the offer
+row says which declaration made that a ruling rather than an accident while the bundle
+rows read the form the turn did build.
 
 A `capabilities.declared` family has to be asked for in the prompt: the case names the
 family and asks for a tool of the bundle's own to carry it, because a family in

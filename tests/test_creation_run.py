@@ -273,3 +273,49 @@ def test_an_unreachable_endpoint_refuses_before_a_turn():
 
     with pytest.raises(HealthMismatch):
         verify_endpoint_model("http://127.0.0.1:9/v1", model="m", key="k", timeout=1.0)
+
+
+# what one posted turn asks the server for
+
+
+class _Stream:
+    """The stream body `urlopen` answers with: bytes lines, and a context manager."""
+
+    def __init__(self, lines: list[bytes]) -> None:
+        self._lines = lines
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+    def __iter__(self):
+        return iter(self._lines)
+
+
+def test_a_posted_turn_sends_no_tool_budget_so_the_product_default_stands(monkeypatch):
+    """The harness posts what a chat turn posts.
+
+    `tool_budget: 16` cut every creation turn short of the product's 25
+    (`core.chat.MAX_TOOL_ITERATIONS`), so cases ended on budget stops and compaction the
+    harness had caused; the run then graded that chaos as the engine's breadth.
+    """
+    from evals import creation_run
+
+    captured: dict = {}
+
+    def fake_urlopen(request, timeout=None):
+        captured["body"] = json.loads(request.data)
+        return _Stream([b'data: {"type": "chunk", "data": "ok"}\n'])
+
+    monkeypatch.setattr(creation_run.urllib.request, "urlopen", fake_urlopen)
+    plan = plan_case(CASE, nonce="r1")
+
+    events, approvals = creation_run.post_turn("http://127.0.0.1:9", plan, 5.0)
+
+    assert "tool_budget" not in captured["body"]
+    assert captured["body"]["message"] == CASE["input"]
+    assert captured["body"]["mode"] == "creator"
+    assert [event["data"] for event in events] == ["ok"]
+    assert approvals == []

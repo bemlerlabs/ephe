@@ -207,16 +207,25 @@ def grade_end_state(
     staging_root: Path,
     session: SurfaceSession | None = None,
     installed: str = "",
+    install_error: str = "",
 ) -> tuple[list[Verdict], list[str]]:
     """The end-state half: offline checks first, then the browser checks if a session was given.
 
     A session that cannot boot is reported by name as skipped, and the browser rows
     arrive as `not_run` — a rate that counted a green row nobody measured would be the
-    same defect this set exists to prevent.
+    same defect this set exists to prevent. A bundle the harness could not install is a
+    different fact: the rows were asked for and the answer is the installer's refusal, so
+    they arrive as failed verdicts carrying it.
     """
     offline, not_run = run_offline_checks(case, staging_root)
     if not session or not not_run:
         return offline, not_run
+    if install_error:
+        browser = [
+            Verdict(name, False, f"the mount was not measured: {install_error}")
+            for name in not_run
+        ]
+        return offline + browser, []
     plugin, why = _staged_bundle(staging_root)
     if not installed:
         detail = (
@@ -243,6 +252,7 @@ def run_case(
     transcript: str | None = None,
     session: SurfaceSession | None = None,
     installed: str = "",
+    install_error: str = "",
 ) -> CaseResult:
     """Grade one case: its turn (if a transcript was given) and its end state."""
     case_id = case["id"]
@@ -251,7 +261,9 @@ def run_case(
     turn_detail = "no transcript graded"
     if transcript is not None:
         turn_ok, turn_detail = grade_turn(case, transcript)
-    verdicts, not_run = grade_end_state(case, staging_root, session, installed)
+    verdicts, not_run = grade_end_state(
+        case, staging_root, session, installed, install_error
+    )
     return CaseResult(
         case_id=case_id,
         category=category,
@@ -276,6 +288,11 @@ def run_set(
     case. A case whose id is missing from the map is graded with an empty staging root,
     which is the same end state as a turn that wrote nothing — the offline checks will
     report it as such.
+
+    A bundle the installer refuses is a fact about that case, not a reason to abandon the
+    round: the refusal is handed to `run_case`, the mount rows are graded a fail with it,
+    and the receipt still holds every case. run-1 spent 24 turns and wrote 0 bytes because
+    one refused install raised out of this loop.
     """
     transcripts = transcripts or {}
     results: list[CaseResult] = []
@@ -285,11 +302,17 @@ def run_set(
         root = staging_roots.get(cid, Path("/nonexistent-creation-eval-staging"))
         transcript = transcripts.get(cid)
         installed = ""
+        install_error = ""
         if installing:
             name, _why = _staged_bundle(root)
             if name:
-                installed = install_and_enable(root, name)
-        results.append(run_case(case, root, transcript, session, installed))
+                try:
+                    installed = install_and_enable(root, name)
+                except RuntimeError as exc:
+                    install_error = str(exc)
+        results.append(
+            run_case(case, root, transcript, session, installed, install_error)
+        )
     return Receipt(results=results, engine_skipped=engine_skipped)
 
 

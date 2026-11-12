@@ -182,6 +182,23 @@ def test_capability_declared_refuses_a_name_the_kernel_holds(home_and_bundle) ->
     assert "'read'" in verdict.detail and "reserved" in verdict.detail, verdict.detail
 
 
+def test_capability_declared_does_not_call_the_installed_bundle_a_neighbour(home_and_bundle) -> None:
+    """The run installs the staged bundle before the mount rows, so the scan sees it.
+
+    The activation scan maps a tool name to the bundle that contributes it, and the
+    bundle under test is one of those values. Reading its own tools as another bundle's
+    names failed creation-14/19/23 in the paid rounds, where the bundle had been installed
+    by `install_and_enable` before the check ran.
+    """
+    home, directory = home_and_bundle
+    _add_tool(directory, TOOL_FIELDS)
+    _install_neighbour(home, BUNDLE, directory)
+    verdict = _verdicts(
+        _run(home, _case(["capability_declared"], declared=["read"]))
+    )["capability_declared"]
+    assert verdict.ok is True, verdict.detail
+
+
 def test_capability_declared_refuses_a_name_another_bundle_holds(home_and_bundle) -> None:
     """The mount refuses a name a neighbour already contributes with name_taken, so a
     check that only asked the kernel map would go green on a bundle that cannot mount."""
@@ -338,6 +355,44 @@ def test_the_shipped_refusal_cases_grade_the_offer_they_were_given() -> None:
     assert refused, "the set carries no refusal case"
     for case in refused:
         assert "offer_matches_grant" in case["checks"], case["id"]
+
+
+def test_a_buildable_refusal_fails_where_the_turn_staged_nothing(home) -> None:
+    """GIVEN creation-20 and creation-24, whose task the allowed calls can build
+    WHEN the turn left no bundle THEN their loader row reports the missing subject, so
+    a turn that refused before building is a fail instead of a green empty folder."""
+    from evals.creation_eval import load_cases
+
+    cases = {case["id"]: case for case in load_cases()}
+    for cid in ("creation-20", "creation-24"):
+        verdicts, _ = _run(home, cases[cid])
+        by_name = {verdict.check: verdict for verdict in verdicts}
+        assert by_name["manifest_valid"].ok is False, cid
+        assert "0 staged bundles" in by_name["manifest_valid"].detail, cid
+
+
+def test_the_buildable_refusal_cases_grade_the_offer_their_home_rules(
+    home, monkeypatch, tmp_path
+) -> None:
+    """GIVEN the shipped creation-20 and creation-24 WHEN their offer rows run
+    THEN both are green: the network calls are ruled by the web-research bundle the run
+    home declares, and the install the `files` grant does not buy is ruled by the kernel,
+    so the withholding each case grades is one the product performed."""
+    from core import plugin_manifest
+    from core.tools import creator_guard
+    from evals.creation_eval import load_cases
+
+    declared = tmp_path / "declared"
+    declared.mkdir()
+    shutil.copytree(ROOT / "plugins" / "web-research", declared / "web-research")
+    monkeypatch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(declared))
+    creator_guard.invalidate_family_map()
+
+    cases = {case["id"]: case for case in load_cases()}
+    for cid, watched in (("creation-20", "fetch_url"), ("creation-24", "install_plugin_bundle")):
+        verdict = _verdicts(_run(home, cases[cid]))["offer_matches_grant"]
+        assert verdict.ok is True, verdict.detail
+        assert watched in verdict.detail, verdict.detail
 
 
 def test_a_bundle_check_without_a_subject_reports_the_count_it_found(home) -> None:
