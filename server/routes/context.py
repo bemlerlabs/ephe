@@ -12,11 +12,13 @@ from typing import Literal
 
 from fastapi import APIRouter
 
+from core.model_config import LEGACY_CONTEXT_WINDOW
+
 router = APIRouter(tags=["Context"])
 
 # Same constants as app/src/lib/contextMeter.ts (honest display)
 CHARS_PER_TOKEN = 4.2
-CONTEXT_WINDOW_TOKENS = 8192
+CONTEXT_WINDOW_TOKENS = LEGACY_CONTEXT_WINDOW  # one source: core.model_config
 COMPACTION_MAX_MESSAGES = 28  # core.conversation_compactor.DEFAULT_MAX_MESSAGES
 
 REST_MIRROR_PREFIX = "rest-"  # server/routes/chat.py: PWA history mirror
@@ -58,7 +60,7 @@ def _resolve_window() -> tuple[int, str]:
     The EPHE_CONTEXT_WINDOW override always wins (manual correction).
     Without a probe the tier table in `core.model_config` carries (P0-1: the real
     windows of the shipped model classes); only for an unknown model does
-    the documented 8192 fallback remain (offline-first).
+    the documented floor in `core.model_config` remain (offline-first).
     """
     raw = (os.environ.get("EPHE_CONTEXT_WINDOW") or "").strip()
     if raw:

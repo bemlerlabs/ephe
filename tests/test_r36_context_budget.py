@@ -154,7 +154,7 @@ def test_known_model_fills_the_window_from_the_tier_table(sessions_root, monkeyp
 def test_unknown_model_falls_back_to_the_legacy_constant(sessions_root, monkeypatch):
     """GIVEN no probe, no override and an unknown model id
     WHEN the route resolves the window
-    THEN it keeps the documented 8192 fallback (offline-first)."""
+    THEN it keeps the documented 32768 floor (env and probe still win)."""
     _clean_env(monkeypatch)
     from core import multi_session as ms
     from core.model_provider import ModelProviderConfig
@@ -180,7 +180,7 @@ def test_unknown_model_falls_back_to_the_legacy_constant(sessions_root, monkeypa
     b = _get("w3b").json()
 
     assert b["window_source"] == "legacy"
-    assert b["window_tokens"] == 8192
+    assert b["window_tokens"] == 32768
 
 
 def test_compaction_flag_uses_counted_history(sessions_root, monkeypatch):

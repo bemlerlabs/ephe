@@ -302,6 +302,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", required=True)
     parser.add_argument("--port", type=int, default=8795)
     parser.add_argument("--timeout", type=float, default=420.0, help="per turn")
+    parser.add_argument("--context-window", type=int, default=0,
+                        help="the model's context window in tokens; the provider's "
+                             "/models entry carries none, so the harness names it")
     args = parser.parse_args(argv)
 
     from evals.creation_runner import load_cases
@@ -326,6 +329,7 @@ def main(argv: list[str] | None = None) -> int:
         model=args.model,
         port=args.port,
         declared_bundles=declared,
+        context_window=args.context_window or None,
     )
     base = f"http://127.0.0.1:{args.port}"
     env.pop("EPHE_LIVE_PORT", None)

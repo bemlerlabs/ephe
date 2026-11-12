@@ -366,7 +366,7 @@ def _assemble_system_prompt_into(
     )
     messages.insert(0, {"role": "system", "content": full_system_prompt})
     # P0-2: cap the assembled length against the active window (precedence:
-    # EPHE_CONTEXT_WINDOW > engine probe > tier table > legacy 8192).
+    # EPHE_CONTEXT_WINDOW > engine probe > tier table > legacy floor).
     _fit_messages_to_window(messages, _active_context_window(model))
 
 

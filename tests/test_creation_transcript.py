@@ -423,3 +423,29 @@ def test_a_grader_reads_the_declaration_the_turn_ran_with(tmp_path, monkeypatch)
     monkeypatch.setenv(plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT, str(tmp_path / "elsewhere"))
     assert adopt_declaration(bare) == ""
     assert os.environ[plugin_manifest.ENV_BUILTIN_PLUGINS_ROOT] == str(tmp_path / "elsewhere")
+
+
+def test_the_context_window_the_harness_names_reaches_the_run_home(tmp_path):
+    from evals.creation_transcript import engine_environment
+
+    key = tmp_path / "engine.key"
+    key.write_text("sk-test\n", encoding="utf-8")
+    env = engine_environment(
+        key_file=key, config_dir=tmp_path / "config", base_url="https://example.test/v1",
+        model="deepseek-flash", port=8911, context_window=131072,
+    )
+
+    assert env["EPHE_CONTEXT_WINDOW"] == "131072"
+
+
+def test_no_named_window_leaves_the_product_floor_in_charge(tmp_path):
+    from evals.creation_transcript import engine_environment
+
+    key = tmp_path / "engine.key"
+    key.write_text("sk-test\n", encoding="utf-8")
+    env = engine_environment(
+        key_file=key, config_dir=tmp_path / "config", base_url="https://example.test/v1",
+        model="deepseek-flash", port=8911,
+    )
+
+    assert "EPHE_CONTEXT_WINDOW" not in env
