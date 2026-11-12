@@ -25,7 +25,7 @@ There are five steps:
 ### The one-command install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.sh | bash -s -- --tag v0.6.8
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.7.0/install.sh | bash -s -- --tag v0.7.0
 ```
 
 That is the command Ephe is designed around, and it is the one the README shows. The
@@ -45,8 +45,8 @@ cd ephe
 On Windows, download and run `install.ps1`. This path is not yet verified end to end on Windows for this revision:
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.6.8/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.6.8
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.7.0/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.7.0
 ```
 
 ## 2. Install
