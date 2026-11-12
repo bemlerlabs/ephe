@@ -58,7 +58,10 @@ graded is not a low score.
 A creation case passes when its turn satisfied the case's `expect` block and every
 end-state check that ran is green. The checks are the seven offline rows plus the three
 mount rows in [`creation/rubric.md`](creation/rubric.md); the rubric names the layer that
-answers each one.
+answers each one. A refusal case with a buildable task grades one bundle and the withheld
+call, not an empty folder: the turn builds with the calls its grant buys and the guard
+withholds the one it does not, so `staging_empty` is only the end state of a refusal whose
+task the grant cannot build at all.
 
 A case whose turn was not graded, or whose check did not run, is **unusable**. It leaves
 the denominator instead of counting as a failure. The distinction is the point: a

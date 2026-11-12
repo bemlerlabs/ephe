@@ -12,7 +12,9 @@ module owns the set and the rules that keep it honest before a single token is s
     produced, because an answer describing a widget is not a widget;
   * a bundle count per case (`expect.bundles`), because one staged folder is the only end
     state the checks can attribute, and a line that asks for two bundles is refused here,
-    while `evals.creation_checks` counts the staged folders itself;
+    while `evals.creation_checks` counts the staged folders itself. A refusal states zero
+    when its task was not buildable and one when it built first and was withheld a call
+    afterwards;
   * a reachability rule over the grant: a check whose subject only the turn can produce
     has to be paid for by `privileges`, while the checks read behind the harness install
     are reached by the harness itself (task #161), so the files-only cases stay valid;
@@ -25,6 +27,12 @@ consent gate holds the three Creator privileges, so those two are the vocabulary
 The `ui.capabilities` names are deliberately absent: every row of
 `core.plugin_ui_capabilities.UI_CAPABILITY_ENFORCEMENT` still reads `enforced=False`,
 and a check built on them would print a pass for confinement nobody enforces yet.
+
+A refusal whose task the grant can build is not a work refusal: the turn stages the
+bundle with the calls its grant buys and the guard withholds the one call it does not
+buy, and the case grades that folder plus the withholding. Such a case states
+`expect.bundles: 1`; the refusal whose task cannot be built at all states zero and is
+graded on the empty folder.
 
 Run the set with `python evals/creation_eval.py --help`.
 """
@@ -69,23 +77,26 @@ CHECKS: tuple[str, ...] = (
 #: staged tree has to clear before anything else about it is interesting.
 REQUIRED_CHECK = "manifest_valid"
 
-#: The one check a refused turn answers about bytes: nothing was staged.
+#: The check a refusal that left nothing answers about bytes: nothing was staged.
 DENIAL_CHECK = "staging_empty"
 
-#: The check a refused turn answers about the offer it was given. Its subject is the array
+#: The check a refusal answers about the offer it was given. Its subject is the array
 #: the grant produced before any call was made, so no call generates it and no privilege
-#: has to reach it - the same shape as a refusal's empty folder, one layer earlier.
+#: has to reach it - the same shape as a refusal's empty folder, one layer earlier. A
+#: refusal that builds before it is withheld a call still grades it, because without it
+#: the bundle rows would pass a turn the guard never withheld anything from.
 OFFER_CHECK = "offer_matches_grant"
 
 #: The checks whose subject no call produces, so `_validate_reachability` has no call to
-#: route them through. Both are decided before a turn can act: a refusal names what the
-#: turn left, and the offer names what it was handed.
+#: route them through. Both are decided before a turn can act: a refusal that left nothing
+#: names what the turn left, and the offer names what it was handed.
 GRANT_CHECKS: frozenset[str] = frozenset({OFFER_CHECK})
 
 #: How many bundles a case says its turn leaves. The end-state instrument resolves one
-#: staged folder, so a bundle turn leaves one; a refusal leaves none, which is the
-#: absence `staging_empty` measures. A line states the number in `expect.bundles`; a
-#: line that omits it takes the default for its expected kind.
+#: staged folder, so a building turn leaves one; a refusal leaves none when the grant
+#: cannot build the task, which is the absence `staging_empty` measures, and one when it
+#: builds first and the withheld call comes after. A line states the number in
+#: `expect.bundles`; one that omits it takes the default for its expected kind.
 DEFAULT_BUNDLES = 1
 REFUSED_BUNDLES = 0
 
@@ -161,10 +172,12 @@ def load_cases(path: Path | None = None) -> list[dict]:
 def expected_bundles(case: dict) -> int:
     """How many bundles a case says its turn leaves, defaulted from its expected kind.
 
-    A bundle turn means one and a refused turn means none. A line states the number in
-    `expect.bundles`; one that omits it takes the default for its kind. This function is
-    the only reader, and it is the loader's: the validator below calls it, so a number
-    that contradicts the kind is refused before a receipt can describe an end state the
+    A building turn means one and a refusal means none, because a refusal's task is
+    assumed unbuildable with its grant until the line states otherwise; a refusal that
+    built and was withheld a call after the build states one. A line states the number
+    in `expect.bundles`; one that omits it takes the default for its kind. This function
+    is the only reader, and it is the loader's: the validator below calls it, so a number
+    that contradicts the checks is refused before a receipt can describe an end state the
     instrument cannot attribute. The grader does not read it - `evals.creation_checks`
     counts the staged folders itself and accepts exactly one - so the field is a stated
     contract the set enforces at load time.
@@ -225,25 +238,30 @@ def _validate_end_state(case: dict) -> None:
 def _validate_turn_shape(case: dict, bundles: int) -> None:
     """Keep the answer-grade, the bundle count, and the end-state grade on one turn.
 
-    A refusal expects no bundle, so its checks are about the empty staging directory;
-    a bundle expects the loader's answer and exactly one staged folder. A case whose
-    only check is the undeclared-family refusal is a rejection probe: the bundle it
-    reads has to fail the loader, so that check stands alone. A case that asks for two
+    A case that grades an empty folder is a refusal whose turn left nothing; a case
+    that grades a bundle leaves exactly one staged folder. A refusal whose task the
+    grant cannot build stages nothing, and its checks are the empty folder and the
+    offer. A refusal whose task is buildable builds the bundle with the calls the
+    grant buys and is withheld the one call it does not, so its checks are the bundle
+    rows plus the offer row that names the withholding - without that row the bundle
+    rows would pass a turn whose withheld call was never withheld. A case whose only
+    check is the undeclared-family refusal is a rejection probe: the bundle it reads
+    has to fail the loader, so that check stands alone. A case that asks for two
     bundles, or for two verdicts, is two cases.
     """
     cid = case["id"]
     checks = case["checks"]
     refused = case["expect"]["kind"] == "tool_refused"
-    if refused:
-        if bundles != REFUSED_BUNDLES:
+    if bundles == REFUSED_BUNDLES:
+        if not refused:
             raise ValueError(
-                f"{cid}: a refused turn leaves no bundle, so expect.bundles is "
-                f"{REFUSED_BUNDLES}, got {bundles}"
+                f"{cid}: a turn that leaves no bundle is a refused turn, so expect.bundles "
+                f"is {DEFAULT_BUNDLES} for expect.kind {case['expect']['kind']!r}"
             )
         extra = [name for name in checks if name != DENIAL_CHECK and name not in GRANT_CHECKS]
         if DENIAL_CHECK not in checks or extra:
             raise ValueError(
-                f"{cid}: a refused turn is graded on {DENIAL_CHECK} and "
+                f"{cid}: a refused turn that leaves no bundle is graded on {DENIAL_CHECK} and "
                 f"{', '.join(sorted(GRANT_CHECKS))}, nothing else ({extra or 'missing ' + DENIAL_CHECK})"
             )
         return
@@ -253,8 +271,31 @@ def _validate_turn_shape(case: dict, bundles: int) -> None:
             f"expect.bundles is {DEFAULT_BUNDLES}, got {bundles} - the staged end state "
             "reads one bundle and a second one cannot be attributed to the turn"
         )
+    if refused:
+        if DENIAL_CHECK in checks:
+            raise ValueError(
+                f"{cid}: {DENIAL_CHECK} belongs to a refusal that left nothing; this turn "
+                "states a staged bundle and grades that folder"
+            )
+        if OFFER_CHECK not in checks:
+            raise ValueError(
+                f"{cid}: a refusal that leaves a bundle also grades the call the grant "
+                f"withheld ({OFFER_CHECK}), so a turn that never met the guard cannot pass"
+            )
+        if REQUIRED_CHECK not in checks:
+            raise ValueError(
+                f"{cid}: a refusal that leaves a bundle asks whether the loader reads it "
+                f"({REQUIRED_CHECK})"
+            )
+        if "capability_undeclared_refused" in checks:
+            raise ValueError(
+                f"{cid}: capability_undeclared_refused is a rejection probe graded on that "
+                "check alone - the bundle it reads has to fail the loader, and a refusal "
+                "that leaves a bundle reads one the loader must accept"
+            )
+        return
     if DENIAL_CHECK in checks:
-        raise ValueError(f"{cid}: {DENIAL_CHECK} belongs to a refused turn")
+        raise ValueError(f"{cid}: {DENIAL_CHECK} belongs to a refusal that left nothing")
     if "capability_undeclared_refused" in checks:
         if checks != ["capability_undeclared_refused"]:
             raise ValueError(
@@ -324,10 +365,16 @@ def _validate_reachability(case: dict) -> None:
     The privilege itself is read from `core.tools.creator_guard.judge`, the same answer
     the tool loop refuses on, and the refusal names the check, the call, the privilege
     and that source.
+
+    A refusal that left nothing is the one case that needs no privilege: it is graded on
+    the call it did not make, and `staging_empty` names that absence. A refusal that
+    leaves a bundle is a build like any other, so its bundle rows are routed through the
+    grant the same way.
     """
-    if case["expect"]["kind"] == "tool_refused":
-        # A refused turn is graded on the call it did not make; `staging_empty` names
-        # that absence, so no privilege has to reach it.
+    if (
+        case["expect"]["kind"] == "tool_refused"
+        and expected_bundles(case) == REFUSED_BUNDLES
+    ):
         return
     cid = case["id"]
     granted = frozenset(case.get("privileges") or ())

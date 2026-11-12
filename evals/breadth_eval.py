@@ -583,15 +583,22 @@ def run_paid_round(
 
     The graded receipt is written beside the turns before it is returned, and an existing
     one is reused: a crash in aggregation must not require paying for the same turns twice.
+    A receipt that holds 0 bytes is not a graded one — it is what a crashed grader leaves
+    behind, and keeping it made the round wait on a file nothing would write again. It is
+    cleared before the turns are spent, and the new receipt lands in one atomic replace so
+    a watcher never reads a half-written document.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     receipt_path = out_dir / "receipt.json"
     if receipt_path.is_file():
-        try:
-            return json.loads(receipt_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            pass
+        if not receipt_path.stat().st_size:
+            receipt_path.unlink()
+        else:
+            try:
+                return json.loads(receipt_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                pass
     turn = [sys.executable, str(REPO / "evals" / "creation_run.py"),
             "--out", str(out_dir), "--cases", str(cases_path),
             "--key-file", str(key_file), "--base-url", base_url, "--model", model]
@@ -612,8 +619,10 @@ def run_paid_round(
     try:
         receipt = json.loads(graded.stdout)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"the grader printed no receipt: {exc}") from exc
-    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        raise RuntimeError(f"the grader printed no receipt for {receipt_path}: {exc}") from exc
+    staged = receipt_path.with_name(receipt_path.name + ".tmp")
+    staged.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    staged.replace(receipt_path)
     return receipt
 
 
@@ -649,10 +658,17 @@ def paid_runs(
 
 def _load_receipt(path: Path, expected: dict[str, str], index: int,
                   evidence: str | None, engine: dict | None = None) -> Run:
+    path = Path(path)
     try:
-        document = json.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ReceiptError(f"{path}: {exc}") from exc
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ReceiptError(f"{path}: no receipt ({exc.__class__.__name__})") from exc
+    if not raw.strip():
+        raise ReceiptError(f"{path}: the receipt is empty")
+    try:
+        document = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ReceiptError(f"{path}: the receipt is not JSON ({exc})") from exc
     return runs_from_receipt(document, expected, index=index, evidence=evidence,
                              engine=engine)
 

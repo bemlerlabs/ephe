@@ -244,7 +244,8 @@ def test_an_active_surface_serves_its_document_with_the_header_set(tmp_path, mon
     assert response.headers["cache-control"] == "no-store"
     csp = _csp_of(response)
     for directive, value in (
-        ("default-src", "'self'"), ("script-src", "'self'"), ("object-src", "'none'"),
+        ("default-src", "'self'"), ("script-src", "'self'"),
+        ("style-src", "'self' 'unsafe-inline'"), ("object-src", "'none'"),
         ("base-uri", "'none'"), ("form-action", "'none'"),
     ):
         assert csp[directive] == value, csp
@@ -414,6 +415,30 @@ def test_the_sandbox_lands_on_documents_and_on_nothing_a_mount_has_to_load(
     assert nested.headers["content-type"].startswith("text/html")
     assert "allow-same-origin" not in nested.headers["content-security-policy"]
     assert "sandbox" in _csp_of(nested)
+
+
+def test_inline_style_lands_on_documents_and_on_nothing_a_mount_loads_as_an_asset(
+    tmp_path, monkeypatch
+):
+    """A generated surface styles its own boxes inline, with a `style` attribute on
+    each bar, and a closed `default-src` refuses every one of them: eval
+    creation-11 records the console error on every load of its `orbit-bars`
+    surface. The relaxation belongs to the document, because a style attribute and
+    a `<style>` block are document-level sources; an asset response has no element
+    to apply either to, and `script-src` keeps its exact `'self'`, so inline
+    execution gains nothing from the same word."""
+    app = _app(tmp_path, monkeypatch)
+    document = _csp_of(_document(app))
+    assert document["style-src"] == "'self' 'unsafe-inline'", document
+    assert document["script-src"] == "'self'", document
+    assert "'unsafe-inline'" not in document["script-src"], document
+    assert document["sandbox"] == "allow-scripts allow-popups", document
+    nested = _csp_of(_load(app, "index.html"))
+    assert nested["style-src"] == "'self' 'unsafe-inline'", nested
+    for name in ("app.js", "theme.css", "deep/extra.js"):
+        asset = _csp_of(_load(app, name))
+        assert "style-src" not in asset, (name, asset)
+        assert asset["script-src"] == "'self'", (name, asset)
 
 
 # -- the assets --

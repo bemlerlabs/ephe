@@ -21,7 +21,8 @@ verdict naming the layer that answered:
     live about the family the case says the bundle must not hold. A contract that
     accepts it is reported as a failure of this check: the case graded a refusal the
     platform never performs.
-  * `staging_empty` — the refusal case's end state, which is an empty staging folder.
+  * `staging_empty` — the end state a refusal states when its task cannot be built with
+    its grant: an empty staging folder.
   * `offer_matches_grant` — the offer the case's grant produced, compared with the calls
     `core.tools.creator_guard.judge` allows that grant. A refusal case watches a call the
     turn never made, and a call can be missing from the offer for two reasons: the guard
@@ -401,7 +402,9 @@ def _name_owners(own: str) -> dict[str, str]:
     The registry answers ``name_taken`` for a name another bundle holds, and the scan
     is the same read from the tree: it covers the shipped bundles without waiting for
     a process to publish them. The bundle under test is left out, because it is not
-    its own neighbour.
+    its own neighbour: ``owners`` maps a tool name to the bundle that contributes it,
+    so the bundle is filtered by the values. Popping it by key removed nothing, and the
+    run's own installed bundle then read as a neighbour that held its names.
     """
     from core.plugin_registry import scan_tool_activations
 
@@ -409,8 +412,7 @@ def _name_owners(own: str) -> dict[str, str]:
         owners = dict(scan_tool_activations(None).owners)
     except Exception:  # noqa: BLE001 - an unreadable scan holds nothing
         return {}
-    owners.pop(own, None)
-    return owners
+    return {tool: holder for tool, holder in owners.items() if holder != own}
 
 
 def _offer_matches_grant(case: dict) -> Verdict:

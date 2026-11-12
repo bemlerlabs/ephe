@@ -206,6 +206,8 @@ The mount serves the copy that ships with this build. A file of the same name in
 
 The page is sandboxed, so the file asks the frame that embedded it. The overlay answers. A native window is its own top-level document in this build, and a page there has no embedding frame to ask. Each call waits 120 seconds.
 
+The document's `Content-Security-Policy` keeps `script-src 'self'` closed and allows inline CSS with `style-src 'self' 'unsafe-inline'`, so a `style` attribute or a `<style>` block works while an inline script cannot run and a `url()` in a rule still resolves only on this host.
+
 | Call | What it does |
 |---|---|
 | `ephe.storage.get(key)` | The value stored under that key, or `null` when the key is absent. Asking does not create the state folder |

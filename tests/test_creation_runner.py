@@ -294,6 +294,70 @@ def _staged_bundle(root: Path, name: str) -> Path:
     return directory
 
 
+def _broken_staging_bundle(root: Path, name: str) -> Path:
+    """A staged bundle whose tool entry names no file, so the install refuses it."""
+    directory = _staged_bundle(root, name)
+    manifest = json.loads((directory / "ephe-plugin.json").read_text(encoding="utf-8"))
+    manifest["components"] = {
+        "tools": [{
+            "name": "write_rows",
+            "entry": "tools/write_rows:run",
+            "family": "read",
+            "description": "Write the CSV rows this bundle was asked for.",
+        }]
+    }
+    manifest["permissions"] = {"tool_families": ["read"], "data_roots": []}
+    manifest["description"] = "Import CSV rows the turn was asked for."
+    (directory / "ephe-plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return directory
+
+
+def test_a_refused_install_fails_the_case_instead_of_aborting_the_round(
+    tmp_path, monkeypatch
+):
+    """`install_refused` belongs in the receipt as a defect of that case.
+
+    run-1 spent 24 turns and left a 0-byte receipt because one staged bundle could not be
+    installed. The round has to carry on: the case is graded a fail with the refusal the
+    installer answered, and the mount rows arrive as verdicts rather than as not-run.
+    """
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("EPHE_OFFLINE", "1")
+    staging = tmp_path / "case"
+    staging.mkdir()
+    _broken_staging_bundle(staging, "csv-import")
+    case = {
+        "id": "creation-01",
+        "category": "widget",
+        "input": "Build a CSV import bundle",
+        "expect": {"kind": "tool_use", "any": ["create_plugin_scaffold"]},
+        "checks": ["manifest_valid", "mounts", "no_console_errors"],
+        "mode": "creator",
+        "privileges": ["files"],
+        "tools": ["create_plugin_scaffold"],
+    }
+    transcripts = {
+        "creation-01": "\n[EPHE-TOOL-EVENTS]\n[tool create_plugin_scaffold] ok\n",
+    }
+
+    receipt = run_set(
+        [case], {"creation-01": staging}, transcripts,
+        session=_FakeSession(), config=tmp_path,
+    )
+
+    assert receipt.total == 1
+    result = receipt.results[0]
+    assert result.ok is False
+    assert result.not_run == []
+    by_check = {verdict.check: verdict for verdict in result.verdicts}
+    for name in ("mounts", "no_console_errors"):
+        assert by_check[name].ok is False
+        assert "could not install" in by_check[name].detail, by_check[name].detail
+    assert "csv-import" in by_check["mounts"].detail
+    blob = receipt.to_dict()
+    assert blob["total"] == 1 and len(blob["cases"]) == 1
+
+
 def test_the_browser_half_refuses_a_run_without_a_run_scoped_config(tmp_path, capsys):
     """`--browser` names the home the mount reads.
 
