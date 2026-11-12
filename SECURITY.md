@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| `0.6.x` | Active |
-| < `0.6.0` | Best-effort only |
+| `0.7.x` | Active |
+| < `0.7.0` | Best-effort only |
 
 ## Reporting a Vulnerability
 
