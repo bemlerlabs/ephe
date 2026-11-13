@@ -80,6 +80,7 @@ fi
 # A disk image is audited through the bundle it carries, which is what a person
 # downloads and what Gatekeeper sees; the mount is private to this run.
 MOUNT=""
+# shellcheck disable=SC2329  # invoked indirectly: the trap below is its only call site
 cleanup() {
   if [[ -n "$MOUNT" ]]; then
     hdiutil detach "$MOUNT" -quiet >/dev/null 2>&1 || true
@@ -116,7 +117,6 @@ staple_out="$(xcrun stapler validate "$BUNDLE" 2>&1)" || staple_rc=$?
 team="$(printf '%s\n' "$detail" | sed -n 's/^TeamIdentifier=//p' | head -1)"
 identity="$(printf '%s\n' "$detail" | sed -n 's/^Signature=//p' | head -1)"
 identifier="$(printf '%s\n' "$detail" | sed -n 's/^Identifier=//p' | head -1)"
-flags="$(printf '%s\n' "$detail" | sed -n 's/.*flags=\(0x[0-9a-fA-F]*\).*/\1/p' | head -1)"
 
 # One token for the two facts a release reader needs: does the seal hold, and has Apple
 # seen the build. The second half is not a gate — a release with no Apple account is a
@@ -142,6 +142,7 @@ report_line() {
 }
 
 if [[ "$SUMMARY" == "1" ]]; then
+  # shellcheck disable=SC2016  # markdown backticks inside single-quoted text
   # A markdown block for $GITHUB_STEP_SUMMARY: the release's own record of what it signed.
   printf '### macOS bundle seal: `%s`\n\n' "$TARGET"
   printf '```\n'
@@ -149,12 +150,15 @@ if [[ "$SUMMARY" == "1" ]]; then
   printf '```\n\n'
   case "$state" in
     invalid)
+      # shellcheck disable=SC2016  # markdown backticks inside single-quoted text
       printf 'The seal is **invalid**: `codesign --verify --deep --strict` fails, so a downloaded copy cannot be verified and macOS cannot pin a privacy grant to this bundle. Rebuild it with a signing identity (see `docs/INSTALL.md`, "The macOS bundle seal").\n'
       ;;
     adhoc-not-notarized)
+      # shellcheck disable=SC2016  # markdown backticks inside single-quoted text
       printf 'Not notarized: the bundle is ad-hoc signed — no Developer ID and no Apple ticket — so Gatekeeper refuses a copy that arrives with a quarantine flag. That is the expected state for a release built without Apple secrets, and the seal above is valid. Install with right-click → Open, or `xattr -d com.apple.quarantine /Applications/Ephe.app` (see `docs/INSTALL.md`).\n'
       ;;
     developer-id-not-notarized)
+      # shellcheck disable=SC2016  # markdown backticks inside single-quoted text
       printf 'Not notarized: the bundle carries a Developer ID signature and no stapled ticket, so Gatekeeper still refuses a copy that arrives with a quarantine flag. The seal above is valid; notarization is optional (see `docs/INSTALL.md`).\n'
       ;;
     *)
