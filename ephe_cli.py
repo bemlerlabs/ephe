@@ -15,7 +15,7 @@ import textwrap
 import time
 import webbrowser
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -147,11 +147,16 @@ def _run_doctor_repairs(args: argparse.Namespace) -> list[tuple[str, bool, str]]
         )
 
     pwa_ok = ensure_pwa_built()
-    repairs.append(("Repair PWA build", pwa_ok, "app/dist/index.html vorhanden" if pwa_ok else "PWA build not possible (see output)"))
+    repairs.append(("Repair PWA build", pwa_ok, "app/dist/index.html present" if pwa_ok else "PWA build not possible (see output)"))
 
     # The stale desktop bundles: the one repair that answers "I updated and nothing changed".
     bundles_ok, bundles_detail = _repair_desktop_bundles()
     repairs.append(("Repair desktop bundles", bundles_ok, bundles_detail))
+
+    # The device folder's own debris: hand-written engine backups and the pre-0.6.0
+    # staging name. Moved under trash/<stamp>/, never deleted.
+    debris_ok, debris_detail = _repair_device_debris()
+    repairs.append(("Repair device debris", debris_ok, debris_detail))
     return repairs
 
 
@@ -361,6 +366,52 @@ def _bundle_places(paths: list[str]) -> str:
     )
 
 
+#: The shapes a hand or an old release left in the device folder and no current code
+#: reads: the three hand-written engine-config backup spellings and the staging name
+#: `creator` carried before the 0.6.0 rename. A private key is never debris.
+_DOCTOR_DEBRIS_PREFIXES = ("engine.json.bak-", "engine.key.pre-")
+_DOCTOR_DEBRIS_EXACT = ("creator-staging",)
+
+
+def _is_doctor_debris(name: str) -> bool:
+    if name.endswith(".pem"):
+        return False
+    return (
+        name in _DOCTOR_DEBRIS_EXACT
+        or name.startswith(_DOCTOR_DEBRIS_PREFIXES)
+        or (name.startswith("engine.json.") and name.endswith("-backup"))
+    )
+
+
+def _repair_device_debris(folder: Path | None = None) -> tuple[bool, str]:
+    """`doctor --fix`: move the recognised debris aside, never delete it.
+
+    The move keeps the claim reversible: the files land under the device folder's own
+    `trash/<stamp>/`, so a person who meant one of those backups still holds the bytes.
+    """
+    from core import persistence
+
+    root = folder or persistence.root()
+    targets = [name for name in persistence.unnamed(root) if _is_doctor_debris(name)]
+    if not targets:
+        return True, "device folder holds no recognisable debris"
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    trash = root / "trash" / stamp
+    moved: list[str] = []
+    for name in targets:
+        try:
+            trash.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(root / name), str(trash / name))
+            moved.append(name)
+        except OSError:
+            pass
+    if not moved:
+        return False, f"could not move any of {len(targets)} debris entries"
+    left = len(targets) - len(moved)
+    detail = f"moved {len(moved)} to {trash}" + (f", {left} stayed (still visible)" if left else "")
+    return left == 0, detail
+
+
 def _doctor_device_state() -> str:
     """One doctor line: the device folder read from its own declaration.
 
@@ -372,11 +423,15 @@ def _doctor_device_state() -> str:
 
     info = persistence.summary()
     unnamed = list(info["unnamed"])
+    debris = [name for name in unnamed if _is_doctor_debris(name)]
+    unknown = [name for name in unnamed if name not in debris]
     line = f"{info['root']} — {info['declared']} declared, {info['present']} present"
-    if unnamed:
-        shown = ", ".join(unnamed[:3])
-        more = f", +{len(unnamed) - 3} more" if len(unnamed) > 3 else ""
-        line += f", {len(unnamed)} unnamed ({shown}{more})"
+    if unknown:
+        shown = ", ".join(unknown[:3])
+        more = f", +{len(unknown) - 3} more" if len(unknown) > 3 else ""
+        line += f", {len(unknown)} unnamed ({shown}{more})"
+    if debris:
+        line += f", {len(debris)} stale (repair: ephe doctor --fix)"
     return line
 
 
