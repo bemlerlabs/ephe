@@ -1,4 +1,7 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2034
+# The assignments below are the file's output: both readers are outside it (a source and a
+# line-shape regex), and the regex forbids the `export` that would otherwise answer SC2034.
 # The two ruff rule sets and the one path list they skip, in one place, so the local hook and the
 # CI leg cannot drift into disagreement about what a finding means. Both consumers source this file:
 # `scripts/ci_local.sh` with `. scripts/lint_policy.sh`, and the run blocks in

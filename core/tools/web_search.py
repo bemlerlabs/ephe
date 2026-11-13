@@ -5,8 +5,6 @@ from __future__ import annotations
 import asyncio
 import re
 
-from ddgs import DDGS
-
 from core.net_guard import reach_by_name
 from core.tools.base import WebSearchError
 
@@ -56,8 +54,18 @@ def _status_token(exc: BaseException) -> str:
     return "error"
 
 
+#: The backend class behind one search call. The seam tests stand in on. None in
+#: production: ddgs belongs to the call, not to the import, so reading the tool surface
+#: needs no install step.
+DDGS = None
+
+
 def _one_backend(query: str, max_results: int, backend: str) -> list[dict]:
-    with DDGS() as ddgs:
+    ddgs_cls = DDGS
+    if ddgs_cls is None:
+        from ddgs import DDGS as ddgs_cls  # noqa: PLC0415 — the import is the install step
+
+    with ddgs_cls() as ddgs:
         try:
             raw = ddgs.text(query, max_results=max_results, backend=backend)
         except TypeError:
