@@ -288,13 +288,17 @@ def test_the_doctor_row_reads_the_declaration(tmp_path, monkeypatch):
     device = tmp_path / "ephe"
     (device / "sessions").mkdir(parents=True)
     (device / "settings.json").write_text("{}\n", encoding="utf-8")
+    # One hand the declaration cannot name, and one leftover the doctor recognises:
+    # the unknown gets named on the row, the recognised is counted toward the repair.
+    (device / "handwritten.txt").write_text("x\n", encoding="utf-8")
     (device / "engine.json.bak-2").write_text("{}\n", encoding="utf-8")
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(device))
 
     line = ephe_cli._doctor_device_state()
     assert str(device) in line
     assert f"{len(EPHE_PERSISTENCE)} declared, 2 present" in line
-    assert "1 unnamed (engine.json.bak-2)" in line
+    assert "1 unnamed (handwritten.txt)" in line
+    assert "1 stale" in line
 
     # A device that never ran anything still gets a line, and it says nothing about leftovers.
     quiet = tmp_path / "quiet"
