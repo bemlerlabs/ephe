@@ -5,11 +5,15 @@ name: Catalog freshness
 # can go stale in a merge that edits a pack or a plugin and forgets the lock -- the shape that made the
 # `uv.lock` guard necessary in the first place.
 #
-# Nothing here installs. `scripts/catalog_freshness.py` shells out to the two generators with `--check`,
-# which is the mode `scripts/generate_plugin_catalog.py` gained in this wave because a freshness job that
-# writes into a shared worktree is its own defect: the previous version of this leg could only "verify"
-# the catalog by rewriting it. `PYTHONPATH` carries the repository root because the plugin generator
-# imports `core.plugin_manifest` and the checkout is not pip-installed on this tier.
+# `scripts/catalog_freshness.py` shells out to the two generators with `--check`, which is the mode
+# `scripts/generate_plugin_catalog.py` gained in this wave because a freshness job that writes into a
+# shared worktree is its own defect: the previous version of this leg could only "verify" the catalog
+# by rewriting it. `PYTHONPATH` carries the repository root because the checkout is not pip-installed
+# on this tier. The generators are not stdlib-only either -- measured 2026-11-14, reading the plugin
+# tool surface reaches `httpx` and `cryptography` through the guard and signing imports -- so the leg
+# installs the locked dependencies into its own venv under `RUNNER_TEMP`, the same uv pin the test
+# fleet resolves with. An empty site-packages no longer answers for what the product's own import
+# graph needs; a leg that dials PyPI for it is honest, a leg that dies on `ModuleNotFoundError` is not.
 #
 # `knowledge/index.json` is compared and reported, never gating, and the reason is on the first lines of
 # scripts/catalog_freshness.py: measured 2026-10-11 the index declares a `system` domain with no
@@ -43,6 +47,37 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
+
+      - name: Build the leg's venv
+        # Same shape the test fleet uses: the venv lives in `RUNNER_TEMP`, which the runner wipes
+        # between jobs, so no ambient interpreter or `pip install --user` tree can answer for it.
+        env:
+          EPHE_LEG_VENV: ${{ runner.temp }}/ephe-leg
+        run: |
+          python3 -m venv "$EPHE_LEG_VENV"
+          echo "$EPHE_LEG_VENV/bin" >> "$GITHUB_PATH"
+          echo "EPHE_LEG_VENV=$EPHE_LEG_VENV" >> "$GITHUB_ENV"
+
+      - name: Install the locked dependencies
+        # Pinned uv, the version the fleet resolves with (tests.yml, lockfile lane). PyPI is this
+        # step's network dependency: three bounded attempts separate a transient registry miss from
+        # a dependency that cannot install at all, and a freshness check without its environment has
+        # no verdict -- so a failure that survives refuses.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if "$EPHE_LEG_VENV/bin/pip" install "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != "1" ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; the freshness check has no environment to run in"
+            exit 1
+          fi
+          # `UV_PROJECT_ENVIRONMENT` is the knob `uv sync` honours; `VIRTUAL_ENV` does not reach it,
+          # and without it the sync would create `.venv` inside the checkout -- the shared-worktree
+          # write this leg's own header forbids. Measured 2026-11-14.
+          UV_PROJECT_ENVIRONMENT="$EPHE_LEG_VENV" "$EPHE_LEG_VENV/bin/uv" sync --frozen --no-install-project --no-default-groups
 
       - name: Hermetic preflight
         run: bash scripts/ci_preflight.sh
