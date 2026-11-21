@@ -1,0 +1,7 @@
+/* The command/state bar wears the same polished top light as the glass layers;
+   the value comes from the glass token, so the studio chrome reads as one
+   material in the browser and in the shell alike. */
+
+.workbench-bar {
+  box-shadow: inset 0 1px 0 var(--glass-control-inner);
+}

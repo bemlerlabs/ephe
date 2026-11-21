@@ -1,0 +1,18 @@
+{
+  "policy": "docker-lint-ratchet",
+  "version": 1,
+  "instrument": "scripts/docker_lint.py",
+  "hadolint_version": "2.15.1",
+  "shellcheck_version": "0.11.0",
+  "measured_at": "2026-10-11",
+  "rules": {
+    "DL3008": 2,
+    "DL3025": 1,
+    "SC2012": 1,
+    "SC2028": 1,
+    "SC2034": 5,
+    "SC2155": 12,
+    "SC2164": 1,
+    "SC2181": 1
+  }
+}

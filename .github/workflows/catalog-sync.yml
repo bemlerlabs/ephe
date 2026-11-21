@@ -1,0 +1,161 @@
+name: Catalog sync
+
+# Weekly refresh of the discover shelf's connector mirror. The registry is public
+# CC0 metadata; the mirror, the curated tier and the intent tags are committed files,
+# so a build never reaches the network and a reader can diff what changed.
+#
+# The job never pushes to main. It writes a branch and opens (or updates) one pull
+# request, and the ordinary gates decide: a red shelf blocks a bad snapshot exactly
+# as it blocks hand-written code. That is also why the schedule is off the build
+# path — a 503 at the registry or a changed upstream shape must cost the weekly PR,
+# not a release.
+#
+# Monday 04:00 UTC: after the weekend's publications, before the working week's
+# first build, and an hour clear of the nightly catalog-freshness run.
+#
+# The three scheduled runs of 2, 9 and 16 November each pushed the branch and died at
+# `gh pr create` with `GitHub Actions is not permitted to create or approve pull requests`; the
+# shelf aged 15 days behind a red scheduled run nobody was pointed at. The two steps below now
+# state the shelf's age and name that refusal, because a scheduled run has no pull request to
+# leave a comment on.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-sync
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  sync:
+    name: Mirror, curate, tag, then propose the diff as a pull request
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    # Scoped to this job: the workflow itself only reads.
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Hermetic preflight
+        run: bash scripts/ci_preflight.sh
+
+      - name: Refresh the mirror, the curated tier and the intent tags
+        run: |
+          python3 scripts/catalog_discover.py --mirror marketplace/registry-snapshot.json
+          python3 scripts/catalog_discover.py --curated marketplace/registry-curated.json \
+            --search-index marketplace/search-intents.json
+
+      - name: Compare with what is committed
+        id: delta
+        run: |
+          if git diff --quiet -- marketplace/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "the mirror is unchanged this week"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- marketplace/
+          fi
+
+          # The shelf is served from these three files, so their age is the shelf's age, and
+          # this run is their only writer. A run that pushed its branch and then lost the pull
+          # request aged them in silence for three weeks; the number belongs where a person reads.
+          # The date is each file's own `generated` claim rather than `git log`, because this
+          # checkout is fetch-depth 1 and a shallow history would date every file to the boundary.
+          {
+            echo "## Committed shelf"
+            python3 - <<'PY'
+          import datetime, json, pathlib
+          names = ("marketplace/registry-snapshot.json", "marketplace/registry-curated.json",
+                   "marketplace/search-intents.json")
+          for name in names:
+              try:
+                  claim = json.loads(pathlib.Path(name).read_text(encoding="utf-8")).get("generated")
+              except (OSError, ValueError) as err:
+                  print(f"- `{name}`: unreadable, {err.__class__.__name__}")
+                  continue
+              if not claim:
+                  print(f"- `{name}`: carries no `generated` claim")
+                  continue
+              try:
+                  day = datetime.datetime.fromisoformat(str(claim)).date()
+              except ValueError:
+                  print(f"- `{name}`: `generated` is not an ISO timestamp: {claim!r}")
+                  continue
+              print(f"- `{name}`: generated {day.isoformat()}, {(datetime.date.today() - day).days} days ago")
+          PY
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the sync pull request
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="catalog/weekly-sync"
+
+          # The register in .github/identities.json names this address; a bot commit
+          # under any other one fails the hygiene leg before the shelf is judged.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add marketplace/
+          git commit -m "data(discover): weekly catalog sync"
+          # The branch belongs to this job alone: last week's open PR is meant to be
+          # replaced by this week's snapshot, not merged with it. The token rides one
+          # push in a header, never in the checkout's stored remote.
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push --force origin "$branch"
+
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            echo "the open sync pull request was updated with this week's snapshot"
+          elif ! reason=$(gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "data(discover): weekly catalog sync" \
+            --body "Automated refresh of the connector mirror, the curated tier and the intent tags from the public registry (CC0 metadata). Review the counts in the diff; the ordinary gates judge the shelf." 2>&1); then
+            echo "::error::the snapshot is pushed to $branch, no pull request was opened: $(printf '%s' "$reason" | tr '\n' ' ')"
+            # A scheduled run has no pull request to comment on, so a refusal here is otherwise
+            # visible only to someone who opens the run and reads forty lines of log. The scopes on
+            # this job are the ones gh needs; what refused is a repository switch gh may not write
+            # with this token, so the run says which one and how to flip it.
+            if printf '%s' "$reason" | grep -qi 'not permitted to create or approve pull requests'; then
+              {
+                echo "## No pull request, and why"
+                echo
+                echo "\`gh pr create\` was refused: this runner identity may not open pull requests."
+                echo "The \`pull-requests: write\` scope on the job is right; the repository switch above it is off."
+                echo
+                echo '```'
+                echo "gh api -X PATCH repos/$GITHUB_REPOSITORY/actions/permissions/workflow \\"
+                echo "  -f can_approve_pull_request_reviews=true"
+                echo '```'
+                echo
+                echo "Flip it, run this workflow by hand, and review the branch that already holds the snapshot."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 1
+          fi
+
+      - name: Say what happened
+        env:
+          CHANGED: ${{ steps.delta.outputs.changed }}
+        run: |
+          if [ "$CHANGED" = "true" ]; then
+            echo "a pull request carries this week's snapshot"
+          else
+            echo "nothing to propose"
+          fi

@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "libraries": [
+    {
+      "name": "tiny-renderer",
+      "version": "0.0.1",
+      "path": "ui/vendor/tiny-renderer.mjs",
+      "sha256": "5df21ece3e46ce52da79ff7660c7816868ecaae488bdf76e21e4c24601949f16",
+      "kind": "module"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 1,
+  "name": "guide",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, commands, doctor flows.",
+  "permissions": {
+    "tool_families": [
+      "read"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "howto",
+        "description": "Answer a how-to question about Ephe",
+        "template": "Answer the Ephe question: {input}. Use the Ephe documentation in docs/ and give concrete steps and commands."
+      },
+      {
+        "name": "diagnose",
+        "description": "Guide through a diagnosis flow",
+        "template": "Diagnose: {input}. Use the ephe doctor logic and map the symptoms."
+      }
+    ]
+  },
+  "icon": "icon.svg"
+}

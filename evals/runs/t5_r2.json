@@ -1,0 +1,20 @@
+{
+  "task_id": "T5",
+  "family": "tau",
+  "rep": 2,
+  "session_id": "ob-t5-r2-1790167339",
+  "ok": true,
+  "note": "final=done moved=True",
+  "wall_ms": 23348.9,
+  "ttft_first_event_ms": 108.1,
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "edit_file",
+    "read_file"
+  ],
+  "answer_chars": 727,
+  "answer_tail": " `/private/tmp/bench-option-b/ws/policy.md` | gelesen (Policy v3, Regeln 1–3) |\n| 2 | `/private/tmp/bench-option-b/ws/bookings_t5.json` | gelesen: `BK-2001`, status `open`, start `2026-10-02` |\n| 3 | `bookings_t5.json` | `edit_file`: `\"start\": \"2026-10-02\"` → `\"start\": \"2026-10-05\"` |\n| 4 | Rücklese-Verifikation | `start` = `2026-10-05`, `id`/`guest`/`status` unverändert |\n\n**Policy-Check:** BK-2001 ist `open` (nicht `confirmed`), daher greift Regel 1/2 (Fixierung nach 18:00 UTC) nicht — die Änderung ist zulässig. Nur das `start`-Feld wurde modifiziert, exakt wie gefordert.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T14:42:42"
+}

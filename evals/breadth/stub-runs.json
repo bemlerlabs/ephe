@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "evidence": "stub",
+  "runs": 3,
+  "note": "The dry run's outcomes. Two cases flip between runs so the repeatability arithmetic is exercised without an engine.",
+  "cases": [
+    {
+      "id": "creation-01",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-02",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-03",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-04",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-05",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-06",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-07",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-08",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-09",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-10",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-11",
+      "outcomes": [
+        "fail",
+        "fail",
+        "fail"
+      ]
+    },
+    {
+      "id": "creation-12",
+      "outcomes": [
+        "fail",
+        "fail",
+        "fail"
+      ]
+    },
+    {
+      "id": "creation-13",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-14",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-15",
+      "outcomes": [
+        "pass",
+        "fail",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-16",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-17",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-18",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-19",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-20",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-21",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-22",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-23",
+      "outcomes": [
+        "fail",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "creation-24",
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    }
+  ]
+}

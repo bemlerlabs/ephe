@@ -1,0 +1,88 @@
+{
+  "manifest_version": 2,
+  "name": "web-research",
+  "version": "1.2.0",
+  "description": "Live web research for the agent (opt-in, needs an API key).",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.1.0"
+  },
+  "permissions": {
+    "tool_families": [
+      "read",
+      "network"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [
+      "web-research"
+    ],
+    "commands": [
+      {
+        "name": "research",
+        "description": "Run deep research on a topic",
+        "template": "Run thorough research on: {input}. Use web_search and fetch_url for real sources, then write a structured brief with citations."
+      },
+      {
+        "name": "cite",
+        "description": "Verify sources and quote the evidence",
+        "template": "Verify the sources for: {input}. Return each claim with a direct URL, publication date and the quoted passage; mark anything unverified."
+      },
+      {
+        "name": "compare",
+        "description": "Compare sources and name conflicts",
+        "template": "Compare the sources on: {input}. Use a table of claim, source, date and agreement; state where the sources conflict."
+      }
+    ],
+    "tools": [
+      {
+        "name": "web_search",
+        "entry": "tools/handlers.py:web_search",
+        "family": "network",
+        "description": "Primary web research tool. Searches the internet via DuckDuckGo and returns real, current results with title, URL and content excerpt. Use this tool ALWAYS when you need current information, facts, news or documentation from the internet. A result whose target is outside fetch_url's reach (cloud metadata, loopback, internal name spaces such as .local/.internal/.svc) carries a `Reach:` line instead of an openable link.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The search query, e.g. 'Python asyncio tutorial 2026'"
+            },
+            "max_results": {
+              "type": "integer",
+              "description": "Number of results (default: 5, max: 10)",
+              "default": 5
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "fetch_url",
+        "entry": "tools/handlers.py:fetch_url",
+        "family": "network",
+        "description": "Fetches one URL and converts the page to plain text. It returns the extracted text; answer the user's question from it. Uses a 15-minute response cache. A failed fetch starts with '[fetch failed]' and a refused target with '[fetch refused]'.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The URL to fetch, e.g. 'https://example.com/docs'."
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Accepted for older callers and ignored; the fetched text is returned either way."
+            }
+          },
+          "required": ["url"]
+        }
+      }
+    ]
+  },
+  "origin": "first-party",
+  "icon": "icon.svg",
+  "changelog": "1.2.0 - web_search and fetch_url run in the confined worker and ask the host for the sentence the kernel tools already write."
+}

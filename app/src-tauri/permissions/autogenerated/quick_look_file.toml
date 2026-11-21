@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-quick-look-file"
+description = "Enables the quick_look_file command without any pre-configured scope."
+commands.allow = ["quick_look_file"]
+
+[[permission]]
+identifier = "deny-quick-look-file"
+description = "Denies the quick_look_file command without any pre-configured scope."
+commands.deny = ["quick_look_file"]

@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "workbench-commands",
+  "local": true,
+  "description": "App commands for the workbench webview, whose label is main. The permission set workbench lists plugin_window_open, plugin_window_close and plugin_window_bounds first, then every other command the shell registers. A window labelled ephe-plugin-* takes capabilities/plugin-window.json, which grants no permission, so the surface does not receive this set. The browser pane is the webview ephe-browser on the main window. This capability names the webview, so the pane does not receive the set. capabilities/default.json still binds its plugin permissions to the main window, and a capability bound to a window covers every webview of that window. No remote origin is named here.",
+  "webviews": ["main"],
+  "permissions": ["workbench"]
+}

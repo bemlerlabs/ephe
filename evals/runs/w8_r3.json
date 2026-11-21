@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "task_id": "W8",
+  "family": "endstate",
+  "level": "L4",
+  "rep": 3,
+  "session_id": "ob-w8-r3-1790174148",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "content='seed' old_gone=True",
+  "error_class": null,
+  "wall_ms": 34906.7,
+  "ttft_first_event_ms": 191.3,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "tool_call",
+      "ms": 2.6
+    },
+    {
+      "tool": "write_file",
+      "ms": 1.8
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.5
+    },
+    {
+      "tool": "write_file",
+      "ms": 0.9
+    },
+    {
+      "tool": "tool_call",
+      "ms": 1.9
+    },
+    {
+      "tool": "write_file",
+      "ms": 2.1
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.0
+    },
+    {
+      "tool": "tool_call",
+      "ms": 1.9
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "write_file",
+    "tool_call",
+    "tool_call"
+  ],
+  "answer_chars": 766,
+  "tokens_out_proxy": 191.5,
+  "fixture_hash": "3e0f4a8705fc",
+  "answer_tail": "xt` | Inhalt: `seed` |\n| 2 | `write_file` → `b.txt` | `seed` angelegt (4 Zeichen) |\n| 3 | `delete_file` → `a.txt` | `deleted '/private/tmp/bench-option-b/ws/a.txt'` |\n| 4 | `write_file` → `c.txt` | `seed` angelegt (4 Zeichen) |\n| 5 | `delete_file` → `b.txt` | `deleted '/private/tmp/bench-option-b/ws/b.txt'` |\n| 6 | `write_file` → `d.txt` | `seed` angelegt (4 Zeichen) |\n| 7 | `delete_file` → `c.txt` | `deleted '/private/tmp/bench-option-b/ws/c.txt'` |\n| 8 | Rücklese-Verifikation `d.txt` | `seed` — vorhanden und korrekt |\n\n**Endzustand:** Nur `d.txt` existiert, Inhalt `seed`.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:36:23"
+}

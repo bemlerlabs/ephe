@@ -1,0 +1,50 @@
+[package]
+name = "app"
+version = "0.1.0"
+description = "Ephe — the ephemeral local AI agent"
+authors = ["Ephe"]
+license = "BUSL-1.1"
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+base64 = "0.21"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3", features = ["tray-icon", "unstable", "macos-private-api"] }
+tauri-plugin-log = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-notification = "2"
+# R4/A1: a real file dialog on the desktop. Without this plugin the workbench can
+# only ask for a typed path — users want a window.
+tauri-plugin-dialog = "2"
+# The window remembers its size, position and maximized state across launches.
+tauri-plugin-window-state = "2"
+# One shared store, one process. The hand-rolled guard in `src/instance.rs` is
+# `#[cfg(unix)]`; this plugin is the cross-platform counterpart and the backstop
+# for the run where `instance::claim` returns `Claim::Unknown` (no HOME).
+tauri-plugin-single-instance = "2"
+# Wave 6: the opt-in global chord. One command, one chord; the review note is
+# docs/DEPENDENCY_GLOBAL_SHORTCUT_2026-10-20.md.
+tauri-plugin-global-shortcut = "2"
+
+# N3: the native pasteboard write. Both crates are already in the tree through
+# Tauri; naming them here adds the classes this crate calls, not a new version.
+# Default features stay off — the full class set is not what a two-item copy needs.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSURL", "NSBundle"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard"] }
+objc2 = { version = "0.6", default-features = false, features = ["std"] }
+objc2-vision = { version = "0.3", default-features = false, features = ["std", "VNRecognizeTextRequest", "VNRequestHandler", "VNRequest", "VNObservation"] }

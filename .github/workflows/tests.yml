@@ -1,0 +1,898 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  # A `pip install --user` tree in ~/.local is inserted ahead of the leg's own site-packages, and
+  # pip then reads those distributions as already satisfied. Measured 2026-10-09 on the lab runner:
+  # the py3.10 leg then imported pytest 9.0.3 from ~/.local while installing its own. Set here and not
+  # only in the runner's `.env`, which the listener reads once at start and so cannot deliver
+  # without a restart.
+  PYTHONNOUSERSITE: "1"
+
+jobs:
+  # Tracked pytest suite (offline subset): repo-hygiene, security guards,
+  # routes, engine defaults. Uses only files tracked in the public repo.
+  #
+  # The matrix is literal, exactly like `integration` further down, and GitHub builds the legs.
+  # What this replaces -- `matrix: ${{ fromJSON(needs.prep.outputs.matrix) }}`, the legs emitted by
+  # a `prep` job -- built zero legs on every run from 37977355898 (2026-10-09) to 38044386612
+  # (2026-10-10), while `integration` built four on the same event, in the same repository, on the
+  # same three listeners. The literal matrix and the `needs`-fed expression were the only
+  # difference, and the silent half of it was this: a matrix that expands to nothing creates no
+  # check run, so no step inside the job could report its own absence and the run merely looked
+  # red. `Assert the tracked suite ran` at the end of this file is what keeps it loud.
+  pytest-linux:
+    name: pytest-linux (py${{ matrix.python-version }})
+    # A fork pull request must never reach a runner this project controls: it would execute
+    # foreign code on our machine, which also holds the engine data and the tunnel keys. GitHub
+    # cannot gate that here — `allow_forking=false` and the fork-approval endpoint both answer 422
+    # (measured 2026-10-09 on a user-owned private repository, see
+    # docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so the boundary lives in this file instead.
+    # Accepted consequence, chosen over moving fork PRs back to hosted: a fork PR gets no CI here
+    # and is reviewed by hand. Nothing silently blocks it — a fork PR's skipped checks count as
+    # success, so the review is the gate. Dependabot PRs are same-repo branches, so they keep
+    # running.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 25
+    # The sandbox families prove a confined child on the boundary this job installs below.
+    # The "these proofs must not skip" flag is not job-wide: the install step sets it only
+    # when it actually provided the boundary, and the step above the suite reports what this
+    # run did not prove when it could not.
+    strategy:
+      fail-fast: false
+      matrix:
+        # The same four interpreters `integration` builds. CI Python parity
+        # (test_sprint2_f2_pwa_hygiene.py): the lower bound is requires-python (>=3.11), the local
+        # venv (3.13) is in the matrix, and every entry stays inside the pyproject classifiers. An
+        # unset `CI_LINUX_RUNNER` falls back to `ubuntu-latest`; the public checkout runs the
+        # same four legs instead of waiting on a label it never defined.
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Read-only job: keep the token out of .git/config (zizmor: artipacked).
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # CI-5: the patch lives here because the job name, and with it the required
+          # check-run name, reads the matrix label.
+          python-version: ${{ matrix.python-version == '3.13' && '3.13.18' || matrix.python-version }}
+          cache: 'pip'
+
+      - name: Move a pull request's install out of the shared interpreter
+        if: github.event_name == 'pull_request'
+        # The receipt is PR run `9910615d` (Dependabot, the ephemora-cell range), `Integration
+        # checks (3.12)` on a lab runner: 110 lines of `Requirement already satisfied: … in
+        # the runner's tool cache
+        # site-packages`, and the editable `ephe` wheel written into the same directory. `_tool` is
+        # the listener's tool cache and it survives the job, so anything a proposed range installs
+        # stays there for the next main-push leg to read as satisfied. A push keeps writing to it
+        # (owner decision 2026-10-10: main stays on the warm host path); a pull request does not get
+        # to, because a Dependabot branch is a branch of this repository and passes the fork guard.
+        #
+        # The venv is built from the interpreter `Set up Python` just provisioned, so the leg keeps
+        # its matrix version and the four-way parity is untouched. `RUNNER_TEMP` is wiped by the
+        # runner between jobs, and `scripts/ci_preflight.sh` refuses a pull-request leg whose
+        # `sys.prefix` is not under it -- that is what stops this step from sliding back.
+        env:
+          EPHE_LEG_VENV: ${{ runner.temp }}/ephe-leg
+        run: |
+          python -m venv "$EPHE_LEG_VENV"
+          echo "$EPHE_LEG_VENV/bin" >> "$GITHUB_PATH"
+          # The marker later steps check their own routing against. It exists on pull-request legs
+          # only, which is exactly the difference this step makes.
+          echo "EPHE_LEG_VENV=$EPHE_LEG_VENV" >> "$GITHUB_ENV"
+          # GITHUB_PATH reaches the NEXT steps, not this shell, so name the venv inside the step
+          # that builds it.
+          "$EPHE_LEG_VENV/bin/python" -V
+          "$EPHE_LEG_VENV/bin/pip" -V
+
+      - name: Verify uv.lock is fresh (supply-chain guard)
+        # Pinned, not `pip install uv`: an unpinned resolver makes the guard's verdict
+        # depend on which uv happened to ship that day. The freshness check, lockfile
+        # lane and scratch resolver must use the same pin.
+        #
+        # PyPI is this step's network dependency; the install is bounded and retried so a
+        # transient miss does not read as a stale lock. A failure that survives refuses,
+        # because a freshness check that did not run is not a pass.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; the lock freshness check has no verdict"
+            exit 1
+          fi
+          uv lock --check
+
+      - name: Install package (with dev tools)
+        # `tui` is not decoration: eight tests import `textual` (the confirm dialog
+        # markup, the agent message card, the model-switch TUI) and the job installs
+        # this package from source, so without the extra they die on
+        # `ModuleNotFoundError: No module named 'textual'` — a missing test
+        # dependency read as a product failure.
+        #
+        # `sandbox` stays out on purpose, and for the reason that is actually true:
+        # ephemora-cell is our own product on public PyPI (1.0.4.3, Requires-Python
+        # >=3.10), and the pinned range (>=1.0.4.3,<1.0.5) holds the one release whose
+        # enforcement this codebase read off the artifact — `core/cpython_cell.py` writes
+        # the WASIConfig caps that `core/cell_policy.policy_snapshot()` reports to the
+        # settings card, `ephe doctor` and the status page, so installing past the pin
+        # would quote caps nobody re-measured (owner decision 2026-10-09, register in
+        # .github/cell-runtime-fence.json). The two cell cases that need the library are
+        # handled in tests/test_cpython_cell_e1.py: the policy read skips on its own
+        # probe, and the refusal case pins the library present so the security assertion
+        # keeps running on every leg.
+        #
+        # PyPI is a network dependency of this install; three bounded attempts separate a
+        # transient registry miss from a dependency that cannot install at all, and the
+        # failure that survives names which one it was.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --upgrade pip && pip install -e ".[dev,tui]"; then installed=1; break; fi
+            echo "package install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::the package install could not reach PyPI; the suite has no environment to run in"
+            exit 1
+          fi
+
+      - name: Activate the pnpm this repo pins
+        # The hosted image carries node but no pnpm, and tracked tests shell out to it (the
+        # lockfile gate first). Same activation the frontend leg and setup.sh use, from
+        # app/package.json's `packageManager`.
+        #
+        # corepack fetches the pinned pnpm from registry.npmjs.org: three bounded attempts,
+        # because a tracked test that shells out to pnpm has no verdict without it.
+        run: |
+          corepack enable
+          activated=0
+          for attempt in 1 2 3; do
+            if corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate; then
+              activated=1
+              break
+            fi
+            echo "corepack prepare attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$activated" != 1 ]; then
+            echo "::error::the pinned pnpm could not be downloaded from registry.npmjs.org; the tests that shell out to it cannot run"
+            exit 1
+          fi
+          pnpm --version
+
+      - name: Setup Node.js
+        # The SDK contract test (`sdk/ephe.d.ts` + `sdk/check.ts` under `tsc --strict`)
+        # needs the app's TypeScript. The test now skips with a named reason when the
+        # toolchain is absent, so without this step CI would go green having proved
+        # nothing; version and pnpm cache mirror frontend-build.yml.
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.5
+          cache: 'pnpm'
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install the app type checker
+        # This leg only reads `app/node_modules/.bin/tsc`; the postinstall artefacts the
+        # frontend leg builds stay unnecessary, so the install runs with `--ignore-scripts`.
+        #
+        # registry.npmjs.org is a network dependency with no local copy on a fresh runner; the
+        # install is bounded and retried, and a failure that survives says so by name.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if (cd app && pnpm install --frozen-lockfile --ignore-scripts); then installed=1; break; fi
+            echo "pnpm install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::pnpm install could not reach registry.npmjs.org; the SDK type check has no toolchain"
+            exit 1
+          fi
+
+      - name: Rust toolchain check
+        # `tests/test_coding_loop_languages.py` proves the repair loop reads a real `rustc`
+        # diagnostic. The hosted image ships a stable rustup/cargo already; static.rust-lang.org
+        # failed DNS on 2026-11-11 and the download action is what needs it, so the compiler the
+        # image carries is used first and the pinned action is only asked for when it is absent.
+        run: |
+          if cargo --version && rustc --version; then
+            echo "using the image's Rust toolchain"
+          else
+            echo "RUST_TOOLCHAIN_MISSING=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Rust toolchain (only when the image carries none)
+        # The pinned action, never a `curl | sh` (Semgrep: gha-curl-pipe-shell); the same pin the
+        # cargo job in rust-shell.yml uses.
+        if: env.RUST_TOOLCHAIN_MISSING == '1'
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+
+      - name: Assert the toolchains the suite proves against
+        # A capability mark skips when its tool is missing. That is honest on a
+        # developer machine, but in this job it would turn a broken provision step into
+        # a green skip; fail here instead, where the reason is one line.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import node_tsc_path, rustc_path
+
+          missing = [
+              name
+              for name, found in (("tsc", node_tsc_path()), ("rustc", rustc_path()))
+              if found is None
+          ]
+          if missing:
+              raise SystemExit(f"toolchain provision failed: {', '.join(missing)} missing")
+          PY
+
+      - name: Install the Chromium behind the browser tool
+        if: matrix.python-version == '3.13'
+        # `playwright` is a hard Python dependency, the BROWSER binary is not — CI
+        # shipped none, so the always-active `browser_exec` core tool answered with
+        # Playwright's own error and the one real-browser proof in the suite
+        # (tests/test_parity_tools.py::test_browser_exec_runs_helpers_in_one_namespace)
+        # failed on every leg. It now runs where the binary exists and skips with that
+        # reason where it does not; one leg downloads ~150 MB rather than all five.
+        #
+        # `--with-deps` is not optional-but-missing on the lab runner, it is unusable: the flag
+        # calls sudo before it checks whether anything is needed, so the step exits 1 with
+        # `Failed to install browsers` and installs NO binary at all — measured twice with
+        # playwright 1.63.0, on CPython 3.13.12 and on the 3.13.9 build `actions/setup-python`
+        # fetches for linux/arm64. Pre-installing the libraries does not change that (they were
+        # already there as Ubuntu 24.04's `t64` packages), but it does make the plain install
+        # complete: `python -m playwright install chromium` then downloads and LAUNCHES headless
+        # as the runner user, with no sudo needed at job time. Hosted runners still get
+        # `--with-deps`, so the `ubuntu-latest` fallback keeps its apt pass and loses nothing.
+        run: |
+          installed=0
+          if sudo -n true 2>/dev/null; then
+            timeout 240 python -m playwright install --with-deps chromium && installed=1 || true
+          fi
+          if [ "$installed" != 1 ]; then
+            for attempt in 1 2; do
+              if python -m playwright install chromium; then installed=1; break; fi
+              echo "browser download attempt $attempt failed; retrying" >&2
+              sleep 15
+            done
+          fi
+          if [ "$installed" != 1 ]; then
+            echo "::warning::Chromium could not be installed; the real-browser proof skips as it does on a leg without the binary."
+          fi
+
+      - name: Hermetic preflight
+        # After the install, because before it no console script exists yet to judge. Guards the
+        # class where a leg runs the machine's tools instead of its own.
+        #
+        # Not run on `pytest-macos`, and the reason is measured rather than assumed: the script refuses
+        # any self-hosted leg whose `node`/`pnpm` resolve outside the job's install, and here they
+        # resolve to `/opt/homebrew/bin` (exit 1, `FAIL node head …`). That PATH entry is
+        # load-bearing, not sloppiness — six tracked test files invoke `node`, so dropping it would
+        # change what the leg tests. Its interpreter, user-site and `pytest` checks do pass against the
+        # uv venv. Open for the preflight's owner: either the macOS leg pins a node the way the Spark
+        # pins one through `NVM_BIN`, or the gate learns that a macOS Python leg has no provisioned
+        # node directory to point at.
+        run: bash scripts/ci_preflight.sh
+
+      - name: Provide the OS boundary the sandbox tests prove
+        # Five families drive a really confined child and are marked `requires_boundary` in
+        # tests/support/capabilities.py. Where the capability is missing they skip with the
+        # probe's reason, which is right on a laptop and wrong here: this leg exists to run
+        # those proofs, so bubblewrap is installed instead of assumed. Ubuntu 24.04 also
+        # restricts unprivileged user namespaces (AppArmor), and bwrap then cannot map a uid;
+        # the product keeps that refusal, the runner provides the kernel setting. Older
+        # images without the key stay green.
+        #
+        # apt is the one network dependency of this step, and the ubuntu.com hosts did not
+        # resolve for hours on 2026-11-11. The install is bounded and retried; when it still
+        # cannot reach the mirror the job does not fail on the runner's network: the step
+        # leaves `EPHE_REQUIRE_OS_BOUNDARY` unset, the assert below is skipped, and the suite
+        # skips those proofs with the probe's own reason. A leg that did provide the boundary
+        # sets the flag, so an absent proof there is still red.
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          if command -v bwrap >/dev/null 2>&1; then
+            echo "bubblewrap already present: $(command -v bwrap)"
+            echo "EPHE_REQUIRE_OS_BOUNDARY=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          set +e
+          ok=0
+          for attempt in 1 2 3; do
+            sudo timeout 300 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y bubblewrap \
+              && { ok=1; break; }
+            echo "apt attempt $attempt did not finish; retrying" >&2
+            sleep 10
+          done
+          if [ "$ok" = 1 ]; then
+            bwrap --version
+            echo "EPHE_REQUIRE_OS_BOUNDARY=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "::warning::bubblewrap could not be installed (apt/network); the sandbox proofs skip with the probe's reason and this leg does not gate on them this run."
+
+      - name: Assert the sandbox boundary is usable
+        # `bwrap` on PATH is not the capability: the probe creates the namespaces the rails
+        # ask for (`--unshare-pid`, `--unshare-net`) and names the missing half here, before
+        # the suite spends minutes reaching its first sandbox test. Runs only when the install
+        # step above recorded that this leg provides the boundary.
+        if: env.EPHE_REQUIRE_OS_BOUNDARY == '1'
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import capability_report
+          report = capability_report()
+          print(f"os_boundary={report['boundary']} {report['skip_reason']}".strip())
+          if report["boundary"] == "unavailable":
+              raise SystemExit(f"the sandbox proofs cannot run: {report['skip_reason']}")
+          PY
+
+      # Timing gates run alone, ahead of the parallel legs. They measure a wall clock
+      # (startup p90 < 150 ms, TTFB < 500 ms), and xdist workers share the machine while
+      # the rest of the suite runs: measured 2026-10-09 on the owner's 10-CPU Apple
+      # Silicon Mac at a base load of 3.2, `pytest -n auto` took load to ~20 and pushed
+      # `test_startup_budget` past its budget, while the same file passed in 5.6 s on its
+      # own. The answer is a serial segment, not a larger budget — a budget widened to
+      # survive ten workers no longer measures what it was set to measure.
+      #
+      # The class is bigger than that one file. Run 37974211156 (2026-10-09, a lab runner,
+      # py3.11) failed `test_search_route_returns_results_and_elapsed` at 324.7 ms against
+      # its 200 ms budget with 3536 tests green beside it, so every ceiling the suite
+      # asserts on a clock it read went into this segment the same way. The budget of that
+      # test now lives in tests/test_wall_clock_budgets.py and its response-body assertions
+      # stayed where they were. A whole file joins when the file is a timing file; a single
+      # node id joins when a feature file mixes correctness with a budget, and the
+      # correctness half stays in the parallel leg where the presence of a response field
+      # does not care about load. Budgets are not widened.
+      # tests/test_timing_assertion_guard.py reads both steps below and fails if a ceiling
+      # is left in the parallel leg or if this list stops being excluded there, so the next
+      # timing assertion has to be placed here on purpose.
+      #
+      # What the segment buys is the absence of this leg's own workers, not an idle machine. The
+      # four Linux legs share one box through three listeners ("Scale-out",
+      # docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so a sibling leg in its `-n auto` phase can
+      # load a leg that is measuring. Measured with the parallel leg running beside
+      # this segment at load ~15: startup p90 127.7 ms against a 150 ms budget, TTFB mean 54.5 ms
+      # against 500 ms and the search route 2.4 ms against 200 ms all held (p90 61.8 ms for the same
+      # segment on an idle machine), and
+      # `test_build_skill_index_cold_latency` — one cold sample against 50 ms — missed at 54.6 ms.
+      # The fix for that gate is the sampling `test_startup_budget` already uses (N runs, nearest-rank
+      # percentile); the 50 ms number stays where `docs/LATENCY_BUDGETS.md` put it.
+      - name: Run timing gates (serial)
+        run: >-
+          python -m pytest -q
+          tests/test_bench_gates.py
+          tests/test_r25_latency_budgets.py
+          tests/test_bilingual_bench_p3b.py
+          tests/test_wall_clock_budgets.py
+          tests/test_r25_session_search.py::test_search_budget_1000_messages_under_50ms_p95
+          tests/test_multi_session.py::test_switch_is_fast_under_50ms
+          tests/test_multi_session.py::test_resume_after_restart_under_200ms
+          tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
+          tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
+          tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
+          --benchmark-json=.benchmarks/bench-timing-py${{ matrix.python-version }}.json
+
+      - name: Upload timing benchmark report
+        # The TTFB gate runs through pytest-benchmark, and this is the JSON report the test module's
+        # docstring names — the serial step writes it into .benchmarks/, which no step produced before
+        # (docs/PLAN_GAP_2026-10-11.md P4-17). `always()` keeps the report when a gate above went red,
+        # which is when it is read; `warn` because a serial segment stood down under load
+        # (tests/timing_segment.py) runs no benchmark, so there is legitimately nothing to upload.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: timing-benchmark-py${{ matrix.python-version }}
+          path: .benchmarks/bench-timing-py${{ matrix.python-version }}.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Four modules stand down under xdist: a module-level `pytest.mark.skipif` on
+      # PYTEST_XDIST_WORKER, because the MCP registry, the stdio child and the plugin worker are
+      # process-global. The parallel leg collects them and executes nothing, so before this step
+      # 11 integration tests ran only under `pytest` in release.yml. Measured on the owner's Mac
+      # 2026-11-16: 11 passed in 8.78 s serial. `tests/test_timing_assertion_guard.py` fails when
+      # a module carrying that marker is missing from a step here, in either leg.
+      - name: Run the serial-leg integration modules
+        run: >-
+          python -m pytest -q
+          tests/e2e/test_e2e_mcp_round_trip.py
+          tests/e2e/test_e2e_plugin_lifecycle.py
+          tests/e2e/test_e2e_artifact_lifecycle.py
+          tests/e2e/test_e2e_install_chat_tool_artifact.py
+
+      # Collected set: `--collect-only` on the owner's 10-CPU Mac counts 3653 tests under `tests/`
+      # (2026-10-09, py3.13), 15 of them in the segment above and 3638 here, 6 of those dropped by
+      # node id. Measured on the same Mac — 299.2 s solo against 61.7 s here at `-n auto`, plus
+      # 6.99 s for the serial segment, so ~68.7 s instead of ~299 s. Re-measured with this wider
+      # segment: 56.5 s here (3564 passed, 74 skipped) and 7.21 s for the 15 above. `-n 4` was
+      # measured too: 116.8 s, and it kept the gates green. `-n auto` is chosen because the gates
+      # no longer live in this leg, so the worker count can follow the cores of whichever
+      # machine takes the job. The suite has one other leg: `pytest` in release.yml runs the
+      # whole collected set in a single process, so nothing contends there and the split
+      # does not apply.
+      - name: Run tracked pytest suite
+        run: >-
+          python -m pytest tests/ -q -n auto
+          --ignore=tests/test_bench_gates.py
+          --ignore=tests/test_r25_latency_budgets.py
+          --ignore=tests/test_bilingual_bench_p3b.py
+          --ignore=tests/test_wall_clock_budgets.py
+          --deselect=tests/test_r25_session_search.py::test_search_budget_1000_messages_under_50ms_p95
+          --deselect=tests/test_multi_session.py::test_switch_is_fast_under_50ms
+          --deselect=tests/test_multi_session.py::test_resume_after_restart_under_200ms
+          --deselect=tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
+          --deselect=tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
+          --deselect=tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          --deselect=tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
+
+  # R25: the macOS leg. The shell-guard and Seatbelt tests are POSIX-heavy and `sandbox-exec` (SBPL)
+  # exists only on macOS, so this is where the macOS-only live guards run for real instead of
+  # skipping.
+  #
+  # The public repository is hosted-only: `CI_MAC_RUNNER` names `macos-latest`, so no pull request
+  # reaches a personal machine. The leg is a required check, and a required check that is skipped
+  # still counts as a success — which is how a red macOS leg first surfaced on `main` after a green
+  # PR (run 40136777673). It therefore runs on every same-repo event, pull requests included; the
+  # fork guard is the one in `pytest-linux`, and a fork PR stays hand-reviewed.
+  pytest-macos:
+    name: pytest-macos (py3.12)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
+    timeout-minutes: 25
+    env:
+      # Seatbelt is this leg's boundary. Same rule as the Linux job: a host that cannot
+      # prove it fails here instead of skipping the proofs under a green check.
+      EPHE_REQUIRE_OS_BOUNDARY: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Read-only job: keep the token out of .git/config (zizmor: artipacked).
+          persist-credentials: false
+
+      - name: Assert the leg is on the OS its label promises
+        # Fail-closed on the routing: a `CI_MAC_RUNNER` pointed at a non-macOS runner (for instance
+        # a Linux runner, which carries no macOS) would start this leg on Linux, where the sandbox-exec
+        # and Seatbelt tests skip and the leg goes green having proved nothing. Measured the other way
+        # round too: on the first real macOS job this step was the proof that the leg really ran
+        # on Darwin.
+        run: |
+          os="$(uname -s)"
+          if [ "$os" != "Darwin" ]; then
+            echo "::error::macOS leg landed on '$os': CI_MAC_RUNNER does not point at a macOS runner (expected a Darwin label)."
+            exit 1
+          fi
+          echo "macOS leg running on $(uname -m), macOS $(sw_vers -productVersion)"
+
+      - name: Provision the interpreter
+        # Not `actions/setup-python`. On macOS that action runs the installer script it downloads, and
+        # `setup.sh:58` of that artifact is `sudo installer -pkg … -target /` — a system framework
+        # install. A hosted image allows it; a personal laptop does not grant non-interactive sudo
+        # (`sudo -n true` → "a password is required"), and before that `setup.sh:26-31` prefers
+        # `$AGENT_TOOLSDIRECTORY` over `$RUNNER_TOOL_CACHE`, so the step tries
+        # `mkdir /Users/runner/hostedtoolcache`. Both measured on the first real macOS job, run
+        # 37967541864, which failed in 17 s at exactly this point.
+        #
+        # uv's standalone CPython needs no privilege, and this is the bootstrap the repo already
+        # documents for generating uv.lock, so no new tool enters the pipeline. `--seed` is what puts
+        # pip in the venv — `uv venv` alone leaves it out, and every step below then dies on
+        # `No module named pip` — so after provisioning the legs are literally identical. The
+        # bootstrap lives in `RUNNER_TEMP`, which the runner wipes between jobs; `.venv` is the path
+        # the repo already ignores. `'3.12'` floats to the newest build uv ships for the minor
+        # (measured 3.12.15, the same patch level the Linux legs run, where the Actions manifest would
+        # have served 3.12.10); spell it `'3.12.15'` to freeze it.
+        run: |
+          boot="${RUNNER_TEMP:?RUNNER_TEMP is set by the runner}/ephe-boot"
+          python3 -m venv "$boot"
+          # Three network reads follow -- PyPI for uv, GitHub for the CPython build, PyPI for the
+          # pip and setuptools `--seed` installs -- and each is bounded and retried. A leg that
+          # cannot provision says which read failed instead of dying in a traceback.
+          installed=0
+          for attempt in 1 2 3; do
+            if "$boot/bin/pip" install --quiet "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; this leg has no interpreter to provision with"
+            exit 1
+          fi
+          "$boot/bin/uv" --version
+          downloaded=0
+          for attempt in 1 2 3; do
+            if "$boot/bin/uv" python install '3.12'; then downloaded=1; break; fi
+            echo "CPython download attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$downloaded" != 1 ]; then
+            echo "::error::uv could not download CPython 3.12; this leg does not fall back to the image's interpreter"
+            exit 1
+          fi
+          seeded=0
+          for attempt in 1 2 3; do
+            if "$boot/bin/uv" venv --seed --python '3.12' .venv; then seeded=1; break; fi
+            echo "venv seed attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$seeded" != 1 ]; then
+            echo "::error::uv could not seed the venv from PyPI; the steps below would die on 'No module named pip'"
+            exit 1
+          fi
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          # GITHUB_PATH reaches the NEXT steps, not this shell — a bare `python -V` here is exit 127,
+          # which is how the first real run of this step failed after provisioning had already
+          # succeeded. Name the venv inside the step that created it.
+          .venv/bin/python -V
+
+      - name: Verify uv.lock is fresh (supply-chain guard)
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install "uv==0.13.6"; then installed=1; break; fi
+            echo "uv install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::uv==0.13.6 could not be installed from PyPI; the lock freshness check has no verdict"
+            exit 1
+          fi
+          uv lock --check
+
+      - name: Install package (with dev tools)
+        # The `tui` and `sandbox` reasoning is written once, on the step of the same name in
+        # `pytest-linux`; the install is the same one here.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --upgrade pip && pip install -e ".[dev,tui]"; then installed=1; break; fi
+            echo "package install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::the package install could not reach PyPI; the suite has no environment to run in"
+            exit 1
+          fi
+
+      - name: Activate the pnpm this repo pins
+        # The hosted macOS image carries node but no pnpm, and tracked tests shell out to it
+        # (the lockfile gate first). Same activation the frontend leg and setup.sh use, from
+        # app/package.json's `packageManager`.
+        #
+        # The same bounded fetch of the pinned pnpm as the Linux leg: registry.npmjs.org is a
+        # network dependency, and a test that shells out to pnpm cannot run without it.
+        run: |
+          corepack enable
+          activated=0
+          for attempt in 1 2 3; do
+            if corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate; then
+              activated=1
+              break
+            fi
+            echo "corepack prepare attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$activated" != 1 ]; then
+            echo "::error::the pinned pnpm could not be downloaded from registry.npmjs.org; the tests that shell out to it cannot run"
+            exit 1
+          fi
+          pnpm --version
+
+      - name: Assert the sandbox boundary is usable (macOS)
+        # This leg's boundary is Seatbelt. The step above proves the job landed on Darwin;
+        # this proves the mechanism itself, with the same probe the Linux leg runs.
+        run: |
+          python - <<'PY'
+          from tests.support.capabilities import capability_report
+          report = capability_report()
+          print(f"os_boundary={report['boundary']} {report['skip_reason']}".strip())
+          if report["boundary"] == "unavailable":
+              raise SystemExit(f"the sandbox proofs cannot run: {report['skip_reason']}")
+          PY
+
+      # Copied from `pytest-linux`, both halves, by the owner's decision of 2026-10-10: two jobs
+      # with a literal matrix rather than one job with a `fromJSON` matrix, because the literal form
+      # is the one GitHub is measured to expand. The copy has no offline guard --
+      # tests/test_timing_assertion_guard.py reads the Linux pair by name -- so the two lists move
+      # by hand until they live in one `workflow_call` file, which is the follow-up that needs a
+      # path line in tests/.
+      - name: Run timing gates (serial, macOS)
+        run: >-
+          python -m pytest -q
+          tests/test_bench_gates.py
+          tests/test_r25_latency_budgets.py
+          tests/test_bilingual_bench_p3b.py
+          tests/test_wall_clock_budgets.py
+          tests/test_r25_session_search.py::test_search_budget_1000_messages_under_50ms_p95
+          tests/test_multi_session.py::test_switch_is_fast_under_50ms
+          tests/test_multi_session.py::test_resume_after_restart_under_200ms
+          tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
+          tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
+          tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
+          --benchmark-json=.benchmarks/bench-timing-macos.json
+
+      - name: Upload timing benchmark report (macOS)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: timing-benchmark-macos-py3.12
+          path: .benchmarks/bench-timing-macos.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Same four modules as the step of this name in `pytest-linux`, copied by the same rule that
+      # copies the timing segment: both legs prove the same suite.
+      - name: Run the serial-leg integration modules (macOS)
+        run: >-
+          python -m pytest -q
+          tests/e2e/test_e2e_mcp_round_trip.py
+          tests/e2e/test_e2e_plugin_lifecycle.py
+          tests/e2e/test_e2e_artifact_lifecycle.py
+          tests/e2e/test_e2e_install_chat_tool_artifact.py
+
+      - name: Run tracked pytest suite (macOS)
+        run: >-
+          python -m pytest tests/ -q -n auto
+          --ignore=tests/test_bench_gates.py
+          --ignore=tests/test_r25_latency_budgets.py
+          --ignore=tests/test_bilingual_bench_p3b.py
+          --ignore=tests/test_wall_clock_budgets.py
+          --deselect=tests/test_r25_session_search.py::test_search_budget_1000_messages_under_50ms_p95
+          --deselect=tests/test_multi_session.py::test_switch_is_fast_under_50ms
+          --deselect=tests/test_multi_session.py::test_resume_after_restart_under_200ms
+          --deselect=tests/test_artifact_store.py::TestSearchPerformance::test_given_1000_artifacts_when_searched_then_under_50ms
+          --deselect=tests/test_w16_enterprise_hardening.py::TestPostTurnOffload::test_ping_latency_during_memory_store_median_below_5ms
+          --deselect=tests/test_w14_audit_fixes.py::test_shell_timeout_kills_the_child_and_frees_the_loop
+          --deselect=tests/test_plugin_worker_supervisor.py::test_timeout_kills_the_whole_process_group
+
+  integration:
+    name: Integration checks
+    # Fork PRs are excluded for the reason given on the pytest job.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        # CI Python parity (test_sprint2_f2_pwa_hygiene.py): the lower bound is
+        # requires-python (>=3.11), the local venv (3.13) is in the matrix, and every
+        # entry stays inside the pyproject classifiers.
+        python-version: ['3.11', '3.12', '3.13']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Read-only job: keep the token out of .git/config (zizmor: artipacked).
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # CI-5: the patch lives here because the job name, and with it the required
+          # check-run name, reads the matrix label.
+          python-version: ${{ matrix.python-version == '3.13' && '3.13.18' || matrix.python-version }}
+          cache: 'pip'
+
+      - name: Move a pull request's install out of the shared interpreter
+        if: github.event_name == 'pull_request'
+        # Same rule and same receipt as the step of this name in `pytest-linux`: this job installs
+        # the runtime extras, and a Dependabot bump of a runtime range writes into `_tool`, the
+        # listener's tool cache, where the next main-push leg finds it already satisfied.
+        env:
+          EPHE_LEG_VENV: ${{ runner.temp }}/ephe-leg
+        run: |
+          python -m venv "$EPHE_LEG_VENV"
+          echo "$EPHE_LEG_VENV/bin" >> "$GITHUB_PATH"
+          echo "EPHE_LEG_VENV=$EPHE_LEG_VENV" >> "$GITHUB_ENV"
+          "$EPHE_LEG_VENV/bin/python" -V
+          "$EPHE_LEG_VENV/bin/pip" -V
+
+      - name: Install package
+        # PyPI, bounded, for the same reason as the install step in `pytest-linux`; the routing
+        # read-back below is kept, because a retry must not hide an install outside the venv.
+        run: |
+          installed=0
+          for attempt in 1 2 3; do
+            if pip install --upgrade pip && pip install -e "."; then installed=1; break; fi
+            echo "package install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::the package install could not reach PyPI; the integration checks have no environment"
+            exit 1
+          fi
+          # This job has no preflight step, so the leg reads its own routing back: `pip -V` names
+          # the environment it writes into, and on a pull request that must be the venv.
+          if [ -n "${EPHE_LEG_VENV:-}" ]; then
+            if ! pip -V | grep -q "$EPHE_LEG_VENV"; then
+              echo "::error::install resolves outside the job's venv: $(pip -V)"
+              exit 1
+            fi
+          fi
+
+      - name: Verify package import
+        run: |
+          python -c "import ephe; import ephe_cli; import core.engine_config; import server.main; print('All core imports OK')"
+
+      - name: Installer-Syntax-Check (Release-Bar)
+        run: |
+          bash -n install.sh && echo "install.sh OK"
+          # A real parse. The old line passed [ref]$null, which PowerShell rejects with
+          # MethodException ("Argument: '2' should be a PSReference") — and because the
+          # step only echoed `install.ps1 OK` afterwards, the Release-Bar gate was green
+          # while install.ps1:24 could not be parsed by any Windows PowerShell at all
+          # (`$letter:` inside a double-quoted string reads as a scope qualifier). Found
+          # on 2026-10-09 by tests/test_installer_cli.py, the one check that did parse.
+          # $tokens/$errors are variables here, not the literal $null: that is the
+          # documented Parser idiom and the difference between failing and pretending.
+          pwsh -NoProfile -Command '
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile("install.ps1", [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Host "$($_.Extent.StartLineNumber): $($_.Message)" }
+              exit 1
+            }
+            Write-Host "install.ps1 OK"
+          '
+
+      - name: Security defaults audit (conservative binding)
+        run: |
+          python -c "
+          import re, pathlib
+          src = pathlib.Path('server/main.py').read_text()
+          # The server must not bind to 0.0.0.0 by default — mobile access is opt-in.
+          assert '0.0.0.0' not in src, 'SECURITY: Server binds to 0.0.0.0 by default'
+          print('Security defaults OK: no wildcard bind')
+          "
+
+  docker-build:
+    name: Docker image build (release-bar)
+    # Fork PRs are excluded for the reason given on the pytest job.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Docker is not granted to the self-hosted runner: a runner in the Docker
+    # group is root-equivalent. This job runs where Docker is provided.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Read-only job: keep the token out of .git/config (zizmor: artipacked).
+          persist-credentials: false
+      - name: Build image
+        # The Dockerfile fetches from apt in two stages, from PyPI for pip and the project, and
+        # from npm for the PWA, so this release-bar job is a hard network dependency. Three
+        # bounded attempts keep a transient miss from reading as a broken image. A failure that
+        # survives is a warning only when the log names a transport error: a Dockerfile or
+        # dependency defect that apt and pip answer normally stays red.
+        run: |
+          set +e
+          built=0
+          for attempt in 1 2 3; do
+            timeout 900 docker build -t ephe:ci . 2>&1 | tee "$RUNNER_TEMP/docker-build.log"
+            status=${PIPESTATUS[0]}
+            if [ "$status" = 0 ]; then built=1; break; fi
+            echo "docker build attempt $attempt exited $status; retrying" >&2
+            sleep 15
+          done
+          if [ "$built" = 1 ]; then
+            echo "EPHE_DOCKER_IMAGE=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if grep -Eqi 'temporary failure resolving|could not resolve|failed to fetch|eai_again|etimedout|econnreset|connection (refused|failed)|network is unreachable|no route to host' "$RUNNER_TEMP/docker-build.log"; then
+            echo "::warning::the image build could not fetch its packages (apt/PyPI/npm); the container check is skipped for this run."
+            exit 0
+          fi
+          echo "::error::docker build failed without a transport error in its log; the Dockerfile or the image content is broken."
+          exit 1
+
+      - name: Verify installed package
+        # Skipped only when the build step above already recorded that the failure was the
+        # network's; a normal failure has stopped the job by now.
+        if: env.EPHE_DOCKER_IMAGE == '1'
+        run: docker run --rm --entrypoint python ephe:ci -c "import ephe; import ephe_cli; print('ephe import OK')"
+
+  # A matrix that expands to nothing creates no check run at all, so no step inside a leg can report
+  # its own absence: six runs in a row went red with nothing red in them and the tracked backend
+  # suite was simply not running on main. This is the one job in the workflow that can tell "a leg
+  # failed" apart from "there were no legs", because it reads the run back from the API and names
+  # every leg it expected.
+  #
+  # The expected names are spelled out here, next to the two jobs that build them. That is a
+  # deliberate second statement: if a Python joins the matrix and this list is not told, the extra
+  # leg fails the gate. The direction of the error is a red job that names the mismatch, never a
+  # quiet gap.
+  suite-count:
+    name: Assert the tracked suite ran
+    needs: [pytest-linux, pytest-macos]
+    if: >-
+      always() && (github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Name every pytest leg this event should have built
+        env:
+          ACTIONS_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          expected = [f"pytest-linux (py{v})" for v in ("3.11", "3.12", "3.13")]
+          # The macOS leg runs on every event. A skipped required check reads as a success,
+          # so a pull request must build it too.
+          expected.append("pytest-macos (py3.12)")
+          url = (f"{os.environ['API_URL']}/repos/{os.environ['REPOSITORY']}"
+                 f"/actions/runs/{os.environ['RUN_ID']}/jobs?per_page=100")
+          request = urllib.request.Request(url, headers={
+              "Authorization": f"Bearer {os.environ['ACTIONS_TOKEN']}",
+              "Accept": "application/vnd.github+json"})
+          with urllib.request.urlopen(request) as response:
+              jobs = json.load(response)["jobs"]
+          by_name = {}
+          for job in jobs:
+              by_name.setdefault(job["name"], job)
+          missing = []
+          for name in expected:
+              leg = by_name.get(name)
+              if leg is None:
+                  print(f"    MISSING  {name}")
+                  missing.append(name)
+              else:
+                  print(f"    {leg.get('conclusion') or leg['status']}  {name}  "
+                        f"runner={leg.get('runner_name') or '-'}")
+          # A job switched off by its own `if:` still arrives in the job list as `skipped`.
+          # Only a leg that GitHub actually scheduled can be unplanned here.
+          extra = sorted(n for n, leg in by_name.items()
+                         if n.startswith("pytest-") and n not in expected
+                         and leg.get("conclusion") != "skipped")
+          for name in extra:
+              print(f"    UNEXPECTED  {name}")
+          for name, leg in sorted(by_name.items()):
+              if (name.startswith("pytest-") and name not in expected
+                      and leg.get("conclusion") == "skipped"):
+                  print(f"    not scheduled for this event: {name}")
+          scheduled = len([n for n, leg in by_name.items()
+                           if n.startswith("pytest-") and leg.get("conclusion") != "skipped"])
+          print(f"expected {len(expected)} legs, this run scheduled {scheduled}")
+          if missing:
+              raise SystemExit(
+                  "the tracked backend suite did not run, legs absent from this run: "
+                  + ", ".join(missing))
+          if extra:
+              raise SystemExit(
+                  "legs scheduled that this event does not plan: " + ", ".join(extra))
+          PY

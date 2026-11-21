@@ -1,0 +1,1339 @@
+{
+  "format": 1,
+  "generated": "2026-11-01T20:43:19+00:00",
+  "intents": [
+    "invoices",
+    "calendar",
+    "mail",
+    "files",
+    "database",
+    "web",
+    "code",
+    "browser",
+    "memory",
+    "finance",
+    "maps",
+    "weather",
+    "media",
+    "translation",
+    "tables",
+    "team",
+    "devops",
+    "testing",
+    "analytics",
+    "office",
+    "security",
+    "home",
+    "time"
+  ],
+  "entries": {
+    "com-augur-trade-foresight-web": [
+      "browser",
+      "code",
+      "web"
+    ],
+    "com-accesslumens-mcp": [
+      "browser",
+      "testing"
+    ],
+    "com-aeoauditing-aeo-auditor-mcp": [
+      "maps",
+      "security",
+      "web"
+    ],
+    "com-afeleos-af360": [],
+    "ai-clize-domains": [
+      "testing"
+    ],
+    "ai-clize-inbox": [
+      "mail"
+    ],
+    "ai-clize-storefront": [],
+    "ai-getvda-mysql-redis-compose-generator-nginx": [
+      "database"
+    ],
+    "ai-getvda-nats-mysql-redis-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-nginx-redis-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-postgres-grafana-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-postgres-kafka-prometheus-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-postgres-kafka-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-postgres-minio-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-postgres-prometheus-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-postgres-redis-compose-generator": [
+      "database"
+    ],
+    "ai-getvda-rabbitmq-elasticsearch-mongodb-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-rabbitmq-elasticsearch-mysql-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-rabbitmq-elasticsearch-postgres-stack-generator-elasticsearch-elasticsearch": [
+      "database"
+    ],
+    "ai-getvda-rabbitmq-elasticsearch-postgres-stack-generator-mongo": [
+      "database"
+    ],
+    "ai-getvda-rabbitmq-postgres-mongodb-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-rabbitmq-redis-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-redis-minio-postgres-stack-generator": [
+      "database"
+    ],
+    "ai-getvda-redis-minio-stack-generator": [
+      "database"
+    ],
+    "ai-kaiv-docker-facts": [
+      "devops"
+    ],
+    "ai-kaiv-postgres": [
+      "database",
+      "devops"
+    ],
+    "ai-lakewave-lakewave-mcp": [
+      "mail"
+    ],
+    "ai-shawndurrani-mcp-merchant": [
+      "devops",
+      "testing",
+      "web"
+    ],
+    "ai-smithery-pinion05-supabase-mcp-lite": [
+      "database"
+    ],
+    "ai-smithery-smithery-ai-slack": [
+      "calendar",
+      "team"
+    ],
+    "ai-takara-miru": [
+      "code",
+      "web"
+    ],
+    "ai-trags-poppy": [
+      "devops",
+      "memory"
+    ],
+    "ai-waystation-gmail": [
+      "mail"
+    ],
+    "ai-waystation-jira": [],
+    "ai-waystation-postgres": [
+      "database"
+    ],
+    "ai-waystation-slack": [
+      "files",
+      "mail",
+      "team"
+    ],
+    "ai-waystation-supabase": [
+      "database"
+    ],
+    "com-allyotter-allyotter-lite": [
+      "browser",
+      "code",
+      "security"
+    ],
+    "com-alpha402x-research": [
+      "files"
+    ],
+    "app-hellohop-hellohop": [
+      "mail",
+      "team"
+    ],
+    "app-linear-linear": [
+      "devops"
+    ],
+    "app-vercel-stripecheckup-stripecheckup": [
+      "code",
+      "devops"
+    ],
+    "ai-b77-apple-search-ads": [
+      "analytics",
+      "team",
+      "web"
+    ],
+    "ai-dinglebear-rapprise": [
+      "security"
+    ],
+    "co-appscreen-mcp": [
+      "home",
+      "translation"
+    ],
+    "ai-dinglebear-rarcane": [
+      "devops"
+    ],
+    "com-arena-predictions-arena": [
+      "finance"
+    ],
+    "com-arxyne-solver": [],
+    "ai-askwatch-gsc": [
+      "devops",
+      "translation",
+      "web"
+    ],
+    "com-asrmemory-asr": [
+      "memory",
+      "office"
+    ],
+    "com-athenode-cli": [
+      "devops",
+      "files"
+    ],
+    "ai-atlaso-mcp": [
+      "memory"
+    ],
+    "club-atlasyield-mcp": [
+      "maps"
+    ],
+    "com-audioeye-testing-sdk-mcp": [
+      "browser",
+      "code",
+      "maps",
+      "media",
+      "testing"
+    ],
+    "com-authyouragent-mcp": [
+      "browser",
+      "security",
+      "web"
+    ],
+    "com-auth0-mcp": [
+      "browser",
+      "devops",
+      "security",
+      "translation"
+    ],
+    "app-nothingbutalpha-backtest-auditor": [
+      "code",
+      "finance",
+      "team",
+      "testing"
+    ],
+    "co-bibigpt-youtube-video-summarizer": [
+      "media"
+    ],
+    "ai-brainmemory-brain": [
+      "memory"
+    ],
+    "com-brainiall-memory": [
+      "files",
+      "memory"
+    ],
+    "build-exascale-osint": [
+      "code"
+    ],
+    "ca-canada-payroll-canada-payroll": [
+      "home"
+    ],
+    "capital-hove-read-only-local-postgres-mcp-server": [
+      "database",
+      "devops"
+    ],
+    "ai-chipp-chipp-memory": [
+      "calendar",
+      "memory"
+    ],
+    "com-chrome-stats-chrome-stats": [
+      "analytics"
+    ],
+    "ai-clawterminal-markets": [],
+    "ai-clize-clize": [
+      "devops",
+      "finance",
+      "mail",
+      "media"
+    ],
+    "ai-codenib-codenib": [
+      "web"
+    ],
+    "com-collhub-collhub": [
+      "code",
+      "files"
+    ],
+    "com-adrianczuczka-mason": [
+      "files",
+      "security"
+    ],
+    "com-ainetcafe-netcafe-memory": [
+      "home",
+      "memory",
+      "security"
+    ],
+    "com-appscreenshotstudio-mcp": [],
+    "com-borisinc-memory": [
+      "memory"
+    ],
+    "com-clauxel-agentmemorymcp-agentmemorymcp-mcp": [
+      "invoices",
+      "memory",
+      "security"
+    ],
+    "com-clauxel-byterovermemory-byterovermemory-mcp": [
+      "invoices",
+      "memory"
+    ],
+    "com-clauxel-context7docs-context7docs-mcp": [
+      "invoices",
+      "security"
+    ],
+    "com-clauxel-semblecodesearchgate-semblecodesearchgate-mcp": [
+      "code",
+      "invoices",
+      "security",
+      "web"
+    ],
+    "com-containermath-cbm": [
+      "devops"
+    ],
+    "com-dapdip-youtube-growth": [
+      "security",
+      "team"
+    ],
+    "com-deepsearch-x402-korean-stocks": [
+      "finance",
+      "web"
+    ],
+    "com-digitalnomadindex-coliving-search": [
+      "code",
+      "web"
+    ],
+    "com-engagedviews-youtube-thumbnail-sizes": [],
+    "com-conduyt-mcp": [
+      "analytics",
+      "browser"
+    ],
+    "ai-cookwala-cookwala": [
+      "home",
+      "testing",
+      "web"
+    ],
+    "ai-dinglebear-cortex": [
+      "database"
+    ],
+    "com-crosbynews-weather": [
+      "calendar",
+      "weather"
+    ],
+    "ai-ctxstore-ctxstore-mcp": [
+      "memory",
+      "security"
+    ],
+    "com-apished-date-math-calculator": [
+      "time"
+    ],
+    "co-datummarket-datum-mcp-server": [
+      "time"
+    ],
+    "com-decionis-commerce-gate": [
+      "analytics",
+      "finance"
+    ],
+    "ai-deepdna-local": [
+      "analytics",
+      "code",
+      "files"
+    ],
+    "app-deepsearch-deepsearch": [
+      "mail"
+    ],
+    "com-deployangel-deployangel": [
+      "devops"
+    ],
+    "com-devart-mcp-postgresql": [
+      "database",
+      "devops"
+    ],
+    "com-devart-mcp-sqlite": [
+      "database",
+      "devops"
+    ],
+    "co-dijin-memory": [
+      "memory"
+    ],
+    "com-dakaio-domainscout": [
+      "finance",
+      "testing",
+      "web"
+    ],
+    "app-durely-garmin-insights-mcp": [],
+    "com-easyship-mcp": [],
+    "com-echo-mem-echo-mem": [
+      "database",
+      "memory"
+    ],
+    "ai-ekwo-mcp": [
+      "code",
+      "database",
+      "invoices"
+    ],
+    "com-enconvert-mcp": [
+      "devops",
+      "files"
+    ],
+    "com-errandkit-seo-ai-audit": [
+      "browser",
+      "security",
+      "web"
+    ],
+    "com-everythingmeetsai-archive": [
+      "code"
+    ],
+    "com-exactmods-exactmods": [
+      "code"
+    ],
+    "com-exactpdf-mcp": [
+      "code",
+      "files"
+    ],
+    "com-examova-mcp": [],
+    "com-execbro-execbro": [],
+    "com-faceabot-deep-search": [
+      "code",
+      "web"
+    ],
+    "com-faceabot-weather": [
+      "security",
+      "weather"
+    ],
+    "com-faceabot-youtube": [
+      "media",
+      "security",
+      "team"
+    ],
+    "ai-fgac-fgac": [
+      "tables"
+    ],
+    "ai-flydocs-flydocs": [
+      "files"
+    ],
+    "ca-freelancertax-freelancertax": [],
+    "app-gamedayweather-gdw": [
+      "weather"
+    ],
+    "ai-gateco-gateco": [
+      "memory"
+    ],
+    "ai-getfacade-mcp": [
+      "files",
+      "finance",
+      "media"
+    ],
+    "co-civai-nova-gmail-agent": [],
+    "ai-hashgrid-sdk": [
+      "database",
+      "media",
+      "web"
+    ],
+    "ai-hexahq-hexa": [
+      "memory",
+      "team"
+    ],
+    "app-kezai-memory": [
+      "media",
+      "memory"
+    ],
+    "ai-kolect-app-creator-search": [
+      "mail",
+      "testing",
+      "web"
+    ],
+    "ai-korely-memory": [
+      "memory"
+    ],
+    "ai-lbrain-lbrain": [
+      "code",
+      "memory",
+      "security",
+      "time"
+    ],
+    "ai-lithtrix-lithtrix-mcp": [
+      "memory",
+      "security"
+    ],
+    "ai-locul-cloud": [
+      "code",
+      "devops",
+      "files",
+      "memory",
+      "team"
+    ],
+    "art-maddegen-agent-synapse-web": [
+      "browser",
+      "code",
+      "web"
+    ],
+    "ai-magnemo-magnemo": [
+      "files",
+      "memory"
+    ],
+    "app-mailsocket-mailsocket-mcp": [
+      "mail"
+    ],
+    "ai-saifs-code-execution": [
+      "code",
+      "files",
+      "translation"
+    ],
+    "ca-mathter-mathter": [
+      "files"
+    ],
+    "ai-memoryrouter-memoryrouter": [
+      "memory"
+    ],
+    "ai-thetahealth-mirobody": [
+      "code",
+      "security"
+    ],
+    "co-indigloo-model-finder": [
+      "security",
+      "testing"
+    ],
+    "ai-nauro-nauro": [],
+    "ai-okforest-okforest": [
+      "code",
+      "memory",
+      "web"
+    ],
+    "app-ownmemory-ownmemory": [
+      "devops",
+      "memory"
+    ],
+    "ai-parallel-search-mcp": [
+      "web"
+    ],
+    "ai-perfectmemory-perfect-memory": [
+      "calendar",
+      "memory",
+      "web"
+    ],
+    "com-creatinginai-performance-atlas": [
+      "code",
+      "media",
+      "testing"
+    ],
+    "ai-qompass-periscope": [
+      "code"
+    ],
+    "ai-picsha-picsha": [
+      "code",
+      "media",
+      "web"
+    ],
+    "ae-plantguide-dubai-gardening": [
+      "finance",
+      "web"
+    ],
+    "ai-prepublish-script-audit": [
+      "security",
+      "testing"
+    ],
+    "com-bottleyourbrand-print-shop": [
+      "devops",
+      "media"
+    ],
+    "ai-productbay-connect-productbay-connect": [
+      "devops"
+    ],
+    "ai-productindex-productindex": [
+      "devops",
+      "finance"
+    ],
+    "com-a2awire-data-pubmed-biomedical-paper-research-article": [
+      "database",
+      "web"
+    ],
+    "co-pulselake-simulation-research": [
+      "analytics",
+      "files"
+    ],
+    "ai-statemind-python-code-validator": [
+      "code",
+      "security",
+      "testing"
+    ],
+    "ai-qlane-qlane": [
+      "browser",
+      "code",
+      "testing"
+    ],
+    "app-awsel-qoyod": [
+      "devops",
+      "invoices",
+      "team"
+    ],
+    "ai-primaxiom-memory-reasongraph": [
+      "devops",
+      "maps",
+      "memory",
+      "time"
+    ],
+    "app-recao-recao-mcp": [
+      "code"
+    ],
+    "ai-regulations-regulations-ai": [
+      "devops",
+      "security"
+    ],
+    "com-dedale-bi-remnant-remnant": [
+      "memory"
+    ],
+    "app-repopilot-repopilot": [
+      "code"
+    ],
+    "co-civai-nova-research-agent": [
+      "analytics",
+      "web"
+    ],
+    "com-eclipsesource-review-guard": [
+      "code"
+    ],
+    "app-rezee-rezee": [
+      "code",
+      "team"
+    ],
+    "app-robohub-robohub": [
+      "devops",
+      "web"
+    ],
+    "co-roterminal-roterminal": [],
+    "ai-roxels-roxels-mcp": [
+      "calendar"
+    ],
+    "com-botrecipe-memory": [
+      "memory"
+    ],
+    "com-botrecipe-timer": [
+      "devops"
+    ],
+    "ai-satohub-onchain-agents": [
+      "devops",
+      "web"
+    ],
+    "com-a2awire-data-latest-science-news-research-discovery": [
+      "web"
+    ],
+    "app-screenbird-screenbird": [
+      "code"
+    ],
+    "ar-com-screenshot-screenshot": [
+      "browser",
+      "web"
+    ],
+    "com-0xpi-sdsentry-sds-lookup": [
+      "tables",
+      "testing"
+    ],
+    "com-ag-bureau-search": [
+      "analytics",
+      "web"
+    ],
+    "ai-searchconsole-searchconsole-ai": [
+      "analytics",
+      "web"
+    ],
+    "ai-searcheros-searcher-os": [
+      "analytics",
+      "web"
+    ],
+    "ai-searchit-agent-models-catalog": [
+      "finance",
+      "web"
+    ],
+    "ai-sekura-sekura": [
+      "code"
+    ],
+    "ai-sellantica-mcp": [
+      "devops"
+    ],
+    "app-sellerassistant-seller-assistant": [
+      "devops"
+    ],
+    "ai-sellerforge-sellerforge": [
+      "devops"
+    ],
+    "com-ai-semantica-semantica-ai": [
+      "maps",
+      "web"
+    ],
+    "au-com-digitaldarts-seo-expert": [
+      "code",
+      "team",
+      "web"
+    ],
+    "ai-letsship-ship": [
+      "code",
+      "team",
+      "testing"
+    ],
+    "com-aibitious-silent-repository-safety-preflight": [
+      "code",
+      "files"
+    ],
+    "app-singitai-singit": [
+      "browser",
+      "code",
+      "finance",
+      "security",
+      "web"
+    ],
+    "app-siteprint-examples": [
+      "web"
+    ],
+    "ai-smartmemory-smartmemory-mcp": [
+      "database",
+      "memory",
+      "web"
+    ],
+    "com-duoleads-social-social-media-data": [
+      "files",
+      "media",
+      "web"
+    ],
+    "com-52choujiang-youtube-insights": [
+      "media",
+      "team",
+      "web"
+    ],
+    "app-sorsa-sorsa": [
+      "analytics",
+      "devops",
+      "finance"
+    ],
+    "com-a2awire-data-space-weather-kp-index-solar-flare": [
+      "database",
+      "weather"
+    ],
+    "ai-specproof-specproof-mcp": [
+      "devops",
+      "web"
+    ],
+    "ai-specstream-specstream": [
+      "code",
+      "devops",
+      "web"
+    ],
+    "ai-trendsapi-spotify": [
+      "media",
+      "security"
+    ],
+    "ai-trendsmcp-spotify": [
+      "analytics",
+      "media",
+      "security",
+      "time"
+    ],
+    "cc-ssearch-search": [
+      "web"
+    ],
+    "app-rowb-stampcard-cards": [
+      "browser",
+      "code"
+    ],
+    "ai-stompy-stompy": [
+      "memory",
+      "web"
+    ],
+    "ai-surfingdog-search": [
+      "mail",
+      "testing",
+      "web"
+    ],
+    "ai-dinglebear-synapse": [
+      "devops",
+      "files"
+    ],
+    "ai-dinglebear-synapse-rmcp": [
+      "devops",
+      "files"
+    ],
+    "ai-synlake-synlake": [
+      "database",
+      "devops"
+    ],
+    "ai-taasky-common-ground": [
+      "code"
+    ],
+    "app-tahona-mcp-tahona": [
+      "memory"
+    ],
+    "ai-tallynexa-tallynexa": [
+      "analytics",
+      "finance"
+    ],
+    "cc-tamloot-mcp": [
+      "memory"
+    ],
+    "app-tasg-tasg": [
+      "memory"
+    ],
+    "app-tectonicplates-tectonic-plates": [
+      "devops"
+    ],
+    "ai-tensorfeed-x402-base-mcp": [
+      "finance"
+    ],
+    "co-civai-nova-terminal-command-agent": [
+      "devops"
+    ],
+    "bar-theagent-mcp": [
+      "invoices",
+      "memory"
+    ],
+    "co-thecoindaily-research": [
+      "finance",
+      "web"
+    ],
+    "cc-thecolony-mcp-server": [
+      "memory"
+    ],
+    "ai-smilestory-koreantoday": [
+      "code",
+      "time",
+      "web"
+    ],
+    "app-there-there-there-there": [
+      "memory"
+    ],
+    "ai-thestrat-thestrat": [
+      "analytics",
+      "finance"
+    ],
+    "ai-trendsapi-tiktok": [
+      "security",
+      "time"
+    ],
+    "ai-trendsmcp-tiktok": [
+      "security",
+      "time"
+    ],
+    "ai-b77-time": [
+      "time"
+    ],
+    "app-tomelet-tomelet": [
+      "browser",
+      "memory"
+    ],
+    "app-tonebook-palette": [
+      "calendar",
+      "code"
+    ],
+    "com-allthepossibles-toolbox": [
+      "code",
+      "testing"
+    ],
+    "ai-topy-cto": [
+      "memory",
+      "testing"
+    ],
+    "app-openkrill-transcript-kit": [],
+    "app-openkrill-travel": [
+      "maps",
+      "testing",
+      "weather"
+    ],
+    "ai-trayo-signals": [
+      "time"
+    ],
+    "com-a2awire-data-ai-paper-daily-paper-trending-research": [
+      "code",
+      "database"
+    ],
+    "app-openkrill-trending": [
+      "code"
+    ],
+    "com-a2awire-data-trending-repository-new-github-repo-discovery": [
+      "code",
+      "database",
+      "translation"
+    ],
+    "ai-trendsapi-trends": [
+      "devops"
+    ],
+    "ai-trendsmcp-trends": [
+      "devops",
+      "time"
+    ],
+    "co-truemarkets-marketdata": [
+      "time"
+    ],
+    "ai-trustgrowth-trustgrowth": [
+      "security",
+      "web"
+    ],
+    "app-trustydata-trustydata": [
+      "maps"
+    ],
+    "ai-tume-energy-data": [
+      "finance",
+      "weather"
+    ],
+    "app-twelvebit-analytics": [
+      "analytics",
+      "code",
+      "security",
+      "web"
+    ],
+    "ai-typesearch-news": [
+      "translation",
+      "web"
+    ],
+    "com-a2awire-data-ubuntu-security-linux-vulnerability": [
+      "database",
+      "security"
+    ],
+    "ai-unblockd-unblockd": [
+      "team"
+    ],
+    "ai-dinglebear-unraid": [
+      "devops",
+      "files"
+    ],
+    "ai-dinglebear-unraid-rmcp": [
+      "devops",
+      "files"
+    ],
+    "app-wishpool-uruguay-invoice-mcp": [
+      "invoices"
+    ],
+    "com-a2awire-data-us-weather-alerts-nws": [
+      "database",
+      "weather"
+    ],
+    "co-utmkit-mcp": [
+      "analytics",
+      "browser",
+      "code"
+    ],
+    "ch-uviqora-uviqora": [],
+    "ai-uxgen-ecommerce-conversion": [
+      "browser",
+      "security"
+    ],
+    "co-getvalyou-valyou": [],
+    "com-erseni-vault-ask": [
+      "security",
+      "team"
+    ],
+    "ai-veevid-veevid": [
+      "media"
+    ],
+    "app-vellm-vellm": [
+      "media"
+    ],
+    "ai-veltake-design": [
+      "media"
+    ],
+    "ai-veltake-studio": [
+      "media"
+    ],
+    "com-a2awire-benchmark-vendor-clearance-audit-v1": [
+      "security"
+    ],
+    "com-dropwatchhq-legit-check": [
+      "code",
+      "testing"
+    ],
+    "ai-vendwiser-vendwiser": [
+      "invoices"
+    ],
+    "ai-veripoint-mcp": [
+      "analytics",
+      "web"
+    ],
+    "app-veteranhq-va-disability-benefits": [
+      "security",
+      "web"
+    ],
+    "ai-vexa-vexa": [
+      "calendar",
+      "team"
+    ],
+    "ai-multivoice-video-dubbing-subtitles-transcription-audiobooks": [
+      "finance",
+      "media"
+    ],
+    "app-openkrill-videograb": [
+      "media"
+    ],
+    "co-videoupscaler-video-upscaler": [
+      "media"
+    ],
+    "ai-videozero-engine-mcp": [
+      "media",
+      "memory"
+    ],
+    "app-vidlet-vidlet": [
+      "media"
+    ],
+    "ai-vidova-vidova": [
+      "media"
+    ],
+    "app-wishpool-vietnam-invoice-mcp": [
+      "database",
+      "invoices"
+    ],
+    "app-vifo-vifo": [
+      "maps",
+      "media"
+    ],
+    "com-appnary-vigil": [
+      "security"
+    ],
+    "bible-vineverse-vineverse": [
+      "memory"
+    ],
+    "ai-viralspin-viralspin": [
+      "media"
+    ],
+    "ai-vishot-vishot": [
+      "media"
+    ],
+    "ai-visuary-actuarial-value-calculator": [
+      "files"
+    ],
+    "app-vitalli-mcp": [
+      "security"
+    ],
+    "app-vixai-vixai-connect": [
+      "calendar",
+      "media"
+    ],
+    "ai-vocallab-vocallab": [
+      "media",
+      "translation"
+    ],
+    "ai-vocci-mcp": [
+      "files",
+      "memory",
+      "web"
+    ],
+    "ai-voicecapture-voice-capture": [],
+    "bible-void-reader": [
+      "office",
+      "time"
+    ],
+    "ai-vokse-vokse": [
+      "analytics",
+      "security"
+    ],
+    "ai-vuela-vuela-mcp": [
+      "media"
+    ],
+    "ai-vulx-watch": [
+      "code",
+      "security"
+    ],
+    "app-awsel-wafeq": [
+      "devops",
+      "invoices",
+      "team"
+    ],
+    "ai-waj-booking": [
+      "finance",
+      "time"
+    ],
+    "ai-walnutlink-walnutlink-a-share": [
+      "files"
+    ],
+    "ai-wandura-mcp": [
+      "media"
+    ],
+    "app-warplink-warplink": [
+      "analytics",
+      "team",
+      "time"
+    ],
+    "au-com-wattscope-wattscope": [],
+    "ai-wavn-wavn": [
+      "files"
+    ],
+    "com-datakoot-us-weather-forecast-alerts": [
+      "maps",
+      "security",
+      "weather"
+    ],
+    "cn-pianam-mcp-weather-mcp-china": [
+      "devops",
+      "weather"
+    ],
+    "ai-avaloncompany-web-content-url-tools": [
+      "browser",
+      "mail",
+      "testing",
+      "web"
+    ],
+    "ai-blopus-search": [
+      "media",
+      "web"
+    ],
+    "ca-wedkit-wedkit": [],
+    "app-weeklane-weeklane": [],
+    "ai-weftly-weftly": [
+      "media"
+    ],
+    "ai-weio-site-check": [
+      "browser",
+      "security",
+      "testing",
+      "web"
+    ],
+    "ai-wellnessproject-wellness-project": [
+      "devops"
+    ],
+    "app-werify-werify": [
+      "memory",
+      "team",
+      "web"
+    ],
+    "co-civai-nova-whatsapp-web-agent": [
+      "mail",
+      "web"
+    ],
+    "app-whatsync-whatsapp": [
+      "web"
+    ],
+    "app-whatsync-whatsapp-business": [
+      "finance",
+      "team"
+    ],
+    "app-wherethemlogs-log-locations": [
+      "files"
+    ],
+    "ai-whiteboardanimation-whiteboard-animation": [
+      "media"
+    ],
+    "ai-wiamotion-wiamotion": [
+      "media",
+      "security"
+    ],
+    "ai-trendsapi-wikipedia": [
+      "browser",
+      "memory",
+      "security",
+      "time"
+    ],
+    "ai-trendsmcp-wikipedia": [
+      "browser",
+      "memory",
+      "security",
+      "time"
+    ],
+    "ai-willder-willder": [
+      "memory",
+      "security"
+    ],
+    "ai-willform-willform-agent": [
+      "code",
+      "devops",
+      "invoices"
+    ],
+    "app-winnr-winnr": [
+      "mail"
+    ],
+    "ai-wiplash-wiplash": [
+      "files"
+    ],
+    "ca-wiremi-marketing-mcp": [],
+    "ai-wiro-mcp": [
+      "media"
+    ],
+    "cat-wiseowl-wiseowl": [],
+    "app-wisepenny-wise-penny": [
+      "finance",
+      "team"
+    ],
+    "app-wishlistme-wishlistme": [
+      "security",
+      "team"
+    ],
+    "ai-wiv-mcp": [
+      "devops"
+    ],
+    "club-worldorder-cube-playground": [
+      "security"
+    ],
+    "app-workalong-data-tools": [
+      "files",
+      "office",
+      "tables"
+    ],
+    "ai-workforcegpt-workforcegpt": [
+      "files",
+      "security"
+    ],
+    "ai-worklayer-worklayer": [
+      "analytics",
+      "time"
+    ],
+    "app-worldmonitor-mcp": [
+      "time"
+    ],
+    "ai-wpconvert-mcp": [
+      "files"
+    ],
+    "ai-writingmate-writingmate-mcp": [
+      "code",
+      "media",
+      "team"
+    ],
+    "ai-wubble-audio": [
+      "media"
+    ],
+    "ai-trendsapi-x-twitter": [
+      "security",
+      "time"
+    ],
+    "ai-trendsmcp-x-twitter": [
+      "security",
+      "time"
+    ],
+    "com-crewofthecaptain-format-checker": [
+      "mail",
+      "testing"
+    ],
+    "ai-robosystems-xbrlkit": [],
+    "ai-xcut-xcutai": [
+      "web"
+    ],
+    "ai-xpoz-social-insights": [
+      "analytics",
+      "files",
+      "security"
+    ],
+    "app-xtiles-xtiles-mcp": [
+      "browser",
+      "memory"
+    ],
+    "cloud-yachtmaster-erp": [],
+    "cc-yapapp-yap": [
+      "files",
+      "home",
+      "media",
+      "web"
+    ],
+    "app-yapl-yapl": [
+      "analytics",
+      "calendar"
+    ],
+    "biz-yappy-yappy-docs": [
+      "files",
+      "web"
+    ],
+    "ai-dinglebear-yarr": [
+      "media"
+    ],
+    "ai-yir-mcp": [
+      "media"
+    ],
+    "app-ymove-exercise-api": [
+      "media"
+    ],
+    "ai-youtube-transcript-youtube-transcript": [
+      "media",
+      "security",
+      "web"
+    ],
+    "ai-trendsapi-youtube": [
+      "media",
+      "security",
+      "time",
+      "web"
+    ],
+    "ai-trendsmcp-youtube": [
+      "analytics",
+      "security",
+      "time",
+      "web"
+    ],
+    "ai-zabio-zabio": [
+      "finance"
+    ],
+    "ai-zalcro-zalcro": [],
+    "ai-zarklab-zark": [
+      "media"
+    ],
+    "app-zarok-zarok": [
+      "calendar"
+    ],
+    "ai-zdte-market-structure": [
+      "time"
+    ],
+    "cloud-nttzen-secdb-zen-secdb": [
+      "devops",
+      "security"
+    ],
+    "ai-zensation-zenbrain": [
+      "database",
+      "memory"
+    ],
+    "ch-zeno-works-zeno": [
+      "finance",
+      "invoices"
+    ],
+    "ai-zerowidth-napkin": [
+      "tables"
+    ],
+    "ai-zerowidth-workbench": [
+      "memory"
+    ],
+    "ai-zevari-mcp": [
+      "devops"
+    ],
+    "ai-zicron-claims-workspace": [
+      "browser",
+      "security"
+    ],
+    "ai-zihin-mcp-server": [
+      "team"
+    ],
+    "au-com-zimqi-timesheets": [
+      "testing"
+    ],
+    "app-ziondesk-ziondesk": [
+      "browser",
+      "code",
+      "files"
+    ],
+    "ch-zuerstzuhause-neubauprojekte": [
+      "home"
+    ],
+    "app-zwier-mcp": [
+      "calendar",
+      "time"
+    ],
+    "ai-klodkot-gen": [
+      "media",
+      "security"
+    ],
+    "com-52choujiang-douyin-insights": [
+      "files",
+      "web"
+    ],
+    "cn-net-jiewang-jiewang": [],
+    "ai-filmai-filmai": [
+      "media",
+      "security"
+    ],
+    "com-easykmarket-vote-votebox-law": [
+      "security",
+      "testing"
+    ]
+  }
+}

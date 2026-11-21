@@ -1,0 +1,509 @@
+/**
+ * P3 wave 2026-10-05 — composer inputs (ChatInput).
+ *
+ * Each block holds one of the findings measured during the user review walk:
+ *  1 escape order  2 plus menu  3 @ mention keyboard  4 model menu
+ *  5 raw content / type separation  6 thinking chip  7 mode menu  8 microcopy
+ *
+ * jsdom cannot measure layout — what gets checked are classes, roles and
+ * behaviour, never pixels.
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
+const DE: Record<string, string> = {
+  'chat.placeholder': 'Womit kann ich dir helfen?',
+  'chat.attachFile': 'Datei anhängen',
+  'chat.attachImage': 'Bild anhängen',
+  'chat.modeHint.analyst': 'Analyst — Ephe antwortet nur, keine Werkzeuge laufen',
+  'chat.modeHint.architect':
+    'Architekt — Ephe entwirft erst einen Plan; nichts läuft ohne Bestätigung',
+  'chat.modeHint.operator': 'Operator — jedes Werkzeug läuft ohne Rückfrage',
+  'chat.modeSelectorAria': 'Antwort-Modus des Composers',
+  'chat.thinkingChipAria': 'Denk-Modus',
+  'chat.thinkingOn': 'An',
+  'chat.thinkingOff': 'Aus',
+  'chat.perm.strict': 'Manuell',
+  'chat.offlineCapableLocal': 'Offline-fähig (lokal)',
+  'chat.offlineCapableRemote': 'Remote',
+  'chat.mentionTitle': 'Dateien im Workspace',
+  'chat.modelChipAria': 'Modell-Provider umschalten',
+  'chat.setupEngineChip': 'Engine einrichten',
+  // WS7-45: German values mirrored from de.json so the German surface is asserted
+  // against the shipped translation; each line carries the gate pragma.
+  'chat.modelUnconfiguredHint': 'nicht konfiguriert', // language-gate: ignore
+  'chat.modelGroupOther': 'Andere Typen (Sprache, Bild)', // language-gate: ignore
+  'chat.modelGroupUnconfigured': 'Ohne Endpunkt — nicht konfigurierbar', // language-gate: ignore
+  // language-gate: ignore
+  'chat.composerDetails': 'Kontext- und Denk-Details', // language-gate: ignore
+  'chat.thinkingChipHint':
+    'Gezeigt, ob Ephe in dieser Aufgabe bereits mitgedacht hat — reiner Status, nicht schaltbar',
+  'chat.modeSection.none': 'Ohne Werkzeuge', // language-gate: ignore
+  'chat.modeSection.read': 'Nur lesend', // language-gate: ignore
+  'chat.modeSection.write': 'Mit Schreibzugriff', // language-gate: ignore
+  'chat.modeSection.create': 'Erstellt Plugins', // language-gate: ignore
+}
+
+vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '9', init: () => Promise.resolve() },
+  useTranslation: () => ({
+    i18n: { language: 'en' },
+    t: (key: string, opts?: unknown) => {
+      const o = opts as Record<string, unknown> | undefined
+      // Like the real i18next: {{placeholders}} are filled from the options.
+      // Without this, "Position {{pos}} von {{total}}" would be a green test even
+      // with broken interpolation — exactly the class this wave fixes.
+      const raw = DE[key] ?? (o && typeof o.defaultValue === 'string' ? o.defaultValue : key)
+      return String(raw).replace(/\{\{(\w+)\}\}/g, (_m, name: string) =>
+        o && o[name] !== undefined ? String(o[name]) : `{{${name}}}`,
+      )
+    },
+  }),
+}))
+
+const setModelProvider = vi.hoisted(() => vi.fn(async () => ({ active: { model: 'm1' } })))
+vi.mock('@/lib/api', () => ({
+  getModelProviders: vi.fn(async () => ({
+    active: { provider: 'local_ollama', model: 'gemma4:12b', offline_capable: true },
+    providers: [
+      { provider: 'local_ollama', model: 'gemma4:12b', label: 'Local Ollama' },
+      { provider: 'openai_compatible', model: 'm', label: 'OpenAI-compatible API' },
+      {
+        id: 'sample:claude-fable-5',
+        model: 'claude-fable-5',
+        label: 'Sample · claude-fable-5',
+        endpoint: 'https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/cortex/v1',
+      },
+      { id: 'sample:whisper-1', model: 'whisper-1', label: 'Sample · whisper-1' },
+      {
+        id: 'sample:qwen3.8-flash-next',
+        model: 'qwen3.8-flash-next',
+        label: 'Sample · qwen3.8-flash-next',
+        endpoint: 'https://api.vultrinference.com/v1',
+      },
+      {
+        id: 'local:sample-engine',
+        model: 'sample-engine',
+        label: 'Local · sample-engine',
+        endpoint: 'http://host-one.example.ts.net:8000',
+      },
+    ],
+    local_models: [],
+    local_model_options: [],
+  })),
+  transcribeAudio: vi.fn(async () => ''),
+  listFs: vi.fn(async () => ({
+    path: '/tmp/ws',
+    parent: null,
+    home: '/tmp',
+    workspace: '/tmp/ws',
+    entries: [
+      { name: 'README.md', type: 'file', size: 1 },
+      { name: 'reading-list.md', type: 'file', size: 1 },
+      { name: 'app', type: 'dir', size: 0 },
+      { name: 'server', type: 'dir', size: 0 },
+    ],
+  })),
+  getSettings: vi.fn(async () => ({ workspace_dir: '/tmp/ws', approval_profile: 'strict' })),
+  setModelProvider,
+  getSetupStatus: vi.fn(async () => ({ configured: true, provider: 'local_ollama' })),
+}))
+
+import ChatInput from './ChatInput'
+import { useChatStore } from '@/store/chatStore'
+import { groupModelEntries, isUnconfiguredEntry } from './chat/composerModelEntries'
+import { detectMentionToken, filterMentionEntries, topmostPopup } from './chat/composerPopups'
+import { modeShortLabel, SESSION_MODES } from './chat/modeCatalog'
+import {
+  hasUnfilledTemplate,
+  isJunkModel,
+  isLoopbackEndpoint,
+  isPrivateEndpoint,
+  modelKind,
+} from '@/lib/modelFilter'
+
+const ta = () => screen.getByTestId('chat-input') as HTMLTextAreaElement
+
+beforeEach(() => {
+  localStorage.clear()
+  setModelProvider.mockClear()
+  useChatStore.setState({ sessions: [], activeSessionId: null, currentSession: null } as never)
+})
+
+// ── 1 · Escape order ───────────────────────────────────────────────────────
+describe('P3-1 Escape closes the topmost popup first', () => {
+  const esc = () => fireEvent.keyDown(window, { key: 'Escape', bubbles: true })
+
+  it('the plus menu: Escape closes it (once ignored) and does not stop', () => {
+    const onStop = vi.fn()
+    render(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
+    fireEvent.click(screen.getByTestId('composer-attach-plus'))
+    expect(screen.getByTestId('composer-attach-menu')).toBeTruthy()
+    esc()
+    expect(screen.queryByTestId('composer-attach-menu')).toBeNull()
+    expect(onStop).not.toHaveBeenCalled()
+  })
+
+  it('the model menu outranks the slash list (palette > model > rest)', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.change(ta(), { target: { value: '/' } })
+    expect(screen.getByTestId('slash-menu')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('model-chip'))
+    expect(screen.getByTestId('model-chip-menu')).toBeTruthy()
+    esc()
+    expect(screen.queryByTestId('model-chip-menu')).toBeNull()
+    // the lower popup stays open — one step per keypress
+    expect(screen.getByTestId('slash-menu')).toBeTruthy()
+  })
+
+  it('with nothing open, Escape stops the generation', () => {
+    const onStop = vi.fn()
+    render(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
+    esc()
+    expect(onStop).toHaveBeenCalledTimes(1)
+  })
+
+  it('with the palette or dialog open the composer is untouched and does not stop', () => {
+    const onStop = vi.fn()
+    render(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    document.body.appendChild(dialog)
+    esc()
+    expect(onStop).not.toHaveBeenCalled()
+    dialog.remove()
+  })
+
+  it('the order of the chain: model > access > plus > @ > slash', () => {
+    expect(
+      topmostPopup({ model: false, access: false, attach: true, mention: true, slash: true }),
+    ).toBe('attach')
+    expect(topmostPopup({ model: false, access: false, attach: false, mention: true })).toBe(
+      'mention',
+    )
+    expect(topmostPopup({ slash: true })).toBe('slash')
+    expect(topmostPopup({ model: true, access: true, attach: true })).toBe('model')
+    expect(topmostPopup({ access: true, attach: true })).toBe('access')
+    expect(topmostPopup({})).toBeNull()
+  })
+})
+
+// ── 2 · Plus menu ──────────────────────────────────────────────────────────
+describe('P3-2 plus menu without a window scrim, portaled, every item visible', () => {
+  it('no fixed-inset overlay is left over the window', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('composer-attach-plus'))
+    expect(document.querySelector('div.fixed.inset-0.z-overlay')).toBeNull()
+  })
+
+  it('the menu hangs on the body, height-capped and scrollable', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('composer-attach-plus'))
+    const menu = screen.getByTestId('composer-attach-menu')
+    expect(menu.parentElement).toBe(document.body)
+    expect(menu.className).toContain('fixed')
+    expect(menu.className).toContain('max-h-')
+    expect(menu.className).toContain('overflow-y-auto')
+    // all four items (screenshot is absent without getDisplayMedia)
+    expect(screen.getByTestId('composer-attach-file')).toBeTruthy()
+    expect(screen.getByTestId('composer-attach-image')).toBeTruthy()
+    expect(screen.getByTestId('composer-wide-research')).toBeTruthy()
+  })
+
+  it('an outside click closes the menu, a click inside does not', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('composer-attach-plus'))
+    fireEvent.mouseDown(screen.getByTestId('composer-attach-file'))
+    expect(screen.getByTestId('composer-attach-menu')).toBeTruthy()
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByTestId('composer-attach-menu')).toBeNull()
+  })
+
+  it('the sidebar stays clickable: the outside click only closes the menu', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('composer-attach-plus'))
+    const outside = document.createElement('button')
+    document.body.appendChild(outside)
+    fireEvent.mouseDown(outside)
+    expect(screen.queryByTestId('composer-attach-menu')).toBeNull()
+    outside.remove()
+  })
+})
+
+// ── 3 · @ mentions ─────────────────────────────────────────────────────────
+describe('P3-3 @-mentions are keyboard operable', () => {
+  const openMention = async (text: string) => {
+    render(<ChatInput onSend={vi.fn()} onSlashCommand={vi.fn()} />)
+    fireEvent.change(ta(), { target: { value: text, selectionStart: text.length } })
+    await screen.findByTestId('mention-popup')
+  }
+
+  it('detection: an @ as the first character counts like an @ after text', () => {
+    expect(detectMentionToken('@read', 5)).toEqual({ query: 'read', start: 0 })
+    expect(detectMentionToken('lies @read', 10)?.start).toBe(5)
+    expect(detectMentionToken('mail@x', 6)).toBeNull()
+  })
+
+  it('hits filter by the typed section, prefix first', () => {
+    const entries = [{ name: 'README.md' }, { name: 'reading-list.md' }, { name: 'app' }]
+    expect(filterMentionEntries(entries, 'rea').map((e) => e.name)).toEqual([
+      'README.md',
+      'reading-list.md',
+    ])
+  })
+
+  it('the roving highlight starts at row 1 and ArrowDown walks it', async () => {
+    await openMention('@')
+    const marked = () =>
+      [...screen.getAllByRole('option')].findIndex(
+        (el) => el.getAttribute('aria-selected') === 'true',
+      )
+    expect(marked()).toBe(0)
+    fireEvent.keyDown(ta(), { key: 'ArrowDown' })
+    expect(marked()).toBe(1)
+  })
+
+  it('Enter inserts the file and does not send', async () => {
+    const onSend = vi.fn()
+    render(<ChatInput onSend={onSend} />)
+    // The workspace path comes from getSettings() — without this await the test
+    // types before the path is known, and the inserted line would be the bare
+    // name instead of the path.
+    await screen.findByTestId('chat-input')
+    fireEvent.change(ta(), { target: { value: '@rea', selectionStart: 4 } })
+    await screen.findByTestId('mention-popup')
+    fireEvent.keyDown(ta(), { key: 'Enter' })
+    expect(onSend).not.toHaveBeenCalled()
+    expect(ta().value).toBe('/tmp/ws/README.md ')
+    expect(screen.queryByTestId('mention-popup')).toBeNull()
+  })
+
+  it('Escape closes the popup and leaves the text alone', async () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.change(ta(), { target: { value: '@rea', selectionStart: 4 } })
+    await screen.findByTestId('mention-popup')
+    fireEvent.keyDown(ta(), { key: 'Escape' })
+    expect(screen.queryByTestId('mention-popup')).toBeNull()
+    expect(ta().value).toBe('@rea')
+  })
+
+  it('no combobox ARIA on the textarea; the listbox carries the name', async () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.change(ta(), { target: { value: '@', selectionStart: 1 } })
+    await screen.findByTestId('mention-popup')
+    expect(screen.getByRole('listbox', { name: /Dateien im Workspace/i })).toBeTruthy()
+    // A <textarea> can carry neither role=combobox nor its expanded/controls pair:
+    // the listbox is named, the input stays a plain text field.
+    expect(ta().getAttribute('role')).toBeNull()
+    expect(ta().getAttribute('aria-expanded')).toBeNull()
+    expect(ta().getAttribute('aria-controls')).toBeNull()
+    expect(ta().getAttribute('aria-activedescendant')).toBeNull()
+  })
+})
+
+// ── 4 · Model menu ─────────────────────────────────────────────────────────
+async function openModelMenu() {
+  render(<ChatInput onSend={vi.fn()} />)
+  await waitFor(() => expect(screen.getByTestId('model-chip').textContent).toContain('gemma4'))
+  fireEvent.click(screen.getByTestId('model-chip'))
+  await screen.findByTestId('model-chip-menu')
+}
+
+describe('P3-4 model menu: height, scrolling, search, marking, keyboard', () => {
+  it('the visible model name is part of the accessible name', async () => {
+    await openModelMenu()
+    // WCAG 2.5.3: with a configured model the chip shows its name, not only "…".
+    expect(screen.getByTestId('model-chip').textContent).toContain('gemma4')
+    expect(screen.getByTestId('model-chip').getAttribute('aria-label')).toContain('gemma4')
+  })
+
+  it('the list is height-capped and scrollable with no overhang past the edge', async () => {
+    await openModelMenu()
+    const list = screen.getByTestId('model-chip-list')
+    expect(list.className).toContain('max-h-')
+    expect(list.className).toContain('overflow-y-auto')
+    expect(screen.getByTestId('model-chip-menu').className).toContain('max-h-')
+  })
+
+  it('a search field from the first character, leaving only the hits', async () => {
+    await openModelMenu()
+    const search = screen.getByTestId('model-chip-search')
+    expect(search).toBeTruthy()
+    fireEvent.change(search, { target: { value: 'whisper' } })
+    expect(
+      screen
+        .getAllByRole('option')
+        .map((el) => el.textContent)
+        .join('|'),
+    ).toContain('whisper-1')
+    expect(screen.queryByTestId('model-chip-option-local_ollama')).toBeNull()
+    // 'gemma' would be a hit (gemma4:12b sits in the list) — the empty case needs
+    // an input that by definition cannot find anything.
+    fireEvent.change(search, { target: { value: 'zzz-nicht-vorhanden' } })
+    expect(screen.getByTestId('model-chip-empty')).toBeTruthy()
+  })
+
+  it('the current position is marked and named', async () => {
+    await openModelMenu()
+    const active = screen.getByTestId('model-chip-option-local_ollama')
+    expect(active.getAttribute('aria-selected')).toBe('true')
+    expect(active.getAttribute('aria-current')).toBe('true')
+  })
+
+  it('arrow keys plus Enter switch the model (setModelProvider)', async () => {
+    await openModelMenu()
+    const marked = () =>
+      document.querySelector('[data-testid="model-chip-menu"] [aria-current="true"]')
+    expect(marked()).toBeTruthy()
+    fireEvent.keyDown(screen.getByTestId('model-chip-search'), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByTestId('model-chip-search'), { key: 'Enter' })
+    await waitFor(() => expect(setModelProvider).toHaveBeenCalled())
+    expect(screen.queryByTestId('model-chip-menu')).toBeNull()
+  })
+
+  it('Escape closes the menu without changing anything', async () => {
+    await openModelMenu()
+    fireEvent.keyDown(screen.getByTestId('model-chip-search'), { key: 'Escape' })
+    expect(screen.queryByTestId('model-chip-menu')).toBeNull()
+    expect(setModelProvider).not.toHaveBeenCalled()
+  })
+})
+
+// ── 5 · Raw content / type separation ──────────────────────────────────────
+describe('P3-5 model list: templates disabled, types kept apart', () => {
+  it('filter classification', () => {
+    expect(isJunkModel('nomic-embed-text')).toBe(true)
+    expect(isJunkModel('test')).toBe(true)
+    expect(isJunkModel('gemma4:12b')).toBe(false)
+    expect(modelKind('whisper-1')).toBe('speech')
+    expect(modelKind('base')).toBe('speech')
+    expect(modelKind('tts-1')).toBe('speech')
+    expect(modelKind('dall-e-3')).toBe('image')
+    expect(modelKind('gemma4:12b')).toBe('chat')
+    expect(modelKind('database')).toBe('chat')
+    expect(hasUnfilledTemplate('https://${SNOWFLAKE_ACCOUNT}.x.com/v1')).toBe(true)
+    expect(hasUnfilledTemplate('https://api.openai.com/v1')).toBe(false)
+    expect(isLoopbackEndpoint('http://127.0.0.1:11434')).toBe(true)
+    expect(isPrivateEndpoint('http://host-one.example.ts.net:8000')).toBe(true)
+    expect(isPrivateEndpoint('https://api.vultrinference.com/v1')).toBe(false)
+  })
+
+  it('an unfilled template: its own section stays unselectable', async () => {
+    await openModelMenu()
+    const row = screen.getByTestId('model-chip-option-sample:claude-fable-5')
+    expect(row.getAttribute('aria-disabled')).toBe('true')
+    expect(row.textContent).toContain('nicht konfiguriert')
+    fireEvent.click(row)
+    expect(setModelProvider).not.toHaveBeenCalled()
+    expect(screen.getByTestId('model-group-unconfigured')).toBeTruthy()
+  })
+
+  it('a speech model sits in the type section, away from the chat models', async () => {
+    await openModelMenu()
+    const groups = screen.getByTestId('model-chip-list').textContent ?? ''
+    expect(screen.getByTestId('model-group-other').textContent).toContain('Andere Typen')
+    expect(groups.indexOf('Andere Typen')).toBeLessThan(groups.indexOf('Ohne Endpunkt'))
+    const chat = screen.getByTestId('model-group-chat').parentElement
+    expect(chat?.textContent).toContain('qwen3.8-flash-next')
+    expect(screen.getByTestId('model-group-other').textContent).toContain('whisper-1')
+  })
+
+  it('tailnet endpoints do not stand as a raw URL in the row', async () => {
+    await openModelMenu()
+    const row = screen.getByTestId('model-chip-option-local:sample-engine')
+    expect(row.textContent).not.toContain('ts.net')
+    expect(row.textContent).not.toContain('host-one')
+  })
+
+  it('grouping separates by type and by template', () => {
+    const g = groupModelEntries([
+      { label: 'A', model: 'gemma4:12b' },
+      { label: 'B', model: 'whisper-1' },
+      { label: 'C', model: 'x', endpoint: 'https://${V}.example.com', unconfigured: true },
+    ])
+    expect(g.chat.map((e) => e.label)).toEqual(['A'])
+    expect(g.other.map((e) => e.label)).toEqual(['B'])
+    expect(g.unconfigured.map((e) => e.label)).toEqual(['C'])
+    expect(isUnconfiguredEntry({ label: 'C', endpoint: 'https://real.example.com' })).toBe(false)
+  })
+})
+
+// ── 6 · Thinking chip ──────────────────────────────────────────────────────
+describe('P3-6 the thinking chip is plain status with one detail door', () => {
+  it('keeps the status look and is still the one door to the figures', async () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const chip = await screen.findByTestId('composer-thinking-chip')
+    // It is a disclosure: the state still cannot be toggled,
+    // but the composer's secondary figures live behind this one control.
+    expect(chip.tagName).toBe('BUTTON')
+    expect(chip.getAttribute('aria-expanded')).toBe('false')
+    expect(chip.className).not.toMatch(/(^|\s)border(-|\s)/)
+    expect(chip.className).not.toMatch(/(^|\s)bg-surface(\s|$)/)
+    expect(chip.getAttribute('aria-label')).toContain('Kontext- und Denk-Details')
+    expect(chip.getAttribute('aria-label')).toContain('Denk-Modus')
+    expect(chip.getAttribute('title')).toBe('Kontext- und Denk-Details')
+    fireEvent.click(chip)
+    expect(chip.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByTestId('composer-details')).toBeTruthy()
+  })
+})
+
+// ── 7 · Mode menu ──────────────────────────────────────────────────────────
+describe('P3-7 mode menu: German, sections, keyboard', () => {
+  it('short title from the translation, fallback name unresolved', () => {
+    // Architect: the one renamed tile whose German title differs from the fallback —
+    // Analyst and Operator are the same words in both languages by ruling.
+    const architect = SESSION_MODES.find((m) => m.key === 'architect')!
+    expect(modeShortLabel(architect, 'Architekt — Ephe entwirft erst einen Plan')).toBe('Architekt')
+    expect(modeShortLabel(architect, 'chat.modeHint.architect')).toBe('Architect')
+    expect(modeShortLabel(architect, '')).toBe('Architect')
+    expect(modeShortLabel(architect, 'Ganz langer Satz ohne Trenner, der alles verdeckt')).toBe(
+      'Architect',
+    )
+  })
+
+  it('no mode chip is left in the composer, the mode sits in the header', async () => {
+    useChatStore.getState().createSession('S')
+    render(<ChatInput onSend={vi.fn()} />)
+    expect(screen.queryByTestId('composer-mode-selector')).toBeNull()
+  })
+})
+
+// ── 8 · Microcopy ──────────────────────────────────────────────────────────
+describe('P3-8 microcopy: the counter only with a reader, and badge names', () => {
+  it('the recall counter stays out at rest and appears while browsing, explained', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    fireEvent.change(ta(), { target: { value: 'erste nachricht' } })
+    fireEvent.keyDown(ta(), { key: 'Enter' })
+    expect(screen.queryByTestId('composer-recall-counter')).toBeNull()
+    fireEvent.keyDown(ta(), { key: 'ArrowUp' })
+    const counter = screen.getByTestId('composer-recall-counter')
+    expect(counter.textContent).toContain('1/1')
+    expect(counter.getAttribute('title')).toContain('scrolls through your sent messages')
+    expect(counter.getAttribute('aria-label')).toContain('History: position 1 of 1')
+  })
+
+  it('the access control and the engine entry carry an accessible name', async () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const access = await screen.findByTestId('composer-access-control')
+    // The profile leaves the row as a control; the engine's local/remote dot moved
+    // behind the details door and still names itself there.
+    expect(access.getAttribute('aria-label')).toContain('chat.permissionAria')
+    expect(access.getAttribute('aria-label')).toContain('Manuell')
+    fireEvent.click(screen.getByTestId('composer-thinking-chip'))
+    const dot = await screen.findByTestId('composer-status-dot')
+    expect(dot.getAttribute('role')).toBe('img')
+    expect(dot.getAttribute('aria-label')).toBeTruthy()
+  })
+})
+
+describe('QD-008 the composer keeps typed dashes', () => {
+  it('turns off the substitutions WKWebView applies to a text field', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const input = ta()
+    expect(input.getAttribute('autocorrect')).toBe('off')
+    expect(input.getAttribute('autocapitalize')).toBe('off')
+    expect(input.getAttribute('spellcheck')).toBe('false')
+  })
+})

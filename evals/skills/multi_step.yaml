@@ -1,0 +1,93 @@
+cases:
+  # multi-step - an ordered tool sequence. A run that reaches the right tools in the
+  # wrong order has not done the task, so the sequence is the assertion, not a set.
+  - skill: file-assistant
+    family: multi-step
+    prompt: /files find report.pdf anywhere on this Mac, then read it and summarize it
+    expected_tools: [file_search, read_file]
+    required_terms: [report]
+  - skill: project-assistant
+    family: multi-step
+    prompt: /project find my Rust project then produce an as-is analysis of it
+    expected_tools: [discover_projects, analyze_project]
+    required_terms: [rust]
+  - skill: code-reviewer
+    family: multi-step
+    prompt: /review locate the settings module, read it, then run the test suite and report
+    expected_tools: [file_search, read_file, run_shell]
+    required_terms: [test]
+  - skill: source-notebook
+    family: multi-step
+    prompt: /notebook find report.pdf, read it, then build a source notebook from it
+    expected_tools: [file_search, read_file, create_source_notebook]
+    required_terms: [source]
+  - skill: data-analyst
+    family: multi-step
+    prompt: /data read sales.csv and then chart the revenue
+    expected_tools: [read_file, generate_chart]
+    required_terms: [chart]
+  - skill: web-researcher
+    family: multi-step
+    prompt: /research search for the RRSI paper and then fetch its PDF
+    expected_tools: [web_search, fetch_url]
+    required_terms: [paper]
+  - skill: file-assistant
+    family: multi-step
+    prompt: /files search for config.yaml, read it, then list the sibling files
+    expected_tools: [file_search, read_file, list_directory]
+    required_terms: [config]
+  - skill: code-reviewer
+    family: multi-step
+    prompt: /review find the CLI entrypoint, read it, then load the workspace
+    expected_tools: [file_search, read_file, load_workspace]
+    required_terms: [entry]
+  - skill: project-assistant
+    family: multi-step
+    prompt: /project list this project directory, then read its package.json
+    expected_tools: [list_directory, read_file]
+    required_terms: [package]
+  - skill: data-analyst
+    family: multi-step
+    prompt: /data read customers.csv, then export a summary xlsx
+    expected_tools: [read_file, create_xlsx]
+    required_terms: [summary]
+  - skill: source-notebook
+    family: multi-step
+    prompt: /notebook read a local source, query the notebook, then export the brief
+    expected_tools: [read_file, query_source_notebook, export_source_brief]
+    required_terms: [brief]
+  - skill: deck-creator
+    family: multi-step
+    prompt: /deck inspect the pptx template, then build the deck from it
+    expected_tools: [inspect_pptx_template, create_pptx_deck]
+    required_terms: [deck]
+  - skill: web-researcher
+    family: multi-step
+    prompt: /research search for the standard, fetch the page, then fetch the linked PDF
+    expected_tools: [web_search, fetch_url, fetch_url]
+    required_terms: [standard]
+  - skill: code-reviewer
+    family: multi-step
+    prompt: /review search for the tests, read them, then run them
+    expected_tools: [file_search, read_file, run_shell]
+    required_terms: [tests]
+  - skill: source-notebook
+    family: multi-step
+    prompt: /notebook build a source notebook from the docs, then answer from it
+    expected_tools: [create_source_notebook, query_source_notebook]
+    required_terms: [answer]
+  - skill: project-assistant
+    family: multi-step
+    prompt: /project find my Python repos, then read one README
+    expected_tools: [discover_projects, read_file]
+    required_terms: [readme]
+  - skill: data-analyst
+    family: multi-step
+    prompt: /data read the CSV, run the aggregation, then chart it
+    expected_tools: [read_file, run_shell, generate_chart]
+    required_terms: [aggregate]
+  - skill: file-assistant
+    family: multi-step
+    prompt: /files find the invoice, read it, then list the files in its folder
+    expected_tools: [file_search, read_file, list_directory]
+    required_terms: [invoice]

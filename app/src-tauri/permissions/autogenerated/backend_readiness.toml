@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-backend-readiness"
+description = "Enables the backend_readiness command without any pre-configured scope."
+commands.allow = ["backend_readiness"]
+
+[[permission]]
+identifier = "deny-backend-readiness"
+description = "Denies the backend_readiness command without any pre-configured scope."
+commands.deny = ["backend_readiness"]

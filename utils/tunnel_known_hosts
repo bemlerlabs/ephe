@@ -1,0 +1,21 @@
+# Host keys for the public pairing hop, pinned by this repository.
+#
+# ssh verifies the endpoint against this file and nothing else. utils/tunnel.py
+# passes UserKnownHostsFile pointing here and empties GlobalKnownHostsFile, so
+# neither ~/.ssh/known_hosts nor the system store can decide what the tunnel
+# trusts: an earlier unverified connection, another program running as this user
+# or an interception on first use stays out of the decision.
+#
+# Both lines were scanned from the live endpoint on 2026-11-20 and checked, by
+# fingerprint, against the two the endpoint publishes for its key types and
+# against the SHA-256 SSHFP records signed in DNS for the same host.
+# tests/test_mobile_public_tunnel.py carries the two fingerprints, so a rotated
+# key is a deliberate edit here and never an acceptance on first use.
+#
+# To rotate a key: scan the new one, compare its fingerprint against both sources
+# over a channel that is not the connection being verified, and commit the line
+# only when they agree. A key matching neither is an interception; the tunnel
+# stays refused and the product says so.
+
+localhost.run ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILVqOuSMnyeGDVO1lG6EaG5In/dXABCchhmHKkuRU2s9
+localhost.run ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3lJnhW1oCXuAYV9IBdcJA+Vx7AHL5S/ZQvV2fhceOAPgO2kNQZla6xvUwoE4iw8lYu3zoE1KtieCU9yInWOVI6W/wFaT/ETH1tn55T2FVsK/zaxPiHZVJGLPPdEEid0vS2p1JDfc9onZ0pNSHLl1QusIOeMUyZ2bUMMLLgw46KOT9S3s/LmxgoJ3PocVUn5rVXz/Dng7Y8jYNe4IFrZOAUsi7hNBa+OYja6ceefpDvNDEJ1BdhbYfGolBdNA7f+FNl0kfaWru4Cblr843wBe2ckO/sNqgeAMXO/qH+SSgQxUXF2AgAw+TGp3yCIyYoOPvOgvcPsQziJLmDbUuQpnH

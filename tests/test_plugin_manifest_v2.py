@@ -1,0 +1,261 @@
+"""MAN-01..04 — manifest v2, the v1 adapter and quarantine.
+
+v1 stays loadable. v2 adds the identity fields the marketplace needs. Unknown
+top-level fields and unknown component keys fail closed; an install with an
+invalid manifest is quarantined and a hash mismatch never extracts.
+"""
+from __future__ import annotations
+
+import json
+import sys
+import zipfile
+from io import BytesIO
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from core import plugin_market
+from core.plugin_manifest import MANIFEST_FILENAME, load_manifest
+from core.plugin_registry import (
+    CapabilityKind,
+    ManifestV1Adapter,
+    PluginDescriptor,
+)
+from core.plugin_store import sha256_hex
+
+
+def _v1() -> dict:
+    return {
+        "manifest_version": 1,
+        "name": "acme-research",
+        "version": "1.4.0",
+        "description": "Acme research",
+        "permissions": {"tool_families": ["read"], "data_roots": []},
+        "components": {
+            "skills": [],
+            "commands": [
+                {
+                    "name": "acme",
+                    "description": "Run acme research",
+                    "template": "Research {input}",
+                }
+            ],
+            "tools": ["read_file"],
+        },
+    }
+
+
+def _v2(**over: object) -> dict:
+    manifest = {
+        "manifest_version": 2,
+        "name": "acme-research",
+        "version": "2.0.0",
+        "description": "Acme research",
+        "publisher": {"name": "Acme", "verified": "acme.example"},
+        "license": "MIT",
+        "engines": {"ephe": ">=0.1.0"},
+        "permissions": {"tool_families": ["read"], "data_roots": []},
+        "components": {
+            "skills": [],
+            "commands": [],
+            # A v2 bundle contributes its own tool: the entry shape is #13's contract,
+            # held in detail by tests/test_plugin_tools_contract.py.
+            "tools": [
+                {
+                    "name": "scout",
+                    "entry": "handlers.py:run",
+                    "family": "read",
+                    "description": "Summarise what the bundle already read.",
+                }
+            ],
+            "agents": [{"name": "acme-scout", "description": "Scout"}],
+        },
+    }
+    manifest.update(over)
+    return manifest
+
+
+def _write(root: Path, manifest: dict) -> Path:
+    plugin = root / str(manifest["name"])
+    plugin.mkdir(parents=True)
+    (plugin / MANIFEST_FILENAME).write_text(json.dumps(manifest), encoding="utf-8")
+    return plugin
+
+
+def test_duplicate_command_names_are_refused(tmp_path) -> None:
+    manifest = _v1()
+    manifest["components"]["commands"] = [
+        {"name": "same", "description": "one", "template": "a"},
+        {"name": "same", "description": "two", "template": "b"},
+    ]
+    plugin = _write(tmp_path / "duplicate", manifest)
+    loaded, error = load_manifest(plugin)
+    assert loaded is None
+    assert error and "duplicate" in error
+
+
+@pytest.mark.parametrize("field", ["permissions", "components"])
+def test_an_explicit_null_object_field_is_refused(tmp_path, field) -> None:
+    manifest = _v1()
+    manifest[field] = None
+    plugin = _write(tmp_path / field, manifest)
+    loaded, error = load_manifest(plugin)
+    assert loaded is None
+    assert error and field in error
+
+
+@pytest.mark.parametrize("value", [True, 1.0, "1"])
+def test_manifest_version_must_be_an_integer(tmp_path, value) -> None:
+    manifest = _v1()
+    manifest["manifest_version"] = value
+    plugin = _write(tmp_path / str(value).replace(".", "_"), manifest)
+    loaded, error = load_manifest(plugin)
+    assert loaded is None
+    assert error and "manifest_version" in error
+
+
+def test_v2_required_fields(tmp_path) -> None:
+    plugin = _write(tmp_path, _v2())
+    manifest, error = load_manifest(plugin)
+    assert error is None and manifest is not None
+    assert manifest["manifest_version"] == 2
+
+    missing_publisher = _v2()
+    missing_publisher.pop("publisher")
+    manifest, error = load_manifest(_write(tmp_path / "a", missing_publisher))
+    assert manifest is None and error is not None and "publisher" in error
+
+    missing_license = _v2()
+    missing_license.pop("license")
+    manifest, error = load_manifest(_write(tmp_path / "b", missing_license))
+    assert manifest is None and error is not None and "license" in error
+
+
+def test_unknown_component_refused(tmp_path) -> None:
+    manifest = _v2(
+        components={
+            "skills": [],
+            "commands": [],
+            "frobnicate": {"wat": True},
+        }
+    )
+    manifest, error = load_manifest(_write(tmp_path / "bad", manifest))
+    assert manifest is None
+    assert error is not None and "frobnicate" in error
+
+
+def test_unknown_top_level_field_refused(tmp_path) -> None:
+    manifest = _v2(trust_me=True)
+    manifest, error = load_manifest(_write(tmp_path / "bad", manifest))
+    assert manifest is None
+    assert error is not None and "trust_me" in error
+
+
+def _ui_surface(**over: object) -> dict:
+    """The smallest surface `components.ui` accepts (see core/plugin_ui_capabilities.py)."""
+    surface = {
+        "type": "floating-window",
+        "entry": "ui/index.html",
+        "title": "Countdown",
+        "capabilities": ["notifications"],
+    }
+    surface.update(over)
+    return surface
+
+
+def _write_ui_plugin(root: Path, manifest: dict) -> Path:
+    plugin = _write(root, manifest)
+    document = plugin / "ui/index.html"
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_text("<!doctype html><title>Countdown</title>", encoding="utf-8")
+    return plugin
+
+
+def test_a_valid_ui_surface_loads(tmp_path) -> None:
+    manifest = _v2(components={**_v2()["components"], "ui": _ui_surface()})
+    loaded, error = load_manifest(_write_ui_plugin(tmp_path / "ui-ok", manifest))
+    assert error is None and loaded is not None
+
+
+@pytest.mark.parametrize(
+    "surface",
+    [
+        _ui_surface(capabilities=["notifications", "sudo"]),
+        _ui_surface(entry="../escape/index.html"),
+        _ui_surface(type="browser-tab"),
+        _ui_surface(default_size={"width": 0, "height": 320}),
+        _ui_surface(transparent="yes"),
+    ],
+)
+def test_a_bad_ui_surface_quarantines_the_plugin(tmp_path, surface) -> None:
+    manifest = _v2(components={**_v2()["components"], "ui": surface})
+    loaded, error = load_manifest(_write_ui_plugin(tmp_path / surface["type"], manifest))
+    assert loaded is None, "one UI descriptor refuses the whole plugin, never half of it"
+    assert error is not None and "components.ui" in error
+
+
+def test_a_ui_component_that_is_not_a_descriptor_is_refused(tmp_path) -> None:
+    manifest = _v2(components={**_v2()["components"], "ui": []})
+    loaded, error = load_manifest(_write_ui_plugin(tmp_path / "ui-list", manifest))
+    assert loaded is None
+    assert error is not None and "components.ui" in error
+
+
+def test_v1_adapter(tmp_path) -> None:
+    plugin_dir = _write(tmp_path, _v1())
+    manifest, error = load_manifest(plugin_dir)
+    assert error is None and manifest is not None
+    descriptor = PluginDescriptor(
+        id=manifest["name"],
+        version=manifest["version"],
+        manifest=manifest,
+        source=str(plugin_dir),
+    )
+    capabilities = ManifestV1Adapter(descriptor).capabilities()
+    assert [cap.kind for cap in capabilities] == [CapabilityKind.COMMAND]
+    assert capabilities[0].id == "acme-research.acme"
+    assert capabilities[0].template == "Research {input}"
+
+
+def _zip(manifest: dict) -> bytes:
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w") as archive:
+        archive.writestr(
+            f"{manifest['name']}/{MANIFEST_FILENAME}", json.dumps(manifest)
+        )
+    return buf.getvalue()
+
+
+def test_quarantine(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))
+    broken = _v2()
+    broken.pop("publisher")
+    payload = _zip(broken)
+    entry = {
+        "name": "acme-research",
+        "version": "2.0.0",
+        "sha256": sha256_hex(payload),
+        "url": "https://artifact.invalid/acme.zip",
+        "trust": "local",
+    }
+    status = plugin_market.install_from_marketplace(
+        "acme-research",
+        marketplace={"plugins": [entry]},
+        fetcher=lambda url: payload,
+        allow_local_trust=True,
+    )
+    assert status["status"] == "quarantined", status
+    assert "publisher" in status["error"]
+
+    mismatched = {**entry, "sha256": "00" * 32}
+    status = plugin_market.install_from_marketplace(
+        "acme-research",
+        marketplace={"plugins": [mismatched]},
+        fetcher=lambda url: payload,
+        allow_local_trust=True,
+    )
+    assert status["status"] == "hash_mismatch"

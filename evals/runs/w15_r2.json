@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "task_id": "W15",
+  "family": "endstate",
+  "level": "L3",
+  "rep": 2,
+  "session_id": "ob-w15-r2-1790174443",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "gamma=True alpha_gone=True index_ok=True",
+  "error_class": null,
+  "wall_ms": 50654.2,
+  "ttft_first_event_ms": 253.8,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 7.8
+    },
+    {
+      "tool": "read_file",
+      "ms": 7.8
+    },
+    {
+      "tool": "edit_file",
+      "ms": 1.9
+    },
+    {
+      "tool": "tool_search",
+      "ms": 1.6
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.6
+    },
+    {
+      "tool": "edit_file",
+      "ms": 1.7
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.9
+    },
+    {
+      "tool": "edit_file",
+      "ms": 2.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.3
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "edit_file",
+    "tool_search",
+    "tool_call",
+    "edit_file",
+    "tool_call",
+    "edit_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 791,
+  "tokens_out_proxy": 197.8,
+  "fixture_hash": "1f99c3994caa",
+  "answer_tail": "a` (5 Zeichen) |\n| 2 | `delete_file` → `w15_alpha.txt` | `deleted '.../w15_alpha.txt'` |\n| 3 | `edit_file` → `w15_gamma.txt` | Inhalt `alpha` (5 Zeichen) |\n| 4 | `delete_file` → `w15_beta.txt` | `deleted '.../w15_beta.txt'` |\n| 5 | `edit_file` → `w15_index.md` | `- w15_alpha.txt` → `- w15_gamma.txt` |\n\n**Rücklese-Verifikation:**\n- `w15_gamma.txt` → Zeile 1: `alpha` ✔\n- `w15_index.md` → Zeile 2: `- w15_gamma.txt` (alte Namen nicht mehr gelistet) ✔\n\n**Endzustand:** Nur `w15_gamma.txt` (Inhalt `alpha`) und `w15_index.md` existieren; `alpha`- und `beta`-Versionen sind gelöscht.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:41:34"
+}

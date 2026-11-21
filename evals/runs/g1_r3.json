@@ -1,0 +1,18 @@
+{
+  "task_id": "G1",
+  "family": "gaia",
+  "rep": 3,
+  "session_id": "ob-g1-r3-1790159414",
+  "ok": true,
+  "note": "final-answer==72",
+  "wall_ms": 9478.5,
+  "ttft_first_event_ms": 186.3,
+  "final_answer_line": "FINAL ANSWER: 72",
+  "tool_calls": [
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 150,
+  "answer_tail": "\n\n**Berechnung:**\n\n- `g1_a.txt`: total_capacity = 84 seats\n- `g1_b.txt`: reserved = 12 seats\n- Verbleibende Plätze: 84 − 12 = **72**\n\nFINAL ANSWER: 72",
+  "ts": "2026-09-23T12:30:24"
+}

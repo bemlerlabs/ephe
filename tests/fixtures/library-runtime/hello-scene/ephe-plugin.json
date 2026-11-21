@@ -1,0 +1,17 @@
+{
+  "manifest_version": 1,
+  "name": "hello-scene",
+  "version": "1.0.0",
+  "description": "A 3D scene that loads its renderer from the bundle",
+  "permissions": {"tool_families": [], "data_roots": []},
+  "components": {
+    "skills": [],
+    "commands": [],
+    "ui": {
+      "type": "floating-window",
+      "entry": "ui/index.html",
+      "title": "Hello Scene",
+      "capabilities": ["webgl"]
+    }
+  }
+}

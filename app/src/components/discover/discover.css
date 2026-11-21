@@ -1,0 +1,87 @@
+/* Subject colours for the shelf.
+ *
+ * A subject is coded once and read everywhere: the plate of an entry, the dot
+ * beside a shelf title, the eyebrow of the featured pick. The hues are muted
+ * against the ink ground (58–68% lightness keeps an icon legible) and the plate
+ * is the same hue at 13%, so a row of cards reads as a shelf of one subject
+ * without any of them carrying a logo we do not have. */
+
+/* The hue is inherited from the entry; the fallback keeps a bare plate neutral. */
+.discover-plate {
+  background-color: color-mix(in srgb, var(--s, hsl(30 8% 60%)) 22%, transparent);
+  color: var(--s, hsl(30 8% 60%));
+}
+
+.discover-dot {
+  background-color: var(--s, hsl(30 8% 60%));
+}
+
+[data-subject='skills'] {
+  --s: hsl(41 62% 61%);
+}
+[data-subject='code'] {
+  --s: hsl(158 42% 60%);
+}
+[data-subject='web'] {
+  --s: hsl(203 62% 63%);
+}
+[data-subject='memory'] {
+  --s: hsl(266 42% 68%);
+}
+[data-subject='files'] {
+  --s: hsl(33 44% 62%);
+}
+[data-subject='communication'] {
+  --s: hsl(348 50% 66%);
+}
+[data-subject='productivity'] {
+  --s: hsl(182 42% 58%);
+}
+[data-subject='database'] {
+  --s: hsl(232 46% 68%);
+}
+[data-subject='cloud'] {
+  --s: hsl(196 68% 64%);
+}
+[data-subject='security'] {
+  --s: hsl(16 62% 62%);
+}
+[data-subject='media'] {
+  --s: hsl(318 42% 66%);
+}
+[data-subject='utility'] {
+  --s: hsl(78 32% 58%);
+}
+[data-subject='testing'] {
+  --s: hsl(122 32% 58%);
+}
+
+/* A shelf scrolls sideways; the bar itself is not part of the shelf. */
+.discover-track {
+  scrollbar-width: none;
+}
+.discover-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* The featured pick turns on its own; the rise is the only motion it uses. */
+@keyframes discover-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.discover-hero-turn {
+  animation: discover-rise 360ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover-hero-turn {
+    animation: none;
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "task_id": "G14",
+  "family": "gaia",
+  "level": "L4",
+  "rep": 2,
+  "session_id": "ob-g14-r2-1790173893",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==110 (4 parallel reads)",
+  "error_class": null,
+  "wall_ms": 17998.8,
+  "ttft_first_event_ms": 203.8,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "file_search",
+      "ms": 46.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.7
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 110",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "file_search",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 230,
+  "tokens_out_proxy": 57.5,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung aus den real gelesenen Datei-Inhalten:**\n\n| Datei | Wert |\n|---|---|\n| `g14_p1.txt` | 25 |\n| `g14_p2.txt` | 35 |\n| `g14_p3.txt` | 15 |\n| `g14_p4.txt` | 35 |\n\n**Summe:** 25 + 35 + 15 + 35 = **110**\n\nFINAL ANSWER: 110",
+  "ts": "2026-09-23T16:31:51"
+}

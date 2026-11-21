@@ -1,0 +1,384 @@
+{
+  "schema": 1,
+  "notes": "What the PWA and the desktop shell may differ on, declared once. scripts/tauri_parity.py refuses a route in app/src/App.tsx without an entry here, and a read of isTauri / isDesktopShell / window.__TAURI__ in app/src that is not counted here. shell-parity.spec.ts compares the routes below in both platforms and removes only the selectors listed under platform_only.",
+  "routes": [
+    {
+      "path": "/welcome",
+      "probe": "/welcome",
+      "page": "LandingPage",
+      "anchor": "[data-testid=\"landing-page\"]"
+    },
+    {
+      "path": "/",
+      "probe": "/",
+      "page": "ChatPage",
+      "anchor": "[data-testid=\"panel-chat\"]"
+    },
+    {
+      "path": "/setup",
+      "probe": "/setup",
+      "page": "SetupPage",
+      "anchor": "[data-testid=\"setup-page\"]"
+    },
+    {
+      "path": "/memory",
+      "probe": "/memory",
+      "page": "MemoryPage",
+      "anchor": "[data-testid=\"memory-page\"]"
+    },
+    {
+      "path": "/memory/:view",
+      "probe": "/memory/korrekturen",
+      "page": "MemoryPage",
+      "anchor": "[data-testid=\"memory-page\"]"
+    },
+    {
+      "path": "/artifacts",
+      "probe": "/artifacts",
+      "page": "ArtifactsPage",
+      "anchor": "[data-testid=\"artifacts-page\"]"
+    },
+    {
+      "path": "/artifacts/:view",
+      "probe": "/artifacts/ablage",
+      "page": "ArtifactsPage",
+      "anchor": "[data-testid=\"artifacts-page\"]"
+    },
+    {
+      "path": "/discover",
+      "probe": "/discover",
+      "page": "DiscoverPage",
+      "anchor": "[data-testid=\"discover-page\"]"
+    },
+    {
+      "path": "/tools",
+      "probe": "/tools",
+      "page": "ToolsPage",
+      "anchor": "[data-testid=\"tools-vision\"]"
+    },
+    {
+      "path": "/workspaces",
+      "probe": "/workspaces",
+      "page": "WorkspacesPage",
+      "anchor": "[data-testid=\"workspaces-list\"]"
+    },
+    {
+      "path": "/workspaces/change/:id",
+      "probe": "/workspaces/change/cs-fixture-0001",
+      "page": "CustodyPage",
+      "anchor": "[data-testid=\"custody-page\"]"
+    },
+    {
+      "path": "/chat",
+      "probe": "/chat",
+      "page": "ChatPage",
+      "anchor": "[data-testid=\"panel-chat\"]"
+    },
+    {
+      "path": "/settings",
+      "probe": "/settings",
+      "page": "SettingsPage",
+      "anchor": "[data-testid=\"settings-page\"]"
+    },
+    {
+      "path": "/settings/:tab",
+      "probe": "/settings/agents",
+      "page": "SettingsPage",
+      "anchor": "[data-testid=\"settings-page\"]"
+    },
+    {
+      "path": "*",
+      "probe": "/no-such-route",
+      "page": "UnknownRoute",
+      "anchor": "[data-testid=\"route-unknown\"]"
+    }
+  ],
+  "platform_branches": [
+    {
+      "file": "app/src/components/dashboard/UpdateDialog.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "update dialog",
+      "web": "the dialog links to the release page; the browser has no installer",
+      "desktop": "the dialog runs the signed Tauri updater and reports download progress"
+    },
+    {
+      "file": "app/src/components/dashboard/chat/index.tsx",
+      "marker": "isTauri",
+      "count": 6,
+      "surface": "chat header: window controls, the traffic-light clearance, the caption-corner clearance and the backend version message",
+      "web": "no controls, no inset and no version message: the browser draws the window chrome and has no shell to ask",
+      "desktop": "minimize and maximize at the header's right edge, an extra left inset when the sidebar is a rail so the first control clears the overlaid traffic lights, a right inset of the same width so the header text clears the Windows caption buttons, and one read of the shell's backend-parity verdict at boot"
+    },
+    {
+      "file": "app/src/components/dashboard/chat/model.ts",
+      "marker": "isTauri",
+      "count": 2,
+      "surface": "window controls, passed through to the chat view model",
+      "web": "false, from useTauriWindow",
+      "desktop": "true, from useTauriWindow"
+    },
+    {
+      "file": "app/src/components/onboarding/FirstRunTour.tsx",
+      "marker": "__TAURI__",
+      "count": 4,
+      "surface": "first-run tour",
+      "web": "no native folder picker; the tour asks for a path in the page",
+      "desktop": "pick_folder through the shell, then the same /api/import"
+    },
+    {
+      "file": "app/src/hooks/useKeepAwake.ts",
+      "marker": "__TAURI__",
+      "count": 4,
+      "surface": "screen lock while a turn streams",
+      "web": "the Screen Wake Lock API, when the browser has it",
+      "desktop": "set_keep_awake through the shell"
+    },
+    {
+      "file": "app/src/hooks/useTauriTray.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "tray and menu events",
+      "web": "no bridge, so no listeners are installed",
+      "desktop": "show/hide/quit/create-session arrive on the shell's event channel"
+    },
+    {
+      "file": "app/src/hooks/useTauriTray.ts",
+      "marker": "isTauri",
+      "count": 5,
+      "surface": "tray and menu events",
+      "web": "false; windowVisible stays true",
+      "desktop": "true while the shell's event API is present"
+    },
+    {
+      "file": "app/src/hooks/useTauriWindow.ts",
+      "marker": "__TAURI__",
+      "count": 3,
+      "surface": "window commands",
+      "web": "absent; invoke logs and resolves without a shell",
+      "desktop": "minimize_window, maximize_window, close_window, show_window, hide_window"
+    },
+    {
+      "file": "app/src/hooks/useTauriWindow.ts",
+      "marker": "isTauri",
+      "count": 3,
+      "surface": "window controls capability",
+      "web": "false",
+      "desktop": "true when __TAURI__.core.invoke is a function"
+    },
+    {
+      "file": "app/src/lib/desktopBaseUrl.ts",
+      "marker": "__TAURI__",
+      "count": 1,
+      "surface": "backend base URL",
+      "web": "same origin, so /api stays relative",
+      "desktop": "http://127.0.0.1:8765 unless VITE_API_URL overrides it"
+    },
+    {
+      "file": "app/src/lib/engineKey.ts",
+      "marker": "__TAURI__",
+      "count": 4,
+      "surface": "engine access token",
+      "web": "session-only; the page cannot write ~/.ephe/engine.key",
+      "desktop": "save_engine_key / clear_engine_key / engine_key_state in the shell"
+    },
+    {
+      "file": "app/src/lib/openExternal.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "the one shell test, read through `bridge()`: the agent panel's external pages, every link that leaves the app, and the command channel a plugin surface is opened from (`pluginSurface.ts`, `pluginDisplay.ts`)",
+      "web": "no bridge: window.open in a new tab, an iframe with the frame-refusal notice, and a plugin surface shown by the overlay dock",
+      "desktop": "the injected core.invoke: a child WebView placed through browser_open, browser_open_external for the operating system's own browser, and the window commands a native plugin surface is built from"
+    },
+    {
+      "file": "app/src/lib/restartGuard.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "restart after an update",
+      "web": "location.reload",
+      "desktop": "process.relaunch, falling back to invoke('restart_app')"
+    },
+    {
+      "file": "app/src/lib/taskNotify.ts",
+      "marker": "__TAURI__",
+      "count": 1,
+      "surface": "task-finished notification",
+      "web": "the browser Notification API, after permission",
+      "desktop": "the notification plugin, no browser permission prompt"
+    },
+    {
+      "file": "app/src/lib/tauriBridge.ts",
+      "marker": "__TAURI__",
+      "count": 4,
+      "surface": "the one bridge lookup: invoke and the window handle (fullscreen state)",
+      "web": "absent",
+      "desktop": "the injected global is present; invoke reaches the shell and the window answers isFullscreen"
+    },
+    {
+      "file": "app/src/lib/tauriBridge.ts",
+      "marker": "isDesktopShell",
+      "count": 1,
+      "surface": "the shell bridge itself",
+      "web": "false",
+      "desktop": "true"
+    },
+    {
+      "file": "app/src/lib/useUpdateCheck.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "update check",
+      "web": "GET /api/update/check",
+      "desktop": "GET /api/update/check plus the signed updater's own comparison"
+    },
+    {
+      "file": "app/src/lib/useUpdateCheck.ts",
+      "marker": "isDesktopShell",
+      "count": 4,
+      "surface": "update check, and the two readings every update surface draws from its answer",
+      "web": "false; nothing installs here, so the action a release offers is the release page and the row says the browser only points at it",
+      "desktop": "true; install takes the signed updater, and the update button on the row and in the sheet carries its word"
+    },
+    {
+      "file": "app/src/lib/updateCheckRun.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "update check, run outside React",
+      "web": "GET /api/update/check, including the merges the backend reports on the main channel",
+      "desktop": "GET /api/update/check plus the signed updater's own comparison and the bundle version"
+    },
+    {
+      "file": "app/src/lib/updateCheckRun.ts",
+      "marker": "isDesktopShell",
+      "count": 3,
+      "surface": "update check, run outside React",
+      "web": "false; the feed decides",
+      "desktop": "true; the updater's comparison decides, and the main channel points at the comparison page"
+    },
+    {
+      "file": "app/src/components/dashboard/settings/index.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "settings save footer on the shortcuts tab",
+      "web": "hidden: the shortcuts area is a read board in the browser",
+      "desktop": "shown: the shortcuts area owns one saveable global opt-in"
+    },
+    {
+      "file": "app/src/components/dashboard/settings/model/sections-shortcuts.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "global shortcut row",
+      "web": "a disabled row names the desktop app and the chord it offers",
+      "desktop": "a switch writes the opt-in; a saved value registers the chord"
+    },
+    {
+      "file": "app/src/lib/backendParity.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "the backend version the shell started",
+      "web": "no command channel, so nothing is claimed and no message appears",
+      "desktop": "invoke('backend_parity') through window.__TAURI__.core.invoke, and a named message when shell and backend disagree"
+    },
+    {
+      "file": "app/src/lib/fileActions.ts",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "artifact row: reveal and open in Finder (N4)",
+      "web": "both verbs are absent; the browser offers the download instead",
+      "desktop": "reveal_file_in_finder and open_file_in_default_app, fenced to the workbench, the project and the usual save folders"
+    },
+    {
+      "file": "app/src/lib/platformChrome.ts",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "top-row inset for the native window buttons",
+      "web": "no inset: the browser draws its own chrome and has no buttons to clear",
+      "desktop": "76 px on macOS and 138 px on Windows, zero while the window is fullscreen"
+    },
+    {
+      "file": "app/src/components/dashboard/settings/model/sections-agents.tsx",
+      "marker": "isDesktopShell",
+      "count": 2,
+      "surface": "the agents header's import action",
+      "web": "no import button: a browser tab has no folder picker",
+      "desktop": "one button that runs pick_folder, then the same /api/import the tour uses"
+    },
+    {
+      "file": "app/src/lib/backendReadiness.ts",
+      "marker": "isDesktopShell",
+      "count": 3,
+      "surface": "backend readiness: the state listener, the readiness read, and the self-healing poll until the composer can send",
+      "web": "a browser tab has the server it was loaded from, so readiness is not asked and the watcher is a no-op",
+      "desktop": "backend_readiness answers from the recorded start state, ephe:backend-state fires once per start, and while the answer still blocks sending the state is re-read on a short timer until it no longer does"
+    },
+    {
+      "file": "app/src/lib/backendReadiness.ts",
+      "marker": "__TAURI__",
+      "count": 2,
+      "surface": "backend readiness",
+      "web": "no bridge, so no readiness read and no event subscription",
+      "desktop": "reads backend_readiness and listens on ephe:backend-state"
+    }
+  ],
+  "platform_only": [
+    {
+      "id": "window-controls",
+      "kind": "dom",
+      "selector": "[data-testid=\"header-minimize\"], [data-testid=\"header-maximize\"]",
+      "present_on": "desktop",
+      "reason": "The shell draws its own title bar; a browser tab already has minimize and maximize. Both items sit in the header menu and exist only in the shell's DOM while that menu is open, and on macOS they stay absent because the window's native traffic lights sit over that corner."
+    },
+    {
+      "id": "agent-import",
+      "kind": "dom",
+      "selector": "[data-testid=\"agent-import\"]",
+      "present_on": "desktop",
+      "reason": "The agents header imports an AGENT.md folder through the shell's pick_folder; a browser tab has no folder picker, so the row is absent there and the two headers would otherwise differ by that one label."
+    },
+    {
+      "id": "service-worker",
+      "kind": "capability",
+      "selector": null,
+      "present_on": "web",
+      "reason": "The PWA registers /service-worker.js for offline and update; the shell is installed and updated by the Tauri updater. Both parity contexts block service workers, because a worker answers /api from its own fetch context below page.route; the web-only registration is proven in its own test."
+    }
+  ],
+  "mobile": {
+    "widths": [
+      320,
+      375,
+      390
+    ],
+    "surfaces": [
+      {
+        "path": "/chat",
+        "anchor": "[data-testid=\"panel-chat\"]",
+        "reach": "route"
+      },
+      {
+        "path": "/workspaces",
+        "anchor": "[data-testid=\"workspaces-list\"]",
+        "reach": "route"
+      },
+      {
+        "path": "/artifacts",
+        "anchor": "[data-testid=\"artifacts-page\"]",
+        "reach": "route"
+      },
+      {
+        "path": "/memory",
+        "anchor": "[data-testid=\"memory-page\"]",
+        "reach": "route"
+      },
+      {
+        "path": "/tools",
+        "anchor": "[data-testid=\"tools-vision\"]",
+        "reach": "route"
+      },
+      {
+        "path": "/settings",
+        "anchor": "[data-testid=\"settings-page\"]",
+        "reach": "settings-register"
+      }
+    ]
+  }
+}

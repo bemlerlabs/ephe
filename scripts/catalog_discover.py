@@ -1,0 +1,916 @@
+#!/usr/bin/env python3
+"""Discover catalogue candidates from Ephe, two third-party plugin
+marketplaces, and the MCP Registry. The adapters are named for the manifest shape
+they read; the vendors they read stay in the cited URLs only.
+
+Read-only by construction: every download is https-only and capped, archives
+are read in memory and hashed against the index, and nothing is written except
+the run-scoped report passed with --out. Review and publication are separate
+steps; this script never publishes an entry.
+
+    python3 scripts/catalog_discover.py --out out/catalog/<run>/candidates.json
+    python3 scripts/catalog_discover.py --sources ephe --out /tmp/candidates.json
+
+The candidate shape and the licence gates are documented in
+docs/CATALOG_ACQUISITION_PLAN_2026-10-22.md.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import math
+import os
+import re
+import sys
+import urllib.parse
+import zipfile
+from collections.abc import Callable
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(ROOT))
+from catalog_fetch import fetch  # noqa: E402
+from core.discover_intent import keys as intent_keys, tags_for  # noqa: E402
+from core.mcp_catalog import ICON_SLUG  # noqa: E402
+
+# A marketplace leg runs only against an index the operator names; no vendor endpoint
+# is a constant in this tree. Empty means the leg stays idle and says so in the report.
+APP_MARKET_INDEX = os.environ.get("EPHE_CATALOG_APPHUB_INDEX", "").strip()
+OSS_PLUGIN_INDEX = os.environ.get("EPHE_CATALOG_OSS_INDEX", "").strip()
+OSS_PLUGIN_REPO = os.environ.get("EPHE_CATALOG_OSS_REPO", "").strip()
+OSS_PLUGIN_MANIFEST_DIR = os.environ.get("EPHE_CATALOG_OSS_MANIFEST_DIR", "").strip()
+MCP_REGISTRY = "https://registry.modelcontextprotocol.io/v0/servers"
+MANIFEST_BYTES = 256_000
+OWN_MANIFEST = "ephe-plugin.json"
+ALLOWED_LICENSES = {"MIT", "APACHE-2.0", "BSD-2-CLAUSE", "BSD-3-CLAUSE", "ISC"}
+MCP_QUERIES = [
+    "filesystem", "fetch", "git", "memory", "sequential thinking", "time",
+    "everything", "github", "playwright", "context7", "chrome devtools",
+    "postgres", "notion", "slack", "linear",
+]
+MIRROR_PAGE_LIMIT = 100
+MIRROR_MAX_ENTRIES = 10_000
+
+#: Facet buckets for the registry mirror; the map lives here so the snapshot
+#: stays reproducible and the runtime serves pure data.
+#: Read in order, first match wins, so the narrow families sit above the broad ones.
+_CATEGORY_KEYWORDS = (
+    ("database", ("postgres", "sql", "database", "redis", "vector", "mongo", "bigquery",
+                  "snowflake", "clickhouse", "supabase", "mysql", "sqlite", "neo4j")),
+    ("cloud", ("amazon", "aws", "azure", "gcp", "google cloud", "ec2", "ecs", "eks",
+               "lambda", "kubernetes", "docker", "serverless", "terraform", "cloudflare",
+               "vercel", "netlify", "heroku", "s3 bucket")),
+    ("code", ("git", "github", "gitlab", "repository", "pull request", "code review",
+              "refactor", "lint", "compiler", "debugger")),
+    ("files", ("filesystem", "file", "folder", "drive", "dropbox", "storage", "pdf",
+               "document", "docx", "excel", "csv")),
+    ("communication", ("slack", "email", "gmail", "telegram", "discord", "messaging",
+                       "whatsapp", "sms", "newsletter", "sms", "chat")),
+    ("security", ("security", "audit", "vulnerability", "cve", "identity", "auth",
+                  "password", "encryption", "certificate", "compliance", "soc 2")),
+    ("web", ("browser", "scrap", "search", "http", "url", "fetch", "crawl", "selenium",
+             "playwright", "puppeteer")),
+    ("memory", ("memory", "knowledge", "graph", "notes", "obsidian", "notion", "wiki")),
+    ("media", ("image", "video", "audio", "music", "media", "photo", "podcast",
+               "transcription", "speech")),
+    ("productivity", ("calendar", "task", "todo", "project", "spreadsheet", "docs",
+                      "crm", "invoice", "meeting", "workflow", "automation")),
+    ("utility", ("time", "math", "calculator", "qr", "random", "weather", "currency",
+                 "converter", "geocod", "maps")),
+)
+
+
+def _registry_category(text: str) -> str:
+    lowered = text.lower()
+    for category, keywords in _CATEGORY_KEYWORDS:
+        if any(keyword in lowered for keyword in keywords):
+            return category
+    return "other"
+
+
+def _mirror_slug(name: str) -> str:
+    return "".join(ch if ch.isalnum() else "-" for ch in name.lower()).strip("-") or "entry"
+
+
+def _mirror_hint(server: dict[str, Any]) -> tuple[str, str]:
+    """(install_hint, docs) for one registry server; the registry listing URL
+    is the only locator the metadata guarantees."""
+    quoted = urllib.parse.quote(str(server.get("name") or ""))
+    docs = f"https://registry.modelcontextprotocol.io/v0/servers/{quoted}"
+    for remote in server.get("remotes") or []:
+        url = str(remote.get("url") or "")
+        kind = str(remote.get("type") or "streamable-http")
+        return f"{url} ({kind})", docs
+    for package in server.get("packages") or []:
+        transport = str((package.get("transport") or {}).get("type") or "stdio")
+        runtime = str(package.get("runtimeHint") or "").strip()
+        identifier = str(package.get("identifier") or "").strip()
+        if identifier:
+            # The runtime alone is not a launch line: `npx (stdio)` names no package,
+            # and the identifier is what a reader would have to type.
+            command = f"{runtime} -y {identifier}" if runtime in {"npx", "bunx"} else (
+                f"{runtime} {identifier}" if runtime else identifier
+            )
+            return f"{command} ({transport})", docs
+    return "", docs
+
+
+#: The icon PNGs the fetcher writes into the tree. A curated row names an icon only
+#: when the matching file is present, so a missing mark falls back to the subject glyph.
+_ICON_DIR = ROOT / "marketplace" / "icons" / "providers"
+#: ICON_SLUG caps a slug's tail at 40 characters after the leading one; a host that
+#: still runs longer is cut to this length before the final gate, so the truncated
+#: slug is always one the route can resolve.
+_ICON_SLUG_MAX = 40
+
+
+def icon_host(install_hint: str) -> str:
+    """The publisher host a remote install line names; empty for a stdio line.
+
+    Only an `http(s)` first token carries a host: `npx -y pkg (stdio)` names a package,
+    not a domain."""
+    tokens = str(install_hint or "").strip().split()
+    if not tokens:
+        return ""
+    first = tokens[0]
+    if not first.lower().startswith(("http://", "https://")):
+        return ""
+    try:
+        return urllib.parse.urlsplit(first).hostname or ""
+    except ValueError:
+        return ""
+
+
+def icon_slug(install_hint: str) -> str:
+    """A route-resolvable icon slug for the publisher host of one install line.
+
+    Dots, underscores and repeated separators fold to single dashes and a leading
+    `www.` drops, so `github.com` and `www.github.com` both answer `github-com`. Two
+    hosts cut to the same slug by the length cap are the fetcher's one-file-per-slug
+    case. A line with no hostable domain — a stdio launch or a templated
+    `{server_address}` — is no slug at all."""
+    host = icon_host(install_hint).lower()
+    if host.startswith("www."):
+        host = host[len("www."):]
+    slug = re.sub(r"[-_.]+", "-", host).strip("-")[:_ICON_SLUG_MAX].rstrip("-")
+    return slug if ICON_SLUG.fullmatch(slug) else ""
+
+
+#: Where a package's weekly downloads are read from. Both publishers answer one
+#: package per request and cap the rate; a miss is recorded as "no count", never
+#: as zero downloads.
+NPM_DOWNLOADS = "https://api.npmjs.org/downloads/point/last-week/"
+PYPI_RECENT = "https://pypistats.org/api/packages/{name}/recent"
+
+
+def package_of(entry: dict[str, Any]) -> tuple[str, str] | None:
+    """(registry, name) when the launch line names a package a publisher counts."""
+    hint = str(entry.get("install_hint") or "").strip()
+    parts = hint.split()
+    if not parts:
+        return None
+    runtime = parts[0]
+    rest = [part for part in parts[1:] if not part.startswith("-") and not part.startswith("(")]
+    if not rest:
+        return None
+    name = rest[0].strip()
+    if runtime in {"npx", "bunx"}:
+        return ("npm", name)
+    if runtime in {"uvx", "pipx"}:
+        return ("pypi", name)
+    return None
+
+
+def _downloads(registry: str, name: str) -> int | None:
+    try:
+        if registry == "npm":
+            payload = json.loads(fetch(NPM_DOWNLOADS + urllib.parse.quote(name, safe="@")))
+            value = payload.get("downloads")
+            return int(value) if isinstance(value, (int, float)) else None
+        payload = json.loads(fetch(PYPI_RECENT.format(name=urllib.parse.quote(name))))
+        data = payload.get("data") if isinstance(payload, dict) else None
+        value = data.get("last_week") if isinstance(data, dict) else None
+        return int(value) if isinstance(value, (int, float)) else None
+    except Exception:  # noqa: BLE001 - an unreachable count is data, not a failure
+        return None
+
+
+def popularity_of(entries: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Weekly downloads per package coordinate, for the entries that name one."""
+    counts: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        coordinate = package_of(entry)
+        if coordinate is None:
+            continue
+        registry, name = coordinate
+        key = f"{registry}:{name}"
+        if key in counts:
+            continue
+        downloads = _downloads(registry, name)
+        if downloads is None:
+            continue
+        counts[key] = {"registry": registry, "downloads": downloads}
+    return counts
+
+
+def _popularity_score(entry: dict[str, Any], counts: dict[str, dict[str, Any]]) -> float:
+    """Log-scaled weekly downloads, with a name prior for the well-known servers.
+
+    A shared launcher is not the server's popularity: `mcp-proxy-for-aws` fronts
+    every AWS server, and its count was read as two different servers' own
+    (346,967 each, 2026-10-31). An entry that installs through a proxy package
+    keeps no download figure of its own."""
+    if "mcp-proxy-for-aws" in str(entry.get("install_hint") or ""):
+        return 1.0
+    coordinate = package_of(entry)
+    if coordinate is not None:
+        hit = counts.get(f"{coordinate[0]}:{coordinate[1]}")
+        if hit:
+            return math.log10(max(1, int(hit["downloads"])))
+    name = str(entry.get("name") or "").lower()
+    if any(pick in name for pick in PICKS):
+        return 2.0
+    return 1.0
+
+
+def _english_only(text: str) -> bool:
+    # Reuse the language gate's marker regex: a line it flags as German is not committed.
+    from language_inventory import WORD
+
+    return WORD.search(text) is None
+
+
+def _required_env(server: dict[str, Any]) -> list[dict[str, Any]]:
+    """The names a publisher declares as required, as names only.
+
+    Descriptions stay out: they are free prose, and what a surface needs is the
+    variable name and whether its value is a secret."""
+    found: dict[str, bool] = {}
+    packages = server.get("packages")
+    for package in packages if isinstance(packages, list) else []:
+        if not isinstance(package, dict):
+            continue
+        variables = package.get("environmentVariables")
+        for variable in variables if isinstance(variables, list) else []:
+            if not isinstance(variable, dict) or not variable.get("isRequired"):
+                continue
+            name = str(variable.get("name") or "").strip()
+            if not name or len(name) > 64:
+                continue
+            found.setdefault(name, bool(variable.get("isSecret")))
+    return [{"name": name, "secret": secret} for name, secret in sorted(found.items())]
+
+
+def mirror_registry() -> tuple[int, list[dict[str, Any]], list[str]]:
+    """One full pass over the public registry: cursor pagination, dedupe by
+    name (the newest version wins), ASCII-only descriptions, one entry per
+    server. Returns (count, entries, errors). Metadata only — the registry
+    data is CC0, its terms reserve nothing for read access."""
+    entries: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    cursor = ""
+    pages = 0
+    while pages < 200:
+        url = f"{MCP_REGISTRY}?limit={MIRROR_PAGE_LIMIT}"
+        if cursor:
+            url += f"&cursor={urllib.parse.quote(cursor)}"
+        try:
+            payload = json.loads(fetch(url))
+        except Exception as exc:  # noqa: BLE001 - a source failure is data
+            errors.append(f"page {pages}: {type(exc).__name__}: {exc}")
+            break
+        servers = payload.get("servers") if isinstance(payload, dict) else None
+        if not isinstance(servers, list):
+            errors.append(f"page {pages}: no servers array")
+            break
+        for raw in servers:
+            if not isinstance(raw, dict):
+                continue
+            server = raw.get("server")
+            if not isinstance(server, dict):
+                continue
+            name = str(server.get("name") or "")
+            description = " ".join(str(server.get("description") or "").split()).strip()
+            if not name or not description or not description.isascii():
+                continue
+            hint, docs = _mirror_hint(server)
+            if not all(
+                _english_only(part)
+                for part in (name, str(server.get("title") or ""), description, hint, docs)
+                if part
+            ):
+                continue
+            meta = raw.get("_meta")
+            meta = meta if isinstance(meta, dict) else {}
+            previous = entries.get(name)
+            latest = bool(meta.get("isLatest"))
+            if previous is not None and not latest:
+                continue
+            entries[name] = {
+                "id": _mirror_slug(name),
+                "name": str(server.get("title") or name),
+                "description": description[:400],
+                "category": _registry_category(description),
+                "install_hint": hint,
+                "docs": docs,
+                "version": str(server.get("version") or ""),
+                "published_at": str(meta.get("publishedAt") or ""),
+                "source": "registry",
+                "required_env": _required_env(server),
+            }
+            if len(entries) >= MIRROR_MAX_ENTRIES:
+                break
+        pages += 1
+        cursor = ""
+        if isinstance(payload, dict) and isinstance(payload.get("metadata"), dict):
+            cursor = str(payload["metadata"].get("nextCursor") or "")
+        if not cursor or len(entries) >= MIRROR_MAX_ENTRIES:
+            break
+    return len(entries), sorted(entries.values(), key=lambda e: e["name"].lower()), errors
+
+
+#: Well-known registry names the curated tier leads with; matched as substrings
+#: against mirror names, so a pick that disappears from the registry stops
+#: matching instead of resurrecting a dead entry.
+PICKS = (
+    "everything", "filesystem", "server-fetch", "server-git", "server-time",
+    "server-memory", "sequential", "github", "gitlab", "slack", "notion",
+    "linear", "postgres", "sqlite", "redis", "context7", "brave", "chrome",
+    "playwright", "puppeteer", "firecrawl", "tavily", "figma", "sentry",
+    "stripe", "supabase", "kubernetes", "docker", "terraform", "google-maps",
+    "gmail", "jira", "confluence", "clickup", "airtable", "exa", "serper",
+    "screenshot", "browserbase", "fetch", "memory", "search", "terminal",
+    "obsidian", "notion", "youtube", "spotify", "weather", "math",
+)
+
+
+
+#: How many entries the default shelf carries, and the floor every category keeps
+#: so a small category is not crowded out by a large one.
+CURATED_TOTAL = 360
+CURATED_MIN_PER_CATEGORY = 6
+
+
+def curated_from_mirror(
+    entries: list[dict[str, Any]],
+    popularity: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """The tier the surface shows by default: the best-liked entries we can measure.
+
+    Weekly downloads rank a package inside its category wherever a publisher ships
+    one; a named pick keeps the prior it has (these are the servers people ask for
+    by name); everything else falls back to how recently it was published. Each
+    category keeps a floor, so a broad shelf stays broad instead of filling up with
+    the one category that has the most packages. A row whose install line names a
+    publisher host carries an `icon` slug for that host, set only when the fetcher has
+    written the matching PNG into the tree; a row with no file keeps no field and the
+    surface draws the subject glyph. The loader still drops any slug the route could
+    not serve, so a value that drifted past the cap never reaches a frame."""
+    counts = popularity or {}
+    scored: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        row = dict(entry)
+        # Sorting happens at curation time, so a widened rule re-sorts the shelf on
+        # the next curated run without fetching the registry again.
+        row["category"] = _registry_category(
+            f"{entry.get('name') or ''} {entry.get('description') or ''}"
+        )
+        coordinate = package_of(entry)
+        if coordinate is not None:
+            hit = counts.get(f"{coordinate[0]}:{coordinate[1]}")
+            if hit:
+                row["downloads"] = int(hit["downloads"])
+        row["_score"] = _popularity_score(entry, counts)
+        slug = icon_slug(str(entry.get("install_hint") or ""))
+        if slug and (_ICON_DIR / f"{slug}.png").is_file():
+            row["icon"] = slug
+        scored[entry["id"]] = row
+
+    def reason(row: dict[str, Any]) -> str:
+        if row.get("downloads"):
+            return "popular"
+        if any(pick in str(row.get("name") or "").lower() for pick in PICKS):
+            return "pick"
+        return "recent"
+
+    by_category: dict[str, list[dict[str, Any]]] = {}
+    for row in scored.values():
+        by_category.setdefault(str(row.get("category") or "other"), []).append(row)
+    for rows in by_category.values():
+        rows.sort(
+            key=lambda e: (e["_score"], e.get("published_at") or "", e["name"].lower()),
+            reverse=True,
+        )
+
+    # Round-robin across the categories: each one contributes its best entry before
+    # any category contributes a second, so a broad shelf stays broad and one large
+    # bucket cannot fill it alone.
+    chosen: dict[str, dict[str, Any]] = {}
+    queues = {key: list(rows) for key, rows in by_category.items()}
+    keys = sorted(queues)
+    cursor = 0
+    while len(chosen) < CURATED_TOTAL and any(queues.values()):
+        key = keys[cursor % len(keys)]
+        cursor += 1
+        if queues[key]:
+            row = queues[key].pop(0)
+            chosen.setdefault(row["id"], row)
+
+    out: list[dict[str, Any]] = []
+    for row in chosen.values():
+        row = dict(row)
+        row.pop("_score", None)
+        row["curated_reason"] = reason(row)
+        out.append(row)
+    return sorted(out, key=lambda e: e["name"].lower())
+
+
+def write_intent_index(entries: list[dict[str, Any]], target: Path) -> None:
+    """The intent tags for the curated tier, computed once so a search is a lookup.
+
+    Only the tags are precomputed; the ranking runs at read time in `core.discover_search`."""
+    tagged = {}
+    for entry in entries:
+        entry_id = str(entry.get("id") or entry.get("name") or "")
+        if not entry_id:
+            continue
+        tagged[entry_id] = tags_for(
+            str(entry.get("name") or ""),
+            str(entry.get("description") or ""),
+            str(entry.get("category") or ""),
+        )
+    payload = {
+        "format": 1,
+        "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+        "intents": list(intent_keys()),
+        "entries": tagged,
+    }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"search-index: {len(tagged)} entry(ies) tagged into {target}")
+
+
+def permissive(license_text: str) -> bool:
+    return license_text.strip().upper().replace(" ", "-") in ALLOWED_LICENSES
+
+
+def _candidate(
+    *,
+    kind: str,
+    name: str,
+    version: str,
+    title: str,
+    publisher: str,
+    source: dict[str, Any],
+    license_text: str,
+    repository: str = "",
+    components: list[str] | None = None,
+    transport: str = "",
+    env: list[dict[str, Any]] | None = None,
+    compatibility: str = "requires_review",
+    status: str = "discovered",
+    reason: str = "",
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    row = {
+        "kind": kind,
+        "name": name,
+        "version": version,
+        "title": title or name,
+        "publisher": {"name": publisher},
+        "source": source,
+        "license": license_text,
+        "repository": repository,
+        "components": components or [],
+        "transport": transport,
+        "env": env or [],
+        "auth": "none",
+        "compatibility": compatibility,
+        "status": status,
+        "reason": reason,
+    }
+    if extra:
+        row.update(extra)
+    return row
+
+
+def discover_ephe(root: Path) -> list[dict[str, Any]]:
+    """First-party plugins and built-in skills, already owned by the project."""
+    rows: list[dict[str, Any]] = []
+    for manifest_path in sorted((root / "plugins").glob("*/ephe-plugin.json")):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        components = sorted((manifest.get("components") or {}).keys())
+        rows.append(_candidate(
+            kind="plugin",
+            name=str(manifest.get("name") or manifest_path.parent.name),
+            version=str(manifest.get("version") or ""),
+            title=str(manifest.get("displayName") or manifest.get("name") or ""),
+            publisher="Ephe",
+            source={"type": "repo", "path": str(manifest_path.relative_to(root))},
+            license_text="project",
+            components=components,
+            compatibility="native",
+            status="published",
+        ))
+    pack_index = root / "skills" / "pack-index.json"
+    try:
+        packs = json.loads(pack_index.read_text(encoding="utf-8")).get("packs") or []
+    except (OSError, ValueError):
+        packs = []
+    for pack in packs:
+        if not isinstance(pack, dict):
+            continue
+        rows.append(_candidate(
+            kind="skill-pack",
+            name=str(pack.get("id") or ""),
+            version="1.0.0",
+            title=str(pack.get("title") or pack.get("id") or ""),
+            publisher="Ephe",
+            source={"type": "repo", "path": str(pack_index.relative_to(root))},
+            license_text="project",
+            components=["skills"],
+            compatibility="native",
+            status="published",
+            extra={"skills": [str(skill) for skill in pack.get("skills") or []]},
+        ))
+    return rows
+
+
+def _app_market_manifest(archive: bytes) -> tuple[dict[str, Any], list[str]]:
+    with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+        names = bundle.namelist()
+        manifest_name = next(
+            (
+                name for name in names
+                if name.endswith("/plugin.json") or name.endswith(OWN_MANIFEST)
+            ),
+            "",
+        )
+        if not manifest_name:
+            return {}, []
+        info = bundle.getinfo(manifest_name)
+        if info.file_size > MANIFEST_BYTES:
+            raise ValueError("manifest above cap")
+        manifest = json.loads(bundle.read(manifest_name))
+        licenses = [
+            name for name in names
+            if Path(name).name.lower().startswith("license")
+            and bundle.getinfo(name).file_size <= MANIFEST_BYTES
+        ]
+    return manifest, licenses
+
+
+def discover_app_market(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes] = fetch,
+                   read_archives: bool = True) -> tuple[list[dict[str, Any]], list[str]]:
+    rows: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for plugin in index.get("plugins", []):
+        name = str(plugin.get("name") or "")
+        source = plugin.get("source") if isinstance(plugin.get("source"), dict) else {}
+        url = str(source.get("url") or "")
+        wanted = str(source.get("sha256") or "")
+        license_text = ""
+        repository = ""
+        components: list[str] = []
+        compatibility = "requires_review"
+        reason = ""
+        archive_read = False
+        extra: dict[str, Any] = {"archive_sha256_ok": None}
+        if read_archives and url:
+            try:
+                archive = fetch_bytes(url)
+                extra["archive_sha256_ok"] = hashlib.sha256(archive).hexdigest() == wanted
+                if not extra["archive_sha256_ok"]:
+                    reason = "archive hash does not match the index"
+                else:
+                    manifest, licenses = _app_market_manifest(archive)
+                    archive_read = True
+                    license_text = str(manifest.get("license") or "")
+                    repository = str(manifest.get("repository") or "")
+                    components = [
+                        key for key in ("skills", "commands", "agents", "hooks", "mcpServers", "mcp")
+                        if manifest.get(key)
+                    ]
+                    if manifest.get("canvas") or any(manifest.get(k) for k in ("ui", "workflows")):
+                        compatibility = "app-market-native"
+                    elif components and set(components) <= {"skills", "commands"}:
+                        compatibility = "skills-only"
+                    if not license_text and licenses:
+                        reason = f"licence file present ({licenses[0]}); manifest field empty"
+            except Exception as exc:  # noqa: BLE001 - a source failure is data
+                errors.append(f"{name}: {type(exc).__name__}: {exc}")
+                reason = "archive not read"
+        status = "discovered"
+        if reason.startswith("archive hash"):
+            status = "refused_hash"
+        elif not archive_read:
+            reason = reason or "metadata only; archive not read"
+        elif compatibility == "app-market-native":
+            status = "incompatible"
+        elif not permissive(license_text):
+            status = "refused_license"
+            reason = reason or "no permissive licence declared"
+        rows.append(_candidate(
+            kind="plugin",
+            name=name,
+            version=str(plugin.get("version") or ""),
+            title=name,
+            publisher=str((plugin.get("author") or {}).get("name") or ""),
+            source={"type": "archive", "url": url, "sha256": wanted},
+            license_text=license_text,
+            repository=repository,
+            components=components,
+            compatibility=compatibility,
+            status=status,
+            reason=reason,
+            extra=extra,
+        ))
+    return rows, errors
+
+
+def _mcp_transport(server: dict[str, Any]) -> tuple[str, str, list[dict[str, Any]]]:
+    remotes = server.get("remotes") or []
+    if remotes:
+        remote = remotes[0]
+        return str(remote.get("type") or "streamable-http"), str(remote.get("url") or ""), []
+    packages = server.get("packages") or []
+    if packages:
+        package = packages[0]
+        transport = (package.get("transport") or {}).get("type") or "stdio"
+        command = package.get("runtimeHint") or package.get("identifier") or ""
+        return str(transport), str(command), list(package.get("environmentVariables") or [])
+    return "", "", []
+
+
+def discover_mcp(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One candidate per registry server, preferring the latest version."""
+    latest: dict[str, dict[str, Any]] = {}
+    for payload in payloads:
+        for item in payload.get("servers", []):
+            server = item.get("server") if isinstance(item, dict) else None
+            if not isinstance(server, dict):
+                continue
+            meta = (item.get("_meta") or {}).get("io.modelcontextprotocol.registry/official") or {}
+            if meta.get("isLatest") is False:
+                continue
+            name = str(server.get("name") or "")
+            if name:
+                latest[name] = server
+    rows: list[dict[str, Any]] = []
+    for name, server in sorted(latest.items()):
+        transport, endpoint, env = _mcp_transport(server)
+        repository = server.get("repository") or {}
+        rows.append(_candidate(
+            kind="connector",
+            name=name,
+            version=str(server.get("version") or ""),
+            title=str(server.get("title") or name),
+            publisher=name.split("/", 1)[0],
+            source={"type": "registry", "url": f"{MCP_REGISTRY}?search={urllib.parse.quote(name)}"},
+            license_text="metadata-only",
+            repository=str(repository.get("url") or "") if isinstance(repository, dict) else "",
+            components=["mcp"],
+            transport=transport,
+            env=env,
+            compatibility="native",
+            status="discovered",
+            reason="endpoint metadata only; auth and terms need review",
+            extra={"endpoint": endpoint},
+        ))
+    return rows
+
+
+def discover_oss_plugin(index: dict[str, Any], *, fetch_bytes: Callable[[str], bytes] = fetch,
+                    repo: str = OSS_PLUGIN_REPO,
+                    manifest_dir: str = OSS_PLUGIN_MANIFEST_DIR) -> tuple[list[dict[str, Any]], list[str]]:
+    rows: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for plugin in index.get("plugins", []):
+        name = str(plugin.get("name") or "")
+        source = plugin.get("source")
+        manifest_url = ""
+        if isinstance(source, str) and source.startswith("./") and repo and manifest_dir:
+            manifest_url = (
+                f"https://raw.githubusercontent.com/{repo}/main/"
+                f"{source.removeprefix('./')}/{manifest_dir}/plugin.json"
+            )
+        license_text = ""
+        components: list[str] = []
+        if manifest_url:
+            try:
+                manifest = json.loads(fetch_bytes(manifest_url))
+                license_text = str(manifest.get("license") or "")
+                components = [
+                    key for key in ("skills", "commands", "agents", "hooks", "mcpServers")
+                    if manifest.get(key)
+                ]
+            except Exception as exc:  # noqa: BLE001 - a source failure is data
+                errors.append(f"{name}: {type(exc).__name__}: {exc}")
+        rows.append(_candidate(
+            kind="plugin",
+            name=name,
+            version=str(plugin.get("version") or ""),
+            title=name,
+            publisher=str((index.get("owner") or {}).get("name") or ""),
+            source={"type": "repo", "url": manifest_url},
+            license_text=license_text,
+            components=components,
+            compatibility="requires_review",
+            status="discovered" if permissive(license_text) else "refused_license",
+            reason="" if license_text else "no licence in the plugin manifest or repository",
+        ))
+    return rows, errors
+
+
+def summarize(rows: list[dict[str, Any]], errors: list[str]) -> dict[str, Any]:
+    counts: dict[str, dict[str, int]] = {"kind": {}, "status": {}, "license": {}}
+    for row in rows:
+        for bucket, value in (
+            ("kind", row["kind"]), ("status", row["status"]), ("license", row["license"] or "none"),
+        ):
+            counts[bucket][value] = counts[bucket].get(value, 0) + 1
+    return {
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "candidates": rows,
+        "counts": {"total": len(rows), **counts},
+        "errors": errors,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--out", type=Path, help="run-scoped report path")
+    parser.add_argument("--sources", default="ephe,app-market,mcp,oss-plugin", help="comma-separated adapters")
+    parser.add_argument("--root", type=Path, default=ROOT, help="workshop root for the Ephe adapter")
+    parser.add_argument("--no-archives", action="store_true", help="skip app-market archive downloads")
+    parser.add_argument(
+        "--mirror", type=Path, metavar="OUT",
+        help="write the full registry mirror to OUT and exit (metadata only)",
+    )
+    parser.add_argument(
+        "--curated", type=Path, metavar="OUT",
+        help="write the curated tier to OUT and exit (picks plus recent per category)",
+    )
+    parser.add_argument(
+        "--search-index", type=Path, metavar="OUT",
+        help="write the precomputed intent tags for the curated tier to OUT",
+    )
+    parser.add_argument(
+        "--popularity", type=Path, metavar="OUT",
+        help="read weekly downloads for every package-backed entry and write them to OUT",
+    )
+    args = parser.parse_args(argv)
+
+    if args.mirror:
+        count, entries, errors = mirror_registry()
+        payload = {
+            "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+            "source": MCP_REGISTRY,
+            "count": count,
+            "entries": entries,
+        }
+        args.mirror.parent.mkdir(parents=True, exist_ok=True)
+        args.mirror.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"mirror: {count} entry(ies) written to {args.mirror}")
+        for error in errors:
+            print(f"  error: {error}")
+        return 1 if errors else 0
+
+    if args.popularity:
+        snapshot = ROOT / "marketplace" / "registry-snapshot.json"
+        try:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"popularity: {snapshot} unreadable: {exc}")
+            return 1
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        counts = popularity_of(entries if isinstance(entries, list) else [])
+        args.popularity.parent.mkdir(parents=True, exist_ok=True)
+        args.popularity.write_text(
+            json.dumps(
+                {
+                    "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+                    "packages": counts,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"popularity: {len(counts)} package count(s) written to {args.popularity}")
+        return 0
+
+    if args.curated:
+        # The curated tier derives from the committed mirror, so the run is
+        # deterministic and offline; --mirror refreshes the mirror first.
+        snapshot = ROOT / "marketplace" / "registry-snapshot.json"
+        try:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"curated: {snapshot} unreadable: {exc}")
+            return 1
+        count = int(payload.get("count") or 0)
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        popularity_path = ROOT / "marketplace" / "popularity.json"
+        try:
+            popularity = json.loads(popularity_path.read_text(encoding="utf-8")).get("packages", {})
+        except (OSError, ValueError):
+            popularity = {}
+        curated = curated_from_mirror(
+            entries if isinstance(entries, list) else [], popularity
+        )
+        payload = {
+            "generated": datetime.now(UTC).isoformat(timespec="seconds"),
+            "source": MCP_REGISTRY,
+            "count": len(curated),
+            "entries": curated,
+        }
+        args.curated.parent.mkdir(parents=True, exist_ok=True)
+        args.curated.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"curated: {len(curated)} of {count} entry(ies) written to {args.curated}")
+        if args.search_index:
+            write_intent_index(curated, args.search_index)
+        return 0
+
+    if args.search_index:
+        snapshot = ROOT / "marketplace" / "registry-curated.json"
+        try:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"search-index: {snapshot} unreadable: {exc}")
+            return 1
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        write_intent_index(entries if isinstance(entries, list) else [], args.search_index)
+        return 0
+
+    if args.out is None:
+        parser.error("--out is required unless --mirror is given")
+
+    sources = [part.strip() for part in args.sources.split(",") if part.strip()]
+    rows: list[dict[str, Any]] = []
+    errors: list[str] = []
+    used: list[str] = []
+    if "ephe" in sources:
+        used.append("ephe")
+        rows += discover_ephe(args.root)
+    if "app-market" in sources and not APP_MARKET_INDEX:
+        errors.append("app-market index: not configured (set EPHE_CATALOG_APPHUB_INDEX)")
+    elif "app-market" in sources:
+        used.append("app-market")
+        try:
+            index = json.loads(fetch(APP_MARKET_INDEX))
+            found, failures = discover_app_market(index, read_archives=not args.no_archives)
+            rows += found
+            errors += failures
+        except Exception as exc:  # noqa: BLE001 - a source failure is data
+            errors.append(f"app-market index: {type(exc).__name__}: {exc}")
+    if "mcp" in sources:
+        used.append("mcp")
+        payloads = []
+        for query in MCP_QUERIES:
+            try:
+                payloads.append(json.loads(fetch(
+                    f"{MCP_REGISTRY}?search={urllib.parse.quote(query)}&limit=10"
+                )))
+            except Exception as exc:  # noqa: BLE001 - a source failure is data
+                errors.append(f"mcp {query}: {type(exc).__name__}: {exc}")
+        rows += discover_mcp(payloads)
+    if "oss-plugin" in sources and not OSS_PLUGIN_INDEX:
+        errors.append("oss-plugin index: not configured (set EPHE_CATALOG_OSS_INDEX)")
+    elif "oss-plugin" in sources:
+        used.append("oss-plugin")
+        try:
+            index = json.loads(fetch(OSS_PLUGIN_INDEX))
+            found, failures = discover_oss_plugin(index)
+            rows += found
+            errors += failures
+        except Exception as exc:  # noqa: BLE001 - a source failure is data
+            errors.append(f"oss-plugin index: {type(exc).__name__}: {exc}")
+
+    report = summarize(rows, errors)
+    report["sources"] = used
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    counts = report["counts"]
+    print(f"catalog-discover: {counts['total']} candidate(s) from {', '.join(used)}")
+    print(f"  kind: {counts['kind']}")
+    print(f"  status: {counts['status']}")
+    print(f"  errors: {len(errors)}")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

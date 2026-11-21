@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "task_id": "W15",
+  "family": "endstate",
+  "level": "L3",
+  "rep": 3,
+  "session_id": "ob-w15-r3-1790174494",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "gamma=True alpha_gone=True index_ok=True",
+  "error_class": null,
+  "wall_ms": 50573.7,
+  "ttft_first_event_ms": 216.0,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 2.2
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.2
+    },
+    {
+      "tool": "file_search",
+      "ms": 51.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.3
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.3
+    },
+    {
+      "tool": "edit_file",
+      "ms": 2.4
+    },
+    {
+      "tool": "edit_file",
+      "ms": 3.5
+    },
+    {
+      "tool": "tool_search",
+      "ms": 1.4
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.9
+    },
+    {
+      "tool": "tool_call",
+      "ms": 3.7
+    },
+    {
+      "tool": "edit_file",
+      "ms": 3.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "file_search",
+    "read_file",
+    "read_file",
+    "edit_file",
+    "edit_file",
+    "tool_search",
+    "tool_call",
+    "tool_call",
+    "edit_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 868,
+  "tokens_out_proxy": 217.0,
+  "fixture_hash": "1f99c3994caa",
+  "answer_tail": ".../w15_alpha.txt'` |\n| 3 | `edit_file` → `w15_gamma.txt` | angelegt, Inhalt `alpha` (5 Zeichen) |\n| 4 | `delete_file` → `w15_beta.txt` | `deleted '.../w15_beta.txt'` |\n| 5 | `edit_file` → `w15_index.md` | `- w15_alpha.txt` → `- w15_gamma.txt` (per Diff bestätigt) |\n\n**Rücklese-Verifikation:**\n- `w15_gamma.txt` → Zeile 1: `alpha` ✔\n- `w15_index.md` → Zeile 2: `- w15_gamma.txt` (nur noch der finale Name, keine alten Namen) ✔\n\n**Endzustand:** Nur `w15_gamma.txt` (Inhalt `alpha`) und das aktualisierte `w15_index.md` existieren; `w15_alpha.txt` und `w15_beta.txt` sind gelöscht.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:42:25"
+}

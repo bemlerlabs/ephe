@@ -1,0 +1,537 @@
+name: Release
+
+# R20/W8: a tag push (v*) builds the Tauri bundles as a DRAFT release.
+#
+# The updater plumbing is wired here, gated on the signing key:
+#   - with TAURI_SIGNING_PRIVATE_KEY set, the guard step below passes
+#     createUpdaterArtifacts=true to `tauri build`, so the bundler writes the .tar.gz/.AppImage
+#     signatures and tauri-action assembles latest.json from them and uploads both to the draft;
+#   - without the key the build-bundles job refuses the tag before it builds. A tagged release
+#     is a milestone release, and it ships a signed shell: an unsigned draft would be a release
+#     no installed desktop can reach through the updater. `scripts/release_desktop.sh --unsigned`
+#     is the local, publish-forbidden path for a build on a machine with no key.
+# createUpdaterArtifacts deliberately lives in this workflow and not in tauri.conf.json: a committed
+# `true` is honoured by every `npm run tauri build` (the desktop check in AGENTS.md), and the bundler
+# then refuses that build outright when the key is absent. The guard has to sit where the key is.
+#
+# Still owner-gated, none of it reachable from this file:
+#   1. the repository is public, so an unauthenticated client CAN read
+#      releases/latest/download/latest.json - the feed is live the moment a release is published;
+#   2. releaseDraft: true means the owner's publish click is what makes `latest` resolve at all,
+#      and the updater skips pre-releases, so a beta tag has to publish as a normal release;
+#   3. the `release` environment carries no required reviewer (GitHub refuses the rule on this plan,
+#      HTTP 422), so the signing key is protected by scope alone — see
+#      docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+# E2E acceptance (R20) holds only once a signed release is published and an older app pulls it.
+
+on:
+  push:
+    tags: ['v*']
+  # The dry run: both gates execute, `build-bundles` stays off. A gate that is only ever reached
+  # by pushing a tag is first exercised on the release itself, which is how an unresolvable action
+  # pin sat in this file unnoticed. The dispatch proves the checks without creating a draft.
+  workflow_dispatch: {}
+
+# One release at a time, and never abort one that is running: `cancel-in-progress`
+# would kill a half-published draft, and the tests/PR workflows own their own groups.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Least privilege: the gate job only reads the repo; the bundle job is the single
+# place that writes (it creates the draft release). zizmor flagged the workflow-wide
+# `contents: write` as excessive-permissions.
+permissions:
+  contents: read
+
+jobs:
+  # The tag has to name the version the tree carries. `release.yml` takes the release name
+  # and the notes from `GITHUB_REF_NAME` and the bundle version from `tauri.conf.json`, so a
+  # hand-pushed tag can publish bundles of one version under another, so the draft carries assets
+  # no build produced at that number. `release_cut.sh` refuses that locally; a direct
+  # `git push origin vX.Y.Z` bypasses the cut. This is the first job, before any build.
+  version-guard:
+    name: Version guard (tag names the tree)
+    if: github.event_name == 'push'
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: The tag and all six carriers name one version
+        run: python scripts/version_guard.py --tag "$GITHUB_REF_NAME"
+
+  # R45: a hard gate before the bundle build — a broken tree produces no draft release.
+  # `build-bundles` needs this job and `frontend-gate`; either one red stops the release.
+  test-gate:
+    name: Test gate (release bar)
+    # The tag push and the dry-run dispatch run the gate. The release event (the publish click)
+    # carries no build work; guarding this gate keeps that event from rebuilding the bundles it is
+    # meant to consume.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # R1: this gate stood on a hosted runner the account cannot allocate, so no run was ever
+    # started and `build-bundles` (`needs: test-gate`) never ran either. It takes the same
+    # Linux label the rest of CI runs on, `vars.CI_LINUX_RUNNER` - whichever runner the
+    # repository points that variable at. An unset variable falls back to GitHub-hosted
+    # `ubuntu-latest`, so a public checkout runs the same gate instead of waiting on a
+    # label it never defined.
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The provenance test asks whether every released tag sits on the trunk, and a
+          # depth-1 checkout carries the tag refs without the commits behind them: every
+          # older tag then reads as diverged. v0.1.9's release run failed exactly there.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        # No pip cache here either: this job stands between a tag and a published
+        # bundle, so its environment is installed cold and rebuilt from the lockfile.
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install package (with dev tools)
+        # Same extras as the Tests workflow: this gate blocks a release, so it has to
+        # run the same suite under the same conditions, or it can pass where CI fails.
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev,tui]"
+      - name: Enable user namespaces for the MCP sandbox
+        # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor), so bubblewrap cannot
+        # map a uid there and every stdio MCP server refuses to start. The product keeps that
+        # refusal; the test host provides the kernel setting the sandbox needs. Older images
+        # without the key stay green.
+        #
+        # The install is bounded and retried for the same reason as the coverage job's step in
+        # ci-gates.yml: on 2026-11-11 the ubuntu.com hosts did not resolve for hours, and a
+        # runner's network is not a verdict about a release. If the mirror stays unreachable the
+        # warning names the skipped proofs; a release is not held hostage to apt.
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          if command -v bwrap >/dev/null 2>&1; then
+            echo "bubblewrap already present: $(command -v bwrap)"
+            exit 0
+          fi
+          set +e
+          ok=0
+          for attempt in 1 2 3; do
+            sudo timeout 300 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y bubblewrap \
+              && { ok=1; break; }
+            echo "apt attempt $attempt did not finish; retrying" >&2
+            sleep 10
+          done
+          if [ "$ok" = 1 ]; then
+            bwrap --version
+          else
+            echo "::warning::bubblewrap could not be installed (apt/network); the sandbox proofs skip with the probe's reason and this release gate does not hold them this run."
+          fi
+      - name: Run tracked pytest suite
+        run: python -m pytest tests/ -q
+      - name: pass^3 release gate
+        # R7: a cohort whose three repetitions disagree does not release. This runner is neither
+        # the idle measurement box a fresh cohort needs nor the holder of ~/.ephe/engine.json, so
+        # the step re-checks the committed cohort's flake check and the engine arm runs instead on
+        # the release box, through scripts/release_checklist.py. Exit 1 is a task that flipped
+        # between its reps, exit 2 a cohort the gate cannot read.
+        run: python evals/pass3_release_gate.py --runs evals/runs --no-engine-check
+      - name: Release checklist
+        # The same script `scripts/release_cut.sh` runs before it tags. The workflow already
+        # ran the pass^3 gate in the step above, and the signing key is scoped to the build
+        # job's environment (its own guard refuses an unsigned tagged build), so the checklist
+        # is told which of its items this event owns. On a tag push the tag already exists, so
+        # `--tagged` keeps `tag-free` from refusing the release it is checking; the version
+        # guard is what compares that tag with the carriers.
+        run: |
+          set -euo pipefail
+          # `--tagged` skips the tag-free item in both events: a tag push already created
+          # the tag, and a dispatch is a rehearsal that must not fail on a published one.
+          # The cut owns tag-free for a real release.
+          args=(--skip-pass3 --skip-signing --tagged)
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            args+=(--version "${GITHUB_REF_NAME#v}")
+          fi
+          python scripts/release_checklist.py "${args[@]}"
+
+  # The frontend half of the release bar. v0.1.1 shipped while this file's test gate ran only
+  # pytest and pass^3, and two other workflows were red on the same commit over the ModelPicker's
+  # wall-clock assertion. `build-bundles` needs this job, so a red frontend now stops a tag before
+  # any bundle is assembled. The four commands are the ones frontend-build.yml runs on every push;
+  # tests/test_release_frontend_gate.py holds the copy to that source.
+  frontend-gate:
+    name: Frontend gate (release bar)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Activate the pnpm this repo pins
+        # Before setup-node for the same reason as frontend-build.yml: a `cache: pnpm` setup step
+        # shells out to `pnpm store path`, and nothing has provisioned pnpm at that point.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.5
+          # No cache: a publishing workflow restores nothing from an earlier run (zizmor:
+          # cache-poisoning). The install below is cold, like the bundle build.
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: cd app && pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: cd app && pnpm exec tsc --noEmit
+
+      - name: Unit tests (vitest)
+        # The functional suite only. The ModelPicker's 500 ms ceiling runs in the serial perf lane
+        # (vitest.perf.config.ts), because a wall clock read under parallel load measures the host.
+        run: cd app && pnpm exec vitest run
+
+      - name: Lint
+        run: cd app && pnpm run lint
+
+  build-bundles:
+    name: Tauri bundles (${{ matrix.os }})
+    needs: [version-guard, test-gate, frontend-gate]
+    # A tag push is the only event that builds. The release event consumes the assets already
+    # created, and the dispatch is the gate's dry run.
+    if: github.event_name == 'push'
+    # R1: the runner comes from the matrix `runner` key; `os` is the job title only. Every
+    # leg carries a `runner`, because an empty `runs-on` leaves the job queued forever.
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    # The signing key is scoped to the `release` environment, and this is the only
+    # `environment: release` declaration in the repo, so this job is the only one that can
+    # read it (zizmor: secrets-outside-env). A repository-scope copy defeats that scope, so
+    # keep the repository-scope count at 0 (checked 2026-10-15). Environment scope is the
+    # protection; it carries no required reviewer because GitHub refuses that rule on this
+    # plan (HTTP 422) — see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+    environment: release
+    # The only job that writes: it creates the draft release.
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `runner` is the routing label; `os` stays the job title. macOS goes to the runner
+          # behind `vars.CI_MAC_RUNNER`, Linux to the one behind `vars.CI_LINUX_RUNNER` - each copy
+          # of this repository points those at a runner it can use. No Windows leg exists, so
+          # that leg is dropped and the Windows bundle stays a hand build; §5.1 of
+          # docs/RELEASE_SIGNING_DRY_RUN_2026-10-11.md carries the labels and the price.
+          - os: macos
+            runner: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
+            args: --target aarch64-apple-darwin
+          - os: linux
+            runner: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+            args: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refuse an unsigned tagged release
+        # A tag is a milestone release, and the policy ships a signed shell. Without the key
+        # the bundler writes no .sig, tauri-action posts no latest.json, and the draft is a
+        # release no installed desktop can reach. A warning was the old behaviour and it let
+        # exactly that draft exist; the build now stops before it spends a cold Rust compile.
+        # The key is read, never printed: this step only asks whether it is empty.
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is empty in the release environment: a tagged milestone must ship a signed updater bundle, so this build stops instead of drafting an unsigned release."
+            exit 1
+          fi
+          echo "Signing key present: the bundles and the updater manifest can be produced."
+
+      - name: Activate the pnpm this repo pins
+        # Same defect as Frontend Build: `cache: pnpm` needs a pnpm binary, and nothing
+        # provisioned one. If this is left unfixed, a tag push fails at the node setup
+        # and the release bundles are never built.
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./app/package.json').packageManager")" --activate
+          pnpm --version
+
+      - name: Setup Node
+        # Node 22, the version Frontend Build type-checks and tests on. It used to be
+        # 20 here, so the shipped bundle was built by a runtime no test ever ran
+        # against. No `cache:` either — see the Rust note below for why a publishing
+        # workflow restores nothing.
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.5
+          # Explicitly off: leaving it unset enables the package-manager cache, which is
+          # exactly what a publishing workflow must not restore (zizmor: cache-poisoning).
+          package-manager-cache: false
+
+      - name: Rust toolchain
+        # Pinned by commit, not by the mutable `@stable` ref (zizmor: unpinned-uses).
+        # The compiler version itself stays stable; `app/src-tauri/Cargo.toml` records
+        # the MSRV (rust-version = 1.77.2) that the code must satisfy.
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+
+      # No build cache in this workflow, on purpose: a published bundle must not be
+      # assembled from state restored by an earlier run (zizmor: cache-poisoning).
+      # Cost, stated honestly: the release build gets slower — a cold Rust compile per
+      # OS. Tests and PR builds keep their caches.
+
+      - name: Linux system deps (webkit2gtk)
+        if: runner.os == 'Linux'
+        # The same apt step that stalled twice on 2026-10-26 (19 and 8 minutes against
+        # a 25-second baseline) runs here for every tag. Two bounded attempts keep a
+        # stalled mirror from holding a release build open.
+        run: |
+          set +e
+          ok=0
+          for attempt in 1 2; do
+            sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 update &&
+            sudo timeout 600 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 install -y libwebkit2gtk-4.1-dev \
+              libappindicator3-dev librsvg2-dev patchelf && { ok=1; break; }
+            echo "apt attempt $attempt did not finish; retrying" >&2
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
+      - name: Build PWA (vite dist)
+        working-directory: app
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Decide whether this run can produce a feed
+        id: updater
+        # The one input that separates a signed release from an unsigned one. `createUpdaterArtifacts`
+        # makes the bundler emit the platform signatures, and tauri-action assembles latest.json from
+        # them. The guard above already refused a run without the key; this step repeats the test so
+        # a future edit that drops the guard still cannot call an unsigned build a release.
+        shell: bash
+        env:
+          # Read, never printed: the step only asks whether the environment secret is empty. The build
+          # step below receives the same secret through its own env block.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          # The JSON is single-quoted on purpose. tauri-action splits its `args` input with
+          # string-argv, which treats both quote characters as delimiters: unquoted, the double
+          # quotes around the keys are stripped and `tauri build --config` receives
+          # `{bundle:{createUpdaterArtifacts:true}}`, which is not JSON. The single quotes are what
+          # survive the split intact. Verified against string-argv: the plain form throws
+          # "Expected property name", the quoted form parses.
+          #
+          # Linux stops at deb and AppImage here because tauri-bundler 2.10.3 (CLI 2.12.3)
+          # rejects a semver prerelease in the RPM version field; the RPM is bundled in its own
+          # step below, from the binary this job already compiled.
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::no signing key: an unsigned tagged release is not published."
+            exit 1
+          fi
+          targets=''
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            targets=',"targets":["deb","appimage"]'
+          fi
+          echo 'signed=true' >> "$GITHUB_OUTPUT"
+          echo "config=--config '{\"bundle\":{\"createUpdaterArtifacts\":true${targets}}}'" >> "$GITHUB_OUTPUT"
+          echo "Signing key present: bundles carry .sig files and latest.json is assembled." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
+        # The release body is cut from CHANGELOG.md by a stdlib script, and this job provisions no
+        # Python otherwise; a self-hosted runner's ambient `python3` is the host state
+        # scripts/ci_preflight.sh refuses in the test legs. Pinned, like every leg in this tree.
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Release body from the changelog
+        id: notes
+        # tauri-action writes the updater manifest's `notes` field from its `releaseBody` input, and
+        # with that input unset the published feed carried `"notes": ""` -- the update window could
+        # then only say the release held no notes. The block is the `## [version]` section
+        # scripts/release_checklist.py already requires to be present and non-empty, so a missing
+        # one stops the draft instead of shipping a blank body.
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo 'body<<EPHE_RELEASE_BODY'
+            python3 scripts/release_notes.py "$version"
+            echo 'EPHE_RELEASE_BODY'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Decide the macOS signature
+        id: macsign
+        # Two documented outcomes, and the file says which one this run got. Notarization is
+        # a bonus, never a gate: the product is distributed as source, anyone can build it or
+        # install it with one command, and competitors ship un-notarized builds too. No Apple
+        # account is required for a release.
+        #   - Apple secrets present: the Developer ID identity signs the bundle and, when the
+        #     notarization variables are there as well, the app and its DMG get a ticket.
+        #     Tauri's bundler does that work itself; its own warning names the variables it
+        #     reads ("no APPLE_ID & APPLE_PASSWORD & APPLE_TEAM_ID or APPLE_API_KEY &
+        #     APPLE_API_ISSUER & APPLE_API_KEY_PATH").
+        #   - No secrets (the default, and the state of this repository): `signingIdentity:
+        #     "-"` signs the WHOLE bundle ad-hoc. That is the fix for issue #192: the bundle
+        #     used to keep the linker signature (`flags=0x20002(adhoc,linker-signed)`,
+        #     `Info.plist=not bound`, `Sealed Resources=none`), so `codesign --verify
+        #     --strict` failed with "code has no resources but signature indicates they must
+        #     be present" and every privacy grant was keyed to a build hash. Measured on
+        #     macOS 2026-11-10: with this override the same build produces
+        #     `flags=0x10002(adhoc,runtime)`, a bound Info.plist, sealed resources and
+        #     `codesign --verify --deep --strict` exit 0.
+        # Gatekeeper still rejects the ad-hoc copy (no Developer ID, no ticket), which is
+        # what docs/INSTALL.md tells the user to expect and how to open it.
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          if [ -z "${APPLE_CERTIFICATE:-}" ] || [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "macconfig=--config '{\"bundle\":{\"macOS\":{\"signingIdentity\":\"-\"}}}'" >> "$GITHUB_OUTPUT"
+            echo 'mode=adhoc' >> "$GITHUB_OUTPUT"
+            {
+              echo "No Apple signing secrets: the bundle is signed ad-hoc. The seal is valid, there is no Developer ID, and the build is not notarized — the default, and no Apple account is involved."
+              echo "A downloaded copy needs right-click → Open or \`xattr -d com.apple.quarantine\`; docs/INSTALL.md carries the step."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo 'mode=developer-id' >> "$GITHUB_OUTPUT"
+          echo "macconfig=" >> "$GITHUB_OUTPUT"
+          # Written into the environment of the later steps rather than into this one:
+          # tauri reads them while it signs and notarizes. A secret echoed into a log is
+          # masked by the runner, and the file form keeps a multi-line value intact.
+          # The certificate is a base64 blob and GitHub's own runner does not promise it is
+          # one line, so it goes in through the heredoc form; a wrapped value written with
+          # `NAME=value` would be truncated at the first newline and the build would fail
+          # with a decryption error that names nothing.
+          {
+            echo "APPLE_CERTIFICATE<<EPHE_APPLE_CERTIFICATE"
+            printf '%s\n' "$APPLE_CERTIFICATE"
+            echo "EPHE_APPLE_CERTIFICATE"
+            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+          } >> "$GITHUB_ENV"
+          if [ -n "${APPLE_ID:-}" ]; then
+            { echo "APPLE_ID=$APPLE_ID"; echo "APPLE_PASSWORD=$APPLE_PASSWORD"; echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"; } >> "$GITHUB_ENV"
+          fi
+          if [ -n "${APPLE_API_KEY:-}" ]; then
+            { echo "APPLE_API_KEY=$APPLE_API_KEY"; echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"; } >> "$GITHUB_ENV"
+          fi
+          if [ -z "${APPLE_ID:-}" ] && [ -z "${APPLE_API_KEY:-}" ]; then
+            {
+              echo "Developer ID signature, not notarized: no notarization secret is set, so Gatekeeper still refuses a copied download."
+              echo "That is a documented state, not a gate — the seal is valid and docs/INSTALL.md carries the first-launch step."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Developer ID signing and notarization: the bundle and its DMG get a ticket." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Build Tauri bundles (draft release)
+        uses: tauri-apps/tauri-action@2d3036b306d86c3198f05a460dcd23cf55ef41b9 # v0.5.23
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Ephe ${{ github.ref_name }}'
+          # The release body the step above cut from CHANGELOG.md. tauri-action copies this input into
+          # both the draft's description and the `notes` field of the updater manifest it assembles.
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: true
+          prerelease: false
+          # Stated rather than inherited: a manifest is only valid over signed artifacts, so the
+          # generator is held off whenever the guard above found no key. tauri-action already skips
+          # the upload when it finds no .sig, and this makes the invariant the workflow's own.
+          # `includeUpdaterJson`: tauri-action renamed this input. With the old spelling the line
+          # did nothing and the manifest was uploaded by the action's own default - the
+          # v0.1.0-beta.3 run reported the wrong input name. The guard emits `true`/`false`, which
+          # is what the action parses.
+          includeUpdaterJson: ${{ steps.updater.outputs.signed }}
+          # matrix.args carries the mac target; the second half is the createUpdaterArtifacts switch,
+          # empty on an unsigned run; the third is the macOS signing decision (empty off the mac
+          # leg, the ad-hoc identity there unless the Apple secrets exist). Repeated `--config`
+          # flags are merged in the order given, so the two switches compose.
+          args: ${{ matrix.args }} ${{ steps.updater.outputs.config }} ${{ steps.macsign.outputs.macconfig }}
+
+      - name: Audit the macOS bundle seal
+        # The gate issue #192 asked for. `codesign --verify --deep --strict` is the one
+        # verdict that fails this step: an ad-hoc seal passes it (and is reported), a
+        # linker-signed or unsigned bundle does not. `spctl` and `stapler` are reported
+        # beside it — an ad-hoc bundle is `state=adhoc-not-notarized` and that is a
+        # documented success, so a release never claims more than the bundle carries.
+        # Both artifacts record their state in the step summary; a DMG that is missing is
+        # the only thing this step warns about.
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in \
+            "app/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Ephe.app" \
+            "app/src-tauri/target/release/bundle/macos/Ephe.app"; do
+            if [ -d "$candidate" ]; then bundle="$candidate"; break; fi
+          done
+          if [ -z "${bundle:-}" ]; then
+            echo "::error::no macOS bundle was produced — nothing to audit, and the release has no app."
+            exit 1
+          fi
+          echo "Auditing $bundle"
+          scripts/macos_sign_audit.sh "$bundle"
+          scripts/macos_sign_audit.sh --summary "$bundle" >> "$GITHUB_STEP_SUMMARY"
+          dmg="$(find app/src-tauri/target -path '*bundle/dmg/*.dmg' -print -quit || true)"
+          if [ -n "$dmg" ]; then
+            echo "Auditing $dmg"
+            scripts/macos_sign_audit.sh "$dmg"
+            scripts/macos_sign_audit.sh --summary "$dmg" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::no DMG was produced, so the downloaded-shape audit could not run."
+          fi
+
+      - name: Bundle the RPM with an RPM-valid version
+        # rpm-rs 0.30, pulled in by tauri-bundler 2.10.3 with CLI 2.12.3, rejects the hyphen a
+        # semver prerelease needs in the RPM version field ("contains invalid character"). The
+        # action above therefore builds deb and AppImage only, and this step bundles the binary
+        # it already compiled as an RPM whose version carries the prerelease as build metadata
+        # (`0.1.0+beta.9`): semver-valid, accepted by rpm-rs, and newer than beta.8's
+        # `0.1.0-beta.8` under rpmvercmp. The binary, the deb, the AppImage and the updater feed
+        # keep `0.1.0-beta.9` — this override reaches only the RPM metadata.
+        if: runner.os == 'Linux'
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          rpm_version="${version/-/+}"
+          pnpm exec tauri bundle --bundles rpm --config "{\"version\":\"${rpm_version}\"}"
+          gh release upload "${GITHUB_REF_NAME}" src-tauri/target/release/bundle/rpm/*.rpm --clobber

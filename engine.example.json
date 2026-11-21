@@ -1,0 +1,7 @@
+{
+  "provider": "openai_compatible",
+  "model": "your-model-id",
+  "api_url": "http://your-engine-host:8000/v1",
+  "output_dir": null,
+  "workspace_dir": null
+}

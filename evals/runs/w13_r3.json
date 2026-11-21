@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "task_id": "W13",
+  "family": "endstate",
+  "level": "L3",
+  "rep": 3,
+  "session_id": "ob-w13-r3-1790174378",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "a=True b_gone=True c=True",
+  "error_class": null,
+  "wall_ms": 25670.1,
+  "ttft_first_event_ms": 259.1,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "edit_file",
+      "ms": 5.2
+    },
+    {
+      "tool": "edit_file",
+      "ms": 5.2
+    },
+    {
+      "tool": "tool_search",
+      "ms": 5.2
+    },
+    {
+      "tool": "tool_call",
+      "ms": 2.1
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "edit_file",
+    "edit_file",
+    "tool_search",
+    "tool_call"
+  ],
+  "answer_chars": 481,
+  "tokens_out_proxy": 120.2,
+  "fixture_hash": "cfd96093ea8e",
+  "answer_tail": "\n\nErledigt ✅ — alle Schritte durch echte Tool-Ausgaben belegt:\n\n| Schritt | Aktion | Verifiziertes Ergebnis |\n|---|---|---|\n| 1 | `edit_file` → `w13_a.txt` | angelegt, Inhalt `a` (1 Zeichen) |\n| 2 | `edit_file` → `w13_c.txt` | angelegt, Inhalt `c` (1 Zeichen) |\n| 3 | `delete_file` → `w13_b.txt` | `deleted '/private/tmp/bench-option-b/ws/w13_b.txt'` |\n\n**Endzustand:** `w13_a.txt` (Inhalt `a`) und `w13_c.txt` (Inhalt `c`) existieren; `w13_b.txt` ist gelöscht.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T16:40:03"
+}

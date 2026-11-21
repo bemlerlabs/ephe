@@ -1,0 +1,70 @@
+# Ephe engine advisory register — flaws that reach us through a native engine
+#
+# This file exists because the Python register cannot see this class of flaw at all.
+# `pip-audit` asks the PyPI ecosystem about the *pip package*; the cell's execution
+# engine is Rust, shipped inside the `wasmtime` wheel as a compiled library, and its
+# advisories live in the crates.io/RustSec ecosystem. Measured 2026-10-09:
+# `POST https://api.osv.dev/v1/query` for `{package: wasmtime, ecosystem: PyPI,
+# version: 47.0.1}` returns **zero** vulnerabilities, while the same engine version in
+# the `wasmtime-wasi` crate range is under an active advisory. So an entry here is
+# never a `--ignore-vuln` flag — pip-audit would not have reported it.
+# `.github/workflows/supply-chain.yml` resolves every ID in this file and in
+# `advisories-ignore.txt` against the advisory databases, failing the run on an ID
+# that resolves nowhere (that is how `GHSA-j2g9-4prp-pf6h` was nearly lost: a
+# well-formed ID that only exists as an *alias*, which the naive lookup reads as a 404).
+#
+# Line format: <ID>  # package=<name> ecosystem=<eco> probe=<version>
+#                    affected=<range> fixed_in=<version> state=fixed
+#                    alias=<the GHSA string for the same record, if any> recheck=<YYYY-MM-DD>
+# `probe` is the version the resolution check asks the databases about. An entry
+# without `state=fixed` is a written acceptance and must also name `blocked_by`, the
+# constraint that keeps the fix out of reach, plus the exposure that was measured and
+# what remains UNPROVEN. Past its recheck date the gate fails, same rule as the other
+# register: the decision carries the date it stops being valid.
+#
+# 2026-10-23, owner decision D29: the engine moved from 48.0.0 to 50.0.1.
+# Why that version: RUSTSEC-2026-0352 (GHSA-m9f7-9w4p-gv38) is a filesystem sandbox
+# escape when renaming symlinks with trailing slashes, and PyPI publishes no fixed
+# 48.x (48.0.6) and no fixed 49.0.3. 50.0.1 is the first published release outside
+# every affected range below. Ephemora Cell 1.1.0 declares `wasmtime<48`; the uv
+# override in pyproject.toml replaces that bound, and `tests/test_cell_runtime_floor.py`
+# holds both the floor and the lock to it.
+# Evidence for the move: 142 cell, sandbox and fence tests passed on 50.0.1 on
+# 2026-10-23 (out/s4-20261023-_5_914gn/cell-tests-wasmtime50.log), including the cell
+# boot, the policy snapshot and the WASIConfig seam. The four cap figures in
+# core/cpython_cell.py were measured on the 47.x engine; re-running one live cell on
+# 50.0.1 is the next measurement, and until it runs this register does not claim the
+# fuel-per-second figure is re-measured.
+
+# GHSA-j2g9-4prp-pf6h = RUSTSEC-2026-0314 (the RustSec entry is the primary record;
+# the GHSA string is an alias of it, and the canonical advisory sits in the
+# bytecodealliance/wasmtime repository, not in the pip ecosystem).
+RUSTSEC-2026-0314  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.3 fixed_in=48.0.3 state=fixed alias=GHSA-j2g9-4prp-pf6h recheck=2027-01-23
+
+RUSTSEC-2026-0321  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-j366-h8gg-77pm recheck=2027-01-23
+
+RUSTSEC-2026-0322  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-gqmc-89g8-p25r recheck=2027-01-23
+
+RUSTSEC-2026-0323  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-96f6-r43r-8c24 recheck=2027-01-23
+
+RUSTSEC-2026-0324  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=48.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-mr2v-56j5-cmfc recheck=2027-01-23
+
+# Filesystem sandbox escape when renaming symlinks with trailing slashes.
+# CVSS v4 AV:N/AC:L/AT:P/PR:L/UI:P/VC:H/VI:H/VA:L/SC:H/SI:H/SA:L.
+# Fixed ranges: 36.0.18, 48.0.6 and 49.0.3 — none of the latter two are on PyPI.
+RUSTSEC-2026-0352  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.6 fixed_in=48.0.6 state=fixed alias=GHSA-m9f7-9w4p-gv38 recheck=2027-01-23
+
+# 2026-11-03 — what was missing here was a probe target.
+# Every row above names the `wasmtime-wasi` crate, and `--audit-engine` asks the
+# database only about the (package, ecosystem, probe) triples written here. The
+# engine that executes guest code is the `wasmtime` crate itself, and no line ever
+# named it — so an advisory against `wasmtime` could reach this register as nothing.
+# Measured the same day: `{package: wasmtime, ecosystem: crates.io, version: 50.0.1}`
+# returns zero records. That is a verdict, and the register had never asked the
+# question. This row asks it. It claims no live exposure.
+# RUSTSEC-2026-0379 (aliases CVE-2026-115893, GHSA-mghf-wjfp-p5xm): the Cranelift
+# backend on aarch64 can jump to an incorrect target on a large Wasm `br_table`, so a
+# valid module escapes the guest. OSV events, copied out of the record:
+# introduced 0.0.0-0 fixed 36.0.19; introduced 37.0.0 fixed 48.0.7; introduced 49.0.0
+# fixed 49.0.4. 50.0.1 is outside all three. x86-64 was not affected; this Mac is.
+RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=49.0.0,<49.0.4 fixed_in=49.0.4 state=fixed alias=GHSA-mghf-wjfp-p5xm recheck=2027-02-03

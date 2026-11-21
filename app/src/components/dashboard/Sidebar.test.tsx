@@ -1,0 +1,357 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+
+const storeMocks = vi.hoisted(() => {
+  /** Local midday, far from any midnight. The group header comes from `isToday` over
+   *  `createdAt`, and the fixture was built with a live `Date.now()`: a run that loaded
+   *  the module at 23:59:5x and rendered at 00:00:0x put both sessions in yesterday's
+   *  bucket, so the `Heute (2)` header the collapse test clicks no longer existed
+   *  (measured on the runner of run 44642036779). The clock below is pinned to this
+   *  instant, so the fixture and the grouping always read the same day. */
+  const now = new Date('2026-05-05T12:00:00').getTime()
+  return {
+    togglePin: vi.fn(),
+    now,
+    // Mutable so that the DD-25 filter (hide empty sessions) can be set
+    // deliberately per test; beforeEach restores the baseline state.
+    sessions: [
+      {
+        id: 's1',
+        title: 'Alpha',
+        messages: [{ role: 'user', content: 'Hallo' }],
+        createdAt: now - 60_000,
+      },
+      {
+        id: 's2',
+        title: 'Beta',
+        messages: [{ role: 'user', content: 'Hallo' }],
+        createdAt: now - 60_000,
+        pinned: true,
+      },
+    ] as Array<Record<string, unknown>>,
+    activeSessionId: 's1',
+  }
+})
+
+beforeEach(() => {
+  // `Date` only: the search field and the motion stub keep their real timers.
+  vi.useFakeTimers({ now: storeMocks.now, toFake: ['Date'] })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+// framer-motion mock — pass motion.aside through as a plain aside
+vi.mock('framer-motion', () => ({
+  // The surfaces animate with `m` — LazyMotion's core component; the app root
+  // mounts the feature set once (App.tsx). The stub has to answer for `m`.
+  m: {
+    div: (props: Record<string, unknown>) => (
+      <div data-testid="chat-sidebar" {...(props as React.ComponentProps<'div'>)} />
+    ),
+  },
+}))
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'a11y.sidebar': 'Chat sessions',
+        'a11y.close': 'Close',
+        'sidebar.collapse': 'Collapse sidebar',
+        'sidebar.expand': 'Expand sidebar',
+        'sidebar.newChat': 'New session',
+        'sidebar.searchPlaceholder': 'Search…',
+        'sidebar.settings': 'Settings',
+        'sidebar.today': 'Heute',
+      }
+      return map[key] ?? key
+    },
+  }),
+}))
+
+vi.mock('@/store/chatStore', () => ({
+  DEFAULT_SESSION_TITLE: 'New Session',
+  useChatStore: () => ({
+    sessions: storeMocks.sessions,
+    activeSessionId: storeMocks.activeSessionId,
+    setActiveSession: vi.fn(),
+    createSession: vi.fn(),
+    deleteSession: vi.fn(),
+    renameSession: vi.fn(),
+    togglePin: storeMocks.togglePin,
+  }),
+}))
+
+vi.mock('@/hooks/useMediaQuery', () => ({
+  useMediaQuery: () => true, // Desktop
+}))
+
+import Sidebar from './Sidebar'
+
+describe('the sidebar desktop collapse', () => {
+  it('closed: the column folds to nothing, inert, and keeps no control of its own', () => {
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={true}
+        onToggleCollapsed={vi.fn()}
+      />,
+    )
+    const aside = screen.getByTestId('chat-sidebar')
+    // Register #107: the frame rail is the left edge; a closed register is 0 px wide and
+    // inert, so its rows cannot be tabbed into. It is not a 56 px icon column any more.
+    expect(aside.getAttribute('data-collapsed')).toBe('true')
+    expect(aside.style.width).toBe('0px')
+    expect(aside.hasAttribute('inert')).toBe(true)
+    // The door belongs to the rail, so the column offers no expand button of its own;
+    // its chevron is still there, but the inert column puts it out of every reach.
+    expect(screen.queryByRole('button', { name: 'Expand sidebar' })).toBeNull()
+    expect(screen.getByTestId('sidebar-collapse-toggle').closest('[inert]')).toBe(aside)
+  })
+
+  it('closed: the rail row is what opens it again — the column carries no toggle', () => {
+    const onToggle = vi.fn()
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={true}
+        onToggleCollapsed={onToggle}
+      />,
+    )
+    expect(screen.queryByTestId('sidebar-expand-toggle')).toBeNull()
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('open: w-72 + session titles + the list search, and a chevron that closes', () => {
+    const onToggle = vi.fn()
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={false}
+        onToggleCollapsed={onToggle}
+      />,
+    )
+    expect(screen.getByTestId('chat-sidebar').className).toContain('w-72')
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeTruthy()
+    expect(screen.getByText('Alpha')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Search…')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('sidebar-collapse-toggle'))
+    expect(onToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('expanded: no logo block, and no New-task pill beside the rail’s own + row (R38, #107)', () => {
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={false}
+        onToggleCollapsed={vi.fn()}
+      />,
+    )
+    // The big display logo block (hero-frost h2 + edition line) was removed;
+    // the name now stands only in the chat hero. The i18n mock falls back to the key,
+    // so 'nav.appName'/'sidebar.edition' would show up as a raw key if the block
+    // still existed.
+    expect(screen.queryByText('nav.appName')).toBeNull()
+    expect(screen.queryByText('sidebar.edition')).toBeNull()
+    expect(document.querySelector('.hero-frost')).toBeNull()
+    // Register #107: on a wide window the rail starts the task; a second pill in the
+    // column would be the duplicate the owner named. The phone drawer keeps it.
+    expect(screen.queryByTestId('new-session')).toBeNull()
+  })
+
+  it('group collapse: a header click folds, the second click unfolds', () => {
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={false}
+        onToggleCollapsed={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Alpha')).toBeTruthy()
+    const groupHeader = screen.getByRole('button', { name: /Heute.*2/ })
+    fireEvent.click(groupHeader)
+    expect(screen.queryByText('Alpha')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Heute.*2/ }))
+    expect(screen.getByText('Alpha')).toBeTruthy()
+  })
+
+  it('onToggleCollapsed fires on a click', () => {
+    const onToggle = vi.fn()
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={false}
+        onToggleCollapsed={onToggle}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(onToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('the settings card under the sessions is the settings door (one button)', () => {
+    const onOpen = vi.fn()
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={onOpen}
+        collapsed={false}
+        onToggleCollapsed={vi.fn()}
+      />,
+    )
+    const btn = screen.getByTestId('sidebar-settings-btn')
+    expect(btn).toBeTruthy()
+    // WCAG 2.5.3: no aria-label that drops the visible "v0.6.8" line — the
+    // button is named by the text it shows.
+    expect(btn.getAttribute('aria-label')).toBeNull()
+    expect(btn.textContent).toContain('sidebar.settingsAndProfile')
+    fireEvent.click(btn)
+    expect(onOpen).toHaveBeenCalledTimes(1)
+  })
+})
+
+// R26: Session context menu — right-click or the ⋯ hover button opens the
+// same menu (Pin / Rename / Copy session ID / Delete), like leading AI clients.
+describe('R26 Session context menu', () => {
+  function mount() {
+    return render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={false}
+        onToggleCollapsed={vi.fn()}
+      />,
+    )
+  }
+
+  it('right-click on a session row opens the context menu', () => {
+    mount()
+    fireEvent.contextMenu(screen.getByText('Alpha'))
+    expect(screen.getByTestId('session-context-menu')).toBeTruthy()
+    expect(screen.getByTestId('menu-pin')).toBeTruthy()
+    expect(screen.getByTestId('menu-rename')).toBeTruthy()
+    expect(screen.getByTestId('menu-copy-id')).toBeTruthy()
+    expect(screen.getByTestId('menu-delete')).toBeTruthy()
+  })
+
+  it('menu-pin calls togglePin with the session id and closes the menu', () => {
+    const { container } = mount()
+    fireEvent.contextMenu(screen.getByText('Alpha'))
+    fireEvent.click(screen.getByTestId('menu-pin'))
+    expect(storeMocks.togglePin).toHaveBeenCalledWith('s1')
+    expect(screen.queryByTestId('session-context-menu')).toBeNull()
+    void container
+  })
+
+  it('menu-copy-id writes the session id to the clipboard', async () => {
+    const writeText = vi.fn(async () => {})
+    Object.assign(navigator, { clipboard: { writeText } })
+    mount()
+    fireEvent.contextMenu(screen.getByText('Alpha'))
+    fireEvent.click(screen.getByTestId('menu-copy-id'))
+    await Promise.resolve()
+    expect(writeText).toHaveBeenCalledWith('s1')
+  })
+
+  it('menu-delete shows the inline delete confirm on the row', () => {
+    mount()
+    fireEvent.contextMenu(screen.getByText('Alpha'))
+    fireEvent.click(screen.getByTestId('menu-delete'))
+    expect(screen.queryByTestId('session-context-menu')).toBeNull()
+    expect(screen.getByText('sidebar.deleteAction')).toBeTruthy()
+  })
+
+  it('⋯ button opens the same menu (touch/mobile path)', () => {
+    mount()
+    fireEvent.click(screen.getByTestId('session-menu-s1'))
+    expect(screen.getByTestId('session-context-menu')).toBeTruthy()
+  })
+
+  it('pinned session shows the pin indicator and sorts first', () => {
+    mount()
+    // Beta has pinned: true in the mock — its pin indicator must exist
+    const pins = screen.getAllByLabelText('sidebar.sessionMenu.pinnedAria')
+    expect(pins.length).toBe(1)
+    const titles = screen.getAllByTestId('session-title-text').map((el) => el.textContent)
+    expect(titles.indexOf('Beta')).toBeLessThan(titles.indexOf('Alpha'))
+  })
+})
+
+// DD-25: brand-new sessions without any message used to clutter the list.
+// Only the active session stays visible while empty; every other empty
+// session is hidden until it has content.
+describe('DD-25 empty-session filter', () => {
+  const baseSessions = () =>
+    [
+      {
+        id: 's1',
+        title: 'Alpha',
+        messages: [{ role: 'user', content: 'Hallo' }],
+        createdAt: storeMocks.now - 60_000,
+      },
+      {
+        id: 's2',
+        title: 'Beta',
+        messages: [{ role: 'user', content: 'Hallo' }],
+        createdAt: storeMocks.now - 60_000,
+        pinned: true,
+      },
+    ] as Array<Record<string, unknown>>
+
+  beforeEach(() => {
+    storeMocks.sessions = baseSessions()
+    storeMocks.activeSessionId = 's1'
+  })
+
+  function mount() {
+    return render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+        collapsed={false}
+        onToggleCollapsed={vi.fn()}
+      />,
+    )
+  }
+
+  it('hides an empty session that is not active', () => {
+    storeMocks.sessions.push({ id: 's3', title: 'Gamma', messages: [], createdAt: Date.now() })
+    mount()
+    expect(screen.getByText('Alpha')).toBeTruthy()
+    expect(screen.queryByText('Gamma')).toBeNull()
+  })
+
+  it('keeps an empty session visible while it is the active one', () => {
+    storeMocks.sessions.push({ id: 's3', title: 'Gamma', messages: [], createdAt: Date.now() })
+    storeMocks.activeSessionId = 's3'
+    mount()
+    expect(screen.getByText('Gamma')).toBeTruthy()
+  })
+
+  it('a DEFAULT session title shows translated over the raw English value (I6 P3-4)', () => {
+    storeMocks.sessions[0]!.title = 'New Session'
+    mount()
+    const titles = screen.getAllByTestId('session-title-text')
+    expect(titles.length).toBeGreaterThan(0)
+    // Do not assume the sorting (pinned on top) — the list carries no single
+    // raw EN value any more, the default line shows up translated.
+    expect(titles.some((el) => el.textContent === 'New Session')).toBe(false)
+    expect(titles.some((el) => el.textContent === 'New session')).toBe(true)
+  })
+})

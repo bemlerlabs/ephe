@@ -1,0 +1,6 @@
+{"id": "countdown-1", "input": "Set a five minute timer for me and say when it will go off.", "expect": {"kind": "tool_use", "any": ["mcp_countdown_set"]}, "note": "The ask reaches the plugin's tool, and nothing invents the time."}
+{"id": "countdown-2", "input": "How much time is left on my countdown right now?", "expect": {"kind": "tool_use", "any": ["mcp_countdown_status"]}, "note": "A read-back question is answered by the state the tool wrote."}
+{"id": "countdown-3", "input": "Start a ten minute countdown and tell me the remaining time.", "expect": {"kind": "contains", "any": ["remaining", "10:00"]}, "note": "The answer states the countdown in the user's words."}
+{"id": "countdown-4", "input": "Begin a three minute countdown and read the state back to me.", "expect": {"kind": "tool_use", "any": ["mcp_countdown_status"]}, "note": "One call sets it, one call reports it."}
+{"id": "countdown-5", "input": "What is the countdown plugin showing on my screen?", "expect": {"kind": "contains", "any": ["Countdown", "surface"]}, "note": "The named surface is the one the manifest declares."}
+{"id": "countdown-6", "input": "Set a one minute timer and report the remaining seconds.", "expect": {"kind": "not_contains", "any": ["TODO", "TBD", "placeholder", "I cannot"]}, "note": "Anti-slop: no stub answer, no refusal of a tool that is right there."}

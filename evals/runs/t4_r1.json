@@ -1,0 +1,23 @@
+{
+  "task_id": "T4",
+  "family": "tau",
+  "rep": 1,
+  "session_id": "ob-t4-r1-1790159843",
+  "ok": true,
+  "note": "new_topic=True stale_topic_absent=True",
+  "wall_ms": 31976.7,
+  "ttft_first_event_ms": 144.9,
+  "final_answer_line": "",
+  "tool_calls": [
+    "write_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "tool_search",
+    "tool_search",
+    "tool_call"
+  ],
+  "answer_chars": 232,
+  "answer_tail": "\n\nDone ✅ — `nota.md` updated (firewall mention gone):\n\n```markdown\n# Notes\n\n- SERVERS migration completed; all services moved to the new infrastructure.\n```\n\nStill exactly one heading and one bullet, now about the SERVERS migration.",
+  "ts": "2026-09-23T12:37:55"
+}

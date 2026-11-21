@@ -1,0 +1,392 @@
+"""The append-only run ledger.
+
+One JSONL file per run under the config root, one line per fact. The ledger is
+content-free by default: a line may name a tool, a call id, an argument digest, a
+duration, a status, a failure class, the session the run belongs to and the path it
+wrote, and it may never carry a prompt, an answer or a tool's raw output. `SEC-1`
+redaction runs over every line regardless, so even a field that slips through the
+whitelist cannot carry a key.
+
+The five phases the surface reads are a projection of the same lines:
+
+  * ``Now``     — what the run is doing (latest activity or tool start)
+  * ``Waiting`` — an approval or an engine that has not answered
+  * ``Changed`` — a file or artifact the run wrote
+  * ``Result``  — the last tool result's status
+  * ``Next``    — how the run ended, or what it will do
+
+The envelope carries ``run_id``, ``request_id``, ``seq`` and a timestamp per line, so
+a reader can order two processes' records and a kill -9 leaves every started call
+visible: the start line is written before the tool runs, the result line after.
+"""
+from __future__ import annotations
+
+import json
+import os
+import threading
+import time
+from contextvars import ContextVar
+from pathlib import Path
+from typing import Any
+
+from core.redact import args_hash, redact_deep
+from core.engine_config import config_root
+
+SCHEMA = 1
+PHASES = ("now", "waiting", "changed", "result", "next")
+
+#: The only payload keys a line may carry. A key outside this set is dropped, not
+#: passed through: "content-free by default" is a whitelist, not a promise.
+PAYLOAD_KEYS = frozenset(
+    {
+        "tool",
+        "call_id",
+        "args_hash",
+        "duration_ms",
+        "status",
+        "reason_code",
+        "phase",
+        "finish_reason",
+        "failure_class",
+        "paths",
+        "artifact_ids",
+        "count",
+        "tool_round",
+        "budget_cap",
+        "wait_seconds",
+        "activity",
+        "session_id",
+    }
+)
+
+_PHASE_FOR_EVENT = {
+    "tool_start": "now",
+    "tool_done": "result",
+    "activity": "now",
+    "sandbox_confirm": "waiting",
+    "ask": "waiting",
+    "artifact": "changed",
+    "file_result": "changed",
+    "error": "result",
+    "done": "next",
+}
+
+
+def _root() -> Path:
+    return config_root() / "run"
+
+
+class RunLedger:
+    def __init__(self, run_id: str, request_id: str = "", session_id: str = "") -> None:
+        self.run_id = run_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.seq = 0
+        self._lock = threading.Lock()
+        self._path = _root() / f"{run_id}.jsonl"
+        self._finished = False
+        self._failure = ""
+
+    @property
+    def failure(self) -> str:
+        """The reason code of the first error frame, or an empty string."""
+        return self._failure
+
+    def note_failure(self, code: str) -> None:
+        """Remembers why the run failed; a terminal line already written wins."""
+        if not self._finished and not self._failure:
+            self._failure = code
+
+    @property
+    def finished(self) -> bool:
+        """Whether a terminal line (run_finished or done) already exists."""
+        return self._finished
+
+    def mark_terminal(self) -> bool:
+        """True for the caller that closes the run; False for every later one.
+
+        A cancelled generator and a producer that still emitted `done` both want
+        the last word. The ledger keeps one terminal line, so "cancelled" and
+        "complete" can no longer stand next to each other for one run.
+        """
+        if self._finished:
+            return False
+        self._finished = True
+        return True
+
+    def append(self, phase: str, kind: str, **payload: Any) -> dict:
+        if phase not in PHASES:
+            phase = "now"
+        allowed = {key: value for key, value in payload.items() if key in PAYLOAD_KEYS}
+        with self._lock:
+            self.seq += 1
+            line = {
+                "schema": SCHEMA,
+                "run_id": self.run_id,
+                "request_id": self.request_id,
+                "seq": self.seq,
+                "ts": round(time.time(), 3),
+                "phase": phase,
+                "kind": kind,
+                **redact_deep(allowed),
+            }
+            try:
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                with self._path.open("a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(line, ensure_ascii=False) + "\n")
+                if self.seq == 1:
+                    try:
+                        self._path.chmod(0o600)
+                    except OSError:
+                        pass
+            except OSError:
+                # The ledger must never take a run down; the drop is visible in the
+                # sequence gap the caller can see in memory.
+                pass
+            return line
+
+    def start(self, **payload: Any) -> dict:
+        named = {"session_id": self.session_id} if self.session_id else {}
+        return self.append("now", "run_started", **named, **payload)
+
+    def finish(self, finish_reason: str, failure_class: str = "") -> dict | None:
+        if not self.mark_terminal():
+            return None
+        return self.append(
+            "next",
+            "run_finished",
+            finish_reason=finish_reason,
+            **({"failure_class": failure_class} if failure_class else {}),
+        )
+
+
+def _current() -> RunLedger | None:
+    return _LEDGER.get()
+
+
+_LEDGER: ContextVar[RunLedger | None] = ContextVar("ephe_run_ledger", default=None)
+
+
+def start(run_id: str, request_id: str = "", session_id: str = "") -> RunLedger:
+    ledger = RunLedger(run_id, request_id, session_id)
+    _LEDGER.set(ledger)
+    ledger.start()
+    return ledger
+
+
+def finish(finish_reason: str = "complete", failure_class: str = "") -> None:
+    ledger = _current()
+    if ledger is not None:
+        ledger.finish(finish_reason, failure_class)
+
+
+def record_event(event: dict) -> dict | None:
+    """Records one SSE event as a ledger line, or None for content-bearing frames."""
+    ledger = _current()
+    if ledger is None or not isinstance(event, dict):
+        return None
+    kind = str(event.get("type") or "")
+    phase = _PHASE_FOR_EVENT.get(kind)
+    if phase is None:
+        return None
+    if kind == "error":
+        ledger.note_failure(str(event.get("reason_code") or "engine_error"))
+    if kind == "done" and not ledger.mark_terminal():
+        # A cancelled generator already closed this run. The producer's late
+        # `done` must not append a second, contradictory terminal line.
+        return None
+    payload: dict[str, Any] = {}
+    if kind == "tool_start":
+        payload = {
+            "tool": str(event.get("tool") or ""),
+            "call_id": str(event.get("call_id") or ""),
+            "args_hash": args_hash(event.get("args") if isinstance(event.get("args"), dict) else {}),
+        }
+    elif kind == "tool_done":
+        payload = {
+            "tool": str(event.get("tool") or ""),
+            "call_id": str(event.get("call_id") or ""),
+            "duration_ms": event.get("duration_ms"),
+            "status": str(event.get("status") or ""),
+            "reason_code": str(event.get("reason_code") or ""),
+        }
+    elif kind == "sandbox_confirm":
+        payload = {"tool": str(event.get("tool") or ""), "status": "awaiting"}
+    elif kind in ("artifact", "file_result"):
+        # Both frames announce the same fact — a file this run wrote — from two producers:
+        # the detector over the answer text and the marker table of a tool result. The
+        # `changed` phase promises the path, and `paths` sits on the whitelist for it; a
+        # register that named only an opaque id could not be read.
+        body = event.get("artifact") if kind == "artifact" else event
+        written = str(body.get("path") or "") if isinstance(body, dict) else ""
+        payload = {
+            "artifact_ids": [str(body.get("id") or "")][:20] if isinstance(body, dict) else [],
+            "count": 1,
+        }
+        if written:
+            payload["paths"] = [written][:20]
+    elif kind == "error":
+        payload = {"status": "error", "reason_code": str(event.get("reason_code") or "")}
+    elif kind == "done":
+        payload = {
+            "finish_reason": "error" if ledger.failure else str(event.get("finish_reason") or "complete"),
+        }
+        if ledger.failure:
+            payload["failure_class"] = ledger.failure
+    else:
+        payload = {
+            "status": str(event.get("status") or ""),
+            "activity": str(event.get("cmd") or "")[:80],
+        }
+    return ledger.append(phase, kind, **payload)
+
+
+def read_run(run_id: str) -> list[dict]:
+    path = _root() / f"{run_id}.jsonl"
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out: list[dict] = []
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            out.append(row)
+    return out
+
+
+def project(rows: list[dict], *, run_id: str = "") -> dict:
+    """The five-phase projection of lines already read, newest line per phase.
+
+    `snapshot` reads the file and hands the rows here, so a reader that has the rows
+    for its own purposes — the fleet board, which ages a run off them — projects the
+    same view without a second read of the disk.
+    """
+    now = waiting = changed = result = next_ = None
+    for row in rows:
+        phase = row.get("phase")
+        if phase == "now":
+            now = row
+        elif phase == "waiting":
+            waiting = row
+        elif phase == "changed":
+            changed = row
+        elif phase == "result":
+            result = row
+        elif phase == "next":
+            next_ = row
+    return {
+        "run_id": run_id or (str(rows[-1].get("run_id") or "") if rows else ""),
+        "seq": rows[-1].get("seq") if rows else 0,
+        "phases": {
+            "Now": now,
+            "Waiting": waiting,
+            "Changed": changed,
+            "Result": result,
+            "Next": next_,
+        },
+        "lines": len(rows),
+    }
+
+
+def snapshot(run_id: str) -> dict:
+    """The five-phase projection the surface reads.
+
+    Every phase is present with a null body when the run never reached it, so a
+    client renders the same shape for a new run and a finished one.
+    """
+    return project(read_run(run_id), run_id=run_id)
+
+
+def snapshot_if_present(run_id: str) -> dict | None:
+    """The projection for a run that has ledger lines, else None (no empty rows)."""
+    if not run_id:
+        return None
+    try:
+        if not (_root() / f"{run_id}.jsonl").exists():
+            return None
+    except OSError:
+        return None
+    return snapshot(run_id)
+
+
+def active_run_ids() -> list[str]:
+    try:
+        return sorted(path.stem for path in _root().glob("*.jsonl"))
+    except OSError:
+        return []
+
+
+#: How many run ledgers the folder keeps. Measured on the owner's Mac 2026-11-16: 327 files,
+#: 2 567 149 bytes between 2026-10-18 and 2026-11-16 — 11.3 runs and 87 KB a day. Two hundred
+#: is roughly three weeks of that machine's turns. A count rather than an age for the reason
+#: `core/store_retention.py` gives: a count cannot be outrun by a burst, and an age would
+#: delete a long-idle run nobody has looked at again for no gain.
+DEFAULT_KEEP = 200
+
+
+def _mtime(path: Path) -> float:
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _size(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def run_files(root: Path | None = None) -> list[Path]:
+    """The ledger files, newest first. Only ``*.jsonl``: the backend pidfiles share the folder
+    (`core/backend_lifecycle.py`) and are not this store's to bound."""
+    folder = root if root is not None else _root()
+    try:
+        return sorted(folder.glob("*.jsonl"), key=_mtime, reverse=True)
+    except OSError:
+        return []
+
+
+def prune_runs(keep: int | None = None, *, dry_run: bool = True,
+               root: Path | None = None) -> dict[str, Any]:
+    """Bound the ledger to the newest N runs; the rest go, newest kept.
+
+    No lock and no "is this run live" question: a run in flight is the newest file in the
+    folder, so a count that keeps two hundred cannot evict it. Pruning stays a deliberate
+    call from a person or an operator and never a side effect of a turn — the session
+    store's rule (`core/session_lifecycle.py`), because a silent delete is itself the defect.
+
+    A file that refuses to go (a mode this account cannot write) is reported as still
+    present rather than forced: the verb carries on with the rest of the folder.
+    """
+    cap = DEFAULT_KEEP if keep is None else max(0, int(keep))
+    files = run_files(root)
+    survivors, gone = files[:cap], files[cap:]
+    deleted: list[str] = []
+    bytes_freed = 0
+    for path in gone:
+        size = _size(path)
+        if dry_run:
+            deleted.append(path.name)
+            bytes_freed += size
+            continue
+        try:
+            path.unlink()
+        except OSError:
+            continue
+        deleted.append(path.name)
+        bytes_freed += size
+    return {
+        "deleted": sorted(deleted),
+        "kept": len(survivors),
+        "bytes_freed": bytes_freed,
+        "remaining": {"run": len(files) - len(deleted)},
+        "cap": cap,
+        "dry_run": dry_run,
+        "root": str(root if root is not None else _root()),
+    }

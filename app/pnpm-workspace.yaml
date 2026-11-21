@@ -1,0 +1,33 @@
+# pnpm 11.10 ignores build scripts by default; this is the explicit allowlist.
+allowBuilds:
+  esbuild: true
+  '@tailwindcss/oxide': true
+
+# Kept for older pnpm readers; pnpm 11.10 uses allowBuilds.
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+
+overrides:
+  # CVE-2026-120474 (GHSA-7xg3-fphp-28hg, published as a repository advisory under
+  # nodejs/undici): cross-user cache disclosure through a same-origin redirect. OSV's affected
+  # list names v8.12.2 and v8.12.3 and stops there, so 8.12.4 is the first release outside it —
+  # and 8.12.4 is npm's `latest`. undici reaches this tree only as jsdom@30.1.2's own ^8.11.2,
+  # which is why the pin below, not a manifest range, decided the exposure.
+  # Neither `pnpm audit` nor the register can hold this: OSV answers the CVE with a Git-scoped
+  # record whose affected[].package is empty, the GHSA 404s on both databases, so the audit
+  # reports 0 findings at 8.12.2 while it is inside the range. The floor lives in
+  # tests/test_undici_override_floor.py for that reason.
+  # Scope is development: jsdom backs the vitest environment; undici is not in the shipped bundle.
+  undici: 8.12.4
+  micromark-extension-math>katex: 0.18.2
+  source-map-js: 1.2.2
+  brace-expansion@1: 1.1.21
+  brace-expansion@5: 5.0.12
+  # GHSA-g3hv-75wg-m249 (CVE-2026-118764): the advisory covers minimatch < 11.0.1, and no
+  # release of eslint 9, @eslint/config-array, @eslint/eslintrc or
+  # @typescript-eslint/typescript-estree asks for 11 — they sit on ^3.1.2 and ^10.0.2.
+  # 11.0.3 is the patched line's newest patch, and its own brace-expansion floor (^5.0.12)
+  # is the pin above, so the override does not open a second advisory.
+  # Held by tests/test_minimatch_override_floor.py.
+  minimatch: 11.0.3

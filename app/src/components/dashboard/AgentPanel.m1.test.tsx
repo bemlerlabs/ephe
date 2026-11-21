@@ -1,0 +1,164 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
+import AgentPanel from '@/components/dashboard/AgentPanel'
+import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import type { ChatMessage } from '@/types'
+
+// M1 (reference parity 2026-09-08, screenshot 3): browser tab with a full
+// navigation bar (back/forward/reload, overflow menu with default browser +
+// DevTools) and a three-part empty state; the Subagents tab in the "·" format
+// with a Completed word and a Running section that is always visible.
+
+vi.mock('@/lib/api', () => ({
+  LAN_TOKEN: null,
+  runShell: vi.fn(async () => ({ output: '' })),
+  runShellPty: vi.fn(async () => ({ command: '', output: '', ok: true })),
+  proxyFetch: vi.fn(async () => ({ ok: true, status: 200, body: '', url: '' })),
+  getTasks: vi.fn(async () => []),
+  createTask: vi.fn(async () => ({ success: true })),
+  updateTask: vi.fn(async () => ({ success: true })),
+  deleteTask: vi.fn(async () => ({ success: true })),
+  getSettings: vi.fn(async () => ({ workspace_dir: null })),
+  listFs: vi.fn(async () => ({ entries: [] })),
+  getAudit: vi.fn(async () => ({ entries: [] })),
+  gitStatus: vi.fn(async () => ({ workspace: 'proj', git: false, branch: '', changes: [] })),
+  gitDiff: vi.fn(async () => ({ path: '', diff: '', binary: false })),
+}))
+
+vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '9', init: () => Promise.resolve() },
+  useTranslation: () => ({
+    t: (key: string, vars?: Record<string, unknown>) =>
+      vars && 'count' in vars ? `${key}:${String(vars.count)}` : key,
+  }),
+}))
+
+const MESSAGES: ChatMessage[] = [
+  {
+    id: 'm1',
+    role: 'assistant',
+    content: 'ok',
+    timestamp: Date.now() - 31 * 60_000,
+    activities: [
+      {
+        id: 'a2',
+        label: 'Agent Judge-Gate Z16',
+        status: 'done',
+        detail: 'Desktop-Pruefung: Karteikopf zeigt …',
+      },
+    ],
+  },
+]
+
+function baseStubs() {
+  if (!window.matchMedia) {
+    window.matchMedia = vi.fn(() => ({
+      matches: false,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+  }
+  if (!globalThis.ResizeObserver) {
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof globalThis.ResizeObserver
+  }
+}
+
+describe('M1: the browser tab 1:1 (reference screenshot 3)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    baseStubs()
+  })
+
+  it('nav bar: back, forward, reload, URL field and overflow button', async () => {
+    render(<AgentPanel messages={[]} />)
+    // A site URL: this row is the browser's, and a workspace file draws its own
+    // head instead (A1) — the document case is covered in previewTab.test.tsx.
+    window.dispatchEvent(
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: 'http://localhost:5173/' } }),
+    )
+    expect(await screen.findByTestId('preview-reload')).toBeTruthy()
+    expect(screen.getByTestId('preview-back')).toBeTruthy()
+    expect(screen.getByTestId('preview-forward')).toBeTruthy()
+    expect(screen.getByTestId('preview-url-input')).toBeTruthy()
+    expect(screen.getByTestId('preview-overflow')).toBeTruthy()
+  })
+
+  it('overflow menu: open in default browser (the devtools item left, F-5)', async () => {
+    render(<AgentPanel messages={[]} />)
+    // P2-A: internal path URL (the panel now routes http(s) to the browser tab)
+    window.dispatchEvent(
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: '/api/file?path=/tmp/a.md' } }),
+    )
+    fireEvent.click(await screen.findByTestId('preview-overflow'))
+    expect(await screen.findByTestId('preview-menu-browser')).toBeTruthy()
+    expect(screen.queryByTestId('preview-menu-devtools')).toBeNull()
+  })
+
+  it('forward and back navigate the tab session history', async () => {
+    render(<AgentPanel messages={[]} />)
+    window.dispatchEvent(
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: 'http://localhost:5173/a' } }),
+    )
+    await screen.findByTestId('preview-reload')
+    // Re-queried per check: the pane subtree remounts when the tab opens, and a node
+    // captured before that keeps reporting the detached element's value.
+    const address = () => (screen.getByTestId('preview-url-input') as HTMLInputElement).value
+    window.dispatchEvent(
+      new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { url: 'http://localhost:5173/b' } }),
+    )
+    // Both forms of the bar identify the target, and the test must hold for either:
+    // unfocused the input shows `prettifyUrl(draft)` = the address itself, focused it
+    // shows the raw draft (previewTab.tsx). Opening a target and
+    // navigating both move focus into the bar on a 40/60 ms timer (usePreviewNav.ts:78
+    // and :114) — that is the documented follow-through, not a defect.
+    //
+    // This is why the case failed in CI three times while passing locally, and why the
+    // earlier fix (a 4 s timeout, run 37920432654 still red at 4173 ms) could not work:
+    // sampling `=== "b.md"` asks whether the focus timer or the assertion poll won, and
+    // a 4-core runner under a full vitest load loses that race reproducibly. Waiting
+    // longer only waits longer for a state that never converges.
+    await waitFor(() => expect(address()).toContain('5173/b'), { timeout: 4000 })
+    fireEvent.click(screen.getByTestId('preview-back'))
+    await waitFor(() => expect(address()).toContain('5173/a'), { timeout: 4000 })
+    fireEvent.click(screen.getByTestId('preview-forward'))
+    await waitFor(() => expect(address()).toContain('5173/b'), { timeout: 4000 })
+  })
+
+  it('the empty state is three parts: globe title "Browser" plus a hint', async () => {
+    render(<AgentPanel messages={[]} />)
+    window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'preview' } }))
+    expect(await screen.findByTestId('preview-empty-title')).toBeTruthy()
+    expect(screen.getByTestId('preview-empty-hint')).toBeTruthy()
+  })
+})
+
+describe('M1: subagents in the reference format', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    baseStubs()
+  })
+
+  it('the running section always appears, at 0 with the no-running row', async () => {
+    render(<AgentPanel messages={MESSAGES} />)
+    window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'subagents' } }))
+    const running = await screen.findByTestId('subagents-running-section')
+    expect(within(running).getByTestId('subagents-none-row')).toBeTruthy()
+  })
+
+  it('ended row: name, completed word, time on the right, detail below', async () => {
+    render(<AgentPanel messages={MESSAGES} />)
+    window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'subagents' } }))
+    const ended = await screen.findByTestId('subagents-ended-section')
+    const row = within(ended).getByTestId('subagent-row-a2')
+    expect(within(row).getByTestId('subagent-state-a2').textContent).toBe(
+      'agentPanel.subagentCompleted',
+    )
+    expect(within(row).getByTestId('subagent-time-a2')).toBeTruthy()
+    // the detail is always visible now (no expand click needed)
+    expect(within(row).getByTestId('subagent-detail-a2').textContent).toContain('Desktop-Pruefung')
+  })
+})

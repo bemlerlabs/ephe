@@ -1,0 +1,13 @@
+/* The rendered hero on its own ground: the square is the app-icon form the brand
+   contract uses from 48 px up, and the cut is 1060 × 752, so it sits contained. */
+.hero-mark {
+  display: inline-grid;
+  width: var(--hero-mark-size, 3rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-figure-head-shadow);
+}
+.hero-mark img {
+  width: 100%;
+}

@@ -1,0 +1,17 @@
+{
+  "task_id": "T6",
+  "family": "tau",
+  "rep": 3,
+  "session_id": "ob-t6-r3-1790167396",
+  "ok": true,
+  "note": "final-answer==OF-X",
+  "wall_ms": 12413.2,
+  "ttft_first_event_ms": 313.8,
+  "final_answer_line": "FINAL ANSWER: OF-X",
+  "tool_calls": [
+    "read_file"
+  ],
+  "answer_chars": 513,
+  "answer_tail": "\n\n**Analyse von `offers_t6.json`:**\n\n| ID | Room | Night | Price | night = 2026-12-01? | price ≤ 190? | Valid? |\n|----|------|-------|-------|---------------------|--------------|--------|\n| OF-X | a | 2026-12-01 | 190 | ✓ | ✓ | ✓ |\n| OF-Y | b | 2026-12-01 | 190 | ✓ | ✓ | ✓ |\n| OF-Z | c | 2026-12-02 | 100 | ✗ | ✓ | ✗ |\n\n**Ergebnis:** OF-Z fällt raus (falsche Nacht). OF-X und OF-Y sind beide gültig mit Preis 190 — Gleichstand. Lexikografisch kleinste ID: **\"OF-X\" < \"OF-Y\"** → OF-X gewinnt.\n\nFINAL ANSWER: OF-X",
+  "ts": "2026-09-23T14:43:29"
+}

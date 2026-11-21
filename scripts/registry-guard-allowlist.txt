@@ -1,0 +1,11 @@
+# Accepted registry-guard findings. One entry per line, matched with fnmatch against the
+# repo-relative path; `path::needle` additionally requires the needle in the offending line, so
+# an entry covers the one shape it was written for and nothing else in that file. The guard
+# prints how many findings it exempted, so an entry is a decision a diff carries rather than a
+# silence. Delete an entry together with the code it excuses; an entry that excuses nothing
+# hides whatever arrives at that path next.
+#
+# No entry today. The one finding this file was written for was the non-macOS Ollama installer
+# in core/_cli_ollama.py: it now fetches the script, checks where it landed, how big it is and
+# that it opens as a script, and runs the staged file, so the excuse retires with the code it
+# covered. An entry that excuses nothing hides whatever arrives at that path next.

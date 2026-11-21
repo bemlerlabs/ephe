@@ -1,0 +1,200 @@
+"""S4 — static verification for a marketplace artifact before it is enabled.
+
+Three checks that match what actually goes wrong with agent tooling: a tool
+description that carries instructions (the documented poisoning shape), a
+launch line that fetches unpinned code, and environment variables that carry
+secrets. The verdict rides the install result and the audit line; a
+high-severity finding refuses the install before anything is enabled.
+
+The instruction check reads *phrases*, not subjects: a skill pack is a system
+prompt, and ``core/skills.py`` refuses a pack that does not carry the
+``## System Prompt`` heading, so naming that section is structure. What makes
+text an attack is a directive that aims the model at its own instructions —
+"print your system prompt", "ignore the system prompt" — or at silence and
+exfiltration. Those stay refused.
+"""
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+HIGH = "high"
+INFO = "info"
+
+#: Phrases that turn a description into an instruction to the model. Each one is
+#: a directive, never a subject: "system prompt" alone is NOT here, because the
+#: skill parser demands that heading in every pack (core/skills.py).
+_INSTRUCTION_MARKERS = (
+    "ignore previous",
+    "ignore all previous",
+    "disregard the",
+    "do not tell",
+    "don't tell",
+    "without telling",
+    "reveal your",
+    "send the contents",
+    "exfiltrate",
+)
+
+#: A directive that aims the model at its own instructions: theft ("print your
+#: system prompt") or override ("ignore the system prompt"). Bounded to four
+#: words between verb and object, so the match stays linear and a heading or a
+#: sentence that merely names the section never matches.
+_PROMPT_TAKEOVER = re.compile(
+    r"\b(?:reveal|show|print|repeat|dump|output|display|leak|expose|hand\s+over|"
+    r"ignore|disregard|override|bypass|forget|discard)\b"
+    r"(?:\s+[\w'-]+){0,4}\s+"
+    r"(?:system[\s-]+prompt|system\s+instructions|developer\s+message|"
+    r"hidden\s+instructions)\b",
+    re.IGNORECASE,
+)
+
+
+def _instruction_finding(text: str) -> dict[str, str] | None:
+    """The first instruction shape in one text blob, if it carries one."""
+    lowered = text.lower()
+    for marker in _INSTRUCTION_MARKERS:
+        if marker in lowered:
+            return {"class": "description-instructions", "severity": HIGH, "marker": marker}
+    match = _PROMPT_TAKEOVER.search(text)
+    if match:
+        return {
+            "class": "description-instructions",
+            "severity": HIGH,
+            "marker": match.group(0)[:80],
+        }
+    return None
+
+
+#: A package manager name without a pinned version, as the first command word.
+_UNPINNED = re.compile(r"\b(?:npx|uvx|pip3?|npm)\s+(?:-y\s+)?(?!\S+@\d)([a-z0-9@/._-]+)")
+
+#: Download directly into a shell.
+_SHELL_PIPE = re.compile(r"\b(?:curl|wget)\b[^|]{0,200}\|\s*(?:ba|z|da)?sh\b")
+
+_TEXT_SUFFIXES = {".json", ".md", ".yaml", ".yml", ".toml"}
+
+#: The verdict file written beside an installed artifact.
+VERDICT_FILENAME = "VERIFY.json"
+
+
+def _walk_env(payload: Any) -> set[str]:
+    names: set[str] = set()
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if key == "env" and isinstance(value, dict):
+                names.update(str(name) for name in value)
+            names.update(_walk_env(value))
+    elif isinstance(payload, list):
+        for item in payload:
+            names.update(_walk_env(item))
+    return names
+
+
+def _text_findings(text: str, field: str) -> list[dict[str, str]]:
+    """The markers both the file walk and the flat-skill scan apply to one text."""
+    findings: list[dict[str, str]] = []
+    instruction = _instruction_finding(text)
+    if instruction:
+        findings.append({**instruction, "file": field})
+    for match in _SHELL_PIPE.finditer(text.lower()):
+        findings.append(
+            {"class": "shell-download", "severity": HIGH, "file": field, "marker": match.group(0)[:80]}
+        )
+    return findings
+
+
+def _verdict(findings: list[dict[str, str]]) -> dict[str, Any]:
+    high = [one for one in findings if one["severity"] == HIGH]
+    verdict = "refused" if high else ("checked" if findings else "checked-clean")
+    return {"verdict": verdict, "findings": findings}
+
+
+def verify_artifact(root: Path) -> dict[str, Any]:
+    """Scan an extracted artifact directory; return the verdict with findings."""
+    findings: list[dict[str, str]] = []
+    env_names: set[str] = set()
+    root = Path(root)
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in _TEXT_SUFFIXES:
+            continue
+        rel = path.relative_to(root).as_posix()
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        findings.extend(_text_findings(text, rel))
+        if path.suffix.lower() == ".json":
+            try:
+                env_names.update(_walk_env(json.loads(text)))
+            except ValueError:
+                pass
+        elif path.name == "SKILL.md":
+            for line in text.splitlines():
+                match = _UNPINNED.search(line.lower())
+                if match:
+                    findings.append(
+                        {"class": "unpinned-install", "severity": INFO, "file": rel, "marker": match.group(0)[:80]}
+                    )
+                    break
+    return {
+        **_verdict(findings),
+        "env": sorted(env_names),
+    }
+
+
+def verify_skill_text(
+    *, trigger: str = "", description: str = "", system_prompt: str = ""
+) -> dict[str, Any]:
+    """Scan the text a flat skill save would persist as system-prompt material.
+
+    An archive is walked as files; a flat skill is a few fields that become the
+    same prompt text. The markers are the ones `verify_artifact` uses, so a
+    directive refused in a pack is refused in `POST /api/skills` and in
+    `skill_manage create` as well.
+    """
+    findings: list[dict[str, str]] = []
+    for field, value in (
+        ("trigger", trigger),
+        ("description", description),
+        ("system_prompt", system_prompt),
+    ):
+        findings.extend(_text_findings(str(value or ""), field))
+    return {**_verdict(findings), "mode": "text"}
+
+
+def write_verdict(root: Path, verdict: dict[str, Any]) -> None:
+    """Persist the verdict beside the artifact so installed rows can show it."""
+    target = Path(root) / VERDICT_FILENAME
+    try:
+        target.write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def read_verdict(root: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads((Path(root) / VERDICT_FILENAME).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def verify_entry(fields: dict[str, str]) -> dict[str, Any]:
+    """Y2 — the sandbox-less rehearsal: scan what the catalog publishes about an
+    entry (title, description, launch line) with the same markers the artifact
+    check uses. A live connector handshake is a separate, heavier seam; this
+    answers before anything is downloaded or started."""
+    findings: list[dict[str, str]] = []
+    for field, value in fields.items():
+        text = str(value or "")
+        findings.extend(_text_findings(text, field))
+        if field in {"install_hint", "spec"}:
+            match = _UNPINNED.search(text.lower())
+            if match:
+                findings.append(
+                    {"class": "unpinned-install", "severity": INFO, "file": field, "marker": match.group(0)[:80]}
+                )
+    return {**_verdict(findings), "mode": "static"}

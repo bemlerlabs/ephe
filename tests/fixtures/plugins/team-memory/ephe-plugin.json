@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "team-memory",
+  "version": "1.0.0",
+  "description": "Points the agent's memory at a shared Kepta instance instead of the local brain.",
+  "publisher": {"name": "Ephe fixtures"},
+  "license": "BUSL-1.1",
+  "engines": {"ephe": ">=0.6.0"},
+  "permissions": {
+    "tool_families": ["network"],
+    "data_roots": []
+  },
+  "capabilities": {
+    "memory": {
+      "id": "team-memory",
+      "transport": "kepta-bridge",
+      "url": "http://127.0.0.1:3010",
+      "scope": "team",
+      "description": "Shared notes for the team."
+    }
+  }
+}

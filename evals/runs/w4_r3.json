@@ -1,0 +1,23 @@
+{
+  "task_id": "W4",
+  "family": "endstate",
+  "rep": 3,
+  "session_id": "ob-w4-r3-1790167654",
+  "ok": true,
+  "note": "c=True a_gone=True b_gone=True",
+  "wall_ms": 30448.7,
+  "ttft_first_event_ms": 250.9,
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "read_file",
+    "tool_search",
+    "tool_call",
+    "tool_call",
+    "tool_call",
+    "tool_call",
+    "read_file"
+  ],
+  "answer_chars": 625,
+  "answer_tail": "sen ✅ — alle Schritte durch echte Tool-Ausgaben belegt:\n\n| Schritt | Aktion | Verifiziertes Ergebnis |\n|---|---|---|\n| 1 | `read_file` → `a.txt` | Inhalt: `seed` |\n| 2 | `write_file` → `b.txt` | `seed` angelegt (4 Zeichen) |\n| 3 | `delete_file` → `a.txt` | `deleted '/private/tmp/bench-option-b/ws/a.txt'` |\n| 4 | `write_file` → `c.txt` | `seed` angelegt (4 Zeichen) |\n| 5 | `delete_file` → `b.txt` | `deleted '/private/tmp/bench-option-b/ws/b.txt'` |\n| 6 | Rücklese-Verifikation `c.txt` | `seed` — vorhanden und korrekt |\n\n**Endzustand:** Nur `c.txt` existiert mit Inhalt `seed`.\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T14:48:04"
+}

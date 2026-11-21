@@ -1,0 +1,711 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# `-E` (errtrace): the ERR trap installed below is NOT inherited by shell
+# functions without it, and nearly every step runs through `run()`. Without
+# `-E` a failing dependency install printed only the tool's own error and no
+# "failed at line N" line, while docs/INSTALL.md promises exactly that line.
+set -E
+
+GREEN='\033[0;32m'
+DIM='\033[2m'
+BOLD='\033[1m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+REPO_URL="${EPHE_REPO_URL:-https://github.com/bemlerlabs/ephe.git}"
+INSTALL_DIR="${EPHE_INSTALL_DIR:-$HOME/Documents/Ephe}"
+PORT="${EPHE_PORT:-8765}"
+LOCAL_OLLAMA_HOST="${EPHE_OLLAMA_HOST:-127.0.0.1:11434}"
+LOCAL_OLLAMA_URL="$LOCAL_OLLAMA_HOST"
+if [[ "$LOCAL_OLLAMA_URL" != http://* && "$LOCAL_OLLAMA_URL" != https://* ]]; then
+  LOCAL_OLLAMA_URL="http://${LOCAL_OLLAMA_URL}"
+fi
+NO_START="${EPHE_NO_START:-0}"
+DRY_RUN="${EPHE_DRY_RUN:-0}"
+# A release install checks out the tag its installer URL names. Without a ref the
+# installer keeps the checkout on its branch and fast-forwards, which is the rolling path.
+REF="${EPHE_REF:-}"
+
+# --- Download integrity (supply-chain gate) ---------------------------------
+# Piped `curl | sh` is a classic supply-chain attack point: a compromised vendor
+# script would be executed unchecked. So we first download the uv installer
+# (Python runtime), verify its SHA256 against the pinned hash, and only then run
+# it. On a mismatch the fetched script is NOT run — but the install does not
+# abort: uv rotates this script often, and a hard abort here used to strand a
+# bare box (no Python, no uv) before the distro interpreter branch below it. The
+# caller reports both hashes and falls through to that branch instead.
+# Hash as of: 2026-10-12 (captured live, stable across two fetches). Rotation via
+# the env override.
+# Note: the installer does NOT install Ollama (mandate 2026-08-21) — that is why
+# this script deliberately has no Ollama download/hash anymore.
+UV_INSTALL_SHA256="${EPHE_UV_INSTALL_SHA256:-283cbef4bdaca819bd896b0dacb8a085c4c05dbc880642aa5001d97bc4db74ba}"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-start) NO_START=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --cli|--headless|--tui) INSTALL_MODE="cli"; shift ;;
+    --desktop|--gui|--web|--pwa) INSTALL_MODE="desktop"; shift ;;
+    --tag|--ref)
+      if [ $# -lt 2 ]; then echo "--tag needs a release tag such as v0.7.0." >&2; exit 2; fi
+      REF="$2"; shift 2 ;;
+    --tag=*|--ref=*) REF="${1#*=}"; shift ;;
+    --help|-h)
+      echo "Usage: ./install.sh [--no-start] [--dry-run] [--cli|--desktop] [--tag vX.Y.Z]"
+      echo "Env: EPHE_INSTALL_DIR, EPHE_PORT, EPHE_NO_START, EPHE_DRY_RUN, EPHE_REF"
+      echo ""
+      echo "Ephe — one-command install. The AI engine is chosen in the app"
+      echo "(local Ollama or an external endpoint such as DGX)."
+      echo "Ollama is NOT installed and NO models are downloaded."
+      echo ""
+      echo "Modes:"
+      echo "  --cli      Minimal CLI path: installs only the TUI (textual), starts 'ephe tui'"
+      echo "  --desktop  (default) Desktop/PWA: installs gui+voice, starts 'ephe start --open'"
+      echo ""
+      echo "Defaults to Desktop; choose --cli or EPHE_MODE=cli for terminal-only use."
+      echo "  --tag     Check out this release tag instead of the branch tip (a release install)."
+      exit 0
+      ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+# Mode selection: flag > env > interactive > default(desktop)
+if [[ -z "${INSTALL_MODE:-}" ]]; then
+  if [[ -n "${EPHE_MODE:-}" ]]; then
+    INSTALL_MODE="$EPHE_MODE"
+  elif [[ -t 0 && -z "${NO_START:-}" && -z "${DRY_RUN:-}" ]]; then
+    read -r -p "How do you want to use Ephe? [D]esktop/PWA, [C]li (TUI), or [S]kip start: " choice
+    choice="${choice:-D}"
+    case "$choice" in
+      [Cc]) INSTALL_MODE="cli" ;;
+      [Ss]) NO_START=1; INSTALL_MODE="desktop" ;;
+      *) INSTALL_MODE="desktop" ;;
+    esac
+  else
+    INSTALL_MODE="desktop"
+  fi
+fi
+
+# --- Refuse a bad environment before any step runs --------------------------
+# A wrong EPHE_PORT used to reach the app's own argument parser and an unknown
+# EPHE_MODE used to fall through to the desktop branch, so both are checked here,
+# where the message can still name the variable that was wrong.
+if [[ ! "$PORT" =~ ^[0-9]+$ ]] || (( 10#$PORT < 1 || 10#$PORT > 65535 )); then
+  echo "EPHE_PORT must be a port number between 1 and 65535, got '${PORT}'." >&2
+  exit 2
+fi
+case "${INSTALL_MODE:-desktop}" in
+  cli|desktop) ;;
+  *) echo "EPHE_MODE must be 'cli' or 'desktop', got '${INSTALL_MODE}'." >&2; exit 2 ;;
+esac
+
+if [ -n "$REF" ] && ! printf '%s' "$REF" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
+  echo "EPHE_REF/--tag must be a git ref name such as v0.7.0, got '${REF}'." >&2
+  exit 2
+fi
+
+step() { echo -e "${GREEN}▶${NC} ${BOLD}$1${NC}"; }
+info() { echo -e "  ${DIM}$1${NC}"; }
+warn() { echo -e "  ${YELLOW}⚠${NC} $1"; }
+ok() { echo -e "  ${GREEN}✓${NC} $1"; }
+fail() { echo -e "  ${RED}✗${NC} $1" >&2; exit 1; }
+run() {
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "  DRY-RUN: $*"
+  else
+    "$@"
+  fi
+}
+
+# A step whose tool narrates a page of resolver or bundler output (pip, vite) is
+# run with its log kept aside: the install shows one line per step and hands the
+# last lines back only when the step fails.
+run_quiet() {
+  local label="$1"
+  shift
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "  DRY-RUN: $*"
+    return 0
+  fi
+  local log rc
+  log="$(mktemp)"
+  if "$@" >"$log" 2>&1; then
+    rm -f "$log"
+    ok "$label"
+    return 0
+  fi
+  rc=$?
+  tail -n 40 "$log" >&2
+  rm -f "$log"
+  return "$rc"
+}
+
+# Package managers are called as root only when the shell is not already root: a
+# stock `ubuntu:24.04` (and any minimal image) ships no `sudo` binary, so
+# `sudo apt-get …` answered "command not found" and `set -e` stopped a bare box
+# that was already root — which is exactly the clean-room shape.
+as_root() {
+  if [[ "$(id -u)" == "0" ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+# --- First-run diagnosability -----------------------------------------------
+# `set -e` stops on the first failing command but names neither the line nor the
+# command, so a failed one-command install ended in silence. The ERR trap prints
+# both before the shell exits; the EXIT trap removes a vendor temp file even when
+# the run is interrupted between its download and its cleanup.
+#
+# The line it prints is the CALL SITE, not the line inside the helper that
+# stopped. Nearly every step runs through `run()`/`as_root()`, so the trap's own
+# `$LINENO` named the helper's body instead of the step: every failure in this
+# script pointed at run()'s `"$@"` — measured 2026-10-15, a failed
+# `run git clone …` reported run()'s own line while the clone sits ~100 lines
+# away. BASH_LINENO[i] holds the line where FUNCNAME[i] was called and FUNCNAME's
+# last entry is always `main`, so BASH_LINENO's outermost non-zero entry is the
+# top-level line that started the failing chain — the line the reader wants; a
+# failure with no helper frames falls back to `$LINENO`, which then names the
+# command itself. `cmd`/`own` are captured in the trap's FIRST commands because a
+# command after them resets `$BASH_COMMAND` (measured on bash 3.2, the macOS
+# default), and `$LINENO` inside a function is the helper's definition line —
+# hence the parenthetical naming the helper instead of a second line number.
+# `n` is the plain array length, and the default the length used to carry is not
+# missed: a length is never unset, so `:-1` never applied, while bash 4 and newer
+# reject that spelling outright as a bad substitution — on the Ubuntu 24.04 leg the
+# trap printed `bad substitution` and no diagnostic line at all.
+EPHE_VENDOR_TMP=""
+EPHE_DRY_TMP=""
+cleanup_temp() {
+  if [[ -n "$EPHE_VENDOR_TMP" ]]; then
+    rm -f "$EPHE_VENDOR_TMP"
+  fi
+  if [[ -n "$EPHE_DRY_TMP" ]]; then
+    rm -rf "$EPHE_DRY_TMP"
+  fi
+}
+# shellcheck disable=SC2154  # the ERR trap assigns cmd, own, line and note before reading them
+trap 'cmd=$BASH_COMMAND; own=$LINENO; n=${#BASH_LINENO[@]}; i=$(( n > 2 ? n - 2 : 0 )); line=$(( ${BASH_LINENO[$i]:-0} ? ${BASH_LINENO[$i]} : own )); note=""; if (( line != own )); then note=" (inside ${FUNCNAME[0]}())"; fi; echo -e "  ${RED}✗${NC} install.sh failed at line $line: $cmd$note" >&2' ERR
+trap cleanup_temp EXIT
+
+# A dry run writes nothing, not even a cache.
+# `--dry-run` promises "prints the plan and changes nothing". It left a 16K
+# `~/.cache/uv` behind anyway: the interpreter lookup below RUNS `uv python find`
+# to answer a question, and uv caches the lookup (measured 2026-11-10, issue #198).
+# A read that writes into the caller's HOME is still a write, so in a dry run every
+# uv the script would run is aimed at a temporary cache directory, and the EXIT
+# trap removes it. `UV_CACHE_DIR` is uv's own override (it wins over
+# `XDG_CACHE_HOME` and over `~/Library/Caches/uv` on macOS); `XDG_CACHE_HOME` is
+# exported beside it for the tools that only read that one.
+if [[ "$DRY_RUN" == "1" ]]; then
+  EPHE_DRY_TMP="$(mktemp -d "${TMPDIR:-/tmp}/ephe-dry-run-XXXXXX")" \
+    || fail "No temporary directory for the dry run, so it cannot promise to write nothing."
+  export UV_CACHE_DIR="$EPHE_DRY_TMP/uv-cache"
+  export XDG_CACHE_HOME="$EPHE_DRY_TMP/xdg-cache"
+fi
+
+# portable sha256 sum (macOS shasum / Linux sha256sum)
+sha256_of() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    sha256sum "$1" | awk '{print $1}'
+  fi
+}
+
+# Downloads a vendor script, verifies the pinned SHA256 and then runs it.
+# A mismatching hash => the script is NOT run and the function returns 3; the
+# caller decides how to continue (the uv caller falls back to the distro
+# interpreter, so a rolled vendor hash cannot strand a bare box). No blind
+# `curl | sh` either way.
+# $1=URL  $2=pinned_SHA256  $3=label  $4=env override name (for rotation)
+fetch_verify_run() {
+  local url="$1" expected="$2" label="$3" override_env="$4"
+  local tmp got exp rc
+  local tmpdir="${TMPDIR:-/tmp}"
+  # The vendor script's exit status must reach the caller and the temp file must
+  # go on every path: `sh "$tmp"` under `set -e` used to abort the shell before
+  # the old cleanup line ran, leaving the download behind on the failing path.
+  tmp="$(mktemp "$tmpdir/ephe-vendor-XXXXXX")" || fail "No temporary file for the ${label} installer."
+  EPHE_VENDOR_TMP="$tmp"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    info "DRY-RUN: loading+verifying ${label} from ${url} (SHA256=${expected})"
+    rm -f "$tmp"; EPHE_VENDOR_TMP=""
+    return 0
+  fi
+  info "Loading the ${label} installer …"
+  curl -fsSL "$url" -o "$tmp" || { rm -f "$tmp"; EPHE_VENDOR_TMP=""; fail "Download failed: ${url}"; }
+  if ! command -v shasum >/dev/null 2>&1 && ! command -v sha256sum >/dev/null 2>&1; then
+    rm -f "$tmp"; EPHE_VENDOR_TMP=""
+    fail "Neither shasum nor sha256sum is on PATH, so the ${label} download cannot be verified and will not be run."
+  fi
+  got="$(sha256_of "$tmp")"
+  got="$(printf '%s' "$got" | tr 'ABCDEF' 'abcdef')"
+  exp="$(printf '%s' "$expected" | tr 'ABCDEF' 'abcdef')"
+  if [[ "$got" != "$exp" ]]; then
+    rm -f "$tmp"; EPHE_VENDOR_TMP=""
+    # Status 3 selects the distro fallback; the observed hash cannot authorize a new pin.
+    {
+      echo -e "  ${YELLOW}⚠${NC} SHA256 integrity check FAILED for ${label} — the fetched script was NOT run."
+      echo -e "      pinned: ${expected}"
+      echo -e "      live:   ${got}"
+      echo -e "      Keep the distro fallback. Change ${override_env} only to an independently verified checksum from a trusted source."
+    } >&2
+    return 3
+  fi
+  ok "Integrity of ${label} confirmed (SHA256 ${got:0:16}…)"
+  if sh "$tmp"; then rc=0; else rc=$?; fi
+  rm -f "$tmp"; EPHE_VENDOR_TMP=""
+  return "$rc"
+}
+
+is_project_root() {
+  [[ -f "pyproject.toml" && -d "app/src" && -f "run_server.py" ]]
+}
+
+echo ""
+echo -e "${GREEN}${BOLD}Ephe offline-first installer${NC}"
+echo -e "${DIM}One-command install. The AI engine is chosen in the app (local Ollama or an external endpoint).${NC}"
+echo ""
+
+# Clone the release the installer was fetched from, then detach at its ref. A ref
+# that does not resolve is a refusal, not a quiet fallback to main: a release install
+# that silently runs another build is the defect this path exists to prevent.
+clone_checkout() {
+  if ! run git clone "$REPO_URL" "$INSTALL_DIR"; then
+    echo "" >&2
+    echo -e "  ${RED}✗${NC} Could not clone $REPO_URL" >&2
+    echo -e "  ${DIM}The repository is private (or renamed), or this machine has no access to it.${NC}" >&2
+    echo -e "  ${DIM}Next step: ask the repository owner for access, or point the installer at a checkout${NC}" >&2
+    echo "  Licence: Business Source License 1.1 (BUSL-1.1) — see LICENSE in $INSTALL_DIR"
+    echo -e "  ${DIM}you can reach: EPHE_REPO_URL=<clone URL> ./install.sh (a local path or file:// URL works).${NC}" >&2
+    exit 1
+  fi
+  if [ -n "$REF" ]; then
+    run git -C "$INSTALL_DIR" checkout --detach "$REF" \
+      || fail "Could not check out $REF in $INSTALL_DIR; the tag must exist in $REPO_URL."
+  fi
+}
+
+# An existing checkout is moved to the named release on a release install and
+# fast-forwarded on the rolling path. A failed fetch keeps the disk version, with a
+# warning that names the ref it could not reach.
+pin_existing() {
+  local dir="$1"
+  if [ -n "$REF" ]; then
+    if run git -C "$dir" fetch --tags --force origin; then
+      run git -C "$dir" checkout --detach "$REF" \
+        || warn "Could not check out $REF; continuing with the version on disk."
+    else
+      warn "Could not fetch $REF from origin; continuing with the version on disk."
+    fi
+  else
+    run git -C "$dir" pull --ff-only \
+      || warn "Could not update the existing checkout (local changes or offline). Continuing with the version on disk."
+  fi
+}
+
+if ! is_project_root; then
+  step "Preparing the install folder"
+  command -v git >/dev/null 2>&1 || fail "Git is missing. Install Git and run the command again."
+  # An unauthenticated clone must fail here with a readable reason, not sit on a
+  # username prompt nobody can answer: the documented one-liner points at a
+  # repository a stranger has no access to, and the raw git error is
+  # `fatal: could not read Username for 'https://github.com'` — no cause, no next
+  # step. GIT_TERMINAL_PROMPT=0 makes the failure immediate in a terminal too.
+  export GIT_TERMINAL_PROMPT=0
+  # A dry run reports the clone it would run instead of creating folders for it.
+  [[ "$DRY_RUN" == "1" ]] || mkdir -p "$(dirname "$INSTALL_DIR")"
+  if [[ -d "$INSTALL_DIR/.git" ]]; then
+    ok "Existing repository found: $INSTALL_DIR"
+    cd "$INSTALL_DIR"
+    pin_existing "$INSTALL_DIR"
+  elif [[ -e "$INSTALL_DIR" ]]; then
+    # The default install folder is also where a person's notebooks live, so the common case is a
+    # folder that holds their work and no clone: refusing there stranded an installation behind its
+    # own data (measured 2026-11-10 - the app had no backend because the install never ran). The
+    # default folder steps aside to a sibling; an explicitly named folder is still a refusal,
+    # because overwriting a path the caller chose is how data gets lost.
+    if [[ -z "${EPHE_INSTALL_DIR:-}" ]]; then
+      stepped="${INSTALL_DIR}-install"
+      warn "$INSTALL_DIR holds files of yours (no clone there), so this install goes to $stepped"
+      warn "  Your folder stays untouched. To install inside it after all, move its files or set EPHE_INSTALL_DIR."
+      INSTALL_DIR="$stepped"
+      [[ "$DRY_RUN" == "1" ]] || mkdir -p "$(dirname "$INSTALL_DIR")"
+      if [[ -d "$INSTALL_DIR/.git" ]]; then
+        cd "$INSTALL_DIR"
+        pin_existing "$INSTALL_DIR"
+      else
+        clone_checkout
+      fi
+    else
+      fail "$INSTALL_DIR already exists but is not a Git repository. Set EPHE_INSTALL_DIR to a different path."
+    fi
+  else
+    clone_checkout
+    if [[ "$DRY_RUN" == "1" ]]; then
+      ok "Dry run stops here: the clone was not created."
+      exit 0
+    fi
+    cd "$INSTALL_DIR"
+  fi
+  exec bash ./install.sh "$@"
+fi
+
+PROJECT_DIR="$(pwd)"
+OS_NAME="$(uname -s)"
+
+step "Checking the system"
+case "$OS_NAME" in
+  Darwin|Linux) ok "$OS_NAME supported" ;;
+  *) fail "The Bash installer supports macOS and Linux. On Windows, open PowerShell in this checkout and run: powershell -ExecutionPolicy Bypass -File .\\install.ps1" ;;
+esac
+command -v curl >/dev/null 2>&1 || fail "curl is missing. Install curl and run the installer again."
+
+# Disk space: ~4 GB for product/dependencies/PWA build. Model downloads do NOT
+# happen here (the engine is chosen in the app) → warning, no abort.
+FREE_KB=$(df -Pk "$PROJECT_DIR" | awk 'NR==2 {print $4}')
+if [[ "${FREE_KB:-0}" -lt 4096000 ]]; then
+  warn "Less than ~4 GB free disk (current: $((FREE_KB / 1024 / 1024)) GB). The installation is attempted anyway."
+else
+  ok "Disk space OK"
+fi
+
+step "Checking Python 3.11+"
+find_uv() {
+  for candidate in \
+    "$(command -v uv 2>/dev/null || true)" \
+    "$HOME/.local/bin/uv" \
+    "$HOME/.cargo/bin/uv"; do
+    [[ -n "$candidate" && -x "$candidate" ]] && { echo "$candidate"; return 0; }
+  done
+  return 1
+}
+
+find_python() {
+  local uv_bin uv_python bin
+  uv_bin="$(find_uv || true)"
+  if [[ -n "$uv_bin" ]]; then
+    uv_python="$("$uv_bin" python find 3.12 2>/dev/null || true)"
+    if [[ -n "$uv_python" && -x "$uv_python" ]]; then
+      echo "$uv_python"
+      return 0
+    fi
+  fi
+
+  for candidate in \
+    python3.13 python3.12 python3.11 python3 python \
+    /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3 \
+    /usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11 /usr/local/bin/python3; do
+    if [[ "$candidate" == */* ]]; then
+      [[ -x "$candidate" ]] || continue
+      bin="$candidate"
+    else
+      command -v "$candidate" >/dev/null 2>&1 || continue
+      bin="$(command -v "$candidate")"
+    fi
+    if "$bin" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+      echo "$bin"
+      return 0
+    fi
+  done
+  return 1
+}
+
+install_uv_python() {
+  local uv_bin rc=0
+  info "Installing a local Python runtime via uv."
+  uv_bin="$(find_uv || true)"
+  if [[ -z "$uv_bin" ]]; then
+    # A rotated vendor hash must not abort here: this returns non-zero and
+    # install_python() falls through to the distro interpreter branch, so a bare
+    # box (no Python, no uv) still reaches an interpreter instead of stopping at
+    # the uv supply-chain gate.
+    fetch_verify_run "https://astral.sh/uv/install.sh" "$UV_INSTALL_SHA256" "uv" "EPHE_UV_INSTALL_SHA256" || rc=$?
+    uv_bin="$(find_uv || true)"
+    if [[ -z "$uv_bin" ]]; then
+      if [[ "$DRY_RUN" == "1" ]]; then
+        uv_bin="$HOME/.local/bin/uv"
+      else
+        [[ "$rc" == "0" ]] || warn "No uv runtime after the vendor step (see the message above) — falling back to the system interpreter."
+        return 1
+      fi
+    fi
+  fi
+  [[ -n "$uv_bin" ]] || return 1
+  run "$uv_bin" python install 3.12
+}
+
+install_python() {
+  info "Python 3.11+ is missing. Starting the installation."
+  if [[ "$OS_NAME" == "Darwin" ]]; then
+    if command -v brew >/dev/null 2>&1; then
+      run brew install python@3.12 || run brew install python
+    else
+      install_uv_python || fail "Python 3.11+ could not be installed automatically."
+    fi
+  elif install_uv_python; then
+    return 0
+  elif command -v apt-get >/dev/null 2>&1; then
+    run as_root apt-get update
+    run as_root apt-get install -y python3 python3-venv python3-pip
+  elif command -v dnf >/dev/null 2>&1; then
+    run as_root dnf install -y python3 python3-pip
+  elif command -v yum >/dev/null 2>&1; then
+    run as_root yum install -y python3 python3-pip
+  elif command -v pacman >/dev/null 2>&1; then
+    run as_root pacman -Sy --noconfirm python python-pip
+  else
+    fail "Python 3.11+ is missing. Install Python and python3-venv with your package manager and run ./install.sh again."
+  fi
+}
+
+PYTHON="$(find_python || true)"
+if [[ -z "$PYTHON" ]]; then
+  install_python
+  PYTHON="$(find_python || true)"
+fi
+if [[ -z "$PYTHON" && "$DRY_RUN" == "1" ]]; then
+  PYTHON="python3"
+  ok "Python 3.11+ would be installed"
+else
+  [[ -n "$PYTHON" ]] || fail "Python 3.11+ is missing. Install Python and run the installer again."
+  ok "$("$PYTHON" -c 'import sys; print(sys.version.split()[0])') found"
+fi
+
+# ── AI engine (info step, never blocking) ───────────────────────────────────
+# Mandate 2026-08-21: Ollama is NOT installed, NO models are pulled.
+# This step only checks whether Ollama is ready locally and shows a hint.
+# Missing Ollama → warning (no abort); the engine is chosen in the app
+# (SetupPage: local Ollama / remote Ollama / OpenAI-compatible).
+step "Checking the AI engine (info)"
+OLLAMA_BIN="$(command -v ollama 2>/dev/null || true)"
+OLLAMA_SERVICE_OK=0
+if [[ -n "$OLLAMA_BIN" ]]; then
+  if curl -fsS --max-time 3 "${LOCAL_OLLAMA_URL}/api/tags" >/dev/null 2>&1; then
+    OLLAMA_SERVICE_OK=1
+  fi
+fi
+if [[ -n "$OLLAMA_BIN" && "$OLLAMA_SERVICE_OK" == "1" ]]; then
+  ok "Ollama detected — its models are available for selection in the app."
+else
+  warn "No Ollama detected — that is OK: Ephe does not install an AI of its own."
+  info "After the start you choose your engine in the app (local Ollama or an external endpoint such as DGX)."
+fi
+
+step "Setting up the local Python environment"
+if [[ ! -d ".venv" ]]; then
+  run "$PYTHON" -m venv .venv
+fi
+# An existing `.venv` may be a `uv venv` (no pip module and no `bin/pip` script).
+# Seed pip so the installs below cannot fail on a machine that already had a
+# venv, and call pip as a module everywhere: a seeded env has `python -m pip`
+# even when it never got a `bin/pip` console script.
+if [[ "$DRY_RUN" != "1" && -d .venv ]] && ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
+  run .venv/bin/python -m ensurepip --upgrade
+fi
+# pip 25.1 and every older release still trusts the compromised eMudhra
+# intermediate CAs through its vendored certifi; the plain index upgrade would
+# be fetched over that trust path. The wheel URL carries its SHA-256, so the
+# bootstrap is verified before the new pip exists (advisory 2026-10-20).
+PIP_BOOTSTRAP_URL="https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
+run .venv/bin/python -m pip install --upgrade "$PIP_BOOTSTRAP_URL"
+if [[ "$DRY_RUN" != "1" ]] && ! .venv/bin/python -m pip --version | grep -q '^pip 26\.2\.2'; then
+  fail "pip bootstrap did not reach 26.2.2 (CA advisory 2026-10-20)"
+fi
+if [[ "$INSTALL_MODE" == "cli" ]]; then
+  info "CLI mode: installing minimal dependencies (tui) only"
+  if ! run .venv/bin/python -m pip install -e ".[tui,sandbox]"; then
+    warn "ephemora-cell is not installable on this platform; continuing without the sandbox extra"
+    run .venv/bin/python -m pip install -e ".[tui]"
+  fi
+else
+  if ! run .venv/bin/python -m pip install -e ".[gui,voice,sandbox]"; then
+    warn "ephemora-cell is not installable on this platform; continuing without the sandbox extra"
+    run .venv/bin/python -m pip install -e ".[gui,voice]"
+  fi
+fi
+# The sandbox extra carries the cell engine, and its floor needs restating for this
+# install path: ephemora-cell 1.1.0 declares `wasmtime<48` and pyproject's
+# `[tool.uv] override-dependencies` that replaces that bound is read only by uv — a pip
+# resolver follows the wheel's own requirement. Measured 2026-11-01 in this checkout:
+# `.venv` had resolved wasmtime 47.0.1 while uv.lock resolves 50.0.1, and 47.0.1 is the
+# release tests/test_cell_runtime_floor.py refuses (RUSTSEC-2026-0352, a filesystem
+# sandbox escape). So the floor goes back on the machine here, after the extras have
+# landed, and the version that actually installed is read back before anything else runs.
+if [[ "$DRY_RUN" != "1" ]] && .venv/bin/python -c "import ephemora_cell" >/dev/null 2>&1; then
+  run .venv/bin/python -m pip install "wasmtime>=50.0.1,<51"
+  cell_engine="$({ .venv/bin/python -c 'import importlib.metadata as m; print(m.version("wasmtime"))' || true; })"
+  case "$cell_engine" in
+    50.*) ok "cell engine wasmtime ${cell_engine} — at the patched floor" ;;
+    *) fail "cell engine reports '${cell_engine:-nothing}' — the sandbox would ship an engine below 50.0.1; see tests/test_cell_runtime_floor.py" ;;
+  esac
+fi
+# openpyxl: xlsx support (otherwise missing from a Miniconda env, and it costs 10 tests)
+run_quiet "Excel support installed" .venv/bin/python -m pip install -q openpyxl
+
+# ── PWA build (desktop mode) ────────────────────────────────────────────────
+# The server serves the web app (PWA) from app/dist/ — a build artifact that is
+# git-ignored and therefore missing from a fresh clone. In desktop mode we build
+# the frontend now so that http://127.0.0.1:8765/ loads directly.
+# CLI mode (TUI) needs no frontend → the build is skipped (faster).
+if [[ "$INSTALL_MODE" != "cli" ]]; then
+  build_pwa() {
+    step "Building the PWA (web app)"
+    if ! command -v npm >/dev/null 2>&1; then
+      fail "npm is missing — Node.js/npm is required for the PWA build. Install Node.js (https://nodejs.org) and run the installer again."
+    fi
+    # `command -v pnpm` proves a file exists, not that pnpm runs. Homebrew's pnpm
+    # IS the corepack shim, and corepack resolves the `packageManager` pin from the
+    # CURRENT WORKING DIRECTORY — not from `--dir` — so a pnpm that answers here can
+    # still die at the real call. Measured 2026-10-15 from this directory: the shim
+    # resolved pnpm 12.11.2 and then failed with "Cannot find module
+    # …/corepack/v1/pnpm/12.11.2/bin/pnpm.cjs", while the same command from app/
+    # worked. So probe pnpm by RUNNING it — the way find_python() already probes an
+    # interpreter — in the directory the build runs in and with the `--dir` the
+    # build uses. A pnpm that does not run counts as absent, which is what it is,
+    # and the npm branch below is the path that works there.
+    pnpm_ok=0
+    if [[ "$DRY_RUN" == "1" ]]; then
+      # A dry run executes no tool, so presence is all it can ask for.
+      if command -v pnpm >/dev/null 2>&1; then pnpm_ok=1; fi
+    elif pnpm --dir "$PROJECT_DIR/app" --version >/dev/null 2>&1; then
+      pnpm_ok=1
+    elif command -v pnpm >/dev/null 2>&1; then
+      warn "pnpm is installed but does not run here (its corepack shim cannot resolve the pinned version) — building with npm instead."
+    fi
+    if [[ ! -f "$PROJECT_DIR/app/pnpm-lock.yaml" ]]; then
+      info "install is running (without the lockfile)"
+      if [[ "$pnpm_ok" == "1" ]]; then
+        run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install
+      else
+        run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock --legacy-peer-deps \
+          || fail "npm could not resolve the dependencies in app/ — the package manifest and the pnpm lock disagree (see the lines above). Install pnpm (https://pnpm.io) and run the installer again, or fix the conflict npm names and retry."
+      fi
+    elif [[ "$pnpm_ok" == "1" ]]; then
+      run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install --frozen-lockfile || run_quiet "Dependencies installed (app, relaxed lockfile)" pnpm --dir "$PROJECT_DIR/app" install
+      run_quiet "Frontend built" pnpm --dir "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
+    else
+      # npm, and `install --no-package-lock` rather than `ci`: a fresh clone has no
+      # package-lock.json, and `npm ci` refuses that state outright — measured on
+      # npm 11.18.0 against an app/ holding package.json + pnpm-lock.yaml, it exits 1
+      # with "EUSAGE … can only install with an existing package-lock.json". Bare
+      # `npm install` does work but writes app/package-lock.json, the second lockfile
+      # tests/test_r46_pnpm_single_source.py forbids. The flag is the shape that both
+      # runs without a lockfile and leaves the pnpm-only contract alone.
+      #
+      # `--legacy-peer-deps` is the second half, measured 2026-11-10 (issue #191):
+      # with the vitest pair aligned in app/package.json, plain `npm install` on npm
+      # 10.9.9 still dies inside its own resolver (`TypeError: Cannot read properties
+      # of null (reading 'edgesOut')` from @npmcli/arborist's peer-set walk), and the
+      # earlier unaligned tree answered `ERESOLVE … peer vitest@4.1.11 from
+      # @vitest/coverage-v8@4.1.11`. The peers this app needs are declared in
+      # package.json (`@testing-library/dom` is one of them), so installing without
+      # npm's peer solver produces the tree pnpm already resolved; the declared pair
+      # is what tests/test_installer_cli.py holds to the lock and the Cargo lock.
+      info "pnpm is not usable here — building with npm (no package-lock.json will be written)"
+      run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock --legacy-peer-deps \
+        || fail "npm could not resolve the dependencies in app/ — the package manifest and the pnpm lock disagree (see the lines above). Install pnpm (https://pnpm.io) and run the installer again, or fix the conflict npm names and retry."
+      run_quiet "Frontend built" npm --prefix "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
+    fi
+    if [[ "$DRY_RUN" != "1" && ! -f "$PROJECT_DIR/app/dist/index.html" ]]; then
+      fail "PWA build failed: app/dist/index.html does not exist."
+    fi
+    # A dry run builds nothing, so it may not report a build. "PWA built → app/dist"
+    # was printed there while app/dist stayed absent (issue #198): the line a person
+    # reads after an install has to be the line describing what happened.
+    if [[ "$DRY_RUN" == "1" ]]; then
+      info "would build the PWA into app/dist (nothing was built)"
+    else
+      ok "PWA built → app/dist"
+    fi
+  }
+  build_pwa
+else
+  info "CLI mode: the PWA build is skipped (the TUI needs no frontend)"
+fi
+
+step "Creating the local data folders"
+if [[ "$DRY_RUN" == "1" ]]; then
+  info "DRY-RUN: mkdir -p $HOME/.ephe/memory $HOME/.ephe/skills $HOME/.ephe/sessions"
+  info "would create $HOME/.ephe (not created)"
+else
+  mkdir -p "$HOME/.ephe/memory" "$HOME/.ephe/skills" "$HOME/.ephe/sessions/audio" "$HOME/.ephe/sessions/images"
+  ok "$HOME/.ephe ready"
+fi
+
+# The `ephe` console script lives in `.venv/bin`, and nothing here edits a shell
+# rc, so a bare `ephe` in a NEW terminal used to answer "command not found"
+# (docs/UI_AUDIT_2026-10-12.md). A launcher on PATH closes that gap — and it has
+# to replace a launcher left by an older install, which otherwise keeps answering
+# for a tree this run no longer touches.
+LAUNCHER_DIR="${EPHE_BIN_DIR:-$HOME/.local/bin}"
+LAUNCHER="$LAUNCHER_DIR/ephe"
+launcher_ready=0
+if [[ "$DRY_RUN" == "1" ]]; then
+  info "DRY-RUN: ln -sfn $PROJECT_DIR/.venv/bin/ephe $LAUNCHER"
+  launcher_ready=1
+elif mkdir -p "$LAUNCHER_DIR" 2>/dev/null && ln -sfn "$PROJECT_DIR/.venv/bin/ephe" "$LAUNCHER" 2>/dev/null; then
+  launcher_ready=1
+fi
+on_path=0
+case ":$PATH:" in
+  *":$LAUNCHER_DIR:"*) on_path=1 ;;
+esac
+
+echo ""
+if [[ "$DRY_RUN" == "1" ]]; then
+  # The closing banner is the last thing a reader believes. A dry run installed
+  # nothing, so it cannot say "Setup complete" (issue #198): what it can say is
+  # that the plan ran through and that a real run is the next command.
+  echo -e "${GREEN}${BOLD}Dry run complete.${NC} Nothing was installed, built or written."
+else
+  echo -e "${GREEN}${BOLD}Setup complete.${NC}"
+fi
+echo "Project: $PROJECT_DIR"
+echo ""
+if [[ "$DRY_RUN" == "1" ]]; then
+  info "the launcher would be $LAUNCHER (nothing was linked)"
+elif [[ "$launcher_ready" == "1" && "$on_path" == "1" ]]; then
+  ok "Ready — the launcher answers to ephe."
+elif [[ "$launcher_ready" == "1" ]]; then
+  ok "Launcher installed: $LAUNCHER"
+  echo "  Add its folder to PATH once (~/.zshrc):"
+  echo "    export PATH=\"$LAUNCHER_DIR:\$PATH\""
+  echo "  Or call it directly: $LAUNCHER"
+else
+  warn "No launcher could be placed in $LAUNCHER_DIR — activate the environment instead:"
+  echo "  source \"$PROJECT_DIR/.venv/bin/activate\""
+fi
+echo ""
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "Run the same command without --dry-run to install, build and start."
+  echo ""
+fi
+echo "No engine is needed to start: the terminal app opens its own setup"
+echo "(provider, endpoint, API key, model) and sends nothing until you choose one."
+echo ""
+echo "  ephe configure    # choose the engine from the shell (optional: the app asks on first run)"
+echo "  ephe doctor       # check engine, model and server state"
+if [[ "$INSTALL_MODE" == "cli" ]]; then
+  echo "  ephe tui          # start the terminal UI"
+else
+  echo "  ephe start --open # start the local app, then open http://127.0.0.1:${PORT}"
+fi
+echo ""
+
+if [[ "$NO_START" != "1" && "$DRY_RUN" != "1" ]]; then
+  if [[ -t 0 ]]; then
+    read -r -p "Start now? [Y/n] " reply
+    reply="${reply:-Y}"
+    [[ "$reply" =~ ^[YyJj]$ ]] || exit 0
+  fi
+  if [[ "$INSTALL_MODE" == "cli" ]]; then
+    exec .venv/bin/ephe tui
+  else
+    exec .venv/bin/ephe start --port "$PORT" --open
+  fi
+fi

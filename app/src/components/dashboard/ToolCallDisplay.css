@@ -1,0 +1,40 @@
+/* Tool activity in the studio column — one quiet line, not a nested box.
+   The card sits a step above the transcript on the calm surface; the body,
+   when open, drops into the sunken code ground. The leading mark is the
+   status read: an amber glow while it runs, a settled line once it is done. */
+
+.tool-pill {
+  background: var(--surface-active);
+  border: 1px solid var(--border-decorative);
+}
+
+.tool-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.tool-status.is-running {
+  color: var(--color-signal-warn);
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-signal-warn) 60%, transparent));
+}
+
+.tool-status.is-done {
+  color: var(--color-signal-ok);
+}
+
+.tool-status.is-error {
+  color: var(--color-signal-danger);
+}
+
+.tool-body {
+  background: var(--surface-card);
+  border: 1px solid var(--border-decorative);
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}

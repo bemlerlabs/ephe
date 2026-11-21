@@ -1,0 +1,167 @@
+/**
+ * Composer mobile layout contract (WD-29).
+ *
+ * jsdom measures no layout, so what is held here is the class contract the
+ * breakpoints encode — the same contract the pixel runs measure
+ * (`tests/playwright/composer-width.spec.ts`, `mobile-viewport.spec.ts`).
+ *
+ * Rule: below lg (1024px) every interactive composer control reaches the 44px
+ * touch floor (`max-lg:min-h-11`, square icon buttons also `max-lg:min-w-11`),
+ * the action row reflows (`flex-wrap`), and every composer menu row reaches the
+ * same floor. 2026-11-10: the mode chip, the mode hint and the palette button
+ * left the row — the mode sits in the header, the palette in the header run line.
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { useRef } from 'react'
+
+vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '9', init: () => Promise.resolve() },
+  useTranslation: () => ({
+    i18n: { language: 'en' },
+    t: (key: string, opts?: unknown) => {
+      const o = opts as Record<string, unknown> | undefined
+      return String(o && typeof o.defaultValue === 'string' ? o.defaultValue : key)
+    },
+  }),
+}))
+
+vi.mock('@/lib/api', () => ({
+  getModelProviders: vi.fn(async () => ({
+    active: { provider: 'local_ollama', model: 'gemma4:12b', offline_capable: true },
+    providers: [{ provider: 'local_ollama', model: 'gemma4:12b', label: 'Local Ollama' }],
+    local_models: [],
+    local_model_options: [],
+  })),
+  transcribeAudio: vi.fn(async () => ''),
+  listFs: vi.fn(async () => ({
+    path: '/tmp/ws',
+    parent: null,
+    home: '/tmp',
+    workspace: '/tmp/ws',
+    entries: [],
+  })),
+  getSettings: vi.fn(async () => ({ workspace_dir: '/tmp/ws', approval_profile: 'strict' })),
+  setModelProvider: vi.fn(async () => ({ active: { model: 'm1' } })),
+  getSetupStatus: vi.fn(async () => ({ configured: true, provider: 'local_ollama' })),
+}))
+
+import ChatInput from '@/components/dashboard/ChatInput'
+import ComposerMicButton from './ComposerMicButton'
+import ComposerAttachMenu from './ComposerAttachMenu'
+import { useChatStore } from '@/store/chatStore'
+
+const cls = (testid: string) => screen.getByTestId(testid).className
+
+beforeEach(() => {
+  localStorage.clear()
+  useChatStore.setState({ sessions: [], activeSessionId: null, currentSession: null } as never)
+})
+
+describe('composer mobile layout — the 44px touch floor below lg', () => {
+  it('every interactive control in the action row carries the mobile floor', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    for (const id of [
+      'composer-attach-plus',
+      'model-chip',
+      'composer-access-control',
+      'send-btn',
+    ]) {
+      expect(cls(id), `${id} mobile touch floor`).toContain('max-lg:min-h-11')
+    }
+    // square icon controls keep the 44px width too
+    expect(cls('composer-attach-plus')).toContain('max-lg:min-w-11')
+    expect(cls('model-chip')).toContain('max-lg:min-w-11')
+    expect(cls('send-btn')).toContain('max-lg:min-w-11')
+    // the send button grows its padding below lg instead of the desktop min-h-9
+    expect(cls('send-btn')).toContain('max-lg:p-3')
+    // the thinking chip stays a status, but keeps the same row height
+    expect(cls('composer-thinking-chip')).toContain('max-lg:min-h-11')
+  })
+
+  it('keeps one line: the row no longer wraps into a second inner row', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const row = screen.getByTestId('composer-actions-row')
+    // A wrap is the row's fallback for a squeezed pane (the Playwright spec at 1100 px
+    // with the panel open measures it); at a normal width every control sits on one line.
+    expect(row.className).toContain('flex-wrap')
+    expect(row.className).toContain('max-sm:flex-nowrap')
+    expect(row.className).not.toContain('gap-y-2')
+    const left = row.querySelector('.gap-x-1')
+    expect(left, 'left sub-group keeps the narrow column gap').not.toBeNull()
+  })
+
+  it('the empty field is one line, and the touch floor holds it below sm and on touch', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    const field = screen.getByTestId('chat-input')
+    // No height is written before the draft is measured, so the class list owns
+    // the floor: one line of the ramp plus py-1, raised to 44px where a thumb works.
+    for (const token of ['py-1', 'max-sm:min-h-11', 'pointer-coarse:min-h-11', 'max-h-32']) {
+      expect(cls('chat-input'), `field keeps ${token}`).toContain(token)
+    }
+    expect(field.className).not.toContain('min-h-[48px]')
+  })
+
+  it('the composer keeps no palette button — Cmd+K and the header run line own it', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    expect(screen.queryByLabelText('chat.openPalette')).toBeNull()
+  })
+
+  it('no mode hint stands in the row: the header names the active mode', () => {
+    useChatStore.setState({
+      sessions: [{ id: 's1', mode: 'analyst' }],
+      activeSessionId: 's1',
+      currentSession: null,
+    } as never)
+    render(<ChatInput onSend={vi.fn()} />)
+    expect(screen.queryByTestId('composer-ask-hint')).toBeNull()
+    expect(screen.queryByTestId('composer-mode-selector')).toBeNull()
+  })
+
+  it('the model chip and the access control clamp their width on mobile', () => {
+    render(<ChatInput onSend={vi.fn()} />)
+    // the label span clamps narrower below lg so the chip cannot push the row
+    expect(screen.getByTestId('model-chip').querySelector('.max-lg\\:max-w-28')).not.toBeNull()
+    expect(cls('composer-access-control')).toContain('max-lg:max-w-32')
+  })
+})
+
+describe('extracted composer controls — the same floor without the store', () => {
+  it('the mic button keeps the 44px floor', () => {
+    const levels = { current: new Float32Array(4) }
+    render(
+      <ComposerMicButton
+        recording={false}
+        transcribing={false}
+        micFrame={0}
+        micLevelsRef={levels}
+        onPointerDown={vi.fn()}
+        onPointerUp={vi.fn()}
+      />,
+    )
+    const btn = screen.getByRole('button')
+    expect(btn.className).toContain('max-lg:min-h-11')
+    expect(btn.className).toContain('max-lg:min-w-11')
+  })
+
+  it('every plus-menu row reaches the 44px floor', () => {
+    function Host() {
+      const anchorRef = useRef<HTMLButtonElement>(null)
+      return (
+        <ComposerAttachMenu
+          pos={{ left: 40, bottom: 80 }}
+          anchorRef={anchorRef}
+          onClose={vi.fn()}
+          onAttachFile={vi.fn()}
+          onAttachImage={vi.fn()}
+          onCaptureScreen={vi.fn()}
+          onWideResearch={vi.fn()}
+        />
+      )
+    }
+    render(<Host />)
+    const rows = screen.getAllByRole('menuitem')
+    expect(rows.length).toBeGreaterThanOrEqual(2)
+    for (const row of rows) expect(row.className).toContain('max-lg:min-h-11')
+  })
+})

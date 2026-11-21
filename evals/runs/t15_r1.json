@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "T15",
+  "family": "tau",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-t15-r1-1790172578",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==22.81",
+  "error_class": null,
+  "wall_ms": 13704.1,
+  "ttft_first_event_ms": 348.9,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 44.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.3
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 22.81",
+  "tool_calls": [
+    "file_search",
+    "read_file"
+  ],
+  "answer_chars": 514,
+  "tokens_out_proxy": 128.5,
+  "fixture_hash": "685e096ee922",
+  "answer_tail": "\n\n**Berechnung aus dem real gelesenen Datei-Inhalt** (`/private/tmp/bench-option-b/ws/t15.csv`):\n\n| # | value |\n|---|---|\n| 1 | 12.5 |\n| 2 | 7.25 |\n| 3 | 3.06 |\n\n**Summenkontrolle (schrittweise):**\n- 12.5 + 7.25 = 19.75\n- 19.75 + 3.06 = 22.81\n\n**Gerundet auf 2 Dezimalen:** **22.81**\n\nHinweis: Der `run_shell`-Rechner ist in dieser Umgebung nicht verfügbar (nicht in der aktiven Tool-Liste) — die Summe stammt direkt aus den 3 gelesenen Zeilen und wurde schrittweise nachgerechnet verifiziert.\n\nFINAL ANSWER: 22.81",
+  "ts": "2026-09-23T16:09:52"
+}

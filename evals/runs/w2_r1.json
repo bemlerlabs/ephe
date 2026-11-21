@@ -1,0 +1,26 @@
+{
+  "task_id": "W2",
+  "family": "endstate",
+  "rep": 1,
+  "session_id": "ob-w2-r1-1790159657",
+  "ok": true,
+  "note": "old_gone=True new=True index=True",
+  "wall_ms": 46035.3,
+  "ttft_first_event_ms": 260.5,
+  "final_answer_line": "FINAL ANSWER: done",
+  "tool_calls": [
+    "tool_search",
+    "tool_search",
+    "file_search",
+    "edit_file",
+    "edit_file",
+    "edit_file",
+    "tool_call",
+    "edit_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 750,
+  "answer_tail": "e/tmp/bench-option-b/ws/report.md` | angelegt mit `# Report` (9 Zeichen) |\n| 2 | `/private/tmp/bench-option-b/ws/index.md` | angelegt mit `See: report.md` (15 Zeichen) |\n| 3 | `/private/tmp/bench-option-b/ws/report-v2.md` | angelegt mit `# Report` (9 Zeichen) |\n| 3b | `report.md` | per `delete_file` entfernt → existiert nicht mehr |\n| 4 | `/private/tmp/bench-option-b/ws/index.md` | per Diff auf `See: report-v2.md` aktualisiert |\n\n**Rücklese-Verifikation:**\n- `index.md` → Zeile 1: `See: report-v2.md` (referenziert nur noch die v2-Datei)\n- `report-v2.md` → Zeile 1: `# Report`\n\nFINAL ANSWER: done",
+  "ts": "2026-09-23T12:35:03"
+}

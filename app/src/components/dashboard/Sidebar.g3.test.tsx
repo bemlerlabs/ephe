@@ -1,0 +1,384 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import Sidebar from './Sidebar'
+import {
+  OPEN_TIERS_KEY,
+  RAIL_ROW_IDS,
+  SIDEBAR_ACTION_TIERS,
+  SIDEBAR_ACTION_ENTRY_IDS,
+} from './sidebarActionGroups'
+
+/**
+ * Round-G3 (2026-09-07, reference parity): the left rail's action rows — "New task" (⌘N),
+ * "Search" (⌘K), "Automations", "Skills", … — plus the Group/Project toggle and the tasks
+ * section. Rewritten for register #71, where the owner called the flat list overloaded.
+ *
+ * The old assertions asked `getByTestId('sidebar-action-…')` of every row in turn, which is as
+ * true of a row in a closed, hidden tier (jsdom keeps it in the document) — the file read the
+ * same flat or grouped. It now pins which tier holds which row (the literal table), that a tier
+ * holds exactly the rows the ONE list names, that closing hides without unmounting, and that
+ * the open/closed state survives a reload.
+ */
+
+const storeMocks = vi.hoisted(() => ({
+  togglePin: vi.fn(),
+  createSession: vi.fn(),
+  sessions: [
+    {
+      id: 's1',
+      title: 'Alpha',
+      messages: [{ role: 'user', content: 'Hallo' }],
+      createdAt: Date.now(),
+    },
+  ] as Array<Record<string, unknown>>,
+  activeSessionId: 's1',
+}))
+
+const apiMocks = vi.hoisted(() => ({
+  listProjects: vi.fn(async () => ({ projects: [{ name: 'ephe', path: '/tmp/ephe' }] })),
+  listSchedules: vi.fn(async () => ({ jobs: [] })),
+  updateSettings: vi.fn(async () => ({})),
+  getSettings: vi.fn(async () => ({ workspace_dir: null, approval_profile: 'strict' })),
+  getTasks: vi.fn(async () => [
+    { id: 't1', title: 'Regression testen', status: 'pending', project: null },
+    { id: 't2', title: 'Changelog schreiben', status: 'done', project: null },
+  ]),
+  searchSessions: vi.fn(async () => []),
+  exportChatMarkdown: vi.fn(async () => ''),
+  downloadTextFile: vi.fn(),
+}))
+
+vi.mock('framer-motion', () => ({
+  // The surfaces animate with `m` — LazyMotion's core component; the app root
+  // mounts the feature set once (App.tsx). The stub has to answer for `m`.
+  m: {
+    div: (props: Record<string, unknown>) => (
+      <div data-testid="chat-sidebar" {...(props as React.ComponentProps<'div'>)} />
+    ),
+  },
+}))
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}))
+
+vi.mock('@/store/chatStore', () => ({
+  DEFAULT_SESSION_TITLE: 'New Session',
+  useChatStore: () => ({
+    sessions: storeMocks.sessions,
+    activeSessionId: storeMocks.activeSessionId,
+    setActiveSession: vi.fn(),
+    createSession: storeMocks.createSession,
+    deleteSession: vi.fn(),
+    renameSession: vi.fn(),
+    togglePin: storeMocks.togglePin,
+  }),
+}))
+
+vi.mock('@/hooks/useMediaQuery', () => ({ useMediaQuery: () => true }))
+
+vi.mock('@/lib/api', () => ({
+  listProjects: apiMocks.listProjects,
+  listSchedules: apiMocks.listSchedules,
+  updateSettings: apiMocks.updateSettings,
+  getTasks: apiMocks.getTasks,
+  getSettings: apiMocks.getSettings,
+  searchSessions: apiMocks.searchSessions,
+  exportChatMarkdown: apiMocks.exportChatMarkdown,
+  downloadTextFile: apiMocks.downloadTextFile,
+}))
+
+/**
+ * The tiers as the owner named them, written out. Deliberately a literal: the
+ * ONE list in sidebarActionGroups.ts can only tell us that nothing was dropped,
+ * never that a row sits in the right tier — that part has to be read here.
+ */
+/**
+ * The tiers as the owner named them, written out — for the width where the frame's rail
+ * stands (this file mocks `useMediaQuery` to true). The five rows that name a page live in
+ * that rail from 1024 px up, so they are absent here and present in the drawer
+ * (`Sidebar.drawerNav.test.tsx`); the rest of the register is the task's own.
+ */
+const TIERS: Record<string, string[]> = {
+  // "Steps" — headless, always open. Search left for the frame rail in register #107,
+  // so the primary tier is the one row that belongs to the task in front of the reader.
+  primary: ['sidebar-action-tasks'],
+  // "Tools & Capabilities" — collapsible, minus the pages the rail carries.
+  tools: [
+    'sidebar-action-skills',
+    'sidebar-action-helpers',
+    'sidebar-action-agents',
+    'sidebar-action-files',
+  ],
+  // "More surfaces" — collapsible, three named rows next to the rail's places.
+  more: ['sidebar-action-library', 'sidebar-action-automations', 'sidebar-action-connectors'],
+}
+
+const ALL_ROWS: string[] = []
+for (const rows of Object.values(TIERS)) ALL_ROWS.push(...rows)
+
+function rowTestIdsOf(tier: string): string[] {
+  const container = screen.getByTestId(`sidebar-tier-${tier}`)
+  return [...container.querySelectorAll<HTMLElement>('[data-testid^="sidebar-action-"]')].map(
+    (el) => el.getAttribute('data-testid') ?? '',
+  )
+}
+
+function mount(onOpenSettings = vi.fn()) {
+  return render(
+    <Sidebar
+      isOpen={false}
+      onClose={vi.fn()}
+      onOpenSettings={onOpenSettings}
+      collapsed={false}
+      onToggleCollapsed={vi.fn()}
+    />,
+  )
+}
+
+describe('Sidebar action rows and the view switch (round G3)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  describe('#71: the three tiers', () => {
+    it('every row stands in its tier — primary first, then tools, then the rest', async () => {
+      mount()
+      await screen.findByTestId('sidebar-actions')
+
+      for (const [tier, rows] of Object.entries(TIERS)) {
+        expect(rowTestIdsOf(tier), `tier ${tier}`).toEqual(rows)
+      }
+
+      // The tiers stand in the owner's order, top to bottom, and there is no
+      // fourth, unlabelled place a row could hide in.
+      const tiersInDom = [...screen.getByTestId('sidebar-actions').children].map((el) =>
+        el.getAttribute('data-tier'),
+      )
+      expect(tiersInDom).toEqual(Object.keys(TIERS))
+      for (const [tier, rows] of Object.entries(TIERS)) {
+        for (const row of rows) {
+          expect(screen.getByTestId(row).getAttribute('data-tier'), row).toBe(tier)
+        }
+      }
+    })
+
+    it('nothing was dropped: the rendered rows plus the rail’s places are the list', async () => {
+      mount()
+      await screen.findByTestId('sidebar-actions')
+
+      // Completeness read off the ONE list. The rail takes five of the entries
+      // at this width, so the check is the union — a row that leaves both
+      // surfaces fails here even if the table above is edited to match.
+      const railRows = RAIL_ROW_IDS.map((id) => `sidebar-action-${id}`)
+      expect(SIDEBAR_ACTION_ENTRY_IDS).toHaveLength(new Set([...ALL_ROWS, ...railRows]).size)
+      expect(SIDEBAR_ACTION_TIERS.flatMap((t) => t.entries)).toHaveLength(
+        new Set([...ALL_ROWS, ...railRows]).size,
+      )
+      expect(railRows.some((row) => ALL_ROWS.includes(row))).toBe(false)
+
+      const ids = ALL_ROWS.map((t) => screen.getByTestId(t).getAttribute('data-testid'))
+      expect(new Set(ids).size).toBe(ALL_ROWS.length)
+    })
+
+    it('the primary tier carries no head and cannot be closed', async () => {
+      mount()
+      await screen.findByTestId('sidebar-tier-primary')
+
+      expect(screen.queryByTestId('sidebar-tier-primary-toggle')).toBeNull()
+      for (const row of TIERS.primary!) {
+        expect(screen.getByTestId(row)).toBeVisible()
+      }
+      // Register #107: the pill and the Search row stand in the frame rail at this
+      // width, so the tier's own row is what sits under the header — and nothing in the
+      // column starts a task beside the rail's + row.
+      expect(screen.queryByTestId('new-session')).toBeNull()
+      expect(screen.queryByTestId('sidebar-action-search')).toBeNull()
+      expect(screen.queryByTestId('sidebar-action-new')).toBeNull()
+    })
+
+    it('a fresh sidebar opens closed — what is primary is what you see', async () => {
+      mount()
+      await screen.findByTestId('sidebar-tier-tools')
+
+      for (const tier of ['tools', 'more']) {
+        expect(
+          screen.getByTestId(`sidebar-tier-${tier}-toggle`).getAttribute('aria-expanded'),
+        ).toBe('false')
+        expect(screen.getByTestId(`sidebar-tier-${tier}-rows`)).toHaveAttribute('hidden')
+      }
+      // The heads keep the member count, so a closed tier still says what is in it —
+      // and the count is the tier's own length at this width, not a number copied in.
+      for (const [tier, rows] of Object.entries(TIERS)) {
+        if (tier === 'primary') continue
+        expect(screen.getByTestId(`sidebar-tier-${tier}-count`).textContent, `tier ${tier}`).toBe(
+          String(rows.length),
+        )
+      }
+    })
+
+    it('closing a tier hides its rows without unmounting them', async () => {
+      mount()
+      const toggle = await screen.findByTestId('sidebar-tier-tools-toggle')
+      const rows = screen.getByTestId('sidebar-tier-tools-rows')
+      const firstRow = screen.getByTestId(TIERS.tools![0]!)
+
+      fireEvent.click(toggle)
+      expect(toggle.getAttribute('aria-expanded')).toBe('true')
+      expect(rows).not.toHaveAttribute('hidden')
+      expect(firstRow).toBeVisible()
+
+      fireEvent.click(toggle)
+      expect(toggle.getAttribute('aria-expanded')).toBe('false')
+      expect(rows).toHaveAttribute('hidden')
+      // Still in the document — a closed tier is only hidden, so the rows keep
+      // their state and the testids stay findable.
+      expect(firstRow).toBeInTheDocument()
+      expect(firstRow).not.toBeVisible()
+      for (const row of TIERS.tools!) {
+        expect(screen.getByTestId(row)).not.toBeVisible()
+      }
+      // …and the other tier is untouched by it.
+      expect(screen.getByTestId(TIERS.more![0]!)).not.toBeVisible()
+      expect(screen.getByTestId('sidebar-tier-more-toggle').getAttribute('aria-expanded')).toBe(
+        'false',
+      )
+    })
+
+    it('remembers what was opened — the state survives a reload', async () => {
+      const first = mount()
+      fireEvent.click(await screen.findByTestId('sidebar-tier-tools-toggle'))
+      expect(JSON.parse(localStorage.getItem(OPEN_TIERS_KEY)!)).toEqual({
+        tools: true,
+        more: false,
+      })
+      first.unmount()
+
+      // The reload: same storage, new sidebar.
+      mount()
+      expect(screen.getByTestId('sidebar-tier-tools-toggle').getAttribute('aria-expanded')).toBe(
+        'true',
+      )
+      expect(screen.getByTestId(TIERS.tools![0]!)).toBeVisible()
+      expect(screen.getByTestId(TIERS.more![0]!)).not.toBeVisible()
+    })
+
+    it('a torn value falls back to first run instead of breaking the sidebar', async () => {
+      localStorage.setItem(OPEN_TIERS_KEY, '{not json')
+      mount()
+      expect(await screen.findByTestId('sidebar-tier-tools-toggle')).toBeTruthy()
+      expect(screen.getByTestId('sidebar-tier-tools-rows')).toHaveAttribute('hidden')
+    })
+
+    it('the nav island scrolls instead of eating the task list', async () => {
+      mount()
+      const island = await screen.findByTestId('sidebar-actions')
+      // Measured 2026-10-14 on the 288x800 column: with both tiers open the
+      // island wants 503px; uncapped the aside clipped the rows past the fold
+      // and the task list below collapsed to 8px. Capped, it scrolls.
+      expect(island.className).toContain('max-h-[45vh]')
+      expect(island.className).toContain('overflow-y-auto')
+    })
+
+    it('the head is a phone-sized target and says what it is', async () => {
+      mount()
+      const toggle = await screen.findByTestId('sidebar-tier-tools-toggle')
+      // W10 g8's phone floor, the same class the other drawer controls carry.
+      expect(toggle.className).toContain('max-lg:min-h-11')
+      expect(toggle.getAttribute('title')).toBe('sidebar.groupTools')
+      // The name a screen reader reads is the visible head text; the count is decoration.
+      expect(toggle.textContent).toContain('sidebar.groupTools')
+      expect(toggle.getAttribute('aria-controls')).toBe(
+        screen.getByTestId('sidebar-tier-tools-rows').id,
+      )
+    })
+  })
+
+  describe('what the rows do', () => {
+    it('the register keeps the list search and no longer answers ⌘K itself', async () => {
+      mount()
+      await screen.findByTestId('sidebar-actions')
+      // The palette and the new task are the rail's; what stays is the field that
+      // filters the rows below it.
+      expect(screen.queryByTestId('sidebar-action-search')).toBeNull()
+      expect(screen.queryByTestId('sidebar-action-kanban')).toBeNull()
+      expect(screen.getByPlaceholderText('sidebar.searchPlaceholder')).toBeTruthy()
+    })
+
+    it('a row in a closed tier is only reachable once the tier is open', async () => {
+      const onOpenSettings = vi.fn()
+      mount(onOpenSettings)
+      // "Automations" lives in the third tier — closed on first run.
+      expect(screen.getByTestId('sidebar-action-automations')).not.toBeVisible()
+      fireEvent.click(await screen.findByTestId('sidebar-tier-more-toggle'))
+      expect(screen.getByTestId('sidebar-action-automations')).toBeVisible()
+
+      fireEvent.click(screen.getByTestId('sidebar-action-automations'))
+      expect(onOpenSettings).toHaveBeenCalledWith('cron')
+    })
+
+    it('Capabilities lands on the capability group of the settings panel', async () => {
+      const onOpenSettings = vi.fn()
+      mount(onOpenSettings)
+      // Plugins, MCP servers and skills are three sections of the settings panel; the
+      // skills section is the installed list that carries a provenance mark per row. The
+      // row used to call the handler with no argument, which opens the panel's default
+      // tab — the engine's own section.
+      fireEvent.click(await screen.findByTestId('sidebar-tier-tools-toggle'))
+      fireEvent.click(screen.getByTestId('sidebar-action-skills'))
+      expect(onOpenSettings).toHaveBeenCalledWith('skills')
+    })
+
+    it('Tasks opens the steps page in the settings; Library the library rail', async () => {
+      const onOpenSettings = vi.fn()
+      mount(onOpenSettings)
+      // The steps ledger's one surface is its page in the settings: the panel tab that drew a
+      // second step list beside the plan card is gone, so this row lands where the automations
+      // row lands — on the page.
+      fireEvent.click(await screen.findByTestId('sidebar-action-tasks'))
+      expect(onOpenSettings).toHaveBeenCalledWith('tasks')
+
+      fireEvent.click(screen.getByTestId('sidebar-tier-more-toggle'))
+      const libSeen: string[] = []
+      const libCatcher = (e: Event) => libSeen.push(e.type)
+      window.addEventListener('ephe:library-open', libCatcher)
+      try {
+        fireEvent.click(screen.getByTestId('sidebar-action-library'))
+      } finally {
+        window.removeEventListener('ephe:library-open', libCatcher)
+      }
+      expect(libSeen).toContain('ephe:library-open')
+    })
+  })
+
+  it('the Group/Project switch: project view keeps the projects section open', async () => {
+    const { container } = mount()
+    const toggleGroup = await screen.findByTestId('sidebar-view-toggle')
+    const projectBtnInit = toggleGroup.querySelector<HTMLButtonElement>(
+      'button[aria-pressed="false"]',
+    )!
+    fireEvent.click(projectBtnInit)
+    const active = await screen.findByTestId('sidebar-view-project-active')
+    expect(active).toBeTruthy()
+    // Project view: the projects section stays visible once loading has finished
+    expect(await screen.findByTestId('sidebar-projects')).toBeTruthy()
+    // and toggling back to Group works (the button that is now false is Group)
+    const groupBtn = container.querySelector<HTMLButtonElement>(
+      '[data-testid="sidebar-view-toggle"] button[aria-pressed="false"]',
+    )!
+    fireEvent.click(groupBtn)
+    expect(await screen.findByTestId('sidebar-view-group-active')).toBeTruthy()
+  })
+
+  it('the tasks section lists open tasks and clicks through to the steps page', async () => {
+    const onOpenSettings = vi.fn()
+    mount(onOpenSettings)
+    const row = await screen.findByTestId('sidebar-task-row-t1')
+    expect(row.textContent).toContain('Regression testen')
+    // done tasks do not belong in the open section
+    expect(screen.queryByTestId('sidebar-task-row-t2')).toBeNull()
+    fireEvent.click(row)
+    expect(onOpenSettings).toHaveBeenCalledWith('tasks')
+  })
+})

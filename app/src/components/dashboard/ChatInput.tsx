@@ -1,0 +1,643 @@
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
+import { Brain, UploadCloud } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Badge } from '@/components/ui'
+import { getSettings, saveSecuritySettings } from '@/lib/api'
+import { markSetupIntent } from '@/lib/setupGate'
+import { useDeepBool } from '@/lib/deepSettings'
+import { type ChatAttachment } from '@/lib/attachments'
+import { setComposerDraft } from '@/lib/restartGuard'
+import AttachmentPreview from './AttachmentPreview'
+import ComposerAttachButton from './chat/ComposerAttachButton'
+import ComposerFooterHints from './chat/ComposerFooterHints'
+import ComposerMentionList from './chat/ComposerMentionList'
+import ComposerMicButton from './chat/ComposerMicButton'
+import ComposerAccessControl from './chat/ComposerAccessControl'
+import type { AccessProfile } from './chat/accessProfiles'
+import ComposerModelChip from './chat/ComposerModelChip'
+import ComposerContextMeter from './chat/ComposerContextMeter'
+import ComposerSendButton from './chat/ComposerSendButton'
+import ComposerSlashMenu from './chat/ComposerSlashMenu'
+import {
+  anchorAbove,
+  hasModalDialog,
+  isInsideOverlay,
+  topmostPopup,
+  type ComposerPopupKey,
+  type MenuPos,
+} from './chat/composerPopups'
+import { useComposerAttachments } from './chat/useComposerAttachments'
+import { useComposerGrow } from './chat/composerGrow'
+import { useComposerMentions } from './chat/useComposerMentions'
+import { useComposerModelSelection } from './chat/useComposerModelSelection'
+import { useComposerSendPipeline } from './chat/useComposerSendPipeline'
+import { useComposerSlash } from './chat/useComposerSlash'
+import { useComposerVoiceInput } from './chat/useComposerVoiceInput'
+import { useThinkingChipKey } from './chat/useThinkingChipKey'
+import './ChatInput.css'
+
+export type { ChatAttachment }
+// P3 wave 2026-10-05: the model entries live in chat/composerModelEntries
+// (architecture boundary).
+export type { ModelChipEntry } from './chat/composerModelEntries'
+// P3 wave 2026-10-05: the ring copy lives in chat/contextRing (architecture
+// boundary). The public name stays exported from this file — the locales tests
+// reach it right here.
+export { contextRingLabel } from './chat/contextRing'
+
+interface ChatInputProps {
+  onSend: (message: string, attachments?: ChatAttachment[]) => void
+  disabled?: boolean
+  /** Streaming in progress → the send button turns into a stop button (PWA chat UX plan C1) */
+  streaming?: boolean
+  onStop?: () => void
+  /** Phase F: slash command (/compact, /new, /clear, /help) — the parent parses and runs it. */
+  onSlashCommand?: (raw: string) => void
+  /** Welcome action-card seed: fills the draft without sending; nonce allows re-filling the same text. */
+  draftSeed?: { text: string; nonce: number } | null
+  /** E-UX: context utilisation in % (0–100) for the ring around the send button. */
+  contextPercent?: number | null
+  /** F3: the same occupancy in tokens, for the meter beside the ring. */
+  contextTokens?: { used: number; window: number } | null
+}
+
+/**
+ * The composer keeps the access side only: the response mode is chosen in the
+ * header (`chat/HeaderModeControl`), and this row states the approval profile
+ * that sits above the mode as its ceiling. See `core/security_config.py` for the
+ * four values and `server/routes/chat.py::_mode_context` for what a mode offers.
+ */
+
+export default function ChatInput({
+  onSend,
+  disabled = false,
+  streaming = false,
+  onStop,
+  onSlashCommand,
+  draftSeed = null,
+  contextPercent = null,
+  contextTokens = null,
+}: ChatInputProps) {
+  const { t } = useTranslation()
+  // I6-3: `chat.allow_input_while_streaming` — off makes Enter useless during an
+  // answer and the field read-only; the composer stays readable, only the queue
+  // disappears (the queue was so far the only behaviour).
+  const allowInputWhileStreaming = useDeepBool('chat.allow_input_while_streaming', true)
+  // D2: the queue wording is only true while the composer can hand work over.
+  // With `disabled` set the send pipeline returns before it enqueues, so the
+  // busy wording is the honest one there.
+  const queueRuns = streaming && allowInputWhileStreaming && !disabled
+  const composerPlaceholder = !streaming
+    ? t('chat.placeholder')
+    : queueRuns
+      ? t('chat.queuePlaceholder')
+      : t('chat.busyPlaceholder')
+  const [message, setMessage] = useState('')
+  // F1: the composer states no rule. A blank draft disables send; the field's
+  // own label and the button's label still name the controls for a reader.
+  // M3 → 2026-11-10: the approval profile, read once per mount and written back
+  // by the composer's access control (the ceiling above the mode).
+  const [perm, setPerm] = useState('strict')
+  // F3/quieting: the token figures and /compact are secondary; the thinking control
+  // is their one door. Closed by default so the composer reads as one row of controls.
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  // P6 (ref-23): the plus menu bundles file/image/screenshot attachments
+  const [attachOpen, setAttachOpen] = useState(false)
+  // The access control opens its own menu; the composer keeps one escape chain.
+  const [accessOpen, setAccessOpen] = useState(false)
+  // W19 → P3 wave 2026-10-05: composer menus as a body portal — the overhang into
+  // the welcome area (panel-chat, overflow-y-auto) was clipped by that container,
+  // and the absolute plus menu sat BEHIND the composer window (the first two items
+  // were unreachable). Every menu portals to the body, clip-immune; the position
+  // comes from the chip rect, opens upward and is pulled back horizontally into
+  // the viewport (ComposerMenu).
+  const accessChipRef = useRef<HTMLButtonElement | null>(null)
+  const attachChipRef = useRef<HTMLButtonElement | null>(null)
+  const [accessMenuPos, setAccessMenuPos] = useState<MenuPos | null>(null)
+  const [attachMenuPos, setAttachMenuPos] = useState<MenuPos | null>(null)
+  const syncMenuPos = useCallback((el: HTMLElement | null, set: (pos: MenuPos) => void) => {
+    if (!el) return
+    set(anchorAbove(el.getBoundingClientRect()))
+  }, [])
+  const syncAccessMenuPos = useCallback(() => {
+    syncMenuPos(accessChipRef.current, setAccessMenuPos)
+  }, [syncMenuPos])
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const workspaceDirRef = useRef<string | undefined>(undefined)
+
+  // Welcome action cards seed the draft through the parent; the parent-owned
+  // nonce lets the same text be filled again after the user cleared it.
+  useEffect(() => {
+    if (draftSeed && draftSeed.nonce > 0) setMessage(draftSeed.text)
+  }, [draftSeed])
+
+  // The restart guard reads the live draft from here: a relaunch that arrives
+  // with unsent text in this field would take that text with it. The cleanup
+  // clears the published draft when the composer leaves the tree.
+  useEffect(() => {
+    setComposerDraft(message)
+  }, [message])
+  useEffect(() => () => setComposerDraft(''), [])
+
+  // EPHE-UI-001 (P0): the composer grows with its draft from one line of the input
+  // ramp to six, then the field scrolls — chat/composerGrow.
+  useComposerGrow(textareaRef, message)
+
+  // K3 Z24 / W19 / P1-10: model + provider selection (chip state, provider list,
+  // setup re-entry, live-provider switch) — see chat/useComposerModelSelection.
+  const {
+    model,
+    offlineCapable,
+    providers,
+    activeP,
+    needsSetup,
+    chipOpen,
+    setChipOpen,
+    modelChipRef,
+    modelMenuPos,
+    syncModelMenuPos,
+    pickProvider,
+    engineLabel,
+  } = useComposerModelSelection()
+
+  useEffect(() => {
+    getSettings()
+      .then((s) => {
+        workspaceDirRef.current = (s as { workspace_dir?: string }).workspace_dir
+        const p = (s as { approval_profile?: string }).approval_profile
+        if (p) setPerm(p)
+      })
+      .catch(() => {})
+  }, [])
+
+  // G1.3/DD-01: send pipeline — draft history/recall, the Alt+Enter queue and
+  // the stream-settle auto-flush — see chat/useComposerSendPipeline.
+  const { handleSend, queueCount, recall, recallPrev, recallNext, resetRecall, enqueueCurrent } =
+    useComposerSendPipeline({
+      disabled,
+      streaming,
+      allowInputWhileStreaming,
+      message,
+      setMessage,
+      attachments,
+      setAttachments,
+      onSend,
+      onSlashCommand,
+    })
+
+  // Phase F + R33/R34: slash autocompletion (menu data + keyboard ring) —
+  // see chat/useComposerSlash. `handleSend` lets the exact-command Enter send.
+  const {
+    slashAppHits,
+    slashSkillHits,
+    slashFlat,
+    slashIndex,
+    setSlashIndex,
+    setSlashDismissed,
+    slashOpen,
+    applySuggestion,
+    confirmSlash,
+  } = useComposerSlash({ message, setMessage, textareaRef, handleSend })
+
+  // F15 (round 14) → P3-3: @ file mentions — see chat/useComposerMentions.
+  const {
+    mentionOpen,
+    mentionItems,
+    mentionIndex,
+    setMentionIndex,
+    detectMention,
+    applyMention,
+    dismissMention,
+  } = useComposerMentions({ message, setMessage, textareaRef, workspaceDirRef })
+
+  // R18: voice input (record → transcribe → draft) — see chat/useComposerVoiceInput.
+  const { recording, transcribing, micFrame, micLevelsRef, onMicPointerDown, onMicPointerUp } =
+    useComposerVoiceInput({ setMessage, textareaRef })
+
+  // ── P3 wave 2026-10-05: ONE escape chain for all composer popups ────────
+  // The overlay promises «Esc — Panel / Dialog schließen · Generierung // language-gate: ignore — quoted shortcut-overlay copy, app/src/locales/de.json:1297 close (the shipped text reads «Ephes Computer», not «Panel»)
+  // stoppen». <!-- language-gate: ignore (quoted shortcut-overlay copy, app/src/locales/de.json:1297) --> Order (chat/composerPopups.ts): palette/dialog > model menu >
+  // access menu > plus menu > @ popup > slash list. Only when nothing is open
+  // anymore does Escape stop generation.
+  const popupsOpen: Record<ComposerPopupKey, boolean> = useMemo(
+    () => ({
+      model: chipOpen,
+      access: accessOpen,
+      attach: attachOpen,
+      details: detailsOpen,
+      mention: mentionOpen,
+      slash: slashOpen,
+    }),
+    [chipOpen, accessOpen, attachOpen, detailsOpen, mentionOpen, slashOpen],
+  )
+  const closePopup = useCallback(
+    (which: ComposerPopupKey) => {
+      if (which === 'model') setChipOpen(false)
+      else if (which === 'access') setAccessOpen(false)
+      else if (which === 'attach') setAttachOpen(false)
+      else if (which === 'details') setDetailsOpen(false)
+      else if (which === 'mention') dismissMention()
+      else if (which === 'slash') setSlashDismissed(true)
+    },
+    [setChipOpen, dismissMention, setSlashDismissed],
+  )
+  /** Close the topmost open popup; true = Escape was consumed. */
+  const closeTopPopup = useCallback((): boolean => {
+    const top = topmostPopup(popupsOpen)
+    if (!top) return false
+    closePopup(top)
+    return true
+  }, [popupsOpen, closePopup])
+
+  // P0-3 («ESC-cancel») merged with U1b: one listener for the popup chain and the
+  // stream abort, so the same order applies — at idle as well as while streaming.
+  useEffect(() => {
+    const anyOpen = topmostPopup(popupsOpen) !== null
+    if (!streaming && !anyOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Palette / dialog / menu belongs to whoever opened it: that side closes it.
+      if (hasModalDialog() || isInsideOverlay(document.activeElement)) return
+      if (closeTopPopup()) {
+        e.preventDefault()
+        return
+      }
+      if (!streaming) return
+      e.preventDefault()
+      onStop?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [streaming, popupsOpen, closeTopPopup, onStop])
+
+  // P1-4: drag & drop / paste / plus-menu attachment mechanics — see
+  // chat/useComposerAttachments. Declared AFTER the escape chain so the original
+  // window-listener order (escape before drag) stays intact.
+  const {
+    dragOver,
+    fileInputRef,
+    imageInputRef,
+    addFiles,
+    handlePaste,
+    handleAttach,
+    handleCaptureScreen,
+  } = useComposerAttachments({ setAttachments })
+
+  // P3-6: thinking status (hook here, not in the JSX — rules of hooks).
+  const thinkingChipKey = useThinkingChipKey()
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // W10-P1-1: IME guard — while a composition (CJK input) is running, Enter fires
+    // as the composition commit, not as a send; the native isComposing signal
+    // suppresses the send paths. (React 19 does not copy the field onto the
+    // SyntheticEvent — read it off the nativeEvent.)
+    if (e.nativeEvent.isComposing) return
+    // P3-3: the @ popup is fully keyboard-operable — the arrows move the highlight
+    // (from row 1), Enter/Tab insert the file, Escape closes the hit and leaves
+    // the typed text untouched.
+    if (mentionOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const n = mentionItems.length
+        setMentionIndex((i) => (i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        dismissMention()
+        return
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        applyMention(mentionItems[Math.min(mentionIndex, mentionItems.length - 1)]!)
+        return
+      }
+      if (e.key === 'Tab') {
+        // Tab belongs to the page: close the popup and let focus move on. The
+        // menu used to take the keystroke as a pick, which left the caret in the
+        // field and made Tab unable to leave the composer.
+        dismissMention()
+        return
+      }
+    }
+    // R33: full keyboard control of the slash menu — ArrowUp/Down walk the
+    // highlighted row, Escape dismisses the popup (keystroke stays in the
+    // input), Enter picks the highlighted suggestion and Tab closes the popup
+    // so focus can leave the composer.
+    if (slashOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const n = slashFlat.length
+        setSlashIndex((i) => (i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setSlashDismissed(true)
+        return
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        confirmSlash(slashFlat[Math.min(slashIndex, slashFlat.length - 1)])
+        return
+      }
+      if (e.key === 'Tab') {
+        // Tab closes the popup and keeps moving through the page; swallowing it
+        // here trapped keyboard focus in the composer while the menu was open.
+        setSlashDismissed(true)
+        return
+      }
+    }
+    // ↑ — recall an older message (only without Shift)
+    if (e.key === 'ArrowUp' && !e.shiftKey) {
+      e.preventDefault()
+      recallPrev(message)
+      return
+    }
+    // ↓ — recall a newer message
+    if (e.key === 'ArrowDown' && !e.shiftKey) {
+      e.preventDefault()
+      recallNext()
+      return
+    }
+    // Escape — the topmost popup closes first (plus/access/model: focus is still in
+    // the text field here), only after that does the recall reset.
+    if (e.key === 'Escape') {
+      if (closeTopPopup()) {
+        e.preventDefault()
+        return
+      }
+      resetRecall()
+      return
+    }
+    // Alt+Enter — put it in the queue instead of sending
+    if (e.key === 'Enter' && e.altKey) {
+      e.preventDefault()
+      enqueueCurrent()
+      return
+    }
+    // I6 P1-3: the earlier second slash block (Phase F) was redundant and still
+    // intercepted Enter after an Escape dismissal (slashDismissed=true), replacing
+    // the input — the R33 block above is the only guard.
+    // Enter (without Shift/Alt) — send
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  return (
+    <div className="px-4 pb-4 mx-auto w-full max-w-3xl">
+      {dragOver &&
+        createPortal(
+          <div
+            data-testid="viewport-drop-overlay"
+            className="fixed inset-0 z-modal flex items-center justify-center bg-canvas/60 backdrop-blur-[2px] pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand/60 bg-forest-deep/85 px-10 py-8 text-center shadow-elevation-2">
+              <UploadCloud className="h-8 w-8 text-brand" />
+              <p className="text-ui-sm font-medium text-foreground">{t('chat.dropToAttach')}</p>
+              <p className="text-ui-xs text-ink-soft">{t('chat.dropToAttachHint')}</p>
+            </div>
+          </div>,
+          document.body,
+        )}
+      <div
+        className={`glass-control composer-dock rounded-2xl p-3 transition-all duration-base ${dragOver ? 'ring-2 ring-brand/60' : ''}`}
+      >
+        {/* F15 → P3-3: @ mentions (listbox, keyboard ring from row 1) */}
+        {mentionOpen && (
+          <ComposerMentionList
+            items={mentionItems}
+            activeIndex={mentionIndex}
+            onPick={applyMention}
+          />
+        )}
+        {slashOpen && (
+          <ComposerSlashMenu
+            appHits={slashAppHits}
+            skillHits={slashSkillHits}
+            activeCmd={slashFlat[slashIndex]?.cmd}
+            onPick={applySuggestion}
+          />
+        )}
+        {/* ARIA-in-HTML has no combobox for <textarea>: the field stays a plain
+            textbox, the slash and mention popups are named listboxes. */}
+        <textarea
+          ref={textareaRef}
+          value={message}
+          onChange={(e) => {
+            setMessage(e.target.value)
+            detectMention(e.target.value, e.target.selectionStart ?? e.target.value.length)
+          }}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          placeholder={composerPlaceholder}
+          aria-label={composerPlaceholder}
+          readOnly={streaming && !allowInputWhileStreaming}
+          id="ephe-chat-input"
+          data-testid="chat-input"
+          // A dash the user typed is a dash: WKWebView's smart substitution
+          // turned `--flag` into an em dash before the model ever saw it.
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          className="block w-full bg-transparent py-1 text-foreground placeholder:text-ink-faint resize-none outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 text-ui-input max-sm:min-h-11 pointer-coarse:min-h-11 max-h-32"
+          rows={1}
+        />
+        <div
+          className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0.5 mt-2 max-sm:flex-nowrap"
+          data-testid="composer-actions-row"
+        >
+          {/* G3: hidden file inputs (browser path; Tauri uses the native picker) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              void addFiles(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <input
+            ref={imageInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              void addFiles(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          {/* Narrow column gap keeps the controls on one line; the wide gap moves to the rows a wrapped rail needs. */}
+          <div className="flex min-w-0 flex-nowrap items-center gap-x-1">
+            {/* P6 (ref-23): ONE plus for all attachments — file/image/screenshot
+                live in the menu, the main row stays narrow. */}
+            <ComposerAttachButton
+              open={attachOpen}
+              anchorRef={attachChipRef}
+              menuPos={attachMenuPos}
+              onToggle={() => {
+                setAttachOpen((v) => !v)
+                syncMenuPos(attachChipRef.current, setAttachMenuPos)
+              }}
+              onClose={() => setAttachOpen(false)}
+              onAttachFile={() => handleAttach()}
+              onAttachImage={() => handleAttach('image')}
+              onCaptureScreen={() => void handleCaptureScreen()}
+              onWideResearch={() => {
+                setMessage(t('chat.wideResearchTemplate'))
+                textareaRef.current?.focus()
+              }}
+            />
+            {/* 2026-11-10: the mode left for the header; this is the access side —
+                the approval profile that ceilings what the mode may run. */}
+            <ComposerAccessControl
+              profile={perm}
+              open={accessOpen}
+              anchorRef={accessChipRef}
+              menuPos={accessMenuPos}
+              onToggle={() => {
+                setAccessOpen((v) => !v)
+                syncAccessMenuPos()
+              }}
+              onClose={() => setAccessOpen(false)}
+              onPick={async (key: AccessProfile) => {
+                // The write lands first: a refused profile must not read as set.
+                await saveSecuritySettings({ approval_profile: key })
+                setPerm(key)
+              }}
+            />
+            {/* P6 (ref-23): the image/screenshot/file buttons live in the plus menu —
+                the main row stays reduced to the slim anatomy. */}
+            {typeof navigator.mediaDevices?.getUserMedia === 'function' && (
+              <span className="inline-flex max-sm:hidden">
+                <ComposerMicButton
+                  recording={recording}
+                  transcribing={transcribing}
+                  micFrame={micFrame}
+                  micLevelsRef={micLevelsRef}
+                  onPointerDown={onMicPointerDown}
+                  onPointerUp={onMicPointerUp}
+                />
+              </span>
+            )}
+          </div>
+          {/* M3 (reference pattern): model chip + the details door + send in one
+              right-hand group. The token figures and /compact sit behind that door —
+              the area belongs to the text, and the ring on send already carries the
+              same occupancy as a shape. */}
+          <div className="relative flex min-w-0 shrink-0 items-center gap-1 ml-auto max-sm:max-w-[8rem] max-sm:overflow-hidden">
+            <ComposerModelChip
+              open={chipOpen}
+              anchorRef={modelChipRef}
+              menuPos={modelMenuPos}
+              needsSetup={needsSetup}
+              model={model}
+              providers={providers}
+              activeP={activeP}
+              onToggle={() => {
+                setChipOpen((v) => !v)
+                syncModelMenuPos()
+              }}
+              onClose={() => setChipOpen(false)}
+              onPick={pickProvider}
+              onSetup={() => {
+                setChipOpen(false)
+                markSetupIntent()
+                window.location.hash = '#/setup'
+              }}
+            />
+            {/* P3-6: the thinking state stays visible (status, not a switch — the
+                engine mode decides), and its button is the one door to the composer's
+                secondary figures: the token meter and /compact live behind it. */}
+            <button
+              type="button"
+              data-testid="composer-thinking-chip"
+              aria-label={`${String(t('chat.composerDetails'))}: ${String(t('chat.thinkingChipAria'))} ${String(t(thinkingChipKey))}`}
+              aria-expanded={detailsOpen}
+              aria-controls="composer-details"
+              title={t('chat.composerDetails')}
+              onClick={() => setDetailsOpen((v) => !v)}
+              className="inline-flex min-h-6 items-center gap-1 rounded-md px-1 py-0.5 text-ui-xs text-ink-faint shrink-0 transition-colors hover:bg-surface hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:outline-offset-2 max-lg:min-h-11 max-lg:px-1 max-sm:hidden"
+            >
+              <Brain className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span>{t(thinkingChipKey)}</span>
+            </button>
+            <ComposerSendButton
+              streaming={streaming}
+              sendDisabled={disabled || (!streaming && !message.trim())}
+              onSend={handleSend}
+              onStop={onStop}
+              contextPercent={contextPercent}
+              queueCount={queueCount}
+            />
+          </div>
+        </div>
+        {detailsOpen && (
+          <div
+            id="composer-details"
+            data-testid="composer-details"
+            className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-hairline pt-1.5 font-mono text-ui-2xs text-ink-faint"
+          >
+            {contextPercent != null &&
+              contextTokens?.used != null &&
+              contextTokens?.window != null && (
+                <>
+                  <ComposerContextMeter
+                    percent={contextPercent}
+                    used={contextTokens.used}
+                    window={contextTokens.window}
+                    onCompact={() => onSlashCommand?.('/compact')}
+                  />
+                  <span aria-hidden="true">·</span>
+                </>
+              )}
+            {/* WP2b keep: the dot reports the engine's real offline capability.
+                2026-11-10: it sits behind the details door — the header model chip
+                and the engine badge under the composer already name the engine. */}
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                data-testid="composer-status-dot"
+                role="img"
+                aria-label={
+                  offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')
+                }
+                title={
+                  offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')
+                }
+                className={`h-1.5 w-1.5 rounded-full shrink-0 ${offlineCapable ? 'bg-status-success' : 'bg-mist/40'}`}
+              />
+              <span>
+                {offlineCapable ? t('chat.offlineCapableLocal') : t('chat.offlineCapableRemote')}
+              </span>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span data-testid="composer-thinking-detail">
+              {t('chat.thinkingChipAria')}: {t(thinkingChipKey)}
+            </span>
+          </div>
+        )}
+        <AttachmentPreview
+          attachments={attachments}
+          onRemove={(i) => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+        />
+      </div>
+      <ComposerFooterHints recall={recall} queueCount={queueCount} />
+      {/* M3: the model chip lives in the action row (reference pattern); all that is
+          left here is the offline hint as a cap underneath — ONLY when it is
+          informative (finding 2026-10-01: the always-visible «Remote engine» chip
+          looked orphaned and duplicated the status bar + model chip).
+          Render only after the provider answers (no local-default flash). */}
+      {offlineCapable && activeP !== '' && (
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <Badge variant="success">{engineLabel}</Badge>
+        </div>
+      )}
+    </div>
+  )
+}

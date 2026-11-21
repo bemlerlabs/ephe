@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "public": [
+    {
+      "name": "browser-use",
+      "description": "Real browser automation: navigate, click, type, screenshot — approval-gated.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "5925af361eea4d20e5281014ec847619e3fc4e9b1f69574b966c571b19667a14",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "code-shell",
+      "description": "Coding loop: read, edit, patch, run tests, format and analyze code.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "6cfc67ec22217dd9612cf5cc6124cce455656eb606062c1b9255c7583f86b305",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "countdown",
+      "description": "A countdown widget: one declarative surface the shell can show, and a timer the agent can set and read back.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "235f1968af7340cfff10c52086e3f2769c5ce23e16dc7106a5998dd5c6b1d5d1",
+      "url": "",
+      "manifest": true,
+      "version": "0.1.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "documents",
+      "description": "Real document production: PDF, DOCX, QR codes, source notebooks and report-grade briefs.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "1324b85639d26b1ec9dd9a3008cfb9e53e0c0a495eac3261df6d6768d02dec5a",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "guide",
+      "description": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, commands, doctor flows.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "1ba00b86a5aba32e0d70e5876af17e36aa83777e735cba6661acb68f1a225c9f",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "image-studio",
+      "description": "Opt-in image endpoint. One picture from a prompt, saved under a name that ends in .png.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "b49cd7d1784ecc3924314b1cd23cf8588b5a7c03acc9ee444599807d9e9ea799",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "local-document-factory",
+      "description": "One fact pack, four formats, one evidence gate: verified PDF, DOCX, XLSX and PPTX documents built locally.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "9e2a52915049d53e3d80e15f91b87d1f9698cfa7dacdc294a7fa6f201db7a0ef",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "mcp-connector",
+      "description": "External tools via Model Context Protocol servers.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "b486372bf2b5b6d3a25047348c6fd810005c4106db5b4af9ce350f9e12cba6ff",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "memory",
+      "description": "Short- and long-term memory across sessions.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "13166eeb416173acab5067854d73e70739d71109c74e2d3e9ad13dbe3807e3e8",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "plugin-creator",
+      "description": "Create and validate Ephe plugins: manifest scaffolds, permission reviews, signing guidance.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "a3516e4accac87abb949cb18f642fd2b9737fe09f91a046a713364a08b0371f8",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "presentations",
+      "description": "Real deck production: a widescreen PPTX, a PDF pitch, a diagram and an SVG.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "0dbf37e2e4f46b1aa45b5a1e4f5c22e40977d4b272ded67ee6852699cf483538",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "private-research-notebook",
+      "description": "A private research notebook: index local sources, answer with citations, export an evidence brief and a deck, audit the gaps.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "5bdd46eb3360bc95b73fbcb21aa6efea9c3237778adab42237317486eef4d0fc",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "skill-creator",
+      "description": "Create and grade Ephe skill packs: SKILL.md authoring, rubric and golden-case quality gates.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "7af37a848d4dd14bab04cf0acf3dd5c6131eb07c4fd49387b8f7a49eb10a82f0",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "spreadsheets",
+      "description": "Real spreadsheet production: one formatted sheet, live formulas and a separate chart.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "f33a1883f62eb3f276028aead734cf17a7a9b575a4eebbc8bafdf5c787171bd7",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "vision",
+      "description": "Vision-capable model reads screenshots and images.",
+      "tags": [
+        "multimodal"
+      ],
+      "enabled": true,
+      "sha256": "4361265be748aa38f644c77995db3404191900ee816305cc4cbb95ea1c8061b1",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "voice",
+      "description": "Local speech. One WAV from text, and a transcript from a session audio file.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "ffeb508df621a57b6bdcb144fad076e1958cadc7d366264a70cb78d369968108",
+      "url": "",
+      "manifest": true,
+      "version": "1.1.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "web-research",
+      "description": "Live web research for the agent (opt-in, needs an API key).",
+      "tags": [],
+      "enabled": true,
+      "sha256": "fc8ada560f2824387a0ba6e308c8afc4fd27b624d9907db1dd93c4474220aab2",
+      "url": "",
+      "manifest": true,
+      "version": "1.2.0",
+      "origin": "first-party"
+    }
+  ],
+  "personal": []
+}

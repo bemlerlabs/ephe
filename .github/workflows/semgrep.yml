@@ -1,0 +1,79 @@
+name: Semgrep
+
+# Published lane. It runs the same engine, rule pack and severity as the private
+# security scan, and carries nothing the public tree does not carry: no baseline
+# file, no private paths, no credentials. Bandit and its reviewed baseline stay
+# in the private lane because that baseline names the accepted findings.
+#
+# p/ci is the public registry rule set, so the checks below are the same ones any
+# reader of this repository can reproduce with the command in the last step.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  SEMGREP_SEND_METRICS: "off"
+
+jobs:
+  semgrep:
+    name: Semgrep OSS (blocking, ERROR severity)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        # PyPI is this step's only network dependency, and it is not always reachable from a
+        # runner: on 2026-11-11 a DNS outage took three required legs out inside their installer.
+        # Three bounded attempts turn a transient miss into a retry, and the failure that survives
+        # is named here instead of arriving as a pip traceback. A scanner that never installed
+        # cannot report a clean scan, so the step still refuses rather than skipping.
+        run: |
+          python -m venv "$RUNNER_TEMP/semgrep-venv"
+          installed=0
+          for attempt in 1 2 3; do
+            if "$RUNNER_TEMP/semgrep-venv/bin/python" -m pip install --quiet "semgrep==1.181.0"; then
+              installed=1
+              break
+            fi
+            echo "semgrep install attempt $attempt failed; retrying" >&2
+            sleep 15
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::semgrep==1.181.0 could not be installed from PyPI; no scan ran, so this leg has no verdict"
+            exit 1
+          fi
+
+      - name: Scan (ERROR severity blocks)
+        run: |
+          "$RUNNER_TEMP/semgrep-venv/bin/semgrep" scan \
+            --config p/ci \
+            --severity ERROR \
+            --error \
+            --quiet \
+            --exclude tests \
+            --exclude app/node_modules \
+            --exclude .venv \
+            --exclude out \
+            .

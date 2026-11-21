@@ -1,0 +1,19 @@
+{
+  "manifest_version": 1,
+  "name": "mcp-connector",
+  "version": "1.0.0",
+  "description": "External tools via Model Context Protocol servers.",
+  "permissions": {
+    "tool_families": [
+      "network",
+      "shell"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": []
+  },
+  "origin": "first-party",
+  "icon": "icon.svg"
+}

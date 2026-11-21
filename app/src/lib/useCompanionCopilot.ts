@@ -1,0 +1,282 @@
+/**
+ * QD-005 — the companion's live co-pilot loop.
+ *
+ * One crawl per surface change: read the store's waiting tool, open question,
+ * context level and fresh output, classify through `companionCopilot.ts`, and
+ * either point (scout), wait (warn_only) or run a visible 2500 ms countdown
+ * before the action fires (copilot). Every act lands in the receipt trail; the
+ * risky ones never act at all.
+ *
+ * The hook owns no timers beyond the countdown and the display tick, and it
+ * never talks to the engine: the crawl is a store read plus pure classification.
+ */
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRememberedShellVerbs } from './companionRemember'
+import { useChatStore } from '@/store/chatStore'
+import { approveSandbox } from '@/lib/api/endpoints'
+import { answerAsk } from '@/lib/api/endpoints'
+import { gateIsAnswerable, sendSandboxDecision } from '@/lib/sandboxGate'
+import { PREVIEW_OPEN_EVENT } from '@/lib/panelEvents'
+import { markSetupIntent } from '@/lib/setupGate'
+import { lastKnownIndexState } from '@/lib/codebaseIndex'
+import { deepNumber } from '@/lib/deepSettings'
+import {
+  bindEscapeCancel,
+  CopilotCountdown,
+  countdownMs,
+  DEFAULT_COUNTDOWN_SECONDS,
+  findCopilotTarget,
+  pushReceipt,
+  type CopilotFinding,
+  type CopilotMode,
+  type CopilotReceipt,
+  type CopilotSnapshot,
+} from '@/lib/companionCopilot'
+
+export interface CopilotUi {
+  finding: CopilotFinding | null
+  countdownRemaining: number | null
+  receipts: CopilotReceipt[]
+  cancel: () => void
+  /** The one-click pointer for scout hints and repair focus. */
+  focus: () => void
+}
+
+export function useCompanionCopilot(args: {
+  enabled: boolean
+  mode: CopilotMode
+  runState: 'ready' | 'working' | 'waiting' | 'done'
+  contextPercent: number | null
+  repairVisible: boolean
+}): CopilotUi {
+  const { enabled, mode, runState, contextPercent, repairVisible } = args
+  const session = useChatStore((s) => s.currentSession)
+  const remembered = useRememberedShellVerbs()
+  const [finding, setFinding] = useState<CopilotFinding | null>(null)
+  const [receipts, setReceipts] = useState<CopilotReceipt[]>([])
+  const [deadline, setDeadline] = useState<number | null>(null)
+  const [remaining, setRemaining] = useState<number | null>(null)
+
+  const countdown = useRef<CopilotCountdown | null>(null)
+  const escapeRelease = useRef<(() => void) | null>(null)
+  const executedKey = useRef<string | null>(null)
+  const activeKey = useRef<string | null>(null)
+  const prevRunState = useRef(args.runState)
+  const compactedSession = useRef<string | null>(null)
+
+  const log = useCallback((entry: Omit<CopilotReceipt, 'at'> & { at?: number }) => {
+    setReceipts((list) => pushReceipt(list, entry))
+  }, [])
+
+  const cancel = useCallback(() => {
+    countdown.current?.cancel()
+    countdown.current = null
+    escapeRelease.current?.()
+    escapeRelease.current = null
+    // A countdown the user stopped belongs to the prompt it was counting for.
+    // Remembering that key is what keeps a later re-render of the same waiting
+    // tool from offering the act again.
+    if (activeKey.current) executedKey.current = activeKey.current
+    activeKey.current = null
+    setDeadline(null)
+    setRemaining(null)
+  }, [])
+
+  // Only this instance's marks: both companion surfaces stay mounted and the
+  // dormant one crawls nothing, so a global sweep would erase the pointer the
+  // live surface just set.
+  const marked = useRef<Element[]>([])
+  const highlight = useCallback((selector: string | null) => {
+    for (const el of marked.current) el.removeAttribute('data-copilot-highlight')
+    marked.current = []
+    if (!selector) return
+    const found = Array.from(document.querySelectorAll(selector))
+    for (const el of found) el.setAttribute('data-copilot-highlight', 'true')
+    marked.current = found
+  }, [])
+
+  const focus = useCallback(() => {
+    const selector = finding?.selector ?? null
+    const onScreen = selector !== null && document.querySelector(selector) !== null
+    highlight(selector)
+    if (selector) {
+      const el = document.querySelector<HTMLElement>(selector)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.focus({ preventScroll: true })
+    }
+    // The repair card is drawn on the setup route, so a repair the chat cannot
+    // show is a repair the pointer has to walk the user to. Same hand-off the
+    // engine chip uses: mark the intent, then the hash.
+    if (!onScreen && repairVisible && finding?.target === 'error_or_setup_repair') {
+      markSetupIntent()
+      window.location.hash = '#/setup'
+    }
+    if (finding) {
+      log({
+        target: finding.target,
+        verdict: 'focus',
+        actionKey: finding.actionKey,
+        actionParam: finding.actionParam,
+        reasonKey: finding.reasonKey,
+      })
+    }
+  }, [finding, highlight, log, repairVisible])
+
+  useEffect(() => {
+    if (!enabled || mode === 'perch') {
+      cancel()
+      setFinding(null)
+      highlight(null)
+      return
+    }
+
+    const messages = session?.messages ?? []
+    const last = messages[messages.length - 1]
+    const assistant = last && last.role === 'assistant' ? last : null
+    const toolCalls = assistant?.tool_calls ?? []
+    // A gate the reader can still answer — an expired one is not worth pointing at.
+    const waiting = toolCalls.find((c) => gateIsAnswerable(c)) ?? null
+    const turnJustFinished = prevRunState.current === 'working' && runState === 'done'
+    prevRunState.current = runState
+
+    const snapshot: CopilotSnapshot = {
+      remembered,
+      waitingTool: waiting
+        ? { name: waiting.name, args: waiting.args, description: waiting.description }
+        : null,
+      ask: assistant?.ask
+        ? {
+            recommendation: assistant.ask.recommendation,
+            options: assistant.ask.options.map((o) => o.label),
+            token: assistant.ask.token,
+          }
+        : null,
+      runState,
+      contextPercent,
+      hasCompact: true,
+      compactedThisSession: compactedSession.current === (session?.id ?? null),
+      turnJustFinished,
+      newArtifacts: assistant?.artifacts?.length ?? 0,
+      newEdits: toolCalls.filter(
+        (c) => c.status === 'completed' && (c.name === 'edit_file' || c.name === 'write_file'),
+      ).length,
+      toolError: toolCalls.some((c) => c.status === 'failed'),
+      repairVisible,
+      codebaseIdle: lastKnownIndexState() === 'idle',
+    }
+
+    const next = findCopilotTarget(snapshot, mode)
+    setFinding(next)
+    if (!next) {
+      cancel()
+      highlight(null)
+      executedKey.current = null
+      return
+    }
+
+    if (next.verdict !== 'auto_act') {
+      cancel()
+      highlight(next.selector)
+      executedKey.current = null
+      return
+    }
+
+    // The token is what makes two runs of the same command two prompts: the
+    // key has to name the call, not only the session and the verb.
+    const token = snapshot.waitingTool?.description ?? snapshot.ask?.token ?? ''
+    const key = `${session?.id ?? '?'}:${next.target}:${next.actionKey}:${
+      next.actionParam ?? ''
+    }:${token}`
+    if (executedKey.current === key) return
+    if (countdown.current) return
+
+    // QD-013: the pause before an automatic act is the user's, 0 s included.
+    const ms = countdownMs(
+      deepNumber('appearance.companion_countdown_seconds', DEFAULT_COUNTDOWN_SECONDS),
+    )
+    const count = new CopilotCountdown(ms)
+    countdown.current = count
+    activeKey.current = key
+    setDeadline(ms > 0 ? Date.now() + ms : null)
+    setRemaining(ms)
+    escapeRelease.current = bindEscapeCancel(cancel)
+    count.start(() => {
+      countdown.current = null
+      escapeRelease.current?.()
+      escapeRelease.current = null
+      setDeadline(null)
+      setRemaining(null)
+      executedKey.current = key
+      activeKey.current = null
+
+      const entry = {
+        target: next.target,
+        verdict: 'auto_act' as const,
+        actionKey: next.actionKey,
+        actionParam: next.actionParam,
+        reasonKey: next.reasonKey,
+      }
+      log(entry)
+
+      if (next.target === 'tool_approval') {
+        const token = snapshot.waitingTool?.description
+        if (!token) return
+        // The companion answers the gate of the call it pointed at, by its token, and
+        // says so on the gate (`closedBy: 'companion'`). It runs the same guarded path
+        // as the card's button: a gate the person answered during the countdown is not
+        // answered a second time. It never remembers — the tick is not its decision.
+        void sendSandboxDecision(
+          useChatStore.getState(),
+          token,
+          true,
+          'companion',
+          (gateToken, approved) => approveSandbox(gateToken, approved, false),
+          () => undefined,
+        )
+        return
+      }
+      if (next.target === 'ask_user') {
+        const answer = next.actionParam
+        const token = snapshot.ask?.token
+        if (!answer || !token) return
+        void answerAsk(token, answer).then(() =>
+          useChatStore.getState().markAskAnswered(token, answer),
+        )
+        return
+      }
+      if (next.target === 'context_compact') {
+        if (session?.id) compactedSession.current = session.id
+        useChatStore.getState().compactSession()
+        return
+      }
+      if (next.target === 'open_review_or_preview') {
+        window.dispatchEvent(new CustomEvent(PREVIEW_OPEN_EVENT, { detail: { tab: 'git' } }))
+      }
+    })
+  }, [
+    enabled,
+    mode,
+    runState,
+    contextPercent,
+    repairVisible,
+    remembered,
+    session,
+    cancel,
+    highlight,
+    log,
+  ])
+
+  // The visible countdown number.
+  useEffect(() => {
+    if (deadline === null) {
+      setRemaining(null)
+      return
+    }
+    const tick = () => setRemaining(Math.max(0, deadline - Date.now()))
+    tick()
+    const id = setInterval(tick, 100)
+    return () => clearInterval(id)
+  }, [deadline])
+
+  return { finding, countdownRemaining: remaining, receipts, cancel, focus }
+}

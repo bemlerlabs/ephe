@@ -1,0 +1,33 @@
+/* The lids sit on the two eye centres of the shared hero canvas. */
+.bee-eyelids {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.bee-eyelids i {
+  position: absolute;
+  top: 35%;
+  width: 6.4%;
+  height: 7.6%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #303a52 0%, #1a2131 70%, #111624 100%);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.5);
+  transform-origin: 50% 0;
+  transform: translate(-50%, 0) scaleY(0);
+  transition: transform 80ms ease-in;
+}
+.bee-eyelids i:first-child {
+  left: 38.68%;
+}
+.bee-eyelids i:last-child {
+  left: 52.83%;
+}
+.bee-eyelids.is-blink i,
+.bee-eyelids.is-wink i:first-child {
+  transform: translate(-50%, 0) scaleY(1);
+}
+.bee-eyelids.is-blink i,
+.bee-eyelids.is-wink i:first-child {
+  transition-duration: 55ms;
+}

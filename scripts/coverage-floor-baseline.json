@@ -1,0 +1,16 @@
+{
+ "instrument": "coverage.py --cov-report=json",
+ "modules": {
+  "core": 88,
+  "core/channels": 76,
+  "core/semindex": 90,
+  "core/tools": 83,
+  "ephe.py": 80,
+  "ephe_cli.py": 100,
+  "server": 94,
+  "server/routes": 88
+ },
+ "policy": "coverage-floor-ratchet",
+ "total": 87,
+ "version": 1
+}

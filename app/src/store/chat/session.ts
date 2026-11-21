@@ -1,0 +1,512 @@
+import i18n from '@/i18n'
+import { ApiError, restoreTrashedSession, trashSession } from '@/lib/api'
+import {
+  dbDeleteSession,
+  dbGetAllSessions,
+  dbGetCheckpoints,
+  dbSaveSession,
+  debouncedSaveSession,
+} from '@/lib/db'
+import { compactMessages, type CompactStats } from '@/lib/compact'
+import { restoreFromServer, restoreServerStore } from '@/lib/restore'
+import { flushSessionSync, isSessionSyncEnabled, isTombstoned } from '@/lib/sessionSync'
+import { toastBus } from '@/lib/toast'
+import type { ChatMessage, DbSession, Session } from '@/types'
+import type { ChatState, GetFn, SetFn } from './types'
+import {
+  closeThinkingPhases,
+  DEFAULT_COMPOSER_MODE,
+  DEFAULT_SESSION_TITLE,
+  deriveSessionTitle,
+  fromDbSession,
+  MIGRATABLE_LEGACY_MODES,
+  normalizeComposerMode,
+  toDbSession,
+} from './helpers'
+
+/** Indicator message after compaction (AI-client style: a compaction note in the log).
+ * It reads the active catalog, so it sits with the action that writes it rather than in
+ * the pure `helpers.ts`, which the presentation layer and `lib/` reach without booting
+ * i18n. */
+export function indicatorMessage(stats: CompactStats): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: 'system',
+    content: i18n.t('chat.compactIndicator', {
+      count: stats.compactedCount,
+      after: stats.after,
+      before: stats.before,
+    }),
+    timestamp: Date.now(),
+  }
+}
+
+/** On load, heals a bubble left streaming (streaming=true) by a dead tab. */
+function healOrphan(m: ChatMessage): ChatMessage {
+  if (m.role !== 'assistant' || !m.streaming) return m
+  return {
+    ...m,
+    streaming: false,
+    thinking: m.thinking ? { ...m.thinking, end: m.thinking.end ?? Date.now() } : null,
+    thinkingPhases: closeThinkingPhases(m),
+    streamMeta: {
+      ...(m.streamMeta ?? {}),
+      reflecting: false,
+      revising: false,
+      qualityCheck: false,
+    },
+    activities: m.activities?.map((a) =>
+      a.status === 'running' ? { ...a, status: 'done' as const } : a,
+    ),
+  }
+}
+
+/** Session lifetime + persistence actions (IndexedDB + server mirror). */
+export function makeSessionActions(
+  set: SetFn,
+  get: GetFn,
+  persistActive: () => void,
+): Partial<ChatState> {
+  /** The way back from the trash: drain the pending mirror delete first — it
+   *  names the file the trash has just moved and the tombstone guarding the id;
+   *  a flush after the restore instead would unlink what the restore brought
+   *  back. Then the file returns, and with it the session, at the front of the
+   *  list and back in the cache. */
+  async function undoTrashed(session: Session): Promise<void> {
+    try {
+      await flushSessionSync()
+      await restoreTrashedSession(`pwa-${session.id}`)
+      set((state) =>
+        state.sessions.some((s) => s.id === session.id)
+          ? state
+          : { sessions: [session, ...state.sessions] },
+      )
+      dbSaveSession(toDbSession(session))
+    } catch (err) {
+      // The reason is the point: a 409 means a live session took the id while
+      // the reader was deciding, and that has to reach them.
+      toastBus.error(
+        i18n.t('sessionTrash.undoFailedTitle'),
+        err instanceof ApiError && err.message ? err.message : undefined,
+      )
+    }
+  }
+
+  return {
+    // Load persisted sessions from IndexedDB on first mount
+    initFromDb: async () => {
+      try {
+        // The cache is a cache. A boot that cannot read it still has the machine's own
+        // store, and what the person wrote lives there — so the read gets its own failure
+        // path instead of sharing this `try` with the restores beneath it. Measured
+        // 2026-11-02 on the installed shell: the rejection skipped both restores and the
+        // register came up saying "No tasks yet" while `/api/sessions` answered with the
+        // history and the transcript endpoint handed back its 21 messages.
+        let dbSessions: DbSession[] = []
+        try {
+          dbSessions = await dbGetAllSessions()
+        } catch (err) {
+          console.warn(
+            '[ChatStore] The local cache is unreadable; the durable store is asked anyway:',
+            err,
+          )
+        }
+        // W19 (storage model): the server copy (~/.ephe/sessions/) is the durable
+        // store per device — the browser is only a cache. Always merge with the
+        // mirror: sessions missing locally come back (cache loss, storage eviction,
+        // a fresh browser), local ones are left untouched.
+        try {
+          const serverSessions = await restoreFromServer()
+          const known = new Set(dbSessions.map((d) => d.id))
+          // R-fix bug 1: sessions deleted locally but not yet confirmed in the
+          // mirror (tombstones) must not come back from the server mirror.
+          const missing = serverSessions.filter((d) => !known.has(d.id) && !isTombstoned(d.id))
+          if (missing.length > 0) {
+            dbSessions = [...dbSessions, ...missing].sort(
+              (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+            )
+            for (const d of missing) await dbSaveSession(d)
+          }
+        } catch {
+          /* offline or an empty mirror — the local sessions are enough */
+        }
+        // Wave 5D: the server-authoritative store (CLI/TUI/HTTP tasks). The
+        // PWA keeps IndexedDB as its cache; the opt-out disables this read too.
+        let syncEnabled = true
+        try {
+          syncEnabled = isSessionSyncEnabled()
+        } catch {
+          /* an older mock or a storage-denied tab: keep the local path */
+        }
+        if (syncEnabled) {
+          try {
+            const storeSessions = await restoreServerStore()
+            const knownServer = new Set(dbSessions.map((d) => d.id))
+            const missing = storeSessions.filter(
+              (d) => !knownServer.has(d.id) && !isTombstoned(d.id),
+            )
+            if (missing.length > 0) {
+              dbSessions = [...dbSessions, ...missing].sort(
+                (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+              )
+              for (const d of missing) await dbSaveSession(d)
+            }
+          } catch {
+            /* offline or no server store — the local sessions are enough */
+          }
+        }
+        if (dbSessions.length > 0) {
+          // I6 P2b: a reload NEVER finds a continued stream — a bubble saved with
+          // streaming=true still on it when the tab died would come back as a
+          // zombie with an eternal spinner and empty content. Heal on load: close
+          // the turn, keep the text that was rescued. The in-memory state (a mode
+          // just chosen, not flushed yet) outranks the persisted snapshot,
+          // otherwise the late-arriving hydrate overwrites a mode set by a click.
+          const memById = new Map(get().sessions.map((m) => [m.id, m]))
+          // Task 3 migration (one-time rewrite on load): a stored value from
+          // before the composer rename becomes its canonical mode key, once, and
+          // the rewrite is persisted — otherwise the surface names a mode the
+          // menu no longer offers. Only `MIGRATABLE_LEGACY_MODES` (the three
+          // values the retired menu could write) are touched; each lands on a
+          // mode whose factors the server resolver already gave it. The retired
+          // `edit-auto` keeps its stored value: the alias table resolves it to
+          // the edit-family factor (ask for everything outside the family), and
+          // any tile on this side would name a ceiling the session never had.
+          const sessions = dbSessions.map((d) => {
+            const s = fromDbSession(d)
+            const healed: Session = { ...s, messages: s.messages.map(healOrphan) }
+            const mem = memById.get(s.id)
+            if (mem?.mode) healed.mode = mem.mode
+            if (healed.mode && MIGRATABLE_LEGACY_MODES.has(healed.mode)) {
+              const canonical = normalizeComposerMode(healed.mode)
+              if (canonical !== healed.mode) {
+                healed.mode = canonical
+                debouncedSaveSession(toDbSession(healed))
+              }
+            }
+            return healed
+          })
+          // Found 2026-10-01 (F-AB): getAll() returns primary-key order — without
+          // sorting, "sessions[0]" was an ARBITRARY session and the reload landed
+          // in the wrong chat. The most recently updated one wins; the explicitly
+          // remembered choice ('ephe.lastSession') beats everything.
+          sessions.sort((a, b) => {
+            const da = dbSessions.find((d) => d.id === a.id)?.updatedAt ?? a.createdAt
+            const dbb = dbSessions.find((d) => d.id === b.id)?.updatedAt ?? b.createdAt
+            return dbb - da
+          })
+          const first = sessions[0]!
+          let lastActive: string | null = null
+          try {
+            lastActive = localStorage.getItem('ephe.lastSession')
+          } catch {
+            /* Private Mode */
+          }
+          const activeId =
+            (lastActive && sessions.some((x) => x.id === lastActive) ? lastActive : null) ??
+            get().activeSessionId ??
+            first.id
+          const active = sessions.find((x) => x.id === activeId) ?? first
+          set({ sessions, activeSessionId: active.id, currentSession: active })
+          const cps = await dbGetCheckpoints(active.id)
+          if (cps.length > 0) {
+            set((state) => ({ checkpoints: { ...state.checkpoints, [first.id]: cps } }))
+          }
+        }
+      } catch (err) {
+        console.warn('[ChatStore] Failed to load sessions from IndexedDB:', err)
+      } finally {
+        // P1-10: boot hydration finished — also in the empty/error case, so the
+        // message-list skeleton gives way to real content or the welcome state.
+        set({ hydrated: true })
+      }
+    },
+
+    setSessions: (sessions) => {
+      set({ sessions })
+      // Persist all sessions to IndexedDB
+      for (const s of sessions) {
+        debouncedSaveSession(toDbSession(s))
+      }
+    },
+    setActiveSession: (id) => {
+      const session = get().sessions.find((s) => s.id === id)
+      set({ activeSessionId: id, currentSession: session ?? null })
+      // F-AB: the active choice survives a reload.
+      try {
+        localStorage.setItem('ephe.lastSession', id)
+      } catch {
+        /* Private Mode */
+      }
+    },
+    // W19: the composer mode is a session attribute — it survives a reload and a
+    // server restore. Nothing resets it to the no-tools mode on every unmount.
+    setSessionMode: (id, mode) => {
+      set((s) => {
+        const sessions = s.sessions.map((sess) => (sess.id === id ? { ...sess, mode } : sess))
+        return {
+          sessions,
+          currentSession: sessions.find((x) => x.id === s.activeSessionId) ?? null,
+        }
+      })
+      const updated = get().sessions.find((x) => x.id === id)
+      if (updated) debouncedSaveSession(toDbSession(updated))
+    },
+    createSession: (title) => {
+      const newSession: Session = {
+        id: crypto.randomUUID(),
+        title: title || DEFAULT_SESSION_TITLE,
+        messages: [],
+        mode: DEFAULT_COMPOSER_MODE,
+        createdAt: Date.now(),
+        // A title passed in explicitly counts as set (G2: no auto-title)
+        ...(title ? { titleCustom: true } : {}),
+      }
+      set((state) => ({
+        sessions: [newSession, ...state.sessions],
+        activeSessionId: newSession.id,
+        currentSession: newSession,
+      }))
+      // F-AB: the active choice survives a reload.
+      try {
+        localStorage.setItem('ephe.lastSession', newSession.id)
+      } catch {
+        /* Private Mode */
+      }
+      // Persist new session to IndexedDB
+      debouncedSaveSession(toDbSession(newSession))
+    },
+    /** One click on delete is not the last word: the server-side copy — the
+     *  `pwa-` mirror file the sync owns — moves to the trash and the toast
+     *  carries the way back. A session the store never held answers 404 and
+     *  changes nothing: its local half is already done above, as it was before
+     *  this path existed. */
+    deleteSession: (id) => {
+      const removed = get().sessions.find((s) => s.id === id) ?? null
+      set((state) => {
+        const updated = state.sessions.filter((s) => s.id !== id)
+        return {
+          sessions: updated,
+          activeSessionId: state.activeSessionId === id ? null : state.activeSessionId,
+          currentSession: state.currentSession?.id === id ? null : state.currentSession,
+        }
+      })
+      // Delete from IndexedDB
+      dbDeleteSession(id)
+      const trashId = `pwa-${id}`
+      void trashSession(trashId)
+        .then(() => {
+          if (!removed) return
+          toastBus.success(i18n.t('sessionTrash.trashedTitle'), undefined, {
+            label: i18n.t('sessionTrash.undo'),
+            onClick: () => void undoTrashed(removed),
+          })
+        })
+        .catch(() => {
+          /* nothing waited in the trash for this id — nothing to undo */
+        })
+    },
+    clearAllSessions: () => {
+      const ids = get().sessions.map((s) => s.id)
+      set({
+        sessions: [],
+        activeSessionId: null,
+        currentSession: null,
+        checkpoints: {},
+      })
+      for (const id of ids) dbDeleteSession(id)
+      try {
+        localStorage.removeItem('ephe.lastSession')
+      } catch {
+        /* Private Mode */
+      }
+    },
+    renameSession: (id, title) => {
+      const clean = title.trim()
+      if (!clean) return
+      set((state) => {
+        const sessions = state.sessions.map((s) =>
+          s.id === id ? { ...s, title: clean, titleCustom: true } : s,
+        )
+        return {
+          sessions,
+          currentSession:
+            state.currentSession?.id === id
+              ? { ...state.currentSession, title: clean, titleCustom: true }
+              : state.currentSession,
+        }
+      })
+      // Persist renamed session (debounced)
+      const renamed = get().sessions.find((s) => s.id === id)
+      if (renamed) debouncedSaveSession(toDbSession(renamed))
+    },
+    togglePin: (id) => {
+      set((state) => {
+        const sessions = state.sessions.map((s) => (s.id === id ? { ...s, pinned: !s.pinned } : s))
+        return {
+          sessions,
+          currentSession:
+            state.currentSession?.id === id
+              ? { ...state.currentSession, pinned: !state.currentSession.pinned }
+              : state.currentSession,
+        }
+      })
+      const pinned = get().sessions.find((s) => s.id === id)
+      if (pinned) debouncedSaveSession(toDbSession(pinned))
+    },
+    // M2 (reference parity): archived/unread as slim flags — the same persistence
+    // path togglePin uses (debouncedSaveSession).
+    toggleArchive: (id) => {
+      set((state) => {
+        const sessions = state.sessions.map((s) =>
+          s.id === id ? { ...s, archived: !s.archived } : s,
+        )
+        return {
+          sessions,
+          currentSession:
+            state.currentSession?.id === id
+              ? { ...state.currentSession, archived: !state.currentSession.archived }
+              : state.currentSession,
+        }
+      })
+      const touched = get().sessions.find((s) => s.id === id)
+      if (touched) debouncedSaveSession(toDbSession(touched))
+    },
+    markUnread: (id) => {
+      set((state) => ({
+        sessions: state.sessions.map((s) => (s.id === id ? { ...s, unread: !s.unread } : s)),
+      }))
+      const touched = get().sessions.find((s) => s.id === id)
+      if (touched) debouncedSaveSession(toDbSession(touched))
+    },
+    compactSession: () => {
+      const state = get()
+      if (!state.activeSessionId) return { changed: false }
+      const session = state.sessions.find((s) => s.id === state.activeSessionId)
+      if (!session || session.messages.length === 0) return { changed: false }
+
+      const { compacted, stats } = compactMessages(session.messages)
+      if (!stats.changed) return { changed: false, stats }
+
+      set((st) => {
+        const sessions = st.sessions.map((s) =>
+          s.id === state.activeSessionId
+            ? { ...s, messages: [...compacted, indicatorMessage(stats)] }
+            : s,
+        )
+        return {
+          sessions,
+          currentSession: sessions.find((s) => s.id === state.activeSessionId) ?? null,
+        }
+      })
+      persistActive()
+      return { changed: true, stats }
+    },
+    addMessage: (role, content, toolCalls) => {
+      set((state) => {
+        if (!state.activeSessionId) return state
+        const message: ChatMessage = {
+          id: crypto.randomUUID(),
+          role,
+          content,
+          timestamp: Date.now(),
+          tool_calls: toolCalls,
+        }
+        const sessions = state.sessions.map((s) => {
+          if (s.id !== state.activeSessionId) return s
+          // G2: auto title from the first user message (unless titleCustom)
+          const autoTitle =
+            role === 'user' &&
+            !s.titleCustom &&
+            s.title === DEFAULT_SESSION_TITLE &&
+            s.messages.length === 0
+              ? { title: deriveSessionTitle(content) }
+              : {}
+          return { ...s, ...autoTitle, messages: [...s.messages, message] }
+        })
+        const currentSession = sessions.find((s) => s.id === state.activeSessionId)
+        return { sessions, currentSession }
+      })
+      persistActive()
+    },
+    setTyping: (typing) => set({ isTyping: typing }),
+    setPendingToolCall: (tool) => set({ pendingToolCall: tool }),
+
+    // Z37: the fork is a prefix copy in the shape truncateAfter writes; the copied
+    // messages are shallow clones because records are treated as immutable.
+    branchSession: (fromMsgId) => {
+      const st = get()
+      const src = st.currentSession ?? st.sessions.find((x) => x.id === st.activeSessionId)
+      if (!src) return
+      const idx = src.messages.findIndex((m) => m.id === fromMsgId)
+      if (idx === -1) return
+      const fork: Session = {
+        id: crypto.randomUUID(),
+        title: `${src.title} · #${idx + 1}`,
+        messages: src.messages.slice(0, idx + 1).map((m) => ({ ...m })),
+        createdAt: Date.now(),
+        parentId: src.id,
+      }
+      set((state) => ({
+        sessions: [fork, ...state.sessions],
+        activeSessionId: fork.id,
+        currentSession: fork,
+      }))
+      debouncedSaveSession(toDbSession(fork))
+    },
+
+    // G1: edit, regenerate and retry share this single cut — the message they act on
+    // stays, everything after it goes, and the shortened history is persisted.
+    truncateAfter: (messageId) => {
+      set((state) => {
+        if (!state.activeSessionId) return state
+        const sessions = state.sessions.map((s) => {
+          if (s.id !== state.activeSessionId) return s
+          const idx = s.messages.findIndex((m) => m.id === messageId)
+          if (idx === -1) return s
+          return { ...s, messages: s.messages.slice(0, idx + 1) }
+        })
+        return {
+          sessions,
+          currentSession: sessions.find((s) => s.id === state.activeSessionId) ?? null,
+        }
+      })
+      persistActive()
+    },
+
+    updateMessageContent: (messageId, content) => {
+      set((state) => {
+        if (!state.activeSessionId) return state
+        const sessions = state.sessions.map((s) => {
+          if (s.id !== state.activeSessionId) return s
+          const idx = s.messages.findIndex((m) => m.id === messageId)
+          if (idx === -1) return s
+          const msgs = [...s.messages]
+          msgs[idx] = { ...msgs[idx]!, content }
+          return { ...s, messages: msgs }
+        })
+        return {
+          sessions,
+          currentSession: sessions.find((s) => s.id === state.activeSessionId) ?? null,
+        }
+      })
+      persistActive()
+    },
+
+    removeMessage: (messageId) => {
+      set((state) => {
+        if (!state.activeSessionId) return state
+        const sessions = state.sessions.map((s) =>
+          s.id === state.activeSessionId
+            ? { ...s, messages: s.messages.filter((m) => m.id !== messageId) }
+            : s,
+        )
+        return {
+          sessions,
+          currentSession: sessions.find((s) => s.id === state.activeSessionId) ?? null,
+        }
+      })
+      persistActive()
+    },
+  }
+}

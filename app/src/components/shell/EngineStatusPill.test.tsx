@@ -1,0 +1,49 @@
+import { describe, expect, it, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import '@/i18n'
+import EngineStatusPill from './EngineStatusPill'
+
+// B1/B2: the engine state has one home — the top bar — and its click is the way
+// to the settings that can change it.
+
+describe('the engine status pill', () => {
+  it('names the state it is in', () => {
+    render(<EngineStatusPill state="online" onClick={vi.fn()} />)
+    const pill = screen.getByTestId('engine-status-pill')
+    expect(pill.getAttribute('data-engine-state')).toBe('online')
+    expect(pill.getAttribute('aria-label')).toBeTruthy()
+    expect(pill.textContent).toBeTruthy()
+    // role=status is not allowed on a button; the state change is announced
+    // from the sibling live node instead.
+    expect(pill.getAttribute('role')).toBeNull()
+    expect(screen.getByTestId('engine-status-live').getAttribute('role')).toBe('status')
+    expect(screen.getByTestId('engine-status-live').textContent).toBe(pill.textContent)
+  })
+
+  it('sticks to the edge of the header on phones', () => {
+    render(<EngineStatusPill state="offline" onClick={vi.fn()} />)
+    expect(screen.getByTestId('engine-status-pill').className).toContain('hidden')
+    expect(screen.getByTestId('engine-status-pill').className).toContain('lg:inline-flex')
+  })
+
+  it('names an unreadable answer as itself, not as a probe that is running', () => {
+    const first = render(<EngineStatusPill state="unknown" onClick={vi.fn()} />)
+    const pill = screen.getByTestId('engine-status-pill')
+    expect(pill.getAttribute('data-engine-state')).toBe('unknown')
+    const unknownLabel = pill.getAttribute('aria-label')
+    expect(unknownLabel).toContain('unavailable')
+    first.unmount()
+
+    render(<EngineStatusPill state="checking" onClick={vi.fn()} />)
+    expect(screen.getByTestId('engine-status-pill').getAttribute('aria-label')).not.toBe(
+      unknownLabel,
+    )
+  })
+
+  it('opens the engine settings on click', () => {
+    const onClick = vi.fn()
+    render(<EngineStatusPill state="checking" onClick={onClick} />)
+    fireEvent.click(screen.getByTestId('engine-status-pill'))
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+})

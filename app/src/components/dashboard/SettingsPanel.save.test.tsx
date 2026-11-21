@@ -1,0 +1,190 @@
+// I6-1: the two save buttons are one. The footer button serves both storage
+// areas — first the register (settings.json), then the main block (engine.json)
+// — and reports each error separately. The saved confirmation appears only once
+// both of them have gone through.
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+
+const { calls, toastError, toastSuccess, api } = vi.hoisted(() => {
+  const calls: string[] = []
+  const api = {
+    getSettings: vi.fn(async () => ({
+      provider: { type: 'local_ollama', model: 'gemma4:e4b' },
+      memory_enabled: true,
+      language: 'de',
+      theme: 'dark',
+      deep: [
+        {
+          key: 'chat',
+          fields: [
+            {
+              key: 'chat.show_reasoning',
+              type: 'bool',
+              label: 'Denkphase zeigen',
+              labelEn: 'Show reasoning',
+              default: true,
+              value: true,
+            },
+            {
+              key: 'chat.show_tool_count',
+              type: 'bool',
+              label: 'Werkzeugzahl zeigen',
+              labelEn: 'Show tool count',
+              default: true,
+              value: true,
+            },
+          ],
+        },
+      ],
+    })),
+    updateSettings: vi.fn(async () => {
+      calls.push('settings')
+      return {}
+    }),
+    saveSections: vi.fn(async () => {
+      calls.push('sections')
+      return {}
+    }),
+    healthCheck: vi.fn(async () => ({
+      status: 'ok',
+      active_model: 'gemma4:e4b',
+      active_provider: 'local_ollama',
+      engine_state: 'ok',
+    })),
+    getModelProviders: vi.fn(async () => ({
+      active: {},
+      providers: [],
+      local_models: [],
+      local_model_options: [],
+    })),
+    getMemoryStats: vi.fn(async () => ({ total: 0 })),
+    listSkills: vi.fn(async () => ({ skills: [], total: 0 })),
+    getPackIndex: vi.fn(async () => ({ packs: [] })),
+    listSchedules: vi.fn(async () => ({ jobs: [] })),
+    getTasks: vi.fn(async () => []),
+    getSecuritySettings: vi.fn(async () => ({
+      approval_profile: 'strict',
+      sandbox_enabled: false,
+    })),
+    saveSecuritySettings: vi.fn(async () => ({
+      approval_profile: 'strict',
+      sandbox_enabled: false,
+    })),
+  }
+  return { calls, api, toastError: vi.fn(), toastSuccess: vi.fn() }
+})
+
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>()
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (k: string, opts?: Record<string, unknown>) =>
+        opts?.returnObjects ? [] : opts ? `${k} ${JSON.stringify(opts)}` : k,
+      i18n: { language: 'de', changeLanguage: vi.fn() },
+    }),
+  }
+})
+
+vi.mock('@/lib/toast', () => ({
+  toastBus: { info: vi.fn(), error: toastError, success: toastSuccess },
+  toast: { info: vi.fn(), error: toastError, success: toastSuccess },
+}))
+
+// Partial mock: only the network functions are sealed off. The panel layer builds
+// all 17 areas in one render, so a full mock would have to supply every render-
+// time function — URL builders such as exportMemoryUrl therefore stay real.
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api')>()),
+  ...api,
+}))
+
+import SettingsPanel from './SettingsPanel'
+
+beforeEach(() => {
+  localStorage.clear()
+  calls.length = 0
+  toastError.mockClear()
+  toastSuccess.mockClear()
+  // The write mocks keep their implementation (mockClear, not mockReset), so a
+  // test never reads the call counter of the one that ran before it.
+  api.saveSections.mockClear()
+  api.updateSettings.mockClear()
+})
+
+async function openBehaviour() {
+  render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="behaviour" />)
+  await screen.findByTestId('deep-row-chat.show_reasoning')
+}
+
+/** Call order of two mocks: the last invocation number decides. */
+function wroteFirst(a: { mock: { invocationCallOrder: number[] } }, b: typeof a) {
+  const last = (m: { mock: { invocationCallOrder: number[] } }) =>
+    m.mock.invocationCallOrder[m.mock.invocationCallOrder.length - 1] ?? 0
+  return last(a) < last(b)
+}
+
+describe('one save surface (I6-1)', () => {
+  it('the area shows no save button of its own any more', async () => {
+    await openBehaviour()
+    expect(screen.queryByTestId('deep-save')).toBeNull()
+    expect(screen.queryByTestId('deep-changed-count')).toBeNull()
+    expect(screen.getByTestId('settings-save')).toBeTruthy()
+  })
+
+  it('the footer counter counts only unsaved register changes', async () => {
+    await openBehaviour()
+    expect(screen.queryByTestId('settings-save-changed')).toBeNull()
+    fireEvent.click(screen.getByTestId('setting-switch-chat.show_reasoning'))
+    expect(screen.getByTestId('settings-save-changed').textContent).toBe('1')
+    fireEvent.click(screen.getByTestId('setting-switch-chat.show_tool_count'))
+    expect(screen.getByTestId('settings-save-changed').textContent).toBe('2')
+  })
+
+  it('one click saves the register first and the main block after', async () => {
+    await openBehaviour()
+    fireEvent.click(screen.getByTestId('setting-switch-chat.show_reasoning'))
+    fireEvent.click(screen.getByTestId('settings-save'))
+    await screen.findByText('settings.saved')
+    expect(calls).toEqual(['sections', 'settings'])
+    expect(wroteFirst(api.saveSections, api.updateSettings)).toBe(true)
+    expect(toastSuccess).toHaveBeenCalled()
+  })
+
+  it('without a register change settings.json stays untouched', async () => {
+    await openBehaviour()
+    fireEvent.click(screen.getByTestId('settings-save'))
+    await screen.findByText('settings.saved')
+    expect(calls).toEqual(['settings'])
+    expect(api.saveSections).not.toHaveBeenCalled()
+  })
+
+  it('a failing register still saves the main block and nothing claims success', async () => {
+    await openBehaviour()
+    api.saveSections.mockRejectedValueOnce(new Error('settings.json nicht schreibbar'))
+    fireEvent.click(screen.getByTestId('setting-switch-chat.show_reasoning'))
+    fireEvent.click(screen.getByTestId('settings-save'))
+    await vi.waitFor(() => expect(calls).toEqual(['settings']))
+    expect(api.saveSections).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('settings.saved')).toBeNull()
+    expect(toastSuccess).not.toHaveBeenCalled()
+    expect(toastError).toHaveBeenCalledWith(
+      'settings.deepSaveFailed',
+      'settings.json nicht schreibbar',
+    )
+  })
+
+  it('the register and the main block report their errors separately', async () => {
+    await openBehaviour()
+    api.saveSections.mockRejectedValueOnce(new Error('register kaputt'))
+    api.updateSettings.mockRejectedValueOnce(new Error('block kaputt'))
+    fireEvent.click(screen.getByTestId('setting-switch-chat.show_reasoning'))
+    fireEvent.click(screen.getByTestId('settings-save'))
+    await vi.waitFor(() => expect(toastError).toHaveBeenCalledTimes(2))
+    const titles = toastError.mock.calls.map((c) => c[0])
+    expect(titles).toContain('settings.deepSaveFailed')
+    expect(titles).toContain('settings.saveFailed')
+    expect(toastError).toHaveBeenCalledWith(expect.anything(), 'register kaputt')
+    expect(toastError).toHaveBeenCalledWith(expect.anything(), 'block kaputt')
+  })
+})

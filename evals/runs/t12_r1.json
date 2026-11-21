@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "T12",
+  "family": "tau",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-t12-r1-1790173186",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==OF-C (requirement-delta)",
+  "error_class": null,
+  "wall_ms": 19883.3,
+  "ttft_first_event_ms": 197.2,
+  "n_turns": 2,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 44.6
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.0
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: OF-C",
+  "tool_calls": [
+    "file_search",
+    "read_file"
+  ],
+  "answer_chars": 241,
+  "tokens_out_proxy": 60.2,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Filter: Raum = 'fir'**\n\n| ID | Room | Night | Price |\n|----|------|-------|-------|\n| OF-B | fir | 2026-11-05 | 180 |\n| OF-C | fir | 2026-11-06 | **150** |\n\nUnter den 'fir'-Angeboten ist **OF-C** am günstigsten (150).\n\nFINAL ANSWER: OF-C",
+  "ts": "2026-09-23T16:20:06"
+}

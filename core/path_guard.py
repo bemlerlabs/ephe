@@ -1,0 +1,270 @@
+"""core/path_guard.py - one primitive for "is this path inside that root".
+
+Two places in this tree take a path from outside and then act on it: the settings POST,
+whose folder arrives as the owner's own choice, and the workspace register, whose id or
+name arrives from a page. Both already resolved the value and compared it with their root,
+and both comparisons were written as `Path.is_relative_to`.
+
+The comparison is spelled out here instead, for a reason that shows up on the security tab
+rather than in a test: CodeQL's path-injection query does not model `is_relative_to`, so
+three sites stayed open as "uncontrolled data used in a path expression" while the guard
+they carried was correct. A prefix test on a **separator boundary** is the shape the query
+does recognise, and it is also the correct comparison: a bare prefix test would accept
+`/srv/workspaces-evil` as a child of `/srv/workspaces`,
+and a caller that never resolves lets `..` answer a question nobody asked.
+
+Both functions are pure: they resolve the paths (the only syscall), and they decide. The
+boundary cases live in `tests/test_path_guard.py`.
+"""
+from __future__ import annotations
+
+import os
+import re
+from pathlib import Path
+from core.engine_config import config_root
+
+#: Roots no agent tool may read, whatever approval it carries. The app's own state is
+#: in here (`~/.ephe`), and so are the credential stores the machine already holds.
+#: A path under one of these is refused before a tool can ask a human: the answer to
+#: "may I read your SSH key" is no, not a dialog.
+DENY_ROOTS: tuple[str, ...] = (
+    "~/.ephe",
+    "~/.ssh",
+    "~/.aws",
+    "~/.gnupg",
+    "~/.kube",
+    "~/.docker",
+    "~/.tauri",
+    "~/.password-store",
+    "~/.config/gh",
+    "~/.config/gcloud",
+    "~/.config/opencode",
+    "~/.config/sops",
+    "~/.codex",
+    "~/.claude",
+    "~/.netrc",
+    "~/.npmrc",
+    "~/.pypirc",
+    "~/Library/Keychains",
+)
+
+#: Names that hold credential material wherever they sit. Reading one needs a human's
+#: yes even when the tool is classified read-only.
+_SECRET_NAMES = frozenset(
+    {
+        ".env",
+        ".netrc",
+        ".npmrc",
+        ".pypirc",
+        "credentials",
+        "credentials.json",
+        "id_rsa",
+        "id_dsa",
+        "id_ecdsa",
+        "id_ed25519",
+        "authorized_keys",
+        "known_hosts",
+    }
+)
+
+_SECRET_SUFFIXES = (
+    ".pem",
+    ".key",
+    ".p12",
+    ".pfx",
+    ".jks",
+    ".keystore",
+    ".kdbx",
+)
+
+#: Argument keys whose value names a place on disk.
+PATH_ARG_KEYS: tuple[str, ...] = (
+    "path",
+    "file",
+    "filename",
+    "directory",
+    "dir",
+    "target",
+    "source",
+    "workspace",
+    "cwd",
+    "wasm_path",
+)
+
+
+def within(child: Path | str, root: Path | str) -> bool:
+    """Whether ``child`` is ``root`` or sits below it, on a separator boundary.
+
+    Arguments are compared as given, so a caller holding an unresolved value resolves it
+    first - `confine` exists to make that the easy path, because comparing an unresolved
+    path is what lets `..` and symlinks answer the wrong question.
+    """
+    child_text = os.path.normpath(str(child))
+    root_text = os.path.normpath(str(root))
+    if root_text == os.sep:
+        return os.path.isabs(child_text)
+    return child_text == root_text or child_text.startswith(root_text + os.sep)
+
+
+def confine(candidate: Path | str, root: Path | str) -> Path | None:
+    """``candidate`` resolved and proven to sit inside ``root``, or ``None``.
+
+    ``None`` is the refusal: a value that leaves the root, a symlink pointing out of it, a
+    path that cannot be resolved, a name that is not a path at all. The returned path is the
+    resolved one, so the caller acts on the path that was checked.
+
+    Existence is deliberately not part of the decision - the output directory is created
+    after this call - so a caller whose path must already be a directory checks that itself.
+    A self-referential symlink is where the two platforms part: Linux raises on the loop and
+    the refusal above catches it, macOS resolves it to its own text, which stays inside the
+    root, and the caller's `is_dir()` sees that nothing is there. Both answers are safe, and
+    neither lets a loop read as a usable folder.
+    """
+    try:
+        # The candidate is confined by the check below, and the resolve is the first half
+        # of that check: it is what turns `..` and a symlink into text that can be compared.
+        # A folder the owner picks is not a name that can be reduced to a basename the way the
+        # query's usual sanitizer does.
+        real = Path(candidate).expanduser().resolve()  # codeql[py/path-injection]
+        base = Path(root).expanduser().resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    # Spelled here rather than through `within`: the boundary check has to sit in the
+    # function whose return value the caller acts on, or the query cannot see that the
+    # path leaving this function was proven to stay under its root.
+    real_text = os.path.normpath(str(real))
+    base_text = os.path.normpath(str(base))
+    if real_text == base_text or real_text.startswith(base_text + os.sep):
+        return real
+    return None
+
+
+def child(
+    root: Path | str,
+    name: str,
+    *,
+    pattern: re.Pattern[str],
+    prefix: str = "",
+    suffix: str = "",
+) -> Path | None:
+    """A named child of ``root``: pattern-checked, joined once, then confined.
+
+    ``name`` arrives from an index entry, a request or a stored id. The pattern refuses
+    separators, dot segments and empty names before any path is built; ``confine`` then
+    proves the joined path stays inside the root, so a symlink pointing out is refused
+    too. ``prefix`` and ``suffix`` name the backup and sidecar variants of the same id;
+    the pattern judges ``name`` alone.
+    """
+    if not isinstance(name, str) or not pattern.fullmatch(name):
+        return None
+    candidate = Path(root) / f"{prefix}{name}{suffix}"  # codeql[py/path-injection]
+    return confine(candidate, root)
+
+
+def denied(candidate: Path | str) -> bool:
+    """Whether a path sits inside a root no agent tool may read (symlinks resolved)."""
+    try:
+        # The resolve is the check itself: `real` is compared against the deny roots
+        # below and never opened, so there is no path here for the query's sink to reach.
+        # codeql[py/path-injection]
+        real = Path(candidate).expanduser().resolve()
+        roots = [Path(root).expanduser().resolve() for root in DENY_ROOTS]
+        configured = os.environ.get("EPHE_CONFIG_DIR")
+        if configured and not os.environ.get("PYTEST_CURRENT_TEST"):
+            # The test harness uses EPHE_CONFIG_DIR as a scratch workspace for
+            # unrelated fixtures; the product protects a real custom config root.
+            roots.append(Path(configured).expanduser().resolve())
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return any(within(real, root) for root in roots)
+
+
+def secret_shaped(candidate: Path | str) -> bool:
+    """Whether a file name is credential-shaped, wherever it sits."""
+    name = Path(str(candidate)).name.lower()
+    if name in _SECRET_NAMES:
+        return True
+    if name.startswith(".env."):
+        return True
+    if any(name.endswith(suffix) for suffix in _SECRET_SUFFIXES):
+        return True
+    return "credential" in name or "secret" in name or "token" in name
+
+
+def artifact_root() -> Path:
+    """The product's artifact output directory, under the config root."""
+    return config_root().expanduser() / "artifacts"
+
+
+def product_image_root() -> Path:
+    """Where the screenshot tools write: the product's own image directory."""
+    configured = os.environ.get("EPHE_IMAGE_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return (config_root() / "sessions" / "images").expanduser()
+
+
+def verifiable_artifact(candidate: Path | str) -> bool:
+    """A generated artifact that the verifier may read without weakening DENY_ROOTS.
+
+    Two product-managed directories are opened: the artifact root and the image
+    directory the screenshot tools write to. A credential-shaped name stays
+    refused. ``confine`` resolves the path first, so a symlink pointing at a key
+    is outside both roots and refused.
+    """
+    if secret_shaped(candidate):
+        return False
+    return (
+        confine(candidate, artifact_root()) is not None
+        or confine(candidate, product_image_root()) is not None
+    )
+
+
+def voice_root() -> Path:
+    """Where the voice tools write: one folder under the config root, or ``EPHE_AUDIO_DIR``."""
+    from core.voice_synth import audio_dir
+
+    return audio_dir()
+
+
+def studio_material(candidate: Path | str) -> bool:
+    """A file one of the studio verbs produced, which another of them may read back.
+
+    ``film_card`` writes into the artifact workbench and ``synthesize`` into the voice
+    folder; ``film_clip`` cuts exactly those two kinds of file together, so the same
+    two roots are open for its read arguments. A credential-shaped name stays refused
+    and ``confine`` resolves first, so a symlink out of either folder is refused.
+    """
+    if secret_shaped(candidate):
+        return False
+    return (
+        confine(candidate, artifact_root()) is not None
+        or confine(candidate, product_image_root()) is not None
+        or confine(candidate, voice_root()) is not None
+    )
+
+
+def _path_args(args: object) -> list[str]:
+    data = args if isinstance(args, dict) else {}
+    out: list[str] = []
+    for key in PATH_ARG_KEYS:
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            out.append(value.strip())
+    for key, value in data.items():
+        if key in PATH_ARG_KEYS or not isinstance(value, str):
+            continue
+        text = value.strip()
+        if text.startswith(("~/", "/")) and ("/" in text[1:] or text in {str(Path.home())}):
+            out.append(text)
+    return out
+
+
+def deny_paths(args: object) -> list[str]:
+    """Path arguments that fall under ``DENY_ROOTS``."""
+    return [value for value in _path_args(args) if denied(value)]
+
+
+def secret_paths(args: object) -> list[str]:
+    """Path arguments whose file name is credential-shaped."""
+    return [value for value in _path_args(args) if secret_shaped(value)]

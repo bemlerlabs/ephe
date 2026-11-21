@@ -1,0 +1,11 @@
+/* Desktop-shell carrier. The Tauri window already carries a native
+   NSVisualEffectView (`windowEffects.underWindowBackground`); the WebView's own
+   ground must let it read through. `html.tauri-vibrancy` is set by
+   ForestBackground once per mount and only in the shell, so this rides the same
+   chunk as the component that toggles the class — and never applies in the
+   browser, where the opaque forest ground stays. */
+
+html.tauri-vibrancy,
+html.tauri-vibrancy body {
+  background-color: transparent;
+}

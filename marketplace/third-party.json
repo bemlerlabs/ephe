@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "plugins": [
+    {
+      "name": "superpowers",
+      "path": "marketplace/sources/superpowers",
+      "displayName": "Superpowers",
+      "author": "Jesse Vincent (MIT), pack by Ephe",
+      "category": "skills",
+      "keywords": ["superpowers", "skills", "tdd", "planning", "code review"],
+      "description_i18n": {
+        "en": "Superpowers workflow skills (MIT), adapted for Ephe: planning, TDD, code review, worktrees, verification."
+      },
+      "kind": "skill-pack",
+      "quality_label": "bundled"
+    }
+  ]
+}

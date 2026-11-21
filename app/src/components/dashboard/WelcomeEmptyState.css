@@ -1,0 +1,22 @@
+.welcome-card {
+  transition: background-color 160ms var(--ease-out-soft), box-shadow 160ms var(--ease-out-soft);
+}
+.welcome-card:hover {
+  background: rgb(240 168 48 / 0.1);
+  box-shadow: 0 0 0 1px rgb(255 191 71 / 0.3);
+}
+.welcome-card-recommended {
+  background: rgb(240 168 48 / 0.1);
+  box-shadow:
+    0 0 0 1px rgb(255 191 71 / 0.6),
+    0 0 24px rgb(255 191 71 / 0.14);
+}
+.welcome-card-icon {
+  color: var(--color-brand);
+}
+.welcome-card-recommended .welcome-card-icon {
+  color: #ffbf47;
+}
+.welcome-recommended-label {
+  color: rgb(255 191 71 / 0.9);
+}

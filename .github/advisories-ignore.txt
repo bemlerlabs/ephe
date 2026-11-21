@@ -1,0 +1,339 @@
+# Ephe accepted advisory risk register — every ecosystem the audits can see
+#
+# This file is INPUT, not prose: `.github/workflows/supply-chain.yml` reads the ID lines
+# below and passes the PyPI ones to `pip-audit --ignore-vuln`. Everything else in the
+# audit stays visible, so an ignored advisory is always a written decision and a new
+# one is never silently tolerated. tests/test_supply_chain_gate.py holds the format, the
+# state and the expiry of every entry, and scripts/advisory_id_check.py resolves each ID
+# against the advisory databases before any of them counts as accepted.
+#
+# Line format:
+#   <ID>  # package=<name> [ecosystem=<PyPI|npm|crates.io>] [scope=<runtime|development>]
+#          [state=<accepted|pending-fix|fixed>] affected=<range> fixed_in=<version|none>
+#          [blocked_by=<what is missing>] recheck=<YYYY-MM-DD>
+# Omitted fields default to ecosystem=PyPI, state=accepted. The three states are the three
+# homes a finding can have: `accepted` means no release exists and the risk is carried with
+# a written exposure; `pending-fix` means a release exists, the move is somebody's open
+# work, and `blocked_by=` names what is missing; `fixed` means the fix landed and the row
+# stays as the floor that stops it returning, so `fixed_in=` names the version the lock must
+# hold and `blocked_by=` is absent because nothing is missing. Only rows that are PyPI and
+# `accepted` reach `--ignore-vuln`, so an npm or crates.io ID can never silence a Python
+# finding, and a closed finding is never hidden by the flag that hides an open one.
+# A line whose recheck date has passed makes the gate job fail, so a decision cannot
+# outlive itself without somebody noticing. That holds for every state: a `pending-fix` row
+# sitting past its date is the same silence as an `accepted` one, only slower.
+#
+# Measured 2026-10-14 against the locked set. multidict (GHSA-54p9-h82j-f925 =
+# CVE-2026-104874) was FIXED and is held by `[tool.uv] constraint-dependencies` in
+# pyproject.toml; since 2026-10-14 it carries a `state=fixed` row below rather than only a
+# comment, because a floor nobody restates is a floor the next `uv lock --upgrade` drops.
+#
+# Six rows left this register on 2026-10-14 with the packages they named. The reason stays
+# written here instead of being a deletion with no trace:
+#   * PYSEC-2026-311 / -3813 / -3814 / -3815 (chromadb) were `state=accepted fixed_in=none`
+#     because the advisory ranges end at last_affected=1.5.9 and no release above it exists
+#     to move to. The product left the package instead: `chromadb` is out of uv.lock and
+#     pyproject.toml, so `uv export --frozen` no longer emits it and pip-audit can no longer
+#     report it. An `accepted` row for a package the lock does not carry claims a risk we
+#     do not hold.
+#   * PYSEC-2026-4175 (urllib3) and PYSEC-2026-4114 (oauthlib) were `state=fixed` floors.
+#     Both reached the product only as chromadb -> kubernetes -> {requests-oauthlib,
+#     urllib3}, so both left the lock with chromadb, and their two constraints left
+#     `[tool.uv]` in the same change. The gate reads every `fixed` row back against uv.lock,
+#     so the row and the constraint had to move together.
+# tests/test_supply_chain_gate.py holds both readings, including the empty `--ignore-flags`
+# set this leaves behind: a row returning without its flag fails that job.
+#
+# Re-read 2026-11-07 against the locks, with no new advisory fetch. The sixteen rows
+# that were due on 2026-11-06 keep their state. aiohttp 3.14.5 and multidict 6.9.1 are
+# still the uv.lock versions. katex resolves at 0.18.2 and above, brace-expansion at
+# 1.1.21 and 5.0.12, source-map-js at 1.2.2. zip is 9.1.3. glib is still 0.18.5 under
+# gtk 0.18, so the pending move stays blocked by tauri-pins-gtk-0.18. proc-macro-error
+# 1.0.4, zbus_names 4.3.4, zvariant 5.15.0 and zvariant_derive 5.15.0 are still the
+# locked crates. Next recheck for those sixteen rows is 2026-12-07.
+
+# aiohttp 3.14.3 carried three advisories: GHSA-2g87-pp6c-29x5 (unbounded
+# memory/CPU), a shared-cookie Secure attribute, and the missing initial
+# request/header timeout. The lock now holds 3.14.5; 3.14.4 is the first patched
+# release for all three. aiohttp reaches Ephe through edge-tts, the optional
+# voice path, as a client; the FastAPI server is uvicorn.
+# Why it is fixed: uv.lock moved to 3.14.5 and the frozen resolver has no path
+# back below it; pip-audit reports no aiohttp finding against the export.
+# Exposure as measured: aiohttp reaches Ephe only through edge-tts, the
+# optional voice path, as a client. The FastAPI server is uvicorn; the
+# server-side vectors in the three advisories did not apply to that use, and
+# the bump removes the finding for every install that carries the extra.
+GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed affected=<=3.14.3 fixed_in=3.14.5 recheck=2026-12-07
+
+# 2026-10-23 S1 incident: the eMudhra/emSign CA compromise and the pip advisory.
+# Why it is fixed: uv.lock resolves certifi 2026.10.19 and pyproject carries the floor;
+# the compromised emSign ECC Root CA - G3 is absent from the bundle the product uses.
+# Exposure as measured: the product venv and the 3.13.17 venv use certifi 2026.10.19;
+# the miniconda CLI still carries 2025.8.3; that is a migration item outside the product lock.
+PYSEC-2026-4320  # package=certifi ecosystem=PyPI scope=runtime state=fixed affected=<=2026.10.18 fixed_in=2026.10.19 recheck=2026-11-23
+GHSA-6q48-6c7w-9gw2  # package=certifi ecosystem=PyPI scope=runtime state=fixed affected=<=2026.10.18 fixed_in=2026.10.19 recheck=2026-11-23
+
+# Why it is fixed: D19 owner approval moves the CI pin to uv 0.13.5, above the 0.13.4 fix.
+# The workflow pin holds this build tool; uv is not a package in uv.lock.
+# This fixes CI tooling only; older user-global uv installations remain host follow-ups.
+# Exposure as measured: uv is a build tool. It is not a runtime package; it fetches and installs
+# the locked set, and the CA advisory says 0.12.24 trusts the compromised intermediates.
+PYSEC-2026-4321  # package=uv ecosystem=PyPI scope=development state=fixed affected=<=0.13.3 fixed_in=0.13.4 recheck=2026-11-23
+GHSA-hq85-5cpj-mr62  # package=uv ecosystem=PyPI scope=development state=fixed affected=<=0.13.3 fixed_in=0.13.4 recheck=2026-11-23
+
+# Why it is not fixed yet: the installers bootstrap 26.2.2, but the inventoried miniconda
+# dev environment retains pip 25.1. The migrated CLI no longer uses that environment.
+# The two install paths that used to resolve with the image's own pip now restate the floor
+# themselves: install.sh installs the 26.2.2 wheel by hash before anything else, and
+# Dockerfile's builder does the same inside the RUN that installs the project (measured
+# 2026-11-01: python:3.12-slim from 2026-10-28 ships pip 25.0.1).
+# Exposure as measured: pip is a build/install tool; the product venv has no pip, and the
+# installer path uses the hash-pinned 26.2.2 wheel.
+# CVE-2026-13346 is the NVD/GHSA alias of PYSEC-2026-3721; the OSV CVE record
+# names no package, so the pip decision is carried on the PYSEC line below.
+# CVE-2026-13346
+PYSEC-2026-3721  # package=pip ecosystem=PyPI scope=development state=pending-fix affected=<=26.2.1 fixed_in=26.2.2 blocked_by=miniconda-global-pip-25.1 recheck=2026-11-23
+
+# Re-check protocol for the entries below:
+#   1. `/work/.local/bin/uv pip compile` is not used here; the authoritative
+#      command is the one the gate runs — `uv export --frozen --all-groups --no-emit-project
+#      --no-hashes` into a requirements file, then `pip-audit -r <file> --no-deps`.
+#   2. A row moves to `state=fixed` when the bump lands and the audit stops reporting it,
+#      and it stays with `fixed_in=` naming the version the lock must hold.
+#   3. `state=fixed` describes a package the lock still carries. A floor whose package
+#      leaves the product is removed with it, as the six rows above were, and the reason is
+#      written down before the line goes.
+
+# ---------------------------------------------------------------------------
+# npm and crates.io — the surfaces `pip-audit` cannot see
+#
+# These lines are records, not pip-audit flags: `--ignore-flags` derives from rows that are
+# PyPI, so an npm or crates.io ID can never silence a Python finding. They are still read by
+# the resolver and by the expiry check like every other entry above.
+#
+# Why they are entries now and were prose before: the entry grammar accepted
+# `PYSEC-2026-311` and rejected `GHSA-238p-pmpm-9mq7`, although ANY_ID in
+# tests/test_supply_chain_gate.py already knew the GHSA shape and
+# scripts/advisory_id_check.py already knew it too (its SHAPES table). A GHSA-shaped
+# finding therefore had no legal line form in either register, and the seven JS advisories
+# measured on 2026-10-09 were written as prose instead. Prose satisfies the
+# docs-citation fence, which reads the raw file text, and escapes the expiry, the ID
+# resolution and the flag derivation, which parse lines. Seven undated findings sat behind
+# five days of green gates. The grammar in all three readers now accepts the GHSA shape and
+# every line carries a state and a date.
+#
+# Measured 2026-10-14 in app/, with the gate's own commands:
+#   pnpm audit --prod --json  -> 1 record, katex 0.16.47, dev=false
+#   pnpm audit --json         -> 8 records, {low 1, moderate 2, high 5}
+# The same day the bot's alert list and this register only partly overlapped: one
+# advisory is counted once per locked version (brace-expansion 1.1.18 and 5.0.9 are two of
+# them), and the wasmtime-wasi rows produce no Dependabot alert at all, because a crates.io
+# advisory inside a pip wheel is not a manifest Dependabot reads.
+# Alert counts and register rows are different units; neither number is the other's check.
+
+# Measured 2026-10-21 against crates.io `wasmtime` through the OSV API, because no
+# reader in this repository reaches that layer: the PyPI package answers zero
+# advisories (the wheel is asked about, the engine inside it is a Rust crate), and
+# Dependabot reads manifests. Open advisories: 23 for 47.0.1, 18 for 48.0.0, 19 for
+# 49.0.0. Ephe therefore overrides ephemora-cell's `wasmtime<48` bound to 48.0.0 in
+# pyproject.toml, and tests/test_cell_runtime_floor.py holds that floor so a later
+# `uv lock` cannot walk back. The remaining 18 are not triaged here: the cell
+# disables function references, exceptions, GC, tail calls, stack switching,
+# threads, multi-memory and memory64, so several of those records describe paths
+# this configuration refuses to compile. That triage is a named follow-up.
+
+# Eight npm advisories left this file on 2026-10-14, because they stopped being true: the
+# lockfile lane applied the overrides the blocks below used to ask for, and Dependabot reports
+# all eight closed (katex 0.18.2, source-map-js 1.2.2, brace-expansion 1.1.21 and 5.0.12).
+# A fixed row leaves the register: an allowance nobody needs is an allowance for whoever
+# recreates the package.
+# Measured after the overrides landed — `pnpm audit --prod` and `pnpm audit`: 0 records each.
+# Why it is fixed: the eight npm advisories that left this file on 2026-10-14 came back as
+# `state=fixed`, and the
+# reason is the gate's own rule rather than tidiness: `test_a_pnpm_advisory_is_judged_against_the_register`
+# requires that an advisory the register carries is decided, so that a dev-only decision stays a
+# decision. Removing the rows entirely made a real advisory look undecided. A `fixed` row keeps
+# `fixed_in` and carries no `blocked_by`.
+# Measured the same day, after the overrides landed: `pnpm audit` and `pnpm audit --prod` both
+# Exposure as measured: all eight were dev-only or lazily loaded. The two that reached a shipped
+# path were measured — katex 0.16.47 arrived through `.>remark-math>micromark-extension-math` with
+# `pnpm audit --prod` reporting dev=false, and it now resolves to 0.18.2.
+# return **0** records, and Dependabot reports all eight closed.
+# Why it is fixed — Exposure as measured: the vulnerable copies are gone from the lock; the
+# two that reached a shipped path were proved (katex through remark-math with dev=false) and
+# the rest were dev-only, so nothing here is exposed to a user.
+GHSA-238p-pmpm-9mq7  # package=katex ecosystem=npm scope=runtime state=fixed affected=>=0.11.0,<0.18.2 fixed_in=0.18.2 recheck=2026-12-07
+GHSA-q2hr-2g5m-vwhr  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.21|>=4.0.0,<5.0.12 fixed_in=1.1.21 recheck=2026-12-07
+GHSA-qhr7-859c-m2p7  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.20|>=4.0.0,<5.0.11 fixed_in=1.1.20 recheck=2026-12-07
+GHSA-6j4f-fj2g-mc7p  # package=brace-expansion ecosystem=npm scope=development state=fixed affected=<1.1.19|>=4.0.0,<5.0.10 fixed_in=1.1.19 recheck=2026-12-07
+GHSA-68fv-2mgg-jv7q  # package=source-map-js ecosystem=npm scope=development state=fixed affected=>=1.0.0,<1.2.2 fixed_in=1.2.2 recheck=2026-12-07
+
+# GHSA-g3hv-75wg-m249 = CVE-2026-118764 — minimatch amplifies an attacker-supplied glob:
+# `firstPhasePreProcess` clones a globParts entry for every `**/../` it rewrites in a fixpoint
+# loop, and `secondPhasePreProcess` compares the grown array pairwise. OSV: fixed=11.0.1.
+# Why it is fixed: no parent asks for 11 — 3.1.5 sat under @eslint/config-array and
+# @eslint/eslintrc on ^3.1.2, 10.2.6 under @typescript-eslint/typescript-estree on ^10.0.2 —
+# so the line was reached the way the eight rows above it were: an override to 11.0.3 in
+# app/pnpm-workspace.yaml, where pnpm 11 reads overrides (the manifest's `pnpm` field is now
+# ignored with a warning). 11.0.3's brace-expansion floor ^5.0.12 is the pin already there,
+# so no second advisory opens. Held by tests/test_minimatch_override_floor.py.
+# Exposure as measured 2026-11-01 in app/, with the workflow's own commands: `pnpm audit
+# --json` and `pnpm audit --prod --json` -> 0 records each (the full graph held 1: minimatch,
+# moderate, development). `eslint . --format json` -> 1010 files, 0 errors, 81 warnings, and
+# the (file, rule, line, column) set is identical to the run on 3.1.5/10.2.6: the ignore
+# globs match the same files. tsc, vite build and vitest (467 files / 3221 tests) unchanged.
+GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=fixed affected=<11.0.1 fixed_in=11.0.1 recheck=2026-11-29
+
+# GHSA-8g5g-mxqh-grgj = CVE-2026-118662 — a file the dev server is told to deny is served anyway
+# when the request appends a query string: the deny pattern misses on `?`-carrying URLs, so the
+# body of a `server.fs.deny` path goes back to the browser. OSV: introduced 6.4.4, fixed 6.4.5,
+# published 2026-10-29.
+# Why it is fixed: app/package.json asked for ^6.4.4 and the lock resolved vite@6.4.4, and commit
+# 30777a1e moved the specifier to ^6.4.5 on 2026-10-30, the day after the advisory was published.
+# The lock resolves one vite today, at 6.4.5 (`packages:` -> `vite@6.4.5:`), and
+# test_a_fixed_npm_row_is_held_by_the_npm_lock reads this row against the lock on every suite run,
+# so a dependency move that walks the resolution below 6.4.5 fails there instead of here.
+# Exposure as measured: reachable on this tree while the lock held 6.4.4. The advisory names two
+# conditions — a dev server exposed to the network, and a denied file inside an allowed directory —
+# and the first one is ours by configuration: app/vite.config.ts:82 sets `host: true` for the LAN
+# and desktop dev flows. Scope is development, and that is the whole of the mitigating fact: `vite`
+# is a devDependency, a built bundle carries no dev server, and no shipped path reads this code.
+GHSA-8g5g-mxqh-grgj  # package=vite ecosystem=npm scope=development state=fixed affected=>=6.4.4,<6.4.5 fixed_in=6.4.5 recheck=2026-12-07
+
+# GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 — glib.
+# Why it is not fixed yet: glib 0.20.0 is the fix and app/src-tauri/Cargo.lock pins 0.18.5,
+# and the move waits on upstream, measured: `cargo update -p glib --precise 0.20.0` is refused —
+# gtk 0.18.2 requires `glib = "^0.18"` and tauri 2.12.3 is crates.io's newest stable. The version
+# chain is in wt/w7-glib's report. The coverage gap this row first recorded is closed:
+# supply-chain.yml's "Cargo advisory verdict" audits app/src-tauri/Cargo.lock against the
+# crates.io database (hygiene.yml still reads the lock only for Tauri plugin major/minor
+# parity), and .github/dependabot.yml now declares package-ecosystem "cargo" for
+# /app/src-tauri, so this alert CAN arrive as a pull request — which is why the `glib` ignore
+# entry was added there. Until that landed, the row was invisible to every gate in this repo
+# and Dependabot was its only reader.
+# Exposure as measured: dependencies arrive through the Tauri desktop shell, which is the
+# product's own window process, so this is runtime and not build tooling. Unsound Iterator
+# and DoubleEndedIterator implementations for glib::VariantStrIter (CVSS:4.0 AV:N/AC:L
+# PR:N/UI:N/VI:L) — a soundness defect, medium severity, no code-execution path claimed.
+GHSA-wrw7-89jp-8q8g  # package=glib ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.15.0,<0.20.0 fixed_in=0.20.0 blocked_by=tauri-pins-gtk-0.18 recheck=2026-12-07
+# Exposure as measured: `cargo tree -i block-buffer@0.10.4` reaches it only through
+# tauri-codegen -> sha2 0.10 -> digest 0.10, the proc macro that hashes while the app is
+# compiled. No shipped binary carries the crate, so the panic path is a build-host path.
+# Why it is not fixed yet: block-buffer 0.12.1 needs digest 0.11 / sha2 0.11, and the
+# version that pulls the 0.10 chain is tauri's own codegen crate.
+GHSA-qwgh-2vcv-g2f7  # package=block_buffer ecosystem=crates.io scope=development state=pending-fix affected=>=0.10.0,<0.12.1 fixed_in=0.12.1 blocked_by=tauri-codegen-pins-sha2-0.10 recheck=2026-11-27
+
+# --- The fixed rows. A finding whose release landed, kept as the floor that holds it. ---
+
+# GHSA-54p9-h82j-f925 = CVE-2026-104874 — multidict. The CVE record is the one with no
+# package attached (its ranges are git commits), so this row cites the GitHub ID that
+# osv.dev resolves against `multidict`; scripts/advisory_id_check.py reads aliases for
+# exactly that reason and reports a mismatched pair rather than waving it through.
+# Why it is fixed: 6.9.1 is the first fixed release, uv.lock resolves multidict 6.9.1, the
+# constraint `multidict>=6.9.1` holds it, and lockfile.yml re-resolves against the pinned uv.
+# Exposure as measured: reference leak in CIMultiDict/MultiDict items-view union and
+# subtraction (introduced 6.7.0), read from the advisory record on 2026-10-14.
+GHSA-54p9-h82j-f925  # package=multidict ecosystem=PyPI scope=runtime state=fixed affected=>=6.7.0 fixed_in=6.9.1 recheck=2026-12-07
+
+# --- The crates.io rows found by the Cargo verdict leg. ---
+
+# RUSTSEC-2024-0370 — proc-macro-error 1.0.4. Found 2026-10-14 by
+# `python3 scripts/advisory_id_check.py --audit-cargo`, the leg added the same day: it reads
+# all 512 crate(s) app/src-tauri/Cargo.lock pins and found three with an advisory record —
+# glib (the row above), rustls 0.23.45 (bumped to 0.23.46 in the same commit, which closed
+# eight records) and this one, the only one with nothing to move to.
+# Why there is no fix: the RustSec record carries no fixed event, no CVSS and no CVE, and
+# its own `database_specific.informational` field says the reason — the crate is
+# unmaintained. The successors (proc-macro-error2) are a different crate, so no version
+# bump reaches this; it clears when the GTK stack does.
+# Exposure as measured: compile-time only. The paths in the lock are glib-macros 0.18.5 and
+# gtk3-macros 0.18.2, both proc-macro crates of the GTK 0.18 stack that build the Tauri
+# shell; `cargo tree -i proc-macro-error` on the host target answers "nothing to print", so
+# it is not compiled into the aarch64-apple-darwin build at all, and a proc-macro emits
+# code into the compiler rather than into the artifact. scope=development follows from
+# that. UNPROVEN: that it is equally absent from every platform a release ships, since
+# `cargo tree --target all` was not run against all targets.
+RUSTSEC-2024-0370  # package=proc-macro-error ecosystem=crates.io scope=development state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
+
+# zbus_names, zvariant and zvariant_derive reached the lock with tauri-plugin-notification
+# 2.7.0 on 2026-10-18 (zbus 5.19 <- notify-rust 4.18; the other two are its support
+# crates and its derive). None is in the aarch64-apple-darwin build: `cargo tree -i` on
+# the host answers "nothing to print" for all three, and `--target all` shows only the
+# Linux D-Bus paths (notifications, single-instance activation). The Linux bundle carries
+# them; the macOS and Windows surfaces do not.
+# Why there is no fix: all three are RustSec "unmaintained" records with no fixed event
+# and no successor crate to move to, so no release exists to pin.
+# Exposure as measured: D-Bus names and serialized values on Linux, in the notification
+# and single-instance plugins. They do not parse the product's own payloads; the records
+# describe missing maintenance with no reachable defect. Re-read with the next notification
+# plugin bump, which is when the zbus family moves.
+RUSTSEC-2026-0371  # package=zbus_names ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
+RUSTSEC-2026-0370  # package=zvariant ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
+RUSTSEC-2026-0372  # package=zvariant_derive ecosystem=crates.io scope=runtime state=accepted affected=>=0.0.0 fixed_in=none recheck=2026-12-07
+
+# RUSTSEC-2026-0543 — chrono 0.4.45. Found 2026-11-19 by `python3 scripts/advisory_id_check.py
+# --audit-cargo` on the 0.7.1 tree: 522 crate(s) pinned in app/src-tauri/Cargo.lock, six with an
+# advisory record, this the only one without a written row.
+# What the record says: OSV resolves it to `database_specific.informational = "unmaintained"`,
+# `cvss: null`, no CVE, no categories, one range `introduced 0.0.0-0` and no fixed event. The
+# finding describes the crate's future, and its own `informational` field is what says so. It cites
+# chronotope/chrono#1768 and names jiff and time as successors. Published 2026-09-14, issued
+# 2026-11-17, so the database moved after the last supply-chain run on main (2026-11-16, green).
+# Why there is no fix: chrono is not a dependency this repository chose. In the lock its only
+# dependent is serde_with 3.21.0, and serde_with's only dependent is tauri-utils — the desktop
+# shell's own configuration layer. Nothing under `app/src-tauri/src` names chrono; the one hit in
+# that folder is a comment. Only tauri-utils moving off serde_with's chrono support, or chrono
+# gaining a maintainer, removes the line.
+# Exposure as measured: no code path. `cargo tree -i chrono` on aarch64-apple-darwin answers
+# "nothing to print", and so does `cargo tree -i chrono --target all` after resolving the
+# windows-, linux- and android- crates, so the crate is in the lock as a resolution-wide pin and is
+# not built into any target graph this machine can compute. The product's dates and durations are
+# Python's `datetime` and the app's own timers. UNPROVEN: that CI's Linux and Windows runners
+# resolve the same graph, since both commands were run on one macOS host.
+# What closes it: a tauri-utils release without the chrono dependency, or chrono's maintenance
+# status changing. Re-read by the date below and with the next Tauri bump, whichever comes first.
+RUSTSEC-2026-0543  # package=chrono ecosystem=crates.io scope=development state=accepted affected=>=0.0.0 fixed_in=none recheck=2027-02-17
+
+# zip came in as tauri-plugin-updater's own dependency. Four findings sit here. Three
+# carry a RustSec ID and a GHSA alias each: SUID/SGID preservation during extraction,
+# symlink targets outside the destination, and permissions applied through those
+# symlinks. Every one of them closes with zip 9.0.0. The rows below name the RustSec
+# IDs: GitHub serves no advisory page for the GHSA aliases (HTTP 404 on 2026-10-18),
+# while OSV resolves each alias to the RustSec record it shares.
+# The fourth is GHSA-m665-v7pm-7grj (CVE-2026-115905, "Zip Cloaking", critical, patched
+# in 9.0.5). It has no RustSec record, so `cargo-audit` stays green on it whatever the
+# lock holds; the reader that reported it was Dependabot on the public snapshot, one
+# alert opened 2026-10-28.
+# Why it is fixed: tauri-plugin-updater 2.14.1 (2026-10-28) moved its dependency from
+# zip ^4 to zip ^9, and `cargo update -p tauri-plugin-updater --precise 2.14.1` took the
+# lock from 4.6.1 to 9.1.3. No manifest line changed, because Cargo.toml already allowed
+# `2`. `cargo check --locked` finishes green on that tree.
+# Exposure as measured on 2026-10-26, with `cargo tree --target <triple> -i zip` run in
+# app/src-tauri: `aarch64-apple-darwin` and `x86_64-unknown-linux-gnu` each answer
+# "warning: nothing to print.", so neither shipped build carried the crate; only
+# `x86_64-pc-windows-msvc` resolved it (`zip v4.6.1` under `tauri-plugin-updater v2.14.0`),
+# and no release has published a Windows asset. The attack needs a crafted archive that
+# passes the signature check in latest.json; a hostile network response alone does not.
+RUSTSEC-2026-0367  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-12-07
+RUSTSEC-2026-0368  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-12-07
+RUSTSEC-2026-0369  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.0 fixed_in=9.0.0 recheck=2026-12-07
+GHSA-m665-v7pm-7grj  # package=zip ecosystem=crates.io scope=runtime state=fixed affected=>=0.0.0,<9.0.5 fixed_in=9.0.5 recheck=2026-12-07
+
+# Why it is fixed: `AsyncFd::new` and related constructors violate I/O safety; a patch
+# bump inside the Tauri shell's existing dependency graph moves it to 1.53.3, and no
+# dependency was added.
+RUSTSEC-2026-0386  # package=tokio ecosystem=crates.io scope=runtime state=fixed affected=>=1.52.0,<1.53.3 fixed_in=1.53.3 recheck=2027-01-23
+
+# Re-check protocol for the npm and crates.io rows:
+#   1. Re-run the gate's own commands in app/ (`pnpm audit --prod --json`, `pnpm audit
+#      --json`) after any lockfile change, and the three resolver modes for the IDs and the
+#      crate set: `scripts/advisory_id_check.py`, `--audit-cargo`, `--pip-verdict`.
+#   2. A row moves to `state=fixed` when the bump lands and the audit stops reporting it,
+#      and it stays here with `fixed_in=` naming the version the lock must hold — deleting
+#      it would leave the floor in pyproject.toml or in a test with nothing pointing at it.
+#      Measured 2026-10-14: rustls 0.23.45 was in this class with no row at all until the
+#      cargo leg existed, and the eight records behind it were invisible to every gate.
+#   3. A row that is still `pending-fix` at its recheck date keeps its line and moves the
+#      date with a written reason, the same rule the Python entries above follow.
+# No install and no lockfile rewrite was run in this wave; `pnpm audit` is read-only and
+# app/pnpm-lock.yaml is byte-identical to the commit this was measured against.

@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "G13",
+  "family": "gaia",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-g13-r1-1790172720",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==77 (mirror-recovery)",
+  "error_class": null,
+  "wall_ms": 10185.5,
+  "ttft_first_event_ms": 331.6,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 2.1
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.1
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 77",
+  "tool_calls": [
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 259,
+  "tokens_out_proxy": 64.8,
+  "fixture_hash": "38cd549ed8ef",
+  "answer_tail": "\n\n**Berechnung aus der real gelesenen Datei** (`g13.json` war nicht vorhanden, daher laut Anweisung der Spiegel `g13_mirror.json` — `/private/tmp/bench-option-b/ws/g13_mirror.json`):\n\n```json\n{ \"total\": 77 }\n```\n\nDer `total`-Wert ist **77**.\n\nFINAL ANSWER: 77",
+  "ts": "2026-09-23T16:12:11"
+}

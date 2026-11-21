@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "task_id": "G9",
+  "family": "gaia",
+  "level": "L4",
+  "rep": 1,
+  "session_id": "ob-g9-r1-1790172653",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==114 (10-step chain)",
+  "error_class": null,
+  "wall_ms": 13671.5,
+  "ttft_first_event_ms": 340.2,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 1.9
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 114",
+  "tool_calls": [
+    "read_file"
+  ],
+  "answer_chars": 459,
+  "tokens_out_proxy": 114.8,
+  "fixture_hash": "38cd549ed8ef",
+  "answer_tail": "\n\n**Berechnung aus dem real gelesenen Datei-Inhalt** (`/private/tmp/bench-option-b/ws/g9_chain.txt`: `start=3`, `ops=*2,+7,*3,-5,*2,+7,/5,*4,-3,*2`):\n\n| Schritt | Op | Ergebnis |\n|---|---|---|\n| Start | — | 3 |\n| 1 | ×2 | 6 |\n| 2 | +7 | 13 |\n| 3 | ×3 | 39 |\n| 4 | −5 | 34 |\n| 5 | ×2 | 68 |\n| 6 | +7 | 75 |\n| 7 | ÷5 | 15 |\n| 8 | ×4 | 60 |\n| 9 | −3 | 57 |\n| 10 | ×2 | **114** |\n\nAlle Operationen gehen ganzzahlig auf (75 ÷ 5 = 15 ohne Rest) ✅\n\nFINAL ANSWER: 114",
+  "ts": "2026-09-23T16:11:07"
+}

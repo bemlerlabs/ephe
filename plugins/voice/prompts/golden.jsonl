@@ -1,0 +1,6 @@
+{"id": "voice-1", "command": null, "input": "Speak the sentence 'Welcome to Ephe' as an audio file.", "expect": {"kind": "artifact", "suffix": ".wav"}}
+{"id": "voice-2", "command": null, "input": "Transcribe the file /tmp/notiz.wav and output the text.", "expect": {"kind": "contains", "any": ["transcript", "text"]}}
+{"id": "voice-3", "command": null, "input": "Create an audio version of the quick guide 'First Start' as MP3.", "expect": {"kind": "artifact", "suffix": ".mp3"}}
+{"id": "voice-4", "command": null, "input": "Which voices are installed locally and which would have to be installed?", "expect": {"kind": "contains", "any": ["piper", "voice", "installed"]}}
+{"id": "voice-5", "command": null, "input": "Read the sentence 'Test' aloud without creating a file - just for checking.", "expect": {"kind": "contains", "any": ["audio", "voice"]}}
+{"id": "voice-6", "command": null, "input": "The voice en_US-amy-medium is missing - what does Ephe say exactly?", "expect": {"kind": "not_contains", "any": ["simply used another", "just used another"]}}

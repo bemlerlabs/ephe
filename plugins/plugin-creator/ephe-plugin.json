@@ -1,0 +1,30 @@
+{
+  "manifest_version": 1,
+  "name": "plugin-creator",
+  "version": "1.0.0",
+  "origin": "first-party",
+  "description": "Create and validate Ephe plugins: manifest scaffolds, permission reviews, signing guidance.",
+  "permissions": {
+    "tool_families": [
+      "read",
+      "write"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [],
+    "commands": [
+      {
+        "name": "newplugin",
+        "description": "Scaffold a new plugin manifest",
+        "template": "Create an ephe-plugin.json scaffold for: {input}. Manifest v1, slug from a-z0-9-, minimal tool families, commands with templates. Name the validation (ephe plugin list) and the signing step."
+      },
+      {
+        "name": "validateplugin",
+        "description": "Check a plugin manifest against the schema",
+        "template": "Check the plugin in {input} against the manifest contract (v1, slug, SemVer, tool families, SKILL.md attachments) and return a repair list."
+      }
+    ]
+  },
+  "icon": "icon.svg"
+}

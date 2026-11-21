@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "task_id": "G10",
+  "family": "gaia",
+  "level": "L3",
+  "rep": 2,
+  "session_id": "ob-g10-r2-1790173775",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==3 (distinct months)",
+  "error_class": null,
+  "wall_ms": 18567.2,
+  "ttft_first_event_ms": 259.3,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "file_search",
+      "ms": 92.7
+    },
+    {
+      "tool": "file_search",
+      "ms": 92.7
+    },
+    {
+      "tool": "file_search",
+      "ms": 92.7
+    },
+    {
+      "tool": "file_search",
+      "ms": 92.7
+    },
+    {
+      "tool": "file_search",
+      "ms": 92.7
+    },
+    {
+      "tool": "read_file",
+      "ms": 4.0
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.9
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 3",
+  "tool_calls": [
+    "file_search",
+    "file_search",
+    "file_search",
+    "file_search",
+    "file_search",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 329,
+  "tokens_out_proxy": 82.2,
+  "fixture_hash": "22275f9e9a2a",
+  "answer_tail": "\n\n**Berechnung aus den real gelesenen Datei-Inhalten:**\n\n| Datei | Monat |\n|---|---|\n| `g10_a.csv` | 2026-01 |\n| `g10_b.csv` | 2026-01 |\n| `g10_c.csv` | 2026-02 |\n| `g10_d.csv` | 2026-02 |\n| `g10_e.csv` | 2026-03 |\n\nDie distincte Menge der Monate ist: **{2026-01, 2026-02, 2026-03}** → **3** verschiedene Monate.\n\nFINAL ANSWER: 3",
+  "ts": "2026-09-23T16:29:54"
+}

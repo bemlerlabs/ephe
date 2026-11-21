@@ -1,0 +1,129 @@
+/*
+ * The docked plugin region.
+ *
+ * Structural rules only: the shell owns the column's width, its edge and its chrome.
+ * A wide window gets a fixed right column; a phone gets the same panel as a bottom
+ * sheet above the tab bar, folded away behind a toggle. The frame fills what the
+ * chrome does not use, and the region sits below the overlay ladder's floating
+ * windows (`--z-index-sticky` < `--z-index-overlay`) so a plugin that also opens a
+ * surface of its own is not covered by the dock.
+ */
+
+.dock-host {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-index-sticky);
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-width: 100%;
+  background: var(--color-canvas);
+  border-inline-start: 1px solid var(--color-border);
+  box-shadow: var(--shadow-elevation-2);
+}
+
+.dock-chrome {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-inline: 12px 4px;
+  border-block-end: 1px solid var(--color-border);
+}
+
+.dock-title {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-ui-sm);
+  font-weight: 500;
+  line-height: var(--text-ui-sm--line-height);
+  color: var(--color-foreground);
+}
+
+/* The touch floor: one 44 px row, like the overlay rail's controls. */
+.dock-control {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-ink-faint);
+}
+
+.dock-control:hover {
+  background: var(--color-surface-interactive);
+  color: var(--color-foreground);
+}
+
+.dock-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.dock-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+
+/* The phone: a bottom sheet above the tab bar, plus the toggle that unfolds it. */
+.dock-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-index-sticky);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 60vw;
+  min-height: 44px;
+  padding-inline: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  box-shadow: var(--shadow-elevation-2);
+}
+
+.dock-toggle-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-ui-sm);
+}
+
+@media (min-width: 1024px) {
+  .dock-toggle,
+  .dock-collapse {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .dock-host {
+    top: auto;
+    left: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    height: min(45dvh, 360px);
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--color-border);
+    border-start-start-radius: var(--radius-lg);
+    border-start-end-radius: var(--radius-lg);
+  }
+
+  .dock-host[data-collapsed='true'] {
+    display: none;
+  }
+}

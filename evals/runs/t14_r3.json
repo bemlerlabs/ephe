@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "task_id": "T14",
+  "family": "tau",
+  "level": "L4",
+  "rep": 3,
+  "session_id": "ob-t14-r3-1790173583",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==50 (5-file join)",
+  "error_class": null,
+  "wall_ms": 11389.2,
+  "ttft_first_event_ms": 216.3,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 3.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 3.5
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: 50",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 390,
+  "tokens_out_proxy": 97.5,
+  "fixture_hash": "0e2cf1200c09",
+  "answer_tail": "\n\n**Join across files:**\n\n| Datei | Inhalt |\n|---|---|\n| `t14_people.json` | ids: 1, 2, 3, 4 |\n| `t14_scores.csv` | 1→30, 2→40, 3→10, 4→20 |\n| `t14_bonus.txt` | Bonus-ids: **1, 4** |\n| `t14_rules.md` | Nur Bonus-Empfänger zählen; Summe ihrer Scores |\n\n**Berechnung:**\n\n| id | score | Bonus? |\n|----|-------|--------|\n| 1 | 30 | ✓ |\n| 4 | 20 | ✓ |\n\nSumme = 30 + 20 = **50**\n\nFINAL ANSWER: 50",
+  "ts": "2026-09-23T16:26:35"
+}

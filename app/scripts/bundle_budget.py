@@ -1,0 +1,332 @@
+#!/usr/bin/env python3
+"""Per-chunk budget gate for the frontend JS/CSS chunks.
+
+bundle_audit.py checks the aggregate initial gzip total (< 500 KB). That total
+can hide a regression: one chunk doubling while a sibling shrinks keeps the sum
+green. This gate measures every JS/CSS chunk in dist and holds each to a ceiling:
+a chunk with a row in BUDGETS_GZIP_KB is held to that number, every other chunk
+to SMALL_CHUNK_KB. A chunk that outgrows the small ceiling must earn its own row,
+so no chunk ships unwatched.
+
+Budgets are gzip kilobytes, measured from app/dist on the day they were set
+(MEASURED_GZIP_KB below) with ~10% headroom. A budget is raised or lowered by
+measuring again, never to make a red go away. A row that names no chunk in the build is
+printed as a stale budget: the gate runs against partial dists too (the suite's own
+fixtures hold four chunks), so the note is not a refusal here — the real build is checked
+by `test_no_budget_row_names_a_chunk_the_real_build_drops`.
+
+Usage:  python3 scripts/bundle_budget.py [dist_dir]
+Exit 0 when every chunk is within its ceiling, 1 on any breach or a first-paint
+chunk without a number (fail-closed: a main chunk must get a number).
+"""
+from __future__ import annotations
+
+import gzip
+import re
+import sys
+from pathlib import Path
+
+# Every chunk with no row of its own is held to this ceiling (gzip kB). A chunk
+# that grows past it fails until it earns a row, so small chunks are gated too.
+SMALL_CHUNK_KB = 12.0
+
+# Logical chunk key (name without the content hash, plus extension) -> gzip ceiling.
+BUDGETS_GZIP_KB: dict[str, float] = {
+    "index.js": 160.0,       # React 19 runtime + App shell, the entry chunk
+    "ChatPage.js": 112.0,    # chat shell only — wave-3 split moved the panes out
+    # 2026-11-12 (PERF-FE-2): the message bubble left the chat route chunk, so
+    # the empty chat no longer pulls the markdown pipeline (react-markdown,
+    # remark/rehype and the fence renderers) before the first turn. Measured
+    # 20.13 kB gzip from app/dist; the row carries the ~10 % headroom.
+    "MessageBubble.js": 22.2,
+    "AgentPanel.js": 118.0,  # W3-1: agent panel + xterm, its own lazy chunk
+    # 2026-10-20: the settings register left ChatPage (112.1 kB, 0.1 over) and
+    # became its own lazy chunk, opened rather than painted. ChatPage now
+    # measures 83.82 kB. 2026-10-28: the capability matrix, the stage switch and
+    # the model matrix brought it to 32.97 kB; the ~10% headroom rule gives the
+    # row 36.3. 2026-10-30: the nav's second level grew to every area, which is a
+    # table of the blocks each page renders (TAB_PARTS); measured again at 36.91,
+    # so the row is 40.6. 2026-11-10: the plugin store's journey (status,
+    # capabilities, open, remove, empty and error states) paints inside this
+    # chunk; measured again at 40.72, so the row is 45.0.
+    "SettingsPanel.js": 45.0,
+    # 2026-10-22: the scheduler panel crossed the 12 kB small ceiling after the Agent Center
+    # and Teams sections moved into their own lazy chunks, so it earned this row at 14.8.
+    # 2026-11-03: measured against app/dist at `dab4a455`, the build emits no SchedulerPanel
+    # chunk any more — the panel is painted through its parent again — and the gate now
+    # refuses a row that matches nothing rather than printing it as a note.
+    # 2026-10-28: the marketplace and skills cards hand a prepared example to the
+    # chat, so the composer's seed path became a shared chunk of its own. Measured
+    # 13.87 kB gzip in app/dist; the row carries ~10% headroom.
+    "chatSeed.js": 15.3,
+    # 2026-11-02: the shelf marks the author language of the words it serves, and the mark is
+    # painted on every card — the page chunk crossed the 12 kB small ceiling at 12.04 kB gzip
+    # (measured by the gate on the CI build, not in a local dist). The row carries ~10% headroom.
+    "DiscoverPage.js": 13.3,
+    "markdown.js": 136.0,    # react-markdown + rehype/remark, lazy
+    "motion.js": 35.2,       # framer-motion core + domAnimation (2026-10-15: 48.0 before the `m` conversion; 2026-10-25: 14.5 measures 31.99)
+    "ui-vendor.js": 40.0,    # lucide-react, i18next
+    # tailwind output (2026-10-15: 42.0 before the font subsets were named).
+    # Raised on 2026-10-18 for the model picker: its panel, filter chips, capability
+    # chips and phone sheet are one new surface in the entry stylesheet, and the row
+    # had been read against a catalog that predated it. Measured 23.05 kB gzip after
+    # the trim that was owed anyway — `max-h-[26rem]` onto the `max-h-96` step, and
+    # `max-h-full` in place of the `h-[100dvh]`/`max-h-[100dvh]` pair, where only the
+    # second of the three was actually doing work against the dialog's own 90dvh.
+    # 20.94 -> 23.05 is the picker; the row records the ceiling this build holds to.
+    # 2026-10-30 (discover): /discover is one entry-stylesheet surface — hero glow,
+    # kind badge, chip row and the bench bars — and it replaces three market panels
+    # whose card CSS is now gone. Net after both sides: 23.03 -> 23.82 kB gzip,
+    # measured from app/dist; the row keeps the same headroom it carried before.
+    # 2026-10-30 (store shelf): the page became a shelf — a segmented toolbar, a
+    # sideways track per subject and the subject plates. The plate palette itself
+    # rides the /discover chunk (DiscoverPage.css); what lands here is the utility
+    # set, measured 24.24 kB gzip against the 24.0 row.
+    # 2026-11-11: the accessible shell added the skip-link styles, the settings main
+    # landmark and the focus-visible rules the axe run needs; measured 24.8 kB gzip.
+    # The row carries the same ~1 % headroom as the 0.6.x entry it replaces.
+    "index.css": 25.0,
+    "app-vendor.js": 28.0,   # react-router, zustand, tanstack, clsx, cva
+    "radix.js": 39.0,        # P1-8: 33 @radix-ui packages + @floating-ui + the tail
+    # P1-8: src/components/ui/* (Dialog, Tabs, CommandPalette).
+    # 2026-11-03 (the toast rail beside the panel): the rail now reads the panel's own
+    # width broadcast so it cannot cover the right column's tab bar — seen over those
+    # controls in every capture of the panel. Measured 16.87 kB before, 17.10 kB after:
+    # 0.23 kB for one hook, and the row was 0.13 kB above the chunk already.
+    "ui.js": 17.3,
+    "dates.js": 6.4,         # P1-8: date-fns + the de/en-US locale modules (2026-10-15: 9.0 before the format split)
+    "dates-format.js": 3.0,  # 2026-10-15: `format()` + `_lib/format/*`, the sidebar's dated list
+    # WD-33: the two translation catalogs, one chunk each. `i18n.ts` awaits the
+    # catalog `storedLanguage()` picked before the first paint and fetches the other
+    # only on a switch, so the row is what ONE reader of that language downloads,
+    # never a page weight. The split that made them chunks left both past
+    # SMALL_CHUNK_KB, and a chunk past the ceiling earns the row the gate asks for.
+    # 2026-10-16: the update dialog gained a Details block (the versions, the
+    # download size, the package, the notes the feed carried) and the browser
+    # and held-back-restart sentences, so one German reader downloads 0.19 kB
+    # more than the old ceiling allowed. Measured again from app/dist:
+    # de.js 35.57 kB, en.js 32.24 kB; both rows carry ~9% headroom.
+    # 2026-10-22: the Agent Center and Agent Teams surfaces added one locale
+    # block (agents, teams, templates, run states, form labels), measured from
+    # app/dist after the two sections moved into their own lazy chunks:
+    # de.js 40.58 kB, en.js 36.71 kB. Both rows keep ~10% headroom. The two
+    # section chunks themselves are 4.85 and 4.52 kB and need no row.
+    # 2026-10-29: measured again after the QD-014, QD-015 and SOL leaves landed
+    # without this row moving: de.js 44.66 kB, en.js 40.39 kB — the German half
+    # carried the studio, market and repair copy as well. The ~10% headroom rule
+    # gives both rows their new numbers.
+    # 2026-11-09: measured from app/dist at 0.6.0: de.js 49.98 kB, en.js 45.17 kB.
+    # Creator mode added the consent, guard and staging copy the German half
+    # carries twice over. The same ~10% rule gives both rows their new numbers.
+    # 2026-11-11: the welcome page, the context report, the three-step tour and the
+    # restored-conversation card added copy to both bundles; measured de.js 55.08 kB,
+    # en.js 49.78 kB. The rows keep the same ~10 % headroom as the ones above.
+    "de.js": 60.6,           # measured 55.08
+    "en.js": 54.8,           # measured 49.78
+    # 2026-10-14: the chat's fence highlighter is on demand, so these are lazy
+    # chunks like any route chunk — but each one that passes the small ceiling
+    # ships unwatched without a row here. A fence fetches core, the JS engine,
+    # the theme and its one grammar; the rest of the grammars stay under
+    # SMALL_CHUNK_KB. Two keys cover two consumers: `core.js` is the app's
+    # src/lib/core chunk (0.9 kB) and the engine's core, `markdown.js` the
+    # markdown pipeline and the markdown grammar (5.5 kB) — the key is the
+    # chunk name, and Rollup named both after their module.
+    "core.js": 28.0,
+    "engine-javascript.js": 23.0,
+    "php.js": 31.0,
+    "objective-c.js": 25.0,
+    "javascript.js": 17.5,
+    "jsx.js": 17.5,
+    "tsx.js": 17.5,
+    "typescript.js": 17.0,
+    "less.js": 16.0,
+    "swift.js": 16.0,
+    "css.js": 13.5,
+    # The two on-demand renderers and, below them, mermaid's own diagram chunks.
+    # Each of those is fetched only for the diagram type a message actually uses, so
+    # the numbers are ceilings per diagram. `katex.js` covers two
+    # chunks of the same name, measured 2026-10-14 at 75.35 kB each: the copy the
+    # formula loader pulls (katex 0.19.0) and the copy mermaid reaches for math in
+    # labels (mermaid asks for katex ^0.18.0; pnpm resolved 0.18.11 beside ours). They
+    # do not merge, because they are two package versions with two dependency
+    # contracts — and the config lever that would force one breaks the laziness
+    # instead. Measured: `resolve.dedupe: ['katex']` folded katex into the markdown
+    # chunk, markdown.js 123.49 -> 198.96 kB gzip (over its own row), so every
+    # markdown route paid the parser whether or not a formula was on screen. The
+    # duplication is two lazy chunks, one per feature, and this single row holds each
+    # of them. The trailing id in a mermaid name comes from mermaid's own build — an
+    # upgrade renames the chunk, and the gate then asks for the row again rather than
+    # passing on a stale number.
+    "katex.js": 84.0,
+    "mermaid.core.js": 154.0,
+    "elk-QONTBCTQ.js": 484.0,               # the ELK layout engine, architecture diagrams only
+    "cytoscape.esm.js": 152.0,              # graph layout, mindmap/timeline/ishikawa
+    "cynefin-EF2NZ3EQ.js": 149.0,
+    "usecaseDiagram-WPOLBNNX.js": 55.0,
+    "architectureDiagram-ZHVYKT53.js": 46.0,
+    "swimlanes-B3ENRKFQ.js": 44.0,
+    "sequenceDiagram-BLEHNHQU.js": 34.5,
+    "diagram-TYUNFSNR.js": 27.5,            # mermaid's shared sequence-diagram runtime
+    "ganttDiagram-R7GPNTJY.js": 25.5,
+    "cose-bilkent-JH36ORCC.js": 24.0,
+    "flowDiagram-IUGLLWBU.js": 22.0,
+    "c4Diagram-XDPPPE54.js": 20.5,
+    "dagre-NK4GIZVX.js": 18.0,
+    "classDiagram-v2-4MYWR3UA.js": 17.5,
+    "vennDiagram-Q3Y3IDCW.js": 17.0,
+    "blockDiagram-RJAE7QA3.js": 15.5,
+    "stateDiagram-v2-A6IESKWZ.js": 15.5,
+    "xychartDiagram-4URNHDU4.js": 14.0,
+}
+
+# Measured on 2026-10-14 from app/dist (vite build, gzip -9), after WD-33 moved the
+# two translation catalogs out of the entry into chunks of their own: index.js
+# 148.28 -> 88.62 kB, and `de.js`/`en.js` appear with rows of their own. The gate
+# compares against the budget; the numbers document the headroom this build holds.
+# Earlier, for the record: P1-8 split the 608 kB entry so `radix`, `ui` and `dates`
+# (all three modulepreloaded by index.html) are their own chunks; W3-1 split the
+# ChatPage chunk by lazy-loading the agent panel and the artifact rail inside the
+# chat layout, ChatPage 208.03 -> 101.18 kB with the panel its own 107.04 kB lazy
+# chunk. The math and fence wave added two lazy renderers, so the entry did not grow
+# for them: markdown.js is where the remark-math tokenizer and the formula/diagram
+# components landed, and index.css did not move — the KaTeX stylesheet rides with
+# the KaTeX chunk.
+MEASURED_GZIP_KB: dict[str, float] = {
+    "index.js": 88.62,
+    "ChatPage.js": 97.55,
+    "AgentPanel.js": 105.94,
+    "MessageBubble.js": 20.13,
+    "markdown.js": 123.49,
+    # 2026-10-15 (n21-bundle): `m` + `LazyMotion features={domAnimation}` for every
+    # animated surface (the root mounts the feature set once, App.tsx) — the drag
+    # controls and the layout projection engine the `motion` component carried went
+    # with it: 40.99 -> 27.96 kB gzip.
+    # 2026-10-25: framer-motion 14.5 grew the same `m` + domAnimation root from
+    # 27.96 to 31.99 kB gzip. Measured from app/dist; the row keeps the ~10%
+    # headroom the others carry. The 50 ms frame budget is a separate instrument.
+    "motion.js": 31.99,
+    "ui-vendor.js": 35.22,
+    # 2026-10-15, same wave: the font imports name their subsets, so the entry CSS
+    # no longer declares cyrillic/cyrillic-ext/greek/greek-ext/vietnamese faces for
+    # eleven faces that only en/de can use: 34.28 -> 20.94 kB gzip.
+    "index.css": 24.24,
+    "app-vendor.js": 23.17,
+    "radix.js": 34.6,
+    "ui.js": 17.10,
+    # 2026-10-15: `dates-format` carries `format()` + `_lib/format/*`, which only the
+    # sidebar's dated list reads; the entry keeps the locales and relative time.
+    "dates.js": 5.8,
+    "dates-format.js": 3.63,
+    "de.js": 44.66,
+    "en.js": 40.39,
+    # 2026-11-10: re-measured with the plugin journey (status, abilities, open,
+    # remove, empty and error states): 40.72 kB gzip.
+    "SettingsPanel.js": 40.69,
+    "SchedulerPanel.js": 13.45,
+    # 2026-10-14, same instrument and day as the budgets above.
+    "core.js": 24.01,
+    "engine-javascript.js": 20.26,
+    "php.js": 27.88,
+    "objective-c.js": 22.76,
+    "jsx.js": 15.85,
+    "tsx.js": 15.76,
+    "javascript.js": 15.76,
+    "typescript.js": 15.34,
+    "less.js": 14.33,
+    "swift.js": 14.3,
+    "css.js": 12.15,
+}
+
+HASH = re.compile(r"^(?P<name>.+?)-[A-Za-z0-9_-]{8}\.(?P<ext>js|css)$")
+HTML_REF = re.compile(r"""(?:src|href)=["'](?:/assets/|\./assets/)([\w.\-]+)["']""")
+
+
+def logical_key(filename: str) -> str | None:
+    """index-BBvxx5rb.js -> index.js; returns None when the name has no hash."""
+    m = HASH.match(filename)
+    return f"{m.group('name')}.{m.group('ext')}" if m else None
+
+
+def gzip_kb(p: Path) -> float:
+    return round(len(gzip.compress(p.read_bytes(), 9)) / 1024, 2)
+
+
+def main() -> int:
+    dist = Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
+    if not dist.is_dir():
+        print(f"dist dir not found: {dist} (run `npm run build` first)")
+        return 2
+
+    html = (dist / "index.html").read_text()
+    main_refs = {f for f in HTML_REF.findall(html) if f.endswith((".js", ".css"))}
+    main_keys = {k for f in main_refs if (k := logical_key(f))}
+
+    rows: list[tuple[str, str, str, float, float]] = []  # filename, key, tier, budget, size
+    problems: list[str] = []
+    gated: set[str] = set()
+    for p in sorted((dist / "assets").glob("*")):
+        if not p.is_file() or p.suffix not in (".js", ".css"):
+            continue
+        key = logical_key(p.name)
+        if key is None:
+            problems.append(f"chunk not budgetable (no content hash): {p.name}")
+            continue
+        size = gzip_kb(p)
+        is_main = p.name in main_refs
+        row = BUDGETS_GZIP_KB.get(key)
+        if is_main:
+            if row is None:
+                problems.append(
+                    f"unbudgeted main chunk {p.name} ({size} kB) "
+                    f"— add {key!r} to BUDGETS_GZIP_KB"
+                )
+                continue
+            budget, tier = row, "main "
+        elif key in main_keys:
+            # A name shared with a first-paint chunk (Vite emits several
+            # index-*.js barrels): hold the sibling to the small ceiling, never
+            # to the neighbour's bigger number.
+            if size > SMALL_CHUNK_KB:
+                problems.append(
+                    f"chunk {p.name} ({size} kB) shares the {key!r} name with a "
+                    "first-paint chunk — rename it or split it"
+                )
+                continue
+            budget, tier = SMALL_CHUNK_KB, "small"
+        elif row is None:
+            if size > SMALL_CHUNK_KB:
+                problems.append(
+                    f"unbudgeted large chunk {p.name} ({size} kB) "
+                    f"— add {key!r} to BUDGETS_GZIP_KB"
+                )
+                continue
+            budget, tier = SMALL_CHUNK_KB, "small"
+        else:
+            budget, tier = row, "route"
+        gated.add(key)
+        rows.append((p.name, key, tier, budget, size))
+        if size > budget:
+            problems.append(f"{key} over budget: {size} kB > {budget} kB  ({p.name})")
+
+    print(f"Gated chunks (main = first paint, route = budgeted, small <= {SMALL_CHUNK_KB:.0f} kB), gzip:")
+    for filename, key, tier, budget, size in sorted(rows, key=lambda r: -r[4]):
+        flag = "OK " if size <= budget else "OVER"
+        print(f"  [{flag}] {tier} {filename:32s} {size:>7} kB / {budget:>6} kB budget  ({key})")
+
+    stale = sorted(key for key in BUDGETS_GZIP_KB if key not in gated)
+    for key in stale:
+        print(f"  [--]  {key:32s} not in this build (stale budget, re-measure)")
+
+    if problems:
+        print()
+        for prob in problems:
+            print(f"FAIL: {prob}")
+        return 1
+
+    print()
+    print(f"All gated chunks within budget ({len(rows)} checked).")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

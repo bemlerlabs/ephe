@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "task_id": "G16",
+  "family": "gaia",
+  "level": "L3",
+  "rep": 1,
+  "session_id": "ob-g16-r1-1790172829",
+  "seed": 0,
+  "temperature": 0,
+  "ok": true,
+  "note": "final-answer==B (secondary-key tie-break)",
+  "error_class": null,
+  "wall_ms": 19712.4,
+  "ttft_first_event_ms": 96.4,
+  "n_turns": 1,
+  "tool_timings": [
+    {
+      "tool": "read_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "read_file",
+      "ms": 2.9
+    },
+    {
+      "tool": "file_search",
+      "ms": 41.5
+    },
+    {
+      "tool": "read_file",
+      "ms": 1.4
+    },
+    {
+      "tool": "read_file",
+      "ms": 1.4
+    }
+  ],
+  "final_answer_line": "FINAL ANSWER: B",
+  "tool_calls": [
+    "read_file",
+    "read_file",
+    "file_search",
+    "read_file",
+    "read_file"
+  ],
+  "answer_chars": 317,
+  "tokens_out_proxy": 79.2,
+  "fixture_hash": "38cd549ed8ef",
+  "answer_tail": "\n\n**Auswertung aus den real gelesenen Dateien:**\n\n| item | value | date |\n|---|---|---|\n| A | 9 | 2026-01-01 |\n| B | 9 | 2026-02-02 |\n| C | 7 | 2026-01-15 |\n\n- Höchster Wert = **9** → Gleichstand zwischen **A** und **B**.\n- Tie-Break (späteres Datum): B (2026-02-02) > A (2026-01-01) → **B** gewinnt.\n\nFINAL ANSWER: B",
+  "ts": "2026-09-23T16:14:09"
+}
