@@ -62,6 +62,28 @@ def test_marketplace_metadata_matches_the_generator():
     assert generated == current
 
 
+def test_the_committed_bundled_index_is_what_the_builder_generates():
+    result = run("--check")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "fresh" in result.stdout, result.stdout
+
+
+def test_a_stale_index_row_is_named(tmp_path):
+    shelf = tmp_path / "marketplace"
+    shutil.copytree(ROOT / "marketplace", shelf)
+    index_path = shelf / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    countdown = next(entry for entry in index["plugins"] if entry["name"] == "countdown")
+    countdown["categories"] = ["meta"]
+    index_path.write_text(
+        json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    result = run("--check", "--out", str(shelf))
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "plugins.countdown.categories[0]" in result.stdout, result.stdout
+    assert "'meta' != 'widgets'" in result.stdout, result.stdout
+
+
 def test_a_rebuild_without_the_previous_output_keeps_the_labels(tmp_path):
     (tmp_path / "plugins").symlink_to(ROOT / "plugins", target_is_directory=True)
     (tmp_path / "marketplace").mkdir()

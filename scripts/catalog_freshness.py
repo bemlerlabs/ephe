@@ -11,6 +11,10 @@ acceptance for a gate is that it is green on the tree it was written against:
 * `plugin-catalog.json` through `scripts/generate_plugin_catalog.py --check`, the check mode added by
   this wave. Proven red by adding a file to `plugins/browser-use/`, which moves that pack's `dir_sha256`
   and prints `sha256 af307177d0be... != ff6389797bd7...`.
+* `marketplace/index.json` through `scripts/build_marketplace.py --check`, which repacks every bundle
+  in a temporary directory and compares the index and the ZIP bytes against the committed shelf.
+  Proven red on 2026-11-22: the committed index carried `countdown` under `meta` while the builder
+  generates `widgets`, and the `widgets` category was missing from `metadata.categories`.
 * `core/mcp_catalog.py` (the MCP starter catalog) is **gated** on its shape contract, not a
   regenerate-and-diff: it is hand-curated data with no generator. The check is what the MCP page
   renders and what the register depends on (required keys, unique ids, a bilingual `description_en`
@@ -43,6 +47,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GENERATORS = (
     ("skills-lock.json", ("scripts/generate_skills_lock.py", "--check")),
     ("plugin-catalog.json", ("scripts/generate_plugin_catalog.py", "--check")),
+    ("marketplace/index.json", ("scripts/build_marketplace.py", "--check")),
 )
 #: The knowledge index is report-only until the drift above is closed; see the module docstring.
 #: `core/mcp_catalog.py` is gated — its contract is green on the tree this landed against.
