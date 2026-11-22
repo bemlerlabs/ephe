@@ -1,0 +1,82 @@
+name: Install or first run
+description: Ephe did not come up, or came up wrong: the installer, the container, the desktop app, the first turn.
+title: "First run: "
+labels: ["install", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most first-run reports are one of three things: a missing system binary, a port another
+        program holds, or a key that never reached the server. The fields below tell us which one
+        in a single read. Redact paths, account names and keys before pasting.
+  - type: checkboxes
+    attributes:
+      label: Before you write
+      options:
+        - label: I searched the open issues and my install path is not covered yet.
+          required: true
+        - label: I removed paths, account names and keys from everything I pasted.
+          required: true
+  - type: dropdown
+    id: install_path
+    attributes:
+      label: How you installed
+      options:
+        - The install script
+        - The container image
+        - The desktop app
+        - From source
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ephe version
+      description: The version command prints it. Write the version you tried to install.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: machine
+    attributes:
+      label: Machine and operating system
+      placeholder: "Ubuntu 24.04 on x86_64, 32 GB"
+    validations:
+      required: true
+  - type: dropdown
+    id: stopped_at
+    attributes:
+      label: Where it stopped
+      options:
+        - The install script itself
+        - The first command at the prompt
+        - The server never answered
+        - The browser page stayed blank
+        - The phone never paired
+        - The desktop app would not open
+        - The first turn produced nothing
+        - It came up and did something unexpected
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: The part that failed
+      description: The lines around the failure are enough. The whole log of a first run is mostly noise and often carries paths.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to see
+    validations:
+      required: true
+  - type: textarea
+    id: other-software
+    attributes:
+      label: Neighbouring software
+      description: A local model server you started yourself, a proxy, a VPN, a port you know we share. Anything that could be holding a resource.
+    validations:
+      required: false
