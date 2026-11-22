@@ -333,6 +333,93 @@ def build(
     return index
 
 
+def _render(index: dict) -> str:
+    return json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def _drift(old: object, new: object, path: str) -> list[str]:
+    """The paths where two generated documents differ, so a check names what moved."""
+    if isinstance(old, dict) and isinstance(new, dict):
+        out: list[str] = []
+        for key in sorted(set(old) | set(new)):
+            out.extend(_drift(old.get(key), new.get(key), f"{path}.{key}"))
+        return out
+    if isinstance(old, list) and isinstance(new, list):
+        if len(old) != len(new):
+            return [f"{path}: {len(old)} entries != {len(new)}"]
+        out = []
+        for position, (left, right) in enumerate(zip(old, new)):
+            out.extend(_drift(left, right, f"{path}[{position}]"))
+        return out
+    return [] if old == new else [f"{path}: {old!r} != {new!r}"]
+
+
+def _index_drift(old: dict, new: dict) -> list[str]:
+    """Drift in the bundled index, with plugin entries named by slug rather than list position."""
+    problems: list[str] = []
+    old_plugins = {str(entry.get("name")): entry for entry in old.get("plugins", [])}
+    new_plugins = {str(entry.get("name")): entry for entry in new.get("plugins", [])}
+    for name in sorted(set(old_plugins) - set(new_plugins)):
+        problems.append(f"plugins.{name}: committed and not generated")
+    for name in sorted(set(new_plugins) - set(old_plugins)):
+        problems.append(f"plugins.{name}: generated and not committed")
+    for name in sorted(set(old_plugins) & set(new_plugins)):
+        problems.extend(_drift(old_plugins[name], new_plugins[name], f"plugins.{name}"))
+    old_meta = {key: value for key, value in old.items() if key != "plugins"}
+    new_meta = {key: value for key, value in new.items() if key != "plugins"}
+    problems.extend(_drift(old_meta, new_meta, "index"))
+    return problems
+
+
+def check(
+    *,
+    plugins_dir: Path,
+    metadata_path: Path,
+    out_dir: Path,
+    min_ephe: str,
+    third_party_path: Path | None = None,
+) -> int:
+    """Compare the committed index and artifacts against a fresh build, writing nothing.
+
+    The freshness leg's mode: a rebuild that writes into the shared tree is its own defect, so the
+    comparison happens in a temporary directory and the committed shelf is only read. The build is
+    the unsigned bundled one, which is what the committed index is.
+    """
+    committed_path = out_dir / "index.json"
+    if not committed_path.is_file():
+        print(f"build_marketplace: no committed {committed_path} to compare against")
+        return 1
+    with tempfile.TemporaryDirectory(prefix="ephe-market-check-") as temp:
+        built = build(
+            plugins_dir=plugins_dir,
+            metadata_path=metadata_path,
+            out_dir=Path(temp),
+            private_pem=None,
+            kid="first-party",
+            min_ephe=min_ephe,
+            third_party_path=third_party_path,
+        )
+        problems: list[str] = []
+        committed = committed_path.read_text(encoding="utf-8")
+        if committed != _render(built):
+            problems.append("marketplace/index.json is not what the builder generates")
+            problems.extend(_index_drift(json.loads(committed), built)[:20])
+        for entry in built["plugins"]:
+            for version in entry["versions"]:
+                name = Path(str(version["source"]["url"])).name
+                fresh = Path(temp) / "artifacts" / name
+                shipped = out_dir / "artifacts" / name
+                if not shipped.is_file():
+                    problems.append(f"artifacts/{name}: missing from the shipped marketplace")
+                elif sha256_hex(shipped.read_bytes()) != sha256_hex(fresh.read_bytes()):
+                    problems.append(f"artifacts/{name}: the shipped ZIP is not the one the builder packs")
+    for line in problems:
+        print(f"build_marketplace: FAIL {line}")
+    if not problems:
+        print("build_marketplace: fresh")
+    return 1 if problems else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the bundled marketplace index")
     parser.add_argument("--plugins", default=str(ROOT / "plugins"))
@@ -342,7 +429,18 @@ def main() -> int:
     parser.add_argument("--kid", default="first-party")
     parser.add_argument("--min-ephe", default=">=0.1.0")
     parser.add_argument("--third-party", default="")
+    parser.add_argument("--check", action="store_true",
+                        help="compare the committed index and artifacts against a fresh build, write nothing")
     args = parser.parse_args()
+    third_party = Path(args.third_party) if args.third_party else None
+    if args.check:
+        return check(
+            plugins_dir=Path(args.plugins),
+            metadata_path=Path(args.metadata),
+            out_dir=Path(args.out),
+            min_ephe=args.min_ephe,
+            third_party_path=third_party,
+        )
     try:
         private_pem = Path(args.sign_key).read_bytes() if args.sign_key else None
         index = build(
@@ -352,7 +450,7 @@ def main() -> int:
             private_pem=private_pem,
             kid=args.kid,
             min_ephe=args.min_ephe,
-            third_party_path=Path(args.third_party) if args.third_party else None,
+            third_party_path=third_party,
         )
     except (BuildError, ValueError, OSError, marketplace_index.IndexError) as exc:
         print(f"build_marketplace: {exc}", file=sys.stderr)

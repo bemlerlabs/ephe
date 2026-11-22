@@ -1,11 +1,11 @@
 name: Catalog freshness
 
 # Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, rows 40 and 41: the committed catalogs are what
-# their sources generate. `skills-lock.json` and `plugin-catalog.json` are both derived files, and both
-# can go stale in a merge that edits a pack or a plugin and forgets the lock -- the shape that made the
-# `uv.lock` guard necessary in the first place.
+# their sources generate. `skills-lock.json`, `plugin-catalog.json` and `marketplace/index.json` are
+# all derived files, and all three can go stale in a merge that edits a pack or a plugin and forgets
+# the lock -- the shape that made the `uv.lock` guard necessary in the first place.
 #
-# `scripts/catalog_freshness.py` shells out to the two generators with `--check`, which is the mode
+# `scripts/catalog_freshness.py` shells out to the three generators with `--check`, which is the mode
 # `scripts/generate_plugin_catalog.py` gained in this wave because a freshness job that writes into a
 # shared worktree is its own defect: the previous version of this leg could only "verify" the catalog
 # by rewriting it. `PYTHONPATH` carries the repository root because the checkout is not pip-installed
@@ -38,7 +38,7 @@ env:
 
 jobs:
   freshness:
-    name: skills-lock.json and plugin-catalog.json against their sources
+    name: skills-lock.json, plugin-catalog.json and marketplace/index.json against their sources
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
