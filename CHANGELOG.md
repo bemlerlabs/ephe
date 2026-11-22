@@ -9,6 +9,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 Nothing yet. Changes land here between releases and move down with the next tag.
 
+### Added
+
+- plugins: Bring the two real studio bundles into the public tree (`6ce3c6d`)
+
+### Fixed
+
+- Make ChatLayout slash tests settle the streamChat mock (`61b2063`)
 ## [0.1.0] - 2026-11-21
 
 The first public release. Every entry below names a surface this repository
