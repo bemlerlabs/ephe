@@ -56,6 +56,11 @@
         "title": {
           "en": "Vision"
         }
+      },
+      "widgets": {
+        "title": {
+          "en": "Widgets"
+        }
       }
     },
     "skill_tiers": {
@@ -266,7 +271,7 @@
     },
     {
       "categories": [
-        "meta"
+        "widgets"
       ],
       "description": {
         "en": "A countdown widget: one declarative surface the shell can show, and a timer the agent can set and read back."
