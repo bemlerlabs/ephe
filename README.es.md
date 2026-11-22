@@ -8,6 +8,12 @@
 
 # Ephe
 
+### Donde está la luz, se hace el trabajo.
+
+**Tu agente. Tu máquina. Tu memoria.**
+
+*local-first workspace for an AI agent* · *Online paths are opt-in*
+
 **Ephe es un espacio de trabajo local para un agente de IA en tu propio ordenador. Tú eliges el motor y el modelo, apruebas las herramientas y conservas los archivos. No hay cuenta ni modelo predeterminado oculto.**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
@@ -19,17 +25,20 @@
 
 Es para personas que tienen un ordenador propio y quieren que el trabajo del agente siga siendo suyo. Tres líneas:
 
-- **Privado por defecto.** Con un motor local, tus instrucciones se quedan en tu ordenador. Cada función en línea requiere tu activación.
-- **Tu modelo.** Un modelo local de Ollama que hayas descargado, o cualquier endpoint compatible con OpenAI que tú nombres. Ephe nunca elige por ti.
+- **En tu máquina.** Con un motor local, el trabajo se queda en el disco que es tuyo. Cada función en línea requiere tu activación.
+- **Tu modelo.** Un modelo local de Ollama que hayas descargado, o cualquier endpoint compatible con OpenAI que tú nombres. Ephe no trae pesos ni elige un modelo por ti.
 - **Tus archivos.** Trabaja en la carpeta que elijas. Los archivos que genera el agente se guardan en tu disco.
 
-<a href="docs/media/ephe-film-studio.mp4"><img src="docs/media/ephe-film-studio-poster.png" alt="Un fotograma de la película de 40 segundos: la pantalla de primer arranque del producto, el artwork de la polilla, el texto Ephe ist wach y sus dos botones." width="1280"></a>
+Ephe despierta en tu ordenador, no en la nube de otro. Dale una tarea y planifica, lee los
+archivos que le señales y trabaja con herramientas que apruebas una por una: un documento con
+fuentes, una presentación, una hoja de cálculo, investigación con evidencias fechadas, un
+montaje de vídeo con ffmpeg. Cada afirmación apunta al resultado que la produjo: el trabajo,
+no la historia del trabajo.
 
-**El Film Studio, en 40 segundos.** Una frase pide una película; el agente planifica,
-escribe dos tarjetas de título y una cama musical, y las monta con un clip en un mp4
-con ffmpeg. La voz sale de la propia voz local del producto. Cinco llamadas a
-herramientas, 13,1 segundos, cada una solicitada y aprobada en el chat.
-[De dónde viene cada fotograma](docs/DEMO_VIDEO.md).
+Eliges el motor: cualquier modelo, en esta máquina o tras la clave de API del proveedor que
+tú digas. En el perfil estricto por defecto, editar archivos o ejecutar una orden de shell
+espera tu aprobación. La polilla cumple la promesa: trabaja donde está la luz, y la luz es
+tuya.
 
 ## Qué es Ephe
 
@@ -176,7 +185,7 @@ No hay cuenta ni registro. La comprobación de actualizaciones consulta a GitHub
 
 ## Plugins, habilidades y conectores
 
-El árbol contiene diecisiete paquetes propios bajo [`plugins/`](plugins): diez plugins propios y siete preajustes de capacidades; entre los plugins hace el paquete `countdown` la superficie de referencia de un bundle hecho solo de interfaz. Un plugin añade comandos y un paquete de habilidades; un preajuste ofrece una capacidad sin atribuirle la calidad de un plugin. Junto a ellos llegan cinco paquetes de habilidades propios y un paquete de habilidades de terceros incluido; las habilidades integradas son aparte ([docs/SKILLS.md](docs/SKILLS.md)).
+El árbol contiene diecinueve paquetes propios bajo [`plugins/`](plugins): doce plugins propios y siete preajustes de capacidades; entre los plugins hace el paquete `countdown` la superficie de referencia de un bundle hecho solo de interfaz. [ephe-motion-studio](plugins/ephe-motion-studio) escribe una película de movimiento en esta máquina; [ephe-template-library](plugins/ephe-template-library) copia una plantilla con su licencia y su suma de verificación. Un plugin añade comandos y un paquete de habilidades; un preajuste ofrece una capacidad sin atribuirle la calidad de un plugin. Junto a ellos llegan cinco paquetes de habilidades propios y un paquete de habilidades de terceros incluido; las habilidades integradas son aparte ([docs/SKILLS.md](docs/SKILLS.md)).
 
 La Tienda de plugins (Plugin Store) en Ajustes muestra qué puede hacer cada entrada, y una instalación llega a tu propio perfil solo tras una confirmación. El paquete Superpowers es contenido de terceros incluido (MIT, bajo [`marketplace/sources/superpowers`](marketplace/sources/superpowers)); ningún paquete incluido lleva registro de firma, así que se monta como contenido local. Está previsto un catálogo público para editores externos.
 

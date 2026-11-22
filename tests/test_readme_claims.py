@@ -14,9 +14,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 NUMBER_WORD = {
-    "en": {1: "one", 5: "five", 7: "seven", 9: "nine", 10: "ten"},
-    "zh": {1: "一", 5: "五", 7: "七", 9: "九", 10: "十"},
-    "es": {1: "un", 5: "cinco", 7: "siete", 9: "nueve", 10: "diez"},
+    "en": {1: "one", 5: "five", 7: "seven", 9: "nine", 10: "ten", 12: "twelve"},
+    "zh": {1: "一", 5: "五", 7: "七", 9: "九", 10: "十", 12: "十二"},
+    "es": {1: "un", 5: "cinco", 7: "siete", 9: "nueve", 10: "diez", 12: "doce"},
 }
 
 
