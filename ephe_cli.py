@@ -1776,8 +1776,11 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_start(args: argparse.Namespace, config_path=None) -> int:
-    # Brand: orb banner (docs/BRAND.md) — one glyph, version, stance.
+    # Brand: orb banner (docs/BRAND.md section 4) — one glyph, version, stance, then the
+    # headline the owner set and the line under it. Pinned by tests/test_start_banner.py.
     print(f"  ◍ Ephe {EPHE_VERSION} — local & private")
+    print("    Where the light is, the work happens.")
+    print("    Your agent. Your machine. Your memory.")
     # The port is inspected before any model probe or build: a stale backend is
     # named; it is not avoided by starting a second server on the next port.
     decision = _start_preflight(args)

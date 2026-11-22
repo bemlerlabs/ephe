@@ -25,9 +25,16 @@ EN_JSON = ROOT / "app" / "src" / "locales" / "en.json"
 DE_JSON = ROOT / "app" / "src" / "locales" / "de.json"
 
 DESCRIPTION = (
-    "Ephe — Ephemeral SI Agent. Give it a task; it researches, builds and "
+    "Ephe — Where the light is, the work happens. Give it a task; it researches, builds and "
     "delivers while you watch. Runs locally on the engine you choose."
 )
+
+# `docs/BRAND.md` section 4: the headline is the light sentence and the line under it is the
+# hero line the owner chose. The head carries both — the titles the headline, the social
+# descriptions the hero line — and the manifest repeats the pinned description byte for byte.
+TITLE = "Ephe — Where the light is, the work happens."
+HERO_LINE = "Your agent. Your machine. Your memory."
+MANIFEST_JSON = ROOT / "app" / "public" / "manifest.json"
 
 # The pitch every English description surface repeats, and its German counterpart in the
 # German locale. `welcome.heroSub` is the app's own sentence for what Ephe does.
@@ -65,6 +72,23 @@ def description_metas() -> list[str]:
         meta_content("name", "description"),
         meta_content("property", "og:description"),
         meta_content("name", "twitter:description"),
+        manifest_description(),
+    ]
+
+
+def manifest_description() -> str:
+    """The PWA's own description — the same head, read from the installed manifest."""
+    return json.loads(MANIFEST_JSON.read_text(encoding="utf-8"))["description"]
+
+
+def tag_titles() -> list[str]:
+    html = INDEX_HTML.read_text(encoding="utf-8")
+    title = re.search(r"<title>([^<]*)</title>", html)
+    assert title, "app/index.html carries no <title>"
+    return [
+        title.group(1),
+        meta_content("property", "og:title"),
+        meta_content("name", "twitter:title"),
     ]
 
 
@@ -99,6 +123,22 @@ def test_no_description_claim_leaves_the_brand_boundary() -> None:
         lowered = value.lower()
         for claim in FORBIDDEN_CLAIMS:
             assert claim not in lowered, f"claim register in a description: {claim}"
+
+
+def test_the_three_head_titles_are_the_brand_headline() -> None:
+    """`docs/BRAND.md` section 4 named this row and no file checked it until now."""
+    for value in tag_titles():
+        assert value == TITLE, f"a head title drifted from the brand headline: {value}"
+
+
+def test_the_social_descriptions_open_with_the_hero_line() -> None:
+    for attr, name in (("property", "og:description"), ("name", "twitter:description")):
+        value = meta_content(attr, name)
+        assert value.startswith(HERO_LINE), f"{name} does not open with the hero line: {value}"
+
+
+def test_the_manifest_describes_what_the_head_describes() -> None:
+    assert manifest_description() == DESCRIPTION
 
 
 def test_the_german_locale_keeps_the_german_pitch() -> None:
