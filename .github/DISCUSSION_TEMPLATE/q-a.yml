@@ -1,0 +1,53 @@
+title: "How do I "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Answer your own question once it is solved and mark the reply that did it. The next person
+        finds it by search instead of by asking again.
+
+        Say which surface and which version, because the answer differs between the terminal, the
+        browser and the desktop app.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What you are trying to do
+      description: The result you want, in plain words.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Server and browser
+        - Phone, paired as a PWA
+        - Desktop app
+        - Terminal UI
+        - Command line
+        - Container
+        - Not sure yet
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ephe version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried
+      description: The commands you ran and what they said. Short is fine.
+    validations:
+      required: false
+  - type: textarea
+    id: docs
+    attributes:
+      label: Where you looked first
+      description: The page or the search that did not answer it. This is how the documentation finds its gaps.
+    validations:
+      required: false

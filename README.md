@@ -5,6 +5,10 @@
 
 # Ephe
 
+### Where the light is, the work happens.
+
+**Your agent. Your machine. Your memory.**
+
 **Ephe is a local-first workspace for an AI agent on your own computer. You choose the engine and the model, approve the tools, and keep the files. There is no account and no hidden model default.**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
@@ -17,17 +21,18 @@
 It is for people who own a machine and want the agent's work to stay theirs.
 Three lines:
 
-- **Private by default.** A local engine keeps your prompts on your machine. Online paths are opt-in.
-- **Your model.** A local Ollama model you pulled, or any OpenAI-compatible endpoint you name. Ephe never picks one.
+- **On your machine.** A local engine keeps the work on the disk you own. Online paths are opt-in.
+- **Your model.** A local Ollama model you pulled, or any OpenAI-compatible endpoint you name. Ephe ships no weights and selects no default.
 - **Your files.** Work in the folder you choose. The agent's artifacts are saved on your disk.
 
-<a href="docs/media/ephe-film-studio.mp4"><img src="docs/media/ephe-film-studio-poster.png" alt="A still from the 40 second film: the product's own first-run screen, the moth artwork, the line Ephe ist wach and its two buttons." width="1280"></a>
+Ephe wakes on your computer, not in someone else's cloud. Give it a task and it plans, reads
+the files you point it at, and works with tools you approve one by one: a document with
+sources, a deck, a spreadsheet, research with dated evidence, a film cut with ffmpeg. Every
+claim points at the result that produced it — the work, not a story about the work.
 
-**The Film Studio, in 40 seconds.** One sentence asks for a film; the agent plans,
-writes two title cards and a music bed, and cuts them with a clip into an mp4 with
-ffmpeg. The voice is the product's own local voice rung. Five tool calls,
-13.1 seconds, each one asked and approved in the chat.
-[Where every frame came from](docs/DEMO_VIDEO.md).
+You choose the engine: any model, on this machine or behind the API key of any provider you
+name. In the default strict profile, a file edit or a shell command waits for your approval.
+The moth keeps the promise. It works where the light is, and the light is yours.
 
 ## What Ephe is
 
@@ -227,9 +232,11 @@ and [SECURITY.md](SECURITY.md).
 
 ## Plugins, skills, and connectors
 
-The tree carries seventeen first-party bundles under [`plugins/`](plugins):
-ten first-party plugins and seven capability presets, the `countdown` widget among the plugins
-doubling as the reference surface for a UI-only bundle.
+The tree carries nineteen first-party bundles under [`plugins/`](plugins):
+twelve first-party plugins and seven capability presets, the `countdown` widget among the plugins
+doubling as the reference surface for a UI-only bundle. [ephe-motion-studio](plugins/ephe-motion-studio)
+writes a local motion film; [ephe-template-library](plugins/ephe-template-library) copies a
+licensed template with its hash.
 A plugin adds commands and a skill pack; a preset is a capability without a plugin
 quality claim. Alongside them ship five first-party skill packs and one bundled third-party skill pack;
 the built-in skills are separate ([docs/SKILLS.md](docs/SKILLS.md)).

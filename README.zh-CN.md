@@ -8,6 +8,12 @@
 
 # Ephe
 
+### 光在哪里，工作就在哪里落地。
+
+**你的智能体，你的机器，你的记忆。**
+
+*local-first workspace for an AI agent* · *Online paths are opt-in*
+
 **Ephe 是一个运行在你自己电脑上的、以本地优先的 AI 智能体工作区。由你选择引擎和模型，批准工具调用，并保留文件。没有账户，也没有隐藏的默认模型。**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
@@ -19,15 +25,18 @@
 
 它适合这样的人：机器是自己的，并希望智能体的工作始终归自己所有。三句话：
 
-- **默认私密。** 本地引擎让你的指令留在自己的机器上，联网功能需要你主动开启。
-- **你的模型。** 你自己拉取的本地 Ollama 模型，或你指定的任何 OpenAI 兼容端点，Ephe 从不替你选择。
+- **在你自己的机器上。** 本地引擎让工作留在你拥有的磁盘上，联网功能需要你主动开启。
+- **你的模型。** 你自己拉取的本地 Ollama 模型，或你指定的任何 OpenAI 兼容端点。Ephe 不带权重，也不替你挑选模型。
 - **你的文件。** 在你选定的文件夹里工作，智能体生成的文件保存在你的磁盘上。
 
-<a href="docs/media/ephe-film-studio.mp4"><img src="docs/media/ephe-film-studio-poster.png" alt="40 秒影片的一帧：产品自己的首次运行界面、蛾子图案、Ephe ist wach 这行字和它的两个按钮。" width="1280"></a>
+Ephe 在你自己的电脑上醒来，不在别人的云端。给它一个任务，它会先制定计划，读取你指定的
+文件，并使用需要你逐个批准的工具：一份带来源的文档、一套演示文稿、一张电子表格、带日期
+证据的调研、用 ffmpeg 剪出的一部影片。每个论断都指向产出它的那个结果——是工作本身，不是
+关于工作的说辞。
 
-**Film Studio，40 秒。** 一句话点播一部影片；智能体制定计划，写下两张标题卡和一
-段音乐垫，再用 ffmpeg 把它们与一段剪辑切成 mp4。配音来自产品自己的本地语音环节。五次工具调用，13.1 秒，每一次都在聊天里先询问、后批准。
-[每一帧的出处](docs/DEMO_VIDEO.md)。
+引擎由你选：任何模型，跑在这台机器上，或在你点名的服务商的 API 密钥之后。在默认的严格
+配置下，改动文件或执行 shell 命令都要等你批准。飞蛾守住承诺：它在哪里见到光，就在哪里
+干活，而光是你的。
 
 ## Ephe 是什么
 
@@ -173,7 +182,7 @@ Ephe 没有订阅，也没有账户。本地模型使用你的硬件；托管引
 
 ## 插件、技能与连接器
 
-代码树在 [`plugins/`](plugins) 下带有十七个第一方包：十个第一方插件和七个能力预设；其中的 `countdown` 部件同时充当纯界面包的参考界面。插件添加命令和技能包；预设提供某项能力，但不代表具备插件级别的质量保证。此外还随附五个第一方技能包和一个随附的第三方技能包；内置技能另成一类（[docs/SKILLS.md](docs/SKILLS.md)）。
+代码树在 [`plugins/`](plugins) 下带有十九个第一方包：十二个第一方插件和七个能力预设；[ephe-motion-studio](plugins/ephe-motion-studio) 在本地写出一部动态影片；[ephe-template-library](plugins/ephe-template-library) 复制一份带许可证与校验和的模板；其中的 `countdown` 部件同时充当纯界面包的参考界面。插件添加命令和技能包；预设提供某项能力，但不代表具备插件级别的质量保证。此外还随附五个第一方技能包和一个随附的第三方技能包；内置技能另成一类（[docs/SKILLS.md](docs/SKILLS.md)）。
 
 设置中的插件商店（Plugin Store）展示各条目的能力，安装只在你确认后进入你的个人配置。Superpowers 包是随附的第三方内容（MIT，位于 [`marketplace/sources/superpowers`](marketplace/sources/superpowers)）；随附包没有签名记录，因此以本地内容挂载。面向外部发布者的公共目录仍在计划中。
 

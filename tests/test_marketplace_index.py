@@ -7,6 +7,7 @@ reaches the installer.
 from __future__ import annotations
 
 import copy
+import json
 import sys
 from pathlib import Path
 
@@ -208,3 +209,28 @@ class TestIndexSignature:
         raw["plugins"][0]["versions"][0]["source"]["sha256"] = "b" * 64
         ok, reason = marketplace_index.verify_index_signature(raw, [public])
         assert not ok and reason
+
+
+class TestShelfFields:
+
+    def test_the_committed_shelf_knows_the_signature_fields(self):
+        """The shipped index is a signed document, and the validator the installer
+        uses accepts official trust, kid, alg and the embedded artifact records."""
+        raw = json.loads((ROOT / "marketplace" / "index.json").read_text(encoding="utf-8"))
+        parsed = marketplace_index.validate_index(raw, source_kind="bundled")
+        official = [e for e in parsed["plugins"] if e["trust"] == "official"]
+        assert len(official) >= 19, "first-party bundles lost their official trust"
+        for entry in official:
+            sig = entry["versions"][0]["source"]["signature"]
+            assert sig["alg"] == "ES256" and sig["kid"] == "first-party", entry["name"]
+        widgets = [e for e in parsed["plugins"] if "widgets" in (e.get("categories") or [])]
+        assert widgets, "the widgets category is not represented"
+
+    def test_an_official_entry_without_a_signature_is_refused(self):
+        with pytest.raises(marketplace_index.IndexError) as exc:
+            marketplace_index.validate_index(index(version("1.0.0"), trust="official"))
+        assert exc.value.code == "signature_required"
+
+    def test_a_bundled_entry_may_stay_unsigned(self):
+        parsed = marketplace_index.validate_index(index(version("1.0.0"), trust="bundled"))
+        assert parsed["plugins"][0]["trust"] == "bundled"

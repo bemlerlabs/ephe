@@ -195,7 +195,7 @@ def test_atomic_merge_preserves_unrelated_state(tmp_path) -> None:
 
 def test_portfolio_counts_and_no_deletion() -> None:
     registry = PluginRegistry.load(ROOT / "plugins", ROOT / "skills")
-    assert len(registry.plugins) == 17
+    assert len(registry.plugins) == 19
     # The image-studio skill is the one past the old pin of 60.
     assert len(registry.capabilities(CapabilityKind.SKILL)) == 61
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7

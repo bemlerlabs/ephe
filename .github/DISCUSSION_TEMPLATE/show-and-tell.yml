@@ -1,0 +1,44 @@
+title: "Built with Ephe: "
+labels: ["show and tell"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Show the artifact and the route that produced it. The engine and the machine decide whether
+        anyone here can repeat it, so name both. Redact paths, account names and keys.
+  - type: textarea
+    id: what
+    attributes:
+      label: What you made
+      description: The artifact a person can open: the document, the deck, the spreadsheet, the cut, the research note with its dated evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: route
+    attributes:
+      label: How you made it
+      description: The task you gave, the tools Ephe asked to use, the approvals you gave, and the turns where it went wrong before it went right.
+    validations:
+      required: true
+  - type: input
+    id: engine
+    attributes:
+      label: Engine and model you chose
+      description: Your choice, named so a reply can tell you what you would have got otherwise.
+      placeholder: "a 8B model on a local server, 16 GB machine"
+    validations:
+      required: true
+  - type: input
+    id: machine
+    attributes:
+      label: Machine and operating system
+      placeholder: "macOS 15.5, Apple M4, 16 GB"
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: Where it cost you time
+      description: The step you had to do by hand, the wording you had to find yourself, the approval you did not understand.
+    validations:
+      required: true

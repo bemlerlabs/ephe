@@ -63,20 +63,26 @@ surface, and `scripts/readme_check.py --public` is the check that the links it p
 
 ## 4. What Ephe says about itself
 
-The pitch is one sentence with two halves — what the agent does, and where it runs. Each surface
-below carries its own form of it, and the pinner is the file that fails when the wording drifts.
+The pitch has a headline and a line under it. The headline is the light sentence the owner
+set, `Where the light is, the work happens.`; the line under it is the hero line, `Your agent.
+Your machine. Your memory.` Each surface below carries its own form of them, and the pinner is
+the file that fails when the wording drifts. A wording change and its pinner move in the same
+patch.
 
 | Surface | The words | Pinned by |
 | --- | --- | --- |
-| `app/index.html` `<title>`, `og:title`, `twitter:title` | `Ephe — Ephemeral SI Agent` | `tests/test_index_html_description.py` |
-| `app/index.html` `meta description` and `app/public/manifest.json` `description` | the same head, then: Give it a task; it researches, builds and delivers while you watch. Runs locally on the engine you choose. | the same file, against both locale bundles |
-| `scripts/generate_social_preview.py`, drawn into `app/public/og-image.png` | kicker `THE EPHEMERAL SI AGENT`, headline `Work you can see.` / `A trace that disappears.` | `docs/media/ephe-social-preview-1200x630.png` is the tracked source asset the drawing reproduces |
+| The three READMEs, under the mark | the headline as `###`, the hero line in bold under it, each README in its own language | `tests/test_brand_headline_surfaces.py`, which also pins the two canonical English terms inside the first 1500 characters of the Spanish and Chinese files |
+| The three READMEs, the sentence the installer contract quotes | `local-first workspace for an AI agent`, `Online paths are opt-in` | `tests/test_installer_cli.py` and `scripts/readme_check.py` |
+| `app/index.html` `<title>`, `og:title`, `twitter:title` | `Ephe — Where the light is, the work happens.` | `tests/test_index_html_description.py` |
+| `app/index.html` `meta description`, `og:description`, `twitter:description` and `app/public/manifest.json` `description` | the pinned description, and the social pair opens with the hero line: Give it a task; it researches, builds and delivers while you watch. Runs locally on the engine you choose. | the same file, against both locale bundles and the manifest |
+| `scripts/generate_social_preview.py`, drawn into `app/public/og-image.png` | kicker `THE EPHEMERAL SI AGENT`, headline `Work you can see.` / `A trace that disappears.` | `docs/media/ephe-social-preview-1200x630.png` is the tracked source asset the drawing reproduces; the card is redrawn by the generator, never edited as an image, and it carries no word the drawing does not render |
 | The app's own hero, `welcome.heroSub` | the English leaf in `app/src/locales/en.json` and its German counterpart in `de.json` | `app/src/locales/completeness.test.ts` and `germanSurface.test.ts` |
-| The terminal's start banner, `ephe_cli.py:1780` | `◍ Ephe {version} — local & private` | `tests/test_device_folder_modes.py` and the `0600` modes in `core/persistence.py`, which are what make the second half countable |
+| The terminal's start banner, `cmd_start` in `ephe_cli.py` | `◍ Ephe {version} — local & private`, then the headline, then the hero line | `tests/test_start_banner.py` for the three lines, `tests/test_device_folder_modes.py` and the `0600` modes in `core/persistence.py` for the second half of the first one |
 
-The headline is the press-release line: a claim about what a person can watch (the trace) and about
-what does not persist (the trace disappears), which is the sentence section 3 permits. The German
-wording of the same pitch lives only in the German bundle, per the rule in `app/AGENTS.md`.
+The card keeps its own press-release pair — a claim about what a person can watch and about what
+does not persist — because that is the sentence section 3 permits a share image to say, and it is
+drawn by the generator rather than written into the page. The German wording of the app's pitch
+lives only in the German bundle, per the rule in `app/AGENTS.md`.
 
 A generated image enters the tree only when a committed document names the surface it targets and
 the decision it is evidence for (root `AGENTS.md`, "Generated media"); every mark and screenshot on

@@ -1,0 +1,40 @@
+title: "Idea: "
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An idea is allowed to be unfinished here. Argue the direction; once it has a name, a check
+        and a date it becomes a capability issue, and the argument you wrote stays useful in the
+        issue body.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea in one paragraph
+      description: What would be different about Ephe if this existed.
+    validations:
+      required: true
+  - type: textarea
+    id: who
+    attributes:
+      label: Who it helps and when
+      description: The person and the moment. "Everyone" is a start; "me, every Monday morning" is better.
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: What it must never become
+      description: The version of this idea that would make you regret proposing it.
+    validations:
+      required: false
+  - type: dropdown
+    id: distance
+    attributes:
+      label: How far you would take it
+      options:
+        - Wanted it said
+        - Would try a build and report back
+        - Would write the code with a review
+    validations:
+      required: true

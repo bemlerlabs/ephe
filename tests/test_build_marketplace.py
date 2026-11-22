@@ -96,7 +96,7 @@ def test_a_rebuild_without_the_previous_output_keeps_the_labels(tmp_path):
     )
     generated = _generator().generate(tmp_path)
     by_name = {entry["name"]: entry for entry in generated["plugins"]}
-    assert len(by_name) == 17
+    assert len(by_name) == 19
     presets = [name for name, entry in by_name.items() if entry.get("quality_label") == "capability-preset"]
     assert len(presets) == 7
     assert by_name["documents"]["measurement"]["pass3"]
@@ -117,9 +117,9 @@ class TestBuild:
         parsed = marketplace_index.validate_index(index, source_kind="bundled")
         plugins = [entry for entry in parsed["plugins"] if entry["kind"] == "plugin"]
         packs = [entry for entry in parsed["plugins"] if entry["kind"] == "skill-pack"]
-        # 17 first-party plugins; five first-party packs and the adapted
+        # 19 first-party plugins; five first-party packs and the adapted
         # Superpowers pack, which is bundled third-party content.
-        assert len(plugins) == 17
+        assert len(plugins) == 19
         assert len(packs) == 6
         for entry in parsed["plugins"]:
             assert len(entry["versions"]) == 1
@@ -245,3 +245,182 @@ class TestSigning:
             plugin_dir, version["source"]["signature"], [public_pem]
         )
         assert ok, reason
+
+
+def _keypair(tmp_path: Path, name: str) -> tuple[Path, bytes]:
+    """(key file, public PEM) for one ephemeral signing key."""
+    private = ec.generate_private_key(ec.SECP256R1())
+    private_pem = private.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
+    )
+    public_pem = private.public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    key = tmp_path / name
+    key.write_bytes(private_pem)
+    return key, public_pem
+
+
+@pytest.fixture(scope="module")
+def signed_shelf(tmp_path_factory):
+    tmp = tmp_path_factory.mktemp("signed-shelf")
+    key, public_pem = _keypair(tmp, "key.pem")
+    out = tmp / "marketplace"
+    result = run("--out", str(out), "--sign-key", str(key))
+    assert result.returncode == 0, result.stdout + result.stderr
+    index = json.loads((out / "index.json").read_text(encoding="utf-8"))
+    return out, index, public_pem
+
+
+def _repack(archive: Path, replacements: dict[str, bytes]) -> None:
+    """Rewrite an archive with named members replaced, so a test can tamper one byte."""
+    with zipfile.ZipFile(archive) as zf:
+        members = [(info.filename, replacements.get(info.filename, zf.read(info.filename))) for info in zf.infolist()]
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in members:
+            zf.writestr(name, data)
+
+
+def test_two_signed_runs_are_byte_identical(tmp_path):
+    key, _ = _keypair(tmp_path, "key.pem")
+    first, second = tmp_path / "a", tmp_path / "b"
+    assert run("--out", str(first), "--sign-key", str(key)).returncode == 0
+    assert run("--out", str(second), "--sign-key", str(key)).returncode == 0
+    assert (first / "index.json").read_bytes() == (second / "index.json").read_bytes()
+    archives = sorted((first / "artifacts").glob("*.zip"))
+    assert archives, "the signed build produced no archives"
+    for archive in archives:
+        assert archive.read_bytes() == (second / "artifacts" / archive.name).read_bytes(), archive.name
+
+
+def test_a_flipped_byte_in_the_record_is_refused(signed_shelf):
+    out, index, public_pem = signed_shelf
+    entry = next(e for e in index["plugins"] if isinstance(e["versions"][0]["source"].get("signature"), dict))
+    record = entry["versions"][0]["source"]["signature"]
+    target = out / f"unpack-{entry['name']}"
+    with zipfile.ZipFile(out / entry["versions"][0]["source"]["url"]) as zf:
+        zf.extractall(target)
+    plugin_dir = target / entry["name"]
+    flipped_signature = {**record, "signature": record["signature"][:-4] + ("AAAA" if not record["signature"].endswith("AAAA") else "BBBB")}
+    ok, reason = plugin_signing.verify_plugin_dir(plugin_dir, flipped_signature, [public_pem])
+    assert not ok and reason, reason
+    flipped_sha = {**record, "sha256": record["sha256"][:-1] + ("0" if record["sha256"][-1] != "0" else "1")}
+    ok, reason = plugin_signing.verify_plugin_dir(plugin_dir, flipped_sha, [public_pem])
+    assert not ok and "drift" in reason, reason
+
+
+def test_a_record_from_another_bundle_is_refused(signed_shelf):
+    out, index, public_pem = signed_shelf
+    signed = [e for e in index["plugins"] if isinstance(e["versions"][0]["source"].get("signature"), dict)]
+    assert len(signed) >= 2
+    a, b = signed[0], signed[1]
+    dirs = []
+    for entry in (a, b):
+        target = out / f"swap-{entry['name']}"
+        with zipfile.ZipFile(out / entry["versions"][0]["source"]["url"]) as zf:
+            zf.extractall(target)
+        dirs.append(target / entry["name"])
+    ok, reason = plugin_signing.verify_plugin_dir(
+        dirs[0], b["versions"][0]["source"]["signature"], [public_pem]
+    )
+    assert not ok and "identity" in reason, reason
+
+
+def test_a_record_from_another_key_is_refused(signed_shelf, tmp_path):
+    out, index, _ = signed_shelf
+    _, other_public = _keypair(tmp_path, "other.pem")
+    entry = next(e for e in index["plugins"] if isinstance(e["versions"][0]["source"].get("signature"), dict))
+    target = out / f"otherkey-{entry['name']}"
+    with zipfile.ZipFile(out / entry["versions"][0]["source"]["url"]) as zf:
+        zf.extractall(target)
+    ok, reason = plugin_signing.verify_plugin_dir(
+        target / entry["name"], entry["versions"][0]["source"]["signature"], [other_public]
+    )
+    assert not ok and "trusted key" in reason, reason
+
+
+def test_verification_refuses_a_garbage_record_without_raising(signed_shelf):
+    out, index, public_pem = signed_shelf
+    entry = next(e for e in index["plugins"] if isinstance(e["versions"][0]["source"].get("signature"), dict))
+    target = out / f"garbage-{entry['name']}"
+    with zipfile.ZipFile(out / entry["versions"][0]["source"]["url"]) as zf:
+        zf.extractall(target)
+    ok, reason = plugin_signing.verify_plugin_dir(target / entry["name"], {}, [public_pem])
+    assert ok is False and reason == "no signature record"
+
+
+def test_the_shipped_shelf_rows_match_the_disk():
+    """Index, disk and bytes agree pairwise, for every archive: no dead URL, no orphan,
+    no artifact row whose claim the file beside it does not measure up to."""
+    index = json.loads((ROOT / "marketplace" / "index.json").read_text(encoding="utf-8"))
+    shipped = {p.name for p in (ROOT / "marketplace" / "artifacts").glob("*.zip")}
+    named: set[str] = set()
+    for entry in index["plugins"]:
+        for version in entry["versions"]:
+            url = str(version["source"]["url"])
+            name = Path(url).name
+            named.add(name)
+            archive = ROOT / "marketplace" / "artifacts" / name
+            assert archive.is_file(), f"{url}: named in the index, missing from disk"
+            artifact = version.get("artifact") or {}
+            assert artifact.get("file") == url, f"{name}: artifact row names {artifact.get('file')!r}"
+            assert artifact.get("sha256") == sha256_hex(archive.read_bytes()), f"{name}: artifact sha256 lies"
+            assert artifact.get("sizeBytes") == archive.stat().st_size, f"{name}: artifact size lies"
+            assert version["source"]["sha256"] == artifact["sha256"], f"{name}: source and artifact hash differ"
+    assert named == shipped, f"dead rows: {named - shipped}; orphans: {shipped - named}"
+    assert len(shipped) >= 25
+    for required in ("ephe-motion-studio", "ephe-template-library"):
+        entry = next((e for e in index["plugins"] if e["name"] == required), None)
+        assert entry is not None, f"{required}: not in the index"
+        assert isinstance(entry["versions"][0]["source"].get("signature"), dict), f"{required}: unsigned"
+
+
+def test_a_flipped_archive_byte_fails_the_check(tmp_path):
+    shelf = tmp_path / "marketplace"
+    shutil.copytree(ROOT / "marketplace", shelf)
+    archive = shelf / "artifacts" / "countdown-0.1.0.zip"
+    with zipfile.ZipFile(archive) as zf:
+        victim = next(i.filename for i in zf.infolist() if not i.is_dir() and zf.read(i.filename))
+        payload = zf.read(victim)
+    _repack(archive, {victim: payload[:-1] + bytes([payload[-1] ^ 0xFF])})
+    result = run("--check", "--out", str(shelf))
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "artifact_sha256_mismatch" in result.stdout, result.stdout
+
+
+def test_a_tampered_embedded_signature_fails_the_check(tmp_path):
+    shelf = tmp_path / "marketplace"
+    shutil.copytree(ROOT / "marketplace", shelf)
+    archive = shelf / "artifacts" / "countdown-0.1.0.zip"
+    sig_member = "countdown/ephe-plugin.sig.json"
+    with zipfile.ZipFile(archive) as zf:
+        record = json.loads(zf.read(sig_member))
+    record["signature"] = "MEUCIQ" + record["signature"][6:]
+    _repack(archive, {sig_member: (json.dumps(record, ensure_ascii=False, indent=2) + "\n").encode("utf-8")})
+    result = run("--check", "--out", str(shelf))
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "signature_refused" in result.stdout, result.stdout
+
+
+def test_the_private_key_is_ignored_and_the_public_half_is_not():
+    """The accidental commit of the signing half is blocked by rule, checked with
+    `git check-ignore` rather than assumed; the verifier half stays tracked."""
+    probe = ROOT / "first-party.private.pem"
+    assert not probe.exists(), "a private key sits in the tree"
+    probe.write_text("probe, not key material\n", encoding="utf-8")
+    try:
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", str(probe)], cwd=ROOT, capture_output=True
+        )
+        assert ignored.returncode == 0, "*.private.pem is not ignored by .gitignore"
+    finally:
+        probe.unlink()
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "plugins/first-party.pub.pem"],
+        cwd=ROOT, capture_output=True,
+    )
+    assert tracked.returncode == 0, "the public verifier is not tracked"
+    not_ignored = subprocess.run(
+        ["git", "check-ignore", "-q", "plugins/first-party.pub.pem"], cwd=ROOT, capture_output=True
+    )
+    assert not_ignored.returncode != 0, "the public verifier is ignored by .gitignore"

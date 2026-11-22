@@ -109,6 +109,34 @@ class TestPluginDirSigning:
         h_after = dir_sha256(pdir)
         assert h_before == h_after
 
+    def test_bytecode_cache_excluded_from_dir_hash(self, tmp_path):
+        """Importing a handler writes `tools/__pycache__/handlers.cpython-313.pyc` beside the
+        source. That file records the last importer, so it cannot be part of the identity a
+        catalog entry and a signature are computed over."""
+        from core.plugin_manifest import dir_sha256
+
+        pdir = tmp_path / "p"
+        (pdir / "tools").mkdir(parents=True)
+        (pdir / "ephe-plugin.json").write_text("{}")
+        (pdir / "tools" / "handlers.py").write_text("def tool():\n    return 1\n")
+        h_before = dir_sha256(pdir)
+        cache = pdir / "tools" / "__pycache__"
+        cache.mkdir()
+        (cache / "handlers.cpython-313.pyc").write_bytes(b"\x00\x0b\r\n stale bytecode")
+        (pdir / "stale.pyo").write_bytes(b"\x00 stale optimised bytecode")
+        assert dir_sha256(pdir) == h_before
+
+    def test_a_file_next_to_the_cache_still_counts(self, tmp_path):
+        from core.plugin_manifest import dir_sha256
+
+        pdir = tmp_path / "p"
+        (pdir / "tools").mkdir(parents=True)
+        (pdir / "ephe-plugin.json").write_text("{}")
+        h_before = dir_sha256(pdir)
+        (pdir / "tools" / "__pycache__").mkdir()
+        (pdir / "tools" / "prompts.py").write_text("PROMPT = 'x'\n", encoding="utf-8")
+        assert dir_sha256(pdir) != h_before
+
     def test_drift_detected(self, signed_dir, keypair):
         pdir, record = signed_dir
         (pdir / "extra.txt").write_text("TAMPERED", encoding="utf-8")

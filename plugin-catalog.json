@@ -46,6 +46,28 @@
       "origin": "first-party"
     },
     {
+      "name": "ephe-motion-studio",
+      "description": "Local motion films from HTML, CSS and JS sources: a timeline, captions, a brand kit and a render queue that cuts frames to MP4 on this machine.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "f38ef782ede4894cea687db5000e7f9177b2ae4c1d00b23d754525b5965ae46b",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
+      "name": "ephe-template-library",
+      "description": "Curated, licence-audited local templates for sites, worlds and motion scenes.",
+      "tags": [],
+      "enabled": true,
+      "sha256": "adf160db0957447e7b3b05dc9b4954033a661f87899ca06999fa00664d39465b",
+      "url": "",
+      "manifest": true,
+      "version": "1.0.0",
+      "origin": "first-party"
+    },
+    {
       "name": "guide",
       "description": "Ephe usage and self-diagnosis guide: engines, plugins, hooks, commands, doctor flows.",
       "tags": [],

@@ -129,6 +129,8 @@ def _version_entry(raw: Any, path: str, trust: str) -> dict[str, Any]:
     components = raw.get("components", [])
     if not isinstance(components, list) or any(not isinstance(c, str) for c in components):
         _fail("bad_components", f"{path}.components")
+    # This allowlist is why an `artifact` row is not parsed here: the app's MarketVersion
+    # reads source.sha256 only, and the measured artifact row is verified on disk by the builder's --check.
     return {
         "version": number,
         "publishTimestamp": int(raw.get("publishTimestamp") or 0),

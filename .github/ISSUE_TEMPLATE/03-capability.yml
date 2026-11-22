@@ -1,0 +1,72 @@
+name: Capability request
+description: Describe the task you want done, not the button you want added.
+title: "Capability: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write the request as the task and the artifact you want to hold afterwards. A named button
+        is a guess at the shape; the task is the fact we can plan against.
+
+        Ephe ships a capability once the tree can prove it works: an implementation, a test at the
+        seam, and a number that names the machine and the engine behind it. A promise the tree
+        cannot back stays out of the product.
+  - type: textarea
+    id: task
+    attributes:
+      label: The task in your words
+      description: What you are trying to get done, without assuming how Ephe would do it.
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: What you would type to Ephe
+      description: The sentence you would actually put in the box.
+      placeholder: "Turn the CSV in ~/Downloads into a one-page summary with the three charts."
+    validations:
+      required: true
+  - type: textarea
+    id: artifact
+    attributes:
+      label: The result you would accept
+      description: A document with sources, a deck, a spreadsheet, a cut MP4. Name the artifact and what makes it good.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today instead
+      description: The workaround you keep repeating, and what it costs you.
+    validations:
+      required: true
+  - type: dropdown
+    id: home
+    attributes:
+      label: Where it belongs
+      description: Your guess, which we may overrule.
+      options:
+        - The server and browser surface
+        - The terminal app
+        - The command line
+        - A first-party bundle under plugins/
+        - A skill pack
+        - Somewhere I cannot judge
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence that it is worth building
+      description: A linked conversation, a benchmark, a screenshot of the workaround. Anything that shows more than one person wants it.
+    validations:
+      required: false
+  - type: checkboxes
+    attributes:
+      label: Ground rules
+      options:
+        - label: I named the artifact and the check that says it is good.
+          required: true
+        - label: I am asking for a capability, not for a competitor's feature by name.
+          required: true

@@ -305,6 +305,34 @@
         "date": "2026-10-23",
         "commit": "67b37bfc"
       }
+    },
+    {
+      "name": "ephe-motion-studio",
+      "description": "Local motion films from HTML, CSS and JS sources with a timeline, captions and a brand kit.",
+      "author": "Ephe",
+      "icon": "plugins/ephe-motion-studio/icon.svg",
+      "category": "meta",
+      "keywords": [
+        "motion",
+        "video",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
+    },
+    {
+      "name": "ephe-template-library",
+      "description": "Curated local templates with recorded licences and hashes.",
+      "author": "Ephe",
+      "icon": "plugins/ephe-template-library/icon.svg",
+      "category": "templates",
+      "keywords": [
+        "templates",
+        "offline",
+        "local-first"
+      ],
+      "origin": "first-party",
+      "quality_label": "plugin"
     }
   ]
 }

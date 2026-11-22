@@ -80,7 +80,7 @@ def generate_keypair() -> tuple[bytes, bytes]:
 
 def sign(payload: dict[str, Any], private_pem: bytes) -> str:
     key = serialization.load_pem_private_key(private_pem, password=None)
-    sig = key.sign(canonical_json(payload), ec.ECDSA(hashes.SHA256()))
+    sig = key.sign(canonical_json(payload), ec.ECDSA(hashes.SHA256(), deterministic_signing=True))
     return base64.b64encode(sig).decode("ascii")
 
 

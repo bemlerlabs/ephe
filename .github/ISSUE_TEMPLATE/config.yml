@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/bemlerlabs/ephe/blob/main/SECURITY.md
+    about: Read this first. One private channel, what we send back, and the window we hold ourselves to.
+  - name: Ask how to do something
+    url: https://github.com/bemlerlabs/ephe/discussions/categories/q-a
+    about: Questions belong in Discussions. A question that turns out to be a defect becomes an issue, with your name on it.
+  - name: Propose a direction
+    url: https://github.com/bemlerlabs/ephe/discussions/categories/ideas
+    about: An idea still taking shape is a discussion. Once it has a name, a check and a date, it becomes an issue.

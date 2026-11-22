@@ -1,8 +1,8 @@
 """The provenance gate, on planted repositories and on this one.
 
-The gate answers one question per tag: does its commit sit on the trunk? The
-v0.1.7 incident is recorded in the baseline, so the repository run has to pass
-while still naming that tag as diverged.
+The gate answers one question per tag: does its commit sit on the trunk? A tree
+that has released nothing has no tag to judge, and the gate is expected to say that
+instead of guessing; the moment a tag exists the same run judges it.
 """
 from __future__ import annotations
 
@@ -103,6 +103,25 @@ class TestOnAPlant:
         done = run(repo, "--base", "main", "--baseline", str(baseline(tmp_path, [])))
         assert done.returncode == 2, done.stdout
         assert "no v* tag" in done.stdout, done.stdout
+
+    def test_an_unreleased_tree_is_named_as_unreleased(self, tmp_path):
+        """A tree that released nothing is a state with an answer in it. The gate prints that
+        answer so the trunk leg of CI reads a decision here instead of "cannot decide"."""
+        repo = make_repo(tmp_path)
+        done = run(repo, "--base", "main", "--baseline", str(baseline(tmp_path, [])),
+                   "--allow-unreleased")
+        assert done.returncode == 0, done.stdout
+        assert "nothing has been released yet" in done.stdout, done.stdout
+
+    def test_a_recorded_tag_that_reached_no_checkout_stays_a_non_verdict(self, tmp_path):
+        """The exemption speaks for a tree that never released. With an entry in the baseline and
+        no tag in front of it the likelier story is a fetch that dropped the tags, so the gate
+        keeps refusing to judge."""
+        repo = make_repo(tmp_path)
+        done = run(repo, "--base", "main", "--baseline", str(baseline(tmp_path, ["v0.1.0"])),
+                   "--allow-unreleased")
+        assert done.returncode == 2, done.stdout
+        assert "did not reach this checkout" in done.stdout, done.stdout
 
     def test_a_recorded_tag_says_so_on_its_line(self, tmp_path):
         repo = make_repo(tmp_path)
@@ -273,9 +292,11 @@ class TestOnThisRepository:
 
         if self._git("rev-parse", "--verify", "-q", base_ref).returncode != 0:
             pytest.skip(f"this checkout has no {base_ref}")
-        command = [sys.executable, str(SCRIPT), "--base", base_ref]
+        command = [sys.executable, str(SCRIPT), "--base", base_ref, "--allow-unreleased"]
         if namespace:
             command += ["--tag-namespace", namespace]
         done = subprocess.run(command, cwd=str(ROOT), text=True, capture_output=True, check=False)
         assert done.returncode == 0, done.stdout + done.stderr
         assert "PASS" in done.stdout, done.stdout
+        if not TestOnThisRepository._git("tag", "--list", "v*").stdout.strip():
+            assert "nothing has been released yet" in done.stdout, done.stdout

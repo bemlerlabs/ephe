@@ -1,29 +1,37 @@
-## Description
+## What changes
 
-<!-- Brief description of what this PR does -->
+One paragraph: the behaviour before, the behaviour after. Not a list of files.
 
-## Type of Change
+## Why this and not less
 
-- [ ] 🐛 Bug fix (non-breaking change that fixes an issue)
-- [ ] ✨ New feature (non-breaking change that adds functionality)
-- [ ] 💥 Breaking change (fix or feature that causes existing functionality to change)
-- [ ] 📖 Documentation update
-- [ ] 🧪 Test improvement
-- [ ] ♻️ Refactor (no functional changes)
+The step this replaces, and why the smaller version would not have held. If the answer is "it
+would have", the smaller version is the change.
 
-## Checklist
+## How to see it
 
-- [ ] My code follows the project's coding standards
-- [ ] I have validated my changes with the local checks (see CONTRIBUTING.md)
-- [ ] CI quality gates pass (integration checks + frontend build)
-- [ ] I have updated the documentation (if applicable)
-- [ ] My changes generate no new warnings
-- [ ] This change respects Ephe's principles: **local by default, the engine is the user's choice (no silent fallback), explicit opt-in for online features, no telemetry**
+The command or the surface, and what to look at. A reviewer has to reach the change in under two
+minutes, from a checkout of this branch.
 
-## Screenshots (if applicable)
+## Measured
 
-<!-- Add screenshots for UI changes -->
+Every number written in this description comes from a run, and the run is pasted below it.
 
-## Related Issues
+- [ ] `make verify` on this branch
+- [ ] `python3 scripts/language_gate.py`
+- [ ] `python3 scripts/prose_tells.py`
+- [ ] `python3 scripts/readme_check.py --root .`
+- [ ] `python3 scripts/new_file_check.py`
+- [ ] `python3 scripts/secret_scan.py --all` reports zero findings
+- [ ] `python3 scripts/attribution_check.py --identity` passes
+- [ ] For anything under `app/src`: `pnpm run build` in `app/`, and the desktop bundle rebuilt
+- [ ] For anything under `server/`: the route contract test moved in the same patch
 
-<!-- Reference related issues: Fixes #123, Relates to #456 -->
+## What this does not do
+
+The promise I am deliberately not making, so nobody reads more into the diff than it holds. A
+capability the tree cannot prove stays out of the product, and out of this description.
+
+## Related
+
+`Fixes #`, `Relates to #`. Security findings go through the channel in `SECURITY.md`, never
+through a pull request.

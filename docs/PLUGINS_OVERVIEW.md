@@ -15,11 +15,12 @@ the other hook events live in `~/.ephe/hooks.json` and stay a separate contract.
   `ephe-plugin.sig.json` mounts as `signed`; a signature-verified plugin that changes on disk cannot
   be re-enabled: the drift gate answers 409 and writes an audit line. None of the bundled packs
   carries a record, so they mount as local content.
-- **17 first-party bundles ship in-repo** (`plugins/`): the catalogue counts ten plugins and
-  seven presets; the ten are the nine named below plus `countdown`, the reference bundle for a
-  declarative surface.
-  Plugins: browser-use, code-shell, documents, local-document-factory, memory, presentations,
-  private-research-notebook, spreadsheets, web-research.
+- **19 first-party bundles ship in-repo** (`plugins/`): the catalogue counts twelve plugins and
+  seven presets; `countdown` sits among the plugins and is the reference bundle for a declarative
+  surface.
+  Plugins: browser-use, code-shell, countdown, documents, ephe-motion-studio,
+  ephe-template-library, local-document-factory, memory, presentations, private-research-notebook,
+  spreadsheets, web-research.
   Presets: guide, image-studio, mcp-connector, plugin-creator, skill-creator, vision, voice.
   The catalogue also offers five first-party skill packs and one bundled third-party pack
   (Superpowers, MIT); the 51 built-in skills are separate ([`SKILLS.md`](SKILLS.md)).

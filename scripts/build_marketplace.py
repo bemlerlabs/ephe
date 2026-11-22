@@ -96,6 +96,12 @@ def zip_skill_pack(pack: dict, skills_dir: Path, target: Path) -> str:
     return sha256_hex(target.read_bytes())
 
 
+def _artifact_row(archive: Path, digest: str) -> dict:
+    """The evidence line for one version: hash and size measured from the archive
+    bytes that actually sit beside the index, not from what the packer intended."""
+    return {"file": f"artifacts/{archive.name}", "sha256": digest, "sizeBytes": archive.stat().st_size}
+
+
 def _signed_copy(directory: Path, name: str, private_pem: bytes, kid: str, temp_root: Path) -> tuple[Path, dict]:
     target = temp_root / name
     target.mkdir(parents=True, exist_ok=True)
@@ -188,6 +194,7 @@ def build(
                         "sha256": digest,
                         **({"signature": record} if record is not None else {}),
                     },
+                    "artifact": _artifact_row(archive, digest),
                     "engines": {"ephe": min_ephe},
                     "permissions": manifest.get("permissions") or {},
                     "components": components,
@@ -246,6 +253,7 @@ def build(
                 "version": version,
                 "publishTimestamp": timestamp,
                 "source": {"type": "zip", "url": f"artifacts/{archive.name}", "sha256": digest},
+                "artifact": _artifact_row(archive, digest),
                 "engines": {"ephe": min_ephe},
                 "permissions": manifest.get("permissions") or {},
                 "components": [key for key, value in (manifest.get("components") or {}).items() if value],
@@ -290,6 +298,7 @@ def build(
                     "url": f"artifacts/{archive.name}",
                     "sha256": digest,
                 },
+                "artifact": _artifact_row(archive, digest),
                 "engines": {"ephe": min_ephe},
                 "permissions": {},
                 "components": ["skills"],
@@ -371,6 +380,71 @@ def _index_drift(old: dict, new: dict) -> list[str]:
     return problems
 
 
+def _first_party_pem() -> bytes | None:
+    pem = ROOT / "plugins" / "first-party.pub.pem"
+    return pem.read_bytes() if pem.is_file() else None
+
+
+def _normalize_for_compare(index: dict, *, signed_shelf: bool) -> dict:
+    """Strip the fields only a signed build can carry, so the committed shelf still
+    compares against the unsigned rebuild the sources imply. What is stripped is
+    separately verified against the key and the bytes on disk, never ignored."""
+    index = json.loads(json.dumps(index))
+    index.pop("signature", None)
+    for entry in index.get("plugins", []):
+        entry.pop("trust", None)
+        for version in entry.get("versions", []):
+            version.pop("artifact", None)
+            source = version.get("source") or {}
+            source.pop("signature", None)
+            if signed_shelf:
+                source.pop("sha256", None)
+    return index
+
+
+def _verify_shipped_signed_archive(shipped: Path, fresh: Path, name: str, pem: bytes | None) -> list[str]:
+    """One shipped ZIP against a fresh build and against the first-party key. Any
+    unreadable input is a coded refusal, never an exception out of the gate."""
+    try:
+        with zipfile.ZipFile(shipped) as zs:
+            sig_entries = [n for n in zs.namelist() if PurePosixPath(n).name == plugin_manifest.SIG_FILENAME]
+            if len(sig_entries) != 1 or sig_entries[0] != f"{name}/{plugin_manifest.SIG_FILENAME}":
+                return [f"artifacts/{name}: signature_record_missing_or_stray {sig_entries}"]
+            sig_bytes = zs.read(sig_entries[0])
+            body = {n: zs.read(n) for n in zs.namelist() if n != sig_entries[0]}
+    except (zipfile.BadZipFile, OSError, ValueError) as exc:
+        return [f"artifacts/{name}: unreadable_zip ({type(exc).__name__})"]
+    try:
+        with zipfile.ZipFile(fresh) as zf:
+            fresh_body = {n: zf.read(n) for n in zf.namelist()}
+    except (zipfile.BadZipFile, OSError, ValueError) as exc:
+        return [f"artifacts/{name}: fresh rebuild unreadable ({type(exc).__name__})"]
+    problems: list[str] = []
+    if set(body) != set(fresh_body):
+        problems.append(f"artifacts/{name}: membership differs from a fresh build")
+    else:
+        moved = [n for n in sorted(body) if body[n] != fresh_body[n]]
+        if moved:
+            problems.append(f"artifacts/{name}: content differs from a fresh build at {moved[0]}")
+    if pem is None:
+        return problems + [f"artifacts/{name}: signed shelf but no plugins/first-party.pub.pem to verify against"]
+    with tempfile.TemporaryDirectory(prefix="ephe-sigcheck-") as tmp:
+        root = Path(tmp) / name
+        root.mkdir(parents=True)
+        for entry_name, payload in body.items():
+            target = root / PurePosixPath(entry_name).relative_to(name)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(payload)
+        try:
+            record = json.loads(sig_bytes)
+        except ValueError:
+            return problems + [f"artifacts/{name}: signature_invalid (record is not JSON)"]
+        ok, reason = plugin_signing.verify_plugin_dir(root, record, trusted_public_pems=[pem])
+        if not ok:
+            problems.append(f"artifacts/{name}: signature_refused ({reason})")
+    return problems
+
+
 def check(
     *,
     plugins_dir: Path,
@@ -382,13 +456,18 @@ def check(
     """Compare the committed index and artifacts against a fresh build, writing nothing.
 
     The freshness leg's mode: a rebuild that writes into the shared tree is its own defect, so the
-    comparison happens in a temporary directory and the committed shelf is only read. The build is
-    the unsigned bundled one, which is what the committed index is.
+    comparison happens in a temporary directory and the committed shelf is only read. The rebuild is
+    always the unsigned bundled one; a signed shelf is judged against it after stripping exactly the
+    fields a signature adds, and those fields are then verified — the index signature and every
+    embedded artifact record against the first-party key, the artifact rows against the shipped bytes.
     """
     committed_path = out_dir / "index.json"
     if not committed_path.is_file():
         print(f"build_marketplace: no committed {committed_path} to compare against")
         return 1
+    committed_text = committed_path.read_text(encoding="utf-8")
+    committed = json.loads(committed_text)
+    signed_shelf = isinstance(committed.get("signature"), dict)
     with tempfile.TemporaryDirectory(prefix="ephe-market-check-") as temp:
         built = build(
             plugins_dir=plugins_dir,
@@ -400,10 +479,27 @@ def check(
             third_party_path=third_party_path,
         )
         problems: list[str] = []
-        committed = committed_path.read_text(encoding="utf-8")
-        if committed != _render(built):
+        pem = _first_party_pem()
+        if signed_shelf:
+            if pem is None:
+                problems.append("index: signed shelf but plugins/first-party.pub.pem is missing")
+            else:
+                ok, reason = marketplace_index.verify_index_signature(committed, [pem])
+                if not ok:
+                    problems.append(f"index: signature_refused ({reason})")
+            old = _normalize_for_compare(committed, signed_shelf=True)
+            new = _normalize_for_compare(built, signed_shelf=True)
+            if old != new:
+                problems.append("marketplace/index.json is not the shape the builder generates")
+                problems.extend(_index_drift(old, new)[:20])
+        elif committed_text != _render(built):
             problems.append("marketplace/index.json is not what the builder generates")
-            problems.extend(_index_drift(json.loads(committed), built)[:20])
+            problems.extend(_index_drift(json.loads(committed_text), built)[:20])
+        committed_versions = {
+            (str(entry.get("name")), str(version.get("version"))): version
+            for entry in committed.get("plugins", [])
+            for version in entry.get("versions", [])
+        }
         for entry in built["plugins"]:
             for version in entry["versions"]:
                 name = Path(str(version["source"]["url"])).name
@@ -411,7 +507,29 @@ def check(
                 shipped = out_dir / "artifacts" / name
                 if not shipped.is_file():
                     problems.append(f"artifacts/{name}: missing from the shipped marketplace")
-                elif sha256_hex(shipped.read_bytes()) != sha256_hex(fresh.read_bytes()):
+                    continue
+                measured = sha256_hex(shipped.read_bytes())
+                row = committed_versions.get((str(entry["name"]), str(version["version"])), {})
+                artifact = row.get("artifact") or {}
+                if artifact.get("sha256") != measured:
+                    problems.append(
+                        f"artifacts/{name}: artifact_sha256_mismatch "
+                        f"(index says {str(artifact.get('sha256'))[:12]}…, bytes measure {measured[:12]}…)"
+                    )
+                if artifact.get("sizeBytes") != shipped.stat().st_size:
+                    problems.append(
+                        f"artifacts/{name}: artifact_size_mismatch "
+                        f"(index says {artifact.get('sizeBytes')}, file is {shipped.stat().st_size})"
+                    )
+                if signed_shelf:
+                    committed_source = row.get("source") or {}
+                    if isinstance(committed_source.get("signature"), dict):
+                        if str(committed_source.get("sha256")) != measured:
+                            problems.append(f"artifacts/{name}: source_sha256_mismatch against the shipped bytes")
+                        problems.extend(_verify_shipped_signed_archive(shipped, fresh, str(entry["name"]), pem))
+                    elif measured != sha256_hex(fresh.read_bytes()):
+                        problems.append(f"artifacts/{name}: the shipped ZIP is not the one the builder packs")
+                elif measured != sha256_hex(fresh.read_bytes()):
                     problems.append(f"artifacts/{name}: the shipped ZIP is not the one the builder packs")
     for line in problems:
         print(f"build_marketplace: FAIL {line}")

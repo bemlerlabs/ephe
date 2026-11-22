@@ -1,27 +1,32 @@
 #!/usr/bin/env python3
 """A released tag has to name a commit that sits on the trunk.
 
-The v0.1.7 release was landed by a rebase merge: GitHub rewrote the commits, the
-tag kept the pre-rewrite lineage (`db1c0ba4`) and `main` named a different commit
-with the same tree. The artifacts were right and the provenance was not, which is
-the kind of defect nobody notices until a tag has to be checked against the
-source it claims to build.
+A rebase merge rewrites commits, so a tag cut before the rewrite can keep a lineage
+`main` no longer contains. The artifacts were built from the right tree and the
+provenance is still wrong, which is the kind of defect nobody notices until a tag has
+to be checked against the source it claims to build.
 
 This gate walks every `v*` tag, asks whether its commit is an ancestor of the
 base branch, and fails for a tag that is not. `scripts/provenance-baseline.json`
-records the one known divergence with its reason; a baseline entry that has
-become an ancestor is reported so the list can shrink. Diverged tags are never
-moved — the fix for a new one is to land by fast-forward and re-cut, and the
-fix for an old one is a recorded entry.
+records a divergence that will never be healed, with the reason; a baseline entry
+whose tag has since become an ancestor is reported so the list can shrink. Diverged
+tags are never moved — the fix for a new one is to land by fast-forward and re-cut,
+and the fix for a recorded one is to heal it on the trunk.
 
 Exit codes: 0 every tag is on the base or recorded, 1 an unrecorded divergence,
 2 the repository or the baseline cannot be read, or the checkout is shallow.
 
 A shallow checkout cannot answer the question: it carries the tags but not the
-commits behind them, so `merge-base` reports every older tag as diverged. The
-v0.1.9 release run failed this way (depth-1 checkout in the release gate) while
-the same tree passed on a full clone. The gate names the shallow state instead of
-failing a tag that sits on the trunk.
+commits behind them, so `merge-base` reports every older tag as diverged: a depth-1
+checkout in a release gate reddens tags that sit on the trunk. The gate names the
+shallow state instead of failing them.
+
+`--allow-unreleased` is for a trunk run over a tree that has never been released:
+no tag in the namespace and none in the baseline means there is no tag commit that
+could diverge, and the run says so out loud. A baseline naming a tag while the
+checkout lists none stays a "cannot decide" — that combination means the tags
+never reached the checkout. The release workflow keeps the strict default because
+a tag push is what triggers it.
 """
 from __future__ import annotations
 
@@ -129,6 +134,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--baseline", type=Path, default=BASELINE_DEFAULT)
     parser.add_argument(
+        "--allow-unreleased",
+        action="store_true",
+        help="pass a tree that has no tag and no baseline entry yet (trunk CI only)",
+    )
+    parser.add_argument(
         "--baseline-at",
         help="reject an entry this baseline adds over the one at this ref (CI passes the base)",
     )
@@ -151,6 +161,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if not names:
+        if known:
+            print(
+                f"provenance: cannot decide: {args.tag_namespace} lists no v* tag while the "
+                f"baseline records {len(known)}; the tags did not reach this checkout"
+            )
+            return 2
+        if args.allow_unreleased:
+            print(
+                "provenance: PASS — nothing has been released yet, so no tag commit can "
+                "diverge from the trunk"
+            )
+            return 0
         print(f"provenance: cannot decide: {args.tag_namespace} lists no v* tag")
         return 2
     if git("rev-parse", "--verify", args.base, cwd=args.root).returncode != 0:

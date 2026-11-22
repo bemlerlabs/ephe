@@ -1,0 +1,104 @@
+name: Bug report
+description: Something in Ephe does not do what the surface says it does.
+title: "Bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two answers decide most reports: which surface you were on, and what the tool approval
+        did. Start there and the exchange takes one round instead of five.
+
+        Redact before you paste: absolute paths, account names, provider keys, other people's
+        file names. A report can be useful with those removed.
+  - type: checkboxes
+    attributes:
+      label: Before you write
+      options:
+        - label: I searched the open issues and this is not reported yet.
+          required: true
+        - label: I removed paths, account names and keys from everything I pasted.
+          required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Where did you meet the problem?
+      options:
+        - Server and browser
+        - Phone, paired as a PWA
+        - Desktop app
+        - Terminal UI
+        - Command line
+        - Container
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ephe version
+      description: The version command prints it. A report without a version is a guess.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: machine
+    attributes:
+      label: Machine and operating system
+      description: Chip, memory and OS release. Everything here runs locally, so both matter.
+      placeholder: "macOS 15.5, Apple M4, 16 GB"
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Engine route
+      description: Ephe runs on a model you name. Say which route the turn took.
+      options:
+        - A model server on this machine
+        - A remote API behind a key I supplied
+        - The failure happened before any model turn
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect
+      description: A few lines each. The expected behaviour is the useful half.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to the failure
+      placeholder: |
+        1. Opened …
+        2. Typed …
+        3. Approved the tool call for …
+        4. Saw …
+    validations:
+      required: true
+  - type: textarea
+    id: approvals
+    attributes:
+      label: Tool approvals
+      description: Which tools were asked for, and which did you approve or refuse? A refusal you did not expect is usually the whole report.
+    validations:
+      required: false
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: What the surface printed. Formatted as code automatically, so backticks are not needed.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you already tried
+      placeholder: Restarted the server, ran the same task with …, started from a fresh workspace
+    validations:
+      required: false

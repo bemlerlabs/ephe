@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import ChatLayout from '@/components/dashboard/ChatLayout'
 import { useChatStore } from '@/store/chatStore'
+import { streamChat } from '@/lib/stream'
 
 // jsdom has no scrollIntoView (ChatLayout calls it in the auto-scroll effect)
 beforeEach(() => {
@@ -160,7 +161,7 @@ vi.mock('@/lib/api', () => ({
   ),
 }))
 vi.mock('@/lib/stream', () => ({
-  streamChat: () => new Promise(() => {}),
+  streamChat: () => Promise.resolve(),
   StreamChatError: class StreamChatError extends Error {},
 }))
 vi.mock('@/hooks/useTauriWindow', () => ({
@@ -256,5 +257,9 @@ describe('ChatLayout slash commands (G6)', () => {
       },
       { timeout: 5000 },
     )
+  })
+
+  it('streamChat resolves without hanging (G6)', async () => {
+    await expect(streamChat({} as any, {} as any)).resolves.toBeUndefined()
   })
 })

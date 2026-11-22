@@ -39,11 +39,11 @@ def _registry() -> PluginRegistry:
 
 def test_registry_represents_the_whole_portfolio() -> None:
     registry = _registry()
-    assert len(registry.plugins) == 17
+    assert len(registry.plugins) == 19
     # The image-studio skill is the one past the old pin of 60.
     assert len(registry.capabilities(CapabilityKind.SKILL)) == 61
     assert len(registry.capabilities(CapabilityKind.MCP_SERVER)) == 7
-    assert len(registry.capabilities(CapabilityKind.COMMAND)) == 32
+    assert len(registry.capabilities(CapabilityKind.COMMAND)) == 42
 
 
 def test_the_five_duplicate_commands_are_not_registered() -> None:
@@ -126,7 +126,7 @@ def test_builtin_tool_adapter_uses_the_kernel_owner() -> None:
 def test_every_declared_tool_has_one_activation_owner() -> None:
     registry = _registry()
     activations = dict(registry.tool_activations())
-    assert len(activations) == 47
+    assert len(activations) == 66
     assert "delete_file" not in activations
     assert activations["web_search"] == "web-research"
     assert activations["memory"] == "memory"
@@ -151,6 +151,25 @@ def test_every_declared_tool_has_one_activation_owner() -> None:
         "edit_pptx_template", "qa_pptx_deck", "create_diagram", "create_svg",
         "generate_image",
         "synthesize", "transcribe",
+        "ephe_motion_create_project",
+        "ephe_motion_open_project",
+        "ephe_motion_list_assets",
+        "ephe_motion_import_asset",
+        "ephe_motion_read_source",
+        "ephe_motion_write_source",
+        "ephe_motion_inspect_project",
+        "ephe_motion_list_timeline",
+        "ephe_motion_trim_clip",
+        "ephe_motion_reorder_clips",
+        "ephe_motion_add_caption",
+        "ephe_motion_apply_brand",
+        "ephe_motion_render",
+        "ephe_motion_render_status",
+        "ephe_motion_cancel_render",
+        "ephe_motion_export_project",
+        "ephe_motion_wait_render",
+        "ephe_template_list",
+        "ephe_template_apply",
     }
     contributed = [
         cap
@@ -161,6 +180,7 @@ def test_every_declared_tool_has_one_activation_owner() -> None:
     assert {cap.owner for cap in contributed} == {
         "web-research", "memory", "browser-use", "vision", "code-shell",
         "documents", "spreadsheets", "presentations", "image-studio", "voice",
+        "ephe-motion-studio", "ephe-template-library",
     }
     assert activations["generate_image"] == "image-studio"
     assert activations["vision_click"] == "vision"

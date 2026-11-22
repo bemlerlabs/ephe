@@ -7,8 +7,34 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-Nothing yet. Changes land here between releases and move down with the next tag.
+### Added
 
+- plugins: the two studio bundles held out of the first release now ship with their
+  implementations, tests and provenance. `ephe-motion-studio` cuts a motion film on this machine
+  through ffmpeg and refuses when ffmpeg is absent; `ephe-template-library` copies a licensed
+  template and carries its source and sha256 beside it (`6ce3c6d`).
+- community: reports arrive through forms. A bug report, an install and first-run report and a
+  capability request under `.github/ISSUE_TEMPLATE/`; a question, an idea and a built-with-ephe
+  post under `.github/DISCUSSION_TEMPLATE/`. A free-form issue is no longer offered, and
+  `SECURITY.md` stays the only channel for a finding.
+
+### Fixed
+
+- A bundle's identity no longer follows the interpreter's bytecode cache: importing a plugin
+  handler in a test run moved the digest the catalogue and the signature are computed over, so a
+  fresh checkout and a warm working tree disagreed and the freshness gate failed on the two new
+  bundles. The catalogue now carries the hashes a clean checkout computes.
+- frontend: the ChatLayout slash tests wait for the streamed reply to settle instead of racing the
+  mock, which made the leg pass or fail on scheduling (`61b2063`).
+- docs: the Chinese and Spanish READMEs and `docs/PLUGINS_OVERVIEW.md` state nineteen bundles,
+  twelve plugins and seven presets, the numbers `marketplace/index.json` reports; the English
+  README already did.
+
+### Changed
+
+- brand: the page title, the social card fields, the install manifest and the terminal's start
+  banner open with the two lines the READMEs carry under the mark, instead of a descriptor built
+  from the project name.
 ## [0.1.0] - 2026-11-21
 
 The first public release. Every entry below names a surface this repository

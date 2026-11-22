@@ -52,6 +52,11 @@
           "en": "Skills"
         }
       },
+      "templates": {
+        "title": {
+          "en": "Templates"
+        }
+      },
       "vision": {
         "title": {
           "en": "Vision"
@@ -142,9 +147,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/browser-use-1.2.0.zip",
+            "sha256": "52a3889907f7a6a3165df1df1953e99ef8af70493ca486197c9dbe4412cea2db",
+            "sizeBytes": 6593
+          },
           "components": [
             "skills",
             "commands",
@@ -162,7 +172,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "fd11ea3614e006936242579ea8b1971b4af816d53fe3d3a0747425e704dcbda3",
+            "sha256": "52a3889907f7a6a3165df1df1953e99ef8af70493ca486197c9dbe4412cea2db",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "browser-use",
+              "sha256": "5925af361eea4d20e5281014ec847619e3fc4e9b1f69574b966c571b19667a14",
+              "signature": "MEUCIQDxSHVJfhLcY/G7/T8VlPx+fH1kpaq7eU8qvfOBI3QF5gIgW6nlExnT+nTS0Zte2N3ZFsbQOXrhVwk0c9Iu75AmY7M=",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/browser-use-1.2.0.zip"
           },
@@ -194,6 +212,11 @@
       "trust": "bundled",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/business-pack-1.0.0.zip",
+            "sha256": "f2a3dcd9da4609bc64b531b3ac74d5907808dea7a7646126f084133b14174abf",
+            "sizeBytes": 23857
+          },
           "components": [
             "skills"
           ],
@@ -240,9 +263,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/code-shell-1.2.0.zip",
+            "sha256": "6706d2590665f5e2b416700ef8e82441655948e628c92d13108af38cab6321be",
+            "sizeBytes": 7975
+          },
           "components": [
             "skills",
             "commands",
@@ -261,7 +289,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "e3751d812d55723def1519a61292224f042462422fa7a5f44660f996c5ecdc45",
+            "sha256": "6706d2590665f5e2b416700ef8e82441655948e628c92d13108af38cab6321be",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "code-shell",
+              "sha256": "6cfc67ec22217dd9612cf5cc6124cce455656eb606062c1b9255c7583f86b305",
+              "signature": "MEUCID4CM2ru4FlI+i98JHLiOvM8hvW7wQkmAJVAPWI6cWQ2AiEA7vK4uezyExYgPVcA5ZHfQfW8XMFWBzYY9ouAvv/hTgk=",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/code-shell-1.2.0.zip"
           },
@@ -289,9 +325,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/countdown-0.1.0.zip",
+            "sha256": "f1dd7a97780f600bfe13c8a8c26d6aa54f2c5ac736296054d65222af2be15206",
+            "sizeBytes": 5700
+          },
           "components": [
             "ui"
           ],
@@ -306,7 +347,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "6a89ff7b1c1db503ee850ae109224563f902c79f1a327f7b4c1aad41f7466f9b",
+            "sha256": "f1dd7a97780f600bfe13c8a8c26d6aa54f2c5ac736296054d65222af2be15206",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "countdown",
+              "sha256": "235f1968af7340cfff10c52086e3f2769c5ce23e16dc7106a5998dd5c6b1d5d1",
+              "signature": "MEUCIB/F8NMX1gyS2M5wM6UbQv/Hc/yPTdPLFvF9NgCa+TZHAiEA5sXtHZT6J5MudfgzRdvkBl2ASy7lbWA75D8bcmijQtE=",
+              "version": "0.1.0"
+            },
             "type": "zip",
             "url": "artifacts/countdown-0.1.0.zip"
           },
@@ -338,6 +387,11 @@
       "trust": "bundled",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/dev-pack-1.0.0.zip",
+            "sha256": "ca29b010d05093c400844a1681201cc9a86f4e273b9e3f2f6b3dbdf771f17cc0",
+            "sizeBytes": 34680
+          },
           "components": [
             "skills"
           ],
@@ -384,9 +438,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/documents-1.2.0.zip",
+            "sha256": "397b4a5aba7049e99725f2c43f1cea247fce21b237c78c50ede7ad6360d8720c",
+            "sizeBytes": 9570
+          },
           "components": [
             "skills",
             "commands",
@@ -404,11 +463,144 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "a63828e143a2b3e0f194464b5b0555789862e369ffff64ea9db9624bc6c959d6",
+            "sha256": "397b4a5aba7049e99725f2c43f1cea247fce21b237c78c50ede7ad6360d8720c",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "documents",
+              "sha256": "1324b85639d26b1ec9dd9a3008cfb9e53e0c0a495eac3261df6d6768d02dec5a",
+              "signature": "MEUCIGOMoUV4mnSxX5Brm9kQakDD1iyz8+39qz7xBr7njrURAiEAlbbm+agUCQj8BNb1rlk/OT1WTJ8zDBTJMykBAmkdc9Y=",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/documents-1.2.0.zip"
           },
           "version": "1.2.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "meta"
+      ],
+      "description": {
+        "en": "Local motion films from HTML, CSS and JS sources: a timeline, captions, a brand kit and a render queue that cuts frames to MP4 on this machine."
+      },
+      "displayName": "Ephe Motion Studio",
+      "icon": {
+        "alt": "Ephe Motion Studio",
+        "dark": "icons/ephe-motion-studio.svg",
+        "light": "icons/ephe-motion-studio.svg"
+      },
+      "name": "ephe-motion-studio",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "official",
+      "versions": [
+        {
+          "artifact": {
+            "file": "artifacts/ephe-motion-studio-1.0.0.zip",
+            "sha256": "8829b85877e7db08562ea684bd3ad8373cc55c49444f2df801df0dfb738a3351",
+            "sizeBytes": 13225
+          },
+          "components": [
+            "skills",
+            "commands",
+            "ui",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.0"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write",
+              "docs"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "8829b85877e7db08562ea684bd3ad8373cc55c49444f2df801df0dfb738a3351",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "ephe-motion-studio",
+              "sha256": "f38ef782ede4894cea687db5000e7f9177b2ae4c1d00b23d754525b5965ae46b",
+              "signature": "MEUCIEHKpbvUq+JuNQc9iI1sQ+S0y4lgoVcE8BTxHosYT1KWAiEA5W24bEcX+i7H37oWGTsZUs7Jr3v2cYAfNBH0hcTbNyY=",
+              "version": "1.0.0"
+            },
+            "type": "zip",
+            "url": "artifacts/ephe-motion-studio-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "templates"
+      ],
+      "description": {
+        "en": "Curated, licence-audited local templates for sites, worlds and motion scenes."
+      },
+      "displayName": "Ephe Template Library",
+      "icon": {
+        "alt": "Ephe Template Library",
+        "dark": "icons/ephe-template-library.svg",
+        "light": "icons/ephe-template-library.svg"
+      },
+      "name": "ephe-template-library",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "official",
+      "versions": [
+        {
+          "artifact": {
+            "file": "artifacts/ephe-template-library-1.0.0.zip",
+            "sha256": "9ddce3f65c851b950bb7c974ee9102e2b37166741f1326e064e87ad259f55842",
+            "sizeBytes": 28172
+          },
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.0"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write",
+              "docs"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "9ddce3f65c851b950bb7c974ee9102e2b37166741f1326e064e87ad259f55842",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "ephe-template-library",
+              "sha256": "adf160db0957447e7b3b05dc9b4954033a661f87899ca06999fa00664d39465b",
+              "signature": "MEUCIQDNA2HgylUoOsb1Wx/6rDdvdZMz4evCjNCuBnrU549pQAIgJr37iQKJSPoUq9ylSBvrAtBKrt03GhrPBhyX6Wj20P8=",
+              "version": "1.0.0"
+            },
+            "type": "zip",
+            "url": "artifacts/ephe-template-library-1.0.0.zip"
+          },
+          "version": "1.0.0"
         }
       ]
     },
@@ -432,9 +624,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/guide-1.0.0.zip",
+            "sha256": "4bdc9862066780330a60be7f765b99e88f1a3b32e9bcaf1c32394518d7d98cf9",
+            "sizeBytes": 2419
+          },
           "components": [
             "commands"
           ],
@@ -449,7 +646,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "bb9b4f4f51d3ed1fb519de3ae576d6ab2a4e20afd804ecf1dfefde8895dc52c9",
+            "sha256": "4bdc9862066780330a60be7f765b99e88f1a3b32e9bcaf1c32394518d7d98cf9",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "guide",
+              "sha256": "1ba00b86a5aba32e0d70e5876af17e36aa83777e735cba6661acb68f1a225c9f",
+              "signature": "MEUCIBLIsv0MG5CVEOWNdll70WHad7f4tVBUd8TUkFSfiHdnAiEA3CO3Y+3ZEqhlHqf7ah5qdqeY+YJP5jPgJ5qg26EtHsQ=",
+              "version": "1.0.0"
+            },
             "type": "zip",
             "url": "artifacts/guide-1.0.0.zip"
           },
@@ -477,9 +682,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/image-studio-1.2.0.zip",
+            "sha256": "e6779fcc54f982535d6f93642f316eff7eef60e735e58b13c312c4e47e85f2dc",
+            "sizeBytes": 5194
+          },
           "components": [
             "skills",
             "tools"
@@ -495,7 +705,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "6f31358fa7eb256b01ae9ae18f4c2aed12603141302a17023536ef00a15af8a4",
+            "sha256": "e6779fcc54f982535d6f93642f316eff7eef60e735e58b13c312c4e47e85f2dc",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "image-studio",
+              "sha256": "b49cd7d1784ecc3924314b1cd23cf8588b5a7c03acc9ee444599807d9e9ea799",
+              "signature": "MEUCIQCyLE5sbpPDecOXJutUZOtE8aBIYM5HtVq1It1fXWE7CwIgWasMIMoc61y09NM/buNsWg8gRNlrgjQb/Zs82JiY3bA=",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/image-studio-1.2.0.zip"
           },
@@ -523,9 +741,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/local-document-factory-1.0.0.zip",
+            "sha256": "83aec1fd740357eab738a6ff217c8dfae739c35e34fb918e88f29b07ca984735",
+            "sizeBytes": 9740
+          },
           "components": [
             "skills",
             "commands"
@@ -543,7 +766,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "3820032f0f8ad5b416f84fa226cfb7ab21b88909ace38ac75aa24c7b672e4375",
+            "sha256": "83aec1fd740357eab738a6ff217c8dfae739c35e34fb918e88f29b07ca984735",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "local-document-factory",
+              "sha256": "9e2a52915049d53e3d80e15f91b87d1f9698cfa7dacdc294a7fa6f201db7a0ef",
+              "signature": "MEQCIGxTtW7W2h7hbX87eb/WesmejGQGQJBkYHvW0winH2DMAiA/b8csU7u4tnU+/Ak2D7TMGumT6klFtczzbAe2/qF6SA==",
+              "version": "1.0.0"
+            },
             "type": "zip",
             "url": "artifacts/local-document-factory-1.0.0.zip"
           },
@@ -571,9 +802,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/mcp-connector-1.0.0.zip",
+            "sha256": "4ec26218952b2f224860f33e9a2579eb7380762bc0bd8dd699230d3262da4be1",
+            "sizeBytes": 2359
+          },
           "components": [],
           "engines": {
             "ephe": ">=0.1.0"
@@ -587,7 +823,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "8b524bec48d692e18fd493dd4d694dac60caddd330595a62b756acd396ef6218",
+            "sha256": "4ec26218952b2f224860f33e9a2579eb7380762bc0bd8dd699230d3262da4be1",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "mcp-connector",
+              "sha256": "b486372bf2b5b6d3a25047348c6fd810005c4106db5b4af9ce350f9e12cba6ff",
+              "signature": "MEYCIQC4bpDmzbh81qJNXzw80RUC0Ydawn8ouL5kW5A1Pz8OQwIhAMhzc1Drbhd2dYm9HFv6YMobxHA4f8jBDviejWBK9LwR",
+              "version": "1.0.0"
+            },
             "type": "zip",
             "url": "artifacts/mcp-connector-1.0.0.zip"
           },
@@ -624,9 +868,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/memory-1.2.0.zip",
+            "sha256": "45f6a83bfa7168656ac6c8bee967e4596793e3506f7c1ca7c557f053560436ad",
+            "sizeBytes": 5572
+          },
           "components": [
             "skills",
             "commands",
@@ -643,7 +892,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "ab4a75631676b300bd2c35b1e8a484cef075d5e95e7aa9f1ea19d3fb3b0d4899",
+            "sha256": "45f6a83bfa7168656ac6c8bee967e4596793e3506f7c1ca7c557f053560436ad",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "memory",
+              "sha256": "13166eeb416173acab5067854d73e70739d71109c74e2d3e9ad13dbe3807e3e8",
+              "signature": "MEUCIQCf6SaNREbrnd1/gKS4bvQdJKHNgijEGQtTqeGbg1GCeAIgehQIYJ6legKdXjVQuIkPILK8LUdsVa7om7hsyc8kXBg=",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/memory-1.2.0.zip"
           },
@@ -675,6 +932,11 @@
       "trust": "bundled",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/office-pack-1.0.0.zip",
+            "sha256": "8553bbad4bc4759fa9194e3af4b9487c26291075bde7dbf3f28b3aa14cac605b",
+            "sizeBytes": 29578
+          },
           "components": [
             "skills"
           ],
@@ -712,9 +974,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/plugin-creator-1.0.0.zip",
+            "sha256": "21c48251fd90e6bc2bb450c14ca9ffdea634eafc948c23e037d35ea1c5e516b4",
+            "sizeBytes": 3054
+          },
           "components": [
             "commands"
           ],
@@ -730,7 +997,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "572c27e93fb88792643025279403a6367bd49d1f8c4e271c429c04782a282235",
+            "sha256": "21c48251fd90e6bc2bb450c14ca9ffdea634eafc948c23e037d35ea1c5e516b4",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "plugin-creator",
+              "sha256": "a3516e4accac87abb949cb18f642fd2b9737fe09f91a046a713364a08b0371f8",
+              "signature": "MEQCIGhTmYs2eyE/kKUdbJs6bTnkbd3+YLkxF19MIsgFbSxNAiBewW70dPeWaDTcduzt/PmpOc+xoL9ZPoinhEKNcAwcNA==",
+              "version": "1.0.0"
+            },
             "type": "zip",
             "url": "artifacts/plugin-creator-1.0.0.zip"
           },
@@ -767,9 +1042,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/presentations-1.2.0.zip",
+            "sha256": "e49e536f6584188ac3607189490e7b410377b79e136ecfe61d4c5dbf59237e1d",
+            "sizeBytes": 9809
+          },
           "components": [
             "skills",
             "commands",
@@ -787,7 +1067,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "4bf0ea3ddf92cb5e1e97b8519fcaa79c48235d2dd266ab85c8ec8549092639b0",
+            "sha256": "e49e536f6584188ac3607189490e7b410377b79e136ecfe61d4c5dbf59237e1d",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "presentations",
+              "sha256": "0dbf37e2e4f46b1aa45b5a1e4f5c22e40977d4b272ded67ee6852699cf483538",
+              "signature": "MEYCIQCPLqjzRizhf5M8f0hsuHeu3JUup+XqiivWClW705Db9AIhAPDWyvj+EWQn1qd3NGCYAkVfD1TsgrYn6T0QfZPrgU3N",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/presentations-1.2.0.zip"
           },
@@ -815,9 +1103,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/private-research-notebook-1.0.0.zip",
+            "sha256": "4d0aa532535e301eb8cb350fc1e14f889644ebfd683618ba6ceb96c4c89c80ab",
+            "sizeBytes": 9542
+          },
           "components": [
             "skills",
             "commands"
@@ -835,7 +1128,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "7d40805a61374d39a679056c085890cfcb3fdb1468a6fffc7bad656f7eb4cc49",
+            "sha256": "4d0aa532535e301eb8cb350fc1e14f889644ebfd683618ba6ceb96c4c89c80ab",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "private-research-notebook",
+              "sha256": "5bdd46eb3360bc95b73fbcb21aa6efea9c3237778adab42237317486eef4d0fc",
+              "signature": "MEUCICl3Wau6htsy0isEYeNUbfoqeLW1P2cYF45x3KoWlei5AiEAlA4RUZAH7R65zl3qAbIulk7tVXplo2vbK3c9IDijzhM=",
+              "version": "1.0.0"
+            },
             "type": "zip",
             "url": "artifacts/private-research-notebook-1.0.0.zip"
           },
@@ -867,6 +1168,11 @@
       "trust": "bundled",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/research-pack-1.0.0.zip",
+            "sha256": "a99f8ac8a0d302f61a19c2fd906925e3d6ca27f72d494778279af7522e790f63",
+            "sizeBytes": 18782
+          },
           "components": [
             "skills"
           ],
@@ -904,9 +1210,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/skill-creator-1.0.0.zip",
+            "sha256": "894798fdc27e68d06dff4bf2a804392f7aff5beeae48d3298f8eb97decdd4657",
+            "sizeBytes": 2475
+          },
           "components": [
             "commands"
           ],
@@ -922,7 +1233,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "c1ac29c950f37fc5af9c3de570a2abf8e952558be10ed18472b27ec95524eade",
+            "sha256": "894798fdc27e68d06dff4bf2a804392f7aff5beeae48d3298f8eb97decdd4657",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "skill-creator",
+              "sha256": "7af37a848d4dd14bab04cf0acf3dd5c6131eb07c4fd49387b8f7a49eb10a82f0",
+              "signature": "MEYCIQD8F0xuegxAqOsP9sdKs8zivfp32gSqaKI/Jrfixg1NswIhAPaoqs+Ad4x2SANCEJvWmrGgA8ZKbsRpOyKb0AtDiTOr",
+              "version": "1.0.0"
+            },
             "type": "zip",
             "url": "artifacts/skill-creator-1.0.0.zip"
           },
@@ -959,9 +1278,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/spreadsheets-1.2.0.zip",
+            "sha256": "85b86e51280a01f43afd7f00a4619d4873efb9ddf63df14d6d77bc25903161da",
+            "sizeBytes": 7421
+          },
           "components": [
             "skills",
             "commands",
@@ -979,7 +1303,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "9487f81c637806a87b822329511e83df4d6b3a2edb216e5994321bb67c4ede8a",
+            "sha256": "85b86e51280a01f43afd7f00a4619d4873efb9ddf63df14d6d77bc25903161da",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "spreadsheets",
+              "sha256": "f33a1883f62eb3f276028aead734cf17a7a9b575a4eebbc8bafdf5c787171bd7",
+              "signature": "MEUCIQCyfTc3mXi8tg+gIhrD7bkdVM4Pmv7JrXD+Q4ZyZ3oJKwIgFi8SjCQ47VHdSpRxMpNO26IfJUYM9y7t9Ca8iijeNBw=",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/spreadsheets-1.2.0.zip"
           },
@@ -1006,6 +1338,11 @@
       "trust": "bundled",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/superpowers-1.0.0.zip",
+            "sha256": "5e608a36fb15d98cb5ef3052fb7ec221e5d772bdd3c8043f530073fcdb9f1fc4",
+            "sizeBytes": 41163
+          },
           "components": [
             "skills"
           ],
@@ -1046,9 +1383,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/vision-1.2.0.zip",
+            "sha256": "fd8a7fc2d9896c25c50935cb2dadb6951cb16aefec9cb9a9b7c3ac9a0c90af3a",
+            "sizeBytes": 3919
+          },
           "components": [
             "tools"
           ],
@@ -1063,7 +1405,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "8a0570388ef63ba0c734f81e8d9fe0d24983f2468be9607d45d6ca4ab6aae496",
+            "sha256": "fd8a7fc2d9896c25c50935cb2dadb6951cb16aefec9cb9a9b7c3ac9a0c90af3a",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "vision",
+              "sha256": "4361265be748aa38f644c77995db3404191900ee816305cc4cbb95ea1c8061b1",
+              "signature": "MEYCIQD6rbopy/wlDTVyk/SPdxD7K9XoXq96317PSzXYIkinQwIhANnOCOnC3r3de5VJXYWPHGXQKLLpfg0X1NS3JL02ayXl",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/vision-1.2.0.zip"
           },
@@ -1091,9 +1441,14 @@
         "verified": true
       },
       "quality_label": "capability-preset",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/voice-1.1.0.zip",
+            "sha256": "f7b0f05241c449aa989b3acc7ecab543124066737f27ca3888e73c308ff424b6",
+            "sizeBytes": 3296
+          },
           "components": [
             "tools"
           ],
@@ -1108,7 +1463,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "62027e7ed6e8715ba2dba73804f5d73d9f0a2d0bfd135e1a5d936067e5754510",
+            "sha256": "f7b0f05241c449aa989b3acc7ecab543124066737f27ca3888e73c308ff424b6",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "voice",
+              "sha256": "ffeb508df621a57b6bdcb144fad076e1958cadc7d366264a70cb78d369968108",
+              "signature": "MEUCIQDoPLMyTod10stswZtfgPDGrqaBncOxA56PhiwMj2vZRQIgP6ZMS0Le9vqhGonGHLKbE+iepwARlnLQ7gyfMb+ihe0=",
+              "version": "1.1.0"
+            },
             "type": "zip",
             "url": "artifacts/voice-1.1.0.zip"
           },
@@ -1145,9 +1508,14 @@
         "verified": true
       },
       "quality_label": "plugin",
-      "trust": "bundled",
+      "trust": "official",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/web-research-1.2.0.zip",
+            "sha256": "0c346b2c2a2599005a5c49eed670b0402ec70932792129f8162e3a8d47699454",
+            "sizeBytes": 5732
+          },
           "components": [
             "skills",
             "commands",
@@ -1165,7 +1533,15 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "fc6d7e51e03d0f8ef309c60570cbe26ea9e911a7156703c545bd2702d294af92",
+            "sha256": "0c346b2c2a2599005a5c49eed670b0402ec70932792129f8162e3a8d47699454",
+            "signature": {
+              "alg": "ES256",
+              "kid": "first-party",
+              "name": "web-research",
+              "sha256": "fc8ada560f2824387a0ba6e308c8afc4fd27b624d9907db1dd93c4474220aab2",
+              "signature": "MEQCIHK5EKLKeAs5aPExGATgL7iiC7lGqlmx/MbCHFUlQMN1AiAzH7mwYXUdUSoZRZ0ypAlIgHt9KtutEgUgZq4oX0eKvA==",
+              "version": "1.2.0"
+            },
             "type": "zip",
             "url": "artifacts/web-research-1.2.0.zip"
           },
@@ -1197,6 +1573,11 @@
       "trust": "bundled",
       "versions": [
         {
+          "artifact": {
+            "file": "artifacts/writing-pack-1.0.0.zip",
+            "sha256": "3fe5a249df302507fa43deff9dcf521c19ea2871c44120453f9d3bd6d3028f34",
+            "sizeBytes": 18105
+          },
           "components": [
             "skills"
           ],
@@ -1214,5 +1595,10 @@
         }
       ]
     }
-  ]
+  ],
+  "signature": {
+    "alg": "ES256",
+    "kid": "first-party",
+    "signature": "MEUCIQDPixcO1rbZKxjQvBkYRHNlTyOPMfiStSPsfkppZVlO2wIgXhSZRwny8/15QPCdcjMZzkOAfjxXtyB9a8PHRnHPz0U="
+  }
 }
