@@ -1,0 +1,331 @@
+{
+  "manifest_version": 2,
+  "name": "ephe-motion-studio",
+  "version": "1.0.0",
+  "description": "Local motion films from HTML, CSS and JS sources: a timeline, captions, a brand kit and a render queue that cuts frames to MP4 on this machine.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "origin": "first-party",
+  "icon": "icon.svg",
+  "engines": {
+    "ephe": ">=0.1.0"
+  },
+  "permissions": {
+    "tool_families": [
+      "read",
+      "write",
+      "docs"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [
+      "motion-studio"
+    ],
+    "commands": [
+      {
+        "name": "motion-new",
+        "description": "Create a motion project and write its first sources",
+        "template": "Create a motion project for: {input}. Call ephe_motion_create_project, then ephe_motion_write_source for the HTML, CSS and JS sources. Name the project id and the revision you wrote."
+      },
+      {
+        "name": "motion-open",
+        "description": "Open a motion project and read its timeline",
+        "template": "Open the motion project for: {input}. Call ephe_motion_open_project, then ephe_motion_list_timeline and ephe_motion_inspect_project. Report the revision and the clip count."
+      },
+      {
+        "name": "motion-import",
+        "description": "Import a local asset into a motion project",
+        "template": "Import an asset for: {input}. Call ephe_motion_import_asset with the local path, then ephe_motion_list_assets. Name the asset id and its path."
+      },
+      {
+        "name": "motion-templates",
+        "description": "List the shipped motion source templates",
+        "template": "List the motion templates for: {input}. Call ephe_motion_inspect_project and name the template ids that fit; leave the project unwritten."
+      },
+      {
+        "name": "motion-assets",
+        "description": "List the assets a motion project holds",
+        "template": "List the assets for: {input}. Call ephe_motion_list_assets and name each asset id, its path and its size."
+      },
+      {
+        "name": "motion-render",
+        "description": "Render a motion project to MP4",
+        "template": "Render the motion project for: {input}. Call ephe_motion_render, then ephe_motion_wait_render with the render id. Name the MP4 path and its duration."
+      },
+      {
+        "name": "motion-brand",
+        "description": "Apply a brand kit to a motion project",
+        "template": "Apply the brand kit for: {input}. Call ephe_motion_apply_brand with the colours, font and logo asset, then ephe_motion_inspect_project. Name the revision."
+      }
+    ],
+    "ui": {
+      "type": "canvas-overlay",
+      "entry": "ui/index.html",
+      "title": "Motion Studio",
+      "default_size": {
+        "width": 1180,
+        "height": 780
+      },
+      "capabilities": []
+    },
+    "tools": [
+      {
+        "name": "ephe_motion_create_project",
+        "entry": "tools/handlers.py:ephe_motion_create_project",
+        "family": "write",
+        "description": "Create a motion project: one JSON document with scenes, a timeline, captions and a brand kit, written under the plugin state root.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "width": {"type": "integer"},
+            "height": {"type": "integer"},
+            "fps": {"type": "integer"},
+            "duration": {"type": "number"},
+            "template": {"type": "string"}
+          },
+          "required": ["name"]
+        }
+      },
+      {
+        "name": "ephe_motion_open_project",
+        "entry": "tools/handlers.py:ephe_motion_open_project",
+        "family": "read",
+        "description": "Read one motion project and its current revision.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"}
+          },
+          "required": ["project_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_list_assets",
+        "entry": "tools/handlers.py:ephe_motion_list_assets",
+        "family": "read",
+        "description": "List the assets a motion project holds, with id, path, media type and size.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"}
+          },
+          "required": ["project_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_import_asset",
+        "entry": "tools/handlers.py:ephe_motion_import_asset",
+        "family": "write",
+        "description": "Copy one local asset into a motion project under its own asset id.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "source_path": {"type": "string"},
+            "name": {"type": "string"},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "source_path"]
+        }
+      },
+      {
+        "name": "ephe_motion_read_source",
+        "entry": "tools/handlers.py:ephe_motion_read_source",
+        "family": "read",
+        "description": "Read one HTML, CSS or JS source of a motion project.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "path": {"type": "string"},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "path"]
+        }
+      },
+      {
+        "name": "ephe_motion_write_source",
+        "entry": "tools/handlers.py:ephe_motion_write_source",
+        "family": "write",
+        "description": "Write one HTML, CSS or JS source of a motion project. expected_revision is a 64-hex conflict check: a stale revision is refused and nothing is written.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "path": {"type": "string"},
+            "content": {"type": "string"},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "path", "content", "expected_revision"]
+        }
+      },
+      {
+        "name": "ephe_motion_inspect_project",
+        "entry": "tools/handlers.py:ephe_motion_inspect_project",
+        "family": "read",
+        "description": "Summarize a motion project: schema, revision, duration, clip count, caption count, assets and sources.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"}
+          },
+          "required": ["project_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_list_timeline",
+        "entry": "tools/handlers.py:ephe_motion_list_timeline",
+        "family": "read",
+        "description": "List the clips and captions of a motion project in timeline order.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"}
+          },
+          "required": ["project_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_trim_clip",
+        "entry": "tools/handlers.py:ephe_motion_trim_clip",
+        "family": "write",
+        "description": "Trim one clip to a new start and duration, under the revision conflict check.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "clip_id": {"type": "string"},
+            "start": {"type": "number"},
+            "duration": {"type": "number"},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "clip_id", "start", "duration", "expected_revision"]
+        }
+      },
+      {
+        "name": "ephe_motion_reorder_clips",
+        "entry": "tools/handlers.py:ephe_motion_reorder_clips",
+        "family": "write",
+        "description": "Reorder the timeline by naming the clip ids in their new order, under the revision conflict check.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "clip_ids": {"type": "array", "items": {"type": "string"}},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "clip_ids", "expected_revision"]
+        }
+      },
+      {
+        "name": "ephe_motion_add_caption",
+        "entry": "tools/handlers.py:ephe_motion_add_caption",
+        "family": "write",
+        "description": "Add one caption to the timeline, under the revision conflict check.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "text": {"type": "string"},
+            "start": {"type": "number"},
+            "duration": {"type": "number"},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "text", "start", "duration", "expected_revision"]
+        }
+      },
+      {
+        "name": "ephe_motion_apply_brand",
+        "entry": "tools/handlers.py:ephe_motion_apply_brand",
+        "family": "write",
+        "description": "Apply a brand kit (name, colours, font, logo asset) to a motion project, under the revision conflict check.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "brand": {"type": "object"},
+            "expected_revision": {"type": "string"}
+          },
+          "required": ["project_id", "brand", "expected_revision"]
+        }
+      },
+      {
+        "name": "ephe_motion_render",
+        "entry": "tools/handlers.py:ephe_motion_render",
+        "family": "write",
+        "description": "Render a motion project to MP4: the sources load in Chromium, frames are captured with Playwright, and ffmpeg cuts them to a video on this machine.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "expected_revision": {"type": "string"},
+            "output_name": {"type": "string"}
+          },
+          "required": ["project_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_render_status",
+        "entry": "tools/handlers.py:ephe_motion_render_status",
+        "family": "read",
+        "description": "Read the status of one render: pending, running, done, cancelled or failed, with the artifact path when it is done.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "render_id": {"type": "string"}
+          },
+          "required": ["project_id", "render_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_cancel_render",
+        "entry": "tools/handlers.py:ephe_motion_cancel_render",
+        "family": "write",
+        "description": "Cancel one pending or running render. A render that already finished is left alone.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "render_id": {"type": "string"}
+          },
+          "required": ["project_id", "render_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_export_project",
+        "entry": "tools/handlers.py:ephe_motion_export_project",
+        "family": "write",
+        "description": "Export a motion project as a ZIP of its JSON document, sources and assets, under the plugin state root or a folder the user names.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "target_dir": {"type": "string"}
+          },
+          "required": ["project_id"]
+        }
+      },
+      {
+        "name": "ephe_motion_wait_render",
+        "entry": "tools/handlers.py:ephe_motion_wait_render",
+        "family": "read",
+        "description": "Wait for one render to finish, polling its status until it is done, cancelled or failed, or the timeout passes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {"type": "string"},
+            "render_id": {"type": "string"},
+            "timeout": {"type": "number"}
+          },
+          "required": ["project_id", "render_id"]
+        }
+      }
+    ]
+  },
+  "changelog": "1.0.0 - Ephe Motion Studio: a local motion project model with HTML, CSS and JS sources, a revision conflict check, captions, a brand kit and a Playwright plus ffmpeg render path."
+}

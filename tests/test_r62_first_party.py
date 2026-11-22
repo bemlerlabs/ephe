@@ -36,6 +36,7 @@ EXPECTED_IDS = {
     "documents", "spreadsheets", "presentations",
     "plugin-creator", "skill-creator", "guide",
     "local-document-factory", "private-research-notebook", "countdown",
+    "ephe-motion-studio", "ephe-template-library",
 }
 
 

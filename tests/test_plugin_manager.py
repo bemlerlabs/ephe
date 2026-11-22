@@ -34,8 +34,8 @@ def device(tmp_path, monkeypatch):
 def test_list_reports_the_whole_portfolio(device) -> None:
     payload = _call(action="list")
     assert payload["read_only"] is True
-    assert payload["counts"] == {"plugins": 17, "skills": 51, "mcp": 7, "commands": 32}
-    assert len(payload["plugins"]) == 17
+    assert payload["counts"] == {"plugins": 19, "skills": 51, "mcp": 7, "commands": 42}
+    assert len(payload["plugins"]) == 19
     assert [p["name"] for p in payload["plugins"]] == sorted(
         p["name"] for p in payload["plugins"]
     )

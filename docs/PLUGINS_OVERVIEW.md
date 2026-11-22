@@ -15,7 +15,7 @@ the other hook events live in `~/.ephe/hooks.json` and stay a separate contract.
   `ephe-plugin.sig.json` mounts as `signed`; a signature-verified plugin that changes on disk cannot
   be re-enabled: the drift gate answers 409 and writes an audit line. None of the bundled packs
   carries a record, so they mount as local content.
-- **17 first-party bundles ship in-repo** (`plugins/`): the catalogue counts ten plugins and
+- **19 first-party bundles ship in-repo** (`plugins/`): the catalogue counts ten plugins and
   seven presets; the ten are the nine named below plus `countdown`, the reference bundle for a
   declarative surface.
   Plugins: browser-use, code-shell, documents, local-document-factory, memory, presentations,

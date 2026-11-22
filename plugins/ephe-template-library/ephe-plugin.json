@@ -1,0 +1,60 @@
+{
+  "manifest_version": 2,
+  "name": "ephe-template-library",
+  "version": "1.0.0",
+  "description": "Curated, licence-audited local templates for sites, worlds and motion scenes.",
+  "publisher": {
+    "name": "Ephe"
+  },
+  "license": "MIT",
+  "engines": {
+    "ephe": ">=0.1.0"
+  },
+  "permissions": {
+    "tool_families": [
+      "read",
+      "write",
+      "docs"
+    ],
+    "data_roots": []
+  },
+  "components": {
+    "skills": [
+      "template-library"
+    ],
+    "commands": [
+      {
+        "name": "template-list",
+        "description": "List the curated local templates.",
+        "template": "List the local templates available in Ephe."
+      },
+      {
+        "name": "template-apply",
+        "description": "Apply an audited template into a local project.",
+        "template": "Apply template {{id}} to {{path}}."
+      },
+      {
+        "name": "template-provenance",
+        "description": "Explain the licence and hash of one template.",
+        "template": "Which licence and sha256 does template {{id}} carry?"
+      }
+    ],
+    "tools": [
+      {
+        "name": "ephe_template_list",
+        "entry": "tools/handlers.py:ephe_template_list",
+        "family": "read",
+        "description": "List curated local templates."
+      },
+      {
+        "name": "ephe_template_apply",
+        "entry": "tools/handlers.py:ephe_template_apply",
+        "family": "write",
+        "description": "Copy an audited template and its licence into a local project."
+      }
+    ]
+  },
+  "origin": "first-party",
+  "icon": "icon.svg",
+  "changelog": "1.0.0 - first curated offline template pack with audited provenance."
+}

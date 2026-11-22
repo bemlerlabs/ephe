@@ -52,6 +52,11 @@
           "en": "Skills"
         }
       },
+      "templates": {
+        "title": {
+          "en": "Templates"
+        }
+      },
       "vision": {
         "title": {
           "en": "Vision"
@@ -409,6 +414,105 @@
             "url": "artifacts/documents-1.2.0.zip"
           },
           "version": "1.2.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "meta"
+      ],
+      "description": {
+        "en": "Local motion films from HTML, CSS and JS sources: a timeline, captions, a brand kit and a render queue that cuts frames to MP4 on this machine."
+      },
+      "displayName": "Ephe Motion Studio",
+      "icon": {
+        "alt": "Ephe Motion Studio",
+        "dark": "icons/ephe-motion-studio.svg",
+        "light": "icons/ephe-motion-studio.svg"
+      },
+      "name": "ephe-motion-studio",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "ui",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.0"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write",
+              "docs"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "fd63398a7159193a0c8e9f94da53b7b76bb12928ebb7323992e11e3c522e318e",
+            "type": "zip",
+            "url": "artifacts/ephe-motion-studio-1.0.0.zip"
+          },
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "categories": [
+        "templates"
+      ],
+      "description": {
+        "en": "Curated, licence-audited local templates for sites, worlds and motion scenes."
+      },
+      "displayName": "Ephe Template Library",
+      "icon": {
+        "alt": "Ephe Template Library",
+        "dark": "icons/ephe-template-library.svg",
+        "light": "icons/ephe-template-library.svg"
+      },
+      "name": "ephe-template-library",
+      "provenance": "first-party",
+      "publisher": {
+        "name": "Ephe",
+        "verified": true
+      },
+      "quality_label": "plugin",
+      "trust": "bundled",
+      "versions": [
+        {
+          "components": [
+            "skills",
+            "commands",
+            "tools"
+          ],
+          "engines": {
+            "ephe": ">=0.1.0"
+          },
+          "permissions": {
+            "data_roots": [],
+            "tool_families": [
+              "read",
+              "write",
+              "docs"
+            ]
+          },
+          "publishTimestamp": 0,
+          "source": {
+            "sha256": "83d43aa2522d6e503508e468b4e1dcf0205fc6ef8d7f6c9d509c6e32aa618137",
+            "type": "zip",
+            "url": "artifacts/ephe-template-library-1.0.0.zip"
+          },
+          "version": "1.0.0"
         }
       ]
     },

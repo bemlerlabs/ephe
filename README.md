@@ -227,9 +227,11 @@ and [SECURITY.md](SECURITY.md).
 
 ## Plugins, skills, and connectors
 
-The tree carries seventeen first-party bundles under [`plugins/`](plugins):
-ten first-party plugins and seven capability presets, the `countdown` widget among the plugins
-doubling as the reference surface for a UI-only bundle.
+The tree carries nineteen first-party bundles under [`plugins/`](plugins):
+twelve first-party plugins and seven capability presets, the `countdown` widget among the plugins
+doubling as the reference surface for a UI-only bundle. [ephe-motion-studio](plugins/ephe-motion-studio)
+writes a local motion film; [ephe-template-library](plugins/ephe-template-library) copies a
+licensed template with its hash.
 A plugin adds commands and a skill pack; a preset is a capability without a plugin
 quality claim. Alongside them ship five first-party skill packs and one bundled third-party skill pack;
 the built-in skills are separate ([docs/SKILLS.md](docs/SKILLS.md)).
