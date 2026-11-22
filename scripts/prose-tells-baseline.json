@@ -1,6 +1,5 @@
 {
  "files": {
-  ".github/ISSUE_TEMPLATE/bug_report.md": 1,
   ".github/PULL_REQUEST_TEMPLATE.md": 5,
   ".github/advisories-ignore.txt": 3,
   ".github/engine-advisories.txt": 1,
@@ -181,6 +180,6 @@
  "instrument": "scripts/prose_tells.py",
  "policy": "prose-tells-ratchet",
  "scope": "ratchet",
- "total": 380,
+ "total": 379,
  "version": 1
 }
