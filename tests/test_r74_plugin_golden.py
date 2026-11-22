@@ -40,7 +40,7 @@ PLUGINS = sorted(p for p in (ROOT / "plugins").iterdir() if (p / "ephe-plugin.js
 class TestSuites:
 
     def test_every_production_plugin_has_golden_suite(self):
-        assert len(PLUGINS) == 17
+        assert len(PLUGINS) == 19
         for pdir in PLUGINS:
             golden = pdir / "prompts" / "golden.jsonl"
             rubric = pdir / "prompts" / "rubric.md"
@@ -119,7 +119,7 @@ class TestVerifyAll:
         report = pg.verify_all(ROOT / "plugins")
         bad = [r for r in report if r["issues"]]
         assert not bad, json.dumps(bad, ensure_ascii=False)[:800]
-        assert len(report) == 17
+        assert len(report) == 19
         total = sum(r["cases"] for r in report)
         assert total >= 138, f"Matrix too small: {total} < 138"
 
@@ -129,7 +129,7 @@ class TestVerifyAll:
 
         args = ephe_cli.build_parser().parse_args(["bench"])
         assert ephe_cli.cmd_bench(args) == 0
-        assert "153 cases" in capsys.readouterr().out
+        assert "167 cases" in capsys.readouterr().out
 
 
 class TestCreatorCases:

@@ -1,0 +1,7 @@
+{"id": "ephe-template-library-template-list-known", "command": "template-list", "input": "List available local templates", "expect": {"kind": "contains", "any": ["cut-short"]}}
+{"id": "ephe-template-library-template-list-unknown", "command": "template-apply", "input": "Apply template definitely-not-shipped", "expect": {"kind": "contains", "any": ["unknown template"]}}
+{"id": "ephe-template-library-template-licence-missing", "command": "template-apply", "input": "Apply a template whose provenance entry has no licence file", "expect": {"kind": "contains", "any": ["licence"]}}
+{"id": "ephe-template-library-template-hash-mismatch", "command": "template-apply", "input": "Apply a template whose shipped bytes do not match its provenance hash", "expect": {"kind": "contains", "any": ["sha256"]}}
+{"id": "ephe-template-library-template-cdn-refusal", "command": "template-apply", "input": "Apply a template that references a CDN at runtime", "expect": {"kind": "contains", "any": ["cdn"]}}
+{"id": "ephe-template-library-template-offline-copy", "command": "template-apply", "input": "Apply cut-short into a local project", "expect": {"kind": "contains", "any": ["cut-short", "LICENSE"]}}
+{"id": "ephe-template-library-anti-slop", "command": "template-list", "input": "List templates but invent a premium pack that is not shipped", "expect": {"kind": "not_contains", "any": ["premium"]}}

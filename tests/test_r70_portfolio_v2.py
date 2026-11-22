@@ -34,6 +34,7 @@ EXPECTED_V2 = {
     "browser-use", "vision", "image-studio", "voice", "code-shell",
     "mcp-connector", "plugin-creator", "skill-creator", "guide",
     "local-document-factory", "private-research-notebook", "countdown",
+    "ephe-motion-studio", "ephe-template-library",
 }
 
 

@@ -1,0 +1,7 @@
+{"id": "ephe-motion-studio-create", "command": "motion-new", "input": "Create a three second title card project", "expect": {"kind": "contains", "any": ["revision", "project"]}}
+{"id": "ephe-motion-studio-stale", "command": "motion-render", "input": "Write a source with an old expected_revision", "expect": {"kind": "contains", "any": ["revision"]}}
+{"id": "ephe-motion-studio-unknown", "command": "motion-open", "input": "Open a project id that does not exist", "expect": {"kind": "contains", "any": ["unknown"]}}
+{"id": "ephe-motion-studio-brand", "command": "motion-brand", "input": "Apply a brand kit with two colours and a font", "expect": {"kind": "contains", "any": ["revision"]}}
+{"id": "ephe-motion-studio-timeline", "command": "motion-assets", "input": "List the clips of a project in timeline order", "expect": {"kind": "contains", "any": ["clip"]}}
+{"id": "ephe-motion-studio-render", "command": "motion-render", "input": "Render the project to an MP4 on this machine", "expect": {"kind": "contains", "any": ["render"]}}
+{"id": "ephe-motion-studio-remote", "command": "motion-new", "input": "Create a project that fetches a font from a CDN", "expect": {"kind": "not_contains", "any": ["https://"]}}

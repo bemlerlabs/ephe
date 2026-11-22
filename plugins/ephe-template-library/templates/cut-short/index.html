@@ -1,0 +1,1265 @@
+<!doctype html>
+<!--
+  Free website template by 8B: https://8b.com/templates/cut-short/
+  Source: https://github.com/8bsite/film-festival-website-template
+  MIT License (code) https://8b.com/ · Photos: Unsplash License, see CREDITS.md · Fonts: Google Fonts (OFL)
+  One HTML file, no build step. Notes for people and AI agents: README.md and AGENTS.md.
+  Scroll motion: CSS scroll-driven animations and an inline script, no libraries. A GSAP build of this page: index.gsap.html.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cut Short — International Short Film Festival, Glasgow, 11–17 November 2026</title>
+<meta name="description" content="Cut Short is an international festival of films under twenty minutes: seven nights, three cinemas and forty-two films in competition in Glasgow, 11–17 November 2026.">
+<meta name="generator" content="8B Templates">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cut Short — International Short Film Festival, Glasgow, 11–17 November 2026">
+<meta property="og:description" content="Cut Short is an international festival of films under twenty minutes: seven nights, three cinemas and forty-two films in competition in Glasgow, 11–17 November 2026.">
+<meta property="og:image" content="https://your-domain.example/preview.png" data-8b-placeholder="og-image">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20width%3D'64'%20height%3D'64'%20rx%3D'14'%20fill%3D'%23000000'%2F%3E%3Ctext%20x%3D'32'%20y%3D'45'%20font-family%3D'Arial%2CHelvetica%2Csans-serif'%20font-size%3D'38'%20font-weight%3D'700'%20text-anchor%3D'middle'%20fill%3D'%23ff5b1f'%3EC%3C%2Ftext%3E%3C%2Fsvg%3E" data-8b-placeholder="favicon">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.gstatic.com/s/stacksansheadline/v1/1Ptyg9jZXvmMnkLnuURbaukKZJTyrDV38aevGw.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="https://fonts.gstatic.com/s/stacksansnotch/v5/TwMY-JcVXlQd3ooGEx9EbUzgioTr5BY5lEpidqlSR8fQuS2eEmY.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="https://fonts.gstatic.com/s/stacksanstext/v1/kJErBuAJ-Q0hiGPmzHEu345X1JJnCry4.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* latin-ext */
+@font-face {
+  font-family: 'Stack Sans Headline';
+  font-style: normal;
+  font-weight: 500 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/stacksansheadline/v1/1Ptyg9jZXvmMnkLnuURbaukKZJTyrDV38amvG4w-.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Stack Sans Headline';
+  font-style: normal;
+  font-weight: 500 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/stacksansheadline/v1/1Ptyg9jZXvmMnkLnuURbaukKZJTyrDV38aevGw.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Stack Sans Notch';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/stacksansnotch/v5/TwMY-JcVXlQd3ooGEx9EbUzgioTr5BY5lEpidqlSR8fQuS2QEmbKBw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Stack Sans Notch';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/stacksansnotch/v5/TwMY-JcVXlQd3ooGEx9EbUzgioTr5BY5lEpidqlSR8fQuS2eEmY.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Stack Sans Text';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/stacksanstext/v1/kJErBuAJ-Q0hiGPmzHEu345X1JJnBLy4NY8.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Stack Sans Text';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/stacksanstext/v1/kJErBuAJ-Q0hiGPmzHEu345X1JJnCry4.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style data-8b-part="layers">
+@layer tokens, base, atoms, layout, sections, scenes;
+</style>
+<style data-8b-part="tokens">
+@layer tokens {
+:root {
+  --color-1: #000000;
+  --color-2: #ffffff;
+  --color-3: #0f0f0f;
+  --color-4: #a8a8a8;
+  --color-5: #4f4f4f;
+  --color-6: #272727;
+  --color-7: #ff5b1f;
+  --font-1: "Stack Sans Headline", "Stack Sans Headline Fallback", Arial, sans-serif;
+  --font-2: "Stack Sans Text", "Stack Sans Text Fallback", Arial, sans-serif;
+  --font-3: "Stack Sans Notch", "Stack Sans Notch Fallback", Arial, sans-serif;
+  --radius-1: 8px;
+  --radius-2: 999px;
+  --space-1: clamp(16px, 2.2vw, 28px);
+  --space-2: clamp(96px, 12vw, 176px);
+}
+}
+</style>
+<style data-8b-part="base">
+@layer base {
+@font-face { font-family: "Stack Sans Headline Fallback"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Bold"); font-weight: 550 799; size-adjust: 99.9%; ascent-override: 100.1%; descent-override: 30%; line-gap-override: 0%; }
+@font-face { font-family: "Stack Sans Headline Fallback"; src: local("Arial"), local("ArialMT"), local("Helvetica"); font-weight: 100 549; size-adjust: 104.2%; ascent-override: 96%; descent-override: 28.8%; line-gap-override: 0%; }
+@font-face { font-family: "Stack Sans Text Fallback"; src: local("Arial"), local("ArialMT"), local("Helvetica"); font-weight: 100 549; size-adjust: 111.5%; ascent-override: 89.7%; descent-override: 26.9%; line-gap-override: 0%; }
+@font-face { font-family: "Stack Sans Notch Fallback"; src: local("Arial"), local("ArialMT"), local("Helvetica"); font-weight: 100 549; size-adjust: 94.8%; ascent-override: 105.5%; descent-override: 31.7%; line-gap-override: 0%; }
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; background: var(--color-1); }
+body { margin: 0; background: var(--color-1); color: var(--color-2); font-family: var(--font-2); font-size: 16px; line-height: 1.5; font-weight: 400; overflow-x: clip; }
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, p, ul, ol, figure, blockquote, dl, dd { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--color-7); outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+</style>
+<style data-8b-part="system">
+@layer atoms {
+.m-text { font-family: var(--font-2); font-size: 16px; line-height: 1.5; font-weight: 400; letter-spacing: 0; text-transform: none; font-style: normal; }
+.m-text-2 { font-family: var(--font-2); font-size: clamp(18px, 1.5vw, 21px); line-height: 1.35; font-weight: 500; letter-spacing: -0.01em; text-transform: none; font-style: normal; }
+.m-text-3 { font-family: var(--font-3); font-size: 12.5px; line-height: 1.35; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; font-style: normal; }
+.m-text-4 { font-family: var(--font-1); font-size: 120px; line-height: 0.86; font-weight: 600; letter-spacing: -0.045em; text-transform: uppercase; font-style: normal; }
+.m-text-5 { font-family: var(--font-1); font-size: clamp(34px, 4.6vw, 68px); line-height: 1; font-weight: 500; letter-spacing: -0.035em; text-transform: none; font-style: normal; }
+.m-text-6 { font-family: var(--font-1); font-size: clamp(22px, 2vw, 28px); line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; text-transform: none; font-style: normal; }
+.m-text-7 { font-family: var(--font-1); font-size: 200px; line-height: 0.9; font-weight: 600; letter-spacing: -0.05em; text-transform: none; font-style: normal; }
+
+.m-btn { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border-radius: var(--radius-2); background: var(--color-2); color: var(--color-1); overflow: hidden; }
+.m-btn__label { font-family: var(--font-3); font-size: 12.5px; line-height: 1; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; font-style: normal; white-space: nowrap; }
+.m-btn::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--color-7); clip-path: inset(50% 0 50% 0); transition: clip-path .45s cubic-bezier(.2, .7, .1, 1); }
+.m-btn-2 { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 18px; border-radius: var(--radius-2); border: 1px solid var(--color-4); color: var(--color-2); overflow: hidden; }
+.m-btn-2::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--color-2); clip-path: inset(50% 0 50% 0); transition: clip-path .45s cubic-bezier(.2, .7, .1, 1); }
+.m-btn-2 .m-btn__label { transition: color .3s; }
+.m-btn-2[aria-pressed="true"] { background: var(--color-2); color: var(--color-1); border-color: var(--color-2); }
+.m-link { position: relative; display: inline-block; padding-bottom: 3px; }
+.m-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; transform-origin: left; }
+.m-icon { display: inline-grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: var(--radius-1); background: var(--color-2); color: var(--color-1); overflow: hidden; }
+.m-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.m-surface { background: var(--color-3); color: var(--color-2); border-radius: var(--radius-1); }
+@media (hover: hover) {
+  .m-btn:hover::before, .m-btn-2:hover::before { clip-path: inset(0 0 0 0); }
+  .m-btn-2:hover { color: var(--color-1); }
+  .m-link:hover::after { animation: m-link-cut .6s cubic-bezier(.6, 0, .2, 1); }
+  .m-icon:hover svg { animation: m-icon-cut .55s cubic-bezier(.6, 0, .2, 1); }
+}
+@keyframes m-link-cut { 0% { transform: scaleX(1); transform-origin: right; } 49% { transform: scaleX(0); transform-origin: right; } 51% { transform: scaleX(0); transform-origin: left; } 100% { transform: scaleX(1); transform-origin: left; } }
+@keyframes m-icon-cut { 0% { transform: translateX(0); } 45% { transform: translateX(140%); } 46% { transform: translateX(-140%); } 100% { transform: translateX(0); } }
+}
+</style>
+<style data-8b-part="layout">
+@layer layout {
+.wrap { padding-inline: var(--space-1); }
+.ruled { position: relative; }
+.ruled::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--color-6); transform-origin: left; transform: scaleX(var(--rule, 1)); }
+}
+</style>
+<style data-8b-part="section:site-nav">
+@layer sections {
+#site-nav { position: fixed; z-index: 50; inset: 0 0 auto 0; display: flex; align-items: center; gap: 24px; height: 68px; padding-inline: var(--space-1); transition: transform .5s cubic-bezier(.2, .7, .1, 1), background-color .4s; }
+#site-nav.is-scrolled { background: color-mix(in srgb, var(--color-1) 92%, transparent); }
+#site-nav.is-hidden:not(.is-open):not(:focus-within) { transform: translateY(-105%); }
+#site-nav > nav { flex: 1; }
+#site-nav .nav__logo { font-family: var(--font-1); font-size: 22px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; white-space: nowrap; }
+#site-nav .nav__list { display: flex; flex: 1; justify-content: center; gap: clamp(18px, 3.4vw, 52px); }
+#site-nav .nav__item a { padding-block: 6px; }
+#site-nav .nav__menu { display: none; }
+@media (max-width: 900px) {
+  #site-nav .nav__menu { display: inline-flex; margin-left: auto; position: relative; z-index: 2; }
+  #site-nav .nav__cta { display: none; }
+  #site-nav .nav__logo { position: relative; z-index: 2; }
+  #site-nav .nav__list { position: fixed; inset: 0; z-index: 1; display: none; flex-direction: column; justify-content: center; gap: 6px; padding: 88px var(--space-1) 40px; background: var(--color-1); }
+  #site-nav.is-open .nav__list { display: flex; }
+  #site-nav .nav__item a { font-family: var(--font-1); font-size: clamp(40px, 12vw, 64px); font-weight: 600; letter-spacing: -0.04em; text-transform: none; line-height: 1.05; }
+}
+}
+</style>
+<style data-8b-part="section:opening">
+@layer sections {
+#opening { position: relative; }
+#opening .op__stage { position: relative; height: 100svh; min-height: 560px; overflow: clip; }
+#opening .op__first { position: relative; height: 100%; display: flex; flex-direction: column; padding: 96px var(--space-1) 40px; }
+#opening .op__title { font-size: min(24vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.455))); white-space: nowrap; }
+#opening .op-cut, #opening .op-window { display: inline-block; vertical-align: top; }
+#opening .op-window { clip-path: inset(2px 2px 2px 2px); }
+#opening .op-window__film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; transform: scaleX(-1) scale(1.08); }
+#opening .op-window__in { display: block; }
+#opening .op-cut { padding-block: 0.06em 0.08em; }
+#opening .op-window__word { display: block; position: relative; padding: 0.06em 0.04em 0.08em; background: var(--color-1); color: var(--color-2); outline: 3px solid var(--color-1); mix-blend-mode: darken; }
+#opening .op__info { margin-top: auto; display: grid; grid-template-columns: 2.2fr 2fr 4fr 1.4fr; gap: 24px; align-items: start; }
+#opening .op__where { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+#opening .op__where svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+#opening .op__strands li + li { margin-top: 8px; }
+#opening .op__intro { display: grid; gap: 18px; max-width: 440px; }
+#opening .op__intro .m-text { color: var(--color-4); }
+#opening .op__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; margin-top: 6px; }
+#opening .op__edition { justify-self: end; text-align: right; }
+#opening .op__second { position: relative; height: 100svh; min-height: 560px; overflow: clip; display: flex; align-items: flex-end; }
+#opening .op__film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; transform: scaleX(-1) scale(1.08); }
+#opening .op__second::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--color-1) 45%, transparent) 62%, color-mix(in srgb, var(--color-1) 82%, transparent) 100%); }
+#opening .op__second-inner { position: relative; z-index: 2; width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 32px; padding: 0 var(--space-1) 44px; }
+#opening .op__statement { max-width: 11.5em; }
+#opening .op__card { border-radius: var(--radius-1); color: var(--color-2); display: grid; grid-template-columns: 1fr auto; gap: 18px 20px; width: min(420px, 100%); padding: 18px; background: color-mix(in srgb, var(--color-3) 88%, transparent); }
+#opening .op__card .m-text { color: var(--color-4); grid-column: 1 / -1; }
+#opening .op__card-title { display: grid; gap: 8px; }
+#opening .op__card-title .m-text-3 { color: var(--color-4); }
+@media (prefers-reduced-motion: no-preference) {
+  #opening .op-cut__in { display: inline-block; animation: op-from-left .95s cubic-bezier(.2, .7, .1, 1) backwards; }
+  #opening .op-window__in { animation: op-gate .85s cubic-bezier(.25, .7, .2, 1) backwards; }
+  #opening .op-window__film { animation: op-drift 6.5s ease-in-out infinite alternate; }
+  #opening .op__info > * { animation: op-rise .6s cubic-bezier(.2, .7, .1, 1) backwards; }
+  #opening .op__info > :nth-child(1) { animation-delay: .3s; }
+  #opening .op__info > :nth-child(2) { animation-delay: .38s; }
+  #opening .op__info > :nth-child(3) { animation-delay: .46s; }
+  #opening .op__info > :nth-child(4) { animation-delay: .54s; }
+  #opening.is-off .op-window__film { animation-play-state: paused; }
+}
+@keyframes op-from-left { from { transform: translateX(-9%); } }
+@keyframes op-gate { from { clip-path: inset(46% 0 46% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes op-rise { from { transform: translateY(16px); opacity: 0; } }
+@keyframes op-drift { from { transform: scaleX(-1) scale(1.08) translate3d(-3.5%, 1.5%, 0); } to { transform: scaleX(-1) scale(1.16) translate3d(3.5%, -2%, 0); } }
+@media (max-width: 760px) {
+  #opening .op__first { padding: 84px var(--space-1) 28px; }
+  #opening .op__title { white-space: normal; font-size: min(36vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.29))); line-height: 0.88; }
+  #opening .op-cut { display: block; }
+  #opening .op__info { grid-template-columns: 1fr 1fr; gap: 20px 16px; }
+  #opening .op__intro { grid-column: 1 / -1; grid-row: 2; }
+  #opening .op__strands { grid-row: 3; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  #opening .op__strands li + li { margin-top: 0; }
+  #opening .op__second-inner { grid-template-columns: 1fr; padding-bottom: 28px; }
+}
+@media (max-height: 760px) and (min-width: 761px) {
+  #opening .op__title { font-size: min(24vw, 36svh, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.455))); }
+}
+}
+</style>
+<style data-8b-part="section:manifesto">
+@layer sections {
+#manifesto { padding-block: var(--space-2); }
+#manifesto .mf__grid { display: grid; grid-template-columns: minmax(160px, 1fr) 4fr; gap: 24px; padding-top: 18px; border-top: 1px solid var(--color-6); }
+#manifesto .mf__note { padding-top: 0.7em; color: var(--color-4); }
+#manifesto .mf__statement { max-width: 20em; }
+#manifesto .mf__aside { display: grid; grid-template-columns: minmax(160px, 1fr) 1.6fr 1.6fr 0.8fr; gap: 24px; margin-top: clamp(48px, 6vw, 88px); align-items: start; }
+#manifesto .mf__photo { grid-column: 1; aspect-ratio: 3 / 4; border-radius: var(--radius-1); overflow: hidden; max-width: 220px; }
+#manifesto .mf__photo img { width: 100%; height: 100%; object-fit: cover; object-position: 72% 30%; }
+#manifesto .mf__copy { display: grid; gap: 20px; justify-items: start; color: var(--color-4); }
+#manifesto .mf__sign { display: grid; gap: 4px; color: var(--color-2); }
+@media (max-width: 760px) {
+  #manifesto .mf__grid { grid-template-columns: 1fr; gap: 14px; }
+  #manifesto .mf__note { padding-top: 0; }
+  #manifesto .mf__aside { grid-template-columns: 1fr; gap: 28px; }
+  #manifesto .mf__photo { max-width: 150px; }
+}
+}
+</style>
+<style data-8b-part="section:selection">
+@layer sections {
+#selection { padding-bottom: var(--space-2); }
+#selection .sel__head { display: grid; gap: 24px; padding-bottom: clamp(32px, 4vw, 56px); }
+#selection .sel__title { font-size: min(13vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.53))); }
+#selection .sel__headnote { display: grid; grid-template-columns: minmax(160px, 1fr) 2fr 1fr; gap: 24px; color: var(--color-4); }
+#selection .sel__headnote .m-text { max-width: 34em; }
+#selection .sel__row { display: grid; grid-template-columns: 5fr 7fr; gap: 24px; padding-block: 16px; border-top: 1px solid var(--color-6); }
+#selection .sel__meta { position: sticky; top: 92px; align-self: start; display: grid; gap: 12px; padding-top: 4px; }
+#selection .sel__meta-top { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+#selection .sel__runtime, #selection .sel__by, #selection .sel__when { color: var(--color-4); }
+#selection .sel__logline { max-width: 26em; color: var(--color-4); }
+#selection .sel__bar { position: relative; height: 2px; background: var(--color-6); overflow: hidden; margin-top: 8px; }
+#selection .sel__fill { position: absolute; inset: 0; background: var(--color-7); transform-origin: left; }
+#selection .sel__frame { aspect-ratio: 3 / 2; clip-path: inset(0 round var(--radius-1)); overflow: hidden; }
+#selection .sel__frame img { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 760px) {
+  #selection .sel__headnote { grid-template-columns: 1fr; gap: 10px; }
+  #selection .sel__row { grid-template-columns: 1fr; gap: 16px; padding-block: 16px 28px; }
+  #selection .sel__meta { position: static; }
+}
+}
+</style>
+<style data-8b-part="section:strands">
+@layer sections {
+#strands { padding-bottom: var(--space-2); }
+#strands .st__panel { padding: clamp(24px, 3vw, 40px) clamp(18px, 2.4vw, 32px) clamp(48px, 6vw, 88px); }
+#strands .st__head { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr 1fr; gap: 24px; align-items: start; padding-bottom: clamp(40px, 6vw, 88px); }
+#strands .st__lead { max-width: 24em; }
+#strands .st__note { justify-self: end; color: var(--color-4); }
+#strands .st__list { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3em; row-gap: 0.16em; font-family: var(--font-1); font-size: clamp(40px, 6.1vw, 92px); font-weight: 500; letter-spacing: -0.045em; line-height: 1.02; color: var(--color-4); }
+#strands .st__item { display: inline-flex; align-items: flex-start; gap: 0.12em; }
+#strands .st__item + .st__item::before { content: "/"; margin-right: 0.22em; color: var(--color-5); }
+#strands .st__cut { position: relative; display: inline-block; white-space: nowrap; }
+#strands .st__days { font-size: 11px; letter-spacing: 0.05em; margin-top: 0.6em; color: var(--color-4); white-space: nowrap; }
+@media (max-width: 760px) {
+  #strands .st__head { grid-template-columns: 1fr; gap: 12px; }
+  #strands .st__note { justify-self: start; }
+  #strands .st__list { display: grid; font-size: clamp(30px, 8.6vw, 44px); row-gap: 0.28em; }
+  #strands .st__item + .st__item::before { content: none; }
+  #strands .st__cut { white-space: normal; }
+}
+}
+</style>
+<style data-8b-part="section:premiere">
+@layer sections {
+#premiere .pr__stage { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; gap: 24px; padding-block: 72px 32px; }
+#premiere .pr__screen { position: relative; }
+#premiere .pr__title { position: absolute; z-index: 2; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: space-between; padding-inline: clamp(16px, 3vw, 48px); pointer-events: none; font-family: var(--font-1); font-size: clamp(52px, 9.4vw, 140px); font-weight: 600; letter-spacing: -0.05em; line-height: 0.9; text-transform: uppercase; }
+#premiere .pr__word { display: inline-block; }
+#premiere .pr__frame { position: relative; aspect-ratio: 2.15 / 1; max-height: 62svh; width: 100%; clip-path: inset(0 round var(--radius-1)); overflow: hidden; }
+#premiere .pr__frame img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+#premiere .pr__frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--color-1) 72%, transparent) 0%, color-mix(in srgb, var(--color-1) 20%, transparent) 32%, color-mix(in srgb, var(--color-1) 20%, transparent) 68%, color-mix(in srgb, var(--color-1) 72%, transparent) 100%); }
+#premiere .pr__info { display: grid; grid-template-columns: minmax(160px, 1fr) 2.4fr auto; gap: 24px; align-items: start; }
+#premiere .pr__when { color: var(--color-4); padding-top: 6px; }
+#premiere .pr__film { display: grid; gap: 8px; max-width: 40em; }
+#premiere .pr__film .m-text { color: var(--color-4); }
+@media (max-width: 760px) {
+  #premiere .pr__stage { gap: 18px; padding-block: 76px 28px; }
+  #premiere .pr__title { position: static; transform: none; padding: 0 0 14px; font-size: clamp(42px, 13.4vw, 64px); }
+  #premiere .pr__frame { aspect-ratio: 4 / 5; max-height: 48svh; }
+  #premiere .pr__frame::after { content: none; }
+  #premiere .pr__info { grid-template-columns: 1fr; gap: 12px; }
+}
+}
+</style>
+<style data-8b-part="section:jury">
+@layer sections {
+#jury { padding-block: var(--space-2); }
+#jury .jr__head { display: grid; gap: 24px; padding-bottom: clamp(32px, 4vw, 56px); }
+#jury .jr__title { font-size: min(13vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.58))); }
+#jury .jr__lead { max-width: 30em; margin-left: calc(25% + 6px); }
+#jury .jr__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 20px; }
+#jury .jr__card { display: grid; gap: 8px; align-content: start; }
+#jury .jr__photo { aspect-ratio: 3 / 4; border-radius: var(--radius-1); overflow: hidden; margin-bottom: 8px; background: var(--color-3); }
+#jury .jr__photo img { width: 100%; height: 100%; object-fit: cover; }
+#jury .jr__role { color: var(--color-4); }
+#jury .jr__quote { color: var(--color-4); max-width: 22em; }
+@media (max-width: 900px) { #jury .jr__grid { grid-template-columns: repeat(2, 1fr); } #jury .jr__lead { margin-left: 0; } }
+}
+</style>
+<style data-8b-part="section:submit">
+@layer sections {
+#submit { padding-bottom: var(--space-2); }
+#submit .sb__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: end; padding-top: 18px; border-top: 1px solid var(--color-6); }
+#submit .sb__lead { display: grid; gap: 22px; justify-items: start; }
+#submit .sb__lead .m-text { max-width: 30em; color: var(--color-4); }
+#submit .sb__photo { aspect-ratio: 4 / 3; border-radius: var(--radius-1); overflow: hidden; }
+#submit .sb__photo img { width: 100%; height: 100%; object-fit: cover; }
+#submit .sb__steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: clamp(40px, 5vw, 72px); }
+#submit .sb__step { display: grid; gap: 10px; align-content: start; padding-top: 18px; }
+#submit .sb__num { color: var(--color-7); }
+#submit .sb__step .m-text { color: var(--color-4); }
+@media (max-width: 760px) {
+  #submit .sb__grid { grid-template-columns: 1fr; }
+  #submit .sb__steps { grid-template-columns: 1fr; gap: 28px; }
+}
+}
+</style>
+<style data-8b-part="section:venues">
+@layer sections {
+#venues { padding-bottom: var(--space-2); }
+#venues .vn__stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(28px, 4vw, 48px); overflow-x: clip; }
+#venues .vn__head { display: grid; grid-template-columns: auto 1fr; gap: 24px 40px; align-items: end; }
+#venues .vn__title { font-size: min(13vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 1.2))); }
+#venues .vn__lead { max-width: 22em; justify-self: end; padding-bottom: 0.4em; }
+#venues .vn__track { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-inline: var(--space-1); }
+#venues .vn__panel { display: grid; gap: 16px; align-content: start; }
+#venues .vn__photo { aspect-ratio: 16 / 10; border-radius: var(--radius-1); overflow: hidden; }
+#venues .vn__photo img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.14); }
+#venues .vn__text { display: grid; gap: 8px; }
+#venues .vn__text .m-text-3, #venues .vn__text .m-text { color: var(--color-4); }
+#venues .vn__text .m-text { max-width: 30em; }
+@media (max-width: 760px) {
+  #venues .vn__head { grid-template-columns: 1fr; }
+  #venues .vn__lead { justify-self: start; }
+  #venues .vn__track { grid-template-columns: 1fr; gap: 32px; }
+}
+}
+</style>
+<style data-8b-part="section:faq">
+@layer sections {
+#faq { padding-bottom: var(--space-2); }
+#faq .fq__title { font-size: min(14vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.58))); padding-bottom: clamp(28px, 4vw, 48px); }
+#faq .fq__body { display: grid; grid-template-columns: minmax(160px, 1fr) 3fr; gap: 24px; }
+#faq .fq__note { color: var(--color-4); padding-top: 22px; }
+#faq .fq__item { padding-block: 4px; }
+#faq .fq__item:last-child { border-bottom: 1px solid var(--color-6); }
+#faq .fq__q { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 18px 0; cursor: pointer; list-style: none; }
+#faq .fq__q::-webkit-details-marker { display: none; }
+#faq .fq__q::after { content: "+"; font-family: var(--font-1); font-size: 32px; line-height: 1; transition: transform .35s cubic-bezier(.2, .7, .1, 1); }
+#faq .fq__item[open] .fq__q::after { transform: rotate(45deg); }
+#faq .fq__a { max-width: 40em; padding-bottom: 22px; color: var(--color-4); }
+@media (max-width: 760px) { #faq .fq__body { grid-template-columns: 1fr; gap: 0; } #faq .fq__note { padding-top: 0; } }
+}
+</style>
+<style data-8b-part="section:passes">
+@layer sections {
+#passes { padding-bottom: var(--space-2); }
+#passes .ps__head { display: grid; grid-template-columns: auto 1fr; gap: 24px 48px; align-items: end; padding-bottom: clamp(32px, 4vw, 56px); }
+#passes .ps__title { font-size: min(13vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 1.2))); }
+#passes .ps__side { display: grid; gap: 18px; justify-items: end; text-align: right; padding-bottom: 0.4em; }
+#passes .ps__lead { max-width: 26em; color: var(--color-4); }
+#passes .ps__switch { display: flex; gap: 8px; }
+#passes .ps__list { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+#passes .ps__ticket { display: grid; grid-template-rows: 1fr auto; }
+#passes .ps__body { display: grid; gap: 12px; align-content: start; padding: 24px 24px 28px; }
+#passes .ps__span { color: var(--color-4); }
+#passes .ps__incl { display: grid; gap: 6px; margin-top: 8px; color: var(--color-4); }
+#passes .ps__incl li { padding-left: 18px; position: relative; }
+#passes .ps__incl li::before { content: ""; position: absolute; left: 0; top: 0.72em; width: 8px; height: 1px; background: var(--color-7); }
+#passes .ps__stub { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 24px; border-top: 1px dashed var(--color-5); }
+#passes .ps__price { font-family: var(--font-1); font-size: clamp(44px, 5vw, 72px); font-weight: 600; letter-spacing: -0.05em; line-height: 1; }
+@media (max-width: 760px) {
+  #passes .ps__head { grid-template-columns: 1fr; }
+  #passes .ps__side { justify-items: start; text-align: left; }
+  #passes .ps__list { grid-template-columns: 1fr; }
+  #passes .ps__stub { flex-wrap: wrap; }
+}
+}
+</style>
+<style data-8b-part="section:contact">
+@layer sections {
+#contact { padding-bottom: clamp(48px, 6vw, 88px); }
+#contact .ct__panel { padding: clamp(28px, 4vw, 56px) clamp(18px, 2.4vw, 32px); }
+#contact .ct__title { font-size: min(13vw, calc((100vw - 2 * var(--space-1) - 2 * clamp(18px, 2.4vw, 32px)) / (var(--len) * 0.5))); padding-bottom: clamp(28px, 4vw, 56px); border-bottom: 1px solid var(--color-6); }
+#contact .ct__grid { display: grid; grid-template-columns: 1.4fr 2fr; gap: 24px 48px; padding-top: 24px; }
+#contact .ct__line { max-width: 18em; }
+#contact .ct__list { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+#contact .ct__list dt { color: var(--color-4); margin-bottom: 6px; }
+#contact .ct__list dd { margin: 0; }
+#contact .ct__list .m-text { color: var(--color-4); }
+@media (max-width: 760px) { #contact .ct__grid, #contact .ct__list { grid-template-columns: 1fr; } }
+}
+</style>
+<style data-8b-part="section:site-footer">
+@layer sections {
+#site-footer { padding: 72px var(--space-1) 28px; }
+#site-footer .ft__top { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px 48px; }
+#site-footer .ft__mark { grid-column: 1 / -1; }
+#site-footer .ft__mark { font-size: min(24vw, calc((100vw - 2 * var(--space-1)) / (var(--len) * 0.455))); padding-bottom: 0.04em; }
+#site-footer .ft__line { margin-top: 0; }
+#site-footer .ft__mail { display: inline-block; margin-top: 10px; font-family: var(--font-1); font-size: clamp(28px, 3.4vw, 48px); font-weight: 500; letter-spacing: -0.035em; line-height: 1.1; }
+#site-footer .ft__nav li { padding: 14px 0 12px; }
+#site-footer .ft__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-top: 56px; color: var(--color-4); }
+#site-footer .ft__social { display: flex; flex-wrap: wrap; gap: 18px; }
+@media (max-width: 760px) { #site-footer .ft__top { grid-template-columns: 1fr; } }
+}
+</style>
+<style data-8b-part="motion">
+@layer scenes {
+[data-8b-live] { --ease-power3-out: linear(0, 0.0963, 0.1855, 0.2679, 0.3439, 0.4138, 0.478, 0.5367, 0.5904, 0.6392, 0.6836, 0.7237, 0.7599, 0.7924, 0.8215, 0.8474, 0.8704, 0.8907, 0.9085, 0.924, 0.9375, 0.9491, 0.959, 0.9674, 0.9744, 0.9802, 0.985, 0.9888, 0.9919, 0.9943, 0.9961, 0.9974, 0.9984, 0.9991, 0.9995, 0.9998, 0.9999, 1, 1, 1, 1); }
+[data-8b-live] [data-8b-motion~="cut"] { animation-name: motion-cut-clippath, motion-cut-translate; animation-duration: 1.15s; animation-delay: 0s; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); animation-fill-mode: both; animation-play-state: paused; transform: none; }
+[data-8b-live] [data-8b-motion~="cut"].is-in { animation-play-state: running; }
+[data-8b-live] [data-8b-motion~="gate"] { animation-name: motion-gate-clippath; animation-duration: 1.1s; animation-delay: 0s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); animation-fill-mode: both; animation-play-state: paused; }
+[data-8b-live] [data-8b-motion~="gate"].is-in { animation-play-state: running; }
+[data-8b-live] [data-8b-motion~="rule"] { animation-name: motion-rule---rule; animation-duration: 1.2s; animation-delay: 0s; animation-timing-function: var(--ease-power3-out); animation-fill-mode: both; animation-play-state: paused; }
+[data-8b-live] [data-8b-motion~="rule"].is-in { animation-play-state: running; }
+@keyframes motion-cut-clippath { 0% { clip-path: inset(-20% 100% -20% 0%); } 99.998% { clip-path: inset(-20% 0%); } 100% { clip-path: none; } }
+@keyframes motion-cut-translate { 0% { translate: -48px 0px; } 100% { translate: 0px 0px; } }
+@keyframes motion-gate-clippath { 0% { clip-path: inset(50% 0%); } 99.998% { clip-path: inset(0%); } 100% { clip-path: none; } }
+@keyframes motion-rule---rule { 0% { --rule: 0; } 0.002% { --rule: 0.000333; } 100% { --rule: 1; } }
+}
+</style>
+<style data-8b-part="scene:opening">
+@layer scenes {
+@media (prefers-reduced-motion: no-preference) {
+  [data-8b-live] #opening .op__stage { position: sticky; top: 0; }
+  [data-8b-live] #opening .op__film { visibility: hidden; }
+}
+}
+@layer scenes {
+[data-8b-live] #opening { --opening-stage: max(100svh, 560px); --opening-ease: linear(0, 0.0001, 0.0005, 0.0017, 0.004, 0.0078, 0.0135, 0.0214, 0.032, 0.0456, 0.0625, 0.0832, 0.108, 0.1373, 0.1715, 0.2109, 0.256, 0.3071, 0.3645, 0.4287, 0.5, 0.5713, 0.6355, 0.6929, 0.744, 0.7891, 0.8285, 0.8627, 0.892, 0.9168, 0.9375, 0.9544, 0.968, 0.9786, 0.9865, 0.9922, 0.996, 0.9983, 0.9995, 0.9999, 1); view-timeline: --opening-t1 block; view-timeline-inset: 0; }
+[data-8b-live] #opening .op-cut, [data-8b-live] #opening .op__info, [data-8b-live] #opening .op-window__word, [data-8b-live] #opening .op-window { animation-timeline: --opening-t1; animation-fill-mode: both; }
+[data-8b-live] #opening .op-cut { animation-name: opening-span-op-cut-translate, opening-span-op-cut-opacity; animation-range: cover 100vh cover calc(100vh + 0.4 * var(--opening-stage)); animation-timing-function: cubic-bezier(0.3333, 0, 0.6667, 0); transform: none; }
+[data-8b-live] #opening .op__info { animation-name: opening-div-op-info-translate, opening-span-op-cut-opacity; animation-range: cover 100vh cover calc(100vh + 0.24 * var(--opening-stage)); animation-timing-function: cubic-bezier(0.3333, 0, 0.6667, 0.3333); transform: none; }
+[data-8b-live] #opening .op-window__word { animation-name: opening-span-op-window-word-scale, opening-span-op-cut-opacity; animation-range: cover calc(100vh + 0.02 * var(--opening-stage)) cover calc(100vh + 0.62 * var(--opening-stage)), cover calc(100vh + 0.3 * var(--opening-stage)) cover calc(100vh + 0.6 * var(--opening-stage)); animation-timing-function: cubic-bezier(0.3333, 0, 0.6667, 0), cubic-bezier(0.3333, 0, 0.6667, 0.3333); transform: none; transform-origin: 33% 58%; }
+[data-8b-live] #opening .op-window { animation-name: opening-span-op-window-clippath; animation-range: cover calc(100vh + 0.04 * var(--opening-stage)) cover calc(100vh + 0.66 * var(--opening-stage)); animation-timing-function: var(--opening-ease); }
+@keyframes opening-span-op-cut-translate { 0% { translate: 0px 0px; } 100% { translate: -60% 0px; } }
+@keyframes opening-span-op-cut-opacity { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes opening-div-op-info-translate { 0% { translate: 0px 0px; } 100% { translate: 0px 8vh; } }
+@keyframes opening-span-op-window-word-scale { 0% { scale: 1; } 100% { scale: 3.4; } }
+@keyframes opening-span-op-window-clippath { 0% { clip-path: inset(2px); } 100% { clip-path: inset(var(--opening-top) var(--opening-right) var(--opening-bottom) var(--opening-left)); } }
+}
+</style>
+<style data-8b-part="scene:manifesto">
+@layer scenes {
+[data-8b-live] #manifesto .mf__statement { view-timeline: --manifesto-statement block; view-timeline-inset: 0; }
+[data-8b-live] #manifesto .mf__statement .w { --manifesto-steps: calc(1 + 0.3 * var(--n)); --manifesto-at: calc(0.3 * var(--i) / var(--manifesto-steps)); --manifesto-to: calc((0.3 * var(--i) + 1.3) / var(--manifesto-steps)); animation-name: manifesto-word; animation-timeline: --manifesto-statement; animation-range: cover calc(20vh + var(--manifesto-at) * (100% - 84vh)) cover calc(20vh + var(--manifesto-to) * (100% - 84vh)); animation-timing-function: linear; animation-fill-mode: both; }
+@keyframes manifesto-word { 0% { color: var(--color-5); } 38.4615% { color: var(--color-7); } 100% { color: var(--color-2); } }
+}
+</style>
+<style data-8b-part="scene:selection">
+@layer scenes {
+[data-8b-live] #selection .sel__list > .sel__row { view-timeline: --selection-item block; view-timeline-inset: 0; }
+[data-8b-live] #selection .sel__list > .sel__row > .sel__frame { animation-name: selection-figure-sel-frame-clippath; animation-timeline: --selection-item; animation-range: cover 0% cover calc(50% - 8vh); animation-timing-function: linear; animation-fill-mode: both; }
+[data-8b-live] #selection .sel__list > .sel__row > .sel__frame > img { animation-name: selection-figure-sel-frame-img-scale; animation-timeline: --selection-item; animation-range: cover 0% cover calc(50% - 8vh); animation-timing-function: linear; animation-fill-mode: both; transform: none; }
+[data-8b-live] #selection .sel__list > .sel__row > .sel__meta > .sel__bar > .sel__fill { animation-name: selection-span-sel-fill-scale; animation-timeline: --selection-item; animation-timing-function: linear; animation-fill-mode: both; transform: none; }
+@keyframes selection-figure-sel-frame-clippath { 0% { clip-path: inset(22% 0% round 8px); } 99.998% { clip-path: inset(0.0044% 0% round 8px); } 100% { clip-path: inset(0% round 8px); } }
+@keyframes selection-figure-sel-frame-img-scale { 0% { scale: 1.2; } 100% { scale: 1; } }
+@keyframes selection-span-sel-fill-scale { 0% { scale: 0 1; } 100% { scale: 1; } }
+@media (min-width: 761px) {
+  [data-8b-live] #selection .sel__list > .sel__row > .sel__meta > .sel__bar > .sel__fill { animation-range: cover 28vh cover calc(100% - 45vh); }
+}
+@media (max-width: 760px) {
+  [data-8b-live] #selection .sel__list > .sel__row > .sel__meta > .sel__bar > .sel__fill { animation-range: cover 28vh cover 88vh; }
+}
+}
+</style>
+<style data-8b-part="scene:strands">
+@layer scenes {
+@media (prefers-reduced-motion: no-preference) {
+  [data-8b-live] #strands .st__low { position: absolute; left: 0; top: 0; clip-path: inset(50% 0 0 0); }
+}
+}
+@layer scenes {
+[data-8b-live] #strands { timeline-scope: --strands-t1, --strands-t2, --strands-t3, --strands-t4, --strands-t5, --strands-t6, --strands-t7, --strands-t8; }
+[data-8b-live] #strands .st__list > .st__item { view-timeline-inset: 0; }
+[data-8b-live] #strands .st__list > li:nth-of-type(1) { view-timeline: --strands-item block, --strands-t1 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(2) { view-timeline: --strands-item block, --strands-t2 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(3) { view-timeline: --strands-item block, --strands-t3 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(4) { view-timeline: --strands-item block, --strands-t4 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(5) { view-timeline: --strands-item block, --strands-t5 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(6) { view-timeline: --strands-item block, --strands-t6 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(7) { view-timeline: --strands-item block, --strands-t7 block; }
+[data-8b-live] #strands .st__list > li:nth-of-type(8) { view-timeline: --strands-item block, --strands-t8 block; }
+[data-8b-live] #strands .st__list > .st__item > .st__cut > span:nth-of-type(1) { animation-timeline: --strands-item; animation-range: cover 2vh cover calc(47% - 1.76vh), cover calc(47% - 1.76vh) cover calc(50% - 2vh); animation-timing-function: cubic-bezier(0.3333, 0.6667, 0.6667, 1), linear; animation-fill-mode: both; transform: none; }
+[data-8b-live] #strands .st__list > .st__item > .st__cut > span:nth-child(2) { animation-timeline: --strands-item; animation-range: cover 2vh cover calc(47% - 1.76vh), cover calc(47% - 1.76vh) cover calc(50% - 2vh), cover calc(47% - 1.76vh) cover calc(50% - 2vh); animation-timing-function: cubic-bezier(0.3333, 0.6667, 0.6667, 1), linear, linear; animation-fill-mode: both; transform: none; }
+@keyframes strands-span-st-name-translate { 0% { translate: calc(-1 * min(9vw, 120px)) 0px; } 100% { translate: 0px 0px; } }
+@keyframes strands-span-st-name-clippath { 0% { clip-path: inset(0% 0% 50%); } 99.998% { clip-path: inset(0% 0% 0.0833%); } 100% { clip-path: inset(0%); } }
+@keyframes strands-span-st-cut-span-st-name-translate { 0% { translate: min(9vw, 120px) 0px; } 100% { translate: 0px 0px; } }
+@keyframes strands-span-st-cut-span-st-name-opacity { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes strands-span-st-cut-span-st-name-visibility { 0% { visibility: visible; } 99.998% { visibility: visible; } 100% { visibility: hidden; } }
+[data-8b-live] #strands .st__list > li:nth-of-type(2n+1) > .st__cut > span:nth-of-type(1) { animation-name: strands-span-st-name-translate, strands-span-st-name-clippath; }
+[data-8b-live] #strands .st__list > li:nth-of-type(2n+2) > .st__cut > span:nth-of-type(1) { animation-name: strands-span-st-cut-span-st-name-translate, strands-span-st-name-clippath; }
+[data-8b-live] #strands .st__list > li:nth-of-type(2n+1) > .st__cut > span:nth-child(2) { animation-name: strands-span-st-cut-span-st-name-translate, strands-span-st-cut-span-st-name-opacity, strands-span-st-cut-span-st-name-visibility; }
+[data-8b-live] #strands .st__list > li:nth-of-type(2n+2) > .st__cut > span:nth-child(2) { animation-name: strands-span-st-name-translate, strands-span-st-cut-span-st-name-opacity, strands-span-st-cut-span-st-name-visibility; }
+}
+</style>
+<style data-8b-part="scene:premiere">
+@layer scenes {
+@media (prefers-reduced-motion: no-preference) {
+  [data-8b-live] #premiere { height: 200svh; }
+  [data-8b-live] #premiere .pr__stage { position: sticky; top: 0; height: 100svh; min-height: 0; }
+}
+}
+@layer scenes {
+[data-8b-live] { --ease-power2-inout: linear(0, 0.0001, 0.0005, 0.0017, 0.004, 0.0078, 0.0135, 0.0214, 0.032, 0.0456, 0.0625, 0.0832, 0.108, 0.1373, 0.1715, 0.2109, 0.256, 0.3071, 0.3645, 0.4287, 0.5, 0.5713, 0.6355, 0.6929, 0.744, 0.7891, 0.8285, 0.8627, 0.892, 0.9168, 0.9375, 0.9544, 0.968, 0.9786, 0.9865, 0.9922, 0.996, 0.9983, 0.9995, 0.9999, 1); }
+[data-8b-live] #premiere { view-timeline: --premiere-t1 block; view-timeline-inset: 0; }
+[data-8b-live] #premiere .pr__frame, [data-8b-live] #premiere .pr__frame > img, [data-8b-live] #premiere .pr__word, [data-8b-live] #premiere .pr__info { animation-timeline: --premiere-t1; animation-fill-mode: both; }
+[data-8b-live] #premiere .pr__frame { animation-name: premiere-figure-pr-frame-clippath; animation-range: cover 100vh cover calc(72% - 44vh); animation-timing-function: var(--ease-power2-inout); }
+[data-8b-live] #premiere .pr__frame > img { animation-name: premiere-figure-pr-frame-img-scale; animation-range: cover 100vh cover calc(72% - 44vh); animation-timing-function: cubic-bezier(0.3333, 0.6667, 0.6667, 1); transform: none; }
+[data-8b-live] #premiere .pr__word { animation-name: premiere-span-pr-word-translate; animation-range: cover calc(2% + 96vh) cover calc(72% - 44vh); animation-timing-function: var(--ease-power2-inout); transform: none; }
+[data-8b-live] #premiere .pr__info { animation-name: premiere-div-pr-info-translate, premiere-div-pr-info-opacity, premiere-div-pr-info-visibility; animation-range: cover calc(66% - 32vh) cover calc(90% - 80vh); animation-timing-function: cubic-bezier(0.3333, 1, 0.6667, 1), cubic-bezier(0.3333, 1, 0.6667, 1), linear; transform: none; }
+@keyframes premiere-figure-pr-frame-clippath { 0% { clip-path: inset(var(--premiere-pill-y) var(--premiere-pill-x) round 999px); } 100% { clip-path: inset(0px round 8px); } }
+@keyframes premiere-figure-pr-frame-img-scale { 0% { scale: 1.45; } 100% { scale: 1; } }
+@keyframes premiere-span-pr-word-translate { 0% { translate: var(--premiere-travel) 0px; } 100% { translate: 0px 0px; } }
+@keyframes premiere-div-pr-info-translate { 0% { translate: 0px 40px; } 100% { translate: 0px 0px; } }
+@keyframes premiere-div-pr-info-opacity { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes premiere-div-pr-info-visibility { 0% { visibility: hidden; } 0.002% { visibility: visible; animation-timing-function: cubic-bezier(0.3333, 1, 0.6667, 1); } 100% { visibility: visible; } }
+}
+</style>
+<style data-8b-part="scene:jury">
+@layer scenes {
+[data-8b-live] #jury .jr__grid { view-timeline: --jury-t1 block; view-timeline-inset: 0; }
+[data-8b-live] #jury .jr__grid > .jr__card > .jr__photo > img { animation-name: jury-figure-jr-photo-img-filter; animation-timeline: --jury-t1; animation-range: cover calc(12vh - 14.9159vh * var(--i) + 17.757% * var(--i)) cover calc(46.729% + 17.757% * var(--i) - 27.2523vh - 14.9159vh * var(--i)); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); animation-fill-mode: both; }
+@keyframes jury-figure-jr-photo-img-filter { 0% { filter: invert(1) grayscale(1) contrast(1.15); } 100% { filter: invert(0) grayscale(0) contrast(1); } }
+}
+</style>
+<style data-8b-part="scene:venues">
+@layer scenes {
+@media (prefers-reduced-motion: no-preference) {
+  [data-8b-live] #venues .vn__stage { min-height: 100svh; align-content: center; padding-block: 72px 24px; }
+  [data-8b-live] #venues .vn__track { display: flex; width: max-content; gap: 20px; }
+  [data-8b-live] #venues .vn__panel { width: min(50vw, 720px); }
+}
+@media (prefers-reduced-motion: no-preference) and (max-width: 760px) {
+  [data-8b-live] #venues .vn__panel { width: 80vw; }
+}
+}
+@layer scenes {
+[data-8b-live] #venues .vn-stage-room { view-timeline: --venues-t1 block; view-timeline-inset: 0; }
+[data-8b-live] #venues .vn-stage-room > .vn-stage-room-space { height: var(--venues-travel); }
+[data-8b-live] #venues .vn__stage { position: sticky; top: 0%; }
+[data-8b-live] #venues .vn__track, [data-8b-live] #venues .vn__track > .vn__panel > .vn__photo > img { animation-timeline: --venues-t1; animation-range: cover 100vh cover calc(100vh + var(--venues-travel)); animation-timing-function: linear; animation-fill-mode: both; transform: none; }
+[data-8b-live] #venues .vn__track { animation-name: venues-ul-vn-track-translate; }
+[data-8b-live] #venues .vn__track > .vn__panel > .vn__photo > img { animation-name: venues-figure-vn-photo-img-translate; scale: 1.14; }
+@keyframes venues-ul-vn-track-translate { 0% { translate: 0px 0px; } 100% { translate: calc(-1 * var(--venues-travel)) 0px; } }
+@keyframes venues-figure-vn-photo-img-translate { 0% { translate: -6% 0px; } 100% { translate: 6% 0px; } }
+}
+</style>
+<style data-8b-part="scene:passes">
+@layer scenes {
+[data-8b-live] #passes .ps__list > .ps__ticket { view-timeline: --passes-item block; view-timeline-inset: 0; }
+[data-8b-live] #passes .ps__list > .ps__ticket > .ps__stub { animation-name: passes-div-ps-stub-translate, passes-div-ps-stub-rotate-2; animation-timeline: --passes-item; animation-range: cover calc(100% - 106vh) cover calc(100% - 70vh); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); animation-fill-mode: both; transform: none; transform-origin: calc(100% + var(--i) * -100%) 0%; }
+[data-8b-live] #passes .ps__list > li:first-of-type > .ps__stub { animation-name: passes-div-ps-stub-translate, passes-div-ps-stub-rotate; }
+@keyframes passes-div-ps-stub-translate { 0% { translate: 0px 34px; } 100% { translate: 0px 0px; } }
+@keyframes passes-div-ps-stub-rotate { 0% { rotate: 7deg; } 100% { rotate: 0deg; } }
+@keyframes passes-div-ps-stub-rotate-2 { 0% { rotate: -7deg; } 100% { rotate: 0deg; } }
+}
+</style>
+<script data-8b-part="motion-gate">
+if (matchMedia('(prefers-reduced-motion: no-preference)').matches && CSS.supports('animation-timeline: view()')) document.documentElement.setAttribute('data-8b-live', '');
+</script>
+</head>
+<body>
+<!-- navigation: fixed top bar: wordmark, five section links, Get a pass button; hides on scroll down; full-screen phone menu -->
+<header id="site-nav" class="nav" data-8b-section="navigation">
+  <a class="nav__logo" href="#opening">Cut Short</a>
+  <nav aria-label="Main">
+    <ul class="nav__list" id="nav-list">
+      <li class="nav__item"><a class="m-link m-text-3" href="#selection">Programme</a></li>
+      <li class="nav__item"><a class="m-link m-text-3" href="#strands">Strands</a></li>
+      <li class="nav__item"><a class="m-link m-text-3" href="#jury">Jury</a></li>
+      <li class="nav__item"><a class="m-link m-text-3" href="#venues">Venues</a></li>
+      <li class="nav__item"><a class="m-link m-text-3" href="#submit">Submit</a></li>
+    </ul>
+  </nav>
+  <a class="m-btn nav__cta" href="#passes"><span class="m-btn__label">Get a pass</span></a>
+  <button class="m-btn-2 nav__menu" type="button" aria-expanded="false" aria-controls="nav-list"><span class="m-btn__label" data-open-label="Close">Menu</span></button>
+</header>
+<main>
+<!-- opening: two screens: the festival name with a film still showing through the second word, an info row and a pass button; then the still full screen with a statement and a submissions card (animation: scene:opening) -->
+<section id="opening" class="op" data-8b-section="opening">
+  <div class="op__stage">
+    <div class="op__first">
+      <h1 class="op__title m-text-7" style="--len:9"><span class="op-cut"><span class="op-cut__in">Cut</span></span> <span class="op-window"><span class="op-window__in"><img class="op-window__film" src="https://images.unsplash.com/photo-1570392428579-082dfb1c4d66?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8OHx8bWFuJTIwb3JhbmdlJTIwbGlnaHQlMjBzbW9rZSUyMGRhcmt8ZW58MXwwfHx8MTc5MTQ2NjcxN3ww&ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=60" alt="" width="1600" height="1068" fetchpriority="high"><span class="op-window__word">Short</span></span></span></h1>
+      <div class="op__info">
+        <p class="op__where m-text-3"><span>Glasgow</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg><span>11–17 Nov 2026</span></p>
+        <ul class="op__strands m-text-3" aria-label="Strands">
+          <li>International Competition</li>
+          <li>Scottish Shorts</li>
+          <li>Animation</li>
+          <li>Documentary</li>
+          <li>After Dark</li>
+        </ul>
+        <div class="op__intro">
+          <p class="m-text-2">An international festival of films under twenty minutes: seven nights in three Glasgow cinemas, forty-two films in competition.</p>
+          <p class="m-text">We open the doors to stories that know when to stop, from first-time filmmakers and old hands alike.</p>
+          <div class="op__actions">
+            <a class="m-btn" href="#passes"><span class="m-btn__label">Get a festival pass</span></a>
+            <a class="m-link m-text-3" href="#selection">See the programme</a>
+          </div>
+        </div>
+        <p class="op__edition m-text-3">[14th edition]</p>
+      </div>
+    </div>
+  </div>
+  <div class="op__second">
+    <img class="op__film" src="https://images.unsplash.com/photo-1570392428579-082dfb1c4d66?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8OHx8bWFuJTIwb3JhbmdlJTIwbGlnaHQlMjBzbW9rZSUyMGRhcmt8ZW58MXwwfHx8MTc5MTQ2NjcxN3ww&ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=60" alt="A figure half hidden in a cloud of orange smoke, lit like a film still" width="1600" height="1068">
+    <div class="op__second-inner">
+      <p class="op__statement m-text-5">Every film here ends a moment before you are ready for it to.</p>
+      <aside class="op__card" aria-label="Submissions">
+        <div class="op__card-title">
+          <p class="m-text-3">[Submissions for 2027]</p>
+          <p class="m-text-6">Made something under twenty minutes?</p>
+        </div>
+        <a class="m-icon" href="#submit" aria-label="How to submit a film"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a>
+        <p class="m-text">Entries open on 1 March. Every film is watched to its last frame by two programmers.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- manifesto: a two-sentence statement lit word by word, a portrait and two short paragraphs signed by the festival director (animation: scene:manifesto) -->
+<section id="manifesto" class="mf wrap" data-8b-section="manifesto">
+  <div class="mf__grid">
+    <p class="mf__note m-text-3">[Every November since 2013]</p>
+    <p class="mf__statement m-text-5" data-8b-split="words">We programme films the way you tell a secret: quickly, in the dark, to a room that leans in. Twenty minutes is enough to break a heart, start an argument or change a mind.</p>
+  </div>
+  <div class="mf__aside">
+    <figure class="mf__photo"><img src="https://images.unsplash.com/photo-1637059880830-59a90102de77?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8Mnx8cG9ydHJhaXQlMjBtYW4lMjBzaGFkb3clMjBkcmFtYXRpY3xlbnwxfDF8fHwxNzkxNDY2NzUzfDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=250&q=60" alt="Ruaridh Bell, the festival director, looking up in the dark" width="1600" height="2133" loading="lazy"></figure>
+    <div class="mf__copy">
+      <p class="m-text">Cut Short began as one night in a borrowed church hall with a bedsheet for a screen. Fourteen years on it fills three cinemas, but the rule hasn't changed: nothing over twenty minutes, and every film gets a full house.</p>
+      <p class="m-text mf__sign"><span class="m-text-6">Ruaridh Bell</span><span class="m-text-3">Festival director</span></p>
+    </div>
+    <div class="mf__copy">
+      <p class="m-text">We watch every submission to its last frame. What reaches the screen is the work that made us forget to check the time.</p>
+      <a class="m-link m-text-3" href="#submit">How films are chosen</a>
+    </div>
+  </div>
+</section>
+
+<!-- selection: four featured competition films, each with runtime, director, logline, screening slot and a still (demo: Last Orders at the Lucky Star, Whiteout, Hold Your Breath, The Long Way from Fintry) (animation: scene:selection) -->
+<section id="selection" class="sel wrap" data-8b-section="selection">
+  <div class="sel__head">
+    <h2 class="sel__title m-text-4" style="--len:14" data-8b-motion="cut" data-8b-enter="90%">In competition</h2>
+    <div class="sel__headnote">
+      <p class="m-text-3">[Four of forty-two]</p>
+      <p class="m-text">Forty-two films from twenty-six countries compete for the Cut Short Prize. These are four the selection committee still argues about.</p>
+    </div>
+  </div>
+  <ol class="sel__list" data-8b-items=":scope > .sel__row">
+    <li class="sel__row">
+      <div class="sel__meta">
+        <div class="sel__meta-top"><h3 class="m-text-6">Last Orders at the Lucky Star</h3><p class="sel__runtime m-text-3">14 min</p></div>
+        <p class="sel__by m-text-3">Dir. Niamh Kearney · Ireland</p>
+        <p class="sel__logline m-text">A night-shift waitress has one hour to decide whether the man at table six is the father who left.</p>
+        <div class="sel__bar" aria-hidden="true"><span class="sel__fill"></span></div>
+        <p class="sel__when m-text-3">[Wed 12 Nov · 20:15 · The Grand Hall]</p>
+      </div>
+      <figure class="sel__frame"><img src="https://images.unsplash.com/photo-1775750219279-87ffff280d72?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8MXx8bmlnaHQlMjBkaW5lciUyMG5lb24lMjB3aW5kb3d8ZW58MXwwfHx8MTc5MTQ2NjcxOXww&ixlib=rb-4.1.0&auto=format&fit=crop&w=840&q=60" alt="A roadside diner glowing under its neon sign at night" width="1600" height="1067" loading="lazy"></figure>
+    </li>
+    <li class="sel__row">
+      <div class="sel__meta">
+        <div class="sel__meta-top"><h3 class="m-text-6">Whiteout</h3><p class="sel__runtime m-text-3">9 min</p></div>
+        <p class="sel__by m-text-3">Dir. Jonas Aaltonen · Finland</p>
+        <p class="sel__logline m-text">A ski patroller follows a line of footprints that stops in the middle of an empty field.</p>
+        <div class="sel__bar" aria-hidden="true"><span class="sel__fill"></span></div>
+        <p class="sel__when m-text-3">[Thu 13 Nov · 18:00 · The Dome]</p>
+      </div>
+      <figure class="sel__frame"><img src="https://images.unsplash.com/photo-1733361749222-434ac367c652?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8Mnx8ZmlndXJlJTIwcmVkJTIwY29hdCUyMHNub3clMjBmaWVsZHxlbnwxfDB8fHwxNzkxNDY2NzI0fDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=840&q=60" alt="A small figure in a red jacket crossing a white snowfield" width="1600" height="1067" loading="lazy"></figure>
+    </li>
+    <li class="sel__row">
+      <div class="sel__meta">
+        <div class="sel__meta-top"><h3 class="m-text-6">Hold Your Breath</h3><p class="sel__runtime m-text-3">18 min</p></div>
+        <p class="sel__by m-text-3">Dir. Carmen Ruiz · Spain, Mexico</p>
+        <p class="sel__logline m-text">Two sisters train for the free-diving record their mother never came back up from.</p>
+        <div class="sel__bar" aria-hidden="true"><span class="sel__fill"></span></div>
+        <p class="sel__when m-text-3">[Fri 14 Nov · 21:00 · The Grand Hall]</p>
+      </div>
+      <figure class="sel__frame"><img src="https://images.unsplash.com/photo-1636924592256-0b917bc6c894?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8N3x8c3dpbW1lciUyMHBvb2wlMjBuaWdodCUyMGxpZ2h0fGVufDF8MHx8fDE3OTE0NjY3MjN8MA&ixlib=rb-4.1.0&auto=format&fit=crop&w=840&q=60" alt="Two hands reaching up through blue water towards the light" width="1600" height="1168" loading="lazy"></figure>
+    </li>
+    <li class="sel__row">
+      <div class="sel__meta">
+        <div class="sel__meta-top"><h3 class="m-text-6">The Long Way from Fintry</h3><p class="sel__runtime m-text-3">12 min</p></div>
+        <p class="sel__by m-text-3">Dir. Calum Reid · Scotland</p>
+        <p class="sel__logline m-text">A driving instructor and his last pupil take the back road home one more time, in fog.</p>
+        <div class="sel__bar" aria-hidden="true"><span class="sel__fill"></span></div>
+        <p class="sel__when m-text-3">[Sat 15 Nov · 16:30 · Trongate Night Cinema]</p>
+      </div>
+      <figure class="sel__frame"><img src="https://images.unsplash.com/photo-1668166893230-bab2db9e4343?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8MXx8Y2FyJTIwaGVhZGxpZ2h0cyUyMGVtcHR5JTIwcm9hZCUyMG5pZ2h0fGVufDF8MHx8fDE3OTE0NjY3MjF8MA&ixlib=rb-4.1.0&auto=format&fit=crop&w=840&q=60" alt="A country road disappearing into fog under a single street light" width="1600" height="1067" loading="lazy"></figure>
+    </li>
+  </ol>
+</section>
+
+<!-- strands: a panel with the eight programme strands as large names with their days in brackets (animation: scene:strands) -->
+<section id="strands" class="st wrap" data-8b-section="strands">
+  <div class="st__panel m-surface">
+    <div class="st__head">
+      <h2 class="st__title m-text-3">Strands</h2>
+      <p class="st__lead m-text-2">Eight ways into the programme, one rule for all of them: nothing over twenty minutes.</p>
+      <p class="st__note m-text-3">[Pick a night, or all of them]</p>
+    </div>
+    <ul class="st__list" data-8b-items=":scope > .st__item" data-8b-fixed="8">
+      <li class="st__item"><span class="st__cut"><span class="st__name">International Competition</span></span><span class="st__days m-text-3">[Tue–Sun]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">Scottish Shorts</span></span><span class="st__days m-text-3">[Wed, Fri]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">Animation</span></span><span class="st__days m-text-3">[Thu, Sun]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">Documentary</span></span><span class="st__days m-text-3">[Wed–Sat]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">After Dark</span></span><span class="st__days m-text-3">[Fri, Sat · 23:00]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">First Films</span></span><span class="st__days m-text-3">[Sun]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">Music Video</span></span><span class="st__days m-text-3">[Sat]</span></li>
+      <li class="st__item"><span class="st__cut"><span class="st__name">Rescued Reels</span></span><span class="st__days m-text-3">[Sun matinee]</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- premiere: opening night as a pinned screen: a small pill of a still widens to the full frame while the words Opening and Night travel to the edges, then the film's details (animation: scene:premiere) -->
+<section id="premiere" class="pr" data-8b-section="premiere">
+  <div class="pr__stage wrap">
+    <div class="pr__screen">
+      <h2 class="pr__title"><span class="pr__word pr__word--a">Opening</span> <span class="pr__word pr__word--b">Night</span></h2>
+      <figure class="pr__frame"><img src="https://images.unsplash.com/photo-1764016888040-727244f8db7d?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8M3x8d29tYW4lMjByZWQlMjBsaWdodCUyMGNpbmVtYXRpYyUyMHBvcnRyYWl0fGVufDF8MHx8fDE3OTE0NjY3MTZ8MA&ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=60" alt="A woman looks up into red stage light, a still from Red Hour" width="1600" height="1067" loading="lazy"></figure>
+    </div>
+    <div class="pr__info">
+      <p class="pr__when m-text-3">[Tue 11 Nov · 19:30 · The Grand Hall]</p>
+      <div class="pr__film">
+        <p class="m-text-6">Red Hour</p>
+        <p class="m-text">Dir. Amaya Ortiz · UK, Spain · 17 min. A lighting technician spends the hour before a premiere searching the theatre for the star who has stopped answering. Followed by a conversation with the director and the festival party until late.</p>
+      </div>
+      <a class="m-btn" href="#passes"><span class="m-btn__label">Book opening night</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- jury: four jurors as portraits with name, role and city, and a quote each; portraits develop from negative to positive (animation: scene:jury) -->
+<section id="jury" class="jr wrap" data-8b-section="jury">
+  <div class="jr__head">
+    <h2 class="jr__title m-text-4" style="--len:8" data-8b-motion="cut" data-8b-enter="90%">The jury</h2>
+    <p class="jr__lead m-text-2">Four people who make films for a living will watch all forty-two and give one prize: £5,000 and the closing-night slot.</p>
+  </div>
+  <ul class="jr__grid" data-8b-items=":scope > .jr__card">
+    <li class="jr__card">
+      <figure class="jr__photo"><img src="https://images.unsplash.com/photo-1636208640803-6a443f9676d4?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8MTF8fHBvcnRyYWl0JTIwd29tYW4lMjBkYXJrJTIwYmFja2dyb3VuZCUyMGZpbG18ZW58MXwxfHx8MTc5MTQ2Njc1Mnww&ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=60" alt="Saoirse Dunne, with long red hair, a hand at her temple" width="1600" height="2133" loading="lazy"></figure>
+      <p class="m-text-6">Saoirse Dunne</p>
+      <p class="jr__role m-text-3">Editor · Dublin</p>
+      <p class="jr__quote m-text">“I look for the cut nobody else would have dared to make.”</p>
+    </li>
+    <li class="jr__card">
+      <figure class="jr__photo"><img src="https://images.unsplash.com/photo-1778050786388-2b30a3ac79cc?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8N3x8cG9ydHJhaXQlMjBtYW4lMjBzaGFkb3clMjBkcmFtYXRpY3xlbnwxfDF8fHwxNzkxNDY2NzUzfDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=60" alt="Tomasz Wilk in black and white, looking up into a hard light" width="1600" height="2400" loading="lazy"></figure>
+      <p class="m-text-6">Tomasz Wilk</p>
+      <p class="jr__role m-text-3">Cinematographer · Łódź</p>
+      <p class="jr__quote m-text">“Light that tells me something the script forgot to.”</p>
+    </li>
+    <li class="jr__card">
+      <figure class="jr__photo"><img src="https://images.unsplash.com/photo-1675726205553-4e348f24da2c?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8OXx8cG9ydHJhaXQlMjB3b21hbiUyMGRhcmslMjBiYWNrZ3JvdW5kJTIwZmlsbXxlbnwxfDF8fHwxNzkxNDY2NzUyfDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=60" alt="Leila Haddad in a dark shawl, looking straight into the camera" width="1600" height="2400" loading="lazy"></figure>
+      <p class="m-text-6">Leila Haddad</p>
+      <p class="jr__role m-text-3">Director · Marseille</p>
+      <p class="jr__quote m-text">“A first frame that dares me to look away, and I can’t.”</p>
+    </li>
+    <li class="jr__card">
+      <figure class="jr__photo"><img src="https://images.unsplash.com/photo-1770896686915-140095250023?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8NHx8cG9ydHJhaXQlMjBtYW4lMjBzaGFkb3clMjBkcmFtYXRpY3xlbnwxfDF8fHwxNzkxNDY2NzUzfDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=60" alt="Daniel Mensah standing in red light against a dark wall" width="1600" height="2137" loading="lazy"></figure>
+      <p class="m-text-6">Daniel Mensah</p>
+      <p class="jr__role m-text-3">Programmer · Accra</p>
+      <p class="jr__quote m-text">“An ending that arrives one second before I want it to.”</p>
+    </li>
+  </ul>
+</section>
+
+<!-- submit: call for entries: statement, rules, a Submit button, a photo and three numbered steps with dates -->
+<section id="submit" class="sb wrap" data-8b-section="submit">
+  <div class="sb__grid">
+    <div class="sb__lead">
+      <h2 class="sb__title m-text-5" data-8b-motion="cut" data-8b-enter="90%">Made something under twenty minutes? Send it to us.</h2>
+      <p class="m-text">Fiction, documentary, animation and everything in between, finished after 1 January 2026. Entry is free for students and first-time filmmakers.</p>
+      <a data-8b-placeholder="email" class="m-btn" href="mailto:films@cutshort.example?subject=Film%20submission"><span class="m-btn__label">Submit a film</span></a>
+    </div>
+    <figure class="sb__photo" data-8b-motion="gate"><img src="https://images.unsplash.com/photo-1605501492805-f5699f0718d5?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8N3x8ZmlsbSUyMGNyZXclMjBjYW1lcmElMjBzZXQlMjBuaWdodHxlbnwxfDB8fHwxNzkxNDY2NzU1fDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=680&q=60" alt="A small film crew in silhouette, filming under red light" width="1600" height="1067" loading="lazy"></figure>
+  </div>
+  <ol class="sb__steps" data-8b-items=":scope > .sb__step">
+    <li class="sb__step ruled" data-8b-motion="rule" data-8b-enter="95%">
+      <p class="sb__num m-text-3">Step 1 · by 1 August</p>
+      <h3 class="m-text-6">Send a private link</h3>
+      <p class="m-text">A password-protected link, one still and a two-line synopsis. English subtitles for any other language.</p>
+    </li>
+    <li class="sb__step ruled" data-8b-motion="rule" data-8b-enter="95%">
+      <p class="sb__num m-text-3">Step 2 · August</p>
+      <h3 class="m-text-6">Watched to the last frame</h3>
+      <p class="m-text">Two programmers watch every film from the first second to the end credits. Nobody skips to the middle.</p>
+    </li>
+    <li class="sb__step ruled" data-8b-motion="rule" data-8b-enter="95%">
+      <p class="sb__num m-text-3">Step 3 · by 15 September</p>
+      <h3 class="m-text-6">Hear back from us</h3>
+      <p class="m-text">Everyone gets an answer. Selected filmmakers get a pass, two nights in Glasgow and a seat at the awards.</p>
+    </li>
+  </ol>
+</section>
+
+<!-- venues: three cinemas as panels with photo, name, address and what plays there; a pinned row that slides sideways (demo: The Grand Hall, The Dome, Trongate Night Cinema) (animation: scene:venues) -->
+<section id="venues" class="vn" data-8b-section="venues">
+  <div class="vn__stage">
+    <div class="vn__head wrap">
+      <h2 class="vn__title m-text-4" style="--len:6" data-8b-motion="cut" data-8b-enter="90%">Venues</h2>
+      <p class="vn__lead m-text-2">Seven nights, three rooms, all within a ten-minute walk of each other in the city centre.</p>
+    </div>
+    <ul class="vn__track" data-8b-items=":scope > .vn__panel">
+      <li class="vn__panel">
+        <figure class="vn__photo"><img src="https://images.unsplash.com/photo-1783503502938-de922b9c467d?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8Mnx8b2xkJTIwY2luZW1hJTIwcmVkJTIwc2VhdHMlMjBlbXB0eXxlbnwxfDB8fHwxNzkxNDY2NzQ5fDA&ixlib=rb-4.1.0&auto=format&fit=crop&w=650&q=60" alt="Rows of red velvet seats in a warmly lit auditorium" width="1600" height="1067" loading="lazy"></figure>
+        <div class="vn__text">
+          <h3 class="m-text-6">The Grand Hall</h3>
+          <p class="m-text-3">2 Example Street, G2 0ZZ</p>
+          <p class="m-text">Opening and closing nights and the International Competition, in 640 red velvet seats under a painted ceiling.</p>
+        </div>
+      </li>
+      <li class="vn__panel">
+        <figure class="vn__photo"><img src="https://images.unsplash.com/photo-1714244467641-ff76306894a6?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8MTd8fGNpbmVtYSUyMGF1ZGllbmNlJTIwZGFyayUyMHNjcmVlbiUyMGxpZ2h0fGVufDF8MHx8fDE3OTE0NjY3NDd8MA&ixlib=rb-4.1.0&auto=format&fit=crop&w=650&q=60" alt="An audience sitting under a curved dome screen" width="1600" height="1067" loading="lazy"></figure>
+        <div class="vn__text">
+          <h3 class="m-text-6">The Dome</h3>
+          <p class="m-text-3">3 Example Street, G51 0ZZ</p>
+          <p class="m-text">Animation and Rescued Reels on a curved screen that hangs right over your head.</p>
+        </div>
+      </li>
+      <li class="vn__panel">
+        <figure class="vn__photo"><img src="https://images.unsplash.com/photo-1627133805103-ce2d34ccdd37?ixid=M3w0Mzc5fDB8MXxzZWFyY2h8N3x8Y2luZW1hJTIwYXVkaWVuY2UlMjBkYXJrJTIwc2NyZWVuJTIwbGlnaHR8ZW58MXwwfHx8MTc5MTQ2Njc0N3ww&ixlib=rb-4.1.0&auto=format&fit=crop&w=650&q=60" alt="A cinema front with its sign lit above the street at night" width="1600" height="1067" loading="lazy"></figure>
+        <div class="vn__text">
+          <h3 class="m-text-6">Trongate Night Cinema</h3>
+          <p class="m-text-3">4 Example Street, G1 0ZZ</p>
+          <p class="m-text">After Dark, Music Video and the festival bar, which stays open until two in the morning.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- faq: five questions in native details elements -->
+<section id="faq" class="fq wrap" data-8b-section="faq">
+  <h2 class="fq__title m-text-4" style="--len:9" data-8b-motion="cut" data-8b-enter="90%">Questions</h2>
+  <div class="fq__body">
+    <p class="fq__note m-text-3">[Before you come]</p>
+    <div class="fq__list" data-8b-items=":scope > .fq__item">
+      <details class="fq__item ruled" data-8b-motion="rule" data-8b-enter="95%">
+        <summary class="fq__q"><span class="m-text-6">Are the screenings accessible?</span></summary>
+        <p class="fq__a m-text">All three venues have step-free access and hearing loops. Every programme has one captioned screening, and the Thursday matinees are relaxed screenings with the lights half up.</p>
+      </details>
+      <details class="fq__item ruled" data-8b-motion="rule" data-8b-enter="95%">
+        <summary class="fq__q"><span class="m-text-6">Is there an age limit?</span></summary>
+        <p class="fq__a m-text">Most programmes are for 15 and over. After Dark is 18 and over, and Sunday morning Animation is open to anyone aged eight or older.</p>
+      </details>
+      <details class="fq__item ruled" data-8b-motion="rule" data-8b-enter="95%">
+        <summary class="fq__q"><span class="m-text-6">Are films subtitled?</span></summary>
+        <p class="fq__a m-text">Every film not in English has English subtitles. Captioned screenings are marked in the printed programme and on each ticket.</p>
+      </details>
+      <details class="fq__item ruled" data-8b-motion="rule" data-8b-enter="95%">
+        <summary class="fq__q"><span class="m-text-6">Can I get a refund?</span></summary>
+        <p class="fq__a m-text">Passes can be refunded until 1 November. Day tickets can be moved to another day up to an hour before the first screening.</p>
+      </details>
+      <details class="fq__item ruled" data-8b-motion="rule" data-8b-enter="95%">
+        <summary class="fq__q"><span class="m-text-6">Will the filmmakers be there?</span></summary>
+        <p class="fq__a m-text">Most screenings end with a short conversation with the people who made the films, and the festival bar at Trongate is where everyone ends up afterwards.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- passes: two ticket cards (Festival pass, Day ticket) with a Standard and Concession price switch (animation: scene:passes) -->
+<section id="passes" class="ps wrap" data-8b-section="passes">
+  <div class="ps__head">
+    <h2 class="ps__title m-text-4" style="--len:6" data-8b-motion="cut" data-8b-enter="90%">Passes</h2>
+    <div class="ps__side">
+      <p class="ps__lead m-text">Concessions for students, under-25s, over-65s, job seekers and carers. No booking fees, ever.</p>
+      <div class="ps__switch" role="group" aria-label="Price type">
+        <button class="m-btn-2" type="button" aria-pressed="true" data-tier="standard"><span class="m-btn__label">Standard</span></button>
+        <button class="m-btn-2" type="button" aria-pressed="false" data-tier="concession"><span class="m-btn__label">Concession</span></button>
+      </div>
+    </div>
+  </div>
+  <ul class="ps__list" data-8b-items=":scope > .ps__ticket">
+    <li class="ps__ticket">
+      <div class="ps__body m-surface">
+        <p class="ps__span m-text-3">[All seven nights]</p>
+        <h3 class="m-text-6">Festival pass</h3>
+        <ul class="ps__incl m-text">
+          <li>Every screening in all three venues</li>
+          <li>Opening and closing nights</li>
+          <li>A seat held until five minutes before each film</li>
+          <li>The printed festival catalogue</li>
+        </ul>
+      </div>
+      <div class="ps__stub m-surface">
+        <p class="ps__price"><span data-tier="standard">£68</span><span data-tier="concession" hidden>£45</span></p>
+        <a data-8b-placeholder="email" class="m-btn" href="mailto:boxoffice@cutshort.example?subject=Festival%20pass"><span class="m-btn__label">Buy a festival pass</span></a>
+      </div>
+    </li>
+    <li class="ps__ticket">
+      <div class="ps__body m-surface">
+        <p class="ps__span m-text-3">[Any one day]</p>
+        <h3 class="m-text-6">Day ticket</h3>
+        <ul class="ps__incl m-text">
+          <li>Every screening on the day you choose</li>
+          <li>All three venues, first come first seated</li>
+          <li>Late entry to the festival bar</li>
+        </ul>
+      </div>
+      <div class="ps__stub m-surface">
+        <p class="ps__price"><span data-tier="standard">£16</span><span data-tier="concession" hidden>£11</span></p>
+        <a data-8b-placeholder="email" class="m-btn" href="mailto:boxoffice@cutshort.example?subject=Day%20ticket"><span class="m-btn__label">Buy a day ticket</span></a>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<!-- contact: a panel with four contact lines: tickets, submissions, press and partners, office (all placeholders) -->
+<section id="contact" class="ct wrap" data-8b-section="contact">
+  <div class="ct__panel m-surface" data-8b-motion="gate">
+    <h2 class="ct__title m-text-4" style="--len:11" data-8b-motion="cut" data-8b-enter="90%">Write to us</h2>
+    <div class="ct__grid">
+      <p class="ct__line m-text-2">Got something short to say? We read everything, usually within two days.</p>
+      <dl class="ct__list">
+        <div><dt class="m-text-3">Tickets</dt><dd><a data-8b-placeholder="email" class="m-link" href="mailto:boxoffice@cutshort.example">boxoffice@cutshort.example</a></dd></div>
+        <div><dt class="m-text-3">Submissions</dt><dd><a data-8b-placeholder="email" class="m-link" href="mailto:films@cutshort.example">films@cutshort.example</a></dd></div>
+        <div><dt class="m-text-3">Press and partners</dt><dd><a data-8b-placeholder="email" class="m-link" href="mailto:press@cutshort.example">press@cutshort.example</a></dd></div>
+        <div><dt class="m-text-3">Office</dt><dd class="m-text">1 Example Street, Glasgow G1 0ZZ<br><a data-8b-placeholder="phone" class="m-link" href="tel:+441410000000">+44 141 000 0000</a></dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+</main>
+<!-- footer: wordmark across the width, a closing line with the main email, footer links, social links and the copyright line -->
+<footer id="site-footer" class="ft" data-8b-section="footer">
+  <div class="ft__top">
+    <p class="ft__mark m-text-7" style="--len:9" data-8b-motion="gate">Cut Short</p>
+    <div>
+      <p class="ft__line m-text-2">See you in the dark.</p>
+      <a data-8b-placeholder="email" class="ft__mail m-link" href="mailto:hello@cutshort.example">hello@cutshort.example</a>
+    </div>
+    <nav class="ft__nav" aria-label="Footer">
+      <ul class="m-text-3">
+        <li class="ruled" data-8b-motion="rule" data-8b-enter="95%"><a href="#selection" class="m-link">Programme</a></li>
+        <li class="ruled" data-8b-motion="rule" data-8b-enter="95%"><a href="#strands" class="m-link">Strands</a></li>
+        <li class="ruled" data-8b-motion="rule" data-8b-enter="95%"><a href="#passes" class="m-link">Passes</a></li>
+        <li class="ruled" data-8b-motion="rule" data-8b-enter="95%"><a href="#contact" class="m-link">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="ft__bottom m-text-3">
+    <ul class="ft__social">
+      <li><a data-8b-placeholder="social" class="m-link" href="https://www.instagram.com/">Instagram</a></li>
+      <li><a class="m-link" href="https://letterboxd.com/">Letterboxd</a></li>
+      <li><a data-8b-placeholder="social" class="m-link" href="https://vimeo.com/">Vimeo</a></li>
+    </ul>
+    <p>© 2026 Cut Short Festival · Glasgow · Design: <a href="https://8b.com/" style="color:inherit" data-8b-credit>8B</a></p>
+  </div>
+</footer>
+<script data-8b-part="section-script:site-nav">
+(() => {
+  const nav = document.getElementById('site-nav');
+  const toggle = nav.querySelector('.nav__menu');
+  const label = toggle.querySelector('.m-btn__label');
+  const openText = label.dataset.openLabel, closedText = label.textContent;
+  const setOpen = open => {
+    nav.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    label.textContent = open ? openText : closedText;
+    if (open) window.motionKit?.wheel?.stop(); else window.motionKit?.wheel?.start();
+  };
+  toggle.addEventListener('click', () => setOpen(!nav.classList.contains('is-open')));
+  nav.querySelectorAll('.nav__list a').forEach(link => link.addEventListener('click', () => setOpen(false)));
+  addEventListener('keydown', event => { if (event.key === 'Escape' && nav.classList.contains('is-open')) { setOpen(false); toggle.focus(); } });
+  let last = scrollY, travel = 0;
+  const onScroll = () => {
+    const y = scrollY, delta = y - last;
+    last = y;
+    if (delta && Math.sign(delta) !== Math.sign(travel)) travel = 0;
+    travel += delta;
+    nav.classList.toggle('is-scrolled', y > 40);
+    if (y < 120) nav.classList.remove('is-hidden');
+    else if (travel > 40) nav.classList.add('is-hidden');
+    else if (travel < -40) nav.classList.remove('is-hidden');
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+<script data-8b-part="section-script:opening">
+(() => {
+  const opening = document.getElementById('opening');
+  if (!('IntersectionObserver' in window)) return;
+  new IntersectionObserver(([entry]) => opening.classList.toggle('is-off', !entry.isIntersecting)).observe(opening);
+})();
+</script>
+<script data-8b-part="section-script:passes">
+(() => {
+  const section = document.getElementById('passes');
+  const buttons = section.querySelectorAll('.ps__switch [data-tier]');
+  buttons.forEach(button => button.addEventListener('click', () => {
+    buttons.forEach(other => other.setAttribute('aria-pressed', String(other === button)));
+    section.querySelectorAll('.ps__price [data-tier]').forEach(price => { price.hidden = price.dataset.tier !== button.dataset.tier; });
+  }));
+})();
+</script>
+<script data-8b-part="motion-kit">
+(() => {
+const live = document.documentElement.hasAttribute('data-8b-live');
+const measures = new Set();
+let queued = false;
+const run = fn => { try { fn(); } catch (error) { console.error('[motion-kit] measure failed', error); } };
+const remeasure = () => {
+if (queued) return;
+queued = true;
+requestAnimationFrame(() => { queued = false; measures.forEach(run); realign(); });
+};
+const realign = () => document.getAnimations().forEach(animation => {
+if (animation.timeline && animation.timeline !== document.timeline && animation.playState === 'running') { animation.pause(); animation.play(); }
+});
+window.motionKit = {
+live,
+box(element) {
+if (!(element instanceof HTMLElement)) { const r = element.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height }; }
+let x = 0, y = 0, node = element;
+while (node) { x += node.offsetLeft; y += node.offsetTop; node = node.offsetParent; }
+return { x, y, w: element.offsetWidth, h: element.offsetHeight };
+},
+set(element, vars) { for (const [name, value] of Object.entries(vars)) element.style.setProperty(name, String(value)); },
+measure(fn) { if (!live) return; measures.add(fn); run(fn); },
+scene(id, fn) {
+if (!live) return;
+try { fn(); } catch (error) {
+console.error(`[motion-kit] scene ${id} failed; its section stays static`, error);
+document.querySelector(`style[data-8b-part="scene:${id}"]`)?.setAttribute('media', 'not all');
+}
+}
+};
+if (!live) { window.motionReady = Promise.resolve(); return; }
+const number = () => document.querySelectorAll('[data-8b-items]').forEach(group => {
+let items;
+try { items = [...group.querySelectorAll(group.getAttribute('data-8b-items'))]; } catch { return; }
+items.forEach((item, index) => { item.style.setProperty('--i', index); item.style.setProperty('--n', items.length); });
+});
+number();
+measures.add(number);
+requestAnimationFrame(realign);
+new ResizeObserver(remeasure).observe(document.body);
+document.fonts?.ready.then(remeasure);
+addEventListener('load', remeasure);
+window.motionReady = (document.fonts?.ready ?? Promise.resolve()).then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+})();
+(() => {
+const kit = window.motionKit;
+if (!kit.live || !matchMedia('(pointer: fine)').matches) return;
+let target = scrollY, current = scrollY, last = 0, running = false, paused = false;
+const inner = (node, dy) => {
+for (; node && node !== document.body && node !== document.documentElement; node = node.parentElement) {
+if (!/(auto|scroll)/.test(getComputedStyle(node).overflowY) || node.scrollHeight <= node.clientHeight) continue;
+if (dy > 0 ? node.scrollTop + node.clientHeight < node.scrollHeight - 1 : node.scrollTop > 0) return true;
+}
+return false;
+};
+const step = now => {
+current += (target - current) * (1 - Math.exp(-5.3 * Math.min(0.05, (now - last) / 1000)));
+last = now;
+if (Math.abs(target - current) < 0.5) current = target;
+scrollTo({ top: current, behavior: 'instant' });
+if (current !== target) requestAnimationFrame(step); else running = false;
+};
+addEventListener('wheel', event => {
+if (paused || event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) || inner(event.target, event.deltaY)) return;
+event.preventDefault();
+if (!running) target = current = scrollY;
+const unit = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? innerHeight : 1;
+target = Math.max(0, Math.min(document.documentElement.scrollHeight - innerHeight, target + event.deltaY * unit * 0.95));
+if (!running) { running = true; last = performance.now(); requestAnimationFrame(step); }
+}, { passive: false });
+kit.wheel = { stop() { paused = true; }, start() { paused = false; } };
+})();
+(() => {
+const kit = window.motionKit;
+if (!kit.live) return;
+const at = element => {
+const own = /^(\d{1,3}(?:\.\d+)?)%$/.exec((element.getAttribute('data-8b-enter') || '').trim());
+return own && +own[1] <= 100 ? own[1] / 100 : 0.88;
+};
+let pending = [...document.querySelectorAll('[data-8b-motion]')].map(element => ({ element, y: 0, at: at(element) }));
+let queued = false;
+const check = () => {
+queued = false;
+pending = pending.filter(item => {
+if (item.y > scrollY + innerHeight * item.at) return true;
+item.element.classList.add('is-in');
+return false;
+});
+};
+const queue = () => { if (!queued) { queued = true; requestAnimationFrame(check); } };
+kit.measure(() => { pending.forEach(item => { item.y = kit.box(item.element).y; }); queue(); });
+addEventListener('scroll', queue, { passive: true });
+})();
+(() => {
+const kit = window.motionKit;
+if (!kit.live) return;
+const sheet = new CSSStyleSheet();
+sheet.replaceSync('.line{display:block;overflow:clip;padding-block:.12em;margin-block:-.12em}.line:not(:last-child){margin-bottom:0}.line+.line{margin-top:-.24em}.line+.line>.line__in{text-indent:0}:where(h1,h2,h3,h4,h5,h6,p,div,blockquote,figcaption,dd,dt):where([data-8b-split="lines"]:has(>.line)){display:flow-root}.line__in{display:block}.kit-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}');
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+const sources = new WeakMap(), widths = new WeakMap();
+const graphemes = typeof Intl.Segmenter === 'function'
+? text => [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)].map(part => part.segment)
+: text => [...text];
+const span = (className, text) => { const element = document.createElement('span'); element.className = className; if (text != null) element.textContent = text; return element; };
+const split = element => {
+const mode = element.getAttribute('data-8b-split');
+if (sources.has(element)) element.innerHTML = sources.get(element); else sources.set(element, element.innerHTML);
+const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT), texts = [];
+while (walker.nextNode()) texts.push(walker.currentNode);
+let index = 0;
+for (const node of texts) {
+const fragment = document.createDocumentFragment();
+for (const piece of node.data.split(/(\s+)/)) {
+if (!piece) continue;
+if (/^\s+$/.test(piece)) { fragment.append(piece); continue; }
+const word = span('w');
+if (mode === 'chars') {
+word.setAttribute('aria-hidden', 'true');
+for (const character of graphemes(piece)) { const c = span('c', character); c.style.setProperty('--i', index++); word.append(c); }
+} else {
+word.textContent = piece;
+if (mode === 'words') word.style.setProperty('--i', index++);
+}
+fragment.append(word);
+}
+node.replaceWith(fragment);
+}
+if (mode === 'chars') element.append(span('kit-sr', element.textContent.replace(/\s+/g, ' ').trim()));
+if (mode === 'lines') {
+const lines = [];
+let top = null;
+for (const child of [...element.childNodes]) {
+const probe = child.nodeType === 1 ? child : null;
+const at = probe ? probe.getBoundingClientRect().top : top;
+if (probe && (top === null || Math.abs(at - top) > 2)) { lines.push([]); top = at; }
+if (!lines.length) lines.push([]);
+lines.at(-1).push(child);
+}
+lines.forEach((nodes, i) => {
+const line = span('line'), inner = span('line__in');
+line.style.setProperty('--i', i);
+nodes[0].before(line);
+inner.append(...nodes);
+line.append(inner);
+});
+index = lines.length;
+widths.set(element, element.clientWidth);
+}
+element.style.setProperty('--n', index);
+};
+const pending = [];
+let busy = false;
+const drain = () => {
+if (busy) return;
+const element = pending.shift();
+if (!element) return;
+busy = true;
+setTimeout(() => { try { split(element); } catch (error) { console.error('[motion-kit] split failed', error); } busy = false; drain(); }, 0);
+};
+const near = new IntersectionObserver(entries => entries.forEach(entry => {
+if (!entry.isIntersecting) return;
+near.unobserve(entry.target);
+pending.push(entry.target);
+drain();
+}), { rootMargin: '100% 0px 100% 0px' });
+(document.fonts?.ready ?? Promise.resolve()).then(() => document.querySelectorAll('[data-8b-split]').forEach(element => near.observe(element)));
+kit.measure(() => document.querySelectorAll('[data-8b-split="lines"]').forEach(element => {
+if (sources.has(element) && widths.get(element) !== element.clientWidth) { pending.push(element); drain(); }
+}));
+})();
+(() => {
+if (!window.motionKit.live) return;
+const sheet = new CSSStyleSheet();
+sheet.replaceSync('[data-8b-off],[data-8b-off]::before,[data-8b-off]::after{animation-play-state:paused!important}');
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+const watch = new IntersectionObserver(entries => entries.forEach(entry => entry.target.toggleAttribute('data-8b-off', !entry.isIntersecting)));
+const watched = new WeakSet();
+const scan = () => document.getAnimations().forEach(animation => {
+const element = animation.effect?.target;
+if (!element || watched.has(element) || animation.effect.getTiming().iterations !== Infinity || animation.timeline !== document.timeline) return;
+watched.add(element);
+watch.observe(element);
+});
+scan();
+addEventListener('load', scan);
+document.addEventListener('animationstart', scan, true);
+})();
+</script>
+<script data-8b-part="scene-script:opening">
+motionKit.scene("opening", () => {
+  const section = document.getElementById("opening"), stage = section.querySelector(".op__stage"), win = section.querySelector(".op-window");
+  motionKit.measure(() => {
+    const s = stage.getBoundingClientRect(), w = win.getBoundingClientRect();
+    motionKit.set(win, { "--opening-top": `${s.top - w.top}px`, "--opening-right": `${w.right - s.right}px`, "--opening-bottom": `${w.bottom - s.bottom}px`, "--opening-left": `${s.left - w.left}px` });
+  });
+});
+</script>
+<script data-8b-part="scene-script:strands">
+motionKit.scene("strands", () => {
+  const copy = (element, deep, attrs = {}) => { const el = element.cloneNode(deep); for (const [k, v] of Object.entries(attrs)) v == null ? el.removeAttribute(k) : el.setAttribute(k, v); return el; };
+  document.querySelectorAll("#strands .st__list > .st__item > .st__cut").forEach((parent, i) => parent.append(copy(parent.querySelector(":scope > span:nth-of-type(1)"), true, { "class": "st__name st__low", "aria-hidden": "true", "style": null })));
+});
+</script>
+<script data-8b-part="scene-script:premiere">
+motionKit.scene("premiere", () => {
+  const section = document.getElementById("premiere"), frame = section.querySelector(".pr__frame"), [first, second] = section.querySelectorAll(".pr__word");
+  motionKit.measure(() => {
+    const box = motionKit.box(frame), word = motionKit.box(first), other = motionKit.box(second);
+    const pillWidth = Math.min(box.w * 0.22, 230), pillHeight = Math.min(pillWidth * 0.46, box.h * 0.5), centre = box.x + box.w / 2;
+    motionKit.set(frame, { "--premiere-pill-x": `${(box.w - pillWidth) / 2}px`, "--premiere-pill-y": `${(box.h - pillHeight) / 2}px` });
+    motionKit.set(first, { "--premiere-travel": `${Math.max(0, centre - pillWidth / 2 - 18 - (word.x + word.w))}px` });
+    motionKit.set(second, { "--premiere-travel": `${Math.min(0, centre + pillWidth / 2 + 18 - other.x)}px` });
+  });
+});
+</script>
+<script data-8b-part="scene-script:venues">
+motionKit.scene("venues", () => {
+  { const stage = document.querySelector("#venues .vn__stage"), room = document.createElement('div'), space = document.createElement('div'); room.className = "vn-stage-room"; space.className = "vn-stage-room-space"; space.setAttribute('aria-hidden', 'true'); stage.before(room); room.append(stage, space);
+    const track = stage.querySelector(".vn__track");
+    motionKit.measure(() => motionKit.set(room, { "--venues-travel": `${Math.max(0, track.scrollWidth - document.documentElement.clientWidth)}px` })); }
+});
+</script>
+</body>
+</html>
