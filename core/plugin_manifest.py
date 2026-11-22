@@ -103,18 +103,32 @@ def plugins_root() -> Path:
     return config_root() / PLUGINS_DIRNAME
 
 
+#: What the interpreter leaves beside a source file when something imports it. A bundle's
+#: identity covers what ships, so a test run that imported a handler cannot move it.
+BUILD_RESIDUE_DIRS = frozenset({"__pycache__"})
+BUILD_RESIDUE_SUFFIXES = frozenset({".pyc", ".pyo"})
+
+
+def _is_shipped(file: Path, root: Path, exclude_names: frozenset[str]) -> bool:
+    if file.name in exclude_names:
+        return False
+    parts = file.relative_to(root).parts
+    return not (BUILD_RESIDUE_DIRS & set(parts) or file.suffix in BUILD_RESIDUE_SUFFIXES)
+
+
 def dir_sha256(path: Path, exclude_names: frozenset[str] = frozenset({SIG_FILENAME})) -> str:
     """Deterministic directory hash over sorted relative paths + bytes.
 
     The identity of a shipped first-party plugin: catalog entries carry this
     hash so a drift between catalog and directory is detectable (E4 verifies
     against it before signing). Signature records (SIG_FILENAME, E4b) are
-    excluded by default — signing does not change the hash it signs."""
+    excluded by default — signing does not change the hash it signs. Interpreter
+    build residue is excluded for the same reason: it records who imported the
+    bundle last, which is not a property of the bundle."""
+    root = Path(path)
     digest = hashlib.sha256()
-    for f in sorted(p for p in Path(path).rglob("*") if p.is_file()):
-        if f.name in exclude_names:
-            continue
-        rel = f.relative_to(path).as_posix()
+    for f in sorted(p for p in root.rglob("*") if p.is_file() and _is_shipped(p, root, exclude_names)):
+        rel = f.relative_to(root).as_posix()
         digest.update(rel.encode("utf-8") + b"\x00" + f.read_bytes() + b"\x00")
     return digest.hexdigest()
 
