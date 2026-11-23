@@ -1,0 +1,93 @@
+# Deep dataflow scan of the product server and the PWA
+name: CodeQL
+
+# Which engine follows a value, and why it can run here at all.
+#
+# `semgrep.yml` judges patterns: a call site that matches a known-bad shape. This leg
+# answers the harder question, which is whether a value that enters at an HTTP route or
+# at a stored record can reach a sink three calls away. That needs an engine that builds
+# a database of the program and runs queries over its call graph, which is what this
+# workflow asks for. The two legs are not redundant and neither one substitutes for the
+# other: an injection reachable only through a queue and a helper is invisible to a
+# pattern and obvious here, and a rule that has no sink in its taint model is invisible
+# here and obvious there.
+#
+# The engines behind this analysis are licensed for public repositories. On a private
+# repository of this account's plan they cannot run at all, which is why the tree carried
+# its own scanner and semgrep and no dataflow leg until now; the repository being public
+# is what makes this leg available rather than a change in this file.
+#
+# Rust is absent on purpose: no query pack exists for it. The Tauri shell is judged by
+# `rust-shell.yml` and by the advisory register in `supply-chain.yml`, and a leg here
+# would read as coverage where there is none, so no Rust language is declared.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Monday 03:17 UTC, an odd minute to keep off the crowded hour. The engine and its
+    # query packs move on their own release train, so a repository nobody changed can
+    # newly fail or newly reveal something. A run per push alone would keep answering
+    # for a database built months earlier.
+    - cron: '17 3 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Deep scan (${{ matrix.language }})
+    # Same guard as every other runner job in this repository: a fork's code must not be
+    # executed on a runner this project pays for, and fork approval is not offered for
+    # this plan. Accepted consequence, stated where the rule lives: a fork pull request
+    # is reviewed by hand and gets no scan from here.
+    if: github.repository == 'bemlerlabs/ephe' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
+    # The Python half builds a database over `core/` and `server/`, which is the largest
+    # tree in the repository; 30 minutes is the budget the equivalent test legs run
+    # inside, so a scan that needs more is a scan to investigate, not to wait for.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # The result is a SARIF file that has to reach the repository's own security tab;
+      # the upload is not useful to anyone if it stays on the runner.
+      security-events: write
+      # Needed by the uploader to find the run the SARIF belongs to. No step here reads
+      # or writes another run.
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # `python-typescript` in one job: the tree's Python lives in `core/` and
+        # `server/`, its TypeScript in `app/src/`, and one database per language keeps
+        # the run to one tool download. `javascript` is not added because the
+        # typescript pack already extracts the `.js` this repository ships.
+        language: [ python-typescript ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize the analysis
+        uses: github/codeql-action/init@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3.39.4
+        with:
+          languages: ${{ matrix.language }}
+          # The queries and the scope live in one file so that a claim about what this
+          # leg covers is answerable from a single read.
+          config-file: ./.github/codeql/codeql-config.yml
+
+      # No build step, deliberately. Extraction for Python and TypeScript reads sources;
+      # the compiled output adds generated files to the database without adding a path a
+      # contributor wrote. The build itself is gated by `Build & Lint (22.x)` in
+      # `frontend-build.yml` and by `verify.yml`, which is where a failing compile
+      # belongs; repeating it here would spend the leg's budget duplicating a gate that
+      # already refuses the same push.
+
+      - name: Run the queries and upload the result
+        uses: github/codeql-action/analyze@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3.39.4
+        with:
+          category: /language:${{ matrix.language }}

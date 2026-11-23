@@ -1,0 +1,40 @@
+# Scope and queries for the CodeQL leg in `../workflows/codeql.yml`.
+#
+# One file, so that "what does the deep scan actually cover" is answerable from a single
+# read instead of from three places in a workflow.
+#
+# The scope is the code that ships. `tests/` (889 Python files) and `evals/` are left out
+# on purpose: a query result there describes fixture data, not a path a user can reach,
+# and triaging it is how the alerts that do describe shipped code stop being read. A test
+# that builds a shell command from its own fixture is not a vulnerability, and a leg whose
+# first screenful is full of them teaches everyone to ignore the screenful.
+#
+# `app/dist` never appears here because it is not in the tree -- the build produces it and
+# `bundle_budget.py` judges it -- so nothing is excluded that a contributor wrote.
+
+name: Ephe deep scan
+
+queries:
+  # The security subset beyond the default queries: the default set is what an ordinary
+  # CI run reports, `security-extended` is the one that follows sources into sinks the
+  # default set considers unlikely. Quality queries are left to `ruff`, `tsc` and the
+  # repository's own gates, which already refuse what they cover.
+  - uses: security-extended
+
+paths:
+  - core
+  - server
+  - scripts
+  - plugins
+  - ui
+  - sdk
+  - app/src
+
+paths-ignore:
+  # Specs and fixtures inside the scanned TypeScript. They are product code's own
+  # witnesses, judged by `vitest` in `frontend-build.yml`, and a mock that calls `eval`
+  # on its own literal never reaches a user.
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
