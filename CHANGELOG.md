@@ -90,6 +90,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   the marker, and marker evaluation takes a named PEP 508 environment, so a claim about a lock says the
   same thing on every interpreter while the shipped check still judges the one it is comparing. 24 tests
   pass on 3.11 and on 3.13, and dropping the marker from the key fails the new case by name (`a6e42bd`).
+- frontend: the restored-session projection case failed under load and passed on a quiet machine.
+  `chat/index.tsx:88` loads the message bubble lazily and the file's row-count waits pass on that
+  Suspense skeleton, so the compared rows carried three empty `textContent` values from a cold
+  transform. Measured 2026-11-23 with 30 competing vitest workers: four of four fail unwarmed with the
+  line CI reported, four of four pass once the chunk is imported in `beforeAll`. The duplicate-key
+  reading is refuted by the runner, which builds a fresh `knownKeys` set per children pass
+  (`react-dom-client.development.js:6949`, `:6957`) and warns without a guard (`:28755`), so a repeated
+  key warns every render. No assertion was loosened, and a planted constant key source turns five of the
+  six cases red (`f082e09`).
+- supply-chain: four register rationales cited a home directory on one development machine where they
+  should have cited a measurement. Each now names what was run and when. The certifi and pip rows
+  restate their numbers against this tree's own venv — `uv sync --frozen` holds certifi 2026.10.19 and
+  writes it without pip (importlib.metadata, 2026-11-23) — which leaves the pip row standing on the
+  hash-pinned 26.2.2 wheel its fence test already asserts (`a8323ea`).
 
 ### Changed
 
@@ -102,6 +116,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   `ModuleNotFoundError` at import and is skipped instead of refused. Declared with the floor this
   tree's lock resolves and the signing tests pass against; nothing lower was run here, so nothing
   lower is claimed (`389b474`).
+- model-provider: every request names the program that sent it — `User-Agent: Ephe/<version>` — and the
+  one OpenAI-compatible endpoint that answers only the program shipping it is turned away in
+  `ensure_provider_ready` before a connection is made, with the reason and the way out in the message.
+  Reaching it had meant sending that program's User-Agent, a session header in its own format and two of
+  its tool names. An endpoint that requires a borrowed identity is no integration: when the other side
+  changes its mind the key is gone and no diagnostic says why. The setup screen stopped offering it as a
+  quick pick and stopped linking its key page, so a first run cannot be sold a path ending in a refusal
+  (`aa5edf0`, owner decision 2026-11-23).
 ## [0.1.0] - 2026-11-21
 
 The first public release. Every entry below names a surface this repository
