@@ -254,16 +254,15 @@ jobs:
     # the one the other runner jobs carry.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
-    # 45, not 20. On 2026-11-23 this job was cut at 20.2, 20.3, 20.3 and 20.4 minutes on four
-    # consecutive pushes (runs 45170149051 and its three predecessors) and had not produced a
-    # verdict in any of them — the traced step had not finished by the time the runner killed the
-    # job. A required check whose every recent result is `cancelled` is not a floor, and GitHub
-    # treats a skipped required check as a success, which is the exact failure the comment above
-    # this job was written to prevent. The 308s figure in that comment was the tracked suite on the
-    # owner's idle box; this job traces `pytest tests/ -n auto`, which is the whole 11k-test suite
-    # plus install, tracer startup and combine on a hosted runner. 45 is headroom over a need not
-    # yet observed from the inside — the next completed run is the measurement that sets the real
-    # number, and its duration is in the log block this job already publishes.
+    # Budget raised from 20 to 45 minutes on 2026-11-23. The job was cut at 20.2, 20.3, 20.3 and
+    # 20.4 minutes on four consecutive pushes (run 45170149051 and its three predecessors) and
+    # produced no verdict in any of them: the traced step had not finished when the runner killed
+    # the job. A required check whose every recent result is `cancelled` decides nothing, and GitHub
+    # treats a skipped required check as a success, which is the failure the comment above this job
+    # exists to prevent. The 308s figure in that comment was the tracked suite on the owner's idle
+    # box; this job traces `pytest tests/ -n auto`, which is the whole 11k-test suite plus install,
+    # tracer startup and combine on a hosted runner. 45 is headroom over a need not yet observed from
+    # the inside, and the next completed run publishes its own duration in the log block below.
     timeout-minutes: 45
     steps:
       - name: Checkout
