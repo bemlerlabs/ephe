@@ -83,6 +83,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   which turned a clean commit into a refusal. Both now read the way the tree does it: the sanctioned
   try/except for the reader, and a named skip line for the leg that could not run. 32 tests across the
   two instruments' own suites pass (`ae95e10`).
+- scripts: the same instrument judged a package by whichever lock edge its walk happened to pop first.
+  `uv.lock` writes one requirement once per resolution environment, so a product dependency carried two
+  edges with the same name and different markers; the seen-set dismissed the second as already asked, and
+  on the py3.11 leg that meant `numpy` was reported as conditional and excused. The walk key now carries
+  the marker, and marker evaluation takes a named PEP 508 environment, so a claim about a lock says the
+  same thing on every interpreter while the shipped check still judges the one it is comparing. 24 tests
+  pass on 3.11 and on 3.13, and dropping the marker from the key fails the new case by name (`a6e42bd`).
 
 ### Changed
 
