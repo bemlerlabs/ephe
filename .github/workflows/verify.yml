@@ -19,7 +19,11 @@ jobs:
     name: python (canonical repository only)
     if: github.repository == 'bemlerlabs/ephe'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 30. The job ran 20.3 minutes and was killed by the 20 it carried on 2026-11-23 (run
+    # 45180510513, job `python (canonical repository only)`), with the suite still running
+    # and no failure in it. With -n auto below, the comparable jobs in tests.yml took 15.0, 15.0 and
+    # 19.6 minutes on the same day; 10 minutes of that budget is install, tracer-free.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -99,7 +103,14 @@ jobs:
           fi
 
       - name: Tests
-        run: uv run python -m pytest tests/ -q -p no:cacheprovider
+        # -n auto, with xdist coming from the same dev extra the install above synced
+        # (pyproject.toml:72, pytest-xdist>=3.8,<4). Serial here cost 20.3 minutes on the runner
+        # and the job's budget was 20, so it was killed mid-suite and reported `cancelled` on the
+        # push that added this comment. The parallel form is measured in tests.yml's own matrix at
+        # 15.0, 15.0 and 19.6 minutes for py3.11/3.12/3.13 on 2026-11-23. What this leg still
+        # answers and the matrix does not: the suite runs against an environment `uv sync` built
+        # from uv.lock, not one pip resolved.
+        run: uv run python -m pytest tests/ -q -n auto -p no:cacheprovider
 
   web:
     if: github.repository == 'bemlerlabs/ephe'
