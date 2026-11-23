@@ -244,6 +244,26 @@ elif [ "${#py_files[@]}" -gt 0 ]; then
     skip+=("mypy: not on PATH, so the type leg was not run over the ${#py_files[@]} file(s) in scope")
 fi
 
+# --- the new-file gate, over the paths in scope ---
+# Measured 2026-11-23: a commit adding tests/test_env_lock_agreement.py carried six prose tells on a
+# path no committed baseline covers, this script reported `ci-local: pass`, and CI's New-file leg was
+# the first to see it. The instrument judges the whole tree by default and a path list through
+# --paths-from, so the hook now reads the same verdict the leg reads over exactly the staged scope.
+if [ "${#scope[@]}" -gt 0 ]; then
+    nf_list=$(mktemp)
+    printf '%s\n' "${scope[@]}" > "$nf_list"
+    python3 scripts/new_file_check.py --paths-from "$nf_list"
+    nf_status=$?
+    rm -f "$nf_list"
+    if [ "$nf_status" -ge 128 ]; then
+        died+=("new_file_check.py died with signal $((nf_status - 128)): the unscored paths were not checked")
+    elif [ "$nf_status" -ne 0 ]; then
+        fail+=("new-file gate: a path no committed baseline covers carries a tell or a German line")
+    fi
+else
+    skip+=("new-file gate: empty scope, nothing to judge")
+fi
+
 if [ "${#skip[@]}" -gt 0 ]; then
     for line in "${skip[@]}"; do
         echo "ci-local: SKIP $line"
