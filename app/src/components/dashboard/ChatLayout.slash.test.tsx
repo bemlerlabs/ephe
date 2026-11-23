@@ -5,7 +5,7 @@
  * WHEN   the command is entered (Enter)
  * THEN   it runs: system message / panel opening
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import ChatLayout from '@/components/dashboard/ChatLayout'
@@ -161,7 +161,7 @@ vi.mock('@/lib/api', () => ({
   ),
 }))
 vi.mock('@/lib/stream', () => ({
-  streamChat: () => Promise.resolve(),
+  streamChat: vi.fn(() => Promise.resolve()),
   StreamChatError: class StreamChatError extends Error {},
 }))
 vi.mock('@/hooks/useTauriWindow', () => ({
@@ -186,15 +186,40 @@ vi.mock('react-i18next', async (importOriginal) => {
 // Composer textarea addressed by placeholder (mock t returns the key; the Scheduler panel has its own inputs)
 const ta = () => screen.getByPlaceholderText('chat.placeholder') as HTMLTextAreaElement
 
-function typeSlash(cmd: string) {
-  fireEvent.change(ta(), { target: { value: cmd } })
-  fireEvent.keyDown(ta(), { key: 'Enter' })
+/**
+ * Enter a slash command and hand the transcript row it writes over to React.
+ *
+ * A client command answers out of a floating promise (`getSettings().then(addMessage)`
+ * in chat/model.ts), so the store write lands after the keystroke returns. Outside act
+ * that write is React's late work and the assertion can only race it by polling. One
+ * macrotask tick inside act lands the command's own chain in the same flush, so the
+ * assertion afterwards sees the settled row with nothing pending behind it.
+ */
+async function typeSlash(cmd: string): Promise<void> {
+  await act(async () => {
+    fireEvent.change(ta(), { target: { value: cmd } })
+    fireEvent.keyDown(ta(), { key: 'Enter' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
 }
+
+/**
+ * The first transcript row pulls `MessageBubble` in through React.lazy
+ * (chat/index.tsx:88) and that chunk carries the markdown pipeline. A slash command is
+ * about the message its command writes, so the chunk is settled here, outside the
+ * per-test ceiling. Measured 2026-11-23 on the /model test, one command, competing
+ * vitest workers varied: unwarmed 478 ms idle, 1775 ms at 12, 2908 ms at 24, 5898 ms at
+ * 30 — past the 5000 ms ceiling, where CI read 6028 ms on the same line. Warmed: 422 /
+ * 514 / 1184 / 1596 ms.
+ */
+beforeAll(async () => {
+  await import('@/components/dashboard/MessageBubble')
+})
 
 describe('ChatLayout slash commands (G6)', () => {
   let cleanup: () => void
 
-  beforeEach(() => {
+  beforeEach(async () => {
     useChatStore.setState({
       sessions: [],
       activeSessionId: null,
@@ -204,11 +229,20 @@ describe('ChatLayout slash commands (G6)', () => {
       checkpoints: {},
     })
     useChatStore.getState().createSession('Test-Sitzung')
-    cleanup = render(
-      <MemoryRouter>
-        <ChatLayout />
-      </MemoryRouter>,
-    ).unmount
+    // ChatLayout mounts into a dozen already-resolved fetch mocks (getCellLife,
+    // getSetupStatus, listProjects, healthCheck, …). Each continuation is a state update
+    // that lands after render returns, and React counted three "not wrapped in act"
+    // blocks per test for it — 15 for the file, none of them about a slash command.
+    // The mount waits for one macrotask inside act, so the shell is settled before a
+    // command is typed and a test owns no work past its last assertion.
+    await act(async () => {
+      cleanup = render(
+        <MemoryRouter>
+          <ChatLayout />
+        </MemoryRouter>,
+      ).unmount
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
   })
 
   afterEach(() => {
@@ -216,41 +250,24 @@ describe('ChatLayout slash commands (G6)', () => {
   })
 
   it('/model shows the system message carrying the model key', async () => {
-    typeSlash('/model')
-    // The bubble chunk (and with it the markdown pipeline) is fetched with the
-    // first transcript row, so the answer text arrives through a dynamic import.
-    await waitFor(
-      () => {
-        expect(screen.getByText('chat.modelNow')).toBeTruthy()
-      },
-      { timeout: 5000 },
-    )
+    await typeSlash('/model')
+    expect(screen.getByText('chat.modelNow')).toBeTruthy()
   })
 
   it('/skills lists the backend skills', async () => {
-    typeSlash('/skills')
-    await waitFor(
-      () => {
-        expect(screen.getByText('chat.skillList')).toBeTruthy()
-      },
-      { timeout: 5000 },
-    )
+    await typeSlash('/skills')
+    expect(screen.getByText('chat.skillList')).toBeTruthy()
   })
 
   it('/sessions shows the session list', async () => {
-    typeSlash('/sessions')
-    await waitFor(
-      () => {
-        expect(screen.getByText('chat.sessionList')).toBeTruthy()
-      },
-      { timeout: 5000 },
-    )
+    await typeSlash('/sessions')
+    expect(screen.getByText('chat.sessionList')).toBeTruthy()
   })
 
   it('/settings opens the settings panel', async () => {
-    act(() => {
-      typeSlash('/settings')
-    })
+    await typeSlash('/settings')
+    // The panel is a lazy subtree of its own (chat/panels.tsx:9); the wait here is its
+    // mount, which is the claim of this test.
     await waitFor(
       () => {
         expect(screen.getByTestId('settings-panel')).toBeTruthy()
@@ -259,7 +276,16 @@ describe('ChatLayout slash commands (G6)', () => {
     )
   })
 
-  it('streamChat resolves without hanging (G6)', async () => {
-    await expect(streamChat({} as any, {} as any)).resolves.toBeUndefined()
+  it('a command the client registry does not know reaches the model', async () => {
+    await typeSlash('/plan the release notes')
+    // The hand-off is the claim: an unmatched command reaches the model as the text the
+    // person typed. Exactly one hand-off, so a stray send from an earlier test in this
+    // file lands here as a failure. What travels inside that payload has one home,
+    // chat/model.bootRestore.test.tsx:223.
+    expect(streamChat).toHaveBeenCalledTimes(1)
+    expect(streamChat).toHaveBeenCalledWith(
+      expect.objectContaining({ message: '/plan the release notes' }),
+      expect.anything(),
+    )
   })
 })

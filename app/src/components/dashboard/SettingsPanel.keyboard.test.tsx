@@ -116,14 +116,22 @@ const label = (el: Element | null) =>
     : 'NULL'
 
 /** The browser's own Tab: fire the keydown (so the dialog's trap can intercept),
- *  otherwise move to the next focusable — jsdom does not move the focus itself. */
-function pressTab(page: HTMLElement, shift: boolean): string {
+ *  otherwise move to the next focusable — jsdom does not move the focus itself.
+ *
+ *  The stops are read once per walk and passed in, not re-queried per press. A press
+ *  that re-reads pays a second full pass of the seven-clause selector over the dialog
+ *  (466 nodes, 50 stops): measured on this file's walk, that query alone is 122 ms of
+ *  its 400 ms idle, and the whole test scales with runner load (433 ms unloaded, 4852
+ *  ms against 30 competing workers) — the cost that put it over the per-test ceiling.
+ *  A stale list is not a silent pass either: a node the dialog has removed cannot hold
+ *  focus, the walk reports OUTSIDE, and the caller compares the live list against the
+ *  walked one afterwards. */
+function pressTab(page: HTMLElement, stops: HTMLElement[], shift: boolean): string {
   const from = document.activeElement as HTMLElement
   fireEvent.keyDown(from, { key: 'Tab', shiftKey: shift })
   if (!page.contains(document.activeElement)) return 'OUTSIDE'
   if (document.activeElement !== from) return label(document.activeElement)
-  const list = Array.from(page.querySelectorAll<HTMLElement>(FOCUSABLE))
-  const next = list[list.indexOf(from) + (shift ? -1 : 1)]
+  const next = stops[stops.indexOf(from) + (shift ? -1 : 1)]
   if (next) next.focus()
   return page.contains(document.activeElement) ? label(document.activeElement) : 'OUTSIDE'
 }
@@ -144,11 +152,16 @@ describe('settings keyboard-only walkthrough (no pointer)', () => {
     await waitFor(() => expect(document.activeElement).toBe(first))
     expect(label(first)).toBe('button:settings-back')
 
-    const order = Array.from(page.querySelectorAll<HTMLElement>(FOCUSABLE)).map(label)
+    const stops = Array.from(page.querySelectorAll<HTMLElement>(FOCUSABLE))
+    const order = stops.map(label)
     expect(order.length).toBeGreaterThan(10)
 
     const seen = [label(document.activeElement)]
-    for (let i = 0; i < order.length; i++) seen.push(pressTab(page, false))
+    for (let i = 0; i < stops.length; i++) seen.push(pressTab(page, stops, false))
+
+    // Walking changes nothing about who is focusable — the trap holds, no section
+    // expands. This is what makes reading the stops once per walk an honest walk.
+    expect(Array.from(page.querySelectorAll<HTMLElement>(FOCUSABLE)).map(label)).toEqual(order)
 
     // Every stop in DOM order, and the last one wraps back onto the first.
     expect(seen.slice(0, order.length)).toEqual(order)

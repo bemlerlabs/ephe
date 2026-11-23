@@ -29,8 +29,36 @@ export type { DbSession }
 
 // ── Open DB ────────────────────────────────────────────────────────────────
 
+/** Whether this realm offers IndexedDB at all. A jsdom test realm or a locked-down
+ *  webview has none, and the module has to hold that as an environment fact: read
+ *  empty, write nowhere. Without this check each save took its own ReferenceError out
+ *  of `indexedDB.open` and logged it as a storage failure (measured 2026-11-22: nine
+ *  such lines from one store test file, four from db.flush). */
+function hasIndexedDb(): boolean {
+  return typeof indexedDB !== 'undefined'
+}
+
+/**
+ * A realm without IndexedDB is an environment fact the module holds quietly — read
+ * empty, write nowhere — while the person in that realm has to learn that nothing
+ * persists. Once per module instance: measured 2026-11-22, one store test directory
+ * printed 13 save warnings per run without the check above, 0 with it quiet.
+ */
+let announcedMissingDb = false
+
+function announceMissingDb(): void {
+  if (announcedMissingDb) return
+  announcedMissingDb = true
+  console.warn('[IndexedDB] Unavailable in this environment; sessions will not persist locally')
+}
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    if (!hasIndexedDb()) {
+      announceMissingDb()
+      reject(new Error('IndexedDB is not available in this environment'))
+      return
+    }
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
     request.onupgradeneeded = () => {
@@ -132,7 +160,7 @@ export async function dbSaveSession(session: DbSession): Promise<void> {
       tx.onerror = () => reject(tx.error)
     })
   } catch (err: unknown) {
-    console.warn('[IndexedDB] Failed to save session:', session.id, err)
+    if (hasIndexedDb()) console.warn('[IndexedDB] Failed to save session:', session.id, err)
   }
 }
 
@@ -200,7 +228,7 @@ export async function dbSetSessionFolders(folders: SessionFolder[]): Promise<voi
       tx.onerror = () => reject(tx.error)
     })
   } catch (err: unknown) {
-    console.warn('[IndexedDB] Failed to save session folders:', err)
+    if (hasIndexedDb()) console.warn('[IndexedDB] Failed to save session folders:', err)
   }
 }
 

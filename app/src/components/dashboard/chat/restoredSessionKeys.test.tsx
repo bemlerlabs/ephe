@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { render, waitFor, cleanup } from '@testing-library/react'
+import { render, waitFor, cleanup, act } from '@testing-library/react'
 
 const restoreMock = vi.hoisted(() => ({
   sessions: [] as unknown[],
@@ -181,9 +181,7 @@ vi.mock('react-i18next', async (importOriginal) => ({
 import ChatLayout from '@/components/dashboard/ChatLayout'
 import { messageRowKey } from './index'
 import { useChatStore } from '@/store/chatStore'
-import type { Session } from '@/types'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import type { Session, ChatMessage } from '@/types'
 
 /** One mirrored session exactly as session_mirror.py writes it: no message id. */
 function mirrorSession() {
@@ -292,12 +290,88 @@ describe('the row key is total', () => {
     expect(messageRowKey({ id: 'u-1' }, 4)).toBe('u-1')
   })
 
-  it('the list builds its keys with this function, never with msg.id alone', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'src/components/dashboard/chat/index.tsx'),
-      'utf8',
+  /**
+   * The restore path fills an id (lib/restore.ts:36), so a list keyed on `msg.id`
+   * alone still looks clean here. The promise at chat/index.tsx:104-106 is wider: no
+   * projection should be able to bring the warning back. This pushes the id-less
+   * projection through the same seam the list reads — `session_mirror.py:229-249`
+   * writes role/content/timestamp and nothing else, and the machine's own store held
+   * 298 such rows in 2026-10-13 — and asserts the console stays free of a key warning.
+   */
+  it('paints a projection that writes no message id without sharing a key', async () => {
+    const logged: string[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      logged.push(args.map((a) => String(a)).join(' '))
+    })
+
+    render(
+      <MemoryRouter>
+        <ChatLayout />
+      </MemoryRouter>,
     )
-    expect(source).toContain('key={messageRowKey(msg, virtualItem.index)}')
-    expect(source).not.toContain('key={msg.id}')
+    const rows = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('[data-testid="message-row"]'))
+    await waitFor(() => expect(rows().length).toBeGreaterThanOrEqual(2))
+
+    act(() => {
+      const session = useChatStore.getState().sessions[0] as Session
+      const idless = ['first', 'second', 'third'].map(
+        (text, index) =>
+          ({
+            role: 'assistant',
+            content: `mirror row ${text}`,
+            timestamp: 1759750000000 + index,
+          }) as ChatMessage,
+      )
+      const replaced = { ...session, messages: idless }
+      useChatStore.setState({ sessions: [replaced], currentSession: replaced })
+    })
+
+    await waitFor(() => expect(rows().length).toBe(3))
+    // The rows are placeholders until the lazy bubble chunk lands, so the paint of the
+    // text is waited for; the claim is what each painted row carries.
+    await waitFor(() =>
+      expect(rows().map((row) => row.textContent)).toEqual([
+        expect.stringContaining('mirror row first'),
+        expect.stringContaining('mirror row second'),
+        expect.stringContaining('mirror row third'),
+      ]),
+    )
+    expect(logged.filter((line) => /key/i.test(line))).toEqual([])
+    spy.mockRestore()
+  })
+
+  it('keeps a row on its own message when a row is inserted ahead of it', async () => {
+    render(
+      <MemoryRouter>
+        <ChatLayout />
+      </MemoryRouter>,
+    )
+    const rows = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('[data-testid="message-row"]'))
+    await waitFor(() => expect(rows().length).toBeGreaterThanOrEqual(2))
+
+    const carried = rows()[0]!
+    await waitFor(() => expect(carried.textContent).toContain('restored prompt'))
+
+    // The same two messages with one new row in front. Keyed by position, React hands
+    // the old node to the new message and every bubble below shifts by one row — the
+    // restored chat shows an answer over the wrong question.
+    act(() => {
+      const s = useChatStore.getState()
+      const session = s.sessions[0] as Session
+      const front: ChatMessage = {
+        id: 'inserted-ahead',
+        role: 'user',
+        content: 'inserted ahead',
+        timestamp: session.messages[0]!.timestamp - 1000,
+      }
+      const replaced = { ...session, messages: [front, ...session.messages] }
+      useChatStore.setState({ sessions: [replaced], currentSession: replaced })
+    })
+
+    await waitFor(() => expect(rows().length).toBe(3))
+    expect(document.contains(carried)).toBe(true)
+    expect(carried.textContent).toContain('restored prompt')
   })
 })
