@@ -154,8 +154,16 @@ jobs:
       - name: Type check
         run: cd app && pnpm exec tsc --noEmit
 
-      - name: Tests
-        run: cd app && pnpm exec vitest run
+      # No vitest here. This job used to run `pnpm exec vitest run` as its own step — the same
+      # command, on the same files, on the same triggers, that Frontend Build runs — and it carried
+      # `timeout-minutes: 15` against that job's 30. Measured on 2026-11-23: Frontend Build's suite
+      # alone took 565s (568 files, 4073 tests) and finished inside its budget, while this copy —
+      # install, type check, then the same suite — was cut at 15.3 and 15.4 minutes on two
+      # consecutive pushes (run 45170149214 and the one before it), reporting `cancelled` with no
+      # failing test in either. Two runners asking one question, one of them on a tighter budget, is
+      # how a green tree reads red until the real failure arrives and looks like the same old noise.
+      # The suite has one home now: Frontend Build's `Unit tests (vitest)`. This leg keeps the type
+      # check, which costs about 30s and answers a different question.
 
       - name: Build
         run: cd app && pnpm run build
