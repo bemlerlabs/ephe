@@ -232,19 +232,52 @@ class TestTransitiveAndMarkers:
     def test_given_a_requirement_written_once_per_resolution_environment_then_it_stays_required(self):
         # GIVEN uv's way of writing one requirement twice, once per resolution marker, which is
         # what made a first version of this instrument call `numpy` conditional
-        body = (
+        def root(first: str, second: str) -> str:
+            return (
+                lock_text(always_on={})
+                + '\n\n[[package]]\nname = "ephe"\nversion = "0.1.0"\nsource = { editable = "." }\n'
+                f'dependencies = [ {{ name = "numpy", marker = "{first}" }},'
+                f' {{ name = "numpy", marker = "{second}" }} ]\n\n'
+                '[[package]]\nname = "numpy"\nversion = "2.5.2"\n'
+                'source = { registry = "https://pypi.org/simple" }\n'
+            )
+
+        low = "python_full_version < '3.12'"
+        high = "python_full_version >= '3.12'"
+        # ASSERTED FOR TWO RESOLUTION ENVIRONMENTS. The pair is one requirement, so no interpreter
+        # may turn it into a conditional edge: the instrument used to pop one of the two edges and
+        # dismiss the other as already asked, which left the first edge popped deciding the class.
+        # Both spellings are run below, and the environment is named rather than inherited, so this
+        # case says the same thing on the interpreter that runs it.
+        for version in ("3.11.9", "3.13.1"):
+            admits, _ = instrument.marker_admits(instrument.resolution_environment(version))
+            for first, second in ((low, high), (high, low)):
+                lock = instrument.read_lock_text(root(first, second), "<test lock>")
+                findings = instrument.compare(lock, {"numpy": "2.0.0"}, admits=admits)
+                assert kinds(findings) == {"numpy": "drift"}, (version, first, second)
+
+    def test_given_an_edge_no_environment_in_the_lock_satisfies_then_it_stays_excused(self):
+        # GIVEN a requirement whose every spelling is unsatisfiable, so it is genuinely conditional
+        lock = instrument.read_lock_text(
             lock_text(always_on={})
             + '\n\n[[package]]\nname = "ephe"\nversion = "0.1.0"\nsource = { editable = "." }\n'
-            'dependencies = [ { name = "numpy", marker = "python_full_version < \'3.12\'" },'
-            ' { name = "numpy", marker = "python_full_version >= \'3.12\'" } ]\n\n'
-            '[[package]]\nname = "numpy"\nversion = "2.5.2"\n'
-            'source = { registry = "https://pypi.org/simple" }\n'
+              "dependencies = [ { name = \"numpy\", marker = \"python_version < '3.0'\" },"
+              ' { name = "numpy", marker = "python_version < \'3.0\'" } ]\n\n'
+              '[[package]]\nname = "numpy"\nversion = "2.5.2"\n'
+              'source = { registry = "https://pypi.org/simple" }\n',
+            "<test lock>",
         )
-        lock = instrument.read_lock_text(body, "<test lock>")
-        # WHEN this interpreter (>= 3.12) is compared against a drifted numpy
-        findings = instrument.compare(lock, {"numpy": "2.0.0"}, admits=instrument.marker_admits()[0])
-        # THEN the pair of markers counts as required and the drift refuses
-        assert kinds(findings) == {"numpy": "drift"}
+        admits, _ = instrument.marker_admits(instrument.resolution_environment("3.11.9"))
+        findings = instrument.compare(lock, {"numpy": "2.0.0"}, admits=admits)
+        # THEN the pair prints as a drifted conditional and does not refuse the run
+        assert kinds(findings) == {"numpy": "gated-drift"}
+
+    def test_given_no_injected_environment_then_markers_answer_for_this_interpreter(self):
+        # The shipped gate judges one environment: the interpreter whose distributions it compared.
+        admits, evaluated = instrument.marker_admits()
+        assert evaluated is True
+        assert admits("python_version >= '3.0'") is True
+        assert admits("python_version < '3.0'") is False
 
 
 class TestProviderAndPlumbing:

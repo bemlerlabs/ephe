@@ -77,12 +77,38 @@ EXIT_DIFFERS = 1
 PRINTED_DEFAULT = 60
 
 
-def marker_admits() -> tuple[Callable[[str], bool], bool]:
+def resolution_environment(python_full_version: str) -> dict[str, str]:
+    """One PEP 508 environment at a given interpreter version, for marker evaluation.
+
+    `packaging` merges a partial context over the running interpreter instead of deriving the
+    variables from the one supplied, so a caller that only sets `python_full_version` still gets
+    the host's `python_version` and `implementation_version` under a marker that reads those. The
+    three version variables therefore move together; the platform half stays the machine's, which
+    is the half this instrument cannot know anything about anyway.
+    """
+    parts = python_full_version.split(".")
+    major, minor = parts[0], parts[1] if len(parts) > 1 else "0"
+    return {
+        "python_full_version": python_full_version,
+        "python_version": f"{major}.{minor}",
+        "implementation_version": python_full_version,
+    }
+
+
+def marker_admits(
+    environment: Mapping[str, str] | None = None,
+) -> tuple[Callable[[str], bool], bool]:
     """A checker for lock markers, and whether real evaluation was possible.
 
     Without `packaging` every marker answers yes: the run then holds conditional edges to the
     lock rather than excusing them, so the failure mode of a missing library is a stricter
     verdict, never a cleaner one.
+
+    `environment` is the PEP 508 context markers are evaluated against. Left alone it is the
+    interpreter running this process, which is the right answer for the shipped gate — the one
+    environment it judges is the one whose distributions it compared. A test passes one of
+    `resolution_environment` instead, so a claim about a lock does not depend on the interpreter
+    that happens to execute it.
     """
     try:
         from packaging.markers import Marker
@@ -94,9 +120,7 @@ def marker_admits() -> tuple[Callable[[str], bool], bool]:
         verdict = cache.get(text)
         if verdict is None:
             try:
-                # No context argument: packaging evaluates against the interpreter running us,
-                # which is the same environment whose distributions are being compared.
-                verdict = Marker(text).evaluate()
+                verdict = Marker(text).evaluate(None if environment is None else dict(environment))
             except Exception:
                 verdict = True  # an unreadable marker keeps the edge held to the lock
             cache[text] = verdict
@@ -181,10 +205,15 @@ def closure(lock: Lock, roots: Iterable[Edge], admits: Callable[[str], bool] | N
     plain: set[str] = set()
     gated: set[str] = set()
     queue: list[Edge] = list(roots)
-    asked: set[tuple[str, tuple[str, ...]]] = set()
+    asked: set[tuple[str, tuple[str, ...], str | None]] = set()
     while queue:
         edge = queue.pop()
-        key = (edge.name, edge.extras)
+        # The marker belongs in the walk key. uv writes one requirement once per resolution
+        # environment, so `numpy` arrives as two edges with the same name and extras and
+        # different markers; keyed without the marker, the second edge is dismissed as already
+        # asked and the one edge that happens to pop first decides whether the package counts
+        # as product or as conditional.
+        key = (edge.name, edge.extras, edge.marker)
         if key in asked:
             continue
         asked.add(key)
