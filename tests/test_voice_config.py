@@ -90,7 +90,7 @@ class TestEngineResolution:
 
         save_voice_config(tts_engine="auto")
         monkeypatch.setattr("core.voice_config.piper_binary_available", lambda: False)
-        assert resolve_tts_engine() == "edge", "THEN: Auto fällt auf Edge zurück (bestehendes Verhalten)"
+        assert resolve_tts_engine() == "edge", "THEN: auto falls back to edge (the existing behaviour)"
 
     def test_given_strict_piper_without_binary_when_resolved_then_honest_error(self, config_dir, monkeypatch):
         from core.voice_config import save_voice_config, resolve_tts_engine
@@ -238,7 +238,7 @@ class TestSynthesizeEngines:
         r = audio_client.post("/api/audio/synthesize", json={"text": "Cloud fallback"})
         assert r.status_code == 200
         assert r.json()["audio_url"].endswith(".mp3")
-        assert calls["voice"] == "de-DE-KillianNeural", "THEN: edge_voice aus voice.json"
+        assert calls["voice"] == "de-DE-KillianNeural", "THEN: edge_voice comes from voice.json"
 
     def test_given_empty_text_when_synthesize_then_400(self, audio_client):
         assert audio_client.post("/api/audio/synthesize", json={"text": "  "}).status_code == 400
@@ -297,9 +297,9 @@ class TestDoctorVoice:
         monkeypatch.setattr("core.voice_config.piper_binary_available", lambda: False)
         monkeypatch.setattr("core.transcribe.is_whisper_available", lambda: False)
         ok, detail = ephe_cli._doctor_voice()
-        assert ok is True, "THEN: Cloud-Fallback ist kein Setup-Fehler"
+        assert ok is True, "THEN: a cloud fallback is not a setup error"
         assert "Edge cloud fallback" in detail and "pipx install piper-tts" in detail
-        assert "missing" in detail, "THEN: fehlender STT wird sichtbar gemeldet"
+        assert "missing" in detail, "THEN: a missing STT is reported visibly"
 
     def test_given_full_piper_setup_then_local_ok(self, config_dir, monkeypatch, tmp_path):
         import ephe_cli

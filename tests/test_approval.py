@@ -234,7 +234,7 @@ def test_e2e_cli_tool_dry_run_creates_no_file(tmp_path, monkeypatch, werkbank):
         cwd=str(_REPO), env=env, capture_output=True, text=True, timeout=30,
     )
     assert proc.returncode == 0, f"stdout={proc.stdout!r}\nstderr={proc.stderr!r}"
-    assert not (werkbank / target).exists(), "A1: dry-run schreibt weder dorthin, wo es früher landete, noch in die Werkbank"
+    assert not (werkbank / target).exists(), "A1: dry-run writes neither to where it used to land nor into the workbench"
     assert "DRY-RUN" in proc.stdout.upper() or "[dry-run]" in proc.stdout.lower()
 
 
@@ -251,7 +251,7 @@ def test_e2e_cli_tool_yes_writes_file(tmp_path, monkeypatch, werkbank):
         cwd=str(_REPO), env=env, capture_output=True, text=True, timeout=30,
     )
     assert proc.returncode == 0, f"stdout={proc.stdout!r}\nstderr={proc.stderr!r}"
-    assert (werkbank / target).exists(), "A1: der Geburtsort ist die Werkbank"
+    assert (werkbank / target).exists(), "A1: the workbench is its place of birth"
 
 
 def test_e2e_cli_tool_without_flag_in_noninteractive_blocks(tmp_path, monkeypatch, werkbank):

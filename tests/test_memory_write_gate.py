@@ -172,7 +172,7 @@ class TestMemoryTool:
         self._call(action="replace", target="memory", old_text="8765", content="Aussage 9100")
         listing = self._call(action="list", target="memory")
         assert "9100" in listing and "8765" not in listing
-        assert old in [e["id"] for e in mem.list_all()], "die Historie bleibt erhalten"
+        assert old in [e["id"] for e in mem.list_all()], "the history is kept"
 
     def test_add_without_a_type_stays_semantic(self, cfg):
         from core.memory import Memory

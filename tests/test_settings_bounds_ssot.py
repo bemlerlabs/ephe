@@ -50,7 +50,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 def test_generation_bounds_and_texts_ship_in_the_payload(client: TestClient) -> None:
     meta = client.get("/api/settings").json()["generation_meta"]
-    assert set(meta) == set(GENERATION_BOUNDS), "andere Schluessel als der Verbraucher"
+    assert set(meta) == set(GENERATION_BOUNDS), "different keys than the consumer"
     for key, (default, low, high) in GENERATION_BOUNDS.items():
         assert meta[key]["default"] == default, key
         assert meta[key]["min"] == low, key
@@ -94,4 +94,4 @@ def test_the_step_fits_inside_the_range() -> None:
     for key, entry in entries.items():
         if entry["type"] != "number":
             continue
-        assert entry["step"] <= entry["max"] - entry["min"], f"{key}: Step groesser als Bereich"
+        assert entry["step"] <= entry["max"] - entry["min"], f"{key}: step larger than the range"

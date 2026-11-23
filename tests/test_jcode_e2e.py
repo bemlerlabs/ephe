@@ -38,7 +38,7 @@ CHUNKS = ["Hello", " from", " the", " Black", " Forest"]
 FULL = "".join(CHUNKS)
 
 pytestmark = pytest.mark.skipif(
-    shutil.which("jcode") is None, reason="jcode (Rust coding CLI) nicht installiert"
+    shutil.which("jcode") is None, reason="jcode (Rust coding CLI) not installed"
 )
 
 
@@ -65,7 +65,7 @@ def _wait_ready(port: int, timeout: float = 15.0) -> None:
         except Exception as exc:  # noqa: BLE001
             last_err = exc
         time.sleep(0.1)
-    raise AssertionError(f"Engine nicht bereit auf Port {port}: {last_err}")
+    raise AssertionError(f"engine not ready on port {port}: {last_err}")
 
 
 def _start_engine(port: int):
@@ -151,9 +151,7 @@ def test_jcode_consumes_engine_e2e():
         # 3) Proof: the answer came from the Ephe engine (fake marker), not
         #    from a real/remote model.
         assert _contains_engine_marker(run.stdout), (
-            "jcode-Antwort enthält nicht den Engine-Marker 'Black Forest' — "
-            "Antwort kam nicht von der lokalen Ephe Engine.\n"
-            f"stdout: {run.stdout[:500]}\nstderr: {run.stderr[:500]}"
+            f"the jcode answer does not contain the engine marker 'Black Forest' — the answer did not come from the local Ephe engine.\nstdout: {run.stdout[:500]}\nstderr: {run.stderr[:500]}"
         )
     finally:
         server.should_exit = True

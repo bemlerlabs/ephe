@@ -15,7 +15,7 @@ def test_index_shape_and_cap():
     assert idx.startswith("Verfuegbare Skills")
     # 47 skills, 1 line each + header → compact (< 6k characters at cap 70).
     assert len(idx) < 6000, f"Index zu gross: {len(idx)}"
-    assert "…" in idx, "Beschreibungen werden nicht am Cap gekappt"
+    assert "…" in idx, "descriptions are not cut at the cap"
 
 
 def test_index_injected_only_on_zero_hit():

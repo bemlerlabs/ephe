@@ -153,7 +153,7 @@ class TestLogLedger:
         out, err, code = _run_serve(stdin)
         assert code == 0
         lines = [json.loads(line) for line in out.strip().splitlines()]
-        assert len(lines) == 3, "jede Anfrage genau eine Antwort — sonst hängt der Client"
+        assert len(lines) == 3, "exactly one response per request — otherwise the client hangs"
         assert lines[0]["error"]["code"] == -32700
         assert [ln["id"] for ln in lines[1:]] == [1, 2]
         assert "Traceback" not in err

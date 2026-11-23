@@ -122,7 +122,7 @@ class TestBrowserExecReachable:
 
         out = asyncio.run(tool_call("browser_exec", {"code": code, "session": "gate-test"}))
         assert "[TOOL-DENIED]" in out
-        assert not victim.exists(), "Host-Datei geschrieben, obwohl niemand zustimmte"
+        assert not victim.exists(), "wrote a host file although nobody agreed"
 
     def test_approval_opens_browser_exec(self, tmp_path: Path):
         victim = tmp_path / "written.txt"

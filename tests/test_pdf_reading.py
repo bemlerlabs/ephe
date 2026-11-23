@@ -101,11 +101,11 @@ class TestPDFReadUnitPerspective:
             result = await read_file(str(pdf_path))
 
             # Perspective 1: type check
-            assert isinstance(result, str), "THEN: result muss ein String sein"
+            assert isinstance(result, str), "THEN: result must be a string"
             # Perspective 2: not empty
-            assert len(result.strip()) > 0, "THEN: result darf nicht leer sein"
+            assert len(result.strip()) > 0, "THEN: result must not be empty"
             # Perspective 3: no raw binary dump
-            assert "%PDF" not in result, "THEN: Keine rohen PDF-Bytes im Output"
+            assert "%PDF" not in result, "THEN: no raw PDF bytes in the output"
 
     @pytest.mark.asyncio
     async def test_given_corrupt_pdf_when_read_file_then_no_crash(self):
@@ -124,12 +124,12 @@ class TestPDFReadUnitPerspective:
             result = await read_file(str(corrupt_pdf))
 
             # Perspective 1: no exception crash
-            assert isinstance(result, str), "THEN: Auch Fehler muss String sein"
+            assert isinstance(result, str), "THEN: an error must be a string too"
             # Perspective 2: the content explains the problem
-            assert len(result) > 0, "THEN: Fehler-String darf nicht leer sein"
+            assert len(result) > 0, "THEN: the error string must not be empty"
             # Perspective 3: carries the file name for user context
             assert "corrupt.pdf" in result or "Could not" in result or "no extractable" in result, (
-                f"THEN: Fehler-String soll hilfreich sein, got: {result[:100]}"
+                f"THEN: the error string should be helpful, got: {result[:100]}"
             )
 
 
@@ -150,10 +150,10 @@ class TestPDFToolSchemaIntegrationPerspective:
             (s for s in schemas if s.get("function", {}).get("name") == "read_file"),
             None
         )
-        assert read_file_schema is not None, "THEN: read_file muss im Schema existieren"
+        assert read_file_schema is not None, "THEN: read_file must exist in the schema"
         description = read_file_schema.get("function", {}).get("description", "")
         assert "pdf" in description.lower(), (
-            f"THEN: Tool-Schema sollte 'pdf' erwähnen, got: {description[:200]}"
+            f"THEN: the tool schema should mention 'pdf', got: {description[:200]}"
         )
 
 
@@ -170,13 +170,13 @@ class TestPDFDependencySystemPerspective:
         """
         from tests.toml_compat import tomllib
         pyproject = Path(__file__).parent.parent / "pyproject.toml"
-        assert pyproject.exists(), "THEN: pyproject.toml muss existieren"
+        assert pyproject.exists(), "THEN: pyproject.toml must exist"
         data = tomllib.loads(pyproject.read_text())
         deps = data.get("project", {}).get("dependencies", [])
         dep_names = [d.split(">=")[0].split("==")[0].split("[")[0].strip().lower()
                      for d in deps]
         assert "pdfplumber" in dep_names, (
-            f"THEN: pdfplumber muss in dependencies sein, found: {dep_names}"
+            f"THEN: pdfplumber must be in dependencies, found: {dep_names}"
         )
 
     def test_given_venv_when_import_attempted_then_pdfplumber_importable(self):
@@ -188,7 +188,7 @@ class TestPDFDependencySystemPerspective:
         try:
             import pdfplumber
         except ImportError:
-            pytest.fail("THEN: pdfplumber muss importierbar sein — führe 'pip install pdfplumber' aus")
+            pytest.fail("THEN: pdfplumber must be importable — run 'pip install pdfplumber'")
 
 
 def _pdf_path_from(result: str) -> Path:
@@ -247,7 +247,7 @@ class TestPDFCreationPerspective:
 
         assert result.startswith("PDF_FILE:")
         output = _pdf_path_from(result)
-        assert output.parent == werkbank, "A1: geboren in der Werkbank, nicht im Downloads-Ordner"
+        assert output.parent == werkbank, "A1: born in the workbench, not in the Downloads folder"
         assert output.name == "Ephe_Projektanalyse_2026.pdf"
         assert output.exists()
 

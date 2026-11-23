@@ -91,9 +91,7 @@ def test_no_new_file_calls_an_alias():
     hits = _alias_hits()
     added_files = sorted(set(hits) - FROZEN)
     assert not added_files, (
-        "Neue Datei(n) mit Fremdnamen in der Flaeche: "
-        + ", ".join(f"{n} ({hits[n]}x)" for n in added_files)
-        + " — Rollen heissen bg-surface, border-hairline, text-ink-faint."
+        "new file(s) carrying foreign names in the area: " + ", ".join(f"{n} ({hits[n]}x)" for n in added_files) + " — roles are named bg-surface, border-hairline, text-ink-faint."
     )
 
 
@@ -101,15 +99,14 @@ def test_the_alias_total_does_not_grow():
     hits = _alias_hits()
     total = sum(hits.values())
     assert total <= BASELINE_TOTAL, (
-        f"Alias-Aufrufe sind von {BASELINE_TOTAL} auf {total} gewachsen. "
-        "Der Ratchet darf nur sinken — siehe Begründung im Kopf dieser Datei."
+        f"alias calls grew from {BASELINE_TOTAL} to {total}. " "the ratchet may only go down — see the justification in the header of this file."
     )
 
 
 def test_the_ratchet_itself_measures_correctly():
     """Counter-proof: an alias in a fresh file must be caught by rule 1."""
     hits = _alias_hits()
-    assert hits, "der Zaehler findet nichts — dann ist auch der Ratchet blind"
+    assert hits, "the counter finds nothing — then the ratchet is blind too"
     # Sidebar carried 12 alias sites at the freeze; the 2026-10-13 surface migration
     # retired them there, so the counter-proof follows the sites that still carry them.
     assert "components/dashboard/settings/model/sections-mcp.tsx" in hits

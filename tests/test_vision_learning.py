@@ -66,7 +66,7 @@ def test_crop_around_boundary_zero(mock_screenshot_b64):
     img_data = base64.b64decode(cropped_b64)
     img = Image.open(BytesIO(img_data))
 
-    assert img.size == (50, 50), "Der Crop muss aufgefüllt werden und genau 50x50 sein!"
+    assert img.size == (50, 50), "the crop must be padded and exactly 50x50"
 
 
 # 3. Vision-store metadata round trip

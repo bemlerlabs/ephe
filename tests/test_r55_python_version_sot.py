@@ -26,13 +26,13 @@ def _version_from_file() -> str:
 
 def test_python_version_file_exists_and_is_clean():
     f = ROOT / ".python-version"
-    assert f.is_file(), ".python-version fehlt im Repo-Root"
+    assert f.is_file(), ".python-version is missing at the repo root"
     raw = f.read_text(encoding="utf-8")
     assert raw.count("\n") <= 1, "genau eine Zeile"
     v = raw.strip()
     parts = v.split(".")
     assert 2 <= len(parts) <= 3, f"unerwartetes Format: {v!r}"
-    assert all(p.isdigit() for p in parts), f"Nur Ziffern erwartet: {v!r}"
+    assert all(p.isdigit() for p in parts), f"only digits expected: {v!r}"
 
 
 def test_readme_and_agents_name_the_source_of_truth():
@@ -40,7 +40,7 @@ def test_readme_and_agents_name_the_source_of_truth():
     # is a protected agent-instruction file and is deliberately not used here
     # as a proof obligation.)
     text = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert ".python-version" in text, "README.md nennt .python-version nicht"
+    assert ".python-version" in text, "README.md does not mention .python-version"
 
 
 def test_documented_value_matches_file():
@@ -63,4 +63,4 @@ def test_pyproject_floor_is_compatible():
     v = _version_from_file()
     assert tuple(int(x) for x in v.split(".")[:2]) >= tuple(
         int(x) for x in floor.split(".")[:2]
-    ), f".python-version {v} unter dem requires-python-Floor {floor}"
+    ), f".python-version {v} is below the requires-python floor {floor}"

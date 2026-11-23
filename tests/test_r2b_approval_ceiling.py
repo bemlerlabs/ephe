@@ -72,7 +72,7 @@ class TestStrengeProfileIstDieDecke:
         """G: profile strict, composer mode full access · W: a mutation · T: one dialog, the approval comes from the user."""
         SC.save_security_config(approval_profile="strict")
         approved, dialogs = _confirm(_mk_request("full-access"))
-        assert len(dialogs) == 1, "das strenge Profil darf keinen Modi-Auto-Pfad durchlassen"
+        assert len(dialogs) == 1, "the strict profile must not let any mode-auto path through"
         assert approved is True
 
     def test_strict_holds_the_autonomous_opt_in_behind_a_dialog(self):

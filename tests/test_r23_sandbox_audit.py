@@ -46,7 +46,7 @@ class TestRedact:
     def test_given_kv_assignment_when_redacted_then_masked(self):
         out = redact('{"api_key": "super-secret-99", "model": "sd-1.5"}')
         assert "super-secret-99" not in out
-        assert '"model": "sd-1.5"' in out, "THEN: Nicht-Secrets bleiben lesbar"
+        assert '"model": "sd-1.5"' in out, "THEN: non-secrets stay readable"
 
     def test_given_ephe_env_assignment_when_redacted_then_masked(self):
         out = redact("EPHE_OPENAI_COMPAT_API_KEY=lovely-key-42 aktiviert")
@@ -71,13 +71,13 @@ class TestAuditLog:
         assert e["tool"] == "run_shell"
         assert e["status"] == "ok"
         assert e["duration_ms"] == 12
-        assert "abcdefgh12345" not in json.dumps(e), "THEN: Kein Secret im Audit-Log"
-        assert e["args_hash"], "THEN: args_hash gesetzt"
+        assert "abcdefgh12345" not in json.dumps(e), "THEN: no secret in the audit log"
+        assert e["args_hash"], "THEN: args_hash set"
 
     def test_given_file_when_inspected_then_owner_only(self, audit_file):
         audit_log.audit_event("tool_exec", tool="read_file", args={"path": "/x"})
         mode = stat.S_IMODE(audit_file.stat().st_mode)
-        assert mode == 0o600, "THEN: Audit-Log nur für den Owner"
+        assert mode == 0o600, "THEN: the audit log is owner-only"
 
     def test_given_corrupt_lines_when_tailed_then_skipped(self, audit_file):
         audit_file.write_text("not json\n{\"ts\":\"t\",\"kind\":\"tool_exec\"}\n", encoding="utf-8")
@@ -107,7 +107,7 @@ class TestAuditLog:
         result = asyncio.run(registry.execute_tool("get_datetime", {"x": 1}))
         assert "ok-result" in result or "ok" in result
         entries = audit_log.tail(kind="tool_exec")
-        assert any(e["tool"] == "get_datetime" for e in entries), "THEN: Ausführung auditiert"
+        assert any(e["tool"] == "get_datetime" for e in entries), "THEN: the run is audited"
 
     def test_given_approval_flow_when_used_then_audited(self, audit_file):
         """Approval decisions (the CLI policy path) land in the audit log."""
@@ -158,7 +158,7 @@ class TestSessionRemember:
 
         monkeypatch.setattr(engine_config, "CONFIG_DIR", tmp_path / "cfg")
         remember_tool("sess-1", "create_qrcode")
-        assert session_auto_approved("sess-1", "create_qrcode") is False, "THEN: strict fragt immer"
+        assert session_auto_approved("sess-1", "create_qrcode") is False, "THEN: strict always asks"
 
     def test_given_session_profile_when_remembered_then_auto_for_same_tool(self, tmp_path, monkeypatch):
         from core import engine_config
@@ -193,7 +193,7 @@ class TestSeatbelt:
             args = wrap_command(f"echo leaked > '{probe}'", workspace)
             assert args is not None and args[0] in {"sandbox-exec", "bwrap"}
             result = subprocess.run(args, capture_output=True, text=True, timeout=30)
-            assert not probe.exists(), "THEN: kein Schreiben außerhalb der Workspace auf dem Host"
+            assert not probe.exists(), "THEN: no writing outside the workspace on the host"
             if capabilities.boundary() == "seatbelt":
                 assert result.returncode != 0, "THEN: Seatbelt verweigert den Schreibzugriff"
         finally:
@@ -234,8 +234,8 @@ class TestSeatbelt:
         assert "plain-ok" in out
         entries = audit_log.tail(kind="shell")
         assert entries and entries[0]["status"] == "executed"
-        assert entries[0]["args_hash"], "THEN: Befehl als Hash referenziert"
-        assert "echo plain-ok" in entries[0]["args"], "THEN: redigierte Kurzform enthält den Befehl"
+        assert entries[0]["args_hash"], "THEN: the command is referenced as a hash"
+        assert "echo plain-ok" in entries[0]["args"], "THEN: the redacted short form contains the command"
 
 
     @capabilities.requires_boundary

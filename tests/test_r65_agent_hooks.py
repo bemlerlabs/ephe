@@ -221,7 +221,7 @@ class TestDeepWiring:
             keys = {f["key"] for s in deep for f in s["fields"]}
             assert "plugins.mcp_servers_count" not in keys
             mcp = client.get("/api/settings/mcp").json()
-            assert len(mcp["servers"]) == 1, "die Live-Anzahl lebt im MCP-Bereich"
+            assert len(mcp["servers"]) == 1, "the live count lives in the MCP area"
 
     def test_tts_gate_denies_when_disabled(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path / "cfg"))

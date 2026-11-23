@@ -62,7 +62,7 @@ def test_the_roots_are_the_file_routes_own(clean_env) -> None:
     actually checks."""
     status = network_status()
     assert status["file_roots"] == [str(r) for r in _get_allowed_roots()]
-    assert status["file_roots"], "ohne Freigabe wäre die Zeile eine Behauptung"
+    assert status["file_roots"], "without the grant the line would be a claim"
 
 
 def test_the_roots_row_moves_when_the_kernel_list_does(clean_env, tmp_path) -> None:

@@ -84,14 +84,14 @@ def test_every_option_is_labelled_in_both_languages(empty_ephe_home) -> None:
 
     entries = {f["key"]: f for s in deep_view() for f in s["fields"]}
     selects = [k for k, m in SCHEMA.items() if m["type"] == "select"]
-    assert selects, "das Register kennt keine Auswahl-Felder — Test waere leer"
+    assert selects, "the register knows no selection fields — the test would be empty"
     for key in selects:
         options = SCHEMA[key]["options"]
         labels = SCHEMA[key].get("optionLabels")
-        assert labels, f"{key}: Auswahl ohne Anzeige-Texte"
-        assert set(labels) == set(options), f"{key}: Labels decken die Optionen nicht ab"
+        assert labels, f"{key}: selection without display texts"
+        assert set(labels) == set(options), f"{key}: labels do not cover the options"
         for value, pair in labels.items():
             de, en = pair
             assert de and en and de != en, f"{key}/{value}"
-            assert entries[key]["optionLabels"], f"{key}: deep_view reicht keine Texte durch"
-        assert key in HINTS, f"{key}: Auswahl ohne Erklaerung"
+            assert entries[key]["optionLabels"], f"{key}: deep_view passes no texts through"
+        assert key in HINTS, f"{key}: selection without an explanation"

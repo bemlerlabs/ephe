@@ -200,7 +200,7 @@ def test_one_blocked_a_record_denies_the_whole_name():
 
 def test_the_guard_never_calls_a_real_nameserver(monkeypatch):
     def explosion(*_a, **_kw):
-        raise AssertionError("der Guard loest im Test nicht selbst auf")
+        raise AssertionError("the guard does not resolve on its own in a test")
 
     monkeypatch.setattr(socket, "getaddrinfo", explosion)
     seen: list = []

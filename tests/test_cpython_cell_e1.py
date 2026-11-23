@@ -40,7 +40,7 @@ def _guest_live() -> bool:
     return bool(state["entry_ok"] and state["tree_ok"])
 
 
-live = pytest.mark.skipif(not _guest_live(), reason="CPython-Gast nicht installiert/verifiziert (opt-in)")
+live = pytest.mark.skipif(not _guest_live(), reason="CPython guest not installed/verified (opt-in)")
 
 #: The installed home as it stood at collection, before any fixture moved the config root.
 _INSTALLED_HOME = Path(engine_config.CONFIG_DIR)
@@ -276,7 +276,7 @@ def test_seam_a_is_the_only_python_execution_path():
     source = Path(code_kernel.__file__).read_text(encoding="utf-8")
     assert "cpython_cell" in source
     for seam_b in ("mcp_client", "call_registered_mcp_tool", "sync_mcp_tools"):
-        assert seam_b not in source, f"execute_code haelt an {seam_b} — Seam B ist nicht der Code-Pfad"
+        assert seam_b not in source, f"execute_code stops at {seam_b} — seam B is not the code path"
 
 
 def test_seam_b_would_cap_every_program():
@@ -301,8 +301,7 @@ def test_installed_cell_module_knows_the_io_ceilings():
     fields = {f.name for f in dataclasses.fields(ephemora_cell.WASIConfig)}
     fehlend = set(IO_CEILINGS) - fields
     assert not fehlend, (
-        f"die installierte Cell kennt {sorted(fehlend)} nicht — core/cpython_cell.py "
-        "schreibt dann Deckel, die in dieser Version keine Wirkung haben"
+        f"the installed cell does not know {sorted(fehlend)} — core/cpython_cell.py would then write caps that have no effect in this version"
     )
 
 
@@ -353,7 +352,7 @@ def test_cell_runtime_license_is_read_from_the_installed_package():
     assert version("ephemora-cell") in behauptet, behauptet
     assert (metadata("ephemora-cell").get("License") or "") in behauptet
     assert "1.0.4.3" not in behauptet or version("ephemora-cell") == "1.0.4.3"
-    assert "Pin" not in behauptet, "die Doctor-Watch hat schon einen Satz fuer die Leiter"
+    assert "Pin" not in behauptet, "the doctor watch already has a sentence about the ladder"
 
 
 def test_cell_runtime_license_without_the_package_claims_nothing(monkeypatch):
@@ -666,14 +665,14 @@ def test_sweep_evicts_the_oldest_and_keeps_the_promises(tmp_path):
 
     assert out["evicted"] == ["pyc/mod.pyc", "alt.bin"], out
     assert out["evicted_data"] == ["alt.bin"], (
-        "der Puffer zaehlt nicht als verlorene Arbeit — nur sie wird im Report beim Namen genannt"
+        "the buffer does not count as lost work — only real work is named in the report"
     )
     assert out["work_bytes"] == total - 1024 - 4 * 1024 * 1024, out
     assert out["freed_bytes"] == 4 * 1024 * 1024 + 1024
     assert out["over_quota"] is False
-    assert (work / "neu.bin").is_file(), "das neueste Ergebnis bleibt — der Modell-Code will es wiederlesen"
+    assert (work / "neu.bin").is_file(), "the newest result stays — the model code wants to read it back"
     for name in (cell_out.STDOUT_LOG_NAME, cell_out.STDERR_LOG_NAME, "result.json", "state.pkl"):
-        assert (work / name).is_file(), f"{name} traegt eine Zusage und wird nie veraeussert"
+        assert (work / name).is_file(), f"{name} is a promise the sweep never evicts"
 
 
 def test_sweep_does_not_evict_the_promises_to_meet_quota(tmp_path):
@@ -735,7 +734,7 @@ def test_session_quota_caps_the_sum_over_files():
         )
         assert report["status"] == "OK", report["stderr"][-400:]
         assert report["work_bytes"] <= cell.DEFAULT_WORK_QUOTA_BYTES, report["work_bytes"]
-        assert report["work_evicted"], "80 MiB enden nicht ohne Durchsetzung bei 64 MiB"
+        assert report["work_evicted"], "80 MiB does not end at 64 MiB without enforcement"
         assert report["work_quota_bytes"] == cell.DEFAULT_WORK_QUOTA_BYTES
         assert cell_out.STDOUT_LOG_NAME in [p.name for p in cell.work_dir(session).iterdir()], \
             "the quota does not delete the retrievable remainder"
@@ -919,7 +918,7 @@ def test_journal_sizes_leave_room_under_the_total_ceiling():
     are half of it, and they are protected from eviction.
     """
     headroom = cell.DEFAULT_WORK_QUOTA_BYTES - 2 * cell_out.JOURNAL_MAX_BYTES
-    assert headroom >= 8 * 1024 * 1024, "zu wenig Platz fuer state.pkl und pyc"
+    assert headroom >= 8 * 1024 * 1024, "too little space for state.pkl and pyc"
     assert 2 * cell_out.JOURNAL_MAX_BYTES < cell.DEFAULT_WORK_QUOTA_BYTES
 
 

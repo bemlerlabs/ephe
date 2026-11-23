@@ -143,7 +143,7 @@ class _FakeClient:
         return False
 
     def build_request(self, method: str, url: str, headers=None, **kw):
-        assert method == "GET", f"der Guard soll nur lesen, nicht {method}"
+        assert method == "GET", f"the guard should only read, not {method}"
         return _FakeRequest(url, dict(headers or {}))
 
     async def send(self, request, **kw):

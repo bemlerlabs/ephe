@@ -103,7 +103,7 @@ class TestGenerateImage:
         import core.model_provider as mp
 
         def _boom():
-            raise RuntimeError("keine Engine")
+            raise RuntimeError("no engine")
 
         monkeypatch.setattr(mp, "get_active_provider", _boom)
         out = await generate_image("a cat")

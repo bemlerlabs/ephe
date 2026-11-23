@@ -110,9 +110,9 @@ async def test_handle_message_pairing_and_answer_roundtrip(tmp_path: Path) -> No
     await runner.handle_message(
         {"id": "2", "channel_id": "10", "author": {"id": "42", "username": "u"}, "content": "hallo"}
     )
-    assert len(answered) == 1, "genau eine Pipeline-Antwort erwartet"
+    assert len(answered) == 1, "expected exactly one pipeline answer"
     assert "hallo" in answered[0]
-    assert transport.sent, "Antwort wurde nicht zurueckgesendet"
+    assert transport.sent, "the answer was not sent back"
     assert any("echo:" in c for _, c in transport.sent)
 
 

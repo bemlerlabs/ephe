@@ -29,7 +29,7 @@ def test_every_skill_has_distinctive_expect_contains():
         tok = _field(text, "Expect Contains")
         if len(tok) < 4:
             missing.append((name, tok))
-    assert not missing, f"Expect-Contains-Token zu kurz/leer: {missing}"
+    assert not missing, f"Expect-Contains token too short or empty: {missing}"
 
 
 def test_artifact_skills_carry_an_evidence_anchor():
@@ -40,4 +40,4 @@ def test_artifact_skills_carry_an_evidence_anchor():
                  "image-creator", "docx-creator"):
         text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
         tok = _field(text, "Expect Contains")
-        assert tok in anker, f"{name}: kein Evidenz-Anker, sondern {tok!r}"
+        assert tok in anker, f"{name}: not an evidence anchor but {tok!r}"

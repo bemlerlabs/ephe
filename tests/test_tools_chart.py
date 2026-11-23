@@ -97,7 +97,7 @@ class TestGenerateSvgChart:
             mock_home.return_value = Path("/tmp/fake_home")
             result = _generate_svg_chart("bar", "Bar Chart", ["A", "B"], [10, 20])
         assert "CHART_FILE:" in result
-        assert any("<rect" in w for w in written), "SVG sollte <rect> enthalten"
+        assert any("<rect" in w for w in written), "the SVG should contain <rect>"
 
     def test_line_chart_contains_polyline(self):
         """
@@ -114,7 +114,7 @@ class TestGenerateSvgChart:
             mock_home.return_value = Path("/tmp/fake_home")
             result = _generate_svg_chart("line", "Line Chart", ["A", "B"], [10, 20])
         assert "CHART_FILE:" in result
-        assert any("<polyline" in w for w in written), "SVG sollte <polyline> enthalten"
+        assert any("<polyline" in w for w in written), "the SVG should contain <polyline>"
 
     def test_pie_chart_contains_path(self):
         """
@@ -131,7 +131,7 @@ class TestGenerateSvgChart:
             mock_home.return_value = Path("/tmp/fake_home")
             result = _generate_svg_chart("pie", "Pie Chart", ["A", "B"], [30, 70])
         assert "CHART_FILE:" in result
-        assert any("<path" in w for w in written), "SVG sollte <path> enthalten"
+        assert any("<path" in w for w in written), "the SVG should contain <path>"
 
     def test_bar_chart_contains_single_value(self):
         """

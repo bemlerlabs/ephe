@@ -194,7 +194,7 @@ def _wait_ready(port: int, timeout: float = 15.0) -> None:
         except Exception:  # noqa: BLE001
             pass
         time.sleep(0.1)
-    raise AssertionError(f"Engine nicht bereit auf Port {port}")
+    raise AssertionError(f"engine not ready on port {port}")
 
 
 @pytest.fixture
@@ -246,7 +246,7 @@ async def _ttfb_once(base: str) -> float:
                     payload = json.loads(line[len("data: "):])
                     payload["choices"][0]["delta"]
                     return ttfb
-    raise AssertionError("Kein First-Data-Event empfangen")
+    raise AssertionError("no First-Data-Event received")
 
 
 def _ttfb_sync(base: str) -> float:
@@ -499,8 +499,7 @@ def test_ttfb_deterministic_within_tolerance(engine_base_url):
     p50 = runs[len(runs) // 2]
     worst = runs[-1]
     print(f"\n  [ttfb-spread] p50={p50 * 1000:.1f}ms worst={worst * 1000:.1f}ms")
-    assert worst < TTFB_BUDGET_S, f"TTFB-Spread zu groß: worst {worst * 1000:.1f}ms"
-
+    assert worst < TTFB_BUDGET_S, f"TTFB spread too large: worst {worst * 1000:.1f}ms"
 
 # Long-session memory gate (docs/PLAN_GAP_2026-10-11.md P1-5)
 def test_long_session_memory_budget(tmp_path, monkeypatch):

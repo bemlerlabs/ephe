@@ -316,7 +316,7 @@ class TestPackIndex:
         ids = {p["id"] for p in body["packs"]}
         assert {"office-pack", "dev-pack", "business-pack", "writing-pack", "research-pack"} == ids
         office = next(p for p in body["packs"] if p["id"] == "office-pack")
-        assert office["complete"] is True, "THEN: alle referenzierten Built-ins existieren"
+        assert office["complete"] is True, "THEN: all referenced built-ins exist"
         assert all(s["installed"] for s in office["skills"])
         assert office["skills"][0]["trigger"].startswith("/")
 

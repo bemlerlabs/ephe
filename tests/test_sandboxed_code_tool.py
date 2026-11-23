@@ -31,7 +31,7 @@ def _ephemora_installed() -> bool:
         return False
 
 
-live = pytest.mark.skipif(not _ephemora_installed(), reason="ephemora-cell nicht installiert (opt-in)")
+live = pytest.mark.skipif(not _ephemora_installed(), reason="ephemora-cell not installed (opt-in)")
 
 
 # Fail-closed without the package (always runs)

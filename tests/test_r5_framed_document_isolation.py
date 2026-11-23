@@ -69,7 +69,7 @@ def test_given_markup_the_embedded_response_is_sealed(client, tmp_path):
     r = client.get(f"/api/artifacts/{art_id}/file")
     assert r.status_code == 200
     assert "sandbox allow-popups" in _csp(r)
-    assert "frame-ancestors 'self'" in _csp(r), "die eigene Vorschau darf einbetten"
+    assert "frame-ancestors 'self'" in _csp(r), "the app's own preview may embed"
 
 
 def test_given_a_dead_format_the_frame_stays_open(client, tmp_path):

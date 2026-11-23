@@ -50,7 +50,7 @@ def test_skill_routing_detection_under_50ms_p95() -> None:
             samples.append(_routing_detection_ms(loader, p))
     samples.sort()
     p95 = samples[int(len(samples) * 0.95) - 1]
-    assert p95 < 50, f"Skill-Routing-Erkennung zu langsam: p95={p95:.2f} ms (Budget 50 ms)"
+    assert p95 < 50, f"skill routing detection too slow: p95={p95:.2f} ms (budget 50 ms)"
 
 
 # TTFT p95 (LIVE, only with a reachable engine — no fake green)
@@ -78,8 +78,7 @@ def _endpoint_reachable() -> bool:
 @pytest.mark.skipif(
     not _endpoint_reachable(),
     reason=(
-        "Kein Live-Endpoint konfiguriert/erreichbar — setze EPHE_DGX_BASE + "
-        "EPHE_DGX_MODEL (+ EPHE_DGX_KEY): SKIP (Latenz-Marker ist ein Live-Budget, kein Fake)."
+        "no live endpoint configured/reachable — set EPHE_DGX_BASE + EPHE_DGX_MODEL (+ EPHE_DGX_KEY): SKIP (the latency marker is a live budget, not a fake)."
     ),
 )
 def test_ttft_p95_under_budget_live() -> None:
@@ -120,4 +119,4 @@ def test_ttft_p95_under_budget_live() -> None:
     p95 = ttfts[-1]
     # Honest budget for the local/vLLM path: 3000 ms TTFT p95 (the engine
     # cold start dominates; budget progress in docs/LATENCY_BUDGETS.md).
-    assert p95 < 3000, f"TTFT p95 = {p95:.0f} ms über Budget (3000 ms)"
+    assert p95 < 3000, f"TTFT p95 = {p95:.0f} ms above budget (3000 ms)"

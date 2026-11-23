@@ -670,7 +670,7 @@ class TestMemoryEndpoint:
         assert len(results) >= 1
 
         entry_id = results[0]["id"]
-        assert entry_id, "Suchtreffer muss eine echte Document-ID tragen"
+        assert entry_id, "a search hit must carry a real document id"
         # the ID is deletable (not "0" / the score)
         assert client.delete(f"/api/memory/{entry_id}").status_code == 200
         assert client.get("/api/memory/search", params={"q": "Katze Matte"}).json()["results"] == []
@@ -1186,9 +1186,9 @@ class TestVisionCallbackIsolation:
 
         # After the fix: a ContextVar instead of a None global
         assert hasattr(vision, "_sandbox_cb_var"), \
-            "core.vision muss _sandbox_cb_var (ContextVar) exportieren"
+            "core.vision must export _sandbox_cb_var (ContextVar)"
         assert isinstance(vision._sandbox_cb_var, ContextVar), \
-            "_sandbox_cb_var muss eine ContextVar sein, nicht ein simples None-Global"
+            "_sandbox_cb_var must be a ContextVar, not a plain None global"
 
     def test_vision_context_var_default_is_none(self):
         """
@@ -1198,7 +1198,7 @@ class TestVisionCallbackIsolation:
         """
         import core.vision as vision
         cb = vision._sandbox_cb_var.get()
-        assert cb is None, "Default muss None sein — kein Callback ohne explizites Set"
+        assert cb is None, "the default must be None — no callback without an explicit set"
 
     async def test_callback_set_in_context_does_not_leak(self):
         """

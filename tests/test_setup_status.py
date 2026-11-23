@@ -149,7 +149,7 @@ def test_probe_openai_compatible_sends_no_authorization_without_key(client: Test
             "base_url": "http://10.0.0.5:8000/v1",
         })
     assert resp.status_code == 200
-    assert seen_headers == [{}], "ohne Key darf kein Authorization-Header gesendet werden"
+    assert seen_headers == [{}], "without a key no Authorization header may be sent"
 
     monkeypatch.setenv("EPHE_OPENAI_COMPAT_API_KEY", "user-key")
     with patch("httpx.AsyncClient.get", new=fake_get):

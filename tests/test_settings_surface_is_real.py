@@ -107,15 +107,14 @@ def test_the_register_is_the_yardstick() -> None:
 def test_safety_is_not_a_second_approval_switch() -> None:
     """The approval policy has exactly one source (security.json + privacy section)."""
     doppelt = sorted(k for k in SCHEMA if k.startswith("safety."))
-    assert not doppelt, f"safety-Felder im Expert-Register schreiben an security.json vorbei: {doppelt}"
+    assert not doppelt, f"safety fields in the expert register write past security.json: {doppelt}"
 
 
 def test_a_new_field_without_a_reader_fails() -> None:
     """New control = new reader. Growing the debt is a failure case."""
     added_fields = sorted(_fields_without_consumer() - set(REGISTERED_DEBT))
     assert not added_fields, (
-        "neue Steuerungen ohne Consumer — verdrahten oder streichen, nie stehen lassen: "
-        f"{added_fields}"
+        f"new controls without a consumer — wire them or delete them, never leave them standing: {added_fields}"
     )
 
 
@@ -123,7 +122,7 @@ def test_the_debt_list_does_not_go_stale() -> None:
     """A field that is long since wired must not keep running here as debt."""
     veraltet = sorted(set(REGISTERED_DEBT) - _fields_without_consumer())
     assert not veraltet, (
-        f"REGISTERED_DEBT enthaelt verdrahtete Felder — Liste kuerzen: {veraltet}"
+        f"REGISTERED_DEBT contains wired fields — shorten the list: {veraltet}"
     )
 
 

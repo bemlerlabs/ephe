@@ -144,7 +144,7 @@ def test_registry_is_subset_of_catalog() -> None:
         for e in catalog[seg]
     }
     installed = {str(item["name"]) for item in load_registry() if item.get("name")}
-    assert installed <= names, f"Registry ohne Katalogeintrag: {sorted(installed - names)}"
+    assert installed <= names, f"registry without a catalog entry: {sorted(installed - names)}"
 
 
 def test_plugins_view_produces_orphans(tmp_path: Path) -> None:
@@ -250,5 +250,5 @@ def test_shipped_catalog_entries_have_description() -> None:
         for e in catalog[seg]:
             desc = e.get("description")
             assert isinstance(desc, str) and desc.strip(), (
-                f"Eintrag {e.get('name')!r} in {seg!r} ohne description"
+                f"entry {e.get('name')!r} in {seg!r} without description"
             )

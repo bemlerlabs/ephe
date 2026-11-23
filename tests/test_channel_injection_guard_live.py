@@ -131,8 +131,7 @@ def _endpoint_reachable() -> bool:
 pytestmark = pytest.mark.skipif(
     not _endpoint_reachable(),
     reason=(
-        "Kein Live-Endpoint konfiguriert — setze EPHE_DGX_BASE (+ EPHE_DGX_MODEL/"
-        "EPHE_DGX_KEY) oder erreiche das Tailnet: SKIP, kein Fake-Green."
+        "no live endpoint configured — set EPHE_DGX_BASE (+ EPHE_DGX_MODEL/EPHE_DGX_KEY) or reach the tailnet: SKIP, no fake green."
     ),
 )
 
@@ -234,8 +233,6 @@ def test_live_guard_wrapped_message_reaches_model_intact():
     tool_calls = message.get("tool_calls") or []
     usage = data.get("usage") or {}
     assert (content is not None and content.strip()) or tool_calls, (
-        f"content=None und keine tool_calls — usage={usage!r}"
-    )
+        f"content=None and no tool_calls — usage={usage!r}"   )
     assert usage.get("completion_tokens", 0) > 0, (
-        f"completion_tokens=0 — Engine hat nichts generiert: {usage!r}"
-    )
+        f"completion_tokens=0 — the engine generated nothing: {usage!r}"   )

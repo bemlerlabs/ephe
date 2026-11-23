@@ -80,8 +80,8 @@ def test_history_size_and_view_read_the_setting(cron_home) -> None:
             {"job_id": f"j{i}", "executed_at": str(i), "task": "t", "result": "ok", "error": None}
             for i in range(30)
         )
-        assert len(sched.get_results()) == 7, "die Ansicht folgt dem Regler"
-        assert len(sched.get_results(limit=3)) == 3, "eine ausdrückliche Zahl gewinnt"
+        assert len(sched.get_results()) == 7, "the view follows the slider"
+        assert len(sched.get_results(limit=3)) == 3, "an explicit number wins"
     finally:
         sc._job_results.clear()
         sc._job_results.extend(saved)
@@ -211,7 +211,7 @@ class TestCatchUpWindow:
         _set(**{"cron.misfire_grace_minutes": 0})
         _late_oneshot(schedule_home, "zero-grace", -1)
         job, runs = await _restart_and_wait(schedule_home, "zero-grace")
-        assert job is None and runs == [], "0 holt nichts nach has to mean this run too"
+        assert job is None and runs == [], "0 catches up nothing — this run included"
 
     @pytest.mark.asyncio
     async def test_a_run_not_yet_due_keeps_its_time(self, cron_home, schedule_home) -> None:

@@ -68,7 +68,7 @@ class TestProxyPortScope:
         with pytest.raises(HTTPException) as err:
             proxy._validate_port(port)
         assert err.value.status_code == 400
-        assert service in str(err.value.detail).lower(), "die Absage muss nennen, was sie schuetzt"
+        assert service in str(err.value.detail).lower(), "the refusal must name what it protects"
 
     def test_the_refusal_names_the_opt_out(self):
         """A wall without an action hint is helplessness — the user may widen it."""

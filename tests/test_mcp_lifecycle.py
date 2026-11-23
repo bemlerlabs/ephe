@@ -166,7 +166,7 @@ async def test_second_failure_does_not_start_and_says_so(monkeypatch):
     assert first["error"]["message"] == "stdio server closed"
     second = await link.send(_BODY)
     assert "restart deferred" in second["error"]["message"]
-    assert len(calls) == 1, "der Backoff muss den Spawn zaehlen, nicht nur erwaehnen"
+    assert len(calls) == 1, "the backoff must count the spawns, not just mention them"
 
 
 @pytest.mark.asyncio
@@ -297,7 +297,7 @@ def test_stdio_server_survives_listing_and_is_reused(monkeypatch):
     asyncio.run(sync_mcp_tools([spec]))
     asyncio.run(sync_mcp_tools([spec]))
 
-    assert len(_Spy.instances) == 1, "zwei Syncs, ein Prozess"
+    assert len(_Spy.instances) == 1, "two syncs, one process"
     assert _Spy.instances[0].listed == 2
     assert _Spy.instances[0].closed is False
 
@@ -359,7 +359,7 @@ def test_server_shutdown_calls_the_close_hook(monkeypatch, tmp_path):
 
 def test_catalog_carries_its_own_cell_and_licence_bound():
     entries = {e["id"]: e for e in catalog_entries()}
-    assert "mcp-ephemora-cell" in entries, "die eigene Sandbox fehlt im Startkatalog"
+    assert "mcp-ephemora-cell" in entries, "the project's own sandbox is missing from the startup catalog"
     entry = entries["mcp-ephemora-cell"]
     assert {"id", "name", "description", "category"} <= set(entry)
     assert "1.0.4.3" in entry["description"] and "BUSL" in entry["description"]
@@ -376,10 +376,10 @@ def test_catalog_entries_speak_both_languages():
     for entry in catalog_entries():
         de = entry.get("description") or ""
         en = entry.get("description_en") or ""
-        assert de.strip(), f"{entry['id']} ohne deutsche description"
-        assert en.strip(), f"{entry['id']} ohne englische description_en"
+        assert de.strip(), f"{entry['id']} has no German description"
+        assert en.strip(), f"{entry['id']} has no English description_en"
         assert en != de, f"{entry['id']} traegt deutschen Text in description_en"
-        assert 20 <= len(en) <= 400, f"{entry['id']}: description_en ausserhalb 20-400"
+        assert 20 <= len(en) <= 400, f"{entry['id']}: description_en outside 20-400"
 
 
 def _install_live_client(monkeypatch, mcp_module):

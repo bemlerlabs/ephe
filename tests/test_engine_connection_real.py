@@ -161,11 +161,10 @@ async def test_real_engine_v1_models_lists_configured_model():
     unreachability — that is an infrastructure state, not a test fake."""
     if not _dgx_reachable():
         pytest.skip(
-            "Keine Live-Engine konfiguriert/erreichbar — setze EPHE_DGX_BASE + "
-            "EPHE_DGX_MODEL (+ EPHE_DGX_KEY) und prüfe den Endpoint."
+            "no live engine configured/reachable — set EPHE_DGX_BASE + EPHE_DGX_MODEL (+ EPHE_DGX_KEY) and check the endpoint."
         )
     connected, status, available = await check_engine_connection(LIVE_BASE, LIVE_MODEL)
     assert connected is True
     assert LIVE_MODEL in available, (
-        f"Engine listet das aktive Modell nicht: {available}"
+        f"the engine does not list the active model: {available}"
     )

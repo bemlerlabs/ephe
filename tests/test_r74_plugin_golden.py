@@ -44,9 +44,9 @@ class TestSuites:
         for pdir in PLUGINS:
             golden = pdir / "prompts" / "golden.jsonl"
             rubric = pdir / "prompts" / "rubric.md"
-            assert golden.is_file(), f"{pdir.name}: golden.jsonl fehlt"
+            assert golden.is_file(), f"{pdir.name}: golden.jsonl missing"
             assert rubric.is_file() and len(rubric.read_text(encoding="utf-8")) > 200, (
-                f"{pdir.name}: rubric.md fehlt oder nichtssagend"
+                f"{pdir.name}: rubric.md missing or saying nothing"
             )
             cases = pg.load_golden(golden, plugin=pdir.name)
             assert len(cases) >= 6, f"{pdir.name}: only {len(cases)} cases"
@@ -101,7 +101,7 @@ class TestSchema:
                 if kind == "artifact":
                     assert expect.get("suffix", "").startswith("."), case["id"]
                 else:
-                    assert expect.get("any"), f"{case['id']}: {kind} braucht any"
+                    assert expect.get("any"), f"{case['id']}: {kind} needs any"
                     assert isinstance(expect["any"], list)
 
     def test_every_suite_has_anti_slop_marker(self):
@@ -110,7 +110,7 @@ class TestSchema:
                 c["expect"]["kind"]
                 for c in pg.load_golden(pdir / "prompts" / "golden.jsonl", plugin=pdir.name)
             ]
-            assert "not_contains" in kinds, f"{pdir.name}: keine Anti-Slop-Falle"
+            assert "not_contains" in kinds, f"{pdir.name}: no anti-slop trap"
 
 
 class TestVerifyAll:

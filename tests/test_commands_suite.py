@@ -28,14 +28,13 @@ def test_all_roadmap_commands_are_in_registry():
         "/swarm", "/post", "/plan", "/review",
     }
     missing = required - set(cmds.COMMANDS)
-    assert not missing, f"In Registry fehlt: {missing}"
+    assert not missing, f"missing from the registry: {missing}"
 
 
 def test_all_registry_commands_have_descriptions():
     for name in cmds.COMMANDS:
         desc = cmds._COMMAND_DESCRIPTIONS.get(name)
-        assert desc, f"Keine Description für {name}"
-
+        assert desc, f"no description for {name}"
 
 def test_completions_include_new_commands():
     all_comps = cmds.get_completions("/")
@@ -53,9 +52,8 @@ def test_is_command_recognizes_new_commands():
 
 def test_info_commands_are_detected():
     for name in ("/help", "/model", "/engine", "/configure"):
-        assert cmds.is_info_command(name), f"{name} nicht als Info-Command erkannt"
-        assert cmds.is_info_command(f"{name} extra"), "Args sollten Info-Status nicht ändern"
-
+        assert cmds.is_info_command(name), f"{name} not recognised as an info command"
+        assert cmds.is_info_command(f"{name} extra"), "args should not change the info status"
 
 def test_non_info_commands_are_not_info():
     assert not cmds.is_info_command("/post")
@@ -65,10 +63,10 @@ def test_non_info_commands_are_not_info():
 
 def test_render_help_lists_all_commands_with_descriptions():
     out = cmds.render_info_command("/help")
-    assert out, "/help rendert nichts"
+    assert out, "/help renders nothing"
     # Every registry command has to be listed
     for name in cmds.COMMANDS:
-        assert name in out, f"{name} fehlt in /help-Output"
+        assert name in out, f"{name} missing from the /help output"
 
 
 def test_render_model_shows_active_provider_and_model(monkeypatch):

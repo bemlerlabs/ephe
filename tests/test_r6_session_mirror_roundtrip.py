@@ -97,5 +97,5 @@ def test_given_a_fat_message_when_mirrored_then_drops_the_result(client):
     r = client.get("/api/sessions/restore?limit=10")
     session_row = next(s for s in r.json()["sessions"] if s["id"] == "r6")
     call = session_row["messages"][0]["tool_calls"][0]
-    assert call["name"] == "read_file", "der Name ist die Karte — er bleibt"
-    assert len(json.dumps(call)) < 100_000, "das rohe Ergebnis ist kein Mirror-Inhalt"
+    assert call["name"] == "read_file", "the name is the card — it stays"
+    assert len(json.dumps(call)) < 100_000, "the raw result is not mirror content"

@@ -36,7 +36,7 @@ def _isolated_config(tmp_path, monkeypatch: pytest.MonkeyPatch):
 
 def _write_setting(section: str, field: str, value) -> None:
     assert save_deep_settings({section: {field: value}}) is True
-    assert settings_path().is_file(), "settings.json landete nicht im isolierten Ordner"
+    assert settings_path().is_file(), "settings.json did not land in the isolated directory"
 
 
 class _CapturingHttp:

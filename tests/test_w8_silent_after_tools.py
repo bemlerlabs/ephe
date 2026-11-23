@@ -64,8 +64,8 @@ def test_given_engine_that_only_returns_then_the_answer_reaches_the_stream(clien
     assert response.status_code == 200, response.text
     events = _sse(response.text)
     joined = "".join(str(e.get("data", "")) for e in events if e.get("type") == "chunk")
-    assert "Drei Dateien" in joined, "der Rückgabewert versickert weiter"
-    assert not [e for e in events if e.get("type") == "error"], "ein Turn mit Inhalt ist nicht stumm"
+    assert "Drei Dateien" in joined, "the return value is still lost on the way"
+    assert not [e for e in events if e.get("type") == "error"], "a turn with content is not silent"
 
 
 def test_given_tool_run_without_final_answer_then_the_honest_frame_names_it(client, monkeypatch):
@@ -84,5 +84,5 @@ def test_given_tool_run_without_final_answer_then_the_honest_frame_names_it(clie
     )
     assert response.status_code == 200, response.text
     errors = [e for e in _sse(response.text) if e.get("type") == "error"]
-    assert errors, "ein Lauf ohne Schlusswort darf kein Erfolg sein"
+    assert errors, "a run without final words must not be a success"
     assert "Werkzeug" in errors[0]["msg"] or "Werkbank" in errors[0]["msg"]

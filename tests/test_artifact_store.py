@@ -137,8 +137,8 @@ class TestVersionsAndDelete:
         path = _file(tmp_path, "protected.pdf")
         row = artifact_store.register_artifact(path=path, kind="pdf", session_id="s1")
         removed = artifact_store.delete_artifact(row["id"], delete_file=True)
-        assert removed is False, "THEN: Datei-Löschung außerhalb der Roots wird verweigert"
-        assert artifact_store.list_artifacts() == [], "THEN: der DB-Eintrag ist trotzdem weg"
+        assert removed is False, "THEN: deleting a file outside the roots is refused"
+        assert artifact_store.list_artifacts() == [], "THEN: the DB entry is gone anyway"
 
     def test_given_corrupt_db_when_accessed_then_recovers(self, store_db):
         store_db.write_bytes(b"not a sqlite database at all")
@@ -183,7 +183,7 @@ class TestIdentityAndRetention:
 
         rows = artifact_store.list_artifacts()
         assert [r["id"] for r in rows] == ["alt"]
-        assert rows[0]["expires_at"] is None, "ein Eintrag von vor der Frist läuft nie ab"
+        assert rows[0]["expires_at"] is None, "an entry from before the deadline never expires"
         assert rows[0]["keep"] is False and rows[0]["content_hash"] == ""
 
     def test_given_file_in_workbench_when_registered_then_it_carries_a_deadline(self, bench):
@@ -234,7 +234,7 @@ class TestIdentityAndRetention:
             self._age(row["id"], 31)
         ids = [artifact_store.list_artifacts()[i]["id"] for i in range(2)]
         result = workbench.answer_expiry(ids, "delete")
-        assert sorted(result["deleted"]) == sorted(ids), "mehrere auf eine Antwort"
+        assert sorted(result["deleted"]) == sorted(ids), "several artifacts deleted for one answer"
         assert not any(p.exists() for p in paths)
         assert artifact_store.list_artifacts() == []
 
@@ -274,10 +274,10 @@ class TestIdentityAndRetention:
         fav = artifact_store.register_artifact(path=str(p), kind="pdf", session_id="s1")
         artifact_store.set_favorite(fav["id"], True)
         self._age(fav["id"], 31)
-        assert workbench.expiry_due() == [], "ein Stern ist auch ein Schutz gegen die Frist"
+        assert workbench.expiry_due() == [], "a star is also protection against the deadline"
         outside = artifact_store.register_artifact(path=_file(tmp_path, "andere.pdf"), kind="pdf", session_id="s2")
         result = workbench.answer_expiry([outside["id"]], "keep")
-        assert result["skipped"] == [outside["id"]], "ohne Frist keine Frage"
+        assert result["skipped"] == [outside["id"]], "no deadline, no question"
 
     def test_given_unknown_action_when_answered_then_value_error(self, tmp_path):
         with pytest.raises(ValueError):

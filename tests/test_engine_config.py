@@ -21,7 +21,7 @@ def _fake_input(*values: str):
     queue = list(values)
 
     def fn(prompt: str) -> str:
-        assert queue, f"input_fn wurde öfter aufgerufen als Antworten vorhanden: {prompt}"
+        assert queue, f"input_fn was called more often than answers were available: {prompt}"
         return queue.pop(0)
 
     return fn
@@ -98,7 +98,7 @@ def test_onboarding_openai_compat_preset_requires_url_and_model(tmp_path):
     assert choice.api_url == "http://10.1.2.3:8000/v1"
     import os
 
-    assert not os.environ.get("EPHE_OPENAI_COMPAT_API_KEY"), "kein Key gesetzt erwartet"
+    assert not os.environ.get("EPHE_OPENAI_COMPAT_API_KEY"), "expected no key to be set"
 
     reloaded = ec.load_engine_config(tmp_path / "engine.json")
     assert reloaded is not None
@@ -227,4 +227,4 @@ def test_saved_engine_config_never_persists_api_key(tmp_path):
     )
     raw = cfg.read_text(encoding="utf-8").lower()
     for forbidden in ("api_key", "apikey", "secret", "token", "key"):
-        assert forbidden not in raw, f"engine.json darf kein '{forbidden}'-Feld enthalten: {raw}"
+        assert forbidden not in raw, f"engine.json must not contain a '{forbidden}' field: {raw}"

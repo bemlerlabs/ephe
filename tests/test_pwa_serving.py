@@ -120,7 +120,7 @@ def test_given_dist_missing_when_api_called_then_api_unaffected(
 
 @pytest.mark.skipif(
     not (REAL_DIST / "index.html").is_file(),
-    reason="app/dist fehlt (lokal bauen: cd app && npm install && npm run build)",
+    reason="app/dist is missing (build locally: cd app && npm install && npm run build)",
 )
 def test_given_repo_dist_present_when_root_requested_then_serves_real_pwa():
     """

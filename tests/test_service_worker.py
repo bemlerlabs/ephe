@@ -24,7 +24,7 @@ SW_FILE = APP_ROOT / "public" / "service-worker.js"
 
 
 def _sw_source() -> str:
-    assert SW_FILE.is_file(), f"Service-Worker fehlt: {SW_FILE}"
+    assert SW_FILE.is_file(), f"service worker missing: {SW_FILE}"
     return SW_FILE.read_text(encoding="utf-8")
 
 
@@ -44,12 +44,10 @@ def test_sw_cache_name_uses_build_time_placeholder():
     src = _sw_source()
     import re
     m = re.search(r"CACHE_NAME\s*=\s*'([^']+)'", src)
-    assert m, "CACHE_NAME nicht gefunden"
+    assert m, "CACHE_NAME not found"
     cache_name = m.group(1)
     assert cache_name == "__EPHE_SW_VERSION__", (
-        "CACHE_NAME ist nicht mehr der Build-Platzhalter — manuelle "
-        "Cache-Bumps sind fehleranfällig; Platzhalter behalten und das "
-        "ephe-sw-version-Vite-Plugin stampen lassen."
+        "CACHE_NAME is no longer the build placeholder — manual cache bumps are error-prone; keep the placeholder and let the ephe-sw-version Vite plugin stamp it."
     )
 
 
@@ -59,17 +57,14 @@ def test_sw_version_stamping_is_wired_into_build():
     unstamped placeholder. Standalone instead of a Vite plugin because
     Vite copies public/ into dist only after closeBundle()."""
     script = APP_ROOT / "scripts" / "stamp-sw-version.mjs"
-    assert script.is_file(), f"Stamping-Skript fehlt: {script}"
+    assert script.is_file(), f"stamping script missing: {script}"
     code = script.read_text(encoding="utf-8")
     assert "__EPHE_SW_VERSION__" in code, (
-        "Skript referenziert nicht den Platzhalter — Stamping greift "
-        "nicht."
+        "the script does not reference the placeholder — stamping never takes effect."
     )
     pkg = (APP_ROOT / "package.json").read_text(encoding="utf-8")
     assert "stamp-sw-version.mjs" in pkg, (
-        "build-Script ruft das Stamping-Skript nicht auf — "
-        "dist/service-worker.js bliebe beim unge-stempelten "
-        "Platzhalter."
+        "the build script does not call the stamping script — dist/service-worker.js would stay at the un-stamped placeholder."
     )
 
 
@@ -84,37 +79,32 @@ def test_sw_update_is_user_controlled():
     m_install = re.search(
         r"addEventListener\('install'.*?\n\}\)", src, re.DOTALL
     )
-    assert m_install, "install-Listener nicht gefunden"
+    assert m_install, "install listener not found"
     install_block = m_install.group(0)
     assert "skipWaiting" not in install_block, (
-        "skipWaiting() im install-Event — neue SW-Version würde sich "
-        "automatisch aktivieren und einen laufenden Chat-Turn "
-        "mitten im Stream übernehmen können."
+        "skipWaiting() in the install event — a new SW version would activate itself and could take over a running chat turn in the middle of a stream."
     )
     # The message handler for the explicit update consent must exist
     m_msg = re.search(r"addEventListener\('message'.*?\n\}\)", src, re.DOTALL)
-    assert m_msg, "message-Listener nicht gefunden"
+    assert m_msg, "message listener not found"
     msg_block = m_msg.group(0)
     assert "'SKIP_WAITING'" in msg_block and "skipWaiting" in msg_block, (
-        "message-Handler löst bei 'SKIP_WAITING' kein skipWaiting() aus — "
-        "der Update-Toast ('Neu laden') in der App könnte das Update "
-        "nicht aktivieren."
+        "the message handler does not call skipWaiting() on 'SKIP_WAITING' — the app's update toast ('Neu laden') could not activate the update."  # language-gate: product German (the toast label app/src/locales/de.json serves for "reload")
     )
 
 
 def test_api_requests_are_network_only():
     """/api/* requests are never served from cache and never cached."""
     src = _sw_source()
-    assert "/api/" in src, "SW behandelt /api/* nicht explizit"
+    assert "/api/" in src, "the SW does not handle /api/* explicitly"
     # The /api/ branch has to be network-first and must NOT call cache.put
     # Structure check: the api block may not contain "cache.put"
     import re
     api_block = re.search(r"/api/.*?\}\)", src, re.DOTALL)
-    assert api_block, "/api/-Branch im Fetch-Handler nicht gefunden"
+    assert api_block, "the /api/ branch in the fetch handler was not found"
     block_text = api_block.group(0)
     assert "cache.put" not in block_text, (
-        "/api/* Antwort wird gecacht — Streaming/Approval-Requests dürfen "
-        "nicht aus dem Cache kommen."
+        "/api/* responses are cached — streaming/approval requests must not come out of the cache."
     )
 
 
@@ -122,18 +112,16 @@ def test_sse_streaming_is_network_only():
     """text/event-stream responses are never cached (SSE would break otherwise)."""
     src = _sw_source()
     assert "text/event-stream" in src, (
-        "SW erkennt text/event-stream nicht — SSE-Streaming würde "
-        "in den statischen Cache gezogen."
+        "the SW does not recognise text/event-stream — SSE streaming would be pulled into the static cache."
     )
     # The SSE check must sit around cache.put as a NEGATIVE CONDITION
     # (no caching OF event-stream responses)
     import re
     m = re.search(r"!ct\.includes\('text/event-stream'\)", src)
-    assert m, "SSE-Prüfung sitzt nicht an der cache.put-Bedingung"
+    assert m, "the SSE check does not sit at the cache.put condition"
     # and /api/* (where the POST streams come from) is network-only
     assert "request.method !== 'GET'" in src, (
-        "Non-GET Requests (POST /api/chat/stream) werden nicht als "
-        "network-only behandelt."
+        "non-GET requests (POST /api/chat/stream) are not treated as network-only."
     )
 
 
@@ -143,7 +131,7 @@ def test_navigation_is_network_first():
     forever (root cause of the C-smoke ws:// finding)."""
     src = _sw_source()
     assert "text/html" in src or "navigation" in src.lower() or "navigate" in src, (
-        "SW behandelt Navigations-Requests nicht explizit"
+        "the SW does not handle navigation requests explicitly"
     )
     # The navigation branch must exist and be network-first inside it:
     # fetch(request) before caches.match() within the block
@@ -151,12 +139,11 @@ def test_navigation_is_network_first():
     m_nav = re.search(
         r"if\s*\(\s*isNavigation\s*\)\s*\{(.*?)\n  \}", src, re.DOTALL
     )
-    assert m_nav, "Navigations-Block (isNavigation) nicht gefunden"
+    assert m_nav, "the navigation block (isNavigation) was not found"
     block = m_nav.group(1)
     assert "fetch(request)" in block and "caches.match" in block, (
-        "Navigations-Block hat weder Netzwerk- noch Cache-Pfad"
+        "the navigation block has neither a network nor a cache path"
     )
     assert block.index("fetch(request)") < block.index("caches.match"), (
-        "Cache wird vor dem Netzwerk geprüft (cache-first) — Navigation "
-        "würde den alten gecachten index.html liefern."
+        "the cache is checked before the network (cache-first) — navigation would serve the old cached index.html."
     )

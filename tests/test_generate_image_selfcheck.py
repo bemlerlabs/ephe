@@ -48,7 +48,7 @@ def main():
     assert "generate_image" not in TOOL_MAP
     assert any(
         s["function"]["name"] == "generate_image" for s in get_tool_schemas()
-    ), "Schema fehlt"
+    ), "schema missing"
     print("OK import+registry+schema")
 
     # B) no endpoint -> an honest error message, NO invented image
@@ -82,9 +82,9 @@ def main():
     srv.shutdown()
     assert r.startswith("PNG_FILE:"), f"roundtrip wrong: {r}"
     path = r.split("PNG_FILE:", 1)[1].strip()
-    assert os.path.exists(path), f"datei fehlt: {path}"
+    assert os.path.exists(path), f"file missing: {path}"
     head = open(path, "rb").read(8)
-    assert head == b"\x89PNG\r\n\x1a\n", f"kein echtes PNG: {head!r}"
+    assert head == b"\x89PNG\r\n\x1a\n", f"not a real PNG: {head!r}"
     print("OK roundtrip ->", path, os.path.getsize(path), "bytes, PNG-Magic korrekt")
     os.remove(path)
     print("\nALLE CHECKS GRUEN")

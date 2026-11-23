@@ -153,5 +153,5 @@ async def test_given_specialist_with_tools_when_called_then_only_the_core_landsc
     passed = mock_client.chat.call_args.kwargs["tools"]
     names = {t["function"]["name"] for t in passed}
     assert names == set(CORE_TOOLS) & {t["function"]["name"] for t in get_tool_schemas()}
-    assert len(passed) < len(get_tool_schemas()), "der Specialist sieht die volle Landschaft"
+    assert len(passed) < len(get_tool_schemas()), "the specialist sees the full tool landscape"
     assert {"tool_search", "tool_describe", "tool_call"} <= names

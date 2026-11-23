@@ -101,4 +101,4 @@ def test_no_cyrillic_homoglyphs_anywhere_in_the_sources():
 def test_core_server_cli_and_docs_are_latin_only():
     rels = _latin_only_rels()
     bad = [hit for rel in rels for hit in _scan(rel, latin_only=True)]
-    assert not bad, "Nicht-lateinische Zeichen in Prosa/Code (Zerstörungssignatur):\n" + "\n".join(bad)
+    assert not bad, "non-latin characters in prose/code (a destruction signature):\n" + "\n".join(bad)

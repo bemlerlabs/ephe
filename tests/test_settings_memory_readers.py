@@ -78,7 +78,7 @@ def test_a_disabled_switch_stores_nothing(memory_home) -> None:
     auto_memory._memory_factory = lambda: stub
     ok = auto_memory.maybe_store_turn(LONG_QUESTION, LONG_ANSWER)
     assert ok["stored"] is True
-    assert stub.stored, "der Eintrag liegt wirklich beim Speicher, nicht nur im Return"
+    assert stub.stored, "the entry really sits with the store, not only in the return value"
 
 
 def test_the_environment_beats_the_setting(memory_home, monkeypatch) -> None:
@@ -105,7 +105,7 @@ def test_answer_length_floor_reads_the_setting(memory_home) -> None:
     short = "kurz, aber schon gemeint"
     assert 20 <= len(short) < 120
     assert auto_memory.maybe_store_turn(LONG_QUESTION, short)["stored"] is True
-    assert len(LONG_ANSWER) >= 120, "die Probe muss die Default-Hoeshe ueberqueren"
+    assert len(LONG_ANSWER) >= 120, "the probe must cross the default height"
 
 
 def test_duplicate_threshold_reads_the_setting(memory_home) -> None:
@@ -131,10 +131,10 @@ def test_injection_observes_both_settings(memory_home) -> None:
     stub = _StubMemory(list(hits))
     _set(**{"memory.inject_max_entries": 3, "memory.inject_min_score": 0.5})
     block = Memory.get_context_injection(stub, "Fragen")
-    assert stub.calls == [3], "der Suchlauf bekommt die gesetzte Grenze"
+    assert stub.calls == [3], "the scan gets the limit that was set"
     assert "Fakt 0" in block and "Fakt 1" in block
     # 0.9, 0.7, 0.5 pass the threshold of 0.5; 0.3 and 0.1 fall away
-    assert "Fakt 3" not in block, "unter der Aehnlichkeitsschwelle bleibt er draussen"
+    assert "Fakt 3" not in block, "below the similarity threshold it stays out"
 
     stub_low = _StubMemory(list(hits))
     _set(**{"memory.inject_max_entries": 5, "memory.inject_min_score": 0.0})

@@ -63,7 +63,7 @@ def test_sweep_candidates_carry_provider_and_hint() -> None:
         c for c in settings_route._setup_candidates()
         if (c.get("url") or "").startswith("http://127.0.0.1:")
     ]
-    assert sweep, "kein Loopback-Kandidat"
+    assert sweep, "no loopback candidate"
     table = {code for _port, code, hint in settings_route._ENGINE_PORTS if hint}
     for c in sweep:
         assert c["provider"] == "openai_compatible", c

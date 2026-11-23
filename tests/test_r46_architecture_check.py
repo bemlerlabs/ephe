@@ -77,7 +77,7 @@ def _expected_big_files(limit: int = 400) -> list[str]:
 
 
 def test_checker_file_exists():
-    assert CHECKER.is_file(), "scripts/architecture_check.mjs fehlt"
+    assert CHECKER.is_file(), "scripts/architecture_check.mjs is missing"
 
 
 def test_check_mode_exits_zero_without_baseline(tmp_path: Path) -> None:
@@ -147,7 +147,7 @@ def test_report_json_contract():
     assert r.returncode == 0, r.stderr
     data = json.loads(r.stdout)
     for key in ("policyVersion", "managedModules", "findings", "counts", "baselinePresent"):
-        assert key in data, f"report-Feld '{key}' fehlt"
+        assert key in data, f"report field '{key}' missing"
     assert data["policyVersion"] == 1
     assert isinstance(data["managedModules"], int)
     assert isinstance(data["findings"], list)
@@ -168,9 +168,9 @@ def test_max_file_lines_parity_with_independent_count():
         )
         expected = _expected_big_files()
         if got == expected:
-            assert len(expected) >= 1, "Referenzzahlung leer — Wurzeln falsch?"
+            assert len(expected) >= 1, "the reference count is empty — wrong roots?"
             return
-    assert got == expected, f"maxFileLines-Paritaet: got={got} expected={expected}"
+    assert got == expected, f"maxFileLines parity: got={got} expected={expected}"
 
 
 def test_module_filter():

@@ -31,19 +31,19 @@ class TestHelpSkillFilePerspective:
         skill_path = Path(__file__).parent.parent / "skills" / "help" / "SKILL.md"
 
         # Perspective 1: the file exists
-        assert skill_path.exists(), "THEN: skills/help/SKILL.md muss existieren (R16 Pack-Format)"
+        assert skill_path.exists(), "THEN: skills/help/SKILL.md must exist (R16 pack format)"
 
         content = skill_path.read_text()
 
         # Perspective 2: the trigger is /help
         content_lower = content.lower()
         assert "trigger" in content_lower and "/help" in content_lower, (
-            "THEN: Trigger muss '/help' sein"
+            "THEN: the trigger must be '/help'"
         )
 
         # Perspective 3: the system prompt is not empty
-        assert "system prompt" in content_lower, "THEN: system_prompt Feld muss vorhanden sein"
-        assert len(content) > 200, "THEN: SKILL.md muss substanziellen Inhalt haben"
+        assert "system prompt" in content_lower, "THEN: the system_prompt field must be present"
+        assert len(content) > 200, "THEN: SKILL.md must have substantial content"
 
 
 # Perspective 2: skill is registered and loadable via API
@@ -62,18 +62,18 @@ class TestHelpSkillRegistrationPerspective:
         skills = SkillLoader().load_all()
 
         # Perspective 1: the skills list is not empty
-        assert len(skills) > 0, "THEN: Skills-Liste muss mindestens einen Eintrag haben"
+        assert len(skills) > 0, "THEN: the skills list must have at least one entry"
 
         # Perspective 2: /help is among them
         triggers = [s.trigger for s in skills]
         assert "/help" in triggers, (
-            f"THEN: /help Skill muss registriert sein, found: {triggers}"
+            f"THEN: the /help skill must be registered, found: {triggers}"
         )
 
         # Perspective 3: the /help skill has a valid system prompt
         help_skill = next(s for s in skills if s.trigger == "/help")
         assert len(help_skill.system_prompt.strip()) > 50, (
-            "THEN: /help Skill system_prompt darf nicht leer sein"
+            "THEN: the /help skill's system_prompt must not be empty"
         )
 
 

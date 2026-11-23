@@ -297,7 +297,7 @@ class TestConfigureCommand:
         cfg = tmp_path / "engine.json"
 
         assert ephe_cli.cmd_configure(args, config_path=cfg) == 0
-        assert cfg.exists(), "configure muss die Wahl persistieren"
+        assert cfg.exists(), "configure must persist the choice"
         saved = load_engine_config(cfg)
         assert saved is not None
         assert saved.provider == "openai_compatible"
@@ -313,7 +313,7 @@ class TestConfigureCommand:
         monkeypatch.setattr(
             ephe_cli,
             "_run_engine_onboarding",
-            lambda input_fn=None, config_path=None: pytest.fail("kein Onboarding ohne --force"),
+            lambda input_fn=None, config_path=None: pytest.fail("no onboarding without --force"),
         )
 
         assert ephe_cli.cmd_configure(argparse.Namespace(force=False, json=False), config_path=cfg) == 0
@@ -396,7 +396,7 @@ class TestHeadlessAgentFailClosed:
             ephe_cli.cmd_code(argparse.Namespace(task=["mach", "die", "tests", "gruen"], model=None))
 
         assert exc.value.code == 1
-        assert calls == [], "ein Agent gegen eine nicht gewählte Engine ist kein Agent"
+        assert calls == [], "an agent against an engine that was not chosen is no agent"
         assert "ephe configure" in capsys.readouterr().err
 
     def test_ephe_goal_without_a_choice_starts_no_runner(self, monkeypatch):
@@ -409,7 +409,7 @@ class TestHeadlessAgentFailClosed:
                 started.append(kw)
 
             async def run(self, goal):  # pragma: no cover — the abort happens before this line runs
-                raise AssertionError("der Runner darf ohne Engine nicht laufen")
+                raise AssertionError("the runner must not run without an engine")
 
         monkeypatch.setattr(ephe_cli, "GoalRunner", FakeRunner)
         with pytest.raises(SystemExit) as exc:
@@ -430,7 +430,7 @@ class TestHeadlessAgentFailClosed:
                 host="127.0.0.1", port=8766, lan=False, token="", model=None))
 
         assert exc.value.code == 1
-        assert seen == [], "ein Server ohne Engine ist eine Zusage, die niemand haelt"
+        assert seen == [], "a server without an engine is a promise nobody keeps"
 
     def test_ephe_code_runs_on_the_chosen_engine_url(self, tmp_path, monkeypatch):
         import ephe_cli
@@ -465,4 +465,4 @@ class TestHeadlessAgentFailClosed:
 
         for argv in (["code", "task"], ["goal", "ziel"], ["serve"]):
             ns = ephe_cli.build_parser().parse_args(argv)
-            assert ns.model is None, f"{argv[0]}--model ist vorbelegt — Vorbelegung ist keine Wahl"
+            assert ns.model is None, f"{argv[0]}--model comes pre-filled — a prefill is not a choice"

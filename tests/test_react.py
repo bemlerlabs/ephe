@@ -327,7 +327,7 @@ class TestLiveStreaming:
         first_chunk = event_log.index("on_chunk:Antwort ")
         reflect_at = event_log.index("reflect")
         assert first_chunk < reflect_at, (
-            f"Antwort muss LIVE vor reflect() streamen: {event_log}"
+            f"the answer must stream LIVE before reflect(): {event_log}"
         )
 
     @pytest.mark.asyncio
@@ -365,7 +365,7 @@ class TestLiveStreaming:
                 )
 
         assert revision_calls == ["Zu kurz"], f"on_revision-Reason: {revision_calls}"
-        assert "iter2:Volle Antwort" in chunk_calls, "Revision muss LIVE streamen"
+        assert "iter2:Volle Antwort" in chunk_calls, "the revision must stream LIVE"
         assert result == "Volle Antwort"
 
     @pytest.mark.asyncio
@@ -423,4 +423,4 @@ class TestLiveStreaming:
                     on_revision=lambda r: log.append("on_revision"),
                 )
 
-        assert log == ["chunk1", "revision", "on_revision", "chunk2"], f"Reihenfolge: {log}"
+        assert log == ["chunk1", "revision", "on_revision", "chunk2"], f"order: {log}"

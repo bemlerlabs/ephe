@@ -32,7 +32,7 @@ def _load() -> dict:
 def test_policy_file_exists_and_parses():
     """GIVEN the repo root WHEN architecture-policy.yaml is loaded
     THEN it is a mapping with version == 1."""
-    assert POLICY.is_file(), "architecture-policy.yaml fehlt am Repo-Root"  # language-gate: ignore — asserted failure message literal, not prose
+    assert POLICY.is_file(), "architecture-policy.yaml is missing at the repo root"  # language-gate: ignore — asserted failure message literal, not prose
     data = _load()
     assert isinstance(data, dict)
     assert data["version"] == 1
@@ -45,7 +45,7 @@ def test_exactly_four_modules_with_required_fields():
     assert [m["id"] for m in mods] == EXPECTED_IDS
     for mod in mods:
         for key in REQUIRED_FIELDS:
-            assert key in mod, f"{mod.get('id')}: Feld '{key}' fehlt"  # language-gate: ignore — asserted failure message literal, not prose
+            assert key in mod, f"{mod.get('id')}: field '{key}' missing"  # language-gate: ignore — asserted failure message literal, not prose
 
 
 def test_all_modules_unmanaged_initially():

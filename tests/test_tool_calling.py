@@ -225,7 +225,7 @@ class TestChatWithTools:
         assert tool_starts[0][2].startswith("c0-")  # W15-P3/A3: Ephe's own call identifier
         assert len(tool_dones) == 1
         assert tool_dones[0][0] == "get_datetime"
-        assert tool_dones[0][2] == tool_starts[0][2], "Start und Done zeigen auf denselben Ruf"
+        assert tool_dones[0][2] == tool_starts[0][2], "start and done point at the same call"
 
     @pytest.mark.asyncio
     async def test_stream_false_used_for_tool_detection(self):
@@ -251,8 +251,7 @@ class TestChatWithTools:
         # Tool detection call must use stream=False
         detection_call_kwargs = client.chat.call_args_list[0].kwargs
         assert detection_call_kwargs.get("stream") is False, (
-            "KRITISCH: Tool-Detection muss stream=False nutzen "
-            "(bekanntes Ollama-Limit: Tool-Calls brechen mit stream=True)"
+            "CRITICAL: tool detection must use stream=False " "(a known Ollama limit: tool calls break with stream=True)"
         )
 
     @pytest.mark.asyncio

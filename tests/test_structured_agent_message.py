@@ -57,10 +57,10 @@ def test_react_loop_passes_on_thinking_and_on_phase(monkeypatch):
 
     asyncio.run(run())
 
-    assert captured, "chat_with_tools wurde nicht aufgerufen"
+    assert captured, "chat_with_tools was not called"
     for entry in captured:
-        assert entry["on_thinking"] is not None, "on_thinking wird NICHT durchgereicht"
-        assert entry["on_phase"] is not None, "on_phase wird NICHT durchgereicht"
+        assert entry["on_thinking"] is not None, "on_thinking is NOT passed through"
+        assert entry["on_phase"] is not None, "on_phase is NOT passed through"
 
 
 def test_react_loop_emits_thinking_and_phase_to_callbacks(monkeypatch):
@@ -146,9 +146,9 @@ def test_tui_agent_message_card_structure(tmp_path, monkeypatch):
             # The thinking collapsible exists and is collapsed after finalize.
             # AI-client labels: live "Thinking", done "Thought for Ns"/"Thought briefly".
             thinking = card.query_one(".thinking-block", _Collapsible)
-            assert thinking.collapsed is True, "Thinking-Block soll nach Finalize collapsed sein"
-            assert thinking.title.startswith("Thought"), "Thinking-Block soll KI-Client-Style 'Thought…' zeigen"
-            assert thinking.visible is True, "Thinking-Block soll sichtbar sein (Tokens geflossen)"
+            assert thinking.collapsed is True, "the thinking block should be collapsed after finalize"
+            assert thinking.title.startswith("Thought"), "the thinking block should show the AI-client style 'Thought…'"
+            assert thinking.visible is True, "the thinking block should be visible (tokens flowed)"
 
             # Tool block: verb phrasing (AI client) — read_file → category 'explore'
             # → live 'Exploring…', done 'Explored x.txt'. No ▶/✅.
@@ -156,8 +156,8 @@ def test_tui_agent_message_card_structure(tmp_path, monkeypatch):
 
             tool_blocks = list(card.query(_ToolCallBlock))
             assert len(tool_blocks) == 1, "genau ein Tool-Call-Block erwartet"
-            assert not tool_blocks[0].has_class("tool-pending"), "Tool-Block soll fertig sein (pending-Klasse weg)"
-            assert "Explored" in tool_blocks[0].title, f"Tool-Block soll 'Explored' zeigen, nicht {tool_blocks[0].title!r}"
+            assert not tool_blocks[0].has_class("tool-pending"), "the tool block should be finished (pending class gone)"
+            assert "Explored" in tool_blocks[0].title, f"the tool block should show 'Explored', not {tool_blocks[0].title!r}"
 
             # The markdown answer is visible (not the live block)
             assert card.query_one("#answer-md").visible is True
@@ -195,9 +195,9 @@ def test_tui_markdown_rendered_not_literal(tmp_path, monkeypatch):
 
             card = app.query_one(".agent-message-card")
             live = card.query_one("#answer-live")
-            assert live.visible is False, "Live-Block muss nach Finalize unsichtbar sein"
+            assert live.visible is False, "the live block must be invisible after finalize"
             answer_md = card.query_one("#answer-md")
-            assert answer_md.visible is True, "Markdown-Antwort muss sichtbar sein"
+            assert answer_md.visible is True, "the markdown answer must be visible"
             # Markdown renderable present (no literal '**' string in the live block)
             content = getattr(live, "_content", None) or ""
             assert "**fett**" not in content, "Roh-Markup im Live-Block"
@@ -232,18 +232,18 @@ def test_tui_reset_answer_clears_acc_and_streams_new(tmp_path, monkeypatch):
             chat.post_message(ChatView.AppendChunk("Erste Antwort "))
             await pilot.pause()
             card = app.query_one(".agent-message-card")
-            assert card._answer_acc == "Erste Antwort ", "1. Antwort ist im Acc"
+            assert card._answer_acc == "Erste Antwort ", "the first answer is in the accumulator"
 
             # Revision: reset + iteration 2 streams the new answer
             chat.post_message(ChatView.ResetAnswer())
             await pilot.pause()
-            assert card._answer_acc == "", "Accumulator muss nach Reset leer sein"
-            assert card._streaming_answer is False, "Streaming-Flag muss zurückgesetzt sein"
+            assert card._answer_acc == "", "the accumulator must be empty after reset"
+            assert card._streaming_answer is False, "the streaming flag must be reset"
 
             chat.post_message(ChatView.AppendChunk("Zweite Antwort"))
             await pilot.pause()
             assert card._answer_acc == "Zweite Antwort", (
-                f"2. Antwort muss NEU aufbauen, statt zu duplizieren: {card._answer_acc!r}"
+                f"the second answer must rebuild NEW instead of duplicating: {card._answer_acc!r}"
             )
 
             chat.post_message(ChatView.FinalizeAssistantMessage())
@@ -326,14 +326,14 @@ def test_onboarding_openai_compat_preset_uses_live_model(tmp_path, monkeypatch, 
         choice = ephe_cli._run_engine_onboarding(input_fn=lambda _p: next(answers), config_path=str(tmp_path / "engine.json"))
 
         assert choice.model == "qwen3.8-27b", (
-            f"Live-Modell erwartet, bekam {choice.model!r} (Deployment-Drift!)"
+            f"expected the live model, got {choice.model!r} (deployment drift!)"
         )
         assert choice.api_url == f"http://127.0.0.1:{port}/v1"
         # The live model list was shown
         out = capsys.readouterr().out
-        assert "qwen3.8-27b" in out, "Live-Modell-Liste fehlt im Output"
+        assert "qwen3.8-27b" in out, "the live model list is missing from the output"
         # W18/A3: the onboarding preset exists and is named
-        assert "DGX Spark / vLLM" in out, "Onboarding-Preset fehlt im Menü"
+        assert "DGX Spark / vLLM" in out, "the onboarding preset is missing from the menu"
         # No hardcoded drift default left in the code
         assert "deepseek-v4-flash" not in out
     finally:

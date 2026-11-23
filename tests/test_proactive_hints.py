@@ -61,17 +61,16 @@ class TestProactiveHintSystemPromptPerspective:
             "you already", "remember", "context"
         ])
         assert has_proactive, (
-            "THEN: Prompt muss proaktive Hinweis-Regel enthalten, got:\n"
-            + EPHE_SYSTEM_PROMPT[:300]
+            "THEN: the prompt must contain the proactive hint rule, got:\n" + EPHE_SYSTEM_PROMPT[:300]
         )
 
         # Angle 2: the rule names what it targets
         assert "memory" in EPHE_SYSTEM_PROMPT.lower() or "context" in EPHE_SYSTEM_PROMPT.lower(), (
-            "THEN: Prompt soll Memory-Kontext explizit ansprechen"
+            "THEN: the prompt should address the memory context explicitly"
         )
 
         # Angle 3: the rule sits in its own section
-        assert "\n" in EPHE_SYSTEM_PROMPT, "THEN: Prompt muss mehrzeilig strukturiert sein"
+        assert "\n" in EPHE_SYSTEM_PROMPT, "THEN: the prompt must be structured over several lines"
 
 
 # Angle 2: memory context injection has a hint intro
@@ -92,16 +91,16 @@ class TestProactiveHintMemoryInjectionPerspective:
 
         # Angle 1: the context block is not empty for a relevant query
         ctx = mem.get_context_injection("Ephe KI-Assistent")
-        assert len(ctx.strip()) > 0, "THEN: Kontext-Block muss Inhalt haben"
+        assert len(ctx.strip()) > 0, "THEN: the context block must have content"
 
         # Angle 2: the context contains the stored text
         assert "Ephe" in ctx or "KI" in ctx or "Assistent" in ctx, (
-            f"THEN: Kontext muss relevante Daten enthalten, got: {ctx[:200]}"
+            f"THEN: the context must contain relevant data, got: {ctx[:200]}"
         )
 
         # Angle 3: the context has a structured intro
         first_line = ctx.strip().split("\n")[0]
-        assert len(first_line) > 5, "THEN: Erster Block muss Einleitungs-Header haben"
+        assert len(first_line) > 5, "THEN: the first block must have an introductory header"
 
     def test_given_empty_memory_when_context_injected_then_empty_string(self, tmp_path, monkeypatch):
         """
@@ -119,11 +118,11 @@ class TestProactiveHintMemoryInjectionPerspective:
 
         # Angle 1: empty when nothing was stored
         assert ctx == "", (
-            f"THEN: Leerer Memory muss leeren String zurückgeben, got: '{ctx[:100]}'"
+            f"THEN: empty memory must return an empty string, got: '{ctx[:100]}'"
         )
 
         # Angle 2: no whitespace-only output
-        assert ctx.strip() == "", "THEN: Kein Whitespace-only Output"
+        assert ctx.strip() == "", "THEN: no whitespace-only output"
 
         # Angle 3: no crash on an empty store
         # (the test itself is the proof — no exception)
@@ -151,7 +150,7 @@ class TestProactiveHintContextPrefixPerspective:
         ctx = mem.get_context_injection("Lieblingsfarbe des Nutzers")
 
         # Angle 1: present and structured
-        assert len(ctx) > 0, "THEN: Kontext muss Inhalt haben"
+        assert len(ctx) > 0, "THEN: the context must have content"
 
         # Angle 2: contains marker words that signal prior knowledge
         ctx_lower = ctx.lower()
@@ -160,5 +159,5 @@ class TestProactiveHintContextPrefixPerspective:
             "erinnerung", "kontext", "bekannt", "früher", "already"
         ])
         assert has_prior_signal, (
-            f"THEN: Kontext-Block soll Prior Knowledge signalisieren, got:\n{ctx[:300]}"
+            f"THEN: the context block should signal Prior Knowledge, got:\n{ctx[:300]}"
         )

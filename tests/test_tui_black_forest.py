@@ -279,7 +279,7 @@ def test_statusbar_shows_provider_label():
 
     root = Path(__file__).parent.parent
     widgets_src = (root / "ui" / "widgets.py").read_text(encoding="utf-8")
-    assert 'id="status-provider"' in widgets_src, "Provider-Label im StatusBar fehlt"
+    assert 'id="status-provider"' in widgets_src, "the provider label is missing from the status bar"
     app_src = (root / "ui" / "app.py").read_text(encoding="utf-8")
     assert "def _provider_label" in app_src
     assert "DGX · vLLM" not in app_src, "hard-coded vendor label"

@@ -118,7 +118,7 @@ class TestThreeLeges:
         p = KeptaProvider(db_path=str(tmp_path / "lex.db"), scope="s", embedder=None)
         p.store("Der Beamer im Besprechungszimmer hat ein defektes HDMI-Kabel")
         hits = p.search("HDMI-Kabel defekt")
-        assert hits, "FTS5-Leg muss auch ohne Vektor-Leg treffen"
+        assert hits, "the FTS5 leg must hit even without the vector leg"
         assert p.stats()["vector_leg"] is False
         p.close()
 
@@ -140,7 +140,7 @@ class TestThreeLeges:
     def test_the_entity_leg_serves_a_pure_name_query(self, kp):
         kp.store("Er beriet den Hof drei Jahr(zehnt) lang.", entities=["Gandalf"])
         hits = kp.search("gandalf")
-        assert hits, "Entity-Leg muss einen reinen Namens-Query bedienen"
+        assert hits, "the entity leg must serve a pure name query"
         assert hits[0]["text"].startswith("Er beriet")
 
     def test_two_leg_agreements_beat_one(self, kp):
@@ -158,7 +158,7 @@ class TestThreeLeges:
         scores = [h["score"] for h in hits]
         assert all(0.0 < s <= 1.0 for s in scores)
         assert scores == sorted(scores, reverse=True)
-        assert max(scores) >= 0.3, "Top-Treffer muss den Injection-Threshold überleben"
+        assert max(scores) >= 0.3, "the top hit must survive the injection threshold"
 
 
 class TestHonestVectorCoverage:
@@ -248,7 +248,7 @@ class TestSupersedeAndSoftDelete:
         assert b in ids
         row = kp._db.execute("SELECT superseded_by FROM memories WHERE id = ?", (a,)).fetchone()
         assert row["superseded_by"] == b
-        assert ids.index(b) <= ids.index(a), "ersetzt darf nicht über dem Ersatz liegen"
+        assert ids.index(b) <= ids.index(a), "the replaced must not rank above the replacement"
 
     def test_superseding_an_unknown_id_raises_key_error(self, kp):
         with pytest.raises(KeyError):
@@ -264,7 +264,7 @@ class TestSupersedeAndSoftDelete:
         row = kp._db.execute(
             "SELECT deleted_at FROM memories WHERE id = ?", (doc_id,)
         ).fetchone()
-        assert row and row["deleted_at"], "soft delete muss auditierbar bleiben"
+        assert row and row["deleted_at"], "soft delete must stay auditable"
         with pytest.raises(KeyError):
             kp.delete(doc_id)
 
@@ -286,7 +286,7 @@ class TestSupersedeAndSoftDelete:
     def test_a_near_duplicate_merges_instead_of_polluting(self, kp):
         a = kp.store("Der Nutzer mag Schwarzwaldwanderungen")
         b = kp.store("Der Nutzer mag Schwarzwaldwanderungen")
-        assert b == a, "der Überlebende ist die ID des bestehenden Eintrags"
+        assert b == a, "the survivor is the id of the existing entry"
         assert kp.count() == 1
         row = next(e for e in kp.list_all() if e["id"] == a)
         assert row["metadata"]["hits"] >= 2

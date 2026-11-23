@@ -140,8 +140,8 @@ BENIGN_PAYLOADS = [
 @pytest.mark.parametrize("payload", INJECTION_PAYLOADS)
 def test_injection_guard_flags_known_attack_patterns(payload):
     guarded = guard_channel_message(payload)
-    assert guarded.suspicious is True, f"nicht geflaggt: {payload!r}"
-    assert guarded.flags, f"keine Flags: {payload!r}"
+    assert guarded.suspicious is True, f"not flagged: {payload!r}"
+    assert guarded.flags, f"no flags: {payload!r}"
 
 
 @pytest.mark.parametrize("payload", BENIGN_PAYLOADS)
@@ -232,7 +232,7 @@ def test_e2e_injected_create_svg_blocked_without_approval(tmp_path, monkeypatch,
     ))
     assert "Denied" in result
     assert not (tmp_path / "Downloads" / "injected.svg").exists()
-    assert not (werkbank / "injected.svg").exists(), "seit A1 der eigentliche Geburtsort"
+    assert not (werkbank / "injected.svg").exists(), "since A1 the real place of birth"
 
 
 def test_e2e_safe_tools_still_run_in_channel_context(tmp_path, monkeypatch):

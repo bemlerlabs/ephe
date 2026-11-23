@@ -99,7 +99,7 @@ async def _ask(provider) -> dict:
         base_url="http://127.0.0.1:8000/v1", api_key="test"
     )
     await client.chat(model="qwen-test", messages=[{"role": "user", "content": "hi"}])
-    assert _CapturingClient.last_payload is not None, "kein Payload abgefangen"
+    assert _CapturingClient.last_payload is not None, "no payload captured"
     return _CapturingClient.last_payload
 
 
@@ -112,8 +112,8 @@ async def test_defaults_keep_todays_behaviour(monkeypatch, tmp_path):
     """
     payload = await _ask(_provider(monkeypatch, tmp_path))
     assert payload["temperature"] == 0.0
-    assert "top_p" not in payload, "top_p wurde ohne Einstellung gesendet"
-    assert "max_tokens" not in payload, "max_tokens wurde ohne Einstellung gesendet"
+    assert "top_p" not in payload, "top_p was sent without any setting for it"
+    assert "max_tokens" not in payload, "max_tokens was sent without any setting for it"
 
 
 @pytest.mark.asyncio

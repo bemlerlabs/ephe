@@ -172,7 +172,7 @@ class TestSearchCarriesId:
         hits = mem.search("Herd abschalten")
 
         assert len(hits) >= 1
-        assert hits[0]["id"], "Suchtreffer muss eine echte Document-ID tragen"
+        assert hits[0]["id"], "a search hit must carry a real document id"
         listed = mem.list_all()
         assert hits[0]["id"] in {e["id"] for e in listed}
 

@@ -39,7 +39,7 @@ OUTER_ARGS = (
 def test_truncation_never_ends_on_a_dangling_separator():
     report_line = args_summary({"arguments": OUTER_ARGS, "name": "create_pdf"})
     assert '", ;' not in report_line and ", ;" not in report_line
-    assert "…" in report_line, "die Kürzung muss zu sehen sein"
+    assert "…" in report_line, "the truncation has to be visible"
     assert "name=create_pdf" in report_line
 
 

@@ -165,10 +165,7 @@ def _venv_python() -> tuple[int, int]:
     # (2) pyvenv.cfg — has to agree (STALE cfg = the root-cause state -> FAIL)
     cfg = _venv_cfg_python()
     assert binary == cfg, (
-        f".venv inkonsistent: reale Python-Binary ist {binary[0]}.{binary[1]} "
-        f"aber pyvenv.cfg sagt {cfg[0]}.{cfg[1]} (STALE-Artefakt — venv wurde "
-        f"rebuildet/ersetzt, ohne pyvenv.cfg zu regenerieren). venv "
-        f"konsistent neu bauen: python3.{binary[1]} -m venv .venv"
+        f".venv inconsistent: the real Python binary is {binary[0]}.{binary[1]} but pyvenv.cfg says {cfg[0]}.{cfg[1]} (a STALE artifact — the venv was rebuilt/replaced without regenerating pyvenv.cfg). Rebuild the venv consistently: python3.{binary[1]} -m venv .venv"
     )
     return binary
 
@@ -222,8 +219,7 @@ def test_ci_matrix_lower_bound_matches_requires_python() -> None:
     matrix = _ci_python_matrix()
     req = _requires_python_min()
     assert min(matrix) >= req, (
-        f"CI-Matrix-Minimum {min(matrix)} liegt unter requires-python "
-        f">= {req[0]}.{req[1]} — CI testet eine nicht unterstützte Python"
+        f"the CI matrix minimum {min(matrix)} is below requires-python " f">= {req[0]}.{req[1]} — CI tests an unsupported Python"
     )
 
 
@@ -237,16 +233,13 @@ def test_local_venv_python_in_ci_matrix() -> None:
     matrix = _ci_python_matrix()
     supported = _supported_python_versions()
     assert venv in supported, (
-        f"lokale venv Python {venv[0]}.{venv[1]} nicht in den "
-        f"unterstützten Versionen {supported}"
+        f"local venv Python {venv[0]}.{venv[1]} is not among the " f"supported versions {supported}"
     )
     assert venv in matrix, (
-        f"lokale venv Python {venv[0]}.{venv[1]} fehlt in CI-Matrix {matrix} "
-        f"— CI testet dieselbe Python nicht (Parity verletzt)"
+        f"local venv Python {venv[0]}.{venv[1]} is missing from the CI matrix {matrix} " f"— CI does not test the same Python (parity violated)"
     )
     assert set(matrix) <= set(supported), (
-        f"CI-Matrix {matrix} enthält Versionen außerhalb des "
-        f"unterstützten Sets {supported}"
+        f"the CI matrix {matrix} contains versions outside the " f"supported set {supported}"
     )
 
 
@@ -254,19 +247,18 @@ def test_local_venv_python_in_ci_matrix() -> None:
 
 def test_llms_txt_exists_and_valid() -> None:
     f = PUBLIC_DIR / "llms.txt"
-    assert f.is_file(), "app/public/llms.txt fehlt (Lighthouse llms-txt-Audit)"
+    assert f.is_file(), "app/public/llms.txt is missing (Lighthouse llms-txt audit)"
     text = f.read_text(encoding="utf-8")
     lines = [ln for ln in text.splitlines() if ln.strip()]
-    assert lines, "llms.txt ist leer"
-    assert lines[0].startswith("#"), "llms.txt muss mit H1-Header beginnen"
+    assert lines, "llms.txt is empty"
+    assert lines[0].startswith("#"), "llms.txt must begin with an H1 header"
     assert any("ephe" in ln.lower() for ln in lines), (
-        "llms.txt identifiziert das Projekt nicht (Ephe)"
+        "llms.txt does not identify the project (Ephe)"
     )
-    assert len(text) >= 200, "llms.txt zu dünn (<200 chars) — kein nützlicher Kontext"
+    assert len(text) >= 200, "llms.txt too thin (<200 chars) — no useful context"
     # Lighthouse llms-txt audit: needs at least one Markdown link
     assert re.search(r"\[[^\]]+\]\(https?://[^)\s]+[)\s]", text), (
-        "llms.txt muss mindestens einen Markdown-Link [text](https://...) "
-        "enthalten (Lighthouse: 'File does not appear to contain any links.')"
+        "llms.txt must contain at least one markdown link [text](https://...) " "(Lighthouse: 'File does not appear to contain any links.')"
     )
 
 
@@ -274,18 +266,18 @@ def test_llms_txt_exists_and_valid() -> None:
 
 def test_robots_txt_exists_and_valid() -> None:
     f = PUBLIC_DIR / "robots.txt"
-    assert f.is_file(), "app/public/robots.txt fehlt (Lighthouse robots-txt-Audit)"
+    assert f.is_file(), "app/public/robots.txt is missing (Lighthouse robots-txt audit)"
     text = f.read_text(encoding="utf-8")
     assert re.search(r"^User-agent:\s*\*", text, re.MULTILINE | re.IGNORECASE), (
-        "robots.txt braucht eine User-agent-*-Regel"
+        "robots.txt needs a User-agent-* rule"
     )
     assert re.search(r"^(Allow|Disallow):", text, re.MULTILINE | re.IGNORECASE), (
-        "robots.txt braucht Allow/Disallow"
+        "robots.txt needs Allow/Disallow"
     )
     # Lighthouse validates sitemap URLs strictly — http(s) only, otherwise score 0
     for m in re.finditer(r"^Sitemap:\s*(\S+)", text, re.MULTILINE | re.IGNORECASE):
         assert m.group(1).startswith(("http://", "https://")), (
-            f"ungültige Sitemap-URL in robots.txt: {m.group(1)}"
+            f"invalid sitemap URL in robots.txt: {m.group(1)}"
         )
 
 
@@ -318,8 +310,8 @@ CONTRAST_PAIRS: list[tuple[str, str]] = [
 @pytest.mark.parametrize("fg,bg", CONTRAST_PAIRS)
 def test_token_contrast_meets_wcag_aa(fg: str, bg: str) -> None:
     tokens = _theme_tokens()
-    assert fg in tokens, f"@theme-Token --color-{fg} fehlt"
-    assert bg in tokens, f"@theme-Token --color-{bg} fehlt"
+    assert fg in tokens, f"@theme token --color-{fg} missing"
+    assert bg in tokens, f"@theme token --color-{bg} missing"
     ratio = _contrast_ratio(tokens[fg], tokens[bg])
     assert ratio >= WCAG_NORMAL_TEXT_RATIO, (
         f"--color-{fg} auf --color-{bg}: Kontrast {ratio:.2f}:1 "
@@ -333,11 +325,11 @@ def test_no_low_contrast_gradient_text() -> None:
     minimum contrast across the gradient)."""
     text = GLOBALS_CSS.read_text(encoding="utf-8")
     m = re.search(r"\.text-gradient\s*\{[^}]*\}", text, re.DOTALL)
-    assert m, ".text-gradient Utility fehlt"
+    assert m, "the .text-gradient utility is missing"
     block = re.sub(r"/\*.*?\*/", "", m.group(0), flags=re.DOTALL)  # drop comments
     stops = re.findall(r"hsl\((\d+(?:\.\d+)?) (\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%\)",
                        block)
-    assert stops, "keine hsl()-Stops in .text-gradient gefunden"
+    assert stops, "no hsl() stops found in .text-gradient"
     tokens = _theme_tokens()
     bg = tokens["background"]
     for stop in stops:
@@ -364,7 +356,7 @@ def _import_check_commands() -> list[str]:
 def test_ci_import_commands_exist() -> None:
     """Sanity: the parser really hits the import steps — otherwise this file
     silently checks nothing."""
-    assert _import_check_commands(), "keine python -c Import-Pruefung in tests.yml"
+    assert _import_check_commands(), "no python -c import check in tests.yml"
 
 
 def test_ci_imports_only_modules_that_exist() -> None:
@@ -387,7 +379,7 @@ def test_ci_imports_only_modules_that_exist() -> None:
                 continue
             offenders.append(dotted)
     assert not offenders, (
-        "tests.yml importiert Module, die es im Repo nicht gibt: " + ", ".join(sorted(set(offenders)))
+        "tests.yml imports modules that do not exist in the repo: " + ", ".join(sorted(set(offenders)))
     )
 
 
@@ -396,7 +388,7 @@ def test_ci_docker_tag_matches_project_name() -> None:
     and never after a legacy brand; the same name builds and tests the image."""
     text = TESTS_WORKFLOW.read_text(encoding="utf-8")
     tags = set(re.findall(r"docker build\s+-t\s+([A-Za-z0-9_.:/-]+)", text))
-    assert tags, "kein docker build -t in tests.yml gefunden"
+    assert tags, "no docker build -t found in tests.yml"
     name = re.search(r'^name\s*=\s*"([^"]+)"', PYPROJECT.read_text(encoding="utf-8"), re.M)
     assert name, "pyproject.toml hat keinen [project].name"
     for tag in tags:

@@ -106,7 +106,7 @@ class TestTaskToolIntegrationPerspective:
         from core.tools import get_tool_schemas
 
         task_tool = next((t for t in get_tool_schemas() if t["function"]["name"] == "manage_tasks"), None)
-        assert task_tool is not None, "THEN: manage_tasks muss als Tool registriert sein"
+        assert task_tool is not None, "THEN: manage_tasks must be registered as a tool"
 
         props = task_tool["function"]["parameters"]["properties"]
         assert "action" in props

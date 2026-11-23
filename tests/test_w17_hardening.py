@@ -59,7 +59,7 @@ class TestProcessGroupReaping:
         new_group = kwargs.get("start_new_session") is True or kwargs.get(
             "preexec_fn"
         ) is os.setsid
-        assert new_group, f"keine Prozessgruppe konfiguriert: {kwargs}"
+        assert new_group, f"no process group configured: {kwargs}"
 
     def test_timeout_kills_whole_group(self, tmp_path, monkeypatch):
         # Given: a hanger with a child process (script form; -c is blocked).

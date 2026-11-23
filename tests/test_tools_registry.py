@@ -193,7 +193,7 @@ class TestToolMap:
         THEN   every entry is a function
         """
         for name, func in TOOL_MAP.items():
-            assert callable(func), f"TOOL_MAP['{name}'] ist nicht callable"
+            assert callable(func), f"TOOL_MAP['{name}'] is not callable"
 
 
 class TestGetFilteredToolSchemas:

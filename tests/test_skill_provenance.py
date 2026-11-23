@@ -97,7 +97,7 @@ class TestInstalledRecord:
             encoding="utf-8",
         )
         detail = client.get("/api/skills/probe").json()
-        assert detail["unchanged"] is False, "eine veränderte Skill-Datei bleibt unsichtbar"
+        assert detail["unchanged"] is False, "a changed skill file stays invisible"
         assert detail["install"]["content_hash"] != skill_provenance.content_hash(
             skills_dir / "probe"
         )

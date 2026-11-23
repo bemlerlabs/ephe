@@ -87,7 +87,7 @@ async def test_followup_streams_for_openai_compatible():
     assert len(client.chat.call_args_list) == 2
     for c in client.chat.call_args_list:
         assert c.kwargs.get("stream") is True, (
-            "OpenAI-kompatible Engine: Detection UND Follow-up streamen (Live-Takt)"
+            "OpenAI-compatible engine: detection AND follow-up stream (live cadence)"
         )
 
 

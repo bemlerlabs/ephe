@@ -38,10 +38,10 @@ def _golden_files() -> list[str]:
 
 def test_all_skills_have_trace_format():
     files = _golden_files()
-    assert files, "keine golden.md gefunden"
+    assert files, "no golden.md found"
     for gm in files:
         body = open(gm, encoding="utf-8").read()
-        assert "## Trace" in body, f"{gm}: kein Trace-Format"
+        assert "## Trace" in body, f"{gm}: no trace format"
 
 
 def test_toolcall_args_conform_to_schema():
@@ -58,14 +58,13 @@ def test_toolcall_args_conform_to_schema():
             payload = json.loads(s[len("ToolCall:"):].strip())
             name = payload.get("name")
             args = payload.get("arguments", {}) or {}
-            assert name in props, f"{gm}: Tool {name!r} nicht in Registry"
+            assert name in props, f"{gm}: tool {name!r} not in the registry"
             unknown = set(args) - props[name]
             assert not unknown, (
-                f"{gm}: {name} Argument-Key(s) {sorted(unknown)} "
-                f"nicht im Schema (erlaubt: {sorted(props[name])})"
+                f"{gm}: {name} argument key(s) {sorted(unknown)} " f"not in the schema (allowed: {sorted(props[name])})"
             )
             checked += 1
-    assert checked >= 40, f"zu wenige ToolCall-Traces geprueft: {checked}"
+    assert checked >= 40, f"too few toolcall traces checked: {checked}"
 
 
 def test_no_rule_echo_duplication():

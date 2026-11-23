@@ -39,8 +39,8 @@ def _count_points(text: str) -> list[str]:
 @pytest.mark.parametrize("name", _skill_dirs())
 def test_skill_has_rubric_and_golden(name):
     d = SKILLS / name
-    assert (d / "references" / "rubric.md").exists(), f"{name}: references/rubric.md fehlt"
-    assert (d / "examples" / "golden.md").exists(), f"{name}: examples/golden.md fehlt"
+    assert (d / "references" / "rubric.md").exists(), f"{name}: references/rubric.md missing"
+    assert (d / "examples" / "golden.md").exists(), f"{name}: examples/golden.md missing"
 
 
 @pytest.mark.parametrize("name", _skill_dirs())
@@ -48,17 +48,17 @@ def test_rubric_fields_covered_by_golden(name):
     d = SKILLS / name
     rub_pts = _count_points((d / "references" / "rubric.md").read_text(encoding="utf-8"))
     gold_pts = _count_points((d / "examples" / "golden.md").read_text(encoding="utf-8"))
-    assert rub_pts, f"{name}: rubric.md carries no check points"
-    assert gold_pts, f"{name}: golden.md carries no filled points"
+    assert rub_pts, f"{name}: rubric.md has no check points"
+    assert gold_pts, f"{name}: golden.md has no filled-in points"
     assert len(gold_pts) >= len(rub_pts), (
-        f"{name}: Golden deckt nur {len(gold_pts)} von {len(rub_pts)} Rubric-Feldern ab"
+        f"{name}: golden covers only {len(gold_pts)} of {len(rub_pts)} rubric fields"
     )
 
 
 @pytest.mark.parametrize("name", _skill_dirs())
 def test_golden_has_no_placeholder(name):              # NOT minimalist: full values required
     gold = (SKILLS / name / "examples" / "golden.md").read_text(encoding="utf-8")
-    assert gold.strip(), f"{name}: golden.md ist leer"
+    assert gold.strip(), f"{name}: golden.md is empty"
 
 
 def test_pack_index_lists_all_known_skills():
@@ -72,4 +72,4 @@ def test_pack_index_no_orphans():
     idx = json.loads((SKILLS / "pack-index.json").read_text(encoding="utf-8"))
     listed = {s for p in idx["packs"] for s in p["skills"]}
     on_disk = set(_skill_dirs()) - {"help"}
-    assert on_disk <= listed | {"help"}, f"Nicht in einem Pack gefuehrt: {sorted(on_disk - listed)}"
+    assert on_disk <= listed | {"help"}, f"not listed in any pack: {sorted(on_disk - listed)}"

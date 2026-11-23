@@ -182,7 +182,7 @@ class TestMutatingToolGate:
 
         executor.assert_not_awaited()
         tool_msgs = [m for m in _tool_messages_from_second_call(client) if m.get("role") == "tool"]
-        assert tool_msgs, "Modell bekam kein Tool-Result zurück"
+        assert tool_msgs, "the model got no tool result back"
         assert "[TOOL-DENIED]" in tool_msgs[0]["content"]
         assert result == "Verstanden."
 

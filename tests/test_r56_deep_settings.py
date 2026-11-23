@@ -189,7 +189,7 @@ def test_every_section_has_a_title_in_both_languages():
         fehlend = sorted(declared - titles[lang])
         assert not fehlend, f"{lang}: Sektionstitel fehlen: {fehlend}"
         orphans = sorted(titles[lang] - declared)
-        assert not orphans, f"{lang}: Titel ohne Sektion (alt): {orphans}"
+        assert not orphans, f"{lang}: titles without a section (legacy): {orphans}"
 
 
 def test_the_plugins_route_serves_the_catalog():

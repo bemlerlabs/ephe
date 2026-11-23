@@ -74,7 +74,7 @@ class TestShellHeadMemo:
         dialogs = [e for e in events if e.get("type") == "sandbox_confirm"]
 
         assert first is True and second is True
-        assert len(dialogs) == 1, f"zweiter Dialog trotz Kopf-Memo: {len(dialogs)}"
+        assert len(dialogs) == 1, f"a second dialog despite the head memo: {len(dialogs)}"
         assert dialogs[0]["rememberable"] is True
 
     def test_given_a_ticked_shell_dialog_then_the_type_is_never_remembered(self, tmp_path):

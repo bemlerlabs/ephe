@@ -87,7 +87,7 @@ async def test_the_workbench_is_the_birthplace_not_output_dir(cfg_dir, werkbank)
         path=cfg_dir / "engine.json",
     )
     assert _downloads() == werkbank
-    assert not (cfg_dir / "o1").exists(), "output_dir wird beim Schreiben nicht mehr angefasst"
+    assert not (cfg_dir / "o1").exists(), "output_dir is no longer touched when writing"
 
 
 async def test_persist_engine_choice_keeps_the_folder_settings(cfg_dir):
@@ -126,13 +126,13 @@ def test_output_tools_take_no_path_parameter():
 
     by_name = {t["function"]["name"]: t for t in get_tool_schemas()}
     missing = [name for name in OUTPUT_TOOLS if name not in by_name]
-    assert not missing, f"Werkzeuge aus der Prüfung verschwunden: {missing}"
+    assert not missing, f"tools disappeared from the check: {missing}"
     with_path = [
         name
         for name in OUTPUT_TOOLS
         if "path" in (by_name[name]["function"].get("parameters") or {}).get("properties", {})
     ]
-    assert with_path == [], f"Diese Ausgabe-Werkzeuge nehmen einen Pfad: {with_path}"
+    assert with_path == [], f"these output tools take a path: {with_path}"
 
 
 def test_the_image_doc_names_the_folder_the_image_tool_writes(cfg_dir, werkbank) -> None:

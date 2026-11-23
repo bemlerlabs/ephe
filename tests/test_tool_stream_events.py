@@ -108,8 +108,8 @@ class TestToolStreamEvents:
         evs = _events(body)
         starts = [e for e in evs if e.get("type") == "tool_start"]
         dones = [e for e in evs if e.get("type") == "tool_done"]
-        assert starts, f"kein tool_start-Event in {[e.get('type') for e in evs]}"
-        assert dones, f"kein tool_done-Event in {[e.get('type') for e in evs]}"
+        assert starts, f"no tool_start event in {[e.get('type') for e in evs]}"
+        assert dones, f"no tool_done event in {[e.get('type') for e in evs]}"
         assert starts[0]["tool"] == "read_file"
         assert starts[0]["args"]["path"] == "a.txt"
         assert dones[0]["tool"] == "read_file"
@@ -156,7 +156,7 @@ class TestToolStreamEvents:
             body = _stream(client, {"message": "baue ein pdf", "session_id": "tse-pdf-pages"})
 
         files = [e for e in _events(body) if e.get("type") == "file_result" and e.get("file_type") == "pdf"]
-        assert files, "kein file_result für create_pdf"
+        assert files, "no file_result for create_pdf"
         assert files[0]["path"] == "/tmp/Downloads/report.pdf"
         assert "PDF_PAGES" not in files[0]["path"]
 

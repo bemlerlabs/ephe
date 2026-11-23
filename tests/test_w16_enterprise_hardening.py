@@ -173,8 +173,8 @@ class TestPostTurnOffload:
                     r = await client.get("/ping")
                     latencies.append(time.perf_counter() - t0)
                     assert r.status_code == 200
-            assert sorted(latencies)[2] < 0.005, f"Median {sorted(latencies)[2]*1000:.1f} ms — Loop blockiert"
-            assert max(latencies) < 0.150, f"Max {max(latencies)*1000:.1f} ms — Loop blockiert"
+            assert sorted(latencies)[2] < 0.005, f"median {sorted(latencies)[2]*1000:.1f} ms — the loop blocks"
+            assert max(latencies) < 0.150, f"max {max(latencies)*1000:.1f} ms — the loop blocks"
         finally:
             await job
 
@@ -215,7 +215,7 @@ class TestPostTurnOffload:
         assert ": post" in raw_all
         # Give the task a scheduling chance (fire-and-forget on the loop).
         await asyncio.sleep(0)
-        assert calls, "Post-Turn-Jobs wurden nicht dispatcht"
+        assert calls, "the post-turn jobs were not dispatched"
         gate.set()
 
     @pytest.mark.asyncio
@@ -304,7 +304,7 @@ class TestWorkspaceScopedMemory:
         monkeypatch.setattr(ec, "get_workspace_dir", lambda: ws_b)
         Memory.reset_scoped_instances()
         mem_b = Memory()
-        assert mem_b.count() == 0, "Workspace B darf keine Fakten aus A sehen"
+        assert mem_b.count() == 0, "workspace B must not see facts from A"
         assert mem_b.search("Deploy-Token Projekt Alpha") == []
 
         monkeypatch.setattr(ec, "get_workspace_dir", lambda: ws_a)
@@ -521,7 +521,7 @@ class TestInterpreterHardening:
 
         out = await shell_tools.run_shell('python3 -c "print(1)"')
         assert out == "sandboxed-run"
-        assert captured["args"][:1] == ["sandbox-exec"], "muss Wrapper-Kette sein, nicht shell=True-String"
+        assert captured["args"][:1] == ["sandbox-exec"], "must be a wrapper chain, not a shell=True string"
 
     @pytest.mark.asyncio
     async def test_sandbox_enabled_but_wrap_failed_still_rejects_eval(self, monkeypatch):
@@ -621,7 +621,7 @@ class TestGitApplyRoute:
         assert "line 1 edited" in cached
         assert "line 10 edited" not in cached
         worktree = repo["file"].read_text(encoding="utf-8")
-        assert "line 1 edited" not in worktree, "--cached darf die Arbeitskopie nicht anfassen"
+        assert "line 1 edited" not in worktree, "--cached must not touch the working copy"
 
     def test_apply_reverse_discards_change(self, repo, client):
         """Given: a modified working copy
@@ -716,7 +716,7 @@ class TestBpeTokenizer:
         from core import usage
 
         u = usage.build_usage("prompt text", "answer text")
-        assert u["usage_estimated"] is False, "BPE-Zählung ist kein Schätzer"
+        assert u["usage_estimated"] is False, "the BPE count is not an estimate"
 
     def test_build_usage_without_bpe_stays_estimated(self, bpe_absent):
         from core import usage
@@ -830,7 +830,7 @@ class TestGoalRunner:
         assert result.success is True
         assert result.turns == 2
         second_prompt = goal_loop["chat_calls"][1]["history"][-1]["content"]
-        assert "boom" in second_prompt, "Fehlerausgabe muss in den Re-Turn"
+        assert "boom" in second_prompt, "the error output must reach the re-turn"
         assert "pytest -q" in second_prompt
         assert "Erster Versuch" in "".join(
             m["content"] for m in goal_loop["chat_calls"][1]["history"]

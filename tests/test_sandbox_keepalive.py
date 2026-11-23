@@ -180,7 +180,7 @@ class TestSandboxKeepalive:
             th.join(KEEPALIVE_PATIENCE_S + 5)
 
         text = "\n".join(lines)
-        assert resolved.get("ok") is True, "sandbox-event wurde nicht aufgelöst"
+        assert resolved.get("ok") is True, "the sandbox event was not resolved"
         assert obs.get("comment_emitted") is True, (
             f"the keeper put no comment on the stream within {KEEPALIVE_PATIENCE_S:.0f}s — it "
             "stopped emitting"

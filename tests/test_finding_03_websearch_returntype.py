@@ -87,5 +87,5 @@ def test_web_search_has_hard_timeout():
     ws = sys.modules.get("core.tools.web_search") or importlib.import_module("core.tools.web_search")
 
     src = inspect.getsource(ws.web_search)
-    assert "wait_for" in src, "web_search spannt die Suche nicht in wait_for ein"
+    assert "wait_for" in src, "web_search does not wrap the search in wait_for"
     assert ws.WEB_SEARCH_TIMEOUT_SECONDS <= 60.0

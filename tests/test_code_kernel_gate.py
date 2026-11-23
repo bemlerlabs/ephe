@@ -67,7 +67,7 @@ def _run(code: str) -> str:
 class TestNoGateBypass:
     def test_gated_tool_call_is_refused_and_never_executes(self, spies):
         out = _run("from ephe_tools import run_shell\nprint(run_shell(command='echo pwned'))")
-        assert spies == [], "run_shell wurde ausgeführt — das Approval-Gate ist umgangen"
+        assert spies == [], "run_shell executed — the approval gate was bypassed"
         assert "pwned" not in out
         # The refusal must be an action, not noise.
         assert "run_shell" in out

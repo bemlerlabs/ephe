@@ -53,7 +53,7 @@ def _fields_of(section_key: str) -> list[str]:
 def test_every_field_is_read_by_an_accessor() -> None:
     """The core of the contract: a field without a reader is not a field."""
     unread_fields = sorted(set(SCHEMA) - _read_keys())
-    assert not unread_fields, f"Felder ohne Accessor-Aufruf: {unread_fields}"
+    assert not unread_fields, f"fields without an accessor call: {unread_fields}"
 
 
 def test_every_field_has_a_description_text() -> None:
@@ -79,7 +79,7 @@ def test_every_field_has_a_description_text() -> None:
                     node = node[part]
                 assert isinstance(node, str) and node.strip(), (key, lang, dotted)
     missing = sorted(k for k in SCHEMA if k not in HINTS and k not in cards)
-    assert not missing, f"gelesene Felder ohne Beschreibungstext: {missing}"
+    assert not missing, f"read fields without a description: {missing}"
 
 
 def test_sections_cover_the_whole_register() -> None:

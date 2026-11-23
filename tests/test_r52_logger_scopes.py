@@ -45,7 +45,7 @@ def test_structured_log_carries_scope_field():
     logger.addHandler(handler)
     try:
         structured_log("info", "evt", scope="skills")
-        assert buf, "keine Zeile emittiert"
+        assert buf, "no line emitted"
         record = json.loads(buf[-1])
         assert record["scope"] == "skills"
         assert '"scope":"skills"' in buf[-1]

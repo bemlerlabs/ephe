@@ -55,7 +55,7 @@ class TestScheduleRoutes:
         job = jobs[0]
         assert job["task"] == "Fasse die News zusammen", "THEN: Schema-Mismatch task/name gefixt"
         assert job["cron"] == "0 8 * * *"
-        assert "next_run" in job, "THEN: Feld existiert (produktiv befüllt, Test-Scheduler ungestartet)"
+        assert "next_run" in job, "THEN: the field exists (filled in production, test scheduler not started)"
 
     def test_given_job_when_run_now_then_result_in_history(self, client, monkeypatch):
         # A job that runs names a model, and since #94 the scheduler names none of its
@@ -193,7 +193,7 @@ class TestAutoMemory:
         first = maybe_store_turn(question, answer)
         assert first["stored"] is True, first
         second = maybe_store_turn(question, answer)
-        assert second == {"stored": False, "reason": "duplicate"}, "THEN: Embedding-Dedupe verhindert Doppel"
+        assert second == {"stored": False, "reason": "duplicate"}, "THEN: embedding dedupe prevents duplicates"
 
     def test_given_disabled_toggle_when_stored_then_honest_skip(self, client, monkeypatch):
         monkeypatch.setenv("EPHE_MEMORY_ENABLED", "0")
@@ -209,7 +209,7 @@ class TestAutoMemory:
             "Erstelle eine Excel-Tabelle für das Budget",
             "## Excel-Tabelle erstellt\nXLSX_FILE:/tmp/x.xlsx\nDie Datei liegt in ~/Downloads und lässt sich öffnen. " * 2,
         )
-        assert result == {"stored": False, "reason": "artifact"}, "THEN: Artefakte gehören in die R17-Bibliothek"
+        assert result == {"stored": False, "reason": "artifact"}, "THEN: artifacts belong in the R17 library"
 
     @pytest.mark.asyncio
     async def test_given_stream_turn_when_done_then_auto_memory_fires(self, monkeypatch):

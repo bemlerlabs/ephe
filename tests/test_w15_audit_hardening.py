@@ -116,7 +116,7 @@ class TestApprovalRegistryCleanup:
         await asyncio.sleep(0.05)  # drain the loop: run the task's finally blocks through
 
         assert token_seen not in chat_route._active_sandbox_events, (
-            "Token nach Abbruch nicht aufgeraeumt (Registry-Leak)"
+            "the token was not cleaned up after the abort (registry leak)"
         )
 
     def test_pending_sandbox_alias_removed(self):
@@ -190,8 +190,7 @@ class TestToolLoopWindowFit:
         window = 8192
         est = estimate_tokens(serialize_prompt(messages))
         assert est <= window, (
-            f"Follow-up-Payload {est} Tokens ueberschreitet Fenster {window} — "
-            "fit laeuft nicht je Runde"
+            f"the follow-up payload of {est} tokens exceeds the window {window} — " "fit does not run every round"
         )
 
 
@@ -362,7 +361,7 @@ class TestStreamPostOrdering:
                 break
 
         events = _events(raw_all.split("\n\n"))
-        assert events[-1].get("type") == "done", "done bleibt letzter data-Event"
-        assert ": post" in raw_all, "post-Kommentar fehlt (Sentinel-Vorziehung nicht aktiv)"
+        assert events[-1].get("type") == "done", "done stays the last data event"
+        assert ": post" in raw_all, "the post comment is missing (sentinel precedence not active)"
         # Order in the raw stream: done before : post
         assert raw_all.index('"type": "done"') < raw_all.index(": post")

@@ -30,7 +30,7 @@ README = ROOT / "README.md"
 
 @pytest.fixture(scope="module")
 def compose() -> dict:
-    assert COMPOSE.exists(), "docker-compose.yml fehlt"
+    assert COMPOSE.exists(), "docker-compose.yml is missing"
     return yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
 
 
@@ -49,7 +49,7 @@ def _split_port(entry: str) -> tuple[str | None, str, str]:
     parts = [s.strip() for s in entry.split(":")]
     if len(parts) == 2:
         return None, parts[0], parts[1]
-    raise AssertionError(f"Port-Angabe nicht lesbar: {entry!r}")
+    raise AssertionError(f"port specification not readable: {entry!r}")
 
 
 def _default_of(token: str) -> str:
@@ -61,7 +61,7 @@ def _default_of(token: str) -> str:
 
 def _ports_of(compose: dict, service: str) -> list[str]:
     svc = compose.get("services", {}).get(service)
-    assert svc, f"Service {service} fehlt in docker-compose.yml"
+    assert svc, f"service {service} missing from docker-compose.yml"
     ports = svc.get("ports") or []
     # treat the short form "8765:8765" and the long form alike
     out: list[str] = []
@@ -87,11 +87,10 @@ def test_ephe_port_is_published_on_loopback_only(compose: dict) -> None:
     for entry in _ports_of(compose, "ephe"):
         host, published, target = _split_port(entry)
         assert host is not None, (
-            f"{entry!r} nennt keine Host-Adresse und bindet damit alle Interfaces; "
-            "erwartet '127.0.0.1:PORT:PORT' (oder ${VAR:-127.0.0.1}:PORT:PORT)"
+            f"{entry!r} names no host address and therefore binds every interface; " "expected '127.0.0.1:PORT:PORT' (or ${VAR:-127.0.0.1}:PORT:PORT)"
         )
         assert _default_of(host) == "127.0.0.1", (
-            f"{entry!r}: Default-Bind am Host ist {_default_of(host)!r}, nicht Loopback"
+            f"{entry!r}: the default bind on the host is {_default_of(host)!r}, not loopback"
         )
         assert target == "8765", f"{entry!r}: Zielport inesperterweise {target}"
         assert published == target
@@ -102,9 +101,9 @@ def test_ollama_port_is_published_on_loopback_only(compose: dict) -> None:
     published 11434 is an unprotected model server on the local network."""
     for entry in _ports_of(compose, "ollama"):
         host, _published, _target = _split_port(entry)
-        assert host is not None, f"{entry!r} bindet alle Host-Interfaces"
+        assert host is not None, f"{entry!r} binds every host interface"
         assert _default_of(host) == "127.0.0.1", (
-            f"{entry!r}: Default-Bind am Host ist {_default_of(host)!r}, nicht Loopback"
+            f"{entry!r}: the default bind on the host is {_default_of(host)!r}, not loopback"
         )
 
 
@@ -113,34 +112,34 @@ def test_compose_documents_the_deliberate_opt_in(compose: dict) -> None:
     names the way there and turns auth on by default."""
     text = COMPOSE.read_text(encoding="utf-8")
     lowered = text.lower()
-    assert "127.0.0.1" in text, "keine Loopback-Veroeffentlichung dokumentiert"
-    assert "lan" in lowered, "LAN-Modus wird mit keinem Wort erwaehnt"
+    assert "127.0.0.1" in text, "no loopback publishing documented"
+    assert "lan" in lowered, "the LAN mode is not mentioned at all"
     env = compose["services"]["ephe"].get("environment", [])
     joined = " ".join(str(e) for e in env)
-    assert "EPHE_LAN" in joined, "EPHE_LAN fehlt — Auth waere nicht erzwungen"
+    assert "EPHE_LAN" in joined, "EPHE_LAN missing — auth would not be enforced"
 
 
 def test_dockerfile_bind_is_documented_and_overridable() -> None:
     """The bind inside the container is a reasoned, overridable decision,
     not a bare 0.0.0.0 command-line stone."""
     text = DOCKERFILE.read_text(encoding="utf-8")
-    assert "--host" in text, "kein --host im Dockerfile"
+    assert "--host" in text, "no --host in the Dockerfile"
     assert "EPHE_BIND" in text or "127.0.0.1" in text, (
-        "der Container-Bind ist weder ueberschreibbar noch begruendet"
+        "the container bind is neither overridable nor justified"
     )
 
 
 def test_readme_run_example_publishes_on_loopback() -> None:
     """If the README shows a `docker run` with -p, it may only publish on the loopback."""
     if not README.exists():
-        pytest.skip("README.md fehlt")
+        pytest.skip("README.md is missing")
     text = README.read_text(encoding="utf-8")
     for line in text.splitlines():
         if "docker run" in line and "-p" in line:
-            assert "127.0.0.1:" in line, f"{line.strip()} publiziert an alle Interfaces"
+            assert "127.0.0.1:" in line, f"{line.strip()} publishes to every interface"
 
 
-@pytest.mark.skipif(shutil.which("docker") is None, reason="docker-CLI nicht verfuegbar")
+@pytest.mark.skipif(shutil.which("docker") is None, reason="docker CLI not available")
 def test_resolved_compose_binds_loopback() -> None:
     """The bind Docker actually applies, not just the intent written in the YAML.
 
@@ -148,7 +147,7 @@ def test_resolved_compose_binds_loopback() -> None:
     the default really lands on the loopback or silently falls back to all interfaces.
     """
     if not COMPOSE.exists():
-        pytest.skip("docker-compose.yml fehlt")
+        pytest.skip("docker-compose.yml is missing")
     # The engine is a declared choice and compose refuses to start without one (`:?`), so
     # this check supplies it; what it measures is the bind Docker applies.
     env = {**os.environ, "EPHE_MODEL_PROVIDER": "local_ollama", "EPHE_MODEL": "a-served-model"}

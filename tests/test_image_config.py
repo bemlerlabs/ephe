@@ -48,7 +48,7 @@ class TestImageConfigStore:
 
         save_image_config(base_url="http://127.0.0.1:8080/v1")
         mode = stat.S_IMODE(image_config_path().stat().st_mode)
-        assert mode == 0o600, "THEN: image.json enthält ggf. API-Keys → nur Owner"
+        assert mode == 0o600, "THEN: image.json may hold API keys → owner only"
 
     def test_given_non_http_base_url_when_saved_then_rejected(self, config_dir):
         from core.image_config import save_image_config
@@ -87,7 +87,7 @@ class TestImageEndpointPriority:
 
         monkeypatch.delenv("EPHE_IMAGE_BASE_URL", raising=False)
         base, _, _ = _image_endpoint()
-        assert base, "THEN: aktive Chat-Engine bleibt der Fallback (alter Vertrag)"
+        assert base, "THEN: the active chat engine stays the fallback (the old contract)"
 
 
 @pytest.fixture
@@ -105,7 +105,7 @@ class TestImageSettingsRoutes:
         body = client.get("/api/settings/image").json()
         assert body["base_url"] == ""
         assert body["has_api_key"] is False
-        assert "api_key" not in body, "THEN: Key wird nie im Klartext zurückgegeben"
+        assert "api_key" not in body, "THEN: the key is never returned in cleartext"
 
     def test_given_put_when_get_then_saved_and_masked(self, client, config_dir):
         r = client.put(
@@ -215,7 +215,7 @@ class TestDoctorImageCheck:
 
         monkeypatch.setattr("httpx.get", _fake_get)
         ok, detail = self._check(monkeypatch, config_dir)
-        assert ok is False, "THEN: Vorschlag ist opt-in — kein stiller Config-Write"
+        assert ok is False, "THEN: the suggestion is opt-in — no silent config write"
         assert "detected" in detail and "8080" in detail
         from core.image_config import load_image_config
         assert load_image_config().base_url == "", "THEN: doctor schreibt nie Config"

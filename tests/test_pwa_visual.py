@@ -19,9 +19,7 @@ import pytest
 # tests are skipped module-wide.
 pytestmark = pytest.mark.skip(
     reason=(
-        "Legacy PWA migrated to React+Vite; UI refactored zu Hash-Router "
-        "Landing/Onboarding/Chat; Coverage übernommen in app/tests/playwright/ "
-        "(2026-08-17)"
+        "Legacy PWA migrated to React+Vite; UI refactored to hash-router Landing/Onboarding/Chat; coverage taken over by app/tests/playwright/ (2026-08-17)"
     )
 )
 

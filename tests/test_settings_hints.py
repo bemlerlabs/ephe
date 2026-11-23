@@ -53,20 +53,19 @@ def test_every_control_carries_a_text() -> None:
         for k in _row_keys()
         if k not in HINTS and not SCHEMA.get(k, {}).get("hintKey")
     )
-    assert not missing, f"verdrahtete Felder ohne Erklaerung: {missing}"
+    assert not missing, f"wired fields without an explanation: {missing}"
 
 
 def test_no_text_for_a_field_without_a_reader() -> None:
     dekoriert = sorted(k for k in HINTS if k not in _read_keys())
     assert not dekoriert, (
-        "Beschreibungstexte fuer Felder ohne Leser — ein toter Knopf mit "
-        f"schoenem Text ist eine Falschaussage: {dekoriert}"
+        "description texts for fields without a reader — a dead button with nice text is a false claim: " f"{dekoriert}"
     )
 
 
 def test_no_hint_for_a_field_the_register_lacks() -> None:
     fremde = sorted(k for k in HINTS if k not in SCHEMA)
-    assert not fremde, f"HINTS kennt Felder, die das Register nicht hat: {fremde}"
+    assert not fremde, f"HINTS knows fields the register does not have: {fremde}"
 
 
 # Shape of the texts
@@ -78,11 +77,11 @@ def test_each_hint_has_both_languages_in_good_form(key: str) -> None:
     de, en = pair
     for text in (de, en):
         assert MIN_LEN <= len(text) <= MAX_LEN, f"{key}: {len(text)} Zeichen"
-    assert de != en, f"{key}: de und en sind identisch"
+    assert de != en, f"{key}: de and en are identical"
     # An echo of the label explains nothing.
     meta = SCHEMA[key]
-    assert _normal(de) != _normal(meta["label"]), f"{key}: de wiederholt nur das Label"
-    assert _normal(en) != _normal(meta["labelEn"]), f"{key}: en wiederholt nur das Label"
+    assert _normal(de) != _normal(meta["label"]), f"{key}: de only repeats the label"
+    assert _normal(en) != _normal(meta["labelEn"]), f"{key}: en only repeats the label"
 
 
 @pytest.mark.parametrize("key", sorted(HINTS))
@@ -103,7 +102,7 @@ def test_deep_view_passes_both_languages_through(tmp_path, monkeypatch: pytest.M
         assert entries[key]["hintEn"] == en
     for key in entries:
         if key not in wired:
-            assert "hint" not in entries[key], f"{key}: Feld ohne Leser traegt Text"
+            assert "hint" not in entries[key], f"{key}: a field without a reader carries text"
 
 
 def test_deep_view_never_carries_half_a_hint_channel(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -255,8 +254,8 @@ def test_a_key_into_the_locale_bundle_resolves_in_both_languages() -> None:
                 try:
                     text = _leaf(bundle, dotted)
                 except KeyError:
-                    raise AssertionError(f"{key}: {channel} {dotted!r} fehlt in {lang}.json") from None
-                assert text.strip(), f"{key}: {channel} {dotted!r} ist leer in {lang}.json"
+                    raise AssertionError(f"{key}: {channel} {dotted!r} is missing from {lang}.json") from None
+                assert text.strip(), f"{key}: {channel} {dotted!r} is empty in {lang}.json"
                 for word in ("TODO", "tbd", "XXX", "lorem"):
                     assert word.lower() not in text.lower(), f"{key}: Platzhalter {word!r}"
 

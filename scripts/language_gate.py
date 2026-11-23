@@ -7,6 +7,12 @@ measures that; this script makes it hold. It compares the current tree against
 `scripts/language-baseline.json` and fails when German developer prose has
 grown, so the next feature cannot bring a German comment along unnoticed.
 
+Two legs, because a ratchet cannot ask for zero. The line measurement scores every line a file
+holds and compares the count to a committed baseline, so a German sentence a test says about itself
+was measured once and then tolerated — free for as long as nobody raises that file. `message_leg`
+parses the suite and refuses those sentences outright, with no baseline to age into:
+`scripts/message_language.py`.
+
 The ratchet is per file, not just in total. A total can fall while a single file
 gets worse — one worker translates a module, another writes a German sentence in
 a new one — and only the per-file comparison names the file that regressed.
@@ -47,11 +53,14 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import language_inventory as inventory  # noqa: E402  (path bootstrap above)
+import message_language as messages  # noqa: E402  (path bootstrap above)
 
 REPO_ROOT = SCRIPTS_DIR.parent
 BASELINE_DEFAULT = SCRIPTS_DIR / "language-baseline.json"
 POLICY = "language-ratchet"
 VERSION = 1
+#: Findings the gate prints before pointing at the instrument that lists them all.
+PRINTED_FINDINGS = 20
 #: The only keys a baseline may carry. An unknown key is refused rather than
 #: ignored: the shape of a whitelist is exactly what must not be added here.
 BASELINE_KEYS = {"policy", "version", "instrument", "total", "files"}
@@ -100,6 +109,55 @@ def tracked_files(root: Path) -> Callable[[], list[str]]:
         return done.stdout.splitlines()
 
     return list_files
+
+
+def message_leg(
+    paths: list[str],
+    read_text: Callable[[str], str] | None,
+    root: Path,
+    *,
+    printed: int = PRINTED_FINDINGS,
+) -> tuple[int, list[str]]:
+    """The suite's own sentences: assert messages, `pytest.fail`/`skip`/`xfail` texts, skip reasons.
+
+    The line measurement above scores these lines and then forgives them: it compares a count to a
+    baseline, so a German sentence that predates the file's entry — or fits under it — costs nothing,
+    and the suite kept a second voice, English in the comments and German in the one line a
+    developer reads when a leg goes red. This parses the file and asks about those strings by node:
+    an assert message, a skip reason, a raised sentence.
+
+    It carries no baseline on purpose. The rule is English, the one escape is the marker
+    `scripts/message_language.py` documents, and a baseline would freeze the German instead of
+    removing it — which is how the line measurement ended up tolerating these very lines.
+    """
+    pairs: list[tuple[str, str | None]] = []
+    for rel in paths:
+        if not rel.startswith("tests/") or not rel.endswith(".py"):
+            continue
+        try:
+            text = read_text(rel) if read_text is not None else (root / rel).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            text = None
+        pairs.append((rel, text))
+    findings, read, unread = messages.check_pairs(pairs)
+    if not findings:
+        return 0, [
+            f"message language: PASS — no German developer prose in {read} test message(s) "
+            f"({unread} built at runtime, unreadable by any word check)"
+        ]
+    lines = [
+        f"message language: FAIL — German developer prose in {len(findings)} test message(s) "
+        f"over {len({f.rel for f in findings})} file(s)"
+    ]
+    for finding in findings[:printed]:
+        lines.append(f"  {finding.rel}:{finding.line} {finding.kind}: {finding.quote}")
+    if len(findings) > printed:
+        lines.append(f"  ... {len(findings) - printed} more — python3 scripts/message_language.py --limit 0")
+    lines.append(
+        "Rewrite those sentences in English. German the product itself says stays: mark it on the "
+        "message's line with `# language-gate: product German` and say why."
+    )
+    return 1, lines
 
 
 def measure(
@@ -380,8 +438,10 @@ def main(
         print(f"language gate: ERROR — {exc}", file=sys.stderr)
         return 2
     code, lines = report(result, offer=not args.staged)
+    message_code, message_report = message_leg(paths, read_text, args.root)
     print("\n".join(lines))
-    return code
+    print("\n".join(message_report))
+    return max(code, message_code)
 
 
 if __name__ == "__main__":

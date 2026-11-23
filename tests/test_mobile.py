@@ -59,4 +59,4 @@ def test_mobile_qr_tunnel_crash_falls_back_not_500(client):
         assert response.status_code == 200, response.text
         data = response.json()
         assert data["url"].endswith("/mobile.html")
-        assert data["message"], "Erwartet Nutzer-Hinweis statt Silent-Crash"
+        assert data["message"], "expected a user-facing hint instead of a silent crash"

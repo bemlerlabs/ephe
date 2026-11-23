@@ -56,7 +56,7 @@ def test_skills_cache_uses_normalized_key():
     loader = sk.SkillLoader()
     loader.load_all()
     keys = list(sk._SKILL_LIST_CACHE)
-    assert keys, "Cache wurde nicht befuellt"
+    assert keys, "the cache was not filled"
     for key in keys:
         for part in key:
-            assert part == str(Path(part).resolve()), "Cache-Key ist nicht normiert"
+            assert part == str(Path(part).resolve()), "the cache key is not normalised"

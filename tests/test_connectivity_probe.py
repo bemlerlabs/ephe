@@ -196,7 +196,7 @@ class TestBestAvailableTier:
             await probe.check_local()
             await probe.check_local()  # second call — should use the cache
 
-        assert call_count == 1, "Cache hat nicht funktioniert — 2 Netzwerkaufrufe!"
+        assert call_count == 1, "the cache did not work — 2 network calls"
 
     async def test_cache_invalidated_after_ttl(self):
         """GIVEN the TTL cache has expired (simulated)
@@ -219,4 +219,4 @@ class TestBestAvailableTier:
             await probe.check_local()
             call_count = instance.list.call_count
 
-        assert call_count == 1, "Nach TTL-Ablauf sollte neu geprüft werden"
+        assert call_count == 1, "after the TTL expired it should probe again"

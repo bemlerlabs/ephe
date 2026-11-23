@@ -22,8 +22,7 @@ def test_qwen3_8_27b_is_not_a_small_model():
     """qwen3.8-27b (dot notation, 27B reasoning) gets 120s, not 25s."""
     budget = _tool_detection_timeout("qwen3.8-27b")
     assert budget == TOOL_DETECT_TIMEOUT_LARGE_REASONING, (
-        f"27B-Reasoning-Modell braucht {TOOL_DETECT_TIMEOUT_LARGE_REASONING}s, "
-        f"bekam {budget}s"
+        f"a 27B reasoning model needs {TOOL_DETECT_TIMEOUT_LARGE_REASONING}s, " f"got {budget}s"
     )
 
 

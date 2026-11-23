@@ -34,11 +34,11 @@ class TestModToggleHTMLPerspective:
 
         # Angle 1: the toggle element is present
         has_toggle = "mode-toggle" in html or "data-mode" in html or "mode-btn" in html
-        assert has_toggle, "THEN: HTML muss einen Mode-Toggle-Button enthalten"
+        assert has_toggle, "THEN: the HTML must contain a mode toggle button"
 
         # Angle 2: has an accessible label
         assert "aria-label" in html or "title=" in html, (
-            "THEN: Mode-Toggle muss ein Accessible Label haben"
+            "THEN: the mode toggle must have an accessible label"
         )
 
         # Angle 3: Quick and Deep as options
@@ -46,7 +46,7 @@ class TestModToggleHTMLPerspective:
         has_quick = "quick" in html_lower or "schnell" in html_lower or "kurz" in html_lower
         has_deep = "deep" in html_lower or "tief" in html_lower or "detail" in html_lower
         assert has_quick and has_deep, (
-            "THEN: HTML muss Quick- und Deep-Modus-Optionen enthalten"
+            "THEN: the HTML must contain quick and deep mode options"
         )
 
 
@@ -66,21 +66,21 @@ class TestModToggleI18nPerspective:
 
         # Angle 1: the key exists at all
         assert "'mode.quick'" in i18n or '"mode.quick"' in i18n, (
-            "THEN: i18n.js muss 'mode.quick' Key haben"
+            "THEN: i18n.js must have the 'mode.quick' key"
         )
         assert "'mode.deep'" in i18n or '"mode.deep"' in i18n, (
-            "THEN: i18n.js muss 'mode.deep' Key haben"
+            "THEN: i18n.js must have the 'mode.deep' key"
         )
 
         # Angle 2: the number of occurrences matches the number of languages (6)
         quick_count = i18n.count("'mode.quick'") + i18n.count('"mode.quick"')
         assert quick_count >= 6, (
-            f"THEN: mode.quick muss in mind. 6 Sprachen definiert sein, found: {quick_count}"
+            f"THEN: mode.quick must be defined in at least 6 languages, found: {quick_count}"
         )
 
         # Angle 3: mode.label or mode.title present as well
         assert "'mode'" in i18n or "mode.label" in i18n or "mode.toggle" in i18n, (
-            "THEN: Mind. ein mode.* Label-Key muss in i18n existieren"
+            "THEN: at least one mode.* label key must exist in i18n"
         )
 
 
@@ -102,7 +102,7 @@ class TestModeToggleJSHandlerPerspective:
 
         # Angle 1: a handler for mode-toggle is present
         has_handler = "mode-toggle" in js_combined or "modeToggle" in js_combined or "mode_toggle" in js_combined
-        assert has_handler, "THEN: main.js muss einen Mode-Toggle-Handler haben"
+        assert has_handler, "THEN: main.js must have a mode toggle handler"
 
         # Angle 2: sets response_style or similar
         has_style_setter = (
@@ -110,10 +110,10 @@ class TestModeToggleJSHandlerPerspective:
             or "responseMode" in js_combined
             or "mode" in js_combined.lower()
         )
-        assert has_style_setter, "THEN: Handler muss einen Response-Modus setzen"
+        assert has_style_setter, "THEN: the handler must set a response mode"
 
         # Angle 3: persists the choice (localStorage or API call)
         has_persistence = "localStorage" in js_combined or "profile" in js_combined.lower()
         assert has_persistence, (
-            "THEN: Modus-Auswahl muss persistiert werden (localStorage oder API)"
+            "THEN: the mode choice must be persisted (localStorage or API)"
         )

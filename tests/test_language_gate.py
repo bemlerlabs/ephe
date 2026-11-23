@@ -533,3 +533,97 @@ class TestOrphanBaselineEntry:
         path = baseline(tmp_path, {SOURCE: 1, self.GONE: 3})
         assert run(tmp_path, path, tree(german=1), "--staged") == 0
         assert "ERROR" not in capsys.readouterr().err
+
+
+#: The sentence the probes below ask about, assembled from the instrument's own list so this file
+#: holds no German of its own — the same rule `german_lines` above follows.
+SPOKEN = " ".join(gate.inventory.MARKERS[:4])
+#: How many lines the line ratchet scores in one of the sources below: the marker comment and the
+#: message line, each holding one of the assembled marker words, counted by the instrument itself.
+SPOKEN_LINES = 1
+
+
+def suite_source(*, sentence: str, marker: str = "") -> str:
+    """A test module whose second assert answers in `sentence`, optionally marked on its line."""
+    pragma = f"  # {marker}" if marker else ""
+    return (
+        "import pytest\n\n\n"
+        "def test_one():\n    assert 1 == 1, \"the counter advanced\"\n\n\n"
+        f"def test_two():\n    assert 2 == 2, \"{sentence}\"{pragma}\n"
+    )
+
+
+class TestMessageLeg:
+    """The second leg, and the disagreement it exists for.
+
+    `counts_for` scores every line of a file, string literals included — its own docstring says the
+    number "tracks growth alone". So the ratchet did see these sentences, measured them into the
+    baseline, and stopped asking: a German message in a file the baseline already tolerates is free.
+    This leg refuses at zero, by node, with no baseline to age into.
+    """
+
+    SUITE_FILE = "tests/test_a_capability.py"
+
+    def test_a_german_assert_message_fails_the_gate_and_is_named(self, tmp_path, capsys):
+        """GIVEN a baseline that already tolerates the German line WHEN the gate runs THEN this leg fails by file and line."""
+        path = baseline(tmp_path, {self.SUITE_FILE: SPOKEN_LINES})
+        code = run(tmp_path, path, {self.SUITE_FILE: suite_source(sentence=SPOKEN)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "language gate: PASS" in out, "the ratchet is clean here; only the new leg refuses"
+        assert "message language: FAIL" in out
+        assert f"{self.SUITE_FILE}:9" in out
+        assert "assert message" in out
+
+    def test_an_english_suite_passes_both_legs(self, tmp_path, capsys):
+        """GIVEN the same file with English messages WHEN the gate runs THEN both legs pass."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {self.SUITE_FILE: suite_source(sentence="the counter did not advance")})
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "message language: PASS" in out
+
+    def test_a_marked_product_message_is_not_a_finding(self, tmp_path, capsys):
+        """German the product itself says is the subject of the test, so the marker carries it."""
+        path = baseline(tmp_path, {self.SUITE_FILE: SPOKEN_LINES})
+        files = {
+            self.SUITE_FILE: suite_source(
+                sentence=SPOKEN,
+                marker=f"{gate.messages.MESSAGE_PRAGMA} (the refusal the product shows)",
+            )
+        }
+        assert run(tmp_path, path, files) == 0
+        assert "message language: PASS" in capsys.readouterr().out
+
+    def test_a_marker_without_a_reason_does_not_clear_it(self, tmp_path, capsys):
+        """An exemption nobody can read is overlooked the next quarter, so the reason is required."""
+        path = baseline(tmp_path, {self.SUITE_FILE: SPOKEN_LINES})
+        files = {self.SUITE_FILE: suite_source(sentence=SPOKEN, marker=gate.messages.MESSAGE_PRAGMA)}
+        code = run(tmp_path, path, files)
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "unexplained exemption" in out
+
+    def test_the_rule_reads_the_suite_and_nothing_else(self, tmp_path, capsys):
+        """The claim is about the suite's voice, so the leg stays out of product code.
+
+        The same sentence in `core/` is the product's own surface or the line ratchet's business,
+        and the ratchet is satisfied here — its baseline was cut with this line in it, which is
+        exactly the tolerance this leg does not inherit.
+        """
+        path = baseline(tmp_path, {self.SUITE_FILE: 0, SOURCE: SPOKEN_LINES})
+        files = {
+            self.SUITE_FILE: suite_source(sentence="the counter did not advance"),
+            SOURCE: suite_source(sentence=SPOKEN),
+        }
+        code = run(tmp_path, path, files)
+        assert code == 0
+        assert "message language: PASS" in capsys.readouterr().out
+
+    def test_a_file_the_leg_cannot_parse_is_reported_not_skipped(self, tmp_path, capsys):
+        """A leg that passes because it read nothing would be the failure this rule exists to stop."""
+        path = baseline(tmp_path, {self.SUITE_FILE: 0})
+        code = run(tmp_path, path, {self.SUITE_FILE: "def test(:\n"})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "unparsable" in out

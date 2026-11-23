@@ -25,7 +25,7 @@ def test_p1b_test_runners_are_in_allowed_commands():
     # python/python3/node/npm are already listed; the three new ones have to be in.
     for runner in ("pytest", "npx", "vitest"):
         assert runner in TEST_RUNNERS
-        assert runner in ALLOWED_COMMANDS, f"{runner} fehlt in ALLOWED_COMMANDS"
+        assert runner in ALLOWED_COMMANDS, f"{runner} missing from ALLOWED_COMMANDS"
 
 
 def test_p1b_run_tests_default_pytest_passes_whitelist(tmp_path, monkeypatch):
@@ -171,4 +171,4 @@ def test_p1a_tool_call_threads_active_policy(tmp_path, monkeypatch):
 
     result = asyncio.run(tool_call("write_file", {"path": "p1a.txt", "content": "x = 1\n"}))
     assert "WRITE_FILE:" in result
-    assert "write_file" in prompts, "Approval-Gate wurde vom tool_call-Pfad umgangen"
+    assert "write_file" in prompts, "the approval gate was bypassed by the tool_call path"

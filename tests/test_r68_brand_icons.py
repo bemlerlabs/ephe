@@ -54,7 +54,7 @@ def test_tauri_icon_set_complete():
 def test_pwa_icons_exist_with_exact_dimensions():
     for name, size in PWA_SIZES.items():
         p = PUBLIC / name
-        assert p.is_file(), f"{name} fehlt"
+        assert p.is_file(), f"{name} missing"
         with Image.open(p) as img:
             assert img.size == size, f"{name}: {img.size} != {size}"
 
@@ -62,9 +62,9 @@ def test_pwa_icons_exist_with_exact_dimensions():
 def test_manifest_icon_references_resolve():
     manifest = json.loads((PUBLIC / "manifest.json").read_text(encoding="utf-8"))
     srcs = [icon["src"] for icon in manifest["icons"]]
-    assert srcs, "manifest.icons leer"
+    assert srcs, "manifest.icons is empty"
     for src in srcs:
-        assert (PUBLIC / src).is_file(), f"manifest verweist auf fehlende Datei: {src}"
+        assert (PUBLIC / src).is_file(), f"the manifest points at a missing file: {src}"
     assert {Path(s).name for s in srcs} >= {"icon-192.png", "icon-512.png",
                                             "icon-maskable-192.png", "icon-maskable-512.png"}
 
@@ -79,11 +79,11 @@ def test_master_art_frozen():
         # The master is a workshop document: the mark itself ships, the kit source it was cut
         # from does not. Where the master is absent the brand directory has to be absent too,
         # so a lost file cannot pass as a published tree.
-        assert not (ROOT / "docs" / "brand").is_dir(), f"{MASTER} fehlt als Historie"
+        assert not (ROOT / "docs" / "brand").is_dir(), f"{MASTER} is missing as history"
     # The small corner belongs to the vector: index.html attaches SVG (micro cut,
     # sharp up to 16 px) and PNG (contract 48 px) at the same time.
     svg = PUBLIC / "favicon.svg"
-    assert svg.is_file(), "favicon.svg fehlt — ohne Vektor bleibt der Tab ein Blob"
+    assert svg.is_file(), "favicon.svg is missing — without the vector the tab stays a blob"
     head = (ROOT / "app" / "index.html").read_text(encoding="utf-8")
     assert 'href="/favicon.svg"' in head and 'href="/favicon.png"' in head
 
@@ -92,7 +92,7 @@ def test_opaque_brand_surfaces():
     for name in ("icon-maskable-512.png", "apple-touch-icon-180.png"):
         with Image.open(PUBLIC / name) as img:
             if img.mode == "RGBA":
-                assert img.getextrema()[3][0] == 255, f"{name} carries transparent pixels"
+                assert img.getextrema()[3][0] == 255, f"{name} hat transparente Pixel"
 
 
 def test_tauri_pngs_are_rgba():
@@ -101,7 +101,7 @@ def test_tauri_pngs_are_rgba():
         if not name.endswith(".png"):
             continue
         with Image.open(ICONS / name) as img:
-            assert img.mode == "RGBA", f"{name}: mode={img.mode}, Tauri braucht RGBA"
+            assert img.mode == "RGBA", f"{name}: mode={img.mode}, Tauri needs RGBA"
 
 
 def test_the_mark_cut_follows_the_size():
@@ -122,7 +122,7 @@ def test_the_mark_cut_follows_the_size():
     # Every size has exactly one cut, and none of them is an empty shell.
     for name, bounds in ns["MARK_CUTS"].items():
         svg = ns["VARIANTS"][name]()
-        assert "<path" in svg, f"{name} zeichnet nichts"
+        assert "<path" in svg, f"{name} draws nothing"
         assert "url(#" in svg or name in ("mark-micro", "mark-compact"), (
-            f"{name} carries no gradient"
+            f"{name} has no gradient"
         )
