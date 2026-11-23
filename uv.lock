@@ -674,6 +674,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
+    { name = "cryptography" },
     { name = "ddgs" },
     { name = "fastapi" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -729,6 +730,7 @@ voice = [
 requires-dist = [
     { name = "apscheduler", specifier = ">=3.10.0" },
     { name = "av", marker = "extra == 'voice'", specifier = ">=14,<19" },
+    { name = "cryptography", specifier = ">=50.0.1" },
     { name = "ddgs", specifier = ">=2.0.0" },
     { name = "edge-tts", marker = "extra == 'voice'", specifier = ">=7.0.0" },
     { name = "ephemora-cell", marker = "extra == 'sandbox'", specifier = ">=1.1.0,<1.2" },

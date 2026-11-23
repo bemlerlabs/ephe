@@ -49,6 +49,14 @@ dependencies = [
     "numpy>=1.22.5",
     "onnxruntime>=1.14.1",
     "tokenizers>=0.13.2",
+    # The first-party signature over the marketplace index is signed and verified here and
+    # nowhere else (core/plugin_signing.py: ECDSA P-256 over the canonical JSON, SHA-256,
+    # deterministic). A direct import that arrives through another package's dependency is
+    # one removal away from a signing check that cannot run, so the need is named. The floor
+    # is the version this tree's lock resolves and the signing tests pass against
+    # (uv.lock: cryptography 50.0.1; local run 50.0.2), measured 2026-11-23 — nothing lower
+    # was run here, so nothing lower is claimed.
+    "cryptography>=50.0.1",
 ]
 
 [project.optional-dependencies]
