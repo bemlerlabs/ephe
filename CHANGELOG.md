@@ -24,8 +24,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   handler in a test run moved the digest the catalogue and the signature are computed over, so a
   fresh checkout and a warm working tree disagreed and the freshness gate failed on the two new
   bundles. The catalogue now carries the hashes a clean checkout computes.
-- frontend: the ChatLayout slash tests wait for the streamed reply to settle instead of racing the
-  mock, which made the leg pass or fail on scheduling (`61b2063`).
+- frontend: three specs that answered for nothing. The slash-command cases polled up to 5000 ms for
+  a reply a mock had already produced, and one of them asserted that the mock returned what it was
+  told to return — the `any`-typed pair behind it is what held the frontend leg red, two
+  `@typescript-eslint/no-explicit-any` errors, not the timing it looked like. They now assert what the
+  client did with the text and take one scheduler tick inside `act`; the keyboard walk checks its own
+  stop list after the walk instead of trusting the one read before it; and the restored-session cases
+  ask the list what it does when a row is inserted ahead of another, which is the behaviour the earlier
+  source-reading case only pretended to cover (`b528e9e`).
 - plugins: the nineteen tools of the two studio bundles reached the engine without a single
   parameter. Their manifests carried no `properties`, so the served schema listed none while the
   handler behind `ephe_motion_add_caption` hard-required five (`project_id`, `text`, `start`,
@@ -36,12 +42,26 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - docs: the Chinese and Spanish READMEs and `docs/PLUGINS_OVERVIEW.md` state nineteen bundles,
   twelve plugins and seven presets, the numbers `marketplace/index.json` reports; the English
   README already did.
+- licence: the Licensed Work parameter named `Ephe, version 0.1.0-beta.2 or later`, a string from the
+  pre-release line, while the tree carries 0.1.0 — so a reader could not tell whether the copy in
+  front of them was the Licensed Work. Only the version text moved; the Additional Use Grant stays
+  `None` (`62e66cb`).
+- supply-chain: the desktop shell's lock pinned `url` 2.5.8, which carries an advisory with a fix in
+  2.5.9, and our own advisory leg refused the tree over the missing decision. Bumped to 2.5.9 with
+  its `form_urlencoded` 1.2.3 dependency rather than writing an ignore row for a crate that was simply
+  one patch behind; 133 shell tests pass (`24c6a10`).
 
 ### Changed
 
 - brand: the page title, the social card fields, the install manifest and the terminal's start
   banner open with the two lines the READMEs carry under the mark, instead of a descriptor built
   from the project name.
+- dependencies: `cryptography` is declared. The first-party signature over the marketplace index is
+  made and checked in `core/plugin_signing.py` and nowhere else, and the library arrived only through
+  another package's requirements — one removal by that package away from a signing check that raises
+  `ModuleNotFoundError` at import and is skipped instead of refused. Declared with the floor this
+  tree's lock resolves and the signing tests pass against; nothing lower was run here, so nothing
+  lower is claimed (`389b474`).
 ## [0.1.0] - 2026-11-21
 
 The first public release. Every entry below names a surface this repository
