@@ -12,7 +12,7 @@
  * hands back the mirror shape that the machine's files hold, and `@/lib/restore`
  * maps it into the store the list reads. The assertion is the warning itself.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { render, waitFor, cleanup, act } from '@testing-library/react'
 
@@ -196,6 +196,18 @@ function mirrorSession() {
     ],
   }
 }
+
+/**
+ * chat/index.tsx:88 loads the bubble lazily and that chunk carries the markdown pipeline, so
+ * a row is the Suspense skeleton until the import lands. The row-count waits in this file
+ * pass on skeletons, which leaves the first paint assertion to inherit a cold transform:
+ * measured 2026-11-23 with 30 competing vitest workers, unwarmed the projection case fails
+ * on three rows of empty textContent (2224-4048 ms), warmed it passes. Same settling as
+ * ChatLayout.slash.test.tsx:216.
+ */
+beforeAll(async () => {
+  await import('@/components/dashboard/MessageBubble')
+})
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn() as unknown as typeof Element.prototype.scrollIntoView
