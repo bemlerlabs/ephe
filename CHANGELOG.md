@@ -31,7 +31,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   client did with the text and take one scheduler tick inside `act`; the keyboard walk checks its own
   stop list after the walk instead of trusting the one read before it; and the restored-session cases
   ask the list what it does when a row is inserted ahead of another, which is the behaviour the earlier
-  source-reading case only pretended to cover (`b528e9e`).
+  source-reading case only pretended to cover. An earlier attempt at the same three cases (`61b2063`)
+  settled the mock and left the leg red on the lint errors named above; `b528e9e` is what closed it.
 - plugins: the nineteen tools of the two studio bundles reached the engine without a single
   parameter. Their manifests carried no `properties`, so the served schema listed none while the
   handler behind `ephe_motion_add_caption` hard-required five (`project_id`, `text`, `start`,
