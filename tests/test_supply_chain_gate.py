@@ -46,7 +46,9 @@ def _register_floors() -> tuple[tuple[str, str], ...]:
     only speak for PyPI. The register carries two ecosystems since the npm rows landed, and a floor
     without its ecosystem is a floor looked up in the wrong lock: the katex row's `fixed_in=0.18.2`
     belongs to `pnpm-lock.yaml`, and asserting it against `uv.lock` fails on a correct tree.
-    CI-only uv is checked against the workflow pin by test_uv_advisories_are_fixed_by_the_build_tool_pin.
+    CI-only uv is checked against the workflow pin by test_uv_advisories_are_fixed_by_the_build_tool_pin,
+    and installer-pinned pip against the hash-pinned bootstrap wheel by
+    test_pip_advisories_are_fixed_by_the_installer_pin — neither tool is a locked package.
     """
     seen: list[tuple[str, str]] = []
     for m in _entries():
@@ -54,7 +56,7 @@ def _register_floors() -> tuple[tuple[str, str], ...]:
             continue
         if (m["ecosystem"] or "PyPI") != "PyPI":
             continue
-        if (m["package"], m["scope"]) == ("uv", "development"):
+        if (m["package"], m["scope"]) in {("uv", "development"), ("pip", "development")}:
             continue
         pair = (m["package"], m["fixed_in"])
         if pair not in seen:
@@ -492,6 +494,30 @@ def test_uv_advisories_are_fixed_by_the_build_tool_pin():
     assert "uv" not in {name for name, _ in _lock_packages()}, "uv is CI tooling, not a dependency"
 
 
+def test_pip_advisories_are_fixed_by_the_installer_pin():
+    """GIVEN the pip row THEN the hash-pinned pip wheel that install.sh and Dockerfile
+    bootstrap is at or above the row's fixed_in, and pip stays out of uv.lock — pip is a
+    bootstrap tool like uv is a CI tool: the pin that installs it is its carrier, the same
+    shape as test_uv_advisories_are_fixed_by_the_build_tool_pin, and uv.lock can hold no
+    floor for a package it never resolves.
+
+    Added 2026-11-23 when the row's blocked_by (the miniconda environment holding pip 25.1)
+    went stale with its subject: /Users/sanji/miniconda3 was measured absent, the venv
+    measured pip 26.3, and the only copies the repository itself installs are the 26.2.2
+    wheels pinned in install.sh and Dockerfile. This fence is what replaces the prose.
+    """
+    rows = [m for m in _entries() if m["package"] == "pip"]
+    assert {m["id"] for m in rows} == {"PYSEC-2026-3721"}
+    text = (ROOT / "install.sh").read_text(encoding="utf-8") + \
+        (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    pins = re.findall(r"pip-([0-9][^-\s]*)-py3-none-any\.whl", text)
+    assert pins, "neither install.sh nor Dockerfile pins a pip bootstrap wheel"
+    for m in rows:
+        assert (m["ecosystem"], m["scope"], m["state"]) == ("PyPI", "development", "fixed")
+        assert all(_at_least(pin, m["fixed_in"]) for pin in pins), (pins, m["fixed_in"])
+    assert "pip" not in {name for name, _ in _lock_packages()}, "pip is bootstrap tooling, not a dependency"
+
+
 def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
     """GIVEN a register row in state=fixed THEN the committed uv.lock resolves that package at
     or above the `fixed_in` the row names, or the row fails.
@@ -514,8 +540,8 @@ def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
         # and a PyPI row asserted against the npm lock (or the reverse) fails on a correct tree.
         if (m["ecosystem"] or "PyPI") != "PyPI":
             continue
-        if (m["package"], m["scope"]) == ("uv", "development"):
-            continue  # held by test_uv_advisories_are_fixed_by_the_build_tool_pin
+        if (m["package"], m["scope"]) in {("uv", "development"), ("pip", "development")}:
+            continue  # held by the pins in test_uv_...build_tool_pin / test_pip_...installer_pin
         versions = resolved.get(m["package"], [])
         assert versions, (
             f"{m['id']} is state=fixed for {m['package']} but uv.lock resolves no such "
