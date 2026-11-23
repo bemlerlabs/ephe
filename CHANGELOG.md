@@ -17,6 +17,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   capability request under `.github/ISSUE_TEMPLATE/`; a question, an idea and a built-with-ephe
   post under `.github/DISCUSSION_TEMPLATE/`. A free-form issue is no longer offered, and
   `SECURITY.md` stays the only channel for a finding.
+- scripts: `env_lock_agreement.py` compares the environment that is running against the lock it is
+  pointed at and refuses the difference. It found what no leg could see: the interpreter every gate and
+  every suite run on this machine uses had `wasmtime` 47.0.1 installed while uv.lock pins 50.0.1,
+  forty-three crates.io advisories behind and including the sandbox escape the engine floor exists for,
+  while the advisory legs scored the pinned version and the wheel's own database record read clean. The
+  suite's own tools (`dev`, `bench`) are reported in a column that prints without refusing; every other
+  extra counts as product, so an unclassified one is held to the lock. 22 tests cover it, one of them a
+  planted deviation that has to be caught (`658cd90`).
 
 ### Fixed
 
@@ -51,6 +59,24 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   2.5.9, and our own advisory leg refused the tree over the missing decision. Bumped to 2.5.9 with
   its `form_urlencoded` 1.2.3 dependency rather than writing an ignore row for a crate that was simply
   one patch behind; 133 shell tests pass (`24c6a10`).
+- supply-chain: the same leg's crates.io probe found `cookie` 0.18.1 in the shell's dependency graph, a
+  published advisory (RUSTSEC-2026-0594, GHSA-8wcq-xq25-7fhm) with 0.18.3 as its fix. Bumped by
+  `cargo update -p cookie@0.18.1 --precise 0.18.3` over 147 unchanged dependencies, with the advisory
+  leg, the resolver check and 133 shell tests green (`8cf3a58`).
+- supply-chain: nine advisories the databases report for the locked engine version — wasmtime 50.0.1,
+  the sandbox the Cell runs foreign code in — carried no line in the register, which is the record the
+  leg that refuses an undecided advisory reads. Each record now carries the reachability measured from
+  the shipped configuration (threads and gc off in the wheel's own engine config, `wasi:http` never
+  linked, no network in the sandbox, memory64 never passed by either product seam) and the reason the
+  published fix cannot be taken today: crates.io fixed eight at 50.0.2 and the wasmtime-wasi one at
+  50.0.3, and PyPI publishes neither. The recommendation the rows carry is the move to 51.0.0, which
+  those databases report clean. Two justifications had gone stale with their subject and were rewritten
+  against new measurements, and the pip row is held by a fence test over the hash-pinned bootstrap wheel
+  in `install.sh` and the `Dockerfile` where prose carried it before (`7d1d4f0`).
+- hooks: `scripts/ci_local.sh`, the pre-commit script that runs the CI legs locally, did not run the
+  New-file rule over paths no committed baseline covers, so six prose tells on a new test file reached
+  CI before anything read them. The hook now runs that instrument over the staged scope, proven with a
+  planted German developer line that makes it exit 1 naming the file (`35c26a0`).
 
 ### Changed
 
