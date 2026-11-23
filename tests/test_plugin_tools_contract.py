@@ -419,49 +419,44 @@ def test_a_declared_tool_is_granted_by_the_manifest_that_declares_it(tmp_path, m
 
 
 def test_the_shipped_bundles_still_scan_clean() -> None:
+    """A clean scan, the manifests as its only source, and no name served twice.
+
+    The scan was judged against 47 names and an owner count typed out beside it, so adding a
+    bundle was a red run rather than a fact about ownership. It is now read against the manifests
+    it scanned, bundle by bundle: what a bundle declares is what the scan hands it, each name has
+    one owner, and no contributed name is still served by the kernel map -- the general form of
+    the sixteen per-name assertions this test used to enumerate. Per bundle matters: a claim on a
+    reserved name is dropped rather than raised, and judged as one global set that drop takes the
+    declaration out of both sides at once, so nothing moves.
+    """
     from core.tools.registry import TOOL_MAP, addressable_tool_names
 
     scanned = scan_tool_activations(ROOT / "plugins")
+    declared: dict[str, set[str]] = {}
+    for entry in plugin_manifest.scan_plugins(ROOT / "plugins"):
+        assert not entry["error"], f"{entry['dir']}: {entry['error']}"
+        manifest = entry["manifest"]
+        names = {
+            str(tool["name"] if isinstance(tool, dict) else tool)
+            for tool in (manifest.get("components") or {}).get("tools") or []
+        }
+        if names:
+            declared[str(manifest["name"])] = names
+    by_owner: dict[str, set[str]] = {}
+    for name, owner in scanned.owners:
+        by_owner.setdefault(owner, set()).add(name)
+
     assert scanned.conflicts == ()
-    assert scanned.contributed == (
-        "analyze_image", "analyze_project",
-        "browser_click", "browser_evaluate", "browser_exec", "browser_go",
-        "browser_press", "browser_screenshot", "browser_scroll", "browser_type",
-        "build_document", "create_diagram", "create_docx", "create_pdf",
-        "create_pitch_deck", "create_pptx_deck", "create_qrcode",
-        "create_source_notebook", "create_svg", "create_xlsx", "edit_file",
-        "edit_pptx_template", "export_source_brief",
-        "extract_pdf_text", "fetch_url", "file_search", "format_code",
-        "generate_chart", "generate_image", "inspect_pptx_template",
-        "list_directory", "load_workspace",
-        "memory", "qa_pptx_deck", "query_source_notebook",
-        "read_file", "run_linter", "run_shell", "run_tests", "scaffold_project",
-        "synthesize", "transcribe",
-        "verify_artifact", "vision_click", "vision_type", "web_search",
-        "write_file",
-    )
-    assert len(scanned.owners) == 47
+    # What a bundle declares is what the scan hands it, bundle by bundle. A claim on a name the
+    # first-party shelf, the kernel or the MCP rail already holds is dropped rather than raised,
+    # so this is the only place a silently missing tool answers: judged as one global set, the
+    # dropped name leaves the declaration side at the same moment and nothing moves.
+    assert by_owner == declared
+    owned = [name for name, _owner in scanned.owners]
+    assert len(owned) == len(set(owned)), "a tool name is owned by two bundles"
+    assert not set(scanned.contributed) & set(TOOL_MAP)
+    assert set(scanned.contributed) <= set(addressable_tool_names())
+    # An owner outside the contributed set would be a version-1 kernel activation, which the
+    # kernel has to keep serving. None ship today; the line is here for the day one does.
     kernel = [name for name, _owner in scanned.owners if name not in scanned.contributed]
     assert all(name in TOOL_MAP for name in kernel)
-    assert "web_search" not in TOOL_MAP and "fetch_url" not in TOOL_MAP
-    assert "memory" not in TOOL_MAP
-    assert "browser_go" not in TOOL_MAP and "browser_exec" not in TOOL_MAP
-    assert "vision_click" not in TOOL_MAP and "vision_type" not in TOOL_MAP
-    assert "analyze_image" not in TOOL_MAP
-    assert "run_shell" not in TOOL_MAP and "read_file" not in TOOL_MAP
-    assert "write_file" not in TOOL_MAP and "edit_file" not in TOOL_MAP
-    assert "run_tests" not in TOOL_MAP and "format_code" not in TOOL_MAP
-    assert "create_pdf" not in TOOL_MAP and "create_docx" not in TOOL_MAP
-    assert "verify_artifact" not in TOOL_MAP and "extract_pdf_text" not in TOOL_MAP
-    assert "create_xlsx" not in TOOL_MAP and "generate_chart" not in TOOL_MAP
-    assert "create_pptx_deck" not in TOOL_MAP and "create_pitch_deck" not in TOOL_MAP
-    assert "create_diagram" not in TOOL_MAP and "create_svg" not in TOOL_MAP
-    assert "generate_image" not in TOOL_MAP
-    assert "synthesize" not in TOOL_MAP and "transcribe" not in TOOL_MAP
-    assert "qa_pptx_deck" not in TOOL_MAP and "edit_pptx_template" not in TOOL_MAP
-    addressable = addressable_tool_names()
-    assert {
-        "web_search", "fetch_url", "memory", "browser_go", "browser_exec",
-        "vision_click", "vision_type", "analyze_image", "read_file",
-        "generate_image", "synthesize", "transcribe",
-    } <= addressable

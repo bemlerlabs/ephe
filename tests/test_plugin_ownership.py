@@ -23,56 +23,6 @@ from core.plugin_lifecycle import STATE_FILENAME, PluginLifecycle
 from core.plugin_registry import PluginRegistry
 from core.plugin_store import config_root
 
-EXPECTED_ACTIVATIONS = {
-    "analyze_image": "vision",
-    "analyze_project": "code-shell",
-    "browser_click": "browser-use",
-    "browser_evaluate": "browser-use",
-    "browser_exec": "browser-use",
-    "browser_go": "browser-use",
-    "browser_press": "browser-use",
-    "browser_screenshot": "browser-use",
-    "browser_scroll": "browser-use",
-    "browser_type": "browser-use",
-    "build_document": "documents",
-    "create_diagram": "presentations",
-    "create_docx": "documents",
-    "create_pdf": "documents",
-    "create_pitch_deck": "presentations",
-    "create_pptx_deck": "presentations",
-    "create_qrcode": "documents",
-    "create_source_notebook": "documents",
-    "create_svg": "presentations",
-    "create_xlsx": "spreadsheets",
-    "edit_file": "code-shell",
-    "edit_pptx_template": "presentations",
-    "export_source_brief": "documents",
-    "extract_pdf_text": "documents",
-    "fetch_url": "web-research",
-    "file_search": "code-shell",
-    "format_code": "code-shell",
-    "generate_chart": "spreadsheets",
-    "generate_image": "image-studio",
-    "inspect_pptx_template": "presentations",
-    "list_directory": "code-shell",
-    "load_workspace": "code-shell",
-    "memory": "memory",
-    "qa_pptx_deck": "presentations",
-    "query_source_notebook": "documents",
-    "read_file": "code-shell",
-    "run_linter": "code-shell",
-    "run_shell": "code-shell",
-    "run_tests": "code-shell",
-    "scaffold_project": "code-shell",
-    "synthesize": "voice",
-    "transcribe": "voice",
-    "verify_artifact": "documents",
-    "vision_click": "vision",
-    "vision_type": "vision",
-    "web_search": "web-research",
-    "write_file": "code-shell",
-}
-
 
 @pytest.fixture()
 def device(tmp_path, monkeypatch):
@@ -159,9 +109,51 @@ Use create_video.
     )
 
 
-def test_the_manifests_cover_the_retired_family_map() -> None:
+def _declared_tool_owners() -> dict[str, str]:
+    """Every tool name the shipped manifests declare, mapped to the bundle that declares it.
+
+    Read through `plugin_manifest.scan_plugins`, the loader the runtime itself walks, so a
+    bundle the loader refuses cannot hide behind a fixture.
+    """
+    owners: dict[str, str] = {}
+    for entry in plugin_manifest.scan_plugins(ROOT / "plugins"):
+        assert not entry["error"], f"{entry['dir']}: {entry['error']}"
+        manifest = entry["manifest"]
+        for tool in (manifest.get("components") or {}).get("tools") or []:
+            name = str(tool["name"] if isinstance(tool, dict) else tool)
+            assert name not in owners, (
+                f"{name} is declared by {owners.get(name)} and {manifest['name']}"
+            )
+            owners[name] = str(manifest["name"])
+    return owners
+
+
+def test_the_activations_are_the_manifests_own_declarations() -> None:
+    """Every tool the runtime hands to a bundle is one that bundle declared, behind a callable.
+
+    This compared against a map of 47 names typed out beside the test. Two bundles landed and
+    the map went stale while the ownership it described was still exactly right, which is the
+    shape of a change-detector: it fails when a bundle is added, not when ownership breaks. The
+    claims it was standing in for stay, read from the manifests the loader reads -- the
+    activation map is the declared surface, one owner per name, no name claimed by two bundles,
+    and every declaration names a function that exists inside its own bundle.
+    """
     registry = PluginRegistry.load(ROOT / "plugins", ROOT / "skills")
-    assert dict(registry.tool_activations()) == EXPECTED_ACTIVATIONS
+    declared = _declared_tool_owners()
+    assert dict(registry.tool_activations()) == declared
+
+    for entry in plugin_manifest.scan_plugins(ROOT / "plugins"):
+        manifest = entry["manifest"]
+        bundle_dir = Path(entry["dir"])
+        for tool in (manifest.get("components") or {}).get("tools") or []:
+            if not isinstance(tool, dict) or not tool.get("entry"):
+                continue
+            source, _, symbol = str(tool["entry"]).partition(":")
+            handler = bundle_dir / source
+            assert handler.is_file(), f"{tool['name']}: {source} is not in {manifest['name']}"
+            assert f"def {symbol}(" in handler.read_text(encoding="utf-8"), (
+                f"{tool['name']}: {source} carries no {symbol}"
+            )
 
 
 def test_disabling_a_plugin_removes_all_its_tools(device) -> None:

@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.plugin_commands import expand_plugin_command
-from core.plugin_registry import CapabilityKind, PluginRegistry
+from core.plugin_registry import DUPLICATE_COMMANDS, CapabilityKind, PluginRegistry
 
 
 @pytest.fixture()
@@ -97,8 +97,38 @@ def test_a_disabled_plugin_command_does_not_expand(command_home) -> None:
     assert expand_plugin_command("/report Q3") == "/report Q3"
 
 
-def test_every_registered_command_carries_its_template() -> None:
+def _declared_commands() -> set[tuple[str, str]]:
+    """The (bundle, command) pairs the shipped manifests declare, without the leading slash."""
+    pairs: set[tuple[str, str]] = set()
+    for path in sorted((ROOT / "plugins").glob("*/ephe-plugin.json")):
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        bundle = str(manifest["name"])
+        assert bundle == path.parent.name, f"{path}: folder is {path.parent.name}"
+        for entry in (manifest.get("components") or {}).get("commands") or []:
+            pairs.add((bundle, str(entry["name"]).lstrip("/")))
+    return pairs
+
+
+def test_every_registered_command_carries_its_template(command_home) -> None:
+    """Every command a bundle declares is registered and expands, except the collision rule.
+
+    This test pinned a count (32, then 42) that mirrored how many command entries the manifests
+    happen to carry: two bundles landed and it went red while every command still expanded
+    correctly. What it was standing in for is kept and none of it moves with a bundle -- the
+    registered (bundle, command) pairs are exactly the declared ones minus `DUPLICATE_COMMANDS`,
+    the set the expander itself declines against, so a declared command that silently fails to
+    register answers here instead of in a number nobody reads; and every registered command
+    carries a template that the expander actually applies.
+    """
     registry = PluginRegistry.load(ROOT / "plugins", ROOT / "skills")
     commands = registry.capabilities(CapabilityKind.COMMAND)
-    assert len(commands) == 32
-    assert all(command.template for command in commands)
+    registered = {(command.owner, command.name.lstrip("/")): command for command in commands}
+
+    assert len(registered) == len(commands), "two bundles registered the same command name"
+    assert set(registered) == _declared_commands() - set(DUPLICATE_COMMANDS)
+    for (bundle, name), command in registered.items():
+        assert command.template, f"{bundle}/{name} is registered without a template"
+        expanded = expand_plugin_command(f"/{name} the topic")
+        assert expanded not in (f"/{name} the topic", f"/{name}"), (
+            f"{bundle}/{name} is registered but never expanded"
+        )

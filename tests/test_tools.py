@@ -36,6 +36,9 @@ from core.tools import (
     web_search,
 )
 
+from core import plugin_manifest
+from core.plugin_registry import PluginRegistry
+
 # `web_search` above is the tool FUNCTION; the patch target is the module
 # (tests/web_search_seam.py explains why the dotted string broke on Python 3.10).
 from tests.web_search_seam import web_search_module
@@ -468,15 +471,54 @@ class TestToolSchemas:
 
     def test_all_tool_names_match_functions(self):
         """
-        GIVEN  the list of defined tool functions
-        WHEN   get_tool_schemas() is called
-        THEN   every schema name matches an importable function
+        GIVEN  the list of offered tool schemas
+        WHEN   every schema name is looked up where its owner keeps it
+        THEN   it resolves to a callable: an attribute of core.tools, or the function a
+               registered bundle declares behind its `entry`
+        AND    a name owned by neither world fails
         """
+        import importlib.util
+        from types import ModuleType
+
         import core.tools as tools_module
-        schemas = get_tool_schemas()
-        for schema in schemas:
+
+        root = Path(__file__).resolve().parents[1]
+        registry = PluginRegistry.load(root / "plugins", root / "skills")
+        activations = dict(registry.tool_activations())
+        entries: dict[str, tuple[str, str]] = {}
+        for scanned in plugin_manifest.scan_plugins(root / "plugins"):
+            assert not scanned["error"], f"{scanned['dir']}: {scanned['error']}"
+            manifest = scanned["manifest"]
+            assert isinstance(manifest, dict), f"{scanned['dir']}: no manifest to read"
+            bundle = str(manifest["name"])
+            for tool in (manifest.get("components") or {}).get("tools") or []:
+                if isinstance(tool, dict) and tool.get("entry"):
+                    entries[str(tool["name"])] = (bundle, str(tool["entry"]))
+
+        loaded: dict[str, ModuleType] = {}
+        for schema in get_tool_schemas():
             name = schema["function"]["name"]
-            assert hasattr(tools_module, name), f"Tool '{name}' hat keine Implementierung"
+            if name not in activations:
+                assert hasattr(tools_module, name), (
+                    f"tool {name} is offered but implemented nowhere: core.tools has no such "
+                    f"function and no registered bundle activates it"
+                )
+                continue
+            assert name in entries, f"tool {name} is activated by a bundle that declares no entry"
+            bundle, entry = entries[name]
+            source, _, symbol = entry.partition(":")
+            path = root / "plugins" / bundle / source
+            assert path.is_file(), f"tool {name}: {bundle} declares {source}, which is not in the bundle"
+            module = loaded.get(str(path))
+            if module is None:
+                spec = importlib.util.spec_from_file_location(f"{bundle}_{symbol}", path)
+                assert spec and spec.loader
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                loaded[str(path)] = module
+            assert callable(getattr(module, symbol, None)), (
+                f"tool {name}: {bundle} declares {entry}, which is not a callable there"
+            )
 
 
 # J1: read_file reference granularity — line numbers (cat -n), offset/limit

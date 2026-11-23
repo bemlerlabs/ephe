@@ -504,8 +504,8 @@
         {
           "artifact": {
             "file": "artifacts/ephe-motion-studio-1.0.0.zip",
-            "sha256": "8829b85877e7db08562ea684bd3ad8373cc55c49444f2df801df0dfb738a3351",
-            "sizeBytes": 13225
+            "sha256": "4f62e0f47fca64cc00afec885060cbce8127b36ae9a973408e2482340f677c95",
+            "sizeBytes": 15263
           },
           "components": [
             "skills",
@@ -526,13 +526,13 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "8829b85877e7db08562ea684bd3ad8373cc55c49444f2df801df0dfb738a3351",
+            "sha256": "4f62e0f47fca64cc00afec885060cbce8127b36ae9a973408e2482340f677c95",
             "signature": {
               "alg": "ES256",
               "kid": "first-party",
               "name": "ephe-motion-studio",
-              "sha256": "f38ef782ede4894cea687db5000e7f9177b2ae4c1d00b23d754525b5965ae46b",
-              "signature": "MEUCIEHKpbvUq+JuNQc9iI1sQ+S0y4lgoVcE8BTxHosYT1KWAiEA5W24bEcX+i7H37oWGTsZUs7Jr3v2cYAfNBH0hcTbNyY=",
+              "sha256": "d7d11c9fb60ff0258d5d19d6378f951624cf0fa20c7aba5f33c3cc7a94743eb2",
+              "signature": "MEUCIA70oauq64lbnUNZVrpi9gBPr278Aw7ZpAAXeL5b7eHSAiEA4jEw2pkHTH+3iHywaMtMbbcjPJzDwtqbD78Uhf45/m0=",
               "version": "1.0.0"
             },
             "type": "zip",
@@ -567,8 +567,8 @@
         {
           "artifact": {
             "file": "artifacts/ephe-template-library-1.0.0.zip",
-            "sha256": "9ddce3f65c851b950bb7c974ee9102e2b37166741f1326e064e87ad259f55842",
-            "sizeBytes": 28172
+            "sha256": "6e17a3f2898a52ad2acf9f0550f88aebb25f9cbd1cf9ba0fd7e3fcf8cd1e39f3",
+            "sizeBytes": 28427
           },
           "components": [
             "skills",
@@ -588,13 +588,13 @@
           },
           "publishTimestamp": 0,
           "source": {
-            "sha256": "9ddce3f65c851b950bb7c974ee9102e2b37166741f1326e064e87ad259f55842",
+            "sha256": "6e17a3f2898a52ad2acf9f0550f88aebb25f9cbd1cf9ba0fd7e3fcf8cd1e39f3",
             "signature": {
               "alg": "ES256",
               "kid": "first-party",
               "name": "ephe-template-library",
-              "sha256": "adf160db0957447e7b3b05dc9b4954033a661f87899ca06999fa00664d39465b",
-              "signature": "MEUCIQDNA2HgylUoOsb1Wx/6rDdvdZMz4evCjNCuBnrU549pQAIgJr37iQKJSPoUq9ylSBvrAtBKrt03GhrPBhyX6Wj20P8=",
+              "sha256": "6e32498a6d2352031e100fef29821ee39a883ccbb77a7709e4f892fac2fe48a5",
+              "signature": "MEUCIGaOENAJDQn0mKBl8NbZFFMyJiurwoiRIojs58nmhoAaAiEA07rlKDSvnP41+yWdpbMK9bPZ/6Ob670WAitJyzioykk=",
               "version": "1.0.0"
             },
             "type": "zip",
@@ -1599,6 +1599,6 @@
   "signature": {
     "alg": "ES256",
     "kid": "first-party",
-    "signature": "MEUCIQDPixcO1rbZKxjQvBkYRHNlTyOPMfiStSPsfkppZVlO2wIgXhSZRwny8/15QPCdcjMZzkOAfjxXtyB9a8PHRnHPz0U="
+    "signature": "MEUCIQDkjFQ13380YDl/t0v4j2DhK6sWk0gj3IWKxCS2KwP+kgIgR7GHPr9PgURe5Y+ffDLbikOkI1LdBiS/IGRKVk9xFgs="
   }
 }

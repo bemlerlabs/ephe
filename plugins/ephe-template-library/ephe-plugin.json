@@ -44,13 +44,34 @@
         "name": "ephe_template_list",
         "entry": "tools/handlers.py:ephe_template_list",
         "family": "read",
-        "description": "List curated local templates."
+        "description": "List curated local templates.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
       },
       {
         "name": "ephe_template_apply",
         "entry": "tools/handlers.py:ephe_template_apply",
         "family": "write",
-        "description": "Copy an audited template and its licence into a local project."
+        "description": "Copy an audited template and its licence into a local project.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "template_id": {
+              "type": "string",
+              "description": "One of the ids `ephe_template_list` answers with. The copy is refused when the provenance record has no such entry, its licence file is missing, the file's sha256 does not match the record, or the file references a public CDN."
+            },
+            "destination": {
+              "type": "string",
+              "description": "Absolute folder the template and its licence file are copied into, created when missing; the template keeps the file name its provenance record names."
+            }
+          },
+          "required": [
+            "template_id",
+            "destination"
+          ]
+        }
       }
     ]
   },

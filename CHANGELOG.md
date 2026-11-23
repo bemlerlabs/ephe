@@ -26,6 +26,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   bundles. The catalogue now carries the hashes a clean checkout computes.
 - frontend: the ChatLayout slash tests wait for the streamed reply to settle instead of racing the
   mock, which made the leg pass or fail on scheduling (`61b2063`).
+- plugins: the nineteen tools of the two studio bundles reached the engine without a single
+  parameter. Their manifests carried no `properties`, so the served schema listed none while the
+  handler behind `ephe_motion_add_caption` hard-required five (`project_id`, `text`, `start`,
+  `duration`, `expected_revision`) and the path-form check read `target_dir` as an empty string.
+  Each now carries its type, its bounds and a sentence the engine reads, and the three contract
+  tests that judged the surface against names typed beside them read the manifests instead, so
+  adding a bundle is a fact and a bundle claiming another's tool is a failure.
 - docs: the Chinese and Spanish READMEs and `docs/PLUGINS_OVERVIEW.md` state nineteen bundles,
   twelve plugins and seven presets, the numbers `marketplace/index.json` reports; the English
   README already did.

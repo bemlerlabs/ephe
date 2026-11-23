@@ -80,14 +80,34 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "name": {"type": "string"},
-            "width": {"type": "integer"},
-            "height": {"type": "integer"},
-            "fps": {"type": "integer"},
-            "duration": {"type": "number"},
-            "template": {"type": "string"}
+            "name": {
+              "type": "string",
+              "description": "Title of the film. It is slugged into the project id and stored as the brand name; anything non-empty, the first 48 slug characters are kept."
+            },
+            "width": {
+              "type": "integer",
+              "description": "Stage width in pixels, 16 to 1920; 1280 when omitted. The preview canvas and every captured frame are this wide."
+            },
+            "height": {
+              "type": "integer",
+              "description": "Stage height in pixels, 16 to 1920; 720 when omitted."
+            },
+            "fps": {
+              "type": "integer",
+              "description": "Frames per second, 1 to 60; 30 when omitted. The render captures duration x fps frames and more than 600 of them refuse the render."
+            },
+            "duration": {
+              "type": "number",
+              "description": "Film length in seconds, 0.1 to 60; 5 when omitted. Scene 1 spans it and a later render cuts that many frames."
+            },
+            "template": {
+              "type": "string",
+              "description": "Starting content. `reveal` seeds three beats and one caption spread over the duration; any other value, or omitting it, starts with no clips and only stores the name."
+            }
           },
-          "required": ["name"]
+          "required": [
+            "name"
+          ]
         }
       },
       {
@@ -98,9 +118,14 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The answer carries the whole project document and its current revision, which every write names."
+            }
           },
-          "required": ["project_id"]
+          "required": [
+            "project_id"
+          ]
         }
       },
       {
@@ -111,9 +136,14 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The answer lists the files under the project's assets folder with their size and suffix."
+            }
           },
-          "required": ["project_id"]
+          "required": [
+            "project_id"
+          ]
         }
       },
       {
@@ -124,12 +154,27 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "source_path": {"type": "string"},
-            "name": {"type": "string"},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The folder that receives the copy."
+            },
+            "source_path": {
+              "type": "string",
+              "description": "Absolute path of an existing file on this machine to copy in; a relative path would resolve against the server's working directory, so pass an absolute one. Refused when the file is missing or above 8 MiB."
+            },
+            "name": {
+              "type": "string",
+              "description": "Label for the asset, slugged into the asset id beside six random hex characters. The source file's own stem is used when omitted."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "Optional fence: the 64-hex revision you believe the project is at. When present, a stale value is refused with `revision_conflict` before anything happens. The copy moves the revision either way."
+            }
           },
-          "required": ["project_id", "source_path"]
+          "required": [
+            "project_id",
+            "source_path"
+          ]
         }
       },
       {
@@ -140,11 +185,23 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "path": {"type": "string"},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The source is read from inside this project only."
+            },
+            "path": {
+              "type": "string",
+              "description": "Source file inside the project's `sources` folder, which is the allowed root: a path like `index.html` or `css/main.css`. An absolute path or a `..` segment is refused, and the suffix must be one of .css, .html, .js, .svg, .txt."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "Optional read fence: the 64-hex revision you believe the project is at. A mismatch refuses the read, so you never edit from text you did not see current."
+            }
           },
-          "required": ["project_id", "path"]
+          "required": [
+            "project_id",
+            "path"
+          ]
         }
       },
       {
@@ -155,12 +212,29 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "path": {"type": "string"},
-            "content": {"type": "string"},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The source is written inside this project only."
+            },
+            "path": {
+              "type": "string",
+              "description": "Source file inside the project's `sources` folder, which is the allowed root: a path like `index.html` or `css/main.css`. An absolute path or a `..` segment is refused, and the suffix must be one of .css, .html, .js, .svg, .txt."
+            },
+            "content": {
+              "type": "string",
+              "description": "The complete new text of the file, replacing what was there. Must be a string; an empty string truncates the source to nothing."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "The 64-hex revision your last read of this project answered with. Required: a stale value is refused with `revision_conflict` before a byte is written, and the write moves the revision."
+            }
           },
-          "required": ["project_id", "path", "content", "expected_revision"]
+          "required": [
+            "project_id",
+            "path",
+            "content",
+            "expected_revision"
+          ]
         }
       },
       {
@@ -171,9 +245,14 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The answer carries stage size, fps, duration, the clip, caption and scene counts, the source and asset paths and the brand kit."
+            }
           },
-          "required": ["project_id"]
+          "required": [
+            "project_id"
+          ]
         }
       },
       {
@@ -184,9 +263,14 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters. The answer carries the clips sorted by start then order, and the captions sorted by start."
+            }
           },
-          "required": ["project_id"]
+          "required": [
+            "project_id"
+          ]
         }
       },
       {
@@ -197,13 +281,34 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "clip_id": {"type": "string"},
-            "start": {"type": "number"},
-            "duration": {"type": "number"},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "clip_id": {
+              "type": "string",
+              "description": "The clip's id as `ephe_motion_list_timeline` answered it. An id the project does not have is refused with `asset_not_found`."
+            },
+            "start": {
+              "type": "number",
+              "description": "Where the clip begins, in seconds from the start of the film; 0 to 60."
+            },
+            "duration": {
+              "type": "number",
+              "description": "How long the clip runs, in seconds; 0.05 to 60."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "The 64-hex revision your last read of this project answered with. Required: a stale value is refused with `revision_conflict` before a byte is written, and the write moves the revision."
+            }
           },
-          "required": ["project_id", "clip_id", "start", "duration", "expected_revision"]
+          "required": [
+            "project_id",
+            "clip_id",
+            "start",
+            "duration",
+            "expected_revision"
+          ]
         }
       },
       {
@@ -214,11 +319,27 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "clip_ids": {"type": "array", "items": {"type": "string"}},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "clip_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Every clip id of the project, each exactly once, in the new play order. A missing, extra or repeated id is refused with `invalid_argument`. Only the order field changes; the clip starts stay where they are."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "The 64-hex revision your last read of this project answered with. Required: a stale value is refused with `revision_conflict` before a byte is written, and the write moves the revision."
+            }
           },
-          "required": ["project_id", "clip_ids", "expected_revision"]
+          "required": [
+            "project_id",
+            "clip_ids",
+            "expected_revision"
+          ]
         }
       },
       {
@@ -229,13 +350,34 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "text": {"type": "string"},
-            "start": {"type": "number"},
-            "duration": {"type": "number"},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "text": {
+              "type": "string",
+              "description": "The caption line, drawn in the lower band while its window is open. A blank line is refused."
+            },
+            "start": {
+              "type": "number",
+              "description": "When the caption appears, in seconds from the start of the film; 0 to 60."
+            },
+            "duration": {
+              "type": "number",
+              "description": "How long the caption stays on screen, in seconds; 0.05 to 60."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "The 64-hex revision your last read of this project answered with. Required: a stale value is refused with `revision_conflict` before a byte is written, and the write moves the revision."
+            }
           },
-          "required": ["project_id", "text", "start", "duration", "expected_revision"]
+          "required": [
+            "project_id",
+            "text",
+            "start",
+            "duration",
+            "expected_revision"
+          ]
         }
       },
       {
@@ -246,11 +388,46 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "brand": {"type": "object"},
-            "expected_revision": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "brand": {
+              "type": "object",
+              "description": "The brand kit to merge, as an object. Only `name`, `primary`, `secondary`, `font` and `logo_asset_id` are read, and only when they are strings; a key you leave out keeps its current value and any other key is ignored. An empty object is refused.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Brand name carried with the kit, set from the project title when the project was created."
+                },
+                "primary": {
+                  "type": "string",
+                  "description": "Background colour as a CSS colour such as `#101418`; it fills the stage in the preview and in the render."
+                },
+                "secondary": {
+                  "type": "string",
+                  "description": "Accent colour as a CSS colour such as `#3b82f6`, kept on the kit for the sources that ask for it."
+                },
+                "font": {
+                  "type": "string",
+                  "description": "Font family name the sources can ask for, such as `sans-serif`."
+                },
+                "logo_asset_id": {
+                  "type": "string",
+                  "description": "The asset id of a logo already imported into this project; the kit only stores the id."
+                }
+              }
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "The 64-hex revision your last read of this project answered with. Required: a stale value is refused with `revision_conflict` before a byte is written, and the write moves the revision."
+            }
           },
-          "required": ["project_id", "brand", "expected_revision"]
+          "required": [
+            "project_id",
+            "brand",
+            "expected_revision"
+          ]
         }
       },
       {
@@ -261,11 +438,22 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "expected_revision": {"type": "string"},
-            "output_name": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "expected_revision": {
+              "type": "string",
+              "description": "Optional fence: the 64-hex revision you believe the project is at. When present, a stale value is refused with `revision_conflict` before anything happens. A render writes no project field, so it is not required to render."
+            },
+            "output_name": {
+              "type": "string",
+              "description": "File name of the MP4, a bare name such as `title-card.mp4` written inside the project's own render folder; a path, or a name that escapes that folder, is refused with `path_escape`. Defaults to `<project_id>.mp4`."
+            }
           },
-          "required": ["project_id"]
+          "required": [
+            "project_id"
+          ]
         }
       },
       {
@@ -276,10 +464,19 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "render_id": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "render_id": {
+              "type": "string",
+              "description": "The render id `ephe_motion_render` answered with. The status file under the project's renders folder is read back as it stands."
+            }
           },
-          "required": ["project_id", "render_id"]
+          "required": [
+            "project_id",
+            "render_id"
+          ]
         }
       },
       {
@@ -290,10 +487,19 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "render_id": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "render_id": {
+              "type": "string",
+              "description": "The render id to stop. A render still pending or running is marked cancelled with a timestamp; a finished one is answered as it is."
+            }
           },
-          "required": ["project_id", "render_id"]
+          "required": [
+            "project_id",
+            "render_id"
+          ]
         }
       },
       {
@@ -304,10 +510,18 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "target_dir": {"type": "string"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "target_dir": {
+              "type": "string",
+              "description": "Absolute folder the zip is written into; defaults to the `exports` folder under the plugin state. The archive is named `<project_id>-<first 8 of the revision>.zip`, must stay inside this folder, and the project must be under 64 MiB."
+            }
           },
-          "required": ["project_id"]
+          "required": [
+            "project_id"
+          ]
         }
       },
       {
@@ -318,11 +532,23 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "project_id": {"type": "string"},
-            "render_id": {"type": "string"},
-            "timeout": {"type": "number"}
+            "project_id": {
+              "type": "string",
+              "description": "The project id, a lowercase slug of at most 64 characters."
+            },
+            "render_id": {
+              "type": "string",
+              "description": "The render id to watch while its status is pending or running."
+            },
+            "timeout": {
+              "type": "number",
+              "description": "Seconds to keep polling the status, 0 to 600; 120 when omitted. The status reached by the deadline is answered either way."
+            }
           },
-          "required": ["project_id", "render_id"]
+          "required": [
+            "project_id",
+            "render_id"
+          ]
         }
       }
     ]
