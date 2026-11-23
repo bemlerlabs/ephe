@@ -7,7 +7,7 @@ holds neither (its secret list is empty), and `release.yml:68` is the only job t
 `environment: release`. What is NOT set is the protection rule the environment was supposed
 to carry — `reviewers: 0`, `wait_timer: None`, `can_admins_bypass: true` — because GitHub
 refuses required reviewers on this plan with a 422. The owner confirmed that; it is the
-boundary written up in docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+boundary written up in docs/decisions/ci-capacity-and-runners.md.
 
 That leaves one barrier, and it is a convention: an environment is not a perimeter, it is an
 address. Any workflow in this repository that adds `environment: release` to one of its jobs
@@ -133,6 +133,29 @@ def test_the_signing_key_is_referenced_by_the_owner_alone():
 SYNC_WORKFLOW = "catalog-sync.yml"
 SYNC_SCOPES = {"contents": "write", "pull-requests": "write"}
 
+#: The deep scan posts its findings to the code-scanning API, and the job token may only do
+#: that with `security-events: write`. The scope cannot push, cannot tag and reads no secret,
+#: so it does not reach the signing path this fence stands in front of. `_codeql_upload_holds`
+#: re-reads the shape on every run: the exemption dies the moment the job grows a scope, an
+#: environment or a build step that turns the scan into a compile.
+CODEQL_WORKFLOW = "codeql.yml"
+CODEQL_SCOPES = {"contents": "read", "security-events": "write", "actions": "read"}
+
+
+def _codeql_upload_holds() -> bool:
+    doc = _workflows().get(CODEQL_WORKFLOW)
+    if not isinstance(doc, dict) or doc.get("permissions") != {"contents": "read"}:
+        return False
+    jobs = doc.get("jobs") or {}
+    if not jobs:
+        return False
+    for job in jobs.values():
+        if not isinstance(job, dict):
+            return False
+        if job.get("environment") or job.get("permissions") != CODEQL_SCOPES:
+            return False
+    return True
+
 
 def _sync_exemption_holds() -> bool:
     doc = _workflows().get(SYNC_WORKFLOW)
@@ -173,9 +196,13 @@ def test_no_workflow_outside_the_owner_reads_any_secret():
 
 def test_the_only_write_scope_in_the_tree_is_the_publishing_job():
     """GIVEN every permissions block, workflow-level and job-level THEN the single write grant
-    is `contents: write` in release.yml's publishing job (release.yml:70-71) and everything
-    else reads. This is the half of the fence that stops a new workflow being handed a
-    writable token with which to push a tag that then runs the release.
+    that can reach the repository is `contents: write` in release.yml's publishing job
+    (release.yml:70-71) and everything else reads. This is the half of the fence that stops a
+    new workflow being handed a writable token with which to push a tag that then runs the
+    release. The two earned exemptions below are both re-checked from the file they exempt, so
+    neither survives the file drifting: the catalog sync's pair of scopes on a schedule-only
+    workflow with no environment, and the deep scan's `security-events: write`, which reaches
+    an alert store and no repository content.
     """
     writes: list[str] = []
     for name, doc in _workflows().items():
@@ -194,6 +221,8 @@ def test_the_only_write_scope_in_the_tree_is_the_publishing_job():
     if _sync_exemption_holds():
         expected += [f"{SYNC_WORKFLOW} job:sync contents: write",
                      f"{SYNC_WORKFLOW} job:sync pull-requests: write"]
+    if _codeql_upload_holds():
+        expected.append(f"{CODEQL_WORKFLOW} job:analyze security-events: write")
     expected.append(f"{ENVIRONMENT_OWNER} job:build-bundles contents: write")
     assert writes == expected, (
         f"unexpected write grants: {writes}. Exactly one is allowed and it must stay in the "

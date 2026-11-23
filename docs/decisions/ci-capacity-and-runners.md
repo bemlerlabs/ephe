@@ -1,11 +1,22 @@
-# Why CI runs where it runs
+# Where the CI runs and what it costs
 
-Recorded 2026-10-09 as the answer to six workflow comments that cite this path. Committed
-2026-11-23, which is the day the gap was noticed: `frontend-build.yml`, `ci-gates.yml`,
-`tests.yml` (twice) and `release.yml` (twice) all point here for the reasoning behind a
-fork guard, a runner choice or a plan limit, and the file carrying it lived outside the
-tree. A rule with no home in the repository is a rule that goes stale silently, so the
-home is in the tree from now on and the measurements name the machine they came from.
+Status: accepted, in effect. The fork guard and the two lanes were decided in the
+workshop on 2026-10-09; everything under "Appendix" is a measurement taken on 2026-11-23
+and read back from the API named beside it.
+
+| Field | Value |
+|---|---|
+| Recorded | 2026-10-09, committed to this tree 2026-11-23 |
+| Decides | which pull requests may reach a runner, which legs run on which lane, and what the plan's refusals mean for the release path |
+| Scope of this change | this record, the fork guards in five workflows, the runner variable every Linux job reads |
+| Measured on | macOS 26.6 (build 25G5065a) arm64, 10 CPU, account `bemlerlabs`, 2026-11-23 |
+| Evidence | `gh api` responses for `/repos/bemlerlabs/ephe`, its `/actions/permissions`, `/actions/runners`, `/actions/variables`, `/environments`, `/branches/main/protection`, `POST /merge_queue`, and the run/job/annotation records of the runs named in the appendix |
+
+Six workflow comments cite this path: `frontend-build.yml`, `ci-gates.yml`, `tests.yml`
+twice and `release.yml` twice. For a stretch they cited a file that lived outside the
+repository, which is the state in which a rule goes stale without anyone noticing; the
+home is in the tree now, and every number here names the machine and the API response it
+came from.
 
 ## The rule a fork is held to
 

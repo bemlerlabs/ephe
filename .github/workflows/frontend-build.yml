@@ -22,7 +22,7 @@ jobs:
     name: Build & Lint (22.x)
     # A fork pull request must not run on a runner this project controls: it would execute
     # foreign code on our machine, and GitHub offers no fork-approval control here (both
-    # settings answer 422; see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md). Accepted
+    # settings answer 422; see docs/decisions/ci-capacity-and-runners.md). Accepted
     # consequence: fork PRs get no CI and are reviewed by hand. Push and same-repo PR runs
     # continue unchanged; every pull request this repository has seen was a dependabot branch.
     # Private workshop: only the security/preflight lane runs here. The full frontend and

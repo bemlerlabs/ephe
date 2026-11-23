@@ -86,3 +86,4 @@ the decision instead of folded into its text.
 | `decisions/owner-decisions.md` | The dated ledger of owner decisions the provenance lines point at |
 | `decisions/workspace-authority.md` | Why one authority decides the workspace root |
 | `decisions/PLUGIN_SURFACE_PAGE_STORAGE.md` | The page-storage shim a plugin surface gets, with the two options it rejected |
+| `decisions/ci-capacity-and-runners.md` | Why the fork guard lives in the workflows, what the two runner lanes are, what one push costs and what the plan refuses |

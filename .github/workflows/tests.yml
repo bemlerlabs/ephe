@@ -40,7 +40,7 @@ jobs:
     # foreign code on our machine, which also holds the engine data and the tunnel keys. GitHub
     # cannot gate that here — `allow_forking=false` and the fork-approval endpoint both answer 422
     # (measured 2026-10-09 on a user-owned private repository, see
-    # docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so the boundary lives in this file instead.
+    # docs/decisions/ci-capacity-and-runners.md), so the boundary lives in this file instead.
     # Accepted consequence, chosen over moving fork PRs back to hosted: a fork PR gets no CI here
     # and is reviewed by hand. Nothing silently blocks it — a fork PR's skipped checks count as
     # success, so the review is the gate. Dependabot PRs are same-repo branches, so they keep
@@ -375,7 +375,7 @@ jobs:
       #
       # What the segment buys is the absence of this leg's own workers, not an idle machine. The
       # four Linux legs share one box through three listeners ("Scale-out",
-      # docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md), so a sibling leg in its `-n auto` phase can
+      # docs/decisions/ci-capacity-and-runners.md), so a sibling leg in its `-n auto` phase can
       # load a leg that is measuring. Measured with the parallel leg running beside
       # this segment at load ~15: startup p90 127.7 ms against a 150 ms budget, TTFB mean 54.5 ms
       # against 500 ms and the search route 2.4 ms against 200 ms all held (p90 61.8 ms for the same

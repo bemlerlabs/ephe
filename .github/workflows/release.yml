@@ -21,7 +21,7 @@ name: Release
 #      and the updater skips pre-releases, so a beta tag has to publish as a normal release;
 #   3. the `release` environment carries no required reviewer (GitHub refuses the rule on this plan,
 #      HTTP 422), so the signing key is protected by scope alone — see
-#      docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+#      docs/decisions/ci-capacity-and-runners.md.
 # E2E acceptance (R20) holds only once a signed release is published and an older app pulls it.
 
 on:
@@ -226,7 +226,7 @@ jobs:
     # read it (zizmor: secrets-outside-env). A repository-scope copy defeats that scope, so
     # keep the repository-scope count at 0 (checked 2026-10-15). Environment scope is the
     # protection; it carries no required reviewer because GitHub refuses that rule on this
-    # plan (HTTP 422) — see docs/CI_CAPACITY_RUNNER_DECISION_2026-10-09.md.
+    # plan (HTTP 422) — see docs/decisions/ci-capacity-and-runners.md.
     environment: release
     # The only job that writes: it creates the draft release.
     permissions:

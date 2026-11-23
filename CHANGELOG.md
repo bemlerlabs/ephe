@@ -23,15 +23,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   the engines behind it are licensed for public repositories, which is the state this
   repository is in as of 2026-11-23. Rust is absent because no query pack exists for it,
   and no build step runs because extraction reads sources (`fdacd76`).
-- docs: `CI_CAPACITY_RUNNER_DECISION_2026-10-09.md`, the decision record six workflow
-  comments cite and which was never in the tree. It records the fork guard and what was
-  measured for it, the two runner lanes and the single variable that switches between them
-  (measured 2026-11-23: unset, with 0 runners registered, so every leg has been running
-  hosted), the 146.4 hosted minutes one push costs on this account, what the plan refuses
-  with the API answer that shows it, and the 2026-11-23 sequence in which the minute
-  budget ran out, the repository went public, and the account lock turned out to cover
-  public repositories of the same account while an organization's public repository ran
-  normally at the same minute (`fdacd76`).
+- docs: `decisions/ci-capacity-and-runners.md`, the record six workflow comments cite and
+  which was never in the tree. It holds the fork guard and what was measured for it, the two
+  runner lanes and the single variable that switches between them (measured 2026-11-23:
+  unset, with 0 runners registered, so every leg has been running hosted), the 146.4 hosted
+  minutes one push costs on this account, what the plan refuses with the API answer that
+  shows it, and the 2026-11-23 sequence in which the minute budget ran out, the repository
+  went public, and the account lock turned out to cover public repositories of the same
+  account while an organization's public repository ran normally at the same minute
+  (`5ebce54`, placed under `decisions/` per the public-docs policy).
 - scripts: `env_lock_agreement.py` compares the environment that is running against the lock it is
   pointed at and refuses the difference. It found what no leg could see: the interpreter every gate and
   every suite run on this machine uses had `wasmtime` 47.0.1 installed while uv.lock pins 50.0.1,
