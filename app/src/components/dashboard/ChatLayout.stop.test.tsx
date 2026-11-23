@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import ChatLayout from '@/components/dashboard/ChatLayout'
 import { useChatStore } from '@/store/chatStore'
 
@@ -209,9 +209,29 @@ vi.mock('react-i18next', async (importOriginal) => {
 
 const ta = () => screen.getByPlaceholderText('chat.placeholder') as HTMLTextAreaElement
 
-function send(text: string) {
-  fireEvent.change(ta(), { target: { value: text } })
-  fireEvent.keyDown(ta(), { key: 'Enter' })
+// Mount and every command here run inside act. The Sidebar behind the chat writes to the
+// store while it loads, and one macrotask tick after the mount — and after each command —
+// is what puts those writes inside the act React is looking at. Without it this file
+// printed 84 "An update to Sidebar inside a test was not wrapped in act" warnings
+// (measured 2026-11-23 with `CI=true pnpm exec vitest run --maxWorkers=1 <this file>`).
+async function send(text: string) {
+  const field = ta()
+  await act(async () => {
+    fireEvent.change(field, { target: { value: text } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
+
+// The element is looked up before act opens: an RTL query while an act scope is open
+// recurses through the `screen` proxy and dies in `Maximum call stack size exceeded`
+// (measured 2026-11-23 with the lookup inside).
+async function pressStop() {
+  const stop = screen.getByRole('button', { name: 'chat.stop' })
+  await act(async () => {
+    fireEvent.click(stop)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
 }
 
 /** Last assistant message of the active session (lib target < es2022, no .at). */
@@ -225,7 +245,7 @@ function lastAssistantMsg() {
 describe('ChatLayout stop handling (deploy-check P1-1)', () => {
   let cleanup: () => void
 
-  beforeEach(() => {
+  beforeEach(async () => {
     streamState.mode = 'hang'
     dbState.flushes = 0
     useChatStore.setState({
@@ -236,12 +256,15 @@ describe('ChatLayout stop handling (deploy-check P1-1)', () => {
       currentSession: null,
       checkpoints: {},
     })
-    useChatStore.getState().createSession('Stop-Test')
-    cleanup = render(
-      <MemoryRouter>
-        <ChatLayout />
-      </MemoryRouter>,
-    ).unmount
+    await act(async () => {
+      useChatStore.getState().createSession('Stop-Test')
+      cleanup = render(
+        <MemoryRouter>
+          <ChatLayout />
+        </MemoryRouter>,
+      ).unmount
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
   })
 
   afterEach(() => {
@@ -249,13 +272,13 @@ describe('ChatLayout stop handling (deploy-check P1-1)', () => {
   })
 
   it('stop closes the turn and drops the empty aborted bubble', async () => {
-    send('first message')
+    await send('first message')
     await waitFor(() => {
       const s = useChatStore.getState().currentSession
       expect(s?.messages.some((m) => m.role === 'assistant' && m.streaming)).toBe(true)
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'chat.stop' }))
+    await pressStop()
 
     await waitFor(() => {
       const s = useChatStore.getState().currentSession
@@ -266,18 +289,18 @@ describe('ChatLayout stop handling (deploy-check P1-1)', () => {
   })
 
   it('next turn after stop renders in its own bubble after the user message', async () => {
-    send('first message')
+    await send('first message')
     await waitFor(() => {
       const s = useChatStore.getState().currentSession
       expect(s?.messages.some((m) => m.role === 'assistant' && m.streaming)).toBe(true)
     })
-    fireEvent.click(screen.getByRole('button', { name: 'chat.stop' }))
+    await pressStop()
     await waitFor(() => {
       expect(useChatStore.getState().isTyping).toBe(false)
     })
 
     streamState.mode = 'reply'
-    send('second message')
+    await send('second message')
 
     await waitFor(() => {
       const s = useChatStore.getState().currentSession
@@ -294,13 +317,13 @@ describe('ChatLayout stop handling (deploy-check P1-1)', () => {
 
   it('the partial survives Stop and is flushed to disk (I6 P2b)', async () => {
     streamState.mode = 'partial'
-    send('langs lied')
+    await send('langs lied')
     await waitFor(() => {
       expect(lastAssistantMsg()?.content).toContain('partial-antwort')
       expect(lastAssistantMsg()?.streaming).toBe(true)
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'chat.stop' }))
+    await pressStop()
 
     await waitFor(() => {
       expect(lastAssistantMsg()?.streaming).toBe(false)

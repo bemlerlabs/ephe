@@ -9,7 +9,8 @@
  * behaviour, never pixels.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, type RenderResult } from '@testing-library/react'
+import type { ReactElement } from 'react'
 
 const DE: Record<string, string> = {
   'chat.placeholder': 'Womit kann ich dir helfen?',
@@ -122,6 +123,21 @@ import {
   modelKind,
 } from '@/lib/modelFilter'
 
+// Every mount in this file goes through this. ChatInput writes state after mount (the
+// draft read and the autosize pass), and with a bare render that update lands after RTL's
+// own act scope has closed: React printed "An update to ChatInput inside a test was not
+// wrapped in act(...)" for it — 87 of them in this file (measured 2026-11-23 with
+// `CI=true pnpm exec vitest run --maxWorkers=1 <file>`). The tick inside the act scope is
+// what lets the update arrive while the scope is still open.
+async function mountComposer(ui: ReactElement): Promise<RenderResult> {
+  let view!: RenderResult
+  await act(async () => {
+    view = render(ui)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+  return view
+}
+
 const ta = () => screen.getByTestId('chat-input') as HTMLTextAreaElement
 
 beforeEach(() => {
@@ -134,9 +150,9 @@ beforeEach(() => {
 describe('P3-1 Escape closes the topmost popup first', () => {
   const esc = () => fireEvent.keyDown(window, { key: 'Escape', bubbles: true })
 
-  it('the plus menu: Escape closes it (once ignored) and does not stop', () => {
+  it('the plus menu: Escape closes it (once ignored) and does not stop', async () => {
     const onStop = vi.fn()
-    render(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
     fireEvent.click(screen.getByTestId('composer-attach-plus'))
     expect(screen.getByTestId('composer-attach-menu')).toBeTruthy()
     esc()
@@ -144,8 +160,8 @@ describe('P3-1 Escape closes the topmost popup first', () => {
     expect(onStop).not.toHaveBeenCalled()
   })
 
-  it('the model menu outranks the slash list (palette > model > rest)', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('the model menu outranks the slash list (palette > model > rest)', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.change(ta(), { target: { value: '/' } })
     expect(screen.getByTestId('slash-menu')).toBeTruthy()
     fireEvent.click(screen.getByTestId('model-chip'))
@@ -156,16 +172,16 @@ describe('P3-1 Escape closes the topmost popup first', () => {
     expect(screen.getByTestId('slash-menu')).toBeTruthy()
   })
 
-  it('with nothing open, Escape stops the generation', () => {
+  it('with nothing open, Escape stops the generation', async () => {
     const onStop = vi.fn()
-    render(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
     esc()
     expect(onStop).toHaveBeenCalledTimes(1)
   })
 
-  it('with the palette or dialog open the composer is untouched and does not stop', () => {
+  it('with the palette or dialog open the composer is untouched and does not stop', async () => {
     const onStop = vi.fn()
-    render(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} streaming onStop={onStop} />)
     const dialog = document.createElement('div')
     dialog.setAttribute('role', 'dialog')
     dialog.setAttribute('aria-modal', 'true')
@@ -175,7 +191,7 @@ describe('P3-1 Escape closes the topmost popup first', () => {
     dialog.remove()
   })
 
-  it('the order of the chain: model > access > plus > @ > slash', () => {
+  it('the order of the chain: model > access > plus > @ > slash', async () => {
     expect(
       topmostPopup({ model: false, access: false, attach: true, mention: true, slash: true }),
     ).toBe('attach')
@@ -191,14 +207,14 @@ describe('P3-1 Escape closes the topmost popup first', () => {
 
 // ── 2 · Plus menu ──────────────────────────────────────────────────────────
 describe('P3-2 plus menu without a window scrim, portaled, every item visible', () => {
-  it('no fixed-inset overlay is left over the window', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('no fixed-inset overlay is left over the window', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.click(screen.getByTestId('composer-attach-plus'))
     expect(document.querySelector('div.fixed.inset-0.z-overlay')).toBeNull()
   })
 
-  it('the menu hangs on the body, height-capped and scrollable', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('the menu hangs on the body, height-capped and scrollable', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.click(screen.getByTestId('composer-attach-plus'))
     const menu = screen.getByTestId('composer-attach-menu')
     expect(menu.parentElement).toBe(document.body)
@@ -211,8 +227,8 @@ describe('P3-2 plus menu without a window scrim, portaled, every item visible', 
     expect(screen.getByTestId('composer-wide-research')).toBeTruthy()
   })
 
-  it('an outside click closes the menu, a click inside does not', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('an outside click closes the menu, a click inside does not', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.click(screen.getByTestId('composer-attach-plus'))
     fireEvent.mouseDown(screen.getByTestId('composer-attach-file'))
     expect(screen.getByTestId('composer-attach-menu')).toBeTruthy()
@@ -220,8 +236,8 @@ describe('P3-2 plus menu without a window scrim, portaled, every item visible', 
     expect(screen.queryByTestId('composer-attach-menu')).toBeNull()
   })
 
-  it('the sidebar stays clickable: the outside click only closes the menu', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('the sidebar stays clickable: the outside click only closes the menu', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.click(screen.getByTestId('composer-attach-plus'))
     const outside = document.createElement('button')
     document.body.appendChild(outside)
@@ -234,18 +250,18 @@ describe('P3-2 plus menu without a window scrim, portaled, every item visible', 
 // ── 3 · @ mentions ─────────────────────────────────────────────────────────
 describe('P3-3 @-mentions are keyboard operable', () => {
   const openMention = async (text: string) => {
-    render(<ChatInput onSend={vi.fn()} onSlashCommand={vi.fn()} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} onSlashCommand={vi.fn()} />)
     fireEvent.change(ta(), { target: { value: text, selectionStart: text.length } })
     await screen.findByTestId('mention-popup')
   }
 
-  it('detection: an @ as the first character counts like an @ after text', () => {
+  it('detection: an @ as the first character counts like an @ after text', async () => {
     expect(detectMentionToken('@read', 5)).toEqual({ query: 'read', start: 0 })
     expect(detectMentionToken('lies @read', 10)?.start).toBe(5)
     expect(detectMentionToken('mail@x', 6)).toBeNull()
   })
 
-  it('hits filter by the typed section, prefix first', () => {
+  it('hits filter by the typed section, prefix first', async () => {
     const entries = [{ name: 'README.md' }, { name: 'reading-list.md' }, { name: 'app' }]
     expect(filterMentionEntries(entries, 'rea').map((e) => e.name)).toEqual([
       'README.md',
@@ -266,7 +282,7 @@ describe('P3-3 @-mentions are keyboard operable', () => {
 
   it('Enter inserts the file and does not send', async () => {
     const onSend = vi.fn()
-    render(<ChatInput onSend={onSend} />)
+    await mountComposer(<ChatInput onSend={onSend} />)
     // The workspace path comes from getSettings() — without this await the test
     // types before the path is known, and the inserted line would be the bare
     // name instead of the path.
@@ -280,7 +296,7 @@ describe('P3-3 @-mentions are keyboard operable', () => {
   })
 
   it('Escape closes the popup and leaves the text alone', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.change(ta(), { target: { value: '@rea', selectionStart: 4 } })
     await screen.findByTestId('mention-popup')
     fireEvent.keyDown(ta(), { key: 'Escape' })
@@ -289,7 +305,7 @@ describe('P3-3 @-mentions are keyboard operable', () => {
   })
 
   it('no combobox ARIA on the textarea; the listbox carries the name', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.change(ta(), { target: { value: '@', selectionStart: 1 } })
     await screen.findByTestId('mention-popup')
     expect(screen.getByRole('listbox', { name: /Dateien im Workspace/i })).toBeTruthy()
@@ -304,7 +320,7 @@ describe('P3-3 @-mentions are keyboard operable', () => {
 
 // ── 4 · Model menu ─────────────────────────────────────────────────────────
 async function openModelMenu() {
-  render(<ChatInput onSend={vi.fn()} />)
+  await mountComposer(<ChatInput onSend={vi.fn()} />)
   await waitFor(() => expect(screen.getByTestId('model-chip').textContent).toContain('gemma4'))
   fireEvent.click(screen.getByTestId('model-chip'))
   await screen.findByTestId('model-chip-menu')
@@ -372,7 +388,7 @@ describe('P3-4 model menu: height, scrolling, search, marking, keyboard', () => 
 
 // ── 5 · Raw content / type separation ──────────────────────────────────────
 describe('P3-5 model list: templates disabled, types kept apart', () => {
-  it('filter classification', () => {
+  it('filter classification', async () => {
     expect(isJunkModel('nomic-embed-text')).toBe(true)
     expect(isJunkModel('test')).toBe(true)
     expect(isJunkModel('gemma4:12b')).toBe(false)
@@ -416,7 +432,7 @@ describe('P3-5 model list: templates disabled, types kept apart', () => {
     expect(row.textContent).not.toContain('host-one')
   })
 
-  it('grouping separates by type and by template', () => {
+  it('grouping separates by type and by template', async () => {
     const g = groupModelEntries([
       { label: 'A', model: 'gemma4:12b' },
       { label: 'B', model: 'whisper-1' },
@@ -432,7 +448,7 @@ describe('P3-5 model list: templates disabled, types kept apart', () => {
 // ── 6 · Thinking chip ──────────────────────────────────────────────────────
 describe('P3-6 the thinking chip is plain status with one detail door', () => {
   it('keeps the status look and is still the one door to the figures', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     const chip = await screen.findByTestId('composer-thinking-chip')
     // It is a disclosure: the state still cannot be toggled,
     // but the composer's secondary figures live behind this one control.
@@ -451,7 +467,7 @@ describe('P3-6 the thinking chip is plain status with one detail door', () => {
 
 // ── 7 · Mode menu ──────────────────────────────────────────────────────────
 describe('P3-7 mode menu: German, sections, keyboard', () => {
-  it('short title from the translation, fallback name unresolved', () => {
+  it('short title from the translation, fallback name unresolved', async () => {
     // Architect: the one renamed tile whose German title differs from the fallback —
     // Analyst and Operator are the same words in both languages by ruling.
     const architect = SESSION_MODES.find((m) => m.key === 'architect')!
@@ -465,15 +481,15 @@ describe('P3-7 mode menu: German, sections, keyboard', () => {
 
   it('no mode chip is left in the composer, the mode sits in the header', async () => {
     useChatStore.getState().createSession('S')
-    render(<ChatInput onSend={vi.fn()} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     expect(screen.queryByTestId('composer-mode-selector')).toBeNull()
   })
 })
 
 // ── 8 · Microcopy ──────────────────────────────────────────────────────────
 describe('P3-8 microcopy: the counter only with a reader, and badge names', () => {
-  it('the recall counter stays out at rest and appears while browsing, explained', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('the recall counter stays out at rest and appears while browsing, explained', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     fireEvent.change(ta(), { target: { value: 'erste nachricht' } })
     fireEvent.keyDown(ta(), { key: 'Enter' })
     expect(screen.queryByTestId('composer-recall-counter')).toBeNull()
@@ -485,7 +501,7 @@ describe('P3-8 microcopy: the counter only with a reader, and badge names', () =
   })
 
   it('the access control and the engine entry carry an accessible name', async () => {
-    render(<ChatInput onSend={vi.fn()} />)
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     const access = await screen.findByTestId('composer-access-control')
     // The profile leaves the row as a control; the engine's local/remote dot moved
     // behind the details door and still names itself there.
@@ -499,8 +515,8 @@ describe('P3-8 microcopy: the counter only with a reader, and badge names', () =
 })
 
 describe('QD-008 the composer keeps typed dashes', () => {
-  it('turns off the substitutions WKWebView applies to a text field', () => {
-    render(<ChatInput onSend={vi.fn()} />)
+  it('turns off the substitutions WKWebView applies to a text field', async () => {
+    await mountComposer(<ChatInput onSend={vi.fn()} />)
     const input = ta()
     expect(input.getAttribute('autocorrect')).toBe('off')
     expect(input.getAttribute('autocapitalize')).toBe('off')

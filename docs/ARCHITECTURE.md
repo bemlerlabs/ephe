@@ -250,9 +250,9 @@ tool card in the panel carries the runtime chip from the result line.
 | Gate | Location | Number |
 |---|---|---|
 | pytest (full, tracked) | `tests/` (389 files) | 4539 collected |
-| Vitest (unit) | `app/src/**/*.test.tsx/.ts` (252) | 1654 (2 load flakes pass isolated) |
-| Playwright | `app/tests/playwright/` (25 spec files incl. setup, 5 configs) | 157 listed (3 · 138 · 12 · 2 · 2) |
-| tsc + eslint | `app/` | tsc clean; eslint 1 error / 61 warnings |
+| Vitest (unit) | `app/src/**/*.test.tsx/.ts` (569 files on disk) | 568 files / 4073 tests, one full run 2026-11-23 (`CI=true pnpm exec vitest run`, exit 0, 118.78 s) |
+| Playwright | `app/tests/playwright/` (38 spec files incl. `setup-e2e/`, 5 configs) | `--list` per config 2026-11-23: 176 · 2 · 213 · 14 · 2; the main leg's split (164 in 31 + 12 in 2) and the browser install live in `docs/RELEASE_RUNBOOK.md` |
+| tsc + eslint | `app/` | tsc clean (`pnpm run build`, 2026-11-23); eslint 0 errors / 79 warnings (`CI=true pnpm exec eslint .`) |
 | sight-check (visual) | `scripts/sichtcheck_*.{mjs,py}` | fresh PNGs per pass |
 
 Local entry point: `./scripts/run-tests.sh` (clears PYTHONPATH, uses `.venv`).

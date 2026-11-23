@@ -2,7 +2,8 @@
 // groups (Everyday / Capabilities / Data / Advanced) and About as the dashed
 // closing card, ← Back to workspace, H1 + language pill + ?-icon.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import type { ComponentProps } from 'react'
+import { render, screen, fireEvent, waitFor, type RenderResult } from '@testing-library/react'
 
 const changeLanguage = vi.fn()
 
@@ -119,11 +120,42 @@ beforeEach(() => {
   changeLanguage.mockClear()
 })
 
+// Every mount here waits for one settled state: the mocked API promises and the effects
+// that render `settings-page`. `screen.findByTestId` polls that wait at 50 ms per mount,
+// so the ten mounts of the save-footer test paid ten polls and lost their 5000 ms ceiling
+// under load — measured 2026-11-23 with 30 competing single-worker vitest processes:
+// 5829 ms, "Test timed out in 5000ms." The same wait with `interval: 0` polls on the
+// mutation queue instead of the clock, which is the difference between 500 ms of polling
+// and none. The mount stays outside `act`: the cron tab schedules work that never
+// quiesces, so an act that waits for the queue to drain holds 4913 ms on that mount alone
+// (measured the same day) and the settle then has no budget left.
+async function openPanel(
+  initialTab: ComponentProps<typeof SettingsPanel>['initialTab'],
+  onClose: () => void = () => {},
+): Promise<RenderResult> {
+  const view = render(<SettingsPanel isOpen onClose={onClose} initialTab={initialTab} />)
+  await waitFor(() => expect(screen.getByTestId('settings-page')).toBeTruthy(), {
+    timeout: 2000,
+    interval: 0,
+  })
+  return view
+}
+
+// The pane follows the nav: the active row carries the 2 px hairline, held by the test
+// on that rule below, so waiting on the hairline waits on the tab being asserted.
+async function gotoTab(tab: ComponentProps<typeof SettingsPanel>['initialTab']): Promise<void> {
+  fireEvent.click(screen.getByTestId(`settings-nav-${tab}`))
+  await waitFor(
+    () =>
+      expect(screen.getByTestId(`settings-nav-${tab}`)).toHaveClass('border-l-hairline-strong'),
+    { timeout: 2000, interval: 0 },
+  )
+}
+
 describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   it('the full page has a back row and a click on back calls onClose', async () => {
     const onClose = vi.fn()
-    render(<SettingsPanel isOpen onClose={onClose} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine', onClose)
     const back = screen.getByTestId('settings-back')
     expect(back.textContent).toContain('settings.back')
     fireEvent.click(back)
@@ -131,8 +163,7 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   })
 
   it('nav groups follow the schema and every nav entry is a pill row', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine')
     for (const id of ['models', 'look', 'work', 'trust', 'system']) {
       expect(screen.getByTestId(`settings-group-head-${id}`)).toBeInTheDocument()
     }
@@ -155,14 +186,12 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   })
 
   it('a folded group stays folded when the register opens again', async () => {
-    const first = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    const first = await openPanel('engine')
     fireEvent.click(screen.getByTestId('settings-fold-models'))
     expect(screen.getByTestId('settings-fold-models').getAttribute('aria-expanded')).toBe('false')
     expect(screen.getByTestId('settings-group-rows-models').className).toContain('hidden')
     first.unmount()
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine')
     expect(screen.getByTestId('settings-fold-models').getAttribute('aria-expanded')).toBe('false')
   })
 
@@ -173,33 +202,38 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   it('the save footer only on tabs with a settings form', async () => {
     // I7-3: cron is no longer a read-only area — the four schedule controls sit
     // in that tab and need the same footer button as the others.
-    for (const tab of ['engine', 'behaviour', 'cron'] as const) {
-      const { unmount } = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab={tab} />)
-      await screen.findByTestId('settings-page')
-      expect(screen.queryByText('settings.save')).toBeInTheDocument()
-      unmount()
-    }
-    for (const tab of [
-      // Appearance rows persist on change; the section's own status line replaces
-      // the footer while no other section is dirty.
-      'appearance',
-      'artifacts',
-      'tasks',
-      'about',
-      'language',
-      'shortcuts', // a read board in the browser; the desktop shell saves its global opt-in
-      'network',
-    ] as const) {
-      const { unmount } = render(<SettingsPanel isOpen onClose={vi.fn()} initialTab={tab} />)
-      await screen.findByTestId('settings-page')
+    //
+    // The read-only tabs are walked first and in one mounted pane: a footer leaking from
+    // a writing tab into a read-only one is the failure this test exists for, and that
+    // direction is only catchable while nothing has written yet. Ten deep links were ten
+    // full mounts of a heavy pane and lost the 5000 ms ceiling under load (measured
+    // 2026-11-23 at 30 competing vitest processes: "Test timed out in 5000ms."). One
+    // mount per group plus the nav a user clicks is two mounts and ten re-renders; the
+    // deep link stays pinned for one tab of each group.
+    //
+    // Appearance rows persist on change; the section's own status line replaces the
+    // footer while no other section is dirty.
+    const quiet = await openPanel('appearance')
+    expect(screen.queryByText('settings.save')).toBeNull()
+    for (const tab of ['artifacts', 'tasks', 'about', 'language', 'shortcuts', 'network'] as const) {
+      // 'shortcuts' is a read board in the browser; the desktop shell saves its global
+      // opt-in there.
+      await gotoTab(tab)
       expect(screen.queryByText('settings.save')).toBeNull()
-      unmount()
     }
+    quiet.unmount()
+
+    const panel = await openPanel('engine')
+    expect(screen.queryByText('settings.save')).toBeInTheDocument()
+    for (const tab of ['behaviour', 'cron'] as const) {
+      await gotoTab(tab)
+      expect(screen.queryByText('settings.save')).toBeInTheDocument()
+    }
+    panel.unmount()
   })
 
   it('the active nav entry shows by the 2px rule on the left edge', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine')
     // Wave 2 (register grouping): the fill is gone. A nav row says where you
     // are through a 2 px hairline on its left edge and an ink step, so the one
     // accent stays for what is running now.
@@ -210,8 +244,7 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   })
 
   it('area title plus the language pill: the pane title is the view h2 (one level)', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine')
     // Heading rule: every area title sits at the same level. Discover/Tools/Workspaces/
     // Workbench/What-stays all render through PageHeader (an h2), so the settings pane
     // title is an h2 too — a lone h1 would break the outline a screen reader builds.
@@ -229,8 +262,7 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   })
 
   it('the ? icon toggles the detail line, no dead control', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine')
     expect(screen.queryByTestId('settings-help-hint')).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('settings-help'))
     expect(screen.getByTestId('settings-help-hint')).toHaveTextContent('engine')
@@ -238,8 +270,8 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
 
   it('Escape closes the help disclosure before it closes the page', async () => {
     const onClose = vi.fn()
-    render(<SettingsPanel isOpen onClose={onClose} initialTab="engine" />)
-    const page = await screen.findByTestId('settings-page')
+    await openPanel('engine', onClose)
+    const page = screen.getByTestId('settings-page')
     fireEvent.click(screen.getByTestId('settings-help'))
     expect(screen.getByTestId('settings-help-hint')).toBeInTheDocument()
     fireEvent.keyDown(page, { key: 'Escape' })
@@ -255,8 +287,7 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
   // client keep the violation; that width is held by
   // settings/index.touchFloor.test.tsx, this block holds the phone value.
   it('the header controls carry the phone touch floor', async () => {
-    render(<SettingsPanel isOpen onClose={vi.fn()} initialTab="engine" />)
-    await screen.findByTestId('settings-page')
+    await openPanel('engine')
     const tokens = (testid: string) => screen.getByTestId(testid).className.split(/\s+/)
     expect(tokens('settings-back')).toContain('min-h-6')
     expect(tokens('settings-lang-pill')).toContain('min-h-6')
